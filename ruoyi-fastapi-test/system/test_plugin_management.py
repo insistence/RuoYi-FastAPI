@@ -341,8 +341,9 @@ async def test_plugin_install_plan(browser_harness: BrowserHarness) -> None:
     writes = record_plugin_writes(view)
     plan_button = view.button(view.page.locator('.app-main'), '安装计划')
     await expect(plan_button).to_be_disabled()
-    await view.row(PLUGIN_ID).locator('.el-checkbox, .ant-checkbox-wrapper').click()
-    await expect(view.row(PLUGIN_ID).locator('input[type=checkbox]')).to_be_checked()
+    selection = view.row(PLUGIN_ID).locator('.el-checkbox, .ant-checkbox-wrapper')
+    await selection.click()
+    await expect(selection.locator('input[type=checkbox]')).to_be_checked()
     await expect(plan_button).to_be_enabled()
     async with view.page.expect_response(lambda result: view.matches(result, f'{RESOURCE}/plan', 'GET')) as planned:
         await plan_button.click()

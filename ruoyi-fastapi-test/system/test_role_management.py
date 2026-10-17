@@ -1,5 +1,6 @@
 import re
 from http import HTTPStatus
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import pytest
@@ -27,8 +28,18 @@ async def assign_and_cancel(view: SystemPage, role_id: int, user_name: str) -> N
         await view.action(view.button(view.page, '添加用户').click, f'{resource}/authUser/unallocatedList')
         dialog = view.dialog
         await view.fill(dialog, '用户名称', user_name)
-        available = await view.action(view.button(dialog, '搜索').click, f'{resource}/authUser/unallocatedList')
+        # 弹窗初始化可能仍有同路径响应，搜索必须匹配当前筛选条件。
+        async with view.page.expect_response(
+            lambda response: (
+                view.matches(response, f'{resource}/authUser/unallocatedList', 'GET')
+                and parse_qs(urlsplit(response.url).query).get('userName') == [user_name]
+                and parse_qs(urlsplit(response.url).query).get('roleId') == [str(role_id)]
+            )
+        ) as filtered:
+            await view.button(dialog, '搜索').click()
+        available = await view.payload(await filtered.value)
         assert available['total'] == 1
+        assert [record['userName'] for record in available['rows']] == [user_name]
         target = dialog.locator('.el-table__row, .ant-table-row').filter(
             has=view.page.get_by_text(user_name, exact=True)
         )
