@@ -4,12 +4,8 @@
     <view
       class="relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 pb-20 pt-16 text-white shadow-lg"
     >
-      <view
-        class="absolute -right-10 -top-10 size-64 rounded-full bg-white/10 blur-3xl"
-      ></view>
-      <view
-        class="absolute -bottom-10 -left-10 size-40 rounded-full bg-white/10 blur-2xl"
-      ></view>
+      <view class="absolute -right-10 -top-10 size-64 rounded-full bg-white/10 blur-3xl"></view>
+      <view class="absolute -bottom-10 -left-10 size-40 rounded-full bg-white/10 blur-2xl"></view>
 
       <view class="relative z-10 flex items-center justify-between px-6">
         <view class="flex items-center space-x-4">
@@ -48,7 +44,11 @@
                 <view class="i-mdi-chevron-right ml-1 text-xs"></view>
               </view>
             </template>
-            <view v-else class="text-xl font-bold" @click="handleToLogin">
+            <view
+              v-else
+              class="text-xl font-bold"
+              @click="handleToLogin"
+            >
               点击登录
             </view>
           </view>
@@ -109,9 +109,7 @@
       </view>
 
       <!-- Menu List -->
-      <view
-        class="overflow-hidden rounded-2xl bg-white shadow-lg shadow-gray-200/50"
-      >
+      <view class="overflow-hidden rounded-2xl bg-white shadow-lg shadow-gray-200/50">
         <view
           class="group flex items-center justify-between border-b border-gray-100 p-4 transition-colors active:bg-gray-50"
           @click="handleToEditInfo"
@@ -161,49 +159,49 @@
 </template>
 
 <script setup>
-import { useUserStore } from "@/store";
-import { computed, getCurrentInstance } from "vue";
+import { useUserStore } from '@/store'
+import { computed, getCurrentInstance } from 'vue'
 
-const { proxy } = getCurrentInstance();
-const userStore = useUserStore();
+const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
 
-const name = computed(() => userStore.name);
-const avatar = computed(() => userStore.avatar);
-const windowHeight = computed(() => uni.getSystemInfoSync().windowHeight - 50);
+const name = computed(() => userStore.name)
+const avatar = computed(() => userStore.avatar)
+const windowHeight = computed(() => uni.getSystemInfoSync().windowHeight - 50)
 
 function handleToInfo() {
-  proxy.$tab.navigateTo("/pages/mine/info/index");
+  proxy.$tab.navigateTo('/pages/mine/info/index')
 }
 
 function handleToEditInfo() {
-  proxy.$tab.navigateTo("/pages/mine/info/edit");
+  proxy.$tab.navigateTo('/pages/mine/info/edit')
 }
 
 function handleToSetting() {
-  proxy.$tab.navigateTo("/pages/mine/setting/index");
+  proxy.$tab.navigateTo('/pages/mine/setting/index')
 }
 
 function handleToLogin() {
-  proxy.$tab.reLaunch("/pages/login");
+  proxy.$tab.reLaunch('/pages/login')
 }
 
 function handleToAvatar() {
-  proxy.$tab.navigateTo("/pages/mine/avatar/index");
+  proxy.$tab.navigateTo('/pages/mine/avatar/index')
 }
 
 function handleHelp() {
-  proxy.$tab.navigateTo("/pages/mine/help/index");
+  proxy.$tab.navigateTo('/pages/mine/help/index')
 }
 
 function handleAbout() {
-  proxy.$tab.navigateTo("/pages/mine/about/index");
+  proxy.$tab.navigateTo('/pages/mine/about/index')
 }
 
 function handleJiaoLiuQun() {
-  proxy.$modal.showToast("模块建设中~");
+  proxy.$modal.showToast('模块建设中~')
 }
 
 function handleBuilding() {
-  proxy.$modal.showToast("模块建设中~");
+  proxy.$modal.showToast('模块建设中~')
 }
 </script>

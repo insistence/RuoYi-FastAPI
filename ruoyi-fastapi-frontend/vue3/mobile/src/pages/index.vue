@@ -12,9 +12,7 @@
         <view class="flex items-center space-x-3">
           <!-- Search Input -->
           <view class="flex-1 relative">
-            <view
-              class="absolute left-3 top-0 bottom-0 flex items-center text-gray-400"
-            >
+            <view class="absolute left-3 top-0 bottom-0 flex items-center text-gray-400">
               <view class="i-mdi-magnify text-lg"></view>
             </view>
             <input
@@ -56,8 +54,7 @@
 
           <view class="relative z-10">
             <view class="mb-4 flex items-center justify-between">
-              <view
-                class="rounded-lg bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-sm"
+              <view class="rounded-lg bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-sm"
                 >系统运行正常</view
               >
               <view class="text-xs opacity-80">刚刚更新</view>
@@ -67,9 +64,7 @@
                 <view class="text-3xl font-bold">85%</view>
                 <view class="text-sm opacity-90">工作效率</view>
               </view>
-              <view
-                class="h-10 w-24 overflow-hidden rounded-lg bg-white/10 p-1"
-              >
+              <view class="h-10 w-24 overflow-hidden rounded-lg bg-white/10 p-1">
                 <view class="h-full w-full flex items-end justify-between px-1">
                   <view class="w-1 bg-white/50 h-2 rounded-full"></view>
                   <view class="w-1 bg-white/70 h-4 rounded-full"></view>
@@ -117,9 +112,7 @@
           <view class="mb-4 flex items-center justify-between">
             <view class="text-base font-bold text-gray-800">快捷入口</view>
           </view>
-          <view
-            class="grid grid-cols-4 gap-2 rounded-2xl bg-white p-4 shadow-sm"
-          >
+          <view class="grid grid-cols-4 gap-2 rounded-2xl bg-white p-4 shadow-sm">
             <view class="flex flex-col items-center space-y-2">
               <view
                 class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500"
@@ -174,8 +167,7 @@
                 <view class="font-bold text-gray-800">请假申请</view>
                 <view class="text-xs text-gray-500">等待经理审批</view>
               </view>
-              <view
-                class="rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-600"
+              <view class="rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-600"
                 >待处理</view
               >
             </view>
@@ -191,8 +183,7 @@
                 <view class="font-bold text-gray-800">周报</view>
                 <view class="text-xs text-gray-500">提交成功</view>
               </view>
-              <view
-                class="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-600"
+              <view class="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-600"
                 >已完成</view
               >
             </view>
@@ -204,5 +195,5 @@
 </template>
 
 <script setup>
-const globalConfig = getApp().globalData.config;
+const globalConfig = getApp().globalData.config
 </script>

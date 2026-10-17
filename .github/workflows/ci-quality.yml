@@ -40,11 +40,13 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: ruoyi-fastapi-frontend/*/web/package.json
-      - name: Check Web formatting with the existing project configurations
+          cache-dependency-path: ruoyi-fastapi-frontend/*/*/package.json
+      - name: Check frontend formatting
         run: |
-          for framework in vue2 vue3; do
-            (cd "ruoyi-fastapi-frontend/$framework/web" && npx --yes prettier@3.6.2 --check .)
+          for framework in vue2 vue3 react; do
+            for target in web mobile; do
+              (cd "ruoyi-fastapi-frontend/$framework/$target" && npx --yes prettier@3.6.2 --check .)
+            done
           done
       - uses: actions/upload-artifact@v6
         if: always()

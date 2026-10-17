@@ -538,20 +538,20 @@ def test_plugin_create_frontend_framework_override_json_output_has_stable_contra
 def test_plugin_create_rejects_framework_outside_fixed_choices(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> None:
-    """校验根命令在参数解析阶段拒绝不属于固定选项的 React 框架。"""
+    """校验根命令在参数解析阶段拒绝不属于固定选项的 unknown 框架。"""
     completed = run_cli_command(
         'plugin',
         'create',
-        'contract_react',
+        'contract_unknown',
         '--dry-run',
         '--frontend-only',
-        '--frontend-framework=react',
+        '--frontend-framework=unknown',
         '--env=dev',
         '--output=json',
     )
     assert completed.returncode == ARGUMENT_ERROR
     assert 'Invalid value' in completed.stderr
-    assert 'react' in completed.stderr
+    assert 'unknown' in completed.stderr
 
 
 def test_plugin_create_rejects_removed_frontend_version_option(

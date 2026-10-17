@@ -1,0 +1,11 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  '@tarojs/binding': true
+  '@tarojs/cli': false
+  core-js-pure: false
+  core-js: false
+  esbuild: true
+overrides:
+  # Taro 4.2's RN lint plugin imports internals removed by later 16.x releases.
+  stylelint: 16.4.0

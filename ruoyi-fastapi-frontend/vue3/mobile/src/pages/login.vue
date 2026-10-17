@@ -4,18 +4,14 @@
   >
     <!-- Logo Section -->
     <view class="mb-6 flex flex-col items-center">
-      <view
-        class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg"
-      >
+      <view class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg">
         <image
           class="size-10"
           :src="globalConfig.appInfo.logo"
           mode="widthFix"
         />
       </view>
-      <text class="text-xl font-bold tracking-wide text-gray-800"
-        >RuoYi-FastAPI移动端登录</text
-      >
+      <text class="text-xl font-bold tracking-wide text-gray-800">RuoYi-FastAPI移动端登录</text>
     </view>
 
     <!-- Form Section -->
@@ -75,7 +71,10 @@
           class="h-12 w-28 overflow-hidden rounded-xl bg-gray-100 shadow-sm transition-opacity active:opacity-80"
           @click="getCode"
         >
-          <image :src="codeUrl" class="size-full object-cover"></image>
+          <image
+            :src="codeUrl"
+            class="size-full object-cover"
+          ></image>
         </view>
       </view>
 
@@ -89,7 +88,10 @@
 
       <!-- Footer Links -->
       <view class="mt-6 flex flex-col items-center space-y-3">
-        <view class="flex items-center text-sm text-gray-500" v-if="register">
+        <view
+          class="flex items-center text-sm text-gray-500"
+          v-if="register"
+        >
           <text>没有账号？</text>
           <text
             @click="handleUserRegister"
@@ -98,9 +100,7 @@
           >
         </view>
 
-        <view
-          class="flex flex-wrap items-center justify-center text-xs text-gray-400"
-        >
+        <view class="flex flex-wrap items-center justify-center text-xs text-gray-400">
           <text>登录即代表同意</text>
           <text
             @click="handleUserAgrement"
@@ -120,64 +120,63 @@
 </template>
 
 <script setup>
-import { ref, getCurrentInstance } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
-import { getToken } from "@/utils/auth";
-import { getCodeImg } from "@/api/login";
-import { useConfigStore, useUserStore } from "@/store";
+import { ref, getCurrentInstance } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { getToken } from '@/utils/auth'
+import { getCodeImg } from '@/api/login'
+import { useConfigStore, useUserStore } from '@/store'
 
-const { proxy } = getCurrentInstance();
-const globalConfig = useConfigStore().config;
-const codeUrl = ref("");
+const { proxy } = getCurrentInstance()
+const globalConfig = useConfigStore().config
+const codeUrl = ref('')
 // 验证码开关
-const captchaEnabled = ref(true);
+const captchaEnabled = ref(true)
 // 用户注册开关
-const register = ref(false);
+const register = ref(false)
 const loginForm = ref({
-  username: "admin",
-  password: "admin123",
-  code: "",
-  uuid: "",
-});
+  username: 'admin',
+  password: 'admin123',
+  code: '',
+  uuid: '',
+})
 
 // 用户注册
 function handleUserRegister() {
-  proxy.$tab.redirectTo(`/pages/register`);
+  proxy.$tab.redirectTo(`/pages/register`)
 }
 
 // 隐私协议
 function handlePrivacy() {
-  proxy.$tab.navigateTo(`/pages/common/privacy/index`);
+  proxy.$tab.navigateTo(`/pages/common/privacy/index`)
 }
 
 // 用户协议
 function handleUserAgrement() {
-  proxy.$tab.navigateTo(`/pages/common/agreement/index`);
+  proxy.$tab.navigateTo(`/pages/common/agreement/index`)
 }
 
 // 获取图形验证码
 function getCode() {
   getCodeImg().then((res) => {
-    captchaEnabled.value =
-      res.captchaEnabled === undefined ? true : res.captchaEnabled;
+    captchaEnabled.value = res.captchaEnabled === undefined ? true : res.captchaEnabled
     if (captchaEnabled.value) {
-      codeUrl.value = "data:image/gif;base64," + res.img;
-      loginForm.value.uuid = res.uuid;
+      codeUrl.value = 'data:image/gif;base64,' + res.img
+      loginForm.value.uuid = res.uuid
     }
-  });
+  })
 }
 
 // 登录方法
 async function handleLogin() {
-  if (loginForm.value.username === "") {
-    proxy.$modal.msgError("请输入账号");
-  } else if (loginForm.value.password === "") {
-    proxy.$modal.msgError("请输入密码");
-  } else if (loginForm.value.code === "" && captchaEnabled.value) {
-    proxy.$modal.msgError("请输入验证码");
+  if (loginForm.value.username === '') {
+    proxy.$modal.msgError('请输入账号')
+  } else if (loginForm.value.password === '') {
+    proxy.$modal.msgError('请输入密码')
+  } else if (loginForm.value.code === '' && captchaEnabled.value) {
+    proxy.$modal.msgError('请输入验证码')
   } else {
-    proxy.$modal.loading("登录中，请耐心等待...");
-    pwdLogin();
+    proxy.$modal.loading('登录中，请耐心等待...')
+    pwdLogin()
   }
 }
 
@@ -186,14 +185,14 @@ async function pwdLogin() {
   useUserStore()
     .login(loginForm.value)
     .then(() => {
-      proxy.$modal.closeLoading();
-      loginSuccess();
+      proxy.$modal.closeLoading()
+      loginSuccess()
     })
     .catch(() => {
       if (captchaEnabled.value) {
-        getCode();
+        getCode()
       }
-    });
+    })
 }
 
 // 登录成功后，处理函数
@@ -202,19 +201,19 @@ function loginSuccess(result) {
   useUserStore()
     .getInfo()
     .then((res) => {
-      proxy.$tab.reLaunch("/pages/index");
-    });
+      proxy.$tab.reLaunch('/pages/index')
+    })
 }
 
 onLoad(() => {
   //#ifdef H5
   if (getToken()) {
-    proxy.$tab.reLaunch("/pages/index");
+    proxy.$tab.reLaunch('/pages/index')
   }
   //#endif
-});
+})
 
-getCode();
+getCode()
 </script>
 
 <style lang="scss" scoped>

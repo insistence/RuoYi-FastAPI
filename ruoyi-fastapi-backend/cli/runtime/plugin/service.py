@@ -484,7 +484,7 @@ class CliPluginRuntimeService:
         :param job: 是否创建定时任务示例
         :param config: 是否创建配置项示例
         :param test: 是否创建测试样例
-        :param frontend_framework: 前端框架标识，auto 表示自动识别；源码模板仅支持 vue2、vue3
+        :param frontend_framework: 前端框架标识，auto 表示自动识别；源码模板支持 vue2、vue3、react
         :param dry_run: 是否仅预演
         :return: 插件创建结果负载
         """

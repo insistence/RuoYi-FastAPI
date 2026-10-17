@@ -30,6 +30,17 @@ yarn dev:mp-weixin
 yarn open:dev
 ```
 
+## 代码格式
+
+使用 Prettier 3.6.2，与 Vue Web 端保持一致：2 空格缩进、单引号、不加分号、LF 换行。
+
+```bash
+yarn format       # 格式化源码、测试、工程配置和文档
+yarn format:check # 只检查，不修改文件
+```
+
+`.prettierignore` 排除依赖、构建产物、缓存、锁文件、生成的类型声明和 `src/vendor` 第三方兼容代码。`public/index.html` 保留模板格式。CI 的 Quality 工作流执行同版本检查，格式不符合规范会失败。
+
 ## Tips
 
 - 使用 `npx @dcloudio/uvm` 升级 `uni-app` 依赖

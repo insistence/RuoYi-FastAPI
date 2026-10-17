@@ -1,11 +1,13 @@
 <template>
   <view class="flex h-full flex-col bg-gray-50 overflow-hidden">
-    <scroll-view scroll-y class="flex-1" :show-scrollbar="false">
+    <scroll-view
+      scroll-y
+      class="flex-1"
+      :show-scrollbar="false"
+    >
       <view class="p-4 pb-24 space-y-6">
         <!-- Banner -->
-        <view
-          class="relative h-40 w-full overflow-hidden rounded-2xl shadow-lg shadow-indigo-100"
-        >
+        <view class="relative h-40 w-full overflow-hidden rounded-2xl shadow-lg shadow-indigo-100">
           <swiper
             class="h-40 w-full"
             :current="swiperDotIndex"
@@ -14,8 +16,14 @@
             interval="3000"
             circular
           >
-            <swiper-item v-for="(item, index) in data" :key="index">
-              <view class="h-full w-full" @click="clickBannerItem(item)">
+            <swiper-item
+              v-for="(item, index) in data"
+              :key="index"
+            >
+              <view
+                class="h-full w-full"
+                @click="clickBannerItem(item)"
+              >
                 <image
                   :src="item.image"
                   mode="scaleToFill"
@@ -99,9 +107,7 @@
                 >
                   <view class="i-mdi-account text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600"
-                  >用户管理</text
-                >
+                <text class="text-[11px] font-medium text-gray-600">用户管理</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -112,9 +118,7 @@
                 >
                   <view class="i-mdi-badge-account text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600"
-                  >角色管理</text
-                >
+                <text class="text-[11px] font-medium text-gray-600">角色管理</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -125,9 +129,7 @@
                 >
                   <view class="i-mdi-office-building text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600"
-                  >部门管理</text
-                >
+                <text class="text-[11px] font-medium text-gray-600">部门管理</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -138,9 +140,7 @@
                 >
                   <view class="i-mdi-cog text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600"
-                  >配置管理</text
-                >
+                <text class="text-[11px] font-medium text-gray-600">配置管理</text>
               </view>
 
               <view
@@ -152,9 +152,7 @@
                 >
                   <view class="i-mdi-book-open-variant text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600"
-                  >字典管理</text
-                >
+                <text class="text-[11px] font-medium text-gray-600">字典管理</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -165,9 +163,7 @@
                 >
                   <view class="i-mdi-bullhorn text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600"
-                  >通知公告</text
-                >
+                <text class="text-[11px] font-medium text-gray-600">通知公告</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -178,9 +174,7 @@
                 >
                   <view class="i-mdi-file-document-outline text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600"
-                  >日志管理</text
-                >
+                <text class="text-[11px] font-medium text-gray-600">日志管理</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -208,28 +202,28 @@ export default {
       current: 0,
       swiperDotIndex: 0,
       data: [
-        { image: "/static/images/banner/banner01.jpg" },
-        { image: "/static/images/banner/banner02.jpg" },
-        { image: "/static/images/banner/banner03.jpg" },
+        { image: '/static/images/banner/banner01.jpg' },
+        { image: '/static/images/banner/banner02.jpg' },
+        { image: '/static/images/banner/banner03.jpg' },
       ],
-    };
+    }
   },
   methods: {
     clickBannerItem(item) {
-      console.info(item);
+      console.info(item)
     },
     changeSwiper(e) {
-      this.current = e.detail.current;
+      this.current = e.detail.current
     },
     handleToAiChat() {
-      this.handleBuilding();
+      this.handleBuilding()
     },
     handleToUserList() {
-      this.handleBuilding();
+      this.handleBuilding()
     },
     handleBuilding() {
-      this.$modal.msg("模块建设中~");
+      this.$modal.msg('模块建设中~')
     },
   },
-};
+}
 </script>

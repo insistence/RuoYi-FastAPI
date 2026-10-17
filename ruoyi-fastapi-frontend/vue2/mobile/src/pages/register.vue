@@ -4,18 +4,14 @@
   >
     <!-- Logo Section -->
     <view class="mb-6 flex flex-col items-center">
-      <view
-        class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg"
-      >
+      <view class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg">
         <image
           class="size-10"
           :src="globalConfig.appInfo.logo"
           mode="widthFix"
         />
       </view>
-      <text class="text-xl font-bold tracking-wide text-gray-800"
-        >RuoYi-FastAPI移动端注册</text
-      >
+      <text class="text-xl font-bold tracking-wide text-gray-800">RuoYi-FastAPI移动端注册</text>
     </view>
 
     <!-- Form Section -->
@@ -91,7 +87,10 @@
           class="h-12 w-28 overflow-hidden rounded-xl bg-gray-100 shadow-sm transition-opacity active:opacity-80"
           @click="getCode"
         >
-          <image :src="codeUrl" class="size-full object-cover"></image>
+          <image
+            :src="codeUrl"
+            class="size-full object-cover"
+          ></image>
         </view>
       </view>
 
@@ -118,85 +117,81 @@
 </template>
 
 <script>
-import { getCodeImg, register } from "@/api/login";
+import { getCodeImg, register } from '@/api/login'
 
 export default {
   data() {
     return {
-      codeUrl: "",
+      codeUrl: '',
       captchaEnabled: true,
       globalConfig: getApp().globalData.config,
       registerForm: {
-        username: "",
-        password: "",
-        confirmPassword: "",
-        code: "",
-        uuid: "",
+        username: '',
+        password: '',
+        confirmPassword: '',
+        code: '',
+        uuid: '',
       },
-    };
+    }
   },
   created() {
-    this.getCode();
+    this.getCode()
   },
   methods: {
     // 用户登录
     handleUserLogin() {
-      this.$tab.navigateTo(`/pages/login`);
+      this.$tab.navigateTo(`/pages/login`)
     },
     // 获取图形验证码
     getCode() {
       getCodeImg().then((res) => {
-        this.captchaEnabled =
-          res.captchaEnabled === undefined ? true : res.captchaEnabled;
+        this.captchaEnabled = res.captchaEnabled === undefined ? true : res.captchaEnabled
         if (this.captchaEnabled) {
-          this.codeUrl = "data:image/gif;base64," + res.img;
-          this.registerForm.uuid = res.uuid;
+          this.codeUrl = 'data:image/gif;base64,' + res.img
+          this.registerForm.uuid = res.uuid
         }
-      });
+      })
     },
     // 注册方法
     async handleRegister() {
-      if (this.registerForm.username === "") {
-        this.$modal.msgError("请输入您的账号");
-      } else if (this.registerForm.password === "") {
-        this.$modal.msgError("请输入您的密码");
-      } else if (this.registerForm.confirmPassword === "") {
-        this.$modal.msgError("请再次输入您的密码");
-      } else if (
-        this.registerForm.password !== this.registerForm.confirmPassword
-      ) {
-        this.$modal.msgError("两次输入的密码不一致");
-      } else if (this.registerForm.code === "" && this.captchaEnabled) {
-        this.$modal.msgError("请输入验证码");
+      if (this.registerForm.username === '') {
+        this.$modal.msgError('请输入您的账号')
+      } else if (this.registerForm.password === '') {
+        this.$modal.msgError('请输入您的密码')
+      } else if (this.registerForm.confirmPassword === '') {
+        this.$modal.msgError('请再次输入您的密码')
+      } else if (this.registerForm.password !== this.registerForm.confirmPassword) {
+        this.$modal.msgError('两次输入的密码不一致')
+      } else if (this.registerForm.code === '' && this.captchaEnabled) {
+        this.$modal.msgError('请输入验证码')
       } else {
-        this.$modal.loading("注册中，请耐心等待...");
-        this.register();
+        this.$modal.loading('注册中，请耐心等待...')
+        this.register()
       }
     },
     // 用户注册
     async register() {
       register(this.registerForm)
         .then((res) => {
-          this.$modal.closeLoading();
+          this.$modal.closeLoading()
           uni.showModal({
-            title: "系统提示",
-            content:
-              "恭喜你，您的账号 " + this.registerForm.username + " 注册成功！",
+            title: '系统提示',
+            content: '恭喜你，您的账号 ' + this.registerForm.username + ' 注册成功！',
             success: function (res) {
               if (res.confirm) {
-                uni.redirectTo({ url: `/pages/login` });
+                uni.redirectTo({ url: `/pages/login` })
               }
             },
-          });
+          })
         })
         .catch(() => {
           if (this.captchaEnabled) {
-            this.getCode();
+            this.getCode()
           }
-        });
+        })
     },
   },
-};
+}
 </script>
 
 <style lang="scss" scoped>

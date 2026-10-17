@@ -1,0 +1,668 @@
+.plugin-dialog .ant-modal-body {
+  max-height: none;
+  overflow: visible;
+  padding-top: 0;
+}
+.plugin-dialog .ant-modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.plugin-dialog .ant-modal-footer .ant-space {
+  flex-wrap: wrap;
+}
+.plugin-dialog .ant-tabs-content-holder {
+  min-width: 0;
+}
+.plugin-dialog .ant-descriptions-item-content {
+  overflow-wrap: anywhere;
+}
+.plugin-dialog .ant-descriptions-item-label {
+  white-space: nowrap;
+}
+.plugin-dialog .ant-table-wrapper {
+  overflow: auto;
+}
+.plugin-dialog .ant-divider {
+  font-size: 13px;
+  color: var(--ant-color-text-secondary);
+  margin: 18px 0 12px;
+}
+.plugin-dialog .ant-alert {
+  overflow-wrap: anywhere;
+}
+.plugin-dialog .ant-tag {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.plugin-summary {
+  display: grid;
+  grid-template-columns: repeat(var(--summary-columns, 4), minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+.plugin-summary-item {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
+  background: var(--ant-color-fill-alter);
+}
+.plugin-summary-item dt {
+  margin-bottom: 6px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+.plugin-summary-item dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.plugin-config-form .ant-form-item {
+  margin-bottom: 18px;
+}
+.plugin-config-form .ant-form-item-extra {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.plugin-config-form .ant-form-item-extra .ant-space {
+  margin-top: 6px;
+}
+.plugin-config-form .ant-form-item-control-input {
+  max-width: 100%;
+  width: 320px;
+}
+.plugin-config-form .ant-input-textarea {
+  width: 100%;
+}
+.plugin-config-status {
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+.plugin-config-status > .ant-space {
+  width: 100%;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.plugin-config-status p {
+  margin: 10px 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.plugin-config-status .ant-descriptions-item-content {
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, monospace;
+}
+.plugin-config-status summary,
+.plugin-metrics summary {
+  padding: 8px 0;
+  color: var(--ant-color-primary);
+  cursor: pointer;
+}
+.plugin-metrics {
+  min-height: 160px;
+}
+.plugin-metrics .metrics-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.plugin-metrics .metrics-record {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
+  line-height: normal;
+}
+.plugin-metrics .metrics-record-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.plugin-metrics .metrics-values {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 16px;
+  margin-block: 1em;
+}
+.plugin-metrics .metrics-values dt {
+  color: var(--ant-color-text);
+  font-size: 13px;
+}
+.plugin-metrics .metrics-values dd {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.plugin-metrics .metrics-identities {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: 8px;
+  margin-block: 1em;
+}
+.plugin-metrics .metrics-identities dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, monospace;
+}
+.plugin-metrics .metrics-hint {
+  color: var(--ant-color-text);
+  line-height: 1.6;
+  margin-block: 1em;
+}
+.plugin-config-section + .plugin-config-section {
+  margin-top: 6px;
+}
+.plugin-config-section-title {
+  padding-left: 120px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+.plugin-config-form .ant-form-item-extra {
+  color: var(--ant-color-text);
+}
+.plugin-config-form .config-inline-actions {
+  margin: 4px 0;
+  line-height: 20px;
+}
+.plugin-config-form .config-inline-actions .ant-btn {
+  height: 20px;
+  padding: 0;
+  font-size: 12px;
+}
+.plugin-config-form .config-meta-list .ant-tag {
+  height: 20px;
+  padding-inline: 5px;
+  line-height: 18px;
+}
+.plugin-config-dialog .ant-alert,
+.plugin-metrics .ant-alert {
+  --plugin-note: #909399;
+  padding: 8px 16px;
+  border: 0;
+  background: color-mix(in srgb, var(--plugin-note) 10%, var(--ant-color-bg-container));
+}
+.plugin-config-dialog .ant-alert-warning,
+.plugin-metrics .ant-alert-warning {
+  --plugin-note: #e6a23c;
+}
+.plugin-config-dialog .ant-alert-error,
+.plugin-metrics .ant-alert-error {
+  --plugin-note: #f56c6c;
+}
+.plugin-config-dialog .ant-alert-title,
+.plugin-config-dialog .ant-alert-description,
+.plugin-config-dialog .ant-alert-icon,
+.plugin-metrics .ant-alert-title,
+.plugin-metrics .ant-alert-description,
+.plugin-metrics .ant-alert-icon {
+  color: var(--plugin-note);
+}
+.plugin-config-dialog .ant-alert-title,
+.plugin-metrics .ant-alert-title {
+  font-size: 13px;
+  line-height: 24px;
+}
+.plugin-metrics .ant-alert-with-description .ant-alert-title {
+  font-weight: 700;
+}
+.plugin-metrics .ant-alert-description {
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .plugin-config-form .ant-form-item-row {
+    display: block;
+  }
+  .plugin-config-form .ant-form-item-label {
+    width: auto;
+    text-align: left;
+  }
+  .plugin-config-section-title {
+    padding-left: 0;
+  }
+}
+.plugin-release-status {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 4px;
+}
+.plugin-release-status .ant-typography {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.plugin-management .search-form .ant-input,
+.plugin-management .search-form .ant-select {
+  width: 220px;
+}
+.plugin-management .ant-table-cell > .ant-space {
+  justify-content: center;
+  gap: 6px !important;
+}
+.plugin-audit-drawer .ant-drawer-body {
+  min-width: 0;
+}
+.plugin-audit-drawer .search-form {
+  padding: 12px 12px 4px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
+}
+@media (max-width: 1200px) {
+  .plugin-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 768px) {
+  .plugin-summary {
+    grid-template-columns: 1fr;
+  }
+  .plugin-dialog .ant-modal-body {
+    max-height: none;
+    overflow: visible;
+    padding-top: 0;
+  }
+  .plugin-config-form .ant-form-item-control-input {
+    width: 100%;
+  }
+  .plugin-management .search-form .ant-input,
+  .plugin-management .search-form .ant-select {
+    width: 100%;
+  }
+  .plugin-dialog .ant-descriptions-row {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.plugin-dialog .detail-section-title {
+  margin: 18px 0 10px;
+  font-weight: 600;
+  color: var(--ant-color-text-heading);
+  font-size: 14px;
+}
+.plugin-dialog .detail-section-title:first-child {
+  margin-top: 0;
+}
+.plugin-config-status .config-status-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.plugin-config-status .config-revision {
+  font-family: monospace;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.plugin-config-status .config-workers {
+  padding-left: 20px;
+}
+.plugin-config-status .config-workers li + li {
+  margin-top: 12px;
+}
+
+.plugin-result-tag.ant-tag {
+  --plugin-tag-color: #909399;
+  --plugin-tag-base: var(--ant-color-bg-container, #fff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  margin: 0;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--plugin-tag-color) 20%, var(--plugin-tag-base));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--plugin-tag-color) 10%, var(--plugin-tag-base));
+  color: var(--plugin-tag-color);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 22px;
+}
+.plugin-result-tag.plugin-result-tag--primary {
+  --plugin-tag-color: var(--ant-color-primary, #409eff);
+}
+.plugin-result-tag.plugin-result-tag--success {
+  --plugin-tag-color: #67c23a;
+}
+.plugin-result-tag.plugin-result-tag--warning {
+  --plugin-tag-color: #e6a23c;
+}
+.plugin-result-tag.plugin-result-tag--danger {
+  --plugin-tag-color: #f56c6c;
+}
+.plugin-result-tag.plugin-result-tag--plain {
+  border-color: color-mix(in srgb, var(--plugin-tag-color) 50%, var(--plugin-tag-base));
+  background: var(--plugin-tag-base);
+}
+.plugin-detail-dialog .detail-section-title {
+  margin: 14px 0 8px;
+  color: var(--ant-color-text, #606266);
+  font-size: 13px;
+  line-height: normal;
+}
+.plugin-detail-dialog .ant-tabs .ant-tabs-tab + .ant-tabs-tab {
+  margin-left: 40px;
+}
+.plugin-detail-dialog
+  .ant-descriptions.ant-descriptions-bordered
+  .ant-descriptions-row
+  > .ant-descriptions-item-label {
+  background: var(--plugin-detail-fill, #f5f7fa);
+  color: var(--ant-color-text);
+  font-weight: 700;
+}
+html.dark .plugin-detail-dialog {
+  --plugin-detail-fill: #262727;
+}
+.plugin-detail-dialog .detail-section-title:first-child {
+  margin-top: 0;
+}
+.plugin-detail-dialog .detail-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+.plugin-detail-dialog .detail-empty-text {
+  color: var(--ant-color-text, #606266);
+}
+.plugin-detail-dialog .ant-table-wrapper,
+.plugin-result-dialog .ant-table-wrapper {
+  overflow: visible;
+}
+.plugin-detail-dialog .ruoyi-table .ant-table.ant-table-small .ant-table-tbody > tr > td,
+.plugin-result-dialog .ruoyi-table .ant-table.ant-table-small .ant-table-tbody > tr > td {
+  padding-block: 4px;
+  font-size: 12px;
+  line-height: 23px;
+}
+.plugin-detail-dialog .ant-tabs-tab,
+.plugin-result-dialog .ant-tabs-tab {
+  padding-block: 9px;
+}
+.plugin-result-dialog {
+  --plugin-result-fill: #f5f7fa;
+}
+html.dark .plugin-result-dialog {
+  --plugin-result-fill: #262727;
+}
+.plugin-result-dialog .plugin-summary-item {
+  background: var(--plugin-result-fill);
+}
+.plugin-result-dialog .plugin-summary-item dt {
+  color: var(--ant-color-text, #606266);
+  line-height: 16px;
+}
+.plugin-result-dialog .plugin-summary-item dd {
+  color: var(--ant-color-text-heading, #303133);
+  line-height: 24px;
+}
+.plugin-result-dialog .ant-descriptions-item-label {
+  background: var(--plugin-result-fill);
+}
+.plugin-summary.plugin-summary--auto-fit {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+.plugin-summary-danger {
+  color: #f56c6c;
+}
+.plugin-result-dialog .ant-alert {
+  --plugin-alert-color: var(--ant-color-primary, #409eff);
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(
+    in srgb,
+    var(--plugin-alert-color) 10%,
+    var(--ant-color-bg-container, #fff)
+  );
+}
+.plugin-result-dialog .ant-alert-success {
+  --plugin-alert-color: #67c23a;
+}
+.plugin-result-dialog .ant-alert-warning {
+  --plugin-alert-color: #e6a23c;
+}
+.plugin-result-dialog .ant-alert-error {
+  --plugin-alert-color: #f56c6c;
+}
+.plugin-result-dialog .ant-alert-icon,
+.plugin-result-dialog .ant-alert .ant-alert-title,
+.plugin-result-dialog .ant-alert .ant-alert-description {
+  color: var(--plugin-alert-color);
+}
+.plugin-result-dialog .ant-alert-icon {
+  align-self: center;
+}
+.plugin-result-dialog .ant-alert .ant-alert-title {
+  font-size: 14px;
+  line-height: 24px;
+}
+.plugin-result-dialog .ant-alert .ant-alert-description {
+  font-size: 12px;
+  line-height: 18px;
+}
+.dependency-policy-messages {
+  display: grid;
+  gap: 4px;
+}
+.dependency-policy-next {
+  margin-top: 6px;
+  color: var(--ant-color-text, #606266);
+}
+.plugin-result-dialog .dependency-command-text {
+  color: var(--ant-color-text-heading, #303133);
+  font-family: monospace;
+}
+.plugin-result-dialog
+  .ruoyi-table
+  .ant-table.ant-table-small
+  .ant-table-tbody
+  > .ant-table-placeholder
+  > td,
+.plugin-detail-dialog
+  .ruoyi-table
+  .ant-table.ant-table-small
+  .ant-table-tbody
+  > .ant-table-placeholder
+  > td {
+  height: 60px;
+  padding-block: 18px;
+  color: var(--ant-color-text-secondary, #909399);
+}
+.plugin-dependency-install.ant-btn-primary {
+  background: #67c23a;
+  border-color: #67c23a;
+  color: #fff;
+}
+.plugin-dependency-install.ant-btn-primary:not(:disabled):hover {
+  background: #85ce61;
+  border-color: #85ce61;
+}
+.plugin-dependency-install.ant-btn-primary:disabled {
+  background: #b3e19d;
+  border-color: #b3e19d;
+  color: #fff;
+}
+html.dark .plugin-dependency-install.ant-btn-primary:disabled {
+  background: #3e6b27;
+  border-color: #3e6b27;
+  color: #ffffff80;
+}
+
+.plugin-plan-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.plugin-release-status .ant-typography-secondary {
+  color: var(--ant-color-text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.plugin-config-dialog .config-meta-list .plugin-result-tag.ant-tag {
+  height: 20px;
+  min-height: 20px;
+  padding-inline: 5px;
+  line-height: 18px;
+}
+.plugin-config-dialog .config-inline-actions .ant-btn {
+  font-size: 14px;
+}
+.plugin-config-dialog .plugin-config-section-title {
+  line-height: normal;
+}
+.plugin-config-dialog textarea[rows='4'] {
+  height: 94px;
+  padding: 5px 11px;
+  line-height: 21px;
+}
+.plugin-result-dialog .plugin-metrics .ant-alert-info {
+  --plugin-alert-color: #909399;
+}
+.plugin-dialog .plugin-metrics .ant-alert .ant-alert-title,
+.plugin-dialog .plugin-metrics .ant-alert .ant-alert-description {
+  color: var(--plugin-note);
+}
+.plugin-dialog .plugin-metrics .ant-alert .ant-alert-title {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+.plugin-detail-dialog .plugin-release-alert {
+  margin-bottom: 16px;
+}
+.plugin-detail-dialog .release-explanation {
+  margin-top: 6px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.plugin-plan-scope {
+  margin-bottom: 16px;
+}
+.plugin-audit-detail .plugin-audit-description {
+  margin-bottom: 16px;
+}
+.plugin-audit-detail
+  .ant-descriptions.ant-descriptions-bordered
+  .ant-descriptions-row
+  > .ant-descriptions-item-label {
+  background: var(--plugin-result-fill);
+  color: var(--ant-color-text, #606266);
+}
+.plugin-audit-detail .ant-tabs .ant-tabs-tab + .ant-tabs-tab {
+  margin-left: 40px;
+}
+.plugin-plan-continue {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 12px;
+  color: var(--ant-color-text-heading, #303133);
+}
+.plugin-plan-continue .is-active {
+  color: var(--ant-color-primary, #409eff);
+}
+.plugin-audit-drawer .ant-drawer-header {
+  padding: 20px;
+  margin-bottom: 32px;
+  border: 0;
+}
+.plugin-audit-drawer .ant-drawer-title {
+  font-size: 16px;
+  font-weight: 400;
+}
+.plugin-audit-drawer .ant-drawer-body {
+  padding: 0 20px 20px;
+}
+.plugin-audit-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.plugin-audit-content .search-form {
+  --search-control-width: 220px;
+  --search-range-width: 220px;
+  margin-bottom: 12px;
+}
+.plugin-audit-content .search-form .ant-form-item {
+  margin-bottom: 10px;
+}
+.plugin-audit-content .search-form .ant-form-item-label {
+  width: 68px;
+}
+.plugin-audit-maintenance.ant-collapse {
+  margin-bottom: 12px;
+  background: var(--ruoyi-audit-fill, #f5f7fa);
+  border-color: var(--ant-color-border-secondary);
+  border-radius: 4px;
+}
+.plugin-audit-maintenance.ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  min-height: 40px;
+  align-items: center;
+  padding: 8px 12px;
+}
+.plugin-audit-maintenance .ant-collapse-content-box {
+  padding: 0 12px 12px;
+}
+.plugin-audit-maintenance .ant-collapse-content {
+  background: transparent;
+  border-top: 0;
+}
+.plugin-audit-retention-tag.plugin-result-tag.ant-tag {
+  min-height: 20px;
+  padding-inline: 5px;
+  line-height: 18px;
+}
+.plugin-audit-retention-form .ant-input-number {
+  width: 150px;
+}
+.plugin-audit-table {
+  flex: 1;
+  min-width: 0;
+}
+.plugin-audit-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.plugin-audit-table .ant-table.ant-table-small .ant-table-tbody > tr > td {
+  padding-block: 4px;
+  font-size: 12px;
+  line-height: 23px;
+}
+.plugin-audit-footer {
+  margin-top: 16px;
+  text-align: right;
+}
+html.dark .plugin-audit-drawer {
+  --ruoyi-audit-fill: #262727;
+}
+@media (max-width: 768px) {
+  .plugin-audit-table-toolbar {
+    flex-wrap: wrap;
+  }
+  .plugin-audit-content .search-form .ant-form-item {
+    max-width: 100%;
+    margin-inline-end: 0;
+  }
+}

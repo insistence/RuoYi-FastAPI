@@ -1,10 +1,10 @@
-import type { Config } from "tailwindcss";
-import { getIconCollections, iconsPlugin } from "@egoist/tailwindcss-icons";
-import cssMacro from "weapp-tailwindcss/css-macro";
-import { isMp } from "./platform";
+import type { Config } from 'tailwindcss'
+import { getIconCollections, iconsPlugin } from '@egoist/tailwindcss-icons'
+import cssMacro from 'weapp-tailwindcss/css-macro'
+import { isMp } from './platform'
 
 export default <Config>{
-  content: ["./index.html", "./src/**/*.{html,js,ts,jsx,tsx,vue}"],
+  content: ['./index.html', './src/**/*.{html,js,ts,jsx,tsx,vue}'],
   theme: {
     extend: {
       // colors: {
@@ -24,9 +24,9 @@ export default <Config>{
   plugins: [
     cssMacro({
       variantsMap: {
-        wx: "MP-WEIXIN",
-        "-wx": {
-          value: "MP-WEIXIN",
+        wx: 'MP-WEIXIN',
+        '-wx': {
+          value: 'MP-WEIXIN',
           negative: true,
         },
         // 定义多个条件判断
@@ -42,7 +42,7 @@ export default <Config>{
     iconsPlugin({
       // 在这里可以选择你要使用的 icon, 更多详见:
       // https://icon-sets.iconify.design/
-      collections: getIconCollections(["svg-spinners", "mdi"]),
+      collections: getIconCollections(['svg-spinners', 'mdi']),
     }),
   ],
   corePlugins: {
@@ -50,4 +50,4 @@ export default <Config>{
     preflight: !isMp,
     container: !isMp,
   },
-};
+}

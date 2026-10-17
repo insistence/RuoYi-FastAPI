@@ -13,7 +13,12 @@ if (!source.includes(marker)) {
     throw new Error('uni-app 独立分包插件结构已变化，请检查 webpack 兼容补丁')
   }
   let patched = source
-  imports.forEach(line => { patched = patched.replace(line, '') })
-  patched = patched.replace(guard, `${guard}\n\n  ${marker}\n${imports.map(line => `  ${line.trim()}`).join('\n')}`)
+  imports.forEach((line) => {
+    patched = patched.replace(line, '')
+  })
+  patched = patched.replace(
+    guard,
+    `${guard}\n\n  ${marker}\n${imports.map((line) => `  ${line.trim()}`).join('\n')}`
+  )
   fs.writeFileSync(filename, patched)
 }

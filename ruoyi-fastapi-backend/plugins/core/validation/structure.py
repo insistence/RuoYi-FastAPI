@@ -111,10 +111,12 @@ class PluginStructureChecker:
         :param frontend_root: 前端插件根目录，默认使用运行时环境解析出的 plugins 目录
         """
         self.backend_root = Path(backend_root)
+        self.runtime_environment = PluginRuntimeEnvironmentService(
+            backend_root=self.backend_root,
+            frontend_root=Path(frontend_root).parent if frontend_root else None,
+        )
         self.frontend_root = (
-            Path(frontend_root)
-            if frontend_root
-            else Path(PluginRuntimeEnvironmentService(backend_root=self.backend_root).get_frontend_plugins_dir())
+            Path(frontend_root) if frontend_root else Path(self.runtime_environment.get_frontend_plugins_dir())
         )
 
     def check(
@@ -693,7 +695,22 @@ class PluginStructureChecker:
         items = [self._check_dir('frontend_root', frontend_plugin_root)]
         items.append(self._check_dir('frontend_views_path', frontend_plugin_root / manifest.frontend.views_path))
         items.append(self._check_dir('frontend_api_path', frontend_plugin_root / manifest.frontend.api_path))
-        items.extend(self._check_plugin_view(frontend_plugin_root, manifest, menu) for menu in plugin_view_menus)
+        try:
+            frontend_framework = self.runtime_environment.get_frontend_framework()
+        except ValueError as exc:
+            # 旧版独立源码目录可能只有 plugins，没有 package.json；保留原有 Vue 检查。
+            if (self.frontend_root.parent / 'package.json').is_file():
+                items.append(
+                    PluginStructureCheckItem(
+                        kind='frontend_framework', path=str(self.frontend_root.parent), ok=False, message=str(exc)
+                    )
+                )
+                return items
+            frontend_framework = 'vue3'
+        items.extend(
+            self._check_plugin_view(frontend_plugin_root, manifest, menu, frontend_framework)
+            for menu in plugin_view_menus
+        )
 
         return items
 
@@ -702,16 +719,18 @@ class PluginStructureChecker:
         frontend_plugin_root: Path,
         manifest: PluginManifest,
         menu: PluginMenuManifest,
+        frontend_framework: str = 'vue3',
     ) -> PluginStructureCheckItem:
         """
-        检查插件菜单组件对应的 Vue 页面。
+        检查插件菜单组件对应的宿主页面。
 
         :param frontend_plugin_root: 前端插件根目录
         :param manifest: 插件清单
         :param menu: 菜单声明
+        :param frontend_framework: 宿主框架标识
         :return: 页面检查项
         """
-        view_path = PluginMenuTree.resolve_plugin_view_path(manifest, menu.component)
+        view_path = PluginMenuTree.resolve_plugin_view_path(manifest, menu.component, frontend_framework)
         if view_path is None:
             return PluginStructureCheckItem(
                 kind='frontend_view',

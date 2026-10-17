@@ -1,81 +1,15 @@
 from plugins.core.frontend import FrontendFramework, PluginFrontendFrameworkResolver  # noqa: F401
 
+from .frontend_api import PluginFrontendApiScaffoldTemplateBuilder
+from .frontend_react import PluginReactFrontendScaffoldTemplateBuilder
 from .frontend_vue2 import PluginVue2FrontendScaffoldTemplateBuilder
 from .naming import PluginScaffoldNaming
 
 
-class PluginVue3FrontendScaffoldTemplateBuilder:
+class PluginVue3FrontendScaffoldTemplateBuilder(PluginFrontendApiScaffoldTemplateBuilder):
     """
     前端插件模板内容构建器。
     """
-
-    @staticmethod
-    def build_api(plugin_id: str) -> str:
-        """
-        构建前端 API 模板内容。
-
-        :param plugin_id: 插件ID
-        :return: 前端 API 模板内容
-        """
-        return f"""import request from '@/utils/request'
-
-export function ping{PluginScaffoldNaming.to_class_name(plugin_id)}() {{
-  return request({{
-    url: '/{plugin_id}/ping',
-    method: 'get'
-  }})
-}}
-"""
-
-    @staticmethod
-    def build_crud_api(plugin_id: str) -> str:
-        """
-        构建前端 CRUD API 模板内容。
-
-        :param plugin_id: 插件ID
-        :return: 前端 CRUD API 模板内容
-        """
-        class_name = PluginScaffoldNaming.to_class_name(plugin_id)
-        return f"""import request from '@/utils/request'
-
-export function ping{class_name}() {{
-  return request({{
-    url: '/{plugin_id}/ping',
-    method: 'get'
-  }})
-}}
-
-export function list{class_name}Items(query) {{
-  return request({{
-    url: '/{plugin_id}/items',
-    method: 'get',
-    params: query
-  }})
-}}
-
-export function add{class_name}Item(data) {{
-  return request({{
-    url: '/{plugin_id}/items',
-    method: 'post',
-    data
-  }})
-}}
-
-export function update{class_name}Item(itemId, data) {{
-  return request({{
-    url: '/{plugin_id}/items/' + itemId,
-    method: 'put',
-    data
-  }})
-}}
-
-export function del{class_name}Item(itemId) {{
-  return request({{
-    url: '/{plugin_id}/items/' + itemId,
-    method: 'delete'
-  }})
-}}
-"""
 
     @staticmethod
     def build_view(plugin_id: str) -> str:
@@ -312,11 +246,17 @@ class PluginFrontendScaffoldTemplateBuilder:
 
     @staticmethod
     def build_api(plugin_id: str) -> str:
-        return PluginVue3FrontendScaffoldTemplateBuilder.build_api(plugin_id)
+        return PluginFrontendApiScaffoldTemplateBuilder.build_api(plugin_id)
 
     @staticmethod
     def build_crud_api(plugin_id: str) -> str:
-        return PluginVue3FrontendScaffoldTemplateBuilder.build_crud_api(plugin_id)
+        return PluginFrontendApiScaffoldTemplateBuilder.build_crud_api(plugin_id)
+
+    @classmethod
+    def view_filename(cls, frontend_framework: FrontendFramework = 'vue3') -> str:
+        """验证框架并返回该宿主加载的页面文件名。"""
+        cls._resolve_builder(frontend_framework)
+        return 'index.jsx' if frontend_framework == 'react' else 'index.vue'
 
     @classmethod
     def build_view(cls, plugin_id: str, frontend_framework: FrontendFramework = 'vue3') -> str:
@@ -337,9 +277,15 @@ class PluginFrontendScaffoldTemplateBuilder:
     @staticmethod
     def _resolve_builder(
         frontend_framework: FrontendFramework,
-    ) -> type[PluginVue2FrontendScaffoldTemplateBuilder] | type[PluginVue3FrontendScaffoldTemplateBuilder]:
+    ) -> (
+        type[PluginVue2FrontendScaffoldTemplateBuilder]
+        | type[PluginVue3FrontendScaffoldTemplateBuilder]
+        | type[PluginReactFrontendScaffoldTemplateBuilder]
+    ):
         if frontend_framework == 'vue2':
             return PluginVue2FrontendScaffoldTemplateBuilder
         if frontend_framework == 'vue3':
             return PluginVue3FrontendScaffoldTemplateBuilder
-        raise ValueError(f'暂不支持前端框架 {frontend_framework} 的源码模板，目前仅支持 vue2、vue3')
+        if frontend_framework == 'react':
+            return PluginReactFrontendScaffoldTemplateBuilder
+        raise ValueError(f'暂不支持前端框架 {frontend_framework} 的源码模板，目前仅支持 vue2、vue3、react')

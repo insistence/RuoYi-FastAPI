@@ -1,15 +1,12 @@
-import { isMp } from "./platform";
+import { isMp } from './platform'
 
-const cssMacro = require("weapp-tailwindcss/css-macro");
-const {
-  iconsPlugin,
-  getIconCollections,
-} = require("@egoist/tailwindcss-icons");
+const cssMacro = require('weapp-tailwindcss/css-macro')
+const { iconsPlugin, getIconCollections } = require('@egoist/tailwindcss-icons')
 // 基础配置，无需任何preset
 // https://github.com/sonofmagic/weapp-tailwindcss-webpack-plugin/blob/main/demo/uni-app/tailwind.config.js
 /** @type {import('@types/tailwindcss/tailwind-config').TailwindConfig} */
 module.exports = {
-  content: ["public/index.html", "./src/**/*.{vue,js,ts,jsx,tsx,wxml}"],
+  content: ['public/index.html', './src/**/*.{vue,js,ts,jsx,tsx,wxml}'],
   theme: {
     extend: {},
   },
@@ -18,9 +15,9 @@ module.exports = {
     // https://weapp-tw.icebreaker.top/docs/quick-start/uni-app-css-macro
     cssMacro({
       variantsMap: {
-        wx: "MP-WEIXIN",
-        "-wx": {
-          value: "MP-WEIXIN",
+        wx: 'MP-WEIXIN',
+        '-wx': {
+          value: 'MP-WEIXIN',
           negative: true,
         },
         // mv: {
@@ -33,11 +30,11 @@ module.exports = {
       },
     }),
     iconsPlugin({
-      collections: getIconCollections(["mdi"]),
+      collections: getIconCollections(['mdi']),
     }),
   ],
   corePlugins: {
     preflight: !isMp,
     container: !isMp,
   },
-};
+}

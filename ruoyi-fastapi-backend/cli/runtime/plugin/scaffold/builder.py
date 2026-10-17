@@ -63,7 +63,7 @@ class PluginScaffoldBuilder:
         :param job: 是否创建定时任务示例
         :param config: 是否创建配置项示例
         :param test: 是否创建测试样例
-        :param frontend_framework: 目标前端框架标识，auto 表示自动识别；源码模板仅支持 vue2、vue3
+        :param frontend_framework: 目标前端框架标识，auto 表示自动识别；源码模板支持 vue2、vue3、react
         :return: 插件模板写入计划
         """
         self._validate_plugin_id(plugin_id)
@@ -105,7 +105,9 @@ class PluginScaffoldBuilder:
             target_dirs.append(str(backend_plugin_root))
             if effective_backend_test:
                 target_dirs.append(str(self.backend_root / 'tests' / 'plugins' / plugin_id))
-            files.extend(self._build_backend_files(plugin_id, backend_plugin_root, options))
+            files.extend(
+                self._build_backend_files(plugin_id, backend_plugin_root, options, resolved_frontend_framework)
+            )
         if options.frontend:
             assert resolved_frontend_framework is not None
             frontend_plugin_root = frontend_root / 'plugins' / plugin_id
@@ -219,12 +221,14 @@ class PluginScaffoldBuilder:
         plugin_id: str,
         plugin_root: Path,
         options: PluginScaffoldOptions,
+        frontend_framework: FrontendFramework | None = None,
     ) -> list[tuple[Path, str]]:
         """
         构建后端插件模板文件。
 
         :param plugin_id: 插件ID
         :param plugin_root: 后端插件根目录
+        :param frontend_framework: 所选宿主框架，仅后端模板为 None
         :param options: 插件模板生成选项
         :return: 文件路径和内容列表
         """
@@ -243,7 +247,10 @@ class PluginScaffoldBuilder:
                 else PluginBackendScaffoldTemplateBuilder.build_service(plugin_id),
             ),
             (plugin_root / 'hooks.py', PluginBackendScaffoldTemplateBuilder.build_hooks(plugin_id)),
-            (plugin_root / 'README.md', PluginBackendScaffoldTemplateBuilder.build_readme(plugin_id)),
+            (
+                plugin_root / 'README.md',
+                PluginBackendScaffoldTemplateBuilder.build_readme(plugin_id, frontend_framework),
+            ),
         ]
         if options.job:
             files.append((plugin_root / 'jobs.py', PluginBackendScaffoldTemplateBuilder.build_jobs(plugin_id)))
@@ -295,7 +302,7 @@ class PluginScaffoldBuilder:
                 else PluginFrontendScaffoldTemplateBuilder.build_api(plugin_id),
             ),
             (
-                plugin_root / 'views' / 'index.vue',
+                plugin_root / 'views' / PluginFrontendScaffoldTemplateBuilder.view_filename(frontend_framework),
                 PluginFrontendScaffoldTemplateBuilder.build_crud_view(plugin_id, frontend_framework)
                 if options.crud
                 else PluginFrontendScaffoldTemplateBuilder.build_view(plugin_id, frontend_framework),

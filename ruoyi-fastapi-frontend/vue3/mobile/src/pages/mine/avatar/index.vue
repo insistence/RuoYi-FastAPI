@@ -5,13 +5,7 @@
         <view
           v-if="isShowImg"
           class="relative box-border overflow-hidden"
-          :style="
-            'width:' +
-            cropperInitW +
-            'px;height:' +
-            cropperInitH +
-            'px;background:#000'
-          "
+          :style="'width:' + cropperInitW + 'px;height:' + cropperInitH + 'px;background:#000'"
         >
           <view
             class="relative"
@@ -30,11 +24,7 @@
             <image
               :src="imageSrc"
               :style="
-                'width:' +
-                cropperW +
-                'px;height:' +
-                cropperH +
-                'px;display:block;margin:0 auto;'
+                'width:' + cropperW + 'px;height:' + cropperH + 'px;display:block;margin:0 auto;'
               "
             ></image>
             <view
@@ -43,15 +33,7 @@
               @touchmove.stop="contentMoveing"
               @touchend.stop="contentTouchEnd"
               :style="
-                'left:' +
-                cutL +
-                'px;top:' +
-                cutT +
-                'px;right:' +
-                cutR +
-                'px;bottom:' +
-                cutB +
-                'px'
+                'left:' + cutL + 'px;top:' + cutT + 'px;right:' + cutR + 'px;bottom:' + cutB + 'px'
               "
             >
               <view
@@ -159,13 +141,13 @@
 </template>
 
 <script>
-import config from "@/config";
-import { useUserStore } from "@/store";
-import { uploadAvatar } from "@/api/system/user";
+import config from '@/config'
+import { useUserStore } from '@/store'
+import { uploadAvatar } from '@/api/system/user'
 
-const baseUrl = config.baseUrl;
-let sysInfo = uni.getSystemInfoSync();
-let SCREEN_WIDTH = sysInfo.screenWidth;
+const baseUrl = config.baseUrl
+let sysInfo = uni.getSystemInfoSync()
+let SCREEN_WIDTH = sysInfo.screenWidth
 let PAGE_X, // 手按下的x位置
   PAGE_Y, // 手按下y的位置
   PR = sysInfo.pixelRatio, // dpi
@@ -182,7 +164,7 @@ let PAGE_X, // 手按下的x位置
   IMG_REAL_H, // 图片实际的高度
   DRAFG_MOVE_RATIO = 1, //移动时候的比例,
   INIT_DRAG_POSITION = 100, // 初始化屏幕宽度和裁剪区域的宽度之差，用于设置初始化裁剪的宽度
-  DRAW_IMAGE_W = sysInfo.screenWidth; // 设置生成的图片宽度
+  DRAW_IMAGE_W = sysInfo.screenWidth // 设置生成的图片宽度
 
 export default {
   /**
@@ -214,72 +196,65 @@ export default {
       cutL: 0,
       cutT: 0,
       cutB: SCREEN_WIDTH,
-      cutR: "100%",
+      cutR: '100%',
       qualityWidth: DRAW_IMAGE_W,
       innerAspectRadio: DRAFG_MOVE_RATIO,
-    };
+    }
   },
   /**
    * 生命周期函数--监听页面初次渲染完成
    */
   onReady: function () {
-    this.loadImage();
+    this.loadImage()
   },
   methods: {
     setData: function (obj) {
-      let that = this;
+      let that = this
       Object.keys(obj).forEach(function (key) {
-        that.$set(that.$data, key, obj[key]);
-      });
+        that.$set(that.$data, key, obj[key])
+      })
     },
     getImage: function () {
-      var _this = this;
+      var _this = this
       uni.chooseImage({
         success: function (res) {
           _this.setData({
             imageSrc: res.tempFilePaths[0],
-          });
-          _this.loadImage();
+          })
+          _this.loadImage()
         },
-      });
+      })
     },
     loadImage: function () {
-      var _this = this;
+      var _this = this
 
       uni.getImageInfo({
         src: _this.imageSrc,
         success: function success(res) {
-          IMG_RATIO = 1 / 1;
+          IMG_RATIO = 1 / 1
           if (IMG_RATIO >= 1) {
-            IMG_REAL_W = SCREEN_WIDTH;
-            IMG_REAL_H = SCREEN_WIDTH / IMG_RATIO;
+            IMG_REAL_W = SCREEN_WIDTH
+            IMG_REAL_H = SCREEN_WIDTH / IMG_RATIO
           } else {
-            IMG_REAL_W = SCREEN_WIDTH * IMG_RATIO;
-            IMG_REAL_H = SCREEN_WIDTH;
+            IMG_REAL_W = SCREEN_WIDTH * IMG_RATIO
+            IMG_REAL_H = SCREEN_WIDTH
           }
-          let minRange = IMG_REAL_W > IMG_REAL_H ? IMG_REAL_W : IMG_REAL_H;
-          INIT_DRAG_POSITION =
-            minRange > INIT_DRAG_POSITION ? INIT_DRAG_POSITION : minRange;
+          let minRange = IMG_REAL_W > IMG_REAL_H ? IMG_REAL_W : IMG_REAL_H
+          INIT_DRAG_POSITION = minRange > INIT_DRAG_POSITION ? INIT_DRAG_POSITION : minRange
           // 根据图片的宽高显示不同的效果   保证图片可以正常显示
           if (IMG_RATIO >= 1) {
             let cutT = Math.ceil(
-              (SCREEN_WIDTH / IMG_RATIO -
-                (SCREEN_WIDTH / IMG_RATIO - INIT_DRAG_POSITION)) /
-                2,
-            );
-            let cutB = cutT;
-            let cutL = Math.ceil(
-              (SCREEN_WIDTH - SCREEN_WIDTH + INIT_DRAG_POSITION) / 2,
-            );
-            let cutR = cutL;
+              (SCREEN_WIDTH / IMG_RATIO - (SCREEN_WIDTH / IMG_RATIO - INIT_DRAG_POSITION)) / 2
+            )
+            let cutB = cutT
+            let cutL = Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH + INIT_DRAG_POSITION) / 2)
+            let cutR = cutL
             _this.setData({
               cropperW: SCREEN_WIDTH,
               cropperH: SCREEN_WIDTH / IMG_RATIO,
               // 初始化left right
               cropperL: Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH) / 2),
-              cropperT: Math.ceil(
-                (SCREEN_WIDTH - SCREEN_WIDTH / IMG_RATIO) / 2,
-              ),
+              cropperT: Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH / IMG_RATIO) / 2),
               cutL: cutL,
               cutT: cutT,
               cutR: cutR,
@@ -290,21 +265,17 @@ export default {
               scaleP: IMG_REAL_W / SCREEN_WIDTH,
               qualityWidth: DRAW_IMAGE_W,
               innerAspectRadio: IMG_RATIO,
-            });
+            })
           } else {
-            let cutL = Math.ceil(
-              (SCREEN_WIDTH * IMG_RATIO - SCREEN_WIDTH * IMG_RATIO) / 2,
-            );
-            let cutR = cutL;
-            let cutT = Math.ceil((SCREEN_WIDTH - INIT_DRAG_POSITION) / 2);
-            let cutB = cutT;
+            let cutL = Math.ceil((SCREEN_WIDTH * IMG_RATIO - SCREEN_WIDTH * IMG_RATIO) / 2)
+            let cutR = cutL
+            let cutT = Math.ceil((SCREEN_WIDTH - INIT_DRAG_POSITION) / 2)
+            let cutB = cutT
             _this.setData({
               cropperW: SCREEN_WIDTH * IMG_RATIO,
               cropperH: SCREEN_WIDTH,
               // 初始化left right
-              cropperL: Math.ceil(
-                (SCREEN_WIDTH - SCREEN_WIDTH * IMG_RATIO) / 2,
-              ),
+              cropperL: Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH * IMG_RATIO) / 2),
               cropperT: Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH) / 2),
 
               cutL: cutL,
@@ -317,70 +288,66 @@ export default {
               scaleP: IMG_REAL_W / SCREEN_WIDTH,
               qualityWidth: DRAW_IMAGE_W,
               innerAspectRadio: IMG_RATIO,
-            });
+            })
           }
           _this.setData({
             isShowImg: true,
-          });
-          uni.hideLoading();
+          })
+          uni.hideLoading()
         },
-      });
+      })
     },
     // 拖动时候触发的touchStart事件
     contentStartMove(e) {
-      PAGE_X = e.touches[0].pageX;
-      PAGE_Y = e.touches[0].pageY;
+      PAGE_X = e.touches[0].pageX
+      PAGE_Y = e.touches[0].pageY
     },
 
     // 拖动时候触发的touchMove事件
     contentMoveing(e) {
-      var _this = this;
-      var dragLengthX = (PAGE_X - e.touches[0].pageX) * DRAFG_MOVE_RATIO;
-      var dragLengthY = (PAGE_Y - e.touches[0].pageY) * DRAFG_MOVE_RATIO;
+      var _this = this
+      var dragLengthX = (PAGE_X - e.touches[0].pageX) * DRAFG_MOVE_RATIO
+      var dragLengthY = (PAGE_Y - e.touches[0].pageY) * DRAFG_MOVE_RATIO
       // 左移
       if (dragLengthX > 0) {
-        if (this.cutL - dragLengthX < 0) dragLengthX = this.cutL;
+        if (this.cutL - dragLengthX < 0) dragLengthX = this.cutL
       } else {
-        if (this.cutR + dragLengthX < 0) dragLengthX = -this.cutR;
+        if (this.cutR + dragLengthX < 0) dragLengthX = -this.cutR
       }
 
       if (dragLengthY > 0) {
-        if (this.cutT - dragLengthY < 0) dragLengthY = this.cutT;
+        if (this.cutT - dragLengthY < 0) dragLengthY = this.cutT
       } else {
-        if (this.cutB + dragLengthY < 0) dragLengthY = -this.cutB;
+        if (this.cutB + dragLengthY < 0) dragLengthY = -this.cutB
       }
       this.setData({
         cutL: this.cutL - dragLengthX,
         cutT: this.cutT - dragLengthY,
         cutR: this.cutR + dragLengthX,
         cutB: this.cutB + dragLengthY,
-      });
+      })
 
-      PAGE_X = e.touches[0].pageX;
-      PAGE_Y = e.touches[0].pageY;
+      PAGE_X = e.touches[0].pageX
+      PAGE_Y = e.touches[0].pageY
     },
 
     contentTouchEnd() {},
 
     // 获取图片
     getImageInfo() {
-      var _this = this;
+      var _this = this
       uni.showLoading({
-        title: "图片生成中...",
-      });
+        title: '图片生成中...',
+      })
       // 将图片写入画布
-      const ctx = uni.createCanvasContext("myCanvas");
-      ctx.drawImage(_this.imageSrc, 0, 0, IMG_REAL_W, IMG_REAL_H);
+      const ctx = uni.createCanvasContext('myCanvas')
+      ctx.drawImage(_this.imageSrc, 0, 0, IMG_REAL_W, IMG_REAL_H)
       ctx.draw(true, () => {
         // 获取画布要裁剪的位置和宽度   均为百分比 * 画布中图片的宽度    保证了在微信小程序中裁剪的图片模糊  位置不对的问题 canvasT = (_this.cutT / _this.cropperH) * (_this.imageH / pixelRatio)
-        var canvasW =
-          ((_this.cropperW - _this.cutL - _this.cutR) / _this.cropperW) *
-          IMG_REAL_W;
-        var canvasH =
-          ((_this.cropperH - _this.cutT - _this.cutB) / _this.cropperH) *
-          IMG_REAL_H;
-        var canvasL = (_this.cutL / _this.cropperW) * IMG_REAL_W;
-        var canvasT = (_this.cutT / _this.cropperH) * IMG_REAL_H;
+        var canvasW = ((_this.cropperW - _this.cutL - _this.cutR) / _this.cropperW) * IMG_REAL_W
+        var canvasH = ((_this.cropperH - _this.cutT - _this.cutB) / _this.cropperH) * IMG_REAL_H
+        var canvasL = (_this.cutL / _this.cropperW) * IMG_REAL_W
+        var canvasT = (_this.cutT / _this.cropperH) * IMG_REAL_H
         uni.canvasToTempFilePath({
           x: canvasL,
           y: canvasT,
@@ -389,86 +356,86 @@ export default {
           destWidth: canvasW,
           destHeight: canvasH,
           quality: 0.5,
-          canvasId: "myCanvas",
+          canvasId: 'myCanvas',
           success: function (res) {
-            uni.hideLoading();
-            let data = { name: "avatarfile", filePath: res.tempFilePath };
+            uni.hideLoading()
+            let data = { name: 'avatarfile', filePath: res.tempFilePath }
             uploadAvatar(data).then((response) => {
-              useUserStore().SET_AVATAR(baseUrl + response.imgUrl);
-              uni.showToast({ title: "修改成功", icon: "success" });
-              uni.navigateBack();
-            });
+              useUserStore().SET_AVATAR(baseUrl + response.imgUrl)
+              uni.showToast({ title: '修改成功', icon: 'success' })
+              uni.navigateBack()
+            })
           },
-        });
-      });
+        })
+      })
     },
     // 设置大小的时候触发的touchStart事件
     dragStart(e) {
-      T_PAGE_X = e.touches[0].pageX;
-      T_PAGE_Y = e.touches[0].pageY;
-      CUT_L = this.cutL;
-      CUT_R = this.cutR;
-      CUT_B = this.cutB;
-      CUT_T = this.cutT;
+      T_PAGE_X = e.touches[0].pageX
+      T_PAGE_Y = e.touches[0].pageY
+      CUT_L = this.cutL
+      CUT_R = this.cutR
+      CUT_B = this.cutB
+      CUT_T = this.cutT
     },
 
     // 设置大小的时候触发的touchMove事件
     dragMove(e) {
-      var _this = this;
-      var dragType = e.target.dataset.drag;
+      var _this = this
+      var dragType = e.target.dataset.drag
       switch (dragType) {
-        case "right":
-          var dragLength = (T_PAGE_X - e.touches[0].pageX) * DRAFG_MOVE_RATIO;
-          if (CUT_R + dragLength < 0) dragLength = -CUT_R;
+        case 'right':
+          var dragLength = (T_PAGE_X - e.touches[0].pageX) * DRAFG_MOVE_RATIO
+          if (CUT_R + dragLength < 0) dragLength = -CUT_R
           this.setData({
             cutR: CUT_R + dragLength,
-          });
-          break;
-        case "left":
-          var dragLength = (T_PAGE_X - e.touches[0].pageX) * DRAFG_MOVE_RATIO;
-          if (CUT_L - dragLength < 0) dragLength = CUT_L;
+          })
+          break
+        case 'left':
+          var dragLength = (T_PAGE_X - e.touches[0].pageX) * DRAFG_MOVE_RATIO
+          if (CUT_L - dragLength < 0) dragLength = CUT_L
           if (CUT_L - dragLength > this.cropperW - this.cutR)
-            dragLength = CUT_L - (this.cropperW - this.cutR);
+            dragLength = CUT_L - (this.cropperW - this.cutR)
           this.setData({
             cutL: CUT_L - dragLength,
-          });
-          break;
-        case "top":
-          var dragLength = (T_PAGE_Y - e.touches[0].pageY) * DRAFG_MOVE_RATIO;
-          if (CUT_T - dragLength < 0) dragLength = CUT_T;
+          })
+          break
+        case 'top':
+          var dragLength = (T_PAGE_Y - e.touches[0].pageY) * DRAFG_MOVE_RATIO
+          if (CUT_T - dragLength < 0) dragLength = CUT_T
           if (CUT_T - dragLength > this.cropperH - this.cutB)
-            dragLength = CUT_T - (this.cropperH - this.cutB);
+            dragLength = CUT_T - (this.cropperH - this.cutB)
           this.setData({
             cutT: CUT_T - dragLength,
-          });
-          break;
-        case "bottom":
-          var dragLength = (T_PAGE_Y - e.touches[0].pageY) * DRAFG_MOVE_RATIO;
-          if (CUT_B + dragLength < 0) dragLength = -CUT_B;
+          })
+          break
+        case 'bottom':
+          var dragLength = (T_PAGE_Y - e.touches[0].pageY) * DRAFG_MOVE_RATIO
+          if (CUT_B + dragLength < 0) dragLength = -CUT_B
           this.setData({
             cutB: CUT_B + dragLength,
-          });
-          break;
-        case "rightBottom":
-          var dragLengthX = (T_PAGE_X - e.touches[0].pageX) * DRAFG_MOVE_RATIO;
-          var dragLengthY = (T_PAGE_Y - e.touches[0].pageY) * DRAFG_MOVE_RATIO;
+          })
+          break
+        case 'rightBottom':
+          var dragLengthX = (T_PAGE_X - e.touches[0].pageX) * DRAFG_MOVE_RATIO
+          var dragLengthY = (T_PAGE_Y - e.touches[0].pageY) * DRAFG_MOVE_RATIO
 
-          if (CUT_B + dragLengthY < 0) dragLengthY = -CUT_B;
-          if (CUT_R + dragLengthX < 0) dragLengthX = -CUT_R;
-          let cutB = CUT_B + dragLengthY;
-          let cutR = CUT_R + dragLengthX;
+          if (CUT_B + dragLengthY < 0) dragLengthY = -CUT_B
+          if (CUT_R + dragLengthX < 0) dragLengthX = -CUT_R
+          let cutB = CUT_B + dragLengthY
+          let cutR = CUT_R + dragLengthX
 
           this.setData({
             cutB: cutB,
             cutR: cutR,
-          });
-          break;
+          })
+          break
         default:
-          break;
+          break
       }
     },
   },
-};
+}
 </script>
 
 <style scoped>
@@ -508,7 +475,7 @@ export default {
 }
 
 .uni-cropper-line-t::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 50%;
   right: 0rpx;
@@ -534,7 +501,7 @@ export default {
 }
 
 .uni-cropper-line-r::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 50%;
@@ -560,7 +527,7 @@ export default {
 }
 
 .uni-cropper-line-b::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 50%;
   right: 0rpx;
@@ -586,7 +553,7 @@ export default {
 }
 
 .uni-cropper-line-l::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 50%;

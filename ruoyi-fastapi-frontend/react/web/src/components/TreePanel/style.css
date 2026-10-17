@@ -1,0 +1,192 @@
+.tree-panel {
+  width: var(--tree-panel-width, 220px);
+  min-width: 0;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ant-color-bg-container);
+  border-right: 1px solid var(--ant-color-border-secondary);
+  transition: width 0.25s ease;
+}
+.tree-panel.is-collapsed {
+  width: var(--tree-panel-collapsed-width, 20px);
+}
+.tree-panel.is-resizing {
+  transition: none;
+  user-select: none;
+}
+.tree-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 10px;
+  flex-shrink: 0;
+  gap: 4px;
+  background: var(--ant-color-bg-layout, #f7f8fa);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+.tree-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tree-panel-title .anticon {
+  color: var(--ant-color-primary);
+  font-size: 16px;
+}
+.tree-panel-actions {
+  display: flex;
+  flex-shrink: 0;
+}
+.tree-panel-search {
+  padding: 10px 10px 4px;
+}
+.tree-panel-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 6px 12px;
+  scrollbar-width: thin;
+}
+.tree-panel-content .ant-tree-treenode {
+  width: 100%;
+  margin-bottom: 0;
+  padding-bottom: 1px;
+}
+.tree-panel-content .ant-tree-node-content-wrapper {
+  min-height: 32px;
+  line-height: 32px;
+  min-width: 0;
+  padding-inline: 2px;
+}
+.tree-panel-content .ant-tree-node-selected {
+  color: var(--ant-color-primary);
+  font-weight: 600;
+}
+.tree-panel-content .ant-tree-switcher {
+  align-self: center;
+  width: 24px;
+  margin-inline-end: 0;
+}
+.tree-panel-content .ant-tree-indent-unit {
+  width: 18px;
+}
+.tree-panel-content .ant-tree-treenode:hover {
+  background: var(--ant-color-primary-bg, #f0f7ff);
+  border-radius: 4px;
+}
+.tree-panel-content .ant-tree-treenode:has(.ant-tree-node-selected) {
+  background: var(--ant-color-primary-bg, #e6f0fd);
+  border-radius: 4px;
+}
+.tree-panel-content .ant-tree-node-content-wrapper:hover,
+.tree-panel-content .ant-tree-node-selected {
+  background: transparent !important;
+}
+.tree-panel-content .ant-tree-node-selected .anticon {
+  color: var(--ant-color-primary);
+}
+.tree-panel-node {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+.tree-panel-node .anticon {
+  color: var(--ant-color-warning);
+  flex-shrink: 0;
+}
+.tree-panel-node > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-panel-collapse.ant-btn {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 20px;
+  min-width: 0;
+  padding: 0;
+  z-index: 2;
+  background: var(--ant-color-bg-container);
+  box-shadow: var(--ant-box-shadow-tertiary);
+  border-radius: 0 4px 4px 0;
+}
+.tree-panel-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.tree-panel-resizer:hover,
+.tree-panel-resizer:focus-visible,
+.tree-panel.is-resizing .tree-panel-resizer {
+  background: var(--ant-color-primary-border);
+  outline: none;
+}
+.tree-panel.is-collapsed .tree-panel-title,
+.tree-panel.is-collapsed .tree-panel-actions,
+.tree-panel.is-collapsed .tree-panel-search,
+.tree-panel.is-collapsed .tree-panel-content {
+  visibility: hidden;
+}
+.app-container.tree-sidebar-manage-wrap {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  min-height: calc(100vh - 130px);
+  overflow: hidden;
+}
+.tree-sidebar-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 12px 16px;
+}
+@media (max-width: 768px) {
+  .app-container.tree-sidebar-manage-wrap {
+    flex-direction: column;
+  }
+  .tree-panel,
+  .tree-panel.is-collapsed {
+    width: 100%;
+    max-height: 300px;
+    border: 1px solid var(--ant-color-border-secondary);
+    border-radius: 6px;
+  }
+  .tree-panel.is-collapsed {
+    height: 40px;
+  }
+  .tree-panel.is-collapsed .tree-panel-title {
+    visibility: visible;
+  }
+  .tree-panel-collapse.ant-btn {
+    top: 4px;
+    right: 6px;
+    transform: none;
+  }
+  .tree-panel-actions {
+    margin-right: 22px;
+  }
+  .tree-panel-resizer {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tree-panel {
+    transition: none;
+  }
+}

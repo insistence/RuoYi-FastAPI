@@ -1,9 +1,7 @@
 <template>
   <view class="h-full overflow-y-auto p-4">
     <view class="bg-white rounded-xl shadow-sm p-4">
-      <view
-        class="text-lg font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2"
-      >
+      <view class="text-lg font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">
         {{ title }}
       </view>
       <text class="block text-sm text-gray-600 leading-relaxed">
@@ -17,18 +15,18 @@
 export default {
   data() {
     return {
-      title: "",
-      content: "",
-    };
+      title: '',
+      content: '',
+    }
   },
   onLoad(options) {
-    this.title = options.title;
-    this.content = options.content;
+    this.title = options.title
+    this.content = options.content
     uni.setNavigationBarTitle({
       title: options.title,
-    });
+    })
   },
-};
+}
 </script>
 
 <style>

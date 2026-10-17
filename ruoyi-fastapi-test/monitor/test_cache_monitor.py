@@ -39,8 +39,8 @@ async def test_cache_monitor_page(browser_harness: BrowserHarness) -> None:
         'Key数量': data['dbSize'],
     }
     for label, value in metrics.items():
-        cell = page.get_by_text(label, exact=True).locator('xpath=ancestor::td/following-sibling::td[1]')
+        cell = page.get_by_text(label, exact=True).locator('xpath=ancestor-or-self::td[1]/following-sibling::td[1]')
         await expect(cell).to_have_text(str(value))
     for heading in ('命令统计', '内存信息'):
-        card = page.locator('.el-card').filter(has=page.get_by_text(heading, exact=True))
+        card = page.locator('.el-card, .ant-card').filter(has=page.get_by_text(heading, exact=True))
         await expect(card.locator('canvas').first).to_be_visible()

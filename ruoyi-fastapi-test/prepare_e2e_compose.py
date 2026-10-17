@@ -78,7 +78,7 @@ def isolate_compose(config: dict, project: str, python_version: str) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description='生成 CI 专用的独立 Compose 项目，不修改开发配置。')
     parser.add_argument('--database', choices=['mysql', 'postgresql'], required=True)
-    parser.add_argument('--framework', choices=['vue2', 'vue3'], required=True)
+    parser.add_argument('--framework', choices=['vue2', 'vue3', 'react'], required=True)
     parser.add_argument('--python-version', choices=['3.10', '3.11', '3.12', '3.13'], default='3.12')
     parser.add_argument('--project', required=True)
     parser.add_argument('--output', type=Path, required=True)

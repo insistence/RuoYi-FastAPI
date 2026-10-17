@@ -45,7 +45,7 @@ def create_api_handler(errors: list[str], observed: list[dict[str, Any]]) -> Cal
         :return: None
         """
         request = route.request
-        path = urlparse(request.url).path
+        path = urlparse(request.url).path.removeprefix('/dev-api')
         headers = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*'}
         if request.method == 'OPTIONS':
             await route.fulfill(status=204, headers=headers)
@@ -100,7 +100,7 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
     """
     使用真实 H5 构建验证登录、持久化身份和个人资料页。
 
-    :param framework: vue2 或 vue3
+    :param framework: vue2、vue3 或 react
     :param base_url: 仅用于本次测试的静态文件服务器
     :param output: 浏览器报告目录
     :return: None
@@ -118,6 +118,7 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
         context = await browser.new_context(viewport={'width': 390, 'height': 844}, timezone_id='UTC')
         await context.tracing.start(screenshots=True, snapshots=True, sources=True)
         await context.route('http://localhost:9099/**', api)
+        await context.route(f'{base_url}/dev-api/**', api)
         page = await context.new_page()
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('console', lambda message: logs.append(f'{message.type}: {message.text}'))
@@ -128,7 +129,8 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
             await expect(page.locator('input')).to_have_count(2, timeout=15000)
             await page.locator('input[type="text"]').fill('ci-user')
             await page.locator('input[type="password"]').fill('ci-test-password')
-            await page.locator('uni-button').filter(has_text=re.compile(r'登\s*录')).click()
+            button = page.get_by_role('button') if framework == 'react' else page.locator('uni-button')
+            await button.filter(has_text=re.compile(r'登\s*录')).click()
             await expect(page).to_have_url(re.compile(r'/pages/index'), timeout=30000)
             await page.goto(f'{base_url}/#/pages/mine/info/index')
             await expect(page.get_by_text(USER['nickName'], exact=True)).to_be_visible(timeout=30000)
@@ -162,9 +164,10 @@ def main() -> None:
     :return: None
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--framework', choices=('vue2', 'vue3'), required=True)
+    parser.add_argument('--framework', choices=('vue2', 'vue3', 'react'), required=True)
     args = parser.parse_args()
-    distribution = ROOT / 'ruoyi-fastapi-frontend' / args.framework / 'mobile/dist/build/h5'
+    build_path = 'dist/h5' if args.framework == 'react' else 'dist/build/h5'
+    distribution = ROOT / 'ruoyi-fastapi-frontend' / args.framework / 'mobile' / build_path
     if not (distribution / 'index.html').is_file():
         raise SystemExit(f'请先构建 H5：{distribution}')
     output = ROOT / 'target/ci/mobile-smoke' / args.framework

@@ -1,0 +1,39 @@
+.notice-read-users .ant-modal-body {
+  padding-top: 12px;
+}
+.notice-read-users .ant-input-search {
+  width: 320px;
+  max-width: 100%;
+  margin-bottom: 16px;
+}
+.notice-read-users .ant-modal-body > p {
+  color: var(--ant-color-text-secondary);
+  font-size: 13px;
+}
+.notice-read-users .ant-table-wrapper {
+  overflow-x: auto;
+}
+.notice-read-users .ant-modal-title {
+  overflow-wrap: anywhere;
+  padding-inline-end: 24px;
+}
+
+.notice-read-query {
+  margin-bottom: 4px;
+  align-items: center;
+}
+.notice-read-query .ant-form-item {
+  margin-bottom: 18px;
+  margin-right: 16px;
+}
+.notice-read-query .read-stat {
+  margin-left: auto;
+  margin-bottom: 18px;
+  color: var(--ant-color-text-secondary);
+}
+.notice-read-query .read-stat strong {
+  color: var(--ant-color-primary);
+}
+.table-striped-row > td {
+  background: var(--ant-color-fill-alter);
+}

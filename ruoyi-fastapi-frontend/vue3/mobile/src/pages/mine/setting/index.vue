@@ -62,36 +62,36 @@
 </template>
 
 <script setup>
-import { useUserStore } from "@/store";
-import { getCurrentInstance } from "vue";
+import { useUserStore } from '@/store'
+import { getCurrentInstance } from 'vue'
 
-const { proxy } = getCurrentInstance();
+const { proxy } = getCurrentInstance()
 
 function handleToPwd() {
-  proxy.$tab.navigateTo("/pages/mine/pwd/index");
+  proxy.$tab.navigateTo('/pages/mine/pwd/index')
 }
 
 function handleToTimezone() {
-  proxy.$tab.navigateTo("/pages/mine/setting/timezone");
+  proxy.$tab.navigateTo('/pages/mine/setting/timezone')
 }
 
 function handleToUpgrade() {
-  proxy.$modal.showToast("模块建设中~");
+  proxy.$modal.showToast('模块建设中~')
 }
 
 function handleCleanTmp() {
-  proxy.$modal.showToast("模块建设中~");
+  proxy.$modal.showToast('模块建设中~')
 }
 
 function handleLogout() {
-  proxy.$modal.confirm("确定注销并退出系统吗？").then(() => {
+  proxy.$modal.confirm('确定注销并退出系统吗？').then(() => {
     useUserStore()
       .logOut()
       .then(() => {})
       .finally(() => {
-        proxy.$tab.reLaunch("/pages/index");
-      });
-  });
+        proxy.$tab.reLaunch('/pages/index')
+      })
+  })
 }
 </script>
 

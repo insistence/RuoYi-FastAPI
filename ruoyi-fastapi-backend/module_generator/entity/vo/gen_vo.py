@@ -25,7 +25,7 @@ class GenTableBaseModel(BaseModel):
     sub_table_fk_name: str | None = Field(default=None, description='子表关联的外键名')
     class_name: str | None = Field(default=None, description='实体类名称')
     tpl_category: str | None = Field(default=None, description='使用的模板（crud单表操作 tree树表操作）')
-    tpl_web_type: str | None = Field(default=None, description='前端模板类型（element-ui模版 element-plus模版）')
+    tpl_web_type: str | None = Field(default=None, description='前端模板类型（element-ui、element-plus、react-antd）')
     package_name: str | None = Field(default=None, description='生成包路径')
     module_name: str | None = Field(default=None, description='生成模块名')
     business_name: str | None = Field(default=None, description='生成业务名')

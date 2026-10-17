@@ -3,9 +3,7 @@
     <view class="space-y-5">
       <!-- Nickname -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700"
-          >用户昵称</text
-        >
+        <text class="mb-2 block text-sm font-medium text-gray-700">用户昵称</text>
         <input
           v-model="user.nickName"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
@@ -16,9 +14,7 @@
 
       <!-- Phone -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700"
-          >手机号码</text
-        >
+        <text class="mb-2 block text-sm font-medium text-gray-700">手机号码</text>
         <input
           v-model="user.phonenumber"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
@@ -73,70 +69,70 @@
 </template>
 
 <script>
-import { getUserProfile, updateUserProfile } from "@/api/system/user";
+import { getUserProfile, updateUserProfile } from '@/api/system/user'
 
 export default {
   data() {
     return {
       user: {
-        nickName: "",
-        phonenumber: "",
-        email: "",
-        sex: "",
+        nickName: '',
+        phonenumber: '',
+        email: '',
+        sex: '',
       },
       sexs: [
         {
-          text: "男",
-          value: "0",
+          text: '男',
+          value: '0',
         },
         {
-          text: "女",
-          value: "1",
+          text: '女',
+          value: '1',
         },
       ],
-    };
+    }
   },
   onLoad() {
-    this.getUser();
+    this.getUser()
   },
   methods: {
     getUser() {
       getUserProfile().then((response) => {
-        const { nickName, phonenumber, email, sex } = response.data;
-        this.user = { nickName, phonenumber, email, sex };
-      });
+        const { nickName, phonenumber, email, sex } = response.data
+        this.user = { nickName, phonenumber, email, sex }
+      })
     },
     submit() {
       if (!this.user.nickName) {
-        this.$modal.msgError("用户昵称不能为空");
-        return;
+        this.$modal.msgError('用户昵称不能为空')
+        return
       }
       if (!this.user.phonenumber) {
-        this.$modal.msgError("手机号码不能为空");
-        return;
+        this.$modal.msgError('手机号码不能为空')
+        return
       }
       if (!/^1[3-9]\d{9}$/.test(this.user.phonenumber)) {
-        this.$modal.msgError("请输入正确的手机号码");
-        return;
+        this.$modal.msgError('请输入正确的手机号码')
+        return
       }
       if (!this.user.email) {
-        this.$modal.msgError("邮箱不能为空");
-        return;
+        this.$modal.msgError('邮箱不能为空')
+        return
       }
       if (!/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/.test(this.user.email)) {
-        this.$modal.msgError("请输入正确的邮箱");
-        return;
+        this.$modal.msgError('请输入正确的邮箱')
+        return
       }
 
       updateUserProfile(this.user).then((response) => {
-        this.$modal.msgSuccess("修改成功");
+        this.$modal.msgSuccess('修改成功')
         setTimeout(() => {
-          this.$tab.navigateBack();
-        }, 1500);
-      });
+          this.$tab.navigateBack()
+        }, 1500)
+      })
     },
   },
-};
+}
 </script>
 
 <style>

@@ -77,9 +77,7 @@
       </view>
 
       <!-- Create Time -->
-      <view
-        class="flex items-center justify-between px-5 py-4 active:bg-gray-50"
-      >
+      <view class="flex items-center justify-between px-5 py-4 active:bg-gray-50">
         <view class="flex items-center">
           <view
             class="flex size-9 items-center justify-center rounded-full bg-pink-50 text-pink-500"
@@ -95,31 +93,28 @@
 </template>
 
 <script setup>
-import { getUserProfile } from "@/api/system/user";
-import { ref } from "vue";
-import { formatBusinessTime } from "@/utils/time";
-import { useUserStore } from "@/store/modules/user";
+import { getUserProfile } from '@/api/system/user'
+import { ref } from 'vue'
+import { formatBusinessTime } from '@/utils/time'
+import { useUserStore } from '@/store/modules/user'
 
-const user = ref({});
-const roleGroup = ref("");
-const postGroup = ref("");
+const user = ref({})
+const roleGroup = ref('')
+const postGroup = ref('')
 
 async function getUser() {
   try {
     // 冷启动或直接进入资料页时，先获取服务器业务时区再展示时间。
-    const [, response] = await Promise.all([
-      useUserStore().getInfo(),
-      getUserProfile(),
-    ]);
-    user.value = response.data;
-    roleGroup.value = response.roleGroup;
-    postGroup.value = response.postGroup;
+    const [, response] = await Promise.all([useUserStore().getInfo(), getUserProfile()])
+    user.value = response.data
+    roleGroup.value = response.roleGroup
+    postGroup.value = response.postGroup
   } catch {
     // 请求工具已展示错误，保留空状态。
   }
 }
 
-getUser();
+getUser()
 </script>
 
 <style>

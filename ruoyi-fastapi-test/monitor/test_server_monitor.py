@@ -41,14 +41,16 @@ async def test_server_monitor_page(browser_harness: BrowserHarness) -> None:
         '项目路径': data['sys']['userDir'],
     }
     for label, value in metrics.items():
-        cell = page.get_by_text(label, exact=True).locator('xpath=ancestor::td/following-sibling::td[1]')
+        cell = page.get_by_text(label, exact=True).locator('xpath=ancestor-or-self::td[1]/following-sibling::td[1]')
         await expect(cell).to_have_text(str(value))
-    memory = page.locator('.el-card').filter(has=page.locator('.el-card__header').filter(has_text='内存'))
+    memory = page.locator('.el-card, .ant-card').filter(
+        has=page.locator('.el-card__header, .ant-card-head').filter(has_text='内存')
+    )
     for label, key in (('总内存', 'total'), ('已用内存', 'used'), ('剩余内存', 'free')):
         cells = memory.locator('tr').filter(has=page.get_by_text(label, exact=True)).locator('td')
         await expect(cells.nth(1)).to_have_text(str(data['mem'][key]))
         await expect(cells.nth(2)).to_have_text(str(data['py'][key]))
-    disks = page.locator('.el-card').filter(has=page.get_by_text('磁盘状态', exact=True)).locator('tbody tr')
+    disks = page.locator('.el-card, .ant-card').filter(has=page.get_by_text('磁盘状态', exact=True)).locator('tbody tr')
     assert data['sysFiles'], '服务监控应返回实际磁盘信息'
     await expect(disks).to_have_count(len(data['sysFiles']))
     for index, disk in enumerate(data['sysFiles']):

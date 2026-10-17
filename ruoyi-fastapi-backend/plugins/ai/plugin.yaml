@@ -111,6 +111,14 @@ dependencies:
         - stream-monaco==0.0.48
       npmDev:
         - vite-plugin-monaco-editor-esm==2.0.2
+    react:
+      npm:
+        - '@ant-design/x==2.9.0'
+        - katex^0.19.0
+        - markstream-react==2.0.17
+        - mermaid^12.1.0
+        - stream-diffs==0.0.2
+      npmDev: []
   plugins: []
 
 compatibility:

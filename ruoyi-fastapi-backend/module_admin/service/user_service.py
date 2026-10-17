@@ -269,7 +269,7 @@ class UserService:
         if page_object.type not in ['status', 'avatar', 'pwd']:
             del edit_user['role_ids']
             del edit_user['post_ids']
-            del edit_user['role']
+            edit_user.pop('role', None)
         else:
             del edit_user['type']
 

@@ -1,39 +1,39 @@
 <script setup>
-import config from "./config";
-import { getToken } from "@/utils/auth";
-import { useConfigStore } from "@/store";
-import { getCurrentInstance } from "vue";
-import { onLaunch, onShow } from "@dcloudio/uni-app";
+import config from './config'
+import { getToken } from '@/utils/auth'
+import { useConfigStore } from '@/store'
+import { getCurrentInstance } from 'vue'
+import { onLaunch, onShow } from '@dcloudio/uni-app'
 
-import { refreshDeviceTimezone } from "@/utils/time";
+import { refreshDeviceTimezone } from '@/utils/time'
 
-const { proxy } = getCurrentInstance();
+const { proxy } = getCurrentInstance()
 
 onLaunch(() => {
-  initApp();
-});
+  initApp()
+})
 
 onShow(() => {
-  refreshDeviceTimezone();
-});
+  refreshDeviceTimezone()
+})
 
 // 初始化应用
 function initApp() {
   // 初始化应用配置
-  initConfig();
+  initConfig()
   // 检查用户登录状态
   //#ifdef H5
-  checkLogin();
+  checkLogin()
   //#endif
 }
 
 function initConfig() {
-  useConfigStore().setConfig(config);
+  useConfigStore().setConfig(config)
 }
 
 function checkLogin() {
   if (!getToken()) {
-    proxy.$tab.reLaunch("/pages/login");
+    proxy.$tab.reLaunch('/pages/login')
   }
 }
 </script>

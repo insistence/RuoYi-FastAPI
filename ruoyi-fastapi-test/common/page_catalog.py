@@ -3,13 +3,25 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class PageCase:
-    """两套 Web 工程共有的内置菜单、实际页面内容与首屏业务请求。"""
+    """三套 Web 工程共有的内置菜单、实际页面内容与首屏业务请求。"""
 
     path: str
     title: str
     content: str
     api: str | None = None
     selector: str = '.el-table'
+
+    def selector_for(self, framework: str) -> str:
+        """按组件库选择实际业务内容，保持页面与接口覆盖相同。"""
+        if framework != 'react':
+            return self.selector
+        overrides = {
+            '/monitor/server': '.monitor-panel',
+            '/monitor/cache': '.monitor-table',
+            '/monitor/transportCrypto': '.crypto-summary',
+            '/tool/build': '.builder-palette',
+        }
+        return overrides.get(self.path, '.ant-table' if self.selector == '.el-table' else self.selector)
 
 
 MENU_PAGES = (

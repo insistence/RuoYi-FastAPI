@@ -1,0 +1,25 @@
+.business-datetime-input {
+  width: 100%;
+  min-width: 0;
+  line-height: 1.5;
+}
+.business-datetime-input .business-datetime-input__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 6px;
+}
+.business-datetime-input__fields .ant-picker {
+  width: 100%;
+  min-width: 0;
+  border-radius: 6px;
+}
+.business-datetime-input .business-datetime-input__zone {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}
+.business-datetime-input__error {
+  font-size: 12px;
+  color: var(--ant-color-error);
+}

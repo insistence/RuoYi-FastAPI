@@ -47,9 +47,9 @@ async def test_log_management_page(browser_harness: BrowserHarness) -> None:
             dialog = view.dialog
             await expect(dialog).to_contain_text('操作日志详细')
             await expect(dialog).to_contain_text(target['operName'])
-            await dialog.locator('.el-dialog__headerbtn').click()
+            await dialog.locator('.el-dialog__headerbtn, .ant-modal-close').click()
             await expect(dialog).to_have_count(0)
-        await row.locator('.el-checkbox').click()
+        await row.locator('.el-checkbox, .ant-checkbox-wrapper').click()
         await view.button(view.page, '删除').click()
         deleted = await view.confirm_refresh(f'{resource}/{record_id}')
         assert all(record[identity] != record_id for record in deleted['rows'])

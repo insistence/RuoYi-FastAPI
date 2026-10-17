@@ -55,5 +55,5 @@ async def test_authenticated_access(browser_harness: BrowserHarness) -> None:
     """已登录用户必须加载用户管理数据表。"""
     page = await browser_harness.new_page(authenticated=True)
     await page.goto('/system/user')
-    await expect(page.locator('.app-main .el-table')).to_be_visible()
+    await expect(page.locator('.app-main .el-table, .app-main .ant-table')).to_be_visible()
     assert '/login' not in page.url

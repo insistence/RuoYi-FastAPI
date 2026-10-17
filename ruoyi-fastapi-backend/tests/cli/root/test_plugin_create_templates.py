@@ -52,7 +52,7 @@ def test_create_cli_defaults_to_existing_v1_full_stack_template() -> None:
     assert recorded == [PluginCreateCommandOptions()]
 
 
-@pytest.mark.parametrize('framework', ['auto', 'vue2', 'vue3'])
+@pytest.mark.parametrize('framework', ['auto', 'vue2', 'vue3', 'react'])
 def test_create_cli_accepts_fixed_frontend_framework_choices(framework: str) -> None:
     """校验创建命令接受固定框架选项并将原始字符串传递给控制器。"""
     recorded: list[PluginCreateCommandOptions] = []
@@ -69,7 +69,7 @@ def test_create_cli_accepts_fixed_frontend_framework_choices(framework: str) -> 
     assert recorded[0].frontend_framework == framework
 
 
-@pytest.mark.parametrize('framework', ['react', 'custom_ui-1', '../react', 'Vue3'])
+@pytest.mark.parametrize('framework', ['custom_ui-1', '../react', 'Vue3'])
 def test_create_cli_rejects_framework_before_resolving_controller(framework: str) -> None:
     """校验非法框架选项在加载控制器或运行时之前被拒绝。"""
 
@@ -87,9 +87,9 @@ def test_create_cli_rejects_framework_before_resolving_controller(framework: str
 
 
 def test_create_cli_help_displays_fixed_frontend_framework_choices() -> None:
-    """校验创建命令帮助展示固定的三种框架选项。"""
+    """校验创建命令帮助展示固定的四种框架选项。"""
     app = typer.Typer()
     register_developer_commands(app, lambda: None)
     result = CliRunner().invoke(app, ['create', '--help'], terminal_width=160)
     assert result.exit_code == SUCCESS
-    assert 'auto|vue2|vue3' in result.output
+    assert 'auto|vue2|vue3|react' in result.output

@@ -1,0 +1,6 @@
+{
+  "projectname": "ruoyi-fastapi-react-mobile",
+  "appid": "",
+  "miniprogramRoot": "dist/xhs/",
+  "setting": { "es6": true, "minified": true }
+}

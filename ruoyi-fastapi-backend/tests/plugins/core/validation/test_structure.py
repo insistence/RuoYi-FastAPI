@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -19,10 +20,26 @@ def load_discovered_plugin(backend_root: Path, plugin_id: str) -> DiscoveredPlug
     return PluginScanner(backend_root / 'plugins').load_manifest(backend_root / 'plugins' / plugin_id / 'plugin.yaml')
 
 
-def test_structure_checker_accepts_valid_backend_and_frontend_plugin(tmp_path: Path) -> None:
-    """校验结构检查器接受完整插件结构。"""
+@pytest.mark.parametrize(
+    ('framework', 'suffix', 'expected_ok'),
+    [
+        ('vue2', '.vue', True),
+        ('vue3', '.vue', True),
+        ('react', '.jsx', True),
+        ('react', '.vue', False),
+        ('vue3', '.jsx', False),
+    ],
+)
+@pytest.mark.parametrize('standard_layout', [True, False])
+def test_structure_checker_matches_host_page_type(
+    tmp_path: Path, framework: str, suffix: str, expected_ok: bool, standard_layout: bool
+) -> None:
+    """标准工程和独立工程都按宿主框架检查页面，错误类型不能通过检查。"""
     backend_root = tmp_path / 'ruoyi-fastapi-backend'
-    frontend_root = tmp_path / 'ruoyi-fastapi-frontend'
+    frontend_root = tmp_path / 'ruoyi-fastapi-frontend' / framework / 'web' if standard_layout else tmp_path / 'host'
+    frontend_root.mkdir(parents=True)
+    dependencies = {'react': '19.2.0'} if framework == 'react' else {'vue': f'{framework[-1]}.0.0'}
+    (frontend_root / 'package.json').write_text(json.dumps({'dependencies': dependencies}), encoding='utf-8')
     plugin_root = backend_root / 'plugins' / 'demo'
     write_manifest(
         plugin_root,
@@ -46,14 +63,14 @@ frontend:
     (plugin_root / 'seeds' / 'demo_seed.py').write_text('async def run(query_db):\n    return None\n', encoding='utf-8')
     (frontend_root / 'plugins' / 'demo' / 'views').mkdir(parents=True)
     (frontend_root / 'plugins' / 'demo' / 'api').mkdir()
-    (frontend_root / 'plugins' / 'demo' / 'views' / 'index.vue').write_text('<template />\n', encoding='utf-8')
+    (frontend_root / 'plugins' / 'demo' / 'views' / f'index{suffix}').write_text('// fixture\n', encoding='utf-8')
 
     result = PluginStructureChecker(backend_root, frontend_root / 'plugins').check(
         load_discovered_plugin(backend_root, 'demo')
     )
 
-    assert result.ok is True
-    assert result.failed_items == []
+    assert result.ok is expected_ok
+    assert [item.kind for item in result.failed_items] == ([] if expected_ok else ['frontend_view'])
 
 
 def test_structure_checker_reports_missing_frontend_directories_from_manifest(tmp_path: Path) -> None:

@@ -13,7 +13,7 @@ pytestmark = pytest.mark.contract
 SDK_FILES = ('pluginBridge.js', 'pluginBridge.d.ts', 'pluginBridge.sdk.json')
 
 
-@pytest.mark.parametrize('framework', ['vue2', 'vue3'])
+@pytest.mark.parametrize('framework', ['vue2', 'vue3', 'react'])
 def test_cold_cli_preserves_frontend_framework_across_scaffold_sdk_and_dependency_lock(
     tmp_path: Path,
     backend_dir: Path,
@@ -28,12 +28,19 @@ def test_cold_cli_preserves_frontend_framework_across_scaffold_sdk_and_dependenc
     """
     backend = tmp_path / 'backend'
     frontend_container = tmp_path / 'ruoyi-fastapi-frontend'
-    for host_framework in ('vue2', 'vue3'):
+    for host_framework in ('vue2', 'vue3', 'react'):
         frontend = frontend_container / host_framework / 'web'
         source = frontend / 'src' / 'utils'
         source.mkdir(parents=True)
         (frontend / 'package.json').write_text(
-            json.dumps({'dependencies': {'vue': f'^{host_framework[-1]}.0.0'}}), encoding='utf-8'
+            json.dumps(
+                {
+                    'dependencies': {'react': '^19.2.0'}
+                    if host_framework == 'react'
+                    else {'vue': f'^{host_framework[-1]}.0.0'}
+                }
+            ),
+            encoding='utf-8',
         )
         original_source = backend_dir.parent / 'ruoyi-fastapi-frontend' / host_framework / 'web' / 'src' / 'utils'
         for name in SDK_FILES:
@@ -51,6 +58,7 @@ def test_cold_cli_preserves_frontend_framework_across_scaffold_sdk_and_dependenc
                     'frontend': {
                         'vue2': {'npm': ['vue2-renderer==2.0.0']},
                         'vue3': {'npm': ['vue3-renderer==3.0.0']},
+                        'react': {'npm': ['react-renderer==19.0.0']},
                     }
                 },
             }
@@ -85,6 +93,8 @@ def test_cold_cli_preserves_frontend_framework_across_scaffold_sdk_and_dependenc
     scaffold = json.loads(created.stdout)
     selected_frontend = frontend_container / framework / 'web'
     assert scaffold['frontendFramework'] == framework
+    suffix = '.jsx' if framework == 'react' else '.vue'
+    assert any(Path(item['path']).name == f'index{suffix}' for item in scaffold['files'])
     assert str(backend / 'plugins' / 'environment_scaffold') in scaffold['targetDirs']
     assert str(selected_frontend / 'plugins' / 'environment_scaffold') in scaffold['targetDirs']
     assert all(Path(item['path']).is_relative_to(tmp_path) for item in scaffold['files'])
@@ -97,7 +107,8 @@ def test_cold_cli_preserves_frontend_framework_across_scaffold_sdk_and_dependenc
     lockfile = yaml.safe_load(lock_payload['lockfile'])
     assert Path(lock_payload['outputFile']) == plugin / 'plugin.lock.yaml'
     assert lockfile['frontendFramework'] == framework
-    assert [item['requirement'] for item in lockfile['npm']] == [f'{framework}-renderer=={framework[-1]}.0.0']
+    renderer_version = '19' if framework == 'react' else framework[-1]
+    assert [item['requirement'] for item in lockfile['npm']] == [f'{framework}-renderer=={renderer_version}.0.0']
     assert lock_payload['written'] is False
     assert original_files == {path: path.read_bytes() for path in tmp_path.rglob('*') if path.is_file()}
 

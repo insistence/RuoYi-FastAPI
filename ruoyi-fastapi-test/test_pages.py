@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import pytest
 from playwright.async_api import expect
 
+from common.config import Config
 from common.page_catalog import MENU_PAGES, PageCase
 
 if TYPE_CHECKING:
@@ -60,17 +61,17 @@ async def test_builtin_menu_loads_data_and_content(browser_harness: BrowserHarne
     else:
         await page.goto(case.path)
     main = page.locator('.app-main')
-    await expect(main.locator(case.selector).first).to_be_visible()
+    await expect(main.locator(case.selector_for(Config.frontend_framework)).first).to_be_visible()
     if case.content:
         await expect(main).to_contain_text(case.content)
-    await expect(page.locator('.tags-view-item.active')).to_contain_text(case.title)
+    await expect(page.locator('.tags-view-item.active, .tags-item.active')).to_contain_text(case.title)
     assert urlparse(page.url).path == case.path
     assert not [event for event in browser_harness.events if event['kind'] == 'pageerror']
 
 
 @pytest.mark.parametrize('case', MENU_PAGES, ids=lambda case: case.path)
 async def test_builtin_menu_requires_authentication(browser_harness: BrowserHarness, case: PageCase) -> None:
-    """两个框架的每个内置管理菜单均由真实路由守卫保护。"""
+    """每个框架的全部内置管理菜单均由真实路由守卫保护。"""
     page = await browser_harness.new_page()
     await page.goto(case.path)
     await page.wait_for_url('**/login**')
@@ -84,7 +85,7 @@ async def test_dashboard_page(browser_harness: BrowserHarness) -> None:
     page = await browser_harness.new_page(authenticated=True)
     await page.goto('/index')
     await expect(page.locator('.app-main')).to_be_visible()
-    await expect(page.locator('.tags-view-item.active')).to_contain_text('首页')
+    await expect(page.locator('.tags-view-item.active, .tags-item.active')).to_contain_text('首页')
 
 
 async def test_druid_page(browser_harness: BrowserHarness) -> None:

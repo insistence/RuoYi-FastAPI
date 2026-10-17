@@ -4,6 +4,8 @@
   "type": "module",
   "packageManager": "pnpm@10.28.1",
   "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test:time": "npm run test:contract",
     "test:unit": "node --experimental-vm-modules --test tests/behavior.test.mjs",
     "test:contract": "node --test tests/time*.test.js",
@@ -92,6 +94,7 @@
     "@vue/runtime-core": "^3.5.27",
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",
+    "prettier": "3.6.2",
     "sass": "^1.97.3",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",

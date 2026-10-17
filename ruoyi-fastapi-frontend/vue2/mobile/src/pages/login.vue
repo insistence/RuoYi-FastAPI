@@ -4,18 +4,14 @@
   >
     <!-- Logo Section -->
     <view class="mb-6 flex flex-col items-center">
-      <view
-        class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg"
-      >
+      <view class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg">
         <image
           class="size-10"
           :src="globalConfig.appInfo.logo"
           mode="widthFix"
         />
       </view>
-      <text class="text-xl font-bold tracking-wide text-gray-800"
-        >RuoYi-FastAPI移动端登录</text
-      >
+      <text class="text-xl font-bold tracking-wide text-gray-800">RuoYi-FastAPI移动端登录</text>
     </view>
 
     <!-- Form Section -->
@@ -75,7 +71,10 @@
           class="h-12 w-28 overflow-hidden rounded-xl bg-gray-100 shadow-sm transition-opacity active:opacity-80"
           @click="getCode"
         >
-          <image :src="codeUrl" class="h-full w-full object-cover"></image>
+          <image
+            :src="codeUrl"
+            class="h-full w-full object-cover"
+          ></image>
         </view>
       </view>
 
@@ -89,7 +88,10 @@
 
       <!-- Footer Links -->
       <view class="mt-6 flex flex-col items-center space-y-3">
-        <view class="flex items-center text-sm text-gray-500" v-if="register">
+        <view
+          class="flex items-center text-sm text-gray-500"
+          v-if="register"
+        >
           <text>没有账号？</text>
           <text
             @click="handleUserRegister"
@@ -98,9 +100,7 @@
           >
         </view>
 
-        <view
-          class="flex flex-wrap items-center justify-center text-xs text-gray-400"
-        >
+        <view class="flex flex-wrap items-center justify-center text-xs text-gray-400">
           <text>登录即代表同意</text>
           <text
             @click="handleUserAgrement"
@@ -120,95 +120,94 @@
 </template>
 
 <script>
-import { getCodeImg } from "@/api/login";
-import { getToken } from "@/utils/auth";
+import { getCodeImg } from '@/api/login'
+import { getToken } from '@/utils/auth'
 
 export default {
   data() {
     return {
-      codeUrl: "",
+      codeUrl: '',
       captchaEnabled: true,
       // 用户注册开关
       register: false,
       globalConfig: getApp().globalData.config,
       loginForm: {
-        username: "admin",
-        password: "admin123",
-        code: "",
-        uuid: "",
+        username: 'admin',
+        password: 'admin123',
+        code: '',
+        uuid: '',
       },
-    };
+    }
   },
   created() {
-    this.getCode();
+    this.getCode()
   },
   onLoad() {
     //#ifdef H5
     if (getToken()) {
-      this.$tab.reLaunch("/pages/index");
+      this.$tab.reLaunch('/pages/index')
     }
     //#endif
   },
   methods: {
     // 用户注册
     handleUserRegister() {
-      this.$tab.redirectTo(`/pages/register`);
+      this.$tab.redirectTo(`/pages/register`)
     },
     // 隐私协议
     handlePrivacy() {
-      this.$tab.navigateTo(`/pages/common/privacy/index`);
+      this.$tab.navigateTo(`/pages/common/privacy/index`)
     },
     // 用户协议
     handleUserAgrement() {
-      this.$tab.navigateTo(`/pages/common/agreement/index`);
+      this.$tab.navigateTo(`/pages/common/agreement/index`)
     },
     // 获取图形验证码
     getCode() {
       getCodeImg().then((res) => {
-        this.captchaEnabled =
-          res.captchaEnabled === undefined ? true : res.captchaEnabled;
+        this.captchaEnabled = res.captchaEnabled === undefined ? true : res.captchaEnabled
         if (this.captchaEnabled) {
-          this.codeUrl = "data:image/gif;base64," + res.img;
-          this.loginForm.uuid = res.uuid;
+          this.codeUrl = 'data:image/gif;base64,' + res.img
+          this.loginForm.uuid = res.uuid
         }
-      });
+      })
     },
     // 登录方法
     async handleLogin() {
-      if (this.loginForm.username === "") {
-        this.$modal.msgError("请输入账号");
-      } else if (this.loginForm.password === "") {
-        this.$modal.msgError("请输入密码");
-      } else if (this.loginForm.code === "" && this.captchaEnabled) {
-        this.$modal.msgError("请输入验证码");
+      if (this.loginForm.username === '') {
+        this.$modal.msgError('请输入账号')
+      } else if (this.loginForm.password === '') {
+        this.$modal.msgError('请输入密码')
+      } else if (this.loginForm.code === '' && this.captchaEnabled) {
+        this.$modal.msgError('请输入验证码')
       } else {
-        this.$modal.loading("登录中，请耐心等待...");
-        this.pwdLogin();
+        this.$modal.loading('登录中，请耐心等待...')
+        this.pwdLogin()
       }
     },
     // 密码登录
     async pwdLogin() {
       this.$store
-        .dispatch("Login", this.loginForm)
+        .dispatch('Login', this.loginForm)
         .then(() => {
-          this.$modal.closeLoading();
-          this.loginSuccess();
+          this.$modal.closeLoading()
+          this.loginSuccess()
         })
         .catch(() => {
           if (this.captchaEnabled) {
-            this.getCode();
+            this.getCode()
           }
-        });
+        })
     },
     // 登录成功后，处理函数
     loginSuccess(result) {
       // 设置用户信息
-      this.$store.dispatch("GetInfo").then((res) => {
-        this.$tab.reLaunch("/pages/index");
-      });
+      this.$store.dispatch('GetInfo').then((res) => {
+        this.$tab.reLaunch('/pages/index')
+      })
     },
   },
-};
+}
 </script>
 
 <style lang="scss" scoped>

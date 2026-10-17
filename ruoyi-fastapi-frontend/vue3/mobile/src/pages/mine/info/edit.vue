@@ -3,9 +3,7 @@
     <view class="space-y-5">
       <!-- Nickname -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700"
-          >用户昵称</text
-        >
+        <text class="mb-2 block text-sm font-medium text-gray-700">用户昵称</text>
         <input
           v-model="user.nickName"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
@@ -16,9 +14,7 @@
 
       <!-- Phone -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700"
-          >手机号码</text
-        >
+        <text class="mb-2 block text-sm font-medium text-gray-700">手机号码</text>
         <input
           v-model="user.phonenumber"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
@@ -73,68 +69,68 @@
 </template>
 
 <script setup>
-import { getUserProfile, updateUserProfile } from "@/api/system/user";
-import { ref, getCurrentInstance } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { getUserProfile, updateUserProfile } from '@/api/system/user'
+import { ref, getCurrentInstance } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 
-const { proxy } = getCurrentInstance();
+const { proxy } = getCurrentInstance()
 const user = ref({
-  nickName: "",
-  phonenumber: "",
-  email: "",
-  sex: "",
-});
+  nickName: '',
+  phonenumber: '',
+  email: '',
+  sex: '',
+})
 const sexs = [
   {
-    text: "男",
-    value: "0",
+    text: '男',
+    value: '0',
   },
   {
-    text: "女",
-    value: "1",
+    text: '女',
+    value: '1',
   },
-];
+]
 
 function getUser() {
   getUserProfile().then((response) => {
-    const { nickName, phonenumber, email, sex } = response.data;
-    user.value = { nickName, phonenumber, email, sex };
-  });
+    const { nickName, phonenumber, email, sex } = response.data
+    user.value = { nickName, phonenumber, email, sex }
+  })
 }
 
 function submit() {
   if (!user.value.nickName) {
-    proxy.$modal.msgError("用户昵称不能为空");
-    return;
+    proxy.$modal.msgError('用户昵称不能为空')
+    return
   }
   if (!user.value.phonenumber) {
-    proxy.$modal.msgError("手机号码不能为空");
-    return;
+    proxy.$modal.msgError('手机号码不能为空')
+    return
   }
   if (!/^1[3|4|5|6|7|8|9][0-9]\d{8}$/.test(user.value.phonenumber)) {
-    proxy.$modal.msgError("请输入正确的手机号码");
-    return;
+    proxy.$modal.msgError('请输入正确的手机号码')
+    return
   }
   if (!user.value.email) {
-    proxy.$modal.msgError("邮箱地址不能为空");
-    return;
+    proxy.$modal.msgError('邮箱地址不能为空')
+    return
   }
   if (!/^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/.test(user.value.email)) {
-    proxy.$modal.msgError("请输入正确的邮箱地址");
-    return;
+    proxy.$modal.msgError('请输入正确的邮箱地址')
+    return
   }
 
   updateUserProfile(user.value).then((response) => {
-    proxy.$modal.msgSuccess("修改成功");
+    proxy.$modal.msgSuccess('修改成功')
     setTimeout(() => {
-      proxy.$tab.navigateBack();
-    }, 1500);
-  });
+      proxy.$tab.navigateBack()
+    }, 1500)
+  })
 }
 
 onLoad(() => {
-  getUser();
-});
+  getUser()
+})
 </script>
 
 <style>

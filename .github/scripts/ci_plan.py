@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-FRAMEWORKS = ('vue2', 'vue3')
+FRAMEWORKS = ('vue2', 'vue3', 'react')
 PYTHON_VERSIONS = ('3.10', '3.11', '3.12', '3.13')
 CATEGORIES = ('quality', 'backend', 'frontend', 'integration', 'e2e', 'native')
 FRONTEND_FILE_PATH_PARTS = 4

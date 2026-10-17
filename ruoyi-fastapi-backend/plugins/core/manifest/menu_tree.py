@@ -83,17 +83,21 @@ class PluginMenuTree:
         return component.startswith('plugin/')
 
     @staticmethod
-    def resolve_plugin_view_path(manifest: 'PluginManifest', component: str) -> Path | None:
+    def resolve_plugin_view_path(
+        manifest: 'PluginManifest', component: str, frontend_framework: str = 'vue3'
+    ) -> Path | None:
         """
         将插件组件路径解析为前端插件内视图路径。
 
         :param manifest: 插件清单
         :param component: 菜单组件路径
-        :return: Vue 文件相对路径
+        :param frontend_framework: 宿主框架，React 对应 JSX，其余保留 Vue 页面约定
+        :return: 页面文件相对路径
         """
         parts = component.split('/')
         plugin_id = manifest.frontend.plugin_id or manifest.id
         if len(parts) < MIN_PLUGIN_COMPONENT_PARTS or parts[0] != 'plugin' or parts[1] != plugin_id:
             return None
 
-        return Path(manifest.frontend.views_path, *parts[2:]).with_suffix('.vue')
+        suffix = '.jsx' if frontend_framework == 'react' else '.vue'
+        return Path(manifest.frontend.views_path, *parts[2:]).with_suffix(suffix)

@@ -1,24 +1,24 @@
-import config from "@/config";
+import config from '@/config'
 
-const TRANSPORT_BASE_URL = config.baseUrl;
+const TRANSPORT_BASE_URL = config.baseUrl
 const EXCLUDED_URL_PATTERNS = [
-  "/transport/crypto/frontend-config",
-  "/transport/crypto/public-key",
-  "/common/download",
-  "/common/download/resource",
-  "/common/files/",
-  "/system/file/download/",
-];
-const TRANSPORT_FRONTEND_CONFIG_CACHE_KEY = "transportCryptoFrontendConfig";
-const TRANSPORT_FRONTEND_CONFIG_URL = "/transport/crypto/frontend-config";
-const TRANSPORT_FRONTEND_CONFIG_FALLBACK_TTL_SECONDS = 60;
-const DEFAULT_TRANSPORT_ENVELOPE_VERSION = "1";
-const DEFAULT_REQUEST_ENVELOPE_ALGORITHM = "RSA_OAEP_AES_256_GCM";
-const DEFAULT_RESPONSE_ENVELOPE_ALGORITHM = "AES_256_GCM";
-const DEFAULT_TRANSPORT_MAX_GET_URL_LENGTH = 4096;
+  '/transport/crypto/frontend-config',
+  '/transport/crypto/public-key',
+  '/common/download',
+  '/common/download/resource',
+  '/common/files/',
+  '/system/file/download/',
+]
+const TRANSPORT_FRONTEND_CONFIG_CACHE_KEY = 'transportCryptoFrontendConfig'
+const TRANSPORT_FRONTEND_CONFIG_URL = '/transport/crypto/frontend-config'
+const TRANSPORT_FRONTEND_CONFIG_FALLBACK_TTL_SECONDS = 60
+const DEFAULT_TRANSPORT_ENVELOPE_VERSION = '1'
+const DEFAULT_REQUEST_ENVELOPE_ALGORITHM = 'RSA_OAEP_AES_256_GCM'
+const DEFAULT_RESPONSE_ENVELOPE_ALGORITHM = 'AES_256_GCM'
+const DEFAULT_TRANSPORT_MAX_GET_URL_LENGTH = 4096
 
-let cachedTransportPolicy = null;
-let inflightTransportPolicyPromise = null;
+let cachedTransportPolicy = null
+let inflightTransportPolicyPromise = null
 
 /**
  * 获取当前 Unix 秒级时间戳。
@@ -26,7 +26,7 @@ let inflightTransportPolicyPromise = null;
  * @returns {number} 当前时间戳
  */
 function getNowTimestamp() {
-  return Math.floor(Date.now() / 1000);
+  return Math.floor(Date.now() / 1000)
 }
 
 /**
@@ -35,8 +35,8 @@ function getNowTimestamp() {
  * @param {string} url 请求地址
  * @returns {boolean} 是否命中排除规则
  */
-function matchExcludedUrl(url = "") {
-  return EXCLUDED_URL_PATTERNS.some((pattern) => url.includes(pattern));
+function matchExcludedUrl(url = '') {
+  return EXCLUDED_URL_PATTERNS.some((pattern) => url.includes(pattern))
 }
 
 /**
@@ -46,10 +46,8 @@ function matchExcludedUrl(url = "") {
  * @param {string[]} pathPatterns 路径前缀集合
  * @returns {boolean} 是否匹配成功
  */
-function matchPathPrefix(path = "", pathPatterns = []) {
-  return pathPatterns.some(
-    (pattern) => path === pattern || path.startsWith(`${pattern}/`),
-  );
+function matchPathPrefix(path = '', pathPatterns = []) {
+  return pathPatterns.some((pattern) => path === pattern || path.startsWith(`${pattern}/`))
 }
 
 /**
@@ -58,19 +56,16 @@ function matchPathPrefix(path = "", pathPatterns = []) {
  * @param {string} url 请求地址
  * @returns {string} 标准化后的路径
  */
-function parseAbsoluteUrlPath(url = "") {
-  const normalizedUrl = String(url || "");
+function parseAbsoluteUrlPath(url = '') {
+  const normalizedUrl = String(url || '')
   if (!normalizedUrl) {
-    return "/";
+    return '/'
   }
-  if (
-    !normalizedUrl.startsWith("http://") &&
-    !normalizedUrl.startsWith("https://")
-  ) {
-    return normalizedUrl.split("?")[0] || "/";
+  if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+    return normalizedUrl.split('?')[0] || '/'
   }
-  const pathMatch = normalizedUrl.match(/^https?:\/\/[^/]+(\/[^?#]*)?/i);
-  return pathMatch?.[1] || "/";
+  const pathMatch = normalizedUrl.match(/^https?:\/\/[^/]+(\/[^?#]*)?/i)
+  return pathMatch?.[1] || '/'
 }
 
 /**
@@ -81,10 +76,10 @@ function parseAbsoluteUrlPath(url = "") {
  */
 function getBaseApiPath(baseUrl = TRANSPORT_BASE_URL) {
   if (!baseUrl) {
-    return "";
+    return ''
   }
-  const baseApiPath = parseAbsoluteUrlPath(baseUrl);
-  return baseApiPath === "/" ? "" : baseApiPath;
+  const baseApiPath = parseAbsoluteUrlPath(baseUrl)
+  return baseApiPath === '/' ? '' : baseApiPath
 }
 
 /**
@@ -94,14 +89,14 @@ function getBaseApiPath(baseUrl = TRANSPORT_BASE_URL) {
  * @param {string} baseUrl 基础 API 地址
  * @returns {string} 标准化请求路径
  */
-function getRequestPath(url = "", baseUrl = TRANSPORT_BASE_URL) {
-  const baseApiPath = getBaseApiPath(baseUrl);
-  const pathname = parseAbsoluteUrlPath(url);
+function getRequestPath(url = '', baseUrl = TRANSPORT_BASE_URL) {
+  const baseApiPath = getBaseApiPath(baseUrl)
+  const pathname = parseAbsoluteUrlPath(url)
   if (baseApiPath && pathname.startsWith(baseApiPath)) {
-    const normalizedPath = pathname.slice(baseApiPath.length);
-    return normalizedPath || "/";
+    const normalizedPath = pathname.slice(baseApiPath.length)
+    return normalizedPath || '/'
   }
-  return pathname || "/";
+  return pathname || '/'
 }
 
 /**
@@ -112,9 +107,9 @@ function getRequestPath(url = "", baseUrl = TRANSPORT_BASE_URL) {
  */
 function normalizePaths(paths) {
   if (!Array.isArray(paths)) {
-    return [];
+    return []
   }
-  return paths.map((path) => String(path || "").trim()).filter(Boolean);
+  return paths.map((path) => String(path || '').trim()).filter(Boolean)
 }
 
 /**
@@ -126,9 +121,9 @@ function normalizePaths(paths) {
  */
 function getHeaderValue(headers, name) {
   if (!headers) {
-    return undefined;
+    return undefined
   }
-  return headers[name] ?? headers[name.toLowerCase()] ?? headers[name.toUpperCase()];
+  return headers[name] ?? headers[name.toLowerCase()] ?? headers[name.toUpperCase()]
 }
 
 /**
@@ -140,27 +135,25 @@ function getHeaderValue(headers, name) {
 function normalizeTransportPolicy(payload) {
   return {
     transportCryptoEnabled: Boolean(payload?.transportCryptoEnabled),
-    transportCryptoMode: String(payload?.transportCryptoMode || "off"),
+    transportCryptoMode: String(payload?.transportCryptoMode || 'off'),
     transportCryptoActive: Boolean(payload?.transportCryptoActive),
-    envelopeVersion: String(
-      payload?.envelopeVersion || DEFAULT_TRANSPORT_ENVELOPE_VERSION,
-    ),
-    publicKeyUrl: String(payload?.publicKeyUrl || "/transport/crypto/public-key"),
+    envelopeVersion: String(payload?.envelopeVersion || DEFAULT_TRANSPORT_ENVELOPE_VERSION),
+    publicKeyUrl: String(payload?.publicKeyUrl || '/transport/crypto/public-key'),
     requestEnvelopeAlgorithm: String(
-      payload?.requestEnvelopeAlgorithm || DEFAULT_REQUEST_ENVELOPE_ALGORITHM,
+      payload?.requestEnvelopeAlgorithm || DEFAULT_REQUEST_ENVELOPE_ALGORITHM
     ),
     responseEnvelopeAlgorithm: String(
-      payload?.responseEnvelopeAlgorithm || DEFAULT_RESPONSE_ENVELOPE_ALGORITHM,
+      payload?.responseEnvelopeAlgorithm || DEFAULT_RESPONSE_ENVELOPE_ALGORITHM
     ),
     enabledPaths: normalizePaths(payload?.enabledPaths),
     requiredPaths: normalizePaths(payload?.requiredPaths),
     excludePaths: normalizePaths(payload?.excludePaths),
     maxEncryptedGetUrlLength: Number(
-      payload?.maxEncryptedGetUrlLength || DEFAULT_TRANSPORT_MAX_GET_URL_LENGTH,
+      payload?.maxEncryptedGetUrlLength || DEFAULT_TRANSPORT_MAX_GET_URL_LENGTH
     ),
     configExpireAt: Number(payload?.configExpireAt || 0),
     retryAt: Number(payload?.retryAt || payload?.configExpireAt || 0),
-  };
+  }
 }
 
 /**
@@ -169,23 +162,22 @@ function normalizeTransportPolicy(payload) {
  * @returns {Object} 明文回退策略
  */
 function buildFallbackTransportPolicy() {
-  const nowTimestamp = getNowTimestamp();
+  const nowTimestamp = getNowTimestamp()
   return {
     transportCryptoEnabled: false,
-    transportCryptoMode: "off",
+    transportCryptoMode: 'off',
     transportCryptoActive: false,
     envelopeVersion: DEFAULT_TRANSPORT_ENVELOPE_VERSION,
-    publicKeyUrl: "/transport/crypto/public-key",
+    publicKeyUrl: '/transport/crypto/public-key',
     requestEnvelopeAlgorithm: DEFAULT_REQUEST_ENVELOPE_ALGORITHM,
     responseEnvelopeAlgorithm: DEFAULT_RESPONSE_ENVELOPE_ALGORITHM,
     enabledPaths: [],
     requiredPaths: [],
     excludePaths: [...EXCLUDED_URL_PATTERNS],
     maxEncryptedGetUrlLength: DEFAULT_TRANSPORT_MAX_GET_URL_LENGTH,
-    configExpireAt:
-      nowTimestamp + TRANSPORT_FRONTEND_CONFIG_FALLBACK_TTL_SECONDS,
+    configExpireAt: nowTimestamp + TRANSPORT_FRONTEND_CONFIG_FALLBACK_TTL_SECONDS,
     retryAt: nowTimestamp + TRANSPORT_FRONTEND_CONFIG_FALLBACK_TTL_SECONDS,
-  };
+  }
 }
 
 /**
@@ -195,11 +187,11 @@ function buildFallbackTransportPolicy() {
  * @returns {Object} 可重试策略
  */
 function buildRetryableTransportPolicy(policy) {
-  const normalizedPolicy = normalizeTransportPolicy(policy);
+  const normalizedPolicy = normalizeTransportPolicy(policy)
   return {
     ...normalizedPolicy,
     retryAt: getNowTimestamp() + TRANSPORT_FRONTEND_CONFIG_FALLBACK_TTL_SECONDS,
-  };
+  }
 }
 
 /**
@@ -210,9 +202,9 @@ function buildRetryableTransportPolicy(policy) {
  */
 function isUsableTransportPolicy(policy) {
   if (!policy || !policy.publicKeyUrl || !policy.retryAt) {
-    return false;
+    return false
   }
-  return policy.retryAt > getNowTimestamp();
+  return policy.retryAt > getNowTimestamp()
 }
 
 /**
@@ -221,13 +213,11 @@ function isUsableTransportPolicy(policy) {
  * @returns {Object|null} 缓存策略
  */
 function loadPersistedTransportPolicy() {
-  const persistedTransportPolicy = uni.getStorageSync(
-    TRANSPORT_FRONTEND_CONFIG_CACHE_KEY,
-  );
+  const persistedTransportPolicy = uni.getStorageSync(TRANSPORT_FRONTEND_CONFIG_CACHE_KEY)
   if (!persistedTransportPolicy) {
-    return null;
+    return null
   }
-  return normalizeTransportPolicy(persistedTransportPolicy);
+  return normalizeTransportPolicy(persistedTransportPolicy)
 }
 
 /**
@@ -241,12 +231,12 @@ function requestFrontendConfig() {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${TRANSPORT_BASE_URL}${TRANSPORT_FRONTEND_CONFIG_URL}`,
-      method: "GET",
+      method: 'GET',
       timeout: 10000,
       success: resolve,
       fail: reject,
-    });
-  });
+    })
+  })
 }
 
 /**
@@ -256,11 +246,8 @@ function requestFrontendConfig() {
  * @param {string} baseUrl 基础 API 地址
  * @returns {string} 标准请求路径
  */
-export function getTransportRequestPath(
-  url = "",
-  baseUrl = TRANSPORT_BASE_URL,
-) {
-  return getRequestPath(url, baseUrl);
+export function getTransportRequestPath(url = '', baseUrl = TRANSPORT_BASE_URL) {
+  return getRequestPath(url, baseUrl)
 }
 
 /**
@@ -269,7 +256,7 @@ export function getTransportRequestPath(
  * @returns {Object} 当前策略对象
  */
 export function getTransportCryptoPolicy() {
-  return cachedTransportPolicy || buildFallbackTransportPolicy();
+  return cachedTransportPolicy || buildFallbackTransportPolicy()
 }
 
 /**
@@ -278,9 +265,9 @@ export function getTransportCryptoPolicy() {
  * @returns {void}
  */
 export function invalidateTransportCryptoPolicy() {
-  cachedTransportPolicy = null;
-  inflightTransportPolicyPromise = null;
-  uni.removeStorageSync(TRANSPORT_FRONTEND_CONFIG_CACHE_KEY);
+  cachedTransportPolicy = null
+  inflightTransportPolicyPromise = null
+  uni.removeStorageSync(TRANSPORT_FRONTEND_CONFIG_CACHE_KEY)
 }
 
 /**
@@ -291,51 +278,44 @@ export function invalidateTransportCryptoPolicy() {
  */
 export async function ensureTransportCryptoPolicyLoaded(forceRefresh = false) {
   if (!forceRefresh && !cachedTransportPolicy) {
-    const persistedTransportPolicy = loadPersistedTransportPolicy();
+    const persistedTransportPolicy = loadPersistedTransportPolicy()
     if (isUsableTransportPolicy(persistedTransportPolicy)) {
-      cachedTransportPolicy = persistedTransportPolicy;
+      cachedTransportPolicy = persistedTransportPolicy
     }
   }
 
   if (!forceRefresh && isUsableTransportPolicy(cachedTransportPolicy)) {
-    return cachedTransportPolicy;
+    return cachedTransportPolicy
   }
 
   if (inflightTransportPolicyPromise) {
-    return inflightTransportPolicyPromise;
+    return inflightTransportPolicyPromise
   }
 
   inflightTransportPolicyPromise = requestFrontendConfig()
     .then((response) => {
-      const payload = normalizeTransportPolicy(response?.data?.data || {});
-      cachedTransportPolicy = payload;
-      uni.setStorageSync(TRANSPORT_FRONTEND_CONFIG_CACHE_KEY, payload);
-      inflightTransportPolicyPromise = null;
-      return cachedTransportPolicy;
+      const payload = normalizeTransportPolicy(response?.data?.data || {})
+      cachedTransportPolicy = payload
+      uni.setStorageSync(TRANSPORT_FRONTEND_CONFIG_CACHE_KEY, payload)
+      inflightTransportPolicyPromise = null
+      return cachedTransportPolicy
     })
     .catch((error) => {
-      const staleTransportPolicy =
-        cachedTransportPolicy || loadPersistedTransportPolicy();
-      inflightTransportPolicyPromise = null;
+      const staleTransportPolicy = cachedTransportPolicy || loadPersistedTransportPolicy()
+      inflightTransportPolicyPromise = null
       cachedTransportPolicy = staleTransportPolicy
         ? buildRetryableTransportPolicy(staleTransportPolicy)
-        : buildFallbackTransportPolicy();
-      uni.setStorageSync(
-        TRANSPORT_FRONTEND_CONFIG_CACHE_KEY,
-        cachedTransportPolicy,
-      );
+        : buildFallbackTransportPolicy()
+      uni.setStorageSync(TRANSPORT_FRONTEND_CONFIG_CACHE_KEY, cachedTransportPolicy)
       if (staleTransportPolicy) {
-        console.warn(
-          "加载传输加密前端配置失败，当前继续沿用最近一次后端策略",
-          error,
-        );
+        console.warn('加载传输加密前端配置失败，当前继续沿用最近一次后端策略', error)
       } else {
-        console.warn("加载传输加密前端配置失败，当前回退为明文请求策略", error);
+        console.warn('加载传输加密前端配置失败，当前回退为明文请求策略', error)
       }
-      return cachedTransportPolicy;
-    });
+      return cachedTransportPolicy
+    })
 
-  return inflightTransportPolicyPromise;
+  return inflightTransportPolicyPromise
 }
 
 /**
@@ -345,40 +325,34 @@ export async function ensureTransportCryptoPolicyLoaded(forceRefresh = false) {
  * @param {Object} transportPolicy 传输加密策略
  * @returns {boolean} 是否启用请求加密
  */
-export function shouldEncryptRequest(
-  requestConfig,
-  transportPolicy = getTransportCryptoPolicy(),
-) {
+export function shouldEncryptRequest(requestConfig, transportPolicy = getTransportCryptoPolicy()) {
   if (!transportPolicy.transportCryptoActive) {
-    return false;
+    return false
   }
-  const requestPath = getRequestPath(
-    requestConfig.url,
-    requestConfig.baseUrl || TRANSPORT_BASE_URL,
-  );
+  const requestPath = getRequestPath(requestConfig.url, requestConfig.baseUrl || TRANSPORT_BASE_URL)
   if (matchPathPrefix(requestPath, transportPolicy.excludePaths || [])) {
-    return false;
+    return false
   }
   if (
     (transportPolicy.enabledPaths || []).length &&
     !matchPathPrefix(requestPath, transportPolicy.enabledPaths || [])
   ) {
-    return false;
+    return false
   }
   if ((requestConfig.headers || {}).encrypt === false) {
-    return false;
+    return false
   }
   if (matchExcludedUrl(requestConfig.url)) {
-    return false;
+    return false
   }
   const contentType =
-    getHeaderValue(requestConfig.header, "Content-Type") ||
-    getHeaderValue(requestConfig.headers, "Content-Type") ||
-    "";
-  if (String(contentType).includes("multipart/form-data")) {
-    return false;
+    getHeaderValue(requestConfig.header, 'Content-Type') ||
+    getHeaderValue(requestConfig.headers, 'Content-Type') ||
+    ''
+  if (String(contentType).includes('multipart/form-data')) {
+    return false
   }
-  return true;
+  return true
 }
 
 /**
@@ -388,36 +362,30 @@ export function shouldEncryptRequest(
  * @param {Object} transportPolicy 传输加密策略
  * @returns {boolean} 是否启用响应解密
  */
-export function shouldEncryptResponse(
-  requestConfig,
-  transportPolicy = getTransportCryptoPolicy(),
-) {
-  const requestPath = getRequestPath(
-    requestConfig.url,
-    requestConfig.baseUrl || TRANSPORT_BASE_URL,
-  );
+export function shouldEncryptResponse(requestConfig, transportPolicy = getTransportCryptoPolicy()) {
+  const requestPath = getRequestPath(requestConfig.url, requestConfig.baseUrl || TRANSPORT_BASE_URL)
   if (matchPathPrefix(requestPath, transportPolicy.excludePaths || [])) {
-    return false;
+    return false
   }
   if (
     (transportPolicy.enabledPaths || []).length &&
     !matchPathPrefix(requestPath, transportPolicy.enabledPaths || [])
   ) {
-    return false;
+    return false
   }
   if ((requestConfig.headers || {}).encryptResponse === false) {
-    return false;
+    return false
   }
   if (matchExcludedUrl(requestConfig.url)) {
-    return false;
+    return false
   }
   if (requestConfig.__transportCryptoEnabledForRequest === true) {
-    return true;
+    return true
   }
   if (requestConfig.__transportCryptoEnabledForRequest === false) {
-    return false;
+    return false
   }
-  return transportPolicy.transportCryptoActive;
+  return transportPolicy.transportCryptoActive
 }
 
 /**
@@ -427,12 +395,9 @@ export function shouldEncryptResponse(
  * @param {Object} transportPolicy 传输加密策略
  * @returns {boolean} 是否启用查询参数加密
  */
-export function shouldEncryptQuery(
-  requestConfig,
-  transportPolicy = getTransportCryptoPolicy(),
-) {
+export function shouldEncryptQuery(requestConfig, transportPolicy = getTransportCryptoPolicy()) {
   if ((requestConfig.headers || {}).encryptQuery === false) {
-    return false;
+    return false
   }
-  return shouldEncryptRequest(requestConfig, transportPolicy);
+  return shouldEncryptRequest(requestConfig, transportPolicy)
 }

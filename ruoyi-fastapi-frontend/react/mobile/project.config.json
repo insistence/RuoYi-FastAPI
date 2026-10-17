@@ -1,0 +1,8 @@
+{
+  "miniprogramRoot": "dist/weapp/",
+  "projectname": "ruoyi-fastapi-react-mobile",
+  "description": "RuoYi-FastAPI React 移动端",
+  "appid": "touristappid",
+  "setting": { "urlCheck": true, "es6": true, "minified": true },
+  "compileType": "miniprogram"
+}

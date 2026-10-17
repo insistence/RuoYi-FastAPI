@@ -1,9 +1,10 @@
 import re
 from http import HTTPStatus
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import pytest
-from playwright.async_api import expect
+from playwright.async_api import Locator, expect
 
 from common.browser_harness import BrowserHarness
 from system.page import SystemPage
@@ -27,10 +28,22 @@ async def assign_and_cancel(view: SystemPage, role_id: int, user_name: str) -> N
         await view.action(view.button(view.page, '添加用户').click, f'{resource}/authUser/unallocatedList')
         dialog = view.dialog
         await view.fill(dialog, '用户名称', user_name)
-        available = await view.action(view.button(dialog, '搜索').click, f'{resource}/authUser/unallocatedList')
+        # 弹窗初始化可能仍有同路径响应，搜索必须匹配当前筛选条件。
+        async with view.page.expect_response(
+            lambda response: (
+                view.matches(response, f'{resource}/authUser/unallocatedList', 'GET')
+                and parse_qs(urlsplit(response.url).query).get('userName') == [user_name]
+                and parse_qs(urlsplit(response.url).query).get('roleId') == [str(role_id)]
+            )
+        ) as filtered:
+            await view.button(dialog, '搜索').click()
+        available = await view.payload(await filtered.value)
         assert available['total'] == 1
-        target = dialog.locator('.el-table__row').filter(has=view.page.get_by_text(user_name, exact=True))
-        await target.locator('.el-checkbox').click()
+        assert [record['userName'] for record in available['rows']] == [user_name]
+        target = dialog.locator('.el-table__row, .ant-table-row').filter(
+            has=view.page.get_by_text(user_name, exact=True)
+        )
+        await target.locator('.el-checkbox, .ant-checkbox-wrapper').click()
         await view.save(f'{resource}/authUser/selectAll', 'PUT')
         await view.search({'用户名称': user_name})
         await expect(view.row(user_name)).to_have_count(1)
@@ -38,7 +51,7 @@ async def assign_and_cancel(view: SystemPage, role_id: int, user_name: str) -> N
         # 旧角色页的操作提示必须随页面停用关闭，不能遮挡当前授权操作。
         await expect(view.page.locator('.el-popper.el-tooltip:visible')).to_have_count(0)
         if bulk:
-            await view.row(user_name).locator('.el-checkbox').click()
+            await view.row(user_name).locator('.el-checkbox, .ant-checkbox-wrapper').click()
             await view.button(view.page, '批量取消授权').click()
             await view.confirm_refresh(f'{resource}/authUser/cancelAll', 'PUT')
         else:
@@ -47,6 +60,21 @@ async def assign_and_cancel(view: SystemPage, role_id: int, user_name: str) -> N
         await expect(view.row(user_name)).to_have_count(0)
         await check_assigned_user(view, role_id, user_name, assigned=False)
         await view.reset()
+
+
+async def select_system_menu(view: SystemPage, dialog: Locator) -> None:
+    """选中系统管理根节点，并核对组件实际的选中状态。"""
+    menu_node = (
+        dialog.locator('.ant-tree-treenode' if view.is_react else '.el-tree-node__content')
+        .filter(has=view.page.get_by_text('系统管理', exact=True))
+        .first
+    )
+    if view.is_react:
+        await menu_node.locator('.ant-tree-checkbox').click()
+        await expect(menu_node.locator('.ant-tree-checkbox')).to_have_class(re.compile('ant-tree-checkbox-checked'))
+    else:
+        await menu_node.locator('.el-checkbox').click()
+        await expect(menu_node.locator('input[type=checkbox]')).to_be_checked()
 
 
 @pytest.mark.asyncio
@@ -77,13 +105,7 @@ async def test_role_management_page(browser_harness: BrowserHarness) -> None:
         dialog = await view.add()
         for label, value in {'角色名称': name, '权限字符': key, '角色顺序': '3'}.items():
             await view.fill(dialog, label, value)
-        menu_node = (
-            dialog.locator('.el-tree-node__content')
-            .filter(has=view.page.locator('.el-tree-node__label').filter(has_text=re.compile(r'^系统管理$')))
-            .first
-        )
-        await menu_node.locator('.el-checkbox').click()
-        await expect(menu_node.locator('input[type=checkbox]')).to_be_checked()
+        await select_system_menu(view, dialog)
         await view.save(resource, 'POST')
         found = await view.search({'角色名称': name, '权限字符': key})
         assert found['total'] == 1

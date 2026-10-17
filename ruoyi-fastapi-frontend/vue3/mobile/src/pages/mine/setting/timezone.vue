@@ -13,7 +13,10 @@
         />
       </label>
       <!-- 显示时区 -->
-      <view v-if="!followDevice" class="group relative">
+      <view
+        v-if="!followDevice"
+        class="group relative"
+      >
         <label
           for="timezone-search"
           class="mb-2 block text-sm font-medium text-gray-700"
@@ -30,21 +33,15 @@
         <picker
           :range="filteredTimezones"
           :value="selectedIndex"
-          :disabled="
-            saving || initializing || loading || !filteredTimezones.length
-          "
+          :disabled="saving || initializing || loading || !filteredTimezones.length"
           @change="selectTimezone"
         >
           <button
             class="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-2.5 text-left leading-normal ring-1 ring-gray-200 transition-all active:bg-gray-100"
-            :disabled="
-              saving || initializing || loading || !filteredTimezones.length
-            "
+            :disabled="saving || initializing || loading || !filteredTimezones.length"
             aria-label="选择显示时区"
           >
-            <text class="break-all text-sm text-gray-800">{{
-              selectedZone
-            }}</text>
+            <text class="break-all text-sm text-gray-800">{{ selectedZone }}</text>
             <view
               class="i-mdi-chevron-down shrink-0 text-base text-gray-400"
               aria-hidden="true"
@@ -57,7 +54,10 @@
           >没有匹配的时区，请修改搜索词。</text
         >
       </view>
-      <view v-if="loadError" class="space-y-3 text-sm text-gray-500">
+      <view
+        v-if="loadError"
+        class="space-y-3 text-sm text-gray-500"
+      >
         <text>时区列表加载失败，仍可使用当前时区。</text>
         <button
           size="mini"
@@ -71,9 +71,7 @@
       </view>
       <!-- 时间预览 -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700"
-          >时间预览</text
-        >
+        <text class="mb-2 block text-sm font-medium text-gray-700">时间预览</text>
         <view
           class="rounded-xl bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-800 ring-1 ring-gray-200"
           aria-live="polite"
@@ -90,9 +88,12 @@
           >用于时间显示、日期筛选和导出。定时任务和业务统计使用各自配置的时区。</text
         >
       </view>
-      <text v-if="saveError" class="block text-sm text-red-500" role="alert">{{
-        saveError
-      }}</text>
+      <text
+        v-if="saveError"
+        class="block text-sm text-red-500"
+        role="alert"
+        >{{ saveError }}</text
+      >
       <!-- 保存按钮 -->
       <view class="pt-6">
         <button
@@ -109,84 +110,82 @@
 </template>
 
 <script setup>
-import { useUserStore } from "@/store";
-import { computed, getCurrentInstance, ref } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
-import { getTimezoneOptions, updateUserTimezone } from "@/api/system/user";
+import { useUserStore } from '@/store'
+import { computed, getCurrentInstance, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { getTimezoneOptions, updateUserTimezone } from '@/api/system/user'
 import {
   formatBusinessTime,
   getBusinessTimezone,
   getDeviceTimezone,
   getDisplayTimezone,
   getSupportedTimezones,
-} from "@/utils/time";
+} from '@/utils/time'
 
-const { proxy } = getCurrentInstance();
-const userStore = useUserStore();
-const followDevice = ref(userStore.timeZone === "auto");
-const selectedZone = ref(getDisplayTimezone());
-const timezones = ref(getSupportedTimezones());
-const zoneSearch = ref("");
-const loading = ref(false);
-const loadError = ref(false);
-const saving = ref(false);
-const initializing = ref(true);
-const saveError = ref("");
-const now = ref(new Date());
-const deviceZone = computed(getDeviceTimezone);
+const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
+const followDevice = ref(userStore.timeZone === 'auto')
+const selectedZone = ref(getDisplayTimezone())
+const timezones = ref(getSupportedTimezones())
+const zoneSearch = ref('')
+const loading = ref(false)
+const loadError = ref(false)
+const saving = ref(false)
+const initializing = ref(true)
+const saveError = ref('')
+const now = ref(new Date())
+const deviceZone = computed(getDeviceTimezone)
 const previewZone = computed(() =>
-  followDevice.value
-    ? deviceZone.value || getBusinessTimezone()
-    : selectedZone.value,
-);
+  followDevice.value ? deviceZone.value || getBusinessTimezone() : selectedZone.value
+)
 const previewTime = computed(() =>
-  formatBusinessTime(now.value, "YYYY-MM-DD HH:mm:ss", previewZone.value),
-);
+  formatBusinessTime(now.value, 'YYYY-MM-DD HH:mm:ss', previewZone.value)
+)
 const filteredTimezones = computed(() =>
   timezones.value.filter((zone) =>
-    zone.toLowerCase().includes(zoneSearch.value.trim().toLowerCase()),
-  ),
-);
+    zone.toLowerCase().includes(zoneSearch.value.trim().toLowerCase())
+  )
+)
 const selectedIndex = computed(() =>
-  Math.max(0, filteredTimezones.value.indexOf(selectedZone.value)),
-);
+  Math.max(0, filteredTimezones.value.indexOf(selectedZone.value))
+)
 
 /** 选择筛选结果中的时区。 */
 function selectTimezone(event) {
-  selectedZone.value = filteredTimezones.value[Number(event.detail.value)];
+  selectedZone.value = filteredTimezones.value[Number(event.detail.value)]
 }
 
 /** 加载当前运行时支持的时区选项。 */
 async function loadOptions() {
-  loading.value = true;
-  loadError.value = false;
+  loading.value = true
+  loadError.value = false
   try {
-    const response = await getTimezoneOptions();
-    timezones.value = getSupportedTimezones(response.data);
+    const response = await getTimezoneOptions()
+    timezones.value = getSupportedTimezones(response.data)
   } catch {
-    loadError.value = true;
+    loadError.value = true
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 /** 保存账号时区，并同步当前页面展示。 */
 async function saveTimezone() {
   if (saving.value || initializing.value) {
-    return;
+    return
   }
-  saving.value = true;
-  saveError.value = "";
-  const preference = followDevice.value ? "auto" : selectedZone.value;
+  saving.value = true
+  saveError.value = ''
+  const preference = followDevice.value ? 'auto' : selectedZone.value
   try {
-    await updateUserTimezone(preference);
-    userStore.applyTimezone(preference);
-    now.value = new Date();
-    proxy.$modal.showToast("时区设置已保存");
+    await updateUserTimezone(preference)
+    userStore.applyTimezone(preference)
+    now.value = new Date()
+    proxy.$modal.showToast('时区设置已保存')
   } catch (error) {
-    saveError.value = error.message || "保存失败，请重试";
+    saveError.value = error.message || '保存失败，请重试'
   } finally {
-    saving.value = false;
+    saving.value = false
   }
 }
 
@@ -196,15 +195,15 @@ onLoad(async () => {
     userStore
       .getInfo()
       .then(() => {
-        followDevice.value = userStore.timeZone === "auto";
-        selectedZone.value = getDisplayTimezone();
+        followDevice.value = userStore.timeZone === 'auto'
+        selectedZone.value = getDisplayTimezone()
       })
       .catch(() => {
-        saveError.value = "账号设置读取失败，请重试保存或重新进入页面";
+        saveError.value = '账号设置读取失败，请重试保存或重新进入页面'
       }),
-  ]);
-  initializing.value = false;
-});
+  ])
+  initializing.value = false
+})
 </script>
 
 <style>

@@ -1,4 +1,3 @@
-import re
 from http import HTTPStatus
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -10,6 +9,7 @@ from playwright.async_api import expect
 
 from common.browser_harness import BrowserHarness
 from common.config import Config
+from common.ui import button_name
 
 pytestmark = pytest.mark.e2e
 
@@ -44,29 +44,33 @@ async def test_oauth_audit_page(browser_harness: BrowserHarness) -> None:
                 and parse_qs(urlparse(response.url).query).get('clientId') == [client_id]
             )
         ) as pending:
-            await page.get_by_role('button', name=re.compile(r'查找$')).click()
+            await page.get_by_role('button', name=button_name('查找')).click()
         result = await (await pending.value).json()
         assert result['code'] == HTTPStatus.OK, result
         events = result['rows']
         assert len(events) == 1 and events[0]['eventType'] == 'client_created', result
-        row = page.locator('.el-table__body-wrapper tbody tr')
+        row = page.locator('.el-table__body-wrapper tbody tr, .ant-table-tbody > .ant-table-row:visible')
         await expect(row).to_have_count(1)
         await expect(row).to_contain_text('应用已注册')
         await expect(row).to_contain_text('已完成')
-        await page.locator('.el-table tbody tr').get_by_role('button', name=re.compile(r'查看$')).click()
-        drawer = page.locator('.el-drawer:visible')
+        await (
+            page.locator('.el-table tbody tr, .ant-table-tbody > .ant-table-row:visible')
+            .get_by_role('button', name=button_name('查看'))
+            .click()
+        )
+        drawer = page.locator('.el-drawer:visible, .ant-drawer-open:visible')
         await expect(drawer).to_contain_text(client_id)
         await drawer.get_by_text('查看排障信息', exact=True).click()
         await expect(drawer.get_by_text('事件 ID', exact=True).locator('xpath=following-sibling::dd[1]')).to_have_text(
             str(events[0]['auditId'])
         )
         await expect(drawer).to_contain_text('client_created')
-        await drawer.locator('.el-drawer__close-btn').click()
+        await drawer.locator('.el-drawer__close-btn, .ant-drawer-close').click()
         async with page.expect_download() as pending:
             async with page.expect_response(
                 lambda response: urlparse(response.url).path.endswith('/monitor/oauth/audit/export')
             ) as exported:
-                await page.get_by_role('button', name=re.compile(r'导出当前结果$')).click()
+                await page.get_by_role('button', name=button_name('导出当前结果')).click()
             response = await exported.value
             assert response.status == HTTPStatus.OK
             assert 'spreadsheetml.sheet' in response.headers.get('content-type', ''), await response.text()
@@ -81,7 +85,7 @@ async def test_oauth_audit_page(browser_harness: BrowserHarness) -> None:
                 and 'clientId' not in parse_qs(urlparse(response.url).query)
             )
         ):
-            await page.get_by_role('button', name=re.compile(r'清空$')).click()
+            await page.get_by_role('button', name=button_name('清空')).click()
         await expect(page.get_by_placeholder('应用编号', exact=True)).to_have_value('')
     finally:
         disabled = await api.delete(f'/system/oauth/client/{client_id}')
