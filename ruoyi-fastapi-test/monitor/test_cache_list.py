@@ -31,9 +31,9 @@ async def test_cache_list_page(browser_harness: BrowserHarness) -> None:
         config_id = configs[0]['configId']
         page = await browser_harness.new_page(authenticated=True)
         await page.goto(Config.frontend_url + '/monitor/cacheList')
-        names = page.locator('.el-card').filter(has=page.get_by_text('缓存列表', exact=True))
+        names = page.locator('.el-card, .ant-card').filter(has=page.get_by_text('缓存列表', exact=True))
         await names.locator('tbody tr').filter(has_text='sys_config').click()
-        keys = page.locator('.el-card').filter(has=page.get_by_text('键名列表', exact=True))
+        keys = page.locator('.el-card, .ant-card').filter(has=page.get_by_text('键名列表', exact=True))
         row = keys.locator('tbody tr').filter(has=page.get_by_text(key, exact=True))
         async with page.expect_response(
             lambda response: '/monitor/cache/getValue/' in urlparse(response.url).path
@@ -42,9 +42,9 @@ async def test_cache_list_page(browser_harness: BrowserHarness) -> None:
         payload = await (await pending.value).json()
         assert payload['code'] == HTTPStatus.OK, payload
         assert payload['data']['cacheValue'] == value
-        await expect(page.locator('.el-form-item').filter(has_text='缓存内容:').locator('textarea')).to_have_value(
-            value
-        )
+        await expect(
+            page.locator('.el-form-item, .ant-form-item').filter(has_text='缓存内容:').locator('textarea')
+        ).to_have_value(value)
         async with page.expect_response(
             lambda response: (
                 response.request.method == 'DELETE' and '/monitor/cache/clearCacheKey/' in urlparse(response.url).path
@@ -56,7 +56,7 @@ async def test_cache_list_page(browser_harness: BrowserHarness) -> None:
         cached = await api.get('/monitor/cache/getKeys/sys_config:')
         assert f'sys_config:{key}' not in (await cached.json())['data']
         async with page.expect_response(lambda response: '/monitor/cache/getKeys/' in urlparse(response.url).path):
-            await keys.locator('.el-card__header').get_by_role('button').click()
+            await keys.locator('.el-card__header, .ant-card-head').get_by_role('button').click()
         await expect(row).to_have_count(0)
     finally:
         if config_id is not None:

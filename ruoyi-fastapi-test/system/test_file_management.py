@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-import re
 from http import HTTPStatus
 from pathlib import Path
 from uuid import uuid4
@@ -24,7 +23,7 @@ async def file_action_row(view: SystemPage, name: str) -> Locator:
 
 async def select_file(view: SystemPage, name: str) -> None:
     """点击可见复选框外层，核验隐藏原生控件的选择状态。"""
-    selection = view.row(name).locator('.el-checkbox')
+    selection = view.row(name).locator('.el-checkbox, .ant-checkbox-wrapper')
     await selection.click()
     await expect(selection.locator('input')).to_be_checked()
 
@@ -55,8 +54,7 @@ async def verify_file_details_and_download(view: SystemPage, name: str, file_id:
     await expect(view.dialog).to_contain_text(file_id)
     await expect(view.dialog).to_contain_text(name)
     await expect(view.dialog).to_contain_text(detail['data']['fileHash'])
-    await view.dialog.get_by_role('button', name=re.compile(r'^关\s*闭$')).click()
-    await expect(view.dialog).to_have_count(0)
+    await view.close_dialog()
     async with view.page.expect_download() as pending:
         await action_row.get_by_role('button').nth(1).click()
     download = await pending.value
@@ -91,6 +89,7 @@ async def test_file_management_lifecycle(browser_harness: BrowserHarness, access
     file_id = payload['fileId']
     try:
         await view.open('/system/file', '/system/file/list')
+        toolbar = view.page.locator('.app-main .table-toolbar' if view.is_react else '.app-main .el-row.mb8')
         found = await view.search({'文件名称': name})
         assert found['total'] == 1
         record = view.record(found, 'fileId', file_id)
@@ -101,7 +100,7 @@ async def test_file_management_lifecycle(browser_harness: BrowserHarness, access
         await verify_file_details_and_download(view, name, file_id, contents)
 
         await select_file(view, name)
-        await view.button(view.page.locator('.app-main'), '删除').click()
+        await view.button(toolbar, '删除').click()
         deleted = await view.confirm_refresh(f'/system/file/{file_id}')
         assert deleted['total'] == 0
         await expect(view.row(name)).to_have_count(0)
@@ -111,7 +110,7 @@ async def test_file_management_lifecycle(browser_harness: BrowserHarness, access
         await expect(view.row(name)).to_contain_text('已删除')
 
         await select_file(view, name)
-        await view.button(view.page.locator('.app-main'), '恢复').click()
+        await view.button(toolbar, '恢复').click()
         restored = await view.confirm_refresh(f'/system/file/{file_id}/restore', 'PUT')
         assert restored['total'] == 0
         await view.choose(view.form, '文件状态', '正常')
@@ -124,12 +123,12 @@ async def test_file_management_lifecycle(browser_harness: BrowserHarness, access
         assert response.ok
         assert await response.body() == contents
         await select_file(view, name)
-        await view.button(view.page.locator('.app-main'), '删除').click()
+        await view.button(toolbar, '删除').click()
         await view.confirm_refresh(f'/system/file/{file_id}')
         await view.choose(view.form, '文件状态', '已删除')
         await view.search()
         await select_file(view, name)
-        await view.button(view.page.locator('.app-main'), '清理').click()
+        await view.button(toolbar, '清理').click()
         purged = await view.confirm_refresh(f'/system/file/purge/{file_id}')
         assert purged['total'] == 0
         await expect(view.row(name)).to_have_count(0)

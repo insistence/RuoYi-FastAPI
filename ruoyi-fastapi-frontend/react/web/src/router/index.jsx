@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter, matchPath, useLocation, redirect, replace } from 'react-router-dom'
+import { createBrowserRouter, matchPath, useLocation, replace } from 'react-router-dom'
 import { PageLoading } from '@/components/LoadingProgress'
 import SystemLoading, { PageReady } from '@/components/SystemLoading'
 import Layout from '@/layout'
@@ -30,7 +30,7 @@ async function authCenterLoader() {
     { meta: { requiresAuthCenter: true } },
     getAuthCenterStatus
   )
-  return next ? redirect(`${next.path}?reason=${next.query.reason}`) : null
+  return next ? replace(`${next.path}?reason=${next.query.reason}`) : null
 }
 const authPages = {
   login: lazy(() => import('@/views/auth-center/login')),

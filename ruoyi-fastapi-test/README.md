@@ -12,19 +12,17 @@
 | Backend | [ci-backend.yml](../.github/workflows/ci-backend.yml) | Python 3.10–3.13 单元与契约、Windows CLI/路径、三种宿主时区 |
 | Frontend | [ci-frontend.yml](../.github/workflows/ci-frontend.yml) | 六工程单元测试、三时区契约、Web prod/docker、移动端 H5/微信及 H5 登录；React Mobile 的 Android/iOS JS bundle，完整模式增加其他小程序与鸿蒙构建 |
 | Integration | [ci-integration.yml](../.github/workflows/ci-integration.yml) | 双数据库时间持久化、插件发布、Vue2/Vue3/React HTTPS 代理与 SSE/WebSocket |
-| E2E | [ci-e2e.yml](../.github/workflows/ci-e2e.yml) | 三框架的独立数据库和应用容器、Chromium 登录/权限/29 个菜单页面/时区；Vue 完整业务操作及 React 岗位/参数/公告 CRUD |
+| E2E | [ci-e2e.yml](../.github/workflows/ci-e2e.yml) | 三框架的独立数据库和应用容器、Chromium 登录/权限/29 个菜单页面/时区，以及全部业务操作用例 |
 | Native | [ci-native.yml](../.github/workflows/ci-native.yml) | Rust fmt/clippy、Windows/Linux × Python 3.10–3.13 的真实原生制品 |
 
 PR 按 `.github/scripts/ci_plan.py` 的变更影响规则选择分类与前端工程，框架包含 `vue2`、`vue3`、`react`。单个移动端的改动只运行对应前端工程，不触发 Web E2E 或 Rust Native。共享依赖和 CI 变更触发全部分类；仅文档变更运行 Quality。PR E2E 使用 Python 3.12，受影响的每个 Web 框架分别测试 MySQL 和 PostgreSQL。`master` 推送、每天 UTC 18:21（北京时间次日 02:21）及手动 `full=true` 扩展为四个 Python 版本，共 24 个 E2E 组合，并增加 React Mobile 的支付宝、百度、抖音、QQ、京东、快手、飞书、小红书和鸿蒙构建。手动 `full=false` 运行所有分类的 PR 规模矩阵。
 
-Vue2/Vue3 执行全部 `e2e` 用例。React 执行共享的 `test_login.py`、`test_pages.py`、`test_timezone.py`，以及岗位、参数和公告的 CRUD 用例；选择器按实际 Ant Design 组件适配，保留真实 API 响应、保存值与清理断言。其他 Vue 业务操作用例尚未适配 React，不计入 React 的覆盖范围。完整模式与 PR 模式使用同一套框架对应的业务用例。
+Vue2、Vue3、React 执行相同的全部 `e2e` 用例，当前每个框架收集 109 项。覆盖账号资料与锁屏、系统管理 CRUD 与授权、文件上传下载、插件和 OAuth 管理、缓存与服务监控、强退、任务执行及日志、代码生成和表单构建。选择器按实际 Element / Ant Design 组件适配，保留真实 API 响应、保存值与清理断言；React 导出用例校验 JSX 内容。完整模式与 PR 模式使用同一套业务用例。
 
-本地选择 React 时，启动隔离服务并设置 `FRONTEND_FRAMEWORK=react` 后，在测试目录使用以下命令替代 Vue 的全量 `pytest -m e2e`，共收集 74 个用例：
+本地选择 React 时，启动隔离服务并设置 `FRONTEND_FRAMEWORK=react` 后，在测试目录执行全量用例：
 
 ```bash
-python -m pytest test_login.py test_pages.py test_timezone.py \
-  system/test_post_management.py system/test_config_management.py system/test_notice_management.py \
-  -m e2e -v --durations=20 --junitxml=target/e2e/react/junit.xml
+python -m pytest -m e2e -v --durations=20 --junitxml=target/e2e/react/junit.xml
 python ../.github/scripts/check_test_report.py target/e2e/react/junit.xml
 ```
 
@@ -136,7 +134,7 @@ python -m pytest -m e2e -v --durations=20 --junitxml=target/e2e/vue2/junit.xml
 python ../.github/scripts/check_test_report.py target/e2e/vue2/junit.xml
 ```
 
-`TEST_SWAGGER_DISABLED` 必须与后端 `APP_DISABLE_SWAGGER` 一致：开发配置默认 `false`，Docker 测试配置默认 `true`。完成 Vue2 后，切换后端插件框架配置、前端 URL、`FRONTEND_FRAMEWORK` 和输出目录，再独立执行 Vue3 全部用例。两个框架共用测试数据库或 Redis 时应顺序执行，避免缓存、强退和日志操作互相干扰。仅快速定位登录问题时可额外使用 `-m 'e2e and smoke'`，这不代表完整 E2E 验收。
+`TEST_SWAGGER_DISABLED` 必须与后端 `APP_DISABLE_SWAGGER` 一致：开发配置默认 `false`，Docker 测试配置默认 `true`。切换框架时，同时修改后端插件框架配置、前端 URL、`FRONTEND_FRAMEWORK` 和输出目录，再独立执行该框架全部用例。多个框架共用测试数据库或 Redis 时应顺序执行，避免缓存、强退和日志操作互相干扰。仅快速定位登录问题时可额外使用 `-m 'e2e and smoke'`，这不代表完整 E2E 验收。
 
 ### 方式二：使用Docker
 

@@ -8,6 +8,7 @@ from playwright.async_api import expect
 
 from common.browser_harness import BrowserHarness
 from common.config import Config
+from common.ui import button_name
 
 pytestmark = pytest.mark.e2e
 
@@ -41,23 +42,30 @@ async def test_online_user_page(browser_harness: BrowserHarness) -> None:
         secondary_token = await browser_harness.login_through_page(secondary, username, 'Test123456!')
         page = await browser_harness.new_page(authenticated=True)
         await page.goto(Config.frontend_url + '/monitor/online')
-        await page.locator('.el-form-item').filter(has_text='用户名称').locator('input').fill(username)
+        await page.locator('.el-form-item, .ant-form-item').filter(has_text='用户名称').locator('input').fill(username)
         async with page.expect_response(lambda response: urlparse(response.url).path.endswith('/monitor/online/list')):
-            await page.get_by_role('button', name=re.compile(r'搜索$')).click()
-        rows = page.locator('.el-table__body-wrapper tbody tr').filter(has=page.get_by_text(username, exact=True))
+            await page.get_by_role('button', name=button_name('搜索')).click()
+        rows = page.locator('.el-table__body-wrapper tbody tr, .ant-table-tbody > .ant-table-row:visible').filter(
+            has=page.get_by_text(username, exact=True)
+        )
         await expect(rows).to_have_count(1)
-        await rows.get_by_role('button', name=re.compile(r'强退$')).click()
+        await rows.get_by_role('button', name=button_name('强退')).click()
         async with page.expect_response(
             lambda response: response.request.method == 'DELETE' and '/monitor/online/' in response.url
         ) as forced:
-            await page.get_by_role('button', name=re.compile(r'确定$')).click()
+            await page.get_by_role('button', name=button_name('确定')).click()
         assert (await (await forced.value).json())['code'] == HTTPStatus.OK
         await expect(rows).to_have_count(0)
         revoked = await browser_harness.api_context(secondary_token)
         response = await revoked.get('/getInfo')
         assert response.status == HTTPStatus.UNAUTHORIZED or (await response.json())['code'] == HTTPStatus.UNAUTHORIZED
         await secondary.reload()
-        await secondary.wait_for_url('**/login?**')
+        if Config.frontend_framework == 'react':
+            expired = secondary.get_by_role('dialog', name='系统提示', exact=True)
+            await expect(expired).to_contain_text('登录状态已过期')
+            await expired.get_by_role('button', name=button_name('确定')).click()
+        await secondary.wait_for_url(re.compile(r'/login(?:\?.*)?$'))
+        await expect(secondary.get_by_placeholder('账号')).to_be_visible()
     finally:
         if user_id is not None:
             deleted = await api.delete(f'/system/user/{user_id}')

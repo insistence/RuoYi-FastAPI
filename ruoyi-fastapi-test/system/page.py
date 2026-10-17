@@ -9,6 +9,7 @@ from playwright.async_api import expect
 
 from common.base_page_test import BasePageTest
 from common.config import Config
+from common.ui import button_name
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
@@ -49,7 +50,9 @@ class SystemPage(BasePageTest):
     def rows(self) -> Locator:
         """主表格数据行，不重复计算 Element UI 固定列的镜像表格。"""
         selector = (
-            '.ant-table-tbody > .ant-table-row' if self.is_react else '.el-table__body-wrapper:visible .el-table__row'
+            '.app-main .ant-table-tbody > .ant-table-row:visible'
+            if self.is_react
+            else '.el-table__body-wrapper:visible .el-table__row'
         )
         return self.page.locator(selector)
 
@@ -61,8 +64,7 @@ class SystemPage(BasePageTest):
     def button(scope: Locator | Page, label: str) -> Locator:
         """图标字体可能进入 Vue2 可访问名称，因此按完整文字后缀匹配。"""
         # Ant Design 的双字按钮可能在两字之间加入空格。
-        pattern = r'\s*'.join(re.escape(character) for character in label)
-        return scope.get_by_role('button', name=re.compile(rf'{pattern}\s*$'))
+        return scope.get_by_role('button', name=button_name(label))
 
     def field(self, scope: Locator, label: str) -> Locator:
         """两种组件库都按真实表单标签定位，不依赖 Vue3 自动生成的 input id。"""
@@ -101,7 +103,15 @@ class SystemPage(BasePageTest):
         await expect(choice.locator('input[type=radio]')).to_be_checked()
 
     async def choose_department(self, scope: Locator, label: str, department: str) -> None:
-        """覆盖 Vue2 的 Treeselect 与 Vue3 的 TreeSelect 实际节点。"""
+        """覆盖 Element、vue-treeselect 和 Ant Design 的真实树节点。"""
+        if self.is_react:
+            await self.field(scope, label).locator('.ant-select').click()
+            await (
+                self.page.locator('.ant-select-dropdown:visible .ant-select-tree-title')
+                .get_by_text(department, exact=True)
+                .click()
+            )
+            return
         await self.field(scope, label).locator('.el-select__wrapper, .vue-treeselect__control').click()
         node = self.page.locator(
             '.el-select-dropdown:visible .el-tree-node__content .el-select-dropdown__item, '
@@ -130,6 +140,8 @@ class SystemPage(BasePageTest):
 
     async def rendered(self) -> None:
         """等待列表遮罩消失；具体行和值由调用方继续断言。"""
+        # React Activity 会保留离场页面的 DOM，需等切换完成再绑定其中的控件。
+        await expect(self.page.locator('.app-main.page-leave')).to_have_count(0)
         loading = '.ant-spin-spinning' if self.is_react else '.el-loading-mask'
         table = '.ant-table' if self.is_react else '.el-table'
         await expect(self.page.locator(f'.app-main {loading}:visible')).to_have_count(0)
@@ -144,6 +156,7 @@ class SystemPage(BasePageTest):
 
     async def search(self, fields: dict[str, str] | None = None) -> dict:
         """按界面查询并返回真实响应。"""
+        await self.rendered()
         for label, value in (fields or {}).items():
             await self.fill(self.form, label, value)
         payload = await self.action(self.button(self.form, '搜索').click, self.list_path)
@@ -162,6 +175,11 @@ class SystemPage(BasePageTest):
         await expect(self.dialog).to_be_visible()
         return self.dialog
 
+    async def close_dialog(self) -> None:
+        """点击弹窗页脚关闭按钮，避开 Ant Design 同名的右上角图标。"""
+        await self.button(self.dialog.locator('.el-dialog__footer, .ant-modal-footer'), '关闭').click()
+        await expect(self.dialog).to_have_count(0)
+
     async def edit(self, identity: str, resource: str, record_id: int) -> Locator:
         """从目标记录打开编辑弹窗，并等待详情加载。"""
         await self.action(lambda: self.row_action(identity, '修改'), f'{resource}/{record_id}')
@@ -172,7 +190,7 @@ class SystemPage(BasePageTest):
         """保存表单，要求写请求、列表刷新和弹窗关闭全部完成。"""
         dialog = self.dialog
         async with self.page.expect_response(lambda response: self.matches(response, self.list_path, 'GET')) as listed:
-            await self.action(dialog.get_by_role('button', name=re.compile(r'^确\s*定$')).click, resource, method)
+            await self.action(self.button(dialog, '确定').click, resource, method)
         payload = await self.payload(await listed.value)
         await expect(dialog).to_have_count(0)
         await self.rendered()
@@ -196,7 +214,11 @@ class SystemPage(BasePageTest):
         if action not in {'修改', '删除'} and await more.count():
             await more.hover()
             await (
-                self.page.locator('.el-dropdown-menu:visible .el-dropdown-menu__item')
+                self.page.locator(
+                    '.ant-dropdown:visible .ant-dropdown-menu-item'
+                    if self.is_react
+                    else '.el-dropdown-menu:visible .el-dropdown-menu__item'
+                )
                 .filter(has_text=re.compile(rf'^\s*{re.escape(action)}\s*$'))
                 .click()
             )
@@ -208,8 +230,10 @@ class SystemPage(BasePageTest):
     async def toggle_status(self, identity: str, resource: str, record_id: int) -> None:
         """停用再启用，并逐次重读保存状态，不依赖成功 toast。"""
         for status in ('1', '0'):
-            await self.row(identity).locator('.el-switch').click()
-            confirmation = self.page.locator('.el-message-box:visible')
+            await self.row(identity).locator('.ant-switch' if self.is_react else '.el-switch').click()
+            confirmation = self.page.locator(
+                '.ant-modal-confirm:visible' if self.is_react else '.el-message-box:visible'
+            )
             await self.action(
                 confirmation.get_by_role('button', name=re.compile(r'^确\s*定$')).click,
                 f'{resource}/changeStatus',

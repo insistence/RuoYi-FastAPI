@@ -88,7 +88,7 @@ docker build --build-arg NGINX_CONFIG=bin/nginx.dockerpg.conf -t ruoyi-react-web
 
 组件测试使用 Vitest / React Testing Library，已归入认证和插件分组；执行 `pnpm test` 时每个测试文件只运行一次。
 
-CI 按 React Web 的变更选中本工程，安装使用 `pnpm install --no-frozen-lockfile`，执行格式检查、单元/组件测试、三时区契约及生产/Docker 模式构建。插件网络验收覆盖真实 HTTPS 代理、会话 Cookie、CSRF、SSE 和 WebSocket。隔离的 MySQL/PostgreSQL E2E 覆盖登录、29 个菜单页面与权限、用户时区，以及岗位/参数/公告 CRUD；其他 Vue 业务操作用例尚未计入 React 覆盖。详见[CI 与本地复现说明](../../../ruoyi-fastapi-test/README.md#ci-分类与触发)。
+CI 按 React Web 的变更选中本工程，安装使用 `pnpm install --no-frozen-lockfile`，执行格式检查、单元/组件测试、三时区契约及生产/Docker 模式构建。插件网络验收覆盖真实 HTTPS 代理、会话 Cookie、CSRF、SSE 和 WebSocket。隔离的 MySQL/PostgreSQL E2E 与 Vue 共用完整的 109 项用例，覆盖登录、29 个菜单页面与权限、用户时区、系统管理 CRUD 与授权、文件、插件、OAuth、监控、任务执行和日志、代码生成及表单构建；React 导出校验 JSX 内容。详见[CI 与本地复现说明](../../../ruoyi-fastapi-test/README.md#ci-分类与触发)。
 
 ## 插件开发
 

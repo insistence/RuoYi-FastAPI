@@ -9,28 +9,29 @@ from uuid import uuid4
 import pytest
 from playwright.async_api import Locator, expect
 
-from common.base_page_test import BasePageTest
 from common.browser_harness import BrowserHarness
 from common.config import Config
+from common.ui import button_name
+from system.page import SystemPage
 
 pytestmark = pytest.mark.e2e
 
 
-class JobManagementTest(BasePageTest):
+class JobManagementTest(SystemPage):
     """通过真实界面验证任务配置、异步同步和手动执行。"""
 
     job_id: int | None = None
 
     def job_row(self, job_name: str) -> Locator:
-        return self.page.locator('.app-container:visible > .el-table .el-table__body-wrapper tbody tr').filter(
-            has=self.page.get_by_text(job_name, exact=True)
-        )
+        return self.row(job_name)
 
     def job_actions(self, job_name: str) -> Locator:
         """Element UI 固定列有隐藏副本，仅返回操作列中实际可见的按钮。"""
         rows = self.page.locator('.app-container:visible > .el-table tbody tr').filter(
             has=self.page.get_by_text(job_name, exact=True)
         )
+        if self.is_react:
+            rows = self.job_row(job_name)
         return rows.locator('td:last-child').get_by_role('button')
 
     async def submit(self, action: Callable[[], Awaitable], method: str, path: str) -> dict:
@@ -88,25 +89,27 @@ class JobManagementTest(BasePageTest):
                 and parse_qs(urlparse(response.url).query).get('jobName') == [job_name]
             )
         ) as response_info:
-            await form.get_by_role('button', name=re.compile(r'搜索$')).click()
+            await form.get_by_role('button', name=button_name('搜索')).click()
         response = await response_info.value
         assert response.status == HTTPStatus.OK
         assert (await response.json())['code'] == HTTPStatus.OK
-        await expect(self.page.locator('.el-table .el-loading-mask:visible')).to_have_count(0)
+        await expect(self.page.locator('.el-table .el-loading-mask:visible, .ant-spin-spinning:visible')).to_have_count(
+            0
+        )
 
     async def create_job(self, job_name: str) -> None:
-        await self.page.get_by_role('button', name=re.compile(r'新增$')).click()
+        await self.page.get_by_role('button', name=button_name('新增')).click()
         dialog = self.page.get_by_role('dialog', name='添加任务', exact=True)
-        await dialog.locator('.el-form-item').filter(has_text='任务名称').locator('input').fill(job_name)
         await (
-            dialog.locator('.el-form-item')
+            dialog.locator('.el-form-item, .ant-form-item').filter(has_text='任务名称').locator('input').fill(job_name)
+        )
+        await (
+            dialog.locator('.el-form-item, .ant-form-item')
             .filter(has_text=re.compile(r'(业务|任务)分组'))
             .locator('input')
             .fill('playwright')
         )
-        executor = dialog.locator('.el-form-item').filter(has_text='任务执行器').locator('.el-select')
-        await executor.click()
-        await self.page.locator('.el-select-dropdown:visible').get_by_text('进程池', exact=True).click()
+        await self.choose(dialog, '任务执行器', '进程池')
         await dialog.get_by_placeholder('请输入调用目标字符串').fill('module_task.scheduler_test.job')
         # 手动执行验证运行结果；年度计划避免启停断言与高频定时执行相互干扰。
         await dialog.get_by_placeholder('请输入cron执行表达式').fill('0 0 0 1 1 ?')
@@ -123,7 +126,12 @@ class JobManagementTest(BasePageTest):
         # 同步状态列也包含按钮，操作按钮仅在最后一列定位。
         await self.job_actions(job_name).nth(0).click()
         dialog = self.page.get_by_role('dialog', name='修改任务', exact=True)
-        await dialog.locator('.el-form-item').filter(has_text='任务名称').locator('input').fill(new_job_name)
+        await (
+            dialog.locator('.el-form-item, .ant-form-item')
+            .filter(has_text='任务名称')
+            .locator('input')
+            .fill(new_job_name)
+        )
         mutation = await self.submit(
             dialog.get_by_role('button', name=re.compile(r'确\s*定$')).click, 'PUT', '/monitor/job'
         )
@@ -133,25 +141,33 @@ class JobManagementTest(BasePageTest):
         await expect(self.job_row(new_job_name)).to_have_count(1)
 
     async def toggle_job_status(self, job_name: str, enabled: bool) -> None:
-        switch = self.job_row(job_name).locator('.el-switch')
-        await self.job_row(job_name).locator('.el-switch').click()
-        confirm = self.page.get_by_role('dialog').get_by_role('button', name=re.compile(r'确定$'))
+        switch = self.job_row(job_name).locator('.ant-switch' if self.is_react else '.el-switch')
+        await switch.click()
+        confirm = self.page.get_by_role('dialog').get_by_role('button', name=button_name('确定'))
         mutation = await self.submit(confirm.click, 'PUT', '/monitor/job/changeStatus')
         await self.wait_for_sync(mutation)
         await self.search_job(job_name)
         if enabled:
-            await expect(switch).to_have_class(re.compile(r'is-checked'))
+            await expect(switch).to_have_class(re.compile(r'is-checked|ant-switch-checked'))
         else:
-            await expect(switch).not_to_have_class(re.compile(r'is-checked'))
+            await expect(switch).not_to_have_class(re.compile(r'is-checked|ant-switch-checked'))
 
     async def run_job_once(self, job_name: str) -> str:
-        direct_run = self.page.get_by_role('button', name=f'立即执行 {job_name}', exact=True)
+        direct_run = (
+            self.button(self.job_row(job_name), '执行一次')
+            if self.is_react
+            else self.page.get_by_role('button', name=f'立即执行 {job_name}', exact=True)
+        )
         if await direct_run.count():
             await direct_run.click()
         else:
             await self.job_actions(job_name).filter(has_text='更多').hover()
-            await self.page.locator('.el-dropdown-menu:visible').get_by_text('执行一次', exact=True).click()
-        confirm = self.page.get_by_role('dialog').get_by_role('button', name=re.compile(r'确定$'))
+            await (
+                self.page.locator('.el-dropdown-menu:visible, .ant-dropdown:visible')
+                .get_by_text('执行一次', exact=True)
+                .click()
+            )
+        confirm = self.page.get_by_role('dialog').get_by_role('button', name=button_name('确定'))
         execution = await self.submit(confirm.click, 'PUT', '/monitor/job/run')
         execution_id = execution['executionId']
         result = await self.poll_api(
@@ -162,10 +178,14 @@ class JobManagementTest(BasePageTest):
         assert result['data']['jobId'] == self.job_id
         assert result['data']['source'] == 'manual'
         dialog = self.page.get_by_role('dialog', name='任务运行记录', exact=True)
-        await expect(dialog.locator('.execution-focus code')).to_have_text(execution_id)
+        await expect(dialog.locator('p code' if self.is_react else '.execution-focus code')).to_have_text(execution_id)
         row = dialog.locator('tbody tr').filter(has_text=job_name)
-        await expect(row.locator('.el-tag')).to_have_text('执行成功', timeout=10000)
-        await dialog.get_by_role('button', name=re.compile(r'关\s*闭$')).click()
+        await expect(row.locator('.el-tag, .ant-tag')).to_have_text('执行成功', timeout=10000)
+        await (
+            dialog.locator('.el-dialog__footer, .ant-modal-footer')
+            .get_by_role('button', name=button_name('关闭'))
+            .click()
+        )
         await expect(dialog).to_be_hidden()
         return execution_id
 
@@ -177,23 +197,27 @@ class JobManagementTest(BasePageTest):
             await direct_log.click()
         else:
             await self.job_actions(job_name).filter(has_text='更多').hover()
-            await self.page.locator('.el-dropdown-menu:visible').get_by_text('调度日志', exact=True).click()
+            await (
+                self.page.locator('.el-dropdown-menu:visible, .ant-dropdown:visible')
+                .get_by_text('调度日志', exact=True)
+                .click()
+            )
         await self.page.wait_for_url(f'**/monitor/job-log/index/{self.job_id}')
         job_id_input = (
-            self.page.locator('.app-container:visible .el-form-item').filter(has_text='任务编号').locator('input')
+            self.page.locator('.app-container:visible .el-form-item, .app-container:visible .ant-form-item')
+            .filter(has_text='任务编号')
+            .locator('input')
         )
         await expect(job_id_input).to_have_value(str(self.job_id))
-        row = self.page.locator('.app-container:visible > .el-table .el-table__body-wrapper tbody tr').filter(
-            has_text=job_name
-        )
+        row = self.row(job_name)
         await expect(row.get_by_text('成功', exact=True)).to_be_visible()
-        await self.page.get_by_role('button', name=re.compile(r'关闭$')).click()
+        await self.page.get_by_role('button', name=button_name('关闭')).click()
         await self.page.wait_for_url('**/monitor/job')
 
     async def delete_job(self, job_name: str) -> None:
         await self.search_job(job_name)
         await self.job_actions(job_name).nth(1).click()
-        confirm = self.page.get_by_role('dialog').get_by_role('button', name=re.compile(r'确定$'))
+        confirm = self.page.get_by_role('dialog').get_by_role('button', name=button_name('确定'))
         mutation = await self.submit(confirm.click, 'DELETE', f'/monitor/job/{self.job_id}')
         await self.wait_for_sync(mutation)
         self.job_id = None

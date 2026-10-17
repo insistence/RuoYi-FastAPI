@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { unlockScreen } from '@/api/login'
 import { getToken } from '@/utils/auth'
 import { formatBusinessTime } from '@/utils/time'
@@ -10,15 +10,15 @@ import './lock.css'
 
 export default function LockScreen() {
   const user = useUserStore(),
-    lock = useLockStore(),
-    navigate = useNavigate()
+    lock = useLockStore()
   const [password, setPassword] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [now, setNow] = useState(new Date())
   const canvas = useRef(),
     input = useRef(),
-    pending = useRef(false)
+    pending = useRef(false),
+    returnPath = useRef(lock.lockPath)
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(timer)
@@ -90,9 +90,7 @@ export default function LockScreen() {
     setError('')
     try {
       await unlockScreen(password)
-      const path = lock.lockPath
       lock.unlockScreen()
-      navigate(path, { replace: true })
     } catch (reason) {
       setError(reason.message || '解锁失败')
       setPassword('')
@@ -113,7 +111,7 @@ export default function LockScreen() {
     return (
       <Navigate
         replace
-        to="/index"
+        to={returnPath.current}
       />
     )
   return (

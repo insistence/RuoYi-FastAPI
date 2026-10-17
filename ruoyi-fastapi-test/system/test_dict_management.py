@@ -41,7 +41,7 @@ async def test_dict_management_page(browser_harness: BrowserHarness) -> None:
             dialog = await view.add()
             for field, content in {'数据标签': label, '数据键值': value, '显示排序': value}.items():
                 await view.fill(dialog, field, content)
-            await view.choose(dialog, '回显样式', style)
+            await view.choose(dialog, '回显样式', style.split('(')[0] if view.is_react else style)
             saved = await view.save(data_resource, 'POST')
             entry = view.record(saved, 'dictLabel', label)
             entries.append(entry)

@@ -9,14 +9,15 @@ from zipfile import ZipFile
 import pytest
 from playwright.async_api import Locator, expect
 
-from common.base_page_test import BasePageTest
 from common.browser_harness import BrowserHarness
 from common.config import Config
+from common.ui import button_name
+from system.page import SystemPage
 
 pytestmark = pytest.mark.e2e
 
 
-class GenTableTest(BasePageTest):
+class GenTableTest(SystemPage):
     """只操作本用例导入的生成配置，验证编辑、代码预览及下载。"""
 
     table_id: int | None = None
@@ -24,21 +25,26 @@ class GenTableTest(BasePageTest):
     table_comment: str = ''
 
     def table_row(self) -> Locator:
-        return self.page.locator('.app-container:visible > .el-table .el-table__body-wrapper tbody tr').filter(
-            has=self.page.get_by_text(self.table_name, exact=True)
-        )
+        return self.row(self.table_name)
 
     async def search_table(self) -> dict:
         """等待搜索接口与表格完成，避免初始响应覆盖查询结果。"""
         form = self.page.locator('form').first
-        await form.locator('.el-form-item').filter(has_text='表名称').locator('input').fill(self.table_name)
+        await (
+            form.locator('.el-form-item, .ant-form-item')
+            .filter(has_text='表名称')
+            .locator('input')
+            .fill(self.table_name)
+        )
         async with self.page.expect_response(
             lambda response: urlparse(response.url).path.endswith('/tool/gen/list')
         ) as pending:
-            await form.get_by_role('button', name=re.compile(r'搜索$')).click()
+            await form.get_by_role('button', name=button_name('搜索')).click()
         payload = await (await pending.value).json()
         assert payload['code'] == HTTPStatus.OK, payload
-        await expect(self.page.locator('.el-table .el-loading-mask:visible')).to_have_count(0)
+        await expect(self.page.locator('.el-table .el-loading-mask:visible, .ant-spin-spinning:visible')).to_have_count(
+            0
+        )
         return payload
 
     async def import_table(self) -> None:
@@ -46,14 +52,14 @@ class GenTableTest(BasePageTest):
         async with self.page.expect_response(
             lambda response: urlparse(response.url).path.endswith('/tool/gen/db/list')
         ) as pending:
-            await self.page.get_by_role('button', name=re.compile(r'导入$')).click()
+            await self.page.get_by_role('button', name=button_name('导入')).click()
         payload = await (await pending.value).json()
         assert payload['code'] == HTTPStatus.OK and payload['rows'], payload
         self.table_name = payload['rows'][0]['tableName']
         dialog = self.page.get_by_role('dialog', name='导入表', exact=True)
         row = dialog.locator('tbody tr').filter(has=self.page.get_by_text(self.table_name, exact=True))
-        await row.locator('.el-checkbox').click()
-        await expect(row.locator('.el-checkbox')).to_have_class(re.compile('is-checked'))
+        await row.locator('.el-checkbox, .ant-checkbox-wrapper').click()
+        await expect(row.locator('input[type=checkbox]')).to_be_checked()
         async with self.page.expect_response(
             lambda response: (
                 response.request.method == 'POST' and urlparse(response.url).path.endswith('/tool/gen/importTable')
@@ -75,15 +81,20 @@ class GenTableTest(BasePageTest):
         self.table_comment = f'生成验收{uuid4().hex[:8]}'
         await self.page.get_by_role('tab', name='基本信息', exact=True).click()
         await (
-            self.page.locator('.el-form-item:visible')
+            self.page.locator('.el-form-item:visible, .ant-form-item:visible')
             .filter(has_text='表描述')
             .locator('input')
             .fill(self.table_comment)
         )
+        if self.is_react:
+            await self.page.get_by_role('tab', name='生成信息', exact=True).click()
+            await self.choose(
+                self.page.get_by_role('tabpanel').filter(visible=True), '前端类型', 'React Ant Design 模板'
+            )
         async with self.page.expect_response(
             lambda response: response.request.method == 'PUT' and urlparse(response.url).path.endswith('/tool/gen')
         ) as pending:
-            await self.page.get_by_role('button', name=re.compile(r'提交$')).click()
+            await self.page.get_by_role('button', name=button_name('提交')).click()
         result = await (await pending.value).json()
         assert result['code'] == HTTPStatus.OK, result
         await self.page.wait_for_url(re.compile(r'/tool/gen(?:\?.*)?$'))
@@ -101,11 +112,13 @@ class GenTableTest(BasePageTest):
         assert payload['code'] == HTTPStatus.OK, payload
         code = payload['data']
         assert any(name.endswith('do.py.jinja2') for name in code), code.keys()
+        if self.is_react:
+            assert any('jsx' in name for name in code), code.keys()
         assert any(self.table_comment in source for source in code.values())
         dialog = self.page.get_by_role('dialog', name='代码预览', exact=True)
         await expect(dialog.locator('pre:visible').first).to_contain_text('class')
         await expect(dialog.locator('pre:visible').first).to_contain_text(self.table_comment)
-        await dialog.locator('.el-dialog__headerbtn').click()
+        await dialog.locator('.el-dialog__headerbtn, .ant-modal-close').click()
         async with self.page.expect_download() as pending:
             await self.table_row().locator('td').last.get_by_role('button').nth(4).click()
         download = await pending.value
@@ -118,7 +131,9 @@ class GenTableTest(BasePageTest):
                 return names, '\n'.join(archive.read(name).decode('utf-8') for name in names if name.endswith('.py'))
 
         names, generated = await asyncio.to_thread(read_generated_code)
-        assert any(name.endswith('.vue') for name in names), names
+        assert any(name.endswith('.jsx' if self.is_react else '.vue') for name in names), names
+        if self.is_react:
+            assert not any(name.endswith('.vue') for name in names), names
         assert any(name.endswith('.py') for name in names), names
         assert self.table_comment in generated and self.table_name in generated
 
@@ -131,7 +146,7 @@ class GenTableTest(BasePageTest):
                 and urlparse(response.url).path.endswith(f'/tool/gen/{self.table_id}')
             )
         ) as pending:
-            await self.page.get_by_role('button', name=re.compile(r'确定$')).click()
+            await self.page.get_by_role('button', name=button_name('确定')).click()
         assert (await (await pending.value).json())['code'] == HTTPStatus.OK
         self.table_id = None
         await self.search_table()

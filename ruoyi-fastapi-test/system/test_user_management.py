@@ -24,7 +24,7 @@ async def verify_auth_role(view: SystemPage, user_id: int, *, assigned: bool) ->
 async def reset_password(view: SystemPage, name: str, browser_harness: BrowserHarness) -> None:
     """通过界面重置密码，并使用新密码实际登录验证。"""
     await view.row_action(name, '重置密码')
-    prompt = view.page.locator('.el-message-box:visible')
+    prompt = view.page.locator('.el-message-box:visible, .ant-modal:visible')
     await prompt.locator('input').fill('Updated123456!')
     await view.action(view.button(prompt, '确定').click, '/system/user/resetPwd', 'PUT')
     await expect(prompt).to_have_count(0)
@@ -63,9 +63,9 @@ async def test_user_management_page(browser_harness: BrowserHarness) -> None:
         await view.choose_department(dialog, '归属部门', '集团总公司')
         await view.choose(dialog, '用户性别', '男')
         await view.choose(dialog, '岗位', '董事长')
-        await dialog.locator('.el-dialog__header').click()
+        await dialog.locator('.el-dialog__header, .ant-modal-header').click()
         await view.choose(dialog, '角色', '普通角色')
-        await dialog.locator('.el-dialog__header').click()
+        await dialog.locator('.el-dialog__header, .ant-modal-header').click()
         await view.save(resource, 'POST')
         found = await view.search({'用户名称': name})
         assert found['total'] == 1
@@ -85,7 +85,7 @@ async def test_user_management_page(browser_harness: BrowserHarness) -> None:
             await view.rendered()
             role = view.row('普通角色')
             await expect(role.locator('input[type=checkbox]')).to_be_checked(checked=not assigned)
-            await role.locator('.el-checkbox').click()
+            await role.locator('.el-checkbox, .ant-checkbox-wrapper').click()
             await expect(role.locator('input[type=checkbox]')).to_be_checked(checked=assigned)
             await view.action(view.button(view.page, '提交').click, f'{resource}/authRole', 'PUT')
             await expect(view.page).to_have_url(re.compile(r'/system/user$'))
