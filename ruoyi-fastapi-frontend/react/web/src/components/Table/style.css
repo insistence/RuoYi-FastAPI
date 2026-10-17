@@ -1,0 +1,16 @@
+.ruoyi-table { position: relative; min-width: 0; }
+.ruoyi-table .ant-table-thead > tr > th { height: 40px; padding: 8px 12px; background: var(--ruoyi-table-header, #f8f8f9); color: var(--ruoyi-table-heading, #515a6e); font-size: 13px; }
+.ruoyi-table .ant-table-tbody > tr > td { padding: 8px 12px; }
+.ruoyi-table .ant-table-tbody > tr > .ruoyi-actions-cell { padding-inline: 5px; }
+.ruoyi-table .ant-table-thead > tr > th::before { display: none !important; }
+html.dark .ruoyi-table { --ruoyi-table-header: #1d1e1f; --ruoyi-table-heading: #d0d0d0; }
+.ruoyi-table :is(.ant-table-content, .ant-table-body)::-webkit-scrollbar { height: 0; }
+.ruoyi-table :is(.ant-table-content, .ant-table-body) { scrollbar-color: auto; }
+.ruoyi-table .ant-table-sticky-scroll { display: none; }
+.table-scrollbar { position: absolute; z-index: 4; height: 6px; border-radius: 4px; opacity: 0; transition: opacity .12s ease-out; touch-action: none; user-select: none; }
+.ruoyi-table:hover > .table-scrollbar, .ruoyi-table:focus-within > .table-scrollbar, .table-scrollbar.is-dragging { opacity: 1; transition-duration: .34s; }
+.table-scrollbar > span { display: block; height: 100%; border-radius: inherit; background: #909399; opacity: .3; cursor: pointer; transition: opacity .34s; }
+.table-scrollbar:hover > span, .table-scrollbar.is-dragging > span { opacity: .5; }
+.table-scrollbar:focus-visible { outline: 2px solid var(--ant-color-primary, #409eff); outline-offset: 2px; opacity: 1; }
+@media (hover: none) { .table-scrollbar { opacity: 1; } }
+@supports not selector(::-webkit-scrollbar) { .ruoyi-table :is(.ant-table-content, .ant-table-body) { scrollbar-width: none; } }

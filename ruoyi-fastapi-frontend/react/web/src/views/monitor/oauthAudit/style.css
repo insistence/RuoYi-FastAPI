@@ -1,0 +1,82 @@
+:is(.oauth-audit-page, .oauth-audit-detail) .event-mark {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  color: var(--ant-color-primary);
+  background: var(--ant-color-primary-bg);
+  border-radius: 9px;
+  place-items: center;
+}
+:is(.oauth-audit-page, .oauth-audit-detail) .event-mark.is-warning {
+  color: var(--audit-warning-text, #b88230);
+  background: var(--audit-warning-bg, #fdf6ec);
+}
+:is(.oauth-audit-page, .oauth-audit-detail) .event-mark.is-danger {
+  color: #f56c6c;
+  background: var(--audit-danger-bg, #fef0f0);
+}
+.oauth-audit-detail .event-mark.large {
+  flex-basis: 44px;
+  width: 44px;
+  height: 44px;
+  font-size: 19px;
+}
+.oauth-audit-page .event-cell {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.oauth-audit-page .event-cell > span:last-child {
+  min-width: 0;
+}
+.oauth-audit-page .event-cell strong,
+.oauth-audit-page .event-cell small,
+.oauth-audit-page .subject-cell span,
+.oauth-audit-page .subject-cell small {
+  display: block;
+}
+.oauth-audit-page .event-cell strong,
+.oauth-audit-page .subject-cell span {
+  color: var(--ant-color-text-heading);
+}
+.oauth-audit-page .event-cell small,
+.oauth-audit-page .subject-cell small {
+  margin-top: 4px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.oauth-audit-detail .detail-hero {
+  gap: 11px;
+}
+.oauth-audit-detail .detail-hero > .detail-tags {
+  flex: 0 0 auto;
+  gap: 6px;
+}
+.oauth-audit-detail .detail-section {
+  padding: 18px 0 0;
+  border: 0;
+}
+.oauth-audit-detail .detail-section h4 {
+  margin-bottom: 8px;
+}
+.oauth-audit-detail .detail-section p {
+  font-size: 16px;
+  line-height: 1.7;
+}
+html.dark :is(.oauth-audit-page, .oauth-audit-detail) {
+  --audit-warning-text: #eebe77;
+  --audit-warning-bg: #292218;
+  --audit-danger-bg: #2b1d1d;
+}
+@media (max-width: 560px) {
+  .oauth-audit-detail .detail-hero {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .oauth-audit-detail .detail-hero > .detail-tags {
+    flex-basis: 100%;
+    padding-left: 55px;
+  }
+}

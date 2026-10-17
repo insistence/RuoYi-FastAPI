@@ -1,0 +1,34 @@
+.app-breadcrumb.ant-breadcrumb {
+  font-size: 14px;
+  line-height: 50px;
+}
+.app-breadcrumb.ant-breadcrumb a {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  color: #303133;
+  font-weight: 400;
+}
+.app-breadcrumb.ant-breadcrumb a:hover {
+  color: var(--ant-color-primary, #409eff);
+  background: transparent;
+}
+.app-breadcrumb.ant-breadcrumb .no-redirect {
+  color: #97a8be;
+  font-weight: 400;
+  cursor: text;
+}
+.app-breadcrumb.ant-breadcrumb .ant-breadcrumb-separator {
+  margin-inline: 9px;
+  color: #a8abb2;
+  font-weight: 700;
+}
+html.dark .app-breadcrumb.ant-breadcrumb a {
+  color: var(--ant-color-text);
+}
+html.dark .app-breadcrumb.ant-breadcrumb a:hover {
+  color: var(--ant-color-primary);
+}
+html.dark .app-breadcrumb.ant-breadcrumb .ant-breadcrumb-separator {
+  color: var(--ant-color-text-tertiary);
+}

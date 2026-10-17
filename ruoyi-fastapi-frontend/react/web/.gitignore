@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.local
+
+.cache/
+*.log
+
+# Dependency lockfiles are generated during installation.
+/pnpm-lock.yaml
+/package-lock.json
+/yarn.lock
+/bun.lock
+/bun.lockb

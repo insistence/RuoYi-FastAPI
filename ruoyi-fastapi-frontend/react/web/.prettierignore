@@ -1,0 +1,5 @@
+node_modules
+dist
+.cache
+pnpm-lock.yaml
+tests/plugins/fixtures/bridge-b0d16a3e/pluginBridge.js

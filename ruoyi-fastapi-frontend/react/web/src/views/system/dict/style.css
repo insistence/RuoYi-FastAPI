@@ -1,0 +1,95 @@
+
+.dict-detail .drawer-head {
+  display: flex;
+  align-items: center;
+}
+.dict-detail .drawer-head-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dict-drawer-title-color, #2c3e50);
+  margin-right: 8px;
+}
+.dict-detail .drawer-head-type {
+  font-size: 14px;
+  color: var(--dict-drawer-subtext-color, #95a5a6);
+  font-family: monospace;
+}
+.dict-detail .drawer-wrap {
+  padding: 0 20px 20px;
+}
+.dict-detail .drawer-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: var(--dict-drawer-subtext-color, #aaa);
+  font-size: 13px;
+  gap: 8px;
+}
+.dict-detail .drawer-empty {
+  text-align: center;
+  color: var(--dict-drawer-subtext-color, #bbb);
+  padding: 60px 0;
+  font-size: 13px;
+}
+.dict-detail .drawer-empty .el-icon {
+  display: block;
+  margin: 0 auto 8px;
+}
+.dict-detail .stat-row {
+  margin-bottom: 16px;
+}
+.dict-detail .stat-card {
+  background: var(--dict-drawer-card-bg, #f7f9fb);
+  border: 1px solid var(--dict-drawer-border-color, #e8ecf0);
+  border-radius: 6px;
+  padding: 10px 14px;
+  text-align: center;
+}
+.dict-detail .stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--dict-drawer-title-color, #2c3e50);
+}
+.dict-detail .stat-num.success {
+  color: #27ae60;
+}
+.dict-detail .stat-num.danger {
+  color: #e74c3c;
+}
+.dict-detail .stat-label {
+  font-size: 11px;
+  color: var(--dict-drawer-subtext-color, #95a5a6);
+  margin-top: 4px;
+}
+.dict-detail .dict-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border: 1px solid var(--dict-drawer-border-color, #e8ecf0);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.dict-detail .dict-cell {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  border-right: 1px solid var(--dict-drawer-cell-divider, #f0f4f8);
+}
+.dict-detail .dict-cell:last-child {
+  border-right: 0;
+}
+.dict-detail .dict-cell-key {
+  padding: 9px 14px;
+  font-size: 12px;
+  color: var(--dict-drawer-subtext-color, #888);
+  background: var(--dict-drawer-card-bg, #f7f9fb);
+  border-right: 1px solid var(--dict-drawer-cell-divider, #f0f4f8);
+}
+.dict-detail .dict-cell-val {
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--dict-drawer-title-color, #2c3e50);
+  word-break: break-all;
+  display: flex;
+  align-items: center;
+}

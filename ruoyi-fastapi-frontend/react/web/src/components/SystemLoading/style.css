@@ -1,0 +1,72 @@
+/* The startup animation matches the Vue entry page and works before JS loads. */
+.system-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: #7171c6;
+  color: #fff;
+}
+.system-loading-spinner,
+.system-loading-spinner::before,
+.system-loading-spinner::after {
+  box-sizing: content-box;
+  border: 3px solid transparent;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: system-resource-spin 2s linear infinite;
+}
+.system-loading-spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
+}
+.system-loading-spinner::before,
+.system-loading-spinner::after {
+  content: "";
+  position: absolute;
+}
+.system-loading-spinner::before {
+  inset: 5px;
+  animation-duration: 3s;
+}
+.system-loading-spinner::after {
+  inset: 15px;
+  animation-duration: 1.5s;
+}
+.system-loading-title {
+  position: absolute;
+  top: 60%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0 16px;
+  color: #fff;
+  text-align: center;
+  font-family: "Open Sans", sans-serif;
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 30px;
+}
+html[data-app-booting] .route-progress {
+  visibility: hidden;
+}
+@keyframes system-resource-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-height: 600px) {
+  .system-loading-title {
+    top: calc(50% + 90px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .system-loading-spinner,
+  .system-loading-spinner::before,
+  .system-loading-spinner::after {
+    animation: none;
+  }
+}

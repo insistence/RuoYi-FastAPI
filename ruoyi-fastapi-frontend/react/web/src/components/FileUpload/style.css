@@ -1,0 +1,36 @@
+.ruoyi-upload {
+  width: 100%;
+  min-width: 0;
+}
+.ruoyi-upload > small {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.6;
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}
+.ruoyi-upload .upload-file-item[draggable="true"] {
+  cursor: grab;
+}
+.ruoyi-upload .upload-file-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+.ruoyi-upload .ant-upload-list-item {
+  min-width: 0;
+  border-radius: 4px;
+}
+.ruoyi-upload .ant-upload-list-item-name {
+  text-overflow: ellipsis;
+}
+.ruoyi-upload.is-image .ant-upload-list-picture-card .ant-upload-list-item-container,
+.ruoyi-upload.is-image .ant-upload.ant-upload-select {
+  width: 148px;
+  height: 148px;
+  max-width: 100%;
+}
+.ruoyi-upload.is-image .upload-file-item {
+  height: 100%;
+}
+.ruoyi-upload.is-image .ant-upload-list-item-thumbnail img {
+  object-fit: cover;
+}

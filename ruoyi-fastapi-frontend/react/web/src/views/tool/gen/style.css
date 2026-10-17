@@ -1,0 +1,227 @@
+.gen-page .search-form .ant-picker-input > input {
+  min-width: 0;
+}
+.gen-edit.ant-card {
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 10%);
+}
+.gen-edit .ant-card-body {
+  padding: 20px;
+}
+.gen-edit .ant-tabs-nav,
+.gen-preview .ant-tabs-nav {
+  margin-bottom: 15px;
+}
+.gen-edit .ant-tabs-tab,
+.gen-preview .ant-tabs-tab {
+  padding-block: 9px;
+}
+.gen-edit .ant-tabs-tab + .ant-tabs-tab,
+.gen-preview .ant-tabs-tab + .ant-tabs-tab {
+  margin-left: 40px;
+}
+.gen-edit-form .ant-form-item {
+  margin-bottom: 18px;
+}
+.gen-edit-form .ant-form-item-label {
+  padding-right: 12px;
+}
+.gen-edit-form .ant-form-item-label > label {
+  font-weight: 700;
+  color: var(--ant-color-text-secondary, #606266);
+}
+.gen-edit-form .ant-form-item-control {
+  min-width: 0;
+}
+.gen-edit-form .ant-form-item-control-input {
+  min-height: 32px;
+}
+.gen-edit-form .ant-select {
+  width: 100%;
+}
+.gen-edit-form .form-header {
+  font-size: 15px;
+  color: var(--ant-color-primary);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  padding-bottom: 5px;
+  margin: 8px 0 25px;
+}
+.gen-edit-form .ant-table-cell {
+  padding: 8px 4px;
+}
+.gen-edit-form .ant-table-cell .ant-select,
+.gen-edit-form .ant-table-cell .ant-input {
+  min-width: 0;
+}
+.gen-edit-form .ant-table-cell .ant-select {
+  text-align: left;
+}
+.gen-drag-handle {
+  display: inline-block;
+  cursor: grab;
+  padding: 4px;
+}
+.gen-drag-handle:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+}
+.gen-edit-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px !important;
+  margin-top: 10px;
+  margin-left: -100px;
+  margin-bottom: 16px;
+}
+.gen-sql-field.ant-form-item .ant-form-item-row {
+  display: block;
+}
+.gen-sql-field.ant-form-item .ant-form-item-label {
+  width: auto;
+  text-align: left;
+  padding: 0;
+}
+.gen-sql-field.ant-form-item .ant-form-item-label > label {
+  font-weight: 400;
+}
+.gen-sql-field.ant-form-item .ant-form-item-label > label::before {
+  display: none;
+}
+.gen-import-table .ant-table-body {
+  min-height: 220px;
+  overflow-y: auto !important;
+}
+.gen-preview .ant-modal-body {
+  max-height: 70vh;
+  overflow: auto;
+  padding: 10px 20px 0;
+}
+.gen-copy.ant-btn {
+  float: right;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  gap: 4px;
+  color: var(--ant-color-text-secondary, #606266);
+  font-size: 14px;
+  line-height: 20px;
+}
+.gen-copy.ant-btn:hover {
+  color: var(--ant-color-primary, #409eff);
+  background: transparent;
+}
+.gen-preview-code {
+  margin: 14px 0;
+  padding: 0;
+  overflow: visible;
+  color: var(--ant-color-text-secondary, #606266);
+  font: 14px monospace;
+  white-space: pre;
+}
+
+@media (max-width: 767px) {
+  .gen-edit .ant-card-body {
+    padding: 12px;
+  }
+  .gen-edit-form .ant-form-item-label {
+    flex-basis: 130px !important;
+  }
+  .gen-edit-footer {
+    margin-left: 0;
+  }
+}
+/* Keep search labels, controls and actions on one baseline, including the date range. */
+.gen-page .search-form,
+.gen-import .search-form {
+  gap: 0;
+  margin-bottom: 0;
+}
+.gen-page .search-form .ant-form-item,
+.gen-import .search-form .ant-form-item {
+  margin: 0 32px 18px 0;
+}
+.gen-page .search-form .ant-form-item-row,
+.gen-import .search-form .ant-form-item-row {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.gen-page .search-form .ant-form-item-label,
+.gen-import .search-form .ant-form-item-label {
+  flex: 0 0 auto;
+  padding: 0 12px 0 0;
+}
+.gen-page .search-form .ant-form-item-label > label,
+.gen-import .search-form .ant-form-item-label > label {
+  font-weight: 700;
+  color: var(--ant-color-text-secondary, #606266);
+}
+.gen-page .search-form .ant-form-item-control,
+.gen-import .search-form .ant-form-item-control {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.gen-page .search-form .ant-form-item-control-input,
+.gen-import .search-form .ant-form-item-control-input {
+  min-height: 32px;
+}
+.gen-page .ant-table-thead > tr > th,
+.gen-import .ant-table-thead > tr > th {
+  white-space: nowrap;
+  padding: 8px 4px;
+  background: var(--ant-color-fill-quaternary, #f8f8f9);
+}
+.gen-page .ant-table-tbody > tr > td,
+.gen-import .ant-table-tbody > tr > td {
+  padding: 8px 4px;
+}
+.gen-page .ant-table-thead > tr > th::before,
+.gen-import .ant-table-thead > tr > th::before,
+.gen-edit .ant-table-thead > tr > th::before {
+  display: none;
+}
+.layout-content.layout-content-flush {
+  padding: 0;
+  background: var(--ant-color-bg-container, #fff);
+}
+.gen-page {
+  border-radius: 0;
+}
+.gen-edit .ant-tabs-nav {
+  height: 34px;
+}
+.gen-edit-form .ant-form-item-label > label::after,
+.gen-page .search-form .ant-form-item-label > label::after,
+.gen-import .search-form .ant-form-item-label > label::after {
+  display: none;
+}
+.gen-edit-form .ant-checkbox-wrapper-checked,
+.gen-edit-form .ant-radio-wrapper-checked {
+  color: var(--ant-color-primary);
+}
+.gen-edit-form .ant-radio-wrapper {
+  margin-right: 28px;
+}
+.gen-edit-form textarea.ant-input {
+  line-height: 21px;
+}
+.gen-edit-footer-form {
+  margin-top: 26px;
+}
+.gen-sql-field.ant-form-item {
+  margin-bottom: 0;
+}
+.gen-sql-field textarea.ant-input {
+  line-height: 21px;
+}
+.gen-page .search-form {
+  margin-bottom: 16px;
+}
+.gen-import .search-form {
+  margin-bottom: 14px;
+}
+.gen-import .pagination {
+  justify-content: flex-start;
+  margin-top: 10px;
+  padding: 0;
+  min-height: 32px;
+}

@@ -1,0 +1,10 @@
+.svg-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: middle;
+  background-color: currentColor;
+  mask: var(--svg-icon-url) center / contain no-repeat;
+  -webkit-mask: var(--svg-icon-url) center / contain no-repeat;
+}

@@ -1,0 +1,532 @@
+:root {
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+  color: #303133;
+  background: #fff;
+}
+body {
+  margin: 0;
+}
+* {
+  box-sizing: border-box;
+}
+button,
+a,
+input,
+select {
+  touch-action: manipulation;
+}
+.app-container {
+  padding: 20px;
+  background: var(--ant-color-bg-container, #fff);
+  border-radius: 0;
+}
+.search-form {
+  align-items: flex-start;
+  gap: 0;
+  margin-bottom: 0;
+}
+.search-form .ant-form-item {
+  margin-bottom: 18px;
+  margin-inline-end: 32px;
+}
+.search-form .ant-form-item-label > label {
+  font-weight: 700;
+}
+.search-form .ant-form-item-label {
+  padding-inline-end: 12px;
+}
+.search-form .ant-form-item-control {
+  flex: none;
+}
+.search-form :is(.ant-input, .ant-input-affix-wrapper, .ant-select, .ant-picker) {
+  width: var(--search-control-width, 200px);
+  max-width: 100%;
+}
+.search-form .ant-input-affix-wrapper .ant-input {
+  width: 100%;
+}
+.search-form .ant-picker-range {
+  width: var(--search-range-width, 308px);
+}
+.search-form .ant-form-item-label > label::after {
+  content: none;
+}
+.table-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.table-toolbar > .ant-space {
+  gap: 10px !important;
+  gap: 10px !important;
+}
+.search-form .ant-space {
+  gap: 12px !important;
+}
+/* Match the source Element Plus plain buttons while keeping native Ant controls. */
+.ruoyi-plain-button {
+  --plain-color: var(--ant-color-primary, #409eff);
+  --plain-bg: color-mix(in srgb, var(--plain-color) 10%, var(--ant-color-bg-container, white));
+  --plain-border: color-mix(in srgb, var(--plain-color) 40%, var(--ant-color-bg-container, white));
+}
+.ruoyi-plain-button--success {
+  --plain-color: #67c23a;
+  --plain-bg: color-mix(in srgb, var(--plain-color) 10%, var(--ant-color-bg-container, white));
+  --plain-border: color-mix(in srgb, var(--plain-color) 40%, var(--ant-color-bg-container, white));
+}
+.ruoyi-plain-button--danger {
+  --plain-color: #f56c6c;
+  --plain-bg: color-mix(in srgb, var(--plain-color) 10%, var(--ant-color-bg-container, white));
+  --plain-border: color-mix(in srgb, var(--plain-color) 40%, var(--ant-color-bg-container, white));
+}
+.ruoyi-plain-button--warning {
+  --plain-color: #e6a23c;
+  --plain-bg: color-mix(in srgb, var(--plain-color) 10%, var(--ant-color-bg-container, white));
+  --plain-border: color-mix(in srgb, var(--plain-color) 40%, var(--ant-color-bg-container, white));
+}
+.ruoyi-plain-button--info {
+  --plain-color: #909399;
+  --plain-bg: color-mix(in srgb, var(--plain-color) 10%, var(--ant-color-bg-container, white));
+  --plain-border: color-mix(in srgb, var(--plain-color) 40%, var(--ant-color-bg-container, white));
+}
+.ant-btn.ruoyi-plain-button {
+  color: var(--plain-color);
+  background: var(--plain-bg);
+  border-color: var(--plain-border);
+  box-shadow: none;
+}
+.ant-btn.ruoyi-plain-button:not(:disabled):hover,
+.ant-btn.ruoyi-plain-button:not(:disabled):active {
+  color: #fff;
+  background: var(--plain-color);
+  border-color: var(--plain-color);
+}
+.ant-btn.ruoyi-plain-button:disabled {
+  color: color-mix(in srgb, var(--plain-color) 50%, var(--ant-color-bg-container, white));
+  background: var(--plain-bg);
+  border-color: color-mix(in srgb, var(--plain-color) 20%, var(--ant-color-bg-container, white));
+}
+.ruoyi-table-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0 12px;
+  vertical-align: middle;
+}
+.ant-table-cell.ruoyi-actions-cell {
+  padding-inline: 5px;
+}
+.workspace-data .ruoyi-table-actions {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.ant-btn.ruoyi-table-action {
+  --table-action-color: var(--ant-color-primary, #409eff);
+  height: auto;
+  min-height: 0;
+  width: auto;
+  min-width: 0;
+  padding: 2px;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font:
+    500 14px/1 Arial,
+    sans-serif;
+  color: var(--table-action-color);
+  background: transparent;
+  box-shadow: none;
+}
+.ant-btn.ruoyi-table-action--danger,
+.ant-btn.ruoyi-table-action.ant-btn-dangerous {
+  --table-action-color: #f56c6c;
+}
+.ant-btn.ruoyi-table-action--success {
+  --table-action-color: #67c23a;
+}
+.ant-btn.ruoyi-table-action--warning {
+  --table-action-color: #e6a23c;
+}
+.ant-btn.ruoyi-table-action:not(:disabled):hover,
+.ant-btn.ruoyi-table-action:disabled {
+  color: color-mix(in srgb, var(--table-action-color) 50%, var(--ant-color-bg-container, white));
+  background: transparent;
+  border-color: transparent;
+}
+.ant-btn.ruoyi-table-action:not(:disabled):active {
+  color: color-mix(in srgb, var(--table-action-color) 80%, black);
+  background: transparent;
+  border-color: transparent;
+}
+.ruoyi-table-action .ant-btn-icon,
+.ruoyi-table-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: inherit;
+  line-height: 1;
+}
+.ruoyi-table-action-icon svg {
+  width: 1em;
+  height: 1em;
+}
+.ruoyi-table-action-disabled {
+  display: inline-flex;
+}
+.ruoyi-table-action-disabled > button {
+  pointer-events: none;
+}
+.ruoyi-dialog-form .ant-form-item {
+  margin-bottom: 18px;
+}
+.ruoyi-dialog-form {
+  display: flow-root;
+}
+.ruoyi-dialog-form .ant-form-item-label > label::after {
+  display: none;
+}
+.ruoyi-dialog-form .ant-radio-wrapper-checked {
+  color: var(--ant-color-primary, #409eff);
+}
+.ruoyi-dialog-form .ant-form-item-label > label {
+  font-weight: 700;
+  color: var(--ant-color-text, #606266);
+}
+.ruoyi-dialog-form .ant-form-item-control {
+  min-width: 0;
+}
+.ruoyi-dialog-form .ant-form-item-row {
+  flex-wrap: nowrap;
+}
+.ruoyi-dialog-form .ant-form-item-label {
+  padding-inline-end: 12px;
+}
+.ant-modal:not(.ant-modal-confirm) {
+  top: 6vh;
+  margin-block: 0;
+}
+.ant-modal:not(.ant-modal-confirm) .ant-modal-container {
+  padding: 16px;
+  border-radius: 4px;
+}
+.ant-modal:not(.ant-modal-confirm) .ant-modal-header {
+  margin-bottom: 16px;
+}
+.ant-modal:not(.ant-modal-confirm) .ant-modal-title {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 24px;
+}
+.ant-modal:not(.ant-modal-confirm) .ant-modal-footer {
+  margin-top: 16px;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.ant-modal .dialog-footer > .ant-btn + .ant-btn {
+  margin-inline-start: 0;
+}
+@media (max-width: 575px) {
+  .ruoyi-dialog-form .ant-form-item-row {
+    flex-wrap: wrap;
+  }
+  .ruoyi-dialog-form .ant-form-item-label,
+  .ruoyi-dialog-form .ant-form-item-control {
+    flex-basis: 100% !important;
+    padding-inline-end: 0;
+  }
+}
+.right-toolbar {
+  margin-left: auto;
+}
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.login-page {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: url("../images/login-background.jpg") left top / cover;
+  font-family:
+    "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial,
+    sans-serif;
+}
+.login-card {
+  width: min(100%, 400px);
+  padding: 25px 25px 5px;
+  border-radius: 6px;
+  background: var(--ant-color-bg-container, white);
+}
+.login-card h1 {
+  text-align: center;
+  color: #707070;
+  font:
+    500 18.72px/1.1 "Helvetica Neue",
+    Helvetica,
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    Arial,
+    sans-serif;
+  margin: 0 0 30px;
+}
+.login-card .ant-form {
+  font-family: inherit;
+}
+.login-card .ant-form-item,
+.login-card .ant-alert {
+  margin-bottom: 18px;
+}
+/* Keep associated labels accessible without adding rows to the source layout. */
+.login-card .ant-form-item-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.login-card .ant-input-affix-wrapper,
+.login-card .login-submit .ant-btn {
+  height: 40px;
+  font-size: 14px;
+}
+.login-card .ant-input-affix-wrapper {
+  padding-inline: 15px;
+}
+.login-card .ant-form-item-explain {
+  padding-top: 2px;
+  font-size: 12px;
+  line-height: 1;
+}
+.login-card .ant-input-prefix {
+  margin-inline-end: 8px;
+  color: var(--ant-color-text-quaternary, #c0c4cc);
+}
+.login-card .login-remember {
+  margin-bottom: 25px;
+}
+.login-card .login-remember .ant-form-item-control-input,
+.login-card .login-remember .ant-checkbox-wrapper {
+  min-height: 32px;
+}
+.login-card .login-remember .ant-checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+}
+.login-card .login-link {
+  min-height: 32px;
+  line-height: 32px;
+  text-align: right;
+}
+.captcha-row {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+}
+.captcha-row .ant-form-item {
+  flex: 1;
+}
+.captcha-row button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.captcha-row img {
+  height: 40px;
+  width: 112px;
+}
+.layout-logo {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  gap: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: Avenir, "Helvetica Neue", Arial, Helvetica, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.layout-logo img {
+  height: 32px;
+  width: 32px;
+  flex-shrink: 0;
+}
+.layout-header {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 50px;
+  line-height: normal;
+  background: var(--ant-color-bg-container, #fff);
+  border-bottom: 0;
+}
+.layout-content {
+  padding: 0;
+  min-width: 0;
+}
+.split-page {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+}
+.permission-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ant-table-cell {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .split-page {
+    grid-template-columns: 1fr;
+  }
+  .layout-content { padding: 0; }
+  .app-container {
+    padding: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+.plugin-frame-content {
+  height: calc(100dvh - 150px);
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+}
+.plugin-frame-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.plugin-frame-content iframe {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+}
+.layout-fixed-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.layout-copyright {
+  padding: 24px 12px 8px;
+  text-align: center;
+  color: var(--ant-color-text-secondary, #909399);
+  font-size: 12px;
+}
+.tags-chrome .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+  border-radius: 12px 12px 0 0;
+  margin-inline-end: 3px;
+}
+.ant-layout-sider-light .layout-logo {
+  color: var(--ant-color-text, #303133);
+  background: var(--ant-color-bg-container, #fff);
+}
+.generator-addon {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--ant-color-fill-alter, #fafafa);
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+  white-space: nowrap;
+}
+
+.ant-app {
+  min-height: 100dvh;
+  background: var(--ant-color-bg-layout);
+}
+.login-card .captcha-row {
+  gap: 0;
+}
+.login-card .captcha-row .ant-form-item {
+  flex: 0 1 63%;
+  min-width: 0;
+}
+.login-card .captcha-row button {
+  flex: 0 0 33%;
+  height: 40px;
+  padding-left: 12px;
+  text-align: left;
+}
+.login-card .captcha-row img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+.login-card .captcha-row button:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 3px;
+}
+@media (max-width: 480px) {
+  .login-page {
+    padding: 64px 16px;
+  }
+  .captcha-row {
+    gap: 8px;
+  }
+  .captcha-row img {
+    width: 100px;
+  }
+}
+
+.login-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: center;
+  font:
+    12px/20px Arial,
+    sans-serif;
+  letter-spacing: 1px;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+html.dark .login-page {
+  background-image:
+    linear-gradient(rgb(0 0 0 / 55%), rgb(0 0 0 / 55%)), url("../images/login-background.jpg");
+}
+html.dark .login-card {
+  box-shadow: 0 12px 40px rgb(0 0 0 / 50%);
+}
+html.dark .login-card h1 {
+  color: var(--ant-color-text);
+}
+
+.ant-descriptions-bordered .ant-descriptions-item-label,
+.ant-descriptions-bordered .ant-descriptions-item-content { padding:8px 11px !important; font-size:14px; line-height:23px; }
+.ant-descriptions-bordered .ant-descriptions-item-label { font-weight:700; }
+
+.table-toolbar > .ant-space > .ant-space-item { display:inline-flex; align-items:center; gap:10px; }

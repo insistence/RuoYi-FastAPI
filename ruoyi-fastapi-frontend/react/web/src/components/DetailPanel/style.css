@@ -1,0 +1,129 @@
+.detail-wrap {
+  padding: 0 4px;
+}
+.detail-wrap .detail-card {
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 6px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.detail-wrap .detail-card-title {
+  background: var(--ant-color-fill-alter);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+.detail-wrap .detail-card-title .anticon {
+  margin-right: 5px;
+  color: var(--ant-color-primary);
+}
+.detail-wrap .detail-row {
+  padding: 0 8px;
+}
+.detail-wrap .detail-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 8px;
+  font-size: 13px;
+}
+.detail-wrap .detail-label {
+  flex-shrink: 0;
+  width: 72px;
+  color: var(--ant-color-text-tertiary);
+  margin-right: 12px;
+}
+.detail-wrap .detail-value {
+  color: var(--ant-color-text);
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+}
+.detail-wrap .detail-location {
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+}
+.detail-wrap .method-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.detail-wrap .mono {
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 12px;
+}
+.detail-wrap .code-body {
+  padding: 14px;
+}
+.detail-wrap .code-wrap {
+  background: var(--ant-color-fill-alter);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  max-height: 260px;
+  position: relative;
+}
+.detail-wrap .code-action {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+}
+.detail-wrap .code-pre {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  color: var(--ant-color-text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: auto;
+  max-height: 240px;
+  display: block;
+}
+.detail-wrap .code-wrap:has(.code-action) .code-pre {
+  padding-right: 76px;
+}
+.detail-wrap .error-title,
+.detail-wrap .error-title .anticon {
+  color: var(--ant-color-error);
+}
+.detail-wrap .error-body {
+  padding: 12px 16px;
+}
+.detail-wrap .error-msg {
+  background: var(--ant-color-error-bg);
+  border-left: 3px solid var(--ant-color-error);
+  border-radius: 3px;
+  padding: 8px 12px;
+  color: var(--ant-color-error-text);
+  font-size: 12px;
+  line-height: 1.7;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+.detail-wrap .method-GET {
+  background: var(--ant-color-success-bg);
+  color: var(--ant-color-success-text);
+}
+.detail-wrap .method-POST {
+  background: var(--ant-color-info-bg);
+  color: var(--ant-color-info-text);
+}
+.detail-wrap .method-PUT {
+  background: var(--ant-color-warning-bg);
+  color: var(--ant-color-warning-text);
+}
+.detail-wrap .method-DELETE {
+  background: var(--ant-color-error-bg);
+  color: var(--ant-color-error-text);
+}
+.job-detail .detail-label {
+  width: 110px;
+}

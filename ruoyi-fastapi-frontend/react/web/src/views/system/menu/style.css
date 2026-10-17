@@ -1,0 +1,36 @@
+.menu-table .menu-type-tag {
+  height: 20px;
+  line-height: 18px;
+  padding-inline: 5px;
+  margin: 0;
+}
+.menu-table .menu-sort-input .ant-input-number-input {
+  text-align: center;
+  padding-inline: 8px 40px;
+}
+.menu-table .menu-sort-input .ant-input-number-actions {
+  width: 32px;
+  opacity: 1;
+}
+.menu-tree-toggle,
+.menu-tree-toggle-placeholder {
+  display: inline-flex;
+  width: 20px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+.menu-tree-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ant-color-text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+}
+.menu-tree-toggle:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  border-radius: 2px;
+}

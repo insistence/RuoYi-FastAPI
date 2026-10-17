@@ -1,0 +1,46 @@
+.job-dialog .ant-modal-body {
+  max-height: 70vh;
+  overflow: auto;
+  padding: 10px 20px 0;
+}
+.job-dialog .ant-form-item-extra { color: var(--ant-color-text-secondary, #909399); min-height: 0; }
+.job-dialog .field-unit { color: var(--ant-color-text-secondary, #909399); }
+.job-dialog .ant-form-item-label .anticon { font-size: 14px; }
+.job-dialog .ant-space-compact > .ant-btn { color: var(--ant-color-text-secondary, #909399); background: var(--ant-color-fill-alter, #f5f7fa); }
+.job-dialog .ant-form-item-extra {
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+.job-dialog .ant-space-vertical,
+.job-dialog .ant-space-vertical > .ant-space-item {
+  width: 100%;
+  min-width: 0;
+}
+.job-dialog .ant-descriptions-item-content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.job-dialog pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.job-dialog .ant-typography code {
+  overflow-wrap: anywhere;
+}
+.job-dialog [role="status"]:not(.json-editor-valid) {
+  color: var(--ant-color-text-secondary);
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--ant-color-fill-alter);
+}
+.job-dialog .ant-table-expanded-row .ant-descriptions {
+  margin: 8px 0;
+}
+.job-page .ant-form-item-extra {
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}

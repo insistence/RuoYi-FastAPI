@@ -1,0 +1,23 @@
+.ruoyi-form-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ruoyi-form-label-help {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: help;
+}
+.ruoyi-form-label-help:focus-visible {
+  outline: 2px solid var(--ant-color-primary, #409eff);
+  outline-offset: 2px;
+}
