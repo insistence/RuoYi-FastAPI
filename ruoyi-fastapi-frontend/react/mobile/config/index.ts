@@ -90,7 +90,7 @@ export default defineConfig({
     router: { mode: "hash" },
     devServer: {
       host: "127.0.0.1",
-      port: 5175,
+      port: 9090,
       open: false,
       proxy: {
         "/dev-api": {

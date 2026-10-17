@@ -1,5 +1,5 @@
 import { App as AntApp, ConfigProvider, theme } from "antd";
-import zhCN from "antd/locale/zh_CN";
+import zhCN from "./utils/locale";
 import { RouterProvider } from "react-router-dom";
 import { useEffect, useLayoutEffect } from "react";
 import LoadingProgress from "./components/LoadingProgress";

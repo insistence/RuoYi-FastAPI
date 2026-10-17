@@ -8,7 +8,7 @@
 
 ```sh
 pnpm install
-pnpm dev:h5             # 访问启动日志中显示的地址
+pnpm dev:h5             # H5 默认端口 9090，访问启动日志中显示的地址
 pnpm dev:mp-weixin      # 微信开发者工具导入 dist/weapp
 pnpm build:h5
 pnpm build:mp-weixin
@@ -16,7 +16,9 @@ pnpm build:mp-weixin
 
 依赖锁文件由安装过程生成，已通过 `.gitignore` 排除，不纳入 Git 提交。首次安装使用 `pnpm install`；CI 中使用 `pnpm install --no-frozen-lockfile`，允许根据 `package.json` 生成锁文件。
 
-开发服务的监听地址、端口和代理目标由 `config/index.ts` 中的 `h5.devServer` 配置。H5 默认使用 `/dev-api` 作为接口前缀；根据后端部署地址调整开发代理，或通过 `TARO_APP_BASE_API` 指定接口地址。小程序和 App 应在启动或构建前设置目标设备可访问的后端地址。
+H5 开发服务默认端口为 `9090`，与 Vue2、Vue3 移动端保持一致。监听地址、端口和代理目标由 `config/index.ts` 中的 `h5.devServer` 配置；如需同时运行多个移动端版本，请为它们配置不同端口，并以启动日志中的实际地址为准。
+
+H5 默认使用 `/dev-api` 作为接口前缀；根据后端部署地址调整开发代理，或通过 `TARO_APP_BASE_API` 指定接口地址。小程序和 App 应在启动或构建前设置目标设备可访问的后端地址。
 
 在命令行或 CI 环境中设置 `TARO_APP_BASE_API`，例如使用 POSIX Shell：
 
