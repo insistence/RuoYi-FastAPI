@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal
 
-PluginFrontendFrameworkChoice = Literal['auto', 'vue2', 'vue3']
+PluginFrontendFrameworkChoice = Literal['auto', 'vue2', 'vue3', 'react']
 
 
 @dataclass(frozen=True)
@@ -12,7 +12,7 @@ class PluginCreateCommandOptions:
     :param backend_only: 是否只创建后端插件模板
     :param frontend_only: 是否只创建前端插件模板
     :param template: 插件模板名称
-    :param frontend_framework: 前端框架标识，auto 表示自动识别；源码模板仅支持 vue2、vue3
+    :param frontend_framework: 前端框架标识，auto 表示自动识别；源码模板支持 vue2、vue3、react
     :param no_migration: 是否不创建 migration 示例
     :param no_seed: 是否不创建 seed 示例
     :param no_job: 是否不创建定时任务示例

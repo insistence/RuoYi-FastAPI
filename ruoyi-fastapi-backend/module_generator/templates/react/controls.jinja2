@@ -1,0 +1,45 @@
+{% macro control(column, query=False) -%}
+{% set comment = column.column_comment.split('（')[0] %}
+{% if column.time_kind == 'instant' %}
+<BusinessDateTimePicker label={ {{  column.column_comment | tojson  }} } />
+{% elif column.time_kind == 'date' %}
+<Input type="date" />
+{% elif column.time_kind == 'time' %}
+<Input type="time" step="0.001" />
+{% elif column.html_type == 'textarea' %}
+<Input.TextArea rows={3} placeholder="请输入内容" />
+{% elif column.html_type == 'editor' and not query %}
+<Editor />
+{% elif column.html_type == 'imageUpload' and not query %}
+<ImageUpload />
+{% elif column.html_type == 'fileUpload' and not query %}
+<FileUpload />
+{% elif column.dict_type and column.html_type in ['select', 'radio', 'checkbox'] %}
+{% if column.html_type == 'checkbox' and not query %}
+<Checkbox.Group options={dicts[{{ column.dict_type | tojson }}] || []} />
+{% elif column.html_type == 'radio' and not query %}
+<Radio.Group options={(dicts[{{ column.dict_type | tojson }}] || []){% if column.python_type == 'int' %}.map(option => ({ ...option, value: Number(option.value) })){% endif %}} />
+{% else %}
+<Select placeholder={ {{ ('请选择' ~ comment) | tojson }} } allowClear options={(dicts[{{ column.dict_type | tojson }}] || []){% if column.python_type == 'int' %}.map(option => ({ ...option, value: Number(option.value) })){% endif %}} className="w100" />
+{% endif %}
+{% elif column.python_type in ['int', 'float', 'Decimal'] %}
+<InputNumber placeholder={ {{ ('请输入' ~ comment) | tojson }} } className="w100" {% if column.python_type == 'Decimal' %}stringMode{% endif %} />
+{% else %}
+<Input placeholder={ {{ ('请输入' ~ comment) | tojson }} } allowClear />
+{% endif %}
+{%- endmacro %}
+{% macro display(column, value='value') -%}
+{% if column.dict_type %}
+<DictTag options={dicts[{{ column.dict_type | tojson }}] || []} value={ {{  value  }} } />
+{% elif column.time_kind == 'instant' %}
+formatBusinessTime({{ value }})
+{% elif column.html_type == 'imageUpload' %}
+<ImagePreview src={ {{  value  }} } />
+{% elif column.html_type == 'fileUpload' %}
+<FileUpload value={ {{  value  }} } disabled />
+{% elif column.html_type == 'editor' %}
+<div dangerouslySetInnerHTML={ { __html: DOMPurify.sanitize({{ value }} || '') } } />
+{% else %}
+{{ value }} ?? '-'
+{% endif %}
+{%- endmacro %}

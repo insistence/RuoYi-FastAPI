@@ -1,0 +1,33 @@
+{% from 'react/controls.jinja2' import display %}
+import { useEffect, useState } from 'react';
+import { Descriptions, Drawer, Spin, Table } from 'antd';
+import DOMPurify from 'dompurify';
+import { get{{ BusinessName }} } from '@/api/{{ moduleName }}/{{ businessName }}';
+import { useDict } from '@/utils/dict';
+import { formatBusinessTime } from '@/utils/time';
+import DictTag from '@/components/DictTag';
+import ImagePreview from '@/components/ImagePreview';
+import FileUpload from '@/components/FileUpload';
+export default function {{ BusinessName }}View({ id, onClose }) {
+  const dicts = useDict({{ dicts }});
+  const [data, setData] = useState({}), [loading, setLoading] = useState(false);
+  useEffect(() => { let active = true; if (id == null) return; setData({}); setLoading(true);
+    get{{ BusinessName }}(id).then(response => { if (active) setData(response.data || {}); }).catch(() => {}).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [id]);
+  return <Drawer title="{{ functionName }}详情" open={id != null} onClose={onClose} size={800}><Spin spinning={loading}>
+    <Descriptions bordered column={1} items={[
+{% for column in columns %}
+      { key: '{{ column.python_field }}', label: {{ column.column_comment | tojson }}, children: {{ display(column, 'data.' ~ column.python_field) | trim }} },
+{% endfor %}
+    ]} />
+{% if table.sub %}
+    <h3>{{ subTable.function_name or subTable.table_comment }}</h3>
+    <Table rowKey="{{ subTable.pk_column.python_field }}" dataSource={data.{{ subclassName }}List || []} pagination={false} scroll={ { x: 'max-content' } } columns={[
+{% for column in subTable.columns if not column.pk and column.column_name != subTableFkName %}
+      { title: {{ column.column_comment | tojson }}, dataIndex: '{{ column.python_field }}', render: value => {{ display(column) | trim }} },
+{% endfor %}
+    ]} />
+{% endif %}
+  </Spin></Drawer>;
+}

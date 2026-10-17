@@ -26,14 +26,14 @@ ruoyi-fastapi-backend/plugins/<plugin_id>/
 ruoyi-fastapi-frontend/<framework>/web/plugins/<plugin_id>/
 ```
 
-`<framework>` 是前端框架标识。当前仓库提供 `vue2`、`vue3` 工程，各框架的源码页面分别维护，共用一份后端代码与 `plugin.yaml`。移动端位于 `ruoyi-fastapi-frontend/<framework>/mobile`，不作为 Web 插件的宿主构建目录。目录和依赖分类可以扩展到 `react` 等框架标识，但当前没有 React 工程。
+`<framework>` 是前端框架标识。当前仓库提供 `vue2`、`vue3`、`react` 工程，各框架的源码页面分别维护，共用一份后端代码与 `plugin.yaml`。移动端位于 `ruoyi-fastapi-frontend/<framework>/mobile`，不作为 Web 插件的宿主构建目录。React Web 位于 `ruoyi-fastapi-frontend/react/web`，源码插件页面使用 JSX。
 
 开发示例统一位于后端 `plugins/examples/`，按实现语言分类：`python/` 保存 Python 示例，`rust/` 保存 Rust 原生插件工程。
 该目录不参与插件发现和启动代际计算。使用示例时，按各自 README 构建后部署到 `plugins/<plugin_id>/`，或通过签名制品发布流程安装。
 
 插件系统优先使用显式传入的目录，其次读取 `RUOYI_PLUGIN_BACKEND_ROOT`/`RUOYI_BACKEND_ROOT` 和 `RUOYI_PLUGIN_FRONTEND_ROOT`/`RUOYI_FRONTEND_ROOT`。默认框架为 `vue3`，对应 `ruoyi-fastapi-frontend/vue3/web`；设置 `RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2` 可选择 `vue2/web`，未设置该变量时也可使用 `RUOYI_FRONTEND_FRAMEWORK`。前端根目录变量可以指向具体 Web 工程，也可以指向 `ruoyi-fastapi-frontend` 聚合目录，由框架标识继续定位。旧版包含 `package.json` 的平铺前端目录仍受支持。非默认目录名的项目应优先配置根目录变量。
 
-脚手架和 SDK 命令的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`，默认值为 `auto`。框架身份按以下顺序确定：显式选择 `vue2` 或 `vue3` 优先；`auto` 模式先读取标准目录 `ruoyi-fastapi-frontend/<framework>/{web,mobile}` 中的框架标识；独立工程再根据 `package.json` 依赖识别框架。标准目录标识不会被底层依赖覆盖。独立工程无法识别时会报错，不会退回 Vue3；未指定目标的目录选择仍默认定位 `vue3/web`。
+脚手架和 SDK 命令的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`、`react`，默认值为 `auto`。框架身份按以下顺序确定：显式选择 `vue2`、`vue3` 或 `react` 优先；`auto` 模式先读取标准目录 `ruoyi-fastapi-frontend/<framework>/{web,mobile}` 中的框架标识；独立工程再根据 `package.json` 依赖识别框架。标准目录标识不会被底层依赖覆盖。独立工程无法识别时会报错，不会退回 Vue3；未指定目标的目录选择仍默认定位 `vue3/web`。
 
 CLI 选项的固定取值不改变底层通用框架目录与依赖分类结构。此前按版本命名的选择变量和命令选项不再提供别名，已有脚本需同步更新。
 
@@ -71,14 +71,15 @@ cd ruoyi-fastapi-backend
 ruoyi plugin create demo --env=dev --template=full-stack
 ```
 
-脚手架的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`，默认以 `auto` 识别目标框架。当前 v1 源码前端模板只提供 Vue 2（Element UI、Options API、CommonJS 测试）和 Vue 3（Element Plus、Composition API、ESM 测试）实现；`auto` 解析到其他框架时，生成源码页面会明确报错，提示该框架模板尚未支持。在聚合目录下，显式选择 `vue2` 或 `vue3` 还会选择对应的 `vue2/web` 或 `vue3/web` 输出目录：
+脚手架的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`、`react`，默认以 `auto` 识别目标框架。当前 v1 源码前端模板提供 Vue 2（Element UI、Options API、CommonJS 测试）、Vue 3（Element Plus、Composition API、ESM 测试）和 React（Ant Design、Hooks、JSX、ESM 测试）实现；`auto` 解析到其他框架时，生成源码页面会明确报错，提示该框架模板尚未支持。在聚合目录下，显式选择框架会定位到对应的 `vue2/web`、`vue3/web` 或 `react/web` 输出目录：
 
 ```bash
 ruoyi plugin create demo --env=dev --template=crud-page --frontend-framework=vue2
 ruoyi plugin create demo --env=dev --template=crud-page --frontend-framework=vue3
+ruoyi plugin create demo --env=dev --template=crud-page --frontend-framework=react
 ```
 
-脚手架结果中的 `frontendFramework` 记录所选前端框架。各框架工程共用后端实现和 `plugin.yaml`，前端依赖必须分别完整写入 `dependencies.frontend.<framework>` 的 `npm/npmDev`；多个框架都使用的包也需在各自分类中声明。检查和安装时根据目标 Web 工程选择对应分类，不跨分类合并。当前 Vue2、Vue3 页面分别使用 `vue2`、`vue3` 分类，并各自测试。字段规则见[依赖声明](#56-dependencies)。
+脚手架结果中的 `frontendFramework` 记录所选前端框架。各框架工程共用后端实现和 `plugin.yaml`，前端依赖必须分别完整写入 `dependencies.frontend.<framework>` 的 `npm/npmDev`；多个框架都使用的包也需在各自分类中声明。检查和安装时根据目标 Web 工程选择对应分类，不跨分类合并。当前 Vue2、Vue3、React 页面分别使用 `vue2`、`vue3`、`react` 分类，并各自测试。字段规则见[依赖声明](#56-dependencies)。
 
 常用模板：
 
@@ -112,6 +113,22 @@ ruoyi plugin enable demo --env=dev --yes
 ruoyi plugin health demo --env=dev
 ruoyi plugin test demo --env=dev
 ```
+
+### 创建 React 源码插件
+
+在后端目录执行（PowerShell）：
+
+```powershell
+$env:RUOYI_PLUGIN_FRONTEND_FRAMEWORK = 'react'
+ruoyi plugin create demo --template=crud-page --frontend-framework=react --dry-run
+ruoyi plugin create demo --template=crud-page --frontend-framework=react
+ruoyi plugin check demo --env=dev
+ruoyi plugin test demo --env=dev
+```
+
+`full-stack` 生成基础卡片页，`crud-page` 生成筛选、列表和 520px 编辑弹窗；`--frontend-only` 只生成前端，`--no-test` 可跳过测试文件。输出包括 `views/index.jsx`、API、README 和可执行的 Node 路由测试。基础依赖复用 React Web 宿主，新增业务包再写入 `dependencies.frontend.react`。CRUD 示例后端仍使用内存数据。生成器会检查目录冲突，不覆盖现有插件；可以先用 `--dry-run` 查看路径和内容。
+
+进入 `ruoyi-fastapi-frontend/react/web` 后执行 `pnpm build`。若菜单安装后尚未启用插件，请沿用本文的安装和启用流程。
 
 ## 3. 目录结构
 
@@ -974,6 +991,15 @@ plugin/demo/index -> ruoyi-fastapi-frontend/<framework>/web/plugins/demo/views/i
 plugin/demo/report/list -> ruoyi-fastapi-frontend/<framework>/web/plugins/demo/views/report/list.vue
 ```
 
+React 宿主使用相同的菜单组件值，页面后缀为 .jsx：
+
+~~~text
+plugin/demo/index -> ruoyi-fastapi-frontend/react/web/plugins/demo/views/index.jsx
+plugin/demo/report/list -> ruoyi-fastapi-frontend/react/web/plugins/demo/views/report/list.jsx
+~~~
+
+后端源码结构检查按所选宿主框架验证对应文件；切换宿主使用 RUOYI_PLUGIN_FRONTEND_FRAMEWORK=react（或指定 RUOYI_PLUGIN_FRONTEND_ROOT）。新建插件脚手架的 `full-stack`、`crud-page` 及 `--frontend-only` 均支持 React 模板。内置 AI 插件提供 React 页面及对应依赖分类。
+
 只允许两类组件值：
 
 - 核心布局组件：`Layout`、`ParentView`、`InnerLink`。
@@ -1675,7 +1701,7 @@ ruoyi plugin sdk update plugin-projects/report_center
 npm --prefix plugin-projects/report_center/web run build
 ```
 
-SDK 命令的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`，默认值为 `auto`。默认来源为 `ruoyi-fastapi-frontend/vue3/web`；可用 `--frontend-framework=vue2` 选择 Vue2 Web，`auto` 则跟随框架环境变量和显式根目录选择。通用来源目录为 `ruoyi-fastapi-frontend/<framework>/web`，所选工程必须提供对应 bridge SDK 文件；指定框架不会生成这些文件。独立检出时可传 `--frontend-root PATH`，或设置 `RUOYI_PLUGIN_FRONTEND_ROOT`。命令只静态读取工程清单和固定 SDK 文件，不导入插件、不读取宿主运行环境、不连接数据库或 registry。清单检查仅确认 YAML 可读、`manifestVersion: 2` 和 bundle 工程类型，不执行完整插件清单校验；完整检查与业务测试仍按第 13 节执行。
+SDK 命令的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`、`react`，默认值为 `auto`。默认来源为 `ruoyi-fastapi-frontend/vue3/web`；可用 `--frontend-framework=vue2` 选择 Vue2 Web，或用 `--frontend-framework=react` 选择 React Web，`auto` 则跟随框架环境变量和显式根目录选择。通用来源目录为 `ruoyi-fastapi-frontend/<framework>/web`，所选工程必须提供对应 bridge SDK 文件；指定框架不会生成这些文件。独立检出时可传 `--frontend-root PATH`，或设置 `RUOYI_PLUGIN_FRONTEND_ROOT`。命令只静态读取工程清单和固定 SDK 文件，不导入插件、不读取宿主运行环境、不连接数据库或 registry。清单检查仅确认 YAML 可读、`manifestVersion: 2` 和 bundle 工程类型，不执行完整插件清单校验；完整检查与业务测试仍按第 13 节执行。
 
 | `check` 状态 | 含义与处理 |
 | --- | --- |

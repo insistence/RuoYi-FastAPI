@@ -1,6 +1,6 @@
 # AI 管理后端插件
 
-AI 管理插件提供模型配置、供应商字典、会话对话和流式输出能力。插件保留原有接口前缀和权限标识，安装后会在系统菜单中生成「AI 管理」目录，以及「模型管理」「AI 对话」两个页面。各前端框架共用此后端插件及同一份 `plugin.yaml`，页面目录约定为 `ruoyi-fastapi-frontend/<framework>/web/plugins/ai`；当前提供 Vue2、Vue3 页面，分别位于 `vue2/web/plugins/ai` 和 `vue3/web/plugins/ai`。
+AI 管理插件提供模型配置、供应商字典、会话对话和流式输出能力。插件保留原有接口前缀和权限标识，安装后会在系统菜单中生成「AI 管理」目录，以及「模型管理」「AI 对话」两个页面。各前端框架共用此后端插件及同一份 `plugin.yaml`，页面目录约定为 `ruoyi-fastapi-frontend/<framework>/web/plugins/ai`；当前提供 Vue2、Vue3 和 React 页面，分别位于对应框架的 web/plugins/ai 目录。
 
 ## 功能
 
@@ -100,10 +100,27 @@ ruoyi plugin disable ai --env=dev --yes
 - `dependencies.frontend.vue2.npm`：Vue2 所需的全部运行依赖，包括 `markstream-vue2` 以及 Markdown、代码高亮、图表等依赖。
 - `dependencies.frontend.vue3.npm`：Vue3 所需的全部运行依赖，包括 `markstream-vue`、`stream-diffs` 以及 Markdown、代码高亮、图表等依赖。
 - `dependencies.frontend.vue3.npmDev`：Vue3 构建使用的 `vite-plugin-monaco-editor-esm`。
+- dependencies.frontend.react.npm：React AI 页面需要的 @ant-design/x、markstream-react、stream-diffs、KaTeX 和 Mermaid，与 React 宿主 package.json 保持一致；npmDev 为空。
 
-多个框架都使用的包也在各自分类中列出，不设公共依赖层。`dependencies.frontend` 接受 `react` 等安全的小写框架标识，但新增分类不会生成对应页面；当前 AI 插件仅提供 Vue2、Vue3 实现。旧顶层 `dependencies.npm/npmDev` 已移除，清单校验会拒绝；未声明目标框架分类时，该宿主没有 npm 依赖。
+多个框架都使用的包也在各自分类中列出，不设公共依赖层。`dependencies.frontend` 接受 `react` 等安全的小写框架标识，但新增分类不会生成对应页面；当前 AI 插件已提供 Vue2、Vue3、React 实现。旧顶层 `dependencies.npm/npmDev` 已移除，清单校验会拒绝；未声明目标框架分类时，该宿主没有 npm 依赖。
 
 插件系统解析选定 Web 工程的框架，只检查、安装匹配框架分类中的依赖。默认选择 `vue3/web`；检查或安装 Vue2 依赖时，先在当前终端设置 `RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2`（PowerShell：`$env:RUOYI_PLUGIN_FRONTEND_FRAMEWORK = 'vue2'`；Bash：`export RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2`），再执行同样的插件命令。未设置该变量时也可使用 `RUOYI_FRONTEND_FRAMEWORK`，或用 `RUOYI_PLUGIN_FRONTEND_ROOT` 指向具体 Web 工程。各框架工程分别安装依赖和构建，后端插件仅需安装、启用一次。完整规则见[插件开发手册](../../docs/plugin_development.md#9-依赖管理)。
+
+### React 宿主
+
+在后端目录使用 PowerShell 选择 React 工程，再运行现有插件命令：
+
+~~~powershell
+$env:RUOYI_PLUGIN_FRONTEND_FRAMEWORK = 'react'
+ruoyi plugin check ai --env=dev
+ruoyi plugin install-deps ai --env=dev
+~~~
+
+后端启动进程也需使用同一环境变量，插件详情、启动依赖门禁和依赖安装才会选择 React 分类。已安装并启用的 AI 后端无需重复安装；新环境仍按上面的安装/启用流程处理。React 前端在 ruoyi-fastapi-frontend/react/web 内执行 pnpm install --frozen-lockfile 和 pnpm build。
+
+菜单组件值保持 plugin/ai/model/index、plugin/ai/chat/index，后端结构检查根据宿主框架验证 React 的 .jsx 页面或 Vue 的 .vue 页面。依赖检查、安装计划和锁文件只使用所选框架的分类，React 不会安装 markstream-vue 或 Vue 专属构建插件。
+
+正文和思考过程继续通过 /ai/chat/send 返回逐行 JSON（响应媒体类型沿用 text/event-stream），事件包括 meta/session_id、run_info/run_id、content、reasoning、metrics 和 error。会话与配置接口使用 camelCase；Markdown/代码/公式原文交由前端渲染，markstream-react 不需要 Python 对应包或数据库变更。
 
 ## 数据库
 

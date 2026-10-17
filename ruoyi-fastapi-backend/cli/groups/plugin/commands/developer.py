@@ -66,7 +66,8 @@ def register_developer_commands(app: typer.Typer, get_controller: Callable[[], A
         frontend_framework: Annotated[
             PluginFrontendFrameworkChoice,
             typer.Option(
-                '--frontend-framework', help='宿主框架，auto 自动识别；v1 源码模板仅支持 vue2、vue3，v2 模板仅接受 auto'
+                '--frontend-framework',
+                help='宿主框架，auto 自动识别；v1 源码模板支持 vue2、vue3、react，v2 模板仅接受 auto',
             ),
         ] = 'auto',
         backend_only: Annotated[bool, typer.Option('--backend-only', help='只创建后端插件模板')] = False,

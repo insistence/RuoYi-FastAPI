@@ -103,7 +103,7 @@ def test_ai_plugin_vue3_frontend_dependencies() -> None:
     assert dependencies.npm_dev == EXPECTED_AI_VUE3_NPM_DEV_DEPENDENCIES
 
 
-@pytest.mark.parametrize('frontend_framework', ['vue2', 'vue3'])
+@pytest.mark.parametrize('frontend_framework', ['vue2', 'vue3', 'react'])
 def test_ai_plugin_runtime_paths_exist(frontend_framework: str) -> None:
     """校验 AI 插件后端和前端运行路径存在。"""
     plugin = PluginScanner(BACKEND_ROOT / 'plugins').load_manifest(BACKEND_ROOT / 'plugins' / 'ai' / 'plugin.yaml')
@@ -126,16 +126,19 @@ def test_ai_plugin_runtime_paths_exist(frontend_framework: str) -> None:
     assert (BACKEND_ROOT / 'plugins' / 'ai' / 'controller').is_dir()
     assert (BACKEND_ROOT / 'plugins' / 'ai' / 'entity' / 'do').is_dir()
     frontend_root = PROJECT_ROOT / 'ruoyi-fastapi-frontend' / frontend_framework / 'web'
-    assert (frontend_root / 'plugins' / 'ai' / 'views' / 'model' / 'index.vue').is_file()
-    assert (frontend_root / 'plugins' / 'ai' / 'views' / 'chat' / 'index.vue').is_file()
+    suffix = '.jsx' if frontend_framework == 'react' else '.vue'
+    assert (frontend_root / 'plugins' / 'ai' / 'views' / 'model' / f'index{suffix}').is_file()
+    assert (frontend_root / 'plugins' / 'ai' / 'views' / 'chat' / f'index{suffix}').is_file()
     assert not (frontend_root / 'src' / 'api' / 'ai').exists()
     assert not (frontend_root / 'src' / 'views' / 'ai').exists()
 
 
-def test_ai_plugin_structure_check_passes() -> None:
+@pytest.mark.parametrize('frontend_framework', ['vue2', 'vue3', 'react'])
+def test_ai_plugin_structure_check_passes(frontend_framework: str) -> None:
     """校验 AI 插件目录满足插件结构检查。"""
     plugin = PluginScanner(BACKEND_ROOT / 'plugins').load_manifest(BACKEND_ROOT / 'plugins' / 'ai' / 'plugin.yaml')
-    result = PluginStructureChecker(BACKEND_ROOT).check(plugin)
+    frontend_root = PROJECT_ROOT / 'ruoyi-fastapi-frontend' / frontend_framework / 'web'
+    result = PluginStructureChecker(BACKEND_ROOT, frontend_root / 'plugins').check(plugin)
 
     assert result.ok is True
     assert result.failed_items == []

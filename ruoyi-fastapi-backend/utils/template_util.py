@@ -34,6 +34,9 @@ class TemplateInitializer:
                 trim_blocks=True,
                 lstrip_blocks=True,
             )
+            # Generated source and previews should keep readable Unicode labels.
+            # tojson still escapes quotes, backslashes and HTML-sensitive characters.
+            env.policies['json.dumps_kwargs'] = {**env.policies['json.dumps_kwargs'], 'ensure_ascii': False}
             env.filters.update(
                 {
                     'camel_to_snake': SnakeCaseUtil.camel_to_snake,
@@ -240,6 +243,9 @@ class TemplateUtils:
         use_web_type = 'vue'
         if tpl_web_type == 'element-plus':
             use_web_type = 'vue/v3'
+        elif tpl_web_type == 'react-antd':
+            use_web_type = 'react'
+        extension = 'jsx' if tpl_web_type == 'react-antd' else 'vue'
         templates = [
             'python/controller.py.jinja2',
             'python/dao.py.jinja2',
@@ -250,14 +256,14 @@ class TemplateUtils:
             'js/api.js.jinja2',
         ]
         if tpl_category == GenConstant.TPL_CRUD:
-            templates.append(f'{use_web_type}/index.vue.jinja2')
+            templates.append(f'{use_web_type}/index.{extension}.jinja2')
         elif tpl_category == GenConstant.TPL_TREE:
-            templates.append(f'{use_web_type}/index-tree.vue.jinja2')
+            templates.append(f'{use_web_type}/index-tree.{extension}.jinja2')
         elif tpl_category == GenConstant.TPL_SUB:
-            templates.append(f'{use_web_type}/index.vue.jinja2')
+            templates.append(f'{use_web_type}/index.{extension}.jinja2')
             # templates.append('python/sub-domain.python.jinja2')
         if cls.get_gen_view(params_obj):
-            templates.append(f'{use_web_type}/view.vue.jinja2')
+            templates.append(f'{use_web_type}/view.{extension}.jinja2')
         return templates
 
     @classmethod
@@ -294,6 +300,10 @@ class TemplateUtils:
             return f'{vue_path}/views/{module_name}/{business_name}/index.vue'
         if 'view.vue.jinja2' in template:
             return f'{vue_path}/views/{module_name}/{business_name}/view.vue'
+        if 'index.jsx.jinja2' in template or 'index-tree.jsx.jinja2' in template:
+            return f'{vue_path}/views/{module_name}/{business_name}/index.jsx'
+        if 'view.jsx.jinja2' in template:
+            return f'{vue_path}/views/{module_name}/{business_name}/view.jsx'
         return ''
 
     @classmethod

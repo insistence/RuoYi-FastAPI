@@ -271,9 +271,9 @@ ruoyi plugin test demo --env=dev
 
 `allowlist-example` 会按需生成插件依赖允许列表示例，默认输出路径为 `config/plugin_dependency_allowlist.yaml`。仓库不再默认携带 `.example` 文件；需要模板时可先 `--dry-run` 查看，也可指定 `--output-path` 写入并按团队实际批准范围调整。
 
-`plugin create` 的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`，默认值为 `auto`。显式选择 `vue2` 或 `vue3` 优先确定框架；`auto` 先采用标准目录 `ruoyi-fastapi-frontend/<framework>/{web,mobile}` 中的框架标识，独立工程再通过 `package.json` 依赖识别框架。标准目录标识不会被底层依赖覆盖；无法识别的独立工程会报错。未指定目标时，目录选择默认定位 `vue3/web`。显式传入 `--frontend-framework=vue2` 会选择 `vue2/web` 并生成 Vue2 模板，传入 `vue3` 则选择 Vue3 工程，脚手架结果使用 `frontendFramework` 记录框架标识。
+`plugin create` 的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`、`react`，默认值为 `auto`。显式选择 `vue2`、`vue3` 或 `react` 优先确定框架；`auto` 先采用标准目录 `ruoyi-fastapi-frontend/<framework>/{web,mobile}` 中的框架标识，独立工程再通过 `package.json` 依赖识别框架。标准目录标识不会被底层依赖覆盖；无法识别的独立工程会报错。未指定目标时，目录选择默认定位 `vue3/web`。显式传入 `--frontend-framework=vue2` 会选择 `vue2/web` 并生成 Vue2 模板，传入 `vue3` 则选择 Vue3 工程，传入 `react` 选择 React Web 并生成 `.jsx` 页面，脚手架结果使用 `frontendFramework` 记录框架标识。
 
-当前 v1 源码前端模板仅提供 Vue2、Vue3 实现，`auto` 解析到其他框架时，生成源码页面会明确报错，提示模板尚未支持。v2 独立模板的 `--frontend-framework` 只允许默认值 `auto`。CLI 选项的固定取值不改变底层通用框架结构。
+当前 v1 源码前端模板提供 Vue2、Vue3 和 React 实现（React Hooks、Ant Design、ESM 测试），`auto` 解析到其他框架时，生成源码页面会明确报错，提示模板尚未支持。v2 独立模板的 `--frontend-framework` 只允许默认值 `auto`。CLI 选项的固定取值不改变底层通用框架结构。
 
 插件依赖检查、安装和测试使用当前选定的 Web 宿主。可通过 `RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2` 切换默认框架；未设置该变量时也可使用 `RUOYI_FRONTEND_FRAMEWORK`。`RUOYI_PLUGIN_FRONTEND_ROOT`/`RUOYI_FRONTEND_ROOT` 可直接指定 Web 工程，或指定前端聚合目录后按框架定位，旧版平铺目录仍受支持。此前按版本命名的选择变量和命令选项不再提供别名，已有脚本需同步更新。
 
@@ -330,7 +330,7 @@ ruoyi plugin sdk update plugin-projects/report_center --dry-run --output=json
 ruoyi plugin sdk update plugin-projects/report_center
 ```
 
-这些命令不接受 `--env`，也不读取宿主数据库配置或执行插件代码。SDK 命令的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`，默认值为 `auto`。来源默认是 `ruoyi-fastapi-frontend/vue3/web`；可用 `--frontend-framework=vue2` 选择 Vue2 Web，也可用 `--frontend-root PATH` 或 `RUOYI_PLUGIN_FRONTEND_ROOT` 指定工程。`auto` 跟随框架环境变量和显式根目录选择，所选 `ruoyi-fastapi-frontend/<framework>/web` 工程必须已提供对应 bridge SDK 文件。`check` 仅在版本、来源记录及文件摘要与选定宿主一致（`current`）时返回 0；过期副本、本地修改或缺少记录返回非零，适合纳入构建检查。`protocolCompatible` 只比较桥协议，不表示业务功能已经验收。
+这些命令不接受 `--env`，也不读取宿主数据库配置或执行插件代码。SDK 命令的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`、`react`，默认值为 `auto`。来源默认是 `ruoyi-fastapi-frontend/vue3/web`；可用 `--frontend-framework=vue2` 选择 Vue2 Web，或用 `--frontend-framework=react` 选择 React Web，也可用 `--frontend-root PATH` 或 `RUOYI_PLUGIN_FRONTEND_ROOT` 指定工程。`auto` 跟随框架环境变量和显式根目录选择，所选 `ruoyi-fastapi-frontend/<framework>/web` 工程必须已提供对应 bridge SDK 文件。`check` 仅在版本、来源记录及文件摘要与选定宿主一致（`current`）时返回 0；过期副本、本地修改或缺少记录返回非零，适合纳入构建检查。`protocolCompatible` 只比较桥协议，不表示业务功能已经验收。
 
 `update` 是显式写入命令，先备份再替换三个 SDK 文件。默认拒绝覆盖本地 SDK 修改或旧工程的未跟踪副本；需要纳管时先审阅 `update --force --dry-run`，再执行 `update --force`。备份位于工程 `.plugin-sdk-backups/`，业务代码保持原样。更新后应重建 bundle 并执行兼容测试；不会下载依赖、签名发布或改变运行中的插件。完整状态与摘要规则见开发手册第 16.1 节。
 

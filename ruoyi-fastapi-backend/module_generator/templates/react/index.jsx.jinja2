@@ -1,0 +1,201 @@
+{% from 'react/controls.jinja2' import control, display %}
+{% set dialogWidth = '800px' if table.form_col_num == 2 else '1100px' if table.form_col_num == 3 else '500px' %}
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button, Checkbox, Col, Form, Input, InputNumber, Modal, Radio, Row, Select, Space, Table, TreeSelect } from 'antd';
+import TableActions, { TableAction } from '@/components/TableActions';
+import { DeleteOutlined, DownloadOutlined, EditOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { renderDialogFooter } from '@/components/DialogFooter';
+import DOMPurify from 'dompurify';
+import { list{{ BusinessName }}, get{{ BusinessName }}, add{{ BusinessName }}, update{{ BusinessName }}, del{{ BusinessName }} } from '@/api/{{ moduleName }}/{{ businessName }}';
+import HasPermi from '@/directive/permission/hasPermi';
+import Pagination from '@/components/Pagination';
+import RightToolbar from '@/components/RightToolbar';
+import DictTag from '@/components/DictTag';
+import Editor from '@/components/Editor';
+import FileUpload from '@/components/FileUpload';
+import ImageUpload from '@/components/ImageUpload';
+import ImagePreview from '@/components/ImagePreview';
+import BusinessDateTimePicker from '@/components/BusinessDateTimePicker';
+import { useDict } from '@/utils/dict';
+import { handleTree } from '@/utils/ruoyi';
+import { formatBusinessTime, prepareTimeFields, serializeTimeFieldsForSubmit } from '@/utils/time';
+import { download } from '@/utils/request';
+import { message, confirm } from '@/plugins/modal';
+{% if genView %}
+import ViewDrawer from './view';
+{% endif %}
+
+export default function {{ BusinessName }}() {
+  const dicts = useDict({{ dicts }});
+  const [queryForm] = Form.useForm(), [form] = Form.useForm();
+  const [query, setQuery] = useState({ pageNum: 1, pageSize: 10 });
+  const [rows, setRows] = useState([]), [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false), [saving, setSaving] = useState(false);
+  const [ids, setIds] = useState([]), [showSearch, setShowSearch] = useState(true);
+  const [open, setOpen] = useState(false), [editing, setEditing] = useState(false);
+  const prepared = useRef({});
+{% if genView %}
+  const [viewId, setViewId] = useState(null);
+{% endif %}
+{% if table.tree %}
+  const [treeOptions, setTreeOptions] = useState([]);
+  const [expanded, setExpanded] = useState([]);
+{% endif %}
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await serializeTimeFieldsForSubmit(query, {{ instantQueryFields | tojson }});
+      if (!data) return;
+      const response = await list{{ BusinessName }}(data);
+{% if table.tree %}
+      const items = response.data || response.rows || [];
+      setRows(handleTree(items, '{{ treeCode }}', '{{ treeParentCode }}'));
+      setExpanded(items.map(row => row.{{ treeCode }}));
+{% else %}
+      setRows(response.rows || []);
+      setTotal(response.total || 0);
+{% endif %}
+      setIds([]);
+    } catch {} finally { setLoading(false); }
+  }, [query]);
+  useEffect(() => { load(); }, [load]);
+  async function edit(row) {
+    try {
+      form.resetFields();
+      const response = row ? await get{{ BusinessName }}(row.{{ pkColumn.python_field }}) : { data: {} };
+      const data = prepareTimeFields(response.data || {}, {{ instantFields | tojson }});
+{% for column in columns if column.html_type == 'checkbox' %}
+      data.{{ column.python_field }} = String(data.{{ column.python_field }} || '').split(',').filter(Boolean);
+{% endfor %}
+{% if table.sub %}
+      data.{{ subclassName }}List = (data.{{ subclassName }}List || []).map(item => {
+        const child = prepareTimeFields(item, {{ subInstantFields | tojson }});
+{% for column in subTable.columns if column.html_type == 'checkbox' %}
+        child.{{ column.python_field }} = String(child.{{ column.python_field }} || '').split(',').filter(Boolean);
+{% endfor %}
+        return child;
+      });
+{% endif %}
+{% if table.tree %}
+      const treeResponse = await list{{ BusinessName }}({});
+      const items = treeResponse.data || treeResponse.rows || [];
+      const blocked = new Set(row ? [row.{{ treeCode }}] : []);
+      let changed = true;
+      while (changed) { changed = false; for (const item of items) { if (blocked.has(item.{{ treeParentCode }}) && !blocked.has(item.{{ treeCode }})) { blocked.add(item.{{ treeCode }}); changed = true; } } }
+      setTreeOptions([{ {{ treeCode }}: 0, {{ treeName }}: '主目录', children: handleTree(items.filter(item => !blocked.has(item.{{ treeCode }})), '{{ treeCode }}', '{{ treeParentCode }}') }]);
+      if (!row) data.{{ treeParentCode }} = 0;
+{% endif %}
+      prepared.current = data;
+      form.setFieldsValue(data);
+      setEditing(!!row); setOpen(true);
+    } catch {}
+  }
+  async function submit() {
+    try {
+      const values = await form.validateFields(); setSaving(true);
+      const data = await serializeTimeFieldsForSubmit({ ...prepared.current, ...values }, {{ instantFields | tojson }});
+      if (!data) return;
+{% for column in columns if column.html_type == 'checkbox' %}
+      data.{{ column.python_field }} = (values.{{ column.python_field }} || []).join(',');
+{% endfor %}
+{% if table.sub %}
+      data.{{ subclassName }}List = [];
+      for (const row of values.{{ subclassName }}List || []) {
+        const original = (prepared.current.{{ subclassName }}List || []).find(item => row.{{ subTable.pk_column.python_field }} != null && item.{{ subTable.pk_column.python_field }} === row.{{ subTable.pk_column.python_field }}) || {};
+        const child = await serializeTimeFieldsForSubmit({ ...original, ...row }, {{ subInstantFields | tojson }});
+        if (!child) return;
+{% for column in subTable.columns if column.html_type == 'checkbox' %}
+        child.{{ column.python_field }} = (row.{{ column.python_field }} || []).join(',');
+{% endfor %}
+        data.{{ subclassName }}List.push(child);
+      }
+{% endif %}
+      await (editing ? update{{ BusinessName }}(data) : add{{ BusinessName }}(data));
+      message.success(editing ? '修改成功' : '新增成功'); setOpen(false); load();
+    } catch {} finally { setSaving(false); }
+  }
+  async function remove(values) {
+    try { await confirm(`是否确认删除{{ functionName }}编号为“${values}”的数据？`); await del{{ BusinessName }}(values); message.success('删除成功'); load(); } catch {}
+  }
+  async function exportData() {
+    const data = await serializeTimeFieldsForSubmit(query, {{ instantQueryFields | tojson }});
+    if (data) await download('/{{ moduleName }}/{{ businessName }}/export', data, `{{ businessName }}_${Date.now()}.xlsx`);
+  }
+  const columns = [
+{% for column in columns if column.list %}
+    { title: {{ column.column_comment | tojson }}, dataIndex: '{{ column.python_field }}', render: value => {{ display(column) | trim }} },
+{% endfor %}
+    { title: '操作', align: 'center', className: 'ruoyi-actions-cell', render: (_, row) => <TableActions>
+{% if genView %}
+      <HasPermi value={['{{ permissionPrefix }}:query']}><TableAction symbol="View" onClick={() => setViewId(row.{{ pkColumn.python_field }})}>详情</TableAction></HasPermi>
+{% endif %}
+      <HasPermi value={['{{ permissionPrefix }}:edit']}><TableAction symbol="Edit" onClick={() => edit(row)}>修改</TableAction></HasPermi>
+      <HasPermi value={['{{ permissionPrefix }}:remove']}><TableAction symbol="Delete" onClick={() => remove(row.{{ pkColumn.python_field }})}>删除</TableAction></HasPermi>
+    </TableActions> }
+  ];
+  return <div className="app-container">
+    {showSearch && <Form form={queryForm} layout="inline" className="search-form" onFinish={values => setQuery({ ...values, pageNum: 1, pageSize: query.pageSize })}>
+{% for column in columns if column.query %}
+{% if column.query_type == 'BETWEEN' %}
+{% set suffix = column.python_field[0] | upper + column.python_field[1:] %}
+      <Form.Item label={ {{  column.column_comment | tojson  }} }><Space>
+        <Form.Item name="begin{{ suffix }}" noStyle><Input {% if column.time_kind %}type="{{ 'time' if column.time_kind == 'time' else 'date' }}"{% else %}placeholder={ {{ ('请输入开始' ~ column.column_comment) | tojson }} }{% endif %} aria-label="开始{{ column.column_comment }}" /></Form.Item>
+        <span>至</span><Form.Item name="end{{ suffix }}" noStyle><Input {% if column.time_kind %}type="{{ 'time' if column.time_kind == 'time' else 'date' }}"{% else %}placeholder={ {{ ('请输入结束' ~ column.column_comment) | tojson }} }{% endif %} aria-label="结束{{ column.column_comment }}" /></Form.Item>
+      </Space></Form.Item>
+{% else %}
+      <Form.Item name="{{ column.python_field }}" label={ {{  column.column_comment | tojson  }} }>{{ control(column, True) | trim }}</Form.Item>
+{% endif %}
+{% endfor %}
+      <Form.Item><Space><Button type="primary" icon={<SearchOutlined />} htmlType="submit">搜索</Button><Button icon={<ReloadOutlined />} onClick={() => { queryForm.resetFields(); setQuery({ pageNum: 1, pageSize: 10 }); }}>重置</Button></Space></Form.Item>
+    </Form>}
+    <div className="table-toolbar"><Space wrap>
+      <HasPermi value={['{{ permissionPrefix }}:add']}><Button className="ruoyi-plain-button ruoyi-plain-button--primary" icon={<PlusOutlined />} onClick={() => edit()}>新增</Button></HasPermi>
+      <HasPermi value={['{{ permissionPrefix }}:edit']}><Button className="ruoyi-plain-button ruoyi-plain-button--success" icon={<EditOutlined />} disabled={ids.length !== 1} onClick={() => edit({ {{ pkColumn.python_field }}: ids[0] })}>修改</Button></HasPermi>
+      <HasPermi value={['{{ permissionPrefix }}:remove']}><Button className="ruoyi-plain-button ruoyi-plain-button--danger" icon={<DeleteOutlined />} disabled={!ids.length} onClick={() => remove(ids.join(','))}>删除</Button></HasPermi>
+      <HasPermi value={['{{ permissionPrefix }}:export']}><Button className="ruoyi-plain-button ruoyi-plain-button--warning" icon={<DownloadOutlined />} onClick={exportData}>导出</Button></HasPermi>
+{% if table.tree %}
+      <Button onClick={() => setExpanded(expanded.length ? [] : rows.flatMap(function keys(row) { return [row.{{ treeCode }}, ...(row.children || []).flatMap(keys)]; }))}>展开/折叠</Button>
+{% endif %}
+    </Space><RightToolbar showSearch={showSearch} onShowSearch={setShowSearch} onQuery={load} /></div>
+    <Table rowKey="{{ pkColumn.python_field }}" dataSource={rows} columns={columns} loading={loading} pagination={false} scroll={ { x: 'max-content' } }
+      rowSelection={ { selectedRowKeys: ids, onChange: setIds } }
+{% if table.tree %}
+      expandable={ { expandedRowKeys: expanded, onExpandedRowsChange: setExpanded } }
+{% endif %}
+    />
+{% if not table.tree %}
+    <Pagination total={total} page={query.pageNum} limit={query.pageSize} onChange={page => setQuery({ ...query, ...page })} />
+{% endif %}
+    <Modal title={`${editing ? '修改' : '新增'}{{ functionName }}`} open={open} onCancel={() => setOpen(false)} onOk={submit} confirmLoading={saving} width="{{ dialogWidth }}" footer={renderDialogFooter} forceRender>
+      <Form form={form} className="ruoyi-dialog-form" layout="horizontal" colon={false} labelCol={ { flex: '100px' } } wrapperCol={ { flex: '1 1 0' } }><Row gutter={24}>
+{% for column in columns if column.insert or column.edit %}
+{% if table.tree and column.python_field == treeParentCode %}
+        <Col span={24}><Form.Item name="{{ treeParentCode }}" label="上级{{ functionName }}" rules={[{ required: true }]}><TreeSelect placeholder={ {{ ('请选择上级' ~ functionName) | tojson }} } treeData={treeOptions} fieldNames={ { value: '{{ treeCode }}', label: '{{ treeName }}', children: 'children' } } treeDefaultExpandAll /></Form.Item></Col>
+{% elif not column.pk %}
+        {(editing ? {{ column.edit | lower }} : {{ column.insert | lower }}) && <Col xs={24} md={ {{  colSpan  }} }><Form.Item name="{{ column.python_field }}" label={ {{  column.column_comment | tojson  }} } rules={[{ required: {{ column.required | lower }}, message: {{ ('请输入' ~ column.column_comment) | tojson }} }]}>
+          {{ control(column) | trim }}
+        </Form.Item></Col>}
+{% elif column.insert and not column.increment %}
+        {!editing && <Col xs={24} md={ {{  colSpan  }} }><Form.Item name="{{ column.python_field }}" label={ {{  column.column_comment | tojson  }} } rules={[{ required: true }]}>{{ control(column) | trim }}</Form.Item></Col>}
+{% endif %}
+{% endfor %}
+      </Row>
+{% if table.sub %}
+      <h3>{{ subTable.function_name or subTable.table_comment }}</h3>
+      <Form.List name="{{ subclassName }}List">{(fields, { add, remove }) => <>
+        <Button onClick={() => add({})}>新增子表行</Button>
+        {fields.map(field => <div key={field.key} className="sub-table-row"><Row gutter={16}>
+          <Form.Item name={[field.name, '{{ subTable.pk_column.python_field }}']} hidden><Input /></Form.Item>
+{% for column in subTable.columns if not column.pk and column.column_name != subTableFkName %}
+          <Col xs={24} md={12}><Form.Item name={[field.name, '{{ column.python_field }}']} label={ {{  column.column_comment | tojson  }} } rules={[{ required: {{ column.required | lower }} }]}>{{ control(column) | trim }}</Form.Item></Col>
+{% endfor %}
+        </Row><Button danger onClick={() => remove(field.name)}>删除此行</Button></div>)}
+      </>}</Form.List>
+{% endif %}
+      </Form>
+    </Modal>
+{% if genView %}
+    <ViewDrawer id={viewId} onClose={() => setViewId(null)} />
+{% endif %}
+  </div>;
+}

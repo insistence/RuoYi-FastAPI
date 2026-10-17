@@ -206,7 +206,7 @@ def test_backend_only_scaffold_does_not_require_frontend_framework(tmp_path: Pat
     assert payload['frontendFramework'] is None
 
 
-@pytest.mark.parametrize('framework', ['vue4', 'react', 'custom_ui-1'])
+@pytest.mark.parametrize('framework', ['vue4', 'custom_ui-1'])
 def test_plugin_runtime_create_plugin_rejects_unsupported_frontend_template(tmp_path: Path, framework: str) -> None:
     """校验合法但没有源码模板的框架会返回清晰错误且不写文件。"""
     backend_root = tmp_path / 'project' / 'api-server'
