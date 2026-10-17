@@ -1,0 +1,53 @@
+export default defineAppConfig({
+  window: {
+    navigationStyle: "default",
+    navigationBarTextStyle: "black",
+    navigationBarTitleText: "RuoYi",
+    navigationBarBackgroundColor: "#FFFFFF",
+  },
+  pages: [
+    "pages/login",
+    "pages/register",
+    "pages/index",
+    "pages/work/index",
+    "pages/mine/index",
+    "pages/mine/avatar/index",
+    "pages/mine/info/index",
+    "pages/mine/info/edit",
+    "pages/mine/pwd/index",
+    "pages/mine/setting/index",
+    "pages/mine/setting/timezone",
+    "pages/mine/help/index",
+    "pages/mine/about/index",
+    "pages/common/agreement/index",
+    "pages/common/privacy/index",
+    "pages/common/webview/index",
+    "pages/common/textview/index",
+  ],
+  tabBar: {
+    color: "#000000",
+    selectedColor: "#000000",
+    borderStyle: "white",
+    backgroundColor: "#ffffff",
+    list: [
+      {
+        pagePath: "pages/index",
+        iconPath: "./static/images/tabbar/home.png",
+        selectedIconPath: "./static/images/tabbar/home_.png",
+        text: "首页",
+      },
+      {
+        pagePath: "pages/work/index",
+        iconPath: "./static/images/tabbar/work.png",
+        selectedIconPath: "./static/images/tabbar/work_.png",
+        text: "工作台",
+      },
+      {
+        pagePath: "pages/mine/index",
+        iconPath: "./static/images/tabbar/mine.png",
+        selectedIconPath: "./static/images/tabbar/mine_.png",
+        text: "我的",
+      },
+    ],
+  },
+});

@@ -1,0 +1,425 @@
+@import "tailwindcss" source(none);
+@import "./styles/icons.css";
+@source "../src";
+
+/* Match the original mobile palette and use a consistent 16px rem on H5. */
+@theme {
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-indigo-50: #eef2ff;
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-200: #c7d2fe;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  --color-purple-50: #faf5ff;
+  --color-purple-200: #e9d5ff;
+  --color-purple-500: #a855f7;
+  --color-purple-600: #9333ea;
+  --color-green-50: #f0fdf4;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-orange-50: #fff7ed;
+  --color-orange-500: #f97316;
+  --color-red-50: #fef2f2;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-cyan-50: #ecfeff;
+  --color-cyan-500: #06b6d4;
+  --color-yellow-50: #fefce8;
+  --color-yellow-500: #eab308;
+  --color-yellow-600: #ca8a04;
+  --color-pink-50: #fdf2f8;
+  --color-pink-500: #ec4899;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+html {
+  font-size: 16px !important;
+}
+page,
+body {
+  min-height: 100%;
+  background: #f7f8fa;
+  color: #1f2937;
+  font-size: 1rem;
+  font-family:
+    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  line-height: 1.5;
+}
+view,
+text,
+input,
+button,
+image,
+scroll-view,
+taro-view-core,
+taro-text-core,
+taro-input-core,
+taro-button-core,
+taro-image-core {
+  box-sizing: border-box;
+}
+button::after,
+taro-button-core::after {
+  border: 0;
+}
+button,
+taro-button-core {
+  font-weight: inherit;
+}
+.mobile-page {
+  background: #f7f8fa;
+  min-height: 100vh;
+  padding: 1rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+}
+.list-page {
+  min-height: 100vh;
+  background: #f9fafb;
+  padding: 1rem 0 2.5rem;
+}
+.mobile-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+.mobile-field {
+  margin-bottom: 1.25rem;
+}
+.mobile-label {
+  line-height: 1.25rem;
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+.mobile-input {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 2.75rem;
+  background: #f9fafb;
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  color: #1f2937;
+  box-shadow: 0 0 0 1px #e5e7eb;
+}
+taro-input-core .weui-input {
+  height: 100%;
+  min-height: 0;
+  line-height: normal;
+}
+.mobile-input:focus-within,
+.auth-input:focus-within {
+  background: white;
+  box-shadow: 0 0 0 2px #3b82f6;
+  outline: none;
+}
+.mobile-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3rem;
+  border-radius: 0.75rem;
+  border: 0;
+  background: #3b82f6;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 2.75rem;
+  box-shadow: 0 0.625rem 0.9375rem -0.1875rem rgb(59 130 246 / 0.3);
+}
+.mobile-button[disabled="false"] {
+  color: white;
+}
+.mobile-button[disabled="true"] {
+  opacity: 0.6;
+}
+.mobile-button:active {
+  background: #2563eb;
+}
+.mobile-error {
+  color: #dc2626;
+  display: block;
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+.mobile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3.125rem;
+  gap: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+}
+.mobile-row:last-child {
+  border-bottom: 0;
+}
+.mobile-muted {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #eff6ff, #e0e7ff);
+  padding: 0 1.5rem 5rem;
+}
+.auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  background: white;
+  margin-bottom: 1rem;
+  box-shadow: 0 0.625rem 0.9375rem -0.1875rem rgb(0 0 0 / 0.1);
+}
+.auth-title {
+  line-height: 1.4;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.03125rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.auth-panel {
+  width: 100%;
+  border-radius: 1.5rem;
+  background: rgb(255 255 255 / 0.8);
+  padding: 1.5rem;
+  box-shadow: 0 1.25rem 1.5625rem -0.3125rem rgb(0 0 0 / 0.1);
+  backdrop-filter: blur(0.75rem);
+}
+.auth-field {
+  position: relative;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+.auth-field-icon {
+  position: absolute;
+  left: 1rem;
+  top: 0.875rem;
+  font-size: 1.25rem;
+  color: #9ca3af;
+  pointer-events: none;
+  z-index: 1;
+}
+.auth-input {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 3rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+  padding: 0 1rem 0 3rem;
+  font-size: 0.875rem;
+  color: #374151;
+}
+.auth-submit {
+  margin-top: 0;
+  background: linear-gradient(to right, #3b82f6, #4f46e5);
+}
+.auth-captcha .auth-field {
+  margin-bottom: 0;
+}
+.auth-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+.auth-register-link {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+.auth-register-link + .auth-footer {
+  margin-top: 0.75rem;
+}
+.auth-link {
+  color: #3b82f6;
+}
+.legal-content {
+  line-height: 1.8;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
+.module-caption {
+  font-size: 0.6875rem;
+}
+.crop-stage {
+  position: relative;
+  overflow: hidden;
+  margin: 1rem auto;
+  touch-action: none;
+}
+.crop-frame {
+  position: absolute;
+  border: 1px solid #60a5fa;
+  box-shadow: 0 0 0 32rem rgb(0 0 0 / 0.5);
+}
+.crop-handle {
+  position: absolute;
+  touch-action: none;
+}
+.crop-handle-top,
+.crop-handle-bottom {
+  left: 0;
+  width: 100%;
+  height: 1.5rem;
+  cursor: ns-resize;
+}
+.crop-handle-left,
+.crop-handle-right {
+  top: 0;
+  height: 100%;
+  width: 1.5rem;
+  cursor: ew-resize;
+}
+.crop-handle-top {
+  top: -0.75rem;
+}
+.crop-handle-bottom {
+  bottom: -0.75rem;
+}
+.crop-handle-left {
+  left: -0.75rem;
+}
+.crop-handle-right {
+  right: -0.75rem;
+}
+.crop-handle-bottom-right {
+  right: -0.5rem;
+  bottom: -0.5rem;
+  width: 1rem;
+  height: 1rem;
+  background: #60a5fa;
+  cursor: nwse-resize;
+}
+.mobile-button-danger,
+.mobile-button-danger[disabled="false"] {
+  background: #fef2f2;
+  color: #dc2626;
+  box-shadow: none;
+  margin-top: 0;
+}
+.taro_navigation_page .mobile-page,
+.taro_navigation_page .list-page,
+.taro_navigation_page .auth-screen {
+  min-height: calc(100vh - 44px);
+}
+.taro_tabbar_page .mobile-page,
+.taro_tabbar_page .list-page {
+  min-height: calc(100vh - 94px);
+}
+
+.mobile-page.bg-white {
+  background: white;
+}
+.mobile-page.bg-black {
+  background: black;
+}
+.mobile-page.bg-gray-50 {
+  background: #f9fafb;
+}
+taro-input-core[class] {
+  display: flex;
+  align-items: center;
+}
+.mobile-toggle,
+.mobile-toggle > :first-child {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.mobile-action-button {
+  font-family: inherit;
+  cursor: pointer;
+}
+.mobile-action-button:disabled {
+  cursor: default;
+}
+.button-spinner {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  border: 0.125rem solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: button-spin 0.7s linear infinite;
+}
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+button:disabled {
+  opacity: 0.6;
+}
+button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+.avatar-actions {
+  padding: 0 1.5rem;
+}
+.avatar-button {
+  margin-top: 1rem;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #3b82f6, #2563eb);
+}
+.avatar-submit {
+  background: linear-gradient(to right, #ef4444, #dc2626);
+}
+/* Match uni-app's 44px H5 navigation bar; native platforms use system bars. */
+#taro-navigation-bar.taro-navigation-bar-show {
+  padding: calc(env(safe-area-inset-top) + 10px) 0 10px;
+}
+#taro-navigation-bar .taro-navigation-bar-title {
+  font-size: 16px;
+  font-weight: 700;
+  max-width: calc(100vw - 88px);
+}
+.taro_page,
+taro-scroll-view-core {
+  scrollbar-width: none;
+}
+.taro_page::-webkit-scrollbar,
+taro-scroll-view-core::-webkit-scrollbar {
+  display: none;
+}
+.taro_navigation_page .taro-webview {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
