@@ -32,8 +32,8 @@
 
 RuoYi-FastAPI是一套全部开源的快速开发平台，毫无保留给个人及企业免费使用。
 
-* Web 前端提供 Vue2 + Element UI 和 Vue3 + Element Plus 两套工程，分别基于<u>[RuoYi-Vue](https://github.com/yangzongzhuan/RuoYi-Vue)</u>和<u>[RuoYi-Vue3](https://github.com/yangzongzhuan/RuoYi-Vue3)</u>修改。
-* 移动端提供 uni-app 的 Vue2、Vue3 两套工程，内置 tailwindcss，基于<u>[RuoYi-App](https://github.com/yangzongzhuan/RuoYi-App)</u>项目修改。
+* Web 前端提供 Vue2 + Element UI、Vue3 + Element Plus 和 React + Ant Design 三套工程。Vue2、Vue3 版本分别基于<u>[RuoYi-Vue](https://github.com/yangzongzhuan/RuoYi-Vue)</u>和<u>[RuoYi-Vue3](https://github.com/yangzongzhuan/RuoYi-Vue3)</u>修改。
+* 移动端提供基于 uni-app 的 Vue2、Vue3 和 基于 Taro 的 React 三套工程，内置 Tailwind CSS，Vue2、Vue3 版本基于<u>[RuoYi-App](https://github.com/yangzongzhuan/RuoYi-App)</u>项目修改。
 * 后端采用FastAPI、sqlalchemy、MySQL（PostgreSQL）、Redis、OAuth2 & Jwt。
 * 权限认证使用OAuth2 & Jwt，支持多终端认证系统。
 * 支持加载动态权限菜单，多方式轻松权限控制。
@@ -61,7 +61,7 @@ RuoYi-FastAPI是一套全部开源的快速开发平台，毫无保留给个人�
 15. 传输加密：支持前后端请求加密、响应解密、公钥轮换、运行策略下发与监控统计。
 16. 在线构建器：拖动表单元素生成相应的HTML代码。
 17. 系统接口：根据业务代码自动生成相关的api接口文档。
-18. 代码生成：配置数据库表信息一键生成前后端代码（python、sql、vue、js），支持下载。
+18. 代码生成：配置数据库表信息，一键生成前后端代码（Python、SQL、Vue、JavaScript、React JSX）并打包下载。
 19. AI管理：提供AI模型管理和AI对话功能。
 20. 文件管理：统一管理公开文件和受保护附件，支持访问控制、业务引用保护、操作审计、回收站、保留策略及存储对账。
 21. 插件系统：支持插件发现、安装、启停、升级、卸载与清理，提供依赖与配置管理、迁移与种子、定时任务、菜单权限、批量预演、健康诊断、操作审计及前后端插件脚手架。
