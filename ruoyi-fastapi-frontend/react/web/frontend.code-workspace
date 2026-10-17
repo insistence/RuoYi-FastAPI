@@ -1,5 +1,5 @@
 {
-  "folders": [{"name": "react-web", "path": "."}],
+  "folders": [{ "name": "react-web", "path": "." }],
   "settings": {
     "prettier.requireConfig": true,
     "[javascript][javascriptreact][typescript][typescriptreact][json][jsonc][html][css][markdown][yaml]": {
@@ -7,8 +7,8 @@
       "editor.formatOnSave": true,
       "editor.detectIndentation": false,
       "editor.insertSpaces": true,
-      "editor.tabSize": 2
-    }
+      "editor.tabSize": 2,
+    },
   },
-  "extensions": {"recommendations": ["esbenp.prettier-vscode", "EditorConfig.EditorConfig"]}
+  "extensions": { "recommendations": ["esbenp.prettier-vscode", "EditorConfig.EditorConfig"] },
 }

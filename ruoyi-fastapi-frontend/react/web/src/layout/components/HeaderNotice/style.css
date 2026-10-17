@@ -66,7 +66,7 @@
 }
 .notice-divider::before,
 .notice-divider::after {
-  content: "";
+  content: '';
   width: 60px;
   height: 1px;
   background: var(--ant-color-border);

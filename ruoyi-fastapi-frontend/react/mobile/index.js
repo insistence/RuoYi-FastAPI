@@ -1,1 +1,1 @@
-import '@tarojs/rn-supporter/entry-file.js';
+import '@tarojs/rn-supporter/entry-file.js'

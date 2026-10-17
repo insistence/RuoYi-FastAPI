@@ -4,25 +4,23 @@ module.exports = ({ types: t }) => ({
   visitor: {
     Program: {
       enter(program, state) {
-        if (!/[\\/]src[\\/]/.test(state.filename || "")) return;
-        if (!/[\\/]primitives\.rn\.jsx$/.test(state.filename || "")) {
-          for (const statement of program.get("body")) {
+        if (!/[\\/]src[\\/]/.test(state.filename || '')) return
+        if (!/[\\/]primitives\.rn\.jsx$/.test(state.filename || '')) {
+          for (const statement of program.get('body')) {
             if (
               statement.isImportDeclaration() &&
-              statement.node.source.value === "@tarojs/components"
+              statement.node.source.value === '@tarojs/components'
             )
-              statement.node.source = t.stringLiteral(
-                "@/components/primitives",
-              );
+              statement.node.source = t.stringLiteral('@/components/primitives')
           }
         }
         program.traverse({
           JSXAttribute(path) {
-            if (t.isJSXIdentifier(path.node.name, { name: "className" }))
-              path.node.name = t.jsxIdentifier("utilityClass");
+            if (t.isJSXIdentifier(path.node.name, { name: 'className' }))
+              path.node.name = t.jsxIdentifier('utilityClass')
           },
-        });
+        })
       },
     },
   },
-});
+})

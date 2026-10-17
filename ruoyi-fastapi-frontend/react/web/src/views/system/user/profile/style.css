@@ -72,7 +72,7 @@
   overflow: hidden;
 }
 .user-avatar-button::after {
-  content: "+";
+  content: '+';
   position: absolute;
   inset: 0;
   display: grid;

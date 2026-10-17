@@ -1,59 +1,59 @@
-import React, { useRef, useState } from "react";
-import Taro from "@tarojs/taro";
-import { View, Text } from "@tarojs/components";
-import Button from "@/components/ActionButton";
-import { updateUserPwd } from "@/api/system/user";
-import { usePageAuth } from "@/permission";
-import FormField from "@/components/FormField";
+import React, { useRef, useState } from 'react'
+import Taro from '@tarojs/taro'
+import { View, Text } from '@tarojs/components'
+import Button from '@/components/ActionButton'
+import { updateUserPwd } from '@/api/system/user'
+import { usePageAuth } from '@/permission'
+import FormField from '@/components/FormField'
 export default function Password() {
-  const allowed = usePageAuth();
+  const allowed = usePageAuth()
   const [user, setUser] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [busy, setBusy] = useState(false);
-  const lock = useRef(false);
-  const [error, setError] = useState("");
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [busy, setBusy] = useState(false)
+  const lock = useRef(false)
+  const [error, setError] = useState('')
   async function submit() {
-    if (lock.current) return;
+    if (lock.current) return
     const message = !user.oldPassword
-      ? "旧密码不能为空"
+      ? '旧密码不能为空'
       : !user.newPassword
-        ? "新密码不能为空"
+        ? '新密码不能为空'
         : user.newPassword.length < 6 || user.newPassword.length > 20
-          ? "长度在 6 到 20 个字符"
+          ? '长度在 6 到 20 个字符'
           : !user.confirmPassword
-            ? "确认密码不能为空"
+            ? '确认密码不能为空'
             : user.newPassword !== user.confirmPassword
-              ? "两次输入的密码不一致"
-              : "";
+              ? '两次输入的密码不一致'
+              : ''
     if (message) {
-      setError(message);
-      return;
+      setError(message)
+      return
     }
-    lock.current = true;
-    setBusy(true);
-    setError("");
+    lock.current = true
+    setBusy(true)
+    setError('')
     try {
-      await updateUserPwd(user.oldPassword, user.newPassword);
-      setUser({ oldPassword: "", newPassword: "", confirmPassword: "" });
-      await Taro.showToast({ title: "修改成功", icon: "success" });
-      Taro.navigateBack();
+      await updateUserPwd(user.oldPassword, user.newPassword)
+      setUser({ oldPassword: '', newPassword: '', confirmPassword: '' })
+      await Taro.showToast({ title: '修改成功', icon: 'success' })
+      Taro.navigateBack()
     } catch (failure) {
-      setError(failure.message || "修改失败");
+      setError(failure.message || '修改失败')
     } finally {
-      lock.current = false;
-      setBusy(false);
+      lock.current = false
+      setBusy(false)
     }
   }
-  if (!allowed) return null;
+  if (!allowed) return null
   return (
     <View className="mobile-page bg-white">
       {[
-        ["oldPassword", "旧密码"],
-        ["newPassword", "新密码"],
-        ["confirmPassword", "确认密码"],
+        ['oldPassword', '旧密码'],
+        ['newPassword', '新密码'],
+        ['confirmPassword', '确认密码'],
       ].map(([key, label]) => (
         <FormField
           key={key}
@@ -75,5 +75,5 @@ export default function Password() {
         提 交
       </Button>
     </View>
-  );
+  )
 }

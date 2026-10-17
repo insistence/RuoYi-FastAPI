@@ -25,7 +25,7 @@ import {
   UndoOutlined,
   UploadOutlined,
   UserOutlined,
-} from "@ant-design/icons";
+} from '@ant-design/icons'
 
 // Keep action names stable for pages and generated templates.
 const icons = {
@@ -55,13 +55,16 @@ const icons = {
   User: UserOutlined,
   VideoPause: PauseCircleOutlined,
   View: EyeOutlined,
-};
+}
 
 export default function TableActionIcon({ name }) {
-  const Icon = icons[name];
+  const Icon = icons[name]
   return Icon ? (
-    <span className="ruoyi-table-action-icon" aria-hidden="true">
+    <span
+      className="ruoyi-table-action-icon"
+      aria-hidden="true"
+    >
       <Icon />
     </span>
-  ) : null;
+  ) : null
 }

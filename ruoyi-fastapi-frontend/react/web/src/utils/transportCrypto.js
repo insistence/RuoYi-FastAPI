@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from 'axios'
 
 import {
   ensureTransportCryptoPolicyLoaded,
@@ -6,30 +6,27 @@ import {
   shouldEncryptQuery,
   shouldEncryptRequest,
   shouldEncryptResponse,
-} from "@/utils/transportCryptoPolicy";
-import cache from "@/plugins/cache";
-import { normalizeTransportPath } from "@/utils/transportPath";
+} from '@/utils/transportCryptoPolicy'
+import cache from '@/plugins/cache'
+import { normalizeTransportPath } from '@/utils/transportPath'
 
-const TRANSPORT_BASE_URL = import.meta.env.VITE_APP_BASE_API;
-const TRANSPORT_ENABLE_HEADER = "X-Transport-Encrypt";
-const TRANSPORT_KEY_ID_HEADER = "X-Key-Id";
-const ENCRYPTED_RESPONSE_HEADER = "x-body-encrypted";
-const DEFAULT_TRANSPORT_ENVELOPE_VERSION = "1";
+const TRANSPORT_BASE_URL = import.meta.env.VITE_APP_BASE_API
+const TRANSPORT_ENABLE_HEADER = 'X-Transport-Encrypt'
+const TRANSPORT_KEY_ID_HEADER = 'X-Key-Id'
+const ENCRYPTED_RESPONSE_HEADER = 'x-body-encrypted'
+const DEFAULT_TRANSPORT_ENVELOPE_VERSION = '1'
 
 const transportClient = axios.create({
   baseURL: TRANSPORT_BASE_URL,
   timeout: 10000,
-});
+})
 
-let cachedKeyMeta = null;
-let inflightKeyMetaPromise = null;
-const KEY_REFRESH_BUFFER_MIN_SECONDS = 30;
-const KEY_REFRESH_BUFFER_MAX_SECONDS = 300;
-const TRANSPORT_KEY_META_CACHE_KEY = "transportCryptoKeyMeta";
-const TRANSPORT_RETRYABLE_ERROR_MESSAGES = new Set([
-  "Decryption failed",
-  "密钥版本不存在",
-]);
+let cachedKeyMeta = null
+let inflightKeyMetaPromise = null
+const KEY_REFRESH_BUFFER_MIN_SECONDS = 30
+const KEY_REFRESH_BUFFER_MAX_SECONDS = 300
+const TRANSPORT_KEY_META_CACHE_KEY = 'transportCryptoKeyMeta'
+const TRANSPORT_RETRYABLE_ERROR_MESSAGES = new Set(['Decryption failed', '密钥版本不存在'])
 
 /**
  * 获取当前浏览器的 Web Crypto 实例。
@@ -37,11 +34,11 @@ const TRANSPORT_RETRYABLE_ERROR_MESSAGES = new Set([
  * @returns {Crypto} 浏览器加密能力对象
  */
 function getBrowserCrypto() {
-  const browserCrypto = globalThis.crypto;
+  const browserCrypto = globalThis.crypto
   if (!browserCrypto?.subtle) {
-    throw new Error("当前浏览器不支持 Web Crypto API");
+    throw new Error('当前浏览器不支持 Web Crypto API')
   }
-  return browserCrypto;
+  return browserCrypto
 }
 
 /**
@@ -53,12 +50,12 @@ function getBrowserCrypto() {
  */
 function getHeaderValue(headers, name) {
   if (!headers) {
-    return undefined;
+    return undefined
   }
-  if (typeof headers.get === "function") {
-    return headers.get(name);
+  if (typeof headers.get === 'function') {
+    return headers.get(name)
   }
-  return headers[name] ?? headers[name.toLowerCase()];
+  return headers[name] ?? headers[name.toLowerCase()]
 }
 
 /**
@@ -71,13 +68,13 @@ function getHeaderValue(headers, name) {
  */
 function setHeaderValue(headers, name, value) {
   if (!headers) {
-    return;
+    return
   }
-  if (typeof headers.set === "function") {
-    headers.set(name, value);
-    return;
+  if (typeof headers.set === 'function') {
+    headers.set(name, value)
+    return
   }
-  headers[name] = value;
+  headers[name] = value
 }
 
 /**
@@ -87,14 +84,11 @@ function setHeaderValue(headers, name, value) {
  * @returns {string} Base64URL 文本
  */
 function toBase64Url(bytes) {
-  let binary = "";
+  let binary = ''
   bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+    binary += String.fromCharCode(byte)
+  })
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
 /**
@@ -104,10 +98,10 @@ function toBase64Url(bytes) {
  * @returns {Uint8Array} 解码后的字节数组
  */
 function fromBase64Url(text) {
-  const normalizedText = text.replace(/-/g, "+").replace(/_/g, "/");
-  const paddingLength = (4 - (normalizedText.length % 4 || 4)) % 4;
-  const binary = atob(normalizedText + "=".repeat(paddingLength));
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  const normalizedText = text.replace(/-/g, '+').replace(/_/g, '/')
+  const paddingLength = (4 - (normalizedText.length % 4 || 4)) % 4
+  const binary = atob(normalizedText + '='.repeat(paddingLength))
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0))
 }
 
 /**
@@ -118,11 +112,11 @@ function fromBase64Url(text) {
  */
 function pemToArrayBuffer(pem) {
   const normalizedPem = pem
-    .replace(/-----BEGIN PUBLIC KEY-----/g, "")
-    .replace(/-----END PUBLIC KEY-----/g, "")
-    .replace(/\s+/g, "");
-  const binary = atob(normalizedPem);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0)).buffer;
+    .replace(/-----BEGIN PUBLIC KEY-----/g, '')
+    .replace(/-----END PUBLIC KEY-----/g, '')
+    .replace(/\s+/g, '')
+  const binary = atob(normalizedPem)
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0)).buffer
 }
 
 /**
@@ -132,8 +126,8 @@ function pemToArrayBuffer(pem) {
  * @returns {string} 编码后的查询字符串片段
  */
 function encodeQueryEnvelope(envelope) {
-  const jsonText = JSON.stringify(envelope);
-  return toBase64Url(new TextEncoder().encode(jsonText));
+  const jsonText = JSON.stringify(envelope)
+  return toBase64Url(new TextEncoder().encode(jsonText))
 }
 
 /**
@@ -143,14 +137,14 @@ function encodeQueryEnvelope(envelope) {
  * @param {Object} params 查询参数
  * @returns {number} URL 长度
  */
-function buildQueryUrlLength(url = "", params = {}) {
-  const queryText = new URLSearchParams(params).toString();
+function buildQueryUrlLength(url = '', params = {}) {
+  const queryText = new URLSearchParams(params).toString()
   if (!queryText) {
-    return String(url || "").length;
+    return String(url || '').length
   }
-  const normalizedUrl = String(url || "");
-  const separator = normalizedUrl.includes("?") ? "&" : "?";
-  return `${normalizedUrl}${separator}${queryText}`.length;
+  const normalizedUrl = String(url || '')
+  const separator = normalizedUrl.includes('?') ? '&' : '?'
+  return `${normalizedUrl}${separator}${queryText}`.length
 }
 
 /**
@@ -159,12 +153,8 @@ function buildQueryUrlLength(url = "", params = {}) {
  * @param {string} url 请求地址
  * @returns {string} 标准化请求路径
  */
-function getRequestPath(url = "") {
-  return normalizeTransportPath(
-    url,
-    TRANSPORT_BASE_URL,
-    import.meta.env.VITE_APP_PLUGIN_BASE || "",
-  );
+function getRequestPath(url = '') {
+  return normalizeTransportPath(url, TRANSPORT_BASE_URL, import.meta.env.VITE_APP_PLUGIN_BASE || '')
 }
 
 /**
@@ -175,9 +165,9 @@ function getRequestPath(url = "") {
  */
 function buildRequestAad(config) {
   return {
-    method: (config.method || "get").toUpperCase(),
+    method: (config.method || 'get').toUpperCase(),
     path: getRequestPath(config.url),
-  };
+  }
 }
 
 /**
@@ -188,10 +178,10 @@ function buildRequestAad(config) {
  */
 function buildResponseAad(config) {
   return {
-    method: (config?.method || "get").toUpperCase(),
+    method: (config?.method || 'get').toUpperCase(),
     path: getRequestPath(config?.url),
-    direction: "response",
-  };
+    direction: 'response',
+  }
 }
 
 /**
@@ -202,9 +192,9 @@ function buildResponseAad(config) {
  */
 function normalizePlainPayload(payload) {
   if (payload === undefined || payload === null) {
-    return {};
+    return {}
   }
-  return payload;
+  return payload
 }
 
 /**
@@ -214,8 +204,8 @@ function normalizePlainPayload(payload) {
  * @returns {string} JSON 文本
  */
 function stringifyPayload(payload) {
-  const normalizedPayload = normalizePlainPayload(payload);
-  return JSON.stringify(normalizedPayload);
+  const normalizedPayload = normalizePlainPayload(payload)
+  return JSON.stringify(normalizedPayload)
 }
 
 /**
@@ -226,15 +216,15 @@ function stringifyPayload(payload) {
  */
 function cloneRequestValue(value) {
   if (value === undefined || value === null) {
-    return value;
+    return value
   }
-  if (typeof globalThis.structuredClone === "function") {
-    return globalThis.structuredClone(value);
+  if (typeof globalThis.structuredClone === 'function') {
+    return globalThis.structuredClone(value)
   }
-  if (typeof value === "object") {
-    return JSON.parse(JSON.stringify(value));
+  if (typeof value === 'object') {
+    return JSON.parse(JSON.stringify(value))
   }
-  return value;
+  return value
 }
 
 /**
@@ -244,10 +234,10 @@ function cloneRequestValue(value) {
  * @returns {string} 序列化文本
  */
 function stringifyEnvelopeField(value) {
-  if (value && typeof value === "object") {
-    return JSON.stringify(value);
+  if (value && typeof value === 'object') {
+    return JSON.stringify(value)
   }
-  return String(value);
+  return String(value)
 }
 
 /**
@@ -257,11 +247,11 @@ function stringifyEnvelopeField(value) {
  * @returns {string} 表单编码文本
  */
 function encodeFormEnvelope(envelope) {
-  const formData = new URLSearchParams();
+  const formData = new URLSearchParams()
   Object.entries(envelope).forEach(([key, value]) => {
-    formData.set(key, stringifyEnvelopeField(value));
-  });
-  return formData.toString();
+    formData.set(key, stringifyEnvelopeField(value))
+  })
+  return formData.toString()
 }
 
 /**
@@ -272,16 +262,11 @@ function encodeFormEnvelope(envelope) {
  * @returns {Object} 解析后的对象
  */
 function parseJsonObject(payload, errorMessage) {
-  const parsedPayload =
-    typeof payload === "string" ? JSON.parse(payload) : payload;
-  if (
-    !parsedPayload ||
-    typeof parsedPayload !== "object" ||
-    Array.isArray(parsedPayload)
-  ) {
-    throw new Error(errorMessage);
+  const parsedPayload = typeof payload === 'string' ? JSON.parse(payload) : payload
+  if (!parsedPayload || typeof parsedPayload !== 'object' || Array.isArray(parsedPayload)) {
+    throw new Error(errorMessage)
   }
-  return parsedPayload;
+  return parsedPayload
 }
 
 /**
@@ -294,9 +279,9 @@ function validateTransportPublicKeyResponse(responsePayload) {
   if (
     responsePayload?.code !== 200 ||
     !responsePayload?.data ||
-    typeof responsePayload.data !== "object"
+    typeof responsePayload.data !== 'object'
   ) {
-    throw new Error(responsePayload?.msg || "获取传输层公钥失败");
+    throw new Error(responsePayload?.msg || '获取传输层公钥失败')
   }
 }
 
@@ -309,16 +294,16 @@ function validateTransportPublicKeyResponse(responsePayload) {
  */
 function validateTransportPublicKeyPayload(payload, transportPolicy) {
   if (!payload?.publicKey || !payload?.kid) {
-    throw new Error("获取传输层公钥失败");
+    throw new Error('获取传输层公钥失败')
   }
   if (
     String(payload.envelopeVersion || DEFAULT_TRANSPORT_ENVELOPE_VERSION) !==
     transportPolicy.envelopeVersion
   ) {
-    throw new Error("传输层公钥协议版本不受支持");
+    throw new Error('传输层公钥协议版本不受支持')
   }
   if (payload.alg !== transportPolicy.requestEnvelopeAlgorithm) {
-    throw new Error("传输层公钥算法不受支持");
+    throw new Error('传输层公钥算法不受支持')
   }
 }
 
@@ -331,41 +316,34 @@ function validateTransportPublicKeyPayload(payload, transportPolicy) {
  * @param {Object} transportPolicy 当前传输策略
  * @returns {void}
  */
-function validateResponseEnvelope(
-  envelope,
-  response,
-  transportContext,
-  transportPolicy,
-) {
-  const expectedAad = buildResponseAad(response.config);
-  const responseKid = getHeaderValue(response.headers, TRANSPORT_KEY_ID_HEADER);
-  const aad = envelope.aad;
+function validateResponseEnvelope(envelope, response, transportContext, transportPolicy) {
+  const expectedAad = buildResponseAad(response.config)
+  const responseKid = getHeaderValue(response.headers, TRANSPORT_KEY_ID_HEADER)
+  const aad = envelope.aad
 
-  if (String(envelope.v || "") !== transportPolicy.envelopeVersion) {
-    throw new Error("传输层响应协议版本不受支持");
+  if (String(envelope.v || '') !== transportPolicy.envelopeVersion) {
+    throw new Error('传输层响应协议版本不受支持')
   }
-  if (
-    String(envelope.alg || "") !== transportPolicy.responseEnvelopeAlgorithm
-  ) {
-    throw new Error("传输层响应算法不受支持");
+  if (String(envelope.alg || '') !== transportPolicy.responseEnvelopeAlgorithm) {
+    throw new Error('传输层响应算法不受支持')
   }
-  if (String(envelope.kid || "") !== String(transportContext.kid)) {
-    throw new Error("传输层响应密钥版本不匹配");
+  if (String(envelope.kid || '') !== String(transportContext.kid)) {
+    throw new Error('传输层响应密钥版本不匹配')
   }
   if (responseKid && String(envelope.kid) !== String(responseKid)) {
-    throw new Error("传输层响应头与响应体密钥版本不一致");
+    throw new Error('传输层响应头与响应体密钥版本不一致')
   }
-  if (!aad || typeof aad !== "object" || Array.isArray(aad)) {
-    throw new Error("传输层响应AAD不合法");
+  if (!aad || typeof aad !== 'object' || Array.isArray(aad)) {
+    throw new Error('传输层响应AAD不合法')
   }
   if (
-    String(aad.method || "").toUpperCase() !== expectedAad.method ||
-    String(aad.path || "") !== expectedAad.path
+    String(aad.method || '').toUpperCase() !== expectedAad.method ||
+    String(aad.path || '') !== expectedAad.path
   ) {
-    throw new Error("传输层响应的method/path与当前请求不匹配");
+    throw new Error('传输层响应的method/path与当前请求不匹配')
   }
-  if (String(aad.direction || "") !== expectedAad.direction) {
-    throw new Error("传输层响应方向标识不合法");
+  if (String(aad.direction || '') !== expectedAad.direction) {
+    throw new Error('传输层响应方向标识不合法')
   }
 }
 
@@ -377,14 +355,14 @@ function validateResponseEnvelope(
  */
 function rememberOriginalRequestSnapshot(config) {
   if (config.__transportOriginalSnapshot) {
-    return;
+    return
   }
   config.__transportOriginalSnapshot = {
     url: config.url,
     params: cloneRequestValue(config.params),
     data: cloneRequestValue(config.data),
-    contentType: getHeaderValue(config.headers, "Content-Type"),
-  };
+    contentType: getHeaderValue(config.headers, 'Content-Type'),
+  }
 }
 
 /**
@@ -393,7 +371,7 @@ function rememberOriginalRequestSnapshot(config) {
  * @returns {number} 当前时间戳
  */
 function getNowTimestamp() {
-  return Math.floor(Date.now() / 1000);
+  return Math.floor(Date.now() / 1000)
 }
 
 /**
@@ -404,20 +382,17 @@ function getNowTimestamp() {
  * @returns {number} 建议刷新时间
  */
 function buildKeyRefreshAt(expireAt, fetchedAt = getNowTimestamp()) {
-  const normalizedExpireAt = Number(expireAt || 0);
-  const normalizedFetchedAt = Number(fetchedAt || 0);
-  const ttlSeconds = Math.max(normalizedExpireAt - normalizedFetchedAt, 0);
+  const normalizedExpireAt = Number(expireAt || 0)
+  const normalizedFetchedAt = Number(fetchedAt || 0)
+  const ttlSeconds = Math.max(normalizedExpireAt - normalizedFetchedAt, 0)
   if (!normalizedExpireAt || !ttlSeconds) {
-    return 0;
+    return 0
   }
   const refreshBufferSeconds = Math.min(
     KEY_REFRESH_BUFFER_MAX_SECONDS,
-    Math.max(KEY_REFRESH_BUFFER_MIN_SECONDS, Math.floor(ttlSeconds * 0.1)),
-  );
-  return Math.max(
-    normalizedFetchedAt,
-    normalizedExpireAt - refreshBufferSeconds,
-  );
+    Math.max(KEY_REFRESH_BUFFER_MIN_SECONDS, Math.floor(ttlSeconds * 0.1))
+  )
+  return Math.max(normalizedFetchedAt, normalizedExpireAt - refreshBufferSeconds)
 }
 
 /**
@@ -429,13 +404,12 @@ function buildKeyRefreshAt(expireAt, fetchedAt = getNowTimestamp()) {
  */
 function isUsableKeyMeta(keyMeta, nowTimestamp = getNowTimestamp()) {
   if (!keyMeta?.publicKeyPem || !keyMeta?.kid || !keyMeta?.expireAt) {
-    return false;
+    return false
   }
   const refreshAt = Number(
-    keyMeta.refreshAt ||
-      buildKeyRefreshAt(keyMeta.expireAt, keyMeta.fetchedAt || nowTimestamp),
-  );
-  return refreshAt > nowTimestamp;
+    keyMeta.refreshAt || buildKeyRefreshAt(keyMeta.expireAt, keyMeta.fetchedAt || nowTimestamp)
+  )
+  return refreshAt > nowTimestamp
 }
 
 /**
@@ -445,92 +419,82 @@ function isUsableKeyMeta(keyMeta, nowTimestamp = getNowTimestamp()) {
  * @returns {Promise<Object>} 公钥元信息
  */
 async function getTransportKeyMeta(forceRefresh = false) {
-  const transportPolicy = await ensureTransportCryptoPolicyLoaded();
-  const nowTimestamp = getNowTimestamp();
+  const transportPolicy = await ensureTransportCryptoPolicyLoaded()
+  const nowTimestamp = getNowTimestamp()
   if (!forceRefresh && !cachedKeyMeta) {
-    const persistedKeyMeta = cache.session.getJSON(
-      TRANSPORT_KEY_META_CACHE_KEY,
-    );
+    const persistedKeyMeta = cache.session.getJSON(TRANSPORT_KEY_META_CACHE_KEY)
     if (isUsableKeyMeta(persistedKeyMeta, nowTimestamp)) {
-      const browserCrypto = getBrowserCrypto();
+      const browserCrypto = getBrowserCrypto()
       const cryptoKey = await browserCrypto.subtle.importKey(
-        "spki",
+        'spki',
         pemToArrayBuffer(persistedKeyMeta.publicKeyPem),
-        { name: "RSA-OAEP", hash: "SHA-256" },
+        { name: 'RSA-OAEP', hash: 'SHA-256' },
         false,
-        ["encrypt"],
-      );
+        ['encrypt']
+      )
       cachedKeyMeta = {
         kid: persistedKeyMeta.kid,
         alg: persistedKeyMeta.alg,
-        envelopeVersion:
-          persistedKeyMeta.envelopeVersion || transportPolicy.envelopeVersion,
+        envelopeVersion: persistedKeyMeta.envelopeVersion || transportPolicy.envelopeVersion,
         publicKey: cryptoKey,
         publicKeyPem: persistedKeyMeta.publicKeyPem,
         expireAt: persistedKeyMeta.expireAt,
         fetchedAt: persistedKeyMeta.fetchedAt || nowTimestamp,
         refreshAt:
           persistedKeyMeta.refreshAt ||
-          buildKeyRefreshAt(
-            persistedKeyMeta.expireAt,
-            persistedKeyMeta.fetchedAt || nowTimestamp,
-          ),
-      };
+          buildKeyRefreshAt(persistedKeyMeta.expireAt, persistedKeyMeta.fetchedAt || nowTimestamp),
+      }
     }
   }
   if (!forceRefresh && isUsableKeyMeta(cachedKeyMeta, nowTimestamp)) {
-    return cachedKeyMeta;
+    return cachedKeyMeta
   }
   if (inflightKeyMetaPromise) {
-    return inflightKeyMetaPromise;
+    return inflightKeyMetaPromise
   }
   inflightKeyMetaPromise = transportClient
-    .get(transportPolicy.publicKeyUrl || "/transport/crypto/public-key")
+    .get(transportPolicy.publicKeyUrl || '/transport/crypto/public-key')
     .then(async (response) => {
-      const responsePayload = response.data || {};
-      const payload = responsePayload.data || {};
-      const fetchedAt = getNowTimestamp();
-      validateTransportPublicKeyResponse(responsePayload);
-      validateTransportPublicKeyPayload(payload, transportPolicy);
-      const browserCrypto = getBrowserCrypto();
+      const responsePayload = response.data || {}
+      const payload = responsePayload.data || {}
+      const fetchedAt = getNowTimestamp()
+      validateTransportPublicKeyResponse(responsePayload)
+      validateTransportPublicKeyPayload(payload, transportPolicy)
+      const browserCrypto = getBrowserCrypto()
       const cryptoKey = await browserCrypto.subtle.importKey(
-        "spki",
+        'spki',
         pemToArrayBuffer(payload.publicKey),
-        { name: "RSA-OAEP", hash: "SHA-256" },
+        { name: 'RSA-OAEP', hash: 'SHA-256' },
         false,
-        ["encrypt"],
-      );
+        ['encrypt']
+      )
       cachedKeyMeta = {
         kid: payload.kid,
         alg: payload.alg,
-        envelopeVersion: String(
-          payload.envelopeVersion || transportPolicy.envelopeVersion,
-        ),
+        envelopeVersion: String(payload.envelopeVersion || transportPolicy.envelopeVersion),
         publicKey: cryptoKey,
         publicKeyPem: payload.publicKey,
         expireAt: payload.expireAt,
         fetchedAt,
         refreshAt: buildKeyRefreshAt(payload.expireAt, fetchedAt),
-      };
+      }
       cache.session.setJSON(TRANSPORT_KEY_META_CACHE_KEY, {
         kid: payload.kid,
         alg: payload.alg,
-        envelopeVersion: String(
-          payload.envelopeVersion || transportPolicy.envelopeVersion,
-        ),
+        envelopeVersion: String(payload.envelopeVersion || transportPolicy.envelopeVersion),
         publicKeyPem: payload.publicKey,
         expireAt: payload.expireAt,
         fetchedAt,
         refreshAt: buildKeyRefreshAt(payload.expireAt, fetchedAt),
-      });
-      inflightKeyMetaPromise = null;
-      return cachedKeyMeta;
+      })
+      inflightKeyMetaPromise = null
+      return cachedKeyMeta
     })
     .catch((error) => {
-      inflightKeyMetaPromise = null;
-      throw error;
-    });
-  return inflightKeyMetaPromise;
+      inflightKeyMetaPromise = null
+      throw error
+    })
+  return inflightKeyMetaPromise
 }
 
 /**
@@ -539,31 +503,23 @@ async function getTransportKeyMeta(forceRefresh = false) {
  * @returns {Promise<Object>} 请求级传输上下文
  */
 async function buildTransportContext() {
-  const browserCrypto = getBrowserCrypto();
-  const keyMeta = await getTransportKeyMeta();
-  const aesKey = await browserCrypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
-  );
-  const rawAesKey = new Uint8Array(
-    await browserCrypto.subtle.exportKey("raw", aesKey),
-  );
+  const browserCrypto = getBrowserCrypto()
+  const keyMeta = await getTransportKeyMeta()
+  const aesKey = await browserCrypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
+    'encrypt',
+    'decrypt',
+  ])
+  const rawAesKey = new Uint8Array(await browserCrypto.subtle.exportKey('raw', aesKey))
   const encryptedAesKey = new Uint8Array(
-    await browserCrypto.subtle.encrypt(
-      { name: "RSA-OAEP" },
-      keyMeta.publicKey,
-      rawAesKey,
-    ),
-  );
+    await browserCrypto.subtle.encrypt({ name: 'RSA-OAEP' }, keyMeta.publicKey, rawAesKey)
+  )
   return {
     kid: keyMeta.kid,
     alg: keyMeta.alg,
-    envelopeVersion:
-      keyMeta.envelopeVersion || DEFAULT_TRANSPORT_ENVELOPE_VERSION,
+    envelopeVersion: keyMeta.envelopeVersion || DEFAULT_TRANSPORT_ENVELOPE_VERSION,
     aesKey,
     ek: toBase64Url(encryptedAesKey),
-  };
+  }
 }
 
 /**
@@ -575,19 +531,19 @@ async function buildTransportContext() {
  * @returns {Promise<Object>} 加密信封
  */
 async function encryptPayloadText(context, plainText, aad) {
-  const browserCrypto = getBrowserCrypto();
-  const iv = browserCrypto.getRandomValues(new Uint8Array(12));
+  const browserCrypto = getBrowserCrypto()
+  const iv = browserCrypto.getRandomValues(new Uint8Array(12))
   const ciphertext = new Uint8Array(
     await browserCrypto.subtle.encrypt(
       {
-        name: "AES-GCM",
+        name: 'AES-GCM',
         iv,
         additionalData: new TextEncoder().encode(JSON.stringify(aad)),
       },
       context.aesKey,
-      new TextEncoder().encode(plainText),
-    ),
-  );
+      new TextEncoder().encode(plainText)
+    )
+  )
   return {
     v: context.envelopeVersion || DEFAULT_TRANSPORT_ENVELOPE_VERSION,
     kid: context.kid,
@@ -598,7 +554,7 @@ async function encryptPayloadText(context, plainText, aad) {
     aad,
     iv: toBase64Url(iv),
     ct: toBase64Url(ciphertext),
-  };
+  }
 }
 
 /**
@@ -609,19 +565,17 @@ async function encryptPayloadText(context, plainText, aad) {
  * @returns {Promise<string>} 解密后的明文
  */
 async function decryptEnvelope(envelope, context) {
-  const browserCrypto = getBrowserCrypto();
+  const browserCrypto = getBrowserCrypto()
   const decryptedBytes = await browserCrypto.subtle.decrypt(
     {
-      name: "AES-GCM",
+      name: 'AES-GCM',
       iv: fromBase64Url(envelope.iv),
-      additionalData: new TextEncoder().encode(
-        JSON.stringify(envelope.aad || {}),
-      ),
+      additionalData: new TextEncoder().encode(JSON.stringify(envelope.aad || {})),
     },
     context.aesKey,
-    fromBase64Url(envelope.ct),
-  );
-  return new TextDecoder().decode(decryptedBytes);
+    fromBase64Url(envelope.ct)
+  )
+  return new TextDecoder().decode(decryptedBytes)
 }
 
 /**
@@ -632,10 +586,10 @@ async function decryptEnvelope(envelope, context) {
  */
 function getOrCreateTransportContext(config) {
   if (config.__transportCryptoContextPromise) {
-    return config.__transportCryptoContextPromise;
+    return config.__transportCryptoContextPromise
   }
-  config.__transportCryptoContextPromise = buildTransportContext();
-  return config.__transportCryptoContextPromise;
+  config.__transportCryptoContextPromise = buildTransportContext()
+  return config.__transportCryptoContextPromise
 }
 
 /**
@@ -645,69 +599,54 @@ function getOrCreateTransportContext(config) {
  * @returns {Promise<Object>} 加密后的请求配置
  */
 export async function encryptTransportRequest(config) {
-  const transportPolicy = await ensureTransportCryptoPolicyLoaded();
+  const transportPolicy = await ensureTransportCryptoPolicyLoaded()
   if (!shouldEncryptRequest(config, transportPolicy)) {
-    config.__transportCryptoEnabledForRequest = false;
-    return config;
+    config.__transportCryptoEnabledForRequest = false
+    return config
   }
 
-  rememberOriginalRequestSnapshot(config);
-  const transportContext = await getOrCreateTransportContext(config);
+  rememberOriginalRequestSnapshot(config)
+  const transportContext = await getOrCreateTransportContext(config)
   const contentType = (
-    getHeaderValue(config.headers, "Content-Type") || "application/json"
-  ).toLowerCase();
-  const method = (config.method || "get").toLowerCase();
-  const requestAad = buildRequestAad(config);
+    getHeaderValue(config.headers, 'Content-Type') || 'application/json'
+  ).toLowerCase()
+  const method = (config.method || 'get').toLowerCase()
+  const requestAad = buildRequestAad(config)
 
   if (
     shouldEncryptQuery(config, transportPolicy) &&
-    (config.params || method === "get" || method === "delete")
+    (config.params || method === 'get' || method === 'delete')
   ) {
     const queryEnvelope = await encryptPayloadText(
       transportContext,
       JSON.stringify(normalizePlainPayload(config.params)),
-      requestAad,
-    );
-    config.params = { __enc: encodeQueryEnvelope(queryEnvelope) };
+      requestAad
+    )
+    config.params = { __enc: encodeQueryEnvelope(queryEnvelope) }
     if (
       buildQueryUrlLength(config.url, config.params) >
       Number(transportPolicy.maxEncryptedGetUrlLength || 4096)
     ) {
-      throw new Error(
-        "当前GET/DELETE请求参数加密后长度超限，请改用POST请求或精简查询条件",
-      );
+      throw new Error('当前GET/DELETE请求参数加密后长度超限，请改用POST请求或精简查询条件')
     }
   }
 
-  if (
-    method === "post" ||
-    method === "put" ||
-    method === "patch" ||
-    method === "delete"
-  ) {
-    const plainText = stringifyPayload(config.data);
-    const bodyEnvelope = await encryptPayloadText(
-      transportContext,
-      plainText,
-      requestAad,
-    );
-    if (contentType.includes("application/x-www-form-urlencoded")) {
-      config.data = encodeFormEnvelope(bodyEnvelope);
+  if (method === 'post' || method === 'put' || method === 'patch' || method === 'delete') {
+    const plainText = stringifyPayload(config.data)
+    const bodyEnvelope = await encryptPayloadText(transportContext, plainText, requestAad)
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      config.data = encodeFormEnvelope(bodyEnvelope)
     } else {
-      config.data = bodyEnvelope;
-      setHeaderValue(
-        config.headers,
-        "Content-Type",
-        "application/json;charset=utf-8",
-      );
+      config.data = bodyEnvelope
+      setHeaderValue(config.headers, 'Content-Type', 'application/json;charset=utf-8')
     }
   }
 
-  setHeaderValue(config.headers, TRANSPORT_ENABLE_HEADER, "1");
-  setHeaderValue(config.headers, TRANSPORT_KEY_ID_HEADER, transportContext.kid);
-  config.__transportCryptoContext = transportContext;
-  config.__transportCryptoEnabledForRequest = true;
-  return config;
+  setHeaderValue(config.headers, TRANSPORT_ENABLE_HEADER, '1')
+  setHeaderValue(config.headers, TRANSPORT_KEY_ID_HEADER, transportContext.kid)
+  config.__transportCryptoContext = transportContext
+  config.__transportCryptoEnabledForRequest = true
+  return config
 }
 
 /**
@@ -716,9 +655,9 @@ export async function encryptTransportRequest(config) {
  * @returns {void}
  */
 export function invalidateTransportKeyMeta() {
-  cachedKeyMeta = null;
-  inflightKeyMetaPromise = null;
-  cache.session.remove(TRANSPORT_KEY_META_CACHE_KEY);
+  cachedKeyMeta = null
+  inflightKeyMetaPromise = null
+  cache.session.remove(TRANSPORT_KEY_META_CACHE_KEY)
 }
 
 /**
@@ -728,25 +667,21 @@ export function invalidateTransportKeyMeta() {
  * @returns {Object} 恢复后的请求配置
  */
 export function resetTransportRequestConfig(config) {
-  const originalSnapshot = config?.__transportOriginalSnapshot;
+  const originalSnapshot = config?.__transportOriginalSnapshot
   if (!config || !originalSnapshot) {
-    return config;
+    return config
   }
 
-  config.url = originalSnapshot.url;
-  config.params = cloneRequestValue(originalSnapshot.params);
-  config.data = cloneRequestValue(originalSnapshot.data);
+  config.url = originalSnapshot.url
+  config.params = cloneRequestValue(originalSnapshot.params)
+  config.data = cloneRequestValue(originalSnapshot.data)
   if (originalSnapshot.contentType) {
-    setHeaderValue(
-      config.headers,
-      "Content-Type",
-      originalSnapshot.contentType,
-    );
+    setHeaderValue(config.headers, 'Content-Type', originalSnapshot.contentType)
   }
-  delete config.__transportCryptoContext;
-  delete config.__transportCryptoContextPromise;
-  delete config.__transportCryptoEnabledForRequest;
-  return config;
+  delete config.__transportCryptoContext
+  delete config.__transportCryptoContextPromise
+  delete config.__transportCryptoEnabledForRequest
+  return config
 }
 
 /**
@@ -756,12 +691,12 @@ export function resetTransportRequestConfig(config) {
  * @returns {boolean} 是否可刷新密钥重试
  */
 export function shouldRetryTransportWithFreshKey(error) {
-  const responseMsg = error?.response?.data?.msg;
-  const errorMessage = error?.message;
+  const responseMsg = error?.response?.data?.msg
+  const errorMessage = error?.message
   return (
     TRANSPORT_RETRYABLE_ERROR_MESSAGES.has(responseMsg) ||
     TRANSPORT_RETRYABLE_ERROR_MESSAGES.has(errorMessage)
-  );
+  )
 }
 
 /**
@@ -771,28 +706,23 @@ export function shouldRetryTransportWithFreshKey(error) {
  * @returns {Promise<Object>} 解密后的响应对象
  */
 export async function decryptTransportResponse(response) {
-  if (getHeaderValue(response.headers, ENCRYPTED_RESPONSE_HEADER) !== "1") {
-    return response;
+  if (getHeaderValue(response.headers, ENCRYPTED_RESPONSE_HEADER) !== '1') {
+    return response
   }
   if (!shouldEncryptResponse(response.config, getTransportCryptoPolicy())) {
-    return response;
+    return response
   }
-  const transportPolicy = getTransportCryptoPolicy();
-  const transportContext = response.config.__transportCryptoContext;
+  const transportPolicy = getTransportCryptoPolicy()
+  const transportContext = response.config.__transportCryptoContext
   if (!transportContext) {
-    throw new Error("缺少响应解密上下文");
+    throw new Error('缺少响应解密上下文')
   }
 
-  const envelope = parseJsonObject(response.data, "传输层响应信封格式不合法");
-  validateResponseEnvelope(
-    envelope,
-    response,
-    transportContext,
-    transportPolicy,
-  );
-  const plaintext = await decryptEnvelope(envelope, transportContext);
-  response.data = JSON.parse(plaintext);
-  return response;
+  const envelope = parseJsonObject(response.data, '传输层响应信封格式不合法')
+  validateResponseEnvelope(envelope, response, transportContext, transportPolicy)
+  const plaintext = await decryptEnvelope(envelope, transportContext)
+  response.data = JSON.parse(plaintext)
+  return response
 }
 
 /**
@@ -802,36 +732,26 @@ export async function decryptTransportResponse(response) {
  * @returns {Promise<Object>} 原始或已解密的错误对象
  */
 export async function decryptTransportErrorResponse(error) {
-  const response = error?.response;
-  if (
-    !response ||
-    getHeaderValue(response.headers, ENCRYPTED_RESPONSE_HEADER) !== "1"
-  ) {
-    return error;
+  const response = error?.response
+  if (!response || getHeaderValue(response.headers, ENCRYPTED_RESPONSE_HEADER) !== '1') {
+    return error
   }
-  if (
-    !shouldEncryptResponse(response.config || {}, getTransportCryptoPolicy())
-  ) {
-    return error;
+  if (!shouldEncryptResponse(response.config || {}, getTransportCryptoPolicy())) {
+    return error
   }
-  const transportPolicy = getTransportCryptoPolicy();
-  const transportContext = response.config?.__transportCryptoContext;
+  const transportPolicy = getTransportCryptoPolicy()
+  const transportContext = response.config?.__transportCryptoContext
   if (!transportContext) {
-    return error;
+    return error
   }
 
   try {
-    const envelope = parseJsonObject(response.data, "传输层响应信封格式不合法");
-    validateResponseEnvelope(
-      envelope,
-      response,
-      transportContext,
-      transportPolicy,
-    );
-    const plaintext = await decryptEnvelope(envelope, transportContext);
-    response.data = JSON.parse(plaintext);
+    const envelope = parseJsonObject(response.data, '传输层响应信封格式不合法')
+    validateResponseEnvelope(envelope, response, transportContext, transportPolicy)
+    const plaintext = await decryptEnvelope(envelope, transportContext)
+    response.data = JSON.parse(plaintext)
   } catch (decryptError) {
-    console.error(decryptError);
+    console.error(decryptError)
   }
-  return error;
+  return error
 }

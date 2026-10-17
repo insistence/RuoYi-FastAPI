@@ -1,18 +1,18 @@
-import "@/assets/styles/components.css";
-import { Button, Dropdown } from "antd";
-import { FontSizeOutlined } from "@ant-design/icons";
-import useSettingsStore from "@/store/modules/settings";
+import '@/assets/styles/components.css'
+import { Button, Dropdown } from 'antd'
+import { FontSizeOutlined } from '@ant-design/icons'
+import useSettingsStore from '@/store/modules/settings'
 export default function SizeSelect() {
-  const { size, update } = useSettingsStore();
+  const { size, update } = useSettingsStore()
   return (
     <Dropdown
-      trigger={["click"]}
+      trigger={['click']}
       menu={{
         selectedKeys: [size],
         items: [
-          { key: "large", label: "较大" },
-          { key: "middle", label: "默认" },
-          { key: "small", label: "稍小" },
+          { key: 'large', label: '较大' },
+          { key: 'middle', label: '默认' },
+          { key: 'small', label: '稍小' },
         ],
         onClick: ({ key }) => update({ size: key }),
       }}
@@ -24,5 +24,5 @@ export default function SizeSelect() {
         icon={<FontSizeOutlined />}
       />
     </Dropdown>
-  );
+  )
 }

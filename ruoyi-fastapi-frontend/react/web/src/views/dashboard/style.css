@@ -50,7 +50,7 @@
   height: 40px;
   width: 1px;
   background: var(--ant-color-border);
-  content: "";
+  content: '';
 }
 .dashboard-stats .ant-statistic:last-child {
   padding-right: 0;

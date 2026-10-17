@@ -1,28 +1,24 @@
-import { create } from "zustand";
-import config from "@/config";
-import storage from "@/utils/storage";
-import constant from "@/utils/constant";
-import { getInfo, login, logout } from "@/api/login";
-import { getToken, setToken, removeToken } from "@/utils/auth";
-import { setBusinessTimezone, setUserTimezone } from "@/utils/time";
-import defaultAvatar from "@/assets/images/profile.jpg";
+import { create } from 'zustand'
+import config from '@/config'
+import storage from '@/utils/storage'
+import constant from '@/utils/constant'
+import { getInfo, login, logout } from '@/api/login'
+import { getToken, setToken, removeToken } from '@/utils/auth'
+import { setBusinessTimezone, setUserTimezone } from '@/utils/time'
+import defaultAvatar from '@/assets/images/profile.jpg'
 
 export function avatarUrl(value) {
-  return value
-    ? /^https?:\/\//i.test(value)
-      ? value
-      : config.baseUrl + value
-    : defaultAvatar;
+  return value ? (/^https?:\/\//i.test(value) ? value : config.baseUrl + value) : defaultAvatar
 }
-const saved = getToken() && storage.get(constant.timezone);
-let initialTimezone = { appTimezone: "Asia/Shanghai", timeZone: "auto" };
+const saved = getToken() && storage.get(constant.timezone)
+let initialTimezone = { appTimezone: 'Asia/Shanghai', timeZone: 'auto' }
 if (saved) {
   try {
-    setBusinessTimezone(saved.appTimezone);
-    setUserTimezone(saved.timeZone);
-    initialTimezone = saved;
+    setBusinessTimezone(saved.appTimezone)
+    setUserTimezone(saved.timeZone)
+    initialTimezone = saved
   } catch {
-    storage.remove(constant.timezone);
+    storage.remove(constant.timezone)
   }
 }
 export const useUserStore = create((set, get) => ({
@@ -34,14 +30,14 @@ export const useUserStore = create((set, get) => ({
   permissions: storage.get(constant.permissions) || [],
   ...initialTimezone,
   restoreStorage() {
-    const timezone = storage.get(constant.timezone);
+    const timezone = storage.get(constant.timezone)
     if (timezone) {
       try {
-        setBusinessTimezone(timezone.appTimezone);
-        setUserTimezone(timezone.timeZone);
-        set(timezone);
+        setBusinessTimezone(timezone.appTimezone)
+        setUserTimezone(timezone.timeZone)
+        set(timezone)
       } catch {
-        storage.remove(constant.timezone);
+        storage.remove(constant.timezone)
       }
     }
     set({
@@ -51,65 +47,58 @@ export const useUserStore = create((set, get) => ({
       avatar: storage.get(constant.avatar) || defaultAvatar,
       roles: storage.get(constant.roles) || [],
       permissions: storage.get(constant.permissions) || [],
-    });
+    })
   },
-  applyTimezone(timeZone = "auto") {
-    setUserTimezone(timeZone);
-    set({ timeZone });
+  applyTimezone(timeZone = 'auto') {
+    setUserTimezone(timeZone)
+    set({ timeZone })
     storage.set(constant.timezone, {
       appTimezone: get().appTimezone,
       timeZone,
-    });
+    })
   },
   SET_AVATAR(avatar) {
-    storage.set(constant.avatar, avatar);
-    set({ avatar });
+    storage.set(constant.avatar, avatar)
+    set({ avatar })
   },
   async login(values) {
-    const result = await login(
-      values.username.trim(),
-      values.password,
-      values.code,
-      values.uuid,
-    );
-    setToken(result.token);
-    set({ token: result.token });
+    const result = await login(values.username.trim(), values.password, values.code, values.uuid)
+    setToken(result.token)
+    set({ token: result.token })
   },
   async getInfo() {
-    const result = await getInfo();
-    const user = result.user;
-    setBusinessTimezone(result.appTimezone);
-    set({ appTimezone: result.appTimezone });
-    get().applyTimezone(user.timeZone || "auto");
+    const result = await getInfo()
+    const user = result.user
+    setBusinessTimezone(result.appTimezone)
+    set({ appTimezone: result.appTimezone })
+    get().applyTimezone(user.timeZone || 'auto')
     const data = {
       id: user.userId,
       name: user.userName,
       avatar: avatarUrl(user.avatar),
-      roles: result.roles?.length ? result.roles : ["ROLE_DEFAULT"],
+      roles: result.roles?.length ? result.roles : ['ROLE_DEFAULT'],
       permissions: result.permissions || [],
-    };
-    Object.entries(data).forEach(([key, value]) =>
-      storage.set(constant[key], value),
-    );
-    set(data);
-    return result;
+    }
+    Object.entries(data).forEach(([key, value]) => storage.set(constant[key], value))
+    set(data)
+    return result
   },
   clear() {
-    removeToken();
-    storage.clean();
-    setUserTimezone("auto");
+    removeToken()
+    storage.clean()
+    setUserTimezone('auto')
     set({
-      token: "",
-      id: "",
-      name: "",
+      token: '',
+      id: '',
+      name: '',
       avatar: defaultAvatar,
       roles: [],
       permissions: [],
-      timeZone: "auto",
-    });
+      timeZone: 'auto',
+    })
   },
   async logOut() {
-    await logout();
-    get().clear();
+    await logout()
+    get().clear()
   },
-}));
+}))

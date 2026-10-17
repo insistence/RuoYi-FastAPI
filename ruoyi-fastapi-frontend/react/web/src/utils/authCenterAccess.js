@@ -7,19 +7,19 @@
  */
 export async function checkAuthCenterAccess(route, loadStatus) {
   if (!route.meta?.requiresAuthCenter) {
-    return;
+    return
   }
-  let reason = "unavailable";
+  let reason = 'unavailable'
   try {
-    const response = await loadStatus();
+    const response = await loadStatus()
     if (response.data?.enabled === true) {
-      return;
+      return
     }
     if (response.data?.enabled === false) {
-      reason = "disabled";
+      reason = 'disabled'
     }
   } catch {
     // 无法确认服务状态时停止进入表单，避免把网络故障误报为未启用。
   }
-  return { path: "/auth-center/error", query: { reason }, replace: true };
+  return { path: '/auth-center/error', query: { reason }, replace: true }
 }

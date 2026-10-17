@@ -1,0 +1,23 @@
+# Dependencies, build output and caches
+node_modules/
+dist/
+unpackage/
+coverage/
+.cache/
+.vite/
+target/
+playwright-report/
+test-results/
+
+# Package-manager output and generated declarations
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+auto-imports.d.ts
+components.d.ts
+
+# External assets
+**/*.min.js
+**/*.min.css
+**/*.svg
+**/*.map

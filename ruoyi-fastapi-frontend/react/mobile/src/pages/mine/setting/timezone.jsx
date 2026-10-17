@@ -1,84 +1,80 @@
-import React, { useRef, useState } from "react";
-import Taro, { useLoad } from "@tarojs/taro";
-import { View, Text, Switch, Input, Picker, Label } from "@tarojs/components";
-import Button from "@/components/ActionButton";
-import { getTimezoneOptions, updateUserTimezone } from "@/api/system/user";
-import { useUserStore } from "@/store";
-import { usePageAuth } from "@/permission";
-import { getToken } from "@/utils/auth";
+import React, { useRef, useState } from 'react'
+import Taro, { useLoad } from '@tarojs/taro'
+import { View, Text, Switch, Input, Picker, Label } from '@tarojs/components'
+import Button from '@/components/ActionButton'
+import { getTimezoneOptions, updateUserTimezone } from '@/api/system/user'
+import { useUserStore } from '@/store'
+import { usePageAuth } from '@/permission'
+import { getToken } from '@/utils/auth'
 import {
   formatBusinessTime,
   getBusinessTimezone,
   getDeviceTimezone,
   getDisplayTimezone,
   getSupportedTimezones,
-} from "@/utils/time";
+} from '@/utils/time'
 export default function Timezone() {
-  const allowed = usePageAuth();
-  const [follow, setFollow] = useState(
-    useUserStore.getState().timeZone === "auto",
-  );
-  const [zone, setZone] = useState(getDisplayTimezone());
-  const [zones, setZones] = useState(getSupportedTimezones());
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [initializing, setInitializing] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const lock = useRef(false);
-  const [error, setError] = useState("");
-  const [now, setNow] = useState(new Date());
-  const device = getDeviceTimezone();
-  const previewZone = follow ? device || getBusinessTimezone() : zone;
-  const filtered = zones.filter((item) =>
-    item.toLowerCase().includes(search.trim().toLowerCase()),
-  );
+  const allowed = usePageAuth()
+  const [follow, setFollow] = useState(useUserStore.getState().timeZone === 'auto')
+  const [zone, setZone] = useState(getDisplayTimezone())
+  const [zones, setZones] = useState(getSupportedTimezones())
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState(false)
+  const [initializing, setInitializing] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const lock = useRef(false)
+  const [error, setError] = useState('')
+  const [now, setNow] = useState(new Date())
+  const device = getDeviceTimezone()
+  const previewZone = follow ? device || getBusinessTimezone() : zone
+  const filtered = zones.filter((item) => item.toLowerCase().includes(search.trim().toLowerCase()))
   async function loadOptions() {
-    setLoading(true);
-    setLoadError(false);
+    setLoading(true)
+    setLoadError(false)
     try {
-      const result = await getTimezoneOptions();
-      setZones(getSupportedTimezones(result.data));
+      const result = await getTimezoneOptions()
+      setZones(getSupportedTimezones(result.data))
     } catch {
-      setLoadError(true);
+      setLoadError(true)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
   useLoad(async () => {
-    if (!getToken()) return;
+    if (!getToken()) return
     await Promise.all([
       loadOptions(),
       useUserStore
         .getState()
         .getInfo()
         .then(() => {
-          setFollow(useUserStore.getState().timeZone === "auto");
-          setZone(getDisplayTimezone());
+          setFollow(useUserStore.getState().timeZone === 'auto')
+          setZone(getDisplayTimezone())
         })
-        .catch(() => setError("账号设置读取失败，请重试保存或重新进入页面")),
-    ]);
-    setInitializing(false);
-  });
+        .catch(() => setError('账号设置读取失败，请重试保存或重新进入页面')),
+    ])
+    setInitializing(false)
+  })
   async function save() {
-    if (lock.current || initializing) return;
-    lock.current = true;
-    setSaving(true);
-    setError("");
-    const preference = follow ? "auto" : zone;
+    if (lock.current || initializing) return
+    lock.current = true
+    setSaving(true)
+    setError('')
+    const preference = follow ? 'auto' : zone
     try {
-      await updateUserTimezone(preference);
-      useUserStore.getState().applyTimezone(preference);
-      setNow(new Date());
-      Taro.showToast({ title: "时区设置已保存", icon: "success" });
+      await updateUserTimezone(preference)
+      useUserStore.getState().applyTimezone(preference)
+      setNow(new Date())
+      Taro.showToast({ title: '时区设置已保存', icon: 'success' })
     } catch (failure) {
-      setError(failure.message || "保存失败，请重试");
+      setError(failure.message || '保存失败，请重试')
     } finally {
-      lock.current = false;
-      setSaving(false);
+      lock.current = false
+      setSaving(false)
     }
   }
-  if (!allowed) return null;
+  if (!allowed) return null
   return (
     <View className="mobile-page bg-white">
       <Label className="mobile-toggle mb-5">
@@ -86,8 +82,8 @@ export default function Timezone() {
         <Switch
           aria-label="自动跟随设备"
           nativeProps={
-            process.env.TARO_ENV === "h5"
-              ? { "aria-label": "自动跟随设备", role: "switch" }
+            process.env.TARO_ENV === 'h5'
+              ? { 'aria-label': '自动跟随设备', role: 'switch' }
               : undefined
           }
           checked={follow}
@@ -99,11 +95,7 @@ export default function Timezone() {
       {!follow && (
         <View className="mobile-field">
           <Label
-            for={
-              process.env.TARO_ENV === "h5"
-                ? "timezone-search-input"
-                : "timezone-search"
-            }
+            for={process.env.TARO_ENV === 'h5' ? 'timezone-search-input' : 'timezone-search'}
             className="mobile-label"
           >
             显示时区
@@ -112,8 +104,8 @@ export default function Timezone() {
             id="timezone-search"
             aria-label="搜索时区"
             nativeProps={
-              process.env.TARO_ENV === "h5"
-                ? { id: "timezone-search-input", "aria-label": "搜索时区" }
+              process.env.TARO_ENV === 'h5'
+                ? { id: 'timezone-search-input', 'aria-label': '搜索时区' }
                 : undefined
             }
             className="mobile-input mb-3"
@@ -141,17 +133,13 @@ export default function Timezone() {
             </Button>
           </Picker>
           {!filtered.length && (
-            <Text className="block mt-2 text-sm text-gray-500">
-              没有匹配的时区，请修改搜索词。
-            </Text>
+            <Text className="block mt-2 text-sm text-gray-500">没有匹配的时区，请修改搜索词。</Text>
           )}
         </View>
       )}
       {loadError && (
         <View className="mb-5">
-          <Text className="mobile-muted">
-            时区列表加载失败，仍可使用当前时区。
-          </Text>
+          <Text className="mobile-muted">时区列表加载失败，仍可使用当前时区。</Text>
           <Button
             size="mini"
             className="flex h-11 items-center justify-center rounded-xl bg-blue-50 px-4 text-sm font-medium text-blue-600"
@@ -171,7 +159,7 @@ export default function Timezone() {
         <Text className="block break-all">预览时区：{previewZone}</Text>
         <Text className="block">
           时间预览：
-          {formatBusinessTime(now, "YYYY-MM-DD HH:mm:ss", previewZone)}
+          {formatBusinessTime(now, 'YYYY-MM-DD HH:mm:ss', previewZone)}
         </Text>
         {follow && !device && (
           <Text className="mobile-muted">
@@ -183,7 +171,10 @@ export default function Timezone() {
         用于时间显示、日期筛选和导出。定时任务和业务统计使用各自配置的时区。
       </Text>
       {error && (
-        <Text className="mobile-error" role="alert">
+        <Text
+          className="mobile-error"
+          role="alert"
+        >
           {error}
         </Text>
       )}
@@ -196,5 +187,5 @@ export default function Timezone() {
         保存时区
       </Button>
     </View>
-  );
+  )
 }

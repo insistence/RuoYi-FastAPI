@@ -1,3 +1,3 @@
-import { Button } from "@tarojs/components";
+import { Button } from '@tarojs/components'
 
-export default Button;
+export default Button

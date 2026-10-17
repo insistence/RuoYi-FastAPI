@@ -204,9 +204,31 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: ruoyi-fastapi-frontend/${{ matrix.framework }}/web/package.json
+      - uses: pnpm/action-setup@v5
+        if: matrix.framework == 'react'
+        with:
+          package_json_file: ruoyi-fastapi-frontend/react/web/package.json
+      - name: Locate the React package cache
+        if: matrix.framework == 'react'
+        id: react-cache
+        working-directory: ruoyi-fastapi-frontend/react/web
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache React dependencies
+        if: matrix.framework == 'react'
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.react-cache.outputs.path }}
+          key: ${{ runner.os }}-network-react-${{ hashFiles('ruoyi-fastapi-frontend/react/web/package.json', 'ruoyi-fastapi-frontend/react/web/pnpm-workspace.yaml') }}
+          restore-keys: ${{ runner.os }}-network-react-
       - run: python -m pip install -r requirements.txt -r requirements-test.txt playwright==1.62.0
       - run: python -m playwright install --with-deps chromium
-      - run: npm --prefix ../ruoyi-fastapi-frontend/${{ matrix.framework }}/web install --no-audit --no-fund --package-lock=false
+      - name: Install Vue Web dependencies
+        if: matrix.framework != 'react'
+        run: npm --prefix ../ruoyi-fastapi-frontend/${{ matrix.framework }}/web install --no-audit --no-fund --package-lock=false
+      - name: Install React Web dependencies
+        if: matrix.framework == 'react'
+        working-directory: ruoyi-fastapi-frontend/react/web
+        run: pnpm install --no-frozen-lockfile
       - name: Verify HTTPS proxy, iframe sessions and long connections
         run: python -m pytest tests/plugins/integration/test_network_smoke.py -m browser --strict-markers -v --junitxml=target/plugin-network-smoke/${{ matrix.framework }}/results.xml
       - run: python ../.github/scripts/check_test_report.py target/plugin-network-smoke/${{ matrix.framework }}/results.xml

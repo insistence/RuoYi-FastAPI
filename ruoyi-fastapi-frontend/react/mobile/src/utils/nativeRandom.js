@@ -1,1 +1,1 @@
-export const nativeRandomBytes = async () => null;
+export const nativeRandomBytes = async () => null

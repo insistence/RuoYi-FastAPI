@@ -4,18 +4,14 @@
   >
     <!-- Logo Section -->
     <view class="mb-6 flex flex-col items-center">
-      <view
-        class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg"
-      >
+      <view class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg">
         <image
           class="size-10"
           :src="globalConfig.appInfo.logo"
           mode="widthFix"
         />
       </view>
-      <text class="text-xl font-bold tracking-wide text-gray-800"
-        >RuoYi-FastAPI移动端注册</text
-      >
+      <text class="text-xl font-bold tracking-wide text-gray-800">RuoYi-FastAPI移动端注册</text>
     </view>
 
     <!-- Form Section -->
@@ -91,7 +87,10 @@
           class="h-12 w-28 overflow-hidden rounded-xl bg-gray-100 shadow-sm transition-opacity active:opacity-80"
           @click="getCode"
         >
-          <image :src="codeUrl" class="size-full object-cover"></image>
+          <image
+            :src="codeUrl"
+            class="size-full object-cover"
+          ></image>
         </view>
       </view>
 
@@ -118,57 +117,54 @@
 </template>
 
 <script setup>
-import { getCodeImg, register } from "@/api/login";
-import { ref, getCurrentInstance } from "vue";
-import { useConfigStore } from "@/store";
+import { getCodeImg, register } from '@/api/login'
+import { ref, getCurrentInstance } from 'vue'
+import { useConfigStore } from '@/store'
 
-const { proxy } = getCurrentInstance();
-const globalConfig = useConfigStore().config;
-const codeUrl = ref("");
+const { proxy } = getCurrentInstance()
+const globalConfig = useConfigStore().config
+const codeUrl = ref('')
 // 验证码开关
-const captchaEnabled = ref(true);
+const captchaEnabled = ref(true)
 const registerForm = ref({
-  username: "",
-  password: "",
-  confirmPassword: "",
-  code: "",
-  uuid: "",
-});
+  username: '',
+  password: '',
+  confirmPassword: '',
+  code: '',
+  uuid: '',
+})
 
 // 用户登录
 function handleUserLogin() {
-  proxy.$tab.navigateTo(`/pages/login`);
+  proxy.$tab.navigateTo(`/pages/login`)
 }
 
 // 获取图形验证码
 function getCode() {
   getCodeImg().then((res) => {
-    captchaEnabled.value =
-      res.captchaEnabled === undefined ? true : res.captchaEnabled;
+    captchaEnabled.value = res.captchaEnabled === undefined ? true : res.captchaEnabled
     if (captchaEnabled.value) {
-      codeUrl.value = "data:image/gif;base64," + res.img;
-      registerForm.value.uuid = res.uuid;
+      codeUrl.value = 'data:image/gif;base64,' + res.img
+      registerForm.value.uuid = res.uuid
     }
-  });
+  })
 }
 
 // 注册方法
 async function handleRegister() {
-  if (registerForm.value.username === "") {
-    proxy.$modal.msgError("请输入您的账号");
-  } else if (registerForm.value.password === "") {
-    proxy.$modal.msgError("请输入您的密码");
-  } else if (registerForm.value.confirmPassword === "") {
-    proxy.$modal.msgError("请再次输入您的密码");
-  } else if (
-    registerForm.value.password !== registerForm.value.confirmPassword
-  ) {
-    proxy.$modal.msgError("两次输入的密码不一致");
-  } else if (registerForm.value.code === "" && captchaEnabled.value) {
-    proxy.$modal.msgError("请输入验证码");
+  if (registerForm.value.username === '') {
+    proxy.$modal.msgError('请输入您的账号')
+  } else if (registerForm.value.password === '') {
+    proxy.$modal.msgError('请输入您的密码')
+  } else if (registerForm.value.confirmPassword === '') {
+    proxy.$modal.msgError('请再次输入您的密码')
+  } else if (registerForm.value.password !== registerForm.value.confirmPassword) {
+    proxy.$modal.msgError('两次输入的密码不一致')
+  } else if (registerForm.value.code === '' && captchaEnabled.value) {
+    proxy.$modal.msgError('请输入验证码')
   } else {
-    proxy.$modal.loading("注册中，请耐心等待...");
-    userRegister();
+    proxy.$modal.loading('注册中，请耐心等待...')
+    userRegister()
   }
 }
 
@@ -176,26 +172,25 @@ async function handleRegister() {
 async function userRegister() {
   register(registerForm.value)
     .then((res) => {
-      proxy.$modal.closeLoading();
+      proxy.$modal.closeLoading()
       uni.showModal({
-        title: "系统提示",
-        content:
-          "恭喜你，您的账号 " + registerForm.value.username + " 注册成功！",
+        title: '系统提示',
+        content: '恭喜你，您的账号 ' + registerForm.value.username + ' 注册成功！',
         success: function (res) {
           if (res.confirm) {
-            uni.redirectTo({ url: `/pages/login` });
+            uni.redirectTo({ url: `/pages/login` })
           }
         },
-      });
+      })
     })
     .catch(() => {
       if (captchaEnabled.value) {
-        getCode();
+        getCode()
       }
-    });
+    })
 }
 
-getCode();
+getCode()
 </script>
 
 <style lang="scss" scoped>

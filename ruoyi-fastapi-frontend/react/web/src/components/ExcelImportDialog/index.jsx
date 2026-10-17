@@ -1,65 +1,66 @@
-import { renderDialogFooter } from '@/components/DialogFooter';
-import { useEffect, useState } from "react";
-import { Alert, Button, Checkbox, Modal, Upload } from "antd";
-import { InboxOutlined } from "@ant-design/icons";
-import request, { download } from "@/utils/request";
-import { message } from "@/plugins/modal";
+import { renderDialogFooter } from '@/components/DialogFooter'
+import { useEffect, useState } from 'react'
+import { Alert, Button, Checkbox, Modal, Upload } from 'antd'
+import { InboxOutlined } from '@ant-design/icons'
+import request, { download } from '@/utils/request'
+import { message } from '@/plugins/modal'
 export default function ExcelImportDialog({
   open,
   onClose,
   onSuccess,
-  title = "导入",
-  width = "400px",
+  title = '导入',
+  width = '400px',
   action,
   templateAction,
-  templateFileName = "template",
-  updateSupportLabel = "是否更新已经存在的数据",
+  templateFileName = 'template',
+  updateSupportLabel = '是否更新已经存在的数据',
 }) {
   const [files, setFiles] = useState([]),
     [updateSupport, setUpdateSupport] = useState(false),
     [loading, setLoading] = useState(false),
-    [result, setResult] = useState("");
+    [result, setResult] = useState('')
   useEffect(() => {
     if (open) {
-      setFiles([]);
-      setUpdateSupport(false);
-      setResult("");
+      setFiles([])
+      setUpdateSupport(false)
+      setResult('')
     }
-  }, [open]);
+  }, [open])
   async function submit() {
-    const file = files[0]?.originFileObj || files[0];
+    const file = files[0]?.originFileObj || files[0]
     if (!file || !/\.xlsx?$/i.test(file.name))
-      return message.error("请选择后缀为 xls 或 xlsx 的文件");
-    setLoading(true);
+      return message.error('请选择后缀为 xls 或 xlsx 的文件')
+    setLoading(true)
     try {
-      const data = new FormData();
-      data.append("file", file);
+      const data = new FormData()
+      data.append('file', file)
       const response = await request({
         url: action,
-        method: "post",
+        method: 'post',
         params: { updateSupport },
         data,
-        headers: { "Content-Type": "multipart/form-data", repeatSubmit: false },
-      });
+        headers: { 'Content-Type': 'multipart/form-data', repeatSubmit: false },
+      })
       setResult(
-        String(response.msg || "导入成功")
-          .replace(/<br\s*\/?\s*>/gi, "\n")
-          .replace(/<[^>]*>/g, ""),
-      );
-      onSuccess?.();
+        String(response.msg || '导入成功')
+          .replace(/<br\s*\/?\s*>/gi, '\n')
+          .replace(/<[^>]*>/g, '')
+      )
+      onSuccess?.()
     } catch {
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
   return (
-    <Modal footer={renderDialogFooter}
+    <Modal
+      footer={renderDialogFooter}
       width={width}
       title={title}
       open={open}
       onCancel={loading ? undefined : onClose}
       onOk={result ? onClose : submit}
-      okText={result ? "关闭" : "开始导入"}
+      okText={result ? '关闭' : '开始导入'}
       confirmLoading={loading}
       cancelButtonProps={{ disabled: loading }}
     >
@@ -70,9 +71,9 @@ export default function ExcelImportDialog({
           description={
             <pre
               style={{
-                whiteSpace: "pre-wrap",
-                maxHeight: "60vh",
-                overflow: "auto",
+                whiteSpace: 'pre-wrap',
+                maxHeight: '60vh',
+                overflow: 'auto',
               }}
             >
               {result}
@@ -108,7 +109,7 @@ export default function ExcelImportDialog({
               type="link"
               onClick={() =>
                 download(templateAction, {}, `${templateFileName}_${Date.now()}.xlsx`).catch(
-                  () => {},
+                  () => {}
                 )
               }
             >
@@ -118,5 +119,5 @@ export default function ExcelImportDialog({
         </>
       )}
     </Modal>
-  );
+  )
 }

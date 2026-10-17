@@ -5,8 +5,8 @@ import re
 
 import pytest
 from jinja2 import StrictUndefined
-
 from test_generated_time_contract import make_table, render_case
+
 from utils.template_util import TemplateInitializer, TemplateUtils
 
 
@@ -39,7 +39,7 @@ def test_react_templates_render_all_business_files(db_type: str, category: str) 
     if category == 'sub':
         assert 'timedetailList' in page
         assert 'original, ...row' in page
-        assert 'name={[field.name, \'parentItemId\']}' not in page
+        assert "name={[field.name, 'parentItemId']}" not in page
 
 
 @pytest.mark.parametrize('category', ['crud', 'tree', 'sub'])

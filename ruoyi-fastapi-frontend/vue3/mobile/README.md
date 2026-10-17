@@ -45,6 +45,17 @@ pnpm dev:mp-weixin
 
 把 `src/manifest.json` 中的 `appid`, 更换为你自己的 `appid`, 比如 `uni-app` / `mp-weixin` 平台。
 
+## 代码格式
+
+使用 Prettier 3.6.2，与 Vue Web 端保持一致：2 空格缩进、单引号、不加分号、LF 换行。
+
+```bash
+pnpm format       # 格式化源码、测试、工程配置和文档
+pnpm format:check # 只检查，不修改文件
+```
+
+`.prettierignore` 排除依赖、构建产物、缓存、锁文件和 `src/auto-imports.d.ts` 等自动生成的类型声明。CI 的 Quality 工作流执行同版本检查，格式不符合规范会失败。
+
 ## 升级依赖
 
 - `pnpm up:pkg` 升级除了 `uni-app` 相关的其他依赖

@@ -1,5 +1,5 @@
-@import "tailwindcss" source(none);
-@import "./styles/icons.css";
+@import 'tailwindcss' source(none);
+@import './styles/icons.css';
 @source "../src";
 
 /* Match the original mobile palette and use a consistent 16px rem on H5. */
@@ -54,8 +54,8 @@ body {
   color: #1f2937;
   font-size: 1rem;
   font-family:
-    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
+    ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
   line-height: 1.5;
 }
 view,
@@ -146,10 +146,10 @@ taro-input-core .weui-input {
   margin-top: 2.75rem;
   box-shadow: 0 0.625rem 0.9375rem -0.1875rem rgb(59 130 246 / 0.3);
 }
-.mobile-button[disabled="false"] {
+.mobile-button[disabled='false'] {
   color: white;
 }
-.mobile-button[disabled="true"] {
+.mobile-button[disabled='true'] {
   opacity: 0.6;
 }
 .mobile-button:active {
@@ -324,7 +324,7 @@ taro-input-core .weui-input {
   cursor: nwse-resize;
 }
 .mobile-button-danger,
-.mobile-button-danger[disabled="false"] {
+.mobile-button-danger[disabled='false'] {
   background: #fef2f2;
   color: #dc2626;
   box-shadow: none;

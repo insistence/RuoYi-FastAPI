@@ -1,63 +1,62 @@
-import { useEffect, useState } from "react";
-import { Alert, Button, Checkbox, Space, Spin, Tag, Tooltip } from "antd";
-import { getInteraction, submitInteractionConsent } from "@/api/authCenter";
-import { QuestionCircleFilled } from "@ant-design/icons";
-import AuthCenterShell from "./AuthCenterShell";
-import { useInteractionContext } from "./useInteraction";
+import { useEffect, useState } from 'react'
+import { Alert, Button, Checkbox, Space, Spin, Tag, Tooltip } from 'antd'
+import { getInteraction, submitInteractionConsent } from '@/api/authCenter'
+import { QuestionCircleFilled } from '@ant-design/icons'
+import AuthCenterShell from './AuthCenterShell'
+import { useInteractionContext } from './useInteraction'
 export default function AuthCenterConsent() {
-  const context = useInteractionContext();
-  const [interaction, setInteraction] = useState({});
-  const [selected, setSelected] = useState([]);
-  const [remember, setRemember] = useState(false);
-  const [initializing, setInitializing] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const context = useInteractionContext()
+  const [interaction, setInteraction] = useState({})
+  const [selected, setSelected] = useState([])
+  const [remember, setRemember] = useState(false)
+  const [initializing, setInitializing] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
   useEffect(() => {
-    let active = true;
-    (async () => {
+    let active = true
+    ;(async () => {
       if (!context.interactionId || !context.csrfToken())
-        return context.fatal("认证请求不完整，请返回应用重新登录");
+        return context.fatal('认证请求不完整，请返回应用重新登录')
       try {
-        const response = await getInteraction(context.interactionId, context.csrfToken());
-        if (!active) return;
-        const data = response.data || {};
-        setInteraction(data);
-        if (data.nextAction !== "consent") await context.goToAction(data.nextAction);
-        else
-          setSelected((data.requestedScopes || []).filter((s) => s.required).map((s) => s.scope));
+        const response = await getInteraction(context.interactionId, context.csrfToken())
+        if (!active) return
+        const data = response.data || {}
+        setInteraction(data)
+        if (data.nextAction !== 'consent') await context.goToAction(data.nextAction)
+        else setSelected((data.requestedScopes || []).filter((s) => s.required).map((s) => s.scope))
       } catch (e) {
-        if (active) context.fatal(e.message || "授权请求已失效");
+        if (active) context.fatal(e.message || '授权请求已失效')
       } finally {
-        if (active) setInitializing(false);
+        if (active) setInitializing(false)
       }
-    })();
+    })()
     return () => {
-      active = false;
-    };
-  }, [context]);
-  const required = (interaction.requestedScopes || []).filter((s) => s.required);
-  const optional = (interaction.requestedScopes || []).filter((s) => !s.required);
-  let policyUri = "";
+      active = false
+    }
+  }, [context])
+  const required = (interaction.requestedScopes || []).filter((s) => s.required)
+  const optional = (interaction.requestedScopes || []).filter((s) => !s.required)
+  let policyUri = ''
   try {
-    const url = new URL(interaction.client?.policyUri);
-    if (["http:", "https:"].includes(url.protocol)) policyUri = url.href;
+    const url = new URL(interaction.client?.policyUri)
+    if (['http:', 'https:'].includes(url.protocol)) policyUri = url.href
   } catch {
     /* No public policy link. */
   }
   async function submit(approved) {
-    setSubmitting(true);
-    setError("");
+    setSubmitting(true)
+    setError('')
     try {
       const response = await submitInteractionConsent(context.interactionId, context.csrfToken(), {
         approved,
         scopes: approved ? [...new Set([...required.map((s) => s.scope), ...selected])] : [],
         rememberConsent: approved && remember,
-      });
-      await context.followServerRedirect(response.data?.redirectUrl);
+      })
+      await context.followServerRedirect(response.data?.redirectUrl)
     } catch (e) {
-      setError(e.message || "未能保存本次权限选择，请重试");
+      setError(e.message || '未能保存本次权限选择，请重试')
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
   }
   return (
@@ -72,30 +71,40 @@ export default function AuthCenterConsent() {
           <p className="panel-kicker">确认权限</p>
           <h2>确认要分享的信息</h2>
           <p className="panel-lead">
-            <strong>{interaction.client?.clientName || "发起登录的应用"}</strong>{" "}
+            <strong>{interaction.client?.clientName || '发起登录的应用'}</strong>{' '}
             正在请求以下信息。必需信息用于完成本次访问，可选信息由你决定。
           </p>
-          {error && <Alert type="error" showIcon title={error} />}
-          <Checkbox.Group className="scope-selection"
+          {error && (
+            <Alert
+              type="error"
+              showIcon
+              title={error}
+            />
+          )}
+          <Checkbox.Group
+            className="scope-selection"
             value={selected}
             onChange={setSelected}
             disabled={submitting || initializing}
-            style={{ width: "100%", display: "block" }}
+            style={{ width: '100%', display: 'block' }}
           >
             {[
-              [required, "完成访问所需", "拒绝这些权限将无法继续进入应用"],
-              [optional, "由你选择", "不勾选也可以继续使用应用"],
+              [required, '完成访问所需', '拒绝这些权限将无法继续进入应用'],
+              [optional, '由你选择', '不勾选也可以继续使用应用'],
             ].map(
               ([scopes, title, hint]) =>
                 scopes.length > 0 && (
-                  <section className="scope-group" key={title}>
+                  <section
+                    className="scope-group"
+                    key={title}
+                  >
                     <div className="group-heading">
                       <div>
                         <h3>{title}</h3>
                         <p>{hint}</p>
                       </div>
                       <span>
-                        {title === "由你选择"
+                        {title === '由你选择'
                           ? `已选 ${optional.filter((scope) => selected.includes(scope.scope)).length}/${optional.length}`
                           : `${scopes.length} 项`}
                       </span>
@@ -104,7 +113,7 @@ export default function AuthCenterConsent() {
                       {scopes.map((scope) => (
                         <label
                           key={scope.scope}
-                          className={`scope-item${scope.required ? " is-required" : ""}`}
+                          className={`scope-item${scope.required ? ' is-required' : ''}`}
                         >
                           <Checkbox
                             value={scope.scope}
@@ -127,8 +136,8 @@ export default function AuthCenterConsent() {
                             <small>
                               {scope.description ||
                                 (scope.required
-                                  ? "用于完成登录或提供应用的核心功能"
-                                  : "允许应用使用这项信息或能力")}
+                                  ? '用于完成登录或提供应用的核心功能'
+                                  : '允许应用使用这项信息或能力')}
                             </small>
                           </span>
                           {scope.required ? (
@@ -140,7 +149,7 @@ export default function AuthCenterConsent() {
                       ))}
                     </div>
                   </section>
-                ),
+                )
             )}
           </Checkbox.Group>
           <label className="remember-card">
@@ -153,7 +162,7 @@ export default function AuthCenterConsent() {
             <span>
               <strong>记住本次选择</strong>
               <small>记住后可在已同意的范围内免于重复确认；不勾选也会保存可撤销的授权记录。</small>
-              {selected.includes("offline_access") && (
+              {selected.includes('offline_access') && (
                 <small>持续访问允许应用在你不在线时续期，与是否记住本次选择无关。</small>
               )}
             </span>
@@ -178,7 +187,11 @@ export default function AuthCenterConsent() {
           </div>
           {policyUri && (
             <p className="policy-link">
-              <a href={policyUri} target="_blank" rel="noopener noreferrer">
+              <a
+                href={policyUri}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 查看该应用的隐私说明
               </a>
             </p>
@@ -186,5 +199,5 @@ export default function AuthCenterConsent() {
         </div>
       </Spin>
     </AuthCenterShell>
-  );
+  )
 }

@@ -5,5 +5,5 @@ export function renderDialogFooter(_, { OkBtn, CancelBtn }) {
       <OkBtn />
       <CancelBtn />
     </div>
-  );
+  )
 }

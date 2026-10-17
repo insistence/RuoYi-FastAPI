@@ -1,33 +1,33 @@
-import { useEffect, useState } from "react";
-import { Alert, Drawer } from "antd";
-import FileTag from "./FileTag";
-import Table from "@/components/Table";
-import { listFileReference } from "@/api/system/file";
-import { parseTime } from "@/utils/ruoyi";
+import { useEffect, useState } from 'react'
+import { Alert, Drawer } from 'antd'
+import FileTag from './FileTag'
+import Table from '@/components/Table'
+import { listFileReference } from '@/api/system/file'
+import { parseTime } from '@/utils/ruoyi'
 
 export default function FileReferenceDrawer({ file, onClose }) {
   const [rows, setRows] = useState([]),
-    [loading, setLoading] = useState(false);
+    [loading, setLoading] = useState(false)
   useEffect(() => {
-    if (!file) return;
-    let active = true;
-    setLoading(true);
+    if (!file) return
+    let active = true
+    setLoading(true)
     listFileReference(file.fileId)
       .then((result) => {
-        if (active) setRows(result.data || []);
+        if (active) setRows(result.data || [])
       })
       .catch(() => {})
       .finally(() => {
-        if (active) setLoading(false);
-      });
+        if (active) setLoading(false)
+      })
     return () => {
-      active = false;
-    };
-  }, [file]);
+      active = false
+    }
+  }, [file])
   return (
     <Drawer
       rootClassName="file-drawer"
-      title={`业务引用 - ${file?.originalName || ""}`}
+      title={`业务引用 - ${file?.originalName || ''}`}
       open={!!file}
       onClose={onClose}
       size="55%"
@@ -45,37 +45,40 @@ export default function FileReferenceDrawer({ file, onClose }) {
         pagination={false}
         scroll={{ x: 1040 }}
         columns={[
-          { width: 130, align: "center", title: "业务类型", dataIndex: "businessType" },
-          { width: 180, title: "业务名称", dataIndex: "businessName" },
-          { width: 160, align: "center", title: "业务ID", dataIndex: "businessId" },
+          { width: 130, align: 'center', title: '业务类型', dataIndex: 'businessType' },
+          { width: 180, title: '业务名称', dataIndex: 'businessName' },
+          { width: 160, align: 'center', title: '业务ID', dataIndex: 'businessId' },
           {
-            align: "center",
-            title: "保留到期",
-            dataIndex: "retentionExpireTime",
+            align: 'center',
+            title: '保留到期',
+            dataIndex: 'retentionExpireTime',
             width: 180,
-            render: (value) => (value ? parseTime(value) : "永久保留"),
+            render: (value) => (value ? parseTime(value) : '永久保留'),
           },
           {
             width: 100,
-            align: "center",
-            title: "来源",
-            dataIndex: "legacy",
+            align: 'center',
+            title: '来源',
+            dataIndex: 'legacy',
             render: (value) => (
-              <FileTag type={value ? "info" : "success"} effect="plain">
-                {value ? "兼容字段" : "引用关系"}
+              <FileTag
+                type={value ? 'info' : 'success'}
+                effect="plain"
+              >
+                {value ? '兼容字段' : '引用关系'}
               </FileTag>
             ),
           },
-          { width: 110, align: "center", title: "登记人", dataIndex: "createBy" },
+          { width: 110, align: 'center', title: '登记人', dataIndex: 'createBy' },
           {
-            align: "center",
-            title: "登记时间",
-            dataIndex: "createTime",
+            align: 'center',
+            title: '登记时间',
+            dataIndex: 'createTime',
             width: 180,
             render: (value) => parseTime(value),
           },
         ]}
       />
     </Drawer>
-  );
+  )
 }

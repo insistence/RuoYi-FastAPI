@@ -1,19 +1,42 @@
 <!doctype html>
-<html lang="zh-CN" data-app-booting>
+<html
+  lang="zh-CN"
+  data-app-booting
+>
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="/favicon.ico" />
-    <link rel="stylesheet" href="/src/components/SystemLoading/style.css" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <link
+      rel="icon"
+      href="/favicon.ico"
+    />
+    <link
+      rel="stylesheet"
+      href="/src/components/SystemLoading/style.css"
+    />
     <title>%VITE_APP_TITLE%</title>
   </head>
   <body>
     <div id="root"></div>
     <!-- Keep the startup screen outside React's root until the first page is ready. -->
-    <div id="app-bootstrap-loader" class="system-loading" role="status" aria-live="polite">
-      <div class="system-loading-spinner" aria-hidden="true"></div>
+    <div
+      id="app-bootstrap-loader"
+      class="system-loading"
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        class="system-loading-spinner"
+        aria-hidden="true"
+      ></div>
       <p class="system-loading-title">正在加载系统资源，请耐心等待</p>
     </div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script
+      type="module"
+      src="/src/main.jsx"
+    ></script>
   </body>
 </html>

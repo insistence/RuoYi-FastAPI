@@ -1,5 +1,27 @@
-src/utils/timezoneData.js
-src/styles/icons.css
-src/index.html
+# Dependencies, build output and caches
 dist/
 node_modules/
+coverage/
+.cache/
+.vite/
+.swc/
+target/
+playwright-report/
+test-results/
+
+# Package-manager output and generated declarations
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+auto-imports.d.ts
+components.d.ts
+
+# Generated data and the Taro HTML entry template
+/src/utils/timezoneData.js
+/src/styles/icons.css
+/src/styles/native-icons.json
+/src/index.html
+**/*.min.js
+**/*.min.css
+**/*.svg
+**/*.map

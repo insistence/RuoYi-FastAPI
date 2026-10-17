@@ -23,9 +23,7 @@
       </view>
       <!-- Confirm Password -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700"
-          >确认密码</text
-        >
+        <text class="mb-2 block text-sm font-medium text-gray-700">确认密码</text>
         <input
           v-model="user.confirmPassword"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
@@ -48,43 +46,43 @@
 </template>
 
 <script setup>
-import { updateUserPwd } from "@/api/system/user";
-import { ref, reactive, getCurrentInstance } from "vue";
+import { updateUserPwd } from '@/api/system/user'
+import { ref, reactive, getCurrentInstance } from 'vue'
 
-const { proxy } = getCurrentInstance();
+const { proxy } = getCurrentInstance()
 const user = reactive({
-  oldPassword: "",
-  newPassword: "",
-  confirmPassword: "",
-});
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+})
 
 function submit() {
   if (!user.oldPassword) {
-    proxy.$modal.msgError("旧密码不能为空");
-    return;
+    proxy.$modal.msgError('旧密码不能为空')
+    return
   }
   if (!user.newPassword) {
-    proxy.$modal.msgError("新密码不能为空");
-    return;
+    proxy.$modal.msgError('新密码不能为空')
+    return
   }
   if (user.newPassword.length < 6 || user.newPassword.length > 20) {
-    proxy.$modal.msgError("长度在 6 到 20 个字符");
-    return;
+    proxy.$modal.msgError('长度在 6 到 20 个字符')
+    return
   }
   if (!user.confirmPassword) {
-    proxy.$modal.msgError("确认密码不能为空");
-    return;
+    proxy.$modal.msgError('确认密码不能为空')
+    return
   }
   if (user.newPassword !== user.confirmPassword) {
-    proxy.$modal.msgError("两次输入的密码不一致");
-    return;
+    proxy.$modal.msgError('两次输入的密码不一致')
+    return
   }
 
   updateUserPwd(user.oldPassword, user.newPassword).then((response) => {
-    proxy.$modal.msgSuccess("修改成功");
+    proxy.$modal.msgSuccess('修改成功')
     setTimeout(() => {
-      proxy.$tab.navigateBack();
-    }, 1500);
-  });
+      proxy.$tab.navigateBack()
+    }, 1500)
+  })
 }
 </script>

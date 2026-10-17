@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "浏览网页",
-});
+  navigationBarTitleText: '浏览网页',
+})

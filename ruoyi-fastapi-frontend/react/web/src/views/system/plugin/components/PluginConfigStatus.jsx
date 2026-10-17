@@ -1,42 +1,42 @@
-import "./style.css";
-import { useEffect, useState } from "react";
-import { Alert, Button } from "antd";
-import { getPluginConfigStatus } from "@/api/system/plugin";
+import './style.css'
+import { useEffect, useState } from 'react'
+import { Alert, Button } from 'antd'
+import { getPluginConfigStatus } from '@/api/system/plugin'
 
 export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
   const [data, setData] = useState(),
     [loading, setLoading] = useState(false),
-    [error, setError] = useState(""),
-    [revision, setRevision] = useState(0);
+    [error, setError] = useState(''),
+    [revision, setRevision] = useState(0)
   useEffect(() => {
-    setData(undefined);
-    setError("");
-    setLoading(false);
-    if (!pluginId) return;
-    let active = true;
-    const controller = new AbortController();
-    setLoading(true);
-    setError("");
+    setData(undefined)
+    setError('')
+    setLoading(false)
+    if (!pluginId) return
+    let active = true
+    const controller = new AbortController()
+    setLoading(true)
+    setError('')
     getPluginConfigStatus(pluginId, controller.signal)
       .then((result) => active && setData(result.data))
       .catch(() => {
         if (active) {
-          setData(undefined);
-          setError("配置状态查询失败，已保存内容不受影响，可刷新重试。");
+          setData(undefined)
+          setError('配置状态查询失败，已保存内容不受影响，可刷新重试。')
         }
       })
-      .finally(() => active && setLoading(false));
+      .finally(() => active && setLoading(false))
     return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [pluginId, refreshKey, revision]);
+      active = false
+      controller.abort()
+    }
+  }, [pluginId, refreshKey, revision])
   const statusText =
-    data?.state === "restart_required"
+    data?.state === 'restart_required'
       ? `${data.pendingWorkers} 个已观测进程的启动配置待重启更新`
-      : data?.state === "observed_match"
+      : data?.state === 'observed_match'
         ? `${data.matchedWorkers} 个已观测进程的启动配置与保存版本匹配`
-        : "尚未观测到运行中的启动配置版本，请确认插件已启用并完成启动";
+        : '尚未观测到运行中的启动配置版本，请确认插件已启用并完成启动'
   return (
     <section
       className="plugin-config-status"
@@ -62,16 +62,16 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
           <Alert
             showIcon
             title={statusText}
-            type={data.state === "restart_required" ? "warning" : "info"}
+            type={data.state === 'restart_required' ? 'warning' : 'info'}
           />
           <p>
-            {data.scope === "reporting_workers"
-              ? "仅统计已上报进程"
-              : data.scope === "current_worker"
-                ? "当前查询仅有本进程数据"
-                : "当前尚无可用的进程数据"}
+            {data.scope === 'reporting_workers'
+              ? '仅统计已上报进程'
+              : data.scope === 'current_worker'
+                ? '当前查询仅有本进程数据'
+                : '当前尚无可用的进程数据'}
             。启动快照在重启后更新；插件主动读取最新配置时，由插件负责应用。
-            {data.sampleIntervalSeconds ? `远程状态每 ${data.sampleIntervalSeconds} 秒上报。` : ""}
+            {data.sampleIntervalSeconds ? `远程状态每 ${data.sampleIntervalSeconds} 秒上报。` : ''}
           </p>
           {data.unknownWorkers ||
           data.invalidSnapshots ||
@@ -81,7 +81,7 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
               部分进程版本尚不能确认：{data.unknownWorkers || 0} 个未上报配置版本，
               {data.invalidSnapshots || 0} 个无效采样，
               {data.staleSnapshots || 0} 个过期采样。
-              {data.workerLimitReached ? "本次查询已达到进程采样上限。" : ""}
+              {data.workerLimitReached ? '本次查询已达到进程采样上限。' : ''}
             </p>
           ) : null}
           <details>
@@ -96,10 +96,10 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
                     </p>
                     <p>
                       {!worker.active
-                        ? "尚未激活"
+                        ? '尚未激活'
                         : worker.matchesDesired
-                          ? "启动快照匹配"
-                          : "启动快照待重启更新"}
+                          ? '启动快照匹配'
+                          : '启动快照待重启更新'}
                     </p>
                     <p className="config-revision">启动版本：{worker.startupRevision}</p>
                     {worker.lastReadRevision && (
@@ -119,5 +119,5 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
         <p role="status">正在查询配置版本…</p>
       ) : null}
     </section>
-  );
+  )
 }

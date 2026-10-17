@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "关于我们",
-});
+  navigationBarTitleText: '关于我们',
+})

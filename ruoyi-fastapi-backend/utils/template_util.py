@@ -296,14 +296,11 @@ class TemplateUtils:
             return f'{cls.BACKEND_PROJECT_PATH}/sql/{business_name}_menu.sql'
         if 'api.js.jinja2' in template:
             return f'{vue_path}/api/{module_name}/{business_name}.js'
-        if 'index.vue.jinja2' in template or 'index-tree.vue.jinja2' in template:
-            return f'{vue_path}/views/{module_name}/{business_name}/index.vue'
-        if 'view.vue.jinja2' in template:
-            return f'{vue_path}/views/{module_name}/{business_name}/view.vue'
-        if 'index.jsx.jinja2' in template or 'index-tree.jsx.jinja2' in template:
-            return f'{vue_path}/views/{module_name}/{business_name}/index.jsx'
-        if 'view.jsx.jinja2' in template:
-            return f'{vue_path}/views/{module_name}/{business_name}/view.jsx'
+        for extension in ('vue', 'jsx'):
+            if f'index.{extension}.jinja2' in template or f'index-tree.{extension}.jinja2' in template:
+                return f'{vue_path}/views/{module_name}/{business_name}/index.{extension}'
+            if f'view.{extension}.jinja2' in template:
+                return f'{vue_path}/views/{module_name}/{business_name}/view.{extension}'
         return ''
 
     @classmethod

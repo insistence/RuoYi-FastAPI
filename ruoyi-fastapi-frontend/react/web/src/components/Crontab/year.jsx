@@ -1,4 +1,12 @@
-import CronField from "./field";
+import CronField from './field'
 export default function Field(props) {
-  return <CronField {...props} name="year" label="年" min={1970} max={2099} />;
+  return (
+    <CronField
+      {...props}
+      name="year"
+      label="年"
+      min={1970}
+      max={2099}
+    />
+  )
 }

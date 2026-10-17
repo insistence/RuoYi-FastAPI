@@ -16,10 +16,10 @@
   padding: 8px 12px;
   transition: background 0.15s;
 }
-.business-file-upload .ant-list-item[draggable="true"] {
+.business-file-upload .ant-list-item[draggable='true'] {
   cursor: grab;
 }
-.business-file-upload .ant-list-item[draggable="true"]:active {
+.business-file-upload .ant-list-item[draggable='true']:active {
   cursor: grabbing;
   background: var(--ant-color-primary-bg);
 }

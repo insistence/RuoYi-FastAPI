@@ -45,7 +45,7 @@ async def test_authenticated_profile_uses_user_timezone_and_cron_keeps_its_zone(
         ),
     )
     await page.goto(Config.frontend_url + '/user/profile')
-    created_at = page.get_by_role('listitem').filter(has_text='创建日期').locator('.pull-right')
+    created_at = page.get_by_role('listitem').filter(has_text='创建日期').locator('.pull-right, .profile-info-value')
     await expect(created_at).to_have_text(expected, timeout=30000)
     await expect(created_at).to_be_visible()
     assert not errors

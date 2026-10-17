@@ -25,24 +25,31 @@ for (const mode of ['development', 'production']) {
         target: 'web',
         entry: path.join(appRoot, 'src/utils/time.js'),
         devtool: false,
-        output: { path: outputPath, filename: 'time-bundle.js', library: { name: 'TimeBundle', type: 'var' } },
+        output: {
+          path: outputPath,
+          filename: 'time-bundle.js',
+          library: { name: 'TimeBundle', type: 'var' },
+        },
         optimization: { minimize: false },
         module: {
-          rules: [{
-            test: /\.m?js$/,
-            include: /[/\\]node_modules[/\\]@formatjs[/\\]/,
-            use: {
-              loader: require.resolve('babel-loader'),
-              options: { cwd: appRoot, configFile: path.join(appRoot, 'babel.config.js') }
-            }
-          }]
-        }
+          rules: [
+            {
+              test: /\.m?js$/,
+              include: /[/\\]node_modules[/\\]@formatjs[/\\]/,
+              use: {
+                loader: require.resolve('babel-loader'),
+                options: { cwd: appRoot, configFile: path.join(appRoot, 'babel.config.js') },
+              },
+            },
+          ],
+        },
       })
       await new Promise((resolve, reject) => {
         compiler.run((error, stats) => {
-          compiler.close(closeError => {
+          compiler.close((closeError) => {
             if (error || closeError) return reject(error || closeError)
-            if (stats.hasErrors()) return reject(new Error(stats.toString({ all: false, errors: true })))
+            if (stats.hasErrors())
+              return reject(new Error(stats.toString({ all: false, errors: true })))
             resolve()
           })
         })

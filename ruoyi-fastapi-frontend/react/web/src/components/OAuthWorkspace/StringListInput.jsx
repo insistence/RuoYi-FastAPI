@@ -1,30 +1,33 @@
-import { Button, Input } from "antd";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import "./style.css";
+import { Button, Input } from 'antd'
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import './style.css'
 export default function StringListInput({
   value = [],
   onChange,
-  placeholder = "",
-  addText = "添加一项",
+  placeholder = '',
+  addText = '添加一项',
 }) {
-  const items = value.length ? value : [""];
+  const items = value.length ? value : ['']
   function update(index, next) {
-    const list = [...items];
-    list[index] = next;
-    onChange?.(list);
+    const list = [...items]
+    list[index] = next
+    onChange?.(list)
   }
   return (
     <div className="oauth-string-list">
       {items.map((item, index) => (
-        <div className="oauth-string-row" key={index}>
+        <div
+          className="oauth-string-row"
+          key={index}
+        >
           <Input
             value={item}
             placeholder={placeholder}
             onChange={(event) => update(index, event.target.value)}
             onPressEnter={(event) => {
-              event.preventDefault();
+              event.preventDefault()
               if (item.trim())
-                onChange?.([...items.slice(0, index + 1), "", ...items.slice(index + 1)]);
+                onChange?.([...items.slice(0, index + 1), '', ...items.slice(index + 1)])
             }}
           />
           <Button
@@ -40,10 +43,10 @@ export default function StringListInput({
         className="oauth-add-row"
         type="link"
         icon={<PlusOutlined />}
-        onClick={() => onChange?.([...items, ""])}
+        onClick={() => onChange?.([...items, ''])}
       >
         {addText}
       </Button>
     </div>
-  );
+  )
 }

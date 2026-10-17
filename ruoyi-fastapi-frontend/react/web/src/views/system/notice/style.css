@@ -18,4 +18,22 @@
   padding-inline-end: 24px;
 }
 
-.notice-read-query{margin-bottom:4px;align-items:center}.notice-read-query .ant-form-item{margin-bottom:18px;margin-right:16px}.notice-read-query .read-stat{margin-left:auto;margin-bottom:18px;color:var(--ant-color-text-secondary)}.notice-read-query .read-stat strong{color:var(--ant-color-primary)}.table-striped-row>td{background:var(--ant-color-fill-alter)}
+.notice-read-query {
+  margin-bottom: 4px;
+  align-items: center;
+}
+.notice-read-query .ant-form-item {
+  margin-bottom: 18px;
+  margin-right: 16px;
+}
+.notice-read-query .read-stat {
+  margin-left: auto;
+  margin-bottom: 18px;
+  color: var(--ant-color-text-secondary);
+}
+.notice-read-query .read-stat strong {
+  color: var(--ant-color-primary);
+}
+.table-striped-row > td {
+  background: var(--ant-color-fill-alter);
+}

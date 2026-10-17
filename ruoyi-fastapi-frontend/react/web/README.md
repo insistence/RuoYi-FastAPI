@@ -19,11 +19,11 @@ pnpm dev
 
 按运行模式使用 `.env.development`、`.env.production`、`.env.staging` 或 `.env.docker`；环境专属配置可放在对应的 `.env.<mode>.local` 中，也可由构建环境注入。`.local` 文件不纳入 Git 提交。
 
-| 变量 | 用途 |
-| --- | --- |
-| `VITE_APP_PROXY_TARGET` | 开发代理的后端目标地址，必须能由开发服务器访问 |
-| `VITE_APP_BASE_API` | 浏览器请求 API 的公共前缀，需与对应模式下的代理或网关配置一致 |
-| `VITE_APP_PLUGIN_BASE` | 插件公开路径前缀，需与后端 `APP_ROOT_PATH` 及反向代理配置一致 |
+| 变量                    | 用途                                                          |
+| ----------------------- | ------------------------------------------------------------- |
+| `VITE_APP_PROXY_TARGET` | 开发代理的后端目标地址，必须能由开发服务器访问                |
+| `VITE_APP_BASE_API`     | 浏览器请求 API 的公共前缀，需与对应模式下的代理或网关配置一致 |
+| `VITE_APP_PLUGIN_BASE`  | 插件公开路径前缀，需与后端 `APP_ROOT_PATH` 及反向代理配置一致 |
 
 开发模式配置示例，后端域名需替换为实际服务地址：
 
@@ -67,22 +67,28 @@ docker build --build-arg NGINX_CONFIG=bin/nginx.dockerpg.conf -t ruoyi-react-web
 - 业务附件使用 `BusinessFileUpload` 的 `value/onChange`，值为 `{fileId, name, url}[]`；不要与普通 `FileUpload` 的 URL 字符串混用。`ref.getFileIds()` 返回业务关联需要的文件 ID。
 - `JsonEditor` 使用受控文本值，支持 `valueType="array"/"object"`、`validate` 和 `readOnly`，Monaco 与 Worker 按需加载。
 
+## 代码格式
+
+`pnpm format` 格式化整个工程，`pnpm format:check` 只检查。Prettier 3.6.2 的规则与 Vue2/Vue3 Web/Mobile 一致；CI 通过统一循环检查六个工程，项目特有的生成文件和历史兼容性夹具由 `.prettierignore` 排除。详见[格式约定](./FORMATTING.md)。
+
 ## 测试
 
 测试分组与执行顺序和 Vue3 Web 对齐。`pnpm test` 先执行 `test:unit`（认证中心 → 插件 → 定时任务），再执行 `test:contract`（共享时间契约）。当前共有 13 个 Node 测试文件和 3 个 React 组件测试文件。
 
-| 命令 | 范围 |
-| --- | --- |
-| `pnpm test` | 顺序运行全部单元测试和时间契约 |
-| `pnpm test:unit` | 认证中心、插件、定时任务，包含对应的 React 组件测试 |
-| `pnpm test:contract` | 共享时间契约，调用 `test:time` |
-| `pnpm test:job` | 定时任务表单参数 |
-| `pnpm test:plugin` | 插件桥接、代理、SSE、兼容性、配置状态及组件生命周期 |
-| `pnpm test:auth-center` | 认证中心基础逻辑及认证交互 hook |
-| `pnpm test:time` | 单独运行共享时间契约 |
-| `pnpm test:components` | 单独运行全部 React 组件与 hook 测试 |
+| 命令                    | 范围                                                |
+| ----------------------- | --------------------------------------------------- |
+| `pnpm test`             | 顺序运行全部单元测试和时间契约                      |
+| `pnpm test:unit`        | 认证中心、插件、定时任务，包含对应的 React 组件测试 |
+| `pnpm test:contract`    | 共享时间契约，调用 `test:time`                      |
+| `pnpm test:job`         | 定时任务表单参数                                    |
+| `pnpm test:plugin`      | 插件桥接、代理、SSE、兼容性、配置状态及组件生命周期 |
+| `pnpm test:auth-center` | 认证中心基础逻辑及认证交互 hook                     |
+| `pnpm test:time`        | 单独运行共享时间契约                                |
+| `pnpm test:components`  | 单独运行全部 React 组件与 hook 测试                 |
 
 组件测试使用 Vitest / React Testing Library，已归入认证和插件分组；执行 `pnpm test` 时每个测试文件只运行一次。
+
+CI 按 React Web 的变更选中本工程，安装使用 `pnpm install --no-frozen-lockfile`，执行格式检查、单元/组件测试、三时区契约及生产/Docker 模式构建。插件网络验收覆盖真实 HTTPS 代理、会话 Cookie、CSRF、SSE 和 WebSocket。隔离的 MySQL/PostgreSQL E2E 覆盖登录、29 个菜单页面与权限、用户时区，以及岗位/参数/公告 CRUD；其他 Vue 业务操作用例尚未计入 React 覆盖。详见[CI 与本地复现说明](../../../ruoyi-fastapi-test/README.md#ci-分类与触发)。
 
 ## 插件开发
 

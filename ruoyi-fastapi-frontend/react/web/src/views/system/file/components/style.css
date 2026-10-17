@@ -76,7 +76,7 @@
   left: 0;
   width: 4px;
   height: 100%;
-  content: "";
+  content: '';
   background: var(--card-color);
 }
 
@@ -275,7 +275,7 @@
 .file-dialog :is(.ant-input-number-handler-wrap, .ant-input-number-actions) {
   opacity: 1;
 }
-.file-dialog .ant-input-textarea-show-count textarea[rows="3"] {
+.file-dialog .ant-input-textarea-show-count textarea[rows='3'] {
   height: 72px;
   min-height: 72px;
 }

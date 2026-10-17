@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "时区设置",
-});
+  navigationBarTitleText: '时区设置',
+})

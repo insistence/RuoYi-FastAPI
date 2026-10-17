@@ -376,7 +376,7 @@
   color: #fff;
 }
 .tags-card .tags-item.active:not(.has-icon) a::before {
-  content: "";
+  content: '';
   width: 8px;
   height: 8px;
   margin-right: 5px;
@@ -421,7 +421,7 @@
 }
 .tags-chrome .tags-item.active::before,
 .tags-chrome .tags-item.active::after {
-  content: "";
+  content: '';
   position: absolute;
   bottom: 0;
   width: 10px;
@@ -484,7 +484,7 @@
   cursor: pointer;
   overflow: hidden;
 }
-.layout-nav-option[aria-pressed="true"] {
+.layout-nav-option[aria-pressed='true'] {
   border-color: var(--ant-color-primary, #409eff);
 }
 .layout-nav-option b:first-child {

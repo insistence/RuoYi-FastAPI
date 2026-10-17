@@ -1,27 +1,27 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, Empty, Input, Modal } from "antd";
-import { SearchOutlined, EnterOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
-import usePermissionStore from "@/store/modules/permission";
-import { routeLocation } from "@/utils/router";
-import SvgIcon from "@/components/SvgIcon";
-import "./style.css";
+import { useEffect, useRef, useState } from 'react'
+import { Button, Empty, Input, Modal } from 'antd'
+import { SearchOutlined, EnterOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
+import usePermissionStore from '@/store/modules/permission'
+import { routeLocation } from '@/utils/router'
+import SvgIcon from '@/components/SvgIcon'
+import './style.css'
 
 export default function HeaderSearch() {
   const routes = usePermissionStore((state) => state.routes),
-    navigate = useNavigate();
+    navigate = useNavigate()
   const [open, setOpen] = useState(false),
-    [query, setQuery] = useState(""),
-    [active, setActive] = useState(0);
+    [query, setQuery] = useState(''),
+    [active, setActive] = useState(0)
   const input = useRef(null),
-    results = useRef(null);
+    results = useRef(null)
   const options = routes
     .filter(
       (route) =>
         route.meta?.title &&
         !route.children?.length &&
         !route.hidden &&
-        !/^https?:/.test(route.path),
+        !/^https?:/.test(route.path)
     )
     .map((route) => ({
       path: routeLocation(route),
@@ -29,24 +29,24 @@ export default function HeaderSearch() {
       icon: route.meta.icon,
       label: [
         ...routes
-          .filter((parent) => parent.meta?.title && route.path.startsWith(parent.path + "/"))
+          .filter((parent) => parent.meta?.title && route.path.startsWith(parent.path + '/'))
           .map((parent) => parent.meta.title),
         route.meta.title,
-      ].join(" / "),
+      ].join(' / '),
     }))
     .filter(
       (item) =>
         !query.trim() ||
-        (item.label + " " + item.path).toLowerCase().includes(query.trim().toLowerCase()),
-    );
-  const selected = Math.min(active, Math.max(0, options.length - 1));
+        (item.label + ' ' + item.path).toLowerCase().includes(query.trim().toLowerCase())
+    )
+  const selected = Math.min(active, Math.max(0, options.length - 1))
   useEffect(() => {
-    results.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-  }, [selected, query]);
+    results.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
+  }, [selected, query])
   function choose(item) {
-    if (!item) return;
-    setOpen(false);
-    navigate(item.path);
+    if (!item) return
+    setOpen(false)
+    navigate(item.path)
   }
   return (
     <>
@@ -56,9 +56,9 @@ export default function HeaderSearch() {
         icon={<SearchOutlined />}
         aria-label="搜索菜单"
         onClick={() => {
-          setQuery("");
-          setActive(0);
-          setOpen(true);
+          setQuery('')
+          setActive(0)
+          setOpen(true)
         }}
       />
       <Modal
@@ -81,22 +81,22 @@ export default function HeaderSearch() {
           role="combobox"
           aria-expanded={open}
           aria-controls="menu-search-results"
-          aria-activedescendant={options.length ? "menu-search-" + selected : undefined}
+          aria-activedescendant={options.length ? 'menu-search-' + selected : undefined}
           onChange={(event) => {
-            setQuery(event.target.value);
-            setActive(0);
+            setQuery(event.target.value)
+            setActive(0)
           }}
           onKeyDown={(event) => {
-            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-              event.preventDefault();
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault()
               setActive(
-                (selected + (event.key === "ArrowDown" ? 1 : -1) + options.length) %
-                  Math.max(1, options.length),
-              );
+                (selected + (event.key === 'ArrowDown' ? 1 : -1) + options.length) %
+                  Math.max(1, options.length)
+              )
             }
-            if (event.key === "Enter") {
-              event.preventDefault();
-              choose(options[selected]);
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              choose(options[selected])
             }
           }}
         />
@@ -113,17 +113,17 @@ export default function HeaderSearch() {
           {options.length ? (
             options.map((item, index) => (
               <button
-                id={"menu-search-" + index}
+                id={'menu-search-' + index}
                 key={item.path}
                 type="button"
                 role="option"
                 aria-selected={index === selected}
-                className={"search-item" + (index === selected ? " is-active" : "")}
+                className={'search-item' + (index === selected ? ' is-active' : '')}
                 onMouseEnter={() => setActive(index)}
                 onClick={() => choose(item)}
               >
                 <span className="search-menu-icon">
-                  <SvgIcon iconClass={item.icon || "component"} />
+                  <SvgIcon iconClass={item.icon || 'component'} />
                 </span>
                 <span className="search-info">
                   <span className="menu-title">{item.label}</span>
@@ -135,7 +135,7 @@ export default function HeaderSearch() {
           ) : (
             <Empty
               className="search-empty"
-              description={query ? "没有找到匹配菜单，请尝试其他关键词" : "暂无可用菜单"}
+              description={query ? '没有找到匹配菜单，请尝试其他关键词' : '暂无可用菜单'}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )}
@@ -154,5 +154,5 @@ export default function HeaderSearch() {
         </div>
       </Modal>
     </>
-  );
+  )
 }

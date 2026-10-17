@@ -1,11 +1,48 @@
- .monitor-page .monitor-panel { height: 100%; border: 1px solid var(--ant-color-border-secondary, #e4e7ed); box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%); }
-.monitor-panel .ant-card-head { min-height: 40px; padding: 14px 15px 7px; border-color: var(--ant-color-border-secondary, #e4e7ed); font-size: 16px; font-weight: 400; }
-.monitor-panel .ant-card-head-title { line-height: 23px; padding: 0; }
-.monitor-panel .ant-card-head-title .anticon { vertical-align: middle; }
-.monitor-panel .ant-card-body { padding: 15px 20px 20px; }
-.monitor-table-wrap { overflow-x: auto; }
-.monitor-table { border-collapse: collapse; width: 100%; color: var(--ant-color-text, #606266); font-size: 14px; line-height: 23px; }
-.monitor-table :is(th, td) { padding: 8px 12px; border-bottom: 1px solid var(--ant-color-border-secondary, #ebeef5); text-align: left; overflow-wrap: anywhere; }
-.monitor-table th { color: var(--ant-color-text-secondary, #909399); font-weight: 700; }
-.monitor-table tbody tr:hover { background: var(--ant-color-fill-alter, #f5f7fa); }
-.monitor-danger { color: #f56c6c; }
+.monitor-page .monitor-panel {
+  height: 100%;
+  border: 1px solid var(--ant-color-border-secondary, #e4e7ed);
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
+}
+.monitor-panel .ant-card-head {
+  min-height: 40px;
+  padding: 14px 15px 7px;
+  border-color: var(--ant-color-border-secondary, #e4e7ed);
+  font-size: 16px;
+  font-weight: 400;
+}
+.monitor-panel .ant-card-head-title {
+  line-height: 23px;
+  padding: 0;
+}
+.monitor-panel .ant-card-head-title .anticon {
+  vertical-align: middle;
+}
+.monitor-panel .ant-card-body {
+  padding: 15px 20px 20px;
+}
+.monitor-table-wrap {
+  overflow-x: auto;
+}
+.monitor-table {
+  border-collapse: collapse;
+  width: 100%;
+  color: var(--ant-color-text, #606266);
+  font-size: 14px;
+  line-height: 23px;
+}
+.monitor-table :is(th, td) {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ant-color-border-secondary, #ebeef5);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.monitor-table th {
+  color: var(--ant-color-text-secondary, #909399);
+  font-weight: 700;
+}
+.monitor-table tbody tr:hover {
+  background: var(--ant-color-fill-alter, #f5f7fa);
+}
+.monitor-danger {
+  color: #f56c6c;
+}

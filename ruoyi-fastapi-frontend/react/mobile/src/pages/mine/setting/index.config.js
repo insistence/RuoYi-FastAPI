@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "应用设置",
-});
+  navigationBarTitleText: '应用设置',
+})

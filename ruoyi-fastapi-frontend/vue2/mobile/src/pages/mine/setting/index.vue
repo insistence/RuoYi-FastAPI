@@ -65,29 +65,29 @@
 export default {
   methods: {
     handleToTimezone() {
-      this.$tab.navigateTo("/pages/mine/setting/timezone");
+      this.$tab.navigateTo('/pages/mine/setting/timezone')
     },
     handleToPwd() {
-      this.$tab.navigateTo("/pages/mine/pwd/index");
+      this.$tab.navigateTo('/pages/mine/pwd/index')
     },
     handleToUpgrade() {
-      this.$modal.showToast("模块建设中~");
+      this.$modal.showToast('模块建设中~')
     },
     handleCleanTmp() {
-      this.$modal.showToast("模块建设中~");
+      this.$modal.showToast('模块建设中~')
     },
     handleLogout() {
-      this.$modal.confirm("确定注销并退出系统吗？").then(() => {
+      this.$modal.confirm('确定注销并退出系统吗？').then(() => {
         this.$store
-          .dispatch("LogOut")
+          .dispatch('LogOut')
           .then(() => {})
           .finally(() => {
-            this.$tab.reLaunch("/pages/index");
-          });
-      });
+            this.$tab.reLaunch('/pages/index')
+          })
+      })
     },
   },
-};
+}
 </script>
 
 <style>

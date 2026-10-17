@@ -1,6 +1,9 @@
 <template>
   <view v-if="params.url">
-    <web-view :webview-styles="webviewStyles" :src="`${params.url}`"></web-view>
+    <web-view
+      :webview-styles="webviewStyles"
+      :src="`${params.url}`"
+    ></web-view>
   </view>
 </template>
 
@@ -11,10 +14,10 @@ export default {
       params: {},
       webviewStyles: {
         progress: {
-          color: "#FF3333",
+          color: '#FF3333',
         },
       },
-    };
+    }
   },
   props: {
     src: {
@@ -23,12 +26,12 @@ export default {
     },
   },
   onLoad(event) {
-    this.params = event;
+    this.params = event
     if (event.title) {
       uni.setNavigationBarTitle({
         title: event.title,
-      });
+      })
     }
   },
-};
+}
 </script>

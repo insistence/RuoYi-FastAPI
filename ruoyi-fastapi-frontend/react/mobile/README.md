@@ -66,6 +66,8 @@ pnpm build:rn:android   # dist/rn/android/index.bundle + assets
 pnpm build:rn:ios       # dist/rn/ios/main.jsbundle + assets
 ```
 
+CI 为两种 bundle 命令追加 `--reset-cache`，分别从干净的 Metro 缓存构建。重新安装依赖后如遇到旧模块解析缓存，也可使用 `pnpm build:rn:ios --reset-cache` 或 Android 的等价命令。
+
 配置位于 `config/index.ts`、`metro.config.js` 和 `babel.config.js`。原生壳需链接 AsyncStorage、Expo Crypto/Image Manipulator/Image Picker、SVG、Gesture Handler、Screens 等依赖；相册/相机用途说明与 Android 权限应在壳工程中配置。仅安装 Expo Go 不能替代包含这些原生模块的开发包。
 
 本工程的 RN 构建命令只输出 JS bundle 和资源。生成 APK/IPA 需要在原生壳工程中配置 Android SDK/Gradle 或 Xcode 工具链，完成原生编译、签名及设备测试。
@@ -81,11 +83,20 @@ pnpm build:rn:ios       # dist/rn/ios/main.jsbundle + assets
 
 ```sh
 pnpm test
+pnpm test:unit
+pnpm test:contract
 pnpm check:platforms h5 weapp alipay swan tt qq jd kwai lark xhs harmony-hybrid
 pnpm format
+pnpm format:check
 pnpm generate:icons
 node scripts/pack-timezones.cjs
 ```
+
+`pnpm test` 先执行裁剪、原生样式、路由参数、传输加密和时区数据单元测试，再执行时间契约及缺少原生 Intl 时的兼容测试。CI 在 UTC、Asia/Shanghai、America/New_York 三个宿主时区重复执行 `test:contract`。
+
+PR 中验证 H5/微信构建、H5 登录与资料页，以及 Android/iOS JS bundle。完整 CI 模式增加表中其他已支持的小程序和鸿蒙目标。依赖按本工程声明的 pnpm 版本安装，使用 `--no-frozen-lockfile`；平台构建日志和浏览器失败诊断保存在 Actions artifact。流程与本地复现方式见[CI 说明](../../../ruoyi-fastapi-test/README.md#ci-分类与触发)。
+
+格式化使用 Prettier 3.6.2，与 Vue2/Vue3 的规则一致：2 空格缩进、单引号、不加分号、LF 换行。`pnpm format` 格式化整个工程，`pnpm format:check` 只检查；依赖、缓存、构建产物、锁文件、生成的时区/图标数据及 HTML 入口模板通过 `.prettierignore` 排除。CI 的 Quality 工作流统一检查六个前端工程。
 
 需要导入打包的图片放在 `src/assets`，底栏等静态路径资源保留在 `src/static`。不要从 `static` 导入图片模块：Taro H5 开发服务器会直接返回图片，绕过 Vite 的模块转换。
 

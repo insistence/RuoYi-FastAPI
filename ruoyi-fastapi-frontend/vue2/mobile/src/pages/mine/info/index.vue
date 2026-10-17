@@ -77,9 +77,7 @@
       </view>
 
       <!-- Create Time -->
-      <view
-        class="flex items-center justify-between px-5 py-4 active:bg-gray-50"
-      >
+      <view class="flex items-center justify-between px-5 py-4 active:bg-gray-50">
         <view class="flex items-center">
           <view
             class="flex size-9 items-center justify-center rounded-full bg-pink-50 text-pink-500"
@@ -95,34 +93,34 @@
 </template>
 
 <script>
-import { formatBusinessTime } from "@/utils/time";
-import { getUserProfile } from "@/api/system/user";
+import { formatBusinessTime } from '@/utils/time'
+import { getUserProfile } from '@/api/system/user'
 
 export default {
   data() {
     return {
       user: {},
-      roleGroup: "",
-      postGroup: "",
-    };
+      roleGroup: '',
+      postGroup: '',
+    }
   },
   onLoad() {
-    this.getUser();
+    this.getUser()
   },
   methods: {
     formatBusinessTime,
     async getUser() {
       try {
-        const [, response] = await Promise.all([this.$store.dispatch("GetInfo"), getUserProfile()]);
-        this.user = response.data;
-        this.roleGroup = response.roleGroup;
-        this.postGroup = response.postGroup;
+        const [, response] = await Promise.all([this.$store.dispatch('GetInfo'), getUserProfile()])
+        this.user = response.data
+        this.roleGroup = response.roleGroup
+        this.postGroup = response.postGroup
       } catch {
         // 请求工具已展示错误，保留空状态。
       }
     },
   },
-};
+}
 </script>
 
 <style>

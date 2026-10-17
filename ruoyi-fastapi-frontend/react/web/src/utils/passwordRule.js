@@ -10,7 +10,7 @@
  *   4 - 字母 + 数字 + 特殊字符（必须同时包含，特殊字符：~!@#$%^&*()-=_+）
  */
 
-import cache from "@/plugins/cache";
+import cache from '@/plugins/cache'
 
 // 密码限制类型
 
@@ -18,75 +18,74 @@ import cache from "@/plugins/cache";
 const PWD_RULES = {
   0: {
     pattern: /^[^<>"'|\\]+$/,
-    message: "密码不能包含非法字符：< > \" ' \\ |",
+    message: '密码不能包含非法字符：< > " \' \\ |',
   },
-  1: { pattern: /^[0-9]+$/, message: "密码只能为数字（0-9）" },
-  2: { pattern: /^[a-zA-Z]+$/, message: "密码只能为英文字母（a-z、A-Z）" },
+  1: { pattern: /^[0-9]+$/, message: '密码只能为数字（0-9）' },
+  2: { pattern: /^[a-zA-Z]+$/, message: '密码只能为英文字母（a-z、A-Z）' },
   3: {
     pattern: /^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]+$/,
-    message: "密码必须同时包含字母和数字",
+    message: '密码必须同时包含字母和数字',
   },
   4: {
-    pattern:
-      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[~!@#$%^&*()\-=_+])[A-Za-z\d~!@#$%^&*()\-=_+]+$/,
-    message: "密码必须同时包含字母、数字和特殊字符（~!@#$%^&*()-=_+）",
+    pattern: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[~!@#$%^&*()\-=_+])[A-Za-z\d~!@#$%^&*()\-=_+]+$/,
+    message: '密码必须同时包含字母、数字和特殊字符（~!@#$%^&*()-=_+）',
   },
-};
+}
 
 export function usePasswordRule() {
-  const pwdChrType = cache.session.get("pwrChrtype") || "0";
+  const pwdChrType = cache.session.get('pwrChrtype') || '0'
   // 默认密码校验
   const pwdValidator = (() => {
-    const rule = PWD_RULES[pwdChrType] || PWD_RULES["0"];
+    const rule = PWD_RULES[pwdChrType] || PWD_RULES['0']
     return [
-      { required: true, message: "密码不能为空", trigger: "blur" },
+      { required: true, message: '密码不能为空', trigger: 'blur' },
       {
         min: 6,
         max: 20,
-        message: "密码长度必须介于 6 和 20 之间",
-        trigger: "blur",
+        message: '密码长度必须介于 6 和 20 之间',
+        trigger: 'blur',
       },
-      { pattern: rule.pattern, message: rule.message, trigger: "blur" },
-    ];
-  })();
+      { pattern: rule.pattern, message: rule.message, trigger: 'blur' },
+    ]
+  })()
   // 校验prompt的inputValidator函数
   const pwdPromptValidator = (value) => {
-    const rule = PWD_RULES["0"];
+    const rule = PWD_RULES['0']
     if (!value || value.length < 6 || value.length > 20) {
-      return "密码长度必须介于 6 和 20 之间";
+      return '密码长度必须介于 6 和 20 之间'
     }
     if (!rule.pattern.test(value)) {
-      return rule.message;
+      return rule.message
     }
-  };
+  }
   // 个人中心密码校验
   const infoPwdValidator = (() => {
-    const rule = PWD_RULES[pwdChrType] || PWD_RULES["0"];
+    const rule = PWD_RULES[pwdChrType] || PWD_RULES['0']
     return [
-      { required: true, message: "新密码不能为空", trigger: "blur" },
+      { required: true, message: '新密码不能为空', trigger: 'blur' },
       {
         min: 6,
         max: 20,
-        message: "新密码长度必须介于 6 和 20 之间",
-        trigger: "blur",
+        message: '新密码长度必须介于 6 和 20 之间',
+        trigger: 'blur',
       },
-      { pattern: rule.pattern, message: rule.message, trigger: "blur" },
-    ];
-  })();
+      { pattern: rule.pattern, message: rule.message, trigger: 'blur' },
+    ]
+  })()
   // 注册页面密码校验
   const registerPwdValidator = (() => {
-    const rule = PWD_RULES["0"];
+    const rule = PWD_RULES['0']
     return [
-      { required: true, message: "请输入您的密码", trigger: "blur" },
+      { required: true, message: '请输入您的密码', trigger: 'blur' },
       {
         min: 6,
         max: 20,
-        message: "用户密码长度必须介于 6 和 20 之间",
-        trigger: "blur",
+        message: '用户密码长度必须介于 6 和 20 之间',
+        trigger: 'blur',
       },
-      { pattern: rule.pattern, message: rule.message, trigger: "blur" },
-    ];
-  })();
+      { pattern: rule.pattern, message: rule.message, trigger: 'blur' },
+    ]
+  })()
 
   return {
     pwdChrType,
@@ -94,5 +93,5 @@ export function usePasswordRule() {
     infoPwdValidator,
     pwdPromptValidator,
     registerPwdValidator,
-  };
+  }
 }

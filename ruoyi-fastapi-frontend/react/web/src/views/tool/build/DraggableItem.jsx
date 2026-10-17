@@ -1,6 +1,6 @@
-import { Button, Col, Form, Row, Space } from "antd";
-import { CopyOutlined, DeleteOutlined } from "@ant-design/icons";
-import FieldControl, { fieldItemProps } from "@/utils/generator/render";
+import { Button, Col, Form, Row, Space } from 'antd'
+import { CopyOutlined, DeleteOutlined } from '@ant-design/icons'
+import FieldControl, { fieldItemProps } from '@/utils/generator/render'
 export default function DraggableItem({
   field,
   activeId,
@@ -13,23 +13,26 @@ export default function DraggableItem({
   onValueChange,
 }) {
   return (
-    <Col xs={24} md={field.layout === "rowFormItem" ? 24 : field.span || 24}>
+    <Col
+      xs={24}
+      md={field.layout === 'rowFormItem' ? 24 : field.span || 24}
+    >
       <div
-        className={`builder-item ${field.formId === activeId ? "active" : ""}`}
+        className={`builder-item ${field.formId === activeId ? 'active' : ''}`}
         draggable
         onClick={(event) => {
-          event.stopPropagation();
-          onSelect(field.formId);
+          event.stopPropagation()
+          onSelect(field.formId)
         }}
         onDragStart={(event) => {
-          event.stopPropagation();
-          onDrag({ id: field.formId });
+          event.stopPropagation()
+          onDrag({ id: field.formId })
         }}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          onDrop(parentId, field.formId);
+          event.preventDefault()
+          event.stopPropagation()
+          onDrop(parentId, field.formId)
         }}
       >
         <Space className="builder-item-actions">
@@ -39,8 +42,8 @@ export default function DraggableItem({
             aria-label="复制组件"
             icon={<CopyOutlined />}
             onClick={(event) => {
-              event.stopPropagation();
-              onCopy(field.formId, parentId);
+              event.stopPropagation()
+              onCopy(field.formId, parentId)
             }}
           />
           <Button
@@ -50,23 +53,27 @@ export default function DraggableItem({
             aria-label="删除组件"
             icon={<DeleteOutlined />}
             onClick={(event) => {
-              event.stopPropagation();
-              onDelete(field.formId);
+              event.stopPropagation()
+              onDelete(field.formId)
             }}
           />
         </Space>
-        {field.layout === "rowFormItem" ? (
+        {field.layout === 'rowFormItem' ? (
           <div
             className="builder-row"
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onDrop(field.formId);
+              event.preventDefault()
+              event.stopPropagation()
+              onDrop(field.formId)
             }}
           >
             <small>行容器 · {field.componentName}</small>
-            <Row gutter={field.gutter} justify={field.justify} align={field.align}>
+            <Row
+              gutter={field.gutter}
+              justify={field.justify}
+              align={field.align}
+            >
               {field.children?.map((child) => (
                 <DraggableItem
                   key={child.formId}
@@ -94,21 +101,21 @@ export default function DraggableItem({
               field={field}
               design
               {...(fieldItemProps(field).getValueProps?.(field.defaultValue) || {
-                [fieldItemProps(field).valuePropName || "value"]: field.defaultValue,
+                [fieldItemProps(field).valuePropName || 'value']: field.defaultValue,
               })}
               onChange={(...args) => {
-                const adapter = fieldItemProps(field).getValueFromEvent;
+                const adapter = fieldItemProps(field).getValueFromEvent
                 const value = adapter
                   ? adapter(...args)
                   : args[0]?.target
                     ? args[0].target.value
-                    : args[0];
-                onValueChange?.(field.formId, value);
+                    : args[0]
+                onValueChange?.(field.formId, value)
               }}
             />
           </Form.Item>
         )}
       </div>
     </Col>
-  );
+  )
 }

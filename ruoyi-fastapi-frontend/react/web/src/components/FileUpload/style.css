@@ -9,10 +9,10 @@
   font-size: 12px;
   color: var(--ant-color-text-secondary);
 }
-.ruoyi-upload .upload-file-item[draggable="true"] {
+.ruoyi-upload .upload-file-item[draggable='true'] {
   cursor: grab;
 }
-.ruoyi-upload .upload-file-item[draggable="true"]:active {
+.ruoyi-upload .upload-file-item[draggable='true']:active {
   cursor: grabbing;
 }
 .ruoyi-upload .ant-upload-list-item {

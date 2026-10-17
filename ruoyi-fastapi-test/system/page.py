@@ -24,6 +24,11 @@ class SystemPage(BasePageTest):
     api: APIRequestContext
     list_path: str
 
+    @property
+    def is_react(self) -> bool:
+        """根据本轮框架使用真实组件选择器，不改变业务断言。"""
+        return Config.frontend_framework == 'react'
+
     async def setup(self, harness: BrowserHarness) -> None:
         """复用浏览器登录，并保留仅用于持久化核验和失败清理的 API 客户端。"""
         await super().setup(harness)
@@ -32,17 +37,21 @@ class SystemPage(BasePageTest):
     @property
     def form(self) -> Locator:
         """当前页面可见的查询表单。"""
-        return self.page.locator('.app-main .app-container .el-form:visible').first
+        selector = '.ant-form' if self.is_react else '.el-form'
+        return self.page.locator(f'.app-main .app-container {selector}:visible').first
 
     @property
     def dialog(self) -> Locator:
-        """Element UI 和 Element Plus 共用的可见弹窗。"""
-        return self.page.locator('.el-dialog:visible')
+        """当前组件库的可见编辑弹窗。"""
+        return self.page.locator('.ant-modal:visible' if self.is_react else '.el-dialog:visible')
 
     @property
     def rows(self) -> Locator:
         """主表格数据行，不重复计算 Element UI 固定列的镜像表格。"""
-        return self.page.locator('.el-table__body-wrapper:visible .el-table__row')
+        selector = (
+            '.ant-table-tbody > .ant-table-row' if self.is_react else '.el-table__body-wrapper:visible .el-table__row'
+        )
+        return self.page.locator(selector)
 
     def row(self, identity: str) -> Locator:
         """按当前测试记录的精确文本定位，避免误操作列表第一条业务数据。"""
@@ -51,14 +60,16 @@ class SystemPage(BasePageTest):
     @staticmethod
     def button(scope: Locator | Page, label: str) -> Locator:
         """图标字体可能进入 Vue2 可访问名称，因此按完整文字后缀匹配。"""
-        return scope.get_by_role('button', name=re.compile(rf'{re.escape(label)}\s*$'))
+        # Ant Design 的双字按钮可能在两字之间加入空格。
+        pattern = r'\s*'.join(re.escape(character) for character in label)
+        return scope.get_by_role('button', name=re.compile(rf'{pattern}\s*$'))
 
     def field(self, scope: Locator, label: str) -> Locator:
         """两种组件库都按真实表单标签定位，不依赖 Vue3 自动生成的 input id。"""
-        labels = self.page.locator('.el-form-item__label').filter(
-            has_text=re.compile(rf'^\s*{re.escape(label)}\s*[:：]?\s*$')
-        )
-        return scope.locator('.el-form-item:visible').filter(has=labels)
+        label_selector = '.ant-form-item-label' if self.is_react else '.el-form-item__label'
+        field_selector = '.ant-form-item' if self.is_react else '.el-form-item'
+        labels = self.page.locator(label_selector).filter(has_text=re.compile(rf'^\s*{re.escape(label)}\s*[:：]?\s*$'))
+        return scope.locator(f'{field_selector}:visible').filter(has=labels)
 
     def input(self, scope: Locator, label: str) -> Locator:
         """返回字段内的文本、密码或数字输入框。"""
@@ -70,16 +81,21 @@ class SystemPage(BasePageTest):
 
     async def choose(self, scope: Locator, label: str, option: str) -> None:
         """选择两种 Element 组件库中的下拉选项。"""
-        await self.field(scope, label).locator('.el-select').click()
-        choices = self.page.locator('.el-select-dropdown:visible .el-select-dropdown__item').filter(
-            has_text=re.compile(rf'^\s*{re.escape(option)}\s*$')
+        await self.field(scope, label).locator('.ant-select' if self.is_react else '.el-select').click()
+        selector = (
+            '.ant-select-dropdown:visible .ant-select-item-option'
+            if self.is_react
+            else '.el-select-dropdown:visible .el-select-dropdown__item'
         )
+        choices = self.page.locator(selector).filter(has_text=re.compile(rf'^\s*{re.escape(option)}\s*$'))
         await choices.click()
 
     async def radio(self, scope: Locator, label: str, option: str) -> None:
         """选择并核对单选项。"""
         choice = (
-            self.field(scope, label).locator('.el-radio').filter(has_text=re.compile(rf'^\s*{re.escape(option)}\s*$'))
+            self.field(scope, label)
+            .locator('.ant-radio-wrapper' if self.is_react else '.el-radio')
+            .filter(has_text=re.compile(rf'^\s*{re.escape(option)}\s*$'))
         )
         await choice.click()
         await expect(choice.locator('input[type=radio]')).to_be_checked()
@@ -114,8 +130,10 @@ class SystemPage(BasePageTest):
 
     async def rendered(self) -> None:
         """等待列表遮罩消失；具体行和值由调用方继续断言。"""
-        await expect(self.page.locator('.app-main .el-loading-mask:visible')).to_have_count(0)
-        await expect(self.page.locator('.app-main .el-table:visible').first).to_be_visible()
+        loading = '.ant-spin-spinning' if self.is_react else '.el-loading-mask'
+        table = '.ant-table' if self.is_react else '.el-table'
+        await expect(self.page.locator(f'.app-main {loading}:visible')).to_have_count(0)
+        await expect(self.page.locator(f'.app-main {table}:visible').first).to_be_visible()
 
     async def open(self, route: str, list_path: str) -> dict:
         """打开真实管理页面并核对首个列表响应。"""
@@ -202,7 +220,7 @@ class SystemPage(BasePageTest):
 
     async def confirm_refresh(self, path: str, method: str = 'DELETE') -> dict:
         """确认危险操作，并等待操作及其列表刷新均成功。"""
-        confirmation = self.page.locator('.el-message-box:visible')
+        confirmation = self.page.locator('.ant-modal-confirm:visible' if self.is_react else '.el-message-box:visible')
         await expect(confirmation).to_be_visible()
         async with self.page.expect_response(lambda response: self.matches(response, self.list_path, 'GET')) as listed:
             await self.action(confirmation.get_by_role('button', name=re.compile(r'^确\s*定$')).click, path, method)

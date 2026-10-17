@@ -4,12 +4,8 @@
     <view
       class="relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 pb-20 pt-16 text-white shadow-lg"
     >
-      <view
-        class="absolute -right-10 -top-10 size-64 rounded-full bg-white/10 blur-3xl"
-      ></view>
-      <view
-        class="absolute -bottom-10 -left-10 size-40 rounded-full bg-white/10 blur-2xl"
-      ></view>
+      <view class="absolute -right-10 -top-10 size-64 rounded-full bg-white/10 blur-3xl"></view>
+      <view class="absolute -bottom-10 -left-10 size-40 rounded-full bg-white/10 blur-2xl"></view>
 
       <view class="relative z-10 flex items-center justify-between px-6">
         <view class="flex items-center space-x-4">
@@ -48,7 +44,11 @@
                 <view class="i-mdi-chevron-right ml-1 text-xs"></view>
               </view>
             </template>
-            <view v-else class="text-xl font-bold" @click="handleToLogin">
+            <view
+              v-else
+              class="text-xl font-bold"
+              @click="handleToLogin"
+            >
               点击登录
             </view>
           </view>
@@ -109,9 +109,7 @@
       </view>
 
       <!-- Menu List -->
-      <view
-        class="overflow-hidden rounded-2xl bg-white shadow-lg shadow-gray-200/50"
-      >
+      <view class="overflow-hidden rounded-2xl bg-white shadow-lg shadow-gray-200/50">
         <view
           class="group flex items-center justify-between border-b border-gray-100 p-4 transition-colors active:bg-gray-50"
           @click="handleToEditInfo"
@@ -166,47 +164,47 @@ export default {
     return {
       // In Vue 2 we access store state directly or via mapState,
       // but here we keep it simple as in the original Vue 2 file
-    };
+    }
   },
   computed: {
     name() {
-      return this.$store.state.user.name;
+      return this.$store.state.user.name
     },
     avatar() {
-      return this.$store.state.user.avatar;
+      return this.$store.state.user.avatar
     },
     windowHeight() {
-      return uni.getSystemInfoSync().windowHeight - 50;
+      return uni.getSystemInfoSync().windowHeight - 50
     },
   },
   methods: {
     handleToInfo() {
-      this.$tab.navigateTo("/pages/mine/info/index");
+      this.$tab.navigateTo('/pages/mine/info/index')
     },
     handleToEditInfo() {
-      this.$tab.navigateTo("/pages/mine/info/edit");
+      this.$tab.navigateTo('/pages/mine/info/edit')
     },
     handleToSetting() {
-      this.$tab.navigateTo("/pages/mine/setting/index");
+      this.$tab.navigateTo('/pages/mine/setting/index')
     },
     handleToLogin() {
-      this.$tab.reLaunch("/pages/login");
+      this.$tab.reLaunch('/pages/login')
     },
     handleToAvatar() {
-      this.$tab.navigateTo("/pages/mine/avatar/index");
+      this.$tab.navigateTo('/pages/mine/avatar/index')
     },
     handleHelp() {
-      this.$tab.navigateTo("/pages/mine/help/index");
+      this.$tab.navigateTo('/pages/mine/help/index')
     },
     handleAbout() {
-      this.$tab.navigateTo("/pages/mine/about/index");
+      this.$tab.navigateTo('/pages/mine/about/index')
     },
     handleJiaoLiuQun() {
-      this.$modal.showToast("模块建设中~");
+      this.$modal.showToast('模块建设中~')
     },
     handleBuilding() {
-      this.$modal.showToast("模块建设中~");
+      this.$modal.showToast('模块建设中~')
     },
   },
-};
+}
 </script>

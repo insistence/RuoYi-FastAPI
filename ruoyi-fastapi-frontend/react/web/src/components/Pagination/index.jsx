@@ -1,6 +1,6 @@
-import "@/assets/styles/components.css";
-import { useEffect, useState } from "react";
-import { InputNumber, Pagination as AntPagination, Select } from "antd";
+import '@/assets/styles/components.css'
+import { useEffect, useState } from 'react'
+import { InputNumber, Pagination as AntPagination, Select } from 'antd'
 export default function Pagination({
   total,
   page = 1,
@@ -8,15 +8,15 @@ export default function Pagination({
   onChange,
   pageSizes = [10, 20, 30, 50],
 }) {
-  const [jump, setJump] = useState(page);
-  useEffect(() => setJump(page), [page]);
-  const lastPage = Math.max(1, Math.ceil(total / limit));
-  const changePage = (pageNum, pageSize = limit) => onChange({ pageNum, pageSize });
+  const [jump, setJump] = useState(page)
+  useEffect(() => setJump(page), [page])
+  const lastPage = Math.max(1, Math.ceil(total / limit))
+  const changePage = (pageNum, pageSize = limit) => onChange({ pageNum, pageSize })
   const commitJump = () => {
-    const next = Math.max(1, Math.min(lastPage, Math.floor(Number(jump) || 1)));
-    setJump(next);
-    if (next !== page) changePage(next);
-  };
+    const next = Math.max(1, Math.min(lastPage, Math.floor(Number(jump) || 1)))
+    setJump(next)
+    if (next !== page) changePage(next)
+  }
   return (
     total > 0 && (
       <div className="pagination">
@@ -38,7 +38,7 @@ export default function Pagination({
           onChange={(pageNum) => changePage(pageNum)}
         />
         <span className="pagination-jumper">
-          前往{" "}
+          前往{' '}
           <InputNumber
             aria-label="页"
             value={jump}
@@ -48,10 +48,10 @@ export default function Pagination({
             onChange={setJump}
             onPressEnter={commitJump}
             onBlur={commitJump}
-          />{" "}
+          />{' '}
           页
         </span>
       </div>
     )
-  );
+  )
 }

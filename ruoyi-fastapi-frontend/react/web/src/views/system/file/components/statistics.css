@@ -60,7 +60,7 @@
   background-color: var(--stat-color);
   border-radius: 50%;
   opacity: 0.05;
-  content: "";
+  content: '';
 }
 
 .file-stat-item:hover {

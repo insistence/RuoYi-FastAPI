@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import * as gates from '../../src/utils/pluginCapabilities.js'
 
-
 import { getPluginReleaseView } from '../../src/utils/pluginReleaseFormatter.js'
 
 const plugin = {
@@ -90,4 +89,3 @@ const local = { source: 'local', status: 'discovered' }
 assert.equal(gates.canSelectForBatch(local), true)
 assert.equal(gates.canInstall(local), true)
 assert.equal(gates.isOperationBlocked(local, 'install'), false)
-

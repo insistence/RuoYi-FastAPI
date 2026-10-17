@@ -1,18 +1,18 @@
-import TableActions, { TableAction } from "@/components/TableActions";
-import "./style.css";
-import { useEffect, useState } from "react";
-import { Alert, Button, Descriptions, Modal, Space, Tabs } from "antd";
-import Table from "@/components/Table";
-import HasPermi from "@/directive/permission/hasPermi";
-import { getPluginReleaseView } from "@/utils/pluginReleaseFormatter";
+import TableActions, { TableAction } from '@/components/TableActions'
+import './style.css'
+import { useEffect, useState } from 'react'
+import { Alert, Button, Descriptions, Modal, Space, Tabs } from 'antd'
+import Table from '@/components/Table'
+import HasPermi from '@/directive/permission/hasPermi'
+import { getPluginReleaseView } from '@/utils/pluginReleaseFormatter'
 import {
   formatConfigConstraint,
   formatConfigDefaultValue,
   formatPluginTime,
   getStatusLabel,
-} from "../formatter";
-import PluginRuntimeMetrics from "./PluginRuntimeMetrics";
-import PluginTag from "./PluginTag";
+} from '../formatter'
+import PluginRuntimeMetrics from './PluginRuntimeMetrics'
+import PluginTag from './PluginTag'
 
 export default function PluginDetailDialog({
   detail,
@@ -22,12 +22,12 @@ export default function PluginDetailDialog({
   onMarkMigration,
   onRepair,
 }) {
-  const [tab, setTab] = useState("overview"),
+  const [tab, setTab] = useState('overview'),
     item = detail || {},
-    release = getPluginReleaseView(item);
+    release = getPluginReleaseView(item)
   useEffect(() => {
-    if (detail) setTab("overview");
-  }, [detail]);
+    if (detail) setTab('overview')
+  }, [detail])
   const descriptions = (rows) => (
     <Descriptions
       bordered
@@ -37,24 +37,24 @@ export default function PluginDetailDialog({
       items={rows.map(([label, children]) => ({
         key: label,
         span: [
-          "最近错误",
-          "插件说明",
-          "Worker 状态",
-          "目标制品摘要",
-          "已准备摘要",
-          "发布代际",
-          "已安装数据结构版本",
-          "后端路径",
-          "后端模块",
-          "前端路径",
+          '最近错误',
+          '插件说明',
+          'Worker 状态',
+          '目标制品摘要',
+          '已准备摘要',
+          '发布代际',
+          '已安装数据结构版本',
+          '后端路径',
+          '后端模块',
+          '前端路径',
         ].includes(label)
           ? 2
           : 1,
         label,
-        children: children === "" || children == null ? "-" : children,
+        children: children === '' || children == null ? '-' : children,
       }))}
     />
-  );
+  )
   const table = (rows, columns, key, emptyText) => (
     <Table
       size="small"
@@ -64,9 +64,9 @@ export default function PluginDetailDialog({
       columns={columns}
       pagination={false}
       locale={emptyText ? { emptyText } : undefined}
-      scroll={{ x: "max-content" }}
+      scroll={{ x: 'max-content' }}
     />
-  );
+  )
   const textColumns = (fields) =>
     fields.map(([dataIndex, title, width]) => ({
       dataIndex,
@@ -94,37 +94,41 @@ export default function PluginDetailDialog({
         migrationPath: 220,
         callable: 220,
       }[dataIndex],
-      ellipsis: !["type", "orderNum", "attemptCount", "statementCount"].includes(dataIndex),
-      render: (value) => (value === "" || value == null ? "-" : value),
-      align: ["type", "orderNum", "version", "attemptCount", "statementCount"].includes(dataIndex)
-        ? "center"
-        : "left",
-    }));
-  const normalizeItems = (items) => (Array.isArray(items) ? items.filter(Boolean) : []);
+      ellipsis: !['type', 'orderNum', 'attemptCount', 'statementCount'].includes(dataIndex),
+      render: (value) => (value === '' || value == null ? '-' : value),
+      align: ['type', 'orderNum', 'version', 'attemptCount', 'statementCount'].includes(dataIndex)
+        ? 'center'
+        : 'left',
+    }))
+  const normalizeItems = (items) => (Array.isArray(items) ? items.filter(Boolean) : [])
   const dependencies = [
-    ["python", "Python", "success"],
-    ["npm", "npm", "primary"],
-    ["npmDev", "npmDev", "warning"],
+    ['python', 'Python', 'success'],
+    ['npm', 'npm', 'primary'],
+    ['npmDev', 'npmDev', 'warning'],
   ].map(([kind, label, tagType]) => ({
     kind,
     label,
     tagType,
     items: normalizeItems(item.dependencies?.[kind]),
-  }));
+  }))
   const scripts = [
-    { kind: "migration", label: "Migration", items: normalizeItems(item.backend?.migrations) },
-    { kind: "seed", label: "Seed", items: normalizeItems(item.backend?.seeds) },
-  ];
+    { kind: 'migration', label: 'Migration', items: normalizeItems(item.backend?.migrations) },
+    { kind: 'seed', label: 'Seed', items: normalizeItems(item.backend?.seeds) },
+  ]
   const listColumns = [
-    { width: 120, align: "center", title: "类型", dataIndex: "label" },
-    { width: 80, align: "center", title: "数量", render: (_, row) => row.items.length },
+    { width: 120, align: 'center', title: '类型', dataIndex: 'label' },
+    { width: 80, align: 'center', title: '数量', render: (_, row) => row.items.length },
     {
-      title: "依赖项",
+      title: '依赖项',
       minWidth: 520,
       render: (_, row) => (
         <div className="detail-tag-list">
           {row.items.map((value) => (
-            <PluginTag key={value} type={row.tagType || "info"} effect="plain">
+            <PluginTag
+              key={value}
+              type={row.tagType || 'info'}
+              effect="plain"
+            >
               {value}
             </PluginTag>
           ))}
@@ -132,7 +136,7 @@ export default function PluginDetailDialog({
         </div>
       ),
     },
-  ];
+  ]
   return (
     <Modal
       className="plugin-dialog plugin-detail-dialog"
@@ -143,9 +147,12 @@ export default function PluginDetailDialog({
       destroyOnHidden
       footer={
         <Space>
-          {item.status === "error" && item.source !== "artifact" && (
-            <HasPermi value={["system:plugin:edit"]}>
-              <Button type="primary" onClick={onRepair}>
+          {item.status === 'error' && item.source !== 'artifact' && (
+            <HasPermi value={['system:plugin:edit']}>
+              <Button
+                type="primary"
+                onClick={onRepair}
+              >
                 重新安装修复
               </Button>
             </HasPermi>
@@ -160,28 +167,28 @@ export default function PluginDetailDialog({
         destroyOnHidden
         items={[
           {
-            key: "overview",
-            label: "概览",
+            key: 'overview',
+            label: '概览',
             children: (
               <>
                 <div className="detail-section-title">基础信息</div>
                 {descriptions([
-                  ["插件ID", item.pluginId],
-                  ["插件名称", item.pluginName],
-                  [item.source === "artifact" ? "制品版本" : "源码版本", item.version],
-                  ["已安装版本", item.installedVersion],
-                  ["启用设置", item.enabled === "0" ? "启用" : "停用"],
-                  ["插件状态", getStatusLabel(item.status)],
-                  ["来源", item.source],
-                  ["更新时间", formatPluginTime(item.updateTime)],
-                  ["分类", item.metadata?.category],
-                  ["标签", item.metadata?.tags?.join(", ")],
-                  ["作者", item.metadata?.author],
-                  ["许可证", item.metadata?.license],
-                  ["最近错误", item.lastError],
-                  ["插件说明", item.description],
+                  ['插件ID', item.pluginId],
+                  ['插件名称', item.pluginName],
+                  [item.source === 'artifact' ? '制品版本' : '源码版本', item.version],
+                  ['已安装版本', item.installedVersion],
+                  ['启用设置', item.enabled === '0' ? '启用' : '停用'],
+                  ['插件状态', getStatusLabel(item.status)],
+                  ['来源', item.source],
+                  ['更新时间', formatPluginTime(item.updateTime)],
+                  ['分类', item.metadata?.category],
+                  ['标签', item.metadata?.tags?.join(', ')],
+                  ['作者', item.metadata?.author],
+                  ['许可证', item.metadata?.license],
+                  ['最近错误', item.lastError],
+                  ['插件说明', item.description],
                 ])}
-                {item.source === "artifact" && (
+                {item.source === 'artifact' && (
                   <>
                     <div className="detail-section-title">制品发布</div>
                     {release.unavailable && (
@@ -211,26 +218,26 @@ export default function PluginDetailDialog({
                       />
                     )}
                     {descriptions([
-                      ["发布状态", <PluginTag type={release.tagType}>{release.label}</PluginTag>],
-                      ["维护准备", release.preparationLabel],
-                      ["Worker 状态", release.workerSummary],
+                      ['发布状态', <PluginTag type={release.tagType}>{release.label}</PluginTag>],
+                      ['维护准备', release.preparationLabel],
+                      ['Worker 状态', release.workerSummary],
                       [
-                        "目标匹配 / 停用确认",
+                        '目标匹配 / 停用确认',
                         `${release.counts.healthy} / ${release.counts.disabled}`,
                       ],
-                      ["不一致 / 失败", `${release.counts.mismatch} / ${release.counts.failed}`],
-                      ["未确认 / 心跳过期", `${release.counts.missing} / ${release.counts.stale}`],
-                      ["目标代码版本", item.release?.targetVersion],
-                      ["目标制品摘要", <code>{item.release?.targetDigest || "未选择目标"}</code>],
+                      ['不一致 / 失败', `${release.counts.mismatch} / ${release.counts.failed}`],
+                      ['未确认 / 心跳过期', `${release.counts.missing} / ${release.counts.stale}`],
+                      ['目标代码版本', item.release?.targetVersion],
+                      ['目标制品摘要', <code>{item.release?.targetDigest || '未选择目标'}</code>],
                       [
-                        "已准备摘要",
-                        <code>{item.release?.preparedDigest || "尚未完成维护准备"}</code>,
+                        '已准备摘要',
+                        <code>{item.release?.preparedDigest || '尚未完成维护准备'}</code>,
                       ],
-                      ["发布代际", <code>{item.release?.generation || "-"}</code>],
+                      ['发布代际', <code>{item.release?.generation || '-'}</code>],
                       [
-                        "已安装数据结构版本",
+                        '已安装数据结构版本',
                         <>
-                          {item.installedVersion || "-"}
+                          {item.installedVersion || '-'}
                           <div className="release-explanation">
                             表示数据库迁移和安装资源已到达的版本；代码回滚不会降低此版本。worker
                             是否使用目标代码由发布状态确认。
@@ -242,128 +249,128 @@ export default function PluginDetailDialog({
                 )}
                 <div className="detail-section-title">后端声明</div>
                 {descriptions([
-                  ["后端路径", item.backendPath],
-                  ["后端模块", item.backend?.module],
+                  ['后端路径', item.backendPath],
+                  ['后端模块', item.backend?.module],
                   [
-                    "自动扫描路由",
+                    '自动扫描路由',
                     item.backend?.autoScanRouters == null
-                      ? "-"
+                      ? '-'
                       : item.backend.autoScanRouters
-                        ? "是"
-                        : "否",
+                        ? '是'
+                        : '否',
                   ],
-                  ["定时任务", item.backend?.jobs?.length || 0],
+                  ['定时任务', item.backend?.jobs?.length || 0],
                 ])}
                 <div className="detail-section-title">前端声明</div>
                 {descriptions([
-                  ["前端路径", item.frontendPath],
-                  ["前端插件ID", item.frontend?.pluginId],
-                  ["前端基础路径", item.frontend?.basePath],
-                  ["视图目录", item.frontend?.viewsPath],
-                  ["API 目录", item.frontend?.apiPath],
+                  ['前端路径', item.frontendPath],
+                  ['前端插件ID', item.frontend?.pluginId],
+                  ['前端基础路径', item.frontend?.basePath],
+                  ['视图目录', item.frontend?.viewsPath],
+                  ['API 目录', item.frontend?.apiPath],
                   [
-                    "前端交付",
+                    '前端交付',
                     {
-                      none: "无前端资源",
-                      source: "源码交付",
-                      bundle: "独立前端制品",
+                      none: '无前端资源',
+                      source: '源码交付',
+                      bundle: '独立前端制品',
                     }[item.frontend?.delivery?.type] || item.frontend?.delivery?.type,
                   ],
-                  ["菜单声明", item.frontend?.menus?.length || 0],
+                  ['菜单声明', item.frontend?.menus?.length || 0],
                 ])}
               </>
             ),
           },
           {
-            key: "metrics",
-            label: "运行观测",
+            key: 'metrics',
+            label: '运行观测',
             children:
-              detail && tab === "metrics" ? (
+              detail && tab === 'metrics' ? (
                 <PluginRuntimeMetrics pluginId={item.pluginId} />
               ) : null,
           },
           {
-            key: "menus",
-            label: "菜单",
+            key: 'menus',
+            label: '菜单',
             children: table(
               item.frontend?.menus,
               textColumns([
-                ["name", "名称"],
-                ["path", "路径"],
-                ["component", "组件"],
-                ["perms", "权限"],
-                ["type", "类型"],
-                ["orderNum", "排序"],
+                ['name', '名称'],
+                ['path', '路径'],
+                ['component', '组件'],
+                ['perms', '权限'],
+                ['type', '类型'],
+                ['orderNum', '排序'],
               ]),
               (row) => row.path || row.perms || row.name,
-              "暂无菜单声明",
+              '暂无菜单声明'
             ),
           },
           {
-            key: "permissions",
-            label: "权限",
+            key: 'permissions',
+            label: '权限',
             children: table(
               item.permissions,
               textColumns([
-                ["code", "权限标识"],
-                ["name", "展示名称"],
-                ["description", "说明"],
+                ['code', '权限标识'],
+                ['name', '展示名称'],
+                ['description', '说明'],
               ]),
-              "code",
-              "暂无权限声明",
+              'code',
+              '暂无权限声明'
             ),
           },
           {
-            key: "config",
-            label: "配置",
+            key: 'config',
+            label: '配置',
             children: table(
               item.config,
               [
                 ...textColumns([
-                  ["key", "配置键"],
-                  ["label", "名称"],
-                  ["type", "类型", 100],
+                  ['key', '配置键'],
+                  ['label', '名称'],
+                  ['type', '类型', 100],
                 ]),
                 {
                   width: 70,
-                  align: "center",
-                  title: "必填",
-                  dataIndex: "required",
+                  align: 'center',
+                  title: '必填',
+                  dataIndex: 'required',
                   render: (value) => (
-                    <PluginTag type={value ? "warning" : "info"}>{value ? "是" : "否"}</PluginTag>
+                    <PluginTag type={value ? 'warning' : 'info'}>{value ? '是' : '否'}</PluginTag>
                   ),
                 },
                 {
                   width: 70,
-                  align: "center",
-                  title: "敏感",
-                  dataIndex: "secret",
+                  align: 'center',
+                  title: '敏感',
+                  dataIndex: 'secret',
                   render: (value) => (
-                    <PluginTag type={value ? "warning" : "info"}>{value ? "是" : "否"}</PluginTag>
+                    <PluginTag type={value ? 'warning' : 'info'}>{value ? '是' : '否'}</PluginTag>
                   ),
                 },
-                { width: 160, title: "默认值", render: (_, row) => formatConfigDefaultValue(row) },
-                { width: 200, title: "约束", render: (_, row) => formatConfigConstraint(row) },
-                { title: "说明", dataIndex: "description", minWidth: 220, ellipsis: true },
+                { width: 160, title: '默认值', render: (_, row) => formatConfigDefaultValue(row) },
+                { width: 200, title: '约束', render: (_, row) => formatConfigConstraint(row) },
+                { title: '说明', dataIndex: 'description', minWidth: 220, ellipsis: true },
               ],
-              "key",
-              "暂无配置声明",
+              'key',
+              '暂无配置声明'
             ),
           },
           {
-            key: "dependencies",
-            label: "依赖",
+            key: 'dependencies',
+            label: '依赖',
             children: (
               <>
                 <div className="detail-section-title">运行依赖</div>
-                {table(dependencies, listColumns, "kind")}
+                {table(dependencies, listColumns, 'kind')}
                 <div className="detail-section-title">数据库脚本</div>
                 {table(
                   scripts,
                   listColumns.map((column) =>
-                    column.title === "依赖项" ? { ...column, title: "脚本" } : column,
+                    column.title === '依赖项' ? { ...column, title: '脚本' } : column
                   ),
-                  "kind",
+                  'kind'
                 )}
                 <div className="detail-section-title">执行历史</div>
                 <Table
@@ -372,69 +379,69 @@ export default function PluginDetailDialog({
                   bordered
                   loading={migrationLoading}
                   dataSource={migrations}
-                  locale={{ emptyText: "暂无 migration 执行历史" }}
+                  locale={{ emptyText: '暂无 migration 执行历史' }}
                   pagination={false}
                   scroll={{ x: 1300 }}
                   columns={[
                     ...textColumns([
-                      ["migrationPath", "脚本"],
-                      ["version", "版本"],
+                      ['migrationPath', '脚本'],
+                      ['version', '版本'],
                     ]),
                     {
                       width: 120,
-                      align: "center",
-                      title: "状态",
-                      dataIndex: "status",
+                      align: 'center',
+                      title: '状态',
+                      dataIndex: 'status',
                       render: (value) => (
                         <PluginTag
                           type={
                             {
-                              running: "warning",
-                              success: "success",
-                              failed: "danger",
-                            }[value] || "info"
+                              running: 'warning',
+                              success: 'success',
+                              failed: 'danger',
+                            }[value] || 'info'
                           }
                         >
                           {{
-                            running: "执行中/中断",
-                            success: "成功",
-                            failed: "失败",
-                            unknown: "未知",
+                            running: '执行中/中断',
+                            success: '成功',
+                            failed: '失败',
+                            unknown: '未知',
                           }[value] ||
                             value ||
-                            "-"}
+                            '-'}
                         </PluginTag>
                       ),
                     },
                     ...textColumns([
-                      ["attemptCount", "次数"],
-                      ["statementCount", "语句"],
+                      ['attemptCount', '次数'],
+                      ['statementCount', '语句'],
                     ]),
                     {
                       width: 160,
-                      align: "center",
-                      title: "开始时间",
+                      align: 'center',
+                      title: '开始时间',
                       render: (_, row) => formatPluginTime(row.startedTime || row.createTime),
                     },
                     {
                       width: 160,
-                      align: "center",
-                      title: "结束时间",
-                      dataIndex: "finishedTime",
+                      align: 'center',
+                      title: '结束时间',
+                      dataIndex: 'finishedTime',
                       render: formatPluginTime,
                     },
-                    { width: 220, title: "错误信息", dataIndex: "errorMessage" },
+                    { width: 220, title: '错误信息', dataIndex: 'errorMessage' },
                     {
-                      className: "ruoyi-actions-cell",
-                      align: "center",
-                      title: "操作",
-                      fixed: "right",
+                      className: 'ruoyi-actions-cell',
+                      align: 'center',
+                      title: '操作',
+                      fixed: 'right',
                       width: 110,
                       render: (_, row) =>
-                        item.source !== "artifact" && (
-                          <HasPermi value={["system:plugin:edit"]}>
+                        item.source !== 'artifact' && (
+                          <HasPermi value={['system:plugin:edit']}>
                             <TableActions>
-                              {["running", "failed"].includes(row.status) && (
+                              {['running', 'failed'].includes(row.status) && (
                                 <TableAction
                                   iconOnly={true}
                                   tone="success"
@@ -444,7 +451,7 @@ export default function PluginDetailDialog({
                                   标记成功
                                 </TableAction>
                               )}
-                              {row.status === "running" && (
+                              {row.status === 'running' && (
                                 <TableAction
                                   iconOnly={true}
                                   tone="danger"
@@ -464,38 +471,38 @@ export default function PluginDetailDialog({
                 {table(
                   item.pluginDependencies,
                   [
-                    { title: "插件ID", dataIndex: "id", width: 160, ellipsis: true },
-                    { title: "版本约束", dataIndex: "version", width: 140, ellipsis: true },
-                    { title: "说明", dataIndex: "description", width: 220, ellipsis: true },
+                    { title: '插件ID', dataIndex: 'id', width: 160, ellipsis: true },
+                    { title: '版本约束', dataIndex: 'version', width: 140, ellipsis: true },
+                    { title: '说明', dataIndex: 'description', width: 220, ellipsis: true },
                   ],
-                  "id",
-                  "暂无插件依赖",
+                  'id',
+                  '暂无插件依赖'
                 )}
                 <div className="detail-section-title">定时任务</div>
                 {table(
                   item.backend?.jobs,
                   [
                     ...textColumns([
-                      ["id", "任务ID"],
-                      ["name", "名称"],
-                      ["callable", "调用目标"],
-                      ["cronExpression", "Cron"],
+                      ['id', '任务ID'],
+                      ['name', '名称'],
+                      ['callable', '调用目标'],
+                      ['cronExpression', 'Cron'],
                     ]),
                     {
                       width: 90,
-                      align: "center",
-                      title: "默认启用",
-                      dataIndex: "enabled",
+                      align: 'center',
+                      title: '默认启用',
+                      dataIndex: 'enabled',
                       render: (value) => (
-                        <PluginTag type={value ? "success" : "info"}>
-                          {value ? "是" : "否"}
+                        <PluginTag type={value ? 'success' : 'info'}>
+                          {value ? '是' : '否'}
                         </PluginTag>
                       ),
                     },
-                    { title: "说明", dataIndex: "description" },
+                    { title: '说明', dataIndex: 'description' },
                   ],
-                  "id",
-                  "暂无定时任务声明",
+                  'id',
+                  '暂无定时任务声明'
                 )}
               </>
             ),
@@ -503,5 +510,5 @@ export default function PluginDetailDialog({
         ]}
       />
     </Modal>
-  );
+  )
 }

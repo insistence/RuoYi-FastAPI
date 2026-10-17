@@ -1,23 +1,22 @@
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc.js";
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc.js'
 
-dayjs.extend(utc);
+dayjs.extend(utc)
 
-const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
-const WALL_TIME_PATTERN =
-  /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/;
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
+const WALL_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/
 const RFC3339_PATTERN =
-  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/;
-const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const MILLISECONDS_PER_SECOND = 1000;
-const MILLISECONDS_PER_MINUTE = 60 * MILLISECONDS_PER_SECOND;
-const MILLISECONDS_PER_HOUR = 60 * MILLISECONDS_PER_MINUTE;
-const ORIGINAL_TIME_FIELDS = Symbol("originalTimeFields");
-const timezoneFormatters = new Map();
+  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+const MILLISECONDS_PER_SECOND = 1000
+const MILLISECONDS_PER_MINUTE = 60 * MILLISECONDS_PER_SECOND
+const MILLISECONDS_PER_HOUR = 60 * MILLISECONDS_PER_MINUTE
+const ORIGINAL_TIME_FIELDS = Symbol('originalTimeFields')
+const timezoneFormatters = new Map()
 
-const businessTimezone = { value: "Asia/Shanghai" };
-const userTimezone = { value: "auto" };
-const deviceTimezone = { value: null };
+const businessTimezone = { value: 'Asia/Shanghai' }
+const userTimezone = { value: 'auto' }
+const deviceTimezone = { value: null }
 
 /**
  * 日期时间输入校验异常，包含夏令时重复时间的候选值。
@@ -29,9 +28,9 @@ export class TimeInputError extends Error {
    * @param {Array<{epoch: number, offset: string, value: string}>} candidates 可选的真实时刻
    */
   constructor(message, code, candidates = []) {
-    super(message);
-    this.code = code;
-    this.candidates = candidates;
+    super(message)
+    this.code = code
+    this.candidates = candidates
   }
 }
 
@@ -42,35 +41,31 @@ export class TimeInputError extends Error {
  * @returns {Intl.DateTimeFormat} 格式化器实例
  */
 function getFormatter(timezoneName) {
-  if (
-    typeof timezoneName !== "string" ||
-    !timezoneName.trim() ||
-    /^[+-]/.test(timezoneName)
-  ) {
-    throw new Error(`无效的 IANA 时区: ${timezoneName}`);
+  if (typeof timezoneName !== 'string' || !timezoneName.trim() || /^[+-]/.test(timezoneName)) {
+    throw new Error(`无效的 IANA 时区: ${timezoneName}`)
   }
 
-  const name = timezoneName.trim();
+  const name = timezoneName.trim()
   if (!timezoneFormatters.has(name)) {
     try {
-      const formatter = new Intl.DateTimeFormat("en", {
+      const formatter = new Intl.DateTimeFormat('en', {
         timeZone: name,
-        calendar: "gregory",
-        numberingSystem: "latn",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hourCycle: "h23",
-      });
-      timezoneFormatters.set(name, formatter);
+        calendar: 'gregory',
+        numberingSystem: 'latn',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      })
+      timezoneFormatters.set(name, formatter)
     } catch {
-      throw new Error(`无效的 IANA 时区: ${timezoneName}`);
+      throw new Error(`无效的 IANA 时区: ${timezoneName}`)
     }
   }
-  return timezoneFormatters.get(name);
+  return timezoneFormatters.get(name)
 }
 
 /**
@@ -80,8 +75,8 @@ function getFormatter(timezoneName) {
  * @returns {void}
  */
 export function setBusinessTimezone(timezoneName) {
-  getFormatter(timezoneName);
-  businessTimezone.value = timezoneName.trim();
+  getFormatter(timezoneName)
+  businessTimezone.value = timezoneName.trim()
 }
 
 /**
@@ -90,7 +85,7 @@ export function setBusinessTimezone(timezoneName) {
  * @returns {string} IANA 时区名称
  */
 export function getBusinessTimezone() {
-  return businessTimezone.value;
+  return businessTimezone.value
 }
 
 /**
@@ -99,12 +94,12 @@ export function getBusinessTimezone() {
  * @param {string} preference 账号保存的时区偏好
  * @returns {void}
  */
-export function setUserTimezone(preference = "auto") {
-  if (preference !== "auto") {
-    getFormatter(preference);
+export function setUserTimezone(preference = 'auto') {
+  if (preference !== 'auto') {
+    getFormatter(preference)
   }
-  userTimezone.value = preference.trim();
-  refreshDeviceTimezone();
+  userTimezone.value = preference.trim()
+  refreshDeviceTimezone()
 }
 
 /**
@@ -113,7 +108,7 @@ export function setUserTimezone(preference = "auto") {
  * @returns {string} auto 或 IANA 时区名称
  */
 export function getUserTimezone() {
-  return userTimezone.value;
+  return userTimezone.value
 }
 
 /**
@@ -125,16 +120,16 @@ export function refreshDeviceTimezone() {
   try {
     // FormatJS 默认时区是 UTC，不能把它误报为设备时区。
     if (Intl.DateTimeFormat.polyfilled) {
-      deviceTimezone.value = null;
-      return null;
+      deviceTimezone.value = null
+      return null
     }
-    const name = new Intl.DateTimeFormat().resolvedOptions().timeZone;
-    getFormatter(name);
-    deviceTimezone.value = name;
+    const name = new Intl.DateTimeFormat().resolvedOptions().timeZone
+    getFormatter(name)
+    deviceTimezone.value = name
   } catch {
-    deviceTimezone.value = null;
+    deviceTimezone.value = null
   }
-  return deviceTimezone.value;
+  return deviceTimezone.value
 }
 
 /**
@@ -143,7 +138,7 @@ export function refreshDeviceTimezone() {
  * @returns {string|null} IANA 时区；无法识别时返回 null
  */
 export function getDeviceTimezone() {
-  return deviceTimezone.value;
+  return deviceTimezone.value
 }
 
 /**
@@ -152,9 +147,9 @@ export function getDeviceTimezone() {
  * @returns {string} IANA 时区名称
  */
 export function getDisplayTimezone() {
-  return userTimezone.value === "auto"
+  return userTimezone.value === 'auto'
     ? deviceTimezone.value || businessTimezone.value
-    : userTimezone.value;
+    : userTimezone.value
 }
 
 /**
@@ -164,7 +159,7 @@ export function getDisplayTimezone() {
  * @returns {string} 表单绑定的时区
  */
 export function getTimeFieldsTimezone(record) {
-  return record?.[ORIGINAL_TIME_FIELDS]?.timezoneName || getDisplayTimezone();
+  return record?.[ORIGINAL_TIME_FIELDS]?.timezoneName || getDisplayTimezone()
 }
 
 /**
@@ -174,18 +169,16 @@ export function getTimeFieldsTimezone(record) {
  * @returns {string[]} 按名称排序的可选时区
  */
 export function getSupportedTimezones(names = []) {
-  return [
-    ...new Set([...names, getDisplayTimezone(), getBusinessTimezone(), "UTC"]),
-  ]
+  return [...new Set([...names, getDisplayTimezone(), getBusinessTimezone(), 'UTC'])]
     .filter((name) => {
       try {
-        getFormatter(name);
-        return true;
+        getFormatter(name)
+        return true
       } catch {
-        return false;
+        return false
       }
     })
-    .sort();
+    .sort()
 }
 
 /**
@@ -197,19 +190,16 @@ export function getSupportedTimezones(names = []) {
  */
 function parseWallTimeMilliseconds(value, dateOnly = false) {
   const match =
-    typeof value === "string" &&
-    value.match(dateOnly ? DATE_ONLY_PATTERN : WALL_TIME_PATTERN);
+    typeof value === 'string' && value.match(dateOnly ? DATE_ONLY_PATTERN : WALL_TIME_PATTERN)
   if (!match) {
-    return null;
+    return null
   }
 
-  const [year, month, day, hour = 0, minute = 0, second = 0] = match
-    .slice(1, 7)
-    .map(Number);
-  const millisecond = Number((match[7] || "").padEnd(3, "0"));
-  const date = new Date(0);
-  date.setUTCFullYear(year, month - 1, day);
-  date.setUTCHours(hour, minute, second, millisecond);
+  const [year, month, day, hour = 0, minute = 0, second = 0] = match.slice(1, 7).map(Number)
+  const millisecond = Number((match[7] || '').padEnd(3, '0'))
+  const date = new Date(0)
+  date.setUTCFullYear(year, month - 1, day)
+  date.setUTCHours(hour, minute, second, millisecond)
 
   // Date 会自动进位非法日期，逐项回读以拒绝越界输入。
   if (
@@ -221,9 +211,9 @@ function parseWallTimeMilliseconds(value, dateOnly = false) {
     date.getUTCMinutes() !== minute ||
     date.getUTCSeconds() !== second
   ) {
-    return null;
+    return null
   }
-  return date.getTime();
+  return date.getTime()
 }
 
 /**
@@ -234,18 +224,16 @@ function parseWallTimeMilliseconds(value, dateOnly = false) {
  */
 function parseInstantMilliseconds(value) {
   if (value instanceof Date) {
-    return Number.isFinite(value.getTime()) ? value.getTime() : null;
+    return Number.isFinite(value.getTime()) ? value.getTime() : null
   }
 
-  const match = typeof value === "string" && value.match(RFC3339_PATTERN);
+  const match = typeof value === 'string' && value.match(RFC3339_PATTERN)
   if (!match || parseWallTimeMilliseconds(match[1]) === null) {
-    return null;
+    return null
   }
 
-  const result = Date.parse(
-    `${match[1]}${(match[2] || ".000").slice(0, 4)}${match[3]}`,
-  );
-  return Number.isFinite(result) ? result : null;
+  const result = Date.parse(`${match[1]}${(match[2] || '.000').slice(0, 4)}${match[3]}`)
+  return Number.isFinite(result) ? result : null
 }
 
 /**
@@ -259,15 +247,11 @@ function getTimezoneOffsetMinutes(epoch, timezoneName) {
   const parts = Object.fromEntries(
     getFormatter(timezoneName)
       .formatToParts(epoch)
-      .map((part) => [part.type, part.value]),
-  );
-  const wallTime = `${parts.year.padStart(4, "0")}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
-  const instantMilliseconds =
-    Math.floor(epoch / MILLISECONDS_PER_SECOND) * MILLISECONDS_PER_SECOND;
-  return (
-    (parseWallTimeMilliseconds(wallTime) - instantMilliseconds) /
-    MILLISECONDS_PER_MINUTE
-  );
+      .map((part) => [part.type, part.value])
+  )
+  const wallTime = `${parts.year.padStart(4, '0')}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
+  const instantMilliseconds = Math.floor(epoch / MILLISECONDS_PER_SECOND) * MILLISECONDS_PER_SECOND
+  return (parseWallTimeMilliseconds(wallTime) - instantMilliseconds) / MILLISECONDS_PER_MINUTE
 }
 
 /**
@@ -278,9 +262,7 @@ function getTimezoneOffsetMinutes(epoch, timezoneName) {
  * @returns {import('dayjs').Dayjs} 目标时区下的日期时间
  */
 function createZonedDateTime(epoch, timezoneName) {
-  return dayjs
-    .utc(epoch)
-    .utcOffset(getTimezoneOffsetMinutes(epoch, timezoneName));
+  return dayjs.utc(epoch).utcOffset(getTimezoneOffsetMinutes(epoch, timezoneName))
 }
 
 /**
@@ -292,16 +274,16 @@ function createZonedDateTime(epoch, timezoneName) {
  * @returns {string} 业务时间展示文本
  */
 function formatEpoch(epoch, pattern, timezoneName) {
-  const value = createZonedDateTime(epoch, timezoneName);
+  const value = createZonedDateTime(epoch, timezoneName)
   const format = pattern
-    .replaceAll("{y}", "YYYY")
-    .replaceAll("{m}", "MM")
-    .replaceAll("{d}", "DD")
-    .replaceAll("{h}", "HH")
-    .replaceAll("{i}", "mm")
-    .replaceAll("{s}", "ss")
-    .replaceAll("{a}", `[${WEEKDAYS[value.day()]}]`);
-  return value.format(format);
+    .replaceAll('{y}', 'YYYY')
+    .replaceAll('{m}', 'MM')
+    .replaceAll('{d}', 'DD')
+    .replaceAll('{h}', 'HH')
+    .replaceAll('{i}', 'mm')
+    .replaceAll('{s}', 'ss')
+    .replaceAll('{a}', `[${WEEKDAYS[value.day()]}]`)
+  return value.format(format)
 }
 
 /**
@@ -314,11 +296,11 @@ function formatEpoch(epoch, pattern, timezoneName) {
  */
 export function formatBusinessTime(
   value,
-  pattern = "YYYY-MM-DD HH:mm:ss",
-  timezoneName = getDisplayTimezone(),
+  pattern = 'YYYY-MM-DD HH:mm:ss',
+  timezoneName = getDisplayTimezone()
 ) {
-  const epoch = parseInstantMilliseconds(value);
-  return epoch === null ? null : formatEpoch(epoch, pattern, timezoneName);
+  const epoch = parseInstantMilliseconds(value)
+  return epoch === null ? null : formatEpoch(epoch, pattern, timezoneName)
 }
 
 /**
@@ -331,17 +313,17 @@ export function formatBusinessTime(
  */
 export function formatEpochMilliseconds(
   value,
-  pattern = "YYYY-MM-DD HH:mm:ss",
-  timezoneName = getDisplayTimezone(),
+  pattern = 'YYYY-MM-DD HH:mm:ss',
+  timezoneName = getDisplayTimezone()
 ) {
   if (
-    typeof value !== "number" ||
+    typeof value !== 'number' ||
     !Number.isFinite(value) ||
     !Number.isFinite(new Date(value).getTime())
   ) {
-    return null;
+    return null
   }
-  return formatEpoch(value, pattern, timezoneName);
+  return formatEpoch(value, pattern, timezoneName)
 }
 
 /**
@@ -353,13 +335,9 @@ export function formatEpochMilliseconds(
  * @returns {string|null} 展示文本，非法输入返回 null
  */
 export function formatEpochSeconds(value, pattern, timezoneName) {
-  return typeof value === "number"
-    ? formatEpochMilliseconds(
-        value * MILLISECONDS_PER_SECOND,
-        pattern,
-        timezoneName,
-      )
-    : null;
+  return typeof value === 'number'
+    ? formatEpochMilliseconds(value * MILLISECONDS_PER_SECOND, pattern, timezoneName)
+    : null
 }
 
 /**
@@ -369,24 +347,18 @@ export function formatEpochSeconds(value, pattern, timezoneName) {
  * @param {string} timezoneName IANA 时区名称
  * @returns {Array<{epoch: number, offset: string, value: string}>} 按时刻排序的候选值
  */
-export function getWallTimeCandidates(
-  value,
-  timezoneName = getDisplayTimezone(),
-) {
-  const wallMilliseconds = parseWallTimeMilliseconds(value);
+export function getWallTimeCandidates(value, timezoneName = getDisplayTimezone()) {
+  const wallMilliseconds = parseWallTimeMilliseconds(value)
   if (wallMilliseconds === null) {
-    throw new TimeInputError(`无效的日期时间: ${value}`, "INVALID_TIME");
+    throw new TimeInputError(`无效的日期时间: ${value}`, 'INVALID_TIME')
   }
 
-  const offsets = new Set();
+  const offsets = new Set()
   // 采样跳转前后的偏移，覆盖半小时夏令时和跨日期变更。
   for (let hours = -48; hours <= 48; hours += 6) {
     offsets.add(
-      getTimezoneOffsetMinutes(
-        wallMilliseconds + hours * MILLISECONDS_PER_HOUR,
-        timezoneName,
-      ),
-    );
+      getTimezoneOffsetMinutes(wallMilliseconds + hours * MILLISECONDS_PER_HOUR, timezoneName)
+    )
   }
 
   return [...offsets]
@@ -395,18 +367,14 @@ export function getWallTimeCandidates(
       epoch: wallMilliseconds - offset * MILLISECONDS_PER_MINUTE,
     }))
     .filter(
-      (candidate) =>
-        getTimezoneOffsetMinutes(candidate.epoch, timezoneName) ===
-        candidate.offset,
+      (candidate) => getTimezoneOffsetMinutes(candidate.epoch, timezoneName) === candidate.offset
     )
     .sort((first, second) => first.epoch - second.epoch)
     .map((candidate) => ({
       epoch: candidate.epoch,
-      offset: createZonedDateTime(candidate.epoch, timezoneName).format("Z"),
-      value: createZonedDateTime(candidate.epoch, timezoneName).format(
-        "YYYY-MM-DDTHH:mm:ss.SSSZ",
-      ),
-    }));
+      offset: createZonedDateTime(candidate.epoch, timezoneName).format('Z'),
+      value: createZonedDateTime(candidate.epoch, timezoneName).format('YYYY-MM-DDTHH:mm:ss.SSSZ'),
+    }))
 }
 
 /**
@@ -419,43 +387,40 @@ export function getWallTimeCandidates(
  * @returns {string|undefined} RFC 3339 字符串，空输入返回 undefined
  * @throws {TimeInputError} 当地时间不存在或重复时间尚未选择偏移时抛出异常
  */
-export function toRfc3339(
-  value,
-  { timezoneName = getDisplayTimezone(), offset } = {},
-) {
-  if (value === undefined || value === null || value === "") {
-    return undefined;
+export function toRfc3339(value, { timezoneName = getDisplayTimezone(), offset } = {}) {
+  if (value === undefined || value === null || value === '') {
+    return undefined
   }
 
-  const epoch = parseInstantMilliseconds(value);
+  const epoch = parseInstantMilliseconds(value)
   if (epoch !== null) {
     if (value instanceof Date) {
-      return value.toISOString();
+      return value.toISOString()
     }
-    const match = value.match(RFC3339_PATTERN);
-    return `${match[1]}.${(match[2]?.slice(1) || "").padEnd(3, "0").slice(0, 3)}${match[3]}`;
+    const match = value.match(RFC3339_PATTERN)
+    return `${match[1]}.${(match[2]?.slice(1) || '').padEnd(3, '0').slice(0, 3)}${match[3]}`
   }
 
-  const candidates = getWallTimeCandidates(value, timezoneName);
+  const candidates = getWallTimeCandidates(value, timezoneName)
   if (!candidates.length) {
     throw new TimeInputError(
       `${value} 在 ${timezoneName} 不存在，请选择夏令时跳转后的有效时间`,
-      "DST_GAP",
-    );
+      'DST_GAP'
+    )
   }
   if (candidates.length === 1) {
-    return candidates[0].value;
+    return candidates[0].value
   }
 
-  const selected = candidates.find((candidate) => candidate.offset === offset);
+  const selected = candidates.find((candidate) => candidate.offset === offset)
   if (selected) {
-    return selected.value;
+    return selected.value
   }
   throw new TimeInputError(
     `${value} 在 ${timezoneName} 出现两次，请选择 UTC 偏移`,
-    "DST_FOLD",
-    candidates,
-  );
+    'DST_FOLD',
+    candidates
+  )
 }
 
 /**
@@ -465,11 +430,8 @@ export function toRfc3339(
  * @param {string} timezoneName 业务 IANA 时区名称
  * @returns {string|null} 不含偏移的日期时间，非法输入返回 null
  */
-export function toBusinessDateTimeInput(
-  value,
-  timezoneName = getDisplayTimezone(),
-) {
-  return formatBusinessTime(value, "YYYY-MM-DD HH:mm:ss", timezoneName);
+export function toBusinessDateTimeInput(value, timezoneName = getDisplayTimezone()) {
+  return formatBusinessTime(value, 'YYYY-MM-DD HH:mm:ss', timezoneName)
 }
 
 /**
@@ -479,16 +441,16 @@ export function toBusinessDateTimeInput(
  * @returns {string|undefined} 纯日期或 RFC 3339 字符串，空输入返回 undefined
  */
 export function normalizeRangeBoundary(value) {
-  if (value === undefined || value === null || value === "") {
-    return undefined;
+  if (value === undefined || value === null || value === '') {
+    return undefined
   }
-  if (typeof value === "string" && DATE_ONLY_PATTERN.test(value)) {
+  if (typeof value === 'string' && DATE_ONLY_PATTERN.test(value)) {
     if (parseWallTimeMilliseconds(value, true) === null) {
-      throw new TimeInputError(`无效的日期: ${value}`, "INVALID_DATE");
+      throw new TimeInputError(`无效的日期: ${value}`, 'INVALID_DATE')
     }
-    return value;
+    return value
   }
-  return toRfc3339(value);
+  return toRfc3339(value)
 }
 
 /**
@@ -499,34 +461,27 @@ export function normalizeRangeBoundary(value) {
  * @param {string} timezoneName 业务 IANA 时区名称
  * @returns {Object} 包含业务时间和原值快照的新记录
  */
-export function prepareTimeFields(
-  record,
-  fields,
-  timezoneName = getDisplayTimezone(),
-) {
-  const result = { ...record };
-  const originals = {};
+export function prepareTimeFields(record, fields, timezoneName = getDisplayTimezone()) {
+  const result = { ...record }
+  const originals = {}
   for (const field of fields) {
     if (!(field in record)) {
-      continue;
+      continue
     }
 
-    const original = record[field];
+    const original = record[field]
     const input =
-      original == null || original === ""
+      original == null || original === ''
         ? original
-        : toBusinessDateTimeInput(original, timezoneName);
+        : toBusinessDateTimeInput(original, timezoneName)
     if (input === null && original != null) {
-      throw new TimeInputError(
-        `字段 ${field} 包含无效的 RFC 3339 时间`,
-        "INVALID_TIME",
-      );
+      throw new TimeInputError(`字段 ${field} 包含无效的 RFC 3339 时间`, 'INVALID_TIME')
     }
-    result[field] = input;
-    originals[field] = { original, input };
+    result[field] = input
+    originals[field] = { original, input }
   }
-  result[ORIGINAL_TIME_FIELDS] = { originals, timezoneName };
-  return result;
+  result[ORIGINAL_TIME_FIELDS] = { originals, timezoneName }
+  return result
 }
 
 /**
@@ -538,36 +493,36 @@ export function prepareTimeFields(
  * @returns {Object} 可提交的新记录，不修改当前表单
  */
 export function serializeTimeFields(record, fields, offsets = {}) {
-  const result = { ...record };
-  const state = record[ORIGINAL_TIME_FIELDS];
-  delete result[ORIGINAL_TIME_FIELDS];
+  const result = { ...record }
+  const state = record[ORIGINAL_TIME_FIELDS]
+  delete result[ORIGINAL_TIME_FIELDS]
 
   for (const field of fields) {
     if (!(field in record)) {
-      continue;
+      continue
     }
 
-    const value = record[field];
-    const original = state?.originals[field];
+    const value = record[field]
+    const original = state?.originals[field]
     if (original && value === original.input) {
-      result[field] = original.original;
+      result[field] = original.original
     } else if (value == null) {
-      result[field] = value;
-    } else if (value === "") {
-      result[field] = null;
+      result[field] = value
+    } else if (value === '') {
+      result[field] = null
     } else {
       try {
         result[field] = toRfc3339(value, {
           timezoneName: state?.timezoneName || getDisplayTimezone(),
           offset: offsets[field],
-        });
+        })
       } catch (error) {
-        error.field = field;
-        throw error;
+        error.field = field
+        throw error
       }
     }
   }
-  return result;
+  return result
 }
 
 /**
@@ -579,25 +534,25 @@ export function serializeTimeFields(record, fields, offsets = {}) {
  * @returns {Promise<Object>} 已解决重复时间歧义的提交记录
  */
 export async function resolveTimeFields(record, fields, chooseOffset) {
-  const offsets = {};
+  const offsets = {}
   while (true) {
     try {
-      return serializeTimeFields(record, fields, offsets);
+      return serializeTimeFields(record, fields, offsets)
     } catch (error) {
-      if (error.code !== "DST_FOLD") {
-        throw error;
+      if (error.code !== 'DST_FOLD') {
+        throw error
       }
-      const offset = await chooseOffset(error);
+      const offset = await chooseOffset(error)
       if (!error.candidates.some((candidate) => candidate.offset === offset)) {
-        throw error;
+        throw error
       }
-      offsets[error.field] = offset;
+      offsets[error.field] = offset
     }
   }
 }
 
-setBusinessTimezone(businessTimezone.value);
-refreshDeviceTimezone();
+setBusinessTimezone(businessTimezone.value)
+refreshDeviceTimezone()
 
 /**
  * 请求用户选择夏令时重复时间对应的 UTC 偏移。
@@ -606,8 +561,8 @@ refreshDeviceTimezone();
  * @returns {Promise<string>} 用户选定的 UTC 偏移
  */
 async function chooseTimeOffset(error) {
-  const { chooseOffset } = await import("../plugins/modal.jsx");
-  return chooseOffset(error);
+  const { chooseOffset } = await import('../plugins/modal.jsx')
+  return chooseOffset(error)
 }
 
 /**
@@ -619,12 +574,12 @@ async function chooseTimeOffset(error) {
  */
 export async function serializeTimeFieldsForSubmit(record, fields) {
   try {
-    return await resolveTimeFields(record, fields, chooseTimeOffset);
+    return await resolveTimeFields(record, fields, chooseTimeOffset)
   } catch (error) {
     if (error instanceof Error) {
-      const { message } = await import("../plugins/modal.jsx");
-      message.error(error.message);
+      const { message } = await import('../plugins/modal.jsx')
+      message.error(error.message)
     }
-    return null;
+    return null
   }
 }

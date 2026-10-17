@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "隐私协议",
-});
+  navigationBarTitleText: '隐私协议',
+})

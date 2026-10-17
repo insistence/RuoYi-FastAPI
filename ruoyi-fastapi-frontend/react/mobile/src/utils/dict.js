@@ -1,10 +1,10 @@
-import { useEffect } from "react";
-import useDictStore from "@/store/modules/dict";
-import { getDicts } from "@/api/system/dict/data";
-const pending = new Map();
+import { useEffect } from 'react'
+import useDictStore from '@/store/modules/dict'
+import { getDicts } from '@/api/system/dict/data'
+const pending = new Map()
 export function useDict(...types) {
-  const dictionary = useDictStore((state) => state.dict);
-  const key = types.join("|");
+  const dictionary = useDictStore((state) => state.dict)
+  const key = types.join('|')
   useEffect(() => {
     for (const type of types)
       if (!useDictStore.getState().dict[type] && !pending.has(type)) {
@@ -17,15 +17,13 @@ export function useDict(...types) {
                 value: item.dictValue,
                 listClass: item.listClass,
                 cssClass: item.cssClass,
-              })),
-            ),
+              }))
+            )
           )
           .catch(() => {})
-          .finally(() => pending.delete(type));
-        pending.set(type, request);
+          .finally(() => pending.delete(type))
+        pending.set(type, request)
       }
-  }, [key]);
-  return Object.fromEntries(
-    types.map((type) => [type, dictionary[type] || []]),
-  );
+  }, [key])
+  return Object.fromEntries(types.map((type) => [type, dictionary[type] || []]))
 }

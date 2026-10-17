@@ -39,8 +39,8 @@ PREFIX = '/gateway/apps/browser_test/'
 def frontend_root() -> Path:
     """选择本次验收的真实 Web 工程，明确拒绝尚无对应宿主的框架。"""
     framework = os.environ.get('RUOYI_PLUGIN_FRONTEND_FRAMEWORK', 'vue3').strip().lower()
-    if framework not in {'vue2', 'vue3'}:
-        raise ValueError('插件网络验收仅支持 RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2 或 vue3')
+    if framework not in {'vue2', 'vue3', 'react'}:
+        raise ValueError('插件网络验收仅支持 RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2、vue3 或 react')
     return Path(__file__).resolve().parents[4] / 'ruoyi-fastapi-frontend' / framework / 'web'
 
 
@@ -164,7 +164,7 @@ def prepare_network_host(fixture: SimpleNamespace) -> None:
 @asynccontextmanager
 async def network_servers(fixture: SimpleNamespace, directory: Path, output: Path) -> AsyncIterator[str]:
     """
-    启动真实 Uvicorn socket 与对应 Vue 框架的 TLS 代理，并在失败时一并回收。
+    启动真实 Uvicorn socket 与对应前端框架的 TLS 代理，并在失败时一并回收。
 
     :param fixture: 隔离宿主应用
     :param directory: 证书及就绪文件目录
@@ -377,7 +377,7 @@ async def verify_browser_streams(fixture: SimpleNamespace, page: Any, frame: Any
 
 async def verify_browser(fixture: SimpleNamespace, origin: str, output: Path) -> None:
     """
-    验证真实 Vue iframe、Cookie/CSRF、流增量、恢复、撤权及主动关闭。
+    验证真实宿主 iframe、Cookie/CSRF、流增量、恢复、撤权及主动关闭。
 
     :param fixture: 隔离宿主运行时和可控账号状态
     :param origin: HTTPS 代理地址
@@ -423,7 +423,7 @@ async def verify_browser(fixture: SimpleNamespace, origin: str, output: Path) ->
 
 
 async def test_plugin_network_smoke(browser: SimpleNamespace, tmp_path: Path) -> None:  # noqa: F811
-    """通过真实 TLS 代理与 Vue 页面验收插件网络协议，测试数据全程隔离。"""
+    """通过真实 TLS 代理与宿主页面验收插件网络协议，测试数据全程隔离。"""
     default_output = f'target/plugin-network-smoke/{frontend_root().parent.name}'
     output = await asyncio.to_thread(Path(os.environ.get('RUOYI_SMOKE_OUTPUT', default_output)).resolve)
     output.mkdir(parents=True, exist_ok=True)

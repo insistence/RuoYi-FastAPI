@@ -43,7 +43,11 @@ assert.deepEqual(metadata, {
 })
 assert.equal(PLUGIN_BRIDGE_SDK_VERSION, '1.0.0')
 assert.equal(PLUGIN_BRIDGE_VERSION, 1, '源码交付版本不能改变 bridge v1 消息协议')
-assert.ok(declarations.replaceAll('"', "'").includes(`export const PLUGIN_BRIDGE_SDK_VERSION: '${metadata.sdkVersion}'`))
+assert.ok(
+  declarations
+    .replaceAll('"', "'")
+    .includes(`export const PLUGIN_BRIDGE_SDK_VERSION: '${metadata.sdkVersion}'`)
+)
 assert.ok(declarations.includes(`export const PLUGIN_BRIDGE_VERSION: ${metadata.bridgeVersion}`))
 
 function windowPair() {

@@ -1,10 +1,10 @@
 const constant = {
-  timezone: "timezone",
-  avatar: "user_avatar",
-  id: "user_id",
-  name: "user_name",
-  roles: "user_roles",
-  permissions: "user_permissions",
-};
+  timezone: 'timezone',
+  avatar: 'user_avatar',
+  id: 'user_id',
+  name: 'user_name',
+  roles: 'user_roles',
+  permissions: 'user_permissions',
+}
 
-export default constant;
+export default constant

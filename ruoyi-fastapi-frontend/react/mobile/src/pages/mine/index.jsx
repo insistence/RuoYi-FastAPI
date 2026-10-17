@@ -1,23 +1,23 @@
-import React from "react";
-import Taro, { useDidShow } from "@tarojs/taro";
-import { View, Text, Image } from "@tarojs/components";
-import { useUserStore } from "@/store";
-import { getToken } from "@/utils/auth";
-import { usePageAuth } from "@/permission";
-import { toast } from "@/utils/common";
+import React from 'react'
+import Taro, { useDidShow } from '@tarojs/taro'
+import { View, Text, Image } from '@tarojs/components'
+import { useUserStore } from '@/store'
+import { getToken } from '@/utils/auth'
+import { usePageAuth } from '@/permission'
+import { toast } from '@/utils/common'
 export default function Mine() {
-  const allowed = usePageAuth();
-  const name = useUserStore((state) => state.name);
-  const avatar = useUserStore((state) => state.avatar);
+  const allowed = usePageAuth()
+  const name = useUserStore((state) => state.name)
+  const avatar = useUserStore((state) => state.avatar)
   useDidShow(() => {
     if (getToken())
       useUserStore
         .getState()
         .getInfo()
-        .catch(() => {});
-  });
-  const go = (url) => Taro.navigateTo({ url });
-  if (!allowed) return null;
+        .catch(() => {})
+  })
+  const go = (url) => Taro.navigateTo({ url })
+  if (!allowed) return null
   return (
     <View className="min-h-screen bg-gray-50">
       <View className="relative overflow-hidden bg-linear-to-r from-blue-500 to-indigo-600 px-6 pt-16 pb-20 text-white shadow-lg">
@@ -29,10 +29,10 @@ export default function Mine() {
               className="block size-20"
               mode="aspectFill"
               src={avatar}
-              onClick={() => go("/pages/mine/avatar/index")}
+              onClick={() => go('/pages/mine/avatar/index')}
             />
           </View>
-          <View onClick={() => go("/pages/mine/info/index")}>
+          <View onClick={() => go('/pages/mine/info/index')}>
             <Text className="block text-xl font-bold">{name}</Text>
             <View className="flex items-center mt-1 text-sm text-blue-100">
               <Text>查看个人信息</Text>
@@ -44,19 +44,17 @@ export default function Mine() {
       <View className="relative z-20 -mt-12 px-4 pb-8">
         <View className="mb-4 rounded-2xl bg-white p-4 shadow-lg grid grid-cols-4 gap-2">
           {[
-            ["account-group", "交流群", "bg-pink-50 text-pink-500"],
-            ["face-agent", "在线客服", "bg-blue-50 text-blue-500"],
-            ["forum", "反馈社区", "bg-purple-50 text-purple-500"],
-            ["thumb-up", "点赞我们", "bg-green-50 text-green-500"],
+            ['account-group', '交流群', 'bg-pink-50 text-pink-500'],
+            ['face-agent', '在线客服', 'bg-blue-50 text-blue-500'],
+            ['forum', '反馈社区', 'bg-purple-50 text-purple-500'],
+            ['thumb-up', '点赞我们', 'bg-green-50 text-green-500'],
           ].map(([icon, label, color]) => (
             <View
               key={label}
               className="flex flex-col items-center gap-2"
-              onClick={() => toast("模块建设中~")}
+              onClick={() => toast('模块建设中~')}
             >
-              <View
-                className={`size-12 rounded-full flex items-center justify-center ${color}`}
-              >
+              <View className={`size-12 rounded-full flex items-center justify-center ${color}`}>
                 <View className={`i-mdi-${icon} text-2xl`} />
               </View>
               <Text className="text-xs font-medium text-gray-600">{label}</Text>
@@ -65,14 +63,14 @@ export default function Mine() {
         </View>
         <View className="overflow-hidden rounded-2xl bg-white shadow-lg">
           {[
-            ["account-edit", "编辑资料", "info/edit", "text-blue-500"],
-            ["help-circle", "常见问题", "help/index", "text-orange-500"],
-            ["heart-outline", "关于我们", "about/index", "text-red-500"],
-            ["cog-outline", "应用设置", "setting/index", "text-gray-500"],
+            ['account-edit', '编辑资料', 'info/edit', 'text-blue-500'],
+            ['help-circle', '常见问题', 'help/index', 'text-orange-500'],
+            ['heart-outline', '关于我们', 'about/index', 'text-red-500'],
+            ['cog-outline', '应用设置', 'setting/index', 'text-gray-500'],
           ].map(([icon, label, path, color], index) => (
             <View
               key={path}
-              className={`flex items-center justify-between p-4 ${index < 3 ? "border-b border-gray-100" : ""}`}
+              className={`flex items-center justify-between p-4 ${index < 3 ? 'border-b border-gray-100' : ''}`}
               onClick={() => go(`/pages/mine/${path}`)}
             >
               <View className="flex items-center gap-3">
@@ -85,5 +83,5 @@ export default function Mine() {
         </View>
       </View>
     </View>
-  );
+  )
 }

@@ -1,38 +1,38 @@
-import { useEffect, useState } from "react";
-import { Steps, theme } from "antd";
-import { LockOutlined, CheckCircleOutlined } from "@ant-design/icons";
-import "./style.css";
+import { useEffect, useState } from 'react'
+import { Steps, theme } from 'antd'
+import { LockOutlined, CheckCircleOutlined } from '@ant-design/icons'
+import './style.css'
 export default function AuthCenterShell({
   currentStep = 0,
-  steps = ["验证身份", "确认权限"],
+  steps = ['验证身份', '确认权限'],
   expiresIn = 0,
-  applicationName = "",
-  applicationId = "",
+  applicationName = '',
+  applicationId = '',
   showProgress = true,
   children,
 }) {
-  const { token } = theme.useToken();
-  const [remaining, setRemaining] = useState(0);
+  const { token } = theme.useToken()
+  const [remaining, setRemaining] = useState(0)
   useEffect(() => {
-    const deadline = Date.now() + Math.max(0, expiresIn) * 1000;
-    const update = () => setRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
-    update();
-    const timer = setInterval(update, 1000);
-    return () => clearInterval(timer);
-  }, [expiresIn]);
-  const title = import.meta.env.VITE_APP_TITLE;
+    const deadline = Date.now() + Math.max(0, expiresIn) * 1000
+    const update = () => setRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)))
+    update()
+    const timer = setInterval(update, 1000)
+    return () => clearInterval(timer)
+  }, [expiresIn])
+  const title = import.meta.env.VITE_APP_TITLE
   return (
     <main
       className="auth-center"
       style={{
-        "--auth-bg": token.colorBgContainer,
-        "--auth-border": token.colorBorderSecondary,
-        "--auth-muted": token.colorTextSecondary,
-        "--auth-page-bg": token.colorBgContainer === "#141414" ? "#0a0a0a" : "#f2f3f5",
+        '--auth-bg': token.colorBgContainer,
+        '--auth-border': token.colorBorderSecondary,
+        '--auth-muted': token.colorTextSecondary,
+        '--auth-page-bg': token.colorBgContainer === '#141414' ? '#0a0a0a' : '#f2f3f5',
       }}
     >
       <section
-        className={`auth-shell${showProgress ? "" : " is-compact"}`}
+        className={`auth-shell${showProgress ? '' : ' is-compact'}`}
         aria-label="统一认证中心"
       >
         <aside className="trust-panel">
@@ -56,13 +56,13 @@ export default function AuthCenterShell({
                 <small>正在请求访问的应用</small>
                 <div className="application-identity">
                   <span>
-                    {String(applicationName || applicationId || "应用")
+                    {String(applicationName || applicationId || '应用')
                       .trim()
                       .slice(0, 1)
                       .toUpperCase()}
                   </span>
                   <div>
-                    <strong>{applicationName || "外部应用"}</strong>
+                    <strong>{applicationName || '外部应用'}</strong>
                     {applicationId && <code>{applicationId}</code>}
                   </div>
                 </div>
@@ -80,17 +80,23 @@ export default function AuthCenterShell({
             </ul>
           </div>
           <div className="request-status">
-            <span className="status-dot" aria-hidden />
+            <span
+              className="status-dot"
+              aria-hidden
+            />
             <span>
               {expiresIn > 0
-                ? `本次请求将在 ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")} 后失效`
-                : "受保护的认证连接"}
+                ? `本次请求将在 ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')} 后失效`
+                : '受保护的认证连接'}
             </span>
           </div>
         </aside>
         <div className="auth-main">
           {showProgress && (
-            <div className="progress-wrap" aria-label="认证进度">
+            <div
+              className="progress-wrap"
+              aria-label="认证进度"
+            >
               <span>认证进度</span>
               <Steps
                 titlePlacement="vertical"
@@ -107,5 +113,5 @@ export default function AuthCenterShell({
         </div>
       </section>
     </main>
-  );
+  )
 }

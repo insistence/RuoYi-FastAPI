@@ -528,7 +528,7 @@ html.dark .plugin-dependency-install.ant-btn-primary:disabled {
 .plugin-config-dialog .plugin-config-section-title {
   line-height: normal;
 }
-.plugin-config-dialog textarea[rows="4"] {
+.plugin-config-dialog textarea[rows='4'] {
   height: 94px;
   padding: 5px 11px;
   line-height: 21px;

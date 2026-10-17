@@ -23,9 +23,7 @@
       </view>
       <!-- Confirm Password -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700"
-          >确认密码</text
-        >
+        <text class="mb-2 block text-sm font-medium text-gray-700">确认密码</text>
         <input
           v-model="user.confirmPassword"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
@@ -48,53 +46,48 @@
 </template>
 
 <script>
-import { updateUserPwd } from "@/api/system/user";
+import { updateUserPwd } from '@/api/system/user'
 
 export default {
   data() {
     return {
       user: {
-        oldPassword: "",
-        newPassword: "",
-        confirmPassword: "",
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: '',
       },
-    };
+    }
   },
   methods: {
     submit() {
       if (!this.user.oldPassword) {
-        this.$modal.msgError("旧密码不能为空");
-        return;
+        this.$modal.msgError('旧密码不能为空')
+        return
       }
       if (!this.user.newPassword) {
-        this.$modal.msgError("新密码不能为空");
-        return;
+        this.$modal.msgError('新密码不能为空')
+        return
       }
-      if (
-        this.user.newPassword.length < 6 ||
-        this.user.newPassword.length > 20
-      ) {
-        this.$modal.msgError("长度在 6 到 20 个字符");
-        return;
+      if (this.user.newPassword.length < 6 || this.user.newPassword.length > 20) {
+        this.$modal.msgError('长度在 6 到 20 个字符')
+        return
       }
       if (!this.user.confirmPassword) {
-        this.$modal.msgError("确认密码不能为空");
-        return;
+        this.$modal.msgError('确认密码不能为空')
+        return
       }
       if (this.user.newPassword !== this.user.confirmPassword) {
-        this.$modal.msgError("两次输入的密码不一致");
-        return;
+        this.$modal.msgError('两次输入的密码不一致')
+        return
       }
 
-      updateUserPwd(this.user.oldPassword, this.user.newPassword).then(
-        (response) => {
-          this.$modal.msgSuccess("修改成功");
-          setTimeout(() => {
-            this.$tab.navigateBack();
-          }, 1500);
-        },
-      );
+      updateUserPwd(this.user.oldPassword, this.user.newPassword).then((response) => {
+        this.$modal.msgSuccess('修改成功')
+        setTimeout(() => {
+          this.$tab.navigateBack()
+        }, 1500)
+      })
     },
   },
-};
+}
 </script>

@@ -1,5 +1,5 @@
-import { Button, Tooltip } from "antd";
-import { GithubOutlined } from "@ant-design/icons";
+import { Button, Tooltip } from 'antd'
+import { GithubOutlined } from '@ant-design/icons'
 export default function RuoYiGit() {
   return (
     <Tooltip title="项目源码">
@@ -12,5 +12,5 @@ export default function RuoYiGit() {
         icon={<GithubOutlined />}
       />
     </Tooltip>
-  );
+  )
 }

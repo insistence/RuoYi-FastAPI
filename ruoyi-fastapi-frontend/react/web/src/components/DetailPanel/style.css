@@ -54,7 +54,7 @@
   vertical-align: middle;
 }
 .detail-wrap .mono {
-  font-family: Consolas, "SFMono-Regular", monospace;
+  font-family: Consolas, 'SFMono-Regular', monospace;
   font-size: 12px;
 }
 .detail-wrap .code-body {
@@ -79,7 +79,7 @@
   padding: 12px 14px;
   font-size: 12px;
   line-height: 1.6;
-  font-family: Consolas, "SFMono-Regular", monospace;
+  font-family: Consolas, 'SFMono-Regular', monospace;
   color: var(--ant-color-text);
   white-space: pre-wrap;
   word-break: break-all;

@@ -7,9 +7,9 @@ import {
   ClockCircleOutlined,
   ApiOutlined,
   BellOutlined,
-} from "@ant-design/icons";
-import { useEffect, useState } from "react";
-import { Button, Space, Tooltip } from "antd";
+} from '@ant-design/icons'
+import { useEffect, useState } from 'react'
+import { Button, Space, Tooltip } from 'antd'
 import {
   delFile,
   getFile,
@@ -18,29 +18,29 @@ import {
   listFile,
   purgeFile,
   restoreFile,
-} from "@/api/system/file";
-import HasPermi from "@/directive/permission/hasPermi";
-import Pagination from "@/components/Pagination";
-import RightToolbar from "@/components/RightToolbar";
-import download from "@/plugins/download";
-import { confirm, message } from "@/plugins/modal";
-import FileAclDrawer from "./components/FileAclDrawer";
-import FileAuditDrawer from "./components/FileAuditDrawer";
-import FileDetailDialog from "./components/FileDetailDialog";
-import FileReferenceDrawer from "./components/FileReferenceDrawer";
-import FileReconcileDrawer from "./components/FileReconcileDrawer";
-import FileRetentionPolicyDrawer from "./components/FileRetentionPolicyDrawer";
-import FileRetentionReminderDrawer from "./components/FileRetentionReminderDrawer";
-import FileSearchForm from "./components/FileSearchForm";
-import FileStatistics from "./components/FileStatistics";
-import FileTable from "./components/FileTable";
-import FileTransferDialog from "./components/FileTransferDialog";
+} from '@/api/system/file'
+import HasPermi from '@/directive/permission/hasPermi'
+import Pagination from '@/components/Pagination'
+import RightToolbar from '@/components/RightToolbar'
+import download from '@/plugins/download'
+import { confirm, message } from '@/plugins/modal'
+import FileAclDrawer from './components/FileAclDrawer'
+import FileAuditDrawer from './components/FileAuditDrawer'
+import FileDetailDialog from './components/FileDetailDialog'
+import FileReferenceDrawer from './components/FileReferenceDrawer'
+import FileReconcileDrawer from './components/FileReconcileDrawer'
+import FileRetentionPolicyDrawer from './components/FileRetentionPolicyDrawer'
+import FileRetentionReminderDrawer from './components/FileRetentionReminderDrawer'
+import FileSearchForm from './components/FileSearchForm'
+import FileStatistics from './components/FileStatistics'
+import FileTable from './components/FileTable'
+import FileTransferDialog from './components/FileTransferDialog'
 
 export default function File() {
   const [query, setQuery] = useState({
       pageNum: 1,
       pageSize: 10,
-      status: "active",
+      status: 'active',
     }),
     [data, setData] = useState({ rows: [], total: 0 }),
     [stats, setStats] = useState({}),
@@ -56,62 +56,62 @@ export default function File() {
     [audit, setAudit] = useState(),
     [policyOpen, setPolicyOpen] = useState(false),
     [reminderOpen, setReminderOpen] = useState(false),
-    [reconcileOpen, setReconcileOpen] = useState(false);
+    [reconcileOpen, setReconcileOpen] = useState(false)
   const refresh = () => {
-    setRevision((value) => value + 1);
-    setSelected([]);
-  };
+    setRevision((value) => value + 1)
+    setSelected([])
+  }
   useEffect(() => {
     getFileAclDeptTree()
       .then((result) => setDepartments(result.data || []))
-      .catch(() => {});
-  }, []);
+      .catch(() => {})
+  }, [])
   useEffect(() => {
-    let active = true;
-    setLoading(true);
+    let active = true
+    setLoading(true)
     Promise.all([listFile(query), getFileStats(query)])
       .then(([list, summary]) => {
         if (active) {
-          setData(list);
-          setStats(summary.data || {});
+          setData(list)
+          setStats(summary.data || {})
         }
       })
       .catch(() => {})
-      .finally(() => active && setLoading(false));
+      .finally(() => active && setLoading(false))
     return () => {
-      active = false;
-    };
-  }, [query, revision]);
+      active = false
+    }
+  }, [query, revision])
   const privateFiles = selected.filter(
-    (row) => row.status === "active" && row.accessType === "private",
-  );
-  const allActive = selected.length > 0 && selected.every((row) => row.status === "active"),
-    references = selected.filter((row) => row.referenceCount > 0).length;
+    (row) => row.status === 'active' && row.accessType === 'private'
+  )
+  const allActive = selected.length > 0 && selected.every((row) => row.status === 'active'),
+    references = selected.filter((row) => row.referenceCount > 0).length
   async function mutate(action, row) {
-    const rows = row ? [row] : selected;
-    if (!rows.length) return;
-    if (action === "delete" && rows.some((item) => item.referenceCount))
-      return message.warning("文件仍被业务引用，请先解除引用后再删除");
-    const label = rows.length === 1 ? rows[0].originalName : `${rows.length} 个文件`;
+    const rows = row ? [row] : selected
+    if (!rows.length) return
+    if (action === 'delete' && rows.some((item) => item.referenceCount))
+      return message.warning('文件仍被业务引用，请先解除引用后再删除')
+    const label = rows.length === 1 ? rows[0].originalName : `${rows.length} 个文件`
     try {
       await confirm(
         {
           delete: `是否将“${label}”移入回收站？`,
           restore: `是否恢复“${label}”？`,
           purge: `永久清理后无法恢复，是否确认清理“${label}”？`,
-        }[action],
-      );
+        }[action]
+      )
       await { delete: delFile, restore: restoreFile, purge: purgeFile }[action](
-        rows.map((item) => item.fileId).join(","),
-      );
-      message.success("操作成功");
-      refresh();
+        rows.map((item) => item.fileId).join(',')
+      )
+      message.success('操作成功')
+      refresh()
     } catch {}
   }
   function batchAcl() {
     if (privateFiles.length !== selected.length)
-      message.warning("仅对所选正常的受保护文件配置授权，其余文件已忽略");
-    setAcl({ files: privateFiles, batch: true });
+      message.warning('仅对所选正常的受保护文件配置授权，其余文件已忽略')
+    setAcl({ files: privateFiles, batch: true })
   }
   return (
     <div className="app-container file-management">
@@ -119,14 +119,14 @@ export default function File() {
         show={showSearch}
         deptOptions={departments}
         onQuery={(values) => {
-          setQuery({ ...values, pageNum: 1, pageSize: query.pageSize });
-          setSelected([]);
+          setQuery({ ...values, pageNum: 1, pageSize: query.pageSize })
+          setSelected([])
         }}
       />
       <FileStatistics stats={stats} />
       <div className="table-toolbar">
         <Space wrap>
-          <HasPermi value={["system:file:edit"]}>
+          <HasPermi value={['system:file:edit']}>
             <Button
               className="ruoyi-plain-button"
               icon={<LockOutlined />}
@@ -136,7 +136,7 @@ export default function File() {
               授权
             </Button>
           </HasPermi>
-          <HasPermi value={["system:file:transfer"]}>
+          <HasPermi value={['system:file:transfer']}>
             <Button
               className="ruoyi-plain-button ruoyi-plain-button--warning"
               icon={<SwapOutlined />}
@@ -146,44 +146,44 @@ export default function File() {
               转移
             </Button>
           </HasPermi>
-          <HasPermi value={["system:file:restore"]}>
+          <HasPermi value={['system:file:restore']}>
             <Button
               className="ruoyi-plain-button ruoyi-plain-button--success"
               icon={<UndoOutlined />}
-              disabled={!selected.length || selected.some((row) => row.status !== "deleted")}
-              onClick={() => mutate("restore")}
+              disabled={!selected.length || selected.some((row) => row.status !== 'deleted')}
+              onClick={() => mutate('restore')}
             >
               恢复
             </Button>
           </HasPermi>
-          <HasPermi value={["system:file:purge"]}>
+          <HasPermi value={['system:file:purge']}>
             <Button
               className="ruoyi-plain-button ruoyi-plain-button--danger"
               icon={<DeleteFilled />}
               disabled={
                 !selected.length ||
-                selected.some((row) => !["deleted", "purging"].includes(row.status))
+                selected.some((row) => !['deleted', 'purging'].includes(row.status))
               }
-              onClick={() => mutate("purge")}
+              onClick={() => mutate('purge')}
             >
               清理
             </Button>
           </HasPermi>
-          <HasPermi value={["system:file:remove"]}>
-            <Tooltip title={references ? "所选文件存在业务引用，请先解除引用" : ""}>
+          <HasPermi value={['system:file:remove']}>
+            <Tooltip title={references ? '所选文件存在业务引用，请先解除引用' : ''}>
               <span>
                 <Button
                   className="ruoyi-plain-button ruoyi-plain-button--danger"
                   icon={<DeleteOutlined />}
                   disabled={!allActive || !!references}
-                  onClick={() => mutate("delete")}
+                  onClick={() => mutate('delete')}
                 >
                   删除
                 </Button>
               </span>
             </Tooltip>
           </HasPermi>
-          <HasPermi value={["system:file:edit"]}>
+          <HasPermi value={['system:file:edit']}>
             <Button
               className="ruoyi-plain-button ruoyi-plain-button--info"
               icon={<ClockCircleOutlined />}
@@ -192,7 +192,7 @@ export default function File() {
               策略
             </Button>
           </HasPermi>
-          <HasPermi value={["system:file:reconcile"]}>
+          <HasPermi value={['system:file:reconcile']}>
             <Button
               className="ruoyi-plain-button ruoyi-plain-button--info"
               icon={<ApiOutlined />}
@@ -201,7 +201,7 @@ export default function File() {
               对账
             </Button>
           </HasPermi>
-          <HasPermi value={["system:file:list"]}>
+          <HasPermi value={['system:file:list']}>
             <Button
               className="ruoyi-plain-button ruoyi-plain-button--info"
               icon={<BellOutlined />}
@@ -211,7 +211,11 @@ export default function File() {
             </Button>
           </HasPermi>
         </Space>
-        <RightToolbar showSearch={showSearch} onShowSearch={setShowSearch} onQuery={refresh} />
+        <RightToolbar
+          showSearch={showSearch}
+          onShowSearch={setShowSearch}
+          onQuery={refresh}
+        />
       </div>
       <FileTable
         fileList={data.rows}
@@ -225,24 +229,24 @@ export default function File() {
         }
         onDownload={(row) =>
           download.file(
-            `/system/file/download/${row.fileId}/${encodeURIComponent(row.storedName || "file")}`,
+            `/system/file/download/${row.fileId}/${encodeURIComponent(row.storedName || 'file')}`
           )
         }
         onReference={setReference}
         onAcl={(row) => setAcl({ files: [row], batch: false })}
         onTransfer={(row) => setTransfer([row])}
         onAudit={setAudit}
-        onDelete={(row) => mutate("delete", row)}
-        onRestore={(row) => mutate("restore", row)}
-        onPurge={(row) => mutate("purge", row)}
+        onDelete={(row) => mutate('delete', row)}
+        onRestore={(row) => mutate('restore', row)}
+        onPurge={(row) => mutate('purge', row)}
       />
       <Pagination
         total={data.total}
         page={query.pageNum}
         limit={query.pageSize}
         onChange={(page) => {
-          setQuery({ ...query, ...page });
-          setSelected([]);
+          setQuery({ ...query, ...page })
+          setSelected([])
         }}
       />
       <FileDetailDialog
@@ -251,7 +255,10 @@ export default function File() {
         onClose={() => setDetail(undefined)}
         onReference={setReference}
       />
-      <FileReferenceDrawer file={reference} onClose={() => setReference(undefined)} />
+      <FileReferenceDrawer
+        file={reference}
+        onClose={() => setReference(undefined)}
+      />
       <FileAclDrawer
         files={acl?.files}
         batch={acl?.batch}
@@ -263,8 +270,14 @@ export default function File() {
         onClose={() => setTransfer(undefined)}
         onSuccess={refresh}
       />
-      <FileAuditDrawer file={audit} onClose={() => setAudit(undefined)} />
-      <FileRetentionPolicyDrawer open={policyOpen} onClose={() => setPolicyOpen(false)} />
+      <FileAuditDrawer
+        file={audit}
+        onClose={() => setAudit(undefined)}
+      />
+      <FileRetentionPolicyDrawer
+        open={policyOpen}
+        onClose={() => setPolicyOpen(false)}
+      />
       <FileRetentionReminderDrawer
         open={reminderOpen}
         onClose={() => setReminderOpen(false)}
@@ -276,5 +289,5 @@ export default function File() {
         onSuccess={refresh}
       />
     </div>
-  );
+  )
 }

@@ -1,25 +1,25 @@
-import { useEffect, useState } from "react";
-import { CopyOutlined } from "@ant-design/icons";
-import { Button, Modal, Tabs } from "antd";
-import { message } from "@/plugins/modal";
-import { copyText } from "@/directive/common/copyText";
+import { useEffect, useState } from 'react'
+import { CopyOutlined } from '@ant-design/icons'
+import { Button, Modal, Tabs } from 'antd'
+import { message } from '@/plugins/modal'
+import { copyText } from '@/directive/common/copyText'
 
-const fileName = (path) => path.slice(path.lastIndexOf("/") + 1).replace(/\.jinja2$/, "");
-const defaultFile = (files) => files.find((path) => fileName(path) === "do.py") || files[0];
+const fileName = (path) => path.slice(path.lastIndexOf('/') + 1).replace(/\.jinja2$/, '')
+const defaultFile = (files) => files.find((path) => fileName(path) === 'do.py') || files[0]
 
 export default function CodePreview({ preview, onClose }) {
-  const files = Object.keys(preview || {});
-  const [activeFile, setActiveFile] = useState(() => defaultFile(files));
+  const files = Object.keys(preview || {})
+  const [activeFile, setActiveFile] = useState(() => defaultFile(files))
   useEffect(() => {
-    setActiveFile(defaultFile(Object.keys(preview || {})));
-  }, [preview]);
+    setActiveFile(defaultFile(Object.keys(preview || {})))
+  }, [preview])
 
   async function copy(content) {
     try {
-      await copyText(content);
-      message.success("复制成功");
+      await copyText(content)
+      message.success('复制成功')
     } catch {
-      message.error("复制失败，请手动复制");
+      message.error('复制失败，请手动复制')
     }
   }
 
@@ -55,5 +55,5 @@ export default function CodePreview({ preview, onClose }) {
         }))}
       />
     </Modal>
-  );
+  )
 }

@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from copy import deepcopy
 from pathlib import Path
 from types import ModuleType
@@ -43,9 +44,30 @@ def configuration() -> dict[str, Any]:
     }
 
 
-def test_compose_accepts_consistent_framework(configuration: dict[str, Any]) -> None:
+@pytest.mark.parametrize('framework', ['vue2', 'vue3', 'react'])
+def test_compose_accepts_consistent_framework(configuration: dict[str, Any], framework: str) -> None:
     """框架一致的 Compose 配置可以通过校验。"""
-    compose.validate_configuration(configuration, 'vue2', 'my', ROOT)
+    frontend = ROOT / 'ruoyi-fastapi-frontend' / framework / 'web'
+    configuration['services']['ruoyi-frontend']['build']['context'] = str(frontend)
+    configuration['services']['ruoyi-frontend']['volumes'][0]['source'] = str(frontend / 'bin/nginx.dockermy.conf')
+    configuration['services']['ruoyi-backend-my']['environment']['RUOYI_PLUGIN_FRONTEND_FRAMEWORK'] = framework
+    compose.validate_configuration(configuration, framework, 'my', ROOT)
+
+
+@pytest.mark.parametrize('framework', ['vue2', 'vue3', 'react'])
+@pytest.mark.parametrize('target', ['web', 'mobile'])
+def test_frontend_ci_commands_exist_in_every_project(framework: str, target: str) -> None:
+    """矩阵中的工程必须实际提供工作流调用的测试和构建命令。"""
+    directory = ROOT / 'ruoyi-fastapi-frontend' / framework / target
+    package = json.loads((directory / 'package.json').read_text(encoding='utf-8'))
+    required = {'test:unit', 'test:contract'}
+    required.update({'build:prod', 'build:docker'} if target == 'web' else {'build:h5', 'build:mp-weixin'})
+    if framework == 'react':
+        assert package['packageManager'].startswith('pnpm@')
+        assert (directory / 'pnpm-workspace.yaml').is_file()
+        if target == 'mobile':
+            required.update({'check:platforms', 'build:rn:android', 'build:rn:ios'})
+    assert required <= package['scripts'].keys()
 
 
 @pytest.mark.parametrize('component', ['build', 'nginx', 'backend'])

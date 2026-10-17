@@ -7,9 +7,9 @@ SCRIPT = Path(__file__).resolve().parents[1] / 'scripts' / 'ci_plan.py'
 SPEC = importlib.util.spec_from_file_location('ci_plan', SCRIPT)
 ci = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ci)
-FRONTEND_PROJECT_COUNT = 4
-STANDARD_E2E_COMBINATION_COUNT = 4
-FULL_E2E_COMBINATION_COUNT = 16
+FRONTEND_PROJECT_COUNT = 6
+STANDARD_E2E_COMBINATION_COUNT = 6
+FULL_E2E_COMBINATION_COUNT = 24
 
 
 def test_readme_change_only_runs_quality() -> None:
@@ -48,11 +48,12 @@ def test_native_builder_change_runs_native_verification() -> None:
     assert plan['required']['native']
 
 
-def test_bundle_example_change_runs_both_web_consumers() -> None:
-    """示例开发代理由两版 Web 测试直接引用，变更时均应执行。"""
+def test_bundle_example_change_runs_all_web_consumers() -> None:
+    """示例开发代理由全部 Web 测试直接引用，变更时均应执行。"""
     plan = ci.build_plan(['ruoyi-fastapi-backend/plugins/examples/python/bundle_demo/web/dev/mockRequest.js'])
     assert plan['frontend_matrix'] == {
         'include': [
+            {'framework': 'react', 'target': 'web'},
             {'framework': 'vue2', 'target': 'web'},
             {'framework': 'vue3', 'target': 'web'},
         ]
@@ -67,12 +68,12 @@ def test_bundle_example_change_runs_both_web_consumers() -> None:
         'ruoyi-fastapi-backend/tests/plugins/core/runtime/test_browser_session.py',
     ],
 )
-def test_shared_auth_and_test_helpers_keep_both_network_suites(path: str) -> None:
-    """共享鉴权和测试夹具变更触发两版网络验收。"""
+def test_shared_auth_and_test_helpers_keep_all_network_suites(path: str) -> None:
+    """共享鉴权和测试夹具变更触发全部框架的网络验收。"""
     plan = ci.build_plan([path])
     assert plan['required']['backend']
     assert plan['required']['integration']
-    assert plan['network_frameworks'] == ['vue2', 'vue3']
+    assert plan['network_frameworks'] == ['react', 'vue2', 'vue3']
 
 
 @pytest.mark.parametrize(
@@ -86,11 +87,13 @@ def test_ci_and_dependency_changes_select_every_category(path: str) -> None:
     assert len(plan['e2e_matrix']['include']) == STANDARD_E2E_COMBINATION_COUNT
 
 
-def test_mobile_change_does_not_build_other_projects_or_web_e2e() -> None:
+@pytest.mark.parametrize('framework', ci.FRAMEWORKS)
+def test_mobile_change_does_not_build_other_projects_or_web_e2e(framework: str) -> None:
     """单个移动端变更只选中对应工程。"""
-    plan = ci.build_plan(['ruoyi-fastapi-frontend/vue2/mobile/src/utils/request.js'])
-    assert plan['frontend_matrix'] == {'include': [{'framework': 'vue2', 'target': 'mobile'}]}
+    plan = ci.build_plan([f'ruoyi-fastapi-frontend/{framework}/mobile/src/utils/request.js'])
+    assert plan['frontend_matrix'] == {'include': [{'framework': framework, 'target': 'mobile'}]}
     assert not plan['required']['e2e']
+    assert not plan['required']['native']
 
 
 @pytest.mark.parametrize(
@@ -100,12 +103,13 @@ def test_mobile_change_does_not_build_other_projects_or_web_e2e() -> None:
         'ruoyi-fastapi-test/frontend/mobile-behavior.mjs',
     ],
 )
-def test_shared_mobile_harness_runs_both_mobile_projects(path: str) -> None:
-    """共享移动端测试工具变更同时验证两版工程。"""
+def test_shared_mobile_harness_runs_all_mobile_projects(path: str) -> None:
+    """共享移动端测试工具变更同时验证全部移动工程。"""
     plan = ci.build_plan([path])
     assert plan['required']['frontend']
     assert plan['frontend_matrix'] == {
         'include': [
+            {'framework': 'react', 'target': 'mobile'},
             {'framework': 'vue2', 'target': 'mobile'},
             {'framework': 'vue3', 'target': 'mobile'},
         ]
@@ -113,13 +117,15 @@ def test_shared_mobile_harness_runs_both_mobile_projects(path: str) -> None:
     assert not plan['required']['e2e']
 
 
-def test_web_change_selects_matching_framework_and_both_databases() -> None:
+@pytest.mark.parametrize('framework', ci.FRAMEWORKS)
+def test_web_change_selects_matching_framework_and_both_databases(framework: str) -> None:
     """Web 变更使用对应框架并覆盖两类数据库。"""
-    plan = ci.build_plan(['ruoyi-fastapi-frontend/vue2/web/src/views/login.vue'])
-    assert plan['network_frameworks'] == ['vue2']
+    plan = ci.build_plan([f'ruoyi-fastapi-frontend/{framework}/web/src/views/login.jsx'])
+    assert plan['frontend_matrix'] == {'include': [{'framework': framework, 'target': 'web'}]}
+    assert plan['network_frameworks'] == [framework]
     assert {(row['framework'], row['database'], row['python']) for row in plan['e2e_matrix']['include']} == {
-        ('vue2', 'mysql', '3.12'),
-        ('vue2', 'postgresql', '3.12'),
+        (framework, 'mysql', '3.12'),
+        (framework, 'postgresql', '3.12'),
     }
 
 

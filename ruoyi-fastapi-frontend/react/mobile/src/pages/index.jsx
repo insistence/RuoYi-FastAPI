@@ -1,16 +1,14 @@
-import React from "react";
-import { View, Text, Input, Image, ScrollView } from "@tarojs/components";
-import { usePageAuth } from "@/permission";
+import React from 'react'
+import { View, Text, Input, Image, ScrollView } from '@tarojs/components'
+import { usePageAuth } from '@/permission'
 export default function Home() {
-  const allowed = usePageAuth();
-  if (!allowed) return null;
+  const allowed = usePageAuth()
+  if (!allowed) return null
   return (
     <View className="flex h-full flex-col bg-gray-50">
       <View className="bg-white pb-6 rounded-b-3xl shadow-sm z-50">
         <View className="pt-12 pb-4 px-4 flex justify-center items-center">
-          <Text className="text-lg font-bold text-gray-800">
-            RuoYi-FastAPI移动端
-          </Text>
+          <Text className="text-lg font-bold text-gray-800">RuoYi-FastAPI移动端</Text>
         </View>
 
         <View className="px-4 pb-2">
@@ -93,9 +91,7 @@ export default function Home() {
 
           <View>
             <View className="mb-4 flex items-center justify-between">
-              <View className="text-base font-bold text-gray-800">
-                快捷入口
-              </View>
+              <View className="text-base font-bold text-gray-800">快捷入口</View>
             </View>
             <View className="grid grid-cols-4 gap-2 rounded-2xl bg-white p-4 shadow-sm">
               <View className="flex flex-col items-center space-y-2">
@@ -127,9 +123,7 @@ export default function Home() {
 
           <View>
             <View className="mb-4 flex items-center justify-between">
-              <View className="text-base font-bold text-gray-800">
-                最近更新
-              </View>
+              <View className="text-base font-bold text-gray-800">最近更新</View>
               <View className="text-xs text-blue-500">查看全部</View>
             </View>
             <View className="space-y-3">
@@ -162,5 +156,5 @@ export default function Home() {
         </View>
       </ScrollView>
     </View>
-  );
+  )
 }

@@ -1,21 +1,113 @@
 /* Shared timings and motion directions from the Vue transition stylesheet. */
-@keyframes page-enter { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes page-leave { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(30px); } }
-@keyframes breadcrumb-enter { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-.app-main.page-enter { animation: page-enter .5s both; }
-.app-main.page-leave { animation: page-leave .5s both; pointer-events: none; }
-.app-breadcrumb li:not(:first-child) { animation: breadcrumb-enter .5s both; }
-::view-transition-new(root), ::view-transition-old(root) { animation: none !important; backface-visibility: hidden; position: fixed; inset: 0; }
-::view-transition-old(root), .dark::view-transition-new(root) { z-index: 1; }
-::view-transition-new(root), .dark::view-transition-old(root) { z-index: 2147483646; }
-.route-progress { position: fixed; z-index: 2147483647; inset: 0 0 auto; height: 2px; pointer-events: none; overflow: hidden; transition: opacity .2s; }
-.route-progress.is-complete { opacity: 0; transition-delay: .1s; }
-.route-progress > div { height: 100%; background: #29d; transition: transform .2s ease; }
-.route-progress span { position: absolute; right: 0; width: 100px; height: 100%; box-shadow: 0 0 10px #29d, 0 0 5px #29d; transform: rotate(3deg) translateY(-4px); }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f1f1f1; }
-::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
-.dark ::-webkit-scrollbar-track { background: #262626; }
-.dark ::-webkit-scrollbar-thumb { background: #606266; }
-@supports not selector(::-webkit-scrollbar) { * { scrollbar-width: thin; scrollbar-color: #c0c0c0 #f1f1f1; } }
-@media (prefers-reduced-motion: reduce) { .app-main, .app-breadcrumb li { animation: none !important; } }
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes page-leave {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+@keyframes breadcrumb-enter {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.app-main.page-enter {
+  animation: page-enter 0.5s both;
+}
+.app-main.page-leave {
+  animation: page-leave 0.5s both;
+  pointer-events: none;
+}
+.app-breadcrumb li:not(:first-child) {
+  animation: breadcrumb-enter 0.5s both;
+}
+::view-transition-new(root),
+::view-transition-old(root) {
+  animation: none !important;
+  backface-visibility: hidden;
+  position: fixed;
+  inset: 0;
+}
+::view-transition-old(root),
+.dark::view-transition-new(root) {
+  z-index: 1;
+}
+::view-transition-new(root),
+.dark::view-transition-old(root) {
+  z-index: 2147483646;
+}
+.route-progress {
+  position: fixed;
+  z-index: 2147483647;
+  inset: 0 0 auto;
+  height: 2px;
+  pointer-events: none;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+.route-progress.is-complete {
+  opacity: 0;
+  transition-delay: 0.1s;
+}
+.route-progress > div {
+  height: 100%;
+  background: #29d;
+  transition: transform 0.2s ease;
+}
+.route-progress span {
+  position: absolute;
+  right: 0;
+  width: 100px;
+  height: 100%;
+  box-shadow:
+    0 0 10px #29d,
+    0 0 5px #29d;
+  transform: rotate(3deg) translateY(-4px);
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #262626;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #606266;
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #c0c0c0 #f1f1f1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-main,
+  .app-breadcrumb li {
+    animation: none !important;
+  }
+}

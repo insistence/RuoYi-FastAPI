@@ -1,4 +1,4 @@
-import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator'
 export async function cropImage(src, crop) {
   const result = await manipulateAsync(
     src,
@@ -13,7 +13,7 @@ export async function cropImage(src, crop) {
       },
       { resize: { width: 400 } },
     ],
-    { compress: 0.9, format: SaveFormat.JPEG },
-  );
-  return result.uri;
+    { compress: 0.9, format: SaveFormat.JPEG }
+  )
+  return result.uri
 }

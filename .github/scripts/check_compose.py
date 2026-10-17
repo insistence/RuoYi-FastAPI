@@ -45,14 +45,14 @@ def validate_configuration(config: dict[str, Any], framework: str, engine: str, 
 
 def main() -> None:
     """
-    使用两种框架解析全部生产和测试 Compose，无需启动容器。
+    使用全部框架解析生产和测试 Compose，无需启动容器。
 
     :return: None
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--docker', default='docker')
     args = parser.parse_args()
-    for framework in ('vue2', 'vue3'):
+    for framework in ('vue2', 'vue3', 'react'):
         for env_file, compose_file, engine in CONFIGURATIONS:
             result = subprocess.run(
                 [args.docker, 'compose', '--env-file', env_file, '-f', compose_file, 'config', '--format', 'json'],

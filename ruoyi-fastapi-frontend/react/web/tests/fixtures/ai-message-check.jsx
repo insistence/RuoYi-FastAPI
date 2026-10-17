@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { Button, Card, Space } from "antd";
-import AiMessage from "../../plugins/ai/views/chat/components/AiMessage";
+import { useState } from 'react'
+import { Button, Card, Space } from 'antd'
+import AiMessage from '../../plugins/ai/views/chat/components/AiMessage'
 
-const reasoning = "先保留 **原有聊天布局**，再检查流式内容、代码、公式和图表。";
+const reasoning = '先保留 **原有聊天布局**，再检查流式内容、代码、公式和图表。'
 const steps = [
-  { content: "", reasoningContent: "", loading: true },
-  { content: "", reasoningContent: reasoning, loading: true },
+  { content: '', reasoningContent: '', loading: true },
+  { content: '', reasoningContent: reasoning, loading: true },
   {
-    content: "## AI 消息\n\n正在逐步接收 **回答**。\n\n```javascript\nconst message =",
+    content: '## AI 消息\n\n正在逐步接收 **回答**。\n\n```javascript\nconst message =',
     reasoningContent: reasoning,
     loading: true,
   },
@@ -17,12 +17,15 @@ const steps = [
     reasoningContent: reasoning,
     loading: false,
   },
-];
+]
 export default function AiMessageCheck() {
-  const [step, setStep] = useState(3);
+  const [step, setStep] = useState(3)
   return (
-    <Card style={{ maxWidth: 900, marginInline: "auto" }}>
-      <Space wrap style={{ marginBottom: 24 }}>
+    <Card style={{ maxWidth: 900, marginInline: 'auto' }}>
+      <Space
+        wrap
+        style={{ marginBottom: 24 }}
+      >
         <Button onClick={() => setStep(0)}>等待回复</Button>
         <Button onClick={() => setStep(1)}>思考过程</Button>
         <Button onClick={() => setStep(2)}>未闭合代码块</Button>
@@ -30,5 +33,5 @@ export default function AiMessageCheck() {
       </Space>
       <AiMessage {...steps[step]} />
     </Card>
-  );
+  )
 }

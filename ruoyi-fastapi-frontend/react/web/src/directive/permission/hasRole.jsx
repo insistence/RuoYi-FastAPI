@@ -1,4 +1,4 @@
-import useUserStore from "@/store/modules/user";
+import useUserStore from '@/store/modules/user'
 /**
  * 角色权限处理：具备任一指定角色或 admin 角色时渲染子内容。
  * Copyright (c) 2019 ruoyi
@@ -9,10 +9,10 @@ import useUserStore from "@/store/modules/user";
  * @returns {import("react").ReactNode} 有权限时的子内容，否则为 null
  */
 export default function HasRole({ value = [], children }) {
-  const roles = useUserStore((state) => state.roles);
+  const roles = useUserStore((state) => state.roles)
   return Array.isArray(value) &&
     value.length > 0 &&
-    (roles.includes("admin") || value.some((role) => roles.includes(role)))
+    (roles.includes('admin') || value.some((role) => roles.includes(role)))
     ? children
-    : null;
+    : null
 }

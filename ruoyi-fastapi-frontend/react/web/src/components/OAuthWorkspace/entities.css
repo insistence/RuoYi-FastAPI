@@ -883,7 +883,7 @@ html.dark .oauth-access-policy-drawer {
 }
 :is(.oauth-client-editor, .oauth-resource-editor, .oauth-key-editor, .oauth-scope-editor)
   .ant-input-textarea-show-count
-  textarea[rows="3"] {
+  textarea[rows='3'] {
   height: 72px;
   min-height: 72px;
   line-height: 21px;

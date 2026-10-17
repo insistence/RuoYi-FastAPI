@@ -769,5 +769,11 @@
   line-height: 32px;
 }
 
-.auth-center .trust-panel {font-size:16px;line-height:32px;}
-.auth-consent-flow .scope-selection {font-size:0;line-height:1.5;}
+.auth-center .trust-panel {
+  font-size: 16px;
+  line-height: 32px;
+}
+.auth-consent-flow .scope-selection {
+  font-size: 0;
+  line-height: 1.5;
+}

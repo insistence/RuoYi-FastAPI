@@ -1,5 +1,7 @@
 :root {
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+  font-family:
+    'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial,
+    sans-serif;
   color: #303133;
   background: #fff;
 }
@@ -257,9 +259,9 @@ select {
   align-items: center;
   justify-content: center;
   padding: 40px 24px;
-  background: url("../images/login-background.jpg") left top / cover;
+  background: url('../images/login-background.jpg') left top / cover;
   font-family:
-    "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial,
+    'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial,
     sans-serif;
 }
 .login-card {
@@ -272,11 +274,11 @@ select {
   text-align: center;
   color: #707070;
   font:
-    500 18.72px/1.1 "Helvetica Neue",
+    500 18.72px/1.1 'Helvetica Neue',
     Helvetica,
-    "PingFang SC",
-    "Hiragino Sans GB",
-    "Microsoft YaHei",
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
     Arial,
     sans-serif;
   margin: 0 0 30px;
@@ -360,7 +362,7 @@ select {
   color: white;
   font-weight: 600;
   font-size: 14px;
-  font-family: Avenir, "Helvetica Neue", Arial, Helvetica, sans-serif;
+  font-family: Avenir, 'Helvetica Neue', Arial, Helvetica, sans-serif;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -400,7 +402,9 @@ select {
   .split-page {
     grid-template-columns: 1fr;
   }
-  .layout-content { padding: 0; }
+  .layout-content {
+    padding: 0;
+  }
   .app-container {
     padding: 12px;
   }
@@ -516,7 +520,7 @@ select {
 }
 html.dark .login-page {
   background-image:
-    linear-gradient(rgb(0 0 0 / 55%), rgb(0 0 0 / 55%)), url("../images/login-background.jpg");
+    linear-gradient(rgb(0 0 0 / 55%), rgb(0 0 0 / 55%)), url('../images/login-background.jpg');
 }
 html.dark .login-card {
   box-shadow: 0 12px 40px rgb(0 0 0 / 50%);
@@ -526,7 +530,17 @@ html.dark .login-card h1 {
 }
 
 .ant-descriptions-bordered .ant-descriptions-item-label,
-.ant-descriptions-bordered .ant-descriptions-item-content { padding:8px 11px !important; font-size:14px; line-height:23px; }
-.ant-descriptions-bordered .ant-descriptions-item-label { font-weight:700; }
+.ant-descriptions-bordered .ant-descriptions-item-content {
+  padding: 8px 11px !important;
+  font-size: 14px;
+  line-height: 23px;
+}
+.ant-descriptions-bordered .ant-descriptions-item-label {
+  font-weight: 700;
+}
 
-.table-toolbar > .ant-space > .ant-space-item { display:inline-flex; align-items:center; gap:10px; }
+.table-toolbar > .ant-space > .ant-space-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}

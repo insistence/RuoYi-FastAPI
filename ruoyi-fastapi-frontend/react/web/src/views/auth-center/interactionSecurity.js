@@ -5,10 +5,10 @@
  * @returns {string} CSRF凭据，缺失时返回空字符串
  */
 export function readInteractionCsrf(hash) {
-  if (typeof hash !== "string") {
-    return "";
+  if (typeof hash !== 'string') {
+    return ''
   }
-  return new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash).get("csrf") || "";
+  return new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash).get('csrf') || ''
 }
 
 /**
@@ -19,7 +19,7 @@ export function readInteractionCsrf(hash) {
  * @returns {string} 已编码交互标识的页面地址
  */
 export function interactionRouteLocation(path, interactionId) {
-  return `${path}?interaction=${encodeURIComponent(interactionId)}`;
+  return `${path}?interaction=${encodeURIComponent(interactionId)}`
 }
 
 /**
@@ -31,15 +31,15 @@ export function interactionRouteLocation(path, interactionId) {
  * @returns {URL|null} 可信完成地址，校验失败时返回null
  */
 export function trustedCompletionUrl(url, origin, interactionId) {
-  if (typeof url !== "string" || !url || typeof interactionId !== "string" || !interactionId) {
-    return null;
+  if (typeof url !== 'string' || !url || typeof interactionId !== 'string' || !interactionId) {
+    return null
   }
-  let target;
+  let target
   try {
-    target = new URL(url, origin);
+    target = new URL(url, origin)
   } catch {
-    return null;
+    return null
   }
-  const expectedPath = `/auth/interaction/${encodeURIComponent(interactionId)}/complete`;
-  return target.origin === origin && target.pathname === expectedPath ? target : null;
+  const expectedPath = `/auth/interaction/${encodeURIComponent(interactionId)}/complete`
+  return target.origin === origin && target.pathname === expectedPath ? target : null
 }

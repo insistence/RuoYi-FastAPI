@@ -1,0 +1,27 @@
+# Keep the uni-app HTML template manually maintained.
+/public/index.html
+
+# Dependencies, build output and caches
+node_modules/
+dist/
+unpackage/
+coverage/
+.cache/
+.vite/
+target/
+playwright-report/
+test-results/
+
+# Package-manager output and generated declarations
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+auto-imports.d.ts
+components.d.ts
+
+# Vendored compatibility modules and external assets
+/src/vendor/
+**/*.min.js
+**/*.min.css
+**/*.svg
+**/*.map

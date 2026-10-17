@@ -2,10 +2,10 @@
 
 宿主位于 `ruoyi-fastapi-frontend/react/web`，共享后端 `plugins/ai` 接口及菜单权限。后端菜单路径无需修改：
 
-| 菜单组件路径 | React 页面 |
-| --- | --- |
+| 菜单组件路径            | React 页面              |
+| ----------------------- | ----------------------- |
 | `plugin/ai/model/index` | `views/model/index.jsx` |
-| `plugin/ai/chat/index` | `views/chat/index.jsx` |
+| `plugin/ai/chat/index`  | `views/chat/index.jsx`  |
 
 模型管理支持供应商、模型、密钥和生成参数配置；聊天支持会话历史、图片、流式输出与停止、Markdown、代码、KaTeX 和 Mermaid。按钮权限使用 `HasPermi`，服务端仍负责鉴权。
 

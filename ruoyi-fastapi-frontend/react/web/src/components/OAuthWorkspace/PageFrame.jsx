@@ -1,7 +1,7 @@
-import "./style.css";
+import './style.css'
 export default function PageFrame({
   title,
-  section = "统一认证",
+  section = '统一认证',
   description,
   actions,
   context,
@@ -10,10 +10,10 @@ export default function PageFrame({
   filterExtra,
   toolbar,
   children,
-  className = "",
+  className = '',
 }) {
   return (
-    <div className={"app-container oauth-workspace " + className}>
+    <div className={'app-container oauth-workspace ' + className}>
       <header className="workspace-header">
         <div className="workspace-heading">
           <h2>{title}</h2>
@@ -40,5 +40,5 @@ export default function PageFrame({
         {children}
       </section>
     </div>
-  );
+  )
 }
