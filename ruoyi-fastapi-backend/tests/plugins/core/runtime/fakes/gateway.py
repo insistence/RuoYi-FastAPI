@@ -369,7 +369,7 @@ class FakePluginRuntimeGateway:
         if (
             self.completed_process.returncode != 0
             or len(command) < MIN_NPM_INSTALL_COMMAND_LENGTH
-            or command[:2] != ['npm', 'install']
+            or command[:2] not in (['npm', 'install'], ['pnpm', 'add'])
         ):
             return
         target = command[-1]
@@ -379,5 +379,8 @@ class FakePluginRuntimeGateway:
         package_json = json.loads(package_json_path.read_text(encoding='utf-8'))
         dependency_field = 'devDependencies' if '--save-dev' in command else 'dependencies'
         dependency_name = target.rsplit('@', maxsplit=1)[0] if '@' in target.lstrip('@') else target
-        package_json.setdefault(dependency_field, {})[dependency_name] = '^npm-written'
+        version = target.rsplit('@', maxsplit=1)[1] if '@' in target.lstrip('@') else '*'
+        package_json.setdefault(dependency_field, {})[dependency_name] = (
+            version if command[0] == 'pnpm' else '^npm-written'
+        )
         package_json_path.write_text(json.dumps(package_json, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

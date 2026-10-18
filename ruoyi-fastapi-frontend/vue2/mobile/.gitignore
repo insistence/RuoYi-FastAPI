@@ -29,3 +29,5 @@ yarn.lock
 !src/vendor/node-forge/lib/
 !src/vendor/node-forge/lib/*.js
 
+
+package-lock.json

@@ -81,7 +81,8 @@ class GenTableTest(SystemPage):
         self.table_comment = f'生成验收{uuid4().hex[:8]}'
         await self.page.get_by_role('tab', name='基本信息', exact=True).click()
         await (
-            self.page.locator('.el-form-item:visible, .ant-form-item:visible')
+            self.page.get_by_role('tabpanel', name='基本信息', exact=True)
+            .locator('.el-form-item:visible, .ant-form-item:visible')
             .filter(has_text='表描述')
             .locator('input')
             .fill(self.table_comment)

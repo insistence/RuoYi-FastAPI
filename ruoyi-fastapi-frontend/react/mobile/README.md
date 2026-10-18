@@ -1,10 +1,10 @@
 # React / Taro 移动端
 
-以 Vue3 移动端的 17 个页面为基础，采用 Taro 4.2、React 18.2、Vite 4、Tailwind CSS 4 和 weapp-tailwindcss。页面路径、接口和 `store/modules` 的职责保持对应关系。
+以 Vue3 移动端的 17 个页面为基础，采用 Taro 4.3、React 18.2、Vite 4.5.14、Tailwind CSS 4.3.3 和 weapp-tailwindcss 5.6.3。页面路径、接口和 `store/modules` 的职责保持对应关系。
 
 ## 启动与接口地址
 
-在本工程目录中执行以下命令。Node.js 版本需满足项目依赖要求，pnpm 版本以 `package.json` 的 `packageManager` 字段为准。
+Node.js 使用 22.x（最低 22.22.2）或 24.x（最低 24.15.0），推荐对应版本线的最新补丁。CI 分别验证两条版本线。包管理器版本以 `package.json` 的 `packageManager` 为准。
 
 ```sh
 pnpm install
@@ -14,7 +14,11 @@ pnpm build:h5
 pnpm build:mp-weixin
 ```
 
-依赖锁文件由安装过程生成，已通过 `.gitignore` 排除，不纳入 Git 提交。首次安装使用 `pnpm install`；CI 中使用 `pnpm install --no-frozen-lockfile`，允许根据 `package.json` 生成锁文件。
+本工程统一使用 `pnpm@11.28.6`。`pnpm-lock.yaml` 应与 `package.json`、`pnpm-workspace.yaml` 一起提交到 Git，固定直接和传递依赖。首次拉取及 CI 使用 `pnpm install --frozen-lockfile`；有意新增或升级依赖时使用 `pnpm add` / `pnpm update`，检查锁文件差异并一起提交。不要手工编辑或删除锁文件。
+
+Taro 核心包保持同一版本，Vite 保留 Taro 4.3 runner 声明支持的 4.5.14。Vite 6 在本工程中存在 H5 开发服务启动问题，Vite 7 删除了 Taro 使用的旧 HTML 钩子，Vite 8 还更换了底层打包器，因此等待上游适配后再升级。weapp-tailwindcss 5.6.3 的可选 Vite peer 要求 5.2 以上，安装时仍会显示兼容提示；当前组合已验证开发服务、H5 和小程序构建，后续升级应重复这些检查。React 18.2、React Native 0.73 和 Expo 50 也必须作为一组维护，不能跟随 Web 端升级到 React 19。
+
+`src/app.css` 使用 Tailwind CSS 4 的 CSS 入口，`WeappTailwindcss` 在 H5 和小程序构建中统一生成样式；不要再叠加 Tailwind 官方 Vite / PostCSS 插件。参见 [weapp-tailwindcss 的 Taro 接入说明](https://tw.weapp.dev/docs/quick-start/frameworks/taro)。
 
 H5 开发服务默认端口为 `9090`，与 Vue2、Vue3 移动端保持一致。监听地址、端口和代理目标由 `config/index.ts` 中的 `h5.devServer` 配置；如需同时运行多个移动端版本，请为它们配置不同端口，并以启动日志中的实际地址为准。
 
@@ -58,7 +62,7 @@ pnpm build:mp-weixin
 
 ## 原生 App
 
-原生基线为 React Native 0.73.11 / Expo SDK 50，与 Taro 4.2 RN 运行时配套。使用 [Taro 官方原生壳工程](https://github.com/NervJS/taro-native-shell/tree/0.73.0) 或已有兼容的 RN 工程，将应用注册名设置为 `RuoYiFastAPI`，并集成本工程声明的原生依赖。
+原生基线为 React Native 0.73.11 / Expo SDK 50，与 Taro 4.3 RN 运行时配套。使用 [Taro 官方原生壳工程](https://github.com/NervJS/taro-native-shell/tree/0.73.0) 或已有兼容的 RN 工程，将应用注册名设置为 `RuoYiFastAPI`，并集成本工程声明的原生依赖。
 
 ```sh
 pnpm dev:rn
@@ -94,13 +98,13 @@ node scripts/pack-timezones.cjs
 
 `pnpm test` 先执行裁剪、原生样式、路由参数、传输加密和时区数据单元测试，再执行时间契约及缺少原生 Intl 时的兼容测试。CI 在 UTC、Asia/Shanghai、America/New_York 三个宿主时区重复执行 `test:contract`。
 
-PR 中验证 H5/微信构建、H5 登录与资料页，以及 Android/iOS JS bundle。完整 CI 模式增加表中其他已支持的小程序和鸿蒙目标。依赖按本工程声明的 pnpm 版本安装，使用 `--no-frozen-lockfile`；平台构建日志和浏览器失败诊断保存在 Actions artifact。流程与本地复现方式见[CI 说明](../../../ruoyi-fastapi-test/README.md#ci-分类与触发)。
+PR 中验证 H5/微信构建、H5 登录与资料页，以及 Android/iOS JS bundle。完整 CI 模式增加表中其他已支持的小程序和鸿蒙目标。依赖按本工程声明的 pnpm 版本安装，使用 `--frozen-lockfile`；平台构建日志和浏览器失败诊断保存在 Actions artifact。流程与本地复现方式见[CI 说明](../../../ruoyi-fastapi-test/README.md#ci-分类与触发)。
 
-格式化使用 Prettier 3.6.2，与 Vue2/Vue3 的规则一致：2 空格缩进、单引号、不加分号、LF 换行。`pnpm format` 格式化整个工程，`pnpm format:check` 只检查；依赖、缓存、构建产物、锁文件、生成的时区/图标数据及 HTML 入口模板通过 `.prettierignore` 排除。CI 的 Quality 工作流统一检查六个前端工程。
+格式化使用 Prettier 3.9.10，与 Vue2/Vue3 的规则一致：2 空格缩进、单引号、不加分号、LF 换行。`pnpm format` 格式化整个工程，`pnpm format:check` 只检查；依赖、缓存、构建产物、锁文件、生成的时区/图标数据及 HTML 入口模板通过 `.prettierignore` 排除。CI 的 Quality 工作流统一检查六个前端工程。
 
 需要导入打包的图片放在 `src/assets`，底栏等静态路径资源保留在 `src/static`。不要从 `static` 导入图片模块：Taro H5 开发服务器会直接返回图片，绕过 Vite 的模块转换。
 
-构建矩阵日志在 `.cache/platform-check`，脚本同时检查 H5 产物是否包含应用入口。`src/index.html` 的模板脚本必须保留为一行，以匹配 Taro 4.2 的入口替换规则，已加入格式化忽略列表。
+构建矩阵日志在 `.cache/platform-check`，脚本同时检查 H5 产物是否包含应用入口。`src/index.html` 的模板脚本必须保留为一行，以匹配 Taro 4.3 的入口替换规则，已加入格式化忽略列表。
 
 时区表以压缩数据打包，测试验证所有 IANA 时区记录和转换与原始 FormatJS 数据完全一致。新增图标时修改 `scripts/generate-icons.cjs` 并重新生成 CSS/原生 SVG 数据。新增页面样式时同步更新 `utils/nativeStyles.js`，测试会检查页面中的静态类名是否均有原生对应项。
 

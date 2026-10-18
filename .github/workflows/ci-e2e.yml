@@ -33,6 +33,7 @@ jobs:
       - name: Install test runner and Chromium
         run: |
           python -m pip install -r ruoyi-fastapi-test/requirements.txt
+          python -m pip check
           python -m playwright install --with-deps chromium
       - name: Verify reusable browser and isolated contexts
         working-directory: ruoyi-fastapi-test

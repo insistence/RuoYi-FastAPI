@@ -1,6 +1,7 @@
 // @ts-nocheck
 import Vue from 'vue'
 import App from './App.vue'
+import './app.css'
 import store from './store'
 import plugins from './plugins'
 import './permission'

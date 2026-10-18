@@ -151,7 +151,7 @@ def test_plugin_runtime_test_plugin_can_run_frontend_build_acceptance(tmp_path: 
     assert [item['kind'] for item in result['results']] == ['backend', 'frontend-build']
     assert result['targets'] == [str(backend_test_root), str(frontend_root)]
     assert gateway.commands[0][0] == [sys.executable, '-m', 'pytest', str(backend_test_root)]
-    assert gateway.commands[1][0] == ['npm', 'run', 'build:stage']
+    assert gateway.commands[1][0] == ['pnpm', 'run', 'build:stage']
     assert gateway.commands[1][1] == str(frontend_root)
     assert gateway.commands[1][2] == EXPECTED_FRONTEND_BUILD_TIMEOUT
 

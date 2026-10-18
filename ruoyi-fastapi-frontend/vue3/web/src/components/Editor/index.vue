@@ -22,6 +22,7 @@
       ref="quillEditorRef"
       v-model:content="content"
       contentType="html"
+      @ready="handleReady"
       @textChange="(e) => $emit('update:modelValue', content)"
       :options="options"
       :style="styles"
@@ -121,9 +122,8 @@ watch(
 )
 
 // 如果设置了上传地址则自定义图片上传事件
-onMounted(() => {
+function handleReady(quill) {
   if (props.type == 'url') {
-    let quill = quillEditorRef.value.getQuill()
     let toolbar = quill.getModule('toolbar')
     toolbar.addHandler('image', (value) => {
       if (value) {
@@ -134,7 +134,7 @@ onMounted(() => {
     })
     quill.root.addEventListener('paste', handlePasteCapture, true)
   }
-})
+}
 
 // 上传前校检格式和大小
 function handleBeforeUpload(file) {

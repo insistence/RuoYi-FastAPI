@@ -154,7 +154,8 @@ async def close_dialog(view: SystemPage) -> None:
 
 async def assert_unchanged(view: SystemPage, before: dict) -> None:
     """计划查看不能修改插件的安装版本、启用设置或状态。"""
-    response = await view.api.get(f'{RESOURCE}/{PLUGIN_ID}')
+    # 只读核验允许连接被重置后重建一次；HTTP 和业务错误仍由下方断言报告。
+    response = await view.api.get(f'{RESOURCE}/{PLUGIN_ID}', max_retries=1)
     assert response.ok
     payload = await response.json()
     assert payload['code'] == HTTPStatus.OK, payload

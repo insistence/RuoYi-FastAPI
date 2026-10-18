@@ -19,8 +19,6 @@ const config = {
     require('autoprefixer')({
       remove: process.env.UNI_PLATFORM !== 'h5',
     }),
-    require('tailwindcss')({ config: './tailwind.config.js' }),
-    require('weapp-tailwindcss/css-macro/postcss'),
     require('@dcloudio/vue-cli-plugin-uni/packages/postcss'),
   ],
 }

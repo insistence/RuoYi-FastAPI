@@ -929,7 +929,7 @@ class PluginTestPlanBuilder:
                 PluginTestTarget(
                     kind='frontend-build',
                     target_path=self.frontend_root,
-                    command=['npm', 'run', 'build:stage'],
+                    command=['pnpm', 'run', 'build:stage'],
                     workdir=self.frontend_root,
                     timeout=max(self.timeout, 300),
                 )

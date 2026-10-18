@@ -2,7 +2,7 @@
   <view class="flex h-full flex-col bg-gray-50 overflow-hidden">
     <!-- Header Section -->
     <view
-      class="relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 pb-20 pt-16 text-white shadow-lg"
+      class="relative overflow-hidden bg-linear-to-r from-blue-500 to-indigo-600 pb-20 pt-16 text-white shadow-lg"
     >
       <view class="absolute -right-10 -top-10 size-64 rounded-full bg-white/10 blur-3xl"></view>
       <view class="absolute -bottom-10 -left-10 size-40 rounded-full bg-white/10 blur-2xl"></view>

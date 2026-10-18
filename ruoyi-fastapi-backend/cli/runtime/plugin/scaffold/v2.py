@@ -112,6 +112,7 @@ class PluginV2ScaffoldBuilder:
                     'dev.html',
                     'dev.js',
                     'package.json',
+                    'pnpm-workspace.yaml',
                     'vite.config.js',
                     'src/main.js',
                     'src/style.css',
@@ -224,11 +225,11 @@ class PluginV2ScaffoldBuilder:
             else f'python {root}/build_release.py --output {output}'
         )
         frontend_steps = (
-            f'```bash\nnpm --prefix {root}/web install\nnpm --prefix {root}/web run build\n```\n\n'
-            '提交生成的 package-lock.json；后续可用 `npm ci` 重现前端依赖。构建器只复制已构建的 '
-            '`web/dist`，不会自动执行 npm。桥接 SDK 和溯源清单已从生成时的宿主复制到 `web/vendor`，'
+            f'```bash\npnpm --dir {root}/web install\npnpm --dir {root}/web run build\n```\n\n'
+            '提交生成的 pnpm-lock.yaml；后续可用 `pnpm install --frozen-lockfile` 重现前端依赖。构建器只复制已构建的 '
+            '`web/dist`，不会自动执行 pnpm。桥接 SDK 和溯源清单已从生成时的宿主复制到 `web/vendor`，'
             '检查及更新方式见下文。\n\n'
-            f'本地调试可运行 `npm --prefix {root}/web run dev`，打开 `/dev.html`。'
+            f'本地调试可运行 `pnpm --dir {root}/web run dev`，打开 `/dev.html`。'
             '模拟宿主支持主题、延迟、失败、重载及退出，使用模拟 `/api/info` 响应；业务接口需自行扩展 `web/dev.js`。'
             '模拟页不进入生产构建，也不能替代真实权限、会话和传输加密验证。'
             '同目录的 `pluginBridge.d.ts` 提供 JSON、文件及可协商 SSE 能力的类型；'
@@ -278,7 +279,7 @@ class PluginV2ScaffoldBuilder:
             '修改过或没有溯源记录的旧副本默认拒绝覆盖，需显式使用 `--force`。'
             '每次实际更新都先将原 SDK 备份到本工程的 `.plugin-sdk-backups/`。\n\n'
             '命令只使用本地宿主 SDK，不联网、不安装依赖、不更新业务源码或运行中的插件。'
-            f'更新后必须重新运行 `npm --prefix {root}/web run build`，'
+            f'更新后必须重新运行 `pnpm --dir {root}/web run build`，'
             '验证业务页面、类型与宿主能力，再重新打包并按维护流程发布。\n\n'
             if bundle
             else ''
@@ -307,7 +308,7 @@ class PluginV2ScaffoldBuilder:
 这是 manifest v2 的 {'Rust native' if native else 'Python'} ASGI 源码工程{'，包含独立前端 bundle' if bundle else ''}。
 源码位于 `{root}`，创建工程不会安装、启用或导入插件。下面的命令均在宿主后端根目录执行。
 
-先创建并激活 Python 3.10–3.13 环境；已有宿主环境可直接激活并使用，无需重复创建。
+先创建并激活 Python 3.10–3.14 环境；已有宿主环境可直接激活并使用，无需重复创建。
 
 Windows PowerShell：
 

@@ -1,19 +1,12 @@
 # 构建阶段
-FROM node:18-slim AS builder
+FROM node:22-slim AS builder
 ENV TZ=UTC
 WORKDIR /app
-
-# 复制源代码
+RUN npm install --global pnpm@11.28.6
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-
-# 设置npm镜像源
-RUN npm config set registry https://registry.npmmirror.com
-
-# 安装依赖
-RUN npm install
-
-# 执行docker构建命令
-RUN npm run build:docker
+RUN pnpm run build:docker
 
 # 运行阶段
 FROM nginx:latest

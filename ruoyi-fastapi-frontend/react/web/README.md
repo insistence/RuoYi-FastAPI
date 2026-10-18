@@ -4,14 +4,14 @@ React 19 + Ant Design 6 + Ant Design X + Vite。业务目录、接口参数、�
 
 ## 安装与启动
 
-进入本工程目录，使用满足依赖要求的 Node.js，pnpm 版本以 `package.json` 的 `packageManager` 字段为准。
+Node.js 使用 22.x（最低 22.22.2）或 24.x（最低 24.15.0），推荐对应版本线的最新补丁。CI 分别验证两条版本线。包管理器版本以 `package.json` 的 `packageManager` 为准。
 
 ```sh
-pnpm install --no-frozen-lockfile
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-依赖锁文件由安装过程生成，不纳入 Git 提交。启动后访问终端输出的服务地址；端口可通过 Vite 配置或启动参数调整。
+本工程统一使用 `pnpm@11.28.6`。`pnpm-lock.yaml` 应与 `package.json`、`pnpm-workspace.yaml` 一起提交到 Git，固定直接和传递依赖。首次拉取及 CI 使用 `pnpm install --frozen-lockfile`；有意新增或升级依赖时使用 `pnpm add` / `pnpm update`，检查锁文件差异并一起提交。不要手工编辑或删除锁文件。
 
 前端需要访问配套 FastAPI 服务，后端可以部署在开发机、共享服务或容器环境。使用后端已有账户登录，注册入口由后端 `registerEnabled` 控制。
 
@@ -54,7 +54,7 @@ docker build -t ruoyi-react-web .
 docker build --build-arg NGINX_CONFIG=bin/nginx.dockerpg.conf -t ruoyi-react-web:postgres .
 ```
 
-容器构建根据工程依赖清单安装依赖，不要求宿主提供锁文件。提供的 Nginx 配置是部署模板，上游服务名、接口前缀和代理规则需与实际部署网络匹配。构建默认生成 gzip 文件，原文件保留；是否发送预压缩资源由部署服务器决定。Windows 可使用 `bin/run-web.bat` 与 `bin/build.bat`。
+容器构建复制已提交的 `pnpm-lock.yaml`，使用冻结安装固定依赖版本。提供的 Nginx 配置是部署模板，上游服务名、接口前缀和代理规则需与实际部署网络匹配。构建默认生成 gzip 文件，原文件保留；是否发送预压缩资源由部署服务器决定。Windows 可使用 `bin/run-web.bat` 与 `bin/build.bat`。
 
 ## 开发约定
 
@@ -69,7 +69,7 @@ docker build --build-arg NGINX_CONFIG=bin/nginx.dockerpg.conf -t ruoyi-react-web
 
 ## 代码格式
 
-`pnpm format` 格式化整个工程，`pnpm format:check` 只检查。Prettier 3.6.2 的规则与 Vue2/Vue3 Web/Mobile 一致；CI 通过统一循环检查六个工程，项目特有的生成文件和历史兼容性夹具由 `.prettierignore` 排除。详见[格式约定](./FORMATTING.md)。
+`pnpm format` 格式化整个工程，`pnpm format:check` 只检查。Prettier 3.9.10 的规则与 Vue2/Vue3 Web/Mobile 一致；CI 通过统一循环检查六个工程，项目特有的生成文件和历史兼容性夹具由 `.prettierignore` 排除。详见[格式约定](./FORMATTING.md)。
 
 ## 测试
 
@@ -88,7 +88,7 @@ docker build --build-arg NGINX_CONFIG=bin/nginx.dockerpg.conf -t ruoyi-react-web
 
 组件测试使用 Vitest / React Testing Library，已归入认证和插件分组；执行 `pnpm test` 时每个测试文件只运行一次。
 
-CI 按 React Web 的变更选中本工程，安装使用 `pnpm install --no-frozen-lockfile`，执行格式检查、单元/组件测试、三时区契约及生产/Docker 模式构建。插件网络验收覆盖真实 HTTPS 代理、会话 Cookie、CSRF、SSE 和 WebSocket。隔离的 MySQL/PostgreSQL E2E 与 Vue 共用完整的 109 项用例，覆盖登录、29 个菜单页面与权限、用户时区、系统管理 CRUD 与授权、文件、插件、OAuth、监控、任务执行和日志、代码生成及表单构建；React 导出校验 JSX 内容。详见[CI 与本地复现说明](../../../ruoyi-fastapi-test/README.md#ci-分类与触发)。
+CI 按 React Web 的变更选中本工程，安装使用 `pnpm install --frozen-lockfile`，执行格式检查、单元/组件测试、三时区契约及生产/Docker 模式构建。插件网络验收覆盖真实 HTTPS 代理、会话 Cookie、CSRF、SSE 和 WebSocket。隔离的 MySQL/PostgreSQL E2E 与 Vue 共用完整的 109 项用例，覆盖登录、29 个菜单页面与权限、用户时区、系统管理 CRUD 与授权、文件、插件、OAuth、监控、任务执行和日志、代码生成及表单构建；React 导出校验 JSX 内容。详见[CI 与本地复现说明](../../../ruoyi-fastapi-test/README.md#ci-分类与触发)。
 
 ## 插件开发
 

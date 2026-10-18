@@ -8,6 +8,10 @@
     "build": "vite build"
   },
   "devDependencies": {
-    "vite": "6.4.3"
-  }
+    "vite": "8.3.4"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0"
+  },
+  "packageManager": "pnpm@11.28.6"
 }

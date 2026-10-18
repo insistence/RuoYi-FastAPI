@@ -54,7 +54,7 @@
           </view>
           <view class="grid grid-cols-2 gap-4">
             <view
-              class="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm transition-all active:scale-95"
+              class="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-xs transition-all active:scale-95"
               @click="handleToAiChat"
             >
               <view
@@ -71,7 +71,7 @@
               </view>
             </view>
             <view
-              class="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm transition-all active:scale-95"
+              class="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-xs transition-all active:scale-95"
               @click="handleBuilding"
             >
               <view
@@ -96,7 +96,7 @@
             <view class="h-4 w-1 rounded-full bg-blue-500"></view>
             <text class="text-base font-bold text-gray-800">系统管理</text>
           </view>
-          <view class="rounded-2xl bg-white p-5 shadow-sm">
+          <view class="rounded-2xl bg-white p-5 shadow-xs">
             <view class="flex flex-wrap justify-between gap-y-4">
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"

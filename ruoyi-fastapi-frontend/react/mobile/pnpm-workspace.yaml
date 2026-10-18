@@ -7,5 +7,5 @@ allowBuilds:
   core-js: false
   esbuild: true
 overrides:
-  # Taro 4.2's RN lint plugin imports internals removed by later 16.x releases.
+  # Taro 4.3's RN lint plugin imports internals removed by later 16.x releases.
   stylelint: 16.4.0

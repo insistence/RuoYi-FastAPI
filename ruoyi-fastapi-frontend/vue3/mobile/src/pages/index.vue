@@ -1,7 +1,7 @@
 <template>
   <view class="flex h-full flex-col bg-gray-50">
     <!-- Header Area -->
-    <view class="bg-white pb-6 rounded-b-3xl shadow-sm z-50">
+    <view class="bg-white pb-6 rounded-b-3xl shadow-xs z-50">
       <!-- Title -->
       <view class="pt-12 pb-4 px-4 flex justify-center items-center">
         <text class="text-lg font-bold text-gray-800">RuoYi-FastAPI移动端</text>
@@ -43,7 +43,7 @@
       <view class="p-4 space-y-5 pb-24">
         <!-- Hero Card -->
         <view
-          class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white shadow-xl shadow-indigo-200"
+          class="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-500 to-purple-600 p-6 text-white shadow-xl shadow-indigo-200"
         >
           <view
             class="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/20 blur-2xl"
@@ -54,7 +54,7 @@
 
           <view class="relative z-10">
             <view class="mb-4 flex items-center justify-between">
-              <view class="rounded-lg bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-sm"
+              <view class="rounded-lg bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-xs"
                 >系统运行正常</view
               >
               <view class="text-xs opacity-80">刚刚更新</view>
@@ -80,7 +80,7 @@
         <!-- Stats Grid -->
         <view class="grid grid-cols-2 gap-4">
           <view
-            class="rounded-2xl bg-white p-4 shadow-sm border border-gray-100 flex items-center justify-between"
+            class="rounded-2xl bg-white p-4 shadow-xs border border-gray-100 flex items-center justify-between"
           >
             <view>
               <view class="text-xs text-gray-500 mb-1">新通知</view>
@@ -93,7 +93,7 @@
             </view>
           </view>
           <view
-            class="rounded-2xl bg-white p-4 shadow-sm border border-gray-100 flex items-center justify-between"
+            class="rounded-2xl bg-white p-4 shadow-xs border border-gray-100 flex items-center justify-between"
           >
             <view>
               <view class="text-xs text-gray-500 mb-1">待办任务</view>
@@ -112,7 +112,7 @@
           <view class="mb-4 flex items-center justify-between">
             <view class="text-base font-bold text-gray-800">快捷入口</view>
           </view>
-          <view class="grid grid-cols-4 gap-2 rounded-2xl bg-white p-4 shadow-sm">
+          <view class="grid grid-cols-4 gap-2 rounded-2xl bg-white p-4 shadow-xs">
             <view class="flex flex-col items-center space-y-2">
               <view
                 class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500"
@@ -156,7 +156,7 @@
           </view>
           <view class="space-y-3">
             <view
-              class="flex items-center rounded-2xl bg-white p-4 shadow-sm border border-gray-50"
+              class="flex items-center rounded-2xl bg-white p-4 shadow-xs border border-gray-50"
             >
               <view
                 class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-500"
@@ -172,7 +172,7 @@
               >
             </view>
             <view
-              class="flex items-center rounded-2xl bg-white p-4 shadow-sm border border-gray-50"
+              class="flex items-center rounded-2xl bg-white p-4 shadow-xs border border-gray-50"
             >
               <view
                 class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-500"

@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from plugins.core.runtime.support import PluginBatchReportBuilder, PluginNpmPackageJsonSynchronizer
@@ -119,3 +120,22 @@ def test_npm_package_json_synchronizer_uses_star_without_version(tmp_path: Path)
 
     package_json = json.loads(package_json_path.read_text(encoding='utf-8'))
     assert package_json['dependencies']['plain-npm'] == '*'
+
+
+def test_pnpm_keeps_manifest_and_lockfile_in_sync(tmp_path: Path) -> None:
+    """pnpm 安装后不回写单个 manifest，保留与锁文件匹配的实际保存约束。"""
+    package_json_path = tmp_path / 'package.json'
+    package_content = '{"dependencies":{"plain-npm":"1.2.3"}}\n'
+    package_json_path.write_text(package_content, encoding='utf-8')
+    lockfile_path = tmp_path / 'pnpm-lock.yaml'
+    lockfile_content = (
+        'importers:\n  .:\n    dependencies:\n      plain-npm:\n        specifier: 1.2.3\n        version: 1.2.3\n'
+    )
+    lockfile_path.write_text(lockfile_content, encoding='utf-8')
+    item = build_npm_plan_item(tmp_path, kind='npm', requirement='plain-npm', name='plain-npm')
+    item = replace(item, command=['pnpm', 'add', '--save-exact', 'plain-npm'])
+
+    PluginNpmPackageJsonSynchronizer.sync_item(item)
+
+    assert package_json_path.read_text(encoding='utf-8') == package_content
+    assert lockfile_path.read_text(encoding='utf-8') == lockfile_content

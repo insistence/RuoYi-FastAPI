@@ -1,11 +1,11 @@
 import vue from '@vitejs/plugin-vue'
 import monacoEditorEsmPlugin from 'vite-plugin-monaco-editor-esm'
 
-import createAutoImport from './auto-import'
-import createSvgIcon from './svg-icon'
-import createCompression from './compression'
-import createSetupExtend from './setup-extend'
-import createMonacoEnvironment from './monaco-environment'
+import createAutoImport from './auto-import.js'
+import createSvgIcon from './svg-icon.js'
+import createCompression from './compression.js'
+import createSetupExtend from './setup-extend.js'
+import createMonacoEnvironment from './monaco-environment.js'
 
 const monacoWorkers = [
   {

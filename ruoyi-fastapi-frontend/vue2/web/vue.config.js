@@ -39,19 +39,6 @@ function resolvePackageRoot(pkgName) {
   return path.dirname(path.dirname(entry))
 }
 
-function resolveSiblingPackagePath(fromPkgRoot, siblingPkgName) {
-  if (!fromPkgRoot) {
-    return null
-  }
-  const candidate = path.join(path.dirname(fromPkgRoot), siblingPkgName)
-  try {
-    if (fs.existsSync(candidate)) {
-      return candidate
-    }
-  } catch {}
-  return null
-}
-
 function setAliasIfResolved(alias, key, specifier) {
   const resolved = tryResolve(specifier)
   if (resolved) {
@@ -68,17 +55,11 @@ function setAliasIfExists(alias, key, filePath) {
 
 const markstreamVue2Root = resolvePackageRoot('markstream-vue2')
 const terrastructD2Root = resolveNodeModulesPackageRoot('@terrastruct/d2')
-const streamMonacoRoot = resolvePackageRoot('stream-monaco')
-const streamMarkdownRoot =
-  resolvePackageRoot('stream-markdown') || resolveNodeModulesPackageRoot('stream-markdown')
-const monacoEditorRoot =
-  resolveNodeModulesPackageRoot('monaco-editor') ||
-  resolveSiblingPackagePath(streamMonacoRoot, 'monaco-editor')
+const monacoEditorRoot = resolveNodeModulesPackageRoot('monaco-editor')
 const shikiRoot = resolvePackageRoot('shiki')
 const shikijsLangsRoot = resolvePackageRoot('@shikijs/langs')
 const shikijsThemesRoot = resolvePackageRoot('@shikijs/themes')
 const shikijsOnigurumaRoot = resolvePackageRoot('@shikijs/engine-oniguruma')
-const shikijsMonacoRoot = resolvePackageRoot('@shikijs/monaco')
 
 const markstreamAlias = {}
 setAliasIfResolved(markstreamAlias, 'vue$', 'vue/dist/vue.runtime.esm.js')
@@ -111,21 +92,6 @@ setAliasIfExists(
   markstreamAlias,
   '@terrastruct/d2$',
   terrastructD2Root ? path.join(terrastructD2Root, 'dist/browser/index.js') : null
-)
-setAliasIfExists(
-  markstreamAlias,
-  'stream-monaco/legacy',
-  streamMonacoRoot ? path.join(streamMonacoRoot, 'dist/index.legacy.js') : null
-)
-setAliasIfExists(
-  markstreamAlias,
-  'stream-monaco$',
-  streamMonacoRoot ? path.join(streamMonacoRoot, 'dist/index.js') : null
-)
-setAliasIfExists(
-  markstreamAlias,
-  'stream-monaco',
-  streamMonacoRoot ? path.join(streamMonacoRoot, 'dist') : null
 )
 setAliasIfExists(markstreamAlias, 'monaco-editor', monacoEditorRoot)
 setAliasIfExists(
@@ -160,11 +126,6 @@ setAliasIfExists(
 )
 setAliasIfExists(
   markstreamAlias,
-  '@shikijs/monaco',
-  shikijsMonacoRoot ? path.join(shikijsMonacoRoot, 'dist') : null
-)
-setAliasIfExists(
-  markstreamAlias,
   'shiki$',
   shikiRoot ? path.join(shikiRoot, 'dist/index.mjs') : null
 )
@@ -174,18 +135,6 @@ setAliasIfExists(
   'shiki/wasm',
   shikiRoot ? path.join(shikiRoot, 'dist/wasm.mjs') : null
 )
-setAliasIfExists(
-  markstreamAlias,
-  'stream-markdown$',
-  streamMarkdownRoot ? path.join(streamMarkdownRoot, 'dist/index.js') : null
-)
-setAliasIfExists(
-  markstreamAlias,
-  'stream-markdown',
-  streamMarkdownRoot ? path.join(streamMarkdownRoot, 'dist') : null
-)
-setAliasIfResolved(markstreamAlias, 'alien-signals$', 'alien-signals/esm')
-setAliasIfResolved(markstreamAlias, 'alien-signals', 'alien-signals/esm')
 setAliasIfResolved(
   markstreamAlias,
   '@antv/infographic/jsx-runtime',
@@ -215,12 +164,6 @@ function createOptionalIgnoreRegex() {
     'monaco-editor/esm/vs/language/typescript/monaco.contribution',
   ]
   const maybeIgnore = []
-  if (!streamMarkdownRoot) {
-    maybeIgnore.push('stream-markdown')
-  }
-  if (!tryResolve('stream-monaco')) {
-    maybeIgnore.push('stream-monaco')
-  }
   if (!monacoEditorRoot) {
     maybeIgnore.push('monaco-editor')
   }
@@ -246,10 +189,12 @@ function createMonacoAssetCopyPlugins() {
     return []
   }
   return [
-    new CopyWebpackPlugin([
-      { from, to: 'monaco/vs' },
-      { from: path.join(monacoEditorRoot, 'min/vs'), to: 'monaco-json/vs' },
-    ]),
+    new CopyWebpackPlugin({
+      patterns: [
+        { from, to: 'monaco/vs' },
+        { from: path.join(monacoEditorRoot, 'min/vs'), to: 'monaco-json/vs' },
+      ],
+    }),
   ]
 }
 
@@ -274,21 +219,22 @@ module.exports = {
   // 默认情况下，Vue CLI 会假设你的应用是被部署在一个域名的根路径上
   // 例如 https://www.ruoyi.vip/。如果应用被部署在一个子路径上，你就需要用这个选项指定这个子路径。例如，如果你的应用被部署在 https://www.ruoyi.vip/admin/，则设置 baseUrl 为 /admin/。
   publicPath: process.env.NODE_ENV === 'production' ? '/' : '/',
-  // 在npm run build 或 yarn build 时 ，生成文件的目录名称（要和baseUrl的生产环境路径一致）（默认dist）
+  // pnpm run build 生成文件的目录名称（要和 baseUrl 的生产环境路径一致）（默认 dist）
   outputDir: 'dist',
   // 用于放置生成的静态资源 (js、css、img、fonts) 的；（项目打包之后，静态资源会放在这个文件夹下）
   assetsDir: 'static',
   // 如果你不需要生产环境的 source map，可以将其设置为 false 以加速生产环境构建。
   productionSourceMap: false,
+  // Markdown/Monaco 依赖较大，限制并行转译，避免多目标 CI 构建耗尽内存。
+  parallel: 2,
   transpileDependencies: [
     'quill',
     'markstream-vue2',
     'markstream-core',
     '@terrastruct/d2',
     'stream-markdown-parser',
-    'stream-markdown',
-    'shiki-stream',
-    'stream-monaco',
+    'stream-diffs',
+    '@pierre/diffs',
     'monaco-editor',
     'shiki',
     '@shikijs/core',
@@ -296,7 +242,6 @@ module.exports = {
     '@shikijs/engine-oniguruma',
     '@shikijs/types',
     '@shikijs/vscode-textmate',
-    '@shikijs/monaco',
     '@shikijs/langs',
     '@shikijs/themes',
     'oniguruma-to-es',
@@ -343,15 +288,16 @@ module.exports = {
         },
       },
     },
-    disableHostCheck: true,
+    allowedHosts: 'all',
   },
   css: {
     loaderOptions: {
       sass: {
-        sassOptions: { outputStyle: 'expanded' },
+        sassOptions: { style: 'expanded' },
       },
       less: {
-        javascriptEnabled: true,
+        // Ant Design Vue 1.x 的样式仍使用 Less 3 的无括号除法。
+        lessOptions: { javascriptEnabled: true, math: 'always' },
       },
     },
   },
@@ -359,6 +305,10 @@ module.exports = {
     name: name,
     resolve: {
       symlinks: false,
+      fallback: {
+        path: require.resolve('path-browserify'),
+        url: require.resolve('url/'),
+      },
       modules: ['node_modules', path.resolve(__dirname, '../node_modules')],
       alias: {
         '@': resolve('src'),
@@ -369,24 +319,25 @@ module.exports = {
       new webpack.IgnorePlugin({
         resourceRegExp: createOptionalIgnoreRegex(),
       }),
-      new CopyWebpackPlugin([
-        {
-          from: path.resolve(__dirname, 'node_modules/mermaid/dist/mermaid.min.js'),
-          to: 'mermaid/mermaid.min.js',
-        },
-        {
-          from: path.resolve(__dirname, 'node_modules/katex/dist/katex.min.js'),
-          to: 'katex/katex.min.js',
-        },
-        {
-          from: path.resolve(__dirname, 'node_modules/katex/dist/contrib/mhchem.min.js'),
-          to: 'katex/contrib/mhchem.min.js',
-        },
-      ]),
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: path.resolve(__dirname, 'node_modules/mermaid/dist/mermaid.min.js'),
+            to: 'mermaid/mermaid.min.js',
+          },
+          {
+            from: path.resolve(__dirname, 'node_modules/katex/dist/katex.min.js'),
+            to: 'katex/katex.min.js',
+          },
+          {
+            from: path.resolve(__dirname, 'node_modules/katex/dist/contrib/mhchem.min.js'),
+            to: 'katex/contrib/mhchem.min.js',
+          },
+        ],
+      }),
       ...createMonacoAssetCopyPlugins(),
       // http://doc.ruoyi.vip/ruoyi-vue/other/faq.html#使用gzip解压缩静态文件
       new CompressionPlugin({
-        cache: false, // 不启用文件缓存
         test: /\.(js|css|html|jpe?g|png|gif|svg)?$/i, // 压缩文件格式
         filename: '[path][base].gz[query]', // 压缩后的文件名
         algorithm: 'gzip', // 使用gzip压缩
@@ -399,6 +350,19 @@ module.exports = {
   chainWebpack(config) {
     config.plugins.delete('preload') // TODO: need test
     config.plugins.delete('prefetch') // TODO: need test
+
+    // css-loader 6 需要显式启用 ICSS，才能向布局组件导出 Sass 的 :export 变量。
+    config.module
+      .rule('scss')
+      .oneOf('normal')
+      .use('css-loader')
+      .tap((options) => ({
+        ...options,
+        modules: {
+          auto: (resourcePath) => resourcePath === resolve('src/assets/styles/variables.scss'),
+          mode: 'icss',
+        },
+      }))
 
     // set svg-sprite-loader
     config.module.rule('svg').exclude.add(resolve('src/assets/icons')).end()

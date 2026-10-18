@@ -55,7 +55,7 @@ Issuer 必须是无路径前缀、无查询串的固定公开地址。`OIDC_PUBL
 
 ## 3. 平台启用与检查
 
-所有后端命令在 `ruoyi-fastapi-backend` 目录执行，并使用已安装项目依赖的 Python 3.10–3.13 环境。命令适用于 Windows PowerShell、macOS 和 Linux，不依赖特定的环境管理工具、环境名称或安装路径。创建与激活步骤见 [CLI 环境准备](cli_usage.md#22-安装依赖)。下面以 `dev` 环境为例，其他环境替换为对应的 `--env` 和配置文件。
+所有后端命令在 `ruoyi-fastapi-backend` 目录执行，并使用已安装项目依赖的 Python 3.10–3.14 环境。命令适用于 Windows PowerShell、macOS 和 Linux，不依赖特定的环境管理工具、环境名称或安装路径。创建与激活步骤见 [CLI 环境准备](cli_usage.md#22-安装依赖)。下面以 `dev` 环境为例，其他环境替换为对应的 `--env` 和配置文件。
 
 `ruoyi` 命令在三个平台上的参数一致。激活环境后，直接调用解释器统一使用 `python`；在新终端执行命令前也应激活同一环境。
 

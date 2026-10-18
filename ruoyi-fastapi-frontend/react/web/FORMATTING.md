@@ -1,6 +1,6 @@
 # React Web 格式约定
 
-使用项目内的 Prettier 3.6.2：`pnpm format` 格式化，`pnpm format:check` 只检查。配置位于 `.prettierrc.json`，与 Vue2/Vue3 Web 和 Mobile 一致：2 空格缩进、单引号、不加分号、LF 换行。编辑器可安装 Prettier 与 EditorConfig。
+使用项目内的 Prettier 3.9.10：`pnpm format` 格式化，`pnpm format:check` 只检查。配置位于 `.prettierrc.json`，与 Vue2/Vue3 Web 和 Mobile 一致：2 空格缩进、单引号、不加分号、LF 换行。编辑器可安装 Prettier 与 EditorConfig。
 
 命令检查整个工程，`.prettierignore` 排除依赖、构建产物、缓存、锁文件、生成文件和外部资源。CI 的 Quality 工作流使用同一套循环检查三个框架的 Web/Mobile，无需为 React 单独列出目录。
 

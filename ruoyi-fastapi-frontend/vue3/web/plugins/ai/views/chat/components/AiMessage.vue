@@ -25,7 +25,6 @@
           :is-dark="isDark"
           :final="!loading"
           mode="chat"
-          code-renderer="shiki"
         />
       </div>
     </div>
@@ -35,7 +34,6 @@
         :is-dark="isDark"
         :final="!loading"
         mode="chat"
-        code-renderer="shiki"
       />
     </div>
     <div

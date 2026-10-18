@@ -8,7 +8,7 @@
       <view class="mb-3 ml-2 flex items-center text-base font-bold text-gray-800">
         <view :class="['mr-2 text-lg text-blue-500', item.icon]"></view>{{ item.title }}
       </view>
-      <view class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
+      <view class="overflow-hidden rounded-xl bg-white shadow-xs ring-1 ring-gray-100">
         <view
           v-for="(child, zindex) in item.childList"
           :key="zindex"

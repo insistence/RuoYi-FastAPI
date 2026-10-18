@@ -61,7 +61,7 @@ cargo clippy --manifest-path plugins/examples/rust/rust_demo/Cargo.toml --locked
 
 测试直接加载编译后的扩展，覆盖 ASGI、Router、原生 future、Python 协程桥、权限、异常、取消、lifespan 和真实 APScheduler 单次分发。数据库与登录使用替身；测试不会安装、启用插件或写入实际业务数据库。不设置环境变量时，真实原生测试明确跳过。
 
-仓库的 `.github/workflows/native-plugin.yml` 配置 Windows/Linux、Python 3.10、3.11、3.12、3.13 构建测试矩阵。应以目标平台对应的实际构建与测试结果确认兼容性。
+仓库的 `.github/workflows/ci-native.yml` 配置 Windows/Linux、Python 3.10、3.11、3.12、3.13、3.14 构建测试矩阵。应以目标平台对应的实际构建与测试结果确认兼容性。
 
 ## 签名制品与维护发布
 

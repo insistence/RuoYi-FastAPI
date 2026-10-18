@@ -6,7 +6,7 @@
         <text class="mb-2 block text-sm font-medium text-gray-700">用户昵称</text>
         <input
           v-model="user.nickName"
-          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
+          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="text"
           placeholder="请输入昵称"
         />
@@ -17,7 +17,7 @@
         <text class="mb-2 block text-sm font-medium text-gray-700">手机号码</text>
         <input
           v-model="user.phonenumber"
-          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
+          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="number"
           placeholder="请输入手机号码"
           maxlength="11"
@@ -29,7 +29,7 @@
         <text class="mb-2 block text-sm font-medium text-gray-700">邮箱</text>
         <input
           v-model="user.email"
-          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
+          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="text"
           placeholder="请输入邮箱"
         />

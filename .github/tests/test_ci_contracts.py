@@ -62,11 +62,11 @@ def test_frontend_ci_commands_exist_in_every_project(framework: str, target: str
     package = json.loads((directory / 'package.json').read_text(encoding='utf-8'))
     required = {'test:unit', 'test:contract'}
     required.update({'build:prod', 'build:docker'} if target == 'web' else {'build:h5', 'build:mp-weixin'})
-    if framework == 'react':
-        assert package['packageManager'].startswith('pnpm@')
-        assert (directory / 'pnpm-workspace.yaml').is_file()
-        if target == 'mobile':
-            required.update({'check:platforms', 'build:rn:android', 'build:rn:ios'})
+    assert package['packageManager'] == 'pnpm@11.28.6'
+    assert (directory / 'pnpm-workspace.yaml').is_file()
+    assert (directory / 'pnpm-lock.yaml').is_file()
+    if framework == 'react' and target == 'mobile':
+        required.update({'check:platforms', 'build:rn:android', 'build:rn:ios'})
     assert required <= package['scripts'].keys()
 
 

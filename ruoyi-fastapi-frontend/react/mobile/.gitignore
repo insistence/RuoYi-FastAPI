@@ -4,8 +4,7 @@ dist/
 .swc/
 *.local
 
-# Dependency lockfiles are generated during installation.
-/pnpm-lock.yaml
+# Commit pnpm-lock.yaml; ignore lockfiles from other package managers.
 /package-lock.json
 /yarn.lock
 /bun.lock

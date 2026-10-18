@@ -42,7 +42,7 @@ def build_npm_item(
         kind=kind,
         requirement=requirement,
         name=name,
-        command=['npm', 'install', requirement],
+        command=['pnpm', 'add', '--save-exact', requirement],
         workdir='/tmp/frontend',
         reason=f'npm 依赖未安装：{name}',
     )
@@ -567,7 +567,7 @@ npmDev: []
     ).evaluate(build_plan(build_npm_item('dayjs>=1.11.0')), confirmed=True)
 
     assert decision.allowed is True
-    assert decision.install_plan_items[0].command == ['npm', 'install', str(artifact_path), '--offline']
+    assert decision.install_plan_items[0].command == ['pnpm', 'add', '--save-exact', str(artifact_path), '--offline']
     assert decision.items[0].artifact_path == str(artifact_path)
 
 

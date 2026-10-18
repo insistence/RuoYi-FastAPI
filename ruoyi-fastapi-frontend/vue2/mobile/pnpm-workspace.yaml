@@ -1,0 +1,13 @@
+# Vue CLI / uni-app plugins require the flat node_modules layout.
+nodeLinker: hoisted
+allowBuilds:
+  # uni-automator is optional; CI browser tests use Playwright.
+  puppeteer: false
+  weapp-tailwindcss: true
+  esbuild: true
+  core-js: false
+  core-js-pure: false
+  vue-demi: true
+  '@parcel/watcher': true
+overrides:
+  postcss-urlrewrite: '0.3.0'

@@ -409,9 +409,9 @@ dependencies:
     assert payload['plan'][0]['kind'] == 'python'
     assert payload['plan'][0]['command'][1:4] == ['-m', 'pip', 'install']
     assert payload['plan'][1]['kind'] == 'npm'
-    assert payload['plan'][1]['command'] == ['npm', 'install', 'missing-npm']
+    assert payload['plan'][1]['command'] == ['pnpm', 'add', '--save-exact', 'missing-npm']
     assert payload['plan'][2]['kind'] == 'npmDev'
-    assert payload['plan'][2]['command'] == ['npm', 'install', '--save-dev', 'missing-dev-npm']
+    assert payload['plan'][2]['command'] == ['pnpm', 'add', '--save-dev', '--save-exact', 'missing-dev-npm']
 
 
 def test_plugin_runtime_dependency_install_uses_default_command_timeout(tmp_path: Path) -> None:

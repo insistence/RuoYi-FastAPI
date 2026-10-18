@@ -1,0 +1,9 @@
+# Vue CLI / uni-app plugins require the flat node_modules layout.
+nodeLinker: hoisted
+allowBuilds:
+  ant-design-vue: false
+  esbuild: true
+  core-js: false
+  core-js-pure: false
+  vue-demi: true
+  '@parcel/watcher': true

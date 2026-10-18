@@ -114,9 +114,9 @@ export default {
       }
       if (routeQuery) {
         let query = JSON.parse(routeQuery)
-        return { path: path.resolve(this.basePath, routePath), query: query }
+        return { path: path.resolve('/', this.basePath, routePath), query: query }
       }
-      return path.resolve(this.basePath, routePath)
+      return path.resolve('/', this.basePath, routePath)
     },
   },
 }

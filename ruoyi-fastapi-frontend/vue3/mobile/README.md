@@ -1,6 +1,6 @@
 # RuoYi-FastAPI Vue3 移动端
 
-基于 `uni-app` 的 `vite` + `vue3` + `tailwindcss` 开发。
+基于 `uni-app` 的 Vue3、Vite 5.4.21、Tailwind CSS 4.3.3 和 weapp-tailwindcss 5.6.3 开发。
 
 ## 特性
 
@@ -12,7 +12,7 @@
 
 - 📥 [API 自动加载](https://github.com/antfu/unplugin-auto-import) - 直接使用 Composition API 无需引入
 
-- 🧬 [uni-app 条件编译样式](https://tw.icebreaker.top/docs/quick-start/uni-app-css-macro) - 帮助你在多端更灵活的使用 `TailwindCSS`
+- 🧬 [多端样式生成](https://tw.weapp.dev/docs/multi-platform) - H5 保留浏览器样式，小程序自动处理单位和类名转义
 
 - 🦾 [TypeScript](https://www.typescriptlang.org/) & [ESLint](https://eslint.org/) & [Stylelint](https://stylelint.io/) - 样式，类型，统一的校验与格式化规则，保证你的代码风格和质量
 
@@ -31,15 +31,19 @@ pnpm dev:mp-weixin
 后续命令均在本工程目录执行。
 
 > [!IMPORTANT]
-> 推荐使用 `"node": "^20.19.0 || >=22.12.0"` 的 Node.js 版本进行开发!
+> Node.js 使用 22.x（最低 22.22.2）或 24.x（最低 24.15.0），推荐对应版本线的最新补丁。CI 分别验证两条版本线。包管理器版本以 `package.json` 的 `packageManager` 为准。
 >
 > 另外谨慎升级 `package.json` 中锁定的 `pinia`/`vue`/`@vue/*` 相关包的版本，新版本可能 `uni-app` 没有兼容，造成一些奇怪的 bug
+
+当前 `@dcloudio` 平台与编译器包统一使用 `3.0.0-5020620260917001`；Vue、`@vue/shared` 和 `@vue/runtime-core` 固定为 3.4.21，与 uni-app 编译器一致。Vite 恢复并保留项目原有的 5.4.21，等待 uni-app 上游适配后再跨大版本升级。上游仍声明 Vite 5.2.8 的精确 peer 版本，因此安装时可能保留这一已有提示。Tailwind CSS 4 和 weapp-tailwindcss 5 的升级独立保留。
+
+Tailwind 入口为 `src/app.css`，通过 `src/App.vue` 引入。`vite.config.ts` 中的 `WeappTailwindcss` 同时负责 H5 和小程序 CSS 生成；不要在 H5 禁用插件，也不要重复注册 `@tailwindcss/vite`、`@tailwindcss/postcss` 或运行 `weapp-tw patch`。`tailwind.config.ts` 仅保留 Iconify 插件，颜色与扫描范围在 CSS 入口中维护。参见 [官方接入说明](https://tw.weapp.dev/docs/quick-start/frameworks/uni-app-vite)。
 
 ### vscode
 
 使用 `vscode` 的开发者，请先安装 [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) 智能提示与感应插件
 
-其他 IDE 请参考: <https://tw.icebreaker.top/docs/quick-start/intelliSense>
+其他 IDE 请参考 [weapp-tailwindcss 文档](https://tw.weapp.dev/)。
 
 ### 更换 Appid
 
@@ -47,7 +51,7 @@ pnpm dev:mp-weixin
 
 ## 代码格式
 
-使用 Prettier 3.6.2，与 Vue Web 端保持一致：2 空格缩进、单引号、不加分号、LF 换行。
+使用 Prettier 3.9.10，与 Vue Web 端保持一致：2 空格缩进、单引号、不加分号、LF 换行。
 
 ```bash
 pnpm format       # 格式化源码、测试、工程配置和文档
@@ -65,15 +69,13 @@ pnpm format:check # 只检查，不修改文件
 
 ## 切换镜像源
 
-默认情况下，走的是淘宝镜像源 : `registry.npmmirror.com`
+默认使用 npm 官方源；如需镜像，可在 `pnpm-workspace.yaml` 配置 `registry`，或安装时传入 `--registry`。
 
-假如你需要修改镜像源，请修改目录下的 `.npmrc` 文件，然后重新进行 `pnpm i` 安装包即可
+pnpm 11 的工程设置位于 `pnpm-workspace.yaml`，`.npmrc` 仅用于认证信息；不要提交令牌。
 
 ## 包管理器
 
-本项目默认使用 `pnpm@10` 进行管理，当然你也可以切换到其他包管理器，比如 `yarn`, `npm`
-
-你只需要把 `pnpm-lock.yaml` 删掉，然后把 `package.json` 中的 `packageManager` 字段去除或者换成你具体的包管理器版本，然后重新安装即可
+本工程统一使用 `pnpm@11.28.6`。`pnpm-lock.yaml` 应与 `package.json`、`pnpm-workspace.yaml` 一起提交到 Git，固定直接和传递依赖。首次拉取及 CI 使用 `pnpm install --frozen-lockfile`；有意新增或升级依赖时使用 `pnpm add` / `pnpm update`，检查锁文件差异并一起提交。不要手工编辑或删除锁文件。
 
 ### weapp-ide-cli
 
@@ -97,5 +99,5 @@ pnpm format:check # 只检查，不修改文件
 
 ## Tips
 
-- 升级 `uni-app` 依赖的方式为 `npx @dcloudio/uvm` 后，选择对应的 `Package Manager` 即可。而升级其他包的方式，可以使用 `pnpm up -Li`，这个是 `pnpm` 自带的方式。
+- 升级 `uni-app` 依赖的方式为 `pnpm dlx @dcloudio/uvm` 后，选择对应的 `Package Manager` 即可。而升级其他包的方式，可以使用 `pnpm up -Li`，这个是 `pnpm` 自带的方式。
 - 使用 `vscode` 记得安装官方插件 `stylelint`,`tailwindcss`, 已在 `.vscode/extensions.json` 中设置推荐

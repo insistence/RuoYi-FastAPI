@@ -94,11 +94,19 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: ruoyi-fastapi-backend/plugins/examples/python/task_demo/web/package.json
-      - run: npm install --no-audit --no-fund --package-lock=false
-      - run: npm test
-      - run: npm run build
+      - uses: pnpm/action-setup@v5
+        with:
+          package_json_file: ruoyi-fastapi-backend/plugins/examples/python/task_demo/web/package.json
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-task-bundle-${{ hashFiles('ruoyi-fastapi-backend/plugins/examples/python/task_demo/web/pnpm-lock.yaml') }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm run build
       - uses: actions/upload-artifact@v6
         with:
           name: integration-task-bundle
@@ -115,7 +123,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ${{ fromJSON(inputs.full && '["3.10","3.11","3.12","3.13"]' || '["3.12"]') }}
+        python: ${{ fromJSON(inputs.full && '["3.10","3.11","3.12","3.13","3.14"]' || '["3.12"]') }}
     defaults:
       run:
         working-directory: ruoyi-fastapi-backend
@@ -189,7 +197,6 @@ jobs:
     env:
       RUOYI_PLUGIN_NETWORK_SMOKE: '1'
       RUOYI_PLUGIN_FRONTEND_FRAMEWORK: ${{ matrix.framework }}
-      NODE_OPTIONS: ${{ matrix.framework == 'vue2' && '--openssl-legacy-provider' || '' }}
       DB_SOURCES: '{"primary":{"db_type":"mysql","db_host":"127.0.0.1","db_port":3306,"db_username":"network-smoke","db_password":"network-smoke","db_database":"network-smoke"}}'
       JWT_SECRET_KEY: isolated-plugin-network-smoke-ci-only
     steps:
@@ -202,33 +209,21 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: ruoyi-fastapi-frontend/${{ matrix.framework }}/web/package.json
       - uses: pnpm/action-setup@v5
-        if: matrix.framework == 'react'
         with:
-          package_json_file: ruoyi-fastapi-frontend/react/web/package.json
-      - name: Locate the React package cache
-        if: matrix.framework == 'react'
-        id: react-cache
-        working-directory: ruoyi-fastapi-frontend/react/web
+          package_json_file: ruoyi-fastapi-frontend/${{ matrix.framework }}/web/package.json
+      - name: Locate the pnpm store
+        id: pnpm-store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-      - name: Cache React dependencies
-        if: matrix.framework == 'react'
-        uses: actions/cache@v5
+      - uses: actions/cache@v5
         with:
-          path: ${{ steps.react-cache.outputs.path }}
-          key: ${{ runner.os }}-network-react-${{ hashFiles('ruoyi-fastapi-frontend/react/web/package.json', 'ruoyi-fastapi-frontend/react/web/pnpm-workspace.yaml') }}
-          restore-keys: ${{ runner.os }}-network-react-
-      - run: python -m pip install -r requirements.txt -r requirements-test.txt playwright==1.62.0
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-network-${{ matrix.framework }}-${{ hashFiles(format('ruoyi-fastapi-frontend/{0}/web/pnpm-lock.yaml', matrix.framework)) }}
+      - run: python -m pip install -r requirements.txt -r requirements-test.txt playwright==1.64.0
       - run: python -m playwright install --with-deps chromium
-      - name: Install Vue Web dependencies
-        if: matrix.framework != 'react'
-        run: npm --prefix ../ruoyi-fastapi-frontend/${{ matrix.framework }}/web install --no-audit --no-fund --package-lock=false
-      - name: Install React Web dependencies
-        if: matrix.framework == 'react'
-        working-directory: ruoyi-fastapi-frontend/react/web
-        run: pnpm install --no-frozen-lockfile
+      - name: Install Web dependencies
+        working-directory: ruoyi-fastapi-frontend/${{ matrix.framework }}/web
+        run: pnpm install --frozen-lockfile
       - name: Verify HTTPS proxy, iframe sessions and long connections
         run: python -m pytest tests/plugins/integration/test_network_smoke.py -m browser --strict-markers -v --junitxml=target/plugin-network-smoke/${{ matrix.framework }}/results.xml
       - run: python ../.github/scripts/check_test_report.py target/plugin-network-smoke/${{ matrix.framework }}/results.xml

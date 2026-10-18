@@ -7,7 +7,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 FRAMEWORKS = ('vue2', 'vue3', 'react')
-PYTHON_VERSIONS = ('3.10', '3.11', '3.12', '3.13')
+PYTHON_VERSIONS = ('3.10', '3.11', '3.12', '3.13', '3.14')
 CATEGORIES = ('quality', 'backend', 'frontend', 'integration', 'e2e', 'native')
 FRONTEND_FILE_PATH_PARTS = 4
 
@@ -34,6 +34,7 @@ def build_plan(paths: list[str], *, full: bool = False) -> dict[str, Any]:  # no
             'ruoyi-fastapi-backend/tests/conftest.py',
             'ruoyi-fastapi-test/requirements.txt',
             '.gitignore',
+            '.nvmrc',
         )
         for path in normalized
     )
@@ -100,7 +101,10 @@ def build_plan(paths: list[str], *, full: bool = False) -> dict[str, Any]:  # no
             if target == 'web':
                 browsers.add(framework)
                 networks.add(framework)
-            if target == 'web' and (parts[-1].startswith('pluginBridge') or parts[-1] == 'package.json'):
+            if target == 'web' and (
+                parts[-1].startswith('pluginBridge')
+                or parts[-1] in ('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml')
+            ):
                 backend = native = release = True
         elif path.startswith('ruoyi-fastapi-frontend/'):
             projects.update((framework, target) for framework in FRAMEWORKS for target in ('web', 'mobile'))

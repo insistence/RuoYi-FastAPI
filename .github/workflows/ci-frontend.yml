@@ -18,106 +18,96 @@ permissions:
 
 jobs:
   frontend:
-    name: ${{ matrix.framework }} / ${{ matrix.target }}
+    name: ${{ matrix.project.framework }} / ${{ matrix.project.target }} / Node ${{ matrix.node }}
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ matrix.framework == 'react' && matrix.target == 'mobile' && 60 || 35 }}
+    timeout-minutes: ${{ matrix.project.framework == 'react' && matrix.project.target == 'mobile' && 60 || 35 }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(inputs.matrix_json) }}
-    env:
-      NODE_OPTIONS: ${{ matrix.framework == 'vue2' && '--openssl-legacy-provider' || '' }}
+      matrix:
+        node: ['22', '24']
+        project: ${{ fromJSON(inputs.matrix_json).include }}
     defaults:
       run:
         shell: bash
-        working-directory: ruoyi-fastapi-frontend/${{ matrix.framework }}/${{ matrix.target }}
+        working-directory: ruoyi-fastapi-frontend/${{ matrix.project.framework }}/${{ matrix.project.target }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
-      - name: Install the Vue 2 Mobile package manager
-        if: matrix.framework == 'vue2' && matrix.target == 'mobile'
-        run: npm install --global yarn@1.22.22
+          node-version: ${{ matrix.node }}
       - uses: pnpm/action-setup@v5
-        if: matrix.framework == 'react' || (matrix.framework == 'vue3' && matrix.target == 'mobile')
         with:
-          package_json_file: ruoyi-fastapi-frontend/${{ matrix.framework }}/${{ matrix.target }}/package.json
-      - name: Locate the package cache
+          package_json_file: ruoyi-fastapi-frontend/${{ matrix.project.framework }}/${{ matrix.project.target }}/package.json
+      - name: Locate the pnpm store
         id: package-cache
-        env:
-          FRAMEWORK: ${{ matrix.framework }}
-          TARGET: ${{ matrix.target }}
-        run: |
-          if [ "$FRAMEWORK" = react ]; then
-            echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-          elif [ "$TARGET" = web ]; then
-            echo "path=$(npm config get cache)" >> "$GITHUB_OUTPUT"
-          elif [ "$FRAMEWORK" = vue2 ]; then
-            echo "path=$(yarn cache dir --silent)" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v5
         with:
           path: ${{ steps.package-cache.outputs.path }}
-          # Lockfiles are intentionally not tracked in these projects.
-          key: ${{ runner.os }}-node22-${{ matrix.framework }}-${{ matrix.target }}-${{ hashFiles(format('ruoyi-fastapi-frontend/{0}/{1}/package.json', matrix.framework, matrix.target), format('ruoyi-fastapi-frontend/{0}/{1}/pnpm-workspace.yaml', matrix.framework, matrix.target)) }}
+          key: ${{ runner.os }}-node${{ matrix.node }}-${{ matrix.project.framework }}-${{ matrix.project.target }}-${{ hashFiles(format('ruoyi-fastapi-frontend/{0}/{1}/pnpm-lock.yaml', matrix.project.framework, matrix.project.target), format('ruoyi-fastapi-frontend/{0}/{1}/pnpm-workspace.yaml', matrix.project.framework, matrix.project.target), format('ruoyi-fastapi-frontend/{0}/{1}/package.json', matrix.project.framework, matrix.project.target)) }}
           restore-keys: |
-            ${{ runner.os }}-node22-${{ matrix.framework }}-${{ matrix.target }}-
-      - name: Install Web dependencies
-        if: matrix.target == 'web' && matrix.framework != 'react'
-        run: npm install --no-audit --no-fund --package-lock=false
-      - name: Install Vue 2 Mobile dependencies
-        if: matrix.framework == 'vue2' && matrix.target == 'mobile'
-        run: yarn install --non-interactive
-      - name: Install pnpm project dependencies
-        if: matrix.framework == 'react' || (matrix.framework == 'vue3' && matrix.target == 'mobile')
-        run: pnpm install --no-frozen-lockfile
+            ${{ runner.os }}-node${{ matrix.node }}-${{ matrix.project.framework }}-${{ matrix.project.target }}-
+      - name: Install dependencies from the committed lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Record resolved dependency versions
+        run: |
+          mkdir -p test-results
+          node --version > test-results/node-version.txt
+          if ! pnpm list --depth Infinity --json > test-results/dependency-tree.json; then
+            echo "Dependency tree includes peer diagnostics; inspect dependency-tree.json." >&2
+          fi
       - name: Run unit and component behavior tests
-        run: npm run test:unit
+        run: pnpm run test:unit
       - name: Verify time contracts in three host timezones
         run: |
           for zone in UTC Asia/Shanghai America/New_York; do
-            TZ="$zone" npm run test:contract
+            TZ="$zone" pnpm run test:contract
           done
-      - name: Verify the Vue 2 Mobile browser bundle without native Intl
-        if: matrix.framework == 'vue2' && matrix.target == 'mobile'
-        run: npm run test:bundle
+      - name: Verify Vue 2 Mobile Intl polyfills and development templates
+        if: matrix.project.framework == 'vue2' && matrix.project.target == 'mobile'
+        run: pnpm run test:bundle
       - name: Build Web production and Docker targets
-        if: matrix.target == 'web'
+        if: matrix.project.target == 'web'
         run: |
-          npm run build:prod
-          npm run build:docker
+          pnpm run build:prod
+          pnpm run build:docker
       - name: Build Mobile H5
-        if: matrix.target == 'mobile' && matrix.framework != 'react'
-        run: npm run build:h5
+        if: matrix.project.target == 'mobile' && matrix.project.framework != 'react'
+        run: pnpm run build:h5
       - name: Build and verify React Mobile H5 entry
-        if: matrix.target == 'mobile' && matrix.framework == 'react'
+        if: matrix.project.target == 'mobile' && matrix.project.framework == 'react'
         run: pnpm check:platforms h5
       - uses: actions/setup-python@v6
-        if: matrix.target == 'mobile'
+        if: matrix.project.target == 'mobile'
         with:
           python-version: '3.12'
       - name: Install the Mobile smoke browser
-        if: matrix.target == 'mobile'
+        if: matrix.project.target == 'mobile'
         run: |
-          python -m pip install playwright==1.62.0
+          python -m pip install playwright==1.64.0
           python -m playwright install --with-deps chromium
       - name: Verify Mobile H5 login and profile
-        if: matrix.target == 'mobile'
+        if: matrix.project.target == 'mobile'
         working-directory: .
-        run: python .github/scripts/mobile_smoke.py --framework ${{ matrix.framework }}
+        run: python .github/scripts/mobile_smoke.py --framework ${{ matrix.project.framework }}
+      - name: Verify Vue 2 Mobile development startup
+        if: matrix.project.framework == 'vue2' && matrix.project.target == 'mobile'
+        run: |
+          setsid pnpm run dev:h5 > test-results/dev-h5.log 2>&1 &
+          server_pid=$!
+          trap 'kill -- -"$server_pid" 2>/dev/null || true' EXIT
+          python "$GITHUB_WORKSPACE/.github/scripts/mobile_smoke.py" --framework vue2 --base-url http://127.0.0.1:9090
       - name: Build Mobile WeChat target
-        if: matrix.target == 'mobile' && matrix.framework != 'react'
-        run: npm run build:mp-weixin
+        if: matrix.project.target == 'mobile' && matrix.project.framework != 'react'
+        run: pnpm run build:mp-weixin
       - name: Build and verify React Mobile WeChat target
-        if: matrix.target == 'mobile' && matrix.framework == 'react'
+        if: matrix.project.target == 'mobile' && matrix.project.framework == 'react'
         run: pnpm check:platforms weapp
       - name: Build the additional React Mobile platform matrix
-        if: inputs.full && matrix.target == 'mobile' && matrix.framework == 'react'
+        if: inputs.full && matrix.project.target == 'mobile' && matrix.project.framework == 'react'
         run: pnpm check:platforms alipay swan tt qq jd kwai lark xhs harmony-hybrid
       - name: Build Android and iOS JavaScript bundles
-        if: matrix.target == 'mobile' && matrix.framework == 'react'
+        if: matrix.project.target == 'mobile' && matrix.project.framework == 'react'
         run: |
           mkdir -p test-results
           pnpm build:rn:android --reset-cache 2>&1 | tee test-results/rn-android.log
@@ -128,11 +118,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: frontend-${{ matrix.framework }}-${{ matrix.target }}
+          name: frontend-${{ matrix.project.framework }}-${{ matrix.project.target }}-node${{ matrix.node }}
           path: |
-            target/ci/mobile-smoke/${{ matrix.framework }}/
-            ruoyi-fastapi-frontend/${{ matrix.framework }}/${{ matrix.target }}/test-results/
-            ruoyi-fastapi-frontend/${{ matrix.framework }}/${{ matrix.target }}/.cache/platform-check/
+            target/ci/mobile-smoke/${{ matrix.project.framework }}/
+            ruoyi-fastapi-frontend/${{ matrix.project.framework }}/${{ matrix.project.target }}/test-results/
+            ruoyi-fastapi-frontend/${{ matrix.project.framework }}/${{ matrix.project.target }}/.cache/platform-check/
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
