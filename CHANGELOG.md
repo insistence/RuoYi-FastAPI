@@ -1,5 +1,59 @@
 # 更新日志
 
+## RuoYi-FastAPI v2.0.0
+
+### 项目依赖
+
+1. 升级后端、AI SDK 及六个前端工程的依赖，保留 Python 3.10 兼容性，请升级依赖或重新创建环境 ([#133](https://github.com/insistence/RuoYi-FastAPI/pull/133))。
+2. 前端工程及插件示例统一使用 pnpm 11.28.6，提交锁文件，并同步调整 Docker、CLI、插件依赖安装和 CI 流程；Node.js 环境要求为 22.22.2+ 或 24.15.0+ ([#133](https://github.com/insistence/RuoYi-FastAPI/pull/133))。
+3. Vue3、React Web 升级至 Vite 8，移动端升级至 Tailwind CSS 4 和 weapp-tailwindcss 5，Vue2、Vue3 AI 聊天组件适配 Markstream 2 ([#133](https://github.com/insistence/RuoYi-FastAPI/pull/133))。
+
+### 升级注意事项
+
+1. 前端目录统一为 `ruoyi-fastapi-frontend/<framework>/{web,mobile}`，其中 `<framework>` 为 `vue2`、`vue3` 或 `react`。已有开发、构建和部署脚本需同步调整路径及框架配置 ([#131](https://github.com/insistence/RuoYi-FastAPI/pull/131)、[#132](https://github.com/insistence/RuoYi-FastAPI/pull/132))。
+2. 数据库配置改为通过 `DB_SOURCES` 声明命名数据源，并使用 `DB_DEFAULT_SOURCE` 指定默认数据源。升级时需迁移原有数据库环境变量配置 ([#123](https://github.com/insistence/RuoYi-FastAPI/pull/123))。
+3. 真实时刻统一采用 UTC 存储与 RFC 3339 接口格式，定时任务参数改为 JSON 数组和对象。已有数据库需备份并审查结构及数据迁移，任务字段迁移和时区校验分别参考 `ruoyi-fastapi-backend/scripts/migrate_job_fields.py`、`ruoyi-fastapi-backend/scripts/verify_timezone_database.py` ([#127](https://github.com/insistence/RuoYi-FastAPI/pull/127))。
+4. 插件前端依赖需迁移到 `dependencies.frontend.<framework>`，旧顶层 `dependencies.npm/npmDev` 不再接受；框架选择统一使用 `--frontend-framework` 及对应环境变量，包含旧框架字段的依赖锁文件需重新生成。详见[插件开发文档](./ruoyi-fastapi-backend/docs/plugin_development.md) ([#131](https://github.com/insistence/RuoYi-FastAPI/pull/131))。
+5. 统一认证中心、任务调度和插件制品发布新增了数据库结构及配置。已有数据库应审查并执行增量迁移，勿直接重跑完整初始化 SQL；认证中心启用与密钥初始化参考[统一认证中心开发者使用手册](./ruoyi-fastapi-backend/docs/unified_authentication_developer_guide.md)，插件发布结构升级参考[插件开发文档](./ruoyi-fastapi-backend/docs/plugin_development.md) ([#127](https://github.com/insistence/RuoYi-FastAPI/pull/127)、[#129](https://github.com/insistence/RuoYi-FastAPI/pull/129)、[#130](https://github.com/insistence/RuoYi-FastAPI/pull/130))。
+
+### 新增功能
+
+1. 新增多数据源功能，支持命名数据源、独立连接池与会话管理，代码生成支持选择数据源 ([#123](https://github.com/insistence/RuoYi-FastAPI/pull/123))。
+2. 新增跨时区支持，提供应用业务时区配置和用户显示时区设置，统一适配 Web、移动端的时间展示、日期筛选、导出及请求时区传递 ([#127](https://github.com/insistence/RuoYi-FastAPI/pull/127))。
+3. 定时任务新增独立时区、Cron 执行预览、延迟与积压处理、并发策略，分离业务分组与调度存储 ([#127](https://github.com/insistence/RuoYi-FastAPI/pull/127))。
+4. 新增任务调度同步状态和执行记录，支持手动执行追踪、同步重试、异常原因及任务删除后的记录查询 ([#127](https://github.com/insistence/RuoYi-FastAPI/pull/127))。
+5. 新增 OAuth 2.0 / OIDC 统一认证中心，支持授权码与 PKCE S256、刷新令牌、客户端凭据模式，以及 Discovery、JWKS、UserInfo、令牌撤销和内省接口 ([#129](https://github.com/insistence/RuoYi-FastAPI/pull/129))。
+6. 新增 SSO 会话、授权确认、密码修改和单点退出流程，支持应用发起退出与 Back-channel Logout，并提供客户端、资源、Scope、授权记录、访问策略、会话、签名密钥及认证审计管理 ([#129](https://github.com/insistence/RuoYi-FastAPI/pull/129))。
+7. 新增 v2 插件清单与显式运行时，支持 Router、ASGI 子应用、Rust 原生扩展、生命周期、健康检查和后台任务，保留 v1 源码插件运行方式 ([#130](https://github.com/insistence/RuoYi-FastAPI/pull/130))。
+8. 新增 PluginFrame 和浏览器桥接 SDK，支持独立前端 bundle、JSON 请求、文件传输、SSE 与 WebSocket；宿主 SDK 新增请求上下文、显式事务、配置读取及宿主服务调用能力 ([#130](https://github.com/insistence/RuoYi-FastAPI/pull/130))。
+9. 新增签名插件制品构建、验签、导入及维护能力，支持发布准备、目标选择、代码回滚、签名轮换、固定目标发布等待和多 worker 实际加载状态查询 ([#130](https://github.com/insistence/RuoYi-FastAPI/pull/130))。
+10. 新增插件脚手架、受控 Python 构建、SDK 溯源和离线更新工具，提供 ASGI、独立前端、持久化任务及 Rust 示例 ([#130](https://github.com/insistence/RuoYi-FastAPI/pull/130))。
+11. 整合 Vue2 Web 和移动端，新增基于 React 19、Ant Design 6 的 Web 工程，以及基于 Taro、React 的移动端工程，共用 FastAPI 后端 ([#131](https://github.com/insistence/RuoYi-FastAPI/pull/131)、[#132](https://github.com/insistence/RuoYi-FastAPI/pull/132))。
+12. 新增 React 插件脚手架、JSX 页面校验、AI 插件页面和依赖配置，以及支持单表、树表、主子表的 React Ant Design 代码生成模板 ([#132](https://github.com/insistence/RuoYi-FastAPI/pull/132))。
+
+### BUG修复
+
+1. 修复生产环境插件依赖安装、启动校验及多环境配置下 `APP_ENV` 加载异常的问题 ([#122](https://github.com/insistence/RuoYi-FastAPI/pull/122))。
+2. 修复更新个人信息接口可能导致越权的问题，使用专用模型和字段白名单限制可修改内容 ([#124](https://github.com/insistence/RuoYi-FastAPI/pull/124))。
+3. 修复多环境插件路径、后端部署前缀与代理配置不一致的问题，完善 WebSocket、SSE 和同源请求支持 ([#130](https://github.com/insistence/RuoYi-FastAPI/pull/130))。
+4. 修复移动端已登录访问带查询参数的登录页时未正确拦截的问题 ([#131](https://github.com/insistence/RuoYi-FastAPI/pull/131))。
+5. 修复用户编辑字段兼容、解锁跳转及认证错误页返回问题 ([#132](https://github.com/insistence/RuoYi-FastAPI/pull/132))。
+6. 修复 Vue2 移动端开发模板编译报错、Tailwind 样式入口与基础样式覆盖问题，完善依赖升级后的构建、开发启动和热更新兼容性 ([#133](https://github.com/insistence/RuoYi-FastAPI/pull/133))。
+
+### 代码重构
+
+1. 统一项目名称为 RuoYi-FastAPI，整合多前端工程目录、仓库链接、SDK 来源记录及开发部署文档 ([#131](https://github.com/insistence/RuoYi-FastAPI/pull/131))。
+2. 新增 SQLAlchemy 时间字段 Mixin，统一创建时间和更新时间的维护机制，移除控制器与服务层重复赋值，并同步适配代码生成模板 ([#125](https://github.com/insistence/RuoYi-FastAPI/pull/125))。
+3. CI 按质量、后端、前端、服务集成、E2E 和原生插件六类组织，统一变更选路、兼容矩阵与 Result 检查 ([#131](https://github.com/insistence/RuoYi-FastAPI/pull/131))。
+
+### 代码优化
+
+1. 更新项目 Logo ([1f24f34b](https://github.com/insistence/RuoYi-FastAPI/commit/1f24f34b2c0382d37ed3b2213145ee18ab94cbcd))。
+2. 优化多 worker 下的数据源日志输出，避免重复打印 ([#123](https://github.com/insistence/RuoYi-FastAPI/pull/123))。
+3. 统一账户认证逻辑和客户端 IP 获取方式，完善回调地址校验、刷新令牌轮换与重放检测、令牌用途隔离、客户端密钥轮换及安全事件联动撤销 ([#129](https://github.com/insistence/RuoYi-FastAPI/pull/129))。
+4. 完善插件配置生效状态、运行指标、发布状态和统一诊断展示，加强长连接鉴权复核、启动失败与关闭时的资源回收 ([#130](https://github.com/insistence/RuoYi-FastAPI/pull/130))。
+5. 扩展跨框架、CLI 冷启动、移动端、组件、真实网络及数据库集成测试；前端 CI 覆盖 Node.js 22/24，后端、原生插件、完整集成及 E2E 覆盖 Python 3.10–3.14，完整 E2E 扩展至 30 个组合 ([#131](https://github.com/insistence/RuoYi-FastAPI/pull/131)、[#132](https://github.com/insistence/RuoYi-FastAPI/pull/132)、[#133](https://github.com/insistence/RuoYi-FastAPI/pull/133))。
+
 ## RuoYi-FastAPI v1.10.0
 
 ### 项目依赖
