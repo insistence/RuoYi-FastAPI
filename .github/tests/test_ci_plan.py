@@ -9,7 +9,7 @@ ci = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ci)
 FRONTEND_PROJECT_COUNT = 6
 STANDARD_E2E_COMBINATION_COUNT = 6
-FULL_E2E_COMBINATION_COUNT = 24
+FULL_E2E_COMBINATION_COUNT = 30
 
 
 def test_readme_change_only_runs_quality() -> None:
@@ -77,7 +77,8 @@ def test_shared_auth_and_test_helpers_keep_all_network_suites(path: str) -> None
 
 
 @pytest.mark.parametrize(
-    'path', ['.github/workflows/ci.yml', '.github/scripts/ci_plan.py', 'ruoyi-fastapi-backend/requirements-test.txt']
+    'path',
+    ['.github/workflows/ci.yml', '.github/scripts/ci_plan.py', 'ruoyi-fastapi-backend/requirements-test.txt', '.nvmrc'],
 )
 def test_ci_and_dependency_changes_select_every_category(path: str) -> None:
     """CI 及共享依赖变更覆盖全部任务分类。"""
@@ -136,6 +137,16 @@ def test_shared_time_contract_runs_all_frontends_and_database_checks() -> None:
     assert plan['database']
 
 
+@pytest.mark.parametrize('filename', ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml'])
+def test_web_dependency_changes_keep_plugin_release_verification(filename: str) -> None:
+    """仅传递依赖或 pnpm override 变更也必须保留插件依赖及发布验收。"""
+    plan = ci.build_plan([f'ruoyi-fastapi-frontend/vue3/web/{filename}'])
+    assert plan['required']['backend']
+    assert plan['required']['native']
+    assert plan['release']
+    assert plan['network_frameworks'] == ['vue3']
+
+
 def test_framework_move_keeps_both_sides_in_plan() -> None:
     """跨框架移动文件保留来源和目标两侧验证。"""
     plan = ci.build_plan(
@@ -149,7 +160,7 @@ def test_full_run_preserves_python_database_and_framework_combinations() -> None
     plan = ci.build_plan([], full=True)
     assert all(plan['required'].values())
     assert len(plan['e2e_matrix']['include']) == FULL_E2E_COMBINATION_COUNT
-    assert {row['python'] for row in plan['e2e_matrix']['include']} == {'3.10', '3.11', '3.12', '3.13'}
+    assert {row['python'] for row in plan['e2e_matrix']['include']} == {'3.10', '3.11', '3.12', '3.13', '3.14'}
 
 
 @pytest.mark.parametrize('result', ['failure', 'cancelled', 'skipped', None])

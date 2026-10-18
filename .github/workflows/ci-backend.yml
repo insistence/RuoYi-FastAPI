@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.10', '3.11', '3.12', '3.13']
+        python: ['3.10', '3.11', '3.12', '3.13', '3.14']
     defaults:
       run:
         working-directory: ruoyi-fastapi-backend
@@ -31,10 +31,12 @@ jobs:
           cache-dependency-path: |
             ruoyi-fastapi-backend/requirements*.txt
             ruoyi-fastapi-backend/plugins/ai/plugin.yaml
-      - name: Install test dependencies
-        run: python -m pip install -r requirements.txt -r requirements-test.txt
+      - name: Install MySQL, PostgreSQL and test dependencies
+        run: python -m pip install -r requirements.txt -r requirements-pg.txt -r requirements-test.txt
       - name: Install AI plugin dependencies from its manifest
         run: python ../.github/scripts/install_ai_test_dependencies.py
+      - name: Check dependency consistency
+        run: python -m pip check
       - name: Run backend unit and contract tests
         run: python -m pytest tests -q -m 'not browser and not native and not integration' --strict-markers --durations=20 --junitxml=target/ci/backend.xml
       - name: Verify tests were executed
