@@ -22,7 +22,7 @@
     <a href="https://gitee.com/insistence2022/RuoYi-FastAPI/blob/master/LICENSE">
         <img alt="LICENSE" src="https://img.shields.io/github/license/mashape/apistatus.svg">
     </a>
-    <img alt="node version" src="https://img.shields.io/badge/node-≥18-blue">
+    <img alt="node version" src="https://img.shields.io/badge/node-22.22.2%2B%20%7C%2024.15.0%2B-blue">
     <img alt="python version" src="https://img.shields.io/badge/python-≥3.10-blue">
     <img alt="mysql version" src="https://img.shields.io/badge/MySQL-≥5.7-blue">
     <img alt="redis version" src="https://img.shields.io/badge/redis-≥6.2-blue">
@@ -196,12 +196,15 @@ RuoYi-FastAPI是一套全部开源的快速开发平台，毫无保留给个人�
 
 ### 工程目录
 
-前端目录约定为 `ruoyi-fastapi-frontend/<framework>/{web,mobile}`，其中 `<framework>` 是前端框架标识，当前为 `vue2`、`vue3`。
+前端目录约定为 `ruoyi-fastapi-frontend/<framework>/{web,mobile}`，其中 `<framework>` 是前端框架标识，当前为 `vue2`、`vue3`、`react`。
 
 ```text
 RuoYi-FastAPI/
 ├── ruoyi-fastapi-backend/       # 共用 FastAPI 后端
 ├── ruoyi-fastapi-frontend/
+│   ├── react/
+│   │   ├── web/                # React + Ant Design
+│   │   └── mobile/             # Taro + React
 │   ├── vue2/
 │   │   ├── web/                # Vue2 + Element UI
 │   │   └── mobile/             # uni-app + Vue2
@@ -233,18 +236,17 @@ cd ruoyi-fastapi-frontend/vue3/web
 # 使用 Vue2 时改为：cd ruoyi-fastapi-frontend/vue2/web
 
 # 安装依赖
-npm install 或 yarn --registry=https://registry.npmmirror.com
+npm install -g pnpm@11.28.6
+pnpm install
 
 # 建议不要直接使用 cnpm 安装依赖，会有各种诡异的 bug。可以通过如下操作解决 npm 下载速度慢的问题
-npm install --registry=https://registry.npmmirror.com
+pnpm install --registry=https://registry.npmmirror.com
 
 # 启动服务
-npm run dev 或 yarn dev
+pnpm run dev
 ```
 
-两个 Web 工程默认都使用 `80` 端口，开发代理均指向同一个 `9099` 后端。同时运行时，请分别配置不同的前端端口。
-
-Vue2 Web 使用 Vue CLI 4 / webpack 4，在 Node.js 18 及以上启动或构建前，需要设置 `NODE_OPTIONS=--openssl-legacy-provider`：PowerShell 执行 `$env:NODE_OPTIONS = '--openssl-legacy-provider'`，Bash 执行 `export NODE_OPTIONS=--openssl-legacy-provider`。Docker 和构建 CI 已配置此选项。
+三个 Web 工程默认都使用 `80` 端口，开发代理均指向同一个 `9099` 后端。同时运行时，请分别配置不同的前端端口。
 
 #### Vue3 移动端
 
@@ -253,7 +255,7 @@ Vue2 Web 使用 Vue CLI 4 / webpack 4，在 Node.js 18 及以上启动或构建�
 cd ruoyi-fastapi-frontend/vue3/mobile
 
 # 安装依赖
-npm install -g pnpm
+npm install -g pnpm@11.28.6
 pnpm install
 
 # 启动 H5
@@ -268,13 +270,13 @@ pnpm dev:mp-weixin
 ```bash
 # 从仓库根目录进入移动端工程
 cd ruoyi-fastapi-frontend/vue2/mobile
-yarn install
+pnpm install
 
 # 启动 H5
-yarn dev:h5
+pnpm dev:h5
 
 # 启动微信小程序
-yarn dev:mp-weixin
+pnpm dev:mp-weixin
 ```
 
 移动端详细文档请参考：[Vue3 移动端](./ruoyi-fastapi-frontend/vue3/mobile/README.md)、[Vue2 移动端](./ruoyi-fastapi-frontend/vue2/mobile/README.md)。
@@ -325,10 +327,10 @@ ruoyi app run --env=dev
 
 ```bash
 # 构建测试环境
-npm run build:stage 或 yarn build:stage
+pnpm run build:stage
 
 # 构建生产环境
-npm run build:prod 或 yarn build:prod
+pnpm run build:prod
 ```
 
 #### 后端
