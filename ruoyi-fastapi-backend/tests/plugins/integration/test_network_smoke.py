@@ -193,6 +193,7 @@ async def network_servers(fixture: SimpleNamespace, directory: Path, output: Pat
         listener.listen()
         serving = asyncio.create_task(server.serve(sockets=[listener]))
         process = None
+        completed = False
         try:
             await wait_until(lambda: server.started or serving.done())
             assert server.started, 'Uvicorn 未能启动'
@@ -215,8 +216,12 @@ async def network_servers(fixture: SimpleNamespace, directory: Path, output: Pat
                 lambda: ready.exists() or process.returncode is not None,
                 timeout=180 if frontend.parent.name == 'vue2' else 60,
             )
-            assert ready.exists(), f'前端代理启动失败，见 {output / "frontend.log"}'
+            if not ready.exists():
+                log.flush()
+                details = (output / 'frontend.log').read_text(encoding='utf-8', errors='replace')[-8000:]
+                raise AssertionError(f'前端代理启动失败，见 {output / "frontend.log"}\n{details}')
             yield f'https://127.0.0.1:{json.loads(ready.read_text())["port"]}'
+            completed = True
         finally:
             try:
                 await fixture.runtime.shutdown()
@@ -232,7 +237,8 @@ async def network_servers(fixture: SimpleNamespace, directory: Path, output: Pat
                             except TimeoutError:
                                 process.kill()
                                 await asyncio.wait_for(process.wait(), timeout=5)
-                        assert process.returncode == 0, '前端代理未正常退出'
+                        if completed:
+                            assert process.returncode == 0, '前端代理未正常退出'
 
 
 async def open_socket(page: Any, origin: str) -> None:
