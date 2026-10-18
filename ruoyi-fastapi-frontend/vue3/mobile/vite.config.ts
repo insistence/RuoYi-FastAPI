@@ -1,8 +1,8 @@
 import uniPackage from '@dcloudio/vite-plugin-uni'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
-import { UnifiedViteWeappTailwindcssPlugin } from 'weapp-tailwindcss/vite'
-import { WeappTailwindcssDisabled } from './platform'
-import postcssPlugins from './postcss.config'
+import { WeappTailwindcss } from 'weapp-tailwindcss/vite'
+import postcssPlugins from './postcss.config.ts'
 
 // 当前 uni 插件以 CommonJS 导出 default；ESM 配置需解开这一层。
 const uni = (uniPackage as unknown as { default?: typeof uniPackage }).default || uniPackage
@@ -44,20 +44,21 @@ export default defineConfig(async () => {
   // 详见 https://github.com/sonofmagic/uni-app-vite-vue3-tailwind-vscode-template/issues/29
   const { default: AutoImport } = await import('unplugin-auto-import/vite')
   return {
-    // uvtw 一定要放在 uni 后面
+    // WeappTailwindcss 需要放在 uni 插件后面。
     plugins: [
       uni(),
       patchNodeForgeMiniProgramRuntime(),
-      UnifiedViteWeappTailwindcssPlugin({
-        rem2rpx: true,
-        disabled: WeappTailwindcssDisabled,
+      WeappTailwindcss({
+        tailwindcssBasedir: fileURLToPath(new URL('.', import.meta.url)),
+        cssEntries: [fileURLToPath(new URL('./src/app.css', import.meta.url))],
+        cssOptions: { rem2rpx: true },
       }),
       AutoImport({
         imports: ['vue', 'uni-app', 'pinia'],
         dts: './src/auto-imports.d.ts',
       }),
     ],
-    // 内联 postcss 注册 tailwindcss
+    // Tailwind 由 WeappTailwindcss 生成，这里只保留其他 PostCSS 处理。
     css: {
       postcss: {
         plugins: postcssPlugins,

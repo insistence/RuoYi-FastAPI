@@ -40,6 +40,11 @@ class PluginNpmPackageJsonSynchronizer:
         :param item: 依赖安装计划项
         :return: None
         """
+        # pnpm add 同时维护 package.json 和 pnpm-lock.yaml。不要在安装后单独
+        # 改写版本声明，否则下次 frozen-lockfile 安装会失败；离线 tarball 同理。
+        if item.command and Path(item.command[0]).stem == 'pnpm':
+            return
+
         package_json_path = Path(item.workdir) / 'package.json'
         if not package_json_path.is_file():
             return

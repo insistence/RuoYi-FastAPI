@@ -33,10 +33,6 @@ export default {
 </script>
 
 <style>
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Global Reset for UniApp/Mobile */
 page,
 body {

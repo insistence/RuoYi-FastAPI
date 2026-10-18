@@ -1,0 +1,9 @@
+# uni-app plugins resolve dependencies from the project root.
+shamefullyHoist: true
+allowBuilds:
+  weapp-tailwindcss: true
+  esbuild: true
+  core-js: false
+  core-js-pure: false
+  vue-demi: true
+  '@parcel/watcher': true

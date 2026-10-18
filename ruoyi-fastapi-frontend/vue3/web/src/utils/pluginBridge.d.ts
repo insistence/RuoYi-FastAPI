@@ -10,12 +10,7 @@ export const PLUGIN_BRIDGE_MAX_STREAM_BYTES: number
 export const PLUGIN_BRIDGE_STREAM_TIMEOUT: number
 
 export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { [key: string]: JsonValue }
+  null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 export type PluginMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'
 export interface PluginRequest {
   method: PluginMethod

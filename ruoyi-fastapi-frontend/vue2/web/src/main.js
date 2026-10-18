@@ -5,8 +5,8 @@ import Cookies from 'js-cookie'
 import Element from 'element-ui'
 import './assets/styles/element-variables.scss'
 
-import { MarkdownCodeBlockNode, setCustomComponents, VueRendererMarkdown } from 'markstream-vue2'
-import 'markstream-vue2/dist/index.css'
+import MarkdownRender from 'markstream-vue2'
+import 'markstream-vue2/index.css'
 import 'katex/dist/katex.min.css'
 
 import '@/assets/styles/index.scss' // global css
@@ -88,8 +88,7 @@ Vue.use(Element, {
   size: Cookies.get('size') || 'medium', // set element-ui default size
 })
 
-setCustomComponents({ code_block: MarkdownCodeBlockNode })
-Vue.use(VueRendererMarkdown)
+Vue.component('MarkdownRender', MarkdownRender)
 
 // 认证中心自定义区域与后台主题色保持一致，弹层也可继承该颜色。
 store.watch(

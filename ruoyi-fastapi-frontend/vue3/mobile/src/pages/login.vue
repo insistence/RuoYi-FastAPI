@@ -1,6 +1,6 @@
 <template>
   <view
-    class="flex h-full flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-6 pb-20 overflow-hidden"
+    class="flex h-full flex-col items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 px-6 pb-20 overflow-hidden"
   >
     <!-- Logo Section -->
     <view class="mb-6 flex flex-col items-center">
@@ -25,7 +25,7 @@
         </view>
         <input
           v-model="loginForm.username"
-          class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
+          class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
           type="text"
           placeholder="请输入账号"
           maxlength="30"
@@ -42,7 +42,7 @@
         <input
           v-model="loginForm.password"
           type="password"
-          class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
+          class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
           placeholder="请输入密码"
           maxlength="20"
         />
@@ -62,13 +62,13 @@
           <input
             v-model="loginForm.code"
             type="number"
-            class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
+            class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
             placeholder="验证码"
             maxlength="4"
           />
         </view>
         <view
-          class="h-12 w-28 overflow-hidden rounded-xl bg-gray-100 shadow-sm transition-opacity active:opacity-80"
+          class="h-12 w-28 overflow-hidden rounded-xl bg-gray-100 shadow-xs transition-opacity active:opacity-80"
           @click="getCode"
         >
           <image
@@ -81,7 +81,7 @@
       <!-- Login Button -->
       <button
         @click="handleLogin"
-        class="flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-transform active:scale-95"
+        class="flex h-12 w-full items-center justify-center rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-transform active:scale-95"
       >
         登 录
       </button>

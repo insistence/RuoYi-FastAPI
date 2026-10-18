@@ -194,7 +194,7 @@ export default {
           continue
         }
         const data = {
-          path: !isHttp(router.path) ? path.resolve(basePath, router.path) : router.path,
+          path: !isHttp(router.path) ? path.resolve('/', basePath, router.path) : router.path,
           title: [...prefixTitle],
           icon: '',
         }

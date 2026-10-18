@@ -1,12 +1,12 @@
 @echo off
 echo.
-echo [信息] 使用 Vue CLI 命令运行 Web 工程。
+echo [锟斤拷息] 使锟斤拷 Vue CLI 锟斤拷锟斤拷锟斤拷锟斤拷 Web 锟斤拷锟教★拷
 echo.
 
 %~d0
 cd %~dp0
 
 cd ..
-npm run dev
+call pnpm run dev
 
 pause

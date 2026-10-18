@@ -114,13 +114,13 @@
       </view>
       <view class="fixed bottom-8 left-0 w-full px-10">
         <view
-          class="mt-4 flex h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-base text-white shadow-lg transition-all active:scale-95"
+          class="mt-4 flex h-12 w-full items-center justify-center rounded-full bg-linear-to-r from-blue-500 to-blue-600 text-base text-white shadow-lg transition-all active:scale-95"
           @click="getImage"
         >
           选择头像
         </view>
         <view
-          class="mt-4 flex h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-red-600 text-base text-white shadow-lg transition-all active:scale-95"
+          class="mt-4 flex h-12 w-full items-center justify-center rounded-full bg-linear-to-r from-red-500 to-red-600 text-base text-white shadow-lg transition-all active:scale-95"
           @click="getImageInfo"
         >
           提交

@@ -26,7 +26,7 @@
           id="timezone-search"
           v-model="zoneSearch"
           :disabled="saving || initializing"
-          class="mb-3 h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
+          class="mb-3 h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           placeholder="搜索时区，例如 Asia/Shanghai"
           aria-label="搜索时区"
         />

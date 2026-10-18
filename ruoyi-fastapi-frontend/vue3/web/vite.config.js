@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
-import createVitePlugins from './vite/plugins'
+import createVitePlugins from './vite/plugins/index.js'
 import { normalizePluginBase } from './src/utils/pluginBridge.js'
 
 // https://vitejs.dev/config/
@@ -18,9 +18,9 @@ export default defineConfig(({ mode, command }) => {
       // https://cn.vitejs.dev/config/#resolve-alias
       alias: {
         // 设置路径
-        '~': path.resolve(__dirname, './'),
+        '~': path.resolve(import.meta.dirname, './'),
         // 设置别名
-        '@': path.resolve(__dirname, './src'),
+        '@': path.resolve(import.meta.dirname, './src'),
       },
       // https://cn.vitejs.dev/config/#resolve-extensions
       extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
@@ -32,7 +32,7 @@ export default defineConfig(({ mode, command }) => {
       outDir: 'dist',
       assetsDir: 'assets',
       chunkSizeWarningLimit: 2000,
-      rollupOptions: {
+      rolldownOptions: {
         output: {
           chunkFileNames: 'static/js/[name]-[hash].js',
           entryFileNames: 'static/js/[name]-[hash].js',

@@ -1,0 +1,8 @@
+allowBuilds:
+  esbuild: true
+  core-js: false
+  core-js-pure: false
+  vue-demi: true
+  '@parcel/watcher': true
+overrides:
+  quill: '2.0.3'

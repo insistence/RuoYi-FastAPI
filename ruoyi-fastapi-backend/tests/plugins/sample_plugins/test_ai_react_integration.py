@@ -61,7 +61,8 @@ def test_ai_react_dependencies_match_host_and_install_plan(tmp_path: Path) -> No
     assert {item.name for item in plan.items} == expected_packages
     assert {item.workdir for item in plan.items} == {str(root)}
     assert all(item.kind == 'npm' for item in plan.items)
-    assert any('markstream-react@2.0.17' in item.command for item in plan.items)
+    expected_markstream = f'markstream-react@{package["dependencies"]["markstream-react"]}'
+    assert any(expected_markstream in item.command for item in plan.items)
     lockfile = PluginDependencyLockfileTemplateBuilder.build(manifest, frontend_root=root).to_dict()
     assert lockfile['frontendFramework'] == 'react'
     assert {item['name'] for item in lockfile['npm']} == expected_packages

@@ -6,7 +6,7 @@
         <text class="mb-2 block text-sm font-medium text-gray-700">旧密码</text>
         <input
           v-model="user.oldPassword"
-          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
+          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="password"
           placeholder="请输入旧密码"
         />
@@ -16,7 +16,7 @@
         <text class="mb-2 block text-sm font-medium text-gray-700">新密码</text>
         <input
           v-model="user.newPassword"
-          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
+          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="password"
           placeholder="请输入新密码"
         />
@@ -26,7 +26,7 @@
         <text class="mb-2 block text-sm font-medium text-gray-700">确认密码</text>
         <input
           v-model="user.confirmPassword"
-          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
+          class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="password"
           placeholder="请确认新密码"
         />

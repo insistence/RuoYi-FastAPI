@@ -6,7 +6,7 @@
 
 参考 [Element Plus 官方项目的 Prettier 配置](https://github.com/element-plus/element-plus/blob/dev/.prettierrc)（核对日期：2026-09-14）。当前管理端使用 Vue 3 和 Element Plus，采用其 `semi: false`、`singleQuote: true`、`trailingComma: 'es5'` 作为基础风格，适合现有 JavaScript 代码。
 
-格式化统一使用 **Prettier 3.6.2**，以 `.prettierrc.json` 为规则来源。该版本与项目已有的本地安装及锁文件一致，并在 `devDependencies` 中固定版本，避免开发者因格式化器版本不同产生差异。
+格式化统一使用 **Prettier 3.9.10**，以 `.prettierrc.json` 为规则来源。该版本与项目已有的本地安装及锁文件一致，并在 `devDependencies` 中固定版本，避免开发者因格式化器版本不同产生差异。
 
 ## 具体规则
 
@@ -67,22 +67,22 @@ const handleSubmit = () => {
 
 ```sh
 cd ruoyi-fastapi-frontend/vue3/web
-npm install
+pnpm install
 ```
 
 检查整个管理端，只报告差异，不修改文件：
 
 ```sh
-npm run format:check
+pnpm run format:check
 ```
 
 格式化整个管理端：
 
 ```sh
-npm run format
+pnpm run format
 ```
 
-也可以在仓库根目录运行 `npm --prefix ruoyi-fastapi-frontend/vue3/web run format:check` 或 `npm --prefix ruoyi-fastapi-frontend/vue3/web run format`。
+也可以在仓库根目录运行 `pnpm --dir ruoyi-fastapi-frontend/vue3/web run format:check` 或 `pnpm --dir ruoyi-fastapi-frontend/vue3/web run format`。
 
 只处理本次修改的文件时，在管理端目录执行：
 
@@ -117,6 +117,8 @@ Prettier 负责空格、换行、引号和标点排版。后续如引入 ESLint�
 
 ## 历史代码迁移
 
-历史业务源码已按本规范统一格式化。后续新增和修改的文件应继续遵循同一套规则，提交前运行 `npm run format:check` 检查整个管理端。
+历史业务源码已按本规范统一格式化。后续新增和修改的文件应继续遵循同一套规则，提交前运行 `pnpm run format:check` 检查整个管理端。
 
-日常修改时先格式化所改文件。需要统一历史代码时，使用 `npm run format` 单独形成一次格式化提交，再运行 `npm run format:check`、`npm test` 和 `npm run build:prod`。全量检查通过后，可在 CI 中加入 `npm run format:check` 作为后续改动的检查步骤。
+日常修改时先格式化所改文件。需要统一历史代码时，使用 `pnpm run format` 单独形成一次格式化提交，再运行 `pnpm run format:check`、`pnpm test` 和 `pnpm run build:prod`。全量检查通过后，可在 CI 中加入 `pnpm run format:check` 作为后续改动的检查步骤。
+
+本工程统一使用 `pnpm@11.28.6`。`pnpm-lock.yaml` 应与 `package.json`、`pnpm-workspace.yaml` 一起提交到 Git，固定直接和传递依赖。首次拉取及 CI 使用 `pnpm install --frozen-lockfile`；有意新增或升级依赖时使用 `pnpm add` / `pnpm update`，检查锁文件差异并一起提交。不要手工编辑或删除锁文件。

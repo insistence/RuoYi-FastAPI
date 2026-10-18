@@ -3,7 +3,7 @@
   "version": "1.10.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@11.28.6",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -25,33 +25,36 @@
   "dependencies": {
     "@ant-design/icons": "6.3.4",
     "@ant-design/x": "2.9.0",
-    "antd": "6.6.5",
-    "axios": "1.19.0",
+    "antd": "6.6.6",
+    "axios": "1.20.0",
     "dayjs": "1.11.23",
-    "dompurify": "^3.4.16",
+    "dompurify": "3.4.17",
     "echarts": "6.1.0",
     "file-saver": "2.0.5",
     "js-cookie": "3.0.8",
-    "jsencrypt": "3.3.2",
-    "katex": "^0.19.0",
-    "markstream-react": "2.0.17",
-    "mermaid": "^12.1.0",
+    "jsencrypt": "3.5.4",
+    "katex": "0.19.0",
+    "markstream-react": "2.0.19",
+    "mermaid": "12.2.0",
     "monaco-editor": "0.55.1",
-    "quill": "^2.0.3",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "react-easy-crop": "^5.5.7",
-    "react-router-dom": "7.9.4",
+    "quill": "2.0.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-easy-crop": "5.5.7",
+    "react-router-dom": "7.18.4",
     "stream-diffs": "0.0.2",
-    "zustand": "5.0.8"
+    "zustand": "5.0.15"
   },
   "devDependencies": {
     "@testing-library/react": "16.3.3",
     "@vitejs/plugin-react": "6.1.2",
-    "jsdom": "30.1.2",
-    "prettier": "3.6.2",
+    "jsdom": "30.1.3",
+    "prettier": "3.9.10",
     "vite": "8.3.4",
     "vite-plugin-compression": "0.5.1",
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0"
   }
 }

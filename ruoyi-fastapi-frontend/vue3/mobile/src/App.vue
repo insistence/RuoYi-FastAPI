@@ -39,9 +39,7 @@ function checkLogin() {
 </script>
 
 <style>
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import './app.css';
 
 /* Global Reset for UniApp/Mobile */
 page,

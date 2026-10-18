@@ -239,7 +239,7 @@ def test_v2_template_readme_matches_browser_capabilities(tmp_path: Path, templat
         assert '`--force`' in readme and '`.plugin-sdk-backups/`' in readme
         assert '协议兼容不等于业务兼容' in readme
         assert '不联网、不安装依赖、不更新业务源码或运行中的插件' in readme
-        assert f'更新后必须重新运行 `npm --prefix plugin-projects/{PLUGIN_ID}/web run build`' in readme
+        assert f'更新后必须重新运行 `pnpm --dir plugin-projects/{PLUGIN_ID}/web run build`' in readme
     else:
         assert '子应用不提供独立登录' in readme
         assert 'capabilities.files' not in readme

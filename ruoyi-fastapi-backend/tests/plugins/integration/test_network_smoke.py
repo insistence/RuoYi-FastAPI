@@ -174,10 +174,6 @@ async def network_servers(fixture: SimpleNamespace, directory: Path, output: Pat
     frontend = frontend_root()
     cert_path, key_path = certificate_files(directory)
     node_environment = os.environ.copy()
-    if frontend.parent.name == 'vue2':
-        options = node_environment.get('NODE_OPTIONS', '')
-        if '--openssl-legacy-provider' not in options.split():
-            node_environment['NODE_OPTIONS'] = (options + ' --openssl-legacy-provider').strip()
     server = uvicorn.Server(
         uvicorn.Config(
             fixture.app,

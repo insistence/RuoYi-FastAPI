@@ -53,14 +53,17 @@ plugins/ai/
 
 涉及的主要依赖：
 
-- `markstream-vue2`
-- `stream-markdown`
-- `stream-monaco`
+- `markstream-vue2@2.0.19`
+- `stream-diffs`
 - `shiki`
 - `mermaid`
 - `katex`
 - `@antv/infographic`
 - `@terrastruct/d2`
+
+Markstream 2.x 统一使用 `stream-diffs` 渲染增强代码块，正文和思考过程均通过 `:final="!loading"` 同步流式结束状态。全局注册 `MarkdownRender`，不再设置旧的 `code-renderer="shiki"` 或覆盖 `MarkdownCodeBlockNode`。公式样式继续使用 KaTeX。升级说明见 [Markstream 2.0 迁移指南](https://markstream.simonhe.me/guide/migration-2-0)。
+
+开发模式保留 ESM 和动态 `import()`，由 webpack 5 完成打包；不要重新开启 `VUE_CLI_BABEL_TRANSPILE_MODULES` 或 `dynamic-import-node`，否则 ESM 依赖可能在浏览器中报 `require is not defined`。`stream-diffs` 使用不依赖 Vue 的核心入口，不使用其 Vue 3 专用入口。
 
 ## 开发约定
 
@@ -77,8 +80,8 @@ plugins/ai/
 ```bash
 # 从仓库根目录进入本工程
 cd ruoyi-fastapi-frontend/vue2/web
-npm run test:plugin
-npm run build:prod
+pnpm run test:plugin
+pnpm run build:prod
 ```
 
 若只修改文档，不需要执行前端构建。

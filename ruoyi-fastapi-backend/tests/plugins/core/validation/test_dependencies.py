@@ -236,9 +236,9 @@ def test_plugin_dependency_install_planner_builds_valid_npm_install_targets() ->
 
     plan = planner.build_plan(DependencyCheckResult(plugin_id='demo', items=items))
 
-    assert plan.items[0].command == ['npm', 'install', '@antv/infographic@^0.2.13']
-    assert plan.items[1].command == ['npm', 'install', 'katex@>=0.16.27']
-    assert plan.items[2].command == ['npm', 'install', '--save-dev', 'vite-plugin-monaco-editor-esm@2.0.2']
+    assert plan.items[0].command == ['pnpm', 'add', '--save-exact', '@antv/infographic@^0.2.13']
+    assert plan.items[1].command == ['pnpm', 'add', '--save-exact', 'katex@>=0.16.27']
+    assert plan.items[2].command == ['pnpm', 'add', '--save-dev', '--save-exact', 'vite-plugin-monaco-editor-esm@2.0.2']
 
 
 def test_plugin_dependency_checker_checks_manifest_dependencies() -> None:

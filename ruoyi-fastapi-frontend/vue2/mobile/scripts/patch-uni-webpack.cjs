@@ -1,5 +1,16 @@
 const fs = require('fs')
 
+// webpack 5.112 移动了 DefinePlugin 的内部文件，改用稳定的公开导出。
+const chainFilename = require.resolve('@dcloudio/vue-cli-plugin-uni/lib/chain-webpack.js')
+const chainSource = fs.readFileSync(chainFilename, 'utf8')
+const internalDefinePlugin = "require.resolve('webpack/lib/DefinePlugin')"
+const publicDefinePlugin = "require('webpack').DefinePlugin"
+if (chainSource.includes(internalDefinePlugin)) {
+  fs.writeFileSync(chainFilename, chainSource.replace(internalDefinePlugin, publicDefinePlugin))
+} else if (!chainSource.includes(publicDefinePlugin)) {
+  throw new Error('uni-app DefinePlugin 配置已变化，请检查 webpack 兼容补丁')
+}
+
 // 此 uni-app 版本即使关闭独立分包，也会预加载依赖 webpack 4 GraphHelpers
 // 的插件。延迟到功能启用后再加载，保证 Vue CLI 5 的普通小程序构建可用。
 const filename = require.resolve('@dcloudio/uni-mp-weixin/lib/createIndependentPlugin.js')

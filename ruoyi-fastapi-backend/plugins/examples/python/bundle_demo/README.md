@@ -8,14 +8,14 @@
 
 ## 构建前端
 
-以下命令从仓库的 `ruoyi-fastapi-backend` 目录执行。Python 命令使用已安装宿主依赖的环境，准备步骤见 [CLI 环境准备](../../../../docs/cli_usage.md#22-安装依赖)。通用命令适用于 Windows PowerShell、macOS 和 Linux；Shell 语法不同的操作分别列出。构建端需已安装 Node.js/npm；部署端只使用构建产物，无需 Node.js。示例使用独立 `package.json`，不会把构建依赖写入宿主前端。
+以下命令从仓库的 `ruoyi-fastapi-backend` 目录执行。Python 命令使用已安装宿主依赖的环境，准备步骤见 [CLI 环境准备](../../../../docs/cli_usage.md#22-安装依赖)。通用命令适用于 Windows PowerShell、macOS 和 Linux；Shell 语法不同的操作分别列出。构建端需已安装 Node.js 22/24 和 pnpm 11.28.6；部署端只使用构建产物，无需 Node.js。示例使用独立 `package.json`，不会把构建依赖写入宿主前端。
 
 ```bash
-npm --prefix plugins/examples/python/bundle_demo/web install
-npm --prefix plugins/examples/python/bundle_demo/web run build
+pnpm --dir plugins/examples/python/bundle_demo/web install --frozen-lockfile
+pnpm --dir plugins/examples/python/bundle_demo/web run build
 ```
 
-首次安装会生成此示例自己的锁文件；独立维护插件时应保留锁文件，在 CI 中使用 `npm ci`。示例的 SDK 别名指向本仓库 `ruoyi-fastapi-frontend/vue3/web/src/utils/pluginBridge.js`。迁移到独立插件仓库时，将该模块及相邻的 `pluginBridge.d.ts` 一起复制为自己的版本化源码依赖，并调整 `vite.config.js` 中 `@ruoyi/plugin-bridge` 的别名。TypeScript 项目还应在自己的 `tsconfig.json` 中将同一别名映射到复制后的模块路径。
+本示例独立提交 `pnpm-lock.yaml`，本地和 CI 均使用 `pnpm install --frozen-lockfile`。依赖变更时通过 pnpm 更新并提交锁文件。示例的 SDK 别名指向本仓库 `ruoyi-fastapi-frontend/vue3/web/src/utils/pluginBridge.js`。迁移到独立插件仓库时，将该模块及相邻的 `pluginBridge.d.ts` 一起复制为自己的版本化源码依赖，并调整 `vite.config.js` 中 `@ruoyi/plugin-bridge` 的别名。TypeScript 项目还应在自己的 `tsconfig.json` 中将同一别名映射到复制后的模块路径。
 
 如果本仓库宿主前端依赖已安装，也可复用其中的 Vite 可执行文件构建**同一个插件前端项目**：
 
@@ -30,7 +30,7 @@ node ../ruoyi-fastapi-frontend/vue3/web/node_modules/vite/bin/vite.js build plug
 安装示例依赖后，从后端目录运行：
 
 ```bash
-npm --prefix plugins/examples/python/bundle_demo/web run dev
+pnpm --dir plugins/examples/python/bundle_demo/web run dev
 ```
 
 开发服务只监听本机，自动打开 `/dev.html`。模拟宿主使用真实通信桥，提供主题切换、0–5000 毫秒延迟、故障注入、页面重载和退出；上传检查、下载与逐条事件在浏览器内存中完成，不调用实际后端。事件间隔最短 100 毫秒，可停止后按游标继续。刷新整个页面可恢复模拟退出后的会话。
@@ -233,7 +233,7 @@ ASGI 网关对已建立的 SSE/WebSocket 按 15 秒间隔复核登录、插件�
 
 ```bash
 python -m pytest tests/plugins/core/runtime/test_bundle.py tests/plugins/core/runtime/test_browser_session.py tests/plugins/core/runtime/test_bundle_transport.py tests/plugins/core/runtime/test_bundle_files.py tests/plugins/core/runtime/test_bundle_events.py tests/plugins/core/runtime/test_connections.py tests/plugins/core/runtime/test_connection_sessions.py tests/plugins/core/runtime/test_configuration.py tests/module_admin/service/test_login_plugin_routes.py -q
-npm --prefix ../ruoyi-fastapi-frontend/vue3/web run test:plugin
+pnpm --dir ../ruoyi-fastapi-frontend/vue3/web run test:plugin
 ```
 
 测试覆盖静态边界、Cookie/CSRF/退出、真实 RSA/AES 协议、文件大小、`root_path`、流连接复核及运行时关闭顺序；浏览器会话测试替换真实账号查询，配置读取测试使用隔离 SQLite 验证保存、解密及重启版本。实际角色配置、TLS/Nginx、多 worker 和 ASGI 服务器的优雅停机阶段仍需部署验收。网关的周期关闭与协作式取消不能强制终止忽略取消的 Python 代码，也不提供跨 worker 的即时撤销广播。

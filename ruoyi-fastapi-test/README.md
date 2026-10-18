@@ -9,13 +9,13 @@
 | 分类 | 工作流 | 主要检查 |
 | --- | --- | --- |
 | Quality | [ci-quality.yml](../.github/workflows/ci-quality.yml) | Python/六个前端工程格式、actionlint、选路与失败门禁测试、三框架 × 四份 Compose 配置 |
-| Backend | [ci-backend.yml](../.github/workflows/ci-backend.yml) | Python 3.10–3.13 单元与契约、Windows CLI/路径、三种宿主时区 |
-| Frontend | [ci-frontend.yml](../.github/workflows/ci-frontend.yml) | 六工程单元测试、三时区契约、Web prod/docker、移动端 H5/微信及 H5 登录；React Mobile 的 Android/iOS JS bundle，完整模式增加其他小程序与鸿蒙构建 |
+| Backend | [ci-backend.yml](../.github/workflows/ci-backend.yml) | Python 3.10–3.14 单元与契约、Windows CLI/路径、三种宿主时区 |
+| Frontend | [ci-frontend.yml](../.github/workflows/ci-frontend.yml) | Node 22/24 × 六工程单元测试、三时区契约、Web prod/docker、移动端 H5/微信及 H5 登录；React Mobile 的 Android/iOS JS bundle，完整模式增加其他小程序与鸿蒙构建 |
 | Integration | [ci-integration.yml](../.github/workflows/ci-integration.yml) | 双数据库时间持久化、插件发布、Vue2/Vue3/React HTTPS 代理与 SSE/WebSocket |
 | E2E | [ci-e2e.yml](../.github/workflows/ci-e2e.yml) | 三框架的独立数据库和应用容器、Chromium 登录/权限/29 个菜单页面/时区，以及全部业务操作用例 |
-| Native | [ci-native.yml](../.github/workflows/ci-native.yml) | Rust fmt/clippy、Windows/Linux × Python 3.10–3.13 的真实原生制品 |
+| Native | [ci-native.yml](../.github/workflows/ci-native.yml) | Rust fmt/clippy、Windows/Linux × Python 3.10–3.14 的真实原生制品 |
 
-PR 按 `.github/scripts/ci_plan.py` 的变更影响规则选择分类与前端工程，框架包含 `vue2`、`vue3`、`react`。单个移动端的改动只运行对应前端工程，不触发 Web E2E 或 Rust Native。共享依赖和 CI 变更触发全部分类；仅文档变更运行 Quality。PR E2E 使用 Python 3.12，受影响的每个 Web 框架分别测试 MySQL 和 PostgreSQL。`master` 推送、每天 UTC 18:21（北京时间次日 02:21）及手动 `full=true` 扩展为四个 Python 版本，共 24 个 E2E 组合，并增加 React Mobile 的支付宝、百度、抖音、QQ、京东、快手、飞书、小红书和鸿蒙构建。手动 `full=false` 运行所有分类的 PR 规模矩阵。
+PR 按 `.github/scripts/ci_plan.py` 的变更影响规则选择分类与前端工程，框架包含 `vue2`、`vue3`、`react`。单个移动端的改动只运行对应前端工程，不触发 Web E2E 或 Rust Native。共享依赖和 CI 变更触发全部分类；仅文档变更运行 Quality。PR E2E 使用 Python 3.12，受影响的每个 Web 框架分别测试 MySQL 和 PostgreSQL。`master` 推送、每天 UTC 18:21（北京时间次日 02:21）及手动 `full=true` 扩展为五个 Python 版本（3.10–3.14），共 30 个 E2E 组合；插件发布集成测试也覆盖这五个版本，并增加 React Mobile 的支付宝、百度、抖音、QQ、京东、快手、飞书、小红书和鸿蒙构建。手动 `full=false` 运行所有分类的 PR 规模矩阵。
 
 Vue2、Vue3、React 执行相同的全部 `e2e` 用例，当前每个框架收集 109 项。覆盖账号资料与锁屏、系统管理 CRUD 与授权、文件上传下载、插件和 OAuth 管理、缓存与服务监控、强退、任务执行及日志、代码生成和表单构建。选择器按实际 Element / Ant Design 组件适配，保留真实 API 响应、保存值与清理断言；React 导出用例校验 JSX 内容。完整模式与 PR 模式使用同一套业务用例。
 
@@ -45,18 +45,16 @@ python ../.github/scripts/install_ai_test_dependencies.py
 python -m pytest tests -m 'not browser and not native and not integration' --strict-markers --durations=20
 ```
 
-六个前端工程统一提供 `test:unit`、`test:contract` 和 `test`。先按工程安装依赖：Vue Web 使用 npm，Vue2 Mobile 使用 Yarn 1.22.22，Vue3 Mobile 和 React 两端使用各自 `package.json` 声明的 pnpm。锁文件不纳入提交，pnpm 在 CI 中使用 `pnpm install --no-frozen-lockfile`；缓存键同时包含依赖清单和 pnpm 工作区配置。Vue2 在 Node 18 及以上使用 `NODE_OPTIONS=--openssl-legacy-provider`。Vue2 Mobile 另有 `npm run test:bundle`，验证真实 webpack bundle 在缺少原生 Intl 时的行为。H5 浏览器测试加载实际构建，使用隔离 API 验证登录、会话持久化和资料页时区，不依赖业务数据库。
-
 ```bash
 # 在对应前端工程执行
-npm run test:unit
-npm run test:contract
+pnpm run test:unit
+pnpm run test:contract
 # Mobile 工程额外执行
-npm run build:h5
-npm run build:mp-weixin
+pnpm run build:h5
+pnpm run build:mp-weixin
 
 # 返回仓库根目录，安装 Chromium 后验证实际 H5 构建
-python -m pip install playwright==1.62.0
+python -m pip install playwright==1.64.0
 python -m playwright install chromium
 python .github/scripts/mobile_smoke.py --framework vue2
 python .github/scripts/mobile_smoke.py --framework vue3
@@ -65,7 +63,7 @@ python .github/scripts/mobile_smoke.py --framework react
 
 React Mobile 在 PR 中构建 H5、微信及 Android/iOS JS bundle；完整模式使用 `pnpm check:platforms h5 weapp alipay swan tt qq jd kwai lark xhs harmony-hybrid` 验证所有已支持的 Taro 目标。RN 使用 `pnpm build:rn:android`、`pnpm build:rn:ios`，检查命令退出状态及 bundle 非空。此检查不生成 APK/IPA，原生编译、签名和设备验收仍需原生壳工程。平台日志上传至 Frontend artifact，RN 属于 Frontend 分类，Native 分类仍用于 Rust 插件。
 
-六个前端工程统一使用 Prettier 3.6.2、相同的格式规则和 `format` / `format:check` 命令：`format` 格式化整个工程，`format:check` 只检查。Vue Web 使用 `npm run format`，Vue2 Mobile 使用 `yarn format`，Vue3 Mobile 和 React 两端使用 `pnpm format`。Quality 通过统一的框架/端循环执行同版本检查，各工程的 `.prettierignore` 排除构建产物、锁文件、第三方兼容代码、历史夹具及生成文件。
+六个前端工程统一使用 Prettier 3.9.10、相同的格式规则和 `format` / `format:check` 命令：`format` 格式化整个工程，`format:check` 只检查。Vue Web 使用 `pnpm run format`，Vue2 Mobile 使用 `pnpm format`，Vue3 Mobile 和 React 两端使用 `pnpm format`。Quality 通过统一的框架/端循环执行同版本检查，各工程的 `.prettierignore` 排除构建产物、锁文件、第三方兼容代码、历史夹具及生成文件。
 
 ## 功能特性
 
@@ -94,11 +92,11 @@ python -m playwright install chromium
 # 以下各步骤均从仓库根目录进入目标工程
 cd ruoyi-fastapi-frontend/vue3/web
 # 使用 Vue2 时改为：cd ruoyi-fastapi-frontend/vue2/web
-npm install
-npm run dev -- --host 127.0.0.1 --port 8083
+pnpm install
+pnpm run dev --host 127.0.0.1 --port 8083
 ```
 
-Vue2 可使用端口 `8082`。Node 18 及以上启动 Vue2 前，Bash 执行 `export NODE_OPTIONS=--openssl-legacy-provider`，PowerShell 执行 `$env:NODE_OPTIONS = '--openssl-legacy-provider'`；同时设置 `BROWSER=none`，避免开发服务自动打开浏览器。前端开发代理默认连接 `http://127.0.0.1:9099`；更改后端端口时也要调整对应工程的代理目标。
+Vue2 可使用端口 `8082`。设置 `BROWSER=none`，避免开发服务自动打开浏览器。前端开发代理默认连接 `http://127.0.0.1:9099`；更改后端端口时也要调整对应工程的代理目标。
 
 #### 启动后端
 

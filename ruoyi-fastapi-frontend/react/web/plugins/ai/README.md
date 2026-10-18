@@ -9,7 +9,7 @@
 
 模型管理支持供应商、模型、密钥和生成参数配置；聊天支持会话历史、图片、流式输出与停止、Markdown、代码、KaTeX 和 Mermaid。按钮权限使用 `HasPermi`，服务端仍负责鉴权。
 
-页面使用 React、Ant Design X、markstream-react、stream-diffs、KaTeX、Mermaid，依赖统一声明在宿主 `package.json` 中。进入宿主工程后使用 `pnpm install --no-frozen-lockfile`、`pnpm dev`、`pnpm build`；依赖锁文件由安装过程生成，不纳入 Git 提交。服务地址、接口前缀及构建模式按[宿主说明](../../README.md)配置。
+页面使用 React、Ant Design X、markstream-react、stream-diffs、KaTeX、Mermaid，依赖统一声明在宿主 `package.json` 中。进入宿主工程后使用 `pnpm install --frozen-lockfile`、`pnpm dev`、`pnpm build`；本工程统一使用 `pnpm@11.28.6`。`pnpm-lock.yaml` 应与 `package.json`、`pnpm-workspace.yaml` 一起提交到 Git，固定直接和传递依赖。首次拉取及 CI 使用 `pnpm install --frozen-lockfile`；有意新增或升级依赖时使用 `pnpm add` / `pnpm update`，检查锁文件差异并一起提交。不要手工编辑或删除锁文件。
 
 消息正文与思考过程统一使用 [markstream-react](https://markstream.simonhe.me/zh/frameworks/react.html)，对应 Vue 版的 markstream-vue。两处均通过 `final={!loading}` 同步流式结束/停止状态，通过 `isDark` 跟随宿主主题；代码高亮由 `stream-diffs` 提供，KaTeX 和 Mermaid 由渲染器按需加载。已引入官方 Markdown 与 KaTeX 样式，保留原版思考区折叠布局和三点等待动画。HTML 使用渲染器的 `safe` 策略。
 

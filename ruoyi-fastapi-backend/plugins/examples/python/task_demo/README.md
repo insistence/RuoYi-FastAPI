@@ -2,14 +2,14 @@
 
 `task_demo` 是 manifest v2 的 Python ASGI + 独立 bundle 业务示例，当前版本 `1.1.0`。页面提供新增、编辑、删除、状态筛选和分页；数据保存在宿主默认数据源的 `ruoyi_plugin_task_demo` 表中。它演示插件级共享任务清单：有查看权限的用户看到同一组任务，未实现个人、部门或租户数据隔离。
 
-源码位于 `plugins/examples/python/task_demo`，示例目录不参与运行时插件扫描。下面的命令均在后端根目录、已激活并安装宿主依赖的 Python 3.10–3.13 环境执行，适用于 Windows PowerShell、macOS 和 Linux；前端构建使用 Node.js 22。
+源码位于 `plugins/examples/python/task_demo`，示例目录不参与运行时插件扫描。下面的命令均在后端根目录、已激活并安装宿主依赖的 Python 3.10–3.14 环境执行，适用于 Windows PowerShell、macOS 和 Linux；前端构建使用 Node.js 22。
 
 ## 构建与测试
 
 ```bash
-npm --prefix plugins/examples/python/task_demo/web install --no-audit --no-fund --package-lock=false
-npm --prefix plugins/examples/python/task_demo/web test
-npm --prefix plugins/examples/python/task_demo/web run build
+pnpm --dir plugins/examples/python/task_demo/web install --frozen-lockfile
+pnpm --dir plugins/examples/python/task_demo/web test
+pnpm --dir plugins/examples/python/task_demo/web run build
 python plugins/examples/python/task_demo/build_release.py --output target/task-demo-1.1.0
 python -m pytest tests/plugins/examples/test_task_demo.py tests/plugins/core/deployment/test_task_delivery.py -q
 ```
@@ -23,7 +23,7 @@ python -m pytest tests/plugins/examples/test_task_demo.py tests/plugins/core/dep
 ## 本地页面开发
 
 ```bash
-npm --prefix plugins/examples/python/task_demo/web run dev
+pnpm --dir plugins/examples/python/task_demo/web run dev
 ```
 
 打开开发服务的 `/dev.html`，可预览任务清单、主题、只读状态和失败反馈。开发宿主使用内存数据，刷新页面会重置，不能验证真实数据库事务或宿主权限。生产构建只包含业务页面，不包含此开发宿主；正式访问应从宿主菜单打开 `PluginFrame`。

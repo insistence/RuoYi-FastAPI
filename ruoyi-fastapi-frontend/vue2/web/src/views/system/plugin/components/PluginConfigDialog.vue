@@ -388,10 +388,10 @@ function normalizeConfigBound(value) {
 function hasConfigMeta(item) {
   return Boolean(
     item.key ||
-      item.required ||
-      item.secret ||
-      props.formatConfigDefaultValue(item) !== '-' ||
-      props.formatConfigConstraint(item) !== '-'
+    item.required ||
+    item.secret ||
+    props.formatConfigDefaultValue(item) !== '-' ||
+    props.formatConfigConstraint(item) !== '-'
   )
 }
 

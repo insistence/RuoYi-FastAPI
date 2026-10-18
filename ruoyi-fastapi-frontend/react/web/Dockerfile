@@ -1,9 +1,9 @@
 FROM node:22-slim AS builder
 ENV TZ=UTC
 WORKDIR /app
-RUN npm install --global pnpm@11.22.0
-COPY package.json pnpm-workspace.yaml ./
-RUN pnpm install --no-frozen-lockfile
+RUN npm install --global pnpm@11.28.6
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build:docker
 

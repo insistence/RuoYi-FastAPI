@@ -33,33 +33,30 @@ EXPECTED_AI_PYTHON_DEPENDENCIES = [
     'groq==1.6.0',
     'litellm==1.94.0',
     'llama-api-client==0.6.0',
-    'mistralai==2.8.0',
+    'mistralai==2.10.1',
     'ollama==0.6.2',
     'openai==2.52.0',
     'portkey-ai==2.3.4',
 ]
 EXPECTED_AI_VUE2_NPM_DEPENDENCIES = [
-    '@antv/infographic^0.2.13',
+    '@antv/infographic==0.2.20',
     '@terrastruct/d2==0.1.33',
-    'katex>=0.16.27',
-    'markstream-vue2==0.0.50',
-    'mermaid>=11.15.0',
-    'shiki^3.21.0',
-    'stream-markdown==0.0.16',
-    'stream-monaco==0.0.48',
+    'katex==0.16.28',
+    'markstream-vue2==2.0.19',
+    'mermaid==11.17.2',
+    'shiki==3.23.0',
+    'stream-diffs==0.0.2',
 ]
 EXPECTED_AI_VUE3_NPM_DEPENDENCIES = [
-    '@antv/infographic^0.2.13',
+    '@antv/infographic==0.2.20',
     '@terrastruct/d2==0.1.33',
-    'katex>=0.16.27',
-    'markstream-vue==1.0.9-beta.2',
-    'mermaid>=11.15.0',
-    'shiki^3.21.0',
+    'katex==0.19.0',
+    'markstream-vue==2.0.19',
+    'mermaid==12.2.0',
+    'shiki==3.23.0',
     'stream-diffs==0.0.2',
-    'stream-markdown==0.0.16',
-    'stream-monaco==0.0.48',
 ]
-EXPECTED_AI_VUE3_NPM_DEV_DEPENDENCIES = ['vite-plugin-monaco-editor-esm==2.0.2']
+EXPECTED_AI_VUE3_NPM_DEV_DEPENDENCIES = ['vite-plugin-monaco-editor-esm==2.0.3']
 EXPECTED_DEFAULT_NUM_HISTORY_RUNS = 3
 
 

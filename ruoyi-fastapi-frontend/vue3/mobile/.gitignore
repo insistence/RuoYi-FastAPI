@@ -24,4 +24,7 @@ yarn-error.log*
 !.env
 
 src/ignore
-pnpm-lock.yaml
+
+package-lock.json
+
+yarn.lock

@@ -630,7 +630,7 @@ class PluginDependencyInstallPlanner:
                 reason=item.message,
             )
 
-        command = ['npm', 'install', self._build_npm_install_target(item)]
+        command = ['pnpm', 'add', '--save-exact', self._build_npm_install_target(item)]
         if item.kind == 'npmDev':
             command.insert(2, '--save-dev')
 

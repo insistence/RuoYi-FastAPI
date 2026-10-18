@@ -15,7 +15,7 @@
 
 目录插件与签名制品不能同时使用相同插件 ID。两种方式均遵守进程重启边界，不提供原生模块热替换。
 
-后端命令使用已安装项目依赖的 Python 3.10–3.13 环境；创建与激活步骤见 [CLI 环境准备](cli_usage.md#22-安装依赖)。下文的 `python` 指向已激活环境，命令默认在后端目录执行。通用命令同时适用于 Windows PowerShell、macOS 和 Linux；环境变量等 Shell 语法分别列出。
+后端命令使用已安装项目依赖的 Python 3.10–3.14 环境；创建与激活步骤见 [CLI 环境准备](cli_usage.md#22-安装依赖)。下文的 `python` 指向已激活环境，命令默认在后端目录执行。通用命令同时适用于 Windows PowerShell、macOS 和 Linux；环境变量等 Shell 语法分别列出。
 
 ## 1. 基本模型
 
@@ -471,15 +471,16 @@ dependencies:
     vue2:
       npm:
         - dayjs>=1.11.0
-        - markstream-vue2==0.0.50
+        - markstream-vue2==2.0.19
+        - stream-diffs==0.0.2
       npmDev: []
     vue3:
       npm:
         - dayjs>=1.11.0
-        - markstream-vue==1.0.9-beta.2
+        - markstream-vue==2.0.19
         - stream-diffs==0.0.2
       npmDev:
-        - vite-plugin-monaco-editor-esm==2.0.2
+        - vite-plugin-monaco-editor-esm==2.0.3
 ```
 
 `frontend` 的键不限于 `vue2`、`vue3`，也接受 `react` 等安全的小写框架标识。新增分类只声明该框架的依赖，不会自动生成对应前端工程或源码模板。
@@ -970,7 +971,7 @@ Rust 使用 PyO3 暴露 Python 扩展，并通过 maturin 构建 wheel；Windows
 
 原生 wheel 在构建或维护环境中验证并展开到 `backend.native.moduleRoot`，默认 `native/`。宿主检查发行包名称、插件版本、Python 要求、wheel tag、已安装依赖及完整 RECORD SHA256；扩展只能从当前插件目录加载，不能覆盖宿主模块。RECORD 用于检查文件一致性，发布者信任仍需第 15 节的签名流程。
 
-构建机需安装 Rust、maturin 和目标平台编译工具：Windows 使用 MSVC Build Tools 的 C++ 工具及 Windows SDK，macOS 使用 Xcode Command Line Tools，Linux 使用 GCC 或 Clang 等编译工具。先选择 `rust-asgi` 或 `rust-bundle` 脚手架，再按第 16 节构建。`abi3` 可减少 Python ABI 构建数量，但不能跨操作系统或架构复用制品；按实际目标平台及 Python 3.10–3.13 的测试结果验证兼容性。
+构建机需安装 Rust、maturin 和目标平台编译工具：Windows 使用 MSVC Build Tools 的 C++ 工具及 Windows SDK，macOS 使用 Xcode Command Line Tools，Linux 使用 GCC 或 Clang 等编译工具。先选择 `rust-asgi` 或 `rust-bundle` 脚手架，再按第 16 节构建。`abi3` 可减少 Python ABI 构建数量，但不能跨操作系统或架构复用制品；按实际目标平台及 Python 3.10–3.14 的测试结果验证兼容性。
 
 Rust 通过 `PluginHostContext`、`plugin_endpoint`、`plugin_lifespan` 和版本化服务复用宿主能力，完整实现见 [Rust 示例](../plugins/examples/rust/rust_demo/README.md)。不要覆盖已加载的原生模块或依赖 `reload` 完成更新，发布后必须重启全部相关进程。
 
@@ -1098,7 +1099,7 @@ receive().catch(showStreamError) // 由插件实现错误提示和重新连接�
 
 事件接口必须返回 `text/event-stream`，禁止跨源地址和重定向。SSE 不使用 JSON 加密信封，依赖 HTTPS；若当前传输策略会加密该端点，需将**精确事件路径**（如 `/apps/bundle_demo/api/events`，不含部署前缀）追加到既有 `TRANSPORT_CRYPTO_EXCLUDE_PATHS`，宿主不会自动绕过策略。建立请求时仍校验插件 Cookie、主登录和接口权限；宿主会附加 CSRF 头，后端沿用只读 GET 的门禁规则，强制 Origin/CSRF 校验针对写请求。ASGI 网关会周期复核已建立连接；收到宿主关闭通知时 `stream()` 拒绝，业务应保留已处理游标并按新的登录及权限状态决定是否重试。反向代理应关闭该事件接口的响应缓冲，并配置相应超时；示例返回 `X-Accel-Buffering: no`。
 
-本地开发可运行 `npm --prefix plugins/examples/python/bundle_demo/web run dev`（从后端目录）。`/dev.html` 使用真实桥协议和内存模拟请求，支持文件与逐条事件，可切换主题、延迟、故障、重载及退出；不连接实际账号、数据库或 Redis。模拟宿主和开发配置注入只用于 Vite 开发服务，默认生产构建只有插件 `index.html`，不含模拟宿主。它便于开发交互，实际会话、权限与代理仍应在宿主集成环境验证。
+本地开发可运行 `pnpm --dir plugins/examples/python/bundle_demo/web run dev`（从后端目录）。`/dev.html` 使用真实桥协议和内存模拟请求，支持文件与逐条事件，可切换主题、延迟、故障、重载及退出；不连接实际账号、数据库或 Redis。模拟宿主和开发配置注入只用于 Vite 开发服务，默认生产构建只有插件 `index.html`，不含模拟宿主。它便于开发交互，实际会话、权限与代理仍应在宿主集成环境验证。
 
 `client.navigate('/details')` 同步插件内部路由，宿主保存在 `pluginRoute` 查询参数中；插件通过 `route` 事件更新自己的页面。使用 Vite 时采用相对资源基址，如 `base: './'`，前端路由基址使用注入的 `uiBase`。
 
@@ -1223,7 +1224,7 @@ ruoyi plugin install-deps demo --env=dev
 
 CLI 会先输出 dry-run 预览和策略判定，再询问是否执行真实安装。非 TTY、JSON 输出和 CI 场景不会进入交互确认，真实安装应显式传 `--yes`。
 
-应用启动时只做默认启用插件的依赖门禁，不会提示安装，也不会执行 `pip install` 或 `npm install`。缺少依赖时应先使用 `ruoyi plugin install-deps` 显式处理。
+应用启动时只做默认启用插件的依赖门禁，不会提示安装，也不会执行 `pip install` 或 `pnpm install`。缺少依赖时应先使用 `ruoyi plugin install-deps` 显式处理。
 
 ## 10. 安装、启用、升级和清理
 
@@ -1387,7 +1388,7 @@ ruoyi plugin test demo --env=dev
 ```bash
 cd ../ruoyi-fastapi-frontend/vue3/web
 # Vue2 工程改为：cd ../ruoyi-fastapi-frontend/vue2/web
-npm run build:prod
+pnpm run build:prod
 ```
 
 ## 14. 开发规范清单
@@ -1652,13 +1653,13 @@ ruoyi plugin create report_center --template rust-bundle --env dev
 
 每个工程包含 v2 清单、受 `<id>:view` 权限保护的 `/api/info`、显式入口、健康检查、lifespan、构建与发布 README，以及 SDK 合约测试。Rust 模板固定 `ruoyi_plugin_<id>` Python 命名空间，包含锁定的 Cargo 依赖。bundle 复制当前宿主的 bridge SDK 及配套 `.d.ts`，使用相对资源基址和专用插件会话，不内嵌主登录 token。独立 bundle 与宿主前端框架解耦，v2 模板的 `--frontend-framework` 只允许默认值 `auto`；bundle 也不能配合 `--backend-only`。
 
-bundle 安装 npm 依赖后，可运行 `npm --prefix plugin-projects/report_center/web run dev`，自动打开生成的 `/dev.html`。`dev.js` 提供 `/api/info` 的内存模拟、主题、延迟、故障、重载和退出，可按业务扩展；默认模板未实现文件或 SSE 业务接口。模拟配置仅在开发服务注入，生产构建不包含开发宿主。文件与 SSE 的完整示例见 `bundle_demo`。
+bundle 安装 npm 依赖后，可运行 `pnpm --dir plugin-projects/report_center/web run dev`，自动打开生成的 `/dev.html`。`dev.js` 提供 `/api/info` 的内存模拟、主题、延迟、故障、重载和退出，可按业务扩展；默认模板未实现文件或 SSE 业务接口。模拟配置仅在开发服务注入，生产构建不包含开发宿主。文件与 SSE 的完整示例见 `bundle_demo`。
 
 以下以 Rust bundle 为例，在后端目录及已激活的 Python 环境执行。构建机需具备前述 Rust、maturin、平台编译工具和 Node.js，运行宿主只接收构建产物。构建命令三种平台通用：
 
 ```bash
-npm --prefix plugin-projects/report_center/web install
-npm --prefix plugin-projects/report_center/web run build
+pnpm --dir plugin-projects/report_center/web install
+pnpm --dir plugin-projects/report_center/web run build
 python scripts/build_native_plugin.py --source plugin-projects/report_center --output target/report_center-package
 ```
 
@@ -1676,7 +1677,7 @@ export RUOYI_PLUGIN_DIRECTORY="$(pwd)/target/report_center-package/report_center
 python -m pytest plugin-projects/report_center/tests -q
 ```
 
-首次 `npm install` 产生的 `package-lock.json` 应随源码提交，后续构建可用 `npm ci`。原生构建器不会代替你运行 npm；缺少 bundle HTML 入口时在编译前报错。它只组装原生发行包、清单声明的迁移/seed 文件或目录、可选插件锁文件和已构建 bundle，拒绝链接、重解析点、硬链接、开发工程及敏感配置进入交付。`target/report_center-package/report_center` 才是签名输入，不是 wheel 所在目录或源码工程。
+首次 `pnpm install` 产生的 `package-lock.json` 应随源码提交，后续构建可用 `pnpm install --frozen-lockfile`。原生构建器不会代替你运行 npm；缺少 bundle HTML 入口时在编译前报错。它只组装原生发行包、清单声明的迁移/seed 文件或目录、可选插件锁文件和已构建 bundle，拒绝链接、重解析点、硬链接、开发工程及敏感配置进入交付。`target/report_center-package/report_center` 才是签名输入，不是 wheel 所在目录或源码工程。
 
 Python 模板将上一例中的原生构建步骤替换为：
 
@@ -1698,7 +1699,7 @@ bundle 工程的 `web/vendor/pluginBridge.sdk.json` 记录独立 `sdkVersion`、
 ruoyi plugin sdk check plugin-projects/report_center --output=json
 ruoyi plugin sdk update plugin-projects/report_center --dry-run --output=json
 ruoyi plugin sdk update plugin-projects/report_center
-npm --prefix plugin-projects/report_center/web run build
+pnpm --dir plugin-projects/report_center/web run build
 ```
 
 SDK 命令的 `--frontend-framework` 当前固定可选 `auto`、`vue2`、`vue3`、`react`，默认值为 `auto`。默认来源为 `ruoyi-fastapi-frontend/vue3/web`；可用 `--frontend-framework=vue2` 选择 Vue2 Web，或用 `--frontend-framework=react` 选择 React Web，`auto` 则跟随框架环境变量和显式根目录选择。通用来源目录为 `ruoyi-fastapi-frontend/<framework>/web`，所选工程必须提供对应 bridge SDK 文件；指定框架不会生成这些文件。独立检出时可传 `--frontend-root PATH`，或设置 `RUOYI_PLUGIN_FRONTEND_ROOT`。命令只静态读取工程清单和固定 SDK 文件，不导入插件、不读取宿主运行环境、不连接数据库或 registry。清单检查仅确认 YAML 可读、`manifestVersion: 2` 和 bundle 工程类型，不执行完整插件清单校验；完整检查与业务测试仍按第 13 节执行。
@@ -1761,8 +1762,8 @@ python -m pytest tests/plugins/core/artifacts tests/plugins/core/deployment test
 bundle 插件完成独立前端构建后，还应执行宿主桥接测试（在后端目录执行，三种平台通用）：
 
 ```bash
-npm --prefix ../ruoyi-fastapi-frontend/vue2/web run test:plugin
-npm --prefix ../ruoyi-fastapi-frontend/vue3/web run test:plugin
+pnpm --dir ../ruoyi-fastapi-frontend/vue2/web run test:plugin
+pnpm --dir ../ruoyi-fastapi-frontend/vue3/web run test:plugin
 ```
 
 ### 17.2 真实服务与多 worker 验收
@@ -1792,15 +1793,15 @@ npm --prefix ../ruoyi-fastapi-frontend/vue3/web run test:plugin
 
 ### 17.4 CI 覆盖
 
-统一入口为 [`ci.yml`](../../.github/workflows/ci.yml)，完整分类和本地命令见[测试说明](../../ruoyi-fastapi-test/README.md)。[`ci-backend.yml`](../../.github/workflows/ci-backend.yml) 承担 v1/v2 脚手架、SDK 溯源、离线更新及 Windows CLI/路径回归；[`ci-native.yml`](../../.github/workflows/ci-native.yml) 保留 Windows/Linux × Python 3.10–3.13 的真实原生制品测试，Rust fmt/clippy 单独运行一次。
+统一入口为 [`ci.yml`](../../.github/workflows/ci.yml)，完整分类和本地命令见[测试说明](../../ruoyi-fastapi-test/README.md)。[`ci-backend.yml`](../../.github/workflows/ci-backend.yml) 承担 v1/v2 脚手架、SDK 溯源、离线更新及 Windows CLI/路径回归；[`ci-native.yml`](../../.github/workflows/ci-native.yml) 保留 Windows/Linux × Python 3.10–3.14 的真实原生制品测试，Rust fmt/clippy 单独运行一次。
 
-[`ci-integration.yml`](../../.github/workflows/ci-integration.yml) 使用临时 MySQL、PostgreSQL 和 Redis 服务验证多 worker 发布行为，PR 使用 Python 3.12，完整运行覆盖 Python 3.10–3.13。工作流配置不代表已经执行成功；发布前应核对对应提交的实际 CI 结果，并完成目标平台的部署验收。
+[`ci-integration.yml`](../../.github/workflows/ci-integration.yml) 使用临时 MySQL、PostgreSQL 和 Redis 服务验证多 worker 发布行为，PR 使用 Python 3.12，完整运行覆盖 Python 3.10–3.14。工作流配置不代表已经执行成功；发布前应核对对应提交的实际 CI 结果，并完成目标平台的部署验收。
 
 `scripts/plugin_release_integration.py` 还检查双 worker 首次发布、升级和代码回滚后的固定目标收敛，无 worker 时单次断言不收敛，旧目标代际被拒绝、单 worker 故障立即失败，以及报告过期、缺员和遗留陈旧记录下的等待结果。足够的新 worker 全部就绪后，遗留陈旧记录不应造成永久等待；失败结果保留退出码和固定原因供流水线判断。脚本还针对两种数据库启动独立的完整 CLI 进程，验证标准输出可整体解析为一个 JSON 对象，并核对未就绪时退出 `50`、就绪后退出 `0`。
 
 该工作流还实际构建 `task_demo` 的 bundle，并通过 `scripts/plugin_task_integration.py` 验证 Python 受控目录打包、签名、导入、维护准备、目标选择、旧结构数据保留以及当前业务 CRUD/读写分权。旧版本是仅承载 001 迁移的测试夹具；当前版本从真实签名制品加载。业务 HTTP 验收使用已认证上下文和 ASGI 适配器，不代替浏览器登录验收。运行真实发布集成脚本前须先按任务示例 README 构建 `web/dist`；本地 SQLite 交付回归使用最小 HTML 夹具，单独验证维护链路。
 
-[`ci-frontend.yml`](../../.github/workflows/ci-frontend.yml) 在 Node.js 22 上按框架和 Web/Mobile 工程执行 `test:unit`、三时区 `test:contract` 及各目标构建；Web 单元入口包含插件、认证和任务测试，覆盖 `vue2`、`vue3`。当前两个 Web 工程不提交 npm 锁文件，因此使用 `npm install --package-lock=false`，依赖解析仍遵循各自 `package.json` 的版本范围。
+[`ci-frontend.yml`](../../.github/workflows/ci-frontend.yml) 在 Node.js 22 和 24 上按框架和 Web/Mobile 工程执行 `test:unit`、三时区 `test:contract` 及各目标构建；Web 单元入口包含插件、认证和任务测试，覆盖 `vue2`、`vue3`、`react`。六个工程统一使用 pnpm 11.28.6，各自提交 `pnpm-lock.yaml`，CI 使用 `pnpm install --frozen-lockfile` 固定直接和传递依赖。插件依赖安装器使用 `pnpm add --save-exact`，新增或升级依赖后应检查并提交 `package.json` 与锁文件的变更。
 
 `ci-integration.yml` 的 network 任务在 Linux、Python 3.12、Node.js 22 与 Chromium 上分别执行 Vue2/Vue3 真实网络 smoke。链路为宿主 `PluginFrame` → iframe SDK → 临时 HTTPS 代理 → Uvicorn → 生产插件会话与门禁，使用 `/gateway` 部署前缀。覆盖未登录拒绝、限定路径的 Secure/HttpOnly/SameSite Cookie、JSON POST、CSRF/Origin 拒绝、SSE 增量接收与取消后游标恢复、SSE/WebSocket 在权限及主会话撤销后的关闭，以及 runtime drain 后连接和 lifespan 回收。工作流保留截图、Playwright trace、代理日志与 JUnit 结果。
 
@@ -1809,10 +1810,10 @@ npm --prefix ../ruoyi-fastapi-frontend/vue3/web run test:plugin
 ```bash
 python -m pip install pytest pytest-asyncio aiosqlite playwright
 python -m playwright install chromium
-npm --prefix ../ruoyi-fastapi-frontend/vue3/web install --no-audit --no-fund --package-lock=false
+pnpm --dir ../ruoyi-fastapi-frontend/vue3/web install
 python -c "import os,pytest; os.environ['RUOYI_PLUGIN_NETWORK_SMOKE']='1'; raise SystemExit(pytest.main(['tests/plugins/integration/test_network_smoke.py','-q']))"
 ```
 
-常规 Backend 分类使用 marker 排除此项；单独运行但不设置 `RUOYI_PLUGIN_NETWORK_SMOKE=1` 时跳过，不要求安装浏览器。显式启用后，缺少浏览器或 Node 依赖会直接失败。设置 `RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2` 可验证 Vue2（先安装对应 Web 依赖并设置 `NODE_OPTIONS=--openssl-legacy-provider`），默认是 Vue3。可通过 `RUOYI_SMOKE_BROWSER_EXECUTABLE` 指定已有 Chromium 浏览器，通过 `RUOYI_SMOKE_OUTPUT` 指定诊断目录；默认输出在后端 `target/plugin-network-smoke/<framework>/`。测试仅绑定 loopback 随机端口，临时证书不加入系统信任库，结束时回收浏览器和服务。
+常规 Backend 分类使用 marker 排除此项；单独运行但不设置 `RUOYI_PLUGIN_NETWORK_SMOKE=1` 时跳过，不要求安装浏览器。显式启用后，缺少浏览器或 Node 依赖会直接失败。设置 `RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2` 可验证 Vue2（先安装对应 Web 依赖），默认是 Vue3。可通过 `RUOYI_SMOKE_BROWSER_EXECUTABLE` 指定已有 Chromium 浏览器，通过 `RUOYI_SMOKE_OUTPUT` 指定诊断目录；默认输出在后端 `target/plugin-network-smoke/<framework>/`。测试仅绑定 loopback 随机端口，临时证书不加入系统信任库，结束时回收浏览器和服务。
 
 该 smoke 的账号查询、数据库会话、插件启用状态和 Redis 使用隔离夹具，传输加密为 off；它验证真实网络上的生产会话协议，不覆盖真实账号登录、Redis 故障、required 加密、生产证书信任或进程信号触发的停机。runtime drain 之后才让 Uvicorn 正常退出，SIGTERM、完整宿主 lifespan 及目标部署代理仍按 17.2 节另行验收。

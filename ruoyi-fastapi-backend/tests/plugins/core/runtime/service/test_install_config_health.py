@@ -707,11 +707,12 @@ dependencies:
     assert result['dependencyInstall']['dependencyOk'] is False
     assert result['dependencyInstall']['plan'][0]['command'][1:4] == ['-m', 'pip', 'install']
     assert result['dependencyInstall']['plan'][0]['command'][-1] == 'missing-python'
-    assert result['dependencyInstall']['plan'][1]['command'] == ['npm', 'install', 'missing-npm@>=1.2.3']
+    assert result['dependencyInstall']['plan'][1]['command'] == ['pnpm', 'add', '--save-exact', 'missing-npm@>=1.2.3']
     assert result['dependencyInstall']['plan'][2]['command'] == [
-        'npm',
-        'install',
+        'pnpm',
+        'add',
         '--save-dev',
+        '--save-exact',
         'missing-dev-npm@4.5.6',
     ]
     assert gateway.commands == []

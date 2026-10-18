@@ -53,16 +53,16 @@ plugins/ai/
 
 涉及的主要依赖：
 
-- `markstream-vue`
+- `markstream-vue@2.0.19`
 - `stream-diffs`
-- `stream-markdown`
-- `stream-monaco`
 - `shiki`
 - `mermaid`
 - `katex`
 - `@antv/infographic`
 - `@terrastruct/d2`
 - `vite-plugin-monaco-editor-esm`
+
+Markstream 2.x 统一使用 `stream-diffs` 渲染增强代码块，正文和思考过程均通过 `:final="!loading"` 同步流式结束状态。代码块预加载使用 `preloadCodeBlockRuntime()`，不再配置旧的 `code-renderer="shiki"` 或调用 `getUseMonaco()`。Monaco 仍用于宿主 JSON 编辑器，与 AI 消息渲染独立。升级说明见 [Markstream 2.0 迁移指南](https://markstream.simonhe.me/guide/migration-2-0)。
 
 ## 开发约定
 
@@ -79,8 +79,8 @@ plugins/ai/
 ```bash
 # 从仓库根目录进入本工程
 cd ruoyi-fastapi-frontend/vue3/web
-npm run test:plugin
-npm run build:prod
+pnpm run test:plugin
+pnpm run build:prod
 ```
 
 若只修改文档，不需要执行前端构建。

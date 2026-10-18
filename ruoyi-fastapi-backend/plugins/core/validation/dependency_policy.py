@@ -1057,7 +1057,9 @@ class DependencyInstallPolicyEvaluator:
             command.append(f'{lock_entry.name}=={lock_entry.resolved_version}')
             return replace(item, command=command, requirement=f'{lock_entry.name}=={lock_entry.resolved_version}')
 
-        command = ['npm', 'install']
+        command = item.command[:2]
+        if command[0] == 'pnpm':
+            command.append('--save-exact')
         if item.kind == 'npmDev':
             command.append('--save-dev')
         if self.config.npm_registry:
@@ -1092,7 +1094,9 @@ class DependencyInstallPolicyEvaluator:
             ]
             return replace(item, command=command, requirement=f'{lock_entry.name}=={lock_entry.resolved_version}')
 
-        command = ['npm', 'install']
+        command = item.command[:2]
+        if command[0] == 'pnpm':
+            command.append('--save-exact')
         if item.kind == 'npmDev':
             command.append('--save-dev')
         command.extend([str(artifact_path), '--offline'])

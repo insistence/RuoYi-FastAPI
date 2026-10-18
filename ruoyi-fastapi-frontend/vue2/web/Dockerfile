@@ -1,20 +1,12 @@
 # 构建阶段
-FROM node:18-slim AS builder
+FROM node:22-slim AS builder
 ENV TZ=UTC
-ENV NODE_OPTIONS=--openssl-legacy-provider
 WORKDIR /app
-
-# 复制源代码
+RUN npm install --global pnpm@11.28.6
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-
-# 设置npm镜像源
-RUN npm config set registry https://registry.npmmirror.com
-
-# 仓库不提交 npm 锁文件，Vue CLI 4 使用旧版 webpack 依赖。
-RUN npm install --legacy-peer-deps --no-package-lock
-
-# 执行docker构建命令
-RUN npm run build:docker
+RUN pnpm run build:docker
 
 # 运行阶段
 FROM nginx:latest
