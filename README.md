@@ -2,7 +2,7 @@
     <img alt="logo" src="./ruoyi-fastapi-frontend/vue3/web/src/assets/logo/logo.png">
 </h1>
 <h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">RuoYi-FastAPI</h1>
-<h4 align="center">基于 FastAPI 的前后端分离快速开发框架</h4>
+<h4 align="center">基于 Vue/React + FastAPI 的前后端分离快速开发框架</h4>
 <p align="center">
     <a href="https://gitee.com/insistence2022/RuoYi-FastAPI/stargazers">
         <img alt="Gitee" src="https://gitee.com/insistence2022/RuoYi-FastAPI/badge/star.svg?theme=dark">
@@ -14,7 +14,7 @@
         <img alt="CI" src="https://github.com/insistence/RuoYi-FastAPI/actions/workflows/ci.yml/badge.svg?branch=master">
     </a>
     <a href="https://gitee.com/insistence2022/RuoYi-FastAPI">
-        <img alt="project version" src="https://img.shields.io/badge/version-1.10.0-brightgreen.svg">
+        <img alt="project version" src="https://img.shields.io/badge/version-2.0.0-brightgreen.svg">
     </a>
     <a href="https://github.com/astral-sh/ruff">
         <img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json">
@@ -36,11 +36,9 @@ RuoYi-FastAPI是一套全部开源的快速开发平台，毫无保留给个人�
 * 移动端提供基于 uni-app 的 Vue2、Vue3 和 基于 Taro 的 React 三套工程，内置 Tailwind CSS，Vue2、Vue3 版本基于<u>[RuoYi-App](https://github.com/yangzongzhuan/RuoYi-App)</u>项目修改。
 * 后端采用FastAPI、sqlalchemy、MySQL（PostgreSQL）、Redis、OAuth2 & Jwt。
 * 权限认证使用OAuth2 & Jwt，支持多终端认证系统。
+* 内置 OAuth 2.0 / OpenID Connect（OIDC）统一认证中心，为业务应用提供单点登录（SSO）、授权和单点退出能力。
 * 支持加载动态权限菜单，多方式轻松权限控制。
-* 纯Python版本：
-  * Gitte仓库地址：<https://gitee.com/insistence2022/dash-fastapi-admin>
-  * GitHub仓库地址：<https://github.com/insistence/Dash-FastAPI-Admin>
-* 特别鸣谢：<u>[RuoYi-Vue3](https://github.com/yangzongzhuan/RuoYi-Vue3)</u>、<u>[RuoYi-App](https://github.com/yangzongzhuan/RuoYi-App)</u>
+* 特别鸣谢：<u>[RuoYi-Vue](https://github.com/yangzongzhuan/RuoYi-Vue)</u>、<u>[RuoYi-Vue3](https://github.com/yangzongzhuan/RuoYi-Vue3)</u>、<u>[RuoYi-App](https://github.com/yangzongzhuan/RuoYi-App)</u>
 
 ## 内置功能
 
@@ -65,6 +63,7 @@ RuoYi-FastAPI是一套全部开源的快速开发平台，毫无保留给个人�
 19. AI管理：提供AI模型管理和AI对话功能。
 20. 文件管理：统一管理公开文件和受保护附件，支持访问控制、业务引用保护、操作审计、回收站、保留策略及存储对账。
 21. 插件系统：支持插件发现、安装、启停、升级、卸载与清理，提供依赖与配置管理、迁移与种子、定时任务、菜单权限、批量预演、健康诊断、操作审计及前后端插件脚手架。
+22. 统一认证中心：基于 OAuth 2.0 / OIDC，支持授权码 + PKCE S256、刷新令牌、客户端凭据、SSO 和单点退出，提供客户端、资源、Scope、授权记录、访问策略、会话、签名密钥及认证审计管理。
 
 ## 演示图
 
@@ -190,7 +189,7 @@ RuoYi-FastAPI是一套全部开源的快速开发平台，毫无保留给个人�
 
 * *账号：admin*
 * *密码：admin123*
-* 演示地址：<a href="https://vfadmin.insistence.tech">vfadmin管理系统<a>
+* 演示地址：<a href="https://vfadmin.insistence.tech">RuoYi-FastAPI<a>
 
 ## 项目开发及发布相关
 
@@ -217,6 +216,12 @@ RuoYi-FastAPI/
 ### 传输层加解密配置说明
 
 后端密钥配置与轮换说明：[ruoyi-fastapi-backend/docs/transport_crypto_config.md](./ruoyi-fastapi-backend/docs/transport_crypto_config.md)
+
+### 统一认证中心接入说明
+
+统一认证中心支持 Web 服务端应用、SPA 和服务间调用接入，提供 Discovery、JWKS、UserInfo、令牌撤销与内省接口，支持应用发起退出和 Back-channel Logout。
+
+功能启用、签名密钥初始化、客户端注册及接入示例详见：[统一认证中心开发者使用手册](./ruoyi-fastapi-backend/docs/unified_authentication_developer_guide.md)。
 
 ### 开发
 
