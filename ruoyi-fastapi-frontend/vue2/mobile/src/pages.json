@@ -132,7 +132,7 @@
   },
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "RuoYi",
+    "navigationBarTitleText": "RuoYi-FastAPI移动端",
     "navigationBarBackgroundColor": "#FFFFFF"
   }
 }

@@ -1,8 +1,8 @@
 {
   "name": "RuoYi-FastAPI移动端",
   "appid": "__UNI__25A9D80",
-  "description": "",
-  "versionName": "1.10.0",
+  "description": "RuoYi-FastAPI Vue2 移动端",
+  "versionName": "2.0.0",
   "versionCode": "100",
   "transformPx": false,
   "app-plus": {
@@ -59,7 +59,7 @@
       "port": 9090,
       "https": false
     },
-    "title": "RuoYi-FastAPI-APP",
+    "title": "RuoYi-FastAPI移动端",
     "router": {
       "mode": "hash",
       "base": "./"

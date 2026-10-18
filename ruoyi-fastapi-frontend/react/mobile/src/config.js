@@ -2,8 +2,8 @@ import logo from '@/assets/logo.png'
 export default {
   baseUrl: process.env.TARO_APP_BASE_API,
   appInfo: {
-    name: 'RuoYi-FastAPI-APP',
-    version: '1.10.0',
+    name: 'RuoYi-FastAPI移动端',
+    version: '2.0.0',
     logo,
     site_url: 'https://vfadmin.insistence.tech',
     agreements: [

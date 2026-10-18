@@ -4,9 +4,9 @@ export default {
   // 应用信息
   appInfo: {
     // 应用名称
-    name: 'RuoYi-FastAPI-APP',
+    name: 'RuoYi-FastAPI移动端',
     // 应用版本
-    version: '1.10.0',
+    version: '2.0.0',
     // 应用logo
     logo: '/static/logo.png',
     // 官方网站

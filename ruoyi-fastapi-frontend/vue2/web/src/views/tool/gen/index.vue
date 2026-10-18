@@ -418,7 +418,7 @@ export default {
           this.$modal.msgSuccess('成功生成到自定义路径：' + row.genPath)
         })
       } else {
-        const zipName = Array.isArray(tableNames) ? 'vfadmin.zip' : tableNames + '.zip'
+        const zipName = Array.isArray(tableNames) ? 'ruoyi-fastapi.zip' : tableNames + '.zip'
         const tables = encodeURIComponent(
           Array.isArray(tableNames) ? tableNames.join(',') : tableNames
         )

@@ -1,6 +1,7 @@
 {
-  "name": "ruoyi-fastapi-app",
-  "version": "1.10.0",
+  "name": "ruoyi-fastapi-vue3-mobile",
+  "version": "2.0.0",
+  "description": "RuoYi-FastAPI Vue3 移动端",
   "type": "module",
   "packageManager": "pnpm@11.28.6",
   "scripts": {

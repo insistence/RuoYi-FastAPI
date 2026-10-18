@@ -1,7 +1,7 @@
 {
-  "name": "vfadmin",
-  "version": "1.10.0",
-  "description": "vfadmin管理系统",
+  "name": "ruoyi-fastapi-vue3-web",
+  "version": "2.0.0",
+  "description": "RuoYi-FastAPI Vue3 Web 管理端",
   "author": "insistence",
   "license": "MIT",
   "type": "module",

@@ -414,7 +414,7 @@ function handleGenTable(row) {
       proxy.$modal.msgSuccess('成功生成到自定义路径：' + row.genPath)
     })
   } else {
-    const zipName = Array.isArray(tbNames) ? 'vfadmin.zip' : tbNames + '.zip'
+    const zipName = Array.isArray(tbNames) ? 'ruoyi-fastapi.zip' : tbNames + '.zip'
     const tables = encodeURIComponent(Array.isArray(tbNames) ? tbNames.join(',') : tbNames)
     proxy.$download.zip(
       '/tool/gen/batchGenCode?tables=' +

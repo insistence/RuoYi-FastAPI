@@ -2,7 +2,7 @@ export default defineAppConfig({
   window: {
     navigationStyle: 'default',
     navigationBarTextStyle: 'black',
-    navigationBarTitleText: 'RuoYi',
+    navigationBarTitleText: 'RuoYi-FastAPI移动端',
     navigationBarBackgroundColor: '#FFFFFF',
   },
   pages: [

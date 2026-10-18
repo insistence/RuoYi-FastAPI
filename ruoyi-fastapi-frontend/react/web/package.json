@@ -1,6 +1,7 @@
 {
   "name": "ruoyi-fastapi-react-web",
-  "version": "1.10.0",
+  "version": "2.0.0",
+  "description": "RuoYi-FastAPI React Web 管理端",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.28.6",

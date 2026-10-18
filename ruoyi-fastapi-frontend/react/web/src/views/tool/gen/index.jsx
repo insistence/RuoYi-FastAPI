@@ -95,7 +95,7 @@ export default function Gen() {
       } else {
         await download.zip(
           `/tool/gen/batchGenCode?tables=${encodeURIComponent(items.map((r) => r.tableName).join(','))}&dataSourceName=${encodeURIComponent(sourceNames[0])}`,
-          row ? `${row.tableName}.zip` : 'vfadmin.zip'
+          row ? `${row.tableName}.zip` : 'ruoyi-fastapi.zip'
         )
       }
     } catch {}
