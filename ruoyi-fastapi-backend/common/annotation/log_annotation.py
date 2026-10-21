@@ -29,6 +29,7 @@ from module_admin.entity.vo.log_vo import LogininforModel, OperLogModel
 from module_admin.service.log_service import LogQueueService
 from utils.client_ip_util import ClientIPUtil
 from utils.dependency_util import DependencyUtil
+from utils.exception_util import ExceptionUtil
 from utils.log_util import LogSanitizer, logger
 from utils.response_util import ResponseUtil
 from utils.time_util import TimezoneUtil
@@ -205,8 +206,7 @@ class Log:
             except FileRangeNotSatisfiableException:
                 raise
             except Exception as e:
-                logger.exception(e)
-                result = ResponseUtil.error(msg=str(e))
+                result = ExceptionUtil.handle_unexpected_exception(e)
             # 获取请求耗时
             cost_time = float(time.perf_counter() - start_time) * 1000
             # 判断请求是否来自api文档

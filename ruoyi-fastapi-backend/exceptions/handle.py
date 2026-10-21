@@ -17,6 +17,7 @@ from exceptions.exception import (
     ServiceException,
     ServiceWarning,
 )
+from utils.exception_util import ExceptionUtil
 from utils.log_util import logger
 from utils.oidc_util import OidcUtil
 from utils.response_util import JSONResponse, ResponseUtil, jsonable_encoder
@@ -124,8 +125,7 @@ def handle_exception(app: FastAPI) -> None:
     # 处理其他异常
     @app.exception_handler(Exception)
     async def exception_handler(request: Request, exc: Exception) -> Response:
-        logger.exception(exc)
-        return ResponseUtil.error(msg=str(exc))
+        return ExceptionUtil.handle_unexpected_exception(exc)
 
 
 def _build_oauth_redirect(exc: OAuthProtocolException) -> Response:
