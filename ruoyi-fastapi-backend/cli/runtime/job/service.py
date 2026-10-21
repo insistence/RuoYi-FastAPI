@@ -211,8 +211,10 @@ class JobRuntimeService:
             'operation': operation,
             'operationLabel': operation_metadata['operationLabel'],
             'targetStatus': status,
-            'message': operation_metadata['successMessage'] if result.is_success else '定时任务操作执行失败',
+            'message': result.message
+            or (operation_metadata['successMessage'] if result.is_success else '定时任务操作执行失败'),
             'serviceMessage': result.message,
+            'result': result.result,
         }
 
     async def run_job_once(self, job_id: int) -> dict[str, Any]:
