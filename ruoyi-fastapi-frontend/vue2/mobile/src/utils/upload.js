@@ -1,8 +1,8 @@
-import store from '@/store'
+import { handleSessionExpired } from '@/utils/session'
 import config from '@/config'
 import { getToken } from '@/utils/auth'
 import { getResponseStatus } from '@/utils/response'
-import { toast, showConfirm, tansParams } from '@/utils/common'
+import { toast, tansParams } from '@/utils/common'
 
 let timeout = 10000
 const baseUrl = config.baseUrl
@@ -11,8 +11,9 @@ const upload = (config) => {
   // 是否需要设置 token
   const isToken = (config.headers || {}).isToken === false
   config.header = config.header || {}
-  if (getToken() && !isToken) {
-    config.header['Authorization'] = 'Bearer ' + getToken()
+  const token = getToken()
+  if (token && !isToken) {
+    config.header['Authorization'] = 'Bearer ' + token
   }
   // get请求映射params参数
   if (config.params) {
@@ -38,13 +39,7 @@ const upload = (config) => {
           if (code === 200) {
             resolve(result)
           } else if (code == 401) {
-            showConfirm('登录状态已过期，您可以继续留在该页面，或者重新登录?').then((res) => {
-              if (res.confirm) {
-                store.dispatch('LogOut').then((res) => {
-                  uni.reLaunch({ url: '/pages/login' })
-                })
-              }
-            })
+            handleSessionExpired(isToken ? null : token)
             reject('无效的会话，或者会话已过期，请重新登录。')
           } else if (code === 500) {
             toast(msg)

@@ -90,6 +90,41 @@ export function testMobileBehavior(root, framework) {
     }
   })
 
+  test('concurrent request and upload failures share one session recovery', async () => {
+    const app = await createMobileHarness(root, framework, { token: 'expired-token' })
+    app.responses.push(...Array.from({ length: 3 }, () => ({ statusCode: 401, data: {} })))
+    app.uploadResponses.push(...Array.from({ length: 3 }, () => ({ statusCode: 401, data: '{}' })))
+    await Promise.all(
+      Array.from({ length: 3 }, () => [
+        assert.rejects(app.request({ url: '/private' })),
+        assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' })),
+      ]).flat()
+    )
+    await settle()
+    assert.equal(app.calls.modals.length, 1)
+    assert.deepEqual(app.calls.logout, ['expired-token'])
+    assert.deepEqual(app.calls.navigations, [{ url: '/pages/login' }])
+  })
+
+  test('cancelled or failed dialogs release session recovery for later requests', async () => {
+    for (const first of [{ confirm: false }, { failure: new Error('modal unavailable') }]) {
+      const app = await createMobileHarness(root, framework, {
+        token: 'expired-token',
+        confirmResponses: [first, { confirm: true }],
+      })
+      app.responses.push({ statusCode: 401, data: {} })
+      await assert.rejects(app.request({ url: '/private' }))
+      await settle()
+      assert.equal(app.auth.getToken(), 'expired-token')
+      app.uploadResponses.push({ statusCode: 401, data: '{}' })
+      await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }))
+      await settle()
+      assert.equal(app.calls.modals.length, 2)
+      assert.deepEqual(app.calls.logout, ['expired-token'])
+      assert.deepEqual(app.calls.navigations, [{ url: '/pages/login' }])
+    }
+  })
+
   test('requests use the current token and timezone while public requests omit credentials', async () => {
     const app = await createMobileHarness(root, framework, {
       token: 'active-token',

@@ -13,7 +13,14 @@ const copy = (value) => (value === undefined ? undefined : JSON.parse(JSON.strin
 export async function createMobileHarness(
   root,
   framework,
-  { token = '', savedTimezone, confirm = true, decryptResponse, logoutError } = {}
+  {
+    token = '',
+    savedTimezone,
+    confirm = true,
+    decryptResponse,
+    logoutError,
+    confirmResponses = [],
+  } = {}
 ) {
   const project = fileURLToPath(root)
   const nativeRequire = createRequire(new URL('package.json', root))
@@ -41,7 +48,10 @@ export async function createMobileHarness(
     showToast: (options) => calls.toasts.push(copy(options)),
     showModal(options) {
       calls.modals.push(options.content)
-      queueMicrotask(() => options.success({ confirm, cancel: !confirm }))
+      const result = confirmResponses.shift() || { confirm, cancel: !confirm }
+      queueMicrotask(() =>
+        result.failure ? options.fail(result.failure) : options.success(result)
+      )
     },
     uploadFile(options) {
       calls.uploads.push(copy(options))
