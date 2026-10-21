@@ -59,10 +59,15 @@ const useUserStore = create((set, get) => ({
     })
     return result
   },
-  // 服务端退出成功后清理本地登录状态。
+  // 退出系统：远端撤销失败也必须清理本地会话，保证可以重新登录。
   async logOut() {
-    await logout()
-    get().clear()
+    try {
+      await logout()
+    } catch {
+      // 远端异常由请求层提示，本地退出不依赖远端撤销结果。
+    } finally {
+      get().clear()
+    }
   },
   // 清除令牌和授权状态，将显示时区恢复为跟随设备并解除锁屏。
   clear() {

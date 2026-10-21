@@ -101,22 +101,19 @@ const useUserStore = defineStore('user', {
           })
       })
     },
-    // 退出系统
-    logOut() {
-      return new Promise((resolve, reject) => {
-        logout(this.token)
-          .then(() => {
-            this.token = ''
-            this.applyTimezone('auto')
-            this.roles = []
-            this.permissions = []
-            removeToken()
-            resolve()
-          })
-          .catch((error) => {
-            reject(error)
-          })
-      })
+    // 退出系统：远端撤销失败也必须清理本地会话，保证可以重新登录。
+    async logOut() {
+      try {
+        await logout(this.token)
+      } catch {
+        // 远端异常由请求层提示，本地退出不依赖远端撤销结果。
+      } finally {
+        this.token = ''
+        this.applyTimezone('auto')
+        this.roles = []
+        this.permissions = []
+        removeToken()
+      }
     },
   },
 })

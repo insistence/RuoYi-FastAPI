@@ -14,7 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm test:unit && pnpm test:contract",
-    "test:unit": "pnpm test:auth-center && pnpm test:plugin && pnpm test:job && pnpm test:security",
+    "test:unit": "pnpm test:auth-center && pnpm test:plugin && pnpm test:job && pnpm test:security && pnpm test:session",
     "test:security": "node --test tests/security/*.test.cjs",
     "test:contract": "pnpm test:time",
     "test:job": "node --test tests/job/*.test.js",
@@ -22,7 +22,8 @@
     "test:auth-center": "node --test tests/auth-center/*.test.js && pnpm test:components tests/react/useInteraction.test.jsx",
     "test:time": "node --test tests/time/time.test.js",
     "test:components": "vitest run --config vitest.config.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:session": "node --experimental-vm-modules --test tests/security/logout.test.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "6.3.4",

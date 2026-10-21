@@ -133,22 +133,19 @@ const user = {
       })
     },
 
-    // 退出系统
-    LogOut({ commit, state }) {
-      return new Promise((resolve, reject) => {
-        logout(state.token)
-          .then(() => {
-            commit('SET_TOKEN', '')
-            commit('SET_TIMEZONE', 'auto')
-            commit('SET_ROLES', [])
-            commit('SET_PERMISSIONS', [])
-            removeToken()
-            resolve()
-          })
-          .catch((error) => {
-            reject(error)
-          })
-      })
+    // 退出系统：远端撤销失败也必须清理本地会话，保证可以重新登录。
+    async LogOut({ commit, state }) {
+      try {
+        await logout(state.token)
+      } catch {
+        // 远端异常由请求层提示，本地退出不依赖远端撤销结果。
+      } finally {
+        commit('SET_TOKEN', '')
+        commit('SET_TIMEZONE', 'auto')
+        commit('SET_ROLES', [])
+        commit('SET_PERMISSIONS', [])
+        removeToken()
+      }
     },
 
     // 前端 登出

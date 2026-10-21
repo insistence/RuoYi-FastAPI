@@ -32,7 +32,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm test:unit && pnpm test:contract",
-    "test:unit": "node --test tests/avatar-crop.test.mjs tests/native-styles.test.mjs tests/route-params.test.mjs tests/transport-forge.test.mjs tests/timezone-data.test.mjs",
+    "test:unit": "node --test tests/avatar-crop.test.mjs tests/native-styles.test.mjs tests/route-params.test.mjs tests/transport-forge.test.mjs tests/timezone-data.test.mjs && pnpm test:session",
     "test:contract": "pnpm test:time",
     "test:time": "node --test tests/time.test.mjs tests/time-polyfill.test.mjs",
     "dev:rn": "taro build --type rn --watch",
@@ -41,7 +41,8 @@
     "build:rn:ios": "node scripts/build-native.cjs ios",
     "build:app": "pnpm build:rn:android",
     "generate:icons": "node scripts/generate-icons.cjs",
-    "check:platforms": "node scripts/check-platforms.cjs"
+    "check:platforms": "node scripts/check-platforms.cjs",
+    "test:session": "node --experimental-vm-modules --test tests/logout.test.mjs"
   },
   "dependencies": {
     "@babel/runtime": "7.29.10",

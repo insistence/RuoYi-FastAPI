@@ -16,9 +16,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:auth-center": "node --test tests/auth-center/*.test.cjs",
-    "test:unit": "pnpm run test:auth-center && pnpm run test:plugin && pnpm run test:job",
+    "test:unit": "pnpm run test:auth-center && pnpm run test:plugin && pnpm run test:job && pnpm run test:session",
     "test:contract": "pnpm run test:time",
-    "test": "pnpm run test:unit && pnpm run test:contract"
+    "test": "pnpm run test:unit && pnpm run test:contract",
+    "test:session": "node --experimental-vm-modules --test tests/security/logout.test.mjs"
   },
   "keywords": [
     "vue",
