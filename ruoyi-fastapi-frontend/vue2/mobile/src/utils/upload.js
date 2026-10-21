@@ -1,7 +1,7 @@
 import store from '@/store'
 import config from '@/config'
 import { getToken } from '@/utils/auth'
-import errorCode from '@/utils/errorCode'
+import { getResponseStatus } from '@/utils/response'
 import { toast, showConfirm, tansParams } from '@/utils/common'
 
 let timeout = 10000
@@ -30,8 +30,7 @@ const upload = (config) => {
       formData: config.formData,
       success: (res) => {
         let result = JSON.parse(res.data)
-        const code = result.code || 200
-        const msg = errorCode[code] || result.msg || errorCode['default']
+        const { code, msg } = getResponseStatus(res, result)
         if (code === 200) {
           resolve(result)
         } else if (code == 401) {

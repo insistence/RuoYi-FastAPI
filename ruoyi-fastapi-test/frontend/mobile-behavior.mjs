@@ -3,8 +3,45 @@ import test from 'node:test'
 import { createMobileHarness, settle, snapshot } from './mobile-harness.mjs'
 
 export function testMobileBehavior(root, framework) {
+  test('HTTP failures reject requests and uploads even without a business error code', async () => {
+    const app = await createMobileHarness(root, framework, {
+      token: 'active-token',
+      confirm: false,
+    })
+    for (const statusCode of [401, 422, 500]) {
+      for (const data of [{ detail: [{ msg: '字段无效' }] }, { code: 200 }]) {
+        app.responses.push({ statusCode, data })
+        await assert.rejects(
+          app.request({ url: '/failure' }),
+          (error) => error.response.statusCode === statusCode
+        )
+        app.uploadResponses.push({ statusCode, data: JSON.stringify(data) })
+        await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }))
+      }
+    }
+    app.responses.push({
+      statusCode: 422,
+      data: { detail: [{ msg: '字段无效' }] },
+    })
+    await assert.rejects(app.request({ url: '/validation' }), /字段无效/)
+    assert.equal((await app.upload({ url: '/upload', filePath: '/tmp/example' })).code, 200)
+  })
+
+  test('decrypted HTTP failures retain their status and reject', async () => {
+    const app = await createMobileHarness(root, framework, {
+      decryptResponse: async (response) => ({
+        ...response,
+        data: { detail: '解密后的错误' },
+      }),
+    })
+    app.responses.push({ statusCode: 500, data: { encrypted: true } })
+    await assert.rejects(app.request({ url: '/encrypted' }), /解密后的错误/)
+  })
+
   test('requests use the current token and timezone while public requests omit credentials', async () => {
-    const app = await createMobileHarness(root, framework, { token: 'active-token' })
+    const app = await createMobileHarness(root, framework, {
+      token: 'active-token',
+    })
     app.time.setUserTimezone('America/New_York')
     assert.equal(
       (await app.request({ url: '/private', params: { name: 'a b', page: 2 } })).code,
@@ -27,9 +64,14 @@ export function testMobileBehavior(root, framework) {
   })
 
   test('confirmed expired sessions reject the request, clear account state and relaunch login', async () => {
-    const app = await createMobileHarness(root, framework, { token: 'expired-token' })
+    const app = await createMobileHarness(root, framework, {
+      token: 'expired-token',
+    })
     await app.getInfo()
-    app.responses.push({ statusCode: 200, data: { code: 401, msg: 'expired' } })
+    app.responses.push({
+      statusCode: 200,
+      data: { code: 401, msg: 'expired' },
+    })
     await assert.rejects(
       app.request({ url: '/private' }),
       (error) => error.response.data.code === 401
@@ -50,7 +92,10 @@ export function testMobileBehavior(root, framework) {
       token: 'expired-token',
       confirm: false,
     })
-    app.responses.push({ statusCode: 200, data: { code: 401, msg: 'expired' } })
+    app.responses.push({
+      statusCode: 200,
+      data: { code: 401, msg: 'expired' },
+    })
     await assert.rejects(app.request({ url: '/private' }))
     await settle()
     assert.equal(app.auth.getToken(), 'expired-token')
@@ -107,14 +152,19 @@ export function testMobileBehavior(root, framework) {
   })
 
   test('cold start restores only signed-in timezones and discards invalid preferences', async () => {
-    const savedTimezone = { appTimezone: 'Asia/Shanghai', timeZone: 'America/New_York' }
+    const savedTimezone = {
+      appTimezone: 'Asia/Shanghai',
+      timeZone: 'America/New_York',
+    }
     const signedIn = await createMobileHarness(root, framework, {
       token: 'active-token',
       savedTimezone,
     })
     assert.equal(signedIn.time.getUserTimezone(), 'America/New_York')
     assert.equal(signedIn.time.formatBusinessTime('2026-01-01T00:00:00Z'), '2025-12-31 19:00:00')
-    const signedOut = await createMobileHarness(root, framework, { savedTimezone })
+    const signedOut = await createMobileHarness(root, framework, {
+      savedTimezone,
+    })
     assert.equal(signedOut.time.getUserTimezone(), 'auto')
     const invalid = await createMobileHarness(root, framework, {
       token: 'active-token',
@@ -125,8 +175,13 @@ export function testMobileBehavior(root, framework) {
   })
 
   test('non-authentication failures stay rejected without clearing the account', async () => {
-    const app = await createMobileHarness(root, framework, { token: 'active-token' })
-    app.responses.push({ statusCode: 429, data: { code: 429, msg: 'rate limited' } })
+    const app = await createMobileHarness(root, framework, {
+      token: 'active-token',
+    })
+    app.responses.push({
+      statusCode: 429,
+      data: { code: 429, msg: 'rate limited' },
+    })
     await assert.rejects(
       app.request({ url: '/private' }),
       (error) => error.response.statusCode === 429

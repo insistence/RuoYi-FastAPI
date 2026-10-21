@@ -13,15 +13,24 @@ const copy = (value) => (value === undefined ? undefined : JSON.parse(JSON.strin
 export async function createMobileHarness(
   root,
   framework,
-  { token = '', savedTimezone, confirm = true } = {}
+  { token = '', savedTimezone, confirm = true, decryptResponse } = {}
 ) {
   const project = fileURLToPath(root)
   const nativeRequire = createRequire(new URL('package.json', root))
   const values = new Map([['device-theme', 'dark']])
   if (token) values.set('App-Token', token)
   if (savedTimezone) values.set('storage_data', { timezone: copy(savedTimezone) })
-  const calls = { requests: [], modals: [], toasts: [], navigations: [], login: [], logout: [] }
+  const calls = {
+    requests: [],
+    uploads: [],
+    modals: [],
+    toasts: [],
+    navigations: [],
+    login: [],
+    logout: [],
+  }
   const responses = []
+  const uploadResponses = []
   const interceptors = new Map()
   const uni = {
     getStorageSync: (key) => copy(values.get(key)),
@@ -34,9 +43,22 @@ export async function createMobileHarness(
       calls.modals.push(options.content)
       queueMicrotask(() => options.success({ confirm, cancel: !confirm }))
     },
+    uploadFile(options) {
+      calls.uploads.push(copy(options))
+      const response = uploadResponses.shift() || {
+        statusCode: 200,
+        data: '{"code":200}',
+      }
+      queueMicrotask(() =>
+        response.failure ? options.fail(response.failure) : options.success(response)
+      )
+    },
     request(options) {
       calls.requests.push(copy(options))
-      const response = responses.shift() || { statusCode: 200, data: { code: 200, data: 'ok' } }
+      const response = responses.shift() || {
+        statusCode: 200,
+        data: { code: 200, data: 'ok' },
+      }
       queueMicrotask(() =>
         response.failure ? options.fail(response.failure) : options.success(response)
       )
@@ -64,14 +86,19 @@ export async function createMobileHarness(
       },
       getInfo: async () => ({
         appTimezone: 'Asia/Shanghai',
-        user: { userId: 7, userName: 'tester', avatar: '', timeZone: 'America/New_York' },
+        user: {
+          userId: 7,
+          userName: 'tester',
+          avatar: '',
+          timeZone: 'America/New_York',
+        },
         roles: ['operator'],
         permissions: ['system:user:query'],
       }),
     },
     '@/utils/transportCrypto': {
       encryptTransportRequest: async (config) => config,
-      decryptTransportResponse: async (response) => response,
+      decryptTransportResponse: decryptResponse || (async (response) => response),
       decryptTransportErrorResponse: async (error) => error,
       shouldRetryTransportWithFreshKey: () => false,
       invalidateTransportKeyMeta() {},
@@ -150,6 +177,7 @@ export async function createMobileHarness(
   const time = await load('@/utils/time')
   const auth = await load('@/utils/auth')
   const request = (await load('@/utils/request')).default
+  const upload = (await load('@/utils/upload')).default
   await load('@/permission')
   return {
     state,
@@ -159,6 +187,8 @@ export async function createMobileHarness(
     time,
     auth,
     request,
+    upload,
+    uploadResponses,
     values,
     responses,
     calls,
