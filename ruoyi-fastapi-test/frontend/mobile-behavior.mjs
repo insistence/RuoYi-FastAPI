@@ -60,6 +60,14 @@ export function testMobileBehavior(root, framework) {
     )
   })
 
+  test('expired upload sessions navigate to the registered login page', async () => {
+    const app = await createMobileHarness(root, framework, { token: 'expired-token' })
+    app.uploadResponses.push({ statusCode: 200, data: '{"code":401}' })
+    await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }))
+    await settle()
+    assert.deepEqual(app.calls.navigations, [{ url: '/pages/login' }])
+  })
+
   test('requests use the current token and timezone while public requests omit credentials', async () => {
     const app = await createMobileHarness(root, framework, {
       token: 'active-token',

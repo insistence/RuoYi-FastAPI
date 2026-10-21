@@ -43,7 +43,7 @@ export default function upload(config) {
                 useUserStore()
                   .logOut()
                   .then((res) => {
-                    uni.reLaunch({ url: '/pages/login/login' })
+                    uni.reLaunch({ url: '/pages/login' })
                   })
               }
             })
