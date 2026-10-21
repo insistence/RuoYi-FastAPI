@@ -1,20 +1,19 @@
+from collections.abc import Callable
+from http import HTTPStatus
 from types import SimpleNamespace
 
 import pytest
-from fastapi import Request
+from fastapi import APIRouter, Request
 from fastapi.routing import APIRoute
-from starlette.responses import Response
+from httpx import AsyncClient
 
 from common.context import RequestContext
 from module_admin.service.log_service import LogQueueService
 from module_identity.controller.oauth_client_controller import (
-    add_system_oauth_client,
-    delete_system_oauth_clients,
     get_system_oauth_client_list,
     oauth_client_controller,
-    rotate_system_oauth_client_secret,
 )
-from module_identity.entity.vo.oauth_client_vo import ClientSecretResponseModel, SecretRotationModel
+from module_identity.entity.vo.oauth_client_vo import ClientSecretResponseModel
 from module_identity.service.oauth_management_service import (
     OAuthClientManagementError,
     OAuthClientManagementService,
@@ -50,6 +49,16 @@ def _request_context(monkeypatch: pytest.MonkeyPatch) -> None:
 def _user() -> SimpleNamespace:
     """构造最小当前用户对象。"""
     return SimpleNamespace(user=SimpleNamespace(user_name='admin', dept=SimpleNamespace(dept_name='测试部门')))
+
+
+def _client_payload() -> dict[str, object]:
+    """构造通过请求模型校验的客户端创建参数。"""
+    return {
+        'clientName': '测试客户端',
+        'clientType': 'public',
+        'tokenEndpointAuthMethod': 'none',
+        'redirectUris': ['https://client.example/callback'],
+    }
 
 
 def _request() -> Request:
@@ -101,17 +110,22 @@ def test_client_router_paths_methods_permissions_and_pre_auth() -> None:
 
 
 @pytest.mark.asyncio
-async def test_client_create_commits_and_secret_is_only_in_rotation_response(monkeypatch: pytest.MonkeyPatch) -> None:
-    """成功写操作提交事务，轮换响应含明文而普通错误不包含敏感字段。"""
+async def test_client_create_commits_and_secret_is_only_in_rotation_response(
+    monkeypatch: pytest.MonkeyPatch,
+    oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
+) -> None:
+    """写操作由服务层管理事务，轮换响应含明文而普通错误不包含敏感字段。"""
     session = _FakeSession()
-    payload = SimpleNamespace()
 
     async def fake_create(*args: object, **kwargs: object) -> object:
         return SimpleNamespace(model_dump=lambda **_: {'clientId': 'cli_test'})
 
     monkeypatch.setattr(OAuthClientManagementService, 'create_client', fake_create)
-    response = await add_system_oauth_client(_request(), payload, session, _user())
-    assert isinstance(response, Response)
+    async with oauth_management_client(oauth_client_controller, session, _user()) as client:
+        response = await client.post('/system/oauth/client', json=_client_payload())
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['success'] is True
+    assert b'cs1.' not in response.content
     assert session.commits == 0 and session.rollbacks == 0
 
     secret = ClientSecretResponseModel(
@@ -126,24 +140,32 @@ async def test_client_create_commits_and_secret_is_only_in_rotation_response(mon
         return secret
 
     monkeypatch.setattr(OAuthClientManagementService, 'rotate_secret', fake_rotate)
-    rotation_response = await rotate_system_oauth_client_secret(
-        _request(), 'cli_test', session, _user(), SecretRotationModel()
-    )
-    assert b'cs1.one-time-secret' in rotation_response.body
+    async with oauth_management_client(oauth_client_controller, session, _user()) as client:
+        rotation_response = await client.post('/system/oauth/client/cli_test/secret', json={})
+    assert rotation_response.status_code == HTTPStatus.OK
+    assert rotation_response.json()['success'] is True
+    assert b'cs1.one-time-secret' in rotation_response.content
     assert session.commits == 0
 
     async def fake_fail(*args: object, **kwargs: object) -> object:
         raise OAuthClientManagementError('OAuth Client request rejected')
 
     monkeypatch.setattr(OAuthClientManagementService, 'create_client', fake_fail)
-    failed = await add_system_oauth_client(_request(), payload, session, _user())
-    assert b'secret_hash' not in failed.body
-    assert b'cs1.' not in failed.body
+    async with oauth_management_client(oauth_client_controller, session, _user()) as client:
+        failed = await client.post('/system/oauth/client', json=_client_payload())
+    assert failed.status_code == HTTPStatus.OK
+    assert failed.json()['success'] is False
+    assert failed.json()['msg'] == 'OAuth Client request rejected'
+    assert b'secret_hash' not in failed.content
+    assert b'cs1.' not in failed.content
     assert session.rollbacks == 0
 
 
 @pytest.mark.asyncio
-async def test_client_batch_failure_rolls_back_all_items(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_client_batch_failure_rolls_back_all_items(
+    monkeypatch: pytest.MonkeyPatch,
+    oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
+) -> None:
     """批量停用任一项失败时整体回滚，不提前提交。"""
     session = _FakeSession()
     calls: list[str] = []
@@ -156,8 +178,11 @@ async def test_client_batch_failure_rolls_back_all_items(monkeypatch: pytest.Mon
         return SimpleNamespace()
 
     monkeypatch.setattr(OAuthClientManagementService, '_soft_disable', fake_disable)
-    response = await delete_system_oauth_clients(_request(), 'cli_good,cli_bad', session, _user())
-    assert b'false' in response.body
+    async with oauth_management_client(oauth_client_controller, session, _user()) as client:
+        response = await client.delete('/system/oauth/client/cli_good,cli_bad')
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['success'] is False
+    assert response.json()['msg'] == 'client not found'
     assert calls == ['cli_good', 'cli_bad']
     assert session.commits == 0
     assert session.rollbacks == 1
@@ -179,6 +204,7 @@ async def test_cors_snapshot_refresh_failure_fails_closed(monkeypatch: pytest.Mo
 @pytest.mark.asyncio
 async def test_client_list_uses_real_total_and_actor_failure_is_mapped(
     monkeypatch: pytest.MonkeyPatch,
+    oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
 ) -> None:
     """列表返回服务层全量计数，actor 缺失时稳定返回业务失败。"""
     session = _FakeSession()
@@ -195,7 +221,10 @@ async def test_client_list_uses_real_total_and_actor_failure_is_mapped(
     assert b'"total":37' in response.body
     assert b'"rows":["row-1","row-2"]' in response.body
 
-    failed = await add_system_oauth_client(_request(), SimpleNamespace(), session, SimpleNamespace(user=None))
-    assert b'false' in failed.body
-    assert b'actor' not in failed.body
+    async with oauth_management_client(oauth_client_controller, session, SimpleNamespace(user=None)) as client:
+        failed = await client.post('/system/oauth/client', json=_client_payload())
+    assert failed.status_code == HTTPStatus.OK
+    assert failed.json()['success'] is False
+    assert failed.json()['msg'] == '当前操作者不可用'
+    assert b'actor' not in failed.content
     assert session.rollbacks == 0

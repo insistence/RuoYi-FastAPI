@@ -1,10 +1,11 @@
 import json
+from collections.abc import Callable
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.routing import APIRoute
 from httpx import ASGITransport, AsyncClient
 
@@ -92,7 +93,10 @@ def test_session_and_grant_routes_have_pre_auth_and_exact_permissions() -> None:
 
 
 @pytest.mark.asyncio
-async def test_batch_revoke_is_atomic_and_reason_does_not_leak(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_batch_revoke_is_atomic_and_reason_does_not_leak(
+    monkeypatch: pytest.MonkeyPatch,
+    oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
+) -> None:
     """批量撤销失败时回滚且不回显内部敏感字段。"""
     db = _Session()
 
@@ -114,13 +118,14 @@ async def test_batch_revoke_is_atomic_and_reason_does_not_leak(monkeypatch: pyte
     monkeypatch.setattr(SsoSessionService, 'revoke', revoke)
     token = RequestContext.set_current_user(_user())
     try:
-        response = await revoke_oauth_sessions.__wrapped__(
-            _request(), 'good,bad', SimpleNamespace(reason='管理员操作'), db, _user()
-        )
+        async with oauth_management_client(oauth_session_controller, db, _user()) as client:
+            response = await client.request('DELETE', '/system/oauth/session/good,bad', json={'reason': '管理员操作'})
     finally:
         RequestContext.reset_current_user(token)
-    assert b'false' in response.body
-    assert b'refresh_token_hash' not in response.body
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['success'] is False
+    assert b'refresh_token_hash' not in response.content
+    assert b'do-not-leak' not in response.content
     assert db.commits == 0 and db.rollbacks == 1
 
     async def grant_revoke(*args: object, **kwargs: object) -> bool:
