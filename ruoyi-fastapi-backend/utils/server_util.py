@@ -38,11 +38,11 @@ class APIDocsUtil:
     DEFAULT_SWAGGER_FAVICON_URL = 'https://fastapi.tiangolo.com/img/favicon.png'
 
     @classmethod
-    def proxy_openapi_url(cls) -> str:
+    def proxy_openapi_url(cls) -> str | None:
         """
         代理OpenAPI文档URL
         """
-        return cls._PROXY_OPENAPI_URL if not AppConfig.app_disable_swagger and not AppConfig.app_disable_redoc else None
+        return cls._PROXY_OPENAPI_URL if not (AppConfig.app_disable_swagger and AppConfig.app_disable_redoc) else None
 
     @classmethod
     def docs_url(cls) -> str:
