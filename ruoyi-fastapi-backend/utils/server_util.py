@@ -154,7 +154,8 @@ class APIDocsUtil:
             return await cls._custom_swagger_ui_redirect(app, swagger_favicon_url)
 
         # 注册路由
-        app.add_route(cls._OPENAPI_URL, custom_openapi, include_in_schema=False)
+        if not (AppConfig.app_disable_swagger and AppConfig.app_disable_redoc):
+            app.add_route(cls._OPENAPI_URL, custom_openapi, include_in_schema=False)
         cls._register_docs_routes(app, custom_swagger, custom_swagger_ui_redirect, custom_redoc)
 
     @classmethod
