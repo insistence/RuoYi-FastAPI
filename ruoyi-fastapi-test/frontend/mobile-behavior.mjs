@@ -38,6 +38,28 @@ export function testMobileBehavior(root, framework) {
     await assert.rejects(app.request({ url: '/encrypted' }), /解密后的错误/)
   })
 
+  test('upload parse failures and platform errors always settle the promise', async () => {
+    const app = await createMobileHarness(root, framework)
+    for (const data of ['<html>bad gateway</html>', '', 'null']) {
+      app.uploadResponses.push({ statusCode: 502, data })
+      await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }))
+    }
+    for (const failure of [
+      { errMsg: 'uploadFile:fail timeout' },
+      { errMsg: 'uploadFile:fail network' },
+      {},
+    ]) {
+      app.uploadResponses.push({ failure })
+      await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }), (error) =>
+        Boolean(error.message)
+      )
+    }
+    assert.equal(
+      app.calls.toasts.some((entry) => entry.title === '系统接口请求超时'),
+      true
+    )
+  })
+
   test('requests use the current token and timezone while public requests omit credentials', async () => {
     const app = await createMobileHarness(root, framework, {
       token: 'active-token',
