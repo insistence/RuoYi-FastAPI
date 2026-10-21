@@ -15,6 +15,7 @@ from module_admin.entity.vo.notice_vo import (
     NoticeTopResponseModel,
 )
 from utils.common_util import CamelCaseUtil
+from utils.notice_html_util import sanitize_notice_html
 
 
 class NoticeService:
@@ -38,6 +39,10 @@ class NoticeService:
         """
         notice_list_result = await NoticeDao.get_notice_list(query_db, query_object, is_page)
 
+        rows = notice_list_result.rows if isinstance(notice_list_result, PageModel) else notice_list_result
+        for row in rows:
+            if 'noticeContent' in row:
+                row['noticeContent'] = sanitize_notice_html(row['noticeContent'])
         return notice_list_result
 
     @classmethod

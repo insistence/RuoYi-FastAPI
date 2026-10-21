@@ -71,7 +71,7 @@
           <div
             v-if="hasContent"
             class="notice-content"
-            v-html="detail.noticeContent"
+            v-html="safeContent"
           />
           <div
             v-else
@@ -87,6 +87,7 @@
 
 <script>
 import { getNotice } from '@/api/system/notice'
+import { sanitizeNoticeHtml } from '@/utils/noticeHtml'
 
 export default {
   name: 'NoticeDetailView',
@@ -98,6 +99,9 @@ export default {
     }
   },
   computed: {
+    safeContent() {
+      return sanitizeNoticeHtml(this.detail && this.detail.noticeContent)
+    },
     isStatusNormal() {
       const s = this.detail && this.detail.status
       return s === '0' || s === 0

@@ -1,11 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_validation_decorator import NotBlank, Size, Xss
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from utils.notice_html_util import sanitize_notice_html
 
 
 class NoticeModel(BaseModel):
@@ -25,6 +26,18 @@ class NoticeModel(BaseModel):
     update_by: str | None = Field(default=None, description='更新者')
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
     remark: str | None = Field(default=None, description='备注')
+
+    @field_validator('notice_content')
+    @classmethod
+    def sanitize_content(cls, value: bytes | None) -> bytes | None:
+        """
+        清洗公告正文，同时保护 API 写入及历史详情读取。
+
+        :param value: 公告正文二进制内容
+        :return: 清洗后的正文
+        """
+        cleaned = sanitize_notice_html(value)
+        return cleaned.encode('utf-8') if cleaned is not None else None
 
     @Xss(field_name='notice_title', message='公告标题不能包含脚本字符')
     @NotBlank(field_name='notice_title', message='公告标题不能为空')

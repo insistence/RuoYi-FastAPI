@@ -71,7 +71,7 @@
           <div
             v-if="hasContent"
             class="notice-content"
-            v-html="detail.noticeContent"
+            v-html="safeContent"
           />
           <div
             v-else
@@ -87,10 +87,13 @@
 
 <script setup>
 import { getNotice } from '@/api/system/notice'
+import { sanitizeNoticeHtml } from '@/utils/noticeHtml'
 
 const visible = ref(false)
 const loading = ref(false)
 const detail = ref(null)
+
+const safeContent = computed(() => sanitizeNoticeHtml(detail.value?.noticeContent))
 
 const isStatusNormal = computed(() => {
   const status = detail.value && detail.value.status
