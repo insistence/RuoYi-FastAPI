@@ -185,6 +185,7 @@ export async function createMobileHarness(
     getInfo = () => state.getInfo()
     logout = () => state.logOut()
   }
+  const webview = await load('@/utils/webview')
   const time = await load('@/utils/time')
   const auth = await load('@/utils/auth')
   const request = (await load('@/utils/request')).default
@@ -196,6 +197,7 @@ export async function createMobileHarness(
     getInfo,
     logout,
     time,
+    webview,
     auth,
     request,
     upload,

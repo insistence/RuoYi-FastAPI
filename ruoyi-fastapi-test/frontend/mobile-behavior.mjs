@@ -125,6 +125,29 @@ export function testMobileBehavior(root, framework) {
     }
   })
 
+  test('webview URLs allow HTTP(S) and decode only an encoded outer route value', async () => {
+    const app = await createMobileHarness(root, framework)
+    const resolve = app.webview.resolveWebviewUrl
+    for (const url of [
+      'https://example.com/中文?q=100%25&next=https%3A%2F%2Fother.example%2F%3Fa%3D1%26b%3D2',
+      'http://other.example/path?a=1&b=2#intro',
+    ]) {
+      assert.equal(resolve(url), url)
+      assert.equal(resolve(encodeURIComponent(url)), url)
+    }
+    for (const url of [
+      'javascript:alert(1)',
+      'data:text/html,x',
+      'file:///private',
+      '//example.com',
+      'https://',
+      'https://example.com/\\bad',
+      '%E4%B8',
+    ]) {
+      assert.equal(resolve(url), '')
+    }
+  })
+
   test('requests use the current token and timezone while public requests omit credentials', async () => {
     const app = await createMobileHarness(root, framework, {
       token: 'active-token',

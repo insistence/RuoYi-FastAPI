@@ -8,6 +8,7 @@
 </template>
 
 <script>
+import { resolveWebviewUrl } from '@/utils/webview'
 export default {
   data() {
     return {
@@ -26,7 +27,7 @@ export default {
     },
   },
   onLoad(event) {
-    this.params = event
+    this.params = { ...event, url: resolveWebviewUrl(event.url) }
     if (event.title) {
       uni.setNavigationBarTitle({
         title: event.title,
