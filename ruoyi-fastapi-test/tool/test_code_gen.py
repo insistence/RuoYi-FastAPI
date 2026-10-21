@@ -76,17 +76,22 @@ class GenTableTest(SystemPage):
 
     async def edit_table(self) -> None:
         """修改实际生成配置，并重新读取确认服务端持久化结果。"""
-        await self.table_row().locator('td').last.get_by_role('button').nth(1).click()
+        details = await self.action(
+            self.table_row().locator('td').last.get_by_role('button').nth(1).click,
+            f'/tool/gen/{self.table_id}',
+        )
         await self.page.wait_for_url(f'**/tool/gen-edit/index/{self.table_id}**')
         self.table_comment = f'生成验收{uuid4().hex[:8]}'
         await self.page.get_by_role('tab', name='基本信息', exact=True).click()
-        await (
+        comment = (
             self.page.get_by_role('tabpanel', name='基本信息', exact=True)
             .locator('.el-form-item:visible, .ant-form-item:visible')
             .filter(has_text='表描述')
             .locator('input')
-            .fill(self.table_comment)
         )
+        # URL 和输入框可见时详情仍可能在加载，必须等初始值回填后再修改。
+        await expect(comment).to_have_value(details['data']['info']['tableComment'])
+        await comment.fill(self.table_comment)
         if self.is_react:
             await self.page.get_by_role('tab', name='生成信息', exact=True).click()
             await self.choose(
@@ -96,8 +101,10 @@ class GenTableTest(SystemPage):
             lambda response: response.request.method == 'PUT' and urlparse(response.url).path.endswith('/tool/gen')
         ) as pending:
             await self.page.get_by_role('button', name=button_name('提交')).click()
-        result = await (await pending.value).json()
-        assert result['code'] == HTTPStatus.OK, result
+        response = await pending.value
+        submitted = response.request.post_data_json
+        assert submitted['tableComment'] == self.table_comment, submitted
+        await self.payload(response)
         await self.page.wait_for_url(re.compile(r'/tool/gen(?:\?.*)?$'))
         listed = await self.search_table()
         assert listed['rows'][0]['tableComment'] == self.table_comment

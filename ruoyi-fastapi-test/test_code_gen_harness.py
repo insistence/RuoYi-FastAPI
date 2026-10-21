@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 import pytest
@@ -17,10 +18,11 @@ pytestmark = pytest.mark.harness
 
 
 @pytest.mark.parametrize('framework', ['vue2', 'vue3', 'react'])
-async def test_edit_table_ignores_departing_search_form(
-    browser_harness: BrowserHarness, monkeypatch: pytest.MonkeyPatch, framework: str
+@pytest.mark.parametrize('delayed', ['none', 'response', 'render'])
+async def test_edit_table_waits_for_details_and_ignores_departing_search_form(
+    browser_harness: BrowserHarness, monkeypatch: pytest.MonkeyPatch, framework: str, delayed: str
 ) -> None:
-    """页面切换时查询表单仍可见，编辑必须只填写基本信息中的表描述。"""
+    """详情响应或表单回填延迟时，编辑仍须等待初始值且不能误填离场查询表单。"""
     monkeypatch.setattr(Config, 'frontend_framework', framework)
     page = await browser_harness.new_page()
     saved = {'tableName': 'example', 'tableComment': 'original'}
@@ -33,15 +35,14 @@ async def test_edit_table_ignores_departing_search_form(
       </form>
       <div class="el-table__body-wrapper"><table><tbody class="ant-table-tbody">
         <tr class="el-table__row ant-table-row"><td>example</td><td id="saved-comment">original</td><td>
-          <button>预览</button><button onclick="history.pushState({}, '', '/tool/gen-edit/index/1');
-            document.querySelector('#editor').hidden = false">编辑</button>
+          <button>预览</button><button onclick="edit()">编辑</button>
         </td></tr>
       </tbody></table></div>
       <section id="editor" hidden>
         <button role="tab" id="basic-tab" onclick="showPanel('basic')">基本信息</button>
         <button role="tab" id="generate-tab" onclick="showPanel('generate')">生成信息</button>
         <div role="tabpanel" id="basic" aria-labelledby="basic-tab">
-          <div class="el-form-item ant-form-item">表描述<input id="edit-comment" value="original"></div>
+          <div class="el-form-item ant-form-item">表描述<input id="edit-comment"></div>
         </div>
         <div role="tabpanel" id="generate" aria-labelledby="generate-tab" hidden>
           <div class="ant-form-item"><label class="ant-form-item-label">前端类型</label>
@@ -55,10 +56,20 @@ async def test_edit_table_ignores_departing_search_form(
       </section>
     </div>
     <script>
+      let details;
+      function edit() {
+        history.pushState({}, '', '/tool/gen-edit/index/1');
+        document.querySelector('#editor').hidden = false;
+        details = fetch('/tool/gen/1').then(response => response.json()).then(async payload => {
+          await new Promise(resolve => setTimeout(resolve, RENDER_DELAY));
+          document.querySelector('#edit-comment').value = payload.data.info.tableComment;
+        });
+      }
       function showPanel(id) {
         document.querySelectorAll('[role=tabpanel]').forEach(panel => panel.hidden = panel.id !== id);
       }
       async function save() {
+        await details;
         const comment = document.querySelector('#edit-comment').value;
         await fetch('/tool/gen', {method: 'PUT', body: JSON.stringify({tableComment: comment})});
         document.querySelector('#saved-comment').textContent = comment;
@@ -66,7 +77,7 @@ async def test_edit_table_ignores_departing_search_form(
         history.pushState({}, '', '/tool/gen');
       }
     </script>
-    """
+    """.replace('RENDER_DELAY', '500' if delayed == 'render' else '0')
 
     async def respond(route: Route) -> None:
         if route.request.method == 'PUT':
@@ -74,6 +85,10 @@ async def test_edit_table_ignores_departing_search_form(
             await route.fulfill(json={'code': 200})
         elif route.request.url.endswith('/tool/gen/list'):
             await route.fulfill(json={'code': 200, 'rows': [saved]})
+        elif route.request.url.endswith('/tool/gen/1'):
+            if delayed == 'response':
+                await asyncio.sleep(0.5)
+            await route.fulfill(json={'code': 200, 'data': {'info': saved}})
         else:
             await route.fulfill(content_type='text/html; charset=utf-8', body=html)
 
