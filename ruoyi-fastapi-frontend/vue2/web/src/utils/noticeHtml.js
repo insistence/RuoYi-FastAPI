@@ -36,7 +36,7 @@ purifier.addHook('afterSanitizeAttributes', (node) => {
 })
 
 /**
- * 清洗公告正文，与后端 notice_html_util 的富文本白名单保持一致。
+ * 清洗公告正文，与后端 SecurityUtil.sanitize_html 的富文本白名单保持一致。
  * @param {string} content 原始公告正文
  * @returns {string} 可安全渲染的公告正文
  */

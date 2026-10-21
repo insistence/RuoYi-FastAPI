@@ -15,7 +15,7 @@ from module_admin.entity.vo.notice_vo import (
     NoticeTopResponseModel,
 )
 from utils.common_util import CamelCaseUtil
-from utils.notice_html_util import sanitize_notice_html
+from utils.security_util import SecurityUtil
 
 
 class NoticeService:
@@ -42,7 +42,7 @@ class NoticeService:
         rows = notice_list_result.rows if isinstance(notice_list_result, PageModel) else notice_list_result
         for row in rows:
             if 'noticeContent' in row:
-                row['noticeContent'] = sanitize_notice_html(row['noticeContent'])
+                row['noticeContent'] = SecurityUtil.sanitize_html(row['noticeContent'])
         return notice_list_result
 
     @classmethod

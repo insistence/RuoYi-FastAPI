@@ -6,7 +6,7 @@ from pydantic_validation_decorator import NotBlank, Size, Xss
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
-from utils.notice_html_util import sanitize_notice_html
+from utils.security_util import SecurityUtil
 
 
 class NoticeModel(BaseModel):
@@ -36,7 +36,7 @@ class NoticeModel(BaseModel):
         :param value: 公告正文二进制内容
         :return: 清洗后的正文
         """
-        cleaned = sanitize_notice_html(value)
+        cleaned = SecurityUtil.sanitize_html(value)
         return cleaned.encode('utf-8') if cleaned is not None else None
 
     @Xss(field_name='notice_title', message='公告标题不能包含脚本字符')
