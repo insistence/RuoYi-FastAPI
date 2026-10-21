@@ -6,6 +6,7 @@ asyncmy==0.2.16
 bcrypt==5.0.0
 fastapi[all]==0.143.3
 loguru==0.7.3
+nh3==0.3.7
 openpyxl==3.1.5
 packaging==26.3
 pandas==2.3.3

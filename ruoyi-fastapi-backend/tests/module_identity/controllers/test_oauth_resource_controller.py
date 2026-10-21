@@ -1,15 +1,16 @@
+from collections.abc import Callable
+from http import HTTPStatus
 from types import SimpleNamespace
+from urllib.parse import quote
 
 import pytest
-from fastapi import Request
+from fastapi import APIRouter
 from fastapi.routing import APIRoute
-from starlette.responses import Response
+from httpx import AsyncClient
 
 from common.context import RequestContext
 from module_admin.service.log_service import LogQueueService
 from module_identity.controller.oauth_resource_controller import (
-    delete_system_oauth_resources,
-    delete_system_oauth_scopes,
     get_system_oauth_resource_list,
     get_system_oauth_scope_list,
     oauth_resource_controller,
@@ -49,26 +50,6 @@ def _request_context(monkeypatch: pytest.MonkeyPatch) -> None:
 def _user() -> SimpleNamespace:
     """构造最小当前用户对象。"""
     return SimpleNamespace(user=SimpleNamespace(user_name='admin', dept=SimpleNamespace(dept_name='测试部门')))
-
-
-def _request() -> Request:
-    """构造管理写请求。"""
-    app = SimpleNamespace(state=SimpleNamespace())
-
-    async def receive() -> dict[str, object]:
-        return {'type': 'http.request', 'body': b'', 'more_body': False}
-
-    return Request(
-        {
-            'type': 'http',
-            'method': 'POST',
-            'path': '/',
-            'headers': [],
-            'query_string': b'',
-            'app': app,
-        },
-        receive=receive,
-    )
 
 
 def _route_map(router: object) -> dict[tuple[str, str], APIRoute]:
@@ -115,7 +96,10 @@ def test_resource_and_scope_router_paths_methods_permissions_and_pre_auth() -> N
 
 
 @pytest.mark.asyncio
-async def test_resource_batch_failure_rolls_back_without_partial_commit(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_resource_batch_failure_rolls_back_without_partial_commit(
+    monkeypatch: pytest.MonkeyPatch,
+    oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
+) -> None:
     """Resource 批量停用任一项失败时整体回滚。"""
     session = _FakeSession()
     calls: list[str] = []
@@ -128,22 +112,34 @@ async def test_resource_batch_failure_rolls_back_without_partial_commit(monkeypa
         return SimpleNamespace()
 
     monkeypatch.setattr(OAuthResourceManagementService, '_soft_disable_resource', fake_disable)
-    response = await delete_system_oauth_resources(_request(), 'resource-good,resource-bad', session, _user())
-    assert isinstance(response, Response)
-    assert b'false' in response.body
+    async with oauth_management_client(oauth_resource_controller, session, _user()) as client:
+        response = await client.delete('/system/oauth/resource/resource-good,resource-bad')
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['success'] is False
+    assert response.json()['msg'] == 'resource not found'
     assert calls == ['resource-good', 'resource-bad']
     assert session.commits == 0
     assert session.rollbacks == 1
 
 
 @pytest.mark.asyncio
-async def test_scope_batch_rejects_empty_duplicate_and_invalid_encoding() -> None:
+async def test_scope_batch_rejects_empty_duplicate_and_invalid_encoding(
+    oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
+) -> None:
     """Scope 批量路径拒绝空项、重复项和未解析的百分号编码。"""
     session = _FakeSession()
     user = _user()
-    for value in ('scope-a,,scope-b', 'scope-a,scope-a', 'scope-a%2Fb'):
-        response = await delete_system_oauth_scopes(_request(), value, session, user)
-        assert b'false' in response.body
+    async with oauth_management_client(oauth_scope_controller, session, user) as client:
+        for value, message in (
+            ('scope-a,,scope-b', 'scope_codes 参数无效'),
+            ('scope-a,scope-a', 'scope_codes 参数重复'),
+            ('scope-a%2Fb', 'scope_codes 参数无效'),
+        ):
+            # 编码百分号，确保路由解码后仍将未解析的编码传给批量参数校验。
+            response = await client.delete(f'/system/oauth/scope/{quote(value, safe=",")}')
+            assert response.status_code == HTTPStatus.OK
+            assert response.json()['success'] is False
+            assert response.json()['msg'] == message
     assert session.commits == 0
     assert session.rollbacks == 0
 
@@ -151,6 +147,7 @@ async def test_scope_batch_rejects_empty_duplicate_and_invalid_encoding() -> Non
 @pytest.mark.asyncio
 async def test_resource_scope_lists_use_real_total_and_actor_failure_is_mapped(
     monkeypatch: pytest.MonkeyPatch,
+    oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
 ) -> None:
     """Resource/Scope 列表使用真实全量计数，缺少 actor 时不逃逸异常。"""
     session = _FakeSession()
@@ -173,7 +170,10 @@ async def test_resource_scope_lists_use_real_total_and_actor_failure_is_mapped(
     assert b'"total":37' in scope_response.body
     assert b'"rows":["row-1","row-2"]' in scope_response.body
 
-    failed = await delete_system_oauth_resources(_request(), 'resource-a', session, SimpleNamespace(user=None))
-    assert b'false' in failed.body
-    assert b'actor' not in failed.body
+    async with oauth_management_client(oauth_resource_controller, session, SimpleNamespace(user=None)) as client:
+        failed = await client.delete('/system/oauth/resource/resource-a')
+    assert failed.status_code == HTTPStatus.OK
+    assert failed.json()['success'] is False
+    assert failed.json()['msg'] == '当前操作者不可用'
+    assert b'actor' not in failed.content
     assert session.rollbacks == 0

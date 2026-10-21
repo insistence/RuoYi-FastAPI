@@ -1,5 +1,5 @@
 from fastapi import Depends, Request, params
-from sqlalchemy import ColumnElement, func, or_, select
+from sqlalchemy import ColumnElement, false, func, or_, select, true
 
 from common.context import RequestContext
 from config.database import Base
@@ -39,14 +39,15 @@ class GetDataScope:
     def __call__(self, request: Request) -> ColumnElement:
         DependencyUtil.check_exclude_routes(request, err_msg='当前路由不在认证规则内，不可使用GetDataScope依赖项')
         current_user = RequestContext.get_current_user()
+        if current_user.user.admin:
+            return true()
         user_id = current_user.user.user_id
         dept_id = current_user.user.dept_id
-        custom_data_scope_role_id_list = [
-            item.role_id for item in current_user.user.role if item.data_scope == self.DATA_SCOPE_CUSTOM
-        ]
+        roles = [role for role in (current_user.user.role or []) if role.status == '0' and role.del_flag == '0']
+        custom_data_scope_role_id_list = [item.role_id for item in roles if item.data_scope == self.DATA_SCOPE_CUSTOM]
         param_sql_list = []
-        for role in current_user.user.role:
-            if current_user.user.admin or role.data_scope == self.DATA_SCOPE_ALL:
+        for role in roles:
+            if role.data_scope == self.DATA_SCOPE_ALL:
                 param_sql_list = [True]
                 break
             if role.data_scope == self.DATA_SCOPE_CUSTOM:
@@ -91,7 +92,7 @@ class GetDataScope:
             else:
                 param_sql_list.append(False)
         param_sql_list = list(dict.fromkeys(param_sql_list))
-        param_sql = or_(*param_sql_list)
+        param_sql = or_(false(), *param_sql_list)
 
         return param_sql
 

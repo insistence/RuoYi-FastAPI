@@ -163,20 +163,33 @@ class MenuService:
         编辑菜单信息service
 
         :param query_db: orm对象
-        :param page_object: 编辑部门对象
+        :param page_object: 编辑菜单对象
         :return: 编辑菜单校验结果
         """
-        edit_menu = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
         menu_info = await cls.menu_detail_services(query_db, page_object.menu_id)
         if menu_info.menu_id:
+            if page_object.parent_id is None:
+                page_object.parent_id = menu_info.parent_id
             if not await cls.check_menu_name_unique_services(query_db, page_object):
                 raise ServiceException(message=f'修改菜单{page_object.menu_name}失败，菜单名称已存在')
             if page_object.is_frame == MenuConstant.YES_FRAME and not StringUtil.is_http(page_object.path):
                 raise ServiceException(message=f'修改菜单{page_object.menu_name}失败，地址必须以http(s)://开头')
             if page_object.menu_id == page_object.parent_id:
                 raise ServiceException(message=f'修改菜单{page_object.menu_name}失败，上级菜单不能选择自己')
+            # 沿父级链校验，防止选择子菜单或接入已有的循环关系。
+            parent_id = page_object.parent_id
+            visited_ids = {page_object.menu_id}
+            while parent_id != MenuConstant.ROOT_ID:
+                if parent_id in visited_ids:
+                    raise ServiceException(message='上级菜单存在循环关系')
+                visited_ids.add(parent_id)
+                parent_menu = await MenuDao.get_menu_detail_by_id(query_db, parent_id)
+                if not parent_menu:
+                    raise ServiceException(message='上级菜单不存在')
+                parent_id = parent_menu.parent_id
             if not await cls.check_route_config_unique_services(query_db, page_object):
                 raise ServiceException(message=f'修改菜单{page_object.menu_name}失败，路由名称或地址已存在')
+            edit_menu = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
             try:
                 await MenuDao.edit_menu_dao(query_db, edit_menu)
                 await query_db.commit()

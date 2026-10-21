@@ -113,7 +113,9 @@ class DeptService:
         """
         if not await cls.check_dept_name_unique_services(query_db, page_object):
             raise ServiceException(message=f'新增部门{page_object.dept_name}失败，部门名称已存在')
-        parent_info = await DeptDao.get_dept_by_id(query_db, page_object.parent_id)
+        parent_info = await DeptDao.get_dept_detail_by_id(query_db, page_object.parent_id)
+        if not parent_info:
+            raise ServiceException(message='上级部门不存在')
         if parent_info.status != CommonConstant.DEPT_NORMAL:
             raise ServiceException(message=f'部门{parent_info.dept_name}停用，不允许新增')
         page_object.ancestors = f'{parent_info.ancestors},{page_object.parent_id}'
@@ -134,6 +136,11 @@ class DeptService:
         :param page_object: 编辑部门对象
         :return: 编辑部门校验结果
         """
+        old_dept = await DeptDao.get_dept_detail_by_id(query_db, page_object.dept_id)
+        if not old_dept:
+            raise ServiceException(message='部门不存在')
+        if page_object.parent_id is None:
+            page_object.parent_id = old_dept.parent_id
         if not await cls.check_dept_name_unique_services(query_db, page_object):
             raise ServiceException(message=f'修改部门{page_object.dept_name}失败，部门名称已存在')
         if page_object.dept_id == page_object.parent_id:
@@ -143,20 +150,26 @@ class DeptService:
             and (await DeptDao.count_normal_children_dept_dao(query_db, page_object.dept_id)) > 0
         ):
             raise ServiceException(message=f'修改部门{page_object.dept_name}失败，该部门包含未停用的子部门')
-        new_parent_dept = await DeptDao.get_dept_by_id(query_db, page_object.parent_id)
-        old_dept = await DeptDao.get_dept_by_id(query_db, page_object.dept_id)
+        # 根部门使用虚拟父节点 0，其他父部门必须存在且不能是当前部门的后代。
+        new_ancestors = '0'
+        if page_object.parent_id != 0:
+            new_parent_dept = await DeptDao.get_dept_detail_by_id(query_db, page_object.parent_id)
+            if not new_parent_dept:
+                raise ServiceException(message='上级部门不存在')
+            if str(page_object.dept_id) in (new_parent_dept.ancestors or '').split(','):
+                raise ServiceException(message='上级部门不能是当前部门的子部门')
+            new_ancestors = f'{new_parent_dept.ancestors},{new_parent_dept.dept_id}'
+        # 祖级列表只根据服务端部门关系生成，不接受客户端直接修改。
+        page_object.ancestors = new_ancestors
         try:
-            if new_parent_dept and old_dept:
-                new_ancestors = f'{new_parent_dept.ancestors},{new_parent_dept.dept_id}'
-                old_ancestors = old_dept.ancestors
-                page_object.ancestors = new_ancestors
-                await cls.update_dept_children(query_db, page_object.dept_id, new_ancestors, old_ancestors)
+            if new_ancestors != old_dept.ancestors:
+                await cls.update_dept_children(query_db, page_object.dept_id, new_ancestors, old_dept.ancestors)
             edit_dept = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
             await DeptDao.edit_dept_dao(query_db, edit_dept)
             if (
                 page_object.status == CommonConstant.DEPT_NORMAL
                 and page_object.ancestors
-                and page_object.ancestors != 0
+                and page_object.ancestors != '0'
             ):
                 await cls.update_parent_dept_status_normal(query_db, page_object)
             await query_db.commit()

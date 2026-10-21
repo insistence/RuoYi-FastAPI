@@ -1,8 +1,14 @@
+import json
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
+from cli.output import OutputRenderer
 from cli.runtime.job import JobRuntimeService
 from cli.runtime.job.gateway import JobInfrastructureGateway
 from cli.runtime.job.support import JobDomainSupport, JobSchedulerSupport
+from common.vo import CrudResponseModel
 
 MISSING_JOB_ID = 99
 
@@ -172,3 +178,39 @@ async def test_job_runtime_service_reports_missing_job_detail() -> None:
     assert payload['ok'] is False
     assert payload['jobId'] == MISSING_JOB_ID
     assert payload['message'] == f'定时任务不存在：{MISSING_JOB_ID}'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('operation', ['run-once', 'pause', 'resume'])
+async def test_job_operation_retains_execution_and_sync_results(
+    operation: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    result = (
+        {'executionId': 'execution-123', 'status': 'pending'}
+        if operation == 'run-once'
+        else {'saved': True, 'synced': False, 'jobs': [{'jobId': 7, 'syncStatus': 'pending'}]}
+    )
+    response = CrudResponseModel(is_success=True, message='已提交，等待调度器处理', result=result)
+    job_service = SimpleNamespace(
+        execute_job_once_services=AsyncMock(return_value=response),
+        edit_job_services=AsyncMock(return_value=response),
+    )
+    gateway = MagicMock()
+    gateway.get_async_session_local.return_value = MagicMock(return_value=AsyncMock())
+    gateway.get_redis_util.return_value.create_redis_pool = AsyncMock()
+    gateway.get_scheduler_manager.return_value.init_system_scheduler = AsyncMock()
+    gateway.get_job_service.return_value = job_service
+    scheduler_support = SimpleNamespace(close_scheduler_context=AsyncMock())
+    service = JobRuntimeService(infrastructure_gateway=gateway, scheduler_support=scheduler_support)
+    payload = await service.run_with_scheduler_context(operation, 7)
+    assert payload['result'] == result
+    assert payload['message'] == response.message
+    OutputRenderer().emit_output(payload, 'json')
+    assert json.loads(capsys.readouterr().out)['result'] == result
+    text = OutputRenderer().render_text_output(payload)
+    if operation == 'run-once':
+        assert 'execution-123' in text
+        assert 'pending' in text
+    else:
+        assert 'saved' in text and 'synced' in text
+    scheduler_support.close_scheduler_context.assert_awaited_once()

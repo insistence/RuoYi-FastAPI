@@ -122,7 +122,8 @@ class DangerousCommandConfirmationService:
 
         try:
             confirmed = typer.confirm(
-                f'确认执行危险命令 `{command_name}` 吗？ 当前环境：{ctx.env}{"（dry-run）" if ctx.dry_run else ""}',
+                f'确认执行危险命令 `{command_name}` 吗？ 配置：{ctx.env}，'
+                f'应用环境：{ctx.app_env or ctx.env}{"（dry-run）" if ctx.dry_run else ""}',
                 default=False,
             )
         except (click.Abort, EOFError, KeyboardInterrupt):
@@ -173,7 +174,7 @@ class DangerousCommandGuardService:
         :return: 拒绝结果或 None
         """
         command_name = rule.command_name
-        if ctx.env == 'prod' and not ctx.allow_prod:
+        if 'prod' in {ctx.env.strip().lower(), (ctx.app_env or '').strip().lower()} and not ctx.allow_prod:
             return self.result_builder.build_guard_reject_result(
                 f'生产环境默认禁止直接执行危险命令：{command_name}',
                 '如确认执行，请传入 --allow-prod；如需跳过确认，请同时传入 --yes',

@@ -75,7 +75,7 @@ def test_file_data_scope_does_not_match_unowned_files_when_user_has_no_departmen
             user_id=20,
             dept_id=None,
             admin=False,
-            role=[SimpleNamespace(role_id=2, data_scope=data_scope)],
+            role=[SimpleNamespace(role_id=2, data_scope=data_scope, status='0', del_flag='0')],
         )
     )
 

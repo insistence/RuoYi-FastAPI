@@ -6,7 +6,11 @@ import pytest
 from pydantic import ValidationError
 
 from common.enums import PasswordCharacterType
-from module_admin.controller.user_controller import change_system_user_profile_info, reset_system_user_pwd
+from module_admin.controller.user_controller import (
+    change_system_user_profile_info,
+    edit_system_user,
+    reset_system_user_pwd,
+)
 from module_admin.entity.vo.user_vo import EditUserModel, UpdateUserProfileModel
 from module_admin.service.user_service import UserService
 from utils.pwd_util import PwdUtil
@@ -116,3 +120,35 @@ async def test_update_user_profile_only_forwards_editable_fields() -> None:
         'create_by',
         'create_time',
     }.intersection(update_fields)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('operation_type', [None, 'pwd', 'status', 'avatar'])
+async def test_edit_user_does_not_accept_password_or_internal_operation_type(operation_type: str | None) -> None:
+    """普通编辑权限不能调用密码重置路径或写入内部维护字段。"""
+    payload = EditUserModel(
+        userId=2,
+        deptId=100,
+        userName='tester',
+        nickName='新昵称',
+        roleIds=[2],
+        postIds=[3],
+        password='injected-password-hash',
+        type=operation_type,
+        delFlag='2',
+        loginIp='forged-ip',
+        createBy='forged-creator',
+    )
+    current_user = SimpleNamespace(user=SimpleNamespace(admin=True, user_name='admin'))
+    with patch.object(
+        UserService, 'edit_user_services', AsyncMock(return_value=SimpleNamespace(message='更新成功'))
+    ) as edit_user:
+        await inspect.unwrap(edit_system_user)(object(), payload, object(), current_user, object(), object(), object())
+
+    update = edit_user.await_args.args[1]
+    fields = update.model_dump(exclude_unset=True)
+    assert not {'password', 'type', 'del_flag', 'login_ip', 'create_by'}.intersection(fields)
+    assert update.nick_name == '新昵称'
+    assert update.role_ids == [2]
+    assert update.post_ids == [3]
+    assert update.update_by == 'admin'

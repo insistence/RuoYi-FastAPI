@@ -11,7 +11,8 @@ class CliContext:
     """
     CLI 运行上下文。
 
-    env: 当前命令使用的环境名称
+    env: 当前加载的配置文件选择名
+    app_env: 已加载配置声明的实际应用环境
     output: 结果输出格式
     operator: 操作者标识，后续用于审计
     allow_prod: 是否显式允许生产环境执行危险命令
@@ -25,6 +26,7 @@ class CliContext:
     allow_prod: bool = False
     yes: bool = False
     dry_run: bool = False
+    app_env: str | None = None
 
 
 class CliContextBuilder:
@@ -53,8 +55,12 @@ class CliContextBuilder:
         :param dry_run: 是否执行演练模式
         :return: 构建完成的 CLI 上下文
         """
+        # 必须与实际资源配置使用同一来源，命令参数默认值不能覆盖已加载的环境。
+        from config.env import AppConfig, get_config  # noqa: PLC0415 - 保留 CLI 启动时的惰性配置加载
+
         return CliContext(
-            env=env,
+            env=get_config.run_env,
+            app_env=AppConfig.app_env,
             output=output,
             allow_prod=allow_prod,
             yes=yes,
@@ -66,7 +72,12 @@ CLI_CONTEXT_BUILDER = CliContextBuilder()
 
 EnvOption = Annotated[
     str,
-    typer.Option('--env', help='运行环境名称', autocompletion=COMPLETION_PROVIDER_GATEWAY.complete_env_values),
+    typer.Option(
+        '--env',
+        envvar='APP_ENV',
+        help='运行环境配置名称',
+        autocompletion=COMPLETION_PROVIDER_GATEWAY.complete_env_values,
+    ),
 ]
 OutputOption = Annotated[Literal['text', 'json'], typer.Option('--output', help='输出格式，支持 text 或 json')]
 AllowProdOption = Annotated[bool, typer.Option('--allow-prod', help='允许在生产环境中执行危险命令')]

@@ -16,9 +16,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:auth-center": "node --test tests/auth-center/*.test.cjs",
-    "test:unit": "pnpm run test:auth-center && pnpm run test:plugin && pnpm run test:job",
+    "test:unit": "pnpm run test:auth-center && pnpm run test:plugin && pnpm run test:job && pnpm run test:session",
     "test:contract": "pnpm run test:time",
-    "test": "pnpm run test:unit && pnpm run test:contract"
+    "test": "pnpm run test:unit && pnpm run test:contract",
+    "test:session": "node --experimental-vm-modules --test tests/security/logout.test.mjs"
   },
   "keywords": [
     "vue",
@@ -43,6 +44,7 @@
     "clipboard": "2.0.11",
     "core-js": "3.50.0",
     "dayjs": "1.11.23",
+    "dompurify": "3.4.17",
     "echarts": "5.6.0",
     "element-ui": "2.15.14",
     "file-saver": "2.0.5",

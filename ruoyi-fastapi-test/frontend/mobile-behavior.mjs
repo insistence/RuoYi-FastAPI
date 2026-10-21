@@ -3,8 +3,155 @@ import test from 'node:test'
 import { createMobileHarness, settle, snapshot } from './mobile-harness.mjs'
 
 export function testMobileBehavior(root, framework) {
+  test('HTTP failures reject requests and uploads even without a business error code', async () => {
+    const app = await createMobileHarness(root, framework, {
+      token: 'active-token',
+      confirm: false,
+    })
+    for (const statusCode of [401, 422, 500]) {
+      for (const data of [{ detail: [{ msg: '字段无效' }] }, { code: 200 }]) {
+        app.responses.push({ statusCode, data })
+        await assert.rejects(
+          app.request({ url: '/failure' }),
+          (error) => error.response.statusCode === statusCode
+        )
+        app.uploadResponses.push({ statusCode, data: JSON.stringify(data) })
+        await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }))
+      }
+    }
+    app.responses.push({
+      statusCode: 422,
+      data: { detail: [{ msg: '字段无效' }] },
+    })
+    await assert.rejects(app.request({ url: '/validation' }), /字段无效/)
+    assert.equal((await app.upload({ url: '/upload', filePath: '/tmp/example' })).code, 200)
+  })
+
+  test('decrypted HTTP failures retain their status and reject', async () => {
+    const app = await createMobileHarness(root, framework, {
+      decryptResponse: async (response) => ({
+        ...response,
+        data: { detail: '解密后的错误' },
+      }),
+    })
+    app.responses.push({ statusCode: 500, data: { encrypted: true } })
+    await assert.rejects(app.request({ url: '/encrypted' }), /解密后的错误/)
+  })
+
+  test('upload parse failures and platform errors always settle the promise', async () => {
+    const app = await createMobileHarness(root, framework)
+    for (const data of ['<html>bad gateway</html>', '', 'null']) {
+      app.uploadResponses.push({ statusCode: 502, data })
+      await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }))
+    }
+    for (const failure of [
+      { errMsg: 'uploadFile:fail timeout' },
+      { errMsg: 'uploadFile:fail network' },
+      {},
+    ]) {
+      app.uploadResponses.push({ failure })
+      await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }), (error) =>
+        Boolean(error.message)
+      )
+    }
+    assert.equal(
+      app.calls.toasts.some((entry) => entry.title === '系统接口请求超时'),
+      true
+    )
+  })
+
+  test('expired upload sessions navigate to the registered login page', async () => {
+    const app = await createMobileHarness(root, framework, { token: 'expired-token' })
+    app.uploadResponses.push({ statusCode: 200, data: '{"code":401}' })
+    await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }))
+    await settle()
+    assert.deepEqual(app.calls.navigations, [{ url: '/pages/login' }])
+  })
+
+  test('remote logout failures still clear all account state and allow login navigation', async () => {
+    for (const message of ['server error', 'timeout', 'Network Error']) {
+      const app = await createMobileHarness(root, framework, {
+        token: 'expired-token',
+        logoutError: new Error(message),
+      })
+      await app.getInfo()
+      app.responses.push({ statusCode: 401, data: {} })
+      await assert.rejects(app.request({ url: '/private' }))
+      await settle()
+      assert.equal(app.auth.getToken(), undefined)
+      assert.equal(app.state.token, '')
+      assert.equal(app.state.id, '')
+      assert.equal(app.state.name, '')
+      assert.equal(app.state.avatar, '')
+      assert.deepEqual(snapshot(app.state.roles), [])
+      assert.deepEqual(snapshot(app.state.permissions), [])
+      assert.equal(app.values.has('storage_data'), false)
+      assert.deepEqual(app.calls.navigations, [{ url: '/pages/login' }])
+    }
+  })
+
+  test('concurrent request and upload failures share one session recovery', async () => {
+    const app = await createMobileHarness(root, framework, { token: 'expired-token' })
+    app.responses.push(...Array.from({ length: 3 }, () => ({ statusCode: 401, data: {} })))
+    app.uploadResponses.push(...Array.from({ length: 3 }, () => ({ statusCode: 401, data: '{}' })))
+    await Promise.all(
+      Array.from({ length: 3 }, () => [
+        assert.rejects(app.request({ url: '/private' })),
+        assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' })),
+      ]).flat()
+    )
+    await settle()
+    assert.equal(app.calls.modals.length, 1)
+    assert.deepEqual(app.calls.logout, ['expired-token'])
+    assert.deepEqual(app.calls.navigations, [{ url: '/pages/login' }])
+  })
+
+  test('cancelled or failed dialogs release session recovery for later requests', async () => {
+    for (const first of [{ confirm: false }, { failure: new Error('modal unavailable') }]) {
+      const app = await createMobileHarness(root, framework, {
+        token: 'expired-token',
+        confirmResponses: [first, { confirm: true }],
+      })
+      app.responses.push({ statusCode: 401, data: {} })
+      await assert.rejects(app.request({ url: '/private' }))
+      await settle()
+      assert.equal(app.auth.getToken(), 'expired-token')
+      app.uploadResponses.push({ statusCode: 401, data: '{}' })
+      await assert.rejects(app.upload({ url: '/upload', filePath: '/tmp/example' }))
+      await settle()
+      assert.equal(app.calls.modals.length, 2)
+      assert.deepEqual(app.calls.logout, ['expired-token'])
+      assert.deepEqual(app.calls.navigations, [{ url: '/pages/login' }])
+    }
+  })
+
+  test('webview URLs allow HTTP(S) and decode only an encoded outer route value', async () => {
+    const app = await createMobileHarness(root, framework)
+    const resolve = app.webview.resolveWebviewUrl
+    for (const url of [
+      'https://example.com/中文?q=100%25&next=https%3A%2F%2Fother.example%2F%3Fa%3D1%26b%3D2',
+      'http://other.example/path?a=1&b=2#intro',
+    ]) {
+      assert.equal(resolve(url), url)
+      assert.equal(resolve(encodeURIComponent(url)), url)
+    }
+    for (const url of [
+      'javascript:alert(1)',
+      'data:text/html,x',
+      'file:///private',
+      '//example.com',
+      'https://',
+      'https://example.com/\\bad',
+      '%E4%B8',
+    ]) {
+      assert.equal(resolve(url), '')
+    }
+  })
+
   test('requests use the current token and timezone while public requests omit credentials', async () => {
-    const app = await createMobileHarness(root, framework, { token: 'active-token' })
+    const app = await createMobileHarness(root, framework, {
+      token: 'active-token',
+    })
     app.time.setUserTimezone('America/New_York')
     assert.equal(
       (await app.request({ url: '/private', params: { name: 'a b', page: 2 } })).code,
@@ -27,9 +174,14 @@ export function testMobileBehavior(root, framework) {
   })
 
   test('confirmed expired sessions reject the request, clear account state and relaunch login', async () => {
-    const app = await createMobileHarness(root, framework, { token: 'expired-token' })
+    const app = await createMobileHarness(root, framework, {
+      token: 'expired-token',
+    })
     await app.getInfo()
-    app.responses.push({ statusCode: 200, data: { code: 401, msg: 'expired' } })
+    app.responses.push({
+      statusCode: 200,
+      data: { code: 401, msg: 'expired' },
+    })
     await assert.rejects(
       app.request({ url: '/private' }),
       (error) => error.response.data.code === 401
@@ -50,7 +202,10 @@ export function testMobileBehavior(root, framework) {
       token: 'expired-token',
       confirm: false,
     })
-    app.responses.push({ statusCode: 200, data: { code: 401, msg: 'expired' } })
+    app.responses.push({
+      statusCode: 200,
+      data: { code: 401, msg: 'expired' },
+    })
     await assert.rejects(app.request({ url: '/private' }))
     await settle()
     assert.equal(app.auth.getToken(), 'expired-token')
@@ -107,14 +262,19 @@ export function testMobileBehavior(root, framework) {
   })
 
   test('cold start restores only signed-in timezones and discards invalid preferences', async () => {
-    const savedTimezone = { appTimezone: 'Asia/Shanghai', timeZone: 'America/New_York' }
+    const savedTimezone = {
+      appTimezone: 'Asia/Shanghai',
+      timeZone: 'America/New_York',
+    }
     const signedIn = await createMobileHarness(root, framework, {
       token: 'active-token',
       savedTimezone,
     })
     assert.equal(signedIn.time.getUserTimezone(), 'America/New_York')
     assert.equal(signedIn.time.formatBusinessTime('2026-01-01T00:00:00Z'), '2025-12-31 19:00:00')
-    const signedOut = await createMobileHarness(root, framework, { savedTimezone })
+    const signedOut = await createMobileHarness(root, framework, {
+      savedTimezone,
+    })
     assert.equal(signedOut.time.getUserTimezone(), 'auto')
     const invalid = await createMobileHarness(root, framework, {
       token: 'active-token',
@@ -125,8 +285,13 @@ export function testMobileBehavior(root, framework) {
   })
 
   test('non-authentication failures stay rejected without clearing the account', async () => {
-    const app = await createMobileHarness(root, framework, { token: 'active-token' })
-    app.responses.push({ statusCode: 429, data: { code: 429, msg: 'rate limited' } })
+    const app = await createMobileHarness(root, framework, {
+      token: 'active-token',
+    })
+    app.responses.push({
+      statusCode: 429,
+      data: { code: 429, msg: 'rate limited' },
+    })
     await assert.rejects(
       app.request({ url: '/private' }),
       (error) => error.response.statusCode === 429

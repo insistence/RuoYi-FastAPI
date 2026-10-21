@@ -152,6 +152,26 @@ async def edit_system_user(
     dept_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
     role_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
 ) -> Response:
+    # 普通编辑只接收管理表单字段，密码与内部操作类型由专用接口处理。
+    edit_user = EditUserModel(
+        **edit_user.model_dump(
+            by_alias=True,
+            exclude_unset=True,
+            include={
+                'user_id',
+                'dept_id',
+                'user_name',
+                'nick_name',
+                'email',
+                'phonenumber',
+                'sex',
+                'status',
+                'remark',
+            },
+        ),
+        roleIds=edit_user.role_ids or [],
+        postIds=edit_user.post_ids or [],
+    )
     await UserService.check_user_allowed_services(edit_user)
     if not current_user.user.admin:
         await UserService.check_user_data_scope_services(query_db, edit_user.user_id, user_data_scope_sql)

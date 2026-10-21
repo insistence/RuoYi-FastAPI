@@ -9,6 +9,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { resolveWebviewUrl } from '@/utils/webview'
 import { onLoad } from '@dcloudio/uni-app'
 
 const params = ref({})
@@ -26,7 +27,7 @@ const props = defineProps({
 })
 
 onLoad((event) => {
-  params.value = event
+  params.value = { ...event, url: resolveWebviewUrl(event.url) }
   if (event.title) {
     uni.setNavigationBarTitle({
       title: event.title,

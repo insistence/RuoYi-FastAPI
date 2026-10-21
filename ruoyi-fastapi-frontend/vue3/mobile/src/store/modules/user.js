@@ -116,23 +116,23 @@ export const useUserStore = defineStore('user', () => {
     })
   }
 
-  // 退出系统
-  const logOutAction = () => {
-    return new Promise((resolve, reject) => {
-      logout(token.value)
-        .then(() => {
-          SET_TOKEN('')
-          applyTimezone('auto')
-          SET_ROLES([])
-          SET_PERMISSIONS([])
-          removeToken()
-          storage.clean()
-          resolve()
-        })
-        .catch((error) => {
-          reject(error)
-        })
-    })
+  // 退出系统：远端撤销失败也必须清理本地会话，保证可以重新登录。
+  const logOutAction = async () => {
+    try {
+      await logout(token.value)
+    } catch {
+      // 远端异常由请求层提示，本地退出不依赖远端撤销结果。
+    } finally {
+      SET_TOKEN('')
+      SET_ID('')
+      SET_NAME('')
+      SET_AVATAR('')
+      applyTimezone('auto')
+      SET_ROLES([])
+      SET_PERMISSIONS([])
+      removeToken()
+      storage.clean()
+    }
   }
 
   return {

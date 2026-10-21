@@ -1,9 +1,9 @@
+import { handleSessionExpired } from '@/utils/session'
 import config from '@/config'
 import { getToken } from '@/utils/auth'
 import { getDisplayTimezone } from '@/utils/time'
-import errorCode from '@/utils/errorCode'
-import { useUserStore } from '@/store/modules/user'
-import { toast, showConfirm, tansParams } from '@/utils/common'
+import { getResponseStatus } from '@/utils/response'
+import { toast, tansParams } from '@/utils/common'
 import {
   decryptTransportErrorResponse,
   decryptTransportResponse,
@@ -22,8 +22,9 @@ const request = async (config) => {
   config.header = config.header || {}
   config.headers = config.headers || {}
   config.header['X-Timezone'] = config.header['X-Timezone'] || getDisplayTimezone()
-  if (getToken() && !isToken) {
-    config.header['Authorization'] = 'Bearer ' + getToken()
+  const token = getToken()
+  if (token && !isToken) {
+    config.header['Authorization'] = 'Bearer ' + token
   }
 
   try {
@@ -57,18 +58,9 @@ const request = async (config) => {
               return
             }
 
-            const code = res.data.code || 200
-            const msg = errorCode[code] || res.data.msg || errorCode['default']
+            const { code, msg } = getResponseStatus(res, res.data)
             if (code === 401) {
-              showConfirm('登录状态已过期，您可以继续留在该页面，或者重新登录?').then((res) => {
-                if (res.confirm) {
-                  useUserStore()
-                    .logOut()
-                    .then(() => {
-                      uni.reLaunch({ url: '/pages/login' })
-                    })
-                }
-              })
+              handleSessionExpired(isToken ? null : token)
               const error = new Error('无效的会话，或者会话已过期，请重新登录。')
               error.response = res
               reject(error)

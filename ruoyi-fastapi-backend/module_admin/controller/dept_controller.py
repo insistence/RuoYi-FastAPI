@@ -83,7 +83,10 @@ async def add_system_dept(
     add_dept: DeptModel,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
+    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
 ) -> Response:
+    if not current_user.user.admin:
+        await DeptService.check_dept_data_scope_services(query_db, add_dept.parent_id, data_scope_sql)
     add_dept.create_by = current_user.user.user_name
     add_dept.update_by = current_user.user.user_name
     add_dept_result = await DeptService.add_dept_services(query_db, add_dept)
@@ -111,6 +114,9 @@ async def edit_system_dept(
 ) -> Response:
     if not current_user.user.admin:
         await DeptService.check_dept_data_scope_services(query_db, edit_dept.dept_id, data_scope_sql)
+        dept_info = await DeptService.dept_detail_services(query_db, edit_dept.dept_id)
+        if edit_dept.parent_id is not None and edit_dept.parent_id != dept_info.parent_id:
+            await DeptService.check_dept_data_scope_services(query_db, edit_dept.parent_id, data_scope_sql)
     edit_dept.update_by = current_user.user.user_name
     edit_dept_result = await DeptService.edit_dept_services(query_db, edit_dept)
     logger.info(edit_dept_result.message)

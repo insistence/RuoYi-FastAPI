@@ -23,6 +23,7 @@ export function showConfirm(content) {
       success: function (res) {
         resolve(res)
       },
+      fail: reject,
     })
   })
 }

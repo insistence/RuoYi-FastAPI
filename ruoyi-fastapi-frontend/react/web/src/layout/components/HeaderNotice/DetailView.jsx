@@ -2,7 +2,7 @@ import './style.css'
 import { UserOutlined, ClockCircleOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { Drawer, Empty, Spin } from 'antd'
-import DOMPurify from 'dompurify'
+import { sanitizeNoticeHtml } from '@/utils/noticeHtml'
 import { getNotice } from '@/api/system/notice'
 import { parseTime } from '@/utils/ruoyi'
 export default function NoticeDetailView({ noticeId, onClose }) {
@@ -69,7 +69,7 @@ export function NoticeArticle({ detail }) {
         {detail.noticeContent ? (
           <div
             className="notice-content ql-editor"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(detail.noticeContent) }}
+            dangerouslySetInnerHTML={{ __html: sanitizeNoticeHtml(detail.noticeContent) }}
           />
         ) : (
           <Empty description="暂无内容" />

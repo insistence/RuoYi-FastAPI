@@ -1,10 +1,10 @@
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request, Response, status
-from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse as FastAPIJSONResponse
 from fastapi.responses import RedirectResponse
 from pydantic_validation_decorator import FieldValidationError
+from starlette.exceptions import HTTPException
 
 from exceptions.exception import (
     AuthException,
@@ -17,6 +17,7 @@ from exceptions.exception import (
     ServiceException,
     ServiceWarning,
 )
+from utils.exception_util import ExceptionUtil
 from utils.log_util import logger
 from utils.oidc_util import OidcUtil
 from utils.response_util import JSONResponse, ResponseUtil, jsonable_encoder
@@ -118,14 +119,15 @@ def handle_exception(app: FastAPI) -> None:
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> Response:
         return JSONResponse(
-            content=jsonable_encoder({'code': exc.status_code, 'msg': exc.detail}), status_code=exc.status_code
+            content=jsonable_encoder({'code': exc.status_code, 'msg': exc.detail}),
+            status_code=exc.status_code,
+            headers=exc.headers,
         )
 
     # 处理其他异常
     @app.exception_handler(Exception)
     async def exception_handler(request: Request, exc: Exception) -> Response:
-        logger.exception(exc)
-        return ResponseUtil.error(msg=str(exc))
+        return ExceptionUtil.handle_unexpected_exception(exc)
 
 
 def _build_oauth_redirect(exc: OAuthProtocolException) -> Response:

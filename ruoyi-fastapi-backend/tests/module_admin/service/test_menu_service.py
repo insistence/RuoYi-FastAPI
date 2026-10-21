@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from common.constant import CommonConstant
 from config.database import Base
@@ -222,3 +222,65 @@ async def test_update_menu_sort_rolls_back_and_wraps_database_error() -> None:
     assert exc_info.value.message == '保存排序异常，请联系管理员'
     query_db.commit.assert_not_awaited()
     query_db.rollback.assert_awaited_once()
+
+
+async def _create_menu_tree() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    engine = create_async_engine('sqlite+aiosqlite:///:memory:')
+    sessions = async_sessionmaker(bind=engine, expire_on_commit=False)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all, tables=[SysMenu.__table__])
+    async with sessions() as session:
+        session.add_all(
+            [
+                SysMenu(menu_id=501, parent_id=0, menu_name='系统目录', menu_type='M', path='system'),
+                SysMenu(menu_id=502, parent_id=501, menu_name='用户菜单', menu_type='C', path='user'),
+                SysMenu(menu_id=503, parent_id=502, menu_name='新增按钮', menu_type='F'),
+                SysMenu(menu_id=600, parent_id=0, menu_name='工具目录', menu_type='M', path='tools'),
+                SysMenu(menu_id=701, parent_id=702, menu_name='异常目录一', menu_type='M'),
+                SysMenu(menu_id=702, parent_id=701, menu_name='异常目录二', menu_type='M'),
+                SysMenu(menu_id=800, parent_id=999, menu_name='孤立目录', menu_type='M'),
+            ]
+        )
+        await session.commit()
+    return engine, sessions
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('parent_id', [501, 502, 503, 701, 800, 999])
+async def test_edit_menu_rejects_invalid_parent_chains_without_writing(parent_id: int) -> None:
+    engine, sessions = await _create_menu_tree()
+    try:
+        async with sessions() as session:
+            query = select(SysMenu.menu_id, SysMenu.parent_id).order_by(SysMenu.menu_id)
+            before = (await session.execute(query)).all()
+            with pytest.raises(ServiceException):
+                await MenuService.edit_menu_services(
+                    session,
+                    MenuModel(menuId=501, parentId=parent_id, menuName='系统目录', menuType='M', path='system'),
+                )
+            assert (await session.execute(query)).all() == before
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('parent_id', [None, 0, 600])
+async def test_edit_menu_preserves_root_or_moves_subtree_to_valid_parent(parent_id: int | None) -> None:
+    engine, sessions = await _create_menu_tree()
+    try:
+        async with sessions() as session:
+            result = await MenuService.edit_menu_services(
+                session,
+                MenuModel(menuId=501, parentId=parent_id, menuName='新系统目录', menuType='M', path='system'),
+            )
+            rows = (
+                await session.execute(
+                    select(SysMenu.menu_id, SysMenu.parent_id)
+                    .where(SysMenu.menu_id.in_([501, 502, 503]))
+                    .order_by(SysMenu.menu_id)
+                )
+            ).all()
+            assert result.is_success
+            assert rows == [(501, parent_id or 0), (502, 501), (503, 502)]
+    finally:
+        await engine.dispose()

@@ -11,7 +11,10 @@ from typing import Any, Literal, TypeVar
 import httpx
 from async_lru import alru_cache
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, ORJSONResponse, UJSONResponse
+from pydantic_validation_decorator import FieldValidationError
+from starlette.exceptions import HTTPException
 from starlette.status import HTTP_200_OK
 from typing_extensions import ParamSpec
 from user_agents import parse
@@ -20,8 +23,13 @@ from common.context import RequestContext
 from common.enums import BusinessType
 from config.env import AppConfig
 from exceptions.exception import (
+    AuthException,
     FileRangeNotSatisfiableException,
     LoginException,
+    ModelValidatorException,
+    OAuthProtocolException,
+    OidcInteractionException,
+    PermissionException,
     ServiceException,
     ServiceWarning,
 )
@@ -29,6 +37,7 @@ from module_admin.entity.vo.log_vo import LogininforModel, OperLogModel
 from module_admin.service.log_service import LogQueueService
 from utils.client_ip_util import ClientIPUtil
 from utils.dependency_util import DependencyUtil
+from utils.exception_util import ExceptionUtil
 from utils.log_util import LogSanitizer, logger
 from utils.response_util import ResponseUtil
 from utils.time_util import TimezoneUtil
@@ -193,79 +202,94 @@ class Log:
             oper_time = TimezoneUtil.utc_now()
             # 此处在登录之前向原始函数传递一些登录信息，用于监测在线用户的相关信息
             login_log = self._get_login_log(user_agent, oper_ip, oper_location, oper_time, kwargs)
+            raised_exception = None
             try:
                 # 调用原始函数
                 result = await func(*args, **kwargs)
-            except (LoginException, ServiceWarning) as e:
-                logger.warning(e.message)
-                result = ResponseUtil.failure(data=e.data, msg=e.message)
-            except ServiceException as e:
-                logger.error(e.message)
-                result = ResponseUtil.error(data=e.data, msg=e.message)
-            except FileRangeNotSatisfiableException:
-                raise
+            except (
+                AuthException,
+                PermissionException,
+                LoginException,
+                ServiceException,
+                ServiceWarning,
+                ModelValidatorException,
+                FieldValidationError,
+                FileRangeNotSatisfiableException,
+                HTTPException,
+                RequestValidationError,
+                OAuthProtocolException,
+                OidcInteractionException,
+            ) as e:
+                # 已知异常仅构造审计摘要，实际响应仍交由全局异常处理器生成。
+                raised_exception = e
+                result = ResponseUtil.error(msg=getattr(e, 'message', None) or str(e))
             except Exception as e:
-                logger.exception(e)
-                result = ResponseUtil.error(msg=str(e))
-            # 获取请求耗时
-            cost_time = float(time.perf_counter() - start_time) * 1000
-            # 判断请求是否来自api文档
-            request_from_swagger, request_from_redoc = self._is_request_from_swagger_or_redoc(request)
-            # 根据响应结果的类型使用不同的方法获取响应结果参数
-            sanitized_result_dict = LogSanitizer.sanitize_data(
-                self._get_result_dict(result, request_from_swagger, request_from_redoc)
-            )
-            json_result = self._build_log_text(
-                sanitized_result_dict,
-                self.response_log_mode,
-                self.response_include_fields,
-                self.response_exclude_fields,
-                payload_kind='response',
-            )
-            # 日志表返回参数字段长度最大为2000，因此在此处判断长度
-            json_result = self._limit_log_text(json_result, self._json_result_len, '返回参数过长')
-            # 根据响应结果获取响应状态及异常信息
-            status, error_msg = self._get_status_and_error_msg(sanitized_result_dict)
-            # 根据日志类型向对应的日志表插入数据
-            if self.log_type == 'login':
-                # 登录请求来自于api文档时不记录登录日志，其余情况则记录
-                if request_from_swagger or request_from_redoc:
-                    pass
-                else:
-                    user = kwargs.get('form_data')
-                    login_log.update(
-                        {
-                            'loginTime': oper_time,
-                            'userName': user.username,
-                            'status': str(status),
-                            'msg': sanitized_result_dict.get('msg') or '',
-                        }
-                    )
-
-                    await LogQueueService.enqueue_login_log(request, LogininforModel(**login_log), func_path)
-            else:
-                current_user = RequestContext.get_current_user()
-                oper_name = current_user.user.user_name
-                dept_name = current_user.user.dept.dept_name if current_user.user.dept else None
-                operation_log = OperLogModel(
-                    title=self.title,
-                    businessType=self.business_type,
-                    method=func_path,
-                    requestMethod=request_method,
-                    operatorType=operator_type,
-                    operName=oper_name,
-                    deptName=dept_name,
-                    operUrl=oper_url,
-                    operIp=oper_ip,
-                    operLocation=oper_location,
-                    operParam=oper_param,
-                    jsonResult=json_result,
-                    status=status,
-                    errorMsg=error_msg,
-                    operTime=oper_time,
-                    costTime=int(cost_time),
+                result = ExceptionUtil.handle_unexpected_exception(e)
+            try:
+                # 获取请求耗时
+                cost_time = float(time.perf_counter() - start_time) * 1000
+                # 判断请求是否来自api文档
+                request_from_swagger, request_from_redoc = self._is_request_from_swagger_or_redoc(request)
+                # 根据响应结果的类型使用不同的方法获取响应结果参数
+                sanitized_result_dict = LogSanitizer.sanitize_data(
+                    self._get_result_dict(result, request_from_swagger, request_from_redoc)
                 )
-                await LogQueueService.enqueue_operation_log(request, operation_log, func_path)
+                json_result = self._build_log_text(
+                    sanitized_result_dict,
+                    self.response_log_mode,
+                    self.response_include_fields,
+                    self.response_exclude_fields,
+                    payload_kind='response',
+                )
+                # 日志表返回参数字段长度最大为2000，因此在此处判断长度
+                json_result = self._limit_log_text(json_result, self._json_result_len, '返回参数过长')
+                # 根据响应结果获取响应状态及异常信息
+                status, error_msg = self._get_status_and_error_msg(sanitized_result_dict)
+                # 根据日志类型向对应的日志表插入数据
+                if self.log_type == 'login':
+                    # 登录请求来自于api文档时不记录登录日志，其余情况则记录
+                    if request_from_swagger or request_from_redoc:
+                        pass
+                    else:
+                        user = kwargs.get('form_data')
+                        login_log.update(
+                            {
+                                'loginTime': oper_time,
+                                'userName': user.username,
+                                'status': str(status),
+                                'msg': sanitized_result_dict.get('msg') or '',
+                            }
+                        )
+
+                        await LogQueueService.enqueue_login_log(request, LogininforModel(**login_log), func_path)
+                else:
+                    current_user = RequestContext.get_current_user()
+                    oper_name = current_user.user.user_name
+                    dept_name = current_user.user.dept.dept_name if current_user.user.dept else None
+                    operation_log = OperLogModel(
+                        title=self.title,
+                        businessType=self.business_type,
+                        method=func_path,
+                        requestMethod=request_method,
+                        operatorType=operator_type,
+                        operName=oper_name,
+                        deptName=dept_name,
+                        operUrl=oper_url,
+                        operIp=oper_ip,
+                        operLocation=oper_location,
+                        operParam=oper_param,
+                        jsonResult=json_result,
+                        status=status,
+                        errorMsg=error_msg,
+                        operTime=oper_time,
+                        costTime=int(cost_time),
+                    )
+                    await LogQueueService.enqueue_operation_log(request, operation_log, func_path)
+
+            finally:
+                # 即使审计写入失败，也不能覆盖原有认证或协议异常。
+                if raised_exception is not None:
+                    raise raised_exception
 
             return result
 
