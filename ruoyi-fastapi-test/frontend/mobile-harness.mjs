@@ -13,7 +13,7 @@ const copy = (value) => (value === undefined ? undefined : JSON.parse(JSON.strin
 export async function createMobileHarness(
   root,
   framework,
-  { token = '', savedTimezone, confirm = true, decryptResponse } = {}
+  { token = '', savedTimezone, confirm = true, decryptResponse, logoutError } = {}
 ) {
   const project = fileURLToPath(root)
   const nativeRequire = createRequire(new URL('package.json', root))
@@ -83,6 +83,7 @@ export async function createMobileHarness(
       },
       logout: async (value) => {
         calls.logout.push(value)
+        if (logoutError) throw logoutError
       },
       getInfo: async () => ({
         appTimezone: 'Asia/Shanghai',

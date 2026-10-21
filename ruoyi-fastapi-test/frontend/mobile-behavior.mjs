@@ -68,6 +68,28 @@ export function testMobileBehavior(root, framework) {
     assert.deepEqual(app.calls.navigations, [{ url: '/pages/login' }])
   })
 
+  test('remote logout failures still clear all account state and allow login navigation', async () => {
+    for (const message of ['server error', 'timeout', 'Network Error']) {
+      const app = await createMobileHarness(root, framework, {
+        token: 'expired-token',
+        logoutError: new Error(message),
+      })
+      await app.getInfo()
+      app.responses.push({ statusCode: 401, data: {} })
+      await assert.rejects(app.request({ url: '/private' }))
+      await settle()
+      assert.equal(app.auth.getToken(), undefined)
+      assert.equal(app.state.token, '')
+      assert.equal(app.state.id, '')
+      assert.equal(app.state.name, '')
+      assert.equal(app.state.avatar, '')
+      assert.deepEqual(snapshot(app.state.roles), [])
+      assert.deepEqual(snapshot(app.state.permissions), [])
+      assert.equal(app.values.has('storage_data'), false)
+      assert.deepEqual(app.calls.navigations, [{ url: '/pages/login' }])
+    }
+  })
+
   test('requests use the current token and timezone while public requests omit credentials', async () => {
     const app = await createMobileHarness(root, framework, {
       token: 'active-token',
