@@ -165,9 +165,8 @@ class PluginArtifactCommandController:
         yes: bool = False,
         dry_run: bool = False,
     ) -> CliContext:
-        # config.env 可能在应用日志策略时首次导入，因此必须先设置命令选择的环境。
         """
-        先设置命令环境，再应用危险操作保护并解析操作者。
+        使用统一执行上下文应用危险操作保护并解析操作者。
 
         :param env: 当前命令运行环境
         :param output: 输出格式
@@ -177,7 +176,6 @@ class PluginArtifactCommandController:
         :param dry_run: 是否仅预演而不写入发布状态
         :return: 完成环境与操作者设置的 CLI 上下文
         """
-        os.environ['APP_ENV'] = env
         if command_name and not dry_run:
             ctx = self.context_factory.build_dangerous(env, output, allow_prod, yes, dry_run, command_name=command_name)
         else:

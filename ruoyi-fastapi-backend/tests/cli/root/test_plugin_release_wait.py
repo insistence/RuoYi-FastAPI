@@ -146,7 +146,7 @@ def test_wait_outputs_exactly_one_final_json_and_preserves_service_exit_semantic
         timeout_seconds=0.0,
         poll_interval_seconds=0.25,
     )
-    assert os.environ['APP_ENV'] == 'prod'
+    assert os.environ['APP_ENV'] == 'dev'
 
 
 @pytest.mark.parametrize(

@@ -274,7 +274,6 @@ class RecordingContextFactory:
         self.events = events
 
     def build_regular(self, env: str, output: str, allow_prod: bool, yes: bool, dry_run: bool) -> CliContext:
-        assert os.environ['APP_ENV'] == env
         self.events.append('context')
         return CliContext(env=env, output=output, allow_prod=allow_prod, yes=yes, dry_run=dry_run)
 
@@ -310,10 +309,14 @@ def quiet_context_factory() -> CliContextFactory:
     )
 
 
-def test_production_mutations_are_guarded_before_loading_runtime() -> None:
+def test_production_mutations_are_guarded_before_loading_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     验证生产写入保护先于运行时加载执行。
     """
+
+    env_module = importlib.import_module('config.env')
+    monkeypatch.setattr(env_module.get_config, 'run_env', 'prod')
+    monkeypatch.setattr(env_module.AppConfig, 'app_env', 'prod')
 
     def forbidden_config() -> None:
         pytest.fail('rejected CLI must not construct runtime')
@@ -340,16 +343,17 @@ def test_production_mutations_are_guarded_before_loading_runtime() -> None:
         assert json.loads(result.stdout)['ok'] is False
 
 
-def test_dry_run_is_readonly_and_environment_precedes_runtime() -> None:
+def test_dry_run_is_readonly_and_environment_precedes_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    验证预演保持只读，且先设置环境再创建运行时。
+    验证预演保持只读，且不会用配置选择名覆盖外部应用环境。
     """
+    monkeypatch.setenv('APP_ENV', 'dev')
     events: list[str] = []
     execution = RecordingExecution()
 
     def config() -> object:
         assert events == ['context']
-        assert os.environ['APP_ENV'] == 'prod'
+        assert os.environ['APP_ENV'] == 'dev'
         events.append('config')
         return object()
 
