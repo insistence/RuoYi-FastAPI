@@ -10,6 +10,9 @@
     <a href="https://github.com/insistence/RuoYi-FastAPI">
         <img alt="Github" src="https://img.shields.io/github/stars/insistence/RuoYi-FastAPI?style=social">
     </a>
+    <a href="https://atomgit.com/insistence2022/RuoYi-FastAPI">
+        <img alt="AtomGit" src="https://atomgit.com/insistence2022/RuoYi-FastAPI/star/badge.svg">
+    </a>
     <a href="https://github.com/insistence/RuoYi-FastAPI/actions/workflows/ci.yml">
         <img alt="CI" src="https://github.com/insistence/RuoYi-FastAPI/actions/workflows/ci.yml/badge.svg?branch=master">
     </a>
