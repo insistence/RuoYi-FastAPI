@@ -93,41 +93,35 @@ class UserDao:
         return query_user_info
 
     @classmethod
-    async def get_user_by_id(cls, db: AsyncSession, user_id: int) -> dict[str, Any]:
+    async def get_user_by_id(cls, db: AsyncSession, user_id: int, *, for_auth: bool = False) -> dict[str, Any]:
         """
         根据user_id获取用户信息
 
         :param db: orm对象
         :param user_id: 用户id
+        :param for_auth: 是否仅查询鉴权所需的菜单权限字段
         :return: 当前user_id的用户信息对象
         """
-        query_user_basic_info = (
-            (
-                await db.execute(
-                    select(SysUser)
-                    .where(SysUser.status == '0', SysUser.del_flag == '0', SysUser.user_id == user_id)
-                    .distinct()
+        query_user_info = (
+            await db.execute(
+                select(SysUser, SysDept)
+                .where(SysUser.status == '0', SysUser.del_flag == '0', SysUser.user_id == user_id)
+                .join(
+                    SysDept,
+                    and_(SysUser.dept_id == SysDept.dept_id, SysDept.status == '0', SysDept.del_flag == '0'),
+                    isouter=True,
                 )
             )
-            .scalars()
-            .first()
-        )
-        query_user_dept_info = (
-            (
-                await db.execute(
-                    select(SysDept)
-                    .select_from(SysUser)
-                    .where(SysUser.status == '0', SysUser.del_flag == '0', SysUser.user_id == user_id)
-                    .join(
-                        SysDept,
-                        and_(SysUser.dept_id == SysDept.dept_id, SysDept.status == '0', SysDept.del_flag == '0'),
-                    )
-                    .distinct()
-                )
-            )
-            .scalars()
-            .first()
-        )
+        ).first()
+        if query_user_info is None:
+            return {
+                'user_basic_info': None,
+                'user_dept_info': None,
+                'user_role_info': [],
+                'user_post_info': [],
+                'user_menu_info': [],
+            }
+        query_user_basic_info, query_user_dept_info = query_user_info
         query_user_role_info = (
             (
                 await db.execute(
@@ -160,34 +154,30 @@ class UserDao:
             .all()
         )
         role_id_list = [item.role_id for item in query_user_role_info]
+        query_user_menu_info = []
         if 1 in role_id_list:
-            query_user_menu_info = (
-                (await db.execute(select(SysMenu).where(SysMenu.status == '0').distinct())).scalars().all()
-            )
-        else:
-            query_user_menu_info = (
-                (
-                    await db.execute(
-                        select(SysMenu)
-                        .select_from(SysUser)
-                        .where(SysUser.status == '0', SysUser.del_flag == '0', SysUser.user_id == user_id)
-                        .join(SysUserRole, SysUser.user_id == SysUserRole.user_id, isouter=True)
-                        .join(
-                            SysRole,
-                            and_(
-                                SysUserRole.role_id == SysRole.role_id, SysRole.status == '0', SysRole.del_flag == '0'
-                            ),
-                            isouter=True,
-                        )
-                        .join(SysRoleMenu, SysRole.role_id == SysRoleMenu.role_id, isouter=True)
-                        .join(SysMenu, and_(SysRoleMenu.menu_id == SysMenu.menu_id, SysMenu.status == '0'))
-                        .order_by(SysMenu.order_num)
-                        .distinct()
-                    )
+            # 管理员鉴权使用全部权限标识，获取路由时仍需查询完整菜单
+            if not for_auth:
+                query_user_menu_info = (
+                    (await db.execute(select(SysMenu).where(SysMenu.status == '0').distinct())).scalars().all()
                 )
-                .scalars()
-                .all()
+        else:
+            menu_query = select(SysMenu.menu_id, SysMenu.perms, SysMenu.order_num) if for_auth else select(SysMenu)
+            query_user_menu_result = await db.execute(
+                menu_query.select_from(SysUser)
+                .where(SysUser.status == '0', SysUser.del_flag == '0', SysUser.user_id == user_id)
+                .join(SysUserRole, SysUser.user_id == SysUserRole.user_id, isouter=True)
+                .join(
+                    SysRole,
+                    and_(SysUserRole.role_id == SysRole.role_id, SysRole.status == '0', SysRole.del_flag == '0'),
+                    isouter=True,
+                )
+                .join(SysRoleMenu, SysRole.role_id == SysRoleMenu.role_id, isouter=True)
+                .join(SysMenu, and_(SysRoleMenu.menu_id == SysMenu.menu_id, SysMenu.status == '0'))
+                .order_by(SysMenu.order_num)
+                .distinct()
             )
+            query_user_menu_info = query_user_menu_result.all() if for_auth else query_user_menu_result.scalars().all()
 
         results = {
             'user_basic_info': query_user_basic_info,
