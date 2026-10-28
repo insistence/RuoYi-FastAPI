@@ -4,11 +4,12 @@ import os
 import socket
 import uuid
 from collections.abc import Callable
+from copy import deepcopy
+from typing import Any
 
 import psutil
 from fastapi import FastAPI, Request, applications
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
-from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse, JSONResponse
 from redis import asyncio as aioredis
 
@@ -140,6 +141,18 @@ class APIDocsUtil:
         :param swagger_favicon_url: Swagger UI要使用的favicon的URL
         :return:
         """
+        original_openapi = app.openapi
+
+        def openapi() -> dict[str, Any]:
+            # 生成文档时再加载认证规则，避免服务器工具与登录服务循环引用。
+            from utils.openapi_util import OpenAPIUtil  # noqa: PLC0415
+
+            # 保留FastAPI原有缓存，公开规则调整不修改缓存中的安全声明。
+            schema = deepcopy(original_openapi())
+            OpenAPIUtil.adjust_security(schema, app.routes)
+            return schema
+
+        app.openapi = openapi
 
         async def custom_openapi(request: Request) -> JSONResponse:
             return await cls._custom_openapi(app)
@@ -166,22 +179,7 @@ class APIDocsUtil:
         :param app: FastAPI对象
         :return: openapi的json响应
         """
-        openapi_schema = get_openapi(
-            title=app.title,
-            version=app.version,
-            openapi_version=app.openapi_version,
-            summary=app.summary,
-            description=app.description,
-            terms_of_service=app.terms_of_service,
-            contact=app.contact,
-            license_info=app.license_info,
-            routes=app.routes,
-            webhooks=app.webhooks.routes,
-            tags=app.openapi_tags,
-            separate_input_output_schemas=app.separate_input_output_schemas,
-            external_docs=app.openapi_external_docs,
-        )
-        return JSONResponse(openapi_schema)
+        return JSONResponse(app.openapi())
 
     @classmethod
     async def _custom_redoc(
