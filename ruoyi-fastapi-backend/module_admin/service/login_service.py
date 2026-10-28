@@ -3,12 +3,13 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import Depends, Form, Request
+from fastapi import Depends, Form, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.aspect.db_session import DBSessionDependency
+from common.auth_policy import AuthPolicy
 from common.constant import CommonConstant, MenuConstant
 from common.context import RequestContext
 from common.enums import PasswordCharacterType, RedisInitKeyConfig
@@ -35,7 +36,33 @@ from utils.message_util import message_service
 from utils.pwd_util import PwdUtil
 from utils.time_util import TimezoneUtil
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
+
+class PreAuthOAuth2PasswordBearer(OAuth2PasswordBearer):
+    """
+    支持公开路由排除的登录令牌依赖
+    """
+
+    async def __call__(self, request: Request) -> str | None:
+        """
+        根据路由认证要求读取登录令牌
+
+        :param request: 当前请求对象
+        :return: 登录令牌，公开路由返回None
+        """
+        mode = AuthPolicy.get_auth_mode(request, (LoginService.get_current_user, oauth2_scheme))
+        if mode == 'excluded':
+            return None
+        if mode == 'pre_auth' and not request.headers.get('Authorization'):
+            raise AuthException(data='', message='用户未登录，请先完成登录')
+        try:
+            return await super().__call__(request)
+        except HTTPException as exc:
+            if mode == 'pre_auth':
+                raise AuthException(data='', message='用户token已失效，请重新登录') from exc
+            raise
+
+
+oauth2_scheme = PreAuthOAuth2PasswordBearer(tokenUrl='login', scheme_name='OAuth2PasswordBearer')
 _SESSION_RENEW_SCRIPT = """
 if redis.call('get', KEYS[1]) ~= ARGV[1] then
     return 0
@@ -153,18 +180,22 @@ class LoginService:
     async def get_current_user(
         cls,
         request: Request = Request,
-        token: str = Depends(oauth2_scheme),
+        token: str | None = Depends(oauth2_scheme),
         query_db: AsyncSession = DBSessionDependency(),
-    ) -> CurrentUserModel:
+    ) -> CurrentUserModel | None:
         """
         根据token获取当前用户信息
 
         :param request: Request对象
         :param token: 用户token
         :param query_db: orm对象
-        :return: 当前用户信息对象
+        :return: 当前用户信息对象，公开路由返回None
         :raise: 令牌异常AuthException
         """
+        if token is None:
+            if AuthPolicy.get_auth_mode(request, (cls.get_current_user, oauth2_scheme)) == 'excluded':
+                return None
+            raise AuthException(data='', message='用户未登录，请先完成登录')
         return await cls._resolve_current_user(request, token, query_db, refresh_session=True)
 
     @classmethod

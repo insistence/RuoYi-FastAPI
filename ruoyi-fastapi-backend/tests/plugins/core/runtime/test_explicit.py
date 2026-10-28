@@ -14,6 +14,8 @@ from starlette import status
 from starlette.types import Receive, Scope, Send
 
 from common.aspect.db_session import get_db_session_provider
+from common.context import RequestContext
+from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
 from module_admin.service.login_service import LoginService
 from plugins.core.discovery.registry import PluginRegistry, RegisteredPlugin
 from plugins.core.discovery.scanner import PluginScanner
@@ -165,6 +167,72 @@ def create_plugin(host):
         assert (metric.started, metric.active, metric.succeeded, metric.rejected) == (2, 0, 1, 1)
     finally:
         await runtime.shutdown()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('override_dependency', [False, True])
+async def test_router_and_endpoint_share_current_user_dependency(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, override_dependency: bool
+) -> None:
+    source = """
+from fastapi import APIRouter, Depends, Request
+from common.aspect.pre_auth import CurrentUserDependency, PreAuthDependency
+from module_admin.service.login_service import LoginService
+from plugins.core.sdk import PluginDefinition
+def create_plugin(host):
+    router = APIRouter(
+        prefix='/runtime_test',
+        dependencies=[PreAuthDependency([{'path': '/runtime_test/info'}])],
+    )
+    @router.get('/info')
+    async def info(
+        request: Request,
+        current_user=CurrentUserDependency(),
+        direct_user=Depends(LoginService.get_current_user),
+    ):
+        return {
+            'sameUser': current_user is direct_user is request.state.plugin_context.user,
+            'permissions': current_user.permissions,
+        }
+    return PluginDefinition(routers=(router,))
+"""
+    plugin = write_plugin(tmp_path, source=source, integration='router')
+    app = FastAPI()
+    app.dependency_overrides[get_db_session_provider(None)] = object
+    user = CurrentUserModel(
+        permissions=['runtime_test:view'], roles=['reader'], user=UserInfoModel(userId=7, userName='tester')
+    )
+    resolver = AsyncMock(return_value=user)
+    monkeypatch.setattr(LoginService, '_resolve_current_user', resolver)
+    override_calls = []
+
+    async def current_user() -> CurrentUserModel:
+        override_calls.append(user)
+        return user
+
+    if override_dependency:
+        app.dependency_overrides[LoginService.get_current_user] = current_user
+    runtime = ExplicitPluginRuntime(SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True)))
+    runtime.prepare(plugin, app, startup_write_enabled=False)
+    try:
+        await runtime.activate('runtime_test', app)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+            if not override_dependency:
+                missing = await client.get('/runtime_test/info')
+                assert missing.status_code == status.HTTP_401_UNAUTHORIZED
+                resolver.assert_not_awaited()
+            headers = {} if override_dependency else {'Authorization': 'Bearer test'}
+            response = await client.get('/runtime_test/info', headers=headers)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'sameUser': True, 'permissions': ['runtime_test:view']}
+        if override_dependency:
+            assert override_calls == [user]
+            resolver.assert_not_awaited()
+        else:
+            resolver.assert_awaited_once()
+    finally:
+        await runtime.shutdown()
+        RequestContext.clear_all()
 
 
 def test_dependency_cycle_and_missing_dependency_do_not_block_independent_plugin(tmp_path: Path) -> None:
