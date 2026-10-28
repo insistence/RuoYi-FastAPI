@@ -63,7 +63,7 @@ class JwtSettings(BaseSettings):
     jwt_secret_key: str = Field(default_factory=lambda: secrets.token_hex(32))
     jwt_algorithm: str = 'HS256'
     jwt_expire_minutes: int = 1440
-    jwt_redis_expire_minutes: int = 30
+    jwt_redis_expire_minutes: int = Field(default=30, gt=0)
 
     @field_validator('jwt_secret_key', mode='before')
     @classmethod

@@ -211,7 +211,7 @@ async def logout(request: Request, token: Annotated[str | None, Depends(oauth2_s
         token_id: str = payload.get('session_id')
     else:
         token_id: str = payload.get('user_id')
-    await LoginService.logout_services(request, token_id)
+    await LoginService.logout_services(request, token_id, token)
     logger.info('退出成功')
 
     return ResponseUtil.success(msg='退出成功')

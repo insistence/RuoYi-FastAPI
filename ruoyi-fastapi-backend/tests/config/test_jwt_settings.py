@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from pydantic import ValidationError
 
 from config.env import JwtSettings
 
@@ -37,3 +38,27 @@ def test_configured_jwt_secret_key_is_preserved(monkeypatch: pytest.MonkeyPatch)
 
     token_hex.assert_not_called()
     assert settings.jwt_secret_key == configured_secret
+
+
+@pytest.mark.parametrize('minutes', [0, -1])
+def test_redis_session_expiration_rejects_nonpositive_minutes(minutes: int) -> None:
+    """会话续期时间必须为正数，避免EXPIRE删除会话后仍被视为续期成功。"""
+    with pytest.raises(ValidationError, match='jwt_redis_expire_minutes'):
+        JwtSettings(jwt_redis_expire_minutes=minutes)
+
+
+@pytest.mark.parametrize('minutes', ['0', '-1'])
+def test_redis_session_expiration_rejects_invalid_environment(monkeypatch: pytest.MonkeyPatch, minutes: str) -> None:
+    """环境变量中的非法会话有效期应在加载配置时被拒绝。"""
+    monkeypatch.setenv('JWT_REDIS_EXPIRE_MINUTES', minutes)
+
+    with pytest.raises(ValidationError, match='jwt_redis_expire_minutes'):
+        JwtSettings()
+
+
+@pytest.mark.parametrize('minutes', ['1', '30'])
+def test_redis_session_expiration_accepts_positive_environment(monkeypatch: pytest.MonkeyPatch, minutes: str) -> None:
+    """保留合法环境变量的分钟单位和取值。"""
+    monkeypatch.setenv('JWT_REDIS_EXPIRE_MINUTES', minutes)
+
+    assert JwtSettings().jwt_redis_expire_minutes == int(minutes)

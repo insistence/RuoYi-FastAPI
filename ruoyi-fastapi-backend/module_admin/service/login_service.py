@@ -36,6 +36,18 @@ from utils.pwd_util import PwdUtil
 from utils.time_util import TimezoneUtil
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
+_SESSION_RENEW_SCRIPT = """
+if redis.call('get', KEYS[1]) ~= ARGV[1] then
+    return 0
+end
+return redis.call('expire', KEYS[1], ARGV[2])
+"""
+_SESSION_LOGOUT_SCRIPT = """
+if redis.call('get', KEYS[1]) ~= ARGV[1] then
+    return 0
+end
+return redis.call('del', KEYS[1])
+"""
 
 
 class CustomOAuth2PasswordRequestForm(OAuth2PasswordRequestForm):
@@ -160,7 +172,7 @@ class LoginService:
         cls, request: Request, token: str, query_db: AsyncSession
     ) -> CurrentUserModel:
         """
-        插件 Cookie 只验证主会话，不通过 GET/SET 续期复活并发退出的登录。
+        插件 Cookie 只验证主会话，不续期主登录会话。
 
         :param request: 当前插件请求
         :param token: 插件会话绑定的宿主登录凭证
@@ -182,9 +194,6 @@ class LoginService:
         :param refresh_session: 是否续期宿主主登录会话
         :return: 通过宿主身份及实时权限校验的当前用户
         """
-        # if token[:6] != 'Bearer':
-        #     logger.warning("用户token不合法")
-        #     raise AuthException(data="", message="用户token不合法")
         try:
             if token.startswith('Bearer '):
                 token = token.removeprefix('Bearer ').strip()
@@ -198,67 +207,74 @@ class LoginService:
         except (TypeError, ValueError) as e:
             logger.warning('用户token已失效，请重新登录')
             raise AuthException(data='', message='用户token已失效，请重新登录') from e
-        query_user = await UserDao.get_user_by_id(query_db, user_id=token_data.user_id)
-        if query_user.get('user_basic_info') is None:
-            logger.warning('用户token不合法')
-            raise AuthException(data='', message='用户token不合法')
-        if AppConfig.app_same_time_login:
-            redis_token = await request.app.state.redis.get(f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id}')
+        redis = request.app.state.redis
+        token_key = f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id if AppConfig.app_same_time_login else token_data.user_id}'
+        redis_token = await redis.get(token_key)
+        if token != redis_token:
+            logger.warning('用户token已失效，请重新登录')
+            raise AuthException(data='', message='用户token已失效，请重新登录')
+
+        current_user = await cls._get_current_user_from_db(query_db, token_data.user_id)
+        # 密码策略及过期状态在本次鉴权时计算
+        current_user.app_timezone = AppConfig.app_timezone
+        current_user.pwd_chrtype = await cls.get_sys_account_chrtype(request)
+        current_user.is_default_modify_pwd = await cls.__init_password_is_modify(
+            request, current_user.user.pwd_update_date
+        )
+        current_user.is_password_expired = await cls.__password_is_expired(request, current_user.user.pwd_update_date)
+        if refresh_session:
+            # 原子校验令牌并续期，避免旧请求覆盖并发登录的新令牌或恢复已退出的会话
+            session_valid = (
+                await redis.eval(
+                    _SESSION_RENEW_SCRIPT,
+                    1,
+                    token_key,
+                    token,
+                    JwtConfig.jwt_redis_expire_minutes * 60,
+                )
+                == 1
+            )
         else:
-            # 此方法可实现同一账号同一时间只能登录一次
-            redis_token = await request.app.state.redis.get(
-                f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{query_user.get("user_basic_info").user_id}'
-            )
-        if token == redis_token:
-            if refresh_session and AppConfig.app_same_time_login:
-                await request.app.state.redis.set(
-                    f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id}',
-                    redis_token,
-                    ex=timedelta(minutes=JwtConfig.jwt_redis_expire_minutes),
-                )
-            elif refresh_session:
-                await request.app.state.redis.set(
-                    f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{query_user.get("user_basic_info").user_id}',
-                    redis_token,
-                    ex=timedelta(minutes=JwtConfig.jwt_redis_expire_minutes),
-                )
+            # 插件不续期主会话，查询用户后仍需复核令牌，避免接受期间已退出或替换的会话
+            session_valid = await redis.get(token_key) == token
+        if not session_valid:
+            logger.warning('用户token已失效，请重新登录')
+            raise AuthException(data='', message='用户token已失效，请重新登录')
+        RequestContext.set_current_user(current_user)
+        return current_user
 
-            role_id_list = [item.role_id for item in query_user.get('user_role_info')]
-            if 1 in role_id_list:  # noqa: SIM108
-                permissions = ['*:*:*']
-            else:
-                permissions = [row.perms for row in query_user.get('user_menu_info')]
-            post_ids = ','.join([str(row.post_id) for row in query_user.get('user_post_info')])
-            role_ids = ','.join([str(row.role_id) for row in query_user.get('user_role_info')])
-            roles = [row.role_key for row in query_user.get('user_role_info')]
-            is_default_modify_pwd = await cls.__init_password_is_modify(
-                request, query_user.get('user_basic_info').pwd_update_date
-            )
-            is_password_expired = await cls.__password_is_expired(
-                request, query_user.get('user_basic_info').pwd_update_date
-            )
-            pwd_chrtype = await cls.get_sys_account_chrtype(request)
+    @classmethod
+    async def _get_current_user_from_db(cls, query_db: AsyncSession, user_id: int) -> CurrentUserModel:
+        """
+        查询当前用户资料和权限
 
-            current_user = CurrentUserModel(
-                permissions=permissions,
-                roles=roles,
-                appTimezone=AppConfig.app_timezone,
-                user=UserInfoModel(
-                    **CamelCaseUtil.transform_result(query_user.get('user_basic_info')),
-                    postIds=post_ids,
-                    roleIds=role_ids,
-                    dept=CamelCaseUtil.transform_result(query_user.get('user_dept_info')),
-                    role=CamelCaseUtil.transform_result(query_user.get('user_role_info')),
-                ),
-                pwdChrtype=pwd_chrtype,
-                isDefaultModifyPwd=is_default_modify_pwd,
-                isPasswordExpired=is_password_expired,
-            )
-            # 设置当前用户信息到上下文
-            RequestContext.set_current_user(current_user)
-            return current_user
-        logger.warning('用户token已失效，请重新登录')
-        raise AuthException(data='', message='用户token已失效，请重新登录')
+        :param query_db: orm对象
+        :param user_id: 用户id
+        :return: 当前用户信息对象
+        """
+        query_user = await UserDao.get_user_by_id(query_db, user_id=user_id, for_auth=True)
+        basic_info = query_user.get('user_basic_info')
+        if basic_info is None:
+            raise AuthException(data='', message='用户token不合法')
+
+        roles = query_user.get('user_role_info') or []
+        user_info = CamelCaseUtil.transform_result(basic_info)
+        # 当前用户资料不返回密码哈希，密码校验单独查询数据库
+        user_info.pop('password', None)
+        current_user = CurrentUserModel(
+            permissions=['*:*:*']
+            if any(role.role_id == 1 for role in roles)
+            else [menu.perms for menu in query_user.get('user_menu_info') or []],
+            roles=[role.role_key for role in roles],
+            user=UserInfoModel(
+                **user_info,
+                postIds=','.join(str(post.post_id) for post in query_user.get('user_post_info') or []),
+                roleIds=','.join(str(role.role_id) for role in roles),
+                dept=CamelCaseUtil.transform_result(query_user.get('user_dept_info')),
+                role=CamelCaseUtil.transform_result(roles),
+            ),
+        )
+        return current_user
 
     @classmethod
     async def get_sys_account_chrtype(cls, request: Request) -> str:
@@ -530,17 +546,19 @@ class LoginService:
         return CrudResponseModel(**result)
 
     @classmethod
-    async def logout_services(cls, request: Request, token_id: str) -> bool:
+    async def logout_services(cls, request: Request, token_id: str, token: str) -> bool:
         """
         退出登录services
 
         :param request: Request对象
         :param token_id: 令牌编号
+        :param token: 当前请求携带的登录令牌
         :return: 退出登录结果
         """
-        await request.app.state.redis.delete(f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{token_id}')
-        # await request.app.state.redis.delete(f'{current_user.user.user_id}_access_token')
-        # await request.app.state.redis.delete(f'{current_user.user.user_id}_session_id')
+        # 原子校验令牌并删除会话，避免旧令牌退出时删除并发登录的新会话
+        await request.app.state.redis.eval(
+            _SESSION_LOGOUT_SCRIPT, 1, f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{token_id}', token
+        )
 
         return True
 
