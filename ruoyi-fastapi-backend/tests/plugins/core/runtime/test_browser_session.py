@@ -364,14 +364,14 @@ async def test_real_plugin_login_resolution_does_not_refresh_or_restore_main_ses
         ),
     )
     # 不替换 _resolve_current_user，验证真实 JWT、用户模型和权限构造路径。
-    user = await LoginService.get_current_user_for_plugin_session(request, token, object())
-    assert user.user.user_id == user_id
-    assert user.permissions == ['demo:view']
-    set_spy.assert_not_awaited()
-    assert redis.deadlines[key] == deadline
     if logout_after_read:
-        assert key not in redis.values
         with pytest.raises(AuthException):
             await LoginService.get_current_user_for_plugin_session(request, token, object())
+        assert key not in redis.values
     else:
+        user = await LoginService.get_current_user_for_plugin_session(request, token, object())
+        assert user.user.user_id == user_id
+        assert user.permissions == ['demo:view']
         assert redis.values[key] == token
+    set_spy.assert_not_awaited()
+    assert redis.deadlines[key] == deadline

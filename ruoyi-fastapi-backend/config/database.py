@@ -1,14 +1,16 @@
 import asyncio
 import logging
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cache
 from typing import Any, TypeVar, cast
 
+import anyio
+import anyio.lowlevel
 from pydantic import SecretStr
-from sqlalchemy import URL, Engine, create_engine, text
+from sqlalchemy import URL, Engine, create_engine, event, inspect, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
@@ -18,9 +20,14 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, FromStatement, ORMExecuteState, Session, SessionTransaction, sessionmaker
+from sqlalchemy.sql import operators, visitors
+from sqlalchemy.sql.dml import UpdateBase
+from sqlalchemy.sql.elements import BinaryExpression, BindParameter, BooleanClauseList, TextClause
+from sqlalchemy.sql.selectable import Alias, Join, TextualSelect
+from sqlalchemy.util import await_only
 
-from config.env import DataBaseConfig, DataBaseSettings, DataSourceSettings
+from config.env import AppConfig, DataBaseConfig, DataBaseSettings, DataSourceSettings
 from exceptions.exception import (
     DataSourceException,
     DataSourceInitializationException,
@@ -295,6 +302,292 @@ def create_sync_db_engine(
     )
 
 
+class CurrentUserCacheSession(Session):
+    """
+    登记当前用户资料和权限变更，在事务提交后使缓存失效
+    """
+
+    _USER_TABLES = frozenset({'sys_user', 'sys_user_role', 'sys_user_post'})
+    _SHARED_TABLES = frozenset({'sys_role', 'sys_menu', 'sys_dept', 'sys_post', 'sys_role_menu', 'sys_role_dept'})
+    _CHANGE_KEY = 'current_user_cache_changes'
+    _REDIS_KEY = 'current_user_cache_redis'
+    _INVALIDATE_TIMEOUT_SECONDS = 0.3
+    _CLOSE_TIMEOUT_SECONDS = 0.2
+
+    @staticmethod
+    def _table_names(table: Any) -> set[str]:
+        """
+        解析别名和多表更新目标中的原始表名
+
+        :param table: SQLAlchemy写入目标
+        :return: 原始表名集合
+        """
+        if isinstance(table, Alias):
+            return CurrentUserCacheSession._table_names(table.element)
+        if isinstance(table, Join):
+            return CurrentUserCacheSession._table_names(table.left) | CurrentUserCacheSession._table_names(table.right)
+        name = getattr(table, 'name', None)
+        return {name} if name is not None else set()
+
+    @staticmethod
+    def _has_unscoped_write(statement: Any) -> bool:
+        """
+        识别原生SQL和包装语句中无法精确定位用户的写入
+
+        :param statement: SQLAlchemy执行语句
+        :return: 是否需要全局失效
+        """
+        for element in visitors.iterate(statement):
+            raw_sql = element if element is statement else None
+            if isinstance(element, (FromStatement, TextualSelect)):
+                raw_sql = element.element
+            if isinstance(raw_sql, TextClause):
+                # 只识别完整SQL，WHERE等位置的文本片段不表示写入。
+                sql = raw_sql.text.lstrip().upper()
+                if not sql.startswith(('SELECT ', 'SELECT\n', 'SHOW ', 'PRAGMA ')):
+                    return True
+            if isinstance(element, UpdateBase) and element is not statement:
+                names = CurrentUserCacheSession._table_names(element.table)
+                if names & (CurrentUserCacheSession._USER_TABLES | CurrentUserCacheSession._SHARED_TABLES):
+                    return True
+        return False
+
+    def _record_cache_change(self, user_ids: set[int] | None) -> None:
+        """
+        按当前事务登记变更，None表示共享权限或无法确定用户范围
+
+        :param user_ids: 需要失效的用户ID集合
+        :return: None
+        """
+        transaction = self.get_nested_transaction() or self.get_transaction()
+        if transaction is None:
+            return
+        changes = self.info.setdefault(self._CHANGE_KEY, {})
+        if transaction not in changes:
+            changes[transaction] = user_ids
+        elif changes[transaction] is not None:
+            changes[transaction] = None if user_ids is None else changes[transaction] | user_ids
+
+    @classmethod
+    def _where_user_ids(cls, clause: Any, table_name: str, parameters: Any) -> set[int] | None:
+        """
+        仅识别明确的用户ID等值条件，复杂条件保守失效全部快照
+
+        :param clause: 更新或删除语句的条件
+        :param table_name: 目标表名
+        :param parameters: 执行参数
+        :return: 用户ID集合，无法确定时返回None
+        """
+        if isinstance(clause, BooleanClauseList) and clause.operator is operators.and_:
+            for item in clause.clauses:
+                ids = cls._where_user_ids(item, table_name, parameters)
+                if ids is not None:
+                    return ids
+            return None
+        if not isinstance(clause, BinaryExpression) or clause.operator not in (operators.eq, operators.in_op):
+            return None
+        column, value = clause.left, clause.right
+        if isinstance(column, BindParameter) and clause.operator is operators.eq:
+            column, value = value, column
+        if (
+            getattr(column, 'name', None) != 'user_id'
+            or getattr(getattr(column, 'table', None), 'name', None) != table_name
+            or not isinstance(value, BindParameter)
+            or value.callable is not None
+        ):
+            return None
+        parameter_sets = parameters if isinstance(parameters, (list, tuple)) else [parameters or {}]
+        user_ids = set()
+        for item in parameter_sets:
+            if not isinstance(item, Mapping):
+                return None
+            raw = item.get(value.key, value.value)
+            values = raw if clause.operator is operators.in_op and isinstance(raw, (list, tuple, set)) else [raw]
+            if not all(isinstance(user_id, int) and not isinstance(user_id, bool) for user_id in values):
+                return None
+            user_ids.update(values)
+        return user_ids
+
+    async def _invalidate_cache(self, user_ids: set[int] | None) -> None:
+        """
+        提交完成后轮换缓存版本，Redis异常由短时硬过期兜底
+
+        :param user_ids: 需要失效的用户ID集合，None表示全部用户
+        :return: None
+        """
+        from config.get_redis import RedisUtil  # noqa: PLC0415
+        from utils.cache_util import CurrentUserCacheUtil  # noqa: PLC0415
+
+        redis = self.info.get(self._REDIS_KEY)
+        owns_redis = redis is None
+        try:
+            # 限制提交后的缓存失效等待时间，超时后仍需完成连接清理。
+            with anyio.fail_after(self._INVALIDATE_TIMEOUT_SECONDS):
+                namespace = CurrentUserCacheUtil.namespace_for_bind(self.get_bind())
+                if namespace is None:
+                    return
+                if owns_redis:
+                    redis = await RedisUtil.create_redis_pool(log_enabled=False, log_start_enabled=False)
+                await CurrentUserCacheUtil.invalidate(redis, namespace, user_ids)
+        except Exception as exc:
+            logger.warning(f'当前用户缓存失效失败，将等待缓存过期：{type(exc).__name__}')
+        finally:
+            if owns_redis and redis is not None:
+                try:
+                    # 外层取消不能反复中断资源清理，关闭仍受自身超时限制。
+                    with anyio.fail_after(self._CLOSE_TIMEOUT_SECONDS, shield=True):
+                        await redis.aclose()
+                except Exception as exc:
+                    logger.warning(f'关闭当前用户缓存连接失败：{type(exc).__name__}')
+        # 关闭期间被屏蔽的外层取消仍需交还调用方。
+        await anyio.lowlevel.checkpoint_if_cancelled()
+
+
+@event.listens_for(CurrentUserCacheSession, 'do_orm_execute', retval=True)
+def _track_current_user_statement(state: ORMExecuteState) -> Any:
+    """
+    登记成功执行的用户及权限写入，覆盖ORM批量操作和Core语句
+
+    :param state: 当前SQL执行状态
+    :return: 原语句执行结果
+    """
+    result = state.invoke_statement()
+    if not AppConfig.app_current_user_cache_enabled:
+        return result
+    try:
+        statement = state.statement
+        if CurrentUserCacheSession._has_unscoped_write(statement):
+            state.session._record_cache_change(None)
+        elif state.is_insert or state.is_update or state.is_delete:
+            target = getattr(statement, 'table', None)
+            table_names = CurrentUserCacheSession._table_names(target)
+            table_name = next(iter(table_names)) if len(table_names) == 1 else None
+            if table_names & CurrentUserCacheSession._SHARED_TABLES or (
+                isinstance(target, (Alias, Join)) and table_names & CurrentUserCacheSession._USER_TABLES
+            ):
+                # 别名及多表写入的WHERE可能引用其他表，不能据此缩小目标用户范围。
+                state.session._record_cache_change(None)
+            elif table_name in CurrentUserCacheSession._USER_TABLES:
+                ids = CurrentUserCacheSession._where_user_ids(
+                    getattr(statement, 'whereclause', None), table_name, state.parameters
+                )
+                bulk_entity = None
+                if (
+                    state.is_update
+                    and state.is_orm_statement
+                    and isinstance(state.parameters, list)
+                    and state.execution_options.get('dml_strategy') in (None, 'auto', 'bulk')
+                ):
+                    try:
+                        bulk_entity = statement.entity_description.get('entity')
+                    except (AttributeError, KeyError):
+                        pass
+                assigned_columns = list(getattr(statement, '_values', None) or {})
+                assigned_columns.extend(column for column, _value in getattr(statement, '_ordered_values', None) or ())
+                if state.is_update and any(getattr(column, 'key', column) == 'user_id' for column in assigned_columns):
+                    # 用户归属变更需覆盖新旧用户，自定义绑定及表达式不能只按参数名判断。
+                    ids = None
+                elif bulk_entity is not None:
+                    # ORM批量更新会自动附加主键条件，用户资料和登录时间更新走此路径。
+                    values = [item.get('user_id') for item in state.parameters]
+                    ids = (
+                        set(values)
+                        if all(isinstance(value, int) and not isinstance(value, bool) for value in values)
+                        else None
+                    )
+                elif state.is_update and (
+                    'user_id' in statement.compile().params
+                    or any(
+                        isinstance(parameters, Mapping) and 'user_id' in parameters
+                        for parameters in (
+                            state.parameters if isinstance(state.parameters, (list, tuple)) else [state.parameters]
+                        )
+                    )
+                ):
+                    # 修改主键或未知用户范围时不能只失效原用户。
+                    ids = None
+                state.session._record_cache_change(ids)
+    except Exception as exc:
+        # SQL已执行成功，范围分析失败不能改变业务结果。
+        logger.warning(f'当前用户缓存变更范围分析失败，将失效全部快照：{type(exc).__name__}')
+        state.session._record_cache_change(None)
+    return result
+
+
+@event.listens_for(CurrentUserCacheSession, 'before_flush')
+def _track_current_user_flush(session: CurrentUserCacheSession, _context: Any, _instances: Any) -> None:
+    """
+    登记ORM对象变更，覆盖直接修改用户和权限模型的入口
+
+    :param session: 当前数据库会话
+    :param _context: 刷新上下文
+    :param _instances: 刷新对象
+    :return: None
+    """
+    if not AppConfig.app_current_user_cache_enabled:
+        return
+    for instance in session.new | session.dirty | session.deleted:
+        state = inspect(instance)
+        table_name = state.mapper.local_table.name
+        if instance in session.dirty and not session.is_modified(instance, include_collections=False):
+            continue
+        if table_name in CurrentUserCacheSession._USER_TABLES:
+            user_id = getattr(instance, 'user_id', None)
+            if user_id is None:
+                session._record_cache_change(None)
+            else:
+                previous_ids = state.attrs.user_id.history.deleted
+                session._record_cache_change({user_id, *previous_ids})
+        elif table_name in CurrentUserCacheSession._SHARED_TABLES:
+            session._record_cache_change(None)
+
+
+@event.listens_for(CurrentUserCacheSession, 'after_commit')
+def _invalidate_current_user_cache(session: CurrentUserCacheSession) -> None:
+    """
+    保存点提交只合并记录，最外层提交后才执行缓存失效
+
+    :param session: 当前数据库会话
+    :return: None
+    """
+    try:
+        transaction = session.get_nested_transaction() or session.get_transaction()
+        changes = session.info.get(session._CHANGE_KEY, {})
+        if transaction not in changes:
+            return
+        user_ids = changes.pop(transaction)
+        if transaction.nested:
+            parent = transaction.parent
+            if parent not in changes:
+                changes[parent] = user_ids
+            elif changes[parent] is not None:
+                changes[parent] = None if user_ids is None else changes[parent] | user_ids
+            return
+        session.info.pop(session._CHANGE_KEY, None)
+        if user_ids != set():
+            await_only(session._invalidate_cache(user_ids))
+    except Exception as exc:
+        # 数据库已提交，缓存监听器异常不能改变提交结果，取消仍向上传播。
+        session.info.pop(session._CHANGE_KEY, None)
+        logger.warning(f'当前用户缓存提交监听失败，将等待缓存过期：{type(exc).__name__}')
+
+
+@event.listens_for(CurrentUserCacheSession, 'after_transaction_end')
+def _discard_current_user_changes(session: CurrentUserCacheSession, transaction: SessionTransaction) -> None:
+    """
+    清理已结束事务的记录，回滚和关闭会话不影响Redis缓存
+
+    :param session: 当前数据库会话
+    :param transaction: 已结束的事务
+    :return: None
+    """
+    changes = session.info.get(session._CHANGE_KEY)
+    if changes is not None:
+        changes.pop(transaction, None)
+        if not changes:
+            session.info.pop(session._CHANGE_KEY, None)
+
+
 def create_async_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     """
     创建异步Session工厂
@@ -302,7 +595,13 @@ def create_async_session_factory(engine: AsyncEngine) -> async_sessionmaker[Asyn
     :param engine: 异步SQLAlchemy Engine
     :return: 异步Session工厂
     """
-    return async_sessionmaker(bind=engine, autocommit=False, autoflush=False, expire_on_commit=False)
+    return async_sessionmaker(
+        bind=engine,
+        autocommit=False,
+        autoflush=False,
+        expire_on_commit=False,
+        sync_session_class=CurrentUserCacheSession,
+    )
 
 
 def create_sync_session_factory(engine: Engine) -> sessionmaker:
@@ -344,6 +643,16 @@ class _DataSourceRegistry:
         self._initialized = False
         self._log_enabled = True
         self._configs = dict(self.settings.db_sources)
+        self._cache_redis: Any | None = None
+
+    def set_cache_redis(self, redis: Any | None) -> None:
+        """
+        绑定应用生命周期管理的Redis，数据库会话只借用连接池
+
+        :param redis: 应用Redis客户端，None表示解除绑定
+        :return: None
+        """
+        self._cache_redis = redis
 
     def _resolve_name(self, name: str | None = None) -> str:
         """
@@ -591,6 +900,8 @@ class _DataSourceRegistry:
             session_options['bind'] = quiet_sql_engine(runtime.async_engine)
         try:
             async with factory(**session_options) as current_db:
+                if self._cache_redis is not None:
+                    current_db.info[CurrentUserCacheSession._REDIS_KEY] = self._cache_redis
                 yield current_db
         except DBAPIError as exc:
             if not exc.connection_invalidated:
@@ -605,6 +916,7 @@ class _DataSourceRegistry:
         :return: None
         """
         runtimes = tuple(self._runtimes.values())
+        self._cache_redis = None
         self._runtimes.clear()
         self._initialized = False
         for runtime in runtimes:

@@ -32,6 +32,8 @@ class AppSettings(BaseSettings):
     app_workers: int = 1
     app_ip_location_query: bool = True
     app_same_time_login: bool = True
+    app_current_user_cache_enabled: bool = True
+    app_current_user_cache_ttl_seconds: int = Field(default=5, ge=1, le=60)
     app_demo_mode: bool = False
     app_disable_swagger: bool = False
     app_disable_redoc: bool = False
@@ -63,7 +65,7 @@ class JwtSettings(BaseSettings):
     jwt_secret_key: str = Field(default_factory=lambda: secrets.token_hex(32))
     jwt_algorithm: str = 'HS256'
     jwt_expire_minutes: int = 1440
-    jwt_redis_expire_minutes: int = 30
+    jwt_redis_expire_minutes: int = Field(default=30, gt=0)
 
     @field_validator('jwt_secret_key', mode='before')
     @classmethod
