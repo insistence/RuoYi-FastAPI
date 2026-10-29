@@ -164,7 +164,7 @@ class AuthPolicy:
         :return: 前置认证、显式认证或排除认证
         """
         route = request.scope.get('route')
-        # include_router延迟注册时，父路由和插件追加的依赖在实际路由上下文中。
+        # FastAPI在include_router延迟注册时写入实际上下文，包含父路由和插件追加的依赖。
         context = request.scope.get('fastapi', {}).get('effective_route_context')
         if context is not None and context.original_route is route:
             route = context

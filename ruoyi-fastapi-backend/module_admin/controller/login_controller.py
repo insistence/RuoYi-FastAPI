@@ -103,7 +103,6 @@ async def login(
     description='用于获取当前登录用户的信息',
     response_model=DynamicResponseModel[CurrentUserModel],
 )
-@ApiCache(namespace=ApiNamespace.LOGIN_USER_INFO)
 async def get_login_user_info(
     request: Request, current_user: Annotated[CurrentUserModel, CurrentUserDependency()]
 ) -> Response:

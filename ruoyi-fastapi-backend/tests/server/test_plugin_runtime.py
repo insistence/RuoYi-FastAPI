@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
+from config.database import DataSourceRegistry
 from config.env import AppConfig
 from plugins.core.runtime.application import (
     get_plugin_application_runtime as get_runtime_plugin_application_runtime,
@@ -153,7 +154,7 @@ async def test_lifespan_only_application_leader_outputs_banner_and_addresses() -
         patch('server.logger', fake_logger),
     ):
         async with lifespan(app):
-            pass
+            assert DataSourceRegistry._cache_redis is redis
 
     start_renewal.assert_called_once_with(redis)
     initialize_runtime.assert_awaited_once_with(app, application_leader=True)
@@ -170,6 +171,7 @@ async def test_lifespan_only_application_leader_outputs_banner_and_addresses() -
     )
     fake_logger.complete.assert_awaited_once_with()
     shutdown_runtime.assert_awaited_once_with(app)
+    assert DataSourceRegistry._cache_redis is None
 
 
 @pytest.mark.asyncio
@@ -303,6 +305,7 @@ async def test_shutdown_application_runtime_preserves_cleanup_order() -> None:
         events.append('scheduler')
 
     async def record_redis_shutdown(_app: object) -> None:
+        assert DataSourceRegistry._cache_redis is None
         events.append('redis')
 
     async def record_database_shutdown() -> None:
@@ -312,6 +315,7 @@ async def test_shutdown_application_runtime_preserves_cleanup_order() -> None:
         events.append('logs')
 
     plugin_runtime.shutdown = AsyncMock(side_effect=record_plugin_shutdown)
+    DataSourceRegistry.set_cache_redis(app.state.redis)
     with (
         patch('server.get_plugin_application_runtime', return_value=plugin_runtime),
         patch(

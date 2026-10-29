@@ -166,14 +166,14 @@ async def authenticate_browser_session(
     request: Request, *, plugin_id: str, version: str, query_db: Any, websocket: bool = False
 ) -> Any:
     """
-    每次使用时回查宿主 token，再复用原有登录服务获取实时用户和权限。
+    每次使用时回查宿主 token，再复用原有登录服务获取用户和权限。
 
     :param request: 携带插件 Cookie 的请求
     :param plugin_id: 插件 ID
     :param version: 当前插件版本
     :param query_db: 用于查询用户及权限的数据库会话
     :param websocket: 是否按 WebSocket 请求执行来源校验
-    :return: 通过宿主身份及实时权限校验的当前用户
+    :return: 通过宿主身份及权限校验的当前用户
     """
     cookie = request.cookies.get(f'{COOKIE_NAME_PREFIX}{plugin_id}', '')
     matched = COOKIE_PATTERN.fullmatch(cookie)

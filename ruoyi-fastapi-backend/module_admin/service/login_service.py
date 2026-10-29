@@ -5,7 +5,9 @@ from typing import Any
 
 from fastapi import Depends, Form, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy import Row
+from redis.asyncio import Redis
+from sqlalchemy import Engine, Row
+from sqlalchemy.exc import UnboundExecutionError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.aspect.db_session import DBSessionDependency
@@ -19,7 +21,9 @@ from exceptions.exception import AuthException, LoginException, ServiceException
 from module_admin.dao.user_dao import UserDao
 from module_admin.entity.do.dept_do import SysDept
 from module_admin.entity.do.menu_do import SysMenu
-from module_admin.entity.do.user_do import SysUser
+from module_admin.entity.do.post_do import SysPost
+from module_admin.entity.do.role_do import SysRole, SysRoleMenu
+from module_admin.entity.do.user_do import SysUser, SysUserPost, SysUserRole
 from module_admin.entity.vo.login_vo import MenuTreeModel, MetaModel, RouterModel, SmsCode, UserLogin, UserRegister
 from module_admin.entity.vo.user_vo import AddUserModel, CurrentUserModel, ResetUserModel, TokenData, UserInfoModel
 from module_admin.service.user_service import UserService
@@ -28,6 +32,7 @@ from module_identity.service.identity_service import (
     CredentialAuthenticationService,
 )
 from plugins.core.management.service.router_metadata import PluginRouterMetadataService
+from utils.cache_util import CurrentUserCacheUtil
 from utils.client_ip_util import ClientIPUtil
 from utils.common_util import CamelCaseUtil
 from utils.jwt_util import JwtUtil
@@ -208,7 +213,7 @@ class LoginService:
         :param request: 当前插件请求
         :param token: 插件会话绑定的宿主登录凭证
         :param query_db: 用于查询用户及权限的数据库会话
-        :return: 通过宿主身份及实时权限校验的当前用户
+        :return: 通过宿主身份及权限校验的当前用户
         """
         return await cls._resolve_current_user(request, token, query_db, refresh_session=False)
 
@@ -217,13 +222,13 @@ class LoginService:
         cls, request: Request, token: str, query_db: AsyncSession, *, refresh_session: bool
     ) -> CurrentUserModel:
         """
-        共享身份和实时权限校验，调用方明确是否续期主会话。
+        共享身份和权限校验，调用方明确是否续期主会话。
 
         :param request: 当前请求
         :param token: 宿主登录凭证
         :param query_db: 用于查询用户及权限的数据库会话
         :param refresh_session: 是否续期宿主主登录会话
-        :return: 通过宿主身份及实时权限校验的当前用户
+        :return: 通过宿主身份及权限校验的当前用户
         """
         try:
             if token.startswith('Bearer '):
@@ -245,7 +250,7 @@ class LoginService:
             logger.warning('用户token已失效，请重新登录')
             raise AuthException(data='', message='用户token已失效，请重新登录')
 
-        current_user = await cls._get_current_user_from_db(query_db, token_data.user_id)
+        current_user = await cls._get_current_user_snapshot(redis, query_db, token_data.user_id)
         # 密码策略及过期状态在本次鉴权时计算
         current_user.app_timezone = AppConfig.app_timezone
         current_user.pwd_chrtype = await cls.get_sys_account_chrtype(request)
@@ -272,6 +277,48 @@ class LoginService:
             logger.warning('用户token已失效，请重新登录')
             raise AuthException(data='', message='用户token已失效，请重新登录')
         RequestContext.set_current_user(current_user)
+        return current_user
+
+    @classmethod
+    async def _get_current_user_snapshot(cls, redis: Redis, query_db: AsyncSession, user_id: int) -> CurrentUserModel:
+        """
+        获取当前用户快照，已有事务继续使用调用方的查询语义
+
+        :param redis: Redis连接对象
+        :param query_db: orm对象
+        :param user_id: 用户id
+        :return: 本次鉴权使用的当前用户信息
+        """
+        # 已有事务或ORM对象可能包含未提交修改、旧快照，不参与跨请求缓存
+        if (
+            not AppConfig.app_current_user_cache_enabled
+            or not isinstance(query_db, AsyncSession)
+            or query_db.in_transaction()
+            or query_db.identity_map
+        ):
+            return await cls._get_current_user_from_db(query_db, user_id)
+        try:
+            bind = query_db.get_bind()
+        except UnboundExecutionError:
+            return await cls._get_current_user_from_db(query_db, user_id)
+        # 外部Connection可能已有未提交事务，多绑定会话也不能共用单一缓存命名空间
+        if not isinstance(bind, Engine) or any(
+            query_db.get_bind(mapper=model) is not bind
+            for model in (SysUser, SysDept, SysRole, SysPost, SysMenu, SysUserRole, SysUserPost, SysRoleMenu)
+        ):
+            return await cls._get_current_user_from_db(query_db, user_id)
+        namespace = CurrentUserCacheUtil.namespace_for_bind(bind)
+        if namespace is None:
+            return await cls._get_current_user_from_db(query_db, user_id)
+        current_user, ticket = await CurrentUserCacheUtil.read(
+            redis, namespace, user_id, AppConfig.app_current_user_cache_ttl_seconds
+        )
+        if current_user is not None:
+            return current_user
+        # 查询从新的事务快照开始；不提交或回滚调用方的数据库会话
+        current_user = await cls._get_current_user_from_db(query_db, user_id)
+        if ticket is not None:
+            await CurrentUserCacheUtil.write(redis, namespace, user_id, current_user, ticket)
         return current_user
 
     @classmethod

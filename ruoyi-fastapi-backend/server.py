@@ -59,6 +59,7 @@ async def _stop_background_tasks(app: FastAPI) -> None:
                     # Scheduler负责停止续期并释放Application租约，必须先于Redis连接池关闭。
                     await SchedulerManager.close_system_scheduler()
                 finally:
+                    DataSourceRegistry.set_cache_redis(None)
                     await RedisUtil.close_redis_pool(app)
         finally:
             await DataSourceRegistry.dispose_all()
@@ -188,6 +189,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.plugin_application_runtime_started = False
     try:
         app.state.redis = await RedisUtil.create_redis_pool(log_enabled=False)
+        DataSourceRegistry.set_cache_redis(app.state.redis)
         application_lock_owner_token = SchedulerManager.get_application_lock_owner_token()
         application_leader = await StartupUtil.acquire_application_leader(
             redis=app.state.redis,
@@ -228,7 +230,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await logger.complete()
         yield
     finally:
-        await _shutdown_application_runtime(app)
+        try:
+            await _shutdown_application_runtime(app)
+        finally:
+            DataSourceRegistry.set_cache_redis(None)
 
 
 def create_app() -> FastAPI:

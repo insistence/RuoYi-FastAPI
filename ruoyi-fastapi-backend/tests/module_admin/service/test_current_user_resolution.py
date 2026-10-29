@@ -66,6 +66,7 @@ class AuthenticationRedis(SessionRedis):
 @pytest_asyncio.fixture
 async def resolution_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[SimpleNamespace]:
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
+    monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', False)
     redis = AuthenticationRedis()
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "user-resolution.db"}')
     sessions = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
