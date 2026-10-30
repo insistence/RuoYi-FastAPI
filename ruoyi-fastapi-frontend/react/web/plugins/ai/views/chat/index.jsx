@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { i18n, t } from '@/i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert,
@@ -62,6 +65,8 @@ const enabledField = {
   normalize: (value) => (value ? '0' : '1'),
 }
 export default function AiChat() {
+  useI18n()
+
   const [models, setModels] = useState([]),
     [modelId, setModelId] = useState(),
     [messages, setMessages] = useState([]),
@@ -80,6 +85,7 @@ export default function AiChat() {
     [reasoning, setReasoning] = useState(true),
     [uploading, setUploading] = useState(false),
     [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   const includeHistory = Form.useWatch('addHistoryToContext', form)
   const active = useRef(true),
     stream = useRef(),
@@ -191,19 +197,21 @@ export default function AiChat() {
   }
   async function deleteSession(id) {
     try {
-      await confirm('是否确认删除该会话？')
+      await confirm(t('plugin.ai:deleteThisConversation'))
       if (id === sessionId) await stop()
       await delChatSession(id)
       if (id === sessionId) await newChat()
-      message.success('删除成功')
+      message.success(t('plugin.ai:deletedSuccessfully'))
       loadSessions()
     } catch {}
   }
   async function send() {
+    const localeHeaders = i18n.headers
+    const t = i18n.engine.getFixedT(i18n.locale)
     const text = input.trim(),
       imageList = vision ? [...images] : []
     if (sending || uploading || historyLoading || (!text && !imageList.length)) return
-    if (!modelId) return message.error('请先选择模型')
+    if (!modelId) return message.error(t('plugin.ai:chooseAModelFirst'))
     const id = crypto.randomUUID(),
       controller = new AbortController(),
       current = { controller, runId: null }
@@ -240,6 +248,7 @@ export default function AiChat() {
       const response = await fetch(`${import.meta.env.VITE_APP_BASE_API}/ai/chat/send`, {
         method: 'POST',
         headers: {
+          ...localeHeaders,
           'Content-Type': 'application/json',
           Authorization: `Bearer ${getToken()}`,
           'X-Timezone': getDisplayTimezone(),
@@ -260,7 +269,11 @@ export default function AiChat() {
         try {
           body = await response.json()
         } catch {}
-        throw new Error(body?.msg || body?.detail || `请求失败（${response.status}）`)
+        throw new Error(
+          body?.msg ||
+            body?.detail ||
+            t('plugin.ai:requestFailedValue', { status: response.status })
+        )
       }
       await readChatStream(
         response.body,
@@ -285,12 +298,14 @@ export default function AiChat() {
               update({ metrics: event.metrics })
               break
             case 'error':
-              throw new Error(event.error || '生成失败')
+              throw new Error(event.error || t('plugin.ai:generationFailed'))
             default:
-              if (event.code && event.code !== 200) throw new Error(event.msg || '请求失败')
+              if (event.code && event.code !== 200)
+                throw new Error(event.msg || t('plugin.ai:requestFailed'))
           }
         },
-        controller.signal
+        controller.signal,
+        t
       )
     } catch (error) {
       if (error.name !== 'AbortError' && stream.current === current) {
@@ -315,12 +330,13 @@ export default function AiChat() {
     if (!vision || sending) return
     const files = Array.from(fileList || [])
     if (!files.length) return
-    if (files.length + images.length > 10) return message.error('最多只能上传 10 张图片')
+    if (files.length + images.length > 10)
+      return message.error(t('plugin.ai:youCanUploadUpTo10Images'))
     const limit = config.imageMaxSizeMb || 5
     if (files.some((file) => !file.type.startsWith('image/')))
-      return message.error('请选择图片文件')
+      return message.error(t('plugin.ai:chooseImageFiles'))
     if (files.some((file) => file.size > limit * 1024 * 1024))
-      return message.error(`单张图片大小不能超过 ${limit} MB`)
+      return message.error(t('plugin.ai:eachImageMustBeNoLargerThanValueMb', { limit }))
     setUploading(true)
     try {
       for (const file of files) {
@@ -332,7 +348,7 @@ export default function AiChat() {
           data: body,
           headers: { repeatSubmit: false },
         })
-        if (!result.fileName) throw new Error('服务器未返回图片地址')
+        if (!result.fileName) throw new Error(t('plugin.ai:theServerDidNotReturnAnImageUrl'))
         if (active.current) setImages((previous) => [...previous, result.fileName])
       }
     } catch (error) {
@@ -357,7 +373,7 @@ export default function AiChat() {
       })
       const result = await getUserChatConfig()
       setConfig({ ...defaults, ...result.data })
-      message.success('配置保存成功')
+      message.success(t('plugin.ai:settingsSaved'))
       setConfigOpen(false)
     } catch {
     } finally {
@@ -374,13 +390,13 @@ export default function AiChat() {
             icon={<PlusOutlined />}
             onClick={newChat}
           >
-            新建对话
+            {t('plugin.ai:newConversation')}
           </Button>
         </div>
         <div className="chat-session-list">
           <Spin spinning={sessionLoading}>
             <nav
-              aria-label="会话历史"
+              aria-label={t('plugin.ai:conversationHistory')}
               className="chat-sessions"
             >
               {sessions.map((session) => (
@@ -398,7 +414,9 @@ export default function AiChat() {
                       className="chat-session-icon"
                     />
                     <span className="chat-session-info">
-                      <span className="chat-session-title">{session.sessionTitle || '新对话'}</span>
+                      <span className="chat-session-title">
+                        {session.sessionTitle || t('plugin.ai:chat.newConversation')}
+                      </span>
                       <span className="chat-session-time">{parseTime(session.createdAt)}</span>
                     </span>
                   </button>
@@ -406,14 +424,16 @@ export default function AiChat() {
                     className="chat-session-delete"
                     type="text"
                     danger
-                    aria-label={`删除会话 ${session.sessionTitle || '新对话'}`}
+                    aria-label={t('plugin.ai:deleteConversationValue', {
+                      arg0: session.sessionTitle || t('plugin.ai:chat.newConversation'),
+                    })}
                     icon={<DeleteOutlined />}
                     onClick={() => deleteSession(session.sessionId)}
                   />
                 </div>
               ))}
               {!sessions.length && !sessionLoading && (
-                <div className="chat-empty-session">暂无历史对话</div>
+                <div className="chat-empty-session">{t('plugin.ai:noConversationHistory')}</div>
               )}
             </nav>
           </Spin>
@@ -421,22 +441,22 @@ export default function AiChat() {
       </aside>
       <main className="chat-main">
         <header className="chat-header">
-          <span className="chat-header-title">AI 智能助手</span>
+          <span className="chat-header-title">{t('plugin.ai:aiAssistant')}</span>
           <div className="chat-header-actions">
             <Tooltip
-              title="全局参数配置"
+              title={t('plugin.ai:globalSettings')}
               placement="bottom"
             >
               <Button
                 shape="circle"
-                aria-label="全局参数配置"
+                aria-label={t('plugin.ai:globalSettings')}
                 icon={<SettingOutlined />}
                 onClick={openConfig}
               />
             </Tooltip>
             <Select
-              aria-label="选择模型"
-              placeholder="选择模型"
+              aria-label={t('plugin.ai:chooseAModel')}
+              placeholder={t('plugin.ai:chooseAModel')}
               size="large"
               className="chat-model-select"
               value={modelId}
@@ -472,11 +492,11 @@ export default function AiChat() {
                   <div className="chat-welcome-icon">
                     <ChatIcon />
                   </div>
-                  <h2>你好！我是你的 AI 助手</h2>
+                  <h2>{t('plugin.ai:helloIAmYourAiAssistant')}</h2>
                   <p>
                     {models.length
-                      ? '请在下方输入问题开始对话...'
-                      : '暂无可用模型，请先在模型管理中配置模型。'}
+                      ? t('plugin.ai:enterAQuestionBelowToStartAConversation')
+                      : t('plugin.ai:noModelsAvailableConfigureAModelInModelManagement')}
                   </p>
                 </div>
               )}
@@ -492,7 +512,7 @@ export default function AiChat() {
                   />
                   <div className="chat-message-wrapper">
                     <div className="chat-message-sender">
-                      {item.role === 'user' ? '我' : 'AI 助手'}
+                      {item.role === 'user' ? t('plugin.ai:me') : t('plugin.ai:chat.aiAssistant')}
                       {item.createdAt && (
                         <span className="chat-message-time">{parseTime(item.createdAt)}</span>
                       )}
@@ -534,29 +554,29 @@ export default function AiChat() {
                     </div>
                     <div className="chat-message-footer">
                       <div className="chat-footer-actions">
-                        <Tooltip title="复制">
+                        <Tooltip title={t('plugin.ai:copy')}>
                           <Button
                             type="text"
                             size="small"
-                            aria-label="复制消息"
+                            aria-label={t('plugin.ai:copyMessage')}
                             icon={<CopyOutlined />}
                             disabled={!item.content}
                             onClick={() =>
                               navigator.clipboard
                                 .writeText(item.content)
-                                .then(() => message.success('复制成功'))
-                                .catch(() => message.error('复制失败'))
+                                .then(() => message.success(t('plugin.ai:copiedSuccessfully')))
+                                .catch(() => message.error(t('plugin.ai:copyFailed')))
                             }
                           />
                         </Tooltip>
                         {config.metricsDefaultVisible === '0' && item.metrics && (
                           <div className="chat-message-metrics">
                             {Object.entries({
-                              duration: '耗时',
-                              inputTokens: '输入',
-                              outputTokens: '输出',
-                              totalTokens: '总',
-                              reasoningTokens: '推理',
+                              duration: t('plugin.ai:duration'),
+                              inputTokens: t('plugin.ai:input'),
+                              outputTokens: t('plugin.ai:output'),
+                              totalTokens: t('plugin.ai:total'),
+                              reasoningTokens: t('plugin.ai:reasoning'),
                             })
                               .filter(([key]) => item.metrics[key] != null)
                               .map(([key, label]) => (
@@ -591,7 +611,7 @@ export default function AiChat() {
               onChange={(event) => setInput(event.target.value)}
               rows={3}
               disabled={sending || historyLoading}
-              placeholder="请输入您的问题... (Enter 发送，Shift + Enter 换行)"
+              placeholder={t('plugin.ai:enterYourQuestionEnterToSendShiftEnterFor')}
               onKeyDown={(event) => {
                 if (
                   event.key === 'Enter' &&
@@ -629,7 +649,7 @@ export default function AiChat() {
                       <Button
                         type="text"
                         size="small"
-                        aria-label={`移除图片 ${index + 1}`}
+                        aria-label={t('plugin.ai:removeImageValue', { arg0: index + 1 })}
                         icon={<DeleteOutlined />}
                         onClick={() =>
                           setImages((previous) => previous.filter((_, i) => i !== index))
@@ -643,11 +663,11 @@ export default function AiChat() {
             <div className="chat-input-actions">
               <div className="chat-input-left-actions">
                 {vision && (
-                  <Tooltip title="上传图片">
+                  <Tooltip title={t('plugin.ai:uploadImages')}>
                     <Button
                       type="text"
                       shape="circle"
-                      aria-label="上传图片"
+                      aria-label={t('plugin.ai:uploadImages')}
                       icon={<PictureOutlined />}
                       loading={uploading}
                       disabled={sending}
@@ -665,7 +685,7 @@ export default function AiChat() {
                     icon={<SvgIcon iconClass="deepthink" />}
                     onClick={() => setReasoning((value) => !value)}
                   >
-                    深度思考
+                    {t('plugin.ai:deepReasoning')}
                   </Button>
                 )}
               </div>
@@ -679,7 +699,7 @@ export default function AiChat() {
                 icon={sending ? <StopOutlined /> : <SendOutlined />}
                 onClick={sending ? stop : send}
               >
-                {sending ? '停止' : '发送'}
+                {sending ? t('plugin.ai:stop') : t('plugin.ai:send')}
               </Button>
             </div>
           </div>
@@ -695,12 +715,12 @@ export default function AiChat() {
       </main>
       <Modal
         className="chat-config-dialog"
-        title="用户全局配置"
+        title={t('plugin.ai:globalUserSettings')}
         open={configOpen}
         onCancel={() => setConfigOpen(false)}
         onOk={saveConfig}
-        okText="保存"
-        cancelText="取消"
+        okText={t('plugin.ai:save')}
+        cancelText={t('plugin.ai:cancel')}
         confirmLoading={saving}
         width={700}
         forceRender
@@ -722,11 +742,11 @@ export default function AiChat() {
             >
               <Form.Item
                 name="temperature"
-                label="默认温度"
+                label={t('plugin.ai:defaultTemperature')}
               >
                 <InputNumber
                   mode="spinner"
-                  placeholder="默认温度"
+                  placeholder={t('plugin.ai:defaultTemperature')}
                   min={0}
                   max={2}
                   step={0.1}
@@ -741,7 +761,7 @@ export default function AiChat() {
             >
               <Form.Item
                 name="addHistoryToContext"
-                label="附带历史消息"
+                label={t('plugin.ai:includeConversationHistory')}
                 {...enabledField}
               >
                 <Switch />
@@ -753,13 +773,13 @@ export default function AiChat() {
             >
               <Form.Item
                 name="numHistoryRuns"
-                label="历史消息轮数"
+                label={t('plugin.ai:historyRounds')}
                 hidden={includeHistory !== '0'}
                 rules={[{ required: includeHistory === '0' }]}
               >
                 <InputNumber
                   mode="spinner"
-                  placeholder="历史消息轮数"
+                  placeholder={t('plugin.ai:historyRounds')}
                   min={1}
                   max={20}
                   precision={0}
@@ -773,7 +793,7 @@ export default function AiChat() {
             >
               <Form.Item
                 name="metricsDefaultVisible"
-                label="默认显示指标"
+                label={t('plugin.ai:showMetricsByDefault')}
                 {...enabledField}
               >
                 <Switch />
@@ -785,7 +805,7 @@ export default function AiChat() {
             >
               <Form.Item
                 name="visionEnabled"
-                label="开启视觉功能"
+                label={t('plugin.ai:enableVision')}
                 {...enabledField}
               >
                 <Switch />
@@ -797,12 +817,12 @@ export default function AiChat() {
             >
               <Form.Item
                 name="imageMaxSizeMb"
-                label="图片最大大小"
+                label={t('plugin.ai:maximumImageSize')}
                 rules={[{ required: true }]}
               >
                 <InputNumber
                   mode="spinner"
-                  placeholder="图片大小"
+                  placeholder={t('plugin.ai:imageSize')}
                   min={1}
                   max={50}
                   precision={0}
@@ -814,10 +834,10 @@ export default function AiChat() {
           </Row>
           <Form.Item
             name="systemPrompt"
-            label="系统提示词"
+            label={t('plugin.ai:systemPrompt')}
           >
             <Input.TextArea
-              placeholder="设置全局系统提示词"
+              placeholder={t('plugin.ai:setTheGlobalSystemPrompt')}
               rows={4}
             />
           </Form.Item>

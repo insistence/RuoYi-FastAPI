@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { DatePicker, TimePicker } from 'antd'
 import dayjs from 'dayjs'
@@ -11,19 +13,23 @@ const calendarValue = (value) => (value ? dayjs.utc(value.replace(' ', 'T')) : n
 function wallTimeError(value, zone) {
   if (!value) return ''
   try {
-    return getWallTimeCandidates(value, zone).length ? '' : '该时间在此时区不存在，请重新选择'
+    return getWallTimeCandidates(value, zone).length
+      ? ''
+      : t('common:thisTimeDoesNotExistInTheSelectedTime')
   } catch {
-    return '请选择完整有效的日期和时间'
+    return t('common:selectACompleteValidDateAndTime')
   }
 }
 export default function BusinessDateTimePicker({
   value,
   onChange,
-  label = '日期时间',
+  label = t('common:dateAndTime'),
   timezone,
   style,
   ...props
 }) {
+  useI18n()
+
   const zone = timezone || getDisplayTimezone()
   const error = wallTimeError(value, zone)
   const date = value?.slice(0, 10) || '',
@@ -36,7 +42,7 @@ export default function BusinessDateTimePicker({
       <div className="business-datetime-input__fields">
         <DatePicker
           {...props}
-          aria-label={`${label}日期`}
+          aria-label={t('common:valueDate', { label })}
           format="YYYY-MM-DD"
           value={calendarValue(value)}
           showNow={false}
@@ -48,7 +54,7 @@ export default function BusinessDateTimePicker({
         <TimePicker
           disabled={props.disabled}
           size={props.size}
-          aria-label={`${label}时间`}
+          aria-label={t('common:valueTime', { label })}
           format="HH:mm:ss"
           value={calendarValue(value)}
           showNow={false}
@@ -77,12 +83,14 @@ export default function BusinessDateTimePicker({
 export function BusinessDateTimeRangePicker({
   value,
   onChange,
-  label = '日期时间范围',
+  label = t('common:dateAndTimeRange'),
   timezone,
   style,
-  separator = '至',
+  separator = t('common:to'),
   ...props
 }) {
+  useI18n()
+
   const error = (value || [])
     .map((item) => wallTimeError(item, timezone || getDisplayTimezone()))
     .find(Boolean)
@@ -99,7 +107,7 @@ export function BusinessDateTimeRangePicker({
         showTime
         aria-label={label}
         separator={separator}
-        placeholder={['开始时间', '结束时间']}
+        placeholder={[t('common:startTime'), t('common:endTime')]}
         status={error ? 'error' : undefined}
         style={{ width: '100%' }}
       />

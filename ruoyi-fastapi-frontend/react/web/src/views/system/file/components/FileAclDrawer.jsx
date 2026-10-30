@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import FileTag from './FileTag'
 import { TableAction } from '@/components/TableActions'
 import './style.css'
@@ -17,6 +19,8 @@ import { prepareTimeFields, serializeTimeFieldsForSubmit } from '@/utils/time'
 import { confirm, message } from '@/plugins/modal'
 
 export default function FileAclDrawer({ files, batch = false, onClose, onSuccess }) {
+  useI18n()
+
   const [entries, setEntries] = useState([]),
     [builtin, setBuiltin] = useState([]),
     [departments, setDepartments] = useState([]),
@@ -94,7 +98,8 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
     ])
   }
   async function save() {
-    if (entries.some((entry) => !entry.subjectId)) return message.warning('请选择完整的授权主体')
+    if (entries.some((entry) => !entry.subjectId))
+      return message.warning(t('system:selectACompletePermissionPrincipal'))
     setSaving(true)
     try {
       const payload = []
@@ -110,7 +115,9 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
         })
       }
       if (batch) {
-        await confirm(`将覆盖所选${files.length}个文件的全部授权，是否继续?`)
+        await confirm(
+          t('system:replaceAllPermissionsForTheValueSelectedFiles', { length: files.length })
+        )
         await batchSaveFileAcl({
           fileIds: files.map((file) => file.fileId).join(','),
           entries: payload,
@@ -118,7 +125,11 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
       } else {
         await saveFileAcl(files[0].fileId, { aclVersion: version, entries: payload })
       }
-      message.success(batch ? '文件权限批量保存成功' : '文件权限保存成功')
+      message.success(
+        batch
+          ? t('system:filePermissionsSavedForAllSelectedFiles')
+          : t('system:filePermissionsSaved')
+      )
       onSuccess()
       onClose()
     } catch {
@@ -131,8 +142,8 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
       rootClassName="file-drawer file-acl-drawer"
       title={
         batch
-          ? `批量授权 - ${files?.length || 0}个文件`
-          : `访问权限 - ${files?.[0]?.originalName || ''}`
+          ? t('system:batchPermissionsValueFiles', { arg0: files?.length || 0 })
+          : t('system:accessPermissionsValue', { arg0: files?.[0]?.originalName || '' })
       }
       open={!!files?.length}
       onClose={onClose}
@@ -148,9 +159,9 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
             disabled={loading}
             onClick={save}
           >
-            保 存
+            {t('system:save')}
           </Button>
-          <Button onClick={onClose}>取 消</Button>
+          <Button onClick={onClose}>{t('system:components.cancel')}</Button>
         </Space>
       }
     >
@@ -160,13 +171,13 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
         className="mb8"
         title={
           batch
-            ? '批量操作仅覆盖所选文件的显式授权；内置权限仍按各文件规则生效。'
-            : '内置权限只读展示；管理员和所有者不可被拒绝，启用的上传人权限可被匹配的显式拒绝覆盖。'
+            ? t('file:batchOperationsReplaceOnlyExplicitPermissionsOnSelectedFiles')
+            : t('file:builtInPermissionsAreReadOnlyAdministratorsAndOwners')
         }
       />
       {!batch && (
         <section className="permission-section">
-          <div className="permission-section__title">内置权限</div>
+          <div className="permission-section__title">{t('system:builtInPermissions')}</div>
           <Table
             rowKey="source"
             loading={loading}
@@ -176,7 +187,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
             scroll={{ x: 855 }}
             columns={[
               {
-                title: '权限来源',
+                title: t('system:permissionSource'),
                 align: 'center',
                 width: 110,
                 dataIndex: 'source',
@@ -185,19 +196,22 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
                     effect="plain"
                     type={{ admin: 'danger', owner: 'primary', uploader: 'warning' }[source]}
                   >
-                    {{ admin: '平台管理员', owner: '文件所有者', uploader: '文件上传人' }[source] ||
-                      source}
+                    {{
+                      admin: t('system:platformAdministrator'),
+                      owner: t('system:fileOwner'),
+                      uploader: t('system:fileUploader'),
+                    }[source] || source}
                   </FileTag>
                 ),
               },
               {
-                title: '权限主体',
+                title: t('system:permissionPrincipal'),
                 align: 'center',
                 width: 180,
                 render: (_, row) => row.subjectName || row.subjectId || '-',
               },
               {
-                title: '规则',
+                title: t('system:rule'),
                 align: 'center',
                 width: 110,
                 render: (_, row) => (
@@ -205,12 +219,12 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
                     effect="plain"
                     type={row.enabled ? 'success' : 'info'}
                   >
-                    {row.enabled ? '允许下载' : '已移除'}
+                    {row.enabled ? t('system:allowDownload') : t('file:removed')}
                   </FileTag>
                 ),
               },
               {
-                title: '拒绝覆盖',
+                title: t('system:denyTakesPrecedence'),
                 align: 'center',
                 width: 135,
                 render: (_, row) =>
@@ -219,25 +233,32 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
                       effect="plain"
                       type={row.denyOverridable ? 'warning' : 'info'}
                     >
-                      {row.denyOverridable ? '可以覆盖' : '不可覆盖'}
+                      {row.denyOverridable
+                        ? t('file:canBeOverridden')
+                        : t('file:cannotBeOverridden')}
                     </FileTag>
                   ) : (
                     '-'
                   ),
               },
-              { width: 320, title: '权限说明', dataIndex: 'description', ellipsis: true },
+              {
+                width: 320,
+                title: t('system:permissionDetails'),
+                dataIndex: 'description',
+                ellipsis: true,
+              },
             ]}
           />
         </section>
       )}
       <div className="permission-section__header">
-        <span className="permission-section__title">显式授权</span>
+        <span className="permission-section__title">{t('system:explicitPermissions')}</span>
         <Button
           className="ruoyi-plain-button"
           icon={<PlusOutlined />}
           onClick={addEntry}
         >
-          添加授权
+          {t('system:addPermission')}
         </Button>
       </div>
       <Table
@@ -245,22 +266,22 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
         loading={loading}
         dataSource={entries}
         pagination={false}
-        locale={{ emptyText: <Empty description="暂无数据" /> }}
+        locale={{ emptyText: <Empty description={t('layout:notices.noData')} /> }}
         scroll={{ x: 980 }}
         columns={[
           {
-            title: '主体类型',
+            title: t('system:principalType'),
             align: 'center',
             width: 125,
             render: (_, row) => (
               <Select
                 style={{ width: '100%' }}
                 value={row.subjectType}
-                aria-label="主体类型"
+                aria-label={t('system:principalType')}
                 options={[
-                  { value: 'user', label: '用户' },
-                  { value: 'role', label: '角色' },
-                  { value: 'dept', label: '部门' },
+                  { value: 'user', label: t('system:user.user') },
+                  { value: 'role', label: t('system:user.role') },
+                  { value: 'dept', label: t('system:dept.nameShort') },
                 ]}
                 onChange={(subjectType) => {
                   subjectRequests.current.set(
@@ -279,7 +300,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
             ),
           },
           {
-            title: '授权主体',
+            title: t('system:principal'),
             align: 'center',
             width: 230,
             render: (_, row) =>
@@ -292,16 +313,16 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
                   showSearch
                   treeNodeFilterProp="label"
                   allowClear
-                  placeholder="请选择部门"
-                  aria-label="授权部门"
+                  placeholder={t('system:selectADepartment')}
+                  aria-label={t('file:authorizedDepartments')}
                   onChange={(subjectId) => update(row.key, { subjectId })}
                 />
               ) : (
                 <Select
                   style={{ width: '100%' }}
                   allowClear
-                  placeholder="输入名称搜索"
-                  aria-label="授权主体"
+                  placeholder={t('system:searchByName')}
+                  aria-label={t('system:principal')}
                   loading={row.subjectLoading}
                   showSearch={{
                     filterOption: false,
@@ -317,30 +338,30 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
               ),
           },
           {
-            title: '规则',
+            title: t('system:rule'),
             align: 'center',
             width: 120,
             render: (_, row) => (
               <Select
                 style={{ width: '100%' }}
                 value={row.effect}
-                aria-label="授权规则"
+                aria-label={t('file:authorizationRules')}
                 options={[
-                  { value: 'allow', label: '允许下载' },
-                  { value: 'deny', label: '拒绝下载' },
+                  { value: 'allow', label: t('system:allowDownload') },
+                  { value: 'deny', label: t('system:denyDownload') },
                 ]}
                 onChange={(effect) => update(row.key, { effect })}
               />
             ),
           },
           {
-            title: '包含下级部门',
+            title: t('system:includeSubdepartments'),
             align: 'center',
             width: 125,
             render: (_, row) =>
               row.subjectType === 'dept' ? (
                 <Switch
-                  aria-label="包含下级部门"
+                  aria-label={t('system:includeSubdepartments')}
                   checked={row.includeChildren}
                   onChange={(includeChildren) => update(row.key, { includeChildren })}
                 />
@@ -349,29 +370,29 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
               ),
           },
           {
-            title: '有效期至',
+            title: t('system:validUntil'),
             align: 'center',
             width: 310,
             render: (_, row) => (
               <BusinessDateTimePicker
                 value={row.expireTime}
-                label="有效期至，留空为永久有效"
+                label={t('system:validUntilLeaveEmptyForNoExpiry')}
                 onChange={(expireTime) => update(row.key, { expireTime })}
               />
             ),
           },
           {
             className: 'ruoyi-actions-cell',
-            title: '操作',
+            title: t('common:actions'),
             align: 'center',
             width: 70,
             render: (_, row) => (
-              <Tooltip title="删除">
+              <Tooltip title={t('common:delete')}>
                 <TableAction
                   iconOnly={true}
                   tone="danger"
                   symbol="Delete"
-                  aria-label="删除授权"
+                  aria-label={t('file:removeAuthorization')}
                   onClick={() =>
                     setEntries((rows) => rows.filter((entry) => entry.key !== row.key))
                   }

@@ -1,3 +1,4 @@
+import { translateMessage } from '../i18n/message.mjs'
 import { PLUGIN_BRIDGE_MAX_BYTES, PLUGIN_BRIDGE_MAX_STREAM_BYTES } from './pluginBridge.js'
 
 /**
@@ -20,7 +21,8 @@ export async function* readPluginSse(body) {
   let id = ''
   const consume = () => {
     size += encoder.encode(line).byteLength + 1
-    if (size > PLUGIN_BRIDGE_MAX_BYTES) throw new Error('事件内容超过 64 KiB')
+    if (size > PLUGIN_BRIDGE_MAX_BYTES)
+      throw new Error(translateMessage('plugins:eventContentExceeds64KiB', '事件内容超过 64 KiB'))
     if (!line) {
       const value = data.length ? { event: event || 'message', data: data.join('\n'), id } : null
       data = []
@@ -45,7 +47,8 @@ export async function* readPluginSse(body) {
         break
       }
       total += chunk.value.byteLength
-      if (total > PLUGIN_BRIDGE_MAX_STREAM_BYTES) throw new Error('事件流超过 10 MiB')
+      if (total > PLUGIN_BRIDGE_MAX_STREAM_BYTES)
+        throw new Error(translateMessage('plugins:eventStreamExceeds10MiB', '事件流超过 10 MiB'))
       let text = decoder.decode(chunk.value, { stream: true })
       if (!text) continue
       if (skipLf && text.startsWith('\n')) text = text.slice(1)
@@ -60,7 +63,7 @@ export async function* readPluginSse(body) {
       }
       line += text.slice(offset)
       if (size + encoder.encode(line).byteLength > PLUGIN_BRIDGE_MAX_BYTES)
-        throw new Error('事件内容超过 64 KiB')
+        throw new Error(translateMessage('plugins:eventContentExceeds64KiB', '事件内容超过 64 KiB'))
     }
   } finally {
     try {
@@ -95,10 +98,17 @@ export function createPluginSseTransport({
       endpoint.search ||
       endpoint.hash
     )
-      throw new Error('实时接口地址无效')
+      throw new Error(translateMessage('plugins:invalidLiveAPIURL', '实时接口地址无效'))
     const policy = await loadPolicy()
-    if (shouldEncryptRequest({ url }, policy)) throw new Error('实时接口尚未配置传输策略例外')
-    if (signal.aborted) throw new Error('实时连接已取消')
+    if (shouldEncryptRequest({ url }, policy))
+      throw new Error(
+        translateMessage(
+          'plugins:theLiveAPIHasNoConfiguredTransportPolicyException',
+          '实时接口尚未配置传输策略例外'
+        )
+      )
+    if (signal.aborted)
+      throw new Error(translateMessage('plugins:liveConnectionCancelled', '实时连接已取消'))
     endpoint.search = serializeParams(params || {})
     const response = await fetchImpl(endpoint.href, {
       method: 'GET',
@@ -120,11 +130,13 @@ export function createPluginSseTransport({
       !response.body
     ) {
       await response.body?.cancel()
-      throw new Error('实时接口响应无效')
+      throw new Error(translateMessage('plugins:invalidLiveAPIResponse', '实时接口响应无效'))
     }
     for await (const event of readPluginSse(response.body)) {
       if (event.event === 'ruoyi.plugin.closed') {
-        const error = new Error('实时连接已由宿主关闭')
+        const error = new Error(
+          translateMessage('plugins:theHostClosedTheLiveConnection', '实时连接已由宿主关闭')
+        )
         error.name = 'PluginStreamClosedError'
         throw error
       }

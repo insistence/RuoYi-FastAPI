@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import {
   Button,
@@ -16,6 +18,8 @@ import { DownOutlined, QuestionCircleFilled } from '@ant-design/icons'
 import { listMenu } from '@/api/system/menu'
 import { handleTree } from '@/utils/ruoyi'
 export default function GenInfoForm({ form, columns, tables }) {
+  useI18n()
+
   const [menus, setMenus] = useState([])
   const category = Form.useWatch('tplCategory', form)
   const genType = Form.useWatch('genType', form)
@@ -38,15 +42,15 @@ export default function GenInfoForm({ form, columns, tables }) {
       >
         <Form.Item
           name="tplCategory"
-          label="生成模板"
-          rules={[{ required: true, message: '请选择生成模板' }]}
+          label={t('tool:generationTemplate')}
+          rules={[{ required: true, message: t('tool:selectGenerationTemplate') }]}
         >
           <Select
-            placeholder="请选择"
+            placeholder={t('common:selectPlaceholder')}
             options={[
-              { label: '单表（增删改查）', value: 'crud' },
-              { label: '树表（增删改查）', value: 'tree' },
-              { label: '主子表（增删改查）', value: 'sub' },
+              { label: t('tool:singleTableCrud'), value: 'crud' },
+              { label: t('tool:treeTableCrud'), value: 'tree' },
+              { label: t('tool:masterDetailTablesCrud'), value: 'sub' },
             ]}
             onChange={(value) => {
               if (value !== 'sub') form.setFieldsValue({ subTableName: '', subTableFkName: '' })
@@ -60,15 +64,15 @@ export default function GenInfoForm({ form, columns, tables }) {
       >
         <Form.Item
           name="tplWebType"
-          label="前端类型"
-          rules={[{ required: true, message: '请选择前端类型' }]}
+          label={t('tool:frontendType')}
+          rules={[{ required: true, message: t('tool:chooseAFrontendType') }]}
         >
           <Select
-            placeholder="请选择"
+            placeholder={t('common:selectPlaceholder')}
             options={[
-              { label: 'React Ant Design 模板', value: 'react-antd' },
-              { label: 'Vue2 Element UI 模板', value: 'element-ui' },
-              { label: 'Vue3 Element Plus 模板', value: 'element-plus' },
+              { label: t('tool:reactAntDesignTemplate'), value: 'react-antd' },
+              { label: t('tool:vue2ElementUiTemplate'), value: 'element-ui' },
+              { label: t('tool:vue3ElementPlusTemplate'), value: 'element-plus' },
             ]}
           />
         </Form.Item>
@@ -76,13 +80,28 @@ export default function GenInfoForm({ form, columns, tables }) {
       {[
         [
           'packageName',
-          '生成包路径',
-          '例如 module_admin.system',
-          '生成在哪个python模块下，例如 module_admin.system，system为子系统名',
+          t('tool:packagePath'),
+          t('tool:forExampleModuleAdminSystem'),
+          t('tool:targetPythonModuleEGModuleAdminSystemWhere'),
         ],
-        ['moduleName', '生成模块名', '例如 system', '可理解为子系统名，例如 system'],
-        ['businessName', '生成业务名', '例如 user', '可理解为功能英文名，例如 user'],
-        ['functionName', '生成功能名', '例如 用户', '用作类描述，例如 用户'],
+        [
+          'moduleName',
+          t('tool:moduleName'),
+          t('tool:forExampleSystem'),
+          t('tool:subsystemNameEGSystem'),
+        ],
+        [
+          'businessName',
+          t('tool:featureName'),
+          t('tool:forExampleUser'),
+          t('tool:englishFeatureNameEGUser'),
+        ],
+        [
+          'functionName',
+          t('tool:featureDescription'),
+          t('tool:gen.forExampleUser'),
+          t('tool:usedAsTheClassDescriptionEGUser'),
+        ],
       ].map(([name, label, placeholder, help]) => (
         <Col
           xs={24}
@@ -93,7 +112,7 @@ export default function GenInfoForm({ form, columns, tables }) {
             name={name}
             label={label}
             tooltip={{ title: help, icon: <QuestionCircleFilled /> }}
-            rules={[{ required: true, message: `请输入${label}` }]}
+            rules={[{ required: true, message: t('monitor:enterValue', { label }) }]}
           >
             <Input placeholder={placeholder} />
           </Form.Item>
@@ -105,15 +124,15 @@ export default function GenInfoForm({ form, columns, tables }) {
       >
         <Form.Item
           name="formColNum"
-          label="表单布局"
-          tooltip={{ title: '选择表单的栅格布局方式', icon: <QuestionCircleFilled /> }}
+          label={t('tool:formLayout')}
+          tooltip={{ title: t('tool:chooseTheFormGridLayout'), icon: <QuestionCircleFilled /> }}
         >
           <Select
-            placeholder="请选择"
+            placeholder={t('common:selectPlaceholder')}
             options={[
-              { label: '单列', value: 1 },
-              { label: '双列', value: 2 },
-              { label: '三列', value: 3 },
+              { label: t('tool:oneColumn'), value: 1 },
+              { label: t('tool:twoColumns'), value: 2 },
+              { label: t('tool:threeColumns'), value: 3 },
             ]}
           />
         </Form.Item>
@@ -124,10 +143,10 @@ export default function GenInfoForm({ form, columns, tables }) {
       >
         <Form.Item
           name="view"
-          label="扩展功能"
+          label={t('tool:extraFeatures')}
           valuePropName="checked"
         >
-          <Checkbox>生成详情页</Checkbox>
+          <Checkbox>{t('tool:generateDetailsPage')}</Checkbox>
         </Form.Item>
       </Col>
       <Col
@@ -136,16 +155,16 @@ export default function GenInfoForm({ form, columns, tables }) {
       >
         <Form.Item
           name="genType"
-          label="生成代码方式"
+          label={t('tool:codeOutput')}
           tooltip={{
-            title: '默认为zip压缩包下载，也可以自定义生成路径',
+            title: t('tool:downloadAZipArchiveByDefaultOrChooseA'),
             icon: <QuestionCircleFilled />,
           }}
         >
           <Radio.Group
             options={[
-              { label: 'zip压缩包', value: '0' },
-              { label: '自定义路径', value: '1' },
+              { label: t('tool:zipArchive'), value: '0' },
+              { label: t('tool:customPath'), value: '1' },
             ]}
           />
         </Form.Item>
@@ -156,11 +175,14 @@ export default function GenInfoForm({ form, columns, tables }) {
       >
         <Form.Item
           name="parentMenuId"
-          label="上级菜单"
-          tooltip={{ title: '分配到指定菜单下，例如 系统管理', icon: <QuestionCircleFilled /> }}
+          label={t('system:menu.parent')}
+          tooltip={{
+            title: t('tool:placeUnderAMenuEGSystemManagement'),
+            icon: <QuestionCircleFilled />,
+          }}
         >
           <TreeSelect
-            placeholder="请选择系统菜单"
+            placeholder={t('tool:selectSystemMenu')}
             treeData={menus}
             fieldNames={{
               value: 'menuId',
@@ -175,9 +197,9 @@ export default function GenInfoForm({ form, columns, tables }) {
       {genType === '1' && (
         <Col span={24}>
           <Form.Item
-            label="自定义路径"
+            label={t('tool:customPath')}
             tooltip={{
-              title: '填写磁盘绝对路径，若不填写，则生成到当前Web项目下',
+              title: t('tool:enterAnAbsolutePathIfEmptyFilesAreGenerated'),
               icon: <QuestionCircleFilled />,
             }}
           >
@@ -186,17 +208,17 @@ export default function GenInfoForm({ form, columns, tables }) {
                 name="genPath"
                 noStyle
               >
-                <Input placeholder="磁盘绝对路径" />
+                <Input placeholder={t('tool:absoluteDiskPath')} />
               </Form.Item>
               <Dropdown
                 menu={{
-                  items: [{ key: 'default', label: '恢复默认的生成基础路径' }],
+                  items: [{ key: 'default', label: t('tool:restoreTheDefaultOutputPath') }],
                   onClick: () => form.setFieldValue('genPath', '/'),
                 }}
                 trigger={['click']}
               >
                 <Button>
-                  最近路径快速选择
+                  {t('tool:chooseARecentPath')}
                   <DownOutlined />
                 </Button>
               </Dropdown>
@@ -207,12 +229,20 @@ export default function GenInfoForm({ form, columns, tables }) {
       {category === 'tree' && (
         <>
           <Col span={24}>
-            <h4 className="form-header">其他信息</h4>
+            <h4 className="form-header">{t('system:otherInformation')}</h4>
           </Col>
           {[
-            ['treeCode', '树编码字段', '树显示的编码字段名， 如：dept_id'],
-            ['treeParentCode', '树父编码字段', '树显示的父编码字段名， 如：parent_id'],
-            ['treeName', '树名称字段', '树节点的显示名称字段名， 如：dept_name'],
+            ['treeCode', t('tool:treeIdColumn'), t('tool:columnContainingTreeNodeIdsEGDeptId')],
+            [
+              'treeParentCode',
+              t('tool:treeParentIdColumn'),
+              t('tool:columnContainingParentIdsEGParentId'),
+            ],
+            [
+              'treeName',
+              t('tool:treeNameColumn'),
+              t('tool:columnContainingNodeDisplayNamesEGDeptName'),
+            ],
           ].map(([name, label, help]) => (
             <Col
               xs={24}
@@ -223,10 +253,10 @@ export default function GenInfoForm({ form, columns, tables }) {
                 name={name}
                 label={label}
                 tooltip={{ title: help, icon: <QuestionCircleFilled /> }}
-                rules={[{ required: true, message: `请选择${label}` }]}
+                rules={[{ required: true, message: t('tool:selectValue', { label }) }]}
               >
                 <Select
-                  placeholder="请选择"
+                  placeholder={t('common:selectPlaceholder')}
                   options={columnOptions}
                 />
               </Form.Item>
@@ -237,7 +267,7 @@ export default function GenInfoForm({ form, columns, tables }) {
       {category === 'sub' && (
         <>
           <Col span={24}>
-            <h4 className="form-header">关联信息</h4>
+            <h4 className="form-header">{t('tool:relationships')}</h4>
           </Col>
           <Col
             xs={24}
@@ -246,12 +276,15 @@ export default function GenInfoForm({ form, columns, tables }) {
             <Form.Item
               name="subTableName"
               getValueProps={(value) => ({ value: value || undefined })}
-              label="关联子表的表名"
-              tooltip={{ title: '关联子表的表名， 如：sys_user', icon: <QuestionCircleFilled /> }}
+              label={t('tool:relatedDetailTable')}
+              tooltip={{
+                title: t('tool:relatedDetailTableNameEGSysUser'),
+                icon: <QuestionCircleFilled />,
+              }}
               rules={[{ required: true }]}
             >
               <Select
-                placeholder="请选择"
+                placeholder={t('common:selectPlaceholder')}
                 options={tables.map((t) => ({
                   label: `${t.tableName}：${t.tableComment}`,
                   value: t.tableName,
@@ -267,12 +300,15 @@ export default function GenInfoForm({ form, columns, tables }) {
             <Form.Item
               name="subTableFkName"
               getValueProps={(value) => ({ value: value || undefined })}
-              label="子表关联的外键名"
-              tooltip={{ title: '子表关联的外键名， 如：user_id', icon: <QuestionCircleFilled /> }}
+              label={t('tool:detailTableForeignKey')}
+              tooltip={{
+                title: t('tool:foreignKeyInTheDetailTableEGUser'),
+                icon: <QuestionCircleFilled />,
+              }}
               rules={[{ required: true }]}
             >
               <Select
-                placeholder="请选择"
+                placeholder={t('common:selectPlaceholder')}
                 options={subColumns.map((c) => ({
                   label: `${c.columnName}：${c.columnComment}`,
                   value: c.columnName,

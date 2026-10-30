@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryRef"
       :inline="true"
@@ -9,53 +10,53 @@
       class="plugin-query-form"
     >
       <el-form-item
-        label="插件ID"
+        :label="$t('pluginAdmin:id')"
         prop="pluginId"
       >
         <el-input
           v-model="queryParams.pluginId"
-          placeholder="请输入插件ID"
+          :placeholder="$t('pluginAdmin:messages.enterAPluginID')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="插件名称"
+        :label="$t('pluginAdmin:name')"
         prop="pluginName"
       >
         <el-input
           v-model="queryParams.pluginName"
-          placeholder="请输入插件名称"
+          :placeholder="$t('pluginAdmin:messages.enterAPluginName')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="启用设置"
+        :label="$t('pluginAdmin:enableSettings')"
         prop="enabled"
       >
         <el-select
           v-model="queryParams.enabled"
-          placeholder="启用设置"
+          :placeholder="$t('pluginAdmin:enableSettings')"
           clearable
         >
           <el-option
-            label="启用"
+            :label="$t('common:enable')"
             value="0"
           />
           <el-option
-            label="停用"
+            :label="$t('common:disable')"
             value="1"
           />
         </el-select>
       </el-form-item>
       <el-form-item
-        label="插件状态"
+        :label="$t('pluginAdmin:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="插件状态"
+          :placeholder="$t('pluginAdmin:status')"
           clearable
         >
           <el-option
@@ -71,12 +72,12 @@
           type="primary"
           icon="el-icon-search"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -93,7 +94,7 @@
           :disabled="!selectedPluginIds.length"
           @click="handlePlan('install')"
           v-hasPermi="['system:plugin:query']"
-          >安装计划</el-button
+          >{{ $t('pluginAdmin:messages.installationPlan') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -104,7 +105,7 @@
           :disabled="!selectedPluginIds.length"
           @click="handlePlan('enable')"
           v-hasPermi="['system:plugin:query']"
-          >启用计划</el-button
+          >{{ $t('pluginAdmin:messages.enablementPlan') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -115,7 +116,7 @@
           :disabled="!selectedPluginIds.length"
           @click="handlePlan('upgrade')"
           v-hasPermi="['system:plugin:query']"
-          >升级计划</el-button
+          >{{ $t('pluginAdmin:messages.upgradePlan') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -124,7 +125,7 @@
           icon="el-icon-tickets"
           @click="handleOperationLog"
           v-hasPermi="['system:plugin:query']"
-          >审计记录</el-button
+          >{{ $t('pluginAdmin:messages.auditRecords') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -163,27 +164,27 @@
         :selectable="canSelectForBatch"
       />
       <el-table-column
-        label="插件ID"
+        :label="$t('pluginAdmin:id')"
         align="center"
         prop="pluginId"
         width="120"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="插件名称"
+        :label="$t('pluginAdmin:name')"
         align="center"
         prop="pluginName"
         min-width="140"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="代码版本"
+        :label="$t('pluginAdmin:messages.codeVersion')"
         align="center"
         prop="version"
         width="100"
       />
       <el-table-column
-        label="已安装版本"
+        :label="$t('pluginAdmin:messages.installedVersion')"
         align="center"
         prop="installedVersion"
         width="110"
@@ -193,7 +194,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="启用设置"
+        :label="$t('pluginAdmin:enableSettings')"
         align="center"
         width="90"
       >
@@ -206,7 +207,7 @@
             <span class="plugin-switch-tooltip-target">
               <el-switch
                 v-model="scope.row.enabled"
-                :aria-label="scope.row.pluginName + '启用设置'"
+                :aria-label="$t('pluginAdmin:settings.enableLabel', { name: scope.row.pluginName })"
                 active-value="0"
                 inactive-value="1"
                 :disabled="isEnabledSwitchBlocked(scope.row)"
@@ -218,7 +219,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="插件状态"
+        :label="$t('pluginAdmin:status')"
         align="center"
         prop="status"
         width="110"
@@ -230,7 +231,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="制品发布"
+        :label="$t('pluginAdmin:messages.artifactRelease')"
         align="center"
         min-width="220"
       >
@@ -243,13 +244,13 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="来源"
+        :label="$t('common:source')"
         align="center"
         prop="source"
         width="80"
       />
       <el-table-column
-        label="更新时间"
+        :label="$t('common:updatedTime')"
         align="center"
         prop="updateTime"
         width="165"
@@ -259,7 +260,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         width="260"
         fixed="right"
@@ -268,112 +269,118 @@
         <template slot-scope="scope">
           <div class="plugin-action-buttons">
             <el-tooltip
-              content="详情"
+              :content="$t('common:details')"
               placement="top"
             >
               <el-button
                 type="text"
                 icon="el-icon-view"
-                aria-label="详情"
+                :aria-label="$t('common:details')"
                 @click="handleDetail(scope.row)"
                 v-hasPermi="['system:plugin:query']"
               />
             </el-tooltip>
             <el-tooltip
-              content="配置"
+              :content="$t('pluginAdmin:messages.configuration')"
               placement="top"
               v-if="!isOrphanPlugin(scope.row)"
             >
               <el-button
                 type="text"
                 icon="el-icon-setting"
-                aria-label="配置"
+                :aria-label="$t('pluginAdmin:messages.configuration')"
                 @click="handleConfig(scope.row)"
                 v-hasPermi="['system:plugin:query']"
               />
             </el-tooltip>
             <el-tooltip
-              content="依赖"
+              :content="$t('pluginAdmin:dependencies')"
               placement="top"
               v-if="!isOrphanPlugin(scope.row)"
             >
               <el-button
                 type="text"
                 icon="el-icon-connection"
-                aria-label="依赖"
+                :aria-label="$t('pluginAdmin:dependencies')"
                 @click="handleDependencies(scope.row)"
                 v-hasPermi="['system:plugin:query']"
               />
             </el-tooltip>
             <el-tooltip
-              content="检查"
+              :content="$t('pluginAdmin:messages.check')"
               placement="top"
               v-if="!isOrphanPlugin(scope.row)"
             >
               <el-button
                 type="text"
                 icon="el-icon-circle-check"
-                aria-label="检查"
+                :aria-label="$t('pluginAdmin:messages.check')"
                 @click="handleCheck(scope.row)"
                 v-hasPermi="['system:plugin:query']"
               />
             </el-tooltip>
             <el-tooltip
-              content="健康检查"
+              :content="$t('pluginAdmin:messages.healthCheck')"
               placement="top"
               v-if="!isOrphanPlugin(scope.row)"
             >
               <el-button
                 type="text"
                 icon="el-icon-first-aid-kit"
-                aria-label="健康检查"
+                :aria-label="$t('pluginAdmin:messages.healthCheck')"
                 @click="handleHealth(scope.row)"
                 v-hasPermi="['system:plugin:query']"
               />
             </el-tooltip>
             <el-tooltip
-              content="诊断包"
+              :content="$t('pluginAdmin:messages.diagnosticBundle')"
               placement="top"
               v-if="!isOrphanPlugin(scope.row)"
             >
               <el-button
                 type="text"
                 icon="el-icon-document-checked"
-                aria-label="诊断包"
+                :aria-label="$t('pluginAdmin:messages.diagnosticBundle')"
                 @click="handleDiagnose(scope.row)"
                 v-hasPermi="['system:plugin:query']"
               />
             </el-tooltip>
             <el-tooltip
-              :content="getOperationTooltip(scope.row, 'install', '安装')"
+              :content="
+                getOperationTooltip(scope.row, 'install', $t('pluginAdmin:messages.install'))
+              "
               placement="top"
               v-if="canInstall(scope.row)"
             >
               <el-button
                 type="text"
                 icon="el-icon-download"
-                aria-label="安装"
+                :aria-label="$t('pluginAdmin:messages.install')"
                 :disabled="isOperationBlocked(scope.row, 'install')"
                 @click="handleInstallDryRun(scope.row)"
                 v-hasPermi="['system:plugin:edit']"
               />
             </el-tooltip>
             <el-tooltip
-              :content="getOperationTooltip(scope.row, 'upgrade', '升级')"
+              :content="
+                getOperationTooltip(scope.row, 'upgrade', $t('pluginAdmin:messages.upgrade'))
+              "
               placement="top"
               v-if="canUpgrade(scope.row)"
             >
               <el-button
                 type="text"
                 icon="el-icon-upload2"
-                aria-label="升级"
+                :aria-label="$t('pluginAdmin:messages.upgrade')"
                 :disabled="isOperationBlocked(scope.row, 'upgrade')"
                 @click="handleUpgradeDryRun(scope.row)"
                 v-hasPermi="['system:plugin:edit']"
               />
             </el-tooltip>
             <el-tooltip
-              :content="getOperationTooltip(scope.row, 'uninstall', '卸载')"
+              :content="
+                getOperationTooltip(scope.row, 'uninstall', $t('pluginAdmin:messages.uninstall'))
+              "
               placement="top"
               v-if="canUninstall(scope.row)"
             >
@@ -381,14 +388,14 @@
                 type="text"
                 class="plugin-action-danger"
                 icon="el-icon-switch-button"
-                aria-label="卸载"
+                :aria-label="$t('pluginAdmin:messages.uninstall')"
                 :disabled="isOperationBlocked(scope.row, 'uninstall')"
                 @click="handleUninstallDryRun(scope.row)"
                 v-hasPermi="['system:plugin:edit']"
               />
             </el-tooltip>
             <el-tooltip
-              content="清理孤儿元数据"
+              :content="$t('pluginAdmin:messages.cleanUpOrphanedMetadata')"
               placement="top"
               v-if="isOrphanPlugin(scope.row)"
             >
@@ -396,7 +403,7 @@
                 type="text"
                 class="plugin-action-danger"
                 icon="el-icon-delete"
-                aria-label="清理孤儿元数据"
+                :aria-label="$t('pluginAdmin:messages.cleanUpOrphanedMetadata')"
                 @click="handlePurgeDryRun(scope.row)"
                 v-hasPermi="['system:plugin:remove']"
               />
@@ -468,7 +475,7 @@
     />
 
     <el-drawer
-      title="插件操作审计"
+      :title="$t('pluginAdmin:messages.pluginOperationAudit')"
       :visible.sync="operationLogOpen"
       size="max(50vw, min(600px, 100vw))"
       append-to-body
@@ -479,23 +486,24 @@
           v-show="operationLogShowSearch"
         >
           <el-form
+            :validate-on-rule-change="false"
             :model="operationLogQueryParams"
             :inline="true"
             label-width="68px"
             class="plugin-query-form plugin-log-toolbar"
           >
-            <el-form-item label="插件ID">
+            <el-form-item :label="$t('pluginAdmin:id')">
               <el-input
                 v-model="operationLogQueryParams.pluginId"
-                placeholder="请输入插件ID"
+                :placeholder="$t('pluginAdmin:messages.enterAPluginID')"
                 clearable
                 @keyup.enter.native="handleOperationLogQuery"
               />
             </el-form-item>
-            <el-form-item label="操作">
+            <el-form-item :label="$t('common:actions')">
               <el-select
                 v-model="operationLogQueryParams.operation"
-                placeholder="操作类型"
+                :placeholder="$t('monitor:log.operationType')"
                 clearable
               >
                 <el-option
@@ -506,10 +514,10 @@
                 />
               </el-select>
             </el-form-item>
-            <el-form-item label="状态">
+            <el-form-item :label="$t('common:status')">
               <el-select
                 v-model="operationLogQueryParams.status"
-                placeholder="执行状态"
+                :placeholder="$t('monitor:job.executionStatus')"
                 clearable
               >
                 <el-option
@@ -521,7 +529,7 @@
               </el-select>
             </el-form-item>
             <el-form-item
-              label="创建时间"
+              :label="$t('common:createdTime')"
               class="plugin-audit-date-range"
             >
               <el-date-picker
@@ -529,8 +537,8 @@
                 value-format="YYYY-MM-DD"
                 type="daterange"
                 range-separator="-"
-                start-placeholder="开始日期"
-                end-placeholder="结束日期"
+                :start-placeholder="$t('common:startDate')"
+                :end-placeholder="$t('common:endDate')"
               />
             </el-form-item>
             <el-form-item>
@@ -538,12 +546,12 @@
                 type="primary"
                 icon="el-icon-search"
                 @click="handleOperationLogQuery"
-                >搜索</el-button
+                >{{ $t('common:search') }}</el-button
               >
               <el-button
                 icon="el-icon-refresh"
                 @click="resetOperationLogQuery"
-                >重置</el-button
+                >{{ $t('common:reset') }}</el-button
               >
             </el-form-item>
           </el-form>
@@ -555,20 +563,24 @@
         >
           <el-collapse-item name="retention">
             <template slot="title">
-              <span class="plugin-audit-maintenance-title">审计保留策略</span>
+              <span class="plugin-audit-maintenance-title">{{
+                $t('pluginAdmin:messages.auditRetentionPolicy')
+              }}</span>
               <el-tag
                 size="small"
                 type="info"
-                >默认 {{ operationLogRetentionDefaultDays }} 天</el-tag
+                >{{ $t('layout:size.default') }} {{ operationLogRetentionDefaultDays }}
+                {{ $t('pluginAdmin:messages.days') }}</el-tag
               >
             </template>
             <el-form
+              :validate-on-rule-change="false"
               :model="operationLogRetentionForm"
               :inline="true"
               label-width="84px"
               class="plugin-log-toolbar"
             >
-              <el-form-item label="保留天数">
+              <el-form-item :label="$t('file:messages.retentionDays')">
                 <el-input-number
                   v-model="operationLogRetentionForm.retentionDays"
                   :min="0"
@@ -582,7 +594,7 @@
                   icon="el-icon-document-checked"
                   :loading="operationLogRetentionLoading"
                   @click="handleOperationLogRetentionPreview"
-                  >预览清理</el-button
+                  >{{ $t('pluginAdmin:messages.previewCleanup') }}</el-button
                 >
                 <el-button
                   type="danger"
@@ -591,7 +603,7 @@
                   :loading="operationLogRetentionLoading"
                   @click="handleOperationLogRetentionClean"
                   v-hasPermi="['system:plugin:edit']"
-                  >确认清理</el-button
+                  >{{ $t('pluginAdmin:messages.confirmCleanup') }}</el-button
                 >
               </el-form-item>
             </el-form>
@@ -619,7 +631,7 @@
                   :loading="operationLogExportLoading"
                   @click="handleOperationLogExport"
                   v-hasPermi="['system:plugin:export']"
-                  >导出</el-button
+                  >{{ $t('common:export') }}</el-button
                 >
               </el-col>
             </el-row>
@@ -635,13 +647,13 @@
             border
           >
             <el-table-column
-              label="日志ID"
+              :label="$t('pluginAdmin:messages.logID')"
               prop="operationId"
               width="90"
               align="center"
             />
             <el-table-column
-              label="操作"
+              :label="$t('common:actions')"
               width="90"
               align="center"
             >
@@ -650,7 +662,7 @@
               }}</template>
             </el-table-column>
             <el-table-column
-              label="状态"
+              :label="$t('common:status')"
               width="90"
               align="center"
             >
@@ -661,7 +673,7 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="插件"
+              :label="$t('pluginAdmin:messages.plugin')"
               min-width="180"
               :show-overflow-tooltip="true"
             >
@@ -670,40 +682,40 @@
               }}</template>
             </el-table-column>
             <el-table-column
-              label="成功"
+              :label="$t('common:success')"
               width="70"
               align="center"
             >
               <template slot-scope="scope">{{ getSummaryCount(scope.row, 'succeeded') }}</template>
             </el-table-column>
             <el-table-column
-              label="失败"
+              :label="$t('common:failed')"
               width="70"
               align="center"
             >
               <template slot-scope="scope">{{ getSummaryCount(scope.row, 'failed') }}</template>
             </el-table-column>
             <el-table-column
-              label="创建时间"
+              :label="$t('common:createdTime')"
               width="170"
               align="center"
             >
               <template slot-scope="scope">{{ parseTime(scope.row.createTime) }}</template>
             </el-table-column>
             <el-table-column
-              label="操作"
+              :label="$t('common:actions')"
               width="70"
               align="center"
             >
               <template slot-scope="scope">
                 <el-tooltip
-                  content="详情"
+                  :content="$t('common:details')"
                   placement="top"
                 >
                   <el-button
                     type="text"
                     icon="el-icon-view"
-                    aria-label="审计详情"
+                    :aria-label="$t('file:messages.auditDetails')"
                     @click="handleOperationLogDetail(scope.row)"
                   />
                 </el-tooltip>
@@ -720,13 +732,13 @@
         </div>
 
         <div class="drawer-footer">
-          <el-button @click="operationLogOpen = false">关 闭</el-button>
+          <el-button @click="operationLogOpen = false">{{ $t('common:close') }}</el-button>
         </div>
       </div>
     </el-drawer>
 
     <el-dialog
-      title="审计详情"
+      :title="$t('file:messages.auditDetails')"
       :visible.sync="operationLogDetailOpen"
       width="min(920px, calc(100vw - 32px))"
       append-to-body
@@ -736,86 +748,86 @@
         border
         class="mb16"
       >
-        <el-descriptions-item label="日志ID">{{
+        <el-descriptions-item :label="$t('pluginAdmin:messages.logID')">{{
           operationLogDetail.operationId || '-'
         }}</el-descriptions-item>
-        <el-descriptions-item label="操作">{{
+        <el-descriptions-item :label="$t('common:actions')">{{
           formatPluginOperation(operationLogDetail.operation)
         }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{
+        <el-descriptions-item :label="$t('common:status')">{{
           getOperationLogStatusLabel(operationLogDetail.status)
         }}</el-descriptions-item>
-        <el-descriptions-item label="预演">{{
-          operationLogDetail.dryRun ? '是' : '否'
+        <el-descriptions-item :label="$t('pluginAdmin:messages.dryRun')">{{
+          operationLogDetail.dryRun ? $t('common:yes') : $t('common:no')
         }}</el-descriptions-item>
-        <el-descriptions-item label="失败后继续">{{
-          operationLogDetail.continueOnError ? '是' : '否'
+        <el-descriptions-item :label="$t('pluginAdmin:messages.continueAfterFailure')">{{
+          operationLogDetail.continueOnError ? $t('common:yes') : $t('common:no')
         }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{
+        <el-descriptions-item :label="$t('common:createdTime')">{{
           parseTime(operationLogDetail.createTime) || '-'
         }}</el-descriptions-item>
         <el-descriptions-item
-          label="插件"
+          :label="$t('pluginAdmin:messages.plugin')"
           :span="3"
           >{{ formatPlanDependencies(operationLogDetail.pluginIds) }}</el-descriptions-item
         >
         <el-descriptions-item
-          label="备注"
+          :label="$t('common:remark')"
           :span="3"
           >{{ operationLogDetail.remark || '-' }}</el-descriptions-item
         >
       </el-descriptions>
       <el-tabs>
-        <el-tab-pane label="摘要">
+        <el-tab-pane :label="$t('pluginAdmin:messages.summary')">
           <el-descriptions
             :column="3"
             border
             class="mb16"
           >
-            <el-descriptions-item label="成功数">{{
+            <el-descriptions-item :label="$t('pluginAdmin:messages.successCount')">{{
               getSummaryCount(operationLogDetail, 'succeeded')
             }}</el-descriptions-item>
-            <el-descriptions-item label="失败数">{{
+            <el-descriptions-item :label="$t('pluginAdmin:messages.failureCount')">{{
               getSummaryCount(operationLogDetail, 'failed')
             }}</el-descriptions-item>
-            <el-descriptions-item label="跳过数">{{
+            <el-descriptions-item :label="$t('pluginAdmin:messages.skippedCount')">{{
               getSummaryCount(operationLogDetail, 'skipped')
             }}</el-descriptions-item>
             <el-descriptions-item
-              label="变更配置"
+              :label="$t('pluginAdmin:messages.configurationChanges')"
               :span="3"
             >
               {{ formatPlanDependencies(getSummaryChangedKeys(operationLogDetail)) }}
             </el-descriptions-item>
             <el-descriptions-item
-              label="失败建议"
+              :label="$t('pluginAdmin:messages.failureSuggestions')"
               :span="3"
             >
-              {{ operationLogDetail.failedSuggestion || '暂无' }}
+              {{ operationLogDetail.failedSuggestion || $t('pluginAdmin:messages.none') }}
             </el-descriptions-item>
             <el-descriptions-item
-              label="失败步骤"
+              :label="$t('pluginAdmin:messages.failedStep')"
               :span="3"
             >
               {{ getOperationFailedStep(operationLogDetail) }}
             </el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
-        <el-tab-pane label="检查结果">
+        <el-tab-pane :label="$t('pluginAdmin:messages.checkResults')">
           <el-table
             :data="operationLogDetail.validationItems || []"
             size="small"
             border
-            empty-text="暂无检查结果"
+            :empty-text="$t('pluginAdmin:messages.noCheckResults')"
           >
             <el-table-column
-              label="分类"
+              :label="$t('pluginAdmin:messages.category')"
               prop="category"
               width="120"
               align="center"
             />
             <el-table-column
-              label="等级"
+              :label="$t('common:level')"
               width="90"
               align="center"
             >
@@ -826,51 +838,51 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="类型"
+              :label="$t('common:type')"
               prop="kind"
               width="180"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="对象"
+              :label="$t('pluginAdmin:messages.object')"
               prop="value"
               min-width="180"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="说明"
+              :label="$t('common:description')"
               prop="message"
               min-width="220"
               :show-overflow-tooltip="true"
             />
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="动作计划">
+        <el-tab-pane :label="$t('pluginAdmin:messages.actionPlan')">
           <el-table
             :data="operationLogDetail.actionItems || []"
             size="small"
             border
-            empty-text="暂无动作计划"
+            :empty-text="$t('pluginAdmin:messages.noActionPlan')"
           >
             <el-table-column
-              label="动作"
+              :label="$t('pluginAdmin:messages.action')"
               prop="label"
               min-width="180"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="启用"
+              :label="$t('common:enable')"
               width="80"
               align="center"
             >
               <template slot-scope="scope">
                 <el-tag :type="scope.row.enabled ? 'success' : 'info'">{{
-                  scope.row.enabled ? '是' : '否'
+                  scope.row.enabled ? $t('common:yes') : $t('common:no')
                 }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column
-              label="数量"
+              :label="$t('common:count')"
               prop="count"
               width="80"
               align="center"
@@ -878,7 +890,7 @@
               <template slot-scope="scope">{{ formatNullable(scope.row.count) }}</template>
             </el-table-column>
             <el-table-column
-              label="状态"
+              :label="$t('common:status')"
               min-width="160"
               :show-overflow-tooltip="true"
             >
@@ -886,38 +898,38 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="依赖计划">
+        <el-tab-pane :label="$t('pluginAdmin:messages.dependencyPlan')">
           <el-table
             :data="operationLogDetail.planItems || []"
             size="small"
             border
-            empty-text="暂无依赖计划"
+            :empty-text="$t('pluginAdmin:messages.noDependencyPlan')"
           >
             <el-table-column
-              label="插件ID"
+              :label="$t('pluginAdmin:id')"
               prop="pluginId"
               width="150"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="版本"
+              :label="$t('pluginAdmin:messages.version')"
               prop="version"
               width="110"
               align="center"
             />
             <el-table-column
-              label="就绪"
+              :label="$t('pluginAdmin:messages.ready')"
               width="90"
               align="center"
             >
               <template slot-scope="scope">
                 <el-tag :type="getPlanReadyTagType(scope.row.ready)">{{
-                  scope.row.ready ? '是' : '否'
+                  scope.row.ready ? $t('common:yes') : $t('common:no')
                 }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column
-              label="依赖"
+              :label="$t('pluginAdmin:dependencies')"
               min-width="200"
               :show-overflow-tooltip="true"
             >
@@ -927,21 +939,21 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="执行记录">
+        <el-tab-pane :label="$t('monitor:job.history')">
           <el-table
             :data="getExecutedResults(operationLogDetail)"
             size="small"
             border
-            empty-text="暂无执行记录"
+            :empty-text="$t('pluginAdmin:messages.noExecutionRecords')"
           >
             <el-table-column
-              label="插件ID"
+              :label="$t('pluginAdmin:id')"
               prop="pluginId"
               width="140"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="操作"
+              :label="$t('common:actions')"
               width="90"
               align="center"
             >
@@ -950,7 +962,7 @@
               }}</template>
             </el-table-column>
             <el-table-column
-              label="状态"
+              :label="$t('common:status')"
               width="90"
               align="center"
             >
@@ -961,7 +973,7 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="耗时"
+              :label="$t('monitor:job.duration')"
               prop="durationMs"
               width="90"
               align="center"
@@ -969,7 +981,7 @@
               <template slot-scope="scope">{{ formatNullable(scope.row.durationMs) }}ms</template>
             </el-table-column>
             <el-table-column
-              label="失败步骤"
+              :label="$t('pluginAdmin:messages.failedStep')"
               prop="failedStep"
               width="150"
               :show-overflow-tooltip="true"
@@ -977,64 +989,64 @@
               <template slot-scope="scope">{{ getExecutedFailedStep(scope.row) }}</template>
             </el-table-column>
             <el-table-column
-              label="说明"
+              :label="$t('common:description')"
               prop="message"
               min-width="220"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="建议"
+              :label="$t('common:suggestion')"
               prop="suggestion"
               min-width="260"
               :show-overflow-tooltip="true"
             />
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="配置变更">
+        <el-tab-pane :label="$t('pluginAdmin:messages.configurationChanges')">
           <el-table
             :data="operationLogDetail.configChanges || []"
             size="small"
             border
-            empty-text="暂无配置变更"
+            :empty-text="$t('pluginAdmin:messages.noConfigurationChanges')"
           >
             <el-table-column
-              label="配置键"
+              :label="$t('pluginAdmin:messages.configurationKey')"
               prop="key"
               width="180"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="名称"
+              :label="$t('common:name')"
               prop="label"
               width="160"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="敏感"
+              :label="$t('pluginAdmin:messages.sensitive')"
               width="80"
               align="center"
             >
               <template slot-scope="scope">
                 <el-tag :type="scope.row.secret ? 'warning' : 'info'">{{
-                  scope.row.secret ? '是' : '否'
+                  scope.row.secret ? $t('common:yes') : $t('common:no')
                 }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column
-              label="变更前"
+              :label="$t('pluginAdmin:messages.before')"
               prop="before"
               min-width="180"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="变更后"
+              :label="$t('pluginAdmin:messages.after')"
               prop="after"
               min-width="180"
               :show-overflow-tooltip="true"
             />
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="原始结果">
+        <el-tab-pane :label="$t('pluginAdmin:messages.rawResult')">
           <el-input
             :value="formatJson(operationLogDetail.result)"
             type="textarea"
@@ -1047,7 +1059,7 @@
         slot="footer"
         class="dialog-footer"
       >
-        <el-button @click="operationLogDetailOpen = false">关 闭</el-button>
+        <el-button @click="operationLogDetailOpen = false">{{ $t('common:close') }}</el-button>
       </div>
     </el-dialog>
 
@@ -1082,22 +1094,22 @@
         border
         class="mb16"
       >
-        <el-descriptions-item label="插件ID">{{
+        <el-descriptions-item :label="$t('pluginAdmin:id')">{{
           actionResult.pluginId || '-'
         }}</el-descriptions-item>
-        <el-descriptions-item label="依赖检查">{{
+        <el-descriptions-item :label="$t('pluginAdmin:messages.dependencyCheck')">{{
           formatBoolean(actionResult.dependencyOk)
         }}</el-descriptions-item>
-        <el-descriptions-item label="结构检查">{{
+        <el-descriptions-item :label="$t('pluginAdmin:messages.structureCheck')">{{
           formatBoolean(actionResult.structureOk)
         }}</el-descriptions-item>
-        <el-descriptions-item label="菜单冲突">{{
+        <el-descriptions-item :label="$t('pluginAdmin:menuConflict')">{{
           formatBoolean(actionResult.menuConflictOk)
         }}</el-descriptions-item>
-        <el-descriptions-item label="预演模式">{{
-          actionResult.dryRun ? '是' : '否'
+        <el-descriptions-item :label="$t('pluginAdmin:messages.dryRunMode')">{{
+          actionResult.dryRun ? $t('common:yes') : $t('common:no')
         }}</el-descriptions-item>
-        <el-descriptions-item label="需要升级">{{
+        <el-descriptions-item :label="$t('pluginAdmin:messages.upgradeRequired')">{{
           formatBoolean(actionResult.needsUpgrade)
         }}</el-descriptions-item>
       </el-descriptions>
@@ -1105,10 +1117,10 @@
       <el-tabs>
         <el-tab-pane
           v-if="actionResult.error"
-          label="错误详情"
+          :label="$t('pluginAdmin:messages.errorDetails')"
         >
           <el-alert
-            :title="actionResult.error.message || '插件操作失败'"
+            :title="actionResult.error.message || $t('pluginAdmin:messages.pluginOperationFailed')"
             type="error"
             show-icon
             :closable="false"
@@ -1119,34 +1131,35 @@
             border
             class="mb16"
           >
-            <el-descriptions-item label="插件ID">{{
+            <el-descriptions-item :label="$t('pluginAdmin:id')">{{
               actionResult.pluginId || pendingAction.pluginId || '-'
             }}</el-descriptions-item>
-            <el-descriptions-item label="操作">{{
+            <el-descriptions-item :label="$t('common:actions')">{{
               actionResult.operation
                 ? formatPluginOperation(actionResult.operation)
                 : pendingAction.label || '-'
             }}</el-descriptions-item>
-            <el-descriptions-item label="失败步骤">{{
+            <el-descriptions-item :label="$t('pluginAdmin:messages.failedStep')">{{
               actionResult.failedStep || actionResult.error.failedStep || '-'
             }}</el-descriptions-item>
             <el-descriptions-item
               v-if="actionResult.migrationRecovery"
-              label="Migration"
+              :label="$t('pluginAdmin:dialog.migration')"
             >
               {{ actionResult.migrationRecovery.migrationPath || '-' }}
             </el-descriptions-item>
             <el-descriptions-item
               v-if="actionResult.migrationRecovery"
-              label="Migration状态"
+              :label="$t('pluginAdmin:messages.migrationStatus')"
             >
               {{ actionResult.migrationRecovery.status || '-' }}
             </el-descriptions-item>
             <el-descriptions-item
-              label="建议"
+              :label="$t('common:suggestion')"
               :span="2"
               >{{
-                actionResult.error.suggestion || '请查看后端日志或重新执行检查。'
+                actionResult.error.suggestion ||
+                $t('pluginAdmin:expression.reviewBackendLogsOrRunTheChecksAgain')
               }}</el-descriptions-item
             >
           </el-descriptions>
@@ -1157,32 +1170,32 @@
             readonly
           />
         </el-tab-pane>
-        <el-tab-pane label="动作计划">
+        <el-tab-pane :label="$t('pluginAdmin:messages.actionPlan')">
           <el-table
             :data="actionResult.actions || []"
             size="small"
             border
-            empty-text="暂无动作计划"
+            :empty-text="$t('pluginAdmin:messages.noActionPlan')"
           >
             <el-table-column
-              label="动作"
+              :label="$t('pluginAdmin:messages.action')"
               prop="label"
               min-width="180"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="启用"
+              :label="$t('common:enable')"
               width="80"
               align="center"
             >
               <template slot-scope="scope">
                 <el-tag :type="scope.row.enabled ? 'success' : 'info'">{{
-                  scope.row.enabled ? '是' : '否'
+                  scope.row.enabled ? $t('common:yes') : $t('common:no')
                 }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column
-              label="状态"
+              :label="$t('common:status')"
               width="90"
               align="center"
             >
@@ -1191,13 +1204,17 @@
                   v-if="scope.row.ok !== undefined"
                   :type="scope.row.ok ? 'success' : 'danger'"
                 >
-                  {{ scope.row.ok ? '通过' : '异常' }}
+                  {{
+                    scope.row.ok
+                      ? $t('pluginAdmin:messages.passed')
+                      : $t('pluginAdmin:interface.error')
+                  }}
                 </el-tag>
                 <span v-else>-</span>
               </template>
             </el-table-column>
             <el-table-column
-              label="数量"
+              :label="$t('common:count')"
               prop="count"
               width="80"
               align="center"
@@ -1206,15 +1223,15 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="依赖">
+        <el-tab-pane :label="$t('pluginAdmin:dependencies')">
           <el-table
             :data="actionResult.dependencies || []"
             size="small"
             border
-            empty-text="暂无依赖声明"
+            :empty-text="$t('pluginAdmin:messages.noDependencyDeclarations')"
           >
             <el-table-column
-              label="等级"
+              :label="$t('common:level')"
               width="90"
               align="center"
             >
@@ -1225,19 +1242,19 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="类型"
+              :label="$t('common:type')"
               prop="kind"
               width="90"
               align="center"
             />
             <el-table-column
-              label="依赖"
+              :label="$t('pluginAdmin:dependencies')"
               prop="requirement"
               min-width="180"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="已安装"
+              :label="$t('pluginAdmin:messages.installed')"
               width="90"
               align="center"
             >
@@ -1248,7 +1265,7 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="版本满足"
+              :label="$t('pluginAdmin:messages.versionRequirementMet')"
               width="100"
               align="center"
             >
@@ -1259,22 +1276,22 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="说明"
+              :label="$t('common:description')"
               prop="message"
               min-width="220"
               :show-overflow-tooltip="true"
             />
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="Manifest 提示">
+        <el-tab-pane :label="$t('pluginAdmin:messages.manifestNotices')">
           <el-table
             :data="actionResult.manifestIssues || []"
             size="small"
             border
-            empty-text="暂无 Manifest 提示"
+            :empty-text="$t('pluginAdmin:messages.noManifestNotices')"
           >
             <el-table-column
-              label="等级"
+              :label="$t('common:level')"
               width="90"
               align="center"
             >
@@ -1285,40 +1302,40 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="类型"
+              :label="$t('common:type')"
               prop="kind"
               width="170"
               align="center"
             />
             <el-table-column
-              label="路径"
+              :label="$t('pluginAdmin:messages.path')"
               prop="path"
               min-width="220"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="说明"
+              :label="$t('common:description')"
               prop="message"
               min-width="240"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="建议"
+              :label="$t('common:suggestion')"
               prop="suggestion"
               min-width="240"
               :show-overflow-tooltip="true"
             />
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="结构错误">
+        <el-tab-pane :label="$t('pluginAdmin:messages.structureErrors')">
           <el-table
             :data="actionResult.structureErrors || []"
             size="small"
             border
-            empty-text="暂无结构错误"
+            :empty-text="$t('pluginAdmin:messages.noStructureErrors')"
           >
             <el-table-column
-              label="等级"
+              :label="$t('common:level')"
               width="90"
               align="center"
             >
@@ -1329,34 +1346,34 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="类型"
+              :label="$t('common:type')"
               prop="kind"
               width="120"
               align="center"
             />
             <el-table-column
-              label="路径"
+              :label="$t('pluginAdmin:messages.path')"
               prop="path"
               min-width="220"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="说明"
+              :label="$t('common:description')"
               prop="message"
               min-width="240"
               :show-overflow-tooltip="true"
             />
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="菜单冲突">
+        <el-tab-pane :label="$t('pluginAdmin:menuConflict')">
           <el-table
             :data="actionResult.menuConflicts || []"
             size="small"
             border
-            empty-text="暂无菜单冲突"
+            :empty-text="$t('pluginAdmin:messages.noMenuConflicts')"
           >
             <el-table-column
-              label="等级"
+              :label="$t('common:level')"
               width="90"
               align="center"
             >
@@ -1367,19 +1384,19 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="类型"
+              :label="$t('common:type')"
               prop="kind"
               width="150"
               align="center"
             />
             <el-table-column
-              label="冲突值"
+              :label="$t('pluginAdmin:messages.conflictingValue')"
               prop="value"
               min-width="160"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="说明"
+              :label="$t('common:description')"
               prop="message"
               min-width="280"
               :show-overflow-tooltip="true"
@@ -1398,7 +1415,7 @@
           :loading="actionLoading"
           @click="handleExecutePendingAction"
           v-hasPermi="['system:plugin:edit']"
-          >执行{{ pendingAction.label }}</el-button
+          >{{ $t('pluginAdmin:messages.execute') }}{{ pendingAction.label }}</el-button
         >
         <el-button
           v-if="pendingAction.type === 'purge'"
@@ -1406,15 +1423,17 @@
           :loading="actionLoading"
           @click="handleExecutePendingAction"
           v-hasPermi="['system:plugin:remove']"
-          >执行{{ pendingAction.label }}</el-button
+          >{{ $t('pluginAdmin:messages.execute') }}{{ pendingAction.label }}</el-button
         >
-        <el-button @click="actionOpen = false">关 闭</el-button>
+        <el-button @click="actionOpen = false">{{ $t('common:close') }}</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup name="Plugin">
+import { t } from '@/i18n/adapter'
+
 import { computed, getCurrentInstance, reactive, ref, toRefs } from 'vue'
 import {
   batchPlugins,
@@ -1490,12 +1509,14 @@ const migrationLoading = ref(false)
 const migrationHistory = ref([])
 const actionOpen = ref(false)
 const actionLoading = ref(false)
-const actionTitle = ref('插件操作结果')
+const actionTitleFactory = ref(() => t('pluginAdmin:dialog.actionResult'))
+const actionTitle = computed(() => actionTitleFactory.value())
 const actionResult = ref({})
 const pendingAction = ref({})
 const configOpen = ref(false)
 const configLoading = ref(false)
-const configTitle = ref('插件配置')
+const configTitleFactory = ref(() => t('pluginAdmin:dialog.configuration'))
+const configTitle = computed(() => configTitleFactory.value())
 const configPluginId = ref('')
 const configItems = ref([])
 const configStatusRevision = ref(0)
@@ -1506,11 +1527,13 @@ const dependencyPluginId = ref('')
 const dependencyResult = ref({})
 const diagnosticOpen = ref(false)
 const diagnosticLoading = ref(false)
-const diagnosticTitle = ref('插件诊断')
+const diagnosticTitleFactory = ref(() => t('pluginAdmin:dialog.diagnostics'))
+const diagnosticTitle = computed(() => diagnosticTitleFactory.value())
 const diagnosticResult = ref({})
 const planOpen = ref(false)
 const planLoading = ref(false)
-const planTitle = ref('插件依赖计划')
+const planTitleFactory = ref(() => t('pluginAdmin:dialog.dependencyPlan'))
+const planTitle = computed(() => planTitleFactory.value())
 const planResult = ref(normalizePluginPlanResponse({}))
 const batchContinueOnError = ref(false)
 const batchResult = ref(normalizePluginBatchResponse({}))
@@ -1548,17 +1571,65 @@ function formatPluginTime(value) {
 }
 
 const pluginStatusOptions = [
-  { label: '已发现', value: 'discovered', tagType: 'info' },
-  { label: '已安装', value: 'installed', tagType: 'success' },
-  { label: '待升级', value: 'pending_upgrade', tagType: 'warning' },
-  { label: '异常', value: 'error', tagType: 'danger' },
+  {
+    get label() {
+      return t('pluginAdmin:messages.discovered')
+    },
+    value: 'discovered',
+    tagType: 'info',
+  },
+  {
+    get label() {
+      return t('pluginAdmin:messages.installed')
+    },
+    value: 'installed',
+    tagType: 'success',
+  },
+  {
+    get label() {
+      return t('pluginAdmin:messages.upgradeAvailable')
+    },
+    value: 'pending_upgrade',
+    tagType: 'warning',
+  },
+  {
+    get label() {
+      return t('pluginAdmin:interface.error')
+    },
+    value: 'error',
+    tagType: 'danger',
+  },
 ]
 
 const operationLogStatusOptions = [
-  { label: '成功', value: 'success', tagType: 'success' },
-  { label: '失败', value: 'failed', tagType: 'danger' },
-  { label: '阻塞', value: 'blocked', tagType: 'warning' },
-  { label: '预演', value: 'dry_run', tagType: 'info' },
+  {
+    get label() {
+      return t('pluginAdmin:interface.success')
+    },
+    value: 'success',
+    tagType: 'success',
+  },
+  {
+    get label() {
+      return t('pluginAdmin:interface.failed')
+    },
+    value: 'failed',
+    tagType: 'danger',
+  },
+  {
+    get label() {
+      return t('pluginAdmin:messages.blocked')
+    },
+    value: 'blocked',
+    tagType: 'warning',
+  },
+  {
+    get label() {
+      return t('pluginAdmin:messages.dryRun')
+    },
+    value: 'dry_run',
+    tagType: 'info',
+  },
 ]
 
 const data = reactive({
@@ -1584,8 +1655,8 @@ const { queryParams, operationLogQueryParams } = toRefs(data)
 
 const planTargetSummary = computed(() => {
   return selectedPluginIds.value.length
-    ? `已选 ${selectedPluginIds.value.length} 个插件`
-    : '请选择插件'
+    ? t('pluginAdmin:messages.pluginsSelected', { length: selectedPluginIds.value.length })
+    : t('pluginAdmin:messages.selectAPlugin')
 })
 
 /** 查询插件列表 */
@@ -1641,14 +1712,16 @@ function handleEnabledChange(row) {
     proxy.$modal.msgWarning(getCapabilityReason(row.capability))
     return
   }
-  const text = enabled ? '启用' : '停用'
+  const text = enabled ? t('common:enable') : t('common:disable')
   proxy.$modal
-    .confirm('确认要"' + text + '""' + row.pluginName + '"插件吗?')
+    .confirm(
+      t('pluginAdmin:confirmation.valuePluginValue', { value0: text, value1: row.pluginName })
+    )
     .then(function () {
       return enabled ? enablePlugin(row.pluginId) : disablePlugin(row.pluginId)
     })
     .then(() => {
-      proxy.$modal.msgSuccess(text + '成功')
+      proxy.$modal.msgSuccess(t('pluginAdmin:confirmation.valueSucceeded', { value0: text }))
       getList()
     })
     .catch(function (error) {
@@ -1657,7 +1730,7 @@ function handleEnabledChange(row) {
         return
       }
       showActionResult(
-        '插件' + text + '失败',
+        () => t('pluginAdmin:confirmation.pluginValueFailed', { value0: text }),
         buildErrorActionResult(error, {
           pluginId: row.pluginId,
           operation: enabled ? 'enable' : 'disable',
@@ -1678,12 +1751,14 @@ function isEnabledSwitchBlocked(row) {
 
 function getEnabledSwitchTooltip(row) {
   if (row?.source === 'artifact') {
-    return '签名制品须在停机维护窗口通过 release enable/disable 修改启停设置，再启动全部 worker'
+    return t(
+      'pluginAdmin:messages.forSignedArtifactsChangeTheEnabledStateWithReleaseEnableDisableDuring'
+    )
   }
   if (row?.status === 'error') {
     return row?.enabled === '0'
-      ? '插件当前被异常状态隔离；关闭开关可取消自动恢复意图'
-      : '插件处于异常状态，请重新安装或升级修复，不能直接启用'
+      ? t('pluginAdmin:messages.thePluginIsIsolatedDueToAnErrorTurnItOffTo')
+      : t('pluginAdmin:messages.thePluginIsInAnErrorStateReinstallOrUpgradeItBefore')
   }
   if (isOperationBlocked(row, getEnabledSwitchOperation(row))) {
     return getCapabilityReason(row.capability)
@@ -1737,16 +1812,20 @@ function handleMarkMigrationSuccess(row) {
     return
   }
   proxy.$modal
-    .confirm('确认要将"' + migrationPath + '"标记为执行成功吗?')
+    .confirm(
+      t('pluginAdmin:confirmation.markValueAsSuccessfullyExecuted', { value0: migrationPath })
+    )
     .then(function () {
       migrationLoading.value = true
       return markPluginMigrationSuccess(pluginId, {
         migrationPath,
-        note: '管理页人工标记为成功',
+        note: t('pluginAdmin:interface.manuallyMarkedSuccessfulInTheManagementConsole'),
       })
     })
     .then((response) => {
-      proxy.$modal.msgSuccess(response.data?.message || 'migration 已标记为成功')
+      proxy.$modal.msgSuccess(
+        response.data?.message || t('pluginAdmin:messages.migrationMarkedSuccessful')
+      )
       return loadPluginMigrationHistory(pluginId)
     })
     .then(() => {
@@ -1770,16 +1849,22 @@ function handleMarkMigrationFailed(row) {
     return
   }
   proxy.$modal
-    .confirm('确认要将"' + migrationPath + '"标记为失败并允许后续重试吗?')
+    .confirm(
+      t('pluginAdmin:confirmation.markValueAsFailedAndAllowFutureRetries', {
+        value0: migrationPath,
+      })
+    )
     .then(function () {
       migrationLoading.value = true
       return markPluginMigrationFailed(pluginId, {
         migrationPath,
-        note: '管理页人工标记为失败',
+        note: t('pluginAdmin:interface.manuallyMarkedFailedInTheManagementConsole'),
       })
     })
     .then((response) => {
-      proxy.$modal.msgSuccess(response.data?.message || 'migration 已标记为失败')
+      proxy.$modal.msgSuccess(
+        response.data?.message || t('pluginAdmin:messages.migrationMarkedFailed')
+      )
       return loadPluginMigrationHistory(pluginId)
     })
     .then(() => {
@@ -1800,7 +1885,8 @@ function handleConfig(row) {
   const revision = ++configRequestRevision
   configLoading.value = true
   configPluginId.value = row.pluginId
-  configTitle.value = row.pluginName + '配置'
+  configTitleFactory.value = () =>
+    t('pluginAdmin:confirmation.valueConfiguration', { value0: row.pluginName })
   getPluginConfig(row.pluginId)
     .then((response) => {
       if (revision !== configRequestRevision) return
@@ -1825,7 +1911,7 @@ function submitConfig(values) {
   updatePluginConfig(configPluginId.value, { values })
     .then((response) => {
       if (revision !== configRequestRevision) return
-      proxy.$modal.msgSuccess('插件配置已保存')
+      proxy.$modal.msgSuccess(t('pluginAdmin:messages.pluginConfigurationSaved'))
       configItems.value = response.data?.configs || configItems.value
       configStatusRevision.value++
     })
@@ -1843,11 +1929,11 @@ function handleCheck(row) {
   actionLoading.value = true
   checkPlugin(row.pluginId)
     .then((response) => {
-      showActionResult('插件检查结果', response.data, {})
+      showActionResult(() => t('pluginAdmin:messages.pluginCheckResults'), response.data, {})
     })
     .catch((error) => {
       showActionResult(
-        '插件检查失败',
+        () => t('pluginAdmin:messages.pluginCheckFailed'),
         buildErrorActionResult(error, {
           pluginId: row.pluginId,
           operation: 'check',
@@ -1863,10 +1949,11 @@ function handleCheck(row) {
 /** 执行插件健康检查 */
 function handleHealth(row) {
   diagnosticLoading.value = true
-  diagnosticTitle.value = row.pluginName + '健康检查'
+  diagnosticTitleFactory.value = () =>
+    t('pluginAdmin:confirmation.valueHealthCheck', { value0: row.pluginName })
   diagnosticResult.value = {
     pluginId: row.pluginId,
-    message: '正在执行插件健康检查...',
+    message: t('pluginAdmin:messages.runningPluginHealthChecks'),
   }
   diagnosticOpen.value = true
   healthPlugin(row.pluginId)
@@ -1889,10 +1976,13 @@ function handleHealth(row) {
 /** 生成插件诊断包 */
 function handleDiagnose(row) {
   diagnosticLoading.value = true
-  diagnosticTitle.value = row.pluginName + '诊断包'
+  diagnosticTitleFactory.value = () =>
+    t('pluginAdmin:confirmation.valueDiagnosticBundle', {
+      value0: row.pluginName,
+    })
   diagnosticResult.value = {
     pluginId: row.pluginId,
-    message: '正在生成插件诊断包...',
+    message: t('pluginAdmin:messages.generatingPluginDiagnosticBundle'),
   }
   diagnosticOpen.value = true
   diagnosePlugin(row.pluginId)
@@ -1966,14 +2056,18 @@ function handleDependencyInstall() {
     return
   }
   proxy.$modal
-    .confirm('确认要安装"' + dependencyPluginId.value + '"插件缺失依赖吗?')
+    .confirm(
+      t('pluginAdmin:confirmation.installMissingDependenciesForPluginValue', {
+        value0: dependencyPluginId.value,
+      })
+    )
     .then(function () {
       dependencyLoading.value = true
       return installPluginDependencies(dependencyPluginId.value, false)
     })
     .then((response) => {
       dependencyResult.value = response.data || {}
-      proxy.$modal.msgSuccess('插件依赖安装完成')
+      proxy.$modal.msgSuccess(t('pluginAdmin:messages.pluginDependenciesInstalled'))
     })
     .catch((error) => {
       if (!isUserCancel(error)) {
@@ -1988,11 +2082,14 @@ function handleDependencyInstall() {
 /** 生成插件批量操作拓扑计划 */
 function handlePlan(operation) {
   if (!selectedPluginIds.value.length) {
-    proxy.$modal.msgWarning('请先选择要操作的插件')
+    proxy.$modal.msgWarning(t('pluginAdmin:messages.selectPluginsFirst'))
     return
   }
   planLoading.value = true
-  planTitle.value = '插件' + formatPluginOperation(operation) + '计划'
+  planTitleFactory.value = () =>
+    t('pluginAdmin:confirmation.pluginValuePlan', {
+      value0: formatPluginOperation(operation),
+    })
   const pluginIds = getBatchTargetPluginIds()
   batchResult.value = normalizePluginBatchResponse({})
   planPlugins(operation, pluginIds)
@@ -2022,10 +2119,10 @@ function handleExecuteBatch(dryRun) {
   const pluginIds = planResult.value.executablePluginIds
   proxy.$modal
     .confirm(
-      '确认要批量执行插件' +
-        formatPluginOperation(operation) +
-        '吗? 目标：' +
-        formatPlanDependencies(pluginIds)
+      t('pluginAdmin:confirmation.runPluginValueInBatchTargetsValue', {
+        value0: formatPluginOperation(operation),
+        value1: formatPlanDependencies(pluginIds),
+      })
     )
     .then(function () {
       planLoading.value = true
@@ -2034,7 +2131,9 @@ function handleExecuteBatch(dryRun) {
     .then((response) => {
       batchResult.value = normalizePluginBatchResponse(response.data)
       planResult.value = normalizePluginPlanResponse(response.data)
-      proxy.$modal.msgSuccess(response.data?.message || '插件批量操作完成')
+      proxy.$modal.msgSuccess(
+        response.data?.message || t('pluginAdmin:messages.batchPluginOperationCompleted')
+      )
       getList()
     })
     .catch((error) => {
@@ -2175,7 +2274,7 @@ function handleOperationLogRetentionClean() {
     })
     .then((response) => {
       operationLogRetentionResult.value = response.data || {}
-      proxy.$modal.msgSuccess('插件操作审计清理完成')
+      proxy.$modal.msgSuccess(t('pluginAdmin:messages.pluginAuditLogsDeleted'))
       getOperationLogList()
     })
     .catch((error) => {
@@ -2190,10 +2289,12 @@ function handleOperationLogRetentionClean() {
 
 function buildOperationLogRetentionConfirmMessage() {
   if (Number(operationLogRetentionForm.retentionDays) === 0) {
-    return '确认清理当前时间之前的全部插件操作审计日志吗?'
+    return t('pluginAdmin:messages.deleteAllPluginOperationAuditLogsRecordedBeforeNow')
   }
 
-  return '确认清理超过"' + operationLogRetentionForm.retentionDays + '"天的插件操作审计日志吗?'
+  return t('pluginAdmin:confirmation.clearPluginAuditLogsOlderThanValueDays', {
+    value0: operationLogRetentionForm.retentionDays,
+  })
 }
 
 /** 安装插件预演 */
@@ -2201,16 +2302,16 @@ function handleInstallDryRun(row) {
   actionLoading.value = true
   installPlugin(row.pluginId, true)
     .then((response) => {
-      showActionResult('插件安装预演', response.data, {
+      showActionResult(() => t('pluginAdmin:messages.pluginInstallationDryRun'), response.data, {
         type: 'install',
-        label: '安装',
+        label: t('pluginAdmin:messages.install'),
         pluginId: row.pluginId,
         pluginName: row.pluginName,
       })
     })
     .catch((error) => {
       showActionResult(
-        '插件安装预演失败',
+        () => t('pluginAdmin:messages.pluginInstallationDryRunFailed'),
         buildErrorActionResult(error, {
           pluginId: row.pluginId,
           operation: 'install',
@@ -2228,16 +2329,16 @@ function handleUpgradeDryRun(row) {
   actionLoading.value = true
   upgradePlugin(row.pluginId, true)
     .then((response) => {
-      showActionResult('插件升级预演', response.data, {
+      showActionResult(() => t('pluginAdmin:messages.pluginUpgradeDryRun'), response.data, {
         type: 'upgrade',
-        label: '升级',
+        label: t('pluginAdmin:messages.upgrade'),
         pluginId: row.pluginId,
         pluginName: row.pluginName,
       })
     })
     .catch((error) => {
       showActionResult(
-        '插件升级预演失败',
+        () => t('pluginAdmin:messages.pluginUpgradeDryRunFailed'),
         buildErrorActionResult(error, {
           pluginId: row.pluginId,
           operation: 'upgrade',
@@ -2255,16 +2356,16 @@ function handleUninstallDryRun(row) {
   actionLoading.value = true
   uninstallPlugin(row.pluginId, true)
     .then((response) => {
-      showActionResult('插件卸载预演', response.data, {
+      showActionResult(() => t('pluginAdmin:messages.pluginRemovalDryRun'), response.data, {
         type: 'uninstall',
-        label: '卸载',
+        label: t('pluginAdmin:messages.uninstall'),
         pluginId: row.pluginId,
         pluginName: row.pluginName,
       })
     })
     .catch((error) => {
       showActionResult(
-        '插件卸载预演失败',
+        () => t('pluginAdmin:messages.pluginRemovalDryRunFailed'),
         buildErrorActionResult(error, {
           pluginId: row.pluginId,
           operation: 'uninstall',
@@ -2282,16 +2383,16 @@ function handlePurgeDryRun(row) {
   actionLoading.value = true
   purgePlugin(row.pluginId, true)
     .then((response) => {
-      showActionResult('孤儿插件清理预演', response.data, {
+      showActionResult(() => t('pluginAdmin:messages.orphanedPluginCleanupDryRun'), response.data, {
         type: 'purge',
-        label: '清理孤儿元数据',
+        label: t('pluginAdmin:messages.cleanUpOrphanedMetadata'),
         pluginId: row.pluginId,
         pluginName: row.pluginName,
       })
     })
     .catch((error) => {
       showActionResult(
-        '孤儿插件清理预演失败',
+        () => t('pluginAdmin:messages.orphanedPluginCleanupDryRunFailed'),
         buildErrorActionResult(error, {
           pluginId: row.pluginId,
           operation: 'purge',
@@ -2311,7 +2412,12 @@ function handleExecutePendingAction() {
   }
   const action = pendingAction.value
   proxy.$modal
-    .confirm('确认要执行"' + action.pluginName + '"插件' + action.label + '吗?')
+    .confirm(
+      t('pluginAdmin:confirmation.runValueForPluginValue', {
+        value0: action.pluginName,
+        value1: action.label,
+      })
+    )
     .then(function () {
       actionLoading.value = true
       const requestMap = {
@@ -2324,8 +2430,17 @@ function handleExecutePendingAction() {
       return request(action.pluginId, false)
     })
     .then((response) => {
-      showActionResult('插件' + action.label + '结果', response.data, {})
-      proxy.$modal.msgSuccess('插件' + action.label + '完成')
+      showActionResult(
+        () =>
+          t('pluginAdmin:confirmation.pluginValueResult', {
+            value0: formatPluginOperation(action.type),
+          }),
+        response.data,
+        {}
+      )
+      proxy.$modal.msgSuccess(
+        t('pluginAdmin:confirmation.pluginValueCompleted', { value0: action.label })
+      )
       getList()
     })
     .catch((error) => {
@@ -2333,7 +2448,10 @@ function handleExecutePendingAction() {
         return
       }
       showActionResult(
-        '插件' + action.label + '失败',
+        () =>
+          t('pluginAdmin:confirmation.pluginValueFailed', {
+            value0: formatPluginOperation(action.type),
+          }),
         buildErrorActionResult(error, {
           pluginId: action.pluginId,
           operation: action.type,
@@ -2348,7 +2466,7 @@ function handleExecutePendingAction() {
 
 /** 展示插件操作结果 */
 function showActionResult(title, result, nextAction) {
-  actionTitle.value = title
+  actionTitleFactory.value = title
   actionResult.value = normalizeActionResult(result)
   pendingAction.value = canExecuteActionResult(actionResult.value) ? nextAction : {}
   actionOpen.value = true
@@ -2417,7 +2535,11 @@ function isCapabilityOperationBlocked(capability, operation) {
 }
 
 function getCapabilityReason(capability) {
-  return capability?.primaryReason || capability?.warnings?.[0] || '当前环境不允许执行该插件操作'
+  return (
+    capability?.primaryReason ||
+    capability?.warnings?.[0] ||
+    t('pluginAdmin:messages.thisEnvironmentDoesNotPermitThisPluginOperation')
+  )
 }
 
 function getDependencyPolicyReason(policy) {
@@ -2425,7 +2547,9 @@ function getDependencyPolicyReason(policy) {
     ...(Array.isArray(policy?.reasons) ? policy.reasons : []),
     ...(Array.isArray(policy?.requirements) ? policy.requirements : []),
   ]
-  return messages[0] || '当前依赖安装策略不允许执行真实安装'
+  return (
+    messages[0] || t('pluginAdmin:messages.theCurrentDependencyPolicyDoesNotPermitInstallation')
+  )
 }
 
 function getOperationTooltip(row, operation, label) {
@@ -2441,16 +2565,16 @@ function getDependencyTagType(row) {
 
 function formatDependencyInstalled(row) {
   if (row.status === 'skipped') {
-    return '不适用'
+    return t('pluginAdmin:messages.notApplicable')
   }
-  return row.installed ? '是' : '否'
+  return row.installed ? t('common:yes') : t('common:no')
 }
 
 function formatDependencyVersionSatisfied(row) {
   if (row.status === 'skipped') {
-    return '不适用'
+    return t('pluginAdmin:messages.notApplicable')
   }
-  return row.versionSatisfied ? '是' : '否'
+  return row.versionSatisfied ? t('common:yes') : t('common:no')
 }
 
 function normalizeActionResult(result) {
@@ -2474,7 +2598,9 @@ function buildErrorActionResult(error, context = {}) {
       message: payload.error || message,
       suggestion:
         migrationRecovery?.suggestion ||
-        '请先执行插件检查，确认目录结构、依赖和菜单权限冲突后再重试。',
+        t(
+          'pluginAdmin:messages.runPluginChecksAndResolveDirectoryDependencyMenuAndPermissionConflictsBefore'
+        ),
       raw: serializeError(error),
     },
     message,
@@ -2501,7 +2627,7 @@ function buildErrorBatchResult(error, operation) {
         ok: false,
         status: 'failed',
         message,
-        suggestion: '请查看审计详情或后端日志后重试。',
+        suggestion: t('pluginAdmin:messages.reviewAuditDetailsOrBackendLogsThenTryAgain'),
       },
     ],
   }
@@ -2509,12 +2635,17 @@ function buildErrorBatchResult(error, operation) {
 
 function getErrorMessage(error) {
   if (!error) {
-    return '插件操作失败'
+    return t('pluginAdmin:messages.pluginOperationFailed')
   }
   if (typeof error === 'string') {
     return error
   }
-  return error.message || error.msg || error.response?.data?.msg || '插件操作失败'
+  return (
+    error.message ||
+    error.msg ||
+    error.response?.data?.msg ||
+    t('pluginAdmin:messages.pluginOperationFailed')
+  )
 }
 
 function serializeError(error) {
@@ -2540,7 +2671,7 @@ function formatBoolean(value) {
   if (value === undefined || value === null) {
     return '-'
   }
-  return value ? '通过' : '异常'
+  return value ? t('pluginAdmin:messages.passed') : t('common:exception')
 }
 
 function formatNullable(value, fallback = '-') {
@@ -2560,12 +2691,15 @@ function getSummaryChangedKeys(payload) {
 
 function getOperationFailedStep(payload) {
   if (!payload) {
-    return '暂无'
+    return t('pluginAdmin:messages.none')
   }
   const result = payload.result || {}
   const failed = result.failed || {}
   return (
-    payload.failedStep || result.failedStep || (failed.result && failed.result.failedStep) || '暂无'
+    payload.failedStep ||
+    result.failedStep ||
+    (failed.result && failed.result.failedStep) ||
+    t('pluginAdmin:messages.none')
   )
 }
 
@@ -2588,7 +2722,12 @@ function formatPluginIdsForDisplay(pluginIds) {
     return '-'
   }
   const visibleIds = ids.slice(0, 8).join(', ')
-  return ids.length > 8 ? visibleIds + ' 等 ' + ids.length + ' 个插件' : visibleIds
+  return ids.length > 8
+    ? t('pluginAdmin:confirmation.valuePluginsIncludingValue', {
+        value0: visibleIds,
+        value1: ids.length,
+      })
+    : visibleIds
 }
 
 function formatConfigDefaultValue(item) {
@@ -2608,16 +2747,20 @@ function formatConfigDefaultValue(item) {
 function formatConfigConstraint(item) {
   const constraints = []
   if (item.min !== undefined && item.min !== null) {
-    constraints.push('最小值 ' + item.min)
+    constraints.push(t('pluginAdmin:confirmation.minimumValue', { value0: item.min }))
   }
   if (item.max !== undefined && item.max !== null) {
-    constraints.push('最大值 ' + item.max)
+    constraints.push(t('pluginAdmin:confirmation.maximumValue', { value0: item.max }))
   }
   if (item.pattern) {
-    constraints.push('正则 ' + item.pattern)
+    constraints.push(t('pluginAdmin:confirmation.patternValue', { value0: item.pattern }))
   }
   if (Array.isArray(item.options) && item.options.length) {
-    constraints.push('选项 ' + item.options.map(formatConfigOption).join(', '))
+    constraints.push(
+      t('pluginAdmin:confirmation.optionsValue', {
+        value0: item.options.map(formatConfigOption).join(', '),
+      })
+    )
   }
   return constraints.length ? constraints.join('; ') : '-'
 }
@@ -2647,37 +2790,39 @@ function getOperationLogStatusTagType(status) {
 }
 
 function formatRetentionMessage(result) {
-  const actionText = result.dryRun ? '预览' : '清理'
+  const actionText = result.dryRun ? t('common:preview') : t('file:messages.deletePermanently')
   const cutoffTime = formatPluginTime(result.cutoffTime)
-  return (
-    actionText +
-    '完成：保留 ' +
-    result.retentionDays +
-    ' 天，截止 ' +
-    cutoffTime +
-    '，匹配 ' +
-    result.matchedCount +
-    ' 条，已删除 ' +
-    result.deletedCount +
-    ' 条'
+  return t(
+    'pluginAdmin:confirmation.valueCompleteRetainValueDaysCutoffValueValueMatchedValueDeleted',
+    {
+      value0: actionText,
+      value1: result.retentionDays,
+      value2: cutoffTime,
+      value3: result.matchedCount,
+      value4: result.deletedCount,
+    }
   )
 }
 
 function formatActionPlanState(action) {
   if (action.ok === true) {
-    return '通过'
+    return t('pluginAdmin:messages.passed')
   }
   if (action.ok === false) {
-    return '异常'
+    return t('common:exception')
   }
   if (action.hook) {
     return action.hook
   }
   if (action.targetEnabled !== undefined) {
-    return action.targetEnabled ? '目标启用' : '目标停用'
+    return action.targetEnabled
+      ? t('pluginAdmin:messages.targetEnabled')
+      : t('pluginAdmin:messages.targetDisabled')
   }
   if (action.targetStatus !== undefined) {
-    return action.targetStatus === '0' ? '目标正常' : '目标停用'
+    return action.targetStatus === '0'
+      ? t('pluginAdmin:messages.targetHealthy')
+      : t('pluginAdmin:messages.targetDisabled')
   }
   return '-'
 }

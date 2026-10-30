@@ -16,19 +16,19 @@
     />
     <div class="plan-summary">
       <div class="plan-summary-item">
-        <span class="plan-summary-label">计划操作</span>
+        <span class="plan-summary-label">{{ $t('pluginAdmin:messages.plannedOperation') }}</span>
         <span class="plan-summary-value">{{ formatPluginOperation(planResult.operation) }}</span>
       </div>
       <div class="plan-summary-item">
-        <span class="plan-summary-label">目标插件</span>
+        <span class="plan-summary-label">{{ $t('pluginAdmin:messages.targetPlugin') }}</span>
         <span class="plan-summary-value">{{ planResult.requestedPluginIds.length }}</span>
       </div>
       <div class="plan-summary-item">
-        <span class="plan-summary-label">可执行</span>
+        <span class="plan-summary-label">{{ $t('pluginAdmin:messages.executable') }}</span>
         <span class="plan-summary-value">{{ planResult.executablePluginIds.length }}</span>
       </div>
       <div class="plan-summary-item">
-        <span class="plan-summary-label">阻塞项</span>
+        <span class="plan-summary-label">{{ $t('pluginAdmin:messages.blockers') }}</span>
         <span class="plan-summary-value is-danger">{{ planResult.blockerCount }}</span>
       </div>
     </div>
@@ -37,10 +37,10 @@
       border
       class="mb16"
     >
-      <el-descriptions-item label="目标范围">{{
+      <el-descriptions-item :label="$t('pluginAdmin:messages.targetScope')">{{
         formatPluginIdsForDisplay(planResult.requestedPluginIds)
       }}</el-descriptions-item>
-      <el-descriptions-item label="执行顺序">
+      <el-descriptions-item :label="$t('pluginAdmin:messages.executionOrder')">
         <el-tag
           v-for="pluginId in planResult.executablePluginIds"
           :key="pluginId"
@@ -53,61 +53,61 @@
     </el-descriptions>
 
     <el-tabs>
-      <el-tab-pane label="计划项">
+      <el-tab-pane :label="$t('pluginAdmin:messages.planItem')">
         <el-table
           :data="planResult.items"
           size="small"
           border
-          empty-text="暂无计划项"
+          :empty-text="$t('pluginAdmin:messages.noPlanItems')"
         >
           <el-table-column
-            label="顺序"
+            :label="$t('pluginAdmin:messages.order')"
             prop="order"
             width="70"
             align="center"
           />
           <el-table-column
-            label="插件ID"
+            :label="$t('pluginAdmin:id')"
             prop="pluginId"
             width="140"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="插件名称"
+            :label="$t('pluginAdmin:name')"
             prop="name"
             min-width="150"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="版本"
+            :label="$t('pluginAdmin:messages.version')"
             prop="version"
             width="100"
             align="center"
           />
           <el-table-column
-            label="显式选择"
+            :label="$t('pluginAdmin:messages.explicitlySelected')"
             width="90"
             align="center"
           >
             <template slot-scope="scope">
               <el-tag :type="scope.row.requested ? 'success' : 'info'">{{
-                scope.row.requested ? '是' : '依赖'
+                scope.row.requested ? $t('common:yes') : $t('pluginAdmin:dependencies')
               }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column
-            label="可执行"
+            :label="$t('pluginAdmin:messages.executable')"
             width="90"
             align="center"
           >
             <template slot-scope="scope">
               <el-tag :type="getPlanReadyTagType(scope.row.ready)">{{
-                scope.row.ready ? '是' : '否'
+                scope.row.ready ? $t('common:yes') : $t('common:no')
               }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column
-            label="依赖"
+            :label="$t('pluginAdmin:dependencies')"
             min-width="180"
             :show-overflow-tooltip="true"
           >
@@ -116,7 +116,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="阻塞项"
+            :label="$t('pluginAdmin:messages.blockers')"
             width="90"
             align="center"
           >
@@ -128,27 +128,27 @@
           </el-table-column>
         </el-table>
       </el-tab-pane>
-      <el-tab-pane label="阻塞原因">
+      <el-tab-pane :label="$t('pluginAdmin:messages.blockingReason')">
         <el-table
           :data="planResult.blockers"
           size="small"
           border
-          empty-text="暂无阻塞项"
+          :empty-text="$t('pluginAdmin:messages.noBlockers')"
         >
           <el-table-column
-            label="插件ID"
+            :label="$t('pluginAdmin:id')"
             prop="pluginId"
             width="140"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="依赖插件"
+            :label="$t('pluginAdmin:messages.requiredPlugin')"
             prop="dependencyId"
             width="140"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="状态"
+            :label="$t('common:status')"
             width="150"
             align="center"
           >
@@ -157,25 +157,29 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="说明"
+            :label="$t('common:description')"
             prop="message"
             min-width="320"
             :show-overflow-tooltip="true"
           />
         </el-table>
       </el-tab-pane>
-      <el-tab-pane label="执行结果">
+      <el-tab-pane :label="$t('monitor:messages.executionResult')">
         <el-descriptions
           :column="4"
           border
           class="mb16"
         >
-          <el-descriptions-item label="总数">{{ batchResult.summary.total }}</el-descriptions-item>
-          <el-descriptions-item label="成功">{{
+          <el-descriptions-item :label="$t('pluginAdmin:messages.total')">{{
+            batchResult.summary.total
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('common:success')">{{
             batchResult.summary.succeeded
           }}</el-descriptions-item>
-          <el-descriptions-item label="失败">{{ batchResult.summary.failed }}</el-descriptions-item>
-          <el-descriptions-item label="跳过">{{
+          <el-descriptions-item :label="$t('common:failed')">{{
+            batchResult.summary.failed
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('pluginAdmin:messages.skipped')">{{
             batchResult.summary.skipped
           }}</el-descriptions-item>
         </el-descriptions>
@@ -183,23 +187,23 @@
           :data="batchResult.executed"
           size="small"
           border
-          empty-text="暂无执行记录"
+          :empty-text="$t('pluginAdmin:messages.noExecutionRecords')"
         >
           <el-table-column
-            label="插件ID"
+            :label="$t('pluginAdmin:id')"
             prop="pluginId"
             width="140"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="操作"
+            :label="$t('common:actions')"
             width="90"
             align="center"
           >
             <template slot-scope="scope">{{ formatPluginOperation(scope.row.operation) }}</template>
           </el-table-column>
           <el-table-column
-            label="状态"
+            :label="$t('common:status')"
             width="90"
             align="center"
           >
@@ -210,7 +214,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="耗时"
+            :label="$t('monitor:job.duration')"
             prop="durationMs"
             width="90"
             align="center"
@@ -218,13 +222,13 @@
             <template slot-scope="scope">{{ formatDuration(scope.row.durationMs) }}ms</template>
           </el-table-column>
           <el-table-column
-            label="说明"
+            :label="$t('common:description')"
             prop="message"
             min-width="220"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="建议"
+            :label="$t('common:suggestion')"
             prop="suggestion"
             min-width="260"
             :show-overflow-tooltip="true"
@@ -239,8 +243,8 @@
     >
       <el-switch
         :value="continueOnError"
-        active-text="失败后继续"
-        inactive-text="失败即中止"
+        :active-text="$t('pluginAdmin:messages.continueAfterFailure')"
+        :inactive-text="$t('pluginAdmin:messages.stopOnFailure')"
         class="mr12"
         @input="emit('update:continueOnError', $event)"
       />
@@ -250,14 +254,17 @@
         :loading="loading"
         @click="emit('execute')"
         v-hasPermi="['system:plugin:edit']"
-        >执行计划：{{ formatPluginOperation(planResult.operation) }}</el-button
+        >{{ $t('pluginAdmin:messages.executionPlan')
+        }}{{ formatPluginOperation(planResult.operation) }}</el-button
       >
-      <el-button @click="emit('update:visible', false)">关 闭</el-button>
+      <el-button @click="emit('update:visible', false)">{{ $t('common:close') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script setup name="PluginPlanDialog">
+import { t } from '@/i18n/adapter'
+
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -267,7 +274,9 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: '插件依赖计划',
+    get default() {
+      return t('pluginAdmin:messages.pluginDependencyPlan')
+    },
   },
   planResult: {
     type: Object,

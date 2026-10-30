@@ -19,7 +19,7 @@
       v-if="moreRoutes.length > 0"
     >
       <template #title>
-        <span>更多菜单</span>
+        <span>{{ $t('layout:menu.more') }}</span>
       </template>
       <sidebar-item
         :key="route.path + index"

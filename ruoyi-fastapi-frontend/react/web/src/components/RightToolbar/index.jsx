@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import '@/assets/styles/components.css'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Checkbox, Divider, Modal, Popover, Space, Tooltip, Transfer } from 'antd'
@@ -15,6 +17,8 @@ export default function RightToolbar({
   gutter = 10,
   storageKey = '',
 }) {
+  useI18n()
+
   const [open, setOpen] = useState(false)
   const restoredKey = useRef()
   const entries = Object.entries(columns)
@@ -53,7 +57,7 @@ export default function RightToolbar({
   }, [storageKey, columns, onColumnsChange, entries.length])
   const columnButton = (
     <Button
-      aria-label="显隐列"
+      aria-label={t('common:columnVisibility')}
       icon={<MenuOutlined />}
       onClick={showColumnsType === 'transfer' ? () => setOpen(true) : undefined}
     />
@@ -65,23 +69,23 @@ export default function RightToolbar({
         style={{ marginRight: gutter / 2 }}
       >
         {search && (
-          <Tooltip title={showSearch ? '隐藏搜索' : '显示搜索'}>
+          <Tooltip title={showSearch ? t('common:hideSearch') : t('common:showSearch')}>
             <Button
-              aria-label="切换搜索"
+              aria-label={t('common:toggleSearch')}
               icon={<SearchOutlined />}
               onClick={() => onShowSearch?.(!showSearch)}
             />
           </Tooltip>
         )}
-        <Tooltip title="刷新">
+        <Tooltip title={t('layout:tags.refresh')}>
           <Button
-            aria-label="刷新列表"
+            aria-label={t('common:refreshList')}
             icon={<ReloadOutlined />}
             onClick={onQuery}
           />
         </Tooltip>
         {!!entries.length && (
-          <Tooltip title="显隐列">
+          <Tooltip title={t('common:columnVisibility')}>
             {showColumnsType === 'transfer' ? (
               columnButton
             ) : (
@@ -96,7 +100,7 @@ export default function RightToolbar({
                         change(event.target.checked ? [] : entries.map(([key]) => key))
                       }
                     >
-                      列展示
+                      {t('common:columns')}
                     </Checkbox>
                     <Divider style={{ margin: '8px 0' }} />
                     <Space orientation="vertical">
@@ -127,13 +131,13 @@ export default function RightToolbar({
       </Space>
       <Modal
         width="50%"
-        title="显示/隐藏"
+        title={t('common:showHide')}
         open={open}
         onCancel={() => setOpen(false)}
         footer={null}
       >
         <Transfer
-          titles={['显示', '隐藏']}
+          titles={[t('common:show'), t('common:hide')]}
           dataSource={entries.map(([key, column]) => ({ key, title: column.label }))}
           targetKeys={hidden}
           render={(item) => item.title}

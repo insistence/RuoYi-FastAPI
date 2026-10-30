@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import Pagination from '@/components/Pagination'
 import { useEffect, useState } from 'react'
 import { Button, Form, Input, Row, Col, Space, Tag } from 'antd'
@@ -7,6 +9,8 @@ import { getAuthRole, updateAuthRole } from '@/api/system/user'
 import { message } from '@/plugins/modal'
 import { parseTime } from '@/utils/ruoyi'
 export default function AuthRole({ params }) {
+  useI18n()
+
   const [user, setUser] = useState({}),
     [roles, setRoles] = useState([]),
     [roleIds, setRoleIds] = useState([]),
@@ -29,7 +33,7 @@ export default function AuthRole({ params }) {
     setSaving(true)
     try {
       await updateAuthRole({ userId: user.userId, roleIds: roleIds.join(',') })
-      message.success('授权成功')
+      message.success(t('system:authorizedSuccessfully'))
       navigate('/system/user')
     } catch {
     } finally {
@@ -38,7 +42,7 @@ export default function AuthRole({ params }) {
   }
   return (
     <div className="app-container">
-      <h4 className="form-header h4">基本信息</h4>
+      <h4 className="form-header h4">{t('common:basicInfo')}</h4>
       <Form
         colon={false}
         labelCol={{ flex: '80px' }}
@@ -48,7 +52,7 @@ export default function AuthRole({ params }) {
             span={8}
             offset={2}
           >
-            <Form.Item label="用户昵称">
+            <Form.Item label={t('system:user.nickname')}>
               <Input
                 disabled
                 value={user.nickName}
@@ -59,7 +63,7 @@ export default function AuthRole({ params }) {
             span={8}
             offset={2}
           >
-            <Form.Item label="登录账号">
+            <Form.Item label={t('system:loginAccount')}>
               <Input
                 disabled
                 value={user.userName}
@@ -68,7 +72,7 @@ export default function AuthRole({ params }) {
           </Col>
         </Row>
       </Form>
-      <h4 className="form-header h4">角色信息</h4>
+      <h4 className="form-header h4">{t('system:roleInformation')}</h4>
       <Table
         rowKey="roleId"
         loading={loading}
@@ -92,19 +96,19 @@ export default function AuthRole({ params }) {
         }}
         columns={[
           {
-            title: '序号',
+            title: t('common:index'),
             width: 55,
             align: 'center',
             render: (_, row, index) => (page.pageNum - 1) * page.pageSize + index + 1,
           },
           Table.SELECTION_COLUMN,
-          { align: 'center', title: '角色编号', dataIndex: 'roleId' },
-          { align: 'center', title: '角色名称', dataIndex: 'roleName' },
-          { align: 'center', title: '权限字符', dataIndex: 'roleKey' },
+          { align: 'center', title: t('system:roleID'), dataIndex: 'roleId' },
+          { align: 'center', title: t('system:role.name'), dataIndex: 'roleName' },
+          { align: 'center', title: t('system:permission.code'), dataIndex: 'roleKey' },
           {
             width: 180,
             align: 'center',
-            title: '创建时间',
+            title: t('common:createdTime'),
             dataIndex: 'createTime',
             render: (value) => parseTime(value),
           },
@@ -123,9 +127,9 @@ export default function AuthRole({ params }) {
             onClick={submitForm}
             loading={saving}
           >
-            提交
+            {t('common:submit')}
           </Button>
-          <Button onClick={() => navigate('/system/user')}>返回</Button>
+          <Button onClick={() => navigate('/system/user')}>{t('layout:error.back')}</Button>
         </Space>
       </div>
     </div>

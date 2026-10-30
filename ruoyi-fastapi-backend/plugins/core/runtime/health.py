@@ -5,6 +5,7 @@ from time import perf_counter
 from typing import Any, cast
 
 from common.constant import PluginRuntimeConstant
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.callable import LoadedPluginCallable, PluginCallableLoader
 from plugins.core.sdk.definition import await_plugin_callback
@@ -90,7 +91,7 @@ class PluginHealthChecker:
             return self._build_result(
                 ok=True,
                 status='unknown',
-                message='插件未声明健康检查',
+                message=I18nMessage('插件未声明健康检查', msg_key='plugin.runtime.health.undeclared'),
                 checker=None,
                 started_at=started_at,
             )
@@ -109,7 +110,7 @@ class PluginHealthChecker:
             return self._build_result(
                 ok=False,
                 status='timeout',
-                message='插件健康检查执行超时',
+                message=I18nMessage('插件健康检查执行超时', msg_key='plugin.runtime.health.timeout'),
                 checker=checker_path,
                 started_at=started_at,
                 error=f'插件健康检查执行超时，超过 {self.timeout_seconds} 秒',
@@ -118,7 +119,7 @@ class PluginHealthChecker:
             return self._build_result(
                 ok=False,
                 status='error',
-                message='插件健康检查执行失败',
+                message=I18nMessage('插件健康检查执行失败', msg_key='plugin.runtime.health.executionFailed'),
                 checker=checker_path,
                 started_at=started_at,
                 error=str(exc),
@@ -200,7 +201,9 @@ class PluginHealthChecker:
             return self._build_result(
                 ok=raw_result,
                 status='healthy' if raw_result else 'unhealthy',
-                message='插件健康检查通过' if raw_result else '插件健康检查未通过',
+                message=I18nMessage('插件健康检查通过', msg_key='plugin.runtime.health.passed')
+                if raw_result
+                else '插件健康检查未通过',
                 checker=checker_path,
                 started_at=started_at,
             )
@@ -208,7 +211,7 @@ class PluginHealthChecker:
         return self._build_result(
             ok=True,
             status='healthy',
-            message='插件健康检查通过',
+            message=I18nMessage('插件健康检查通过', msg_key='plugin.runtime.health.passed'),
             checker=checker_path,
             started_at=started_at,
         )

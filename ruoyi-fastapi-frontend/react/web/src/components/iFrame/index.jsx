@@ -1,6 +1,10 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useState } from 'react'
 import { Spin } from 'antd'
-export default function IFrame({ src, title = '内嵌页面' }) {
+export default function IFrame({ src, title = t('common:embeddedPage') }) {
+  useI18n()
+
   const [loading, setLoading] = useState(true)
   return (
     <Spin spinning={loading}>

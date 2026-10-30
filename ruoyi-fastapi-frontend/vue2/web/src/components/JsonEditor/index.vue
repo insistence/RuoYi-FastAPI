@@ -5,7 +5,9 @@
   >
     <div class="json-editor__toolbar">
       <span class="json-editor__type">{{
-        valueType === 'array' ? 'JSON 数组 [ ]' : 'JSON 对象 { }'
+        valueType === 'array'
+          ? $t('common:expression.jSONArray')
+          : $t('common:expression.jSONObject')
       }}</span>
       <div class="json-editor__actions">
         <el-button
@@ -13,18 +15,25 @@
           size="mini"
           icon="el-icon-s-operation"
           :disabled="!editorReady || !validation.valid"
-          :aria-label="`格式化${label}`"
+          :aria-label="$t('common:editor.formatLabel', { label: displayLabel })"
           @click="formatDocument"
-          >格式化</el-button
+          >{{ $t('common:format') }}</el-button
         >
         <el-button
           type="text"
           size="mini"
           icon="el-icon-full-screen"
-          :aria-label="`${expanded ? '收起' : '展开'}${label}编辑器`"
+          :aria-label="
+            $t('common:editor.toggleLabel', {
+              action: expanded ? $t('common:expression.collapse') : $t('common:expression.expand'),
+              label,
+            })
+          "
           :aria-expanded="expanded"
           @click="expanded = !expanded"
-          >{{ expanded ? '收起' : '展开' }}</el-button
+          >{{
+            expanded ? $t('common:expression.collapse') : $t('common:expression.expand')
+          }}</el-button
         >
       </div>
     </div>
@@ -42,14 +51,14 @@
         class="json-editor__loading"
         role="status"
       >
-        正在加载编辑器…
+        {{ $t('common:loadingEditor') }}
       </div>
       <el-input
         v-if="loadFailed"
         :value="value"
         type="textarea"
         :rows="expanded ? 16 : 4"
-        :aria-label="label"
+        :aria-label="displayLabel"
         @input="updateValue"
         @blur="validateForm"
       />
@@ -59,7 +68,7 @@
         v-if="validation.valid"
         class="json-editor__valid"
         role="status"
-        >格式正确</span
+        >{{ $t('common:validFormat') }}</span
       >
       <button
         v-else
@@ -77,7 +86,9 @@
         v-if="validation.valid"
         class="json-editor__hint"
         >{{
-          loadFailed ? '编辑器加载失败，已切换文本输入' : 'Tab 切换焦点 · Alt+Shift+F 格式化'
+          loadFailed
+            ? $t('common:expression.failedToLoadTheEditorPlainTextInputIsAvailable')
+            : $t('common:expression.tabToChangeFocusAltShiftFToFormat')
         }}</span
       >
     </div>
@@ -85,6 +96,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { loadMonaco } from '@/utils/monaco'
 export default {
   name: 'JsonEditor',
@@ -95,7 +108,7 @@ export default {
     },
     label: {
       type: String,
-      default: 'JSON参数',
+      default: '',
     },
     valueType: {
       type: String,
@@ -121,6 +134,9 @@ export default {
     }
   },
   computed: {
+    displayLabel() {
+      return this.label || t('common:jSONParameters')
+    },
     validation() {
       try {
         this.validate(this.value)
@@ -136,7 +152,10 @@ export default {
     },
     errorLocation() {
       return this.firstMarker
-        ? `第 ${this.firstMarker.startLineNumber} 行，第 ${this.firstMarker.startColumn} 列：`
+        ? t('file:interface.lineValueColumnValue', {
+            value0: this.firstMarker.startLineNumber,
+            value1: this.firstMarker.startColumn,
+          })
         : ''
     },
   },
@@ -165,7 +184,7 @@ export default {
       })
       this._editor = monaco.editor.create(this.$refs.editorRef, {
         model: this._model,
-        ariaLabel: this.label,
+        ariaLabel: this.displayLabel,
         automaticLayout: true,
         fontSize: 13,
         lineHeight: 22,

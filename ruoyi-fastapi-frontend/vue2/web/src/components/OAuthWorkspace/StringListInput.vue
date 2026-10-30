@@ -15,7 +15,7 @@
         class="oauth-button-danger"
         type="text"
         icon="el-icon-delete"
-        :aria-label="`删除第 ${index + 1} 项`"
+        :aria-label="$t('common:action.removeItem', { index: index + 1 })"
         @click="remove(index)"
       />
     </div>
@@ -25,17 +25,19 @@
       icon="el-icon-plus"
       @click="append"
     >
-      {{ addText }}
+      {{ addText || $t('authCenter:interface.addItem') }}
     </el-button>
   </div>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
+
 import { ref, watch } from 'vue'
 const props = defineProps({
   value: { type: Array, default: () => [] },
   placeholder: { type: String, default: '' },
-  addText: { type: String, default: '添加一项' },
+  addText: { type: String, default: '' },
 })
 const emit = defineEmits(['input'])
 const localItems = ref([])

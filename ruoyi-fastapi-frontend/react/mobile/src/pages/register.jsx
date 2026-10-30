@@ -1,3 +1,6 @@
+import { useLocalizedError } from '@/i18n/error'
+import { usePageLocale } from '@/i18n/navigation'
+import { t } from '@/i18n'
 import React, { useRef, useState } from 'react'
 import Taro, { useLoad } from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
@@ -6,6 +9,8 @@ import { getCodeImg, register } from '@/api/login'
 import FormField from '@/components/FormField'
 import logo from '@/assets/logo.png'
 export default function Register() {
+  usePageLocale()
+
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -22,7 +27,7 @@ export default function Register() {
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
   const version = useRef(0)
-  const [error, setError] = useState('')
+  const [error, setError] = useLocalizedError()
   const update = (key, value) => setForm((old) => ({ ...old, [key]: value }))
   async function refreshCode() {
     const current = ++version.current
@@ -37,22 +42,22 @@ export default function Register() {
       setReady(true)
       setForm((old) => ({ ...old, uuid: result.uuid || '', code: '' }))
     } catch (failure) {
-      setError(failure.message || '验证码加载失败，请重试')
+      setError(failure.message || (() => t('mobile:failedToLoadTheVerificationCodePleaseTryAgain')))
     }
   }
   useLoad(refreshCode)
   async function submit() {
     if (lock.current || !ready || !captcha.register) return
     const message = !form.username.trim()
-      ? '请输入账号'
+      ? () => t('mobile:enterYourUsername')
       : !form.password
-        ? '请输入密码'
+        ? () => t('mobile:enterYourPassword')
         : !form.confirmPassword
-          ? '请再次输入密码'
+          ? () => t('mobile:enterYourPasswordAgain')
           : form.password !== form.confirmPassword
-            ? '两次输入的密码不一致'
+            ? () => t('mobile:thePasswordsDoNotMatch')
             : captcha.enabled && !form.code
-              ? '请输入验证码'
+              ? () => t('common:login.codeRequired')
               : ''
     if (message) {
       setError(message)
@@ -64,13 +69,17 @@ export default function Register() {
     try {
       await register({ ...form, username: form.username.trim() })
       await Taro.showModal({
-        title: '系统提示',
-        content: `恭喜你，您的账号 ${form.username} 注册成功！`,
+        confirmText: t('common:confirm'),
+        cancelText: t('common:cancel'),
+        title: t('mobile:notice'),
+        content: t('mobile:yourAccountValueHasBeenCreatedSuccessfully', {
+          username: form.username,
+        }),
         showCancel: false,
       })
       await Taro.redirectTo({ url: '/pages/login' })
     } catch (failure) {
-      setError(failure.message || '注册失败，请重试')
+      setError(failure.message || (() => t('mobile:registrationFailedPleaseTryAgain')))
       if (captcha.enabled) await refreshCode()
     } finally {
       lock.current = false
@@ -87,34 +96,34 @@ export default function Register() {
             mode="widthFix"
           />
         </View>
-        <Text className="auth-title">RuoYi-FastAPI移动端注册</Text>
+        <Text className="auth-title">{t('mobile:ruoyiFastapiMobileSignUp')}</Text>
       </View>
       <View className="auth-panel">
         {ready && !captcha.register ? (
-          <Text className="mobile-error">当前系统未开放注册</Text>
+          <Text className="mobile-error">{t('mobile:registrationIsCurrentlyUnavailable')}</Text>
         ) : (
           <>
             <FormField
-              label="账号"
+              label={t('common:login.username')}
               icon="account"
-              placeholder="请输入账号"
+              placeholder={t('mobile:enterYourUsername')}
               maxlength={30}
               value={form.username}
               onChange={(value) => update('username', value)}
             />
             <FormField
-              label="密码"
+              label={t('common:login.password')}
               icon="lock"
-              placeholder="请输入密码"
+              placeholder={t('mobile:enterYourPassword')}
               password
               maxlength={20}
               value={form.password}
               onChange={(value) => update('password', value)}
             />
             <FormField
-              label="确认密码"
+              label={t('mobile:confirmPassword')}
               icon="lock"
-              placeholder="请再次输入密码"
+              placeholder={t('mobile:enterYourPasswordAgain')}
               password
               maxlength={20}
               value={form.confirmPassword}
@@ -124,11 +133,11 @@ export default function Register() {
               <View className="auth-captcha mb-8 flex items-center gap-3">
                 <View className="flex-1">
                   <FormField
-                    label="验证码"
+                    label={t('common:login.code')}
                     compact
                     icon="security"
                     type="number"
-                    placeholder="验证码"
+                    placeholder={t('common:login.code')}
                     maxlength={4}
                     value={form.code}
                     onChange={(value) => update('code', value)}
@@ -144,7 +153,9 @@ export default function Register() {
                       className="w-full h-full"
                     />
                   ) : (
-                    <Text className="text-sm text-blue-600">重新获取验证码</Text>
+                    <Text className="text-sm text-blue-600">
+                      {t('mobile:refreshVerificationCode')}
+                    </Text>
                   )}
                 </View>
               </View>
@@ -155,7 +166,7 @@ export default function Register() {
               disabled={busy || !ready}
               onClick={submit}
             >
-              注 册
+              {t('mobile:signUp')}
             </Button>
           </>
         )}
@@ -165,7 +176,7 @@ export default function Register() {
             className="auth-link"
             onClick={() => Taro.redirectTo({ url: '/pages/login' })}
           >
-            使用已有账号登录
+            {t('mobile:alreadyHaveAnAccountSignIn')}
           </Text>
         </View>
       </View>

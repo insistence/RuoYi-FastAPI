@@ -1,6 +1,10 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Cascader, Checkbox, ColorPicker, InputNumber, Radio, Rate, Space, Switch } from 'antd'
 
 export function GeneratorNumber({ strictStep, step = 1, min, max, onChange, ...props }) {
+  useI18n()
+
   return (
     <InputNumber
       {...props}
@@ -21,6 +25,8 @@ export function GeneratorNumber({ strictStep, step = 1, min, max, onChange, ...p
 }
 
 export function GeneratorSwitch({ activeColor, inactiveColor, checked, style, ...props }) {
+  useI18n()
+
   return (
     <Switch
       {...props}
@@ -31,6 +37,8 @@ export function GeneratorSwitch({ activeColor, inactiveColor, checked, style, ..
 }
 
 export function GeneratorRate({ showScore, showText, value, ...props }) {
+  useI18n()
+
   return (
     <Space>
       <Rate
@@ -40,13 +48,25 @@ export function GeneratorRate({ showScore, showText, value, ...props }) {
       {showScore ? (
         <span>{value || 0}</span>
       ) : showText && value > 0 ? (
-        <span>{['极差', '失望', '一般', '满意', '惊喜'][Math.min(4, Math.ceil(value) - 1)]}</span>
+        <span>
+          {
+            [
+              t('common:veryPoor'),
+              t('common:disappointing'),
+              t('common:average'),
+              t('common:satisfied'),
+              t('common:excellent'),
+            ][Math.min(4, Math.ceil(value) - 1)]
+          }
+        </span>
       ) : null}
     </Space>
   )
 }
 
 export function GeneratorChoice({ kind, options, border, optionType, size, ...props }) {
+  useI18n()
+
   const Group = kind === 'checkbox' ? Checkbox.Group : Radio.Group
   const Option = kind === 'checkbox' ? Checkbox : optionType === 'button' ? Radio.Button : Radio
   const boxed = border || (kind === 'checkbox' && optionType === 'button')
@@ -79,6 +99,8 @@ export function GeneratorChoice({ kind, options, border, optionType, size, ...pr
 }
 
 export function GeneratorCascader({ separator = '/', showAllLevels = true, ...props }) {
+  useI18n()
+
   return (
     <Cascader
       {...props}
@@ -116,6 +138,8 @@ function formatColor(color, format) {
 }
 
 export function GeneratorColor({ format, onChange, value, ...props }) {
+  useI18n()
+
   // Ant Design names HSV "hsb"; accept the Vue designer's saved HSV value as well.
   const input = typeof value === 'string' ? value.replace(/^hsv\(/, 'hsb(') : value
   return (

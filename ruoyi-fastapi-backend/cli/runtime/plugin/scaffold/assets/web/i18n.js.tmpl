@@ -1,0 +1,107 @@
+import { createInstance } from 'i18next'
+import meta from './locale-meta.json'
+
+/**
+ * 规范化语言标识，兼容使用下划线的设备语言。
+ *
+ * @param {string} value 原始语言标识
+ * @returns {string|null} 规范化后的语言标识，无效时返回 null
+ */
+export function normalizeLocale(value) {
+  if (typeof value !== 'string' || value.length > 63) return null
+  value = value.trim().replace(/_/g, '-')
+  if (/^x(?:-[a-z0-9]{1,8})+$/i.test(value)) return value.toLowerCase()
+  try {
+    return Intl.getCanonicalLocales(value.trim().replace(/_/g, '-'))[0] || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 校验当前应用的语言注册表、资源和回退链。
+ *
+ * @param {Object} meta 当前应用的语言元数据
+ * @param {Object} resources 按语言和命名空间组织的词库
+ * @returns {Object} 语言匹配与回退查询接口
+ */
+export function createLocaleRegistry(meta, resources) {
+  const entries = meta.locales.filter((item) => item.enabled)
+  const byCode = new Map(entries.map((item) => [item.code, item]))
+  for (const key of [meta.sourceLocale, meta.defaultLocale]) {
+    if (!byCode.has(key)) throw new Error(`Unregistered locale: ${key}`)
+  }
+  const aliases = new Map()
+  const visit = (code, path = []) => {
+    if (path.includes(code)) throw new Error(`Locale fallback cycle: ${code}`)
+    const entry = byCode.get(code)
+    if (!entry || !resources[code]) throw new Error(`Missing locale resources: ${code}`)
+    for (const fallback of entry.fallback || []) visit(fallback, [...path, code])
+  }
+  for (const entry of entries) {
+    if (normalizeLocale(entry.code) !== entry.code)
+      throw new Error(`Noncanonical locale: ${entry.code}`)
+    visit(entry.code)
+    for (const alias of entry.aliases || []) {
+      const code = normalizeLocale(alias)
+      if (!code || aliases.has(code)) throw new Error(`Conflicting locale alias: ${alias}`)
+      aliases.set(code, entry.code)
+    }
+  }
+  function match(value) {
+    const code = normalizeLocale(value)
+    return byCode.has(code) ? code : aliases.get(code)
+  }
+  return {
+    entries,
+    resolve(value, devices = []) {
+      const candidates = value === 'auto' ? devices : [value]
+      for (const candidate of candidates) {
+        const code = match(candidate)
+        if (code) return code
+      }
+      return meta.defaultLocale
+    },
+    chain(code) {
+      const result = []
+      const append = (value) => {
+        if (result.includes(value)) return
+        result.push(value)
+        for (const fallback of byCode.get(value)?.fallback || []) append(fallback)
+      }
+      append(code)
+      append(meta.sourceLocale)
+      return result
+    },
+    get: (code) => byCode.get(code),
+  }
+}
+
+const namespace = 'plugin.__PLUGIN_ID__'
+const files = import.meta.glob('../locales/*.json', { eager: true, import: 'default' })
+const resources = Object.fromEntries(Object.entries(files).map(([path, messages]) => [
+  path.split('/').pop().slice(0, -5), { [namespace]: messages },
+]))
+const registry = createLocaleRegistry(meta, resources)
+export const engine = createInstance()
+engine.init({
+  resources,
+  lng: meta.defaultLocale,
+  initAsync: false,
+  defaultNS: namespace,
+  ns: [namespace],
+  load: 'currentOnly',
+  supportedLngs: registry.entries.map(entry => entry.code),
+  fallbackLng: code => registry.chain(code).slice(1),
+  interpolation: { escapeValue: false },
+  returnNull: false,
+  returnEmptyString: false,
+})
+export const t = (key, options) => engine.t(key, options)
+export function applyLanguage(requested) {
+  const locale = registry.resolve(requested)
+  engine.changeLanguage(locale)
+  document.documentElement.lang = locale
+  document.documentElement.dir = registry.get(locale).direction
+  return locale
+}

@@ -7,6 +7,7 @@ from pydantic_validation_decorator import NotBlank, Size
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
 from config.env import AppConfig
+from i18n.message import I18nMessage
 from utils.cron_util import MyCronTrigger
 from utils.time_util import TimezoneUtil
 
@@ -102,13 +103,28 @@ class JobModel(BaseModel):
             return value.strip()
         return value
 
-    @NotBlank(field_name='invoke_target', message='调用目标字符串不能为空')
-    @Size(field_name='invoke_target', min_length=0, max_length=500, message='调用目标字符串长度不能超过500个字符')
+    @NotBlank(
+        field_name='invoke_target',
+        message=I18nMessage('调用目标字符串不能为空', msg_key='validation.invokeTargetRequired'),
+    )
+    @Size(
+        field_name='invoke_target',
+        min_length=0,
+        max_length=500,
+        message=I18nMessage('调用目标字符串长度不能超过500个字符', msg_key='validation.invokeTargetLength'),
+    )
     def get_invoke_target(self) -> str | None:
         return self.invoke_target
 
-    @NotBlank(field_name='cron_expression', message='Cron执行表达式不能为空')
-    @Size(field_name='cron_expression', min_length=0, max_length=255, message='Cron执行表达式不能超过255个字符')
+    @NotBlank(
+        field_name='cron_expression', message=I18nMessage('Cron执行表达式不能为空', msg_key='validation.cronRequired')
+    )
+    @Size(
+        field_name='cron_expression',
+        min_length=0,
+        max_length=255,
+        message=I18nMessage('Cron执行表达式不能超过255个字符', msg_key='validation.cronLength'),
+    )
     def get_cron_expression(self) -> str | None:
         return self.cron_expression
 

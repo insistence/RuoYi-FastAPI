@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     :visible.sync="dialogVisible"
-    title="任务运行记录"
+    :title="$t('monitor:messages.taskExecutionHistory')"
     width="1000px"
     append-to-body
   >
@@ -10,27 +10,28 @@
       @tab-click="resetPage"
     >
       <el-tab-pane
-        label="执行记录"
+        :label="$t('monitor:job.history')"
         name="executions"
       />
       <el-tab-pane
-        label="同步状态"
+        :label="$t('common:syncStatus')"
         name="sync"
       />
     </el-tabs>
     <el-form
+      :validate-on-rule-change="false"
       size="small"
       :inline="true"
       label-width="68px"
       @submit.native.prevent="resetPage"
     >
-      <el-form-item label="任务编号">
+      <el-form-item :label="$t('monitor:job.id')">
         <el-input-number
           v-model="queryJobId"
           :min="1"
           :precision="0"
           :controls="false"
-          placeholder="全部任务"
+          :placeholder="$t('monitor:messages.allTasks')"
           style="width: 240px"
         />
       </el-form-item>
@@ -41,14 +42,14 @@
           icon="el-icon-search"
           native-type="submit"
           :loading="loading"
-          >查询</el-button
+          >{{ $t('monitor:messages.search') }}</el-button
         >
         <el-button
           size="mini"
           icon="el-icon-refresh"
           :disabled="loading"
           @click="loadRecords()"
-          >刷新</el-button
+          >{{ $t('layout:tags.refresh') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -57,13 +58,13 @@
       class="execution-focus"
     >
       <span
-        >本次执行 ID：<code>{{ focusedExecutionId }}</code></span
+        >{{ $t('monitor:messages.currentExecutionID') }}<code>{{ focusedExecutionId }}</code></span
       >
       <el-button
         size="mini"
         type="text"
         @click="showAllExecutions"
-        >查看该任务全部记录</el-button
+        >{{ $t('monitor:messages.viewAllExecutionsOfThisTask') }}</el-button
       >
     </div>
     <el-alert
@@ -82,8 +83,8 @@
     >
       {{
         loading
-          ? '正在获取记录…'
-          : `共 ${total} 条记录${processingCount ? `，当前页 ${processingCount} 条处理中` : ''}`
+          ? $t('monitor:expression.loadingRecords')
+          : $t('monitor:job.recordSummary', { total, processing: processingCount })
       }}
     </p>
     <el-table
@@ -97,40 +98,55 @@
         <template slot-scope="scope">
           <div class="execution-details">
             <p>
-              <strong>执行 ID：</strong><code>{{ scope.row.executionId }}</code>
+              <strong>{{ $t('monitor:messages.executionID') }}</strong
+              ><code>{{ scope.row.executionId }}</code>
             </p>
-            <p><strong>完整结果：</strong>{{ scope.row.message || '尚无执行结果' }}</p>
-            <p><strong>提交者：</strong>{{ scope.row.requestedBy || '系统调度' }}</p>
-            <p><strong>计划时间：</strong>{{ parseTime(scope.row.scheduledTime) || '等待派发' }}</p>
-            <p><strong>结束时间：</strong>{{ parseTime(scope.row.endTime) || '—' }}</p>
+            <p>
+              <strong>{{ $t('monitor:messages.fullResult') }}</strong
+              >{{ scope.row.message || $t('monitor:expression.noExecutionResultsYet') }}
+            </p>
+            <p>
+              <strong>{{ $t('monitor:messages.submittedBy') }}</strong
+              >{{ scope.row.requestedBy || $t('monitor:expression.systemScheduler') }}
+            </p>
+            <p>
+              <strong>{{ $t('monitor:messages.scheduledTime') }}</strong
+              >{{ parseTime(scope.row.scheduledTime) || $t('monitor:job.execution.pending') }}
+            </p>
+            <p>
+              <strong>{{ $t('monitor:messages.finishedAt') }}</strong
+              >{{ parseTime(scope.row.endTime) || '—' }}
+            </p>
           </div>
         </template>
       </el-table-column>
       <el-table-column
         align="center"
         prop="jobId"
-        label="任务编号"
+        :label="$t('monitor:job.id')"
         width="90"
       />
       <el-table-column
         align="center"
         prop="jobName"
-        label="任务名称"
+        :label="$t('monitor:job.name')"
         min-width="150"
         show-overflow-tooltip
       />
       <el-table-column
         align="center"
-        label="来源"
+        :label="$t('common:source')"
         width="75"
       >
         <template slot-scope="scope">{{
-          scope.row.source === 'manual' ? '手动' : '定时'
+          scope.row.source === 'manual'
+            ? $t('monitor:expression.manual')
+            : $t('monitor:expression.scheduled')
         }}</template>
       </el-table-column>
       <el-table-column
         align="center"
-        label="执行状态"
+        :label="$t('monitor:job.executionStatus')"
         width="140"
       >
         <template slot-scope="scope">
@@ -144,24 +160,26 @@
       </el-table-column>
       <el-table-column
         align="center"
-        label="提交时间"
+        :label="$t('monitor:messages.submittedAt')"
         width="175"
       >
         <template slot-scope="scope">{{ parseTime(scope.row.createTime) }}</template>
       </el-table-column>
       <el-table-column
         align="center"
-        label="耗时"
+        :label="$t('monitor:job.duration')"
         width="105"
       >
         <template slot-scope="scope">{{
-          scope.row.runDurationMs == null ? '—' : `${scope.row.runDurationMs} 毫秒`
+          scope.row.runDurationMs == null
+            ? '—'
+            : $t('common:time.milliseconds', { value: scope.row.runDurationMs })
         }}</template>
       </el-table-column>
       <el-table-column
         align="center"
         prop="message"
-        label="执行结果"
+        :label="$t('monitor:messages.executionResult')"
         min-width="230"
         show-overflow-tooltip
       />
@@ -176,31 +194,35 @@
       <el-table-column
         align="center"
         prop="jobId"
-        label="任务编号"
+        :label="$t('monitor:job.id')"
         width="90"
       />
       <el-table-column
         align="center"
-        label="配置类型"
+        :label="$t('monitor:messages.configurationType')"
         width="100"
       >
-        <template slot-scope="scope">{{ scope.row.deleted ? '删除记录' : '任务配置' }}</template>
+        <template slot-scope="scope">{{
+          scope.row.deleted
+            ? $t('authCenter:messages.deleteRecord')
+            : $t('monitor:messages.taskConfiguration')
+        }}</template>
       </el-table-column>
       <el-table-column
         align="center"
         prop="configVersion"
-        label="最新版本"
+        :label="$t('monitor:messages.latestVersion')"
         width="95"
       />
       <el-table-column
         align="center"
         prop="appliedVersion"
-        label="已应用版本"
+        :label="$t('monitor:messages.appliedVersion')"
         width="105"
       />
       <el-table-column
         align="center"
-        label="同步状态"
+        :label="$t('common:syncStatus')"
         width="115"
       >
         <template slot-scope="scope">
@@ -208,13 +230,13 @@
             size="small"
             :type="syncStates[scope.row.syncStatus]?.type || 'info'"
           >
-            {{ syncStates[scope.row.syncStatus]?.label || '待同步' }}
+            {{ syncStates[scope.row.syncStatus]?.label || $t('monitor:job.sync.pending') }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column
         align="center"
-        label="最近生效时间"
+        :label="$t('monitor:messages.lastAppliedAt')"
         width="175"
       >
         <template slot-scope="scope">{{ parseTime(scope.row.appliedTime) || '—' }}</template>
@@ -222,13 +244,13 @@
       <el-table-column
         align="center"
         prop="syncError"
-        label="同步错误"
+        :label="$t('monitor:messages.synchronizationError')"
         min-width="240"
         show-overflow-tooltip
       />
       <el-table-column
         align="center"
-        label="操作"
+        :label="$t('common:actions')"
         width="100"
       >
         <template slot-scope="scope">
@@ -240,7 +262,7 @@
             :loading="retryingId === scope.row.jobId"
             :disabled="retryingId !== null && retryingId !== scope.row.jobId"
             @click="retrySync(scope.row)"
-            >重试同步</el-button
+            >{{ $t('monitor:messages.retrySynchronization') }}</el-button
           >
         </template>
       </el-table-column>
@@ -256,14 +278,16 @@
       slot="footer"
       class="dialog-footer"
     >
-      <el-button @click="dialogVisible = false">关 闭</el-button>
+      <el-button @click="dialogVisible = false">{{ $t('common:close') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { listJobExecutions, listJobSync, retryJobSync } from '@/api/monitor/job'
-import { executionStates, syncStates, notifyJobMutation } from '@/utils/job'
+import { executionStates, syncStates, notifyJobMutation } from '@/utils/jobDisplay'
 export default {
   name: 'JobRuntime',
   props: {
@@ -393,7 +417,7 @@ export default {
         this.loadError = ''
       } catch (error) {
         if (version === this._requestVersion && error.code !== 'ERR_CANCELED') {
-          this.loadError = '获取记录失败，请刷新重试。'
+          this.loadError = t('monitor:messages.couldNotLoadRecordsRefreshAndTryAgain')
         }
       } finally {
         if (version === this._requestVersion) {

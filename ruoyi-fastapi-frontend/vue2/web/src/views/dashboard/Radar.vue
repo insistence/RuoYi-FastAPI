@@ -43,6 +43,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import Viser from 'viser-vue'
 import Vue from 'vue'
 
@@ -79,7 +81,9 @@ const scale = [
   },
   {
     dataKey: 'user',
-    alias: '类型',
+    get alias() {
+      return t('common:type')
+    },
   },
 ]
 

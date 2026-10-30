@@ -1,0 +1,6 @@
+{
+  "upload": {
+    "invalidResponse": "Invalid upload response",
+    "failed": "Upload failed"
+  }
+}

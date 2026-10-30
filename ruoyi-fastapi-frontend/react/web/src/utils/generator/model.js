@@ -1,3 +1,4 @@
+import { t } from '../../i18n/index.js'
 export function findField(fields, id) {
   for (const field of fields) {
     if (field.formId === id) return field
@@ -54,17 +55,18 @@ export function parsePattern(value) {
 }
 export function fieldRules(field) {
   const rules = []
-  if (field.required) rules.push({ required: true, message: `请填写${field.label}` })
+  if (field.required)
+    rules.push({ required: true, message: t('common:enterValue', { label: field.label }) })
   for (const item of field.regList || []) {
     const pattern = parsePattern(item.pattern)
-    if (pattern) rules.push({ pattern, message: item.message || '格式不正确' })
+    if (pattern) rules.push({ pattern, message: item.message || t('common:invalidFormat') })
   }
   if (field.tag === 'Checkbox.Group' && (field.min != null || field.max != null))
     rules.push({
       type: 'array',
       min: field.min,
       max: field.max,
-      message: '选择数量不符合要求',
+      message: t('common:theNumberOfSelectedOptionsIsOutsideTheAllowed'),
     })
   return rules
 }

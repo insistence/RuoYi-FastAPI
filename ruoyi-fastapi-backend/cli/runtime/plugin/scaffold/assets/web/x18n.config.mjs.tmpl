@@ -1,0 +1,11 @@
+// https://x18n.dev/raw/guide/configuration.md
+import { readFileSync } from 'node:fs'
+const meta = JSON.parse(readFileSync(new URL('./src/locale-meta.json', import.meta.url), 'utf8'))
+export default {
+  sourceLocale: meta.sourceLocale,
+  locales: meta.locales.filter(entry => entry.enabled).map(entry => entry.code),
+  presets: ['i18next'],
+  resources: [{ pattern: 'locales/{locale}.json', namespace: 'plugin.__PLUGIN_ID__' }],
+  namespace: { separator: ':', default: 'plugin.__PLUGIN_ID__' },
+  usage: { include: ['src/**/*.js'], calls: [{ callee: 'showNotice' }] },
+}

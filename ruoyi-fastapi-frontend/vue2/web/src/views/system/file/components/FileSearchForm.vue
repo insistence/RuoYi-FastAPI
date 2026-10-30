@@ -1,5 +1,6 @@
 <template>
   <el-form
+    :validate-on-rule-change="false"
     ref="queryForm"
     v-show="show"
     :model="queryParams"
@@ -8,93 +9,93 @@
     label-width="68px"
   >
     <el-form-item
-      label="文件名称"
+      :label="$t('file:name')"
       prop="originalName"
     >
       <el-input
         v-model="queryParams.originalName"
-        placeholder="请输入原始文件名"
+        :placeholder="$t('file:messages.enterTheOriginalFileName')"
         clearable
         style="width: 200px"
         @keyup.enter.native="$emit('query')"
       />
     </el-form-item>
     <el-form-item
-      label="访问类型"
+      :label="$t('file:accessType')"
       prop="accessType"
     >
       <el-select
         v-model="queryParams.accessType"
-        placeholder="请选择访问类型"
+        :placeholder="$t('file:messages.selectAnAccessType')"
         clearable
         style="width: 200px"
       >
         <el-option
-          label="公开文件"
+          :label="$t('file:messages.publicFiles')"
           value="public"
         />
         <el-option
-          label="受保护文件"
+          :label="$t('file:messages.protectedFiles')"
           value="private"
         />
       </el-select>
     </el-form-item>
     <el-form-item
-      label="文件状态"
+      :label="$t('file:messages.fileStatus')"
       prop="status"
     >
       <el-select
         v-model="queryParams.status"
-        placeholder="请选择文件状态"
+        :placeholder="$t('file:messages.selectAFileStatus')"
         clearable
         style="width: 200px"
       >
         <el-option
-          label="正常"
+          :label="$t('layout:notices.active')"
           value="active"
         />
         <el-option
-          label="已删除"
+          :label="$t('file:messages.deleted')"
           value="deleted"
         />
         <el-option
-          label="清理中"
+          :label="$t('file:messages.deleting')"
           value="purging"
         />
       </el-select>
     </el-form-item>
     <el-form-item
-      label="上传用户"
+      :label="$t('file:messages.uploader')"
       prop="createBy"
     >
       <el-input
         v-model="queryParams.createBy"
-        placeholder="请输入上传用户"
+        :placeholder="$t('file:messages.enterAnUploader')"
         clearable
         style="width: 200px"
         @keyup.enter.native="$emit('query')"
       />
     </el-form-item>
     <el-form-item
-      label="所有者"
+      :label="$t('file:owner')"
       prop="ownerName"
     >
       <el-input
         v-model="queryParams.ownerName"
-        placeholder="请输入所有者"
+        :placeholder="$t('file:messages.enterAnOwner')"
         clearable
         style="width: 200px"
         @keyup.enter.native="$emit('query')"
       />
     </el-form-item>
     <el-form-item
-      label="所属部门"
+      :label="$t('system:user.department')"
       prop="deptId"
     >
       <treeselect
         v-model="queryParams.deptId"
         :options="deptOptions"
-        placeholder="请选择所属部门"
+        :placeholder="$t('file:messages.selectADepartment')"
         :normalizer="normalizer"
         :clearable="true"
         :searchable="true"
@@ -102,42 +103,42 @@
       />
     </el-form-item>
     <el-form-item
-      label="过期状态"
+      :label="$t('file:messages.expiryStatus')"
       prop="expirationStatus"
     >
       <el-select
         v-model="queryParams.expirationStatus"
-        placeholder="请选择过期状态"
+        :placeholder="$t('file:messages.selectAnExpiryStatus')"
         clearable
         style="width: 200px"
       >
         <el-option
-          label="永久有效"
+          :label="$t('file:messages.noExpiry')"
           value="permanent"
         />
         <el-option
-          label="有效"
+          :label="$t('file:messages.valid')"
           value="valid"
         />
         <el-option
-          label="7天内过期"
+          :label="$t('file:messages.expiresWithin7Days')"
           value="expiring"
         />
         <el-option
-          label="已过期"
+          :label="$t('common:expired')"
           value="expired"
         />
       </el-select>
     </el-form-item>
-    <el-form-item label="上传时间">
+    <el-form-item :label="$t('file:messages.uploadedAt')">
       <el-date-picker
         :value="dateRange"
         value-format="yyyy-MM-dd HH:mm:ss"
         type="datetimerange"
         style="width: 200px"
         range-separator="-"
-        start-placeholder="开始时间"
-        end-placeholder="结束时间"
+        :start-placeholder="$t('common:startTime')"
+        :end-placeholder="$t('common:endTime')"
         @input="$emit('update:dateRange', $event)"
       />
     </el-form-item>
@@ -147,13 +148,13 @@
         icon="el-icon-search"
         size="mini"
         @click="$emit('query')"
-        >搜索</el-button
+        >{{ $t('common:search') }}</el-button
       >
       <el-button
         icon="el-icon-refresh"
         size="mini"
         @click="handleReset"
-        >重置</el-button
+        >{{ $t('common:reset') }}</el-button
       >
     </el-form-item>
   </el-form>

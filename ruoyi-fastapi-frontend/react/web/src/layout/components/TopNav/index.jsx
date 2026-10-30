@@ -1,3 +1,6 @@
+import { resolveRouteTitle } from '@/i18n'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Menu } from 'antd'
 import { DownOutlined } from '@ant-design/icons'
 import SvgIcon from '@/components/SvgIcon'
@@ -5,6 +8,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { menuItems } from '../Sidebar'
 import { firstLeaf, routeLocation } from '@/utils/router'
 export default function TopNav({ routes, mixed = false, activeRoot }) {
+  useI18n()
+
   const { pathname } = useLocation()
   const items = mixed
     ? routes
@@ -20,10 +25,10 @@ export default function TopNav({ routes, mixed = false, activeRoot }) {
                 target="_blank"
                 rel="noreferrer"
               >
-                {route.meta?.title}
+                {resolveRouteTitle(route)}
               </a>
             ) : (
-              <Link to={routeLocation(target)}>{route.meta?.title || route.name}</Link>
+              <Link to={routeLocation(target)}>{resolveRouteTitle(route) || route.name}</Link>
             ),
           }
         })
@@ -34,11 +39,14 @@ export default function TopNav({ routes, mixed = false, activeRoot }) {
       mode="horizontal"
       overflowedIndicator={
         <span>
-          更多菜单 <DownOutlined />
+          {t('layout:menu.more')} <DownOutlined />
         </span>
       }
       selectedKeys={[mixed ? activeRoot?.path : pathname]}
-      items={[{ key: '/index', label: <Link to="/index">首页</Link> }, ...items]}
+      items={[
+        { key: '/index', label: <Link to="/index">{t('layout:route.home')}</Link> },
+        ...items,
+      ]}
     />
   )
 }

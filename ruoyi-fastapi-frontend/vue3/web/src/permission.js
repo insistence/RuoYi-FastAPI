@@ -9,7 +9,6 @@ import { isHttp, isPathMatch } from '@/utils/validate'
 import { isRelogin } from '@/utils/request'
 import useUserStore from '@/store/modules/user'
 import useLockStore from '@/store/modules/lock'
-import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
 
 NProgress.configure({ showSpinner: false })
@@ -35,7 +34,6 @@ router.beforeEach(async (to, from) => {
     return authCenterRedirect
   }
   if (getToken()) {
-    to.meta.title && useSettingsStore().setTitle(to.meta.title)
     const isLock = useLockStore().isLock
     if (to.path === '/login') {
       NProgress.done()

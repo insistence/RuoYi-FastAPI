@@ -5,6 +5,7 @@ from pydantic.alias_generators import to_camel
 from pydantic_validation_decorator import NotBlank, Size
 
 from common.types import ApiUtcDateTime
+from i18n.message import I18nMessage
 
 
 class AiModelModel(BaseModel):
@@ -35,13 +36,23 @@ class AiModelModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
     remark: str | None = Field(default=None, description='备注')
 
-    @NotBlank(field_name='model_code', message='模型编码不能为空')
-    @Size(field_name='model_code', min_length=0, max_length=100, message='模型编码长度不能超过100个字符')
+    @NotBlank(field_name='model_code', message=I18nMessage('模型编码不能为空', msg_key='validation.modelCodeRequired'))
+    @Size(
+        field_name='model_code',
+        min_length=0,
+        max_length=100,
+        message=I18nMessage('模型编码长度不能超过100个字符', msg_key='validation.modelCodeLength'),
+    )
     def get_model_code(self) -> str | None:
         return self.model_code
 
-    @NotBlank(field_name='base_url', message='Base URL不能为空')
-    @Size(field_name='base_url', min_length=0, max_length=255, message='Base URL长度不能超过255个字符')
+    @NotBlank(field_name='base_url', message=I18nMessage('Base URL不能为空', msg_key='validation.baseUrlRequired'))
+    @Size(
+        field_name='base_url',
+        min_length=0,
+        max_length=255,
+        message=I18nMessage('Base URL长度不能超过255个字符', msg_key='validation.baseUrlLength'),
+    )
     def get_base_url(self) -> str | None:
         return self.base_url
 

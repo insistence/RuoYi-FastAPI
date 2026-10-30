@@ -3,6 +3,7 @@ from typing import Protocol, TypeAlias, cast
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
 from plugins.core.lifecycle.migration import PluginMigrationResult
 from plugins.core.lifecycle.seed import PluginSeedResult
 from plugins.core.runtime.hooks import PluginHookResult
@@ -126,7 +127,9 @@ class PluginLifecyclePayloadBuilder:
         return _lifecycle_payload(
             {
                 'ok': True,
-                'message': '插件安装演练完成，未执行实际写入',
+                'message': I18nMessage(
+                    '插件安装演练完成，未执行实际写入', msg_key='plugin.runtime.install.previewCompleted'
+                ),
                 'pluginId': plugin_id,
                 'dryRun': True,
                 'actions': actions,
@@ -240,7 +243,7 @@ class PluginLifecyclePayloadBuilder:
 
         return cls.build_precheck_blocker_payload(
             plugin_id,
-            message='插件依赖检查失败，安装已中止',
+            message=I18nMessage('插件依赖检查失败，安装已中止', msg_key='plugin.runtime.install.dependencyCheckFailed'),
             actions=actions,
             precheck=precheck,
             extra_payload={'dependencyOk': False, 'dependencyInstall': dependency_install_payload},
@@ -273,7 +276,11 @@ class PluginLifecyclePayloadBuilder:
         return _lifecycle_payload(
             {
                 'ok': ok,
-                'message': message if ok else '插件操作预检存在问题，未执行实际写入',
+                'message': message
+                if ok
+                else I18nMessage(
+                    '插件操作预检存在问题，未执行实际写入', msg_key='plugin.runtime.precheck.writeBlocked'
+                ),
                 'pluginId': plugin_id,
                 'operation': operation,
                 'dryRun': True,
@@ -340,7 +347,7 @@ class PluginLifecyclePayloadBuilder:
         return _lifecycle_payload(
             {
                 'ok': True,
-                'message': '插件已是最新版本，无需升级',
+                'message': I18nMessage('插件已是最新版本，无需升级', msg_key='plugin.runtime.upgrade.current'),
                 'pluginId': plugin_id,
                 'dryRun': False,
                 **version_state,

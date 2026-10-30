@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { parseTime } from '@/utils/ruoyi'
 import Pagination from '@/components/Pagination'
 import { renderDialogFooter } from '@/components/DialogFooter'
@@ -9,8 +12,11 @@ import { useDict } from '@/utils/dict'
 import { message } from '@/plugins/modal'
 import DictTag from '@/components/DictTag'
 export default function SelectUser({ open, roleId, onClose, onSuccess }) {
+  useI18n()
+
   const [form] = Form.useForm(),
     { sys_normal_disable } = useDict('sys_normal_disable')
+  useLocalizedFormErrors(form)
   const [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
     [rows, setRows] = useState([]),
     [total, setTotal] = useState(0),
@@ -44,11 +50,11 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
     }
   }, [open, query, roleId])
   async function submit() {
-    if (!ids.length) return message.warning('请选择要分配的用户')
+    if (!ids.length) return message.warning(t('system:selectUsersToAssign'))
     setSaving(true)
     try {
       await authUserSelectAll({ roleId, userIds: ids.join(',') })
-      message.success('授权成功')
+      message.success(t('system:authorizedSuccessfully'))
       onSuccess()
       onClose()
     } catch {
@@ -59,7 +65,7 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
   return (
     <Modal
       footer={renderDialogFooter}
-      title="选择用户"
+      title={t('system:selectUsers')}
       open={open}
       onCancel={onClose}
       onOk={submit}
@@ -75,22 +81,22 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
         onFinish={(values) => setQuery({ ...values, pageNum: 1, pageSize: 10 })}
       >
         <Form.Item
-          label="用户名称"
+          label={t('system:user.username')}
           name="userName"
         >
           <Input
             style={{ width: 180 }}
-            placeholder="请输入用户名称"
+            placeholder={t('system:user.usernamePlaceholder')}
             allowClear
           />
         </Form.Item>
         <Form.Item
-          label="手机号码"
+          label={t('system:user.phone')}
           name="phonenumber"
         >
           <Input
             style={{ width: 180 }}
-            placeholder="请输入手机号码"
+            placeholder={t('system:user.phonePlaceholder')}
             allowClear
           />
         </Form.Item>
@@ -100,7 +106,7 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
               htmlType="submit"
               type="primary"
             >
-              搜索
+              {t('common:search')}
             </Button>
             <Button
               onClick={() => {
@@ -108,7 +114,7 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
                 setQuery({ pageNum: 1, pageSize: 10 })
               }}
             >
-              重置
+              {t('common:reset')}
             </Button>
           </Space>
         </Form.Item>
@@ -134,13 +140,13 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
           preserveSelectedRowKeys: true,
         }}
         columns={[
-          { title: '用户名称', dataIndex: 'userName' },
-          { title: '用户昵称', dataIndex: 'nickName' },
-          { title: '邮箱', dataIndex: 'email' },
-          { title: '手机', dataIndex: 'phonenumber' },
+          { title: t('system:user.username'), dataIndex: 'userName' },
+          { title: t('system:user.nickname'), dataIndex: 'nickName' },
+          { title: t('system:user.email'), dataIndex: 'email' },
+          { title: t('system:phone'), dataIndex: 'phonenumber' },
           {
             align: 'center',
-            title: '状态',
+            title: t('common:status'),
             dataIndex: 'status',
             render: (value) => (
               <DictTag
@@ -150,7 +156,7 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
             ),
           },
           {
-            title: '创建时间',
+            title: t('common:createdTime'),
             dataIndex: 'createTime',
             width: 180,
             align: 'center',

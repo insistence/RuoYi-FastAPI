@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    title="插件依赖"
+    :title="$t('components:pluginDependencies')"
     :model-value="modelValue"
     width="min(860px, calc(100vw - 32px))"
     append-to-body
@@ -16,27 +16,27 @@
     />
     <div class="dependency-summary">
       <div class="dependency-summary-item">
-        <span class="dependency-summary-label">插件ID</span>
+        <span class="dependency-summary-label">{{ $t('components:pluginID') }}</span>
         <span class="dependency-summary-value">{{ result.pluginId || '-' }}</span>
       </div>
       <div class="dependency-summary-item">
-        <span class="dependency-summary-label">依赖检查</span>
+        <span class="dependency-summary-label">{{ $t('plugins:dependencyCheck') }}</span>
         <el-tag :type="result.dependencyOk ? 'success' : 'danger'">{{
           formatBoolean(result.dependencyOk)
         }}</el-tag>
       </div>
       <div class="dependency-summary-item">
-        <span class="dependency-summary-label">缺失依赖</span>
+        <span class="dependency-summary-label">{{ $t('plugins:missingDependenciesLabel') }}</span>
         <span class="dependency-summary-value is-danger">{{ dependencyProblemCount }}</span>
       </div>
       <div class="dependency-summary-item">
-        <span class="dependency-summary-label">安装计划</span>
+        <span class="dependency-summary-label">{{ $t('plugins:installationPlan') }}</span>
         <span class="dependency-summary-value">{{
           result.planCount ?? (result.plan || []).length
         }}</span>
       </div>
       <div class="dependency-summary-item">
-        <span class="dependency-summary-label">安装策略</span>
+        <span class="dependency-summary-label">{{ $t('plugins:installationPolicy') }}</span>
         <el-tag
           v-if="policy"
           :type="policyTagType"
@@ -78,34 +78,34 @@
       </template>
     </el-alert>
     <el-tabs>
-      <el-tab-pane label="依赖状态">
+      <el-tab-pane :label="$t('plugins:dependencyStatus')">
         <el-table
           :data="result.dependencies || []"
           size="small"
           border
-          empty-text="暂无依赖声明"
+          :empty-text="$t('plugins:noDependencyDeclarations')"
         >
           <el-table-column
-            label="类型"
+            :label="$t('system:type')"
             prop="kind"
             width="90"
             align="center"
           />
           <el-table-column
-            label="依赖"
+            :label="$t('components:dependencies')"
             prop="requirement"
             min-width="200"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="已安装版本"
+            :label="$t('plugins:installedVersion')"
             min-width="130"
             :show-overflow-tooltip="true"
           >
             <template #default="scope">{{ scope.row.installedVersion || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="安装状态"
+            :label="$t('plugins:installationStatus')"
             width="100"
             align="center"
           >
@@ -116,7 +116,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="版本满足"
+            :label="$t('plugins:versionRequirementMet')"
             width="100"
             align="center"
           >
@@ -127,47 +127,47 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="说明"
+            :label="$t('components:description')"
             prop="message"
             min-width="240"
             :show-overflow-tooltip="true"
           />
         </el-table>
       </el-tab-pane>
-      <el-tab-pane label="安装计划">
+      <el-tab-pane :label="$t('plugins:installationPlan')">
         <el-table
           :data="result.plan || []"
           size="small"
           border
-          empty-text="暂无安装计划"
+          :empty-text="$t('plugins:noInstallationPlan')"
         >
           <el-table-column
-            label="类型"
+            :label="$t('system:type')"
             prop="kind"
             width="90"
             align="center"
           />
           <el-table-column
-            label="依赖"
+            :label="$t('components:dependencies')"
             prop="requirement"
             min-width="150"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="工作目录"
+            :label="$t('plugins:workingDirectory')"
             prop="workdir"
             min-width="220"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="命令"
+            :label="$t('monitor:command')"
             min-width="300"
           >
             <template #default="scope">
               <div class="dependency-command-cell">
                 <span class="dependency-command-text">{{ scope.row.commandText || '-' }}</span>
                 <el-tooltip
-                  content="复制命令"
+                  :content="$t('plugins:copyCommand')"
                   placement="top"
                 >
                   <el-button
@@ -185,7 +185,7 @@
       </el-tab-pane>
       <el-tab-pane
         v-if="policy"
-        label="策略判定"
+        :label="$t('plugins:policyDecision')"
       >
         <el-descriptions
           :column="2"
@@ -193,19 +193,21 @@
           size="small"
           class="mb16"
         >
-          <el-descriptions-item label="策略模式">{{ policy.mode || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="允许执行">
+          <el-descriptions-item :label="$t('plugins:policyMode')">{{
+            policy.mode || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('plugins:executionAllowed')">
             <el-tag :type="policyAllowed ? 'success' : 'danger'">{{
-              policyAllowed ? '允许' : '阻断'
+              policyAllowed ? $t('authCenter:allow') : $t('plugins:blockedLabel')
             }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="阻断原因">{{
+          <el-descriptions-item :label="$t('plugins:blockingReason')">{{
             formatPolicyList(policy.reasons)
           }}</el-descriptions-item>
-          <el-descriptions-item label="前置要求">{{
+          <el-descriptions-item :label="$t('plugins:prerequisites')">{{
             formatPolicyList(policy.requirements)
           }}</el-descriptions-item>
-          <el-descriptions-item label="风险提示">{{
+          <el-descriptions-item :label="$t('plugins:risks')">{{
             formatPolicyList(policy.warnings)
           }}</el-descriptions-item>
         </el-descriptions>
@@ -213,47 +215,47 @@
           :data="policy.items || []"
           size="small"
           border
-          empty-text="暂无策略项"
+          :empty-text="$t('plugins:noPolicyEntries')"
         >
           <el-table-column
-            label="类型"
+            :label="$t('system:type')"
             prop="kind"
             width="90"
             align="center"
           />
           <el-table-column
-            label="依赖"
+            :label="$t('components:dependencies')"
             prop="requirement"
             min-width="180"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="判定"
+            :label="$t('plugins:decision')"
             width="90"
             align="center"
           >
             <template #default="scope">
               <el-tag :type="scope.row.allowed ? 'success' : 'danger'">{{
-                scope.row.allowed ? '允许' : '阻断'
+                scope.row.allowed ? $t('authCenter:allow') : $t('plugins:blockedLabel')
               }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column
-            label="锁定版本"
+            :label="$t('plugins:lockedVersion')"
             min-width="120"
             :show-overflow-tooltip="true"
           >
             <template #default="scope">{{ scope.row.lockedVersion || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="离线制品"
+            :label="$t('plugins:offlineArtifacts')"
             min-width="220"
             :show-overflow-tooltip="true"
           >
             <template #default="scope">{{ scope.row.artifactPath || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="说明"
+            :label="$t('components:description')"
             min-width="260"
             :show-overflow-tooltip="true"
           >
@@ -269,7 +271,7 @@
           :disabled="isCapabilityOperationBlocked(result.capability, 'dependency_install')"
           :loading="loading"
           @click="emit('dry-run')"
-          >生成安装计划</el-button
+          >{{ $t('plugins:generateInstallationPlan') }}</el-button
         >
         <el-button
           type="success"
@@ -277,15 +279,16 @@
           :loading="loading"
           @click="emit('install')"
           v-hasPermi="['system:plugin:edit']"
-          >执行依赖安装</el-button
+          >{{ $t('plugins:installDependencies') }}</el-button
         >
-        <el-button @click="emit('update:modelValue', false)">关 闭</el-button>
+        <el-button @click="emit('update:modelValue', false)">{{ $t('monitor:close') }}</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup name="PluginDependencyDialog">
+import { t } from '@/i18n/adapter'
 import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
 
@@ -341,7 +344,9 @@ const policyAllowed = computed(() => policy.value?.allowed === true)
 const policyTagType = computed(() => (policyAllowed.value ? 'success' : 'warning'))
 
 const policySummaryTitle = computed(() =>
-  policyAllowed.value ? '策略允许执行真实安装' : '策略已阻断真实安装'
+  policyAllowed.value
+    ? t('plugins:thePolicyPermitsInstallation')
+    : t('plugins:thePolicyBlocksInstallation')
 )
 
 const policyMessages = computed(() => {
@@ -360,9 +365,9 @@ const policyNextStep = computed(() => {
     return ''
   }
   if (policy.value.mode === 'plan_only') {
-    return 'Web 管理端仅生成安装计划；真实安装请使用 CLI install-deps 受控执行。'
+    return t('plugins:theWebConsoleOnlyGeneratesInstallationPlansPerformControlledInstallation')
   }
-  return '请按策略要求补齐确认参数、锁文件或离线制品后重试。'
+  return t('plugins:provideTheConfirmationParametersLockFilesOrOfflineArtifactsRequired')
 })
 
 const canInstall = computed(() => {
@@ -392,10 +397,10 @@ function copyDependencyCommand(commandText) {
   }
   copyText(commandText)
     .then(() => {
-      ElMessage.success('命令已复制')
+      ElMessage.success(t('plugins:commandCopied'))
     })
     .catch(() => {
-      ElMessage.error('复制失败，请手动复制命令')
+      ElMessage.error(t('plugins:copyFailedCopyTheCommandManually'))
     })
 }
 

@@ -1,4 +1,5 @@
-﻿import axios from 'axios'
+import { t } from '@/i18n/adapter'
+import axios from 'axios'
 import { ElLoading, ElMessage } from 'element-plus'
 import { saveAs } from 'file-saver'
 import { getToken } from '@/utils/auth'
@@ -13,7 +14,7 @@ let downloadLoadingInstance
 function parseContentRange(contentRange) {
   const rangeMatch = /^bytes (\d+)-(\d+)\/(\d+)$/i.exec(contentRange || '')
   if (!rangeMatch) {
-    throw new Error('分段下载响应缺少有效的Content-Range')
+    throw new Error(t('components:thePartialDownloadResponseIsMissingAValidContentRange'))
   }
   return {
     start: Number(rangeMatch[1]),
@@ -94,7 +95,7 @@ async function downloadByRange(url) {
       contentRange.total <= contentRange.end ||
       response.data.size !== contentRange.end - contentRange.start + 1
     ) {
-      throw new Error('分段下载响应范围不一致')
+      throw new Error(t('components:thePartialDownloadResponseHasAnInconsistentRange'))
     }
     chunks.push(response.data)
     if (contentRange.end + 1 === contentRange.total) {
@@ -137,7 +138,7 @@ export default {
       this.saveAs(result.blob, decodeURIComponent(result.filename))
     } catch (error) {
       console.error(error)
-      ElMessage.error('下载文件出现错误，请联系管理员！')
+      ElMessage.error(t('components:couldNotDownloadTheFileContactYourAdministrator'))
     }
   },
   async file(resource) {
@@ -155,13 +156,13 @@ export default {
       )
     } catch (error) {
       console.error(error)
-      ElMessage.error('下载文件出现错误，请联系管理员！')
+      ElMessage.error(t('components:couldNotDownloadTheFileContactYourAdministrator'))
     }
   },
   zip(url, name) {
     var url = baseURL + url
     downloadLoadingInstance = ElLoading.service({
-      text: '正在下载数据，请稍候',
+      text: t('components:downloadingDataPleaseWait'),
       background: 'rgba(0, 0, 0, 0.7)',
     })
     axios({
@@ -182,7 +183,7 @@ export default {
       })
       .catch((r) => {
         console.error(r)
-        ElMessage.error('下载文件出现错误，请联系管理员！')
+        ElMessage.error(t('components:couldNotDownloadTheFileContactYourAdministrator'))
         downloadLoadingInstance.close()
       })
   },

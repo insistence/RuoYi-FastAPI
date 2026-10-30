@@ -1,7 +1,11 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 
 export default function EChart({ option, height = 360, onClick }) {
+  useI18n()
+
   const container = useRef(null),
     instance = useRef(null)
   useEffect(() => {
@@ -29,7 +33,7 @@ export default function EChart({ option, height = 360, onClick }) {
     <div
       ref={container}
       role="img"
-      aria-label={option?.title?.text || '统计图表'}
+      aria-label={option?.title?.text || t('common:chart')}
       style={{ height, width: '100%' }}
     />
   )

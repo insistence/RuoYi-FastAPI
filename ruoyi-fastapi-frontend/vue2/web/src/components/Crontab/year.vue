@@ -1,11 +1,14 @@
 <template>
-  <el-form size="small">
+  <el-form
+    :validate-on-rule-change="false"
+    size="small"
+  >
     <el-form-item>
       <el-radio
         :label="1"
         v-model="radioValue"
       >
-        不填，允许的通配符[, - * /]
+        {{ $t('tool:interface.optionalAllowedWildcards') }}
       </el-radio>
     </el-form-item>
 
@@ -14,7 +17,7 @@
         :label="2"
         v-model="radioValue"
       >
-        每年
+        {{ $t('tool:cron.everyYear') }}
       </el-radio>
     </el-form-item>
 
@@ -23,7 +26,7 @@
         :label="3"
         v-model="radioValue"
       >
-        周期从
+        {{ $t('tool:cron.rangeFrom') }}
         <el-input-number
           v-model="cycle01"
           :min="fullYear"
@@ -43,19 +46,19 @@
         :label="4"
         v-model="radioValue"
       >
-        从
+        {{ $t('tool:cron.from') }}
         <el-input-number
           v-model="average01"
           :min="fullYear"
           :max="2098"
         />
-        年开始，每
+        {{ $t('tool:interface.repeatEvery.year') }}
         <el-input-number
           v-model="average02"
           :min="1"
           :max="2099 - average01 || fullYear"
         />
-        年执行一次
+        {{ $t('tool:interface.years') }}
       </el-radio>
     </el-form-item>
 
@@ -64,11 +67,11 @@
         :label="5"
         v-model="radioValue"
       >
-        指定
+        {{ $t('common:specified') }}
         <el-select
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('common:multipleSelect')"
           multiple
         >
           <el-option

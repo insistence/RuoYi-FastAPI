@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Alert, Button, Descriptions, Input, Modal, Space, Tabs, Tag } from 'antd'
 import Table from '@/components/Table'
 import HasPermi from '@/directive/permission/hasPermi'
@@ -13,7 +15,7 @@ import { tagColors } from './PluginReleaseStatus'
 
 export default function PluginActionDialog({
   open,
-  title = '插件操作结果',
+  title = t('system:pluginOperationResult'),
   result = {},
   pending,
   loading,
@@ -21,9 +23,11 @@ export default function PluginActionDialog({
   onExecute,
   onClose,
 }) {
+  useI18n()
+
   const level = {
     align: 'center',
-    title: '等级',
+    title: t('common:level'),
     dataIndex: 'level',
     render: (value) => (
       <Tag color={tagColors[getValidationLevelTagType(value)]}>
@@ -59,11 +63,12 @@ export default function PluginActionDialog({
                 loading={loading}
                 onClick={onExecute}
               >
-                执行{pending.label}
+                {t('system:execute')}
+                {pending.label}
               </Button>
             </HasPermi>
           )}
-          <Button onClick={onClose}>关闭</Button>
+          <Button onClick={onClose}>{t('layout:search.close')}</Button>
         </Space>
       }
     >
@@ -78,12 +83,12 @@ export default function PluginActionDialog({
       <Descriptions
         bordered
         items={[
-          ['插件 ID', result.pluginId],
-          ['依赖检查', formatBoolean(result.dependencyOk)],
-          ['结构检查', formatBoolean(result.structureOk)],
-          ['菜单冲突', formatBoolean(result.menuConflictOk)],
-          ['预演模式', result.dryRun ? '是' : '否'],
-          ['需要升级', formatBoolean(result.needsUpgrade)],
+          [t('system:pluginId'), result.pluginId],
+          [t('system:dependencyCheck'), formatBoolean(result.dependencyOk)],
+          [t('system:structureCheck'), formatBoolean(result.structureOk)],
+          [t('pluginAdmin:menuConflict'), formatBoolean(result.menuConflictOk)],
+          [t('system:dryRunMode'), result.dryRun ? t('common:yes') : t('common:no')],
+          [t('system:upgradeRequired'), formatBoolean(result.needsUpgrade)],
         ].map(([label, children]) => ({
           key: label,
           label,
@@ -96,25 +101,32 @@ export default function PluginActionDialog({
             ? [
                 {
                   key: 'error',
-                  label: '错误详情',
+                  label: t('system:errorDetails'),
                   children: (
                     <>
                       <Alert
                         type="error"
                         showIcon
-                        title={result.error.message || '插件操作失败'}
+                        title={result.error.message || t('system:pluginOperationFailed')}
                         style={{ marginBottom: 16 }}
                       />
                       <Descriptions
                         bordered
                         column={2}
                         items={[
-                          ['插件 ID', result.pluginId || pending?.pluginId],
-                          ['操作', formatPluginOperation(result.operation, dictionary)],
-                          ['失败步骤', result.failedStep || result.error.failedStep],
+                          [t('system:pluginId'), result.pluginId || pending?.pluginId],
+                          [
+                            t('common:actions'),
+                            formatPluginOperation(result.operation, dictionary),
+                          ],
+                          [t('system:failedStep'), result.failedStep || result.error.failedStep],
                           ['Migration', result.migrationRecovery?.migrationPath],
-                          ['Migration 状态', result.migrationRecovery?.status],
-                          ['建议', result.error.suggestion || '请查看后端日志或重新执行检查。'],
+                          [t('system:migrationStatus'), result.migrationRecovery?.status],
+                          [
+                            t('common:suggestion'),
+                            result.error.suggestion ||
+                              t('pluginAdmin:reviewBackendLogsOrRunTheChecksAgain'),
+                          ],
                         ].map(([label, children]) => ({
                           key: label,
                           label,
@@ -134,71 +146,76 @@ export default function PluginActionDialog({
             : []),
           {
             key: 'actions',
-            label: '动作计划',
+            label: t('system:actionPlan'),
             children: table(result.actions, [
-              { title: '动作', dataIndex: 'label' },
+              { title: t('system:action'), dataIndex: 'label' },
               {
                 align: 'center',
-                title: '启用',
+                title: t('common:enable'),
                 dataIndex: 'enabled',
-                render: (value) => (value ? '是' : '否'),
+                render: (value) => (value ? t('common:yes') : t('common:no')),
               },
-              { align: 'center', title: '状态', dataIndex: 'ok', render: formatBoolean },
-              { align: 'center', title: '数量', dataIndex: 'count' },
+              {
+                align: 'center',
+                title: t('common:status'),
+                dataIndex: 'ok',
+                render: formatBoolean,
+              },
+              { align: 'center', title: t('common:count'), dataIndex: 'count' },
             ]),
           },
           {
             key: 'dependencies',
-            label: '依赖',
+            label: t('pluginAdmin:dependencies'),
             children: table(result.dependencies, [
               level,
-              { align: 'center', title: '类型', dataIndex: 'kind' },
-              { title: '依赖', dataIndex: 'requirement' },
+              { align: 'center', title: t('common:type'), dataIndex: 'kind' },
+              { title: t('pluginAdmin:dependencies'), dataIndex: 'requirement' },
               {
                 align: 'center',
-                title: '已安装',
+                title: t('system:installed'),
                 render: (_, row) => formatDependencyInstalled(row),
               },
               {
                 align: 'center',
-                title: '版本满足',
+                title: t('system:versionRequirementMet'),
                 render: (_, row) => formatDependencyVersionSatisfied(row),
               },
-              { title: '说明', dataIndex: 'message' },
+              { title: t('common:description'), dataIndex: 'message' },
             ]),
           },
           {
             key: 'manifest',
-            label: 'Manifest 提示',
+            label: t('system:manifestNotices'),
             children: table(
               [...(result.manifestIssues || []), ...(result.manifestWarnings || [])],
               [
                 level,
-                { align: 'center', title: '类型', dataIndex: 'kind' },
-                { title: '路径', dataIndex: 'path' },
-                { title: '说明', dataIndex: 'message' },
-                { title: '建议', dataIndex: 'suggestion' },
+                { align: 'center', title: t('common:type'), dataIndex: 'kind' },
+                { title: t('system:path'), dataIndex: 'path' },
+                { title: t('common:description'), dataIndex: 'message' },
+                { title: t('common:suggestion'), dataIndex: 'suggestion' },
               ]
             ),
           },
           {
             key: 'structure',
-            label: '结构错误',
+            label: t('system:structureErrors'),
             children: table(result.structureErrors, [
               level,
-              { align: 'center', title: '类型', dataIndex: 'kind' },
-              { title: '路径', dataIndex: 'path' },
-              { title: '说明', dataIndex: 'message' },
+              { align: 'center', title: t('common:type'), dataIndex: 'kind' },
+              { title: t('system:path'), dataIndex: 'path' },
+              { title: t('common:description'), dataIndex: 'message' },
             ]),
           },
           {
             key: 'conflicts',
-            label: '菜单冲突',
+            label: t('pluginAdmin:menuConflict'),
             children: table(result.menuConflicts, [
               level,
-              { align: 'center', title: '类型', dataIndex: 'kind' },
-              { title: '冲突值', dataIndex: 'value' },
-              { title: '说明', dataIndex: 'message' },
+              { align: 'center', title: t('common:type'), dataIndex: 'kind' },
+              { title: t('system:conflictingValue'), dataIndex: 'value' },
+              { title: t('common:description'), dataIndex: 'message' },
             ]),
           },
         ]}

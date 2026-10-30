@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useState } from 'react'
 import {
@@ -55,6 +58,8 @@ import { download } from '@/utils/request'
 import { getDisplayTimezone } from '@/utils/time'
 
 export default function PluginOperationLogDrawer({ open, onClose, dictionary = [] }) {
+  useI18n()
+
   const [form] = Form.useForm(),
     [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
     [data, setData] = useState({ rows: [], total: 0 }),
@@ -66,6 +71,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
     [retention, setRetention] = useState(),
     [retaining, setRetaining] = useState(false),
     [exporting, setExporting] = useState(false)
+  useLocalizedFormErrors(form)
   const [showSearch, setShowSearch] = useState(true)
   useEffect(() => {
     if (!open) return
@@ -108,13 +114,14 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
       />
     )
   async function retain(dryRun) {
-    if (!Number.isInteger(days) || days < 0) return message.warning('请输入有效的保留天数')
+    if (!Number.isInteger(days) || days < 0)
+      return message.warning(t('pluginAdmin:enterAValidRetentionPeriodInDays'))
     try {
       if (!dryRun)
         await confirm(
           days === 0
-            ? '确认清理当前时间之前的全部插件操作审计日志吗？'
-            : `确认清理超过 ${days} 天的插件操作审计日志吗？`
+            ? t('pluginAdmin:clearAllPluginOperationAuditLogsBeforeTheCurrent')
+            : t('pluginAdmin:clearPluginOperationAuditLogsOlderThanValueDays', { days })
         )
       setRetaining(true)
       const result = await retainPluginOperationLog({
@@ -123,7 +130,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
       })
       setRetention(result.data)
       if (!dryRun) {
-        message.success('插件操作审计清理完成')
+        message.success(t('system:pluginAuditLogsDeleted'))
         setRevision((value) => value + 1)
       }
     } catch {
@@ -136,7 +143,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
       <Drawer
         rootClassName="plugin-audit-drawer"
         closable={{ placement: 'end' }}
-        title="插件操作审计"
+        title={t('system:pluginOperationAudit')}
         open={open}
         onClose={onClose}
         size="max(50vw, min(600px, 100vw))"
@@ -162,40 +169,40 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
             >
               <Form.Item
                 name="pluginId"
-                label="插件ID"
+                label={t('pluginAdmin:id')}
               >
                 <Input
-                  placeholder="请输入插件ID"
+                  placeholder={t('system:enterAPluginId')}
                   allowClear
                 />
               </Form.Item>
               <Form.Item
                 name="operation"
-                label="操作"
+                label={t('common:actions')}
               >
                 <Select
-                  placeholder="操作类型"
+                  placeholder={t('monitor:log.operationType')}
                   allowClear
                   options={dictionary}
                 />
               </Form.Item>
               <Form.Item
                 name="status"
-                label="状态"
+                label={t('common:status')}
               >
                 <Select
-                  placeholder="执行状态"
+                  placeholder={t('monitor:job.executionStatus')}
                   allowClear
                   options={operationLogStatusOptions}
                 />
               </Form.Item>
               <Form.Item
                 name="dateRange"
-                label="创建时间"
+                label={t('common:createdTime')}
               >
                 <DatePicker.RangePicker
-                  placeholder={['开始日期', '结束日期']}
-                  aria-label={`日期范围（${getDisplayTimezone()}）`}
+                  placeholder={[t('common:startDate'), t('common:endDate')]}
+                  aria-label={t('monitor:dateRangeValue', { arg0: getDisplayTimezone() })}
                 />
               </Form.Item>
               <Form.Item>
@@ -205,7 +212,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                     type="primary"
                     htmlType="submit"
                   >
-                    搜索
+                    {t('common:search')}
                   </Button>
                   <Button
                     icon={<ReloadOutlined />}
@@ -214,7 +221,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                       setQuery({ pageNum: 1, pageSize: 10 })
                     }}
                   >
-                    重置
+                    {t('common:reset')}
                   </Button>
                 </Space>
               </Form.Item>
@@ -228,9 +235,9 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                 key: 'retention',
                 label: (
                   <Space size={8}>
-                    <strong>审计保留策略</strong>
+                    <strong>{t('system:auditRetentionPolicy')}</strong>
                     <PluginTag className="plugin-audit-retention-tag">
-                      默认 {defaultDays} 天
+                      {t('layout:size.default')} {defaultDays} {t('system:days')}
                     </PluginTag>
                   </Space>
                 ),
@@ -241,7 +248,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                       wrap
                       size={12}
                     >
-                      保留天数
+                      {t('system:retentionDays')}
                       <InputNumber
                         min={0}
                         max={3650}
@@ -257,7 +264,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                         loading={retaining}
                         onClick={() => retain(true)}
                       >
-                        预览清理
+                        {t('system:previewCleanup')}
                       </Button>
                       <HasPermi value={['system:plugin:edit']}>
                         <Button
@@ -266,7 +273,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                           loading={retaining}
                           onClick={() => retain(false)}
                         >
-                          确认清理
+                          {t('system:confirmCleanup')}
                         </Button>
                       </HasPermi>
                     </Space>
@@ -303,7 +310,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                     }
                   }}
                 >
-                  导出
+                  {t('common:export')}
                 </Button>
               </HasPermi>
               <RightToolbar
@@ -321,18 +328,18 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
               pagination={false}
               scroll={{ x: 830 }}
               columns={[
-                { width: 90, align: 'center', title: '日志ID', dataIndex: 'operationId' },
+                { width: 90, align: 'center', title: t('system:logId'), dataIndex: 'operationId' },
                 {
                   width: 90,
                   align: 'center',
-                  title: '操作',
+                  title: t('common:actions'),
                   dataIndex: 'operation',
                   render: operation,
                 },
                 {
                   width: 90,
                   align: 'center',
-                  title: '状态',
+                  title: t('common:status'),
                   dataIndex: 'status',
                   render: (value) => (
                     <PluginTag type={getOperationLogStatusTagType(value)}>
@@ -342,7 +349,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                 },
                 {
                   width: 180,
-                  title: '插件',
+                  title: t('system:components.plugin'),
                   ellipsis: true,
                   dataIndex: 'pluginIds',
                   render: formatPlanDependencies,
@@ -350,32 +357,32 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                 {
                   width: 70,
                   align: 'center',
-                  title: '成功',
+                  title: t('common:success'),
                   render: (_, row) => row.summary?.succeeded ?? 0,
                 },
                 {
                   width: 70,
                   align: 'center',
-                  title: '失败',
+                  title: t('common:failed'),
                   render: (_, row) => row.summary?.failed ?? 0,
                 },
                 {
                   width: 170,
                   align: 'center',
-                  title: '创建时间',
+                  title: t('common:createdTime'),
                   dataIndex: 'createTime',
                   render: formatPluginTime,
                 },
                 {
                   width: 70,
                   align: 'center',
-                  title: '操作',
+                  title: t('common:actions'),
                   render: (_, row) => (
                     <TableAction
                       iconOnly
                       symbol="View"
-                      aria-label="审计详情"
-                      tooltip="详情"
+                      aria-label={t('system:auditDetails')}
+                      tooltip={t('common:details')}
                       onClick={() =>
                         getPluginOperationLog(row.operationId)
                           .then((result) =>
@@ -384,7 +391,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                           .catch(() => {})
                       }
                     >
-                      详情
+                      {t('common:details')}
                     </TableAction>
                   ),
                 },
@@ -398,17 +405,17 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
             />
           </div>
           <div className="plugin-audit-footer">
-            <Button onClick={onClose}>关闭</Button>
+            <Button onClick={onClose}>{t('layout:search.close')}</Button>
           </div>
         </div>
       </Drawer>
       <Modal
         className="plugin-dialog plugin-result-dialog plugin-audit-detail"
-        title="审计详情"
+        title={t('system:auditDetails')}
         open={!!detail}
         width="min(920px, calc(100vw - 32px))"
         onCancel={() => setDetail(undefined)}
-        footer={<Button onClick={() => setDetail(undefined)}>关闭</Button>}
+        footer={<Button onClick={() => setDetail(undefined)}>{t('layout:search.close')}</Button>}
       >
         {detail && (
           <>
@@ -417,38 +424,49 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
               column={3}
               className="plugin-audit-description"
               items={[
-                ['日志ID', detail.operationId || '-'],
-                ['操作', operation(detail.operation)],
-                ['状态', getOperationLogStatusLabel(detail.status)],
-                ['预演', detail.dryRun ? '是' : '否'],
-                ['失败后继续', detail.continueOnError ? '是' : '否'],
-                ['创建时间', formatPluginTime(detail.createTime)],
-                ['插件', formatPlanDependencies(detail.pluginIds), 3],
-                ['备注', detail.remark || '-', 3],
+                [t('system:logId'), detail.operationId || '-'],
+                [t('common:actions'), operation(detail.operation)],
+                [t('common:status'), getOperationLogStatusLabel(detail.status)],
+                [t('system:dryRun'), detail.dryRun ? t('common:yes') : t('common:no')],
+                [
+                  t('system:continueAfterFailure'),
+                  detail.continueOnError ? t('common:yes') : t('common:no'),
+                ],
+                [t('common:createdTime'), formatPluginTime(detail.createTime)],
+                [t('system:components.plugin'), formatPlanDependencies(detail.pluginIds), 3],
+                [t('common:remark'), detail.remark || '-', 3],
               ].map(([label, children, span]) => ({ key: label, label, children, span }))}
             />
             <Tabs
               items={[
                 {
                   key: 'summary',
-                  label: '摘要',
+                  label: t('system:summary'),
                   children: (
                     <Descriptions
                       bordered
                       column={3}
                       className="plugin-audit-description"
                       items={[
-                        ['成功数', detail.summary?.succeeded ?? 0],
-                        ['失败数', detail.summary?.failed ?? 0],
-                        ['跳过数', detail.summary?.skipped ?? 0],
-                        ['变更配置', formatPlanDependencies(detail.summary?.changedKeys), 3],
-                        ['失败建议', detail.failedSuggestion || '暂无', 3],
+                        [t('system:successCount'), detail.summary?.succeeded ?? 0],
+                        [t('system:failureCount'), detail.summary?.failed ?? 0],
+                        [t('system:skippedCount'), detail.summary?.skipped ?? 0],
                         [
-                          '失败步骤',
+                          t('system:configurationChanges'),
+                          formatPlanDependencies(detail.summary?.changedKeys),
+                          3,
+                        ],
+                        [
+                          t('system:failureSuggestions'),
+                          detail.failedSuggestion || t('system:none'),
+                          3,
+                        ],
+                        [
+                          t('system:failedStep'),
                           detail.failedStep ||
                             detail.result?.failedStep ||
                             detail.result?.failed?.result?.failedStep ||
-                            '暂无',
+                            t('system:none'),
                           3,
                         ],
                       ].map(([label, children, span]) => ({
@@ -462,15 +480,20 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                 },
                 {
                   key: 'validation',
-                  label: '检查结果',
+                  label: t('system:checkResults'),
                   children: table(
                     detail.validationItems,
                     [
-                      { width: 120, align: 'center', title: '分类', dataIndex: 'category' },
+                      {
+                        width: 120,
+                        align: 'center',
+                        title: t('system:category'),
+                        dataIndex: 'category',
+                      },
                       {
                         width: 90,
                         align: 'center',
-                        title: '等级',
+                        title: t('common:level'),
                         dataIndex: 'level',
                         render: (value) => (
                           <PluginTag type={getValidationLevelTagType(value)}>
@@ -478,97 +501,112 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                           </PluginTag>
                         ),
                       },
-                      { width: 180, title: '类型', dataIndex: 'kind', ellipsis: true },
-                      { width: 180, title: '对象', dataIndex: 'value', ellipsis: true },
-                      { title: '说明', dataIndex: 'message', ellipsis: true },
+                      { width: 180, title: t('common:type'), dataIndex: 'kind', ellipsis: true },
+                      { width: 180, title: t('system:object'), dataIndex: 'value', ellipsis: true },
+                      { title: t('common:description'), dataIndex: 'message', ellipsis: true },
                     ],
-                    '暂无检查结果',
+                    t('system:noCheckResults'),
                     790
                   ),
                 },
                 {
                   key: 'actions',
-                  label: '动作计划',
+                  label: t('system:actionPlan'),
                   children: table(
                     detail.actionItems,
                     [
-                      { title: '动作', dataIndex: 'label', ellipsis: true },
+                      { title: t('system:action'), dataIndex: 'label', ellipsis: true },
                       {
                         width: 80,
                         align: 'center',
-                        title: '启用',
+                        title: t('common:enable'),
                         dataIndex: 'enabled',
                         render: (value) => (
                           <PluginTag type={value ? 'success' : 'info'}>
-                            {value ? '是' : '否'}
+                            {value ? t('common:yes') : t('common:no')}
                           </PluginTag>
                         ),
                       },
                       {
                         width: 80,
                         align: 'center',
-                        title: '数量',
+                        title: t('common:count'),
                         dataIndex: 'count',
                         render: (value) => value ?? '-',
                       },
                       {
-                        title: '状态',
+                        title: t('common:status'),
                         ellipsis: true,
                         render: (_, row) => formatActionPlanState(row),
                       },
                     ],
-                    '暂无动作计划',
+                    t('system:noActionPlan'),
                     500
                   ),
                 },
                 {
                   key: 'plan',
-                  label: '依赖计划',
+                  label: t('system:dependencyPlan'),
                   children: table(
                     detail.planItems,
                     [
-                      { width: 150, title: '插件ID', dataIndex: 'pluginId', ellipsis: true },
-                      { width: 110, align: 'center', title: '版本', dataIndex: 'version' },
+                      {
+                        width: 150,
+                        title: t('pluginAdmin:id'),
+                        dataIndex: 'pluginId',
+                        ellipsis: true,
+                      },
+                      {
+                        width: 110,
+                        align: 'center',
+                        title: t('system:version'),
+                        dataIndex: 'version',
+                      },
                       {
                         width: 90,
                         align: 'center',
-                        title: '就绪',
+                        title: t('system:ready'),
                         dataIndex: 'ready',
                         render: (value) => (
                           <PluginTag type={value ? 'success' : 'danger'}>
-                            {value ? '是' : '否'}
+                            {value ? t('common:yes') : t('common:no')}
                           </PluginTag>
                         ),
                       },
                       {
-                        title: '依赖',
+                        title: t('pluginAdmin:dependencies'),
                         dataIndex: 'dependencies',
                         ellipsis: true,
                         render: formatPlanDependencies,
                       },
                     ],
-                    '暂无依赖计划',
+                    t('system:noDependencyPlan'),
                     550
                   ),
                 },
                 {
                   key: 'executed',
-                  label: '执行记录',
+                  label: t('monitor:job.history'),
                   children: table(
                     detail.executed,
                     [
-                      { width: 140, title: '插件ID', dataIndex: 'pluginId', ellipsis: true },
+                      {
+                        width: 140,
+                        title: t('pluginAdmin:id'),
+                        dataIndex: 'pluginId',
+                        ellipsis: true,
+                      },
                       {
                         width: 90,
                         align: 'center',
-                        title: '操作',
+                        title: t('common:actions'),
                         dataIndex: 'operation',
                         render: operation,
                       },
                       {
                         width: 90,
                         align: 'center',
-                        title: '状态',
+                        title: t('common:status'),
                         render: (_, row) => (
                           <PluginTag type={row.ok ? 'success' : 'danger'}>
                             {row.status || '-'}
@@ -578,44 +616,59 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                       {
                         width: 90,
                         align: 'center',
-                        title: '耗时',
+                        title: t('monitor:job.duration'),
                         dataIndex: 'durationMs',
                         render: (value) => `${value ?? '-'}ms`,
                       },
                       {
                         width: 150,
-                        title: '失败步骤',
+                        title: t('system:failedStep'),
                         ellipsis: true,
                         render: (_, row) => row.failedStep || row.result?.failedStep || '-',
                       },
-                      { width: 220, title: '说明', dataIndex: 'message', ellipsis: true },
-                      { width: 260, title: '建议', dataIndex: 'suggestion', ellipsis: true },
+                      {
+                        width: 220,
+                        title: t('common:description'),
+                        dataIndex: 'message',
+                        ellipsis: true,
+                      },
+                      {
+                        width: 260,
+                        title: t('common:suggestion'),
+                        dataIndex: 'suggestion',
+                        ellipsis: true,
+                      },
                     ],
-                    '暂无执行记录',
+                    t('system:noExecutionRecords'),
                     1040
                   ),
                 },
                 {
                   key: 'config',
-                  label: '配置变更',
+                  label: t('system:components.configurationChanges'),
                   children: table(
                     detail.configChanges,
                     [
-                      { width: 180, title: '配置键', dataIndex: 'key', ellipsis: true },
-                      { width: 160, title: '名称', dataIndex: 'label', ellipsis: true },
+                      {
+                        width: 180,
+                        title: t('system:configurationKey'),
+                        dataIndex: 'key',
+                        ellipsis: true,
+                      },
+                      { width: 160, title: t('common:name'), dataIndex: 'label', ellipsis: true },
                       {
                         width: 80,
                         align: 'center',
-                        title: '敏感',
+                        title: t('system:sensitive'),
                         dataIndex: 'secret',
                         render: (value) => (
                           <PluginTag type={value ? 'warning' : 'info'}>
-                            {value ? '是' : '否'}
+                            {value ? t('common:yes') : t('common:no')}
                           </PluginTag>
                         ),
                       },
                       {
-                        title: '变更前',
+                        title: t('system:before'),
                         ellipsis: true,
                         render: (_, row) =>
                           row.secret
@@ -625,7 +678,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                               : row.before,
                       },
                       {
-                        title: '变更后',
+                        title: t('system:after'),
                         ellipsis: true,
                         render: (_, row) =>
                           row.secret
@@ -635,13 +688,13 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                               : row.after,
                       },
                     ],
-                    '暂无配置变更',
+                    t('system:noConfigurationChanges'),
                     780
                   ),
                 },
                 {
                   key: 'raw',
-                  label: '原始结果',
+                  label: t('system:rawResult'),
                   children: (
                     <Input.TextArea
                       rows={14}

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { testLocale } from '../i18n/localeFixture.mjs'
 import { readFileSync } from 'node:fs'
 import { compileScript, parse } from '@vue/compiler-sfc'
 import { computed, effectScope, nextTick, reactive, ref, watch } from 'vue'
@@ -14,6 +15,7 @@ const script = compiled.scriptSetupAst
   .map((statement) => descriptor.scriptSetup.content.slice(statement.start, statement.end))
   .join('\n')
 const setup = new Function(
+  't',
   'computed',
   'ref',
   'watch',
@@ -28,6 +30,7 @@ let unmount
 const scope = effectScope()
 const state = scope.run(() =>
   setup(
+    testLocale.t,
     computed,
     ref,
     watch,

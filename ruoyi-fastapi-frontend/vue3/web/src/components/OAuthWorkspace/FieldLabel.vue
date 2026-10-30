@@ -9,7 +9,7 @@
       <el-icon
         class="field-help"
         tabindex="0"
-        :aria-label="`${label}说明`"
+        :aria-label="$t('components:aboutValue', { label: label })"
         @click.stop
       >
         <question-filled />

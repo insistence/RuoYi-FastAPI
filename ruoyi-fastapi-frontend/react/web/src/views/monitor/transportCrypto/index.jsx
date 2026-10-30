@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { ReloadOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState } from 'react'
 import {
@@ -20,6 +22,8 @@ import { parseTime } from '@/utils/ruoyi'
 import EChart from '@/components/EChart'
 import './style.css'
 function CryptoTag({ color = 'default', effect = 'light', ...props }) {
+  useI18n()
+
   return (
     <Tag
       {...props}
@@ -29,16 +33,26 @@ function CryptoTag({ color = 'default', effect = 'light', ...props }) {
 }
 
 const scopeLabels = {
-  'redis-aggregated': 'Redis 聚合',
-  'redis-aggregated+local-fallback': 'Redis 聚合 + 本地回退',
-  'process-local-fallback': '本地回退',
+  get 'redis-aggregated'() {
+    return t('monitor:redisAggregation')
+  },
+  get 'redis-aggregated+local-fallback'() {
+    return t('monitor:redisAggregationLocalFallback')
+  },
+  get 'process-local-fallback'() {
+    return t('monitor:localFallback')
+  },
 }
 const scopeDescriptions = {
-  'redis-aggregated': '统计结果已聚合到 Redis，可覆盖多 worker / 多实例共享的监控口径。',
-  'redis-aggregated+local-fallback':
-    '当前以 Redis 聚合为主，部分监控写入曾降级到本地内存，建议检查 Redis 连接稳定性。',
-  'process-local-fallback':
-    '当前监控未写入 Redis，页面展示的是本进程本地统计，请优先检查 Redis 可用性。',
+  get 'redis-aggregated'() {
+    return t('monitor:statisticsAreAggregatedInRedisAcrossWorkersAndInstances')
+  },
+  get 'redis-aggregated+local-fallback'() {
+    return t('monitor:redisAggregationIsActiveButSomeWritesFellBack')
+  },
+  get 'process-local-fallback'() {
+    return t('monitor:monitoringDataIsNotBeingWrittenToRedisThis')
+  },
 }
 const rate = (value, total) => (total ? (Number(value || 0) / Number(total)) * 100 : 0)
 const reasonColor = (value) =>
@@ -48,6 +62,8 @@ const reasonColor = (value) =>
       ? 'warning'
       : 'default'
 export default function TransportCrypto() {
+  useI18n()
+
   const [data, setData] = useState({}),
     [loading, setLoading] = useState(false),
     [autoRefresh, setAutoRefresh] = useState(true),
@@ -98,12 +114,24 @@ export default function TransportCrypto() {
       Number(data.encryptedResponsesTotal || 0) + Number(data.plainResponsesTotal || 0)
     )
   const health = !data.decryptFailureTotal
-    ? ['稳定', 'success', '当前暂无解密失败记录，链路运行稳定。']
+    ? [
+        t('monitor:stable'),
+        'success',
+        t('monitor:noDecryptionFailuresHaveBeenRecordedTheConnectionIs'),
+      ]
     : successRate >= 95
-      ? ['良好', 'success', '存在少量失败事件，建议继续观察失败原因分布。']
+      ? [
+          t('authCenter:good'),
+          'success',
+          t('monitor:aFewFailuresHaveOccurredContinueMonitoringTheirCauses'),
+        ]
       : successRate >= 80
-        ? ['关注', 'warning', '近期已有一定比例的异常请求，建议优先检查失败原因与最近失败记录。']
-        : ['告警', 'error', '异常比例偏高，建议立即排查密钥版本、AAD 绑定、时间窗与重放校验。']
+        ? [
+            t('monitor:attention'),
+            'warning',
+            t('monitor:recentRequestsIncludeFailuresReviewFailureCausesAndRecent'),
+          ]
+        : [t('monitor:alert'), 'error', t('monitor:theFailureRateIsHighCheckKeyVersionsAad')]
   const tags = (values, color = 'processing') =>
     values?.length ? (
       <Space
@@ -127,10 +155,10 @@ export default function TransportCrypto() {
   const chooseReason = selected(setReason),
     chooseKid = selected(setKid)
   const kidFields = [
-    ['encryptedRequests', '加密请求', '#409eff'],
-    ['decryptSuccess', '解密成功', '#67c23a'],
-    ['decryptFailure', '解密失败', '#f56c6c'],
-    ['encryptedResponses', '加密响应', '#909399'],
+    ['encryptedRequests', t('monitor:encryptedRequests'), '#409eff'],
+    ['decryptSuccess', t('monitor:decryptionSucceeded'), '#67c23a'],
+    ['decryptFailure', t('monitor:decryptionFailed'), '#f56c6c'],
+    ['encryptedResponses', t('monitor:encryptedResponses'), '#909399'],
   ]
   return (
     <div className="app-container transport-crypto-page">
@@ -138,33 +166,44 @@ export default function TransportCrypto() {
         <Row gutter={[16, 16]}>
           {[
             [
-              '传输加密状态',
-              { required: '强制加密', optional: '可选加密', off: '已关闭' }[
-                data.transportCryptoMode
-              ] || '未配置',
-              `当前模式：${data.transportCryptoMode || '-'}`,
-              data.transportCryptoEnabled ? '已启用' : '未启用',
+              t('monitor:transportEncryptionStatus'),
+              {
+                required: t('monitor:encryptionRequired'),
+                optional: t('monitor:optionalEncryption'),
+                off: t('layout:notices.closed'),
+              }[data.transportCryptoMode] || t('monitor:notConfigured'),
+              t('monitor:currentModeValue', { arg0: data.transportCryptoMode || '-' }),
+              data.transportCryptoEnabled ? t('monitor:enabled') : t('common:notEnabled'),
               data.transportCryptoEnabled ? 'success' : 'default',
             ],
             [
-              '请求总览',
+              t('monitor:requestOverview'),
               Number(data.requestsTotal || 0).toString(),
-              `明文 ${Number(data.plainRequestsTotal || 0).toString()} / 加密 ${Number(data.encryptedRequestsTotal || 0).toString()}`,
-              '命中规则',
+              t('monitor:plaintextValueEncryptedValue', {
+                arg0: Number(data.plainRequestsTotal || 0).toString(),
+                arg1: Number(data.encryptedRequestsTotal || 0).toString(),
+              }),
+              t('monitor:matchingRules'),
               'processing',
             ],
             [
-              '解密成功率',
+              t('monitor:decryptionSuccessRate'),
               Number(data.decryptSuccessTotal || 0).toString(),
-              `失败 ${Number(data.decryptFailureTotal || 0).toString()} / 强制拒绝 ${Number(data.requiredRejectedTotal || 0).toString()}`,
+              t('monitor:failedValueEnforcedRejectionsValue', {
+                arg0: Number(data.decryptFailureTotal || 0).toString(),
+                arg1: Number(data.requiredRejectedTotal || 0).toString(),
+              }),
               `${successRate.toFixed(1)}%`,
               successRate >= 95 ? 'success' : successRate >= 80 ? 'warning' : 'error',
             ],
             [
-              '响应加密',
+              t('monitor:responseEncryption'),
               Number(data.encryptedResponsesTotal || 0).toString(),
-              `明文 ${Number(data.plainResponsesTotal || 0).toString()} / 错误加密 ${Number(data.encryptedErrorResponsesTotal || 0).toString()}`,
-              'JSON 响应',
+              t('monitor:plaintextValueEncryptedErrorsValue', {
+                arg0: Number(data.plainResponsesTotal || 0).toString(),
+                arg1: Number(data.encryptedErrorResponsesTotal || 0).toString(),
+              }),
+              t('monitor:jsonResponses'),
               'warning',
             ],
           ].map(([title, value, description, badge, color]) => (
@@ -189,15 +228,15 @@ export default function TransportCrypto() {
             xl={16}
           >
             <Card
-              title="当前配置"
+              title={t('monitor:currentConfiguration')}
               extra={
                 <Space size={12}>
                   <Switch
-                    aria-label="自动刷新"
+                    aria-label={t('monitor:autoRefresh')}
                     checked={autoRefresh}
                     onChange={setAutoRefresh}
-                    checkedChildren="自动刷新"
-                    unCheckedChildren="手动"
+                    checkedChildren={t('monitor:autoRefresh')}
+                    unCheckedChildren={t('monitor:manual')}
                   />
                   <Button
                     type="primary"
@@ -205,7 +244,7 @@ export default function TransportCrypto() {
                     loading={loading}
                     onClick={load}
                   >
-                    刷新
+                    {t('layout:tags.refresh')}
                   </Button>
                 </Space>
               }
@@ -214,30 +253,40 @@ export default function TransportCrypto() {
                 bordered
                 column={{ xs: 1, sm: 2 }}
                 items={[
-                  ['统计范围', scopeLabels[data.monitorScope] || data.monitorScope || '-'],
-                  ['应用环境', data.appEnv || '-'],
                   [
-                    '当前密钥版本',
+                    t('monitor:statisticsScope'),
+                    scopeLabels[data.monitorScope] || data.monitorScope || '-',
+                  ],
+                  [t('monitor:appEnvironment'), data.appEnv || '-'],
+                  [
+                    t('monitor:currentKeyVersion'),
                     <CryptoTag color="processing">{data.currentKid || '-'}</CryptoTag>,
                   ],
-                  ['监控起始时间', parseTime(data.startedAt) || '-'],
-                  ['支持的密钥版本', tags(data.supportedKids)],
-                  ['失败原因种类', reasons.length],
+                  [t('monitor:monitoringStartedAt'), parseTime(data.startedAt) || '-'],
+                  [t('monitor:supportedKeyVersions'), tags(data.supportedKids)],
+                  [t('monitor:failureCategories'), reasons.length],
                   [
-                    '聚合说明',
-                    scopeDescriptions[data.monitorScope] || '当前展示传输加密运行状态与统计信息。',
+                    t('monitor:aggregationInformation'),
+                    scopeDescriptions[data.monitorScope] ||
+                      t('monitor:transportEncryptionStatusAndStatistics'),
                   ],
                   [
-                    '启用路径',
-                    data.enabledPaths?.length ? tags(data.enabledPaths, 'success') : '全部接口',
+                    t('monitor:enabledPaths'),
+                    data.enabledPaths?.length
+                      ? tags(data.enabledPaths, 'success')
+                      : t('monitor:allApis'),
                   ],
-                  ['强制加密路径', tags(data.requiredPaths, 'warning')],
-                  ['排除路径', tags(data.excludePaths, 'default')],
+                  [t('monitor:encryptionRequiredPaths'), tags(data.requiredPaths, 'warning')],
+                  [t('monitor:excludedPaths'), tags(data.excludePaths, 'default')],
                 ].map(([label, children]) => ({
                   key: label,
                   label,
                   children,
-                  span: ['聚合说明', '排除路径'].includes(label) ? 2 : 1,
+                  span: [t('monitor:aggregationInformation'), t('monitor:excludedPaths')].includes(
+                    label
+                  )
+                    ? 2
+                    : 1,
                 }))}
               />
             </Card>
@@ -248,13 +297,13 @@ export default function TransportCrypto() {
           >
             <Card
               className="crypto-health"
-              title="运行健康度"
+              title={t('monitor:health')}
               extra={<CryptoTag color={health[1]}>{health[0]}</CryptoTag>}
             >
               {[
-                ['解密成功率', successRate],
-                ['加密请求占比', requestRate],
-                ['加密响应占比', responseRate],
+                [t('monitor:decryptionSuccessRate'), successRate],
+                [t('monitor:encryptedRequestShare'), requestRate],
+                [t('monitor:encryptedResponseShare'), responseRate],
               ].map(([label, value], i) => (
                 <div
                   className="crypto-health-item"
@@ -296,10 +345,12 @@ export default function TransportCrypto() {
             xl={10}
           >
             <Card
-              title="失败原因统计"
+              title={t('monitor:failureCauses')}
               extra={
                 <Space>
-                  <span className="crypto-card-subtitle">按 Redis 聚合口径统计</span>
+                  <span className="crypto-card-subtitle">
+                    {t('monitor:statisticsAggregatedInRedis')}
+                  </span>
                   {reason && (
                     <CryptoTag
                       closable
@@ -326,7 +377,11 @@ export default function TransportCrypto() {
                         formatter: (params) => {
                           const item = reasons[params[0]?.dataIndex]
                           return item
-                            ? `${item.reason}\n次数：${item.count}\n占比：${rate(item.count, reasonsTotal).toFixed(1)}%`
+                            ? t('monitor:valueCountValuePercentageValue', {
+                                reason: item.reason,
+                                count: item.count,
+                                arg2: rate(item.count, reasonsTotal).toFixed(1),
+                              })
                             : ''
                         },
                       },
@@ -340,7 +395,7 @@ export default function TransportCrypto() {
                       series: [
                         {
                           type: 'bar',
-                          name: '失败次数',
+                          name: t('monitor:failureCount'),
                           barMaxWidth: 22,
                           label: { show: true, position: 'right' },
                           data: reasons.map((item) => ({
@@ -364,10 +419,10 @@ export default function TransportCrypto() {
               ) : (
                 <Empty
                   styles={{ image: { height: 88 } }}
-                  description="暂无失败记录"
+                  description={t('monitor:noFailuresRecorded')}
                 />
               )}
-              <div className="crypto-table-title">明细数据</div>
+              <div className="crypto-table-title">{t('monitor:detailedData')}</div>
               <Table
                 scroll={{ x: 400, y: 260 }}
                 rowKey="reason"
@@ -378,7 +433,7 @@ export default function TransportCrypto() {
                 onRow={(row) => ({ onClick: () => chooseReason(row.reason) })}
                 columns={[
                   {
-                    title: '失败原因',
+                    title: t('common:failureReason'),
                     dataIndex: 'reason',
                     width: 180,
                     render: (value) => (
@@ -390,11 +445,11 @@ export default function TransportCrypto() {
                       </CryptoTag>
                     ),
                   },
-                  { width: 100, align: 'center', title: '次数', dataIndex: 'count' },
+                  { width: 100, align: 'center', title: t('monitor:count'), dataIndex: 'count' },
                   {
                     width: 120,
                     align: 'center',
-                    title: '占比',
+                    title: t('monitor:share'),
                     render: (_, row) => `${rate(row.count, reasonsTotal).toFixed(1)}%`,
                   },
                 ]}
@@ -406,10 +461,10 @@ export default function TransportCrypto() {
             xl={14}
           >
             <Card
-              title="密钥版本统计"
+              title={t('monitor:keyVersionStatistics')}
               extra={
                 <Space>
-                  <span className="crypto-card-subtitle">观察不同 kid 的运行状态</span>
+                  <span className="crypto-card-subtitle">{t('monitor:monitorEachKeyIdKid')}</span>
                   {kid && (
                     <CryptoTag
                       closable
@@ -457,10 +512,10 @@ export default function TransportCrypto() {
               ) : (
                 <Empty
                   styles={{ image: { height: 88 } }}
-                  description="暂无密钥统计数据"
+                  description={t('monitor:noKeyStatisticsAvailable')}
                 />
               )}
-              <div className="crypto-table-title">明细数据</div>
+              <div className="crypto-table-title">{t('monitor:detailedData')}</div>
               <Table
                 rowKey="kid"
                 rowClassName={(row) => (row.kid === kid ? 'ant-table-row-selected' : '')}
@@ -471,7 +526,7 @@ export default function TransportCrypto() {
                 onRow={(row) => ({ onClick: () => chooseKid(row.kid) })}
                 columns={[
                   {
-                    title: '密钥版本',
+                    title: t('monitor:keyVersion'),
                     dataIndex: 'kid',
                     width: 140,
                     render: (value) => (
@@ -489,7 +544,7 @@ export default function TransportCrypto() {
                   {
                     width: 120,
                     align: 'center',
-                    title: '成功率',
+                    title: t('monitor:successRate'),
                     render: (_, row) =>
                       `${rate(row.decryptSuccess, Number(row.decryptSuccess || 0) + Number(row.decryptFailure || 0)).toFixed(1)}%`,
                   },
@@ -499,19 +554,21 @@ export default function TransportCrypto() {
           </Col>
           <Col span={24}>
             <Card
-              title="最近失败记录"
+              title={t('monitor:recentFailures')}
               extra={
                 <Space>
                   <span className="crypto-card-subtitle">
-                    最近{' '}
+                    {t('monitor:recent')}{' '}
                     {
                       (data.recentFailures || []).filter(
                         (item) => (!reason || item.reason === reason) && (!kid || item.kid === kid)
                       ).length
                     }{' '}
-                    条
+                    {t('common:records')}
                   </span>
-                  {(reason || kid) && <CryptoTag>已按当前选择联动筛选</CryptoTag>}
+                  {(reason || kid) && (
+                    <CryptoTag>{t('monitor:filteredByTheCurrentSelection')}</CryptoTag>
+                  )}
                 </Space>
               }
             >
@@ -526,13 +583,13 @@ export default function TransportCrypto() {
                 scroll={{ x: 850 }}
                 columns={[
                   {
-                    title: '时间',
+                    title: t('monitor:time'),
                     width: 170,
                     render: (_, row) => parseTime(row.time || row.timestamp) || '-',
                   },
                   {
                     align: 'center',
-                    title: '请求方法',
+                    title: t('monitor:requestMethod'),
                     dataIndex: 'method',
                     width: 100,
                     render: (value) => (
@@ -545,14 +602,14 @@ export default function TransportCrypto() {
                     ),
                   },
                   {
-                    title: '请求路径',
+                    title: t('monitor:requestPath'),
                     dataIndex: 'path',
                     width: 260,
                     ellipsis: true,
                     render: (value) => value || '-',
                   },
                   {
-                    title: '失败原因',
+                    title: t('common:failureReason'),
                     dataIndex: 'reason',
                     width: 180,
                     render: (value) => (
@@ -565,7 +622,7 @@ export default function TransportCrypto() {
                     ),
                   },
                   {
-                    title: '密钥版本',
+                    title: t('monitor:keyVersion'),
                     dataIndex: 'kid',
                     width: 140,
                     render: (value) => value || '-',

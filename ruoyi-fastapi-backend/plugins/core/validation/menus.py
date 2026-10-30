@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.manifest.schema import PluginMenuManifest
 
@@ -112,7 +113,11 @@ class PluginMenuConflictChecker:
                         kind='duplicate_menu_key',
                         plugin_id=plugin_id,
                         value=snapshot.menu_key,
-                        message=f'插件 {plugin_id} 存在重复菜单自然键：{snapshot.menu_key}',
+                        message=I18nMessage(
+                            f'插件 {plugin_id} 存在重复菜单自然键：{snapshot.menu_key}',
+                            msg_key='plugin.runtime.validation.duplicateMenuKey',
+                            msg_params={'plugin_id': str(plugin_id), 'menu_key': str(snapshot.menu_key)},
+                        ),
                     )
                 )
             seen_keys.add(snapshot.menu_key)
@@ -146,7 +151,17 @@ class PluginMenuConflictChecker:
                         plugin_id=plugin_id,
                         conflict_plugin_id=conflict_plugin_id,
                         value=snapshot.menu.perms,
-                        message=(f'插件 {plugin_id} 权限 {snapshot.menu.perms} 与插件 {conflict_plugin_id} 冲突'),
+                        message=(
+                            I18nMessage(
+                                f'插件 {plugin_id} 权限 {snapshot.menu.perms} 与插件 {conflict_plugin_id} 冲突',
+                                msg_key='plugin.runtime.validation.permissionConflict',
+                                msg_params={
+                                    'plugin_id': str(plugin_id),
+                                    'perms': str(snapshot.menu.perms),
+                                    'conflict_plugin_id': str(conflict_plugin_id),
+                                },
+                            )
+                        ),
                     )
                 )
 

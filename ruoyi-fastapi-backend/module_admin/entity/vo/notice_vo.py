@@ -6,6 +6,7 @@ from pydantic_validation_decorator import NotBlank, Size, Xss
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from i18n.message import I18nMessage
 from utils.security_util import SecurityUtil
 
 
@@ -39,9 +40,19 @@ class NoticeModel(BaseModel):
         cleaned = SecurityUtil.sanitize_html(value)
         return cleaned.encode('utf-8') if cleaned is not None else None
 
-    @Xss(field_name='notice_title', message='公告标题不能包含脚本字符')
-    @NotBlank(field_name='notice_title', message='公告标题不能为空')
-    @Size(field_name='notice_title', min_length=0, max_length=50, message='公告标题不能超过50个字符')
+    @Xss(
+        field_name='notice_title',
+        message=I18nMessage('公告标题不能包含脚本字符', msg_key='validation.noticeTitleScript'),
+    )
+    @NotBlank(
+        field_name='notice_title', message=I18nMessage('公告标题不能为空', msg_key='validation.noticeTitleRequired')
+    )
+    @Size(
+        field_name='notice_title',
+        min_length=0,
+        max_length=50,
+        message=I18nMessage('公告标题不能超过50个字符', msg_key='validation.noticeTitleLength'),
+    )
     def get_notice_title(self) -> str | None:
         return self.notice_title
 

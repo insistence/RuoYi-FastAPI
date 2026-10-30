@@ -279,6 +279,7 @@ export function createPluginHostBridge({
   onReady = () => {},
   onRoute = () => {},
   onDisconnect = () => {},
+  translate = (_code, fallback) => fallback,
   eventTarget = globalThis.window,
   origin = globalThis.location?.origin,
   now = Date.now,
@@ -288,7 +289,8 @@ export function createPluginHostBridge({
 }) {
   validatePluginId(pluginId)
   const target = getTarget()
-  if (!target || !origin || origin === 'null') throw new Error('插件页面尚未就绪')
+  if (!target || !origin || origin === 'null')
+    throw new Error(translate('notReady', '插件页面尚未就绪'))
   let currentSession = session
   let instance = nonce()
   let clientId = null
@@ -328,7 +330,7 @@ export function createPluginHostBridge({
           destroyed = true
           cancelPending()
           eventTarget.removeEventListener('message', listener)
-          onDisconnect('插件页面重载次数过多，请重新加载')
+          onDisconnect(translate('reloadLimit', '插件页面重载次数过多，请重新加载'))
           return
         }
         retiredClients.add(clientId)
@@ -397,16 +399,19 @@ export function createPluginHostBridge({
     )
       return
     if (pending.size >= PLUGIN_BRIDGE_MAX_PENDING) {
-      resultError(message.id, '插件请求过多，请稍后重试')
+      resultError(message.id, translate('rateLimited', '插件请求过多，请稍后重试'))
       return
     }
     if (message.type === 'stream') {
       if (typeof stream !== 'function') {
-        resultError(message.id, '当前宿主不支持实时事件流，请升级宿主')
+        resultError(
+          message.id,
+          translate('streamsUnsupported', '当前宿主不支持实时事件流，请升级宿主')
+        )
         return
       }
       if (streamCount(pending) >= PLUGIN_BRIDGE_MAX_STREAMS) {
-        resultError(message.id, '实时连接过多，请先关闭已有连接')
+        resultError(message.id, translate('connectionLimit', '实时连接过多，请先关闭已有连接'))
         return
       }
     }
@@ -434,7 +439,7 @@ export function createPluginHostBridge({
       if (pending.get(message.id) !== entry) return
       pending.delete(message.id)
       controller.abort()
-      resultError(message.id, '插件请求超时，请重试')
+      resultError(message.id, translate('timeout', '插件请求超时，请重试'))
     }, duration)
     pending.set(message.id, entry)
     const progressState = new Map()
@@ -446,7 +451,7 @@ export function createPluginHostBridge({
         pending.delete(message.id)
         clearTimeout(entry.timer)
         controller.abort()
-        resultError(message.id, '下载文件超过 10 MiB')
+        resultError(message.id, translate('downloadLimit', '下载文件超过 10 MiB'))
         return
       }
       const total = Number.isSafeInteger(event.total) && event.total >= loaded ? event.total : null
@@ -474,7 +479,8 @@ export function createPluginHostBridge({
             if (!live() || pending.get(message.id) !== entry) break
             const safeEvent = validateStreamEvent(event)
             totalBytes += new TextEncoder().encode(JSON.stringify(safeEvent)).byteLength
-            if (totalBytes > PLUGIN_BRIDGE_MAX_STREAM_BYTES) throw new Error('事件流超过容量限制')
+            if (totalBytes > PLUGIN_BRIDGE_MAX_STREAM_BYTES)
+              throw new Error(translate('streamLimit', '事件流超过容量限制'))
             entry.sequence += 1
             // 每条事件等待插件处理完成，防止慢回调造成 postMessage 队列无限增长。
             await new Promise((resolve, reject) => {
@@ -485,7 +491,7 @@ export function createPluginHostBridge({
               }
               const cancel = () => {
                 cleanup()
-                reject(new Error('事件处理已取消'))
+                reject(new Error(translate('eventCancelled', '事件处理已取消')))
               }
               const timer = setTimeout(cancel, Math.min(REQUEST_TIMEOUT, duration))
               entry.ack = () => {
@@ -542,8 +548,8 @@ export function createPluginHostBridge({
           resultError(
             message.id,
             message.type === 'stream' && error?.name === 'PluginStreamClosedError'
-              ? '实时连接已由宿主关闭，请重试'
-              : '插件请求失败，请重试'
+              ? translate('streamClosed', '实时连接已由宿主关闭，请重试')
+              : translate('requestFailed', '插件请求失败，请重试')
           )
       })
       .finally(() => {
@@ -560,7 +566,7 @@ export function createPluginHostBridge({
         nextSession.apiBase !== currentSession.apiBase ||
         nextSession.uiBase !== currentSession.uiBase
       )
-        throw new Error('插件会话路径发生变化')
+        throw new Error(translate('sessionChanged', '插件会话路径发生变化'))
       currentSession = nextSession
     },
     updatePreferences() {

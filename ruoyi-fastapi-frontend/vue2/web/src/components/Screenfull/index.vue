@@ -8,6 +8,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import screenfull from 'screenfull'
 
 export default {
@@ -26,7 +28,10 @@ export default {
   methods: {
     click() {
       if (!screenfull.isEnabled) {
-        this.$message({ message: '你的浏览器不支持全屏', type: 'warning' })
+        this.$message({
+          message: t('system:interface.yourBrowserDoesNotSupportFullscreen'),
+          type: 'warning',
+        })
         return false
       }
       screenfull.toggle()

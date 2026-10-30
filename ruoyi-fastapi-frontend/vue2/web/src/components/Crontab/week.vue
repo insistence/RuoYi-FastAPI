@@ -1,11 +1,14 @@
 <template>
-  <el-form size="small">
+  <el-form
+    :validate-on-rule-change="false"
+    size="small"
+  >
     <el-form-item>
       <el-radio
         v-model="radioValue"
         :label="1"
       >
-        周，允许的通配符[, - * ? / L #]
+        {{ $t('tool:interface.weekAllowedWildcardsL') }}
       </el-radio>
     </el-form-item>
 
@@ -14,7 +17,7 @@
         v-model="radioValue"
         :label="2"
       >
-        不指定
+        {{ $t('tool:cron.notSpecified') }}
       </el-radio>
     </el-form-item>
 
@@ -23,7 +26,7 @@
         v-model="radioValue"
         :label="3"
       >
-        周期从星期
+        {{ $t('tool:interface.fromWeekday') }}
         <el-select
           clearable
           v-model="cycle01"
@@ -59,13 +62,13 @@
         v-model="radioValue"
         :label="4"
       >
-        第
+        {{ $t('tool:cron.number') }}
         <el-input-number
           v-model="average01"
           :min="1"
           :max="4"
         />
-        周的星期
+        {{ $t('tool:interface.weekOnWeekday') }}
         <el-select
           clearable
           v-model="average02"
@@ -86,7 +89,7 @@
         v-model="radioValue"
         :label="5"
       >
-        本月最后一个星期
+        {{ $t('tool:interface.lastWeekdayOfTheMonth') }}
         <el-select
           clearable
           v-model="weekday"
@@ -107,11 +110,11 @@
         v-model="radioValue"
         :label="6"
       >
-        指定
+        {{ $t('common:specified') }}
         <el-select
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('common:multipleSelect')"
           multiple
           style="width: 100%"
         >
@@ -129,6 +132,7 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
 export default {
   data() {
     return {
@@ -142,31 +146,45 @@ export default {
       weekList: [
         {
           key: 2,
-          value: '星期一',
+          get value() {
+            return t('tool:cron.weekday.monday')
+          },
         },
         {
           key: 3,
-          value: '星期二',
+          get value() {
+            return t('tool:cron.weekday.tuesday')
+          },
         },
         {
           key: 4,
-          value: '星期三',
+          get value() {
+            return t('tool:cron.weekday.wednesday')
+          },
         },
         {
           key: 5,
-          value: '星期四',
+          get value() {
+            return t('tool:cron.weekday.thursday')
+          },
         },
         {
           key: 6,
-          value: '星期五',
+          get value() {
+            return t('tool:cron.weekday.friday')
+          },
         },
         {
           key: 7,
-          value: '星期六',
+          get value() {
+            return t('tool:cron.weekday.saturday')
+          },
         },
         {
           key: 1,
-          value: '星期日',
+          get value() {
+            return t('tool:cron.weekday.sunday')
+          },
         },
       ],
       checkNum: this.$options.propsData.check,

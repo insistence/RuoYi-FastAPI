@@ -11,12 +11,12 @@
         <span
           v-if="item.redirect === 'noRedirect' || index == levelList.length - 1"
           class="no-redirect"
-          >{{ item.meta.title }}</span
+          >{{ resolveRouteTitle(item) }}</span
         >
         <a
           v-else
           @click.prevent="handleLink(item)"
-          >{{ item.meta.title }}</a
+          >{{ resolveRouteTitle(item) }}</a
         >
       </el-breadcrumb-item>
     </transition-group>
@@ -24,6 +24,8 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
+import { resolveRouteTitle } from '@/i18n/adapter'
 import usePermissionStore from '@/store/modules/permission'
 
 const route = useRoute()
@@ -44,14 +46,24 @@ function getBreadcrumb() {
     })
     getMatched(pathList, permissionStore.defaultRoutes, matched)
   } else {
-    matched = route.matched.filter((item) => item.meta && item.meta.title)
+    matched = route.matched.filter((item) => item.meta && (item.meta.title || item.meta.titleKey))
   }
   // 判断是否为首页
   if (!isDashboard(matched[0])) {
-    matched = [{ path: '/index', meta: { title: '首页' } }].concat(matched)
+    matched = [
+      {
+        path: '/index',
+        meta: {
+          get title() {
+            return t('layout:routes.home')
+          },
+          titleKey: 'layout:routes.home',
+        },
+      },
+    ].concat(matched)
   }
   levelList.value = matched.filter(
-    (item) => item.meta && item.meta.title && item.meta.breadcrumb !== false
+    (item) => item.meta && (item.meta.title || item.meta.titleKey) && item.meta.breadcrumb !== false
   )
 }
 function findPathNum(str, char = '/') {
@@ -65,7 +77,7 @@ function findPathNum(str, char = '/') {
 }
 function getMatched(pathList, routeList, matched) {
   let data = routeList.find(
-    (item) => item.path == pathList[0] || (item.name += '').toLowerCase() == pathList[0]
+    (item) => item.path == pathList[0] || String(item.name || '').toLowerCase() == pathList[0]
   )
   if (data) {
     matched.push(data)

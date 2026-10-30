@@ -1,9 +1,13 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { Button, Col, Row } from 'antd'
 import { CopyOutlined } from '@ant-design/icons'
 import { message } from '@/plugins/modal'
 
 export function DetailCard({ title, icon, error = false, children }) {
+  useI18n()
+
   return (
     <section className="detail-card">
       <div className={`detail-card-title${error ? ' error-title' : ''}`}>
@@ -14,6 +18,8 @@ export function DetailCard({ title, icon, error = false, children }) {
   )
 }
 export function DetailFields({ items }) {
+  useI18n()
+
   return (
     <Row className="detail-row">
       {items.filter(Boolean).map(({ label, value, full, mono }) => (
@@ -31,12 +37,14 @@ export function DetailFields({ items }) {
   )
 }
 export function DetailCode({ value, copyable = false }) {
+  useI18n()
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(value)
-      message.success('已复制')
+      message.success(t('common:copied'))
     } catch {
-      message.error('复制失败，请手动复制')
+      message.error(t('common:copyFailedPleaseCopyManually'))
     }
   }
   return (
@@ -49,7 +57,7 @@ export function DetailCode({ value, copyable = false }) {
               icon={<CopyOutlined />}
               onClick={copy}
             >
-              复制
+              {t('common:copy')}
             </Button>
           </div>
         )}
@@ -59,6 +67,8 @@ export function DetailCode({ value, copyable = false }) {
   )
 }
 export function DetailError({ children }) {
+  useI18n()
+
   return (
     <div className="error-body">
       <div className="error-msg">{children}</div>

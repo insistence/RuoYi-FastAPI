@@ -21,7 +21,7 @@
         <div class="lock-icon">🔒</div>
       </div>
       <div class="lock-username">{{ nickName }}</div>
-      <div class="lock-hint">系统已锁定，请输入密码解锁</div>
+      <div class="lock-hint">{{ $t('auth:lock.hint') }}</div>
 
       <div
         class="input-wrap"
@@ -31,7 +31,7 @@
           ref="passwordInput"
           v-model="password"
           type="password"
-          placeholder="请输入登录密码"
+          :placeholder="$t('auth:lock.password')"
           class="lock-input"
           @keydown.enter="handleUnlock"
           autocomplete="off"
@@ -61,7 +61,7 @@
         <a
           href="/login"
           @click.prevent="goLogin"
-          >退出重新登录</a
+          >{{ $t('auth:lock.signIn') }}</a
         >
       </div>
     </div>
@@ -69,7 +69,9 @@
 </template>
 
 <script>
-import { formatBusinessTime } from '@/utils/time'
+import { t } from '@/i18n/adapter'
+
+import { formatBusinessTime, getBusinessTimezone } from '@/utils/time'
 import { mapGetters } from 'vuex'
 import { unlockScreen } from '@/api/login'
 import defAva from '@/assets/images/profile.jpg'
@@ -111,14 +113,17 @@ export default {
       const update = () => {
         const now = new Date()
         this.currentTime = formatBusinessTime(now, 'HH:mm:ss')
-        this.currentDate = formatBusinessTime(now, 'YYYY年M月D日 星期{a}')
+        this.currentDate = new Intl.DateTimeFormat(this.$locale.locale, {
+          timeZone: getBusinessTimezone(),
+          dateStyle: 'full',
+        }).format(now)
       }
       update()
       this.timer = setInterval(update, 1000)
     },
     async handleUnlock() {
       if (!this.password) {
-        this.showError('请输入密码')
+        this.showError(t('common:login.passwordRequired'))
         return
       }
       this.loading = true

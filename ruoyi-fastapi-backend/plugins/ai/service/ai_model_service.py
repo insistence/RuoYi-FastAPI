@@ -61,8 +61,8 @@ class AiModelService:
             query_db, AiModelModel(modelId=model_id), data_scope_sql, is_page=False
         )
         if ai_models:
-            return CrudResponseModel(is_success=True, message='校验通过')
-        raise ServiceException(message='没有权限访问AI模型数据')
+            return CrudResponseModel(is_success=True, message='校验通过', msg_key='common.validated')
+        raise ServiceException(message='没有权限访问AI模型数据', msg_key='ai.model.forbidden')
 
     @classmethod
     async def add_ai_model_services(cls, query_db: AsyncSession, page_object: AiModelModel) -> CrudResponseModel:
@@ -79,7 +79,7 @@ class AiModelService:
                 page_object.api_key = CryptoUtil.encrypt(page_object.api_key)
             await AiModelDao.add_ai_model_dao(query_db, page_object)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -106,12 +106,12 @@ class AiModelService:
             try:
                 await AiModelDao.edit_ai_model_dao(query_db, edit_ai_model)
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='修改成功')
+                return CrudResponseModel(is_success=True, message='修改成功', msg_key='common.modified')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='AI模型不存在')
+            raise ServiceException(message='AI模型不存在', msg_key='ai.model.missing')
 
     @classmethod
     async def delete_ai_model_services(
@@ -130,12 +130,12 @@ class AiModelService:
                 for model_id in model_id_list:
                     await AiModelDao.delete_ai_model_dao(query_db, AiModelModel(modelId=model_id))
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入AI模型id为空')
+            raise ServiceException(message='传入AI模型id为空', msg_key='ai.model.idRequired')
 
     @classmethod
     async def ai_model_detail_services(cls, query_db: AsyncSession, model_id: int) -> AiModelModel:

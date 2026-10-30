@@ -10,3 +10,5 @@ target
 logs
 *.log
 *.egg-info
+
+.x18n

@@ -7,12 +7,14 @@
             :src="logo"
             alt="logo"
           />
-          Form Generator
+          {{ $t('tools:builder.title') }}
         </div>
       </div>
       <el-scrollbar class="left-scrollbar">
         <div class="components-list">
-          <div class="components-title"><svg-icon icon-class="component" />输入型组件</div>
+          <div class="components-title">
+            <svg-icon icon-class="component" />{{ $t('tools:inputComponents') }}
+          </div>
           <draggable
             class="components-draggable"
             :list="inputComponents"
@@ -36,7 +38,9 @@
               </div>
             </template>
           </draggable>
-          <div class="components-title"><svg-icon icon-class="component" />选择型组件</div>
+          <div class="components-title">
+            <svg-icon icon-class="component" />{{ $t('tools:selectionComponents') }}
+          </div>
           <draggable
             class="components-draggable"
             :list="selectComponents"
@@ -60,7 +64,9 @@
               </div>
             </template>
           </draggable>
-          <div class="components-title"><svg-icon icon-class="component" /> 布局型组件</div>
+          <div class="components-title">
+            <svg-icon icon-class="component" />{{ $t('tools:layoutComponents') }}
+          </div>
           <draggable
             class="components-draggable"
             :list="layoutComponents"
@@ -94,27 +100,24 @@
           type="primary"
           text
           @click="download"
+          >{{ $t('tools:exportVueFile') }}</el-button
         >
-          导出vue文件
-        </el-button>
         <el-button
           class="copy-btn-main"
           icon="DocumentCopy"
           type="primary"
           text
           @click="copy"
+          >{{ $t('tools:copyCode') }}</el-button
         >
-          复制代码
-        </el-button>
         <el-button
           class="delete-btn"
           icon="Delete"
           text
           @click="empty"
           type="danger"
+          >{{ $t('monitor:clear') }}</el-button
         >
-          清空
-        </el-button>
       </div>
       <el-scrollbar class="center-scrollbar">
         <el-row
@@ -152,7 +155,7 @@
               v-show="!drawingList.length"
               class="empty-info"
             >
-              从左侧拖入或点选组件进行表单设计
+              {{ $t('tools:dragOrClickComponentsOnTheLeftToDesignYour') }}
             </div>
           </el-form>
         </el-row>
@@ -167,7 +170,7 @@
 
     <code-type-dialog
       v-model="dialogVisible"
-      title="选择生成类型"
+      :title="$t('tools:chooseGenerationType')"
       :showFileName="showFileName"
       @confirm="generate"
     />
@@ -179,6 +182,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import draggable from 'vuedraggable/dist/vuedraggable.common'
 import ClipboardJS from 'clipboard'
 import beautifier from 'js-beautify'
@@ -236,11 +240,13 @@ function download() {
   operationType.value = 'download'
 }
 function empty() {
-  proxy.$modal.confirm('确定要清空所有组件吗？', '提示', { type: 'warning' }).then(() => {
-    idGlobal.value = 100
-    drawingList.value = []
-    cleanDrawingDefaultValue()
-  })
+  proxy.$modal
+    .confirm(t('tools:builder.clearConfirm'), t('common:notice'), { type: 'warning' })
+    .then(() => {
+      idGlobal.value = 100
+      drawingList.value = []
+      cleanDrawingDefaultValue()
+    })
 }
 
 function onEnd(obj, a) {
@@ -264,7 +270,11 @@ function cloneComponent(origin) {
   if (!clone.layout) clone.layout = 'colFormItem'
   if (clone.layout === 'colFormItem') {
     clone.vModel = `field${idGlobal.value}`
-    clone.placeholder !== undefined && (clone.placeholder += clone.label)
+    if (clone.placeholder !== undefined) {
+      clone.placeholder = ['select', 'cascader', 'time', 'date'].includes(clone.tagIcon)
+        ? t('tools:builder.chooseField', { label: clone.label })
+        : t('tools:builder.enterField', { label: clone.label })
+    }
     tempActiveData = clone
   } else if (clone.layout === 'rowFormItem') {
     delete clone.label
@@ -398,12 +408,20 @@ onMounted(() => {
   clipboard = new ClipboardJS('#copyNode', {
     text: (trigger) => {
       const codeStr = generateCode()
-      ElNotification({ title: '成功', message: '代码已复制到剪切板，可粘贴。', type: 'success' })
+      ElNotification({
+        get title() {
+          return t('system:success')
+        },
+        get message() {
+          return t('tools:builder.copied')
+        },
+        type: 'success',
+      })
       return codeStr
     },
   })
   clipboard.on('error', (e) => {
-    proxy.$modal.msgError('代码复制失败')
+    proxy.$modal.msgError(t('tools:builder.copyFailed'))
   })
 })
 onUnmounted(() => {

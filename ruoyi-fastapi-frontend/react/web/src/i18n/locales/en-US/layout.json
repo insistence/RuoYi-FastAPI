@@ -1,0 +1,114 @@
+{
+  "route": {
+    "home": "Home",
+    "authLogin": "Single sign-on",
+    "profile": "Profile",
+    "lock": "Lock screen",
+    "authError": "Authentication incomplete",
+    "jobLog": "Job logs",
+    "assignUsers": "Assign users",
+    "assignRoles": "Assign roles",
+    "dictionaryData": "Dictionary entries",
+    "generatorEdit": "Edit generation settings"
+  },
+  "breadcrumbs": "Breadcrumbs",
+  "search": {
+    "close": "Close",
+    "navigate": "Navigate",
+    "select": "Select"
+  },
+  "searchMenus": "Search menus",
+  "searchByMenuNameOrPath": "Search by menu name or path",
+  "menuNameOrPath": "Menu name or path",
+  "found": "Found",
+  "menus": "menus",
+  "menuSearchResults": "Menu search results",
+  "noMatchingMenusTryAnotherKeyword": "No matching menus. Try another keyword.",
+  "noAvailableMenus": "No available menus",
+  "tags": {
+    "refresh": "Refresh",
+    "refreshPage": "Refresh page",
+    "close": "Close tab",
+    "closeOthers": "Close other tabs",
+    "closeLeft": "Close tabs to the left",
+    "closeRight": "Close tabs to the right",
+    "closeAll": "Close all tabs",
+    "fullscreen": "Full screen"
+  },
+  "size": {
+    "large": "Large",
+    "default": "Default",
+    "small": "Small"
+  },
+  "notices": {
+    "details": "Announcement details",
+    "empty": "No announcements",
+    "announcement": "Announcement",
+    "notification": "Notification",
+    "active": "Active",
+    "closed": "Closed",
+    "noContent": "No content",
+    "title": "Notifications",
+    "readAll": "Mark all as read",
+    "noData": "No data"
+  },
+  "noNotifications": "No notifications",
+  "announcementsValueUnread": "Announcements, {{unread}} unread",
+  "switchToLightTheme": "Switch to light theme",
+  "switchToDarkTheme": "Switch to dark theme",
+  "navbar": {
+    "settings": "Layout settings",
+    "signOut": "Sign out",
+    "signOutConfirm": "Are you sure you want to sign out?"
+  },
+  "userMenu": "User menu",
+  "settings": {
+    "sidebar": "Side menu",
+    "mixed": "Mixed menu",
+    "top": "Top menu",
+    "navigation": "Menu navigation",
+    "theme": "Theme style",
+    "color": "Theme color",
+    "layout": "System layout",
+    "tabs": "Enable tabs",
+    "persistTabs": "Remember open tabs",
+    "tabIcons": "Show tab icons",
+    "tabStyle": "Tab style",
+    "card": "Card",
+    "chrome": "Chrome",
+    "fixedHeader": "Fixed header",
+    "logo": "Show logo",
+    "dynamicTitle": "Dynamic page title",
+    "footer": "Copyright footer",
+    "save": "Save settings",
+    "reset": "Reset settings"
+  },
+  "settingsSavedLocally": "Settings saved locally",
+  "saveFailedCheckBrowserStorageAvailability": "Save failed. Check browser storage availability.",
+  "defaultLayoutRestored": "Default layout restored",
+  "darkSidebar": "Dark sidebar",
+  "lightSidebar": "Light sidebar",
+  "presetColor": "Preset color",
+  "sideMenu": "Side menu",
+  "pageTabs": "Page tabs",
+  "scrollToTheStart": "Scroll to the start",
+  "closeValue": "Close {{label}}",
+  "scrollToTheEnd": "Scroll to the end",
+  "tabActions": "Tab actions",
+  "menu": {
+    "more": "More menus"
+  },
+  "failedToLoadUserInformation": "Failed to load user information",
+  "closeSidebarNavigation": "Close sidebar navigation",
+  "changePassword": "Change password",
+  "error": {
+    "back": "Back",
+    "forbidden": "You do not have access to this page.",
+    "forbiddenHint": "You do not have permission to access this page. You can return to the home page.",
+    "notFound": "Page not found!",
+    "home": "Back to home"
+  },
+  "routes": {
+    "register": "Sign up"
+  }
+}

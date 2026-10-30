@@ -1,8 +1,4 @@
 import zhCN from 'antd/es/locale/zh_CN'
-import dayjs from 'dayjs'
-import 'dayjs/locale/zh-cn'
-
-// 日期面板的星期、月份由 Day.js 提供，需要与 Ant Design 的语言保持一致。
-dayjs.locale('zh-cn')
-
+import enUS from 'antd/es/locale/en_US'
+export const componentLocales = { 'zh-CN': zhCN, 'en-US': enUS }
 export default zhCN

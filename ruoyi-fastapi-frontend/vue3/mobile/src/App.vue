@@ -5,6 +5,7 @@ import { useConfigStore } from '@/store'
 import { getCurrentInstance } from 'vue'
 import { onLaunch, onShow } from '@dcloudio/uni-app'
 
+import { refreshDeviceLocale } from '@/i18n'
 import { refreshDeviceTimezone } from '@/utils/time'
 
 const { proxy } = getCurrentInstance()
@@ -15,6 +16,7 @@ onLaunch(() => {
 
 onShow(() => {
   refreshDeviceTimezone()
+  refreshDeviceLocale()
 })
 
 // 初始化应用

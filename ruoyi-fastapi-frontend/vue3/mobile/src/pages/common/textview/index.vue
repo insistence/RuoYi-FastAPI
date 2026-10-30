@@ -19,8 +19,8 @@ const title = ref('')
 const content = ref('')
 
 onLoad((options) => {
-  title.value = options.title
-  content.value = options.content
+  title.value = decodeURIComponent(options.title || '')
+  content.value = decodeURIComponent(options.content || '')
   uni.setNavigationBarTitle({
     title: options.title,
   })

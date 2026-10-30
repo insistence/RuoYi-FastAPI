@@ -117,13 +117,13 @@
           class="mt-4 w-full rounded-full bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg transition-all active:scale-95"
           @click="getImage"
         >
-          选择头像
+          {{ $t('mobile:avatar.choose') }}
         </button>
         <button
           class="mt-4 w-full rounded-full bg-linear-to-r from-red-500 to-red-600 text-white shadow-lg transition-all active:scale-95"
           @click="getImageInfo"
         >
-          提交
+          {{ $t('mobile:actions.submit') }}
         </button>
       </view>
       <canvas
@@ -141,6 +141,7 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
 import config from '@/config'
 import { useUserStore } from '@/store'
 import { uploadAvatar } from '@/api/system/user'
@@ -337,7 +338,7 @@ export default {
     getImageInfo() {
       var _this = this
       uni.showLoading({
-        title: '图片生成中...',
+        title: t('mobile:avatar.generating'),
       })
       // 将图片写入画布
       const ctx = uni.createCanvasContext('myCanvas')
@@ -362,7 +363,7 @@ export default {
             let data = { name: 'avatarfile', filePath: res.tempFilePath }
             uploadAvatar(data).then((response) => {
               useUserStore().SET_AVATAR(baseUrl + response.imgUrl)
-              uni.showToast({ title: '修改成功', icon: 'success' })
+              uni.showToast({ title: t('mobile:actions.updated'), icon: 'success' })
               uni.navigateBack()
             })
           },

@@ -23,6 +23,7 @@ class ExceptionUtil:
         logger.bind(error_id=error_id).opt(exception=exc).error('请求处理失败，错误标识：{}', error_id)
         return ResponseUtil.error(
             msg='服务暂时不可用，请稍后重试',
+            msg_key='common.unavailable',
             data={'errorId': error_id},
             headers={'X-Error-Id': error_id},
         )

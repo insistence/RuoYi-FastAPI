@@ -1,3 +1,4 @@
+import { t } from '@/i18n/adapter'
 import { parseTime } from '@/utils/ruoyi'
 
 export function formatFileSize(size) {
@@ -9,24 +10,24 @@ export function formatFileSize(size) {
 }
 
 export function accessTypeLabel(accessType) {
-  return accessType === 'public' ? '公开文件' : '受保护文件'
+  return accessType === 'public' ? t('files:publicFiles') : t('files:protectedFiles')
 }
 
 export function statusLabel(status) {
   return (
     {
-      active: '正常',
-      deleted: '已删除',
-      purging: '清理中',
+      active: t('layout:notices.active'),
+      deleted: t('files:deleted'),
+      purging: t('files:deleting'),
     }[status] || status
   )
 }
 
 export function expirationLabel(expireTime) {
-  if (!expireTime) return '永久有效'
+  if (!expireTime) return t('files:noExpiry')
   const remainingTime = new Date(expireTime).getTime() - Date.now()
-  if (remainingTime <= 0) return '已过期'
-  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return '即将过期'
+  if (remainingTime <= 0) return t('components:expired')
+  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return t('files:expiringSoonLabelText')
   return parseTime(expireTime, '{y}-{m}-{d}')
 }
 
@@ -46,11 +47,11 @@ export function isAclExpiring(expireTime) {
 export function storageStatusLabel(storageStatus) {
   return (
     {
-      normal: '正常',
-      missing: '文件缺失',
-      quarantined: '已隔离',
-      invalid: '异常',
-    }[storageStatus] || '未知'
+      normal: t('layout:notices.active'),
+      missing: t('files:fileMissing'),
+      quarantined: t('files:quarantined'),
+      invalid: t('monitor:error'),
+    }[storageStatus] || t('components:unknown')
   )
 }
 
@@ -68,16 +69,16 @@ export function storageStatusTagType(storageStatus) {
 export function actionLabel(action) {
   return (
     {
-      upload: '上传',
-      download: '下载',
-      acl_update: '授权变更',
-      transfer: '归属转移',
-      delete: '移入回收站',
-      restore: '恢复',
-      purge: '永久清理',
-      reconcile: '存储对账',
-      retention_extend: '保留延期',
-      retention_dispose: '到期处置',
+      upload: t('components:uploadLabel'),
+      download: t('components:download'),
+      acl_update: t('files:permissionChange'),
+      transfer: t('files:ownershipTransfer'),
+      delete: t('files:moveToRecycleBin'),
+      restore: t('components:restore'),
+      purge: t('files:permanentlyDelete'),
+      reconcile: t('files:storageReconciliation'),
+      retention_extend: t('files:retentionExtension'),
+      retention_dispose: t('files:expiryDisposal'),
     }[action] || action
   )
 }
@@ -85,10 +86,10 @@ export function actionLabel(action) {
 export function resultLabel(result) {
   return (
     {
-      allowed: '已授权',
-      denied: '已拒绝',
-      completed: '已完成',
-      failed: '失败',
+      allowed: t('files:allowed'),
+      denied: t('files:denied'),
+      completed: t('monitor:completed'),
+      failed: t('monitor:failed'),
     }[result] || result
   )
 }
@@ -113,48 +114,48 @@ export function parseOperationDetail(operationDetail) {
       value: typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '-'),
     }))
   } catch {
-    return [{ label: '操作详情', value: operationDetail }]
+    return [{ label: t('files:operationDetails'), value: operationDetail }]
   }
 }
 
 function auditDetailKeyLabel(key) {
   return (
     {
-      previousAclVersion: '原权限版本',
-      newAclVersion: '新权限版本',
-      entryCount: '授权项数量',
-      allowCount: '允许项数量',
-      denyCount: '拒绝项数量',
-      subjectTypeCounts: '主体类型统计',
-      previousOwnerUserId: '原所有者ID',
-      previousDeptId: '原所属部门ID',
-      newOwnerUserId: '新所有者ID',
-      newOwnerName: '新所有者',
-      newDeptId: '新所属部门ID',
-      reason: '操作原因',
-      originalName: '原始文件名',
-      accessType: '访问类型',
-      referenceCount: '业务引用数量',
-      previousStatus: '原状态',
-      newStatus: '新状态',
-      truncated: '详情已截断',
-      preview: '详情预览',
-      issueId: '对账异常ID',
-      issueType: '异常类型',
-      action: '处理动作',
-      actualRoot: '实际存储区域',
-      actualKey: '实际相对路径',
-      expectedRoot: '预期存储区域',
-      expectedKey: '预期相对路径',
-      previousExpireTime: '原到期时间',
-      newExpireTime: '新到期时间',
-      expireTime: '到期时间',
-      range: '请求范围',
-      rangeStart: '分段起始字节',
-      rangeEnd: '分段结束字节',
-      fileSize: '文件总大小',
-      releasedReferenceCount: '解除引用数量',
-      releasedReferences: '解除引用明细',
+      previousAclVersion: t('files:previousPermissionsVersion'),
+      newAclVersion: t('files:newPermissionsVersion'),
+      entryCount: t('files:permissionCount'),
+      allowCount: t('files:allowCount'),
+      denyCount: t('files:denyCount'),
+      subjectTypeCounts: t('files:principalTypeStatistics'),
+      previousOwnerUserId: t('files:previousOwnerID'),
+      previousDeptId: t('files:previousDepartmentID'),
+      newOwnerUserId: t('files:newOwnerID'),
+      newOwnerName: t('files:newOwner'),
+      newDeptId: t('files:newDepartmentID'),
+      reason: t('components:reason'),
+      originalName: t('components:originalFileName'),
+      accessType: t('components:accessType'),
+      referenceCount: t('files:businessReferenceCount'),
+      previousStatus: t('files:previousStatus'),
+      newStatus: t('files:newStatus'),
+      truncated: t('files:detailsTruncated'),
+      preview: t('files:detailsPreview'),
+      issueId: t('files:reconciliationIssueID'),
+      issueType: t('files:issueType'),
+      action: t('files:processingAction'),
+      actualRoot: t('files:actualStorageArea'),
+      actualKey: t('files:actualRelativePath'),
+      expectedRoot: t('files:expectedStorageArea'),
+      expectedKey: t('files:expectedRelativePath'),
+      previousExpireTime: t('files:previousExpiryTime'),
+      newExpireTime: t('files:newExpiryTime'),
+      expireTime: t('files:expiryTime'),
+      range: t('files:requestedRange'),
+      rangeStart: t('files:rangeStartByte'),
+      rangeEnd: t('files:rangeEndByte'),
+      fileSize: t('files:totalFileSize'),
+      releasedReferenceCount: t('files:removedReferenceCount'),
+      releasedReferences: t('files:removedReferenceDetails'),
     }[key] || key
   )
 }

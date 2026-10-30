@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.migration import PluginMigrationRunner
 from plugins.core.lifecycle.seed import PluginSeedRunner
@@ -93,7 +94,11 @@ class PluginLifecycleScriptPrechecker:
                         category='lifecycle',
                         kind='migration_running',
                         path=f'backend.migrations.{migration_path}',
-                        message=f'插件 migration 上次执行仍处于 running 状态：{migration_path}',
+                        message=I18nMessage(
+                            f'插件 migration 上次执行仍处于 running 状态：{migration_path}',
+                            msg_key='plugin.runtime.migration.stillRunning',
+                            msg_params={'migration_path': str(migration_path)},
+                        ),
                         suggestion='请确认数据库结构状态后手动处理迁移历史',
                     )
                 )
@@ -105,7 +110,11 @@ class PluginLifecycleScriptPrechecker:
                         category='lifecycle',
                         kind='migration_unknown_status',
                         path=f'backend.migrations.{migration_path}',
-                        message=f'插件 migration 历史状态不支持自动执行：{migration_path}，状态：{existing_record.status}',
+                        message=I18nMessage(
+                            f'插件 migration 历史状态不支持自动执行：{migration_path}，状态：{existing_record.status}',
+                            msg_key='plugin.runtime.migration.unsupportedState',
+                            msg_params={'migration_path': str(migration_path), 'status': str(existing_record.status)},
+                        ),
                         suggestion='请确认数据库结构状态后手动处理迁移历史',
                     )
                 )
@@ -120,7 +129,11 @@ class PluginLifecycleScriptPrechecker:
                         category='lifecycle',
                         kind='migration_checksum_changed',
                         path=f'backend.migrations.{migration_path}',
-                        message=f'插件 migration 已执行但内容已变化：{migration_path}',
+                        message=I18nMessage(
+                            f'插件 migration 已执行但内容已变化：{migration_path}',
+                            msg_key='plugin.runtime.migration.contentChanged',
+                            msg_params={'migration_path': str(migration_path)},
+                        ),
                         suggestion='请新增 migration 文件，不要修改已执行的历史 migration',
                     )
                 )
@@ -185,7 +198,11 @@ class PluginLifecycleScriptPrechecker:
                 kind='seed_pending',
                 path=f'backend.seeds.{seed_path}',
                 ok=True,
-                message=f'插件 seed 将在实际操作时执行：{seed_path}',
+                message=I18nMessage(
+                    f'插件 seed 将在实际操作时执行：{seed_path}',
+                    msg_key='plugin.runtime.seed.pending',
+                    msg_params={'seed_path': str(seed_path)},
+                ),
                 suggestion='请确保 seed 脚本可重复执行，避免重复初始化数据',
             )
             for seed_path in seed_paths

@@ -45,7 +45,7 @@ export default {
       this.$store.dispatch('app/setSize', size)
       this.refreshView()
       this.$message({
-        message: 'Switch Size Success',
+        message: this.$t('system:display.sizeChanged'),
         type: 'success',
       })
     },

@@ -341,11 +341,13 @@ class GenTimeUtil:
                 return cls.INSTANT
             if data_type in {'timestamp', 'timestamp without time zone'}:
                 raise ServiceWarning(
-                    message='PostgreSQL 无时区 timestamp 含义不明确，请将真实时刻列改为 TIMESTAMP(3) WITH TIME ZONE 后重新导入生成配置'
+                    message='PostgreSQL 无时区 timestamp 含义不明确，请将真实时刻列改为 TIMESTAMP(3) WITH TIME ZONE 后重新导入生成配置',
+                    msg_key='generator.postgresTimestampAmbiguous',
                 )
             if data_type in {'timetz', 'time with time zone'}:
                 raise ServiceWarning(
-                    message='带时区的 time 不能作为一天内时间生成，请使用 TIME WITHOUT TIME ZONE；真实时刻请使用 TIMESTAMP(3) WITH TIME ZONE'
+                    message='带时区的 time 不能作为一天内时间生成，请使用 TIME WITHOUT TIME ZONE；真实时刻请使用 TIMESTAMP(3) WITH TIME ZONE',
+                    msg_key='generator.timeWithZoneUnsupported',
                 )
         return None
 
@@ -360,5 +362,6 @@ class GenTimeUtil:
         """
         if db_type == 'mysql' and cls.normalize_db_type(column_type) == 'time' and control != 'time':
             raise ServiceWarning(
-                message='MySQL TIME 也可表示时长。确认字段表示一天内时间后，将显示类型设为“时间（一天内）”；时长请使用明确单位的数值列后重新导入'
+                message='MySQL TIME 也可表示时长。确认字段表示一天内时间后，将显示类型设为“时间（一天内）”；时长请使用明确单位的数值列后重新导入',
+                msg_key='generator.mysqlTimeAmbiguous',
             )

@@ -1,6 +1,6 @@
 <template>
   <el-drawer
-    title="{{ functionName }}详情"
+    :title="t('{{ i18nKey("detailTitle") }}')"
     v-model="visible"
     direction="rtl"
     size="60%"
@@ -9,7 +9,7 @@
     class="detail-drawer"
   >
     <div v-loading="loading" class="drawer-content">
-      <h4 class="section-header">基本信息</h4>
+      <h4 class="section-header">{% raw %}{{{% endraw %} t('system:basicInformation') {% raw %}}}{% endraw %}</h4>
       {% set detail = namespace(index=0) %}
       {% for column in columns %}
       {% if not column.pk and column.list %}
@@ -22,7 +22,7 @@
       {% endif %}
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">{{ comment }}：</label>
+            <label class="info-label">{% raw %}{{{% endraw %} t('{{ i18nText("detail.fieldCaption", "{{label}}：", "{{label}}:") }}', { label: t('{{ i18nFieldKey(column) }}') }) {% raw %}}}{% endraw %}</label>
             <span class="info-value plaintext">
               {% if dictType %}
               {% if column.html_type == "checkbox" %}
@@ -54,6 +54,7 @@
 </template>
 
 <script setup name="{{ BusinessName }}ViewDrawer">
+import { t } from "@/i18n/adapter";
 import { get{{ BusinessName }} } from "@/api/{{ moduleName }}/{{ businessName }}";
 
 const { proxy } = getCurrentInstance();

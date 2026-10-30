@@ -10,14 +10,14 @@
       align="center"
     />
     <el-table-column
-      label="原始文件名"
+      :label="$t('file:originalName')"
       align="left"
       prop="originalName"
       min-width="200"
       :show-overflow-tooltip="true"
     />
     <el-table-column
-      label="访问类型"
+      :label="$t('file:accessType')"
       align="center"
       prop="accessType"
       width="110"
@@ -26,23 +26,23 @@
         <el-tag
           v-if="scope.row.accessType === 'public'"
           type="success"
-          >公开</el-tag
+          >{{ $t('file:messages.public') }}</el-tag
         >
         <el-tag
           v-else
           type="warning"
-          >受保护</el-tag
+          >{{ $t('file:messages.protected') }}</el-tag
         >
       </template>
     </el-table-column>
     <el-table-column
-      label="扩展名"
+      :label="$t('file:messages.extension')"
       align="center"
       prop="extension"
       width="90"
     />
     <el-table-column
-      label="文件大小"
+      :label="$t('file:messages.fileSize')"
       align="right"
       prop="fileSize"
       width="120"
@@ -50,14 +50,14 @@
       <template slot-scope="scope">{{ formatFileSize(scope.row.fileSize) }}</template>
     </el-table-column>
     <el-table-column
-      label="上传用户"
+      :label="$t('file:messages.uploader')"
       align="center"
       prop="createBy"
       width="120"
       :show-overflow-tooltip="true"
     />
     <el-table-column
-      label="所有者"
+      :label="$t('file:owner')"
       align="center"
       prop="ownerName"
       width="120"
@@ -68,7 +68,7 @@
       </template>
     </el-table-column>
     <el-table-column
-      label="所属部门"
+      :label="$t('system:user.department')"
       align="center"
       prop="deptName"
       width="140"
@@ -79,7 +79,7 @@
       </template>
     </el-table-column>
     <el-table-column
-      label="文件有效期"
+      :label="$t('file:messages.fileExpiry')"
       align="center"
       prop="expireTime"
       width="150"
@@ -101,22 +101,26 @@
       <template slot-scope="scope">
         <el-tooltip
           v-if="scope.row.aclNearestExpireTime"
-          :content="`最近过期：${parseTime(scope.row.aclNearestExpireTime)}`"
+          :content="
+            $t('file:acl.nearestExpiry', { time: parseTime(scope.row.aclNearestExpireTime) })
+          "
           placement="top"
         >
           <el-tag
             :type="isAclExpiring(scope.row.aclNearestExpireTime) ? 'warning' : 'info'"
             effect="plain"
           >
-            {{ scope.row.aclEntryCount }} 项
-            <span v-if="isAclExpiring(scope.row.aclNearestExpireTime)">· 即将过期</span>
+            {{ scope.row.aclEntryCount }} {{ $t('authCenter:messages.items') }}
+            <span v-if="isAclExpiring(scope.row.aclNearestExpireTime)">{{
+              $t('file:messages.expiringSoon')
+            }}</span>
           </el-tag>
         </el-tooltip>
-        <span v-else>{{ scope.row.aclEntryCount || 0 }} 项</span>
+        <span v-else>{{ scope.row.aclEntryCount || 0 }} {{ $t('authCenter:messages.items') }}</span>
       </template>
     </el-table-column>
     <el-table-column
-      label="业务引用"
+      :label="$t('file:messages.businessReferences')"
       align="center"
       prop="referenceCount"
       width="100"
@@ -126,13 +130,13 @@
           v-if="scope.row.referenceCount"
           type="text"
           @click="$emit('reference', scope.row)"
-          >{{ scope.row.referenceCount }} 项</el-button
+          >{{ scope.row.referenceCount }} {{ $t('authCenter:messages.items') }}</el-button
         >
-        <span v-else>0 项</span>
+        <span v-else>{{ $t('file:messages.0Items') }}</span>
       </template>
     </el-table-column>
     <el-table-column
-      label="存储状态"
+      :label="$t('file:messages.storageStatus')"
       align="center"
       prop="storageStatus"
       width="110"
@@ -146,7 +150,7 @@
       </template>
     </el-table-column>
     <el-table-column
-      label="上传时间"
+      :label="$t('file:messages.uploadedAt')"
       align="center"
       prop="createTime"
       width="180"
@@ -154,7 +158,7 @@
       <template slot-scope="scope">{{ parseTime(scope.row.createTime) }}</template>
     </el-table-column>
     <el-table-column
-      label="状态"
+      :label="$t('common:status')"
       align="center"
       prop="status"
       width="90"
@@ -163,22 +167,22 @@
         <el-tag
           v-if="scope.row.status === 'active'"
           type="success"
-          >正常</el-tag
+          >{{ $t('layout:notices.active') }}</el-tag
         >
         <el-tag
           v-else-if="scope.row.status === 'deleted'"
           type="info"
-          >已删除</el-tag
+          >{{ $t('file:messages.deleted') }}</el-tag
         >
         <el-tag
           v-else
           type="warning"
-          >清理中</el-tag
+          >{{ $t('file:messages.deleting') }}</el-tag
         >
       </template>
     </el-table-column>
     <el-table-column
-      label="操作"
+      :label="$t('common:actions')"
       align="center"
       class-name="small-padding fixed-width"
       width="250"
@@ -186,7 +190,7 @@
     >
       <template slot-scope="scope">
         <el-tooltip
-          content="详细"
+          :content="$t('common:detail')"
           placement="top"
         >
           <el-button
@@ -198,7 +202,7 @@
         </el-tooltip>
         <el-tooltip
           v-if="scope.row.status === 'active'"
-          content="下载"
+          :content="$t('common:download')"
           placement="top"
         >
           <el-button
@@ -210,7 +214,7 @@
         </el-tooltip>
         <el-tooltip
           v-if="scope.row.accessType === 'private' && scope.row.status === 'active'"
-          content="授权"
+          :content="$t('file:messages.permissions')"
           placement="top"
         >
           <el-button
@@ -222,7 +226,7 @@
         </el-tooltip>
         <el-tooltip
           v-if="scope.row.status === 'active'"
-          content="转移"
+          :content="$t('file:messages.transfer')"
           placement="top"
         >
           <el-button
@@ -233,7 +237,7 @@
           />
         </el-tooltip>
         <el-tooltip
-          content="审计"
+          :content="$t('file:messages.audit')"
           placement="top"
         >
           <el-button
@@ -245,7 +249,7 @@
         </el-tooltip>
         <el-tooltip
           v-if="scope.row.status === 'active' && scope.row.referenceCount"
-          content="存在业务引用，无法删除"
+          :content="$t('file:messages.cannotDeleteAReferencedFile')"
           placement="top"
         >
           <span class="file-action-disabled-wrapper">
@@ -260,7 +264,7 @@
         </el-tooltip>
         <el-tooltip
           v-else-if="scope.row.status === 'active'"
-          content="删除"
+          :content="$t('common:delete')"
           placement="top"
         >
           <el-button
@@ -273,7 +277,7 @@
         </el-tooltip>
         <el-tooltip
           v-if="scope.row.status === 'deleted'"
-          content="恢复"
+          :content="$t('common:restore')"
           placement="top"
         >
           <el-button
@@ -286,7 +290,11 @@
         </el-tooltip>
         <el-tooltip
           v-if="scope.row.status !== 'active'"
-          :content="scope.row.status === 'purging' ? '重试永久清理' : '永久清理'"
+          :content="
+            scope.row.status === 'purging'
+              ? $t('file:expression.retryPermanentDeletion')
+              : $t('file:messages.permanentlyDelete')
+          "
           placement="top"
         >
           <el-button

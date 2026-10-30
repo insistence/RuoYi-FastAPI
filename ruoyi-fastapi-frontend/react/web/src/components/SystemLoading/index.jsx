@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useLayoutEffect } from 'react'
 import './style.css'
 
@@ -8,6 +10,8 @@ export function finishSystemLoading() {
 
 // This must be inside Suspense: a loading fallback is not a ready page.
 export function PageReady({ children }) {
+  useI18n()
+
   useLayoutEffect(() => {
     finishSystemLoading()
   }, [])
@@ -15,6 +19,8 @@ export function PageReady({ children }) {
 }
 
 export default function SystemLoading() {
+  useI18n()
+
   // Reuse the HTML screen while JS, session information and route modules load.
   if (document.getElementById('app-bootstrap-loader')) return null
   return (
@@ -27,7 +33,7 @@ export default function SystemLoading() {
         className="system-loading-spinner"
         aria-hidden="true"
       />
-      <p className="system-loading-title">正在加载系统资源，请耐心等待</p>
+      <p className="system-loading-title">{t('common:loadingSystemResourcesPleaseWait')}</p>
     </div>
   )
 }

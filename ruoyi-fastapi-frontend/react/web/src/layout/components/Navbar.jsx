@@ -1,3 +1,6 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
+import LanguageSelect from '@/components/LanguageSelect/index.jsx'
 import { Avatar, Button, Dropdown, Layout as AntLayout } from 'antd'
 import { MoonOutlined, SunOutlined } from '@ant-design/icons'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -24,10 +27,13 @@ export default function Navbar({
   user,
   onSettings,
 }) {
+  useI18n()
+
   const location = useLocation(),
     navigate = useNavigate()
   return (
     <AntLayout.Header className={`layout-header${settings.dark ? ' is-dark' : ''}`}>
+      <LanguageSelect />
       {showSidebar && <Hamburger />}
       {settings.navType === 3 && settings.sidebarLogo && <Logo top />}
       {settings.navType === 1 ? (
@@ -46,7 +52,9 @@ export default function Navbar({
           <RuoYiDoc />
           <Screenfull />
           <Button
-            aria-label={settings.dark ? '切换浅色主题' : '切换深色主题'}
+            aria-label={
+              settings.dark ? t('layout:switchToLightTheme') : t('layout:switchToDarkTheme')
+            }
             type="text"
             icon={settings.dark ? <SunOutlined /> : <MoonOutlined />}
             onClick={(event) =>
@@ -65,11 +73,13 @@ export default function Navbar({
           styles={{ root: { minWidth: 0, width: 'max-content' } }}
           menu={{
             items: [
-              { key: 'profile', label: '个人中心' },
-              ...(settings.showSettings ? [{ key: 'settings', label: '布局设置' }] : []),
-              { key: 'lock', label: '锁定屏幕' },
+              { key: 'profile', label: t('layout:route.profile') },
+              ...(settings.showSettings
+                ? [{ key: 'settings', label: t('layout:navbar.settings') }]
+                : []),
+              { key: 'lock', label: t('layout:route.lock') },
               { type: 'divider' },
-              { key: 'logout', label: '退出登录' },
+              { key: 'logout', label: t('layout:navbar.signOut') },
             ],
             onClick: async ({ key }) => {
               if (key === 'profile') navigate('/user/profile')
@@ -79,7 +89,7 @@ export default function Navbar({
                 navigate('/lock')
               } else {
                 try {
-                  await confirm('确定注销并退出系统吗？')
+                  await confirm(t('layout:navbar.signOutConfirm'))
                   await user.logOut()
                   useTagsViewStore.getState().reset()
                   permission.reset()
@@ -92,7 +102,7 @@ export default function Navbar({
           <Button
             type="text"
             className="header-avatar"
-            aria-label="用户菜单"
+            aria-label={t('layout:userMenu')}
           >
             <Avatar
               size={30}

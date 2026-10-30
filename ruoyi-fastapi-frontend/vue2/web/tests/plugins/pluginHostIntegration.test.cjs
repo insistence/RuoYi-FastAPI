@@ -259,6 +259,10 @@ module.exports = (async () => {
     isCancel: () => false,
   }
   const load = createLoader({
+    '@/i18n': {
+      i18n: { headers: { 'Accept-Language': 'zh-CN', 'X-I18n-Version': '1' } },
+      t: require('../i18n/test-runtime.cjs').t,
+    },
     axios,
     'element-ui': {
       Notification: { error() {} },

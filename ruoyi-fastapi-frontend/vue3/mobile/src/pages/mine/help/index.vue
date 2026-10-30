@@ -28,55 +28,58 @@
 </template>
 
 <script setup>
-import { ref, getCurrentInstance } from 'vue'
+import { t } from '@/i18n/adapter'
+import { computed, getCurrentInstance } from 'vue'
 
 const { proxy } = getCurrentInstance()
 
-const list = ref([
+const list = computed(() => [
   {
     icon: 'i-mdi-github',
-    title: 'RuoYi-FastAPI问题',
+    title: t('mobile:help.product'),
     childList: [
       {
-        title: 'RuoYi-FastAPI开源吗？',
-        content: '开源',
+        title: t('mobile:help.openSourceQuestion'),
+        content: t('mobile:help.openSourceAnswer'),
       },
       {
-        title: 'RuoYi-FastAPI可以商用吗？',
-        content: '可以',
+        title: t('mobile:help.commercialQuestion'),
+        content: t('mobile:help.commercialAnswer'),
       },
       {
-        title: 'RuoYi-FastAPI官网地址多少？',
+        title: t('mobile:help.websiteQuestion'),
         content: 'https://vfadmin.insistence.tech',
       },
       {
-        title: 'RuoYi-FastAPI文档地址多少？',
+        title: t('mobile:help.docsQuestion'),
         content: 'https://vfadmin.insistence.tech',
       },
     ],
   },
   {
     icon: 'i-mdi-help-circle-outline',
-    title: '其他问题',
+    title: t('mobile:help.other'),
     childList: [
       {
-        title: '如何退出登录？',
-        content: '请点击[我的] - [应用设置] - [退出登录]即可退出登录',
+        title: t('mobile:help.signOutQuestion'),
+        content: t('mobile:help.signOutAnswer'),
       },
       {
-        title: '如何修改用户头像？',
-        content: '请点击[我的] - [选择头像] - [点击提交]即可更换用户头像',
+        title: t('mobile:help.avatarQuestion'),
+        content: t('mobile:help.avatarAnswer'),
       },
       {
-        title: '如何修改登录密码？',
-        content: '请点击[我的] - [应用设置] - [修改密码]即可修改登录密码',
+        title: t('mobile:help.passwordQuestion'),
+        content: t('mobile:help.passwordAnswer'),
       },
     ],
   },
 ])
 
 function handleText(item) {
-  proxy.$tab.navigateTo(`/pages/common/textview/index?title=${item.title}&content=${item.content}`)
+  proxy.$tab.navigateTo(
+    `/pages/common/textview/index?title=${encodeURIComponent(item.title)}&content=${encodeURIComponent(item.content)}`
+  )
 }
 </script>
 

@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Fragment } from 'react'
 import { ArrowRightOutlined } from '@ant-design/icons'
 import './style.css'
@@ -7,19 +9,29 @@ export default function AccessMap({
   permissions = [],
   resources = [],
 }) {
+  useI18n()
+
   const nodes = [
-    ['应用', application || '尚未命名', type === 'public' ? '网页或移动端应用' : '后端服务应用'],
     [
-      '权限',
-      permissions.slice(0, 2).join('、') || '尚未选择',
-      permissions.length > 2
-        ? '另有 ' + (permissions.length - 2) + ' 项权限'
-        : '应用可以申请的信息',
+      t('common:apply'),
+      application || t('common:unnamed'),
+      type === 'public'
+        ? t('common:webOrMobileApplication')
+        : t('common:backendServiceApplication'),
     ],
     [
-      '服务',
-      resources.slice(0, 2).join('、') || '仅身份信息',
-      resources.length > 2 ? '另有 ' + (resources.length - 2) + ' 个服务' : '令牌可以访问的目标',
+      t('system:permission.title'),
+      permissions.slice(0, 2).join('、') || t('common:notSelected'),
+      permissions.length > 2
+        ? t('authCenter:access.morePermissions', { count: permissions.length - 2 })
+        : t('common:informationTheApplicationCanRequest'),
+    ],
+    [
+      t('common:service'),
+      resources.slice(0, 2).join('、') || t('common:identityInformationOnly'),
+      resources.length > 2
+        ? t('authCenter:access.moreServices', { count: resources.length - 2 })
+        : t('common:resourcesTheTokenCanAccess'),
     ],
   ]
   return (
@@ -31,7 +43,7 @@ export default function AccessMap({
               className="oauth-access-link"
               aria-hidden="true"
             >
-              <span>{index === 1 ? '申请' : '访问'}</span>
+              <span>{index === 1 ? t('common:requests') : t('common:access')}</span>
               <ArrowRightOutlined />
             </span>
           )}

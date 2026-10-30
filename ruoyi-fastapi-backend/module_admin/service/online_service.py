@@ -78,5 +78,5 @@ class OnlineService:
             token_id_list = page_object.token_ids.split(',')
             for token_id in token_id_list:
                 await request.app.state.redis.delete(f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{token_id}')
-            return CrudResponseModel(is_success=True, message='强退成功')
-        raise ServiceException(message='传入session_id为空')
+            return CrudResponseModel(is_success=True, message='强退成功', msg_key='session.forcedOut')
+        raise ServiceException(message='传入session_id为空', msg_key='session.idRequired')

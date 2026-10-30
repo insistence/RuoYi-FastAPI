@@ -1,12 +1,17 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { Button, Form, Input, Modal, Space } from 'antd'
 import { useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
-const defaultLinks = ['一', '二', '三', '四', '五', '六'].map((number) => ({
-  title: `操作${number}`,
+const defaultLinks = [1, 2, 3, 4, 5, 6].map((preset) => ({
+  preset,
   href: '',
 }))
 export default function EditableLinkGroup() {
+  useI18n()
+
   const [links, setLinks] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('react-dashboard-links'))
@@ -17,6 +22,7 @@ export default function EditableLinkGroup() {
   })
   const [open, setOpen] = useState(false),
     [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   async function add() {
     try {
       const values = await form.validateFields()
@@ -37,7 +43,7 @@ export default function EditableLinkGroup() {
             target="_blank"
             rel="noreferrer"
           >
-            {item.title}
+            {item.preset ? t('common:actionValue', { number: item.preset }) : item.title}
           </a>
         ))}
         <Button
@@ -47,11 +53,11 @@ export default function EditableLinkGroup() {
           icon={<PlusOutlined />}
           onClick={() => setOpen(true)}
         >
-          添加
+          {t('common:dashboard.add')}
         </Button>
       </div>
       <Modal
-        title="添加便捷导航"
+        title={t('common:addShortcut')}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={add}
@@ -62,20 +68,20 @@ export default function EditableLinkGroup() {
           layout="vertical"
         >
           <Form.Item
-            label="名称"
+            label={t('common:name')}
             name="title"
             rules={[{ required: true }]}
           >
             <Input />
           </Form.Item>
           <Form.Item
-            label="地址"
+            label={t('common:address')}
             name="href"
             rules={[
               { required: true },
               {
                 pattern: /^(https?:\/\/|\/(?!\/))/,
-                message: '请输入站内路径或 HTTP(S) 地址',
+                message: t('common:enterAnApplicationPathOrAnHttpSUrl'),
               },
             ]}
           >

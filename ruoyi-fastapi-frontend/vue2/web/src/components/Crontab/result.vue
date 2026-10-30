@@ -3,7 +3,7 @@
     class="popup-result"
     :aria-busy="loading"
   >
-    <p class="title">最近5次运行时间（{{ resultTimeZone }}）</p>
+    <p class="title">{{ $t('tool:cron.nextRunsInZone', { zone: resultTimeZone }) }}</p>
     <ul
       class="popup-result-scroll"
       aria-live="polite"
@@ -15,7 +15,7 @@
       >
         {{ errorMessage }}
       </li>
-      <li v-else-if="loading">计算结果中...</li>
+      <li v-else-if="loading">{{ $t('tool:interface.calculating') }}</li>
       <template v-else>
         <li
           v-for="item in resultList"
@@ -23,13 +23,15 @@
         >
           {{ formatBusinessTime(item, 'YYYY-MM-DD HH:mm:ss Z', resultTimeZone) }}
         </li>
-        <li v-if="!resultList.length">没有未来执行时间</li>
+        <li v-if="!resultList.length">{{ $t('tool:cron.noFutureRuns') }}</li>
       </template>
     </ul>
   </div>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { previewJob } from '@/api/monitor/job'
 import { formatBusinessTime } from '@/utils/time'
 
@@ -95,7 +97,8 @@ export default {
           this.resultTimeZone = response.data.timeZone
         } catch (error) {
           if (requestId !== this._previewRequestSequence || controller.signal.aborted) return
-          this.errorMessage = error.message || '无法获取运行时间，请稍后重试'
+          this.errorMessage =
+            error.message || t('tool:interface.unableToGetScheduledTimesTryAgainLater')
         } finally {
           if (requestId === this._previewRequestSequence) this.loading = false
         }

@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import CrudResponseModel, PageModel
+from i18n.message import I18nMessage
 from plugins.core.capability import STATE_CHANGE_OPERATIONS, PluginRuntimeCapabilityResolver
 from plugins.core.discovery.scanner import DiscoveredPlugin, PluginScanner, is_artifact_plugin
 from plugins.core.environment import PLUGIN_RUNTIME_ENVIRONMENT
@@ -226,14 +227,16 @@ class PluginService:
         """
         plugin = await PluginDao.get_plugin_by_id(query_db, plugin_id)
         if not plugin:
-            return CrudResponseModel(is_success=False, message='插件不存在')
+            return CrudResponseModel(is_success=False, message='插件不存在', msg_key='plugin.notFound')
         if enabled and not getattr(plugin, 'installed_version', None):
-            return CrudResponseModel(is_success=False, message='插件尚未安装，不能启用')
+            return CrudResponseModel(is_success=False, message='插件尚未安装，不能启用', msg_key='plugin.notInstalled')
 
         operation = 'enable' if enabled else 'disable'
         status = PluginStateTransitionTable.resolve_target(getattr(plugin, 'status', None), operation)
         if status is None:
-            return CrudResponseModel(is_success=False, message='插件状态不允许执行当前启停操作')
+            return CrudResponseModel(
+                is_success=False, message='插件状态不允许执行当前启停操作', msg_key='plugin.invalidState'
+            )
         enabled_value = PluginStateResolver.enabled_to_db_value(enabled)
         update_payload = {
             'plugin_id': plugin_id,
@@ -308,7 +311,7 @@ class PluginService:
         """
         plugin = await PluginDao.get_plugin_by_id(query_db, plugin_id)
         if not plugin:
-            return CrudResponseModel(is_success=False, message='插件不存在')
+            return CrudResponseModel(is_success=False, message='插件不存在', msg_key='plugin.notFound')
 
         plugin_menus = await PluginDao.get_plugin_menu_list(query_db, plugin_id)
         menu_ids = [plugin_menu.menu_id for plugin_menu in plugin_menus]
@@ -324,7 +327,7 @@ class PluginService:
         await PluginDao.delete_sys_menus_by_ids(query_db, menu_ids)
         await PluginJobInstaller(query_db).pause_plugin_jobs(plugin_id)
 
-        return CrudResponseModel(is_success=True, message='卸载成功')
+        return CrudResponseModel(is_success=True, message='卸载成功', msg_key='plugin.uninstalled')
 
     @classmethod
     async def install_plugin_menu_services(
@@ -660,8 +663,17 @@ class PluginService:
                     conflict_plugin_id=conflict_plugin_id,
                     value=menu.perms,
                     message=(
-                        f'插件 {discovered_plugin.manifest.id} 权限 {menu.perms} '
-                        f'与已存在菜单 {sys_menu.menu_id}（{conflict_label}）冲突'
+                        I18nMessage(
+                            f'插件 {discovered_plugin.manifest.id} 权限 {menu.perms} '
+                            f'与已存在菜单 {sys_menu.menu_id}（{conflict_label}）冲突',
+                            msg_key='plugin.runtime.validation.installedMenuConflict',
+                            msg_params={
+                                'id': str(discovered_plugin.manifest.id),
+                                'perms': str(menu.perms),
+                                'menu_id': str(sys_menu.menu_id),
+                                'conflict_label': str(conflict_label),
+                            },
+                        )
                     ),
                 )
             )
@@ -682,7 +694,7 @@ class PluginService:
         """
         plugin = await PluginDao.get_plugin_by_id(query_db, plugin_id)
         if not plugin:
-            return CrudResponseModel(is_success=False, message='插件不存在')
+            return CrudResponseModel(is_success=False, message='插件不存在', msg_key='plugin.notFound')
 
         await PluginDao.update_plugin(
             query_db,
@@ -696,7 +708,7 @@ class PluginService:
         await PluginMenuInstaller(query_db).set_plugin_menu_status(plugin_id, '1')
         await PluginJobInstaller(query_db).pause_plugin_jobs(plugin_id)
 
-        return CrudResponseModel(is_success=True, message='插件状态已标记为异常')
+        return CrudResponseModel(is_success=True, message='插件状态已标记为异常', msg_key='plugin.markedAbnormal')
 
     @classmethod
     async def recover_plugin_dependency_error_services(
@@ -718,7 +730,7 @@ class PluginService:
         plugin_id = discovered_plugin.manifest.id
         plugin = await PluginDao.get_plugin_by_id(query_db, plugin_id)
         if not plugin:
-            return CrudResponseModel(is_success=False, message='插件不存在')
+            return CrudResponseModel(is_success=False, message='插件不存在', msg_key='plugin.notFound')
 
         last_error = getattr(plugin, 'last_error', None)
         if (
@@ -726,7 +738,9 @@ class PluginService:
             or not isinstance(last_error, str)
             or not last_error.startswith(PLUGIN_STARTUP_DEPENDENCY_ERROR_PREFIX)
         ):
-            return CrudResponseModel(is_success=False, message='插件不是启动依赖检查异常状态')
+            return CrudResponseModel(
+                is_success=False, message='插件不是启动依赖检查异常状态', msg_key='plugin.noDependencyFailure'
+            )
 
         installed_version = getattr(plugin, 'installed_version', None)
         desired_enabled = PluginStateResolver.db_value_to_enabled(
@@ -750,7 +764,12 @@ class PluginService:
             },
         )
 
-        return CrudResponseModel(is_success=True, message=f'插件启动依赖已恢复，状态：{target_status}')
+        return CrudResponseModel(
+            is_success=True,
+            message=f'插件启动依赖已恢复，状态：{target_status}',
+            msg_key='plugin.dependenciesRecovered',
+            msg_params={'target_status': str(target_status)},
+        )
 
     @classmethod
     async def build_plugin_purge_plan_services(

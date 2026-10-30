@@ -25,7 +25,7 @@ class JwtUtil:
             return jwt.encode(payload, JwtConfig.jwt_secret_key, algorithm=JwtConfig.jwt_algorithm)
         except PyJWTError as exc:
             logger.warning(f'JWT生成失败：{type(exc).__name__}')
-            raise AuthException(data='', message='用户token生成失败') from exc
+            raise AuthException(data='', message='用户token生成失败', msg_key='auth.tokenGenerationFailed') from exc
 
     @classmethod
     def decode(cls, token: str | bytes, options: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -45,4 +45,4 @@ class JwtUtil:
             )
         except PyJWTError as exc:
             logger.warning(f'JWT校验失败：{type(exc).__name__}')
-            raise AuthException(data='', message='用户token已失效，请重新登录') from exc
+            raise AuthException(data='', message='用户token已失效，请重新登录', msg_key='auth.tokenExpired') from exc

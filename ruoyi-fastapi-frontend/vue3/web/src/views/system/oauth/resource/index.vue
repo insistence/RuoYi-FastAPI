@@ -1,10 +1,10 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      section="接入管理"
-      title="服务"
-      description="登记接收访问凭据的接口服务，并限制每个服务能够获得的用户信息。"
-      filter-hint="按服务名称或当前状态查找"
+      :section="$t('oauth:integrationManagement')"
+      :title="$t('components:service')"
+      :description="$t('oauth:registerAPIServicesThatReceiveAccessCredentialsAndLimitThe')"
+      :filter-hint="$t('oauth:findServicesByNameOrStatus')"
     >
       <template #actions>
         <el-button
@@ -12,7 +12,7 @@
           icon="Plus"
           v-hasPermi="['system:oauthResource:add']"
           @click="handleAdd"
-          >新增服务</el-button
+          >{{ $t('oauth:addService') }}</el-button
         >
       </template>
 
@@ -24,33 +24,33 @@
           :inline="true"
         >
           <el-form-item
-            label="服务名称"
+            :label="$t('oauth:serviceName')"
             prop="resourceName"
           >
             <el-input
               v-model="queryParams.resourceName"
               clearable
-              placeholder="输入服务名称"
+              :placeholder="$t('oauth:enterServiceName')"
               style="width: 200px"
               @keyup.enter="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            label="状态"
+            :label="$t('system:status')"
             prop="status"
           >
             <el-select
               v-model="queryParams.status"
               clearable
-              placeholder="全部状态"
+              :placeholder="$t('components:allStatuses')"
               style="width: 200px"
             >
               <el-option
-                label="使用中"
+                :label="$t('oauth:inUse')"
                 value="0"
               />
               <el-option
-                label="已停用"
+                :label="$t('components:disabled')"
                 value="1"
               />
             </el-select>
@@ -60,12 +60,12 @@
               type="primary"
               icon="Search"
               @click="handleQuery"
-              >查找</el-button
+              >{{ $t('monitor:find') }}</el-button
             >
             <el-button
               icon="Refresh"
               @click="resetQuery"
-              >清空</el-button
+              >{{ $t('monitor:clear') }}</el-button
             >
           </el-form-item>
         </el-form>
@@ -73,7 +73,7 @@
 
       <template #toolbar>
         <span class="result-count"
-          >已登记 <strong>{{ total }}</strong> 个服务</span
+          >{{ $t('oauth:registered') }}<strong>{{ total }}</strong> {{ $t('oauth:services') }}</span
         >
         <right-toolbar
           v-model:showSearch="showSearch"
@@ -87,7 +87,7 @@
         row-key="resourceId"
       >
         <el-table-column
-          label="服务"
+          :label="$t('components:service')"
           min-width="230"
         >
           <template #default="scope">
@@ -103,7 +103,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="令牌目标"
+          :label="$t('oauth:tokenAudience')"
           prop="audience"
           min-width="250"
           show-overflow-tooltip
@@ -113,7 +113,7 @@
           >
         </el-table-column>
         <el-table-column
-          label="返回的用户信息"
+          :label="$t('oauth:returnedUserInformation')"
           min-width="240"
         >
           <template #default="scope">
@@ -134,29 +134,29 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="有效时长"
+          :label="$t('oauth:validityPeriods')"
           width="120"
           align="center"
         >
           <template #default="scope">{{
             scope.row.accessTokenTtlSeconds
               ? formatDuration(scope.row.accessTokenTtlSeconds)
-              : '平台默认'
+              : $t('oauth:platformDefault')
           }}</template>
         </el-table-column>
         <el-table-column
-          label="状态"
+          :label="$t('system:status')"
           width="105"
           align="center"
         >
           <template #default="scope">
             <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">{{
-              scope.row.status === '0' ? '使用中' : '已停用'
+              scope.row.status === '0' ? $t('oauth:inUse') : $t('components:disabled')
             }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          label="操作"
+          :label="$t('system:actions')"
           width="180"
           fixed="right"
           align="center"
@@ -169,7 +169,7 @@
                 icon="Edit"
                 v-hasPermi="['system:oauthResource:edit']"
                 @click="handleUpdate(scope.row)"
-                >编辑</el-button
+                >{{ $t('oauth:edit') }}</el-button
               >
               <el-dropdown
                 trigger="click"
@@ -179,7 +179,7 @@
                   link
                   type="primary"
                   icon="ArrowDown"
-                  >更多</el-button
+                  >{{ $t('oauth:more') }}</el-button
                 >
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -188,14 +188,14 @@
                       command="enable"
                       icon="CircleCheck"
                       v-hasPermi="['system:oauthResource:edit']"
-                      >重新启用</el-dropdown-item
+                      >{{ $t('oauth:reEnable') }}</el-dropdown-item
                     >
                     <el-dropdown-item
                       v-else
                       command="disable"
                       icon="CircleClose"
                       v-hasPermi="['system:oauthResource:remove']"
-                      >停用服务</el-dropdown-item
+                      >{{ $t('oauth:disableService') }}</el-dropdown-item
                     >
                   </el-dropdown-menu>
                 </template>
@@ -204,12 +204,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="还没有符合条件的服务">
+          <el-empty :description="$t('oauth:noMatchingServices')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthResource:add']"
               @click="handleAdd"
-              >新增第一个服务</el-button
+              >{{ $t('oauth:addYourFirstService') }}</el-button
             >
           </el-empty>
         </template>
@@ -225,7 +225,7 @@
 
     <el-dialog
       v-model="open"
-      :title="form.persisted ? '编辑服务' : '新增服务'"
+      :title="form.persisted ? $t('oauth:editService') : $t('oauth:addService')"
       width="min(820px, calc(100vw - 48px))"
       append-to-body
       :close-on-click-modal="false"
@@ -234,13 +234,16 @@
         ref="formRef"
         :model="form"
         :rules="rules"
+        :validate-on-rule-change="false"
         label-width="160px"
         class="resource-form"
       >
         <section class="form-section">
           <div class="section-heading">
-            <h3>服务身份</h3>
-            <p>应用通过服务标识申请访问，服务通过令牌目标判断凭据是否发给自己。</p>
+            <h3>{{ $t('oauth:serviceIdentity') }}</h3>
+            <p>
+              {{ $t('oauth:applicationsRequestAccessUsingTheServiceIdentifierServicesUseThe') }}
+            </p>
           </div>
           <el-row :gutter="18">
             <el-col
@@ -250,12 +253,14 @@
               <el-form-item prop="resourceName">
                 <template #label
                   ><FieldLabel
-                    label="服务名称"
-                    help="管理端展示名称，便于管理员识别这个服务。"
+                    :label="$t('oauth:serviceName')"
+                    :help="
+                      $t('oauth:displayNameInTheManagementConsoleToHelpAdministratorsIdentify')
+                    "
                 /></template>
                 <el-input
                   v-model="form.resourceName"
-                  placeholder="例如：订单服务"
+                  :placeholder="$t('oauth:forExampleOrderService')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -267,13 +272,13 @@
               <el-form-item prop="resourceId">
                 <template #label
                   ><FieldLabel
-                    label="服务标识"
-                    help="应用通过这个唯一标识关联服务，保存后不能修改。"
+                    :label="$t('oauth:serviceIdentifier')"
+                    :help="$t('oauth:appsUseThisUniqueIdentifierToReferenceTheServiceIt')"
                 /></template>
                 <el-input
                   v-model="form.resourceId"
                   :disabled="form.persisted"
-                  placeholder="例如：orders-api"
+                  :placeholder="$t('oauth:forExampleOrdersApi')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -282,13 +287,13 @@
           <el-form-item prop="audience">
             <template #label
               ><FieldLabel
-                label="令牌目标"
-                help="服务校验访问凭据时使用的唯一值，必须与服务端配置完全一致。"
+                :label="$t('oauth:tokenAudience')"
+                :help="$t('oauth:uniqueValueUsedByTheServiceToValidateAccessTokens')"
             /></template>
             <el-input
               v-model="form.audience"
               :disabled="form.persisted"
-              placeholder="例如：https://api.example.com"
+              :placeholder="$t('oauth:forExampleHttpsApiExampleCom')"
               style="width: 100%"
             />
           </el-form-item>
@@ -296,8 +301,10 @@
 
         <section class="form-section">
           <div class="section-heading">
-            <h3>凭据和用户信息</h3>
-            <p>控制访问凭据的寿命，以及这个服务最多可以获得哪些用户信息。</p>
+            <h3>{{ $t('oauth:credentialsAndUserInformation') }}</h3>
+            <p>
+              {{ $t('oauth:controlAccessCredentialLifetimesAndTheMaximumUserInformationThis') }}
+            </p>
           </div>
           <el-row :gutter="18">
             <el-col
@@ -307,17 +314,17 @@
               <el-form-item>
                 <template #label
                   ><FieldLabel
-                    label="有效时长"
-                    help="服务收到的访问凭据最多可以使用多久，留空使用平台默认值。"
+                    :label="$t('oauth:validityPeriods')"
+                    :help="$t('oauth:maximumLifetimeOfAccessTokensReceivedByTheServiceLeave')"
                 /></template>
                 <el-input-number
                   v-model="form.accessTokenTtlSeconds"
                   :min="1"
-                  placeholder="平台默认"
+                  :placeholder="$t('oauth:platformDefault')"
                   controls-position="right"
                   style="width: 100%"
                 />
-                <span class="input-unit">秒</span>
+                <span class="input-unit">{{ $t('components:seconds') }}</span>
               </el-form-item>
             </el-col>
             <el-col
@@ -327,12 +334,12 @@
               <el-form-item>
                 <template #label
                   ><FieldLabel
-                    label="令牌检查应用"
-                    help="可选。填写一个后端应用编号，用于检查凭据是否仍然有效。"
+                    :label="$t('oauth:tokenIntrospectionApplication')"
+                    :help="$t('oauth:optionalBackendAppIDUsedToCheckWhetherCredentialsAre')"
                 /></template>
                 <el-input
                   v-model="form.introspectionClientId"
-                  placeholder="可选：后端应用编号"
+                  :placeholder="$t('oauth:optionalBackendApplicationID')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -341,8 +348,10 @@
           <el-form-item prop="allowedClaims">
             <template #label
               ><FieldLabel
-                label="可返回用户信息"
-                help="限制这个服务最多能收到哪些用户信息，最终结果仍会受权限项限制。"
+                :label="$t('oauth:allowedUserInformation')"
+                :help="
+                  $t('oauth:limitsTheUserInformationThisServiceCanReceiveIndividualPermissions')
+                "
             /></template>
             <el-select
               v-model="form.allowedClaims"
@@ -350,7 +359,7 @@
               filterable
               allow-create
               default-first-option
-              placeholder="选择或输入用户字段"
+              :placeholder="$t('oauth:selectOrEnterUserFields')"
               style="width: 100%"
             >
               <el-option
@@ -364,8 +373,8 @@
           <el-form-item>
             <template #label
               ><FieldLabel
-                label="备注"
-                help="仅供管理员记录，不会发送给外部应用或服务。"
+                :label="$t('system:remarks')"
+                :help="$t('oauth:forAdministratorNotesOnlyNotSentToExternalAppsOr')"
             /></template>
             <el-input
               v-model="form.remark"
@@ -379,12 +388,12 @@
         </section>
       </el-form>
       <template #footer>
-        <el-button @click="open = false">取消</el-button>
+        <el-button @click="open = false">{{ $t('common:cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="saving"
           @click="submitForm"
-          >保存服务</el-button
+          >{{ $t('oauth:saveService') }}</el-button
         >
       </template>
     </el-dialog>
@@ -392,6 +401,8 @@
 </template>
 
 <script setup name="OAuthResource">
+import { useLocaleForm } from '@/composables/useLocaleForm'
+import { t } from '@/i18n/adapter'
 import {
   addOAuthResource,
   changeOAuthResourceStatus,
@@ -404,6 +415,7 @@ import FieldLabel from '@/components/OAuthWorkspace/FieldLabel.vue'
 import PageFrame from '@/components/OAuthWorkspace/PageFrame.vue'
 
 const { proxy } = getCurrentInstance()
+useLocaleForm(computed(() => proxy.$refs.formRef))
 const resourceList = ref([])
 const total = ref(0)
 const loading = ref(false)
@@ -418,21 +430,74 @@ const queryParams = reactive({
 })
 const form = reactive(emptyForm())
 const claimOptions = [
-  { value: 'sub', label: '用户唯一标识（sub）' },
-  { value: 'name', label: '姓名（name）' },
-  { value: 'email', label: '邮箱（email）' },
-  { value: 'roles', label: '角色（roles）' },
-  { value: 'client_id', label: '应用编号（client_id）' },
-  { value: 'scope', label: '已获权限（scope）' },
-  { value: 'sid', label: '会话标识（sid）' },
+  {
+    value: 'sub',
+    get label() {
+      return t('oauth:userIdentifierSub')
+    },
+  },
+  {
+    value: 'name',
+    get label() {
+      return t('oauth:nameName')
+    },
+  },
+  {
+    value: 'email',
+    get label() {
+      return t('oauth:emailEmail')
+    },
+  },
+  {
+    value: 'roles',
+    get label() {
+      return t('oauth:rolesRoles')
+    },
+  },
+  {
+    value: 'client_id',
+    get label() {
+      return t('oauth:appIDClientId')
+    },
+  },
+  {
+    value: 'scope',
+    get label() {
+      return t('oauth:grantedPermissionsScope')
+    },
+  },
+  {
+    value: 'sid',
+    get label() {
+      return t('oauth:sessionIDSid')
+    },
+  },
 ]
 const rules = {
-  resourceId: [{ required: true, message: '请输入服务标识', trigger: 'blur' }],
-  resourceName: [{ required: true, message: '请输入服务名称', trigger: 'blur' }],
+  resourceId: [
+    {
+      required: true,
+      get message() {
+        return t('oauth:enterServiceIdentifier')
+      },
+      trigger: 'blur',
+    },
+  ],
+  resourceName: [
+    {
+      required: true,
+      get message() {
+        return t('oauth:enterServiceNameLabel')
+      },
+      trigger: 'blur',
+    },
+  ],
   audience: [
     {
       required: true,
-      message: '请输入令牌目标（通常填写服务地址）',
+      get message() {
+        return t('oauth:enterTokenAudienceUsuallyTheServiceAddress')
+      },
       trigger: 'blur',
     },
   ],
@@ -441,7 +506,9 @@ const rules = {
       required: true,
       type: 'array',
       min: 1,
-      message: '至少选择一项可返回的用户信息',
+      get message() {
+        return t('oauth:selectAtLeastOneAllowedUserInformationField')
+      },
       trigger: 'change',
     },
   ],
@@ -522,7 +589,7 @@ async function submitForm() {
       delete data.status
     }
     await (persisted ? updateOAuthResource(data) : addOAuthResource(data))
-    proxy.$modal.msgSuccess('资源配置已保存')
+    proxy.$modal.msgSuccess(t('oauth:resourceSettingsSaved'))
     open.value = false
     await getList()
   } finally {
@@ -533,7 +600,12 @@ async function submitForm() {
 /** 修改资源服务状态 */
 async function changeStatus(row, status) {
   try {
-    await proxy.$modal.confirm(`${status === '0' ? '启用' : '停用'}资源“${row.resourceName}”？`)
+    await proxy.$modal.confirm(
+      t('oauth:valueResourceValue', {
+        arg0: status === '0' ? t('system:enable') : t('system:disabled'),
+        resourceName: row.resourceName,
+      })
+    )
     await changeOAuthResourceStatus({ resourceId: row.resourceId, status })
     getList()
   } catch {
@@ -544,10 +616,12 @@ async function changeStatus(row, status) {
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    `停用“${row.resourceName}”后将停止为该服务签发和刷新访问令牌，是否继续？`
+    t('oauth:disablingValueWillStopIssuingAndRefreshingAccessTokensFor', {
+      resourceName: row.resourceName,
+    })
   )
   await deleteOAuthResources(row.resourceId)
-  proxy.$modal.msgSuccess('资源已停用')
+  proxy.$modal.msgSuccess(t('oauth:resourceDisabled'))
   await getList()
 }
 
@@ -570,12 +644,12 @@ function claimLabel(value) {
 function formatDuration(value) {
   const seconds = Number(value) || 0
   if (seconds >= 3600 && seconds % 3600 === 0) {
-    return `${seconds / 3600} 小时`
+    return t('oauth:valueHours', { arg0: seconds / 3600 })
   }
   if (seconds >= 60 && seconds % 60 === 0) {
-    return `${seconds / 60} 分钟`
+    return t('oauth:valueMinutes', { arg0: seconds / 60 })
   }
-  return `${seconds} 秒`
+  return t('oauth:valueSeconds', { seconds })
 }
 
 getList()

@@ -1,5 +1,6 @@
 <template>
   <el-form
+    :validate-on-rule-change="false"
     ref="genInfoForm"
     :model="info"
     :rules="rules"
@@ -8,21 +9,21 @@
     <el-row>
       <el-col :span="12">
         <el-form-item prop="tplCategory">
-          <span slot="label">生成模板</span>
+          <span slot="label">{{ $t('tool:messages.generationTemplate') }}</span>
           <el-select
             v-model="info.tplCategory"
             @change="tplSelectChange"
           >
             <el-option
-              label="单表（增删改查）"
+              :label="$t('tool:messages.singleTableCRUD')"
               value="crud"
             />
             <el-option
-              label="树表（增删改查）"
+              :label="$t('tool:messages.treeTableCRUD')"
               value="tree"
             />
             <el-option
-              label="主子表（增删改查）"
+              :label="$t('tool:messages.masterDetailTablesCRUD')"
               value="sub"
             />
           </el-select>
@@ -30,14 +31,14 @@
       </el-col>
       <el-col :span="12">
         <el-form-item prop="tplWebType">
-          <span slot="label">前端类型</span>
+          <span slot="label">{{ $t('tool:messages.frontendType') }}</span>
           <el-select v-model="info.tplWebType">
             <el-option
-              label="Vue2 Element UI 模版"
+              :label="$t('tool:messages.vue2ElementUITemplate')"
               value="element-ui"
             />
             <el-option
-              label="Vue3 Element Plus 模版"
+              :label="$t('tool:messages.vue3ElementPlusTemplate')"
               value="element-plus"
             />
           </el-select>
@@ -46,9 +47,9 @@
       <el-col :span="12">
         <el-form-item prop="packageName">
           <span slot="label">
-            生成包路径
+            {{ $t('tool:messages.packagePath') }}
             <el-tooltip
-              content="生成在哪个python模块下，例如 module_admin.system，system为子系统名"
+              :content="$t('tool:messages.targetPythonModuleEGModuleAdminSystemWhereSystemIsThe')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -61,9 +62,9 @@
       <el-col :span="12">
         <el-form-item prop="moduleName">
           <span slot="label">
-            生成模块名
+            {{ $t('tool:messages.moduleName') }}
             <el-tooltip
-              content="可理解为子系统名，例如 system"
+              :content="$t('tool:messages.subsystemNameEGSystem')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -76,9 +77,9 @@
       <el-col :span="12">
         <el-form-item prop="businessName">
           <span slot="label">
-            生成业务名
+            {{ $t('tool:messages.featureName') }}
             <el-tooltip
-              content="可理解为功能英文名，例如 user"
+              :content="$t('tool:messages.englishFeatureNameEGUser')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -91,9 +92,9 @@
       <el-col :span="12">
         <el-form-item prop="functionName">
           <span slot="label">
-            生成功能名
+            {{ $t('tool:messages.featureDescription') }}
             <el-tooltip
-              content="用作类描述，例如 用户"
+              :content="$t('tool:messages.usedAsTheClassDescriptionEGUser')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -106,9 +107,9 @@
       <el-col :span="12">
         <el-form-item prop="formColNum">
           <span slot="label">
-            表单布局
+            {{ $t('tool:messages.formLayout') }}
             <el-tooltip
-              content="选择表单的栅格布局方式"
+              :content="$t('tool:messages.chooseTheFormGridLayout')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -116,15 +117,15 @@
           </span>
           <el-select v-model="info.formColNum">
             <el-option
-              label="单列"
+              :label="$t('tool:messages.oneColumn')"
               :value="1"
             />
             <el-option
-              label="双列"
+              :label="$t('tool:messages.twoColumns')"
               :value="2"
             />
             <el-option
-              label="三列"
+              :label="$t('tool:messages.threeColumns')"
               :value="3"
             />
           </el-select>
@@ -133,17 +134,19 @@
 
       <el-col :span="12">
         <el-form-item prop="genView">
-          <span slot="label">扩展功能</span>
-          <el-checkbox v-model="info.view">生成详情页</el-checkbox>
+          <span slot="label">{{ $t('tool:messages.extraFeatures') }}</span>
+          <el-checkbox v-model="info.view">{{
+            $t('tool:messages.generateDetailsPage')
+          }}</el-checkbox>
         </el-form-item>
       </el-col>
 
       <el-col :span="12">
         <el-form-item prop="genType">
           <span slot="label">
-            生成代码方式
+            {{ $t('tool:messages.codeOutput') }}
             <el-tooltip
-              content="默认为zip压缩包下载，也可以自定义生成路径"
+              :content="$t('tool:messages.downloadAZIPArchiveByDefaultOrChooseACustomOutputPath')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -152,12 +155,12 @@
           <el-radio
             v-model="info.genType"
             label="0"
-            >zip压缩包</el-radio
+            >{{ $t('tool:messages.zIPArchive') }}</el-radio
           >
           <el-radio
             v-model="info.genType"
             label="1"
-            >自定义路径</el-radio
+            >{{ $t('tool:messages.customPath') }}</el-radio
           >
         </el-form-item>
       </el-col>
@@ -165,9 +168,9 @@
       <el-col :span="12">
         <el-form-item>
           <span slot="label">
-            上级菜单
+            {{ $t('system:menu.parent') }}
             <el-tooltip
-              content="分配到指定菜单下，例如 系统管理"
+              :content="$t('tool:messages.placeUnderAMenuEGSystemManagement')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -179,7 +182,7 @@
             :options="menus"
             :normalizer="normalizer"
             :show-count="true"
-            placeholder="请选择系统菜单"
+            :placeholder="$t('tool:messages.selectSystemMenu')"
           />
         </el-form-item>
       </el-col>
@@ -190,9 +193,9 @@
       >
         <el-form-item prop="genPath">
           <span slot="label">
-            自定义路径
+            {{ $t('tool:messages.customPath') }}
             <el-tooltip
-              content="填写磁盘绝对路径，若不填写，则生成到当前Web项目下"
+              :content="$t('tool:messages.enterAnAbsolutePathIfEmptyFilesAreGeneratedInTheCurrent')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -201,13 +204,13 @@
           <el-input v-model="info.genPath">
             <el-dropdown slot="append">
               <el-button type="primary">
-                最近路径快速选择
+                {{ $t('tool:messages.chooseARecentPath') }}
                 <i class="el-icon-arrow-down el-icon--right"></i>
               </el-button>
               <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item @click.native="info.genPath = '/'"
-                  >恢复默认的生成基础路径</el-dropdown-item
-                >
+                <el-dropdown-item @click.native="info.genPath = '/'">{{
+                  $t('tool:messages.restoreTheDefaultOutputPath')
+                }}</el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
           </el-input>
@@ -216,13 +219,13 @@
     </el-row>
 
     <el-row v-show="info.tplCategory == 'tree'">
-      <h4 class="form-header">其他信息</h4>
+      <h4 class="form-header">{{ $t('system:otherInformation') }}</h4>
       <el-col :span="12">
         <el-form-item>
           <span slot="label">
-            树编码字段
+            {{ $t('tool:messages.treeIDColumn') }}
             <el-tooltip
-              content="树显示的编码字段名， 如：dept_id"
+              :content="$t('tool:messages.columnContainingTreeNodeIDsEGDeptId')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -230,7 +233,7 @@
           </span>
           <el-select
             v-model="info.treeCode"
-            placeholder="请选择"
+            :placeholder="$t('common:selectPlaceholder')"
           >
             <el-option
               v-for="(column, index) in info.columns"
@@ -244,9 +247,9 @@
       <el-col :span="12">
         <el-form-item>
           <span slot="label">
-            树父编码字段
+            {{ $t('tool:messages.treeParentIDColumn') }}
             <el-tooltip
-              content="树显示的父编码字段名， 如：parent_Id"
+              :content="$t('tool:messages.columnContainingParentNodeIDsEGParentId')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -254,7 +257,7 @@
           </span>
           <el-select
             v-model="info.treeParentCode"
-            placeholder="请选择"
+            :placeholder="$t('common:selectPlaceholder')"
           >
             <el-option
               v-for="(column, index) in info.columns"
@@ -268,9 +271,9 @@
       <el-col :span="12">
         <el-form-item>
           <span slot="label">
-            树名称字段
+            {{ $t('tool:messages.treeNameColumn') }}
             <el-tooltip
-              content="树节点的显示名称字段名， 如：dept_name"
+              :content="$t('tool:messages.columnContainingNodeDisplayNamesEGDeptName')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -278,7 +281,7 @@
           </span>
           <el-select
             v-model="info.treeName"
-            placeholder="请选择"
+            :placeholder="$t('common:selectPlaceholder')"
           >
             <el-option
               v-for="(column, index) in info.columns"
@@ -291,13 +294,13 @@
       </el-col>
     </el-row>
     <el-row v-show="info.tplCategory == 'sub'">
-      <h4 class="form-header">关联信息</h4>
+      <h4 class="form-header">{{ $t('tool:messages.relationships') }}</h4>
       <el-col :span="12">
         <el-form-item>
           <span slot="label">
-            关联子表的表名
+            {{ $t('tool:messages.relatedDetailTable') }}
             <el-tooltip
-              content="关联子表的表名， 如：sys_user"
+              :content="$t('tool:messages.relatedDetailTableNameEGSysUser')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -305,7 +308,7 @@
           </span>
           <el-select
             v-model="info.subTableName"
-            placeholder="请选择"
+            :placeholder="$t('common:selectPlaceholder')"
             @change="subSelectChange"
           >
             <el-option
@@ -320,9 +323,9 @@
       <el-col :span="12">
         <el-form-item>
           <span slot="label">
-            子表关联的外键名
+            {{ $t('tool:messages.detailTableForeignKey') }}
             <el-tooltip
-              content="子表关联的外键名， 如：user_id"
+              :content="$t('tool:messages.foreignKeyInTheDetailTableEGUserId')"
               placement="top"
             >
               <i class="el-icon-question"></i>
@@ -330,7 +333,7 @@
           </span>
           <el-select
             v-model="info.subTableFkName"
-            placeholder="请选择"
+            :placeholder="$t('common:selectPlaceholder')"
           >
             <el-option
               v-for="(column, index) in subColumns"
@@ -346,6 +349,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 
@@ -369,11 +374,29 @@ export default {
     return {
       subColumns: [],
       rules: {
-        tplCategory: [{ required: true, message: '请选择生成模板', trigger: 'blur' }],
-        packageName: [{ required: true, message: '请输入生成包路径', trigger: 'blur' }],
-        moduleName: [{ required: true, message: '请输入生成模块名', trigger: 'blur' }],
-        businessName: [{ required: true, message: '请输入生成业务名', trigger: 'blur' }],
-        functionName: [{ required: true, message: '请输入生成功能名', trigger: 'blur' }],
+        tplCategory: [
+          {
+            required: true,
+            message: () => t('tool:messages.selectGenerationTemplate'),
+            trigger: 'blur',
+          },
+        ],
+        packageName: [
+          { required: true, message: () => t('tool:messages.enterPackagePath'), trigger: 'blur' },
+        ],
+        moduleName: [
+          { required: true, message: () => t('tool:messages.enterModuleName'), trigger: 'blur' },
+        ],
+        businessName: [
+          { required: true, message: () => t('tool:messages.enterFeatureName'), trigger: 'blur' },
+        ],
+        functionName: [
+          {
+            required: true,
+            message: () => t('tool:messages.enterFeatureDescription'),
+            trigger: 'blur',
+          },
+        ],
       },
     }
   },

@@ -35,6 +35,7 @@ from module_admin.entity.vo.user_vo import (
     ResetUserModel,
     UpdateUserProfileModel,
     UserDetailModel,
+    UserLocaleModel,
     UserModel,
     UserPageQueryModel,
     UserProfileModel,
@@ -130,7 +131,9 @@ async def add_system_user(
     add_user_result = await UserService.add_user_services(query_db, add_user)
     logger.info(add_user_result.message)
 
-    return ResponseUtil.success(msg=add_user_result.message)
+    return ResponseUtil.success(
+        msg=add_user_result.message, msg_key=add_user_result.msg_key, msg_params=add_user_result.msg_params
+    )
 
 
 @user_controller.put(
@@ -183,7 +186,9 @@ async def edit_system_user(
     edit_user_result = await UserService.edit_user_services(query_db, edit_user)
     logger.info(edit_user_result.message)
 
-    return ResponseUtil.success(msg=edit_user_result.message)
+    return ResponseUtil.success(
+        msg=edit_user_result.message, msg_key=edit_user_result.msg_key, msg_params=edit_user_result.msg_params
+    )
 
 
 @user_controller.delete(
@@ -207,7 +212,7 @@ async def delete_system_user(
         if current_user.user.user_id in list(map(int, user_id_list)):
             logger.warning('当前登录用户不能删除')
 
-            return ResponseUtil.failure(msg='当前登录用户不能删除')
+            return ResponseUtil.failure(msg='当前登录用户不能删除', msg_key='user.deleteCurrentUser')
         for user_id in user_id_list:
             await UserService.check_user_allowed_services(UserModel(userId=int(user_id)))
             if not current_user.user.admin:
@@ -216,7 +221,9 @@ async def delete_system_user(
     delete_user_result = await UserService.delete_user_services(query_db, delete_user)
     logger.info(delete_user_result.message)
 
-    return ResponseUtil.success(msg=delete_user_result.message)
+    return ResponseUtil.success(
+        msg=delete_user_result.message, msg_key=delete_user_result.msg_key, msg_params=delete_user_result.msg_params
+    )
 
 
 @user_controller.put(
@@ -251,7 +258,9 @@ async def reset_system_user_pwd(
     edit_user_result = await UserService.edit_user_services(query_db, edit_user)
     logger.info(edit_user_result.message)
 
-    return ResponseUtil.success(msg=edit_user_result.message)
+    return ResponseUtil.success(
+        msg=edit_user_result.message, msg_key=edit_user_result.msg_key, msg_params=edit_user_result.msg_params
+    )
 
 
 @user_controller.put(
@@ -282,7 +291,9 @@ async def change_system_user_status(
     edit_user_result = await UserService.edit_user_services(query_db, edit_user)
     logger.info(edit_user_result.message)
 
-    return ResponseUtil.success(msg=edit_user_result.message)
+    return ResponseUtil.success(
+        msg=edit_user_result.message, msg_key=edit_user_result.msg_key, msg_params=edit_user_result.msg_params
+    )
 
 
 @user_controller.get(
@@ -371,8 +382,13 @@ async def change_system_user_profile_avatar(
         edit_user_result = await UserService.edit_user_services(query_db, edit_user)
         logger.info(edit_user_result.message)
 
-        return ResponseUtil.success(model_content=AvatarModel(imgUrl=edit_user.avatar), msg=edit_user_result.message)
-    return ResponseUtil.failure(msg='上传图片异常，请联系管理员')
+        return ResponseUtil.success(
+            model_content=AvatarModel(imgUrl=edit_user.avatar),
+            msg=edit_user_result.message,
+            msg_key=edit_user_result.msg_key,
+            msg_params=edit_user_result.msg_params,
+        )
+    return ResponseUtil.failure(msg='上传图片异常，请联系管理员', msg_key='user.avatar.uploadFailed')
 
 
 @user_controller.put(
@@ -405,7 +421,9 @@ async def change_system_user_profile_info(
     edit_user_result = await UserService.edit_user_services(query_db, edit_user)
     logger.info(edit_user_result.message)
 
-    return ResponseUtil.success(msg=edit_user_result.message)
+    return ResponseUtil.success(
+        msg=edit_user_result.message, msg_key=edit_user_result.msg_key, msg_params=edit_user_result.msg_params
+    )
 
 
 @user_controller.get(
@@ -419,6 +437,21 @@ async def change_system_user_profile_info(
 )
 async def get_system_user_timezones(request: Request) -> Response:
     return ResponseUtil.success(data=sorted(available_timezones() - {'localtime'}))
+
+
+@user_controller.put('/profile/locale', summary='修改当前用户语言偏好', response_model=ResponseBaseModel)
+@ApiCacheEvict(namespaces=ApiGroup.USER_INFO_MUTATION)
+@Log(title='语言设置', business_type=BusinessType.UPDATE)
+async def change_system_user_locale(
+    request: Request,
+    preference: UserLocaleModel,
+    query_db: Annotated[AsyncSession, DBSessionDependency()],
+    current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
+) -> Response:
+    result = await UserService.update_user_locale_services(
+        query_db, current_user.user.user_id, current_user.user.user_name, preference.locale
+    )
+    return ResponseUtil.success(msg=result.message, msg_key=result.msg_key, data={'locale': preference.locale})
 
 
 @user_controller.put(
@@ -442,7 +475,7 @@ async def change_system_user_timezone(
     result = await UserService.update_user_timezone_services(
         query_db, current_user.user.user_id, current_user.user.user_name, preference.time_zone
     )
-    return ResponseUtil.success(msg=result.message)
+    return ResponseUtil.success(msg=result.message, msg_key=result.msg_key, msg_params=result.msg_params)
 
 
 @user_controller.put(
@@ -470,7 +503,9 @@ async def reset_system_user_password(
     reset_user_result = await UserService.reset_user_services(query_db, reset_user)
     logger.info(reset_user_result.message)
 
-    return ResponseUtil.success(msg=reset_user_result.message)
+    return ResponseUtil.success(
+        msg=reset_user_result.message, msg_key=reset_user_result.msg_key, msg_params=reset_user_result.msg_params
+    )
 
 
 @user_controller.post(
@@ -501,7 +536,9 @@ async def batch_import_system_user(
     )
     logger.info(batch_import_result.message)
 
-    return ResponseUtil.success(msg=batch_import_result.message)
+    return ResponseUtil.success(
+        msg=batch_import_result.message, msg_key=batch_import_result.msg_key, msg_params=batch_import_result.msg_params
+    )
 
 
 @user_controller.post(
@@ -610,4 +647,8 @@ async def update_system_role_user(
     )
     logger.info(add_user_role_result.message)
 
-    return ResponseUtil.success(msg=add_user_role_result.message)
+    return ResponseUtil.success(
+        msg=add_user_role_result.message,
+        msg_key=add_user_role_result.msg_key,
+        msg_params=add_user_role_result.msg_params,
+    )

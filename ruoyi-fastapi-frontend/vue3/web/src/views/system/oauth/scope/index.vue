@@ -1,10 +1,12 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      section="接入管理"
-      title="权限"
-      description="用业务语言定义应用可以申请的身份信息和服务操作。"
-      filter-hint="协议代码作为次要信息展示，日常按名称查找即可"
+      :section="$t('oauth:integrationManagement')"
+      :title="$t('components:permissions')"
+      :description="
+        $t('oauth:describeTheIdentityInformationAndServiceOperationsApplicationsMayRequest')
+      "
+      :filter-hint="$t('oauth:protocolCodesAppearAsSecondaryInformationSearchByNameFor')"
     >
       <template #actions>
         <el-button
@@ -12,7 +14,7 @@
           icon="Plus"
           v-hasPermi="['system:oauthScope:add']"
           @click="handleAdd"
-          >新增权限</el-button
+          >{{ $t('oauth:addPermission') }}</el-button
         >
       </template>
 
@@ -24,53 +26,53 @@
           :inline="true"
         >
           <el-form-item
-            label="权限名称"
+            :label="$t('oauth:permissionName')"
             prop="scopeName"
           >
             <el-input
               v-model="queryParams.scopeName"
               clearable
-              placeholder="输入权限名称"
+              :placeholder="$t('oauth:enterPermissionName')"
               style="width: 200px"
               @keyup.enter="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            label="用途"
+            :label="$t('oauth:purpose')"
             prop="scopeType"
           >
             <el-select
               v-model="queryParams.scopeType"
               clearable
-              placeholder="全部用途"
+              :placeholder="$t('oauth:allPurposes')"
               style="width: 200px"
             >
               <el-option
-                label="登录身份信息"
+                :label="$t('oauth:signInIdentityInformation')"
                 value="identity"
               />
               <el-option
-                label="服务访问"
+                :label="$t('oauth:serviceAccess')"
                 value="resource"
               />
             </el-select>
           </el-form-item>
           <el-form-item
-            label="状态"
+            :label="$t('system:status')"
             prop="status"
           >
             <el-select
               v-model="queryParams.status"
               clearable
-              placeholder="全部状态"
+              :placeholder="$t('components:allStatuses')"
               style="width: 200px"
             >
               <el-option
-                label="使用中"
+                :label="$t('oauth:inUse')"
                 value="0"
               />
               <el-option
-                label="已停用"
+                :label="$t('components:disabled')"
                 value="1"
               />
             </el-select>
@@ -80,12 +82,12 @@
               type="primary"
               icon="Search"
               @click="handleQuery"
-              >查找</el-button
+              >{{ $t('monitor:find') }}</el-button
             >
             <el-button
               icon="Refresh"
               @click="resetQuery"
-              >清空</el-button
+              >{{ $t('monitor:clear') }}</el-button
             >
           </el-form-item>
         </el-form>
@@ -93,7 +95,7 @@
 
       <template #toolbar>
         <span class="result-count"
-          >已定义 <strong>{{ total }}</strong> 项权限</span
+          >{{ $t('oauth:defined') }}<strong>{{ total }}</strong> {{ $t('oauth:permissions') }}</span
         >
         <right-toolbar
           v-model:showSearch="showSearch"
@@ -107,7 +109,7 @@
         row-key="scopeCode"
       >
         <el-table-column
-          label="权限"
+          :label="$t('components:permissions')"
           min-width="230"
         >
           <template #default="scope">
@@ -118,7 +120,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="用途"
+          :label="$t('oauth:purpose')"
           width="135"
         >
           <template #default="scope">
@@ -126,18 +128,22 @@
               :type="scope.row.scopeType === 'identity' ? 'primary' : 'success'"
               effect="plain"
             >
-              {{ scope.row.scopeType === 'identity' ? '登录身份信息' : '服务访问' }}
+              {{
+                scope.row.scopeType === 'identity'
+                  ? $t('oauth:signInIdentityInformation')
+                  : $t('oauth:serviceAccess')
+              }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          label="所属服务"
+          :label="$t('oauth:service')"
           min-width="180"
         >
           <template #default="scope">{{ resourceName(scope.row.resourceId) }}</template>
         </el-table-column>
         <el-table-column
-          label="返回的用户信息"
+          :label="$t('oauth:returnedUserInformation')"
           min-width="230"
         >
           <template #default="scope">
@@ -152,7 +158,7 @@
               <span
                 v-if="!(scope.row.claims || []).length"
                 class="muted-value"
-                >不返回额外信息</span
+                >{{ $t('oauth:noAdditionalInformationReturned') }}</span
               >
               <span
                 v-else-if="scope.row.claims.length > 3"
@@ -163,7 +169,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="用户确认"
+          :label="$t('oauth:userConfirmation')"
           width="145"
         >
           <template #default="scope">
@@ -172,25 +178,29 @@
                 v-if="scope.row.sensitive"
                 type="warning"
                 size="small"
-                >敏感权限</el-tag
+                >{{ $t('oauth:sensitivePermission') }}</el-tag
               >
-              <span>{{ scope.row.consentRequired ? '需要确认' : '无需重复确认' }}</span>
+              <span>{{
+                scope.row.consentRequired
+                  ? $t('oauth:confirmationRequired')
+                  : $t('oauth:skipRepeatedConfirmationLabel')
+              }}</span>
             </div>
           </template>
         </el-table-column>
         <el-table-column
-          label="状态"
+          :label="$t('system:status')"
           width="105"
           align="center"
         >
           <template #default="scope">
             <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">{{
-              scope.row.status === '0' ? '使用中' : '已停用'
+              scope.row.status === '0' ? $t('oauth:inUse') : $t('components:disabled')
             }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          label="操作"
+          :label="$t('system:actions')"
           width="180"
           fixed="right"
           align="center"
@@ -203,7 +213,7 @@
                 icon="Edit"
                 v-hasPermi="['system:oauthScope:edit']"
                 @click="handleUpdate(scope.row)"
-                >编辑</el-button
+                >{{ $t('oauth:edit') }}</el-button
               >
               <el-dropdown
                 v-if="scope.row.scopeCode !== 'openid'"
@@ -214,7 +224,7 @@
                   link
                   type="primary"
                   icon="ArrowDown"
-                  >更多</el-button
+                  >{{ $t('oauth:more') }}</el-button
                 >
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -223,14 +233,14 @@
                       command="enable"
                       icon="CircleCheck"
                       v-hasPermi="['system:oauthScope:edit']"
-                      >重新启用</el-dropdown-item
+                      >{{ $t('oauth:reEnable') }}</el-dropdown-item
                     >
                     <el-dropdown-item
                       v-else
                       command="disable"
                       icon="CircleClose"
                       v-hasPermi="['system:oauthScope:remove']"
-                      >停用权限</el-dropdown-item
+                      >{{ $t('oauth:disablePermission') }}</el-dropdown-item
                     >
                   </el-dropdown-menu>
                 </template>
@@ -239,12 +249,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="还没有符合条件的权限">
+          <el-empty :description="$t('oauth:noMatchingPermissions')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthScope:add']"
               @click="handleAdd"
-              >新增第一项权限</el-button
+              >{{ $t('oauth:addYourFirstPermission') }}</el-button
             >
           </el-empty>
         </template>
@@ -260,7 +270,7 @@
 
     <el-dialog
       v-model="open"
-      :title="form.persisted ? '编辑权限' : '新增权限'"
+      :title="form.persisted ? $t('oauth:editPermission') : $t('oauth:addPermission')"
       width="min(780px, calc(100vw - 48px))"
       append-to-body
       :close-on-click-modal="false"
@@ -269,18 +279,21 @@
         ref="formRef"
         :model="form"
         :rules="rules"
+        :validate-on-rule-change="false"
         label-width="160px"
         class="permission-form"
       >
         <div class="section-heading">
-          <h3>权限含义</h3>
-          <p>先选择这项权限用于登录信息还是服务访问，再说明它可以返回什么。</p>
+          <h3>{{ $t('oauth:permissionMeaning') }}</h3>
+          <p>{{ $t('oauth:chooseWhetherThisPermissionProvidesSignInInformationOrService') }}</p>
         </div>
         <el-form-item prop="scopeType">
           <template #label
             ><FieldLabel
-              label="权限用途"
-              help="登录身份信息用于返回用户资料；服务访问用于允许应用调用某个服务。"
+              :label="$t('oauth:permissionPurpose')"
+              :help="
+                $t('oauth:identityPermissionsReturnUserProfileInformationServicePermissionsAllowAn')
+              "
           /></template>
           <el-radio-group
             v-model="form.scopeType"
@@ -291,15 +304,15 @@
               value="identity"
               border
             >
-              <strong>登录身份信息</strong>
-              <small>例如姓名、邮箱和角色</small>
+              <strong>{{ $t('oauth:signInIdentityInformation') }}</strong>
+              <small>{{ $t('oauth:forExampleNameEmailAndRoles') }}</small>
             </el-radio>
             <el-radio
               value="resource"
               border
             >
-              <strong>服务访问</strong>
-              <small>例如查看订单或修改库存</small>
+              <strong>{{ $t('oauth:serviceAccess') }}</strong>
+              <small>{{ $t('oauth:forExampleViewingOrdersOrUpdatingInventory') }}</small>
             </el-radio>
           </el-radio-group>
         </el-form-item>
@@ -311,12 +324,12 @@
             <el-form-item prop="scopeName">
               <template #label
                 ><FieldLabel
-                  label="显示名称"
-                  help="用户授权和后台列表中看到的名称，应直接说明允许做什么。"
+                  :label="$t('oauth:displayName')"
+                  :help="$t('oauth:theNameShownDuringUserConsentAndInAdministrationLists')"
               /></template>
               <el-input
                 v-model="form.scopeName"
-                placeholder="例如：查看订单"
+                :placeholder="$t('oauth:forExampleViewOrders')"
                 style="width: 100%"
               />
             </el-form-item>
@@ -328,13 +341,13 @@
             <el-form-item prop="scopeCode">
               <template #label
                 ><FieldLabel
-                  label="权限代码"
-                  help="应用在登录请求中使用的协议代码，保存后不能修改。"
+                  :label="$t('oauth:permissionCode')"
+                  :help="$t('oauth:protocolCodeUsedInSignInRequestsItCannotBe')"
               /></template>
               <el-input
                 v-model="form.scopeCode"
                 :disabled="form.persisted"
-                placeholder="例如：orders.read"
+                :placeholder="$t('oauth:forExampleOrdersRead')"
                 style="width: 100%"
               />
             </el-form-item>
@@ -346,13 +359,13 @@
         >
           <template #label
             ><FieldLabel
-              label="所属服务"
-              help="选择应用获得这项权限后可以访问的服务。"
+              :label="$t('oauth:service')"
+              :help="$t('oauth:selectTheServiceTheAppMayAccessWithThisPermission')"
           /></template>
           <el-select
             v-model="form.resourceId"
             filterable
-            placeholder="选择服务"
+            :placeholder="$t('oauth:chooseAService')"
             style="width: 100%"
           >
             <el-option
@@ -369,8 +382,8 @@
         <el-form-item>
           <template #label
             ><FieldLabel
-              label="返回用户信息"
-              help="应用获得这项权限后可以收到的用户信息，可多选。"
+              :label="$t('oauth:returnUserInformation')"
+              :help="$t('oauth:userInformationTheAppMayReceiveWithThisPermissionMultiple')"
           /></template>
           <el-select
             v-model="form.claims"
@@ -378,7 +391,7 @@
             filterable
             allow-create
             default-first-option
-            placeholder="选择或输入用户字段"
+            :placeholder="$t('oauth:selectOrEnterUserFields')"
             style="width: 100%"
           >
             <el-option
@@ -392,19 +405,25 @@
         <el-form-item>
           <template #label
             ><FieldLabel
-              label="用户确认"
-              help="敏感权限应要求用户明确确认，并在授权页突出展示。"
+              :label="$t('oauth:userConfirmation')"
+              :help="
+                $t('oauth:sensitivePermissionsShouldRequireExplicitConsentAndBeHighlightedOn')
+              "
           /></template>
           <div class="policy-options">
-            <el-checkbox v-model="form.consentRequired">使用前让用户确认</el-checkbox>
-            <el-checkbox v-model="form.sensitive">标记为敏感权限</el-checkbox>
+            <el-checkbox v-model="form.consentRequired">{{
+              $t('oauth:askTheUserToConfirmBeforeUse')
+            }}</el-checkbox>
+            <el-checkbox v-model="form.sensitive">{{
+              $t('oauth:markAsSensitivePermission')
+            }}</el-checkbox>
           </div>
         </el-form-item>
         <el-form-item>
           <template #label
             ><FieldLabel
-              label="备注"
-              help="仅供管理员记录，不会显示给外部应用。"
+              :label="$t('system:remarks')"
+              :help="$t('oauth:forAdministratorNotesOnlyNotShownToExternalApps')"
           /></template>
           <el-input
             v-model="form.remark"
@@ -417,12 +436,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="open = false">取消</el-button>
+        <el-button @click="open = false">{{ $t('common:cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="saving"
           @click="submitForm"
-          >保存权限</el-button
+          >{{ $t('oauth:savePermission') }}</el-button
         >
       </template>
     </el-dialog>
@@ -430,6 +449,8 @@
 </template>
 
 <script setup name="OAuthScope">
+import { useLocaleForm } from '@/composables/useLocaleForm'
+import { t } from '@/i18n/adapter'
 import {
   addOAuthScope,
   changeOAuthScopeStatus,
@@ -443,6 +464,7 @@ import FieldLabel from '@/components/OAuthWorkspace/FieldLabel.vue'
 import PageFrame from '@/components/OAuthWorkspace/PageFrame.vue'
 
 const { proxy } = getCurrentInstance()
+useLocaleForm(computed(() => proxy.$refs.formRef))
 const rows = ref([])
 const total = ref(0)
 const loading = ref(false)
@@ -459,17 +481,74 @@ const queryParams = reactive({
 })
 const form = reactive(emptyForm())
 const claimOptions = [
-  { value: 'sub', label: '用户唯一标识（sub）' },
-  { value: 'name', label: '姓名（name）' },
-  { value: 'email', label: '邮箱（email）' },
-  { value: 'roles', label: '角色（roles）' },
-  { value: 'preferred_username', label: '登录账号（preferred_username）' },
+  {
+    value: 'sub',
+    get label() {
+      return t('oauth:userIdentifierSub')
+    },
+  },
+  {
+    value: 'name',
+    get label() {
+      return t('oauth:nameName')
+    },
+  },
+  {
+    value: 'email',
+    get label() {
+      return t('oauth:emailEmail')
+    },
+  },
+  {
+    value: 'roles',
+    get label() {
+      return t('oauth:rolesRoles')
+    },
+  },
+  {
+    value: 'preferred_username',
+    get label() {
+      return t('oauth:accountPreferredUsername')
+    },
+  },
 ]
 const rules = {
-  scopeCode: [{ required: true, message: '请输入权限代码', trigger: 'blur' }],
-  scopeName: [{ required: true, message: '请输入显示名称', trigger: 'blur' }],
-  scopeType: [{ required: true, message: '请选择权限用途', trigger: 'change' }],
-  resourceId: [{ required: true, message: '请选择这项权限所属的服务', trigger: 'change' }],
+  scopeCode: [
+    {
+      required: true,
+      get message() {
+        return t('oauth:enterPermissionCode')
+      },
+      trigger: 'blur',
+    },
+  ],
+  scopeName: [
+    {
+      required: true,
+      get message() {
+        return t('oauth:enterDisplayName')
+      },
+      trigger: 'blur',
+    },
+  ],
+  scopeType: [
+    {
+      required: true,
+      get message() {
+        return t('oauth:selectPermissionPurpose')
+      },
+      trigger: 'change',
+    },
+  ],
+  resourceId: [
+    {
+      required: true,
+      get message() {
+        return t('oauth:chooseTheServiceThisPermissionBelongsTo')
+      },
+      trigger: 'change',
+    },
+  ],
 }
 
 /** 创建权限表单默认值 */
@@ -560,7 +639,7 @@ async function submitForm() {
       data.resourceId = null
     }
     await (persisted ? updateOAuthScope(data) : addOAuthScope(data))
-    proxy.$modal.msgSuccess('权限已保存')
+    proxy.$modal.msgSuccess(t('oauth:permissionSaved'))
     open.value = false
     await getList()
   } finally {
@@ -571,7 +650,12 @@ async function submitForm() {
 /** 修改权限状态 */
 async function changeStatus(row, status) {
   try {
-    await proxy.$modal.confirm(`${status === '0' ? '启用' : '停用'} Scope “${row.scopeCode}”？`)
+    await proxy.$modal.confirm(
+      t('oauth:valueScopeValue', {
+        arg0: status === '0' ? t('system:enable') : t('system:disabled'),
+        scopeCode: row.scopeCode,
+      })
+    )
     await changeOAuthScopeStatus({ scopeCode: row.scopeCode, status })
     await getList()
   } catch {
@@ -581,9 +665,13 @@ async function changeStatus(row, status) {
 
 /** 删除按钮操作 */
 async function handleDelete(row) {
-  await proxy.$modal.confirm(`停用权限“${row.scopeName}”后，应用不能再申请这项权限，是否继续？`)
+  await proxy.$modal.confirm(
+    t('oauth:disablingPermissionValuePreventsAppsFromRequestingItContinue', {
+      scopeName: row.scopeName,
+    })
+  )
   await deleteOAuthScopes(row.scopeCode)
-  proxy.$modal.msgSuccess('权限已停用')
+  proxy.$modal.msgSuccess(t('oauth:permissionDisabled'))
   await getList()
 }
 
@@ -600,7 +688,7 @@ function handleRowCommand(command, row) {
 /** 获取权限关联的资源服务名称 */
 function resourceName(resourceId) {
   if (!resourceId) {
-    return '统一身份信息'
+    return t('oauth:unifiedIdentityInformation')
   }
   return (
     resourceOptions.value.find((item) => item.resourceId === resourceId)?.resourceName || resourceId

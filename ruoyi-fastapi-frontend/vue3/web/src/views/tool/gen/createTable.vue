@@ -1,7 +1,7 @@
 <template>
   <!-- 创建表 -->
   <el-dialog
-    title="创建表"
+    :title="$t('tools:createTable')"
     v-model="visible"
     width="800px"
     top="5vh"
@@ -9,12 +9,12 @@
   >
     <el-form label-width="80px">
       <el-form-item
-        label="数据源"
+        :label="$t('tools:dataSource')"
         required
       >
         <el-select
           v-model="dataSourceName"
-          placeholder="请选择数据源"
+          :placeholder="$t('tools:selectADataSource')"
           filterable
           style="width: 260px"
         >
@@ -27,11 +27,11 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <span>创建表语句(支持多个建表语句)：</span>
+    <span>{{ $t('tools:cREATETABLEStatementsMultipleStatementsSupported') }}</span>
     <el-input
       type="textarea"
       :rows="10"
-      placeholder="请输入文本"
+      :placeholder="$t('tools:enterText')"
       v-model="content"
     ></el-input>
     <template #footer>
@@ -39,15 +39,16 @@
         <el-button
           type="primary"
           @click="handleImportTable"
-          >确 定</el-button
+          >{{ $t('system:confirm') }}</el-button
         >
-        <el-button @click="visible = false">取 消</el-button>
+        <el-button @click="visible = false">{{ $t('system:cancel') }}</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { createTable } from '@/api/tool/gen'
 
 const visible = ref(false)
@@ -72,11 +73,11 @@ function show() {
 /** 导入按钮操作 */
 function handleImportTable() {
   if (content.value === '') {
-    proxy.$modal.msgError('请输入建表语句')
+    proxy.$modal.msgError(t('tools:enterCREATETABLEStatements'))
     return
   }
   if (!dataSourceName.value) {
-    proxy.$modal.msgError('请选择数据源')
+    proxy.$modal.msgError(t('tools:selectADataSource'))
     return
   }
   createTable({ sql: content.value, dataSourceName: dataSourceName.value }).then((res) => {

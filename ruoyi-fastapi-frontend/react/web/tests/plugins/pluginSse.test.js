@@ -167,3 +167,35 @@ for (const partial of [
   )
   assert.deepEqual(values, partial.includes('\n\n') ? ['unfinished'] : [])
 }
+
+// 策略加载期间切换语言不会改变已发起连接的协商信息；下一条连接采用新语言。
+let releasePolicy
+const pendingPolicy = new Promise((resolve) => {
+  releasePolicy = resolve
+})
+const currentHeaders = { 'Accept-Language': 'en-US', 'X-I18n-Version': '1' }
+let currentTimezone = 'UTC'
+const snapshots = []
+const localizedStream = createPluginSseTransport({
+  loadPolicy: () => pendingPolicy,
+  shouldEncryptRequest: () => false,
+  serializeParams: () => '',
+  getTimezone: () => currentTimezone,
+  getLocaleHeaders: () => currentHeaders,
+  origin: 'https://test',
+  fetchImpl: async (_, options) => {
+    snapshots.push(options.headers)
+    return new Response('data: ready\n\n', { headers: { 'Content-Type': 'text/event-stream' } })
+  },
+})
+const firstConnection = collect(localizedStream(config))
+currentHeaders['Accept-Language'] = 'zh-CN'
+currentTimezone = 'Asia/Shanghai'
+releasePolicy({})
+await firstConnection
+await collect(localizedStream(config))
+assert.equal(snapshots[0]['Accept-Language'], 'en-US')
+assert.equal(snapshots[0]['X-I18n-Version'], '1')
+assert.equal(snapshots[0]['X-Timezone'], 'UTC')
+assert.equal(snapshots[1]['Accept-Language'], 'zh-CN')
+assert.equal(snapshots[1]['X-Timezone'], 'Asia/Shanghai')

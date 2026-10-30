@@ -8,36 +8,36 @@
       label-width="68px"
     >
       <el-form-item
-        label="登录地址"
+        :label="$t('monitor:signInLocation')"
         prop="ipaddr"
       >
         <el-input
           v-model="queryParams.ipaddr"
-          placeholder="请输入登录地址"
+          :placeholder="$t('monitor:enterSignInAddress')"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="用户名称"
+        :label="$t('system:userName')"
         prop="userName"
       >
         <el-input
           v-model="queryParams.userName"
-          placeholder="请输入用户名称"
+          :placeholder="$t('system:enterUserName')"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('system:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="登录状态"
+          :placeholder="$t('monitor:signInStatus')"
           clearable
           style="width: 240px"
         >
@@ -50,17 +50,17 @@
         </el-select>
       </el-form-item>
       <el-form-item
-        label="登录时间"
+        :label="$t('monitor:signInTime')"
         style="width: 308px"
       >
         <el-date-picker
           v-model="dateRange"
           value-format="YYYY-MM-DD"
           type="daterange"
-          :aria-label="`日期范围（${getDisplayTimezone()}）`"
+          :aria-label="$t('monitor:dateRangeValue', { value0: getDisplayTimezone() })"
           range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
+          :start-placeholder="$t('system:startDate')"
+          :end-placeholder="$t('system:endDate')"
         ></el-date-picker>
       </el-form-item>
       <el-form-item>
@@ -68,12 +68,12 @@
           type="primary"
           icon="Search"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('system:search') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -90,7 +90,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['monitor:logininfor:remove']"
-          >删除</el-button
+          >{{ $t('system:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -100,7 +100,7 @@
           icon="Delete"
           @click="handleClean"
           v-hasPermi="['monitor:logininfor:remove']"
-          >清空</el-button
+          >{{ $t('monitor:clear') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -111,7 +111,7 @@
           :disabled="single"
           @click="handleUnlock"
           v-hasPermi="['monitor:logininfor:unlock']"
-          >解锁</el-button
+          >{{ $t('auth:lock.unlock') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -121,7 +121,7 @@
           icon="Download"
           @click="handleExport"
           v-hasPermi="['monitor:logininfor:export']"
-          >导出</el-button
+          >{{ $t('system:export') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -144,12 +144,12 @@
         align="center"
       />
       <el-table-column
-        label="访问编号"
+        :label="$t('monitor:accessID')"
         align="center"
         prop="infoId"
       />
       <el-table-column
-        label="用户名称"
+        :label="$t('system:userName')"
         align="center"
         prop="userName"
         :show-overflow-tooltip="true"
@@ -157,31 +157,31 @@
         :sort-orders="['descending', 'ascending']"
       />
       <el-table-column
-        label="地址"
+        :label="$t('monitor:address')"
         align="center"
         prop="ipaddr"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="登录地点"
+        :label="$t('monitor:signInLocationLabel')"
         align="center"
         prop="loginLocation"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="操作系统"
+        :label="$t('monitor:operatingSystem')"
         align="center"
         prop="os"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="浏览器"
+        :label="$t('monitor:browser')"
         align="center"
         prop="browser"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="登录状态"
+        :label="$t('monitor:signInStatus')"
         align="center"
         prop="status"
       >
@@ -193,13 +193,13 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="描述"
+        :label="$t('monitor:description')"
         align="center"
         prop="msg"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="访问时间"
+        :label="$t('monitor:accessedAt')"
         align="center"
         prop="loginTime"
         sortable="custom"
@@ -223,6 +223,7 @@
 </template>
 
 <script setup name="Logininfor">
+import { t } from '@/i18n/adapter'
 import { getDisplayTimezone } from '@/utils/time'
 import { list, delLogininfor, cleanLogininfor, unlockLogininfor } from '@/api/monitor/logininfor'
 
@@ -289,26 +290,26 @@ function handleSortChange(column, prop, order) {
 function handleDelete(row) {
   const infoIds = row.infoId || ids.value
   proxy.$modal
-    .confirm('是否确认删除访问编号为"' + infoIds + '"的数据项?')
+    .confirm(t('system:confirmation.deleteIds', { ids: infoIds }))
     .then(function () {
       return delLogininfor(infoIds)
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('删除成功')
+      proxy.$modal.msgSuccess(t('system:deletedSuccessfully'))
     })
     .catch(() => {})
 }
 /** 清空按钮操作 */
 function handleClean() {
   proxy.$modal
-    .confirm('是否确认清空所有登录日志数据项?')
+    .confirm(t('monitor:clearAllSignInLogs'))
     .then(function () {
       return cleanLogininfor()
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('清空成功')
+      proxy.$modal.msgSuccess(t('monitor:clearedSuccessfully'))
     })
     .catch(() => {})
 }
@@ -316,12 +317,12 @@ function handleClean() {
 function handleUnlock() {
   const username = selectName.value
   proxy.$modal
-    .confirm('是否确认解锁用户"' + username + '"数据项?')
+    .confirm(t('monitor:confirm.unlock', { name: username }))
     .then(function () {
       return unlockLogininfor(username)
     })
     .then(() => {
-      proxy.$modal.msgSuccess('用户' + username + '解锁成功')
+      proxy.$modal.msgSuccess(t('monitor:userUnlocked', { name: username }))
     })
     .catch(() => {})
 }

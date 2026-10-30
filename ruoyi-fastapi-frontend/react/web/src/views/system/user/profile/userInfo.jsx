@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { Button, Form, Input, Radio, Space } from 'antd'
 import tab from '@/plugins/tab'
@@ -5,8 +8,11 @@ import { updateUserProfile } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
 import { message } from '@/plugins/modal'
 export default function UserInfo({ user, onSaved }) {
+  useI18n()
+
   const [form] = Form.useForm(),
     [saving, setSaving] = useState(false)
+  useLocalizedFormErrors(form)
   useEffect(() => {
     form.setFieldsValue(user)
   }, [user])
@@ -15,7 +21,7 @@ export default function UserInfo({ user, onSaved }) {
     try {
       await updateUserProfile(values)
       useUserStore.setState({ nickName: values.nickName })
-      message.success('修改成功')
+      message.success(t('common:updateSuccess'))
       onSaved?.()
     } catch {
     } finally {
@@ -33,39 +39,39 @@ export default function UserInfo({ user, onSaved }) {
     >
       <Form.Item
         name="nickName"
-        label="用户昵称"
-        rules={[{ required: true, message: '用户昵称不能为空' }]}
+        label={t('system:user.nickname')}
+        rules={[{ required: true, message: t('system:user.nicknameRequired') }]}
       >
         <Input maxLength={30} />
       </Form.Item>
       <Form.Item
         name="phonenumber"
-        label="手机号码"
+        label={t('system:user.phone')}
         rules={[
-          { required: true, message: '手机号码不能为空' },
-          { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' },
+          { required: true, message: t('system:user.phoneRequired') },
+          { pattern: /^1[3-9]\d{9}$/, message: t('system:user.phoneInvalid') },
         ]}
       >
         <Input maxLength={11} />
       </Form.Item>
       <Form.Item
         name="email"
-        label="邮箱"
+        label={t('system:user.email')}
         rules={[
-          { required: true, message: '邮箱地址不能为空' },
-          { type: 'email', message: '请输入正确的邮箱地址' },
+          { required: true, message: t('system:emailAddressIsRequired') },
+          { type: 'email', message: t('system:enterAValidEmailAddress') },
         ]}
       >
         <Input maxLength={50} />
       </Form.Item>
       <Form.Item
         name="sex"
-        label="性别"
+        label={t('system:user.sex')}
       >
         <Radio.Group
           options={[
-            { label: '男', value: '0' },
-            { label: '女', value: '1' },
+            { label: t('system:user.male'), value: '0' },
+            { label: t('system:user.female'), value: '1' },
           ]}
         />
       </Form.Item>
@@ -76,14 +82,14 @@ export default function UserInfo({ user, onSaved }) {
             htmlType="submit"
             loading={saving}
           >
-            保存
+            {t('common:save')}
           </Button>
           <Button
             type="primary"
             danger
             onClick={() => tab.closePage()}
           >
-            关闭
+            {t('layout:search.close')}
           </Button>
         </Space>
       </Form.Item>

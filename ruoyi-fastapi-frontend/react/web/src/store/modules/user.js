@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n'
 import useLockStore from './lock'
 import { create } from 'zustand'
 import { login, logout, getInfo } from '@/api/login'
@@ -33,6 +34,7 @@ const useUserStore = create((set, get) => ({
   async getInfo() {
     const result = await getInfo()
     const user = result.user
+    i18n.setAccount(user?.userId, user?.locale)
     setBusinessTimezone(result.appTimezone)
     get().applyTimezone(user.timeZone)
     cache.session.set('pwrChrtype', result.pwdChrtype)
@@ -52,9 +54,9 @@ const useUserStore = create((set, get) => ({
       loaded: true,
       // 初始密码提示优先于过期提示，由布局展示并引导用户修改密码。
       passwordWarning: result.isDefaultModifyPwd
-        ? '您的密码还是初始密码，请修改密码！'
+        ? 'initial-password'
         : result.isPasswordExpired
-          ? '您的密码已过期，请尽快修改密码！'
+          ? 'expired-password'
           : '',
     })
     return result
@@ -72,6 +74,7 @@ const useUserStore = create((set, get) => ({
   // 清除令牌和授权状态，将显示时区恢复为跟随设备并解除锁屏。
   clear() {
     removeToken()
+    i18n.setAccount(null)
     setUserTimezone('auto')
     set({
       token: '',

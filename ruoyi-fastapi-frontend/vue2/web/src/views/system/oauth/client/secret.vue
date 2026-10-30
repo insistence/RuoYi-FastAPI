@@ -2,20 +2,25 @@
   <el-dialog
     custom-class="oauth-overlay"
     :visible.sync="visible"
-    title="保存应用密钥"
+    :title="$t('authCenter:messages.saveTheApplicationSecret')"
     width="min(680px, calc(100vw - 48px))"
     append-to-body
     :close-on-click-modal="false"
   >
     <el-form
+      :validate-on-rule-change="false"
       label-width="160px"
       class="secret-form"
     >
       <el-form-item>
         <template #label
           ><FieldLabel
-            label="应用编号"
-            help="系统生成的应用编号，复制后用于配置外部应用。"
+            :label="$t('authCenter:appId')"
+            :help="
+              $t(
+                'authCenter:help.theSystemGeneratedApplicationIDCopyItToConfigureTheExternalApplication'
+              )
+            "
         /></template>
         <el-input
           :value="secret.clientId"
@@ -25,8 +30,8 @@
       <el-form-item>
         <template #label
           ><FieldLabel
-            label="应用密钥"
-            help="应用密钥相当于应用密码，只显示这一次；请复制后保存在安全的密钥管理系统中。"
+            :label="$t('authCenter:messages.applicationSecret')"
+            :help="$t('authCenter:help.theApplicationSecretActsAsItsPasswordAndIsShownOnlyOnce')"
         /></template>
         <el-input
           :value="secret.clientSecret"
@@ -36,25 +41,29 @@
             <el-button
               icon="el-icon-document-copy"
               @click="copySecret"
-              >复制</el-button
+              >{{ $t('common:copy') }}</el-button
             >
           </template>
         </el-input>
       </el-form-item>
     </el-form>
-    <el-checkbox v-model="confirmed">我已将密钥保存到安全位置</el-checkbox>
+    <el-checkbox v-model="confirmed">{{
+      $t('authCenter:messages.iHaveStoredTheSecretSecurely')
+    }}</el-checkbox>
     <template #footer>
       <el-button
         type="primary"
         :disabled="!confirmed"
         @click="close"
-        >完成</el-button
+        >{{ $t('common:finish') }}</el-button
       >
     </template>
   </el-dialog>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
+
 import { computed, getCurrentInstance, ref, watch } from 'vue'
 import FieldLabel from '@/components/OAuthWorkspace/FieldLabel.vue'
 
@@ -86,9 +95,11 @@ async function copySecret() {
   }
   try {
     await navigator.clipboard.writeText(props.secret.clientSecret)
-    proxy.$modal.msgSuccess('密钥已复制')
+    proxy.$modal.msgSuccess(t('authCenter:messages.secretCopied'))
   } catch {
-    proxy.$modal.msgError('浏览器拒绝访问剪贴板，请手动复制')
+    proxy.$modal.msgError(
+      t('authCenter:messages.theBrowserDeniedClipboardAccessCopyTheSecretManually')
+    )
   }
 }
 

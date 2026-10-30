@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import { useEffect, useState } from 'react'
@@ -5,7 +8,10 @@ import { Form, Input, Modal, Select } from 'antd'
 import { createTable } from '@/api/tool/gen'
 import { message } from '@/plugins/modal'
 export default function CreateTable({ open, dataSources, onClose, onSuccess }) {
+  useI18n()
+
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     if (open)
@@ -19,7 +25,7 @@ export default function CreateTable({ open, dataSources, onClose, onSuccess }) {
       const values = await form.validateFields()
       setSaving(true)
       await createTable(values)
-      message.success('创建成功')
+      message.success(t('tool:createdSuccessfully'))
       form.resetFields()
       onClose()
       onSuccess()
@@ -31,7 +37,7 @@ export default function CreateTable({ open, dataSources, onClose, onSuccess }) {
   return (
     <Modal
       footer={renderDialogFooter}
-      title="创建表"
+      title={t('tool:createTable')}
       style={{ top: '6vh' }}
       open={open}
       onCancel={onClose}
@@ -50,12 +56,12 @@ export default function CreateTable({ open, dataSources, onClose, onSuccess }) {
         layout="horizontal"
       >
         <Form.Item
-          label="数据源"
+          label={t('tool:datasource.title')}
           name="dataSourceName"
-          rules={[{ required: true, message: '请选择数据源' }]}
+          rules={[{ required: true, message: t('tool:datasource.select') }]}
         >
           <Select
-            placeholder="请选择数据源"
+            placeholder={t('tool:datasource.select')}
             style={{ width: 260 }}
             showSearch
             optionFilterProp="label"
@@ -66,16 +72,18 @@ export default function CreateTable({ open, dataSources, onClose, onSuccess }) {
           />
         </Form.Item>
         <Form.Item
-          label="创建表语句(支持多个建表语句)："
+          label={t('tool:createTableStatementsMultipleStatementsSupported')}
           className="gen-sql-field"
           layout="vertical"
           labelCol={{ flex: 'none' }}
           wrapperCol={{ flex: 'none' }}
           name="sql"
-          rules={[{ required: true, whitespace: true, message: '请输入建表语句' }]}
+          rules={[
+            { required: true, whitespace: true, message: t('tool:enterCreateTableStatements') },
+          ]}
         >
           <Input.TextArea
-            placeholder="请输入文本"
+            placeholder={t('tool:enterText')}
             rows={10}
           />
         </Form.Item>

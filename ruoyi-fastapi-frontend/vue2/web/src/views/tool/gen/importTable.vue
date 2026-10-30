@@ -1,26 +1,27 @@
 <template>
   <!-- 导入表 -->
   <el-dialog
-    title="导入表"
+    :title="$t('tool:messages.importTables')"
     :visible.sync="visible"
     width="800px"
     top="5vh"
     append-to-body
   >
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
       :inline="true"
     >
       <el-form-item
-        label="数据源"
+        :label="$t('tool:datasource.title')"
         prop="dataSourceName"
         required
       >
         <el-select
           v-model="queryParams.dataSourceName"
-          placeholder="请选择数据源"
+          :placeholder="$t('tool:datasource.select')"
           filterable
           style="width: 220px"
           @change="handleSourceChange"
@@ -34,23 +35,23 @@
         </el-select>
       </el-form-item>
       <el-form-item
-        label="表名称"
+        :label="$t('tool:gen.tableName')"
         prop="tableName"
       >
         <el-input
           v-model="queryParams.tableName"
-          placeholder="请输入表名称"
+          :placeholder="$t('tool:messages.enterTableName')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="表描述"
+        :label="$t('tool:gen.tableComment')"
         prop="tableComment"
       >
         <el-input
           v-model="queryParams.tableComment"
-          placeholder="请输入表描述"
+          :placeholder="$t('tool:messages.enterTableDescription')"
           clearable
           @keyup.enter.native="handleQuery"
         />
@@ -61,13 +62,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -85,23 +86,23 @@
         ></el-table-column>
         <el-table-column
           prop="tableName"
-          label="表名称"
+          :label="$t('tool:gen.tableName')"
           :show-overflow-tooltip="true"
         ></el-table-column>
         <el-table-column
           prop="tableComment"
-          label="表描述"
+          :label="$t('tool:gen.tableComment')"
           :show-overflow-tooltip="true"
         ></el-table-column>
         <el-table-column
           prop="createTime"
-          label="创建时间"
+          :label="$t('common:createdTime')"
         >
           <template slot-scope="scope">{{ parseTime(scope.row.createTime) || '-' }}</template>
         </el-table-column>
         <el-table-column
           prop="updateTime"
-          label="更新时间"
+          :label="$t('common:updatedTime')"
         ></el-table-column>
       </el-table>
       <pagination
@@ -119,14 +120,16 @@
       <el-button
         type="primary"
         @click="handleImportTable"
-        >确 定</el-button
+        >{{ $t('common:confirm') }}</el-button
       >
-      <el-button @click="visible = false">取 消</el-button>
+      <el-button @click="visible = false">{{ $t('common:cancel') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { listDbTable, importTable } from '@/api/tool/gen'
 export default {
   props: {
@@ -219,11 +222,11 @@ export default {
     handleImportTable() {
       const tableNames = this.tables.join(',')
       if (tableNames == '') {
-        this.$modal.msgError('请选择要导入的表')
+        this.$modal.msgError(t('tool:messages.selectTablesToImport'))
         return
       }
       if (!this.queryParams.dataSourceName) {
-        this.$modal.msgError('请选择数据源')
+        this.$modal.msgError(t('tool:datasource.select'))
         return
       }
       importTable({ tables: tableNames, dataSourceName: this.queryParams.dataSourceName }).then(

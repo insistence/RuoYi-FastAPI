@@ -3,6 +3,8 @@ from typing import Protocol, TypeAlias, cast
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
+
 from .base import PluginPayloadModel
 
 
@@ -77,7 +79,11 @@ class PluginAuditPayloadBuilder:
         """
         return PluginAuditSnapshotFailurePayload(
             available=False,
-            message=f'最近审计快照读取失败：{error}',
+            message=I18nMessage(
+                f'最近审计快照读取失败：{error}',
+                msg_key='plugin.runtime.audit.snapshotFailed',
+                msg_params={'error': str(error)},
+            ),
             items=[],
         ).to_payload()
 

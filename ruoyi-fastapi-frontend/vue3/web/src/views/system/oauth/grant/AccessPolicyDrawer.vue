@@ -1,12 +1,12 @@
 <template>
   <el-drawer
     v-model="visible"
-    title="应用访问策略"
+    :title="$t('oauth:applicationAccessPolicies')"
     size="min(960px, 96vw)"
     @open="handleQuery"
   >
     <el-alert
-      title="可在用户首次授权前禁止访问应用。未配置策略时默认允许；解除禁止后，已撤销的授权不会恢复。"
+      :title="$t('oauth:blockAccessBeforeAUserFirstGrantsConsentAccessIs')"
       type="info"
       :closable="false"
       show-icon
@@ -19,18 +19,18 @@
       @submit.prevent="handleQuery"
     >
       <el-form-item
-        label="用户"
+        :label="$t('monitor:user')"
         prop="userId"
       >
         <el-input
           v-model="queryParams.userId"
           clearable
-          placeholder="用户编号"
+          :placeholder="$t('system:userID')"
           class="filter-input"
         />
       </el-form-item>
       <el-form-item
-        label="应用"
+        :label="$t('components:apply')"
         prop="clientId"
       >
         <el-input
@@ -41,21 +41,21 @@
         />
       </el-form-item>
       <el-form-item
-        label="策略"
+        :label="$t('files:policy')"
         prop="accessStatus"
       >
         <el-select
           v-model="queryParams.accessStatus"
           clearable
-          placeholder="全部策略"
+          :placeholder="$t('oauth:allPolicies')"
           class="filter-input"
         >
           <el-option
-            label="禁止访问"
+            :label="$t('oauth:blockAccess')"
             value="blocked"
           />
           <el-option
-            label="允许访问"
+            :label="$t('oauth:allowAccess')"
             value="allowed"
           />
         </el-select>
@@ -65,32 +65,32 @@
           type="primary"
           icon="Search"
           native-type="submit"
-          >查找</el-button
+          >{{ $t('monitor:find') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >清空</el-button
+          >{{ $t('monitor:clear') }}</el-button
         >
       </el-form-item>
     </el-form>
     <div class="policy-toolbar">
-      <span>已配置 {{ total }} 条策略</span>
+      <span>{{ $t('oauth:configured') }}{{ total }} {{ $t('oauth:policies') }}</span>
       <el-button
         type="primary"
         icon="Plus"
         v-hasPermi="['system:oauthGrant:revoke']"
         @click="openAccess()"
       >
-        新增禁止策略
-      </el-button>
+        {{ $t('oauth:addAccessRestriction') }}</el-button
+      >
     </div>
     <el-table
       v-loading="loading"
       :data="rows"
     >
       <el-table-column
-        label="用户"
+        :label="$t('monitor:user')"
         min-width="140"
       >
         <template #default="scope">
@@ -101,7 +101,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="应用"
+        :label="$t('components:apply')"
         min-width="160"
       >
         <template #default="scope">
@@ -112,34 +112,38 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="策略"
+        :label="$t('files:policy')"
         width="110"
       >
         <template #default="scope">
           <el-tag :type="scope.row.accessStatus === 'blocked' ? 'danger' : 'success'">
-            {{ scope.row.accessStatus === 'blocked' ? '禁止访问' : '允许访问' }}
+            {{
+              scope.row.accessStatus === 'blocked'
+                ? $t('oauth:blockAccess')
+                : $t('oauth:allowAccess')
+            }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column
         prop="reason"
-        label="操作原因"
+        :label="$t('components:reason')"
         min-width="180"
         show-overflow-tooltip
       />
       <el-table-column
         prop="updateBy"
-        label="操作人"
+        :label="$t('oauth:operator')"
         width="110"
       />
       <el-table-column
-        label="最近操作"
+        :label="$t('oauth:lastOperation')"
         width="170"
       >
         <template #default="scope">{{ parseTime(scope.row.updateTime) || '—' }}</template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         width="110"
         fixed="right"
         align="center"
@@ -150,11 +154,15 @@
             :type="scope.row.accessStatus === 'blocked' ? 'primary' : 'danger'"
             v-hasPermi="['system:oauthGrant:revoke']"
             @click="openAccess(scope.row)"
-            >{{ scope.row.accessStatus === 'blocked' ? '解除禁止' : '禁止访问' }}</el-button
+            >{{
+              scope.row.accessStatus === 'blocked'
+                ? $t('oauth:removeRestriction')
+                : $t('oauth:blockAccess')
+            }}</el-button
           >
         </template>
       </el-table-column>
-      <template #empty><el-empty description="没有符合条件的访问策略" /></template>
+      <template #empty><el-empty :description="$t('oauth:noMatchingAccessPolicies')" /></template>
     </el-table>
     <pagination
       v-show="total > 0"
@@ -165,7 +173,11 @@
     />
     <el-dialog
       v-model="accessOpen"
-      :title="accessBlocked ? '禁止用户访问应用' : '解除应用访问禁止'"
+      :title="
+        accessBlocked
+          ? $t('oauth:blockUserAccessToApplication')
+          : $t('oauth:removeApplicationAccessRestriction')
+      "
       width="min(540px, calc(100vw - 32px))"
       append-to-body
       :close-on-click-modal="false"
@@ -175,8 +187,8 @@
       <el-alert
         :title="
           accessBlocked
-            ? '将撤销该用户对应用的全部现有授权，并阻止后续授权。'
-            : '解除后允许重新授权，已有授权和令牌不会恢复。'
+            ? $t('oauth:thisRevokesAllExistingGrantsForThisUserAndApplicationLabel')
+            : $t('oauth:usersMayGrantConsentAgainAfterTheRestrictionIsRemoved')
         "
         :type="accessBlocked ? 'warning' : 'info'"
         :closable="false"
@@ -190,7 +202,7 @@
         label-position="top"
       >
         <el-form-item
-          label="用户编号"
+          :label="$t('system:userID')"
           prop="userId"
         >
           <el-input
@@ -198,7 +210,7 @@
             :disabled="!creating || saving"
             maxlength="19"
             inputmode="numeric"
-            placeholder="输入用户管理中的用户编号"
+            :placeholder="$t('oauth:enterTheUserIDFromUserManagement')"
           />
         </el-form-item>
         <el-form-item
@@ -209,11 +221,11 @@
             v-model="accessForm.clientId"
             :disabled="!creating || saving"
             maxlength="128"
-            placeholder="输入客户端管理中的 Client ID"
+            :placeholder="$t('oauth:enterTheClientIDFromClientManagement')"
           />
         </el-form-item>
         <el-form-item
-          label="操作原因"
+          :label="$t('components:reason')"
           prop="reason"
         >
           <el-input
@@ -223,7 +235,7 @@
             :rows="3"
             maxlength="200"
             show-word-limit
-            placeholder="填写原因，便于后续审计"
+            :placeholder="$t('oauth:provideAReasonForTheAuditTrail')"
           />
         </el-form-item>
       </el-form>
@@ -231,14 +243,14 @@
         <el-button
           :disabled="saving"
           @click="accessOpen = false"
-          >取消</el-button
+          >{{ $t('common:cancel') }}</el-button
         >
         <el-button
           :type="accessBlocked ? 'danger' : 'primary'"
           :loading="saving"
           @click="saveAccess"
         >
-          {{ accessBlocked ? '确认禁止' : '确认解除' }}
+          {{ accessBlocked ? $t('oauth:confirmRestriction') : $t('oauth:confirmRemoval') }}
         </el-button>
       </template>
     </el-dialog>
@@ -246,6 +258,7 @@
 </template>
 
 <script setup name="OAuthAccessPolicyDrawer">
+import { t } from '@/i18n/adapter'
 import { listOAuthAccessPolicies, setOAuthClientAccess } from '@/api/system/oauthSession'
 
 const visible = defineModel({ type: Boolean, default: false })
@@ -271,12 +284,32 @@ const accessRules = {
     {
       required: true,
       pattern: /^[1-9]\d{0,18}$/,
-      message: '请输入有效的用户编号',
+      get message() {
+        return t('oauth:enterAValidUserID')
+      },
       trigger: 'blur',
     },
   ],
-  clientId: [{ required: true, whitespace: true, message: '请输入 Client ID', trigger: 'blur' }],
-  reason: [{ required: true, whitespace: true, message: '请填写操作原因', trigger: 'blur' }],
+  clientId: [
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('oauth:enterAClientID')
+      },
+      trigger: 'blur',
+    },
+  ],
+  reason: [
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('oauth:enterAReasonForThisOperation')
+      },
+      trigger: 'blur',
+    },
+  ],
 }
 
 /** 查询已配置的独立访问策略 */
@@ -327,7 +360,11 @@ async function saveAccess() {
       blocked: accessBlocked.value,
       reason: accessForm.reason.trim(),
     })
-    proxy.$modal.msgSuccess(accessBlocked.value ? '已禁止用户访问应用' : '已解除访问禁止')
+    proxy.$modal.msgSuccess(
+      accessBlocked.value
+        ? t('oauth:theUserHasBeenBlockedFromThisApplication')
+        : t('oauth:accessRestrictionRemoved')
+    )
     accessOpen.value = false
     emit('changed')
     await getList()

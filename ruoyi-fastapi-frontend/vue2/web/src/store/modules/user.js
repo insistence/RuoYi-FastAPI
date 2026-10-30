@@ -1,3 +1,4 @@
+import { t, i18n } from '@/i18n'
 import { setBusinessTimezone, setUserTimezone } from '@/utils/time'
 import store from '@/store'
 import router from '@/router'
@@ -83,6 +84,7 @@ const user = {
         getInfo()
           .then((res) => {
             const user = res.user
+            i18n.setAccount(user?.userId, user?.locale)
             commit('SET_APP_TIMEZONE', res.appTimezone)
             commit('SET_TIMEZONE', user.timeZone)
             let avatar = user.avatar || ''
@@ -103,11 +105,15 @@ const user = {
             cache.session.set('pwrChrtype', res.pwdChrtype)
             /* 初始密码提示 */
             if (res.isDefaultModifyPwd) {
-              MessageBox.confirm('您的密码还是初始密码，请修改密码！', '安全提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning',
-              })
+              MessageBox.confirm(
+                t('auth:password.defaultWarning'),
+                t('auth:password.securityTitle'),
+                {
+                  confirmButtonText: t('common:confirm'),
+                  cancelButtonText: t('common:cancel'),
+                  type: 'warning',
+                }
+              )
                 .then(() => {
                   router.push({ name: 'Profile', params: { activeTab: 'resetPwd' } })
                 })
@@ -115,11 +121,15 @@ const user = {
             }
             /* 过期密码提示 */
             if (!res.isDefaultModifyPwd && res.isPasswordExpired) {
-              MessageBox.confirm('您的密码已过期，请尽快修改密码！', '安全提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning',
-              })
+              MessageBox.confirm(
+                t('auth:password.expiredWarning'),
+                t('auth:password.securityTitle'),
+                {
+                  confirmButtonText: t('common:confirm'),
+                  cancelButtonText: t('common:cancel'),
+                  type: 'warning',
+                }
+              )
                 .then(() => {
                   router.push({ name: 'Profile', params: { activeTab: 'resetPwd' } })
                 })
@@ -145,6 +155,7 @@ const user = {
         commit('SET_ROLES', [])
         commit('SET_PERMISSIONS', [])
         removeToken()
+        i18n.setAccount(null)
       }
     },
 
@@ -154,6 +165,7 @@ const user = {
         commit('SET_TOKEN', '')
         commit('SET_TIMEZONE', 'auto')
         removeToken()
+        i18n.setAccount(null)
         resolve()
       })
     },

@@ -28,19 +28,15 @@
       slot="tip"
       v-if="showTip && !disabled"
     >
-      请上传
-      <template v-if="fileSize">
-        大小不超过 <b style="color: #f56c6c">{{ fileSize }}MB</b>
-      </template>
-      <template v-if="fileType">
-        格式为 <b style="color: #f56c6c">{{ fileType.join('/') }}</b>
-      </template>
-      的文件
+      <span v-if="fileSize">{{ $t('file:upload.maxSize', { size: fileSize }) }}</span>
+      <span v-if="fileType && fileType.length">{{
+        $t('file:upload.acceptedFormats', { formats: fileType.join('/') })
+      }}</span>
     </div>
 
     <el-dialog
       :visible.sync="dialogVisible"
-      title="预览"
+      :title="$t('common:preview')"
       width="800"
       append-to-body
     >
@@ -53,6 +49,9 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+import { i18n } from '@/i18n'
+
 import { getToken } from '@/utils/auth'
 import { isExternal } from '@/utils/validate'
 import Sortable from 'sortablejs'
@@ -109,9 +108,6 @@ export default {
       hideUpload: false,
       baseUrl: process.env.VUE_APP_BASE_API,
       uploadImgUrl: process.env.VUE_APP_BASE_API + this.action, // 上传的图片服务器地址
-      headers: {
-        Authorization: 'Bearer ' + getToken(),
-      },
       fileList: [],
     }
   },
@@ -156,6 +152,11 @@ export default {
     },
   },
   computed: {
+    headers() {
+      void this.$locale.locale
+      return { Authorization: 'Bearer ' + getToken(), ...i18n.headers }
+    },
+
     // 是否显示提示
     showTip() {
       return this.isShowTip && (this.fileType || this.fileSize)
@@ -180,26 +181,34 @@ export default {
       }
 
       if (!isImg) {
-        this.$modal.msgError(`文件格式不正确，请上传${this.fileType.join('/')}图片格式文件!`)
+        this.$modal.msgError(
+          t('file:interface.invalidFormatUploadAnImageInValueFormat', {
+            value0: this.fileType.join('/'),
+          })
+        )
         return false
       }
       if (file.name.includes(',')) {
-        this.$modal.msgError('文件名不正确，不能包含英文逗号!')
+        this.$modal.msgError(t('file:interface.fileNamesMustNotContainCommas'))
         return false
       }
       if (this.fileSize) {
         const isLt = file.size / 1024 / 1024 < this.fileSize
         if (!isLt) {
-          this.$modal.msgError(`上传头像图片大小不能超过 ${this.fileSize} MB!`)
+          this.$modal.msgError(
+            t('file:interface.avatarImagesMustNotExceedValueMB', { value0: this.fileSize })
+          )
           return false
         }
       }
-      this.$modal.loading('正在上传图片，请稍候...')
+      this.$modal.loading(t('file:interface.uploadingImagePleaseWait'))
       this.number++
     },
     // 文件个数超出
     handleExceed() {
-      this.$modal.msgError(`上传文件数量不能超过 ${this.limit} 个!`)
+      this.$modal.msgError(
+        t('file:interface.youCanUploadAtMostValueFiles.index', { value0: this.limit })
+      )
     },
     // 上传成功回调
     handleUploadSuccess(res, file) {
@@ -224,7 +233,7 @@ export default {
     },
     // 上传失败
     handleUploadError() {
-      this.$modal.msgError('上传图片失败，请重试')
+      this.$modal.msgError(t('file:interface.imageUploadFailedTryAgain'))
       this.$modal.closeLoading()
     },
     // 上传结束处理

@@ -20,7 +20,7 @@
           />
         </div>
         <div class="card-panel-description">
-          <div class="card-panel-text">访客</div>
+          <div class="card-panel-text">{{ $t('layout:dashboard.visitors') }}</div>
           <count-to
             :start-val="0"
             :end-val="102400"
@@ -47,7 +47,7 @@
           />
         </div>
         <div class="card-panel-description">
-          <div class="card-panel-text">消息</div>
+          <div class="card-panel-text">{{ $t('layout:notices.message') }}</div>
           <count-to
             :start-val="0"
             :end-val="81212"
@@ -74,7 +74,7 @@
           />
         </div>
         <div class="card-panel-description">
-          <div class="card-panel-text">金额</div>
+          <div class="card-panel-text">{{ $t('layout:dashboard.amount') }}</div>
           <count-to
             :start-val="0"
             :end-val="9280"
@@ -101,7 +101,7 @@
           />
         </div>
         <div class="card-panel-description">
-          <div class="card-panel-text">订单</div>
+          <div class="card-panel-text">{{ $t('layout:dashboard.orders') }}</div>
           <count-to
             :start-val="0"
             :end-val="13600"

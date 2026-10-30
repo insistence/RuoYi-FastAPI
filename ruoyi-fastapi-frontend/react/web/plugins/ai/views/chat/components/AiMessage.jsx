@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useId, useState } from 'react'
 import { RightOutlined } from '@ant-design/icons'
 import MarkdownRender from 'markstream-react'
@@ -7,6 +9,8 @@ import 'katex/dist/katex.min.css'
 import '../style.css'
 
 export default function AiMessage({ content = '', reasoningContent = '', loading = false }) {
+  useI18n()
+
   const isDark = useSettingsStore((state) => state.dark)
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(true)
   const reasoningId = useId()
@@ -24,8 +28,8 @@ export default function AiMessage({ content = '', reasoningContent = '', loading
             onClick={() => setIsReasoningExpanded((expanded) => !expanded)}
           >
             <RightOutlined className={isReasoningExpanded ? 'is-expanded' : ''} />
-            <span>深度思考过程</span>
-            {!content && <span className="reasoning-status">思考中...</span>}
+            <span>{t('plugin.ai:reasoningProcess')}</span>
+            {!content && <span className="reasoning-status">{t('plugin.ai:thinking')}</span>}
           </button>
           <div
             id={reasoningId}
@@ -49,7 +53,7 @@ export default function AiMessage({ content = '', reasoningContent = '', loading
         <div
           className="typing-indicator"
           role="status"
-          aria-label="正在等待回复"
+          aria-label={t('plugin.ai:waitingForAReply')}
         >
           <span />
           <span />

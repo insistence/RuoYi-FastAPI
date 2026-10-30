@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -9,60 +10,60 @@
       label-width="68px"
     >
       <el-form-item
-        label="任务编号"
+        :label="$t('monitor:job.id')"
         prop="jobId"
       >
         <el-input
           v-model="queryParams.jobId"
-          placeholder="请输入任务编号"
+          :placeholder="$t('monitor:interface.enterATaskID')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="执行编号"
+        :label="$t('monitor:messages.executionID')"
         prop="executionId"
       >
         <el-input
           v-model="queryParams.executionId"
-          placeholder="请输入执行ID"
+          :placeholder="$t('monitor:interface.enterAnExecutionID')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="任务名称"
+        :label="$t('monitor:job.name')"
         prop="jobName"
       >
         <el-input
           v-model="queryParams.jobName"
-          placeholder="请输入任务名称"
+          :placeholder="$t('monitor:job.namePlaceholder')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="任务组名"
+        :label="$t('monitor:job.groupName')"
         prop="jobGroup"
       >
         <el-input
           v-model="queryParams.jobGroup"
-          placeholder="请输入任务组名"
+          :placeholder="$t('monitor:interface.enterATaskGroupName')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="执行状态"
+        :label="$t('monitor:job.executionStatus')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="请选择执行状态"
+          :placeholder="$t('monitor:messages.selectExecutionStatus')"
           clearable
           style="width: 240px"
         >
@@ -74,16 +75,16 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="执行时间">
+      <el-form-item :label="$t('monitor:messages.executionTime')">
         <el-date-picker
           v-model="dateRange"
-          :aria-label="'执行日期（' + displayTimezone + '）'"
+          :aria-label="$t('monitor:job.executionDateInZone', { zone: displayTimezone })"
           style="width: 240px"
           value-format="yyyy-MM-dd"
           type="daterange"
           range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
+          :start-placeholder="$t('common:startDate')"
+          :end-placeholder="$t('common:endDate')"
         ></el-date-picker>
       </el-form-item>
       <el-form-item>
@@ -92,13 +93,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -116,7 +117,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['monitor:job:remove']"
-          >删除</el-button
+          >{{ $t('common:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -127,7 +128,7 @@
           size="mini"
           @click="handleClean"
           v-hasPermi="['monitor:job:remove']"
-          >清空</el-button
+          >{{ $t('common:clear') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -138,7 +139,7 @@
           size="mini"
           @click="handleExport"
           v-hasPermi="['monitor:job:export']"
-          >导出</el-button
+          >{{ $t('common:export') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -148,7 +149,7 @@
           icon="el-icon-close"
           size="mini"
           @click="handleClose"
-          >关闭</el-button
+          >{{ $t('layout:search.close') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -168,37 +169,37 @@
         align="center"
       />
       <el-table-column
-        label="日志编号"
+        :label="$t('monitor:log.id')"
         width="80"
         align="center"
         prop="jobLogId"
       />
       <el-table-column
-        label="任务名称"
+        :label="$t('monitor:job.name')"
         align="center"
         prop="jobName"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="任务组名"
+        :label="$t('monitor:job.groupName')"
         align="center"
         prop="jobGroup"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="调用目标字符串"
+        :label="$t('monitor:messages.callTarget')"
         align="center"
         prop="invokeTarget"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="日志信息"
+        :label="$t('monitor:messages.logInformation')"
         align="center"
         prop="jobMessage"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="执行状态"
+        :label="$t('monitor:job.executionStatus')"
         align="center"
         prop="status"
       >
@@ -210,7 +211,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="执行时间"
+        :label="$t('monitor:messages.executionTime')"
         align="center"
         prop="createTime"
         width="180"
@@ -220,7 +221,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -231,7 +232,7 @@
             icon="el-icon-view"
             @click="handleView(scope.row)"
             v-hasPermi="['monitor:job:query']"
-            >详细</el-button
+            >{{ $t('common:detail') }}</el-button
           >
         </template>
       </el-table-column>
@@ -255,6 +256,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getDisplayTimezone } from '@/utils/time'
 import { listJobLog, delJobLog, cleanJobLog } from '@/api/monitor/jobLog'
 import JobLogDetail from './detail'
@@ -371,26 +374,26 @@ export default {
     handleDelete(row) {
       const jobLogIds = this.ids
       this.$modal
-        .confirm('是否确认删除调度日志编号为"' + jobLogIds + '"的数据项？')
+        .confirm(t('monitor:confirmation.deleteSchedulerLogsWithIDsValue', { value0: jobLogIds }))
         .then(function () {
           return delJobLog(jobLogIds)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
         })
         .catch(() => {})
     },
     /** 清空按钮操作 */
     handleClean() {
       this.$modal
-        .confirm('是否确认清空所有调度日志数据项？')
+        .confirm(t('monitor:interface.clearAllSchedulerLogs'))
         .then(function () {
           return cleanJobLog()
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('清空成功')
+          this.$modal.msgSuccess(t('common:clearSuccess'))
         })
         .catch(() => {})
     },

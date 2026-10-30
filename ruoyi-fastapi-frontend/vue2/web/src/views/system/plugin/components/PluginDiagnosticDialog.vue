@@ -23,27 +23,27 @@
     <template v-else>
       <div class="diagnostic-summary">
         <div class="diagnostic-summary-item">
-          <span class="diagnostic-summary-label">插件ID</span>
+          <span class="diagnostic-summary-label">{{ $t('pluginAdmin:id') }}</span>
           <span class="diagnostic-summary-value">{{ result.pluginId || '-' }}</span>
         </div>
         <div class="diagnostic-summary-item">
-          <span class="diagnostic-summary-label">结果</span>
+          <span class="diagnostic-summary-label">{{ $t('file:messages.result') }}</span>
           <el-tag :type="result.ok ? 'success' : 'danger'">{{
-            result.ok ? '正常' : '异常'
+            result.ok ? $t('layout:notices.active') : $t('pluginAdmin:interface.error')
           }}</el-tag>
         </div>
         <div
           v-if="health"
           class="diagnostic-summary-item"
         >
-          <span class="diagnostic-summary-label">状态</span>
+          <span class="diagnostic-summary-label">{{ $t('common:status') }}</span>
           <span class="diagnostic-summary-value">{{ health.status || '-' }}</span>
         </div>
         <div
           v-if="health"
           class="diagnostic-summary-item"
         >
-          <span class="diagnostic-summary-label">耗时</span>
+          <span class="diagnostic-summary-label">{{ $t('monitor:job.duration') }}</span>
           <span class="diagnostic-summary-value">{{ formatDuration(health.durationMs) }}ms</span>
         </div>
       </div>
@@ -51,22 +51,26 @@
       <el-tabs>
         <el-tab-pane
           v-if="health"
-          label="健康状态"
+          :label="$t('pluginAdmin:messages.healthStatus')"
         >
           <el-descriptions
             :column="2"
             border
             class="mb16"
           >
-            <el-descriptions-item label="检查器">{{ health.checker || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="状态">{{ health.status || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('pluginAdmin:messages.checker')">{{
+              health.checker || '-'
+            }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('common:status')">{{
+              health.status || '-'
+            }}</el-descriptions-item>
             <el-descriptions-item
-              label="说明"
+              :label="$t('common:description')"
               :span="2"
               >{{ health.message || '-' }}</el-descriptions-item
             >
             <el-descriptions-item
-              label="错误"
+              :label="$t('system:messages.error')"
               :span="2"
               >{{ health.error || '-' }}</el-descriptions-item
             >
@@ -81,44 +85,46 @@
 
         <el-tab-pane
           v-if="diagnose"
-          label="检查摘要"
+          :label="$t('pluginAdmin:messages.checkSummary')"
         >
           <el-descriptions
             :column="3"
             border
             class="mb16"
           >
-            <el-descriptions-item label="依赖">{{
+            <el-descriptions-item :label="$t('pluginAdmin:dependencies')">{{
               formatBoolean(diagnoseCheck.dependencyOk)
             }}</el-descriptions-item>
             <el-descriptions-item label="Manifest">{{
               formatBoolean(diagnoseCheck.manifestOk)
             }}</el-descriptions-item>
-            <el-descriptions-item label="结构">{{
+            <el-descriptions-item :label="$t('common:structure')">{{
               formatBoolean(diagnoseCheck.structureOk)
             }}</el-descriptions-item>
-            <el-descriptions-item label="插件依赖">{{
+            <el-descriptions-item :label="$t('pluginAdmin:dependencyTitle')">{{
               formatBoolean(diagnoseCheck.pluginDependencyOk)
             }}</el-descriptions-item>
-            <el-descriptions-item label="菜单冲突">{{
+            <el-descriptions-item :label="$t('pluginAdmin:menuConflict')">{{
               formatBoolean(diagnoseCheck.menuConflictOk)
             }}</el-descriptions-item>
-            <el-descriptions-item label="配置项">{{ diagnoseConfigTotal }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('pluginAdmin:messages.configurationItem')">{{
+              diagnoseConfigTotal
+            }}</el-descriptions-item>
           </el-descriptions>
           <el-table
             :data="validationItems"
             size="small"
             border
-            empty-text="暂无诊断问题"
+            :empty-text="$t('pluginAdmin:messages.noDiagnosticIssues')"
           >
             <el-table-column
-              label="分类"
+              :label="$t('pluginAdmin:messages.category')"
               prop="category"
               width="120"
               align="center"
             />
             <el-table-column
-              label="等级"
+              :label="$t('common:level')"
               width="90"
               align="center"
             >
@@ -129,19 +135,19 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="类型"
+              :label="$t('common:type')"
               prop="kind"
               width="170"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="对象"
+              :label="$t('pluginAdmin:messages.object')"
               prop="value"
               min-width="180"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="说明"
+              :label="$t('common:description')"
               prop="message"
               min-width="260"
               :show-overflow-tooltip="true"
@@ -151,7 +157,7 @@
 
         <el-tab-pane
           v-if="diagnose"
-          label="菜单计划"
+          :label="$t('pluginAdmin:messages.menuPlan')"
         >
           <el-input
             :value="formatJson(diagnose.menuPlan)"
@@ -161,7 +167,7 @@
           />
         </el-tab-pane>
 
-        <el-tab-pane label="原始数据">
+        <el-tab-pane :label="$t('pluginAdmin:messages.rawData')">
           <el-input
             :value="formatJson(result)"
             type="textarea"
@@ -176,12 +182,14 @@
       slot="footer"
       class="dialog-footer"
     >
-      <el-button @click="emit('update:visible', false)">关 闭</el-button>
+      <el-button @click="emit('update:visible', false)">{{ $t('common:close') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script setup name="PluginDiagnosticDialog">
+import { t } from '@/i18n/adapter'
+
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -191,7 +199,9 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: '插件诊断',
+    get default() {
+      return t('pluginAdmin:messages.pluginDiagnostics')
+    },
   },
   result: {
     type: Object,
@@ -235,19 +245,19 @@ const diagnoseConfigTotal = computed(() => {
 const validationItems = computed(() => {
   const check = diagnose.value?.check || {}
   const groups = [
-    ['依赖', check.dependencies],
-    ['Manifest 错误', check.manifestIssues],
-    ['Manifest 警告', check.manifestWarnings],
-    ['插件依赖', check.pluginDependencyErrors],
-    ['结构', check.structureErrors],
-    ['菜单冲突', check.menuConflicts],
+    [t('pluginAdmin:dependencies'), check.dependencies],
+    [t('system:messages.manifestErrors'), check.manifestIssues],
+    [t('system:messages.manifestWarnings'), check.manifestWarnings],
+    [t('pluginAdmin:dependencyTitle'), check.pluginDependencyErrors],
+    [t('common:structure'), check.structureErrors],
+    [t('pluginAdmin:menuConflict'), check.menuConflicts],
   ]
 
   return groups.flatMap(([category, items]) =>
     Array.isArray(items)
       ? items.map((item) => ({
           category,
-          level: item.level || (category.includes('警告') ? 'warning' : 'error'),
+          level: item.level || (category.includes(t('common:warning')) ? 'warning' : 'error'),
           kind: item.kind || item.name || item.status || '-',
           value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
           message: item.message || item.suggestion || item.reason || '',

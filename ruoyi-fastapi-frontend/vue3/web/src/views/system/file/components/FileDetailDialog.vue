@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    title="文件详细信息"
+    :title="$t('files:fileDetails')"
     v-model="open"
     width="820px"
     append-to-body
@@ -12,30 +12,30 @@
       class="file-descriptions"
     >
       <el-descriptions-item
-        label="文件ID"
+        :label="$t('files:fileID')"
         :span="2"
       >
         {{ detail.fileId }}
       </el-descriptions-item>
-      <el-descriptions-item label="原始文件名">
+      <el-descriptions-item :label="$t('components:originalFileName')">
         {{ detail.originalName }}
       </el-descriptions-item>
-      <el-descriptions-item label="存储文件名">
+      <el-descriptions-item :label="$t('files:storedFileName')">
         {{ detail.storedName }}
       </el-descriptions-item>
-      <el-descriptions-item label="访问类型">
+      <el-descriptions-item :label="$t('components:accessType')">
         {{ accessTypeLabel(detail.accessType) }}
       </el-descriptions-item>
-      <el-descriptions-item label="文件状态">
+      <el-descriptions-item :label="$t('files:fileStatus')">
         {{ statusLabel(detail.status) }}
       </el-descriptions-item>
-      <el-descriptions-item label="上传用户">
+      <el-descriptions-item :label="$t('files:uploader')">
         {{ detail.createBy || '-' }}
       </el-descriptions-item>
-      <el-descriptions-item label="上传用户ID">
+      <el-descriptions-item :label="$t('files:uploaderID')">
         {{ detail.uploadUserId || '-' }}
       </el-descriptions-item>
-      <el-descriptions-item label="上传人权限">
+      <el-descriptions-item :label="$t('files:uploaderPermissions')">
         <el-tag
           v-if="detail.accessType === 'private' && detail.uploadUserId"
           :type="uploaderPermissionTagType(detail)"
@@ -45,52 +45,52 @@
         </el-tag>
         <span v-else>{{ uploaderPermissionLabel(detail) }}</span>
       </el-descriptions-item>
-      <el-descriptions-item label="所有者">
+      <el-descriptions-item :label="$t('components:owner')">
         {{ detail.ownerName || detail.ownerUserId || '-' }}
       </el-descriptions-item>
-      <el-descriptions-item label="所属部门">
+      <el-descriptions-item :label="$t('system:department')">
         {{ detail.deptName || detail.deptId || '-' }}
       </el-descriptions-item>
-      <el-descriptions-item label="存储状态">
+      <el-descriptions-item :label="$t('files:storageStatus')">
         {{ storageStatusLabel(detail.storageStatus) }}
       </el-descriptions-item>
-      <el-descriptions-item label="ACL数量">
+      <el-descriptions-item :label="$t('files:aCLEntries')">
         {{ detail.aclEntryCount || 0 }}
       </el-descriptions-item>
-      <el-descriptions-item label="业务引用">
+      <el-descriptions-item :label="$t('files:businessReferences')">
         <el-button
           v-if="detail.referenceCount"
           link
           type="primary"
           @click="emit('reference', detail)"
         >
-          {{ detail.referenceCount }} 项
-        </el-button>
-        <span v-else>0 项</span>
+          {{ detail.referenceCount }} {{ $t('authCenter:items') }}</el-button
+        >
+        <span v-else>{{ $t('files:0Items') }}</span>
       </el-descriptions-item>
-      <el-descriptions-item label="权限版本">
+      <el-descriptions-item :label="$t('files:permissionsVersion')">
         {{ detail.aclVersion ?? '-' }}
       </el-descriptions-item>
-      <el-descriptions-item label="文件大小">
+      <el-descriptions-item :label="$t('tools:fileSize')">
         {{ formatFileSize(detail.fileSize) }}
       </el-descriptions-item>
-      <el-descriptions-item label="内容类型">
+      <el-descriptions-item :label="$t('files:contentType')">
         {{ detail.contentType || '-' }}
       </el-descriptions-item>
-      <el-descriptions-item label="扩展名">
+      <el-descriptions-item :label="$t('files:extension')">
         {{ detail.extension || '-' }}
       </el-descriptions-item>
-      <el-descriptions-item label="上传时间">
+      <el-descriptions-item :label="$t('files:uploadedAt')">
         {{ parseTime(detail.createTime) }}
       </el-descriptions-item>
-      <el-descriptions-item label="过期时间">
+      <el-descriptions-item :label="$t('files:expiresAt')">
         {{ parseTime(detail.expireTime) || '-' }}
       </el-descriptions-item>
-      <el-descriptions-item label="移入回收站">
+      <el-descriptions-item :label="$t('files:moveToRecycleBin')">
         {{ parseTime(detail.deletedTime) || '-' }}
       </el-descriptions-item>
       <el-descriptions-item
-        label="存储相对路径"
+        :label="$t('files:relativeStoragePath')"
         :span="2"
       >
         {{ detail.storageKey }}
@@ -104,13 +104,14 @@
     </el-descriptions>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="open = false">关 闭</el-button>
+        <el-button @click="open = false">{{ $t('monitor:close') }}</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { accessTypeLabel, formatFileSize, statusLabel, storageStatusLabel } from './fileFormatters'
 
 defineProps({
@@ -128,16 +129,20 @@ const open = defineModel({
 
 function uploaderPermissionLabel(file) {
   if (file.accessType !== 'private') {
-    return '公开文件无需单独授权'
+    return t('files:publicFilesDoNotRequireIndividualPermissions')
   }
   if (!file.uploadUserId) {
-    return '未记录上传人'
+    return t('files:uploaderNotRecorded')
   }
   const accessEnabled = file.uploaderAccessEnabled === '1' || file.uploaderAccessEnabled === true
   if (file.uploadUserId === file.ownerUserId) {
-    return accessEnabled ? '兼容访问已保留；同时为所有者' : '兼容访问已移除；仍通过所有者访问'
+    return accessEnabled
+      ? t('files:legacyAccessRetainedAlsoTheOwner')
+      : t('files:legacyAccessRemovedAccessRemainsThroughOwnership')
   }
-  return accessEnabled ? '已保留，显式拒绝可覆盖' : '已移除，不再因上传身份放行'
+  return accessEnabled
+    ? t('files:retainedAnExplicitDenyTakesPrecedence')
+    : t('files:removedUploadingTheFileNoLongerGrantsAccess')
 }
 
 function uploaderPermissionTagType(file) {

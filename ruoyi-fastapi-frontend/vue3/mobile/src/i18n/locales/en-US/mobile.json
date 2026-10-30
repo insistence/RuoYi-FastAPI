@@ -1,0 +1,251 @@
+{
+  "app": {
+    "title": "RuoYi-FastAPI Mobile",
+    "comingSoon": "Coming soon",
+    "systemNotice": "System notice"
+  },
+  "home": {
+    "search": "Search...",
+    "healthy": "All systems operational",
+    "updated": "Just updated",
+    "productivity": "Productivity",
+    "notifications": "New notifications",
+    "tasks": "Pending tasks",
+    "shortcuts": "Quick access",
+    "requests": "Requests",
+    "news": "News",
+    "statistics": "Statistics",
+    "plans": "Plans",
+    "recent": "Recent updates",
+    "viewAll": "View all",
+    "leaveRequest": "Leave request",
+    "awaitingApproval": "Awaiting manager approval",
+    "pending": "Pending",
+    "weeklyReport": "Weekly report",
+    "submitted": "Submitted successfully",
+    "completed": "Completed",
+    "greeting": "Hello, {{name}}",
+    "welcome": "Welcome back"
+  },
+  "auth": {
+    "usernamePlaceholder": "Enter your username",
+    "passwordPlaceholder": "Enter your password",
+    "signingIn": "Signing in, please wait...",
+    "loginTitle": "Sign in to RuoYi-FastAPI Mobile",
+    "login": "Sign in",
+    "noAccount": "No account?",
+    "registerNow": "Register now",
+    "acceptTerms": "By signing in, you agree to the",
+    "agreementLink": "Terms of Service",
+    "and": "and",
+    "privacyLink": "Privacy Policy",
+    "confirmPasswordRequired": "Enter your password again",
+    "registering": "Registering, please wait...",
+    "registerTitle": "Register for RuoYi-FastAPI Mobile",
+    "confirmPasswordPlaceholder": "Enter your password again",
+    "register": "Register",
+    "existingAccount": "Sign in with an existing account",
+    "registerSuccess": "Your account {{username}} has been registered successfully!"
+  },
+  "about": {
+    "version": "Version",
+    "email": "Email",
+    "hotline": "Service hotline",
+    "website": "Website",
+    "title": "About us"
+  },
+  "avatar": {
+    "generating": "Generating image...",
+    "choose": "Choose avatar"
+  },
+  "actions": {
+    "updated": "Updated successfully",
+    "submit": "Submit",
+    "saveFailed": "Could not save. Please try again."
+  },
+  "help": {
+    "product": "About RuoYi-FastAPI",
+    "openSourceQuestion": "Is RuoYi-FastAPI open source?",
+    "openSourceAnswer": "Yes, it is open source.",
+    "commercialQuestion": "Can RuoYi-FastAPI be used commercially?",
+    "commercialAnswer": "Yes.",
+    "websiteQuestion": "What is the RuoYi-FastAPI website?",
+    "docsQuestion": "Where is the RuoYi-FastAPI documentation?",
+    "other": "Other questions",
+    "signOutQuestion": "How do I sign out?",
+    "signOutAnswer": "Go to Me > Settings > Sign out.",
+    "avatarQuestion": "How do I change my avatar?",
+    "avatarAnswer": "Go to Me, choose your avatar, then tap Submit.",
+    "passwordQuestion": "How do I change my password?",
+    "passwordAnswer": "Go to Me > Settings > Change password.",
+    "title": "FAQ"
+  },
+  "profile": {
+    "view": "View profile",
+    "signIn": "Tap to sign in",
+    "community": "Community",
+    "support": "Online support",
+    "feedback": "Feedback community",
+    "like": "Like us",
+    "edit": "Edit profile",
+    "male": "Male",
+    "female": "Female",
+    "nicknameRequired": "Nickname is required",
+    "phoneRequired": "Phone number is required",
+    "phoneInvalid": "Enter a valid phone number",
+    "emailRequired": "Email address is required",
+    "emailInvalid": "Enter a valid email address",
+    "nickname": "Nickname",
+    "nicknamePlaceholder": "Enter your nickname",
+    "phone": "Phone number",
+    "phonePlaceholder": "Enter your phone number",
+    "email": "Email",
+    "emailPlaceholder": "Enter your email address",
+    "sex": "Gender",
+    "shortNickname": "Nickname",
+    "post": "Post",
+    "role": "Role",
+    "createdAt": "Created on"
+  },
+  "settings": {
+    "title": "Settings",
+    "signOutConfirm": "Are you sure you want to sign out?",
+    "checkUpdates": "Check for updates",
+    "clearCache": "Clear cache",
+    "signOut": "Sign out"
+  },
+  "password": {
+    "oldRequired": "Current password is required",
+    "newRequired": "New password is required",
+    "length": "Use 6 to 20 characters",
+    "confirmRequired": "Confirm your password",
+    "mismatch": "The passwords do not match",
+    "old": "Current password",
+    "oldPlaceholder": "Enter your current password",
+    "new": "New password",
+    "newPlaceholder": "Enter your new password",
+    "confirm": "Confirm password",
+    "confirmPlaceholder": "Confirm your new password",
+    "title": "Change password"
+  },
+  "timezone": {
+    "title": "Time zone",
+    "saved": "Time zone saved",
+    "profileFailed": "Could not load account settings. Try saving again or reopen this page.",
+    "automatic": "Follow device automatically",
+    "display": "Display time zone",
+    "searchPlaceholder": "Search time zones, e.g. Asia/Shanghai",
+    "search": "Search time zones",
+    "choose": "Choose display time zone",
+    "noResults": "No matching time zones. Try another search.",
+    "loadFailed": "Could not load time zones. You can still use your current time zone.",
+    "preview": "Time preview",
+    "previewZone": "Preview time zone:",
+    "previewTime": "Time preview:",
+    "deviceFallback": "The device time zone could not be detected. The system time zone is used; you can also choose one manually.",
+    "hint": "Used for displayed times, date filters and exports. Scheduled tasks and business statistics use their own time zones.",
+    "save": "Save time zone"
+  },
+  "work": {
+    "ai": "AI productivity",
+    "chat": "AI chat",
+    "assistant": "AI assistant",
+    "image": "Image generation",
+    "studio": "Creative studio",
+    "system": "System management",
+    "users": "Users",
+    "roles": "Roles",
+    "departments": "Departments",
+    "config": "Configuration",
+    "dictionaries": "Dictionaries",
+    "notices": "Announcements",
+    "logs": "Logs",
+    "more": "More",
+    "subtitle": "Workspace"
+  },
+  "errors": {
+    "unauthorized": "Authentication failed. Unable to access system resources.",
+    "forbidden": "You do not have permission to perform this action.",
+    "notFound": "The requested resource does not exist.",
+    "unknown": "An unknown error occurred. Please contact the administrator.",
+    "sessionInvalid": "Your session is invalid or has expired. Please sign in again.",
+    "uploadResponse": "Invalid upload response",
+    "upload": "Upload failed",
+    "httpStatus": "Server request failed ({{status}})"
+  },
+  "agreement": {
+    "title": "User agreement",
+    "acceptance": {
+      "title": "1. Acceptance of the terms of service",
+      "body": "Welcome to the RuoYi-FastAPI mobile framework (the Product). RuoYi-FastAPI owns and operates the Product. Read this agreement carefully before use. By clicking Agree or using the services, you acknowledge that you have read and accepted all terms of this agreement."
+    },
+    "security": {
+      "title": "2. Accounts and security",
+      "body": "Provide true, accurate, current and complete personal information when registering. You are responsible for protecting your account and password and for all activities under your account. Notify us immediately if you discover unauthorized use."
+    },
+    "conduct": {
+      "title": "3. User conduct",
+      "body": "You must comply with applicable laws and regulations when using the Product. Do not use it for unlawful activities, including publishing false information, infringing intellectual property, distributing obscene content or conducting cyberattacks."
+    },
+    "changes": {
+      "title": "4. Changes, interruptions and termination of services",
+      "body": "Due to the nature of network services, we may change, interrupt or terminate some or all services at any time. We will try to announce interruptions caused by maintenance or network failures in advance, but accept no liability for resulting losses."
+    },
+    "intellectualProperty": {
+      "title": "5. Intellectual property",
+      "body": "All content in the Product, including text, images, audio, video and software code, belongs to RuoYi-FastAPI or the respective rights holders. Unauthorized use, copying, modification or distribution is prohibited."
+    },
+    "disclaimer": {
+      "title": "6. Disclaimer",
+      "body": "The Product is provided as is, without express or implied warranties. We accept no liability for interruptions or data loss caused by force majeure, cyberattacks or system instability."
+    },
+    "updated": "Updated: January 1, 2024"
+  },
+  "privacy": {
+    "title": "Privacy policy",
+    "intro": "RuoYi-FastAPI takes your privacy seriously. This policy explains how we collect, use, store and protect your personal information. Read it carefully before using the Product.",
+    "collection": {
+      "title": "1. Collection and use of personal information",
+      "body": "To provide better services, we may collect the following information:",
+      "account": "• Account information: when you register or sign in, we collect your username, password, mobile number and related information.",
+      "device": "• Device information: to keep your account secure and improve services, we collect your device model, operating system version and unique device identifier.",
+      "log": "• Log information: we automatically collect operation logs, IP addresses and access times when you use the Product."
+    },
+    "sharing": {
+      "title": "2. Sharing, transfer and disclosure of personal information",
+      "body": "We do not share, transfer or publicly disclose your personal information to third parties, except:",
+      "consent": "• With your explicit authorization or consent;",
+      "law": "• As required by laws, regulations or judicial authorities;",
+      "publicInterest": "• To protect national security, public safety or substantial public interests."
+    },
+    "protection": {
+      "title": "3. Protection of personal information",
+      "body": "We use measures including encryption, access controls and security audits to protect your information. We strive to prevent unauthorized access, alteration or disclosure."
+    },
+    "rights": {
+      "title": "4. Your rights",
+      "body": "You may access, correct or delete your personal information and close your account. To exercise these rights, contact us using the details in the Contact us section."
+    },
+    "updates": {
+      "title": "5. Updates to this policy",
+      "body": "We may update this policy as laws or our business change. Updates will be published in the Product, and we will notify you appropriately before they take effect."
+    },
+    "contact": {
+      "title": "6. Contact us",
+      "body": "For questions or suggestions about this policy, please contact us:",
+      "email": "Email: xxx@xxx.com"
+    },
+    "updated": "Updated: January 1, 2024"
+  },
+  "nav": {
+    "home": "Home",
+    "work": "Workspace",
+    "mine": "Me",
+    "login": "Sign in",
+    "register": "Register",
+    "avatar": "Change avatar",
+    "profile": "Profile",
+    "web": "Web page",
+    "text": "Text"
+  }
+}

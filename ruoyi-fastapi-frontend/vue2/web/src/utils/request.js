@@ -1,3 +1,4 @@
+import { i18n, t } from '@/i18n'
 import { getDisplayTimezone } from '@/utils/time'
 import axios from 'axios'
 import { Notification, MessageBox, Message, Loading } from 'element-ui'
@@ -38,6 +39,7 @@ const service = axios.create({
 // request拦截器
 service.interceptors.request.use(
   async (config) => {
+    Object.assign(config.headers, { ...i18n.headers, ...config.headers })
     config.headers['X-Timezone'] = config.headers['X-Timezone'] || getDisplayTimezone()
     // 是否需要设置 token
     const isToken = (config.headers || {}).isToken === false
@@ -74,7 +76,7 @@ service.interceptors.request.use(
           s_url === requestObj.url &&
           sessionObj.timezone === requestObj.timezone
         ) {
-          const message = '数据正在处理，请勿重复提交'
+          const message = t('common:request.alreadyProcessing')
           console.warn(`[${s_url}]: ` + message)
           return Promise.reject(new Error(message))
         } else {
@@ -113,21 +115,21 @@ service.interceptors.response.use(
     // 未设置状态码则默认成功状态
     const code = res.data.code || 200
     // 获取错误信息
-    const msg = errorCode[code] || res.data.msg || errorCode['default']
+    const msg = res.data.msg || errorCode[code] || errorCode['default']
     // 二进制数据则直接返回
     if (res.request.responseType === 'blob' || res.request.responseType === 'arraybuffer') {
       return res.data
     }
     // 插件的独立会话失效不应触发宿主账号退出，由 PluginFrame 显示局部错误。
     if (res.config?.pluginBridge && code !== 200) {
-      return Promise.reject(new Error('插件请求失败，请重试'))
+      return Promise.reject(new Error(t('pluginAdmin:request.failed')))
     }
     if (code === 401) {
       if (!isRelogin.show) {
         isRelogin.show = true
-        MessageBox.confirm('登录状态已过期，您可以继续留在该页面，或者重新登录', '系统提示', {
-          confirmButtonText: '重新登录',
-          cancelButtonText: '取消',
+        MessageBox.confirm(t('auth:session.expiredPrompt'), t('common:notice'), {
+          confirmButtonText: t('common:session.signIn'),
+          cancelButtonText: t('common:cancel'),
           type: 'warning',
         })
           .then(() => {
@@ -140,7 +142,7 @@ service.interceptors.response.use(
             isRelogin.show = false
           })
       }
-      return Promise.reject('无效的会话，或者会话已过期，请重新登录。')
+      return Promise.reject(t('common:session.invalid'))
     } else if (code === 500) {
       Message({ message: msg, type: 'error' })
       return Promise.reject(new Error(msg))
@@ -179,14 +181,19 @@ service.interceptors.response.use(
     if (responseStatus === 422) {
       const details = Array.isArray(response?.data?.detail) ? response.data.detail : []
       error.fieldErrors = Object.fromEntries(
-        details.map((item) => [item.loc?.slice(1).join('.') || '参数', item.msg])
+        details.map((item) => [item.loc?.slice(1).join('.') || 'parameters', item.msg])
       )
       error.message =
         details
-          .map((item) => `${item.loc?.slice(1).join('.') || '参数'}：${item.msg}`)
-          .join('；') ||
+          .map((item) =>
+            t('common:request.fieldError', {
+              field: item.loc?.slice(1).join('.') || t('common:request.parameters'),
+              message: item.msg,
+            })
+          )
+          .join('; ') ||
         responseMsg ||
-        '请检查输入参数'
+        t('common:request.checkParameters')
       if (!error.config?.skipErrorMessage)
         Message({ message: error.message, type: 'warning', duration: 5000 })
       return Promise.reject(error)
@@ -199,11 +206,11 @@ service.interceptors.response.use(
     }
     let { message } = error
     if (message == 'Network Error') {
-      message = '后端接口连接异常'
+      message = t('common:network.error')
     } else if (message.includes('timeout')) {
-      message = '系统接口请求超时'
+      message = t('common:network.timeout')
     } else if (message.includes('Request failed with status code')) {
-      message = '系统接口' + message.slice(-3) + '异常'
+      message = t('common:request.statusError', { status: message.slice(-3) })
     }
     Message({ message: message, type: 'error', duration: 5 * 1000 })
     return Promise.reject(error)
@@ -222,7 +229,7 @@ service.interceptors.response.use(
 // 通用下载方法
 export function download(url, params, filename, config) {
   downloadLoadingInstance = Loading.service({
-    text: '正在下载数据，请稍候',
+    text: t('pluginAdmin:interface.downloadingDataPleaseWait'),
     spinner: 'el-icon-loading',
     background: 'rgba(0, 0, 0, 0.7)',
   })
@@ -256,7 +263,7 @@ export function download(url, params, filename, config) {
     })
     .catch((r) => {
       console.error(r)
-      Message.error('下载文件出现错误，请联系管理员！')
+      Message.error(t('file:download.failed'))
       downloadLoadingInstance.close()
     })
 }

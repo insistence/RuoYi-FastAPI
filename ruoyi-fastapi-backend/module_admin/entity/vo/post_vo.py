@@ -6,6 +6,7 @@ from pydantic_validation_decorator import NotBlank, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from i18n.message import I18nMessage
 
 
 class PostModel(BaseModel):
@@ -26,17 +27,27 @@ class PostModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
     remark: str | None = Field(default=None, description='备注')
 
-    @NotBlank(field_name='post_code', message='岗位编码不能为空')
-    @Size(field_name='post_code', min_length=0, max_length=64, message='岗位编码长度不能超过64个字符')
+    @NotBlank(field_name='post_code', message=I18nMessage('岗位编码不能为空', msg_key='validation.postCodeRequired'))
+    @Size(
+        field_name='post_code',
+        min_length=0,
+        max_length=64,
+        message=I18nMessage('岗位编码长度不能超过64个字符', msg_key='validation.postCodeLength'),
+    )
     def get_post_code(self) -> str | None:
         return self.post_code
 
-    @NotBlank(field_name='post_name', message='岗位名称不能为空')
-    @Size(field_name='post_name', min_length=0, max_length=50, message='岗位名称长度不能超过50个字符')
+    @NotBlank(field_name='post_name', message=I18nMessage('岗位名称不能为空', msg_key='validation.postNameRequired'))
+    @Size(
+        field_name='post_name',
+        min_length=0,
+        max_length=50,
+        message=I18nMessage('岗位名称长度不能超过50个字符', msg_key='validation.postNameLength'),
+    )
     def get_post_name(self) -> str | None:
         return self.post_name
 
-    @NotBlank(field_name='post_sort', message='显示顺序不能为空')
+    @NotBlank(field_name='post_sort', message=I18nMessage('显示顺序不能为空', msg_key='validation.orderRequired'))
     def get_post_sort(self) -> int | None:
         return self.post_sort
 

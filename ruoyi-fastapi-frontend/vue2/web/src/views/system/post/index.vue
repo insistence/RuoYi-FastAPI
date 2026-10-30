@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -9,34 +10,34 @@
       label-width="68px"
     >
       <el-form-item
-        label="岗位编码"
+        :label="$t('system:post.code')"
         prop="postCode"
       >
         <el-input
           v-model="queryParams.postCode"
-          placeholder="请输入岗位编码"
+          :placeholder="$t('system:enterPostCode')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="岗位名称"
+        :label="$t('system:post.name')"
         prop="postName"
       >
         <el-input
           v-model="queryParams.postName"
-          placeholder="请输入岗位名称"
+          :placeholder="$t('system:enterPostName')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('common:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="岗位状态"
+          :placeholder="$t('system:post.status')"
           clearable
         >
           <el-option
@@ -53,13 +54,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -76,7 +77,7 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['system:post:add']"
-          >新增</el-button
+          >{{ $t('common:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -88,7 +89,7 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['system:post:edit']"
-          >修改</el-button
+          >{{ $t('common:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -100,7 +101,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['system:post:remove']"
-          >删除</el-button
+          >{{ $t('common:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -111,7 +112,7 @@
           size="mini"
           @click="handleExport"
           v-hasPermi="['system:post:export']"
-          >导出</el-button
+          >{{ $t('common:export') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -131,27 +132,27 @@
         align="center"
       />
       <el-table-column
-        label="岗位编号"
+        :label="$t('system:postID')"
         align="center"
         prop="postId"
       />
       <el-table-column
-        label="岗位编码"
+        :label="$t('system:post.code')"
         align="center"
         prop="postCode"
       />
       <el-table-column
-        label="岗位名称"
+        :label="$t('system:post.name')"
         align="center"
         prop="postName"
       />
       <el-table-column
-        label="岗位排序"
+        :label="$t('system:post.order')"
         align="center"
         prop="postSort"
       />
       <el-table-column
-        label="状态"
+        :label="$t('common:status')"
         align="center"
         prop="status"
       >
@@ -163,7 +164,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="创建时间"
+        :label="$t('common:createdTime')"
         align="center"
         prop="createTime"
         width="180"
@@ -173,7 +174,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -184,7 +185,7 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:post:edit']"
-            >修改</el-button
+            >{{ $t('common:edit') }}</el-button
           >
           <el-button
             size="mini"
@@ -192,7 +193,7 @@
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:post:remove']"
-            >删除</el-button
+            >{{ $t('common:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -208,37 +209,38 @@
 
     <!-- 添加或修改岗位对话框 -->
     <el-dialog
-      :title="title"
+      :title="$t(titleKey)"
       :visible.sync="open"
       width="500px"
       append-to-body
     >
       <el-form
+        :validate-on-rule-change="false"
         ref="form"
         :model="form"
         :rules="rules"
         label-width="80px"
       >
         <el-form-item
-          label="岗位名称"
+          :label="$t('system:post.name')"
           prop="postName"
         >
           <el-input
             v-model="form.postName"
-            placeholder="请输入岗位名称"
+            :placeholder="$t('system:enterPostName')"
           />
         </el-form-item>
         <el-form-item
-          label="岗位编码"
+          :label="$t('system:post.code')"
           prop="postCode"
         >
           <el-input
             v-model="form.postCode"
-            placeholder="请输入编码名称"
+            :placeholder="$t('system:enterCodeName')"
           />
         </el-form-item>
         <el-form-item
-          label="岗位顺序"
+          :label="$t('system:postOrderLabel')"
           prop="postSort"
         >
           <el-input-number
@@ -248,7 +250,7 @@
           />
         </el-form-item>
         <el-form-item
-          label="岗位状态"
+          :label="$t('system:post.status')"
           prop="status"
         >
           <el-radio-group v-model="form.status">
@@ -261,13 +263,13 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item
-          label="备注"
+          :label="$t('common:remark')"
           prop="remark"
         >
           <el-input
             v-model="form.remark"
             type="textarea"
-            placeholder="请输入内容"
+            :placeholder="$t('common:contentPlaceholder')"
           />
         </el-form-item>
       </el-form>
@@ -278,15 +280,17 @@
         <el-button
           type="primary"
           @click="submitForm"
-          >确 定</el-button
+          >{{ $t('common:confirm') }}</el-button
         >
-        <el-button @click="cancel">取 消</el-button>
+        <el-button @click="cancel">{{ $t('common:cancel') }}</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { listPost, getPost, delPost, addPost, updatePost } from '@/api/system/post'
 
 export default {
@@ -309,7 +313,7 @@ export default {
       // 岗位表格数据
       postList: [],
       // 弹出层标题
-      title: '',
+      titleKey: '',
       // 是否显示弹出层
       open: false,
       // 查询参数
@@ -324,9 +328,15 @@ export default {
       form: {},
       // 表单校验
       rules: {
-        postName: [{ required: true, message: '岗位名称不能为空', trigger: 'blur' }],
-        postCode: [{ required: true, message: '岗位编码不能为空', trigger: 'blur' }],
-        postSort: [{ required: true, message: '岗位顺序不能为空', trigger: 'blur' }],
+        postName: [
+          { required: true, message: () => t('system:postNameIsRequired'), trigger: 'blur' },
+        ],
+        postCode: [
+          { required: true, message: () => t('system:postCodeIsRequired'), trigger: 'blur' },
+        ],
+        postSort: [
+          { required: true, message: () => t('system:postOrderIsRequired'), trigger: 'blur' },
+        ],
       },
     }
   },
@@ -380,7 +390,7 @@ export default {
     handleAdd() {
       this.reset()
       this.open = true
-      this.title = '添加岗位'
+      this.titleKey = 'system:addPost'
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
@@ -389,7 +399,7 @@ export default {
       getPost(postId).then((response) => {
         this.form = response.data
         this.open = true
-        this.title = '修改岗位'
+        this.titleKey = 'system:editPost'
       })
     },
     /** 提交按钮 */
@@ -398,13 +408,13 @@ export default {
         if (valid) {
           if (this.form.postId != undefined) {
             updatePost(this.form).then(() => {
-              this.$modal.msgSuccess('修改成功')
+              this.$modal.msgSuccess(t('common:updateSuccess'))
               this.open = false
               this.getList()
             })
           } else {
             addPost(this.form).then(() => {
-              this.$modal.msgSuccess('新增成功')
+              this.$modal.msgSuccess(t('common:addSuccess'))
               this.open = false
               this.getList()
             })
@@ -416,13 +426,13 @@ export default {
     handleDelete(row) {
       const postIds = row.postId || this.ids
       this.$modal
-        .confirm('是否确认删除岗位编号为"' + postIds + '"的数据项？')
+        .confirm(t('system:confirmation.deletePositionsWithIDsValue', { value0: postIds }))
         .then(function () {
           return delPost(postIds)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
         })
         .catch(() => {})
     },

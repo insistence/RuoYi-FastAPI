@@ -1,3 +1,4 @@
+import { t } from '../../../i18n/index.js'
 import {
   canInstall,
   canUpgrade,
@@ -36,17 +37,65 @@ export function formatPluginTime(value) {
 }
 
 export const pluginStatusOptions = [
-  { label: '已发现', value: 'discovered', tagType: 'info' },
-  { label: '已安装', value: 'installed', tagType: 'success' },
-  { label: '待升级', value: 'pending_upgrade', tagType: 'warning' },
-  { label: '异常', value: 'error', tagType: 'danger' },
+  {
+    get label() {
+      return t('system:discovered')
+    },
+    value: 'discovered',
+    tagType: 'info',
+  },
+  {
+    get label() {
+      return t('system:installed')
+    },
+    value: 'installed',
+    tagType: 'success',
+  },
+  {
+    get label() {
+      return t('system:upgradeAvailable')
+    },
+    value: 'pending_upgrade',
+    tagType: 'warning',
+  },
+  {
+    get label() {
+      return t('common:exception')
+    },
+    value: 'error',
+    tagType: 'danger',
+  },
 ]
 
 export const operationLogStatusOptions = [
-  { label: '成功', value: 'success', tagType: 'success' },
-  { label: '失败', value: 'failed', tagType: 'danger' },
-  { label: '阻塞', value: 'blocked', tagType: 'warning' },
-  { label: '预演', value: 'dry_run', tagType: 'info' },
+  {
+    get label() {
+      return t('common:success')
+    },
+    value: 'success',
+    tagType: 'success',
+  },
+  {
+    get label() {
+      return t('common:failed')
+    },
+    value: 'failed',
+    tagType: 'danger',
+  },
+  {
+    get label() {
+      return t('system:blocked')
+    },
+    value: 'blocked',
+    tagType: 'warning',
+  },
+  {
+    get label() {
+      return t('system:dryRun')
+    },
+    value: 'dry_run',
+    tagType: 'info',
+  },
 ]
 
 export function getStatusLabel(status) {
@@ -60,7 +109,11 @@ export function getStatusTagType(status) {
 }
 
 export function getCapabilityReason(capability) {
-  return capability?.primaryReason || capability?.warnings?.[0] || '当前环境不允许执行该插件操作'
+  return (
+    capability?.primaryReason ||
+    capability?.warnings?.[0] ||
+    t('system:thisEnvironmentDoesNotPermitThisPluginOperation')
+  )
 }
 
 export function getDependencyPolicyReason(policy) {
@@ -68,7 +121,7 @@ export function getDependencyPolicyReason(policy) {
     ...(Array.isArray(policy?.reasons) ? policy.reasons : []),
     ...(Array.isArray(policy?.requirements) ? policy.requirements : []),
   ]
-  return messages[0] || '当前依赖安装策略不允许执行真实安装'
+  return messages[0] || t('system:theCurrentDependencyPolicyDoesNotPermitInstallation')
 }
 
 export function getOperationTooltip(row, operation, label) {
@@ -84,16 +137,16 @@ export function getDependencyTagType(row) {
 
 export function formatDependencyInstalled(row) {
   if (row.status === 'skipped') {
-    return '不适用'
+    return t('system:notApplicable')
   }
-  return row.installed ? '是' : '否'
+  return row.installed ? t('common:yes') : t('common:no')
 }
 
 export function formatDependencyVersionSatisfied(row) {
   if (row.status === 'skipped') {
-    return '不适用'
+    return t('system:notApplicable')
   }
-  return row.versionSatisfied ? '是' : '否'
+  return row.versionSatisfied ? t('common:yes') : t('common:no')
 }
 
 export function normalizeActionResult(result) {
@@ -117,7 +170,7 @@ export function buildErrorActionResult(error, context = {}) {
       message: payload.error || message,
       suggestion:
         migrationRecovery?.suggestion ||
-        '请先执行插件检查，确认目录结构、依赖和菜单权限冲突后再重试。',
+        t('system:runPluginChecksAndResolveDirectoryDependencyMenuAnd'),
       raw: serializeError(error),
     },
     message,
@@ -144,7 +197,7 @@ export function buildErrorBatchResult(error, operation, executablePluginIds = []
         ok: false,
         status: 'failed',
         message,
-        suggestion: '请查看审计详情或后端日志后重试。',
+        suggestion: t('system:reviewAuditDetailsOrBackendLogsThenTryAgain'),
       },
     ],
   }
@@ -152,12 +205,14 @@ export function buildErrorBatchResult(error, operation, executablePluginIds = []
 
 export function getErrorMessage(error) {
   if (!error) {
-    return '插件操作失败'
+    return t('system:pluginOperationFailed')
   }
   if (typeof error === 'string') {
     return error
   }
-  return error.message || error.msg || error.response?.data?.msg || '插件操作失败'
+  return (
+    error.message || error.msg || error.response?.data?.msg || t('system:pluginOperationFailed')
+  )
 }
 
 export function serializeError(error) {
@@ -183,7 +238,7 @@ export function formatBoolean(value) {
   if (value === undefined || value === null) {
     return '-'
   }
-  return value ? '通过' : '异常'
+  return value ? t('system:passed') : t('common:exception')
 }
 
 export function formatPlanDependencies(dependencies) {
@@ -196,7 +251,9 @@ export function formatPluginIdsForDisplay(pluginIds) {
     return '-'
   }
   const visibleIds = ids.slice(0, 8).join(', ')
-  return ids.length > 8 ? visibleIds + ' 等 ' + ids.length + ' 个插件' : visibleIds
+  return ids.length > 8
+    ? t('pluginAdmin:summary.pluginList', { ids: visibleIds, count: ids.length })
+    : visibleIds
 }
 
 export function formatConfigDefaultValue(item) {
@@ -216,16 +273,20 @@ export function formatConfigDefaultValue(item) {
 export function formatConfigConstraint(item) {
   const constraints = []
   if (item.min !== undefined && item.min !== null) {
-    constraints.push('最小值 ' + item.min)
+    constraints.push(t('pluginAdmin:constraint.minimum', { value: item.min }))
   }
   if (item.max !== undefined && item.max !== null) {
-    constraints.push('最大值 ' + item.max)
+    constraints.push(t('pluginAdmin:constraint.maximum', { value: item.max }))
   }
   if (item.pattern) {
-    constraints.push('正则 ' + item.pattern)
+    constraints.push(t('pluginAdmin:constraint.pattern', { value: item.pattern }))
   }
   if (Array.isArray(item.options) && item.options.length) {
-    constraints.push('选项 ' + item.options.map(formatConfigOption).join(', '))
+    constraints.push(
+      t('pluginAdmin:constraint.options', {
+        value: item.options.map(formatConfigOption).join(', '),
+      })
+    )
   }
   return constraints.length ? constraints.join('; ') : '-'
 }
@@ -255,37 +316,32 @@ export function getOperationLogStatusTagType(status) {
 }
 
 export function formatRetentionMessage(result) {
-  const actionText = result.dryRun ? '预览' : '清理'
+  const actionText = result.dryRun ? t('common:preview') : t('monitor:deletePermanently')
   const cutoffTime = formatPluginTime(result.cutoffTime)
-  return (
-    actionText +
-    '完成：保留 ' +
-    result.retentionDays +
-    ' 天，截止 ' +
-    cutoffTime +
-    '，匹配 ' +
-    result.matchedCount +
-    ' 条，已删除 ' +
-    result.deletedCount +
-    ' 条'
-  )
+  return t('pluginAdmin:summary.retention', {
+    action: actionText,
+    days: result.retentionDays,
+    cutoff: cutoffTime,
+    matched: result.matchedCount,
+    deleted: result.deletedCount,
+  })
 }
 
 export function formatActionPlanState(action) {
   if (action.ok === true) {
-    return '通过'
+    return t('system:passed')
   }
   if (action.ok === false) {
-    return '异常'
+    return t('common:exception')
   }
   if (action.hook) {
     return action.hook
   }
   if (action.targetEnabled !== undefined) {
-    return action.targetEnabled ? '目标启用' : '目标停用'
+    return action.targetEnabled ? t('system:targetEnabled') : t('system:targetDisabled')
   }
   if (action.targetStatus !== undefined) {
-    return action.targetStatus === '0' ? '目标正常' : '目标停用'
+    return action.targetStatus === '0' ? t('system:targetHealthy') : t('system:targetDisabled')
   }
   return '-'
 }

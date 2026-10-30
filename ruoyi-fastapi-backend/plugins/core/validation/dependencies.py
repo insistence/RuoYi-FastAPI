@@ -8,6 +8,7 @@ from typing import Literal
 
 from packaging.requirements import InvalidRequirement
 
+from i18n.message import I18nMessage
 from plugins.core.environment import PLUGIN_RUNTIME_ENVIRONMENT, PluginRuntimeEnvironmentService
 from plugins.core.manifest.schema import PluginManifest
 from plugins.core.validation.python_requirements import PythonRequirementParser
@@ -291,7 +292,11 @@ class PythonDependencyInspector:
                 version_satisfied=False,
                 installed_version=None,
                 required_version=None,
-                message=f'Python 依赖声明无效：{requirement}，{exc}',
+                message=I18nMessage(
+                    f'Python 依赖声明无效：{requirement}，{exc}',
+                    msg_key='plugin.runtime.dependencies.invalidRequirement',
+                    msg_params={'requirement': str(requirement), 'error': str(exc)},
+                ),
             )
         if not parsed.is_marker_applicable():
             return DependencyCheckItem(
@@ -302,7 +307,11 @@ class PythonDependencyInspector:
                 version_satisfied=True,
                 installed_version=None,
                 required_version=parsed.required_version,
-                message=f'Python 依赖 marker 不适用当前环境，已跳过：{parsed.name}',
+                message=I18nMessage(
+                    f'Python 依赖 marker 不适用当前环境，已跳过：{parsed.name}',
+                    msg_key='plugin.runtime.dependencies.markerSkipped',
+                    msg_params={'name': str(parsed.name)},
+                ),
                 status='skipped',
             )
 
@@ -443,7 +452,9 @@ class NpmDependencyInspector:
             version_satisfied=True,
             installed_version=None,
             required_version=parsed_dependency.required_version,
-            message='当前为已构建前端环境，前端依赖需在构建前安装。',
+            message=I18nMessage(
+                '当前为已构建前端环境，前端依赖需在构建前安装。', msg_key='plugin.runtime.dependencies.builtFrontend'
+            ),
             status='skipped',
         )
 

@@ -2,7 +2,7 @@
   <el-card>
     <el-tabs v-model="activeName">
       <el-tab-pane
-        label="基本信息"
+        :label="$t('common:basicInfo')"
         name="basic"
       >
         <basic-info-form
@@ -11,7 +11,7 @@
         />
       </el-tab-pane>
       <el-tab-pane
-        label="字段信息"
+        :label="$t('tool:messages.columnInformation')"
         name="columnInfo"
       >
         <el-table
@@ -21,20 +21,20 @@
           :max-height="tableHeight"
         >
           <el-table-column
-            label="序号"
+            :label="$t('common:index')"
             type="index"
             min-width="5%"
             class-name="allowDrag"
           />
           <el-table-column
-            label="字段列名"
+            :label="$t('tool:messages.columnName')"
             prop="columnName"
             min-width="10%"
             :show-overflow-tooltip="true"
             class-name="allowDrag"
           />
           <el-table-column
-            label="字段描述"
+            :label="$t('tool:messages.columnDescription')"
             min-width="10%"
           >
             <template slot-scope="scope">
@@ -42,13 +42,13 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="物理类型"
+            :label="$t('tool:messages.databaseType')"
             prop="columnType"
             min-width="10%"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="Python类型"
+            :label="$t('tool:messages.pythonType')"
             min-width="11%"
           >
             <template slot-scope="scope">
@@ -97,7 +97,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="Python属性"
+            :label="$t('tool:messages.pythonAttribute')"
             min-width="10%"
           >
             <template slot-scope="scope">
@@ -106,7 +106,7 @@
           </el-table-column>
 
           <el-table-column
-            label="插入"
+            :label="$t('tool:messages.insert')"
             min-width="5%"
           >
             <template slot-scope="scope">
@@ -118,7 +118,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="编辑"
+            :label="$t('common:editAction')"
             min-width="5%"
           >
             <template slot-scope="scope">
@@ -130,7 +130,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="列表"
+            :label="$t('system:dict.list')"
             min-width="5%"
           >
             <template slot-scope="scope">
@@ -142,7 +142,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="查询"
+            :label="$t('monitor:messages.search')"
             min-width="5%"
           >
             <template slot-scope="scope">
@@ -154,7 +154,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="查询方式"
+            :label="$t('tool:messages.queryMethod')"
             min-width="10%"
           >
             <template slot-scope="scope">
@@ -195,7 +195,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="必填"
+            :label="$t('pluginAdmin:messages.required')"
             min-width="5%"
           >
             <template slot-scope="scope">
@@ -207,7 +207,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="唯一"
+            :label="$t('tool:messages.unique')"
             min-width="5%"
           >
             <template slot-scope="scope">
@@ -219,60 +219,60 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="显示类型"
+            :label="$t('tool:messages.displayType')"
             min-width="12%"
           >
             <template slot-scope="scope">
               <el-select v-model="scope.row.htmlType">
                 <el-option
-                  label="文本框"
+                  :label="$t('tool:messages.textInput')"
                   value="input"
                 />
                 <el-option
-                  label="文本域"
+                  :label="$t('tool:messages.textArea')"
                   value="textarea"
                 />
                 <el-option
-                  label="下拉框"
+                  :label="$t('tool:messages.dropdown')"
                   value="select"
                 />
                 <el-option
-                  label="单选框"
+                  :label="$t('tool:messages.radioButtons')"
                   value="radio"
                 />
                 <el-option
-                  label="复选框"
+                  :label="$t('tool:messages.checkboxes')"
                   value="checkbox"
                 />
                 <el-option
-                  label="日期（不含时间）"
+                  :label="$t('tool:messages.dateNoTime')"
                   value="date"
                 />
                 <el-option
-                  label="时间（一天内）"
+                  :label="$t('tool:messages.timeOfDay')"
                   value="time"
                 />
                 <el-option
-                  label="日期时间（真实时刻）"
+                  :label="$t('tool:messages.dateAndTimeInstant')"
                   value="datetime"
                 />
                 <el-option
-                  label="图片上传"
+                  :label="$t('tool:messages.imageUpload')"
                   value="imageUpload"
                 />
                 <el-option
-                  label="文件上传"
+                  :label="$t('tool:messages.fileUpload')"
                   value="fileUpload"
                 />
                 <el-option
-                  label="富文本控件"
+                  :label="$t('tool:messages.richTextEditor')"
                   value="editor"
                 />
               </el-select>
             </template>
           </el-table-column>
           <el-table-column
-            label="字典类型"
+            :label="$t('system:dict.type')"
             min-width="12%"
           >
             <template slot-scope="scope">
@@ -280,7 +280,7 @@
                 v-model="scope.row.dictType"
                 clearable
                 filterable
-                placeholder="请选择"
+                :placeholder="$t('common:selectPlaceholder')"
               >
                 <el-option
                   v-for="dict in dictOptions"
@@ -299,7 +299,7 @@
         </el-table>
       </el-tab-pane>
       <el-tab-pane
-        label="生成信息"
+        :label="$t('tool:messages.generationSettings')"
         name="genInfo"
       >
         <gen-info-form
@@ -310,20 +310,25 @@
         />
       </el-tab-pane>
     </el-tabs>
-    <el-form label-width="100px">
+    <el-form
+      :validate-on-rule-change="false"
+      label-width="100px"
+    >
       <el-form-item style="text-align: center; margin-left: -100px; margin-top: 10px">
         <el-button
           type="primary"
           @click="submitForm()"
-          >提交</el-button
+          >{{ $t('common:submit') }}</el-button
         >
-        <el-button @click="close()">返回</el-button>
+        <el-button @click="close()">{{ $t('layout:error.back') }}</el-button>
       </el-form-item>
     </el-form>
   </el-card>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getGenTable, updateGenTable } from '@/api/tool/gen'
 import { optionselect as getDictOptionselect } from '@/api/system/dict/type'
 import { listMenu as getMenuTreeselect } from '@/api/system/menu'
@@ -398,7 +403,7 @@ export default {
             }
           })
         } else {
-          this.$modal.msgError('表单校验未通过，请重新检查提交内容')
+          this.$modal.msgError(t('tool:messages.formValidationFailedCheckTheSubmittedValues'))
         }
       })
     },

@@ -1,0 +1,24 @@
+{
+  "sourceLocale": "zh-CN",
+  "defaultLocale": "zh-CN",
+  "locales": [
+    {
+      "code": "zh-CN",
+      "nativeName": "简体中文",
+      "enabled": true,
+      "direction": "ltr",
+      "aliases": ["zh", "zh-Hans"],
+      "fallback": [],
+      "dayjs": "zh-cn"
+    },
+    {
+      "code": "en-US",
+      "nativeName": "English",
+      "enabled": true,
+      "direction": "ltr",
+      "aliases": ["en"],
+      "fallback": ["zh-CN"],
+      "dayjs": "en"
+    }
+  ]
+}

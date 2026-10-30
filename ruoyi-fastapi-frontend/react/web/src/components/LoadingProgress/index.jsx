@@ -1,9 +1,13 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useSyncExternalStore } from 'react'
 import { Spin } from 'antd'
 import { beginProgress, loadingProgress } from '@/utils/loadingProgress'
 import './style.css'
 
-export function PageLoading({ description = '正在加载页面', className = '', ...props }) {
+export function PageLoading({ description = t('common:loadingPage'), className = '', ...props }) {
+  useI18n()
+
   useEffect(() => beginProgress(), [])
   return (
     <div
@@ -17,6 +21,8 @@ export function PageLoading({ description = '正在加载页面', className = ''
 }
 
 export default function LoadingProgress({ router }) {
+  useI18n()
+
   const progress = useSyncExternalStore(loadingProgress.subscribe, loadingProgress.getSnapshot)
   useEffect(() => {
     let key

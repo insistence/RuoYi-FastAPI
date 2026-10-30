@@ -1,3 +1,6 @@
+import { useLocalizedError } from '@/i18n/error'
+import { usePageLocale } from '@/i18n/navigation'
+import { t } from '@/i18n'
 import React, { useRef, useState } from 'react'
 import Taro, { useLoad } from '@tarojs/taro'
 import { View, Text, Switch, Input, Picker, Label } from '@tarojs/components'
@@ -14,6 +17,8 @@ import {
   getSupportedTimezones,
 } from '@/utils/time'
 export default function Timezone() {
+  usePageLocale()
+
   const allowed = usePageAuth()
   const [follow, setFollow] = useState(useUserStore.getState().timeZone === 'auto')
   const [zone, setZone] = useState(getDisplayTimezone())
@@ -24,7 +29,7 @@ export default function Timezone() {
   const [initializing, setInitializing] = useState(true)
   const [saving, setSaving] = useState(false)
   const lock = useRef(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useLocalizedError()
   const [now, setNow] = useState(new Date())
   const device = getDeviceTimezone()
   const previewZone = follow ? device || getBusinessTimezone() : zone
@@ -52,7 +57,7 @@ export default function Timezone() {
           setFollow(useUserStore.getState().timeZone === 'auto')
           setZone(getDisplayTimezone())
         })
-        .catch(() => setError('账号设置读取失败，请重试保存或重新进入页面')),
+        .catch(() => setError((t) => t('mobile:failedToReadAccountSettingsTrySavingAgainOr'))),
     ])
     setInitializing(false)
   })
@@ -66,9 +71,9 @@ export default function Timezone() {
       await updateUserTimezone(preference)
       useUserStore.getState().applyTimezone(preference)
       setNow(new Date())
-      Taro.showToast({ title: '时区设置已保存', icon: 'success' })
+      Taro.showToast({ title: t('mobile:timeZoneSaved'), icon: 'success' })
     } catch (failure) {
-      setError(failure.message || '保存失败，请重试')
+      setError(failure.message || (() => t('mobile:saveFailedPleaseTryAgain')))
     } finally {
       lock.current = false
       setSaving(false)
@@ -78,12 +83,14 @@ export default function Timezone() {
   return (
     <View className="mobile-page bg-white">
       <Label className="mobile-toggle mb-5">
-        <Text className="text-sm font-medium text-gray-700">自动跟随设备</Text>
+        <Text className="text-sm font-medium text-gray-700">
+          {t('mobile:followDeviceAutomatically')}
+        </Text>
         <Switch
-          aria-label="自动跟随设备"
+          aria-label={t('mobile:followDeviceAutomatically')}
           nativeProps={
             process.env.TARO_ENV === 'h5'
-              ? { 'aria-label': '自动跟随设备', role: 'switch' }
+              ? { 'aria-label': t('mobile:followDeviceAutomatically'), role: 'switch' }
               : undefined
           }
           checked={follow}
@@ -98,18 +105,18 @@ export default function Timezone() {
             for={process.env.TARO_ENV === 'h5' ? 'timezone-search-input' : 'timezone-search'}
             className="mobile-label"
           >
-            显示时区
+            {t('mobile:displayTimeZone')}
           </Label>
           <Input
             id="timezone-search"
-            aria-label="搜索时区"
+            aria-label={t('mobile:searchTimeZones')}
             nativeProps={
               process.env.TARO_ENV === 'h5'
-                ? { id: 'timezone-search-input', 'aria-label': '搜索时区' }
+                ? { id: 'timezone-search-input', 'aria-label': t('mobile:searchTimeZones') }
                 : undefined
             }
             className="mobile-input mb-3"
-            placeholder="搜索时区，例如 Asia/Shanghai"
+            placeholder={t('mobile:searchTimeZonesEGAsiaShanghai')}
             value={search}
             disabled={saving || initializing}
             onInput={(event) => setSearch(event.detail.value)}
@@ -122,7 +129,7 @@ export default function Timezone() {
           >
             <Button
               className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-2.5 text-left leading-normal border border-gray-200"
-              aria-label="选择显示时区"
+              aria-label={t('mobile:chooseADisplayTimeZone')}
               disabled={saving || initializing || loading || !filtered.length}
             >
               <Text className="break-all text-sm text-gray-800">{zone}</Text>
@@ -133,13 +140,15 @@ export default function Timezone() {
             </Button>
           </Picker>
           {!filtered.length && (
-            <Text className="block mt-2 text-sm text-gray-500">没有匹配的时区，请修改搜索词。</Text>
+            <Text className="block mt-2 text-sm text-gray-500">
+              {t('mobile:noMatchingTimeZonesTryAnotherSearch')}
+            </Text>
           )}
         </View>
       )}
       {loadError && (
         <View className="mb-5">
-          <Text className="mobile-muted">时区列表加载失败，仍可使用当前时区。</Text>
+          <Text className="mobile-muted">{t('mobile:failedToLoadTheTimeZoneListYourCurrent')}</Text>
           <Button
             size="mini"
             className="flex h-11 items-center justify-center rounded-xl bg-blue-50 px-4 text-sm font-medium text-blue-600"
@@ -147,28 +156,31 @@ export default function Timezone() {
             loading={loading}
             onClick={loadOptions}
           >
-            重试
+            {t('common:retry')}
           </Button>
         </View>
       )}
-      <Text className="mobile-label">时间预览</Text>
+      <Text className="mobile-label">{t('mobile:timePreview')}</Text>
       <View
         className="rounded-xl bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-800 border border-gray-200"
         aria-live="polite"
       >
-        <Text className="block break-all">预览时区：{previewZone}</Text>
+        <Text className="block break-all">
+          {t('mobile:previewTimeZone')}
+          {previewZone}
+        </Text>
         <Text className="block">
-          时间预览：
+          {t('mobile:timePreviewMineSettingTimezone')}
           {formatBusinessTime(now, 'YYYY-MM-DD HH:mm:ss', previewZone)}
         </Text>
         {follow && !device && (
           <Text className="mobile-muted">
-            当前设备无法识别时区，已使用系统时区；你也可以手动选择。
+            {t('mobile:thisDeviceCannotIdentifyItsTimeZoneTheSystem')}
           </Text>
         )}
       </View>
       <Text className="block mt-2 text-xs text-gray-500 leading-5">
-        用于时间显示、日期筛选和导出。定时任务和业务统计使用各自配置的时区。
+        {t('mobile:usedForTimeDisplayDateFilteringAndExportsScheduled')}
       </Text>
       {error && (
         <Text
@@ -184,7 +196,7 @@ export default function Timezone() {
         loading={saving}
         onClick={save}
       >
-        保存时区
+        {t('mobile:saveTimeZone')}
       </Button>
     </View>
   )

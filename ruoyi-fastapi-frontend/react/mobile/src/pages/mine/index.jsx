@@ -1,3 +1,5 @@
+import { usePageLocale } from '@/i18n/navigation'
+import { t } from '@/i18n'
 import React from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
@@ -6,6 +8,8 @@ import { getToken } from '@/utils/auth'
 import { usePageAuth } from '@/permission'
 import { toast } from '@/utils/common'
 export default function Mine() {
+  usePageLocale()
+
   const allowed = usePageAuth()
   const name = useUserStore((state) => state.name)
   const avatar = useUserStore((state) => state.avatar)
@@ -35,7 +39,7 @@ export default function Mine() {
           <View onClick={() => go('/pages/mine/info/index')}>
             <Text className="block text-xl font-bold">{name}</Text>
             <View className="flex items-center mt-1 text-sm text-blue-100">
-              <Text>查看个人信息</Text>
+              <Text>{t('mobile:viewProfile')}</Text>
               <View className="i-mdi-chevron-right ml-1 text-xs" />
             </View>
           </View>
@@ -44,15 +48,15 @@ export default function Mine() {
       <View className="relative z-20 -mt-12 px-4 pb-8">
         <View className="mb-4 rounded-2xl bg-white p-4 shadow-lg grid grid-cols-4 gap-2">
           {[
-            ['account-group', '交流群', 'bg-pink-50 text-pink-500'],
-            ['face-agent', '在线客服', 'bg-blue-50 text-blue-500'],
-            ['forum', '反馈社区', 'bg-purple-50 text-purple-500'],
-            ['thumb-up', '点赞我们', 'bg-green-50 text-green-500'],
+            ['account-group', t('mobile:communityChat'), 'bg-pink-50 text-pink-500'],
+            ['face-agent', t('mobile:onlineSupport'), 'bg-blue-50 text-blue-500'],
+            ['forum', t('mobile:feedbackCommunity'), 'bg-purple-50 text-purple-500'],
+            ['thumb-up', t('mobile:likeUs'), 'bg-green-50 text-green-500'],
           ].map(([icon, label, color]) => (
             <View
               key={label}
               className="flex flex-col items-center gap-2"
-              onClick={() => toast('模块建设中~')}
+              onClick={() => toast(t('mobile:thisFeatureIsUnderDevelopment'))}
             >
               <View className={`size-12 rounded-full flex items-center justify-center ${color}`}>
                 <View className={`i-mdi-${icon} text-2xl`} />
@@ -63,10 +67,10 @@ export default function Mine() {
         </View>
         <View className="overflow-hidden rounded-2xl bg-white shadow-lg">
           {[
-            ['account-edit', '编辑资料', 'info/edit', 'text-blue-500'],
-            ['help-circle', '常见问题', 'help/index', 'text-orange-500'],
-            ['heart-outline', '关于我们', 'about/index', 'text-red-500'],
-            ['cog-outline', '应用设置', 'setting/index', 'text-gray-500'],
+            ['account-edit', t('mobile:editProfile'), 'info/edit', 'text-blue-500'],
+            ['help-circle', t('mobile:frequentlyAskedQuestions'), 'help/index', 'text-orange-500'],
+            ['heart-outline', t('mobile:aboutUs'), 'about/index', 'text-red-500'],
+            ['cog-outline', t('mobile:appSettings'), 'setting/index', 'text-gray-500'],
           ].map(([icon, label, path, color], index) => (
             <View
               key={path}

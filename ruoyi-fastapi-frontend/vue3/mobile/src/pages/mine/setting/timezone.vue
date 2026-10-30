@@ -3,12 +3,12 @@
     <view class="space-y-5">
       <!-- 跟随设备 -->
       <label class="flex min-h-11 items-center justify-between gap-4">
-        <text class="text-sm font-medium text-gray-700">自动跟随设备</text>
+        <text class="text-sm font-medium text-gray-700">{{ $t('mobile:timezone.automatic') }}</text>
         <switch
           :checked="followDevice"
           :disabled="saving || initializing"
           color="#3b82f6"
-          aria-label="自动跟随设备"
+          :aria-label="$t('mobile:timezone.automatic')"
           @change="followDevice = $event.detail.value"
         />
       </label>
@@ -20,15 +20,15 @@
         <label
           for="timezone-search"
           class="mb-2 block text-sm font-medium text-gray-700"
-          >显示时区</label
+          >{{ $t('mobile:timezone.display') }}</label
         >
         <input
           id="timezone-search"
           v-model="zoneSearch"
           :disabled="saving || initializing"
           class="mb-3 h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
-          placeholder="搜索时区，例如 Asia/Shanghai"
-          aria-label="搜索时区"
+          :placeholder="$t('mobile:timezone.searchPlaceholder')"
+          :aria-label="$t('mobile:timezone.search')"
         />
         <picker
           :range="filteredTimezones"
@@ -39,7 +39,7 @@
           <button
             class="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-2.5 text-left leading-normal ring-1 ring-gray-200 transition-all active:bg-gray-100"
             :disabled="saving || initializing || loading || !filteredTimezones.length"
-            aria-label="选择显示时区"
+            :aria-label="$t('mobile:timezone.choose')"
           >
             <text class="break-all text-sm text-gray-800">{{ selectedZone }}</text>
             <view
@@ -51,14 +51,14 @@
         <text
           v-if="!filteredTimezones.length"
           class="mt-2 block text-sm text-gray-500"
-          >没有匹配的时区，请修改搜索词。</text
+          >{{ $t('mobile:timezone.noResults') }}</text
         >
       </view>
       <view
         v-if="loadError"
         class="space-y-3 text-sm text-gray-500"
       >
-        <text>时区列表加载失败，仍可使用当前时区。</text>
+        <text>{{ $t('mobile:timezone.loadFailed') }}</text>
         <button
           size="mini"
           class="flex h-11 items-center justify-center rounded-xl bg-blue-50 px-4 text-sm font-medium text-blue-600 active:bg-blue-100"
@@ -66,27 +66,31 @@
           :disabled="loading"
           @click="loadOptions"
         >
-          重试
+          {{ $t('common:retry') }}
         </button>
       </view>
       <!-- 时间预览 -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700">时间预览</text>
+        <text class="mb-2 block text-sm font-medium text-gray-700">{{
+          $t('mobile:timezone.preview')
+        }}</text>
         <view
           class="rounded-xl bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-800 ring-1 ring-gray-200"
           aria-live="polite"
         >
-          <text class="block break-all">预览时区：{{ previewZone }}</text>
-          <text class="block">时间预览：{{ previewTime }}</text>
+          <text class="block break-all"
+            >{{ $t('mobile:timezone.previewZone') }}{{ previewZone }}</text
+          >
+          <text class="block">{{ $t('mobile:timezone.previewTime') }}{{ previewTime }}</text>
           <text
             v-if="followDevice && !deviceZone"
             class="mt-2 block text-gray-500"
-            >当前设备无法识别时区，已使用系统时区；你也可以手动选择。</text
+            >{{ $t('mobile:timezone.deviceFallback') }}</text
           >
         </view>
-        <text class="mt-2 block text-xs leading-5 text-gray-500"
-          >用于时间显示、日期筛选和导出。定时任务和业务统计使用各自配置的时区。</text
-        >
+        <text class="mt-2 block text-xs leading-5 text-gray-500">{{
+          $t('mobile:timezone.hint')
+        }}</text>
       </view>
       <text
         v-if="saveError"
@@ -102,7 +106,7 @@
           :loading="saving"
           :disabled="saving || initializing"
         >
-          保存时区
+          {{ $t('mobile:timezone.save') }}
         </button>
       </view>
     </view>
@@ -110,6 +114,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { useUserStore } from '@/store'
 import { computed, getCurrentInstance, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
@@ -181,9 +186,9 @@ async function saveTimezone() {
     await updateUserTimezone(preference)
     userStore.applyTimezone(preference)
     now.value = new Date()
-    proxy.$modal.showToast('时区设置已保存')
+    proxy.$modal.showToast(t('mobile:timezone.saved'))
   } catch (error) {
-    saveError.value = error.message || '保存失败，请重试'
+    saveError.value = error.message || t('mobile:actions.saveFailed')
   } finally {
     saving.value = false
   }
@@ -199,7 +204,7 @@ onLoad(async () => {
         selectedZone.value = getDisplayTimezone()
       })
       .catch(() => {
-        saveError.value = '账号设置读取失败，请重试保存或重新进入页面'
+        saveError.value = t('mobile:timezone.profileFailed')
       }),
   ])
   initializing.value = false

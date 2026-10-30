@@ -1,6 +1,7 @@
+import { t as translate } from '../../../../src/i18n/index.js'
 /** Parse the backend's newline-delimited JSON, including a final line without a newline. */
-export async function readChatStream(body, onEvent, signal) {
-  if (!body) throw new Error('服务器未返回对话内容')
+export async function readChatStream(body, onEvent, signal, t = translate) {
+  if (!body) throw new Error(t('plugin.ai:theServerDidNotReturnConversationContent'))
   const reader = body.getReader(),
     decoder = new TextDecoder()
   let buffer = '',

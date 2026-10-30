@@ -8,13 +8,13 @@
       @open="onOpen"
       @close="onClose"
     >
-      <template #header="{ close, titleId, titleClass }">
-        选择图标
-        <el-input
+      <template #header="{ close, titleId, titleClass }"
+        >{{ $t('tools:chooseIcon')
+        }}<el-input
           v-model="key"
           size="small"
           :style="{ width: '260px' }"
-          placeholder="请输入图标名称"
+          :placeholder="$t('components:enterAnIconName')"
           prefix-icon="Search"
           clearable
         />
@@ -38,6 +38,7 @@
   </div>
 </template>
 <script setup>
+import { t } from '@/i18n/adapter'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { watch } from 'vue'
 

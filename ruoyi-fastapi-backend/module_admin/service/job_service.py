@@ -10,6 +10,8 @@ from common.vo import CrudResponseModel, PageModel
 from config.scheduler.job_adapter import JobAdapter
 from config.scheduler.manager import SchedulerManager
 from exceptions.exception import ServiceException
+from i18n.message import I18nMessage
+from i18n.translation import TranslationUtil
 from module_admin.dao.job_dao import JobDao
 from module_admin.dao.job_runtime_dao import JobRuntimeDao
 from module_admin.entity.vo.job_runtime_vo import JobExecutionQueryModel, JobSyncQueryModel
@@ -52,7 +54,9 @@ class JobService:
                 JobAdapter.validate_allowed_target(job.invoke_target)
             SchedulerManager._prepare_scheduler_job_add(job)
         except Exception as exc:
-            raise ServiceException(message=f'任务配置无效：{exc}') from exc
+            raise ServiceException(
+                message=f'任务配置无效：{exc}', msg_key='job.invalidConfiguration', msg_params={'error': str(exc)}
+            ) from exc
         return job
 
     @classmethod
@@ -163,7 +167,11 @@ class JobService:
         """
         page_object = cls._validate_job(page_object.model_copy(update={'job_id': None}))
         if not await cls.check_job_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增定时任务{page_object.job_name}失败，定时任务已存在')
+            raise ServiceException(
+                message=f'新增定时任务{page_object.job_name}失败，定时任务已存在',
+                msg_key='job.addDuplicate',
+                msg_params={'job_name': str(page_object.job_name)},
+            )
         try:
             db_job = await JobDao.add_job_dao(query_db, page_object)
             page_object = page_object.model_copy(update={'job_id': db_job.job_id})
@@ -206,7 +214,7 @@ class JobService:
         try:
             db_job, _state = await JobRuntimeDao.lock_job(query_db, page_object.job_id)
             if db_job is None:
-                raise ServiceException(message='定时任务不存在')
+                raise ServiceException(message='定时任务不存在', msg_key='job.notFound')
             job_info = JobAdapter.from_record(db_job)
             changed = job_info.model_copy(update=edit_job)
             if page_object.type != 'status' or changed.status == '0':
@@ -214,7 +222,11 @@ class JobService:
             for name in set(edit_job) & set(JobAdapter.CONFIG_FIELDS):
                 edit_job[name] = getattr(changed, name)
             if page_object.type != 'status' and not await cls.check_job_unique_services(query_db, changed):
-                raise ServiceException(message=f'修改定时任务{changed.job_name}失败，定时任务已存在')
+                raise ServiceException(
+                    message=f'修改定时任务{changed.job_name}失败，定时任务已存在',
+                    msg_key='job.editDuplicate',
+                    msg_params={'job_name': str(changed.job_name)},
+                )
             await JobDao.edit_job_dao(query_db, edit_job, job_info)
             state = await JobRuntimeDao.record_configuration(query_db, job_info.job_id, changed)
             await query_db.commit()
@@ -242,7 +254,7 @@ class JobService:
         try:
             db_job, _state = await JobRuntimeDao.lock_job(query_db, page_object.job_id)
             if db_job is None:
-                raise ServiceException(message='定时任务不存在')
+                raise ServiceException(message='定时任务不存在', msg_key='job.notFound')
             job_info = cls._validate_job(JobAdapter.from_record(db_job), check_target_permission=False)
             execution = await JobRuntimeDao.create_request(query_db, job_info, requested_by)
             await query_db.commit()
@@ -251,7 +263,9 @@ class JobService:
             await query_db.rollback()
             raise
         await SchedulerManager.request_execution_dispatch()
-        return CrudResponseModel(is_success=True, message='已提交执行，请查看执行记录', result=result)
+        return CrudResponseModel(
+            is_success=True, message='已提交执行，请查看执行记录', msg_key='job.executionSubmitted', result=result
+        )
 
     @classmethod
     async def delete_job_services(cls, query_db: AsyncSession, page_object: DeleteJobModel) -> CrudResponseModel:
@@ -268,7 +282,7 @@ class JobService:
                 if any(job_id <= 0 for job_id in job_id_list):
                     raise ValueError
             except ValueError as exc:
-                raise ServiceException(message='任务ID必须为正整数') from exc
+                raise ServiceException(message='任务ID必须为正整数', msg_key='job.invalidId') from exc
             states = []
             try:
                 for job_id in job_id_list:
@@ -282,7 +296,7 @@ class JobService:
                 await query_db.rollback()
                 raise e
             return await cls._after_commit(states, '删除')
-        raise ServiceException(message='传入定时任务id为空')
+        raise ServiceException(message='传入定时任务id为空', msg_key='job.idRequired')
 
     @classmethod
     async def job_detail_services(cls, query_db: AsyncSession, job_id: int) -> JobModel:
@@ -295,7 +309,7 @@ class JobService:
         """
         job = await JobDao.get_job_detail_by_id(query_db, job_id=job_id)
         if job is None:
-            raise ServiceException(message='定时任务不存在')
+            raise ServiceException(message='定时任务不存在', msg_key='job.notFound')
         result = JobAdapter.from_record(job)
         result.cron_next_time = cls._get_next_valid_time(result.cron_expression, result.time_zone)
         state = (await JobRuntimeDao.get_states(query_db, [job_id])).get(job_id, {'syncStatus': 'pending'})
@@ -324,7 +338,7 @@ class JobService:
         """
         execution = await JobRuntimeDao.get_execution(query_db, execution_id)
         if execution is None:
-            raise ServiceException(message='执行记录不存在')
+            raise ServiceException(message='执行记录不存在', msg_key='job.executionNotFound')
         return JobRuntimeDao.execution_result(execution)
 
     @staticmethod
@@ -360,7 +374,7 @@ class JobService:
         """
         states = await JobRuntimeDao.get_states(query_db, [job_id])
         if job_id not in states:
-            raise ServiceException(message='调度同步记录不存在')
+            raise ServiceException(message='调度同步记录不存在', msg_key='job.syncNotFound')
         return await cls._after_commit([states[job_id]], '同步')
 
     @staticmethod
@@ -374,46 +388,56 @@ class JobService:
         """
         # 创建一个映射字典，将英文键映射到中文键
         mapping_dict = {
-            'jobId': '任务编码',
-            'jobName': '任务名称',
-            'jobGroup': '任务组名',
-            'jobStore': '调度存储',
-            'jobExecutor': '任务执行器',
-            'invokeTarget': '调用目标字符串',
-            'jobArgs': '位置参数',
-            'jobKwargs': '关键字参数',
-            'cronExpression': 'cron执行表达式',
-            'timeZone': 'cron时区',
-            'misfireGraceTime': '允许延迟秒数',
-            'coalesce': '积压处理',
-            'maxInstances': '最大并发数',
-            'status': '状态',
-            'createBy': '创建者',
-            'createTime': '创建时间',
-            'updateBy': '更新者',
-            'updateTime': '更新时间',
-            'remark': '备注',
+            'jobId': I18nMessage('任务编码', msg_key='export.jobCode'),
+            'jobName': I18nMessage('任务名称', msg_key='export.jobName'),
+            'jobGroup': I18nMessage('任务组名', msg_key='export.jobGroup'),
+            'jobStore': I18nMessage('调度存储', msg_key='export.jobStore'),
+            'jobExecutor': I18nMessage('任务执行器', msg_key='export.executor'),
+            'invokeTarget': I18nMessage('调用目标字符串', msg_key='export.invokeTarget'),
+            'jobArgs': I18nMessage('位置参数', msg_key='export.args'),
+            'jobKwargs': I18nMessage('关键字参数', msg_key='export.kwargs'),
+            'cronExpression': I18nMessage('cron执行表达式', msg_key='export.cron'),
+            'timeZone': I18nMessage('cron时区', msg_key='export.cronTimezone'),
+            'misfireGraceTime': I18nMessage('允许延迟秒数', msg_key='export.misfireGraceTime'),
+            'coalesce': I18nMessage('积压处理', msg_key='export.coalesce'),
+            'maxInstances': I18nMessage('最大并发数', msg_key='export.maxInstances'),
+            'status': I18nMessage('状态', msg_key='export.status'),
+            'createBy': I18nMessage('创建者', msg_key='export.createdBy'),
+            'createTime': I18nMessage('创建时间', msg_key='export.createdAt'),
+            'updateBy': I18nMessage('更新者', msg_key='export.updatedBy'),
+            'updateTime': I18nMessage('更新时间', msg_key='export.updatedAt'),
+            'remark': I18nMessage('备注', msg_key='export.remark'),
         }
 
         job_executor_list = await DictDataService.query_dict_data_list_from_cache_services(
             request.app.state.redis, dict_type='sys_job_executor'
         )
         job_executor_option = [
-            {'label': item.get('dictLabel'), 'value': item.get('dictValue')} for item in job_executor_list
+            {
+                'label': TranslationUtil.resolve(item.get('dictLabel'), item.get('dictLabelI18n')),
+                'value': item.get('dictValue'),
+            }
+            for item in job_executor_list
         ]
         job_executor_option_dict = {item.get('value'): item for item in job_executor_option}
 
         for item in job_list:
             if item.get('status') == '0':
-                item['status'] = '正常'
+                item['status'] = I18nMessage('正常', msg_key='export.active')
             else:
-                item['status'] = '暂停'
+                item['status'] = I18nMessage('暂停', msg_key='export.paused')
             if str(item.get('jobExecutor')) in job_executor_option_dict:
                 item['jobExecutor'] = job_executor_option_dict.get(str(item.get('jobExecutor'))).get('label')
             item['misfireGraceTime'] = (
-                item.get('misfireGraceTime') if item.get('misfireGraceTime') is not None else '不限'
+                item.get('misfireGraceTime')
+                if item.get('misfireGraceTime') is not None
+                else I18nMessage('不限', msg_key='export.unlimited')
             )
-            item['coalesce'] = '只执行最近一次' if item.get('coalesce') else '逐次执行'
+            item['coalesce'] = (
+                I18nMessage('只执行最近一次', msg_key='export.latestOnly')
+                if item.get('coalesce')
+                else I18nMessage('逐次执行', msg_key='export.runEach')
+            )
             item['jobArgs'] = json.dumps(item.get('jobArgs', []), ensure_ascii=False)
             item['jobKwargs'] = json.dumps(item.get('jobKwargs', {}), ensure_ascii=False)
         binary_data = ExcelUtil.export_list2excel(job_list, mapping_dict)

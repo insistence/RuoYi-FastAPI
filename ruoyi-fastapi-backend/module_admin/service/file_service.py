@@ -82,7 +82,7 @@ class FileRetentionDispositionService:
         """
         user = current_user.user
         if user is None or not user.user_name:
-            raise ServiceException(message='无法获取当前用户信息')
+            raise ServiceException(message='无法获取当前用户信息', msg_key='auth.currentUserUnavailable')
         context = await FileRetentionNoticeDao.get_file_retention_notice_context_for_update(
             query_db,
             notice_id,
@@ -90,7 +90,7 @@ class FileRetentionDispositionService:
         )
         if context is None:
             await query_db.rollback()
-            raise ServiceException(message='提醒不存在、已失效或超出数据权限')
+            raise ServiceException(message='提醒不存在、已失效或超出数据权限', msg_key='file.reminder.unavailable')
         _, file_info = context
         file_snapshot = FileAuditSnapshot(
             file_id=file_info.file_id,
@@ -103,7 +103,7 @@ class FileRetentionDispositionService:
         previous_expire_time = file_info.expire_time
         if previous_expire_time is None:
             await query_db.rollback()
-            raise ServiceException(message='文件未配置保留期限')
+            raise ServiceException(message='文件未配置保留期限', msg_key='file.retention.notConfigured')
         if new_expire_time <= current_time or new_expire_time <= previous_expire_time:
             await cls._enqueue_retention_audit(
                 request,
@@ -117,7 +117,9 @@ class FileRetentionDispositionService:
                 error_message='InvalidExpireTime',
             )
             await query_db.rollback()
-            raise ServiceException(message='新的到期时间必须晚于当前时间和原到期时间')
+            raise ServiceException(
+                message='新的到期时间必须晚于当前时间和原到期时间', msg_key='file.retention.invalidExtension'
+            )
 
         reference_list = await FileReferenceDao.get_file_reference_list_for_update(query_db, file_info.file_id)
         if not reference_list:
@@ -133,7 +135,9 @@ class FileRetentionDispositionService:
                 error_message='TimedBusinessReferenceNotFound',
             )
             await query_db.rollback()
-            raise ServiceException(message='文件不存在可延期的限时业务引用，请先重新关联业务')
+            raise ServiceException(
+                message='文件不存在可延期的限时业务引用，请先重新关联业务', msg_key='file.retention.noTimedReference'
+            )
         if (file_info.business_type and file_info.business_id) or any(
             reference.retention_expire_time is None for reference in reference_list
         ):
@@ -149,14 +153,18 @@ class FileRetentionDispositionService:
                 error_message='PermanentBusinessReferenceExists',
             )
             await query_db.rollback()
-            raise ServiceException(message='文件存在永久业务引用，不能通过到期提醒延期')
+            raise ServiceException(
+                message='文件存在永久业务引用，不能通过到期提醒延期', msg_key='file.retention.permanentReference'
+            )
 
         terminal_references = [
             reference for reference in reference_list if reference.retention_expire_time == previous_expire_time
         ]
         if reference_list and not terminal_references:
             await query_db.rollback()
-            raise ServiceException(message='文件到期时间与业务引用不一致，请先检查业务引用')
+            raise ServiceException(
+                message='文件到期时间与业务引用不一致，请先检查业务引用', msg_key='file.retention.referenceMismatch'
+            )
 
         for reference in terminal_references:
             reference.retention_expire_time = new_expire_time
@@ -193,7 +201,7 @@ class FileRetentionDispositionService:
             new_expire_time,
             reference_count=len(terminal_references),
         )
-        return CrudResponseModel(is_success=True, message='文件保留期限已延长')
+        return CrudResponseModel(is_success=True, message='文件保留期限已延长', msg_key='file.retention.extended')
 
     @classmethod
     async def dispose_expired_file_services(
@@ -218,7 +226,7 @@ class FileRetentionDispositionService:
         """
         user = current_user.user
         if user is None or not user.user_name:
-            raise ServiceException(message='无法获取当前用户信息')
+            raise ServiceException(message='无法获取当前用户信息', msg_key='auth.currentUserUnavailable')
         context = await FileRetentionNoticeDao.get_file_retention_notice_context_for_update(
             query_db,
             notice_id,
@@ -226,7 +234,7 @@ class FileRetentionDispositionService:
         )
         if context is None:
             await query_db.rollback()
-            raise ServiceException(message='提醒不存在、已失效或超出数据权限')
+            raise ServiceException(message='提醒不存在、已失效或超出数据权限', msg_key='file.reminder.unavailable')
         _, file_info = context
         file_snapshot = FileAuditSnapshot(
             file_id=file_info.file_id,
@@ -247,7 +255,7 @@ class FileRetentionDispositionService:
                 error_message='FileNotExpired',
             )
             await query_db.rollback()
-            raise ServiceException(message='文件尚未到期，不能执行到期处置')
+            raise ServiceException(message='文件尚未到期，不能执行到期处置', msg_key='file.retention.notExpired')
 
         reference_list = await FileReferenceDao.get_file_reference_list_for_update(query_db, file_info.file_id)
         blocking_references = [
@@ -268,7 +276,9 @@ class FileRetentionDispositionService:
                 error_message='ActiveBusinessReferenceExists',
             )
             await query_db.rollback()
-            raise ServiceException(message='文件存在永久或尚未到期的业务引用，不能执行到期处置')
+            raise ServiceException(
+                message='文件存在永久或尚未到期的业务引用，不能执行到期处置', msg_key='file.retention.activeReference'
+            )
 
         reference_snapshots = cls._build_reference_snapshots(reference_list)
         try:
@@ -286,7 +296,7 @@ class FileRetentionDispositionService:
                 reference_count=len(reference_list),
                 error_message=exc.__class__.__name__,
             )
-            raise ServiceException(message='到期文件移入回收区失败') from exc
+            raise ServiceException(message='到期文件移入回收区失败', msg_key='file.retention.recycleFailed') from exc
 
         try:
             await FileReferenceDao.delete_file_references(query_db, file_info.file_id)
@@ -330,7 +340,9 @@ class FileRetentionDispositionService:
                 'newStatus': 'deleted',
             },
         )
-        return CrudResponseModel(is_success=True, message='到期文件已移入回收站')
+        return CrudResponseModel(
+            is_success=True, message='到期文件已移入回收站', msg_key='file.retention.expiredRecycled'
+        )
 
     @classmethod
     async def _enqueue_retention_audit(
@@ -408,12 +420,12 @@ class FileLifecycleService:
         file_ids = FileUtil.parse_file_ids(delete_file.file_ids)
         user = current_user.user
         if user is None or not user.user_name:
-            raise ServiceException(message='无法获取当前用户信息')
+            raise ServiceException(message='无法获取当前用户信息', msg_key='auth.currentUserUnavailable')
 
         file_infos = await FileInfoDao.get_file_infos_by_ids_for_update(query_db, file_ids, file_data_scope_sql)
         if len(file_infos) != len(file_ids):
             await query_db.rollback()
-            raise ServiceException(message='部分文件不存在、已删除或超出数据权限')
+            raise ServiceException(message='部分文件不存在、已删除或超出数据权限', msg_key='file.selection.unavailable')
         file_audit_snapshots = cls._build_file_audit_snapshots(file_infos)
         reference_count_map = await FileReferenceService.get_file_reference_count_map_services(query_db, file_infos)
         referenced_file_ids = [file_id for file_id in file_ids if reference_count_map.get(file_id, 0) > 0]
@@ -438,7 +450,11 @@ class FileLifecycleService:
             referenced_name_text = '、'.join(f'“{name}”' for name in referenced_names)
             if len(referenced_file_ids) > len(referenced_names):
                 referenced_name_text += f'等{len(referenced_file_ids)}个文件'
-            raise ServiceException(message=f'文件{referenced_name_text}仍被业务引用，请先解除引用后再删除')
+            raise ServiceException(
+                message=f'文件{referenced_name_text}仍被业务引用，请先解除引用后再删除',
+                msg_key='file.references.preventDelete',
+                msg_params={'referenced_name_text': str(referenced_name_text)},
+            )
 
         try:
             staged_files = await asyncio.to_thread(FileUtil.stage_file_deletions, file_infos)
@@ -457,7 +473,7 @@ class FileLifecycleService:
                         'accessType': file_audit_snapshot.access_type,
                     },
                 )
-            raise ServiceException(message='文件移入回收区失败') from exc
+            raise ServiceException(message='文件移入回收区失败', msg_key='file.recycle.failed') from exc
 
         try:
             await FileInfoDao.soft_delete_file_infos(query_db, file_ids, user.user_name, TimezoneUtil.utc_now())
@@ -494,7 +510,7 @@ class FileLifecycleService:
                     'newStatus': 'deleted',
                 },
             )
-        return CrudResponseModel(is_success=True, message='文件已移入回收站')
+        return CrudResponseModel(is_success=True, message='文件已移入回收站', msg_key='file.recycled')
 
     @classmethod
     async def purge_file_services(
@@ -518,7 +534,7 @@ class FileLifecycleService:
         parsed_file_ids = FileUtil.parse_file_ids(file_ids)
         user = current_user.user
         if user is None or not user.user_name:
-            raise ServiceException(message='无法获取当前用户信息')
+            raise ServiceException(message='无法获取当前用户信息', msg_key='auth.currentUserUnavailable')
         file_infos = await FileInfoDao.get_purgeable_file_infos_by_ids_for_update(
             query_db,
             parsed_file_ids,
@@ -526,7 +542,9 @@ class FileLifecycleService:
         )
         if len(file_infos) != len(parsed_file_ids):
             await query_db.rollback()
-            raise ServiceException(message='部分文件不存在、未进入回收站或超出数据权限')
+            raise ServiceException(
+                message='部分文件不存在、未进入回收站或超出数据权限', msg_key='file.recycle.selectionUnavailable'
+            )
         file_audit_snapshots = cls._build_file_audit_snapshots(file_infos)
         reference_count_map = await FileReferenceService.get_file_reference_count_map_services(query_db, file_infos)
         if any(reference_count_map.get(file_id, 0) > 0 for file_id in parsed_file_ids):
@@ -545,7 +563,7 @@ class FileLifecycleService:
                         'referenceCount': reference_count_map.get(file_audit_snapshot.file_id, 0),
                     },
                 )
-            raise ServiceException(message='部分文件仍被业务引用，不能永久清理')
+            raise ServiceException(message='部分文件仍被业务引用，不能永久清理', msg_key='file.references.preventPurge')
         try:
             staged_files = await asyncio.to_thread(FileUtil.prepare_deleted_files_for_purge, file_infos)
         except (OSError, ValueError) as exc:
@@ -557,7 +575,9 @@ class FileLifecycleService:
                 'failed',
                 error_message=exc.__class__.__name__,
             )
-            raise ServiceException(message='回收区文件校验失败，未执行永久清理') from exc
+            raise ServiceException(
+                message='回收区文件校验失败，未执行永久清理', msg_key='file.purge.verificationFailed'
+            ) from exc
 
         try:
             await FileInfoDao.mark_file_infos_purging(
@@ -581,7 +601,10 @@ class FileLifecycleService:
                 'failed',
                 error_message=exc.__class__.__name__,
             )
-            raise ServiceException(message='永久清理物理文件失败，文件已保留为清理中状态，可重试') from exc
+            raise ServiceException(
+                message='永久清理物理文件失败，文件已保留为清理中状态，可重试',
+                msg_key='file.purge.physicalDeleteFailed',
+            ) from exc
 
         try:
             await FileInfoDao.purge_file_infos(query_db, parsed_file_ids)
@@ -603,7 +626,7 @@ class FileLifecycleService:
             file_audit_snapshots,
             'completed',
         )
-        return CrudResponseModel(is_success=True, message='文件已永久清理')
+        return CrudResponseModel(is_success=True, message='文件已永久清理', msg_key='file.purged')
 
     @classmethod
     async def purge_recycle_bin_services(
@@ -635,7 +658,7 @@ class FileLifecycleService:
         reference_count_map = await FileReferenceService.get_file_reference_count_map_services(query_db, file_infos)
         if any(reference_count_map.get(file_id, 0) > 0 for file_id in file_ids):
             await query_db.rollback()
-            raise ServiceException(message='自动清理候选文件仍存在业务引用')
+            raise ServiceException(message='自动清理候选文件仍存在业务引用', msg_key='file.references.autoPurgeBlocked')
         try:
             staged_files = await asyncio.to_thread(FileUtil.prepare_deleted_files_for_purge, file_infos)
             await FileInfoDao.mark_file_infos_purging(query_db, file_ids, 'system', TimezoneUtil.utc_now())
@@ -708,7 +731,7 @@ class FileLifecycleService:
         parsed_file_ids = FileUtil.parse_file_ids(file_ids)
         user = current_user.user
         if user is None or not user.user_name:
-            raise ServiceException(message='无法获取当前用户信息')
+            raise ServiceException(message='无法获取当前用户信息', msg_key='auth.currentUserUnavailable')
 
         file_infos = await FileInfoDao.get_deleted_file_infos_by_ids_for_update(
             query_db,
@@ -717,7 +740,9 @@ class FileLifecycleService:
         )
         if len(file_infos) != len(parsed_file_ids):
             await query_db.rollback()
-            raise ServiceException(message='部分文件不存在、未删除或超出数据权限')
+            raise ServiceException(
+                message='部分文件不存在、未删除或超出数据权限', msg_key='file.restore.selectionUnavailable'
+            )
         file_audit_snapshots = cls._build_file_audit_snapshots(file_infos)
 
         try:
@@ -737,7 +762,7 @@ class FileLifecycleService:
                         'accessType': file_audit_snapshot.access_type,
                     },
                 )
-            raise ServiceException(message='文件从回收区恢复失败') from exc
+            raise ServiceException(message='文件从回收区恢复失败', msg_key='file.restore.failed') from exc
 
         try:
             await FileInfoDao.restore_file_infos(
@@ -791,7 +816,7 @@ class FileLifecycleService:
                         'accessType': file_audit_snapshot.access_type,
                     },
                 )
-            raise ServiceException(message='文件从回收区恢复失败') from exc
+            raise ServiceException(message='文件从回收区恢复失败', msg_key='file.restore.failed') from exc
 
         await asyncio.to_thread(FileUtil.cleanup_trash_directories, staged_files)
         for file_audit_snapshot in file_audit_snapshots:
@@ -808,7 +833,7 @@ class FileLifecycleService:
                     'newStatus': 'active',
                 },
             )
-        return CrudResponseModel(is_success=True, message='文件恢复成功')
+        return CrudResponseModel(is_success=True, message='文件恢复成功', msg_key='file.restored')
 
     @staticmethod
     def _build_file_audit_snapshots(file_infos: list[SysFileInfo]) -> list[FileAuditSnapshot]:
@@ -856,9 +881,17 @@ class FileLifecycleService:
     def _validate_purge_parameters(cls, retention_days: int, batch_size: int) -> None:
         """校验自动清理参数。"""
         if retention_days < 1 or retention_days > cls.MAX_PURGE_RETENTION_DAYS:
-            raise ServiceException(message=f'回收站保留天数必须在1到{cls.MAX_PURGE_RETENTION_DAYS}之间')
+            raise ServiceException(
+                message=f'回收站保留天数必须在1到{cls.MAX_PURGE_RETENTION_DAYS}之间',
+                msg_key='file.recycle.retentionRange',
+                msg_params={'max_purge_retention_days': str(cls.MAX_PURGE_RETENTION_DAYS)},
+            )
         if batch_size < 1 or batch_size > cls.MAX_PURGE_BATCH_SIZE:
-            raise ServiceException(message=f'单批处理数量必须在1到{cls.MAX_PURGE_BATCH_SIZE}之间')
+            raise ServiceException(
+                message=f'单批处理数量必须在1到{cls.MAX_PURGE_BATCH_SIZE}之间',
+                msg_key='file.purge.batchSizeRange',
+                msg_params={'max_purge_batch_size': str(cls.MAX_PURGE_BATCH_SIZE)},
+            )
 
 
 class FileQueryService:
@@ -920,7 +953,7 @@ class FileQueryService:
         """
         file_info = await FileInfoDao.get_file_management_detail_by_id(query_db, file_id, file_data_scope_sql)
         if file_info is None:
-            raise ServiceException(message='文件信息不存在或超出数据权限')
+            raise ServiceException(message='文件信息不存在或超出数据权限', msg_key='file.notFoundOrForbidden')
         reference_count_map = await FileReferenceService.get_file_reference_count_map_services(query_db, [file_info])
         file_info['reference_count'] = reference_count_map.get(file_id, 0)
         file_info['storage_status'] = await asyncio.to_thread(FileUtil.get_storage_status, file_info)
@@ -946,7 +979,7 @@ class FileQueryService:
         :return: 文件访问审计列表
         """
         if await FileInfoDao.get_file_info_detail_by_id(query_db, file_id, file_data_scope_sql) is None:
-            raise ServiceException(message='文件信息不存在或超出数据权限')
+            raise ServiceException(message='文件信息不存在或超出数据权限', msg_key='file.notFoundOrForbidden')
         return await FileAccessLogDao.get_file_access_log_list(query_db, file_id, query_object, is_page)
 
     @staticmethod
@@ -992,7 +1025,7 @@ class FileTransferService:
         parsed_file_ids = FileUtil.parse_file_ids(file_ids)
         user = current_user.user
         if user is None or not user.user_name:
-            raise ServiceException(message='无法获取当前用户信息')
+            raise ServiceException(message='无法获取当前用户信息', msg_key='auth.currentUserUnavailable')
 
         target_user = await FileInfoDao.get_transfer_user_by_id(
             query_db,
@@ -1006,10 +1039,12 @@ class FileTransferService:
         )
         if target_user is None or target_dept is None:
             await query_db.rollback()
-            raise ServiceException(message='目标用户或部门不存在、已停用或超出数据权限')
+            raise ServiceException(
+                message='目标用户或部门不存在、已停用或超出数据权限', msg_key='file.transfer.targetUnavailable'
+            )
         if target_user.dept_id != target_dept.dept_id:
             await query_db.rollback()
-            raise ServiceException(message='目标用户不属于所选部门')
+            raise ServiceException(message='目标用户不属于所选部门', msg_key='file.transfer.departmentMismatch')
         target_user_id = target_user.user_id
         target_user_name = getattr(target_user, 'user_name', '')
         target_dept_id = target_dept.dept_id
@@ -1021,7 +1056,7 @@ class FileTransferService:
         )
         if len(file_infos) != len(parsed_file_ids):
             await query_db.rollback()
-            raise ServiceException(message='部分文件不存在、已删除或超出数据权限')
+            raise ServiceException(message='部分文件不存在、已删除或超出数据权限', msg_key='file.selection.unavailable')
 
         ownership_snapshots = {
             file_info.file_id: {
@@ -1078,7 +1113,7 @@ class FileTransferService:
                     'reason': transfer_file.reason,
                 },
             )
-        return CrudResponseModel(is_success=True, message='文件转移成功')
+        return CrudResponseModel(is_success=True, message='文件转移成功', msg_key='file.transferred')
 
 
 class FileReconcileService:
@@ -1117,7 +1152,7 @@ class FileReconcileService:
         :return: 对账任务
         """
         if trigger_type not in {'manual', 'scheduled'}:
-            raise ServiceException(message='对账任务触发类型不正确')
+            raise ServiceException(message='对账任务触发类型不正确', msg_key='file.reconciliation.invalidTrigger')
         started_by = 'system'
         if trigger_type == 'manual':
             user = cls._require_admin(current_user)
@@ -1143,7 +1178,9 @@ class FileReconcileService:
             await query_db.commit()
         except IntegrityError as exc:
             await query_db.rollback()
-            raise ServiceException(message='已有文件存储对账任务正在运行') from exc
+            raise ServiceException(
+                message='已有文件存储对账任务正在运行', msg_key='file.reconciliation.alreadyRunning'
+            ) from exc
         except Exception:
             await query_db.rollback()
             raise
@@ -1329,14 +1366,19 @@ class FileReconcileService:
         """
         cls._require_admin(current_user)
         if await FileInfoDao.has_running_reconcile_run(query_db):
-            raise ServiceException(message='文件存储对账任务运行中，请等待扫描完成后再处理异常')
+            raise ServiceException(
+                message='文件存储对账任务运行中，请等待扫描完成后再处理异常',
+                msg_key='file.reconciliation.scanInProgress',
+            )
         issue = await FileInfoDao.get_reconcile_issue_for_update(query_db, issue_id)
         if issue is None:
-            raise ServiceException(message='文件存储对账异常不存在')
+            raise ServiceException(message='文件存储对账异常不存在', msg_key='file.reconciliation.issueNotFound')
         available_actions = cls._get_available_actions(issue)
         if handle.action not in available_actions:
             await query_db.rollback()
-            raise ServiceException(message='当前异常状态不支持该处理动作')
+            raise ServiceException(
+                message='当前异常状态不支持该处理动作', msg_key='file.reconciliation.actionUnavailable'
+            )
 
         file_id = issue.file_id
         issue_type = issue.issue_type
@@ -1367,7 +1409,11 @@ class FileReconcileService:
             if performed_move:
                 await cls._rollback_file_move(performed_move)
             if isinstance(exc, (FileExistsError, FileNotFoundError, OSError, ValueError)):
-                raise ServiceException(message=f'文件存储异常处理失败：{exc}') from exc
+                raise ServiceException(
+                    message=f'文件存储异常处理失败：{exc}',
+                    msg_key='file.reconciliation.resolveFailed',
+                    msg_params={'error': str(exc)},
+                ) from exc
             raise
 
         if file_id:
@@ -1385,7 +1431,9 @@ class FileReconcileService:
                     **operation_location,
                 },
             )
-        return CrudResponseModel(is_success=True, message='文件存储异常处理成功')
+        return CrudResponseModel(
+            is_success=True, message='文件存储异常处理成功', msg_key='file.reconciliation.resolved'
+        )
 
     @classmethod
     async def _apply_reconcile_action(
@@ -1460,7 +1508,7 @@ class FileReconcileService:
         issue: SysFileReconcileIssue,
     ) -> tuple[str, str, str, str]:
         if not issue.quarantine_key:
-            raise ServiceException(message='隔离区文件路径不存在')
+            raise ServiceException(message='隔离区文件路径不存在', msg_key='file.reconciliation.quarantineMissing')
         target_root, target_key = cls._require_location(issue.actual_root, issue.actual_key)
         move = ('quarantine', issue.quarantine_key, target_root, target_key)
         await asyncio.to_thread(FileReconcileUtil.move_regular_file, *move)
@@ -1470,7 +1518,7 @@ class FileReconcileService:
     @staticmethod
     async def _delete_quarantine_file(issue: SysFileReconcileIssue) -> None:
         if not issue.quarantine_key:
-            raise ServiceException(message='隔离区文件路径不存在')
+            raise ServiceException(message='隔离区文件路径不存在', msg_key='file.reconciliation.quarantineMissing')
         await asyncio.to_thread(FileReconcileUtil.delete_quarantine_file, issue.quarantine_key)
         issue.quarantine_key = None
 
@@ -1484,10 +1532,10 @@ class FileReconcileService:
         current_time: datetime,
     ) -> str:
         if not issue.file_id:
-            raise ServiceException(message='异常未关联文件信息')
+            raise ServiceException(message='异常未关联文件信息', msg_key='file.reconciliation.noFileReference')
         file_info = await FileInfoDao.get_file_info_for_reconcile(query_db, issue.file_id)
         if file_info is None:
-            raise ServiceException(message='异常关联的文件信息不存在')
+            raise ServiceException(message='异常关联的文件信息不存在', msg_key='file.reconciliation.fileRecordMissing')
         root_name, relative_key = cls._require_location(
             issue.actual_root or issue.expected_root,
             issue.actual_key or issue.expected_key,
@@ -1522,16 +1570,24 @@ class FileReconcileService:
         user = cls._require_admin(current_user)
         access_type, storage_key = cls._require_location(issue.actual_root, issue.actual_key)
         if issue.issue_type != 'orphan_file' or access_type not in {'public', 'private'}:
-            raise ServiceException(message='仅公开或受保护存储区的孤立文件可以登记')
+            raise ServiceException(
+                message='仅公开或受保护存储区的孤立文件可以登记', msg_key='file.reconciliation.registrationUnsupported'
+            )
         if await FileInfoDao.get_file_info_by_storage_key(query_db, storage_key, access_type) is not None:
-            raise ServiceException(message='该物理文件已登记到文件信息表')
+            raise ServiceException(
+                message='该物理文件已登记到文件信息表', msg_key='file.reconciliation.alreadyRegistered'
+            )
         stored_name = storage_key.rsplit('/', 1)[-1]
         extension = UploadUtil.get_file_extension(stored_name)
         if extension not in UploadConfig.DEFAULT_ALLOWED_EXTENSION:
-            raise ServiceException(message='孤立文件扩展名不在允许范围内')
+            raise ServiceException(
+                message='孤立文件扩展名不在允许范围内', msg_key='file.reconciliation.extensionForbidden'
+            )
         original_name = UploadUtil.get_original_filename(handle.original_name or stored_name)
         if not original_name or UploadUtil.get_file_extension(original_name) != extension:
-            raise ServiceException(message='原始文件名扩展名必须与物理文件一致')
+            raise ServiceException(
+                message='原始文件名扩展名必须与物理文件一致', msg_key='file.reconciliation.extensionMismatch'
+            )
         file_path = FileReconcileUtil.resolve_location(access_type, storage_key)
         file_size, file_hash = await asyncio.to_thread(
             FileReconcileUtil.calculate_file_integrity,
@@ -1595,9 +1651,11 @@ class FileReconcileService:
     @staticmethod
     def _require_location(root_name: str | None, relative_key: str | None) -> tuple[str, str]:
         if not root_name or not relative_key:
-            raise ServiceException(message='异常记录缺少可处理的存储位置')
+            raise ServiceException(
+                message='异常记录缺少可处理的存储位置', msg_key='file.reconciliation.locationMissing'
+            )
         if root_name not in {'public', 'private', 'trash', 'quarantine'}:
-            raise ServiceException(message='异常记录的存储区域不合法')
+            raise ServiceException(message='异常记录的存储区域不合法', msg_key='file.reconciliation.invalidStorageArea')
         return root_name, relative_key
 
     @staticmethod
@@ -1650,5 +1708,7 @@ class FileReconcileService:
     def _require_admin(current_user: CurrentUserModel | None) -> Any:
         user = current_user.user if current_user else None
         if user is None or not user.admin or not user.user_name:
-            raise ServiceException(message='仅系统管理员可以使用文件存储对账功能')
+            raise ServiceException(
+                message='仅系统管理员可以使用文件存储对账功能', msg_key='file.reconciliation.adminRequired'
+            )
         return user

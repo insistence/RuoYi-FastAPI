@@ -92,7 +92,9 @@ async def add_system_dept(
     add_dept_result = await DeptService.add_dept_services(query_db, add_dept)
     logger.info(add_dept_result.message)
 
-    return ResponseUtil.success(msg=add_dept_result.message)
+    return ResponseUtil.success(
+        msg=add_dept_result.message, msg_key=add_dept_result.msg_key, msg_params=add_dept_result.msg_params
+    )
 
 
 @dept_controller.put(
@@ -121,7 +123,9 @@ async def edit_system_dept(
     edit_dept_result = await DeptService.edit_dept_services(query_db, edit_dept)
     logger.info(edit_dept_result.message)
 
-    return ResponseUtil.success(msg=edit_dept_result.message)
+    return ResponseUtil.success(
+        msg=edit_dept_result.message, msg_key=edit_dept_result.msg_key, msg_params=edit_dept_result.msg_params
+    )
 
 
 @dept_controller.put(
@@ -147,7 +151,9 @@ async def update_system_dept_sort(
     )
     logger.info(update_sort_result.message)
 
-    return ResponseUtil.success(msg=update_sort_result.message)
+    return ResponseUtil.success(
+        msg=update_sort_result.message, msg_key=update_sort_result.msg_key, msg_params=update_sort_result.msg_params
+    )
 
 
 @dept_controller.delete(
@@ -176,7 +182,9 @@ async def delete_system_dept(
     delete_dept_result = await DeptService.delete_dept_services(query_db, delete_dept)
     logger.info(delete_dept_result.message)
 
-    return ResponseUtil.success(msg=delete_dept_result.message)
+    return ResponseUtil.success(
+        msg=delete_dept_result.message, msg_key=delete_dept_result.msg_key, msg_params=delete_dept_result.msg_params
+    )
 
 
 @dept_controller.get(

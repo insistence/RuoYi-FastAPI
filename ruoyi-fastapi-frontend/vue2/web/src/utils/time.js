@@ -562,16 +562,17 @@ refreshDeviceTimezone()
  * @returns {Promise<string>} 用户选定的 UTC 偏移
  */
 async function chooseTimeOffset(error) {
+  const { t } = await import('@/i18n')
   const offsets = error.candidates.map((candidate) => candidate.offset)
   const { default: ElementUI } = await import('element-ui')
   const { value } = await ElementUI.MessageBox.prompt(
-    `${error.message}。第一次：${offsets[0]}；第二次：${offsets[1]}。`,
-    '选择重复时间',
+    t('common:timeOffset.prompt', { first: offsets[0], second: offsets[1] }),
+    t('common:chooseARepeatedTime'),
     {
-      inputPlaceholder: `请输入 ${offsets.join(' 或 ')}`,
-      inputValidator: (value) => offsets.includes(value) || '请输入上述 UTC 偏移之一',
-      confirmButtonText: '使用所选时间',
-      cancelButtonText: '返回修改',
+      inputPlaceholder: t('common:timeOffset.placeholder', { offsets: offsets.join(' / ') }),
+      inputValidator: (value) => offsets.includes(value) || t('common:timeOffset.invalid'),
+      confirmButtonText: t('common:useSelectedTime'),
+      cancelButtonText: t('common:goBackAndEdit'),
     }
   )
   return value
@@ -590,7 +591,14 @@ export async function serializeTimeFieldsForSubmit(record, fields) {
   } catch (error) {
     if (error instanceof Error) {
       const { default: ElementUI } = await import('element-ui')
-      ElementUI.Message.error(error.message)
+      const { t } = await import('@/i18n')
+      const messages = {
+        DST_GAP: () => t('common:timeOffset.gap'),
+        DST_FOLD: () => t('common:timeOffset.fold'),
+        INVALID_TIME: () => t('common:timeOffset.invalidTime'),
+        INVALID_DATE: () => t('common:timeOffset.invalidDate'),
+      }
+      ElementUI.Message.error(messages[error.code]?.() || error.message)
     }
     return null
   }

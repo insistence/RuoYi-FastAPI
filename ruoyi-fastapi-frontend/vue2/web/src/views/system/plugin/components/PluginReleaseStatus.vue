@@ -7,7 +7,7 @@
 
 <script setup name="PluginReleaseStatus">
 import { computed } from 'vue'
-import { getPluginReleaseView } from '@/utils/pluginReleaseFormatter'
+import { getPluginReleaseView } from '@/utils/pluginReleaseDisplay'
 
 const props = defineProps({
   plugin: {

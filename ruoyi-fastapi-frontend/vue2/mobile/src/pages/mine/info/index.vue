@@ -11,7 +11,9 @@
           >
             <view class="i-mdi-account text-xl"></view>
           </view>
-          <text class="ml-3 text-base font-medium text-gray-800">昵称</text>
+          <text class="ml-3 text-base font-medium text-gray-800">{{
+            $t('system:user.nicknameShort')
+          }}</text>
         </view>
         <text class="text-sm text-gray-500">{{ user.nickName }}</text>
       </view>
@@ -26,7 +28,9 @@
           >
             <view class="i-mdi-phone text-xl"></view>
           </view>
-          <text class="ml-3 text-base font-medium text-gray-800">手机号码</text>
+          <text class="ml-3 text-base font-medium text-gray-800">{{
+            $t('system:user.phone')
+          }}</text>
         </view>
         <text class="text-sm text-gray-500">{{ user.phonenumber }}</text>
       </view>
@@ -41,7 +45,9 @@
           >
             <view class="i-mdi-email text-xl"></view>
           </view>
-          <text class="ml-3 text-base font-medium text-gray-800">邮箱</text>
+          <text class="ml-3 text-base font-medium text-gray-800">{{
+            $t('system:user.email')
+          }}</text>
         </view>
         <text class="text-sm text-gray-500">{{ user.email }}</text>
       </view>
@@ -56,7 +62,7 @@
           >
             <view class="i-mdi-shield-account text-xl"></view>
           </view>
-          <text class="ml-3 text-base font-medium text-gray-800">岗位</text>
+          <text class="ml-3 text-base font-medium text-gray-800">{{ $t('system:user.post') }}</text>
         </view>
         <text class="text-sm text-gray-500">{{ postGroup }}</text>
       </view>
@@ -71,7 +77,7 @@
           >
             <view class="i-mdi-badge-account text-xl"></view>
           </view>
-          <text class="ml-3 text-base font-medium text-gray-800">角色</text>
+          <text class="ml-3 text-base font-medium text-gray-800">{{ $t('system:user.role') }}</text>
         </view>
         <text class="text-sm text-gray-500">{{ roleGroup }}</text>
       </view>
@@ -84,7 +90,9 @@
           >
             <view class="i-mdi-calendar text-xl"></view>
           </view>
-          <text class="ml-3 text-base font-medium text-gray-800">创建日期</text>
+          <text class="ml-3 text-base font-medium text-gray-800">{{
+            $t('common:createdDate')
+          }}</text>
         </view>
         <text class="text-sm text-gray-500">{{ formatBusinessTime(user.createTime) || '-' }}</text>
       </view>

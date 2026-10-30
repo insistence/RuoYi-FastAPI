@@ -1,10 +1,16 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { Button, Form, Input, Select, Space, TreeSelect } from 'antd'
 import { BusinessDateTimeRangePicker } from '@/components/BusinessDateTimePicker'
 import { serializeTimeFieldsForSubmit } from '@/utils/time'
 
 export default function FileSearchForm({ show, deptOptions, onQuery }) {
+  useI18n()
+
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   async function search({ dateRange, ...values }) {
     values.beginTime = dateRange?.[0]
     values.endTime = dateRange?.[1]
@@ -24,66 +30,66 @@ export default function FileSearchForm({ show, deptOptions, onQuery }) {
     >
       <Form.Item
         name="originalName"
-        label="文件名称"
+        label={t('file:name')}
       >
         <Input
-          placeholder="请输入原始文件名"
+          placeholder={t('system:enterTheOriginalFileName')}
           allowClear
         />
       </Form.Item>
       <Form.Item
         name="accessType"
-        label="访问类型"
+        label={t('file:accessType')}
       >
         <Select
           style={{ width: 200 }}
-          placeholder="请选择访问类型"
+          placeholder={t('system:selectAnAccessType')}
           allowClear
           options={[
-            { value: 'public', label: '公开文件' },
-            { value: 'private', label: '受保护文件' },
+            { value: 'public', label: t('system:publicFiles') },
+            { value: 'private', label: t('system:protectedFiles') },
           ]}
         />
       </Form.Item>
       <Form.Item
         name="status"
-        label="文件状态"
+        label={t('system:fileStatus')}
       >
         <Select
           style={{ width: 200 }}
-          placeholder="请选择文件状态"
+          placeholder={t('system:selectAFileStatus')}
           allowClear
           options={[
-            { value: 'active', label: '正常' },
-            { value: 'deleted', label: '已删除' },
-            { value: 'purging', label: '清理中' },
+            { value: 'active', label: t('layout:notices.active') },
+            { value: 'deleted', label: t('system:deleted') },
+            { value: 'purging', label: t('system:deleting') },
           ]}
         />
       </Form.Item>
       <Form.Item
         name="createBy"
-        label="上传用户"
+        label={t('system:uploader')}
       >
         <Input
-          placeholder="请输入上传用户"
+          placeholder={t('system:enterAnUploader')}
           allowClear
         />
       </Form.Item>
       <Form.Item
         name="ownerName"
-        label="所有者"
+        label={t('file:owner')}
       >
         <Input
-          placeholder="请输入所有者"
+          placeholder={t('system:enterAnOwner')}
           allowClear
         />
       </Form.Item>
       <Form.Item
         name="deptId"
-        label="所属部门"
+        label={t('system:user.department')}
       >
         <TreeSelect
-          placeholder="请选择所属部门"
+          placeholder={t('system:components.selectADepartment')}
           allowClear
           showSearch
           treeNodeFilterProp="label"
@@ -94,27 +100,27 @@ export default function FileSearchForm({ show, deptOptions, onQuery }) {
       </Form.Item>
       <Form.Item
         name="expirationStatus"
-        label="过期状态"
+        label={t('system:expiryStatus')}
       >
         <Select
           style={{ width: 200 }}
-          placeholder="请选择过期状态"
+          placeholder={t('system:selectAnExpiryStatus')}
           allowClear
           options={[
-            ['permanent', '永久有效'],
-            ['valid', '有效'],
-            ['expiring', '7天内过期'],
-            ['expired', '已过期'],
+            ['permanent', t('system:noExpiry')],
+            ['valid', t('system:valid')],
+            ['expiring', t('system:expiresWithin7Days')],
+            ['expired', t('common:expired')],
           ].map(([value, label]) => ({ value, label }))}
         />
       </Form.Item>
       <Form.Item
         name="dateRange"
-        label="上传时间"
+        label={t('system:uploadedAt')}
       >
         <BusinessDateTimeRangePicker
           separator="-"
-          label="上传时间"
+          label={t('system:uploadedAt')}
           style={{ width: 200 }}
         />
       </Form.Item>
@@ -125,7 +131,7 @@ export default function FileSearchForm({ show, deptOptions, onQuery }) {
             type="primary"
             htmlType="submit"
           >
-            搜索
+            {t('common:search')}
           </Button>
           <Button
             icon={<ReloadOutlined />}
@@ -134,7 +140,7 @@ export default function FileSearchForm({ show, deptOptions, onQuery }) {
               onQuery({ status: 'active' })
             }}
           >
-            重置
+            {t('common:reset')}
           </Button>
         </Space>
       </Form.Item>

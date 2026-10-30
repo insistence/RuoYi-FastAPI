@@ -17,13 +17,21 @@
           class="summary-card"
         >
           <div class="summary-header">
-            <span class="summary-title">传输加密状态</span>
+            <span class="summary-title">{{
+              $t('monitor:messages.transportEncryptionStatus')
+            }}</span>
             <el-tag :type="monitorData.transportCryptoEnabled ? 'success' : 'info'">
-              {{ monitorData.transportCryptoEnabled ? '已启用' : '未启用' }}
+              {{
+                monitorData.transportCryptoEnabled
+                  ? $t('monitor:expression.enabled')
+                  : $t('monitor:expression.notEnabled')
+              }}
             </el-tag>
           </div>
           <div class="summary-value">{{ modeLabel }}</div>
-          <div class="summary-desc">当前模式：{{ monitorData.transportCryptoMode || '-' }}</div>
+          <div class="summary-desc">
+            {{ $t('monitor:messages.currentMode') }}{{ monitorData.transportCryptoMode || '-' }}
+          </div>
         </el-card>
       </el-col>
 
@@ -37,12 +45,13 @@
           class="summary-card"
         >
           <div class="summary-header">
-            <span class="summary-title">请求总览</span>
-            <el-tag type="primary">命中规则</el-tag>
+            <span class="summary-title">{{ $t('monitor:messages.requestOverview') }}</span>
+            <el-tag type="primary">{{ $t('monitor:messages.matchingRules') }}</el-tag>
           </div>
           <div class="summary-value">{{ formatCount(monitorData.requestsTotal) }}</div>
           <div class="summary-desc">
-            明文 {{ formatCount(monitorData.plainRequestsTotal) }} / 加密
+            {{ $t('monitor:messages.plaintext') }} {{ formatCount(monitorData.plainRequestsTotal) }}
+            {{ $t('monitor:messages.encrypted') }}
             {{ formatCount(monitorData.encryptedRequestsTotal) }}
           </div>
         </el-card>
@@ -58,12 +67,13 @@
           class="summary-card"
         >
           <div class="summary-header">
-            <span class="summary-title">解密成功率</span>
+            <span class="summary-title">{{ $t('monitor:messages.decryptionSuccessRate') }}</span>
             <el-tag :type="decryptRateTagType"> {{ decryptSuccessRate.toFixed(1) }}% </el-tag>
           </div>
           <div class="summary-value">{{ formatCount(monitorData.decryptSuccessTotal) }}</div>
           <div class="summary-desc">
-            失败 {{ formatCount(monitorData.decryptFailureTotal) }} / 强制拒绝
+            {{ $t('common:failed') }} {{ formatCount(monitorData.decryptFailureTotal) }}
+            {{ $t('monitor:messages.rejectedByPolicy') }}
             {{ formatCount(monitorData.requiredRejectedTotal) }}
           </div>
         </el-card>
@@ -79,12 +89,14 @@
           class="summary-card"
         >
           <div class="summary-header">
-            <span class="summary-title">响应加密</span>
-            <el-tag type="warning">JSON 响应</el-tag>
+            <span class="summary-title">{{ $t('monitor:messages.responseEncryption') }}</span>
+            <el-tag type="warning">{{ $t('monitor:messages.jSONResponses') }}</el-tag>
           </div>
           <div class="summary-value">{{ formatCount(monitorData.encryptedResponsesTotal) }}</div>
           <div class="summary-desc">
-            明文 {{ formatCount(monitorData.plainResponsesTotal) }} / 错误加密
+            {{ $t('monitor:messages.plaintext') }}
+            {{ formatCount(monitorData.plainResponsesTotal) }}
+            {{ $t('monitor:messages.encryptedErrors') }}
             {{ formatCount(monitorData.encryptedErrorResponsesTotal) }}
           </div>
         </el-card>
@@ -104,10 +116,14 @@
             slot="header"
             class="card-header"
           >
-            <span>当前配置</span>
+            <span>{{ $t('monitor:messages.currentConfiguration') }}</span>
             <div class="card-actions">
               <div class="header-switch">
-                <span class="header-switch-label">{{ autoRefresh ? '自动刷新' : '手动' }}</span>
+                <span class="header-switch-label">{{
+                  autoRefresh
+                    ? $t('monitor:expression.autoRefresh')
+                    : $t('monitor:expression.manual')
+                }}</span>
                 <el-switch
                   v-model="autoRefresh"
                   active-color="#409eff"
@@ -121,7 +137,7 @@
                 :loading="loading"
                 @click="loadMonitorData(true)"
               >
-                刷新
+                {{ $t('layout:tags.refresh') }}
               </el-button>
             </div>
           </div>
@@ -130,19 +146,19 @@
             :column="2"
             border
           >
-            <el-descriptions-item label="统计范围">
+            <el-descriptions-item :label="$t('monitor:messages.statisticsScope')">
               {{ monitorScopeLabel }}
             </el-descriptions-item>
-            <el-descriptions-item label="应用环境">
+            <el-descriptions-item :label="$t('monitor:messages.appEnvironment')">
               {{ monitorData.appEnv || '-' }}
             </el-descriptions-item>
-            <el-descriptions-item label="当前密钥版本">
+            <el-descriptions-item :label="$t('monitor:messages.currentKeyVersion')">
               <el-tag>{{ monitorData.currentKid || '-' }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="监控起始时间">
+            <el-descriptions-item :label="$t('monitor:messages.monitoringStartedAt')">
               {{ formatMonitorTime(monitorData.startedAt) || '-' }}
             </el-descriptions-item>
-            <el-descriptions-item label="支持的密钥版本">
+            <el-descriptions-item :label="$t('monitor:messages.supportedKeyVersions')">
               <div class="tag-list">
                 <el-tag
                   v-for="kid in monitorData.supportedKids || []"
@@ -155,16 +171,16 @@
                 <span v-if="!(monitorData.supportedKids || []).length">-</span>
               </div>
             </el-descriptions-item>
-            <el-descriptions-item label="失败原因种类">
+            <el-descriptions-item :label="$t('monitor:messages.failureCategories')">
               {{ failureReasonRows.length }}
             </el-descriptions-item>
             <el-descriptions-item
-              label="聚合说明"
+              :label="$t('monitor:messages.aggregationInformation')"
               :span="2"
             >
               {{ monitorScopeDescription }}
             </el-descriptions-item>
-            <el-descriptions-item label="启用路径">
+            <el-descriptions-item :label="$t('monitor:messages.enabledPaths')">
               <div class="tag-list">
                 <el-tag
                   v-for="path in monitorData.enabledPaths || []"
@@ -175,10 +191,12 @@
                 >
                   {{ path }}
                 </el-tag>
-                <span v-if="!(monitorData.enabledPaths || []).length">全部接口</span>
+                <span v-if="!(monitorData.enabledPaths || []).length">{{
+                  $t('monitor:messages.allAPIs')
+                }}</span>
               </div>
             </el-descriptions-item>
-            <el-descriptions-item label="强制加密路径">
+            <el-descriptions-item :label="$t('monitor:messages.encryptionRequiredPaths')">
               <div class="tag-list">
                 <el-tag
                   v-for="path in monitorData.requiredPaths || []"
@@ -193,7 +211,7 @@
               </div>
             </el-descriptions-item>
             <el-descriptions-item
-              label="排除路径"
+              :label="$t('monitor:messages.excludedPaths')"
               :span="2"
             >
               <div class="tag-list">
@@ -225,13 +243,13 @@
             slot="header"
             class="card-header"
           >
-            <span>运行健康度</span>
+            <span>{{ $t('monitor:messages.health') }}</span>
             <el-tag :type="healthTagLabelType">{{ healthLabel }}</el-tag>
           </div>
 
           <div class="health-item">
             <div class="health-label">
-              <span>解密成功率</span>
+              <span>{{ $t('monitor:messages.decryptionSuccessRate') }}</span>
               <span>{{ decryptSuccessRate.toFixed(1) }}%</span>
             </div>
             <el-progress
@@ -242,7 +260,7 @@
 
           <div class="health-item">
             <div class="health-label">
-              <span>加密请求占比</span>
+              <span>{{ $t('monitor:messages.encryptedRequestShare') }}</span>
               <span>{{ encryptedRequestRate.toFixed(1) }}%</span>
             </div>
             <el-progress
@@ -253,7 +271,7 @@
 
           <div class="health-item">
             <div class="health-label">
-              <span>加密响应占比</span>
+              <span>{{ $t('monitor:messages.encryptedResponseShare') }}</span>
               <span>{{ encryptedResponseRate.toFixed(1) }}%</span>
             </div>
             <el-progress :percentage="Number(encryptedResponseRate.toFixed(1))" />
@@ -282,9 +300,11 @@
             slot="header"
             class="card-header"
           >
-            <span>失败原因统计</span>
+            <span>{{ $t('monitor:messages.failureCauses') }}</span>
             <div class="card-actions compact-actions">
-              <span class="card-subtitle">按 Redis 聚合口径统计</span>
+              <span class="card-subtitle">{{
+                $t('monitor:messages.statisticsAggregatedInRedis')
+              }}</span>
               <el-tag
                 v-if="selectedFailureReason"
                 type="danger"
@@ -306,19 +326,19 @@
             v-else
             class="chart-empty"
           >
-            暂无失败记录
+            {{ $t('monitor:messages.noFailuresRecorded') }}
           </div>
 
-          <div class="table-title">明细数据</div>
+          <div class="table-title">{{ $t('monitor:messages.detailedData') }}</div>
           <el-table
             :data="displayedFailureReasonRows"
-            empty-text="暂无失败记录"
+            :empty-text="$t('monitor:messages.noFailuresRecorded')"
             max-height="260"
             :row-class-name="getFailureReasonRowClassName"
             @row-click="handleFailureReasonRowClick"
           >
             <el-table-column
-              label="失败原因"
+              :label="$t('common:failureReason')"
               prop="reason"
               min-width="180"
             >
@@ -332,13 +352,13 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="次数"
+              :label="$t('monitor:messages.count')"
               prop="count"
               width="100"
               align="center"
             />
             <el-table-column
-              label="占比"
+              :label="$t('monitor:messages.share')"
               width="120"
               align="center"
             >
@@ -359,9 +379,9 @@
             slot="header"
             class="card-header"
           >
-            <span>密钥版本统计</span>
+            <span>{{ $t('monitor:messages.keyVersionStatistics') }}</span>
             <div class="card-actions compact-actions">
-              <span class="card-subtitle">观察不同 kid 的运行状态</span>
+              <span class="card-subtitle">{{ $t('monitor:messages.monitorEachKeyIDKid') }}</span>
               <el-tag
                 v-if="selectedKid"
                 type="success"
@@ -383,19 +403,19 @@
             v-else
             class="chart-empty"
           >
-            暂无密钥统计数据
+            {{ $t('monitor:messages.noKeyStatisticsAvailable') }}
           </div>
 
-          <div class="table-title">明细数据</div>
+          <div class="table-title">{{ $t('monitor:messages.detailedData') }}</div>
           <el-table
             :data="displayedKidStatRows"
-            empty-text="暂无数据"
+            :empty-text="$t('layout:notices.noData')"
             max-height="260"
             :row-class-name="getKidStatRowClassName"
             @row-click="handleKidStatRowClick"
           >
             <el-table-column
-              label="密钥版本"
+              :label="$t('monitor:messages.keyVersion')"
               prop="kid"
               min-width="140"
             >
@@ -406,31 +426,31 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="加密请求"
+              :label="$t('monitor:messages.encryptedRequests')"
               prop="encryptedRequests"
               min-width="110"
               align="center"
             />
             <el-table-column
-              label="解密成功"
+              :label="$t('monitor:messages.decryptionSucceeded')"
               prop="decryptSuccess"
               min-width="110"
               align="center"
             />
             <el-table-column
-              label="解密失败"
+              :label="$t('monitor:messages.decryptionFailed')"
               prop="decryptFailure"
               min-width="110"
               align="center"
             />
             <el-table-column
-              label="加密响应"
+              :label="$t('monitor:messages.encryptedResponses')"
               prop="encryptedResponses"
               min-width="110"
               align="center"
             />
             <el-table-column
-              label="成功率"
+              :label="$t('monitor:messages.successRate')"
               min-width="120"
               align="center"
             >
@@ -453,25 +473,28 @@
         slot="header"
         class="card-header"
       >
-        <span>最近失败记录</span>
+        <span>{{ $t('monitor:messages.recentFailures') }}</span>
         <div class="card-actions compact-actions">
-          <span class="card-subtitle">最近 {{ displayedRecentFailures.length }} 条</span>
+          <span class="card-subtitle"
+            >{{ $t('monitor:messages.recent') }} {{ displayedRecentFailures.length }}
+            {{ $t('monitor:transportCrypto.records') }}</span
+          >
           <el-tag
             v-if="selectedFailureReason || selectedKid"
             type="info"
             effect="plain"
           >
-            已按当前选择联动筛选
+            {{ $t('monitor:messages.filteredByTheCurrentSelection') }}
           </el-tag>
         </div>
       </div>
 
       <el-table
         :data="displayedRecentFailures"
-        empty-text="暂无失败记录"
+        :empty-text="$t('monitor:messages.noFailuresRecorded')"
       >
         <el-table-column
-          label="时间"
+          :label="$t('monitor:messages.time')"
           min-width="170"
         >
           <template slot-scope="scope">
@@ -479,7 +502,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="请求方法"
+          :label="$t('monitor:messages.requestMethod')"
           prop="method"
           width="100"
           align="center"
@@ -489,13 +512,13 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="请求路径"
+          :label="$t('monitor:messages.requestPath')"
           prop="path"
           min-width="260"
           show-overflow-tooltip
         />
         <el-table-column
-          label="失败原因"
+          :label="$t('common:failureReason')"
           prop="reason"
           min-width="180"
         >
@@ -509,7 +532,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="密钥版本"
+          :label="$t('monitor:messages.keyVersion')"
           prop="kid"
           min-width="140"
         >
@@ -523,20 +546,34 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getTransportCryptoMonitor } from '@/api/monitor/transportCrypto'
 import { parseTime } from '@/utils/ruoyi'
 import * as echarts from 'echarts'
 
 const MODE_LABEL_MAP = {
-  required: '强制加密',
-  optional: '可选加密',
-  off: '已关闭',
+  get required() {
+    return t('monitor:messages.encryptionRequired')
+  },
+  get optional() {
+    return t('monitor:messages.optionalEncryption')
+  },
+  get off() {
+    return t('layout:notices.closed')
+  },
 }
 
 const MONITOR_SCOPE_LABEL_MAP = {
-  'redis-aggregated': 'Redis 聚合',
-  'redis-aggregated+local-fallback': 'Redis 聚合 + 本地回退',
-  'process-local-fallback': '本地回退',
+  get 'redis-aggregated'() {
+    return t('monitor:messages.redisAggregation')
+  },
+  get 'redis-aggregated+local-fallback'() {
+    return t('monitor:messages.redisAggregationLocalFallback')
+  },
+  get 'process-local-fallback'() {
+    return t('monitor:messages.localFallback')
+  },
 }
 
 function createDefaultMonitorData() {
@@ -567,7 +604,9 @@ export default {
   },
   computed: {
     modeLabel() {
-      return MODE_LABEL_MAP[this.monitorData.transportCryptoMode] || '未配置'
+      return (
+        MODE_LABEL_MAP[this.monitorData.transportCryptoMode] || t('monitor:messages.notConfigured')
+      )
     },
     monitorScopeLabel() {
       return (
@@ -578,15 +617,15 @@ export default {
     },
     monitorScopeDescription() {
       if (this.monitorData.monitorScope === 'redis-aggregated') {
-        return '统计结果已聚合到 Redis，可覆盖多 worker / 多实例共享的监控口径。'
+        return t('monitor:messages.statisticsAreAggregatedInRedisAcrossWorkersAndInstances')
       }
       if (this.monitorData.monitorScope === 'redis-aggregated+local-fallback') {
-        return '当前以 Redis 聚合为主，部分监控写入曾降级到本地内存，建议检查 Redis 连接稳定性。'
+        return t('monitor:messages.redisAggregationIsActiveButSomeWritesFellBackToLocalMemory')
       }
       if (this.monitorData.monitorScope === 'process-local-fallback') {
-        return '当前监控未写入 Redis，页面展示的是本进程本地统计，请优先检查 Redis 可用性。'
+        return t('monitor:messages.monitoringDataIsNotBeingWrittenToRedisThisPageShowsLocal')
       }
-      return '当前展示传输加密运行状态与统计信息。'
+      return t('monitor:messages.transportEncryptionStatusAndStatistics')
     },
     failureReasonRows() {
       const failureReasons = this.monitorData.failureReasons || {}
@@ -672,15 +711,15 @@ export default {
     },
     healthLabel() {
       if ((this.monitorData.decryptFailureTotal || 0) === 0) {
-        return '稳定'
+        return t('monitor:messages.stable')
       }
       if (this.decryptSuccessRate >= 95) {
-        return '良好'
+        return t('authCenter:messages.good')
       }
       if (this.decryptSuccessRate >= 80) {
-        return '关注'
+        return t('monitor:messages.attention')
       }
-      return '告警'
+      return t('monitor:messages.alert')
     },
     healthTagType() {
       if ((this.monitorData.decryptFailureTotal || 0) === 0) {
@@ -708,15 +747,17 @@ export default {
     },
     healthMessage() {
       if ((this.monitorData.decryptFailureTotal || 0) === 0) {
-        return '当前暂无解密失败记录，链路运行稳定。'
+        return t('monitor:messages.noDecryptionFailuresHaveBeenRecordedTheConnectionIsStable')
       }
       if (this.decryptSuccessRate >= 95) {
-        return '存在少量失败事件，建议继续观察失败原因分布。'
+        return t('monitor:messages.aFewFailuresHaveOccurredContinueMonitoringTheirCauses')
       }
       if (this.decryptSuccessRate >= 80) {
-        return '近期已有一定比例的异常请求，建议优先检查失败原因与最近失败记录。'
+        return t(
+          'monitor:messages.recentRequestsIncludeFailuresReviewFailureCausesAndRecentRecordsFirst'
+        )
       }
-      return '异常比例偏高，建议立即排查密钥版本、AAD 绑定、时间窗与重放校验。'
+      return t('monitor:messages.theFailureRateIsHighCheckKeyVersionsAADBindingTimeWindows')
     },
   },
   watch: {
@@ -765,7 +806,7 @@ export default {
           })
         })
         .catch(() => {
-          this.$message.error('加载传输加密监控数据失败')
+          this.$message.error(t('monitor:interface.failedToLoadTransportEncryptionMonitoringData'))
         })
         .finally(() => {
           if (needLoading) {
@@ -918,13 +959,11 @@ export default {
               return ''
             }
             const currentRow = this.failureReasonRows[currentItem.dataIndex]
-            return (
-              currentRow.reason +
-              '<br/>次数：' +
-              currentRow.count +
-              '<br/>占比：' +
-              this.formatPercent(currentRow.count, this.totalFailureReasonCount)
-            )
+            return t('monitor:confirmation.valueBrCountValueBrShareValue', {
+              value0: currentRow.reason,
+              value1: currentRow.count,
+              value2: this.formatPercent(currentRow.count, this.totalFailureReasonCount),
+            })
           },
         },
         xAxis: {
@@ -944,7 +983,7 @@ export default {
         },
         series: [
           {
-            name: '失败次数',
+            name: t('monitor:messages.failureCount'),
             type: 'bar',
             barMaxWidth: 22,
             data: this.failureReasonRows.map((item) => ({
@@ -1015,7 +1054,7 @@ export default {
         },
         series: [
           {
-            name: '加密请求',
+            name: t('monitor:messages.encryptedRequests'),
             type: 'bar',
             barMaxWidth: 18,
             data: this.kidStatRows.map((item) =>
@@ -1023,7 +1062,7 @@ export default {
             ),
           },
           {
-            name: '解密成功',
+            name: t('monitor:messages.decryptionSucceeded'),
             type: 'bar',
             barMaxWidth: 18,
             data: this.kidStatRows.map((item) =>
@@ -1031,7 +1070,7 @@ export default {
             ),
           },
           {
-            name: '解密失败',
+            name: t('monitor:messages.decryptionFailed'),
             type: 'bar',
             barMaxWidth: 18,
             data: this.kidStatRows.map((item) =>
@@ -1039,7 +1078,7 @@ export default {
             ),
           },
           {
-            name: '加密响应',
+            name: t('monitor:messages.encryptedResponses'),
             type: 'bar',
             barMaxWidth: 18,
             data: this.kidStatRows.map((item) =>

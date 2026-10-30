@@ -1,4 +1,4 @@
-from sqlalchemy import CHAR, BigInteger, Column, Integer, String
+from sqlalchemy import CHAR, JSON, BigInteger, Column, Integer, String
 
 from common.mixin import AuditTimeMixin
 from config.database import Base
@@ -16,6 +16,7 @@ class SysMenu(AuditTimeMixin, Base):
 
     menu_id = Column(BigInteger, primary_key=True, nullable=False, autoincrement=True, comment='菜单ID')
     menu_name = Column(String(50), nullable=False, comment='菜单名称')
+    menu_name_i18n = Column(JSON, nullable=True, comment='多语言译文')
     parent_id = Column(BigInteger, nullable=True, server_default='0', comment='父菜单ID')
     order_num = Column(Integer, server_default='0', comment='显示顺序')
     path = Column(String(200), nullable=True, server_default="''", comment='路由地址')

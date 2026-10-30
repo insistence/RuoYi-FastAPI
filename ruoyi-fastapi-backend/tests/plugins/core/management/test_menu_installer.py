@@ -349,3 +349,32 @@ async def test_plugin_menu_installer_removes_menus_deleted_from_manifest(monkeyp
 
     assert FakePluginDao.plugin_menus == {}
     assert FakePluginDao.menus == {}
+
+
+def test_plugin_translation_maps_keep_menu_identity_and_support_future_locales() -> None:
+    menu = PluginMenuManifest(
+        name='新增', nameI18n={'en-US': 'Add', 'ja-JP': '追加'}, path='add', component='', perms='demo:add', type='F'
+    )
+    assert PluginMenuKeyBuilder.build(menu, 'perm:demo:list') == 'button:perm:demo:list/新增#demo:add'
+    model = PluginMenuInstaller._build_menu_model('demo', menu, PARENT_MENU_ID)
+    assert model.menu_name == '新增'
+    assert model.menu_name_i18n == {'en-US': 'Add', 'ja-JP': '追加'}
+    permission = PluginPermissionManifest(code='demo:edit', name='修改', nameI18n={'en-US': 'Edit'})
+    button = PluginMenuInstaller._build_permission_button_menu(permission, 1)
+    assert button.name_i18n == {'en-US': 'Edit'}
+
+
+def test_translated_plugin_manifest_requires_declared_backend_compatibility() -> None:
+    payload = {
+        'id': 'demo',
+        'name': '演示',
+        'version': '1.0.0',
+        'backend': {'module': 'plugins.demo'},
+        'frontend': {'menus': [{'name': '演示', 'nameI18n': {'en-US': 'Demo'}, 'path': 'demo'}]},
+    }
+    with pytest.raises(ValueError, match=r'compatibility\.backendVersion'):
+        PluginManifest.model_validate(payload)
+    payload['compatibility'] = {'backendVersion': '>=2.0.0'}
+    manifest = PluginManifest.model_validate(payload)
+    assert manifest.frontend.menus[0].name == '演示'
+    assert manifest.frontend.menus[0].name_i18n == {'en-US': 'Demo'}

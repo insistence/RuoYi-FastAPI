@@ -1,10 +1,18 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      section="访问控制"
-      title="用户授权"
-      description="管理用户对应用的访问授权，撤销当前访问或禁止后续授权。"
-      filter-hint="授权状态与应用访问策略分别管理；解除禁止后仍需重新授权"
+      :section="$t('authCenter:help.accessControl')"
+      :title="$t('authCenter:messages.userGrants')"
+      :description="
+        $t(
+          'authCenter:messages.manageUserAccessGrantsToApplicationsRevokeCurrentAccessOrPreventFuture'
+        )
+      "
+      :filter-hint="
+        $t(
+          'authCenter:messages.grantStatusAndApplicationAccessPoliciesAreManagedSeparatelyRemovingARestriction'
+        )
+      "
     >
       <template #actions>
         <el-button
@@ -12,7 +20,7 @@
           plain
           icon="el-icon-lock"
           @click="policyOpen = true"
-          >访问策略</el-button
+          >{{ $t('authCenter:messages.accessPolicies') }}</el-button
         >
         <el-button
           type="danger"
@@ -22,78 +30,80 @@
           v-hasPermi="['system:oauthGrant:revoke']"
           @click="openRevoke()"
         >
-          撤销选中{{ selected.length ? `（${selected.length}）` : '' }}
+          {{ $t('authCenter:messages.revokeSelected')
+          }}{{ selected.length ? `（${selected.length}）` : '' }}
         </el-button>
       </template>
       <template #filters>
         <el-form
+          :validate-on-rule-change="false"
           v-show="showSearch"
           ref="queryRef"
           :model="queryParams"
           :inline="true"
         >
           <el-form-item
-            label="用户"
+            :label="$t('system:user.user')"
             prop="userId"
           >
             <el-input
               v-model="queryParams.userId"
               clearable
-              placeholder="用户编号"
+              :placeholder="$t('system:user.id')"
               style="width: 200px"
             />
           </el-form-item>
           <el-form-item
-            label="应用"
+            :label="$t('common:apply')"
             prop="clientId"
           >
             <el-input
               v-model="queryParams.clientId"
               clearable
-              placeholder="应用编号"
+              :placeholder="$t('authCenter:appId')"
               style="width: 200px"
             />
           </el-form-item>
           <el-form-item
-            label="状态"
+            :label="$t('common:status')"
             prop="status"
           >
             <el-select
               v-model="queryParams.status"
               clearable
-              placeholder="全部状态"
+              :placeholder="$t('common:allStatuses')"
               style="width: 200px"
             >
               <el-option
-                label="仍然有效"
+                :label="$t('authCenter:messages.stillValid')"
                 value="active"
               />
               <el-option
-                label="已撤销"
+                :label="$t('authCenter:messages.revoked')"
                 value="revoked"
               />
               <el-option
-                label="已过期"
+                :label="$t('common:expired')"
                 value="expired"
               />
             </el-select>
           </el-form-item>
           <el-form-item
-            label="应用访问"
+            :label="$t('authCenter:messages.applicationAccess')"
             prop="accessStatus"
           >
             <el-select
               v-model="queryParams.accessStatus"
               clearable
-              placeholder="全部策略"
+              :placeholder="$t('authCenter:messages.allPolicies')"
               style="width: 200px"
             >
               <el-option
-                label="允许授权"
+                :label="$t('authCenter:messages.consentAllowed')"
                 value="allowed"
               />
               <el-option
-                label="禁止访问"
+                :label="$t('authCenter:messages.blockAccess')"
                 value="blocked"
               />
             </el-select>
@@ -103,19 +113,20 @@
               type="primary"
               icon="el-icon-search"
               @click="handleQuery"
-              >查找</el-button
+              >{{ $t('common:find') }}</el-button
             >
             <el-button
               icon="el-icon-refresh"
               @click="resetQuery"
-              >清空</el-button
+              >{{ $t('common:clear') }}</el-button
             >
           </el-form-item>
         </el-form>
       </template>
       <template #toolbar>
         <span class="result-count"
-          >找到 <strong>{{ total }}</strong> 条授权</span
+          >{{ $t('layout:interface.found') }} <strong>{{ total }}</strong>
+          {{ $t('authCenter:messages.grants') }}</span
         >
         <right-toolbar
           :showSearch.sync="showSearch"
@@ -135,7 +146,7 @@
           :selectable="(row) => row.status === 'active'"
         />
         <el-table-column
-          label="用户"
+          :label="$t('system:user.user')"
           min-width="180"
         >
           <template #default="scope">
@@ -147,14 +158,16 @@
                 ></i
               ></span>
               <span
-                ><strong>{{ scope.row.userName || `用户 ${scope.row.userId}` }}</strong
+                ><strong>{{
+                  scope.row.userName || $t('auth:user.fallbackName', { id: scope.row.userId })
+                }}</strong
                 ><small>{{ scope.row.userId || short(scope.row.subjectId) }}</small></span
               >
             </div>
           </template>
         </el-table-column>
         <el-table-column
-          label="授权给应用"
+          :label="$t('authCenter:messages.grantedToApplication')"
           min-width="210"
         >
           <template #default="scope"
@@ -165,7 +178,7 @@
           >
         </el-table-column>
         <el-table-column
-          label="允许的权限"
+          :label="$t('authCenter:messages.allowedPermissions')"
           min-width="260"
         >
           <template #default="scope">
@@ -186,22 +199,25 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="可访问服务"
+          :label="$t('pluginAdmin:accessibleServices')"
           min-width="170"
           show-overflow-tooltip
         >
           <template #default="scope">{{
-            (scope.row.grantedResources || []).join('、') || '仅身份信息'
+            (scope.row.grantedResources || []).join('、') ||
+            $t('authCenter:interface.identityInformationOnly')
           }}</template>
         </el-table-column>
         <el-table-column
-          label="最后使用"
+          :label="$t('authCenter:messages.lastUsed')"
           width="170"
         >
-          <template #default="scope">{{ parseTime(scope.row.lastUsedAt) || '尚未使用' }}</template>
+          <template #default="scope">{{
+            parseTime(scope.row.lastUsedAt) || $t('authCenter:expression.notUsedYet')
+          }}</template>
         </el-table-column>
         <el-table-column
-          label="状态"
+          :label="$t('common:status')"
           width="105"
           align="center"
         >
@@ -212,7 +228,7 @@
           >
         </el-table-column>
         <el-table-column
-          label="应用访问"
+          :label="$t('authCenter:messages.applicationAccess')"
           width="110"
           align="center"
         >
@@ -221,12 +237,16 @@
               :type="scope.row.accessStatus === 'blocked' ? 'danger' : 'info'"
               effect="plain"
             >
-              {{ scope.row.accessStatus === 'blocked' ? '禁止访问' : '允许授权' }}
+              {{
+                scope.row.accessStatus === 'blocked'
+                  ? $t('authCenter:messages.blockAccess')
+                  : $t('authCenter:messages.consentAllowed')
+              }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          label="操作"
+          :label="$t('common:actions')"
           fixed="right"
           width="260"
           align="center"
@@ -237,7 +257,7 @@
                 type="text"
                 icon="el-icon-view"
                 @click="showDetail(scope.row)"
-                >查看</el-button
+                >{{ $t('common:view') }}</el-button
               >
               <el-button
                 class="oauth-button-danger"
@@ -246,7 +266,7 @@
                 icon="el-icon-circle-close"
                 v-hasPermi="['system:oauthGrant:revoke']"
                 @click="openRevoke(scope.row)"
-                >撤销</el-button
+                >{{ $t('authCenter:messages.revoke') }}</el-button
               >
               <el-button
                 type="text"
@@ -254,12 +274,18 @@
                 :icon="scope.row.accessStatus === 'blocked' ? 'el-icon-unlock' : 'el-icon-lock'"
                 v-hasPermi="['system:oauthGrant:revoke']"
                 @click="openAccess(scope.row)"
-                >{{ scope.row.accessStatus === 'blocked' ? '解除禁止' : '禁止访问' }}</el-button
+                >{{
+                  scope.row.accessStatus === 'blocked'
+                    ? $t('authCenter:expression.removeRestriction')
+                    : $t('authCenter:messages.blockAccess')
+                }}</el-button
               >
             </div>
           </template>
         </el-table-column>
-        <template #empty><el-empty description="没有符合条件的用户授权" /></template>
+        <template #empty
+          ><el-empty :description="$t('authCenter:messages.noMatchingUserGrants')"
+        /></template>
       </el-table>
       <pagination
         v-show="total > 0"
@@ -278,7 +304,7 @@
     <el-dialog
       custom-class="oauth-overlay"
       :visible.sync="revokeOpen"
-      title="撤销用户授权"
+      :title="$t('authCenter:messages.revokeUserGrants')"
       width="min(540px, calc(100vw - 32px))"
       append-to-body
       :close-on-click-modal="false"
@@ -289,16 +315,20 @@
           aria-hidden="true"
         ></i>
         <div>
-          <strong>将撤销 {{ revokeTargetCount }} 组用户与应用的现有授权</strong>
+          <strong>{{ $t('auth:grant.revokeCount', { count: revokeTargetCount }) }}</strong>
           <p>
-            包括一次性授权、已记住的授权和持续访问权限。在线校验的资源将在下次检查时拒绝旧凭据；仅本地验签或缓存校验结果的资源可能延迟生效。用户重新同意后可以再次访问。
+            {{
+              $t(
+                'authCenter:messages.thisIncludesOneTimeRememberedAndOfflineAccessGrantsResourcesUsingOnline'
+              )
+            }}
           </p>
         </div>
       </div>
       <label
         class="reason-label"
         for="grant-revoke-reason"
-        >撤销原因</label
+        >{{ $t('authCenter:messages.revocationReason') }}</label
       >
       <el-input
         id="grant-revoke-reason"
@@ -307,16 +337,16 @@
         :rows="3"
         maxlength="200"
         show-word-limit
-        placeholder="说明为什么要撤销，便于后续审计"
+        :placeholder="$t('authCenter:messages.explainTheRevocationForTheAuditTrail')"
       />
       <template #footer>
-        <el-button @click="revokeOpen = false">取消</el-button>
+        <el-button @click="revokeOpen = false">{{ $t('common:cancel') }}</el-button>
         <el-button
           type="danger"
           :disabled="!reason.trim()"
           :loading="revoking"
           @click="revoke"
-          >确认撤销</el-button
+          >{{ $t('authCenter:messages.confirmRevocation') }}</el-button
         >
       </template>
     </el-dialog>
@@ -324,7 +354,11 @@
     <el-dialog
       custom-class="oauth-overlay"
       :visible.sync="accessOpen"
-      :title="accessBlocked ? '禁止用户访问应用' : '解除应用访问禁止'"
+      :title="
+        accessBlocked
+          ? $t('authCenter:expression.blockUserAccessToApplication')
+          : $t('authCenter:expression.removeApplicationAccessRestriction')
+      "
       width="min(540px, calc(100vw - 32px))"
       append-to-body
       :close-on-click-modal="false"
@@ -336,19 +370,31 @@
         ></i>
         <div>
           <strong
-            >{{ accessTarget.userName || `用户 ${accessTarget.userId}` }} ·
-            {{ accessTarget.clientName || accessTarget.clientId }}</strong
+            >{{
+              accessTarget.userName || $t('auth:user.fallbackName', { id: accessTarget.userId })
+            }}
+            · {{ accessTarget.clientName || accessTarget.clientId }}</strong
           >
           <p v-if="accessBlocked">
-            将撤销该用户对应用的全部现有授权，并禁止再次授权。只有管理员解除禁止后，用户才能重新授权；其他应用不受影响。
+            {{
+              $t(
+                'authCenter:messages.thisRevokesAllExistingGrantsForThisUserAndApplicationAndPrevents'
+              )
+            }}
           </p>
-          <p v-else>解除后用户可以重新授权。已撤销的授权和旧凭据保持失效。</p>
+          <p v-else>
+            {{
+              $t(
+                'authCenter:messages.theUserMayGrantConsentAgainAfterTheRestrictionIsRemovedRevoked'
+              )
+            }}
+          </p>
         </div>
       </div>
       <label
         class="reason-label"
         for="grant-access-reason"
-        >操作原因</label
+        >{{ $t('common:operationReason') }}</label
       >
       <el-input
         id="grant-access-reason"
@@ -357,16 +403,20 @@
         :rows="3"
         maxlength="200"
         show-word-limit
-        placeholder="说明操作原因，便于后续审计"
+        :placeholder="$t('authCenter:messages.explainTheOperationForTheAuditTrail')"
       />
       <template #footer>
-        <el-button @click="accessOpen = false">取消</el-button>
+        <el-button @click="accessOpen = false">{{ $t('common:cancel') }}</el-button>
         <el-button
           :type="accessBlocked ? 'danger' : 'primary'"
           :disabled="!accessReason.trim()"
           :loading="savingAccess"
           @click="saveAccess"
-          >{{ accessBlocked ? '确认禁止' : '确认解除' }}</el-button
+          >{{
+            accessBlocked
+              ? $t('authCenter:expression.confirmRestriction')
+              : $t('authCenter:expression.confirmRemoval')
+          }}</el-button
         >
       </template>
     </el-dialog>
@@ -374,7 +424,7 @@
     <el-drawer
       custom-class="oauth-overlay"
       :visible.sync="detailOpen"
-      title="用户授权详情"
+      :title="$t('authCenter:messages.userGrantDetails')"
       size="min(640px, 92vw)"
     >
       <div class="detail-hero">
@@ -385,13 +435,15 @@
           ></i
         ></span>
         <div>
-          <strong>{{ detail.userName || detail.userId || '用户' }}</strong>
-          <p>已授权给 {{ detail.clientName || detail.clientId }}</p>
+          <strong>{{ detail.userName || detail.userId || $t('system:user.user') }}</strong>
+          <p>
+            {{ $t('authCenter:messages.grantedTo') }} {{ detail.clientName || detail.clientId }}
+          </p>
         </div>
         <el-tag :type="statusType(detail.status)">{{ statusText(detail.status) }}</el-tag>
       </div>
       <section class="detail-section">
-        <h4>允许的权限</h4>
+        <h4>{{ $t('authCenter:messages.allowedPermissions') }}</h4>
         <div class="tag-summary">
           <el-tag
             v-for="item in detail.grantedScopes || []"
@@ -402,44 +454,52 @@
         </div>
       </section>
       <section class="detail-section">
-        <h4>可访问服务</h4>
-        <p>{{ (detail.grantedResources || []).join('、') || '仅用于获取登录身份信息' }}</p>
+        <h4>{{ $t('pluginAdmin:accessibleServices') }}</h4>
+        <p>
+          {{
+            (detail.grantedResources || []).join('、') ||
+            $t('authCenter:expression.usedOnlyToObtainSignInIdentityInformation')
+          }}
+        </p>
       </section>
       <el-descriptions
         :column="1"
         border
         class="detail-descriptions"
       >
-        <el-descriptions-item label="授权时间">{{
+        <el-descriptions-item :label="$t('authCenter:messages.grantedAt')">{{
           parseTime(detail.consentedAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item label="最后使用">{{
-          parseTime(detail.lastUsedAt) || '尚未使用'
+        <el-descriptions-item :label="$t('authCenter:messages.lastUsed')">{{
+          parseTime(detail.lastUsedAt) || $t('authCenter:expression.notUsedYet')
         }}</el-descriptions-item>
-        <el-descriptions-item label="后续免确认">{{
-          (detail.rememberedScopes || []).join('、') || '未记住，下次仍需按策略确认'
+        <el-descriptions-item :label="$t('authCenter:messages.skipFutureConfirmation')">{{
+          (detail.rememberedScopes || []).join('、') ||
+          $t('authCenter:expression.notRememberedFutureConfirmationFollowsThePolicy')
         }}</el-descriptions-item>
-        <el-descriptions-item label="应用访问">{{
-          detail.accessStatus === 'blocked' ? '禁止访问，需管理员解除' : '允许重新授权'
+        <el-descriptions-item :label="$t('authCenter:messages.applicationAccess')">{{
+          detail.accessStatus === 'blocked'
+            ? $t('authCenter:expression.accessBlockedAnAdministratorMustRemoveTheRestriction')
+            : $t('authCenter:expression.newConsentAllowed')
         }}</el-descriptions-item>
-        <el-descriptions-item label="访问策略原因">{{
+        <el-descriptions-item :label="$t('authCenter:messages.accessPolicyReason')">{{
           detail.accessReason || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item label="撤销原因">{{
+        <el-descriptions-item :label="$t('authCenter:messages.revocationReason')">{{
           detail.revokeReason || '—'
         }}</el-descriptions-item>
       </el-descriptions>
       <el-collapse class="technical-details">
         <el-collapse-item
-          title="查看技术标识"
+          :title="$t('authCenter:messages.showTechnicalIdentifiers')"
           name="technical"
         >
           <dl>
-            <dt>授权 ID</dt>
+            <dt>{{ $t('monitor:messages.authorizationID') }}</dt>
             <dd>{{ detail.grantId }}</dd>
-            <dt>用户主体</dt>
+            <dt>{{ $t('authCenter:userPrincipal') }}</dt>
             <dd>{{ detail.subjectId }}</dd>
-            <dt>策略版本</dt>
+            <dt>{{ $t('authCenter:messages.policyVersion') }}</dt>
             <dd>{{ detail.clientPolicyVersion || '—' }}</dd>
           </dl>
         </el-collapse-item>
@@ -449,6 +509,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 export default { name: 'OAuthGrant' }
 </script>
 
@@ -501,7 +563,13 @@ function short(value) {
 
 /** 获取授权状态名称 */
 function statusText(value) {
-  return { active: '仍然有效', revoked: '已撤销', expired: '已过期' }[value] || '未知状态'
+  return (
+    {
+      active: t('authCenter:messages.stillValid'),
+      revoked: t('authCenter:messages.revoked'),
+      expired: t('common:expired'),
+    }[value] || t('authCenter:messages.unknownStatus')
+  )
 }
 
 /** 获取授权状态标签类型 */
@@ -550,7 +618,7 @@ async function revoke() {
     await revokeOAuthGrants(revokeIds.value.join(','), {
       reason: reason.value.trim(),
     })
-    proxy.$modal.msgSuccess('授权已撤销')
+    proxy.$modal.msgSuccess(t('authCenter:messages.grantRevoked'))
     revokeOpen.value = false
     await getList()
   } finally {
@@ -574,7 +642,11 @@ async function saveAccess() {
       blocked: accessBlocked.value,
       reason: accessReason.value.trim(),
     })
-    proxy.$modal.msgSuccess(accessBlocked.value ? '已禁止访问该应用' : '已解除禁止，请重新授权')
+    proxy.$modal.msgSuccess(
+      accessBlocked.value
+        ? t('authCenter:messages.accessToThisApplicationHasBeenBlocked')
+        : t('authCenter:messages.restrictionRemovedGrantConsentAgain')
+    )
     accessOpen.value = false
     await getList()
   } finally {

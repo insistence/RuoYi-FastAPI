@@ -51,7 +51,7 @@ async def get_plugin_config_status(
 ) -> Response:
     payload = await get_plugin_runtime_service().get_plugin_config(plugin_id, reveal_secret=True)
     if not payload.get('ok'):
-        return ResponseUtil.failure(msg='插件配置状态读取失败')
+        return ResponseUtil.failure(msg='插件配置状态读取失败', msg_key='plugin.config.statusReadFailed')
     values = {item['key']: item.get('value') for item in payload.get('configs', [])}
     reporter = getattr(request.app.state, 'plugin_metrics_reporter', None)
     report = await reporter.read(plugin_id) if isinstance(reporter, PluginMetricsReporter) else {'scope': 'unavailable'}

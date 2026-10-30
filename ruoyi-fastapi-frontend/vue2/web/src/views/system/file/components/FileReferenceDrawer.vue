@@ -1,13 +1,15 @@
 <template>
   <el-drawer
-    :title="`业务引用 - ${fileName}`"
+    :title="$t('file:dialog.references', { name: fileName })"
     :visible.sync="visible"
     size="55%"
     append-to-body
   >
     <div class="drawer-content">
       <el-alert
-        title="存在业务引用时文件不能移入回收站，请先在对应业务中解除文件引用。"
+        :title="
+          $t('file:messages.referencedFilesCannotBeMovedToTheRecycleBinRemoveTheirReferences')
+        "
         type="warning"
         :closable="false"
         show-icon
@@ -18,14 +20,14 @@
         :data="referenceList"
       >
         <el-table-column
-          label="业务类型"
+          :label="$t('monitor:log.businessType')"
           align="center"
           prop="businessType"
           width="130"
           :show-overflow-tooltip="true"
         />
         <el-table-column
-          label="业务名称"
+          :label="$t('file:messages.businessName')"
           align="left"
           prop="businessName"
           min-width="180"
@@ -34,26 +36,28 @@
           <template slot-scope="scope">{{ scope.row.businessName || '-' }}</template>
         </el-table-column>
         <el-table-column
-          label="业务ID"
+          :label="$t('file:messages.businessID')"
           align="center"
           prop="businessId"
           min-width="160"
           :show-overflow-tooltip="true"
         />
         <el-table-column
-          label="保留到期"
+          :label="$t('file:messages.retentionExpires')"
           align="center"
           prop="retentionExpireTime"
           width="180"
         >
           <template slot-scope="scope">
             {{
-              scope.row.retentionExpireTime ? parseTime(scope.row.retentionExpireTime) : '永久保留'
+              scope.row.retentionExpireTime
+                ? parseTime(scope.row.retentionExpireTime)
+                : $t('file:expression.retainIndefinitely')
             }}
           </template>
         </el-table-column>
         <el-table-column
-          label="来源"
+          :label="$t('common:source')"
           align="center"
           width="100"
         >
@@ -63,18 +67,18 @@
               type="info"
               effect="plain"
             >
-              兼容字段
+              {{ $t('file:messages.legacyField') }}
             </el-tag>
             <el-tag
               v-else
               type="success"
               effect="plain"
-              >引用关系</el-tag
+              >{{ $t('file:messages.references') }}</el-tag
             >
           </template>
         </el-table-column>
         <el-table-column
-          label="登记人"
+          :label="$t('file:messages.registeredBy')"
           align="center"
           prop="createBy"
           width="110"
@@ -83,7 +87,7 @@
           <template slot-scope="scope">{{ scope.row.createBy || '-' }}</template>
         </el-table-column>
         <el-table-column
-          label="登记时间"
+          :label="$t('file:messages.registeredAt')"
           align="center"
           prop="createTime"
           width="180"

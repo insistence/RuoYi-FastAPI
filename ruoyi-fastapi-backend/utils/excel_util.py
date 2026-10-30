@@ -7,6 +7,9 @@ from openpyxl.styles import Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
+from common.context import LocaleContext, RequestContext
+from i18n.message import I18nMessage
+from i18n.translator import I18nUtil
 from utils.time_util import TimezoneUtil
 
 
@@ -16,16 +19,20 @@ class ExcelUtil:
     """
 
     @classmethod
-    def __mapping_list(cls, list_data: list, mapping_dict: dict, timezone_name: str) -> list[dict]:
+    def __mapping_list(
+        cls, list_data: list, mapping_dict: dict, timezone_name: str, locale_context: LocaleContext
+    ) -> list[dict]:
         """
         工具方法：将list数据中的字段名映射为对应的中文字段名
 
         :param list_data: 数据列表
         :param mapping_dict: 映射字典
         :param timezone_name: 导出使用的IANA时区名称
+        :param locale_context: 导出使用的语言快照
         :return: 映射后的数据列表
         """
         datetime_keys = {key for key in mapping_dict if any(isinstance(item.get(key), datetime) for item in list_data)}
+        mapping_dict = {key: cls._display_value(value, locale_context) for key, value in mapping_dict.items()}
         display_mapping = {
             key: (f'{header} ({timezone_name})' if key in datetime_keys else header)
             for key, header in mapping_dict.items()
@@ -35,7 +42,7 @@ class ExcelUtil:
                 display_mapping.get(key): (
                     TimezoneUtil.to_business_time(item.get(key), timezone_name).replace(tzinfo=None)
                     if isinstance(item.get(key), datetime)
-                    else item.get(key)
+                    else cls._display_value(item.get(key), locale_context)
                 )
                 for key in display_mapping
             }
@@ -45,17 +52,25 @@ class ExcelUtil:
         return mapping_data
 
     @classmethod
-    def export_list2excel(cls, list_data: list, mapping_dict: dict, timezone_name: str | None = None) -> bytes:
+    def export_list2excel(
+        cls,
+        list_data: list,
+        mapping_dict: dict,
+        timezone_name: str | None = None,
+        locale_context: LocaleContext | None = None,
+    ) -> bytes:
         """
         工具方法：将需要导出的list数据转化为对应excel的二进制数据
 
         :param list_data: 数据列表
         :param mapping_dict: 映射字典
         :param timezone_name: 导出时区，省略时使用当前请求时区
+        :param locale_context: 导出语言快照，省略时使用当前请求语言
         :return: list数据对应excel的二进制数据
         """
         export_timezone = TimezoneUtil.validate_timezone_name(timezone_name or TimezoneUtil.get_request_timezone())
-        mapping_data = cls.__mapping_list(list_data, mapping_dict, export_timezone)
+        snapshot = locale_context or RequestContext.get_current_locale()
+        mapping_data = cls.__mapping_list(list_data, mapping_dict, export_timezone, snapshot)
         df = pd.DataFrame(mapping_data)
         binary_data = io.BytesIO()
         df.to_excel(binary_data, index=False, engine='openpyxl')
@@ -64,15 +79,32 @@ class ExcelUtil:
         return binary_data
 
     @classmethod
-    def get_excel_template(cls, header_list: list, selector_header_list: list, option_list: list[dict]) -> bytes:
+    def get_excel_template(
+        cls,
+        header_list: list,
+        selector_header_list: list,
+        option_list: list[dict],
+        locale_context: LocaleContext | None = None,
+    ) -> bytes:
         """
         工具方法：将需要导出的list数据转化为对应excel的二进制数据
 
         :param header_list: 表头数据列表
         :param selector_header_list: 需要设置为选择器格式的表头数据列表
         :param option_list: 选择器格式的表头预设的选项列表
+        :param locale_context: 模板语言快照，省略时使用当前请求语言
         :return: 模板excel的二进制数据
         """
+        snapshot = locale_context or RequestContext.get_current_locale()
+        header_list = [cls._display_value(value, snapshot) for value in header_list]
+        selector_header_list = [cls._display_value(value, snapshot) for value in selector_header_list]
+        option_list = [
+            {
+                cls._display_value(key, snapshot): [cls._display_value(value, snapshot) for value in values]
+                for key, values in option.items()
+            }
+            for option in option_list
+        ]
         # 创建Excel工作簿
         wb = Workbook()
         # 选择默认的活动工作表
@@ -123,3 +155,14 @@ class ExcelUtil:
         excel_data = file.getvalue()
 
         return excel_data
+
+    @staticmethod
+    def _display_value(value: object, context: LocaleContext) -> object:
+        """
+        仅翻译声明了消息标识的固定文本，保留业务内容
+
+        :param value: 表头、固定枚举或业务数据
+        :param context: 导出语言快照
+        :return: 展示文本或原始业务数据
+        """
+        return I18nUtil.message_fields(value, context=context)['msg'] if isinstance(value, I18nMessage) else value

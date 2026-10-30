@@ -12,7 +12,7 @@
             class="new-chat-btn"
             icon="el-icon-plus"
             @click="clearChat"
-            >新建对话</el-button
+            >{{ $t('plugin.ai:messages.newConversation') }}</el-button
           >
         </div>
         <div
@@ -30,7 +30,7 @@
             </div>
             <div class="session-info">
               <div class="session-title">
-                {{ session.sessionTitle || '新对话' }}
+                {{ session.sessionTitle || $t('plugin.ai:expression.newConversation') }}
               </div>
               <div class="session-time">
                 {{ formatTime(session.createdAt) }}
@@ -48,7 +48,7 @@
             v-if="sessionList.length === 0 && !sessionLoading"
             class="empty-session"
           >
-            暂无历史对话
+            {{ $t('plugin.ai:messages.noConversationHistory') }}
           </div>
         </div>
       </el-aside>
@@ -57,11 +57,11 @@
       <el-main class="chat-main">
         <div class="chat-header">
           <div class="header-left">
-            <span class="header-title">AI 智能助手</span>
+            <span class="header-title">{{ $t('plugin.ai:messages.aIAssistant') }}</span>
           </div>
           <div class="header-right">
             <el-tooltip
-              content="全局参数配置"
+              :content="$t('plugin.ai:messages.globalSettings')"
               placement="bottom"
             >
               <el-button
@@ -73,7 +73,7 @@
             </el-tooltip>
             <el-select
               v-model="currentModelId"
-              placeholder="选择模型"
+              :placeholder="$t('plugin.ai:messages.chooseAModel')"
               size="large"
               style="width: 210px"
             >
@@ -107,8 +107,8 @@
                   style="font-size: 60px"
                 ></i>
               </div>
-              <h2>你好！我是你的 AI 助手</h2>
-              <p>请在下方输入问题开始对话...</p>
+              <h2>{{ $t('plugin.ai:messages.helloIAmYourAIAssistant') }}</h2>
+              <p>{{ $t('plugin.ai:messages.enterAQuestionBelowToStartAConversation') }}</p>
             </div>
 
             <div
@@ -125,7 +125,11 @@
               </div>
               <div class="message-content-wrapper">
                 <div class="message-sender">
-                  {{ msg.role === 'user' ? '我' : 'AI 助手' }}
+                  {{
+                    msg.role === 'user'
+                      ? $t('plugin.ai:expression.me')
+                      : $t('plugin.ai:expression.aIAssistant')
+                  }}
                   <span
                     class="message-time"
                     v-if="msg.createdAt"
@@ -160,7 +164,7 @@
                 <div class="message-footer">
                   <div class="footer-actions">
                     <el-tooltip
-                      content="复制"
+                      :content="$t('plugin.ai:messages.copy')"
                       placement="top"
                     >
                       <el-button
@@ -181,7 +185,8 @@
                           msg.metrics.duration !== null &&
                           msg.metrics.duration !== undefined
                         "
-                        >耗时 {{ msg.metrics.duration.toFixed(3) }} s</span
+                        >{{ $t('plugin.ai:messages.duration') }}
+                        {{ msg.metrics.duration.toFixed(3) }} s</span
                       >
                       <span
                         v-if="
@@ -189,7 +194,8 @@
                           msg.metrics.inputTokens !== null &&
                           msg.metrics.inputTokens !== undefined
                         "
-                        >输入 {{ msg.metrics.inputTokens }} tokens</span
+                        >{{ $t('plugin.ai:messages.input') }}
+                        {{ msg.metrics.inputTokens }} tokens</span
                       >
                       <span
                         v-if="
@@ -197,7 +203,8 @@
                           msg.metrics.outputTokens !== null &&
                           msg.metrics.outputTokens !== undefined
                         "
-                        >输出 {{ msg.metrics.outputTokens }} tokens</span
+                        >{{ $t('plugin.ai:messages.output') }}
+                        {{ msg.metrics.outputTokens }} tokens</span
                       >
                       <span
                         v-if="
@@ -205,7 +212,8 @@
                           msg.metrics.totalTokens !== null &&
                           msg.metrics.totalTokens !== undefined
                         "
-                        >总 {{ msg.metrics.totalTokens }} tokens</span
+                        >{{ $t('plugin.ai:messages.total') }}
+                        {{ msg.metrics.totalTokens }} tokens</span
                       >
                       <span
                         v-if="
@@ -213,7 +221,8 @@
                           msg.metrics.reasoningTokens !== null &&
                           msg.metrics.reasoningTokens !== undefined
                         "
-                        >推理 {{ msg.metrics.reasoningTokens }} tokens</span
+                        >{{ $t('plugin.ai:messages.reasoning') }}
+                        {{ msg.metrics.reasoningTokens }} tokens</span
                       >
                     </div>
                   </div>
@@ -253,7 +262,9 @@
               type="textarea"
               :rows="3"
               resize="none"
-              placeholder="请输入您的问题... (Enter 发送，Shift + Enter 换行)"
+              :placeholder="
+                $t('plugin.ai:messages.enterYourQuestionEnterToSendShiftEnterForANewLine')
+              "
               @keydown.enter.native.exact.prevent="handleSend"
               :disabled="loading"
             />
@@ -278,7 +289,7 @@
                     currentModelInfo.supportImages === 'Y' &&
                     userConfig.visionEnabled == '0'
                   "
-                  content="上传图片"
+                  :content="$t('plugin.ai:messages.uploadImages')"
                   placement="top"
                 >
                   <el-button
@@ -299,7 +310,7 @@
                   @click="chatConfig.isReasoning = !chatConfig.isReasoning"
                 >
                   <svg-icon icon-class="deepthink" />
-                  深度思考
+                  {{ $t('plugin.ai:messages.deepReasoning') }}
                 </el-button>
               </div>
               <el-button
@@ -308,7 +319,7 @@
                 @click="handleMainAction"
                 :disabled="!loading && !inputMessage.trim() && !inputImages.length"
               >
-                {{ loading ? '停止' : '发送' }}
+                {{ loading ? $t('plugin.ai:expression.stop') : $t('plugin.ai:expression.send') }}
               </el-button>
             </div>
           </div>
@@ -319,7 +330,7 @@
     <!-- 全局配置弹窗 -->
     <el-dialog
       :visible.sync="showConfigDialog"
-      title="用户全局配置"
+      :title="$t('plugin.ai:messages.globalUserSettings')"
       width="700px"
       append-to-body
       class="chat-config-dialog"
@@ -330,20 +341,20 @@
       >
         <el-row>
           <el-col :span="12">
-            <el-form-item label="默认温度">
+            <el-form-item :label="$t('plugin.ai:messages.defaultTemperature')">
               <el-input-number
                 v-model="editingUserConfig.temperature"
                 :min="0"
                 :max="2"
                 :step="0.1"
                 :precision="1"
-                placeholder="默认温度"
+                :placeholder="$t('plugin.ai:messages.defaultTemperature')"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="附带历史消息">
+            <el-form-item :label="$t('plugin.ai:messages.includeConversationHistory')">
               <el-switch
                 active-value="0"
                 inactive-value="1"
@@ -355,20 +366,20 @@
         <el-row>
           <el-col :span="12">
             <el-form-item
-              label="历史消息轮数"
+              :label="$t('plugin.ai:messages.historyRounds')"
               v-if="editingUserConfig.addHistoryToContext == '0'"
             >
               <el-input-number
                 v-model="editingUserConfig.numHistoryRuns"
                 :min="1"
                 :max="20"
-                placeholder="历史消息轮数"
+                :placeholder="$t('plugin.ai:messages.historyRounds')"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="默认显示指标">
+            <el-form-item :label="$t('plugin.ai:messages.showMetricsByDefault')">
               <el-switch
                 active-value="0"
                 inactive-value="1"
@@ -379,7 +390,7 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="开启视觉功能">
+            <el-form-item :label="$t('plugin.ai:messages.enableVision')">
               <el-switch
                 active-value="0"
                 inactive-value="1"
@@ -389,14 +400,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="图片最大大小"
+              :label="$t('plugin.ai:messages.maximumImageSize')"
               v-if="editingUserConfig.visionEnabled"
             >
               <el-input-number
                 v-model="editingUserConfig.imageMaxSizeMb"
                 :min="1"
                 :max="50"
-                placeholder="图片大小"
+                :placeholder="$t('plugin.ai:messages.imageSize')"
                 style="width: 100%"
               >
                 <template #suffix>
@@ -408,12 +419,12 @@
         </el-row>
         <el-row>
           <el-col :span="24">
-            <el-form-item label="系统提示词">
+            <el-form-item :label="$t('plugin.ai:messages.systemPrompt')">
               <el-input
                 v-model="editingUserConfig.systemPrompt"
                 type="textarea"
                 :rows="4"
-                placeholder="设置全局系统提示词"
+                :placeholder="$t('plugin.ai:messages.setTheGlobalSystemPrompt')"
               />
             </el-form-item>
           </el-col>
@@ -421,11 +432,13 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="showConfigDialog = false">取消</el-button>
+          <el-button @click="showConfigDialog = false">{{
+            $t('plugin.ai:messages.cancel')
+          }}</el-button>
           <el-button
             type="primary"
             @click="handleSaveConfig"
-            >保存</el-button
+            >{{ $t('plugin.ai:messages.save') }}</el-button
           >
         </span>
       </template>
@@ -443,6 +456,10 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
+import { i18n } from '@/i18n'
+
 import { listModelAll } from '../../api/model'
 import {
   listChatSession,
@@ -574,7 +591,7 @@ export default {
     handleSaveConfig() {
       const payload = { ...this.editingUserConfig }
       saveUserChatConfig(payload).then(() => {
-        this.$modal.msgSuccess('配置保存成功')
+        this.$modal.msgSuccess(t('plugin.ai:messages.settingsSaved'))
         this.showConfigDialog = false
         this.loadUserConfig()
       })
@@ -645,7 +662,7 @@ export default {
     },
     handleDeleteSession(sessionId) {
       this.$modal
-        .confirm('是否确认删除该会话？')
+        .confirm(t('plugin.ai:messages.deleteThisConversation'))
         .then(() => {
           return delChatSession(sessionId)
         })
@@ -654,13 +671,14 @@ export default {
           if (this.currentSessionId === sessionId) {
             this.clearChat()
           }
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('plugin.ai:messages.deletedSuccessfully'))
         })
         .catch(() => {})
     },
     async sendRequest(text, images) {
+      const localeHeaders = { ...i18n.headers }
       if (!this.currentModelId) {
-        this.$modal.msgError('请先选择模型')
+        this.$modal.msgError(t('plugin.ai:messages.chooseAModelFirst'))
         return
       }
 
@@ -683,6 +701,7 @@ export default {
         const response = await fetch(process.env.VUE_APP_BASE_API + '/ai/chat/send', {
           method: 'POST',
           headers: {
+            ...localeHeaders,
             'Content-Type': 'application/json',
             Authorization: 'Bearer ' + getToken(),
           },
@@ -749,7 +768,7 @@ export default {
         if (err.name === 'AbortError') {
           // User aborted
         } else {
-          this.$modal.msgError('请求失败: ' + err.message)
+          this.$modal.msgError(t('plugin.ai:requestFailed', { message: err.message }))
         }
       } finally {
         this.loading = false
@@ -763,16 +782,16 @@ export default {
     },
     copyText(text) {
       if (!text) {
-        this.$modal.msgWarning('内容为空，无法复制')
+        this.$modal.msgWarning(t('plugin.ai:emptyCopy'))
         return
       }
       navigator.clipboard
         .writeText(text)
         .then(() => {
-          this.$modal.msgSuccess('复制成功')
+          this.$modal.msgSuccess(t('plugin.ai:messages.copied'))
         })
         .catch(() => {
-          this.$modal.msgError('复制失败')
+          this.$modal.msgError(t('plugin.ai:messages.copyFailed'))
         })
     },
     triggerImageUpload() {
@@ -784,27 +803,29 @@ export default {
       }
     },
     async handleImageInputChange(event) {
+      const localeHeaders = { ...i18n.headers }
       const files = Array.from(event.target.files || [])
       if (!files.length) return
       if (files.length + this.inputImages.length > 10) {
-        this.$modal.msgError('最多只能上传 10 张图片')
+        this.$modal.msgError(t('plugin.ai:messages.youCanUploadUpTo10Images'))
         return
       }
       const maxSize = (this.userConfig.imageMaxSizeMb || 5) * 1024 * 1024
       for (const file of files) {
         if (file.size > maxSize) {
-          this.$modal.msgError(`单张图片大小不能超过 ${this.userConfig.imageMaxSizeMb} MB`)
+          this.$modal.msgError(t('plugin.ai:imageSize', { size: this.userConfig.imageMaxSizeMb }))
           return
         }
       }
       try {
-        this.$modal.loading('正在上传图片，请稍候...')
+        this.$modal.loading(t('plugin.ai:uploading'))
         for (const file of files) {
           const form = new FormData()
           form.append('file', file)
           const resp = await fetch(process.env.VUE_APP_BASE_API + '/common/upload', {
             method: 'POST',
             headers: {
+              ...localeHeaders,
               Authorization: 'Bearer ' + getToken(),
             },
             body: form,
@@ -813,11 +834,11 @@ export default {
           if (data.code === 200 && data.fileName) {
             this.inputImages.push(data.fileName)
           } else {
-            this.$modal.msgError(data.msg || '上传图片失败')
+            this.$modal.msgError(data.msg || t('plugin.ai:uploadFailed'))
           }
         }
       } catch (e) {
-        this.$modal.msgError('上传图片失败')
+        this.$modal.msgError(t('plugin.ai:uploadFailed'))
       } finally {
         this.$modal.closeLoading()
       }
@@ -827,7 +848,7 @@ export default {
       const images = this.inputImages
       if (!text && !images.length) return
       if (!this.currentModelId) {
-        this.$modal.msgError('请先选择模型')
+        this.$modal.msgError(t('plugin.ai:messages.chooseAModelFirst'))
         return
       }
 

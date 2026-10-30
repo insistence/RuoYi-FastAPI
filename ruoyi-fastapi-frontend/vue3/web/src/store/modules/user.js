@@ -1,3 +1,4 @@
+import { i18n, t } from '@/i18n'
 import router from '@/router'
 import cache from '@/plugins/cache'
 import { ElMessageBox } from 'element-plus'
@@ -51,6 +52,7 @@ const useUserStore = defineStore('user', {
         getInfo()
           .then((res) => {
             const user = res.user
+            i18n.setAccount(user?.userId, user?.locale)
             this.appTimezone = res.appTimezone
             setBusinessTimezone(res.appTimezone)
             this.applyTimezone(user.timeZone)
@@ -72,11 +74,15 @@ const useUserStore = defineStore('user', {
             cache.session.set('pwrChrtype', res.pwdChrtype)
             /* 初始密码提示 */
             if (res.isDefaultModifyPwd) {
-              ElMessageBox.confirm('您的密码还是初始密码，请修改密码！', '安全提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning',
-              })
+              ElMessageBox.confirm(
+                t('auth:password.defaultWarning'),
+                t('auth:password.securityTitle'),
+                {
+                  confirmButtonText: t('common:confirm'),
+                  cancelButtonText: t('common:cancel'),
+                  type: 'warning',
+                }
+              )
                 .then(() => {
                   router.push({ name: 'Profile', params: { activeTab: 'resetPwd' } })
                 })
@@ -84,11 +90,15 @@ const useUserStore = defineStore('user', {
             }
             /* 过期密码提示 */
             if (!res.isDefaultModifyPwd && res.isPasswordExpired) {
-              ElMessageBox.confirm('您的密码已过期，请尽快修改密码！', '安全提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning',
-              })
+              ElMessageBox.confirm(
+                t('auth:password.expiredWarning'),
+                t('auth:password.securityTitle'),
+                {
+                  confirmButtonText: t('common:confirm'),
+                  cancelButtonText: t('common:cancel'),
+                  type: 'warning',
+                }
+              )
                 .then(() => {
                   router.push({ name: 'Profile', params: { activeTab: 'resetPwd' } })
                 })
@@ -113,6 +123,7 @@ const useUserStore = defineStore('user', {
         this.roles = []
         this.permissions = []
         removeToken()
+        i18n.setAccount(null)
       }
     },
   },

@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import {
@@ -54,11 +57,14 @@ import Detail from './detail'
 import Runtime, { StateTag } from './runtime'
 
 export default function Job() {
+  useI18n()
+
   const [zoneSearch, setZoneSearch] = useState('')
   const [queryForm] = Form.useForm(),
     [form] = Form.useForm(),
     navigate = useNavigate(),
     appTimezone = useUserStore((state) => state.appTimezone)
+  useLocalizedFormErrors(queryForm, form)
   const { sys_job_status, sys_job_executor, sys_job_store } = useDict(
     'sys_job_status',
     'sys_job_executor',
@@ -193,14 +199,19 @@ export default function Job() {
   }
   async function remove(values) {
     try {
-      await confirm(`是否确认删除任务编号为“${values}”的数据项？`)
+      await confirm(t('monitor:deleteJobsWithIdsValue', { values }))
       mutation(await delJob(values))
     } catch {}
   }
   async function status(row, checked) {
     setBusy((previous) => ({ ...previous, [`status-${row.jobId}`]: true }))
     try {
-      await confirm(`确认${checked ? '启用' : '暂停'}任务“${row.jobName}”？`)
+      await confirm(
+        t('monitor:valueJobValue', {
+          arg0: checked ? t('common:enable') : t('monitor:pause'),
+          jobName: row.jobName,
+        })
+      )
       mutation(await changeJobStatus(row.jobId, checked ? '0' : '1'))
     } catch {
     } finally {
@@ -210,7 +221,7 @@ export default function Job() {
   async function run(row) {
     setBusy((previous) => ({ ...previous, [`run-${row.jobId}`]: true }))
     try {
-      await confirm(`确认立即执行一次任务“${row.jobName}”？`)
+      await confirm(t('monitor:runJobValueOnceNow', { jobName: row.jobName }))
       const result = await runJob(row.jobId)
       message.info(result.msg)
       showRuntime('executions', row, result.data?.executionId)
@@ -225,10 +236,10 @@ export default function Job() {
     } catch {}
   }
   const columns = [
-    { align: 'center', title: '任务编号', dataIndex: 'jobId', width: 100 },
+    { align: 'center', title: t('monitor:job.id'), dataIndex: 'jobId', width: 100 },
     {
       align: 'center',
-      title: '任务名称',
+      title: t('monitor:job.name'),
       dataIndex: 'jobName',
       width: 160,
       render: (value, row) => (
@@ -242,10 +253,10 @@ export default function Job() {
       ),
     },
     ...[
-      ['jobGroup', '业务分组'],
-      ['invokeTarget', '调用目标字符串'],
-      ['cronExpression', 'cron执行表达式'],
-      ['timeZone', 'cron时区'],
+      ['jobGroup', t('monitor:businessGroup')],
+      ['invokeTarget', t('monitor:callTarget')],
+      ['cronExpression', t('monitor:job.cronExpression')],
+      ['timeZone', t('monitor:job.timezone')],
     ].map(([dataIndex, title]) => ({
       align: 'center',
       dataIndex,
@@ -255,7 +266,7 @@ export default function Job() {
     })),
     {
       align: 'center',
-      title: '调度同步',
+      title: t('monitor:schedulerSynchronization'),
       dataIndex: 'syncStatus',
       width: 115,
       render: (value, row) => (
@@ -274,12 +285,12 @@ export default function Job() {
     },
     {
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       width: 85,
       render: (_, row) => (
         <Switch
           checked={row.status === '0'}
-          aria-label={`任务 ${row.jobName} 的启停状态`}
+          aria-label={t('monitor:enabledStatusOfJobValue', { jobName: row.jobName })}
           disabled={!checkPermi(['monitor:job:changeStatus'])}
           loading={busy[`status-${row.jobId}`]}
           onChange={(checked) => status(row, checked)}
@@ -289,7 +300,7 @@ export default function Job() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       fixed: 'right',
       width: 200,
       render: (_, row) => (
@@ -300,7 +311,7 @@ export default function Job() {
               symbol="Edit"
               onClick={() => edit(row.jobId)}
             >
-              修改
+              {t('common:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['monitor:job:remove']}>
@@ -309,7 +320,7 @@ export default function Job() {
               symbol="Delete"
               onClick={() => remove([row.jobId])}
             >
-              删除
+              {t('common:delete')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['monitor:job:changeStatus']}>
@@ -319,7 +330,7 @@ export default function Job() {
               loading={busy[`run-${row.jobId}`]}
               onClick={() => run(row)}
             >
-              执行一次
+              {t('common:runOnce')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['monitor:job:query']}>
@@ -328,7 +339,7 @@ export default function Job() {
               symbol="Operation"
               onClick={() => navigate(`/monitor/job-log/index/${row.jobId}`)}
             >
-              调度日志
+              {t('layout:route.jobLog')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -345,32 +356,32 @@ export default function Job() {
           onFinish={(values) => setQuery({ ...values, pageNum: 1, pageSize: query.pageSize })}
         >
           <Form.Item
-            label="任务名称"
+            label={t('monitor:job.name')}
             name="jobName"
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入任务名称"
+              placeholder={t('monitor:job.namePlaceholder')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="业务分组"
+            label={t('monitor:businessGroup')}
             name="jobGroup"
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入业务分组"
+              placeholder={t('monitor:enterBusinessGroup')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="任务状态"
+            label={t('monitor:taskStatus')}
             name="status"
           >
             <Select
               style={{ width: 200 }}
-              placeholder="请选择任务状态"
+              placeholder={t('monitor:selectTaskStatus')}
               allowClear
               options={sys_job_status}
             />
@@ -382,7 +393,7 @@ export default function Job() {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -391,7 +402,7 @@ export default function Job() {
                   setQuery({ pageNum: 1, pageSize: 10 })
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -405,7 +416,7 @@ export default function Job() {
             type="default"
             onClick={add}
           >
-            新增
+            {t('common:add')}
           </Button>
         </HasPermi>
         <HasPermi value={['monitor:job:edit']}>
@@ -416,7 +427,7 @@ export default function Job() {
             disabled={ids.length !== 1}
             onClick={() => edit(ids[0])}
           >
-            修改
+            {t('common:edit')}
           </Button>
         </HasPermi>
         <HasPermi value={['monitor:job:remove']}>
@@ -427,7 +438,7 @@ export default function Job() {
             disabled={!ids.length}
             onClick={() => remove(ids)}
           >
-            删除
+            {t('common:delete')}
           </Button>
         </HasPermi>
         <HasPermi value={['monitor:job:export']}>
@@ -439,7 +450,7 @@ export default function Job() {
               download('/monitor/job/export', query, `job_${Date.now()}.xlsx`).catch(() => {})
             }
           >
-            导出
+            {t('common:export')}
           </Button>
         </HasPermi>
         <HasPermi value={['monitor:job:query']}>
@@ -448,14 +459,14 @@ export default function Job() {
             icon={<UnorderedListOutlined />}
             onClick={() => navigate('/monitor/job-log/index/0')}
           >
-            日志
+            {t('monitor:logs')}
           </Button>
           <Button
             className="ruoyi-plain-button ruoyi-plain-button--info"
             icon={<ProfileOutlined />}
             onClick={() => showRuntime('executions')}
           >
-            运行记录
+            {t('monitor:executionHistory')}
           </Button>
         </HasPermi>
         <RightToolbar
@@ -482,7 +493,7 @@ export default function Job() {
       <Modal
         footer={renderDialogFooter}
         className="job-dialog"
-        title={editingId !== undefined ? '修改任务' : '添加任务'}
+        title={editingId !== undefined ? t('monitor:editTask') : t('monitor:addTask')}
         open={open}
         width="820px"
         onCancel={() => setOpen(false)}
@@ -503,12 +514,12 @@ export default function Job() {
           layout="horizontal"
         >
           <Form.Item
-            label="任务名称"
+            label={t('monitor:job.name')}
             name="jobName"
-            rules={[{ required: true, whitespace: true, message: '任务名称不能为空' }]}
+            rules={[{ required: true, whitespace: true, message: t('monitor:taskNameIsRequired') }]}
           >
             <Input
-              placeholder="同一业务分组内名称唯一"
+              placeholder={t('monitor:namesMustBeUniqueWithinABusinessGroup')}
               maxLength={64}
             />
           </Form.Item>
@@ -518,12 +529,18 @@ export default function Job() {
               sm={12}
             >
               <Form.Item
-                label="业务分组"
+                label={t('monitor:businessGroup')}
                 name="jobGroup"
-                rules={[{ required: true, whitespace: true, message: '业务分组不能为空' }]}
+                rules={[
+                  {
+                    required: true,
+                    whitespace: true,
+                    message: t('monitor:businessGroupIsRequired'),
+                  },
+                ]}
               >
                 <Input
-                  placeholder="例如 default、报表、文件维护"
+                  placeholder={t('monitor:forExampleDefaultReportsFileMaintenance')}
                   maxLength={64}
                 />
               </Form.Item>
@@ -535,8 +552,8 @@ export default function Job() {
               <Form.Item
                 label={
                   <span>
-                    任务执行器{' '}
-                    <Tooltip title="调用方法为异步函数时此选项无效">
+                    {t('monitor:job.executor')}{' '}
+                    <Tooltip title={t('monitor:thisOptionHasNoEffectForAsynchronousFunctions')}>
                       <QuestionCircleFilled />
                     </Tooltip>
                   </span>
@@ -544,40 +561,40 @@ export default function Job() {
                 name="jobExecutor"
               >
                 <Select
-                  placeholder="请选择任务执行器"
+                  placeholder={t('monitor:selectTaskExecutor')}
                   options={sys_job_executor}
                 />
               </Form.Item>
             </Col>
           </Row>
           <Form.Item
-            label="调度存储"
+            label={t('monitor:job.store')}
             name="jobStore"
             rules={[{ required: true }]}
-            extra="内存存储重启后重建计划；数据库和Redis可保留下次调度进度。"
+            extra={t('monitor:theMemoryStoreRebuildsSchedulesAfterARestartDatabaseAnd')}
           >
             <Select
-              placeholder="请选择调度存储"
+              placeholder={t('monitor:selectJobStore')}
               options={sys_job_store}
             />
           </Form.Item>
           <Form.Item
             label={
               <span>
-                调用方法{' '}
-                <Tooltip title="调用示例：module_task.scheduler_test.job">
+                {t('monitor:callMethod')}{' '}
+                <Tooltip title={t('monitor:exampleModuleTaskSchedulerTestJob')}>
                   <QuestionCircleFilled />
                 </Tooltip>
               </span>
             }
             name="invokeTarget"
-            rules={[{ required: true, message: '调用目标不能为空' }]}
+            rules={[{ required: true, message: t('monitor:invocationTargetIsRequired') }]}
           >
-            <Input placeholder="请输入调用目标字符串" />
+            <Input placeholder={t('monitor:enterCallTarget')} />
           </Form.Item>
           {[
-            ['jobArgs', '位置参数'],
-            ['jobKwargs', '关键字参数'],
+            ['jobArgs', t('monitor:job.args')],
+            ['jobKwargs', t('monitor:job.kwargs')],
           ].map(([name, label]) => (
             <Form.Item
               key={name}
@@ -585,8 +602,8 @@ export default function Job() {
               name={name}
               extra={
                 name === 'jobArgs'
-                  ? '无参数填写 []，数组内可使用字符串、数字、布尔值和对象。'
-                  : '无参数填写 {}，属性名需与函数参数名一致。'
+                  ? t('monitor:useForNoArgumentsArraysMayContainStringsNumbers')
+                  : t('monitor:useForNoArgumentsPropertyNamesMustMatchThe')
               }
               rules={[
                 {
@@ -609,27 +626,27 @@ export default function Job() {
             </Form.Item>
           ))}
           <Form.Item
-            label="cron表达式"
+            label={t('monitor:job.cronExpressionLabel')}
             required
           >
             <Space.Compact style={{ width: '100%' }}>
               <Form.Item
                 name="cronExpression"
                 noStyle
-                rules={[{ required: true, message: 'Cron表达式不能为空' }]}
+                rules={[{ required: true, message: t('monitor:cronExpressionIsRequired') }]}
               >
-                <Input placeholder="请输入cron执行表达式" />
+                <Input placeholder={t('monitor:enterCronExpression')} />
               </Form.Item>
-              <Button onClick={() => setCron(true)}>生成表达式</Button>
+              <Button onClick={() => setCron(true)}>{t('monitor:generateExpression')}</Button>
             </Space.Compact>
           </Form.Item>
           <Form.Item
-            label="cron时区"
+            label={t('monitor:job.timezone')}
             name="timeZone"
             rules={[{ required: true }]}
           >
             <Select
-              placeholder="选择IANA时区"
+              placeholder={t('monitor:selectAnIanaTimeZone')}
               showSearch
               onSearch={setZoneSearch}
               options={[
@@ -642,15 +659,15 @@ export default function Job() {
           </Form.Item>
           {editingId !== undefined && (
             <Form.Item
-              label="状态"
+              label={t('common:status')}
               name="status"
             >
               <Radio.Group options={sys_job_status} />
             </Form.Item>
           )}
           <Form.Item
-            label="允许延迟"
-            extra="从计划时刻起计算，超过宽限时间则跳过本次定时执行；不限延迟时允许补跑过期计划。"
+            label={t('monitor:allowedDelay')}
+            extra={t('monitor:measuredFromTheScheduledTimeRunsBeyondTheGracePeriod')}
           >
             <Space size={10}>
               <Form.Item
@@ -662,7 +679,9 @@ export default function Job() {
                       value === null ||
                       (Number.isInteger(value) && value >= 1 && value <= 2147483647)
                         ? Promise.resolve()
-                        : Promise.reject(new Error('允许延迟必须为正整数')),
+                        : Promise.reject(
+                            new Error(t('monitor:allowedDelayMustBeAPositiveInteger'))
+                          ),
                   },
                 ]}
               >
@@ -670,37 +689,37 @@ export default function Job() {
                   min={1}
                   max={2147483647}
                   precision={0}
-                  aria-label="允许延迟秒数"
+                  aria-label={t('monitor:allowedDelayInSeconds')}
                   style={{ width: 150, display: grace === null ? 'none' : undefined }}
                 />
               </Form.Item>
-              {grace !== null && <span className="field-unit">秒</span>}
+              {grace !== null && <span className="field-unit">{t('common:seconds')}</span>}
               <Switch
-                aria-label="是否不限延迟"
+                aria-label={t('monitor:allowUnlimitedDelay')}
                 checked={grace === null}
                 onChange={(checked) => form.setFieldValue('misfireGraceTime', checked ? null : 1)}
               />
-              <span>不限延迟</span>
+              <span>{t('monitor:unlimitedDelay')}</span>
             </Space>
           </Form.Item>
           <Form.Item
-            label="积压处理"
+            label={t('monitor:missedRuns')}
             name="coalesce"
-            extra="同次检查发现多个到期计划时采用此规则，仍受允许延迟限制。"
+            extra={t('monitor:usedWhenMultipleDueRunsAreFoundInOneCheck')}
           >
             <Radio.Group
               optionType="button"
               options={[
-                { label: '逐次执行', value: false },
-                { label: '只执行最近一次', value: true },
+                { label: t('monitor:runEachOccurrence'), value: false },
+                { label: t('monitor:runOnlyTheLatestOccurrence'), value: true },
               ]}
             />
           </Form.Item>
           <Form.Item
-            label="最大并发数"
+            label={t('monitor:maximumConcurrency')}
             name="maxInstances"
             rules={[{ required: true, type: 'number', min: 1 }]}
-            extra="定时与手动执行共同遵守此上限；超限时跳过并记录原因，不排队等待。"
+            extra={t('monitor:scheduledAndManualRunsShareThisLimitExcessRunsAre')}
           >
             <InputNumber
               min={1}
@@ -714,7 +733,7 @@ export default function Job() {
       <Modal
         className="cron-dialog"
         rootClassName="cron-dialog-root"
-        title="Cron表达式生成器"
+        title={t('monitor:cronExpressionGenerator')}
         open={cron}
         onCancel={() => setCron(false)}
         footer={null}

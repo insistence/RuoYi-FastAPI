@@ -1,3 +1,9 @@
+import { resolveRouteTitle } from '@/i18n'
+import { findRoute } from '@/router'
+import usePermissionStore from '@/store/modules/permission'
+import { checkPermi } from '@/utils/permission'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Dropdown } from 'antd'
 import {
@@ -17,6 +23,9 @@ import useSettingsStore from '@/store/modules/settings'
 import SvgIcon from '@/components/SvgIcon'
 
 export default function TagsView() {
+  const { locale } = useI18n()
+  const permission = usePermissionStore()
+
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const tags = useTagsViewStore()
@@ -24,6 +33,15 @@ export default function TagsView() {
   const scrollRef = useRef(null)
   const [arrows, setArrows] = useState({ left: false, right: false })
   const [fullscreen, setFullscreen] = useState(false)
+  const tagTitle = (item) =>
+    item.customTitle ?? (resolveRouteTitle(findRoute(item.key, permission.routes)) || item.key)
+  useEffect(() => {
+    if (permission.ready)
+      tags.reconcileViews((key) => {
+        const route = findRoute(key, permission.routes)
+        return route && (!route.permissions || checkPermi(route.permissions))
+      })
+  }, [permission.ready, permission.routes])
   const current = tags.visitedViews.find((tag) => tag.key === pathname)
   const measure = useCallback(() => {
     const el = scrollRef.current
@@ -44,7 +62,7 @@ export default function TagsView() {
         el.scrollLeft = left + active.offsetWidth - el.clientWidth + 15
     }
     measure()
-  }, [pathname, tags.visitedViews, settings.tagsViewStyle, settings.tagsIcon, measure])
+  }, [pathname, tags.visitedViews, settings.tagsViewStyle, settings.tagsIcon, measure, locale])
 
   useEffect(() => {
     const el = scrollRef.current
@@ -97,23 +115,46 @@ export default function TagsView() {
     const right = tags.visitedViews.slice(index + 1).some((tag) => tag.closable)
     return {
       items: [
-        ...(context ? [{ key: 'refresh', icon: <ReloadOutlined />, label: '刷新页面' }] : []),
-        ...(item?.closable ? [{ key: 'current', icon: <CloseOutlined />, label: '关闭当前' }] : []),
-        { key: 'others', icon: <ColumnWidthOutlined />, label: '关闭其他', disabled: !item },
+        ...(context
+          ? [{ key: 'refresh', icon: <ReloadOutlined />, label: t('layout:tags.refreshPage') }]
+          : []),
+        ...(item?.closable
+          ? [{ key: 'current', icon: <CloseOutlined />, label: t('layout:tags.close') }]
+          : []),
+        {
+          key: 'others',
+          icon: <ColumnWidthOutlined />,
+          label: t('layout:tags.closeOthers'),
+          disabled: !item,
+        },
         ...(!context || left
-          ? [{ key: 'left', icon: <LeftOutlined />, label: '关闭左侧', disabled: !left }]
+          ? [
+              {
+                key: 'left',
+                icon: <LeftOutlined />,
+                label: t('layout:tags.closeLeft'),
+                disabled: !left,
+              },
+            ]
           : []),
         ...(!context || right
-          ? [{ key: 'right', icon: <RightOutlined />, label: '关闭右侧', disabled: !right }]
+          ? [
+              {
+                key: 'right',
+                icon: <RightOutlined />,
+                label: t('layout:tags.closeRight'),
+                disabled: !right,
+              },
+            ]
           : []),
-        { key: 'all', icon: <CloseCircleOutlined />, label: '全部关闭' },
+        { key: 'all', icon: <CloseCircleOutlined />, label: t('layout:tags.closeAll') },
         ...(!context
           ? [
               { type: 'divider' },
               {
                 key: 'fullscreen',
                 icon: fullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />,
-                label: fullscreen ? '退出全屏' : '全屏显示',
+                label: fullscreen ? t('common:exitFullScreen') : t('layout:tags.fullscreen'),
               },
             ]
           : []),
@@ -129,12 +170,12 @@ export default function TagsView() {
   }
   return (
     <nav
-      aria-label="页面标签"
+      aria-label={t('layout:pageTabs')}
       className={`layout-tags tags-${settings.tagsViewStyle}`}
     >
       <button
         className="tags-nav-btn tags-nav-left"
-        aria-label="滚动到最左侧"
+        aria-label={t('layout:scrollToTheStart')}
         disabled={!arrows.left}
         onClick={() => scroll(false)}
       >
@@ -165,12 +206,12 @@ export default function TagsView() {
                 aria-current={item.key === pathname ? 'page' : undefined}
               >
                 {settings.tagsIcon && item.icon && <SvgIcon iconClass={item.icon} />}
-                {item.label}
+                {tagTitle(item)}
               </Link>
               {item.closable && (
                 <button
                   className="tags-close"
-                  aria-label={`关闭${item.label}`}
+                  aria-label={t('layout:closeValue', { label: tagTitle(item) })}
                   onClick={() => close(item.key)}
                 >
                   <CloseOutlined />
@@ -182,7 +223,7 @@ export default function TagsView() {
       </div>
       <button
         className="tags-nav-btn tags-nav-right"
-        aria-label="滚动到最右侧"
+        aria-label={t('layout:scrollToTheEnd')}
         disabled={!arrows.right}
         onClick={() => scroll(true)}
       >
@@ -195,7 +236,7 @@ export default function TagsView() {
       >
         <button
           className="tags-nav-btn tags-actions"
-          aria-label="标签页操作"
+          aria-label={t('layout:tabActions')}
         >
           <DownOutlined />
         </button>
@@ -206,7 +247,7 @@ export default function TagsView() {
         onClick={() => action('refresh')}
       >
         <ReloadOutlined />
-        刷新
+        {t('layout:tags.refresh')}
       </button>
     </nav>
   )

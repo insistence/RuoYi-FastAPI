@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import {
@@ -31,10 +34,13 @@ import Pagination from '@/components/Pagination'
 import RightToolbar from '@/components/RightToolbar'
 
 export default function Config() {
+  useI18n()
+
   const { sys_yes_no } = useDict('sys_yes_no')
   const timeZone = useUserStore((state) => state.timeZone)
   const [queryRef] = Form.useForm(),
     [configRef] = Form.useForm()
+  useLocalizedFormErrors(queryRef, configRef)
   const [configList, setConfigList] = useState([]),
     [total, setTotal] = useState(0),
     [ids, setIds] = useState([])
@@ -85,9 +91,9 @@ export default function Config() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(`是否确认删除参数编号为“${values}”的数据项？`)
+      await confirm(t('system:deleteConfigurationEntriesWithIdsValue', { values }))
       await delConfig(values)
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
@@ -96,7 +102,7 @@ export default function Config() {
       const values = await configRef.validateFields()
       setSaving(true)
       await (configId !== undefined ? updateConfig({ ...values, configId }) : addConfig(values))
-      message.success(configId !== undefined ? '修改成功' : '新增成功')
+      message.success(configId !== undefined ? t('common:updateSuccess') : t('common:addSuccess'))
       setOpen(false)
       await getList()
     } catch {
@@ -105,13 +111,13 @@ export default function Config() {
     }
   }
   const columns = [
-    { align: 'center', title: '参数主键', dataIndex: 'configId' },
-    { align: 'center', title: '参数名称', dataIndex: 'configName', ellipsis: true },
-    { align: 'center', title: '参数键名', dataIndex: 'configKey', ellipsis: true },
-    { align: 'center', title: '参数键值', dataIndex: 'configValue', ellipsis: true },
+    { align: 'center', title: t('system:parameterID'), dataIndex: 'configId' },
+    { align: 'center', title: t('system:config.name'), dataIndex: 'configName', ellipsis: true },
+    { align: 'center', title: t('system:config.key'), dataIndex: 'configKey', ellipsis: true },
+    { align: 'center', title: t('system:config.value'), dataIndex: 'configValue', ellipsis: true },
     {
       align: 'center',
-      title: '系统内置',
+      title: t('system:config.builtIn'),
       dataIndex: 'configType',
       render: (value) => (
         <DictTag
@@ -120,10 +126,10 @@ export default function Config() {
         />
       ),
     },
-    { align: 'center', title: '备注', dataIndex: 'remark', ellipsis: true },
+    { align: 'center', title: t('common:remark'), dataIndex: 'remark', ellipsis: true },
     {
       align: 'center',
-      title: '创建时间',
+      title: t('common:createdTime'),
       dataIndex: 'createTime',
       width: 180,
       render: (value) => parseTime(value),
@@ -131,7 +137,7 @@ export default function Config() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 150,
       render: (_, row) => (
         <TableActions>
@@ -140,7 +146,7 @@ export default function Config() {
               symbol="Edit"
               onClick={() => handleUpdate(row.configId)}
             >
-              修改
+              {t('common:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:config:remove']}>
@@ -148,7 +154,7 @@ export default function Config() {
               symbol="Delete"
               onClick={() => handleDelete([row.configId])}
             >
-              删除
+              {t('common:delete')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -165,44 +171,44 @@ export default function Config() {
           onFinish={handleQuery}
         >
           <Form.Item
-            label="参数名称"
+            label={t('system:config.name')}
             name="configName"
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入参数名称"
+              placeholder={t('system:enterParameterName')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="参数键名"
+            label={t('system:config.key')}
             name="configKey"
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入参数键名"
+              placeholder={t('system:enterParameterKey')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="系统内置"
+            label={t('system:config.builtIn')}
             name="configType"
           >
             <Select
               style={{ width: 240 }}
-              placeholder="系统内置"
+              placeholder={t('system:config.builtIn')}
               allowClear
               options={sys_yes_no}
             />
           </Form.Item>
           <Form.Item
-            label="创建时间"
+            label={t('common:createdTime')}
             name="dateRange"
           >
             <DatePicker.RangePicker
               style={{ width: 308 }}
-              placeholder={['开始日期', '结束日期']}
-              aria-label={`日期范围（${getDisplayTimezone()}）`}
+              placeholder={[t('common:startDate'), t('common:endDate')]}
+              aria-label={t('monitor:dateRangeValue', { arg0: getDisplayTimezone() })}
             />
           </Form.Item>
           <Form.Item>
@@ -212,7 +218,7 @@ export default function Config() {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -221,7 +227,7 @@ export default function Config() {
                   handleQuery({})
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -235,7 +241,7 @@ export default function Config() {
             type="default"
             onClick={handleAdd}
           >
-            新增
+            {t('common:add')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:config:edit']}>
@@ -246,7 +252,7 @@ export default function Config() {
             disabled={ids.length !== 1}
             onClick={() => handleUpdate(ids[0])}
           >
-            修改
+            {t('common:edit')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:config:remove']}>
@@ -257,7 +263,7 @@ export default function Config() {
             disabled={!ids.length}
             onClick={() => handleDelete(ids)}
           >
-            删除
+            {t('common:delete')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:config:export']}>
@@ -271,7 +277,7 @@ export default function Config() {
               )
             }
           >
-            导出
+            {t('common:export')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:config:remove']}>
@@ -281,11 +287,11 @@ export default function Config() {
             type="default"
             onClick={() =>
               refreshCache()
-                .then(() => message.success('刷新缓存成功'))
+                .then(() => message.success(t('system:cacheRefreshed')))
                 .catch(() => {})
             }
           >
-            刷新缓存
+            {t('system:refreshCache')}
           </Button>
         </HasPermi>
         <RightToolbar
@@ -313,7 +319,7 @@ export default function Config() {
         footer={renderDialogFooter}
         width="500px"
         open={open}
-        title={configId !== undefined ? '修改参数' : '添加参数'}
+        title={configId !== undefined ? t('system:editParameter') : t('system:addParameter')}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
         confirmLoading={saving}
@@ -329,41 +335,41 @@ export default function Config() {
           layout="horizontal"
         >
           <Form.Item
-            label="参数名称"
+            label={t('system:config.name')}
             name="configName"
-            rules={[{ required: true, message: '参数名称不能为空' }]}
+            rules={[{ required: true, message: t('system:parameterNameIsRequired') }]}
           >
-            <Input placeholder="请输入参数名称" />
+            <Input placeholder={t('system:enterParameterName')} />
           </Form.Item>
           <Form.Item
-            label="参数键名"
+            label={t('system:config.key')}
             name="configKey"
-            rules={[{ required: true, message: '参数键名不能为空' }]}
+            rules={[{ required: true, message: t('system:parameterKeyIsRequired') }]}
           >
-            <Input placeholder="请输入参数键名" />
+            <Input placeholder={t('system:enterParameterKey')} />
           </Form.Item>
           <Form.Item
-            label="参数键值"
+            label={t('system:config.value')}
             name="configValue"
-            rules={[{ required: true, message: '参数键值不能为空' }]}
+            rules={[{ required: true, message: t('system:parameterValueIsRequired') }]}
           >
             <Input.TextArea
-              placeholder="请输入参数键值"
+              placeholder={t('system:enterParameterValue')}
               rows={2}
             />
           </Form.Item>
           <Form.Item
-            label="系统内置"
+            label={t('system:config.builtIn')}
             name="configType"
           >
             <Radio.Group options={sys_yes_no} />
           </Form.Item>
           <Form.Item
-            label="备注"
+            label={t('common:remark')}
             name="remark"
           >
             <Input.TextArea
-              placeholder="请输入内容"
+              placeholder={t('common:contentPlaceholder')}
               rows={2}
             />
           </Form.Item>

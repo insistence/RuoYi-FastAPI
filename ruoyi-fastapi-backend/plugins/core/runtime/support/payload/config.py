@@ -3,6 +3,7 @@ from typing import TypeAlias, cast
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
 from plugins.core.types import PluginConfigValue, SupportsModelDump
 
 from .base import PluginPayloadModel
@@ -134,7 +135,7 @@ class PluginConfigPayloadBuilder:
         """
         return cls._build_state_payload(
             plugin_id=plugin_id,
-            message='插件配置读取完成',
+            message=I18nMessage('插件配置读取完成', msg_key='plugin.runtime.config.loaded'),
             configs=configs,
         )
 
@@ -215,7 +216,7 @@ class PluginConfigPayloadBuilder:
         config_items = [cast('dict[str, object]', config) for config in configs if isinstance(config, dict)]
         return PluginConfigExportPayload(
             ok=True,
-            message='插件配置导出完成',
+            message=I18nMessage('插件配置导出完成', msg_key='plugin.runtime.config.exported'),
             plugin_id=plugin_id,
             reveal_secret=reveal_secret,
             configs=config_items,

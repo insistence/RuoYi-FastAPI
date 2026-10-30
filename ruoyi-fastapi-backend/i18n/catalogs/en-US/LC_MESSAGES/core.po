@@ -1,0 +1,1885 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "ai.conversation.deleteFailed"
+msgstr "Unable to delete the conversation"
+
+msgid "ai.conversation.forbidden"
+msgstr "You do not have permission to access this conversation"
+
+msgid "ai.model.disabled"
+msgstr "This model is disabled"
+
+msgid "ai.model.forbidden"
+msgstr "You do not have permission to access AI model data"
+
+msgid "ai.model.idRequired"
+msgstr "AI model ID is required"
+
+msgid "ai.model.missing"
+msgstr "AI model not found"
+
+msgid "ai.model.notFound"
+msgstr "Model not found"
+
+msgid "ai.run.cancelFailed"
+msgstr "Unable to cancel the run"
+
+msgid "ai.run.cancelForbidden"
+msgstr "You do not have permission to cancel this run"
+
+msgid "ai.settings.otherUser"
+msgstr "You can only change your own settings"
+
+msgid "ai.stream.failed"
+msgstr "Unable to generate a response. Please try again later."
+
+msgid "auth.accountLocked"
+msgstr "This account is locked. Please try again later."
+
+msgid "auth.apiForbidden"
+msgstr "You do not have permission to access this API"
+
+msgid "auth.captchaExpired"
+msgstr "The verification code has expired"
+
+msgid "auth.captchaIncorrect"
+msgstr "Incorrect verification code"
+
+msgid "auth.captchaMissing"
+msgstr "The verification code has expired or does not exist"
+
+msgid "auth.currentUserMissing"
+msgstr "Current user information is unavailable. Please check that you are signed in."
+
+msgid "auth.currentUserUnavailable"
+msgstr "Unable to retrieve current user information"
+
+msgid "auth.incorrectPassword"
+msgstr "Incorrect password. Please try again."
+
+msgid "auth.invalidCredentials"
+msgstr "Incorrect account or password"
+
+msgid "auth.invalidToken"
+msgstr "Invalid access token"
+
+msgid "auth.ipBlocked"
+msgstr "Sign-in is blocked for this IP address"
+
+msgid "auth.passwordCharacters"
+msgstr "Password cannot contain these characters: < > \" ' \\ |"
+
+msgid "auth.passwordIncorrect"
+msgstr "Incorrect password"
+
+msgid "auth.passwordLength"
+msgstr "Password length must be between 6 and 20 characters"
+
+msgid "auth.passwordLockout"
+msgstr "More than 5 incorrect passwords were entered within 10 minutes. This account is locked. Try again in 10 minutes."
+
+msgid "auth.passwordMismatch"
+msgstr "The passwords do not match"
+
+msgid "auth.passwordRequired"
+msgstr "Password is required"
+
+msgid "auth.registrationDisabled"
+msgstr "Registration is disabled"
+
+msgid "auth.serverTimeout"
+msgstr "The server timed out. Please sign in again."
+
+msgid "auth.signInRequired"
+msgstr "Sign in to continue"
+
+msgid "auth.signedIn"
+msgstr "Signed in successfully"
+
+msgid "auth.signedOut"
+msgstr "Signed out successfully"
+
+msgid "auth.tokenExpired"
+msgstr "Your session has expired. Please sign in again."
+
+msgid "auth.tokenGenerationFailed"
+msgstr "Unable to generate the access token"
+
+msgid "auth.unlocked"
+msgstr "Unlocked successfully"
+
+msgid "auth.userDisabled"
+msgstr "This user account is disabled"
+
+msgid "cache.allCleared"
+msgstr "All caches cleared"
+
+msgid "cache.keyCleared"
+msgstr "Cache entry %(cache_key)s cleared"
+
+msgid "cache.namespaceCleared"
+msgstr "Cache entries in %(cache_name)s cleared"
+
+msgid "common.added"
+msgstr "Added successfully"
+
+msgid "common.assigned"
+msgstr "Assigned successfully"
+
+msgid "common.cancelled"
+msgstr "Cancelled successfully"
+
+msgid "common.cleared"
+msgstr "Cleared successfully"
+
+msgid "common.deleted"
+msgstr "Deleted successfully"
+
+msgid "common.demoReadOnly"
+msgstr "Operations are disabled in demo mode"
+
+msgid "common.error"
+msgstr "The request could not be completed"
+
+msgid "common.failure"
+msgstr "Operation failed"
+
+msgid "common.forbidden"
+msgstr "You do not have permission to access this resource"
+
+msgid "common.imported"
+msgstr "Imported successfully"
+
+msgid "common.marked"
+msgstr "Marked successfully"
+
+msgid "common.modified"
+msgstr "Changed successfully"
+
+msgid "common.rateLimited"
+msgstr "Too many requests. Please try again later."
+
+msgid "common.refreshed"
+msgstr "Refreshed successfully"
+
+msgid "common.reset"
+msgstr "Reset successfully"
+
+msgid "common.saved"
+msgstr "Saved successfully"
+
+msgid "common.sortFailed"
+msgstr "Unable to save the order. Please contact an administrator."
+
+msgid "common.success"
+msgstr "Operation successful"
+
+msgid "common.synced"
+msgstr "Synchronized successfully"
+
+msgid "common.unauthorized"
+msgstr "Your session has expired. Please sign in again."
+
+msgid "common.unavailable"
+msgstr "The service is temporarily unavailable. Please try again later."
+
+msgid "common.updated"
+msgstr "Updated successfully"
+
+msgid "common.validated"
+msgstr "Validation passed"
+
+msgid "config.addDuplicateKey"
+msgstr "Unable to add configuration %(config_name)s: the configuration key already exists"
+
+msgid "config.builtInProtected"
+msgstr "Built-in configuration %(config_key)s cannot be deleted"
+
+msgid "config.editDuplicateKey"
+msgstr "Unable to update configuration %(config_name)s: the configuration key already exists"
+
+msgid "config.idRequired"
+msgstr "Configuration ID is required"
+
+msgid "config.notFound"
+msgstr "Configuration not found"
+
+msgid "dept.activeChildren"
+msgstr "Unable to update department %(dept_name)s: it has child departments that are still enabled"
+
+msgid "dept.addDuplicate"
+msgstr "Unable to add department %(dept_name)s: the department name already exists"
+
+msgid "dept.childrenPreventDelete"
+msgstr "This department has child departments and cannot be deleted"
+
+msgid "dept.descendantParent"
+msgstr "The parent department cannot be a child of the current department"
+
+msgid "dept.editDuplicate"
+msgstr "Unable to update department %(dept_name)s: the department name already exists"
+
+msgid "dept.forbidden"
+msgstr "You do not have permission to access department data"
+
+msgid "dept.idRequired"
+msgstr "Department ID is required"
+
+msgid "dept.invalidSort"
+msgstr "Invalid department sort parameters"
+
+msgid "dept.notFound"
+msgstr "Department not found"
+
+msgid "dept.parentDisabled"
+msgstr "Department %(dept_name)s is disabled. A child department cannot be added."
+
+msgid "dept.parentNotFound"
+msgstr "Parent department not found"
+
+msgid "dept.selfParent"
+msgstr "Unable to update department %(dept_name)s: a department cannot be its own parent"
+
+msgid "dept.usersPreventDelete"
+msgstr "This department has users and cannot be deleted"
+
+msgid "dict.addDuplicateType"
+msgstr "Unable to add dictionary %(dict_name)s: the dictionary type already exists"
+
+msgid "dict.assigned"
+msgstr "Dictionary %(dict_name)s is assigned and cannot be deleted"
+
+msgid "dict.dataIdRequired"
+msgstr "Dictionary entry ID is required"
+
+msgid "dict.dataNotFound"
+msgstr "Dictionary entry not found"
+
+msgid "dict.duplicateLabel"
+msgstr "Unable to add dictionary entry %(dict_label)s: it already exists in %(dict_type)s"
+
+msgid "dict.editDuplicateType"
+msgstr "Unable to update dictionary %(dict_name)s: the dictionary type already exists"
+
+msgid "dict.typeIdRequired"
+msgstr "Dictionary type ID is required"
+
+msgid "dict.typeNotFound"
+msgstr "Dictionary type not found"
+
+msgid "export.accessId"
+msgstr "Access ID"
+
+msgid "export.accountStatus"
+msgstr "Account status"
+
+msgid "export.active"
+msgstr "Active"
+
+msgid "export.args"
+msgstr "Positional arguments"
+
+msgid "export.browser"
+msgstr "Browser"
+
+msgid "export.builtIn"
+msgstr "Built-in"
+
+msgid "export.coalesce"
+msgstr "Backlog handling"
+
+msgid "export.configId"
+msgstr "Configuration ID"
+
+msgid "export.configKey"
+msgstr "Configuration key"
+
+msgid "export.configName"
+msgstr "Configuration name"
+
+msgid "export.configValue"
+msgstr "Configuration value"
+
+msgid "export.createdAt"
+msgstr "Created at"
+
+msgid "export.createdBy"
+msgstr "Created by"
+
+msgid "export.cron"
+msgstr "Cron expression"
+
+msgid "export.cronTimezone"
+msgstr "Cron time zone"
+
+msgid "export.cssClass"
+msgstr "CSS class"
+
+msgid "export.department"
+msgstr "Department"
+
+msgid "export.deptId"
+msgstr "Department ID"
+
+msgid "export.deptName"
+msgstr "Department name"
+
+msgid "export.dictCode"
+msgstr "Dictionary entry ID"
+
+msgid "export.dictId"
+msgstr "Dictionary ID"
+
+msgid "export.dictLabel"
+msgstr "Dictionary label"
+
+msgid "export.dictName"
+msgstr "Dictionary name"
+
+msgid "export.dictSort"
+msgstr "Dictionary order"
+
+msgid "export.dictType"
+msgstr "Dictionary type"
+
+msgid "export.dictValue"
+msgstr "Dictionary value"
+
+msgid "export.disabled"
+msgstr "Disabled"
+
+msgid "export.displayOrder"
+msgstr "Display order"
+
+msgid "export.duration"
+msgstr "Duration (ms)"
+
+msgid "export.email"
+msgstr "Email address"
+
+msgid "export.errorMessage"
+msgstr "Error message"
+
+msgid "export.exception"
+msgstr "Exception details"
+
+msgid "export.executionDuration"
+msgstr "Execution duration (ms)"
+
+msgid "export.executionId"
+msgstr "Execution ID"
+
+msgid "export.executionStatus"
+msgstr "Execution status"
+
+msgid "export.executor"
+msgstr "Executor"
+
+msgid "export.failure"
+msgstr "Failure"
+
+msgid "export.female"
+msgstr "Female"
+
+msgid "export.finishedAt"
+msgstr "Finished at"
+
+msgid "export.gender"
+msgstr "Gender"
+
+msgid "export.invokeTarget"
+msgstr "Invocation target"
+
+msgid "export.isDefault"
+msgstr "Default"
+
+msgid "export.jobCode"
+msgstr "Job code"
+
+msgid "export.jobGroup"
+msgstr "Job group"
+
+msgid "export.jobId"
+msgstr "Job ID"
+
+msgid "export.jobLogId"
+msgstr "Job log ID"
+
+msgid "export.jobName"
+msgstr "Job name"
+
+msgid "export.jobStore"
+msgstr "Job store"
+
+msgid "export.jobTimezone"
+msgstr "Job time zone"
+
+msgid "export.kwargs"
+msgstr "Keyword arguments"
+
+msgid "export.latestOnly"
+msgstr "Run the latest only"
+
+msgid "export.listClass"
+msgstr "Table display style"
+
+msgid "export.logId"
+msgstr "Log ID"
+
+msgid "export.logMessage"
+msgstr "Log message"
+
+msgid "export.loginName"
+msgstr "Login name"
+
+msgid "export.male"
+msgstr "Male"
+
+msgid "export.maxInstances"
+msgstr "Maximum concurrent runs"
+
+msgid "export.method"
+msgstr "Method name"
+
+msgid "export.misfireGraceTime"
+msgstr "Allowed delay (seconds)"
+
+msgid "export.module"
+msgstr "System module"
+
+msgid "export.nickName"
+msgstr "Display name"
+
+msgid "export.no"
+msgstr "No"
+
+msgid "export.operatingSystem"
+msgstr "Operating system"
+
+msgid "export.operationDate"
+msgstr "Operation date"
+
+msgid "export.operationIp"
+msgstr "Operation IP address"
+
+msgid "export.operationLocation"
+msgstr "Operation location"
+
+msgid "export.operationMessage"
+msgstr "Operation message"
+
+msgid "export.operationStatus"
+msgstr "Operation status"
+
+msgid "export.operationType"
+msgstr "Operation type"
+
+msgid "export.operator"
+msgstr "Operator"
+
+msgid "export.paused"
+msgstr "Paused"
+
+msgid "export.phone"
+msgstr "Phone number"
+
+msgid "export.postCode"
+msgstr "Position code"
+
+msgid "export.postId"
+msgstr "Position ID"
+
+msgid "export.postName"
+msgstr "Position name"
+
+msgid "export.remark"
+msgstr "Remarks"
+
+msgid "export.requestMethod"
+msgstr "Request method"
+
+msgid "export.requestParams"
+msgstr "Request parameters"
+
+msgid "export.requestUrl"
+msgstr "Request URL"
+
+msgid "export.responseParams"
+msgstr "Response parameters"
+
+msgid "export.roleId"
+msgstr "Role ID"
+
+msgid "export.roleKey"
+msgstr "Permission key"
+
+msgid "export.roleName"
+msgstr "Role name"
+
+msgid "export.runEach"
+msgstr "Run each"
+
+msgid "export.scheduledAt"
+msgstr "Scheduled execution time"
+
+msgid "export.signInDate"
+msgstr "Sign-in date"
+
+msgid "export.signInIp"
+msgstr "Sign-in IP address"
+
+msgid "export.signInLocation"
+msgstr "Sign-in location"
+
+msgid "export.signInStatus"
+msgstr "Sign-in status"
+
+msgid "export.startedAt"
+msgstr "Started at"
+
+msgid "export.status"
+msgstr "Status"
+
+msgid "export.success"
+msgstr "Success"
+
+msgid "export.trigger"
+msgstr "Trigger"
+
+msgid "export.unknown"
+msgstr "Unknown"
+
+msgid "export.unlimited"
+msgstr "Unlimited"
+
+msgid "export.updatedAt"
+msgstr "Updated at"
+
+msgid "export.updatedBy"
+msgstr "Updated by"
+
+msgid "export.userEmail"
+msgstr "User email"
+
+msgid "export.userGender"
+msgstr "User gender"
+
+msgid "export.userId"
+msgstr "User ID"
+
+msgid "export.userName"
+msgstr "Username"
+
+msgid "export.yes"
+msgstr "Yes"
+
+msgid "file.access.batchRequiresProtected"
+msgstr "Bulk authorization only supports protected files"
+
+msgid "file.access.batchSaved"
+msgstr "File permissions saved in bulk"
+
+msgid "file.access.concurrentChange"
+msgstr "Another user changed these file permissions. Refresh and try again."
+
+msgid "file.access.duplicateSubject"
+msgstr "The same permission subject cannot be configured more than once"
+
+msgid "file.access.expiryInPast"
+msgstr "Permission expiry must be later than the current time"
+
+msgid "file.access.fileUnavailable"
+msgstr "File information does not exist, has been deleted, or is outside your data permissions"
+
+msgid "file.access.publicFile"
+msgstr "Access permissions cannot be configured for public files"
+
+msgid "file.access.saved"
+msgstr "File permissions saved"
+
+msgid "file.access.subjectUnavailable"
+msgstr "Some permission subjects do not exist, are disabled, or are outside your data permissions"
+
+msgid "file.business.batchSizeRange"
+msgstr "Batch size must be between 1 and %(max_batch_size)s"
+
+msgid "file.business.invalidFileId"
+msgstr "Invalid file ID format"
+
+msgid "file.business.invalidType"
+msgstr "Invalid business type format"
+
+msgid "file.business.policyExists"
+msgstr "A retention policy already exists for business type %(business_type)s"
+
+msgid "file.business.policyNotFound"
+msgstr "File business retention policy not found"
+
+msgid "file.business.protectedRequired"
+msgstr "Business records with retention policies can only reference protected files"
+
+msgid "file.business.referenceLimit"
+msgstr "A business record can reference at most %(max_reference_files)s files"
+
+msgid "file.business.referenceUnavailable"
+msgstr "Some referenced files do not exist or are no longer valid"
+
+msgid "file.idRequired"
+msgstr "File ID is required"
+
+msgid "file.invalidAccessType"
+msgstr "Invalid file access type"
+
+msgid "file.invalidId"
+msgstr "Invalid file ID"
+
+msgid "file.invalidNameOrMissing"
+msgstr "The filename is invalid or the file does not exist"
+
+msgid "file.invalidPathOrMissing"
+msgstr "The resource path is invalid or the file does not exist"
+
+msgid "file.invalidResourceName"
+msgstr "Invalid resource filename"
+
+msgid "file.invalidResourcePath"
+msgstr "Invalid resource path"
+
+msgid "file.invalidType"
+msgstr "Invalid file type"
+
+msgid "file.nameConflict"
+msgstr "A generated filename conflict occurred. Upload the file again."
+
+msgid "file.notFoundOrForbidden"
+msgstr "File information does not exist or is outside your data permissions"
+
+msgid "file.notFoundOrUnauthorized"
+msgstr "The file does not exist or you do not have permission to access it"
+
+msgid "file.purge.batchSizeRange"
+msgstr "Batch size must be between 1 and %(max_purge_batch_size)s"
+
+msgid "file.purge.physicalDeleteFailed"
+msgstr "Unable to permanently delete the physical file. It remains in the cleanup state and can be retried."
+
+msgid "file.purge.verificationFailed"
+msgstr "Recycle area file verification failed. No files were permanently deleted."
+
+msgid "file.purged"
+msgstr "Files permanently deleted"
+
+msgid "file.reconciliation.actionUnavailable"
+msgstr "This action is not supported for the issue's current status"
+
+msgid "file.reconciliation.adminRequired"
+msgstr "Only system administrators can use file storage reconciliation"
+
+msgid "file.reconciliation.alreadyRegistered"
+msgstr "This physical file is already registered"
+
+msgid "file.reconciliation.alreadyRunning"
+msgstr "A file storage reconciliation job is already running"
+
+msgid "file.reconciliation.extensionForbidden"
+msgstr "The orphaned file's extension is not allowed"
+
+msgid "file.reconciliation.extensionMismatch"
+msgstr "The original filename extension must match the physical file"
+
+msgid "file.reconciliation.fileRecordMissing"
+msgstr "The file record linked to this issue does not exist"
+
+msgid "file.reconciliation.invalidStorageArea"
+msgstr "Invalid storage area in the issue record"
+
+msgid "file.reconciliation.invalidTrigger"
+msgstr "Invalid reconciliation trigger type"
+
+msgid "file.reconciliation.issueNotFound"
+msgstr "File storage reconciliation issue not found"
+
+msgid "file.reconciliation.locationMissing"
+msgstr "The issue record has no storage location that can be processed"
+
+msgid "file.reconciliation.noFileReference"
+msgstr "This issue is not linked to a file record"
+
+msgid "file.reconciliation.quarantineMissing"
+msgstr "The quarantined file path does not exist"
+
+msgid "file.reconciliation.registrationUnsupported"
+msgstr "Only orphaned files in public or protected storage can be registered"
+
+msgid "file.reconciliation.resolveFailed"
+msgstr "Unable to resolve the file storage issue: %(error)s"
+
+msgid "file.reconciliation.resolved"
+msgstr "File storage issue resolved"
+
+msgid "file.reconciliation.scanInProgress"
+msgstr "File storage reconciliation is running. Wait for the scan to finish before resolving issues."
+
+msgid "file.reconciliation.started"
+msgstr "File storage reconciliation started"
+
+msgid "file.recycle.failed"
+msgstr "Unable to move files to the recycle area"
+
+msgid "file.recycle.retentionRange"
+msgstr "Recycle bin retention must be between 1 and %(max_purge_retention_days)s days"
+
+msgid "file.recycle.selectionUnavailable"
+msgstr "Some files do not exist, are not in the recycle bin, or are outside your data permissions"
+
+msgid "file.recycled"
+msgstr "Files moved to the recycle bin"
+
+msgid "file.references.autoPurgeBlocked"
+msgstr "A file selected for automatic cleanup still has business references"
+
+msgid "file.references.preventDelete"
+msgstr ""
+"The following files are still referenced by business records: %(referenced_name_text)s. Remove the references before "
+"deleting them."
+
+msgid "file.references.preventPurge"
+msgstr "Some files still have business references and cannot be permanently deleted"
+
+msgid "file.reminder.daysRange"
+msgstr "Advance reminder days must be between 1 and %(max_remind_days)s"
+
+msgid "file.reminder.invalidId"
+msgstr "Invalid reminder ID"
+
+msgid "file.reminder.markedRead"
+msgstr "Reminder marked as read"
+
+msgid "file.reminder.selectionUnavailable"
+msgstr "Some reminders do not exist, have expired, or are outside your data permissions"
+
+msgid "file.reminder.unavailable"
+msgstr "The reminder does not exist, has expired, or is outside your data permissions"
+
+msgid "file.restore.failed"
+msgstr "Unable to restore files from the recycle area"
+
+msgid "file.restore.selectionUnavailable"
+msgstr "Some files do not exist, have not been deleted, or are outside your data permissions"
+
+msgid "file.restored"
+msgstr "Files restored successfully"
+
+msgid "file.retention.activeReference"
+msgstr "This file has permanent or unexpired business references and cannot be processed as expired"
+
+msgid "file.retention.expiredRecycled"
+msgstr "Expired files moved to the recycle bin"
+
+msgid "file.retention.extended"
+msgstr "File retention period extended"
+
+msgid "file.retention.invalidExtension"
+msgstr "The new expiry must be later than both the current time and the original expiry"
+
+msgid "file.retention.noTimedReference"
+msgstr "This file has no business reference that can be extended. Link it to the business record again."
+
+msgid "file.retention.notConfigured"
+msgstr "No retention period is configured for this file"
+
+msgid "file.retention.notExpired"
+msgstr "This file has not expired and cannot be processed as expired"
+
+msgid "file.retention.permanentReference"
+msgstr "This file has a permanent business reference and cannot be extended through an expiry reminder"
+
+msgid "file.retention.recycleFailed"
+msgstr "Unable to move expired files to the recycle area"
+
+msgid "file.retention.referenceMismatch"
+msgstr "The file expiry does not match its business references. Check the references first."
+
+msgid "file.selection.unavailable"
+msgstr "Some files do not exist, have been deleted, or are outside your data permissions"
+
+msgid "file.sizeLimit"
+msgstr "File size must not exceed %(value)s MB"
+
+msgid "file.transfer.departmentMismatch"
+msgstr "The target user does not belong to the selected department"
+
+msgid "file.transfer.targetUnavailable"
+msgstr "The target user or department does not exist, is disabled, or is outside your data permissions"
+
+msgid "file.transferred"
+msgstr "Files transferred successfully"
+
+msgid "file.uploaded"
+msgstr "Uploaded successfully"
+
+msgid "generator.childForeignKeyRequired"
+msgstr "Child table foreign key name is required"
+
+msgid "generator.childTableRequired"
+msgstr "Related child table name is required"
+
+msgid "generator.configurationRequired"
+msgstr "Complete the generation configuration first"
+
+msgid "generator.creationDateUnsupported"
+msgstr "PostgreSQL does not record table creation dates. Clear the creation date filter."
+
+msgid "generator.generated"
+msgstr "Code generated successfully"
+
+msgid "generator.i18nCatalogInvalid"
+msgstr "An existing locale resource is invalid. Generation stopped to preserve the original file."
+
+msgid "generator.i18nInvalidConfiguration"
+msgstr "Invalid generation i18n configuration. Check the locale list and translation placeholders."
+
+msgid "generator.i18nSourceLocaleMismatch"
+msgstr "The generation source locale must match the target app and backend: %(locale)s"
+
+msgid "generator.importFailed"
+msgstr "Import failed: %(error)s"
+
+msgid "generator.invalidCreateStatement"
+msgstr "Invalid table creation statement"
+
+msgid "generator.mysqlTimeAmbiguous"
+msgstr ""
+"MySQL TIME may represent a duration. If this field is a time of day, select the Time of day display type. For "
+"durations, use a numeric column with an explicit unit and import it again."
+
+msgid "generator.outputMustBeBundleRoot"
+msgstr "Choose a separate output directory instead of an application source directory."
+
+msgid "generator.postgresTimestampAmbiguous"
+msgstr ""
+"A PostgreSQL timestamp without a time zone is ambiguous. Convert instant columns to TIMESTAMP(3) WITH TIME ZONE and "
+"import the generation configuration again."
+
+msgid "generator.renderFailed"
+msgstr "Unable to render the template for table %(table_name)s: %(error)s"
+
+msgid "generator.tableCreateFailed"
+msgstr "Unable to create the table structure: %(error)s"
+
+msgid "generator.tableCreated"
+msgstr "Table structure created successfully"
+
+msgid "generator.tableIdRequired"
+msgstr "Business table ID is required"
+
+msgid "generator.tableNotFound"
+msgstr "Business table not found"
+
+msgid "generator.tableOutsideSource"
+msgstr "The business table does not exist or does not belong to data source %(source_name)s: %(table_name)s"
+
+msgid "generator.tablesOutsideSource"
+msgstr "These business tables do not exist or do not belong to data source %(source_name)s: %(value)s"
+
+msgid "generator.timeWithZoneUnsupported"
+msgstr ""
+"A time with a time zone cannot be generated as a time of day. Use TIME WITHOUT TIME ZONE for times of day or "
+"TIMESTAMP(3) WITH TIME ZONE for instants."
+
+msgid "generator.treeCodeRequired"
+msgstr "Tree code field is required"
+
+msgid "generator.treeNameRequired"
+msgstr "Tree name field is required"
+
+msgid "generator.treeParentCodeRequired"
+msgstr "Tree parent code field is required"
+
+msgid "identity.access.subjectNotFound"
+msgstr "User or application not found"
+
+msgid "identity.access.updateFailed"
+msgstr "Unable to update the user's application access policy"
+
+msgid "identity.client.disabled"
+msgstr "OAuth client disabled"
+
+msgid "identity.client.secretCreated"
+msgstr "Client secret created. Save it now."
+
+msgid "identity.client.secretRevoked"
+msgstr "Client secret revoked"
+
+msgid "identity.client.uriAdded"
+msgstr "Client URI added"
+
+msgid "identity.client.uriDisabled"
+msgstr "Client URI disabled"
+
+msgid "identity.grant.batchRevokeFailed"
+msgstr "Unable to revoke grants in bulk"
+
+msgid "identity.grant.notFound"
+msgstr "Grant record not found"
+
+msgid "identity.grant.revoked"
+msgstr "OAuth grant revoked"
+
+msgid "identity.interaction.consentRequired"
+msgstr "Your authorization is required"
+
+msgid "identity.interaction.invalidOrExpired"
+msgstr "This authentication interaction is invalid or has expired"
+
+msgid "identity.interaction.invalidRequest"
+msgstr "Invalid authentication interaction request"
+
+msgid "identity.interaction.invalidScope"
+msgstr "Invalid requested permissions"
+
+msgid "identity.interaction.loginRequired"
+msgstr "Sign in to continue"
+
+msgid "identity.interaction.serviceUnavailable"
+msgstr "The authentication service is temporarily unavailable"
+
+msgid "identity.interaction.unavailable"
+msgstr "This authentication interaction has expired or is unavailable"
+
+msgid "identity.key.activated"
+msgstr "OIDC signing key activated"
+
+msgid "identity.key.created"
+msgstr "OIDC signing key created"
+
+msgid "identity.key.deleted"
+msgstr "OIDC signing key deleted"
+
+msgid "identity.key.operationFailed"
+msgstr "The OIDC signing key operation failed"
+
+msgid "identity.key.retired"
+msgstr "OIDC signing key retired"
+
+msgid "identity.resource.disabled"
+msgstr "OAuth resource disabled"
+
+msgid "identity.scope.disabled"
+msgstr "OAuth scope disabled"
+
+msgid "identity.session.batchRevokeFailed"
+msgstr "Unable to revoke sessions in bulk"
+
+msgid "identity.session.notFound"
+msgstr "Session not found"
+
+msgid "identity.session.revoked"
+msgstr "Single sign-on session revoked"
+
+msgid "import.duplicateColumn"
+msgstr "The import file contains a duplicate column: %(column)s"
+
+msgid "import.empty"
+msgstr "The import file is empty"
+
+msgid "import.invalidValue"
+msgstr "Invalid value for import field %(field)s: %(value)s"
+
+msgid "import.missingColumns"
+msgstr "The import file is missing required columns: %(columns)s"
+
+msgid "import.user.duplicates"
+msgstr "Existing accounts skipped: %(accounts)s"
+
+msgid "import.user.nickName"
+msgstr "Display name"
+
+msgid "job.addDuplicate"
+msgstr "Unable to add scheduled job %(job_name)s: the job already exists"
+
+msgid "job.editDuplicate"
+msgstr "Unable to update scheduled job %(job_name)s: the job already exists"
+
+msgid "job.executionNotFound"
+msgstr "Execution record not found"
+
+msgid "job.executionSubmitted"
+msgstr "Execution submitted. Check the execution history for progress."
+
+msgid "job.idRequired"
+msgstr "Scheduled job ID is required"
+
+msgid "job.invalidConfiguration"
+msgstr "Invalid job configuration: %(error)s"
+
+msgid "job.invalidId"
+msgstr "Job ID must be a positive integer"
+
+msgid "job.notFound"
+msgstr "Scheduled job not found"
+
+msgid "job.syncNotFound"
+msgstr "Scheduler synchronization record not found"
+
+msgid "log.operationIdRequired"
+msgstr "Operation log ID is required"
+
+msgid "log.signInIdRequired"
+msgstr "Sign-in log ID is required"
+
+msgid "log.userNotLocked"
+msgstr "This user is not locked"
+
+msgid "menu.addDuplicateName"
+msgstr "Unable to add menu %(menu_name)s: the menu name already exists"
+
+msgid "menu.addDuplicateRoute"
+msgstr "Unable to add menu %(menu_name)s: the route name or path already exists"
+
+msgid "menu.addInvalidUrl"
+msgstr "Unable to add menu %(menu_name)s: the URL must start with http:// or https://"
+
+msgid "menu.assigned"
+msgstr "This menu is assigned and cannot be deleted"
+
+msgid "menu.childrenPreventDelete"
+msgstr "This menu has child menus and cannot be deleted"
+
+msgid "menu.editDuplicateName"
+msgstr "Unable to update menu %(menu_name)s: the menu name already exists"
+
+msgid "menu.editDuplicateRoute"
+msgstr "Unable to update menu %(menu_name)s: the route name or path already exists"
+
+msgid "menu.editInvalidUrl"
+msgstr "Unable to update menu %(menu_name)s: the URL must start with http:// or https://"
+
+msgid "menu.idRequired"
+msgstr "Menu ID is required"
+
+msgid "menu.invalidSort"
+msgstr "Invalid menu sort parameters"
+
+msgid "menu.notFound"
+msgstr "Menu not found"
+
+msgid "menu.parentCycle"
+msgstr "The parent menu relationship contains a cycle"
+
+msgid "menu.parentNotFound"
+msgstr "Parent menu not found"
+
+msgid "menu.selfParent"
+msgstr "Unable to update menu %(menu_name)s: a menu cannot be its own parent"
+
+msgid "monitor.uptime"
+msgstr "%(days)sd %(hours)sh %(minutes)sm"
+
+msgid "notice.addDuplicate"
+msgstr "Unable to add notice %(notice_title)s: the notice already exists"
+
+msgid "notice.editDuplicate"
+msgstr "Unable to update notice %(notice_title)s: the notice already exists"
+
+msgid "notice.idRequired"
+msgstr "Notice ID is required"
+
+msgid "notice.invalidId"
+msgstr "Invalid notice ID"
+
+msgid "notice.notFound"
+msgstr "Notice not found"
+
+msgid "plugin.audit.batchNotFound"
+msgstr "Plugin batch operation audit log not found"
+
+msgid "plugin.audit.retentionApplied"
+msgstr "Plugin operation audit log retention policy applied"
+
+msgid "plugin.config.plaintextExportForbidden"
+msgstr "Use the CLI to export sensitive configuration as plain text. This operation is unavailable on the web."
+
+msgid "plugin.config.statusReadFailed"
+msgstr "Unable to read the plugin configuration status"
+
+msgid "plugin.dependenciesRecovered"
+msgstr "Plugin startup dependencies recovered. Status: %(target_status)s"
+
+msgid "plugin.disabled"
+msgstr "This plugin is disabled and its API is unavailable"
+
+msgid "plugin.invalidState"
+msgstr "The plugin's current status does not allow this operation"
+
+msgid "plugin.markedAbnormal"
+msgstr "Plugin marked as abnormal"
+
+msgid "plugin.noDependencyFailure"
+msgstr "This plugin is not in a startup dependency failure state"
+
+msgid "plugin.notFound"
+msgstr "Plugin not found"
+
+msgid "plugin.notInstalled"
+msgstr "Install the plugin before enabling it"
+
+msgid "plugin.release.statusReadFailed"
+msgstr "Unable to read the plugin artifact release status"
+
+msgid "plugin.runtime.audit.snapshotFailed"
+msgstr "Unable to read the latest audit snapshot: %(error)s"
+
+msgid "plugin.runtime.batch.blocked"
+msgstr "The batch operation plan contains blocking issues. No changes were written."
+
+msgid "plugin.runtime.batch.completed"
+msgstr "Plugin batch operation completed"
+
+msgid "plugin.runtime.batch.failed"
+msgstr "Plugin batch operation failed"
+
+msgid "plugin.runtime.batch.partial"
+msgstr "Plugin batch operation completed with failures"
+
+msgid "plugin.runtime.batch.planCompleted"
+msgstr "Plugin batch operation plan generated"
+
+msgid "plugin.runtime.batch.planFailed"
+msgstr "Unable to generate the plugin batch operation plan"
+
+msgid "plugin.runtime.batch.previewCompleted"
+msgstr "Plugin batch operation preview completed. No changes were written."
+
+msgid "plugin.runtime.batch.stopped"
+msgstr "Plugin batch operation stopped"
+
+msgid "plugin.runtime.batch.unsupportedOperation"
+msgstr "Unsupported plugin batch operation: %(operation)s"
+
+msgid "plugin.runtime.batch.unsupportedPlan"
+msgstr "Unsupported plugin plan operation: %(operation)s"
+
+msgid "plugin.runtime.checkCompleted"
+msgstr "Plugin check completed"
+
+msgid "plugin.runtime.checkFailed"
+msgstr "Plugin check failed"
+
+msgid "plugin.runtime.completed"
+msgstr "Plugin operation completed"
+
+msgid "plugin.runtime.config.exported"
+msgstr "Plugin configuration exported"
+
+msgid "plugin.runtime.config.imported"
+msgstr "Plugin configuration imported"
+
+msgid "plugin.runtime.config.loaded"
+msgstr "Plugin configuration loaded"
+
+msgid "plugin.runtime.config.readFailed"
+msgstr "Unable to read plugin configuration"
+
+msgid "plugin.runtime.config.updateFailed"
+msgstr "Unable to update plugin configuration"
+
+msgid "plugin.runtime.config.updated"
+msgstr "Plugin configuration updated"
+
+msgid "plugin.runtime.dependencies.builtFrontend"
+msgstr "This frontend is already built. Install frontend dependencies before building it."
+
+msgid "plugin.runtime.dependencies.checkFailed"
+msgstr "Unable to check plugin dependencies"
+
+msgid "plugin.runtime.dependencies.checked"
+msgstr "Plugin dependency check completed"
+
+msgid "plugin.runtime.dependencies.cycle"
+msgstr "Plugin dependency cycle: %(cycle_text)s"
+
+msgid "plugin.runtime.dependencies.enabledDependent"
+msgstr "An enabled plugin depends on this plugin: %(dependent_id)s -> %(plugin_id)s"
+
+msgid "plugin.runtime.dependencies.installBlocked"
+msgstr "Plugin dependency installation was blocked by policy"
+
+msgid "plugin.runtime.dependencies.installFailed"
+msgstr "Unable to install plugin dependencies"
+
+msgid "plugin.runtime.dependencies.invalidRequirement"
+msgstr "Invalid Python dependency requirement: %(requirement)s, %(error)s"
+
+msgid "plugin.runtime.dependencies.markerSkipped"
+msgstr "The Python dependency marker does not apply to this environment. Skipped: %(name)s"
+
+msgid "plugin.runtime.dependencies.missing"
+msgstr "Dependency plugin not found: %(plugin_id)s"
+
+msgid "plugin.runtime.dependencies.previewCompleted"
+msgstr "Plugin dependency installation preview completed. No dependencies were installed."
+
+msgid "plugin.runtime.dependencies.previewReady"
+msgstr "Plugin dependency installation preview completed"
+
+msgid "plugin.runtime.dependencies.satisfied"
+msgstr "Plugin dependencies are already satisfied. No installation is needed."
+
+msgid "plugin.runtime.detailFailed"
+msgstr "Unable to read plugin details"
+
+msgid "plugin.runtime.diagnostics.completed"
+msgstr "Plugin diagnostic bundle generated"
+
+msgid "plugin.runtime.diagnostics.failed"
+msgstr "Unable to generate the plugin diagnostic bundle"
+
+msgid "plugin.runtime.diagnostics.manifestMissing"
+msgstr ""
+"The diagnostic process could not find the artifact manifest. Check the release and runtime snapshots for its actual "
+"state."
+
+msgid "plugin.runtime.disable.completed"
+msgstr "Plugin disabled"
+
+msgid "plugin.runtime.docs.failed"
+msgstr "Unable to generate plugin documentation"
+
+msgid "plugin.runtime.docs.generated"
+msgstr "Plugin documentation generated"
+
+msgid "plugin.runtime.enable.completed"
+msgstr "Plugin enabled"
+
+msgid "plugin.runtime.enable.previewCompleted"
+msgstr "Plugin enablement preview completed. No changes were written."
+
+msgid "plugin.runtime.enable.updateFailed"
+msgstr "Unable to update plugin enablement"
+
+msgid "plugin.runtime.failed"
+msgstr "Plugin operation failed"
+
+msgid "plugin.runtime.health.completed"
+msgstr "Plugin health check completed"
+
+msgid "plugin.runtime.health.executionFailed"
+msgstr "Plugin health check execution failed"
+
+msgid "plugin.runtime.health.failed"
+msgstr "Plugin health check failed"
+
+msgid "plugin.runtime.health.passed"
+msgstr "Plugin health check passed"
+
+msgid "plugin.runtime.health.timeout"
+msgstr "Plugin health check timed out"
+
+msgid "plugin.runtime.health.undeclared"
+msgstr "This plugin does not declare a health check"
+
+msgid "plugin.runtime.install.completed"
+msgstr "Plugin installation completed"
+
+msgid "plugin.runtime.install.dependencyCheckFailed"
+msgstr "Installation stopped because plugin dependency checks failed"
+
+msgid "plugin.runtime.install.failed"
+msgstr "Plugin installation failed"
+
+msgid "plugin.runtime.install.menuConflict"
+msgstr "Installation stopped because plugin menus conflict with installed menus"
+
+msgid "plugin.runtime.install.missingDependencies"
+msgstr "Installation stopped because plugin dependencies are missing. Install the dependencies explicitly first."
+
+msgid "plugin.runtime.install.previewCompleted"
+msgstr "Plugin installation preview completed. No changes were written."
+
+msgid "plugin.runtime.lifecycle.busy"
+msgstr "A plugin lifecycle operation is running. Try again later."
+
+msgid "plugin.runtime.lifecycle.lockUnavailable"
+msgstr "The plugin lifecycle lock is unavailable: %(error)s"
+
+msgid "plugin.runtime.listFailed"
+msgstr "Unable to read the plugin list"
+
+msgid "plugin.runtime.migration.contentChanged"
+msgstr "This plugin migration has already run, but its contents have changed: %(migration_path)s"
+
+msgid "plugin.runtime.migration.failedStatus"
+msgstr "failed"
+
+msgid "plugin.runtime.migration.historyFailed"
+msgstr "Unable to read plugin migration history"
+
+msgid "plugin.runtime.migration.historyLoaded"
+msgstr "Plugin migration history loaded"
+
+msgid "plugin.runtime.migration.markFailed"
+msgstr "Unable to mark the plugin migration status"
+
+msgid "plugin.runtime.migration.marked"
+msgstr "Plugin migration manually marked as %(label)s"
+
+msgid "plugin.runtime.migration.markedFailure"
+msgstr "Plugin migration manually marked as failed"
+
+msgid "plugin.runtime.migration.markedSuccess"
+msgstr "Plugin migration manually marked as successful"
+
+msgid "plugin.runtime.migration.notFound"
+msgstr "Plugin migration history not found"
+
+msgid "plugin.runtime.migration.stillRunning"
+msgstr "The previous execution of this plugin migration is still marked as running: %(migration_path)s"
+
+msgid "plugin.runtime.migration.successStatus"
+msgstr "successful"
+
+msgid "plugin.runtime.migration.transitionBlocked"
+msgstr "Plugin migration is currently %(current_status)s and cannot be manually marked as %(label)s"
+
+msgid "plugin.runtime.migration.unsupportedState"
+msgstr "Plugin migration cannot run automatically: %(migration_path)s, status: %(status)s"
+
+msgid "plugin.runtime.notFoundNamed"
+msgstr "Plugin not found: %(plugin_id)s"
+
+msgid "plugin.runtime.operationForbidden"
+msgstr "This plugin operation is not allowed in the current environment"
+
+msgid "plugin.runtime.precheck.blocked"
+msgstr "Plugin operation precheck found issues"
+
+msgid "plugin.runtime.precheck.completed"
+msgstr "Plugin operation precheck completed"
+
+msgid "plugin.runtime.precheck.failed"
+msgstr "Plugin operation precheck failed"
+
+msgid "plugin.runtime.precheck.invalidOperation"
+msgstr "Plugin precheck only supports install, enable, upgrade, uninstall, or purge"
+
+msgid "plugin.runtime.precheck.passed"
+msgstr "Plugin operation precheck passed"
+
+msgid "plugin.runtime.precheck.scriptFailed"
+msgstr "Plugin lifecycle script precheck failed: %(error)s"
+
+msgid "plugin.runtime.precheck.writeBlocked"
+msgstr "Plugin operation precheck found issues. No changes were written."
+
+msgid "plugin.runtime.purge.completed"
+msgstr "Plugin physical cleanup completed"
+
+msgid "plugin.runtime.purge.enabledDependent"
+msgstr "Physical cleanup stopped because enabled plugins still depend on this plugin"
+
+msgid "plugin.runtime.purge.failed"
+msgstr "Plugin physical cleanup failed"
+
+msgid "plugin.runtime.purge.orphanBlocked"
+msgstr "Orphan metadata cleanup stopped because enabled plugins still depend on this plugin"
+
+msgid "plugin.runtime.purge.previewCompleted"
+msgstr "Plugin cleanup preview completed. No files were deleted."
+
+msgid "plugin.runtime.release.alreadyPrepared"
+msgstr "Maintenance preparation for this artifact is complete."
+
+msgid "plugin.runtime.release.containerVerified"
+msgstr ""
+"Container signature and digest checks passed. Platform and directory checks will run in a temporary directory during "
+"import."
+
+msgid "plugin.runtime.release.imported"
+msgstr "Artifact imported and verified. No release target has been selected."
+
+msgid "plugin.runtime.release.prepared"
+msgstr "Maintenance preparation completed. Select the target artifact before starting workers."
+
+msgid "plugin.runtime.release.previousSelected"
+msgstr "The previous code artifact is selected. The database version is unchanged. Restart all workers."
+
+msgid "plugin.runtime.release.sameVersionBlocked"
+msgstr ""
+"This same-version artifact has no matching maintenance preparation record. Release a new version to identify the "
+"installed contents reliably."
+
+msgid "plugin.runtime.release.stateSaved"
+msgstr "Maintenance enablement settings saved. Start all workers."
+
+msgid "plugin.runtime.release.targetSelected"
+msgstr "Release target updated. Restart all workers and wait for them to report their actual versions."
+
+msgid "plugin.runtime.seed.pending"
+msgstr "The plugin seed will run during the actual operation: %(seed_path)s"
+
+msgid "plugin.runtime.uninstall.completed"
+msgstr "Plugin uninstall completed"
+
+msgid "plugin.runtime.uninstall.failed"
+msgstr "Plugin uninstall failed"
+
+msgid "plugin.runtime.uninstall.previewCompleted"
+msgstr "Plugin uninstall preview completed. No changes were written."
+
+msgid "plugin.runtime.upgrade.completed"
+msgstr "Plugin upgrade completed"
+
+msgid "plugin.runtime.upgrade.current"
+msgstr "The plugin is up to date. No upgrade is needed."
+
+msgid "plugin.runtime.upgrade.failed"
+msgstr "Plugin upgrade failed"
+
+msgid "plugin.runtime.upgrade.invalidManifest"
+msgstr "Upgrade stopped because plugin manifest validation failed"
+
+msgid "plugin.runtime.upgrade.menuConflict"
+msgstr "Upgrade stopped because plugin menus conflict with installed menus"
+
+msgid "plugin.runtime.upgrade.notInstalled"
+msgstr "Upgrade stopped because the plugin is not installed"
+
+msgid "plugin.runtime.upgrade.previewCompleted"
+msgstr "Plugin upgrade preview completed. No changes were written."
+
+msgid "plugin.runtime.validation.buttonChildren"
+msgstr "Button menu %(name)s declares child menus"
+
+msgid "plugin.runtime.validation.buttonComponent"
+msgstr "Button menu %(name)s declares a component"
+
+msgid "plugin.runtime.validation.buttonPermissionMissing"
+msgstr "Button menu %(name)s has no permission"
+
+msgid "plugin.runtime.validation.componentPath"
+msgstr "Invalid plugin component path: %(component)s"
+
+msgid "plugin.runtime.validation.controllerSyntax"
+msgstr "The controller file has a syntax error. Unable to check its route prefix: %(error)s"
+
+msgid "plugin.runtime.validation.databaseMismatch"
+msgstr "Database type does not meet the compatibility requirement: current=%(current_database)s required=%(value)s"
+
+msgid "plugin.runtime.validation.dependencyVersionMissing"
+msgstr "%(dependency_kind)s dependency %(name)s has no version constraint"
+
+msgid "plugin.runtime.validation.duplicateMenuKey"
+msgstr "Plugin %(plugin_id)s has a duplicate menu key: %(menu_key)s"
+
+msgid "plugin.runtime.validation.fileOrder"
+msgstr "backend.%(field_name)s is not declared in filename order"
+
+msgid "plugin.runtime.validation.hookMissing"
+msgstr "The plugin declares %(declared_hook)s but not %(missing_hook)s"
+
+msgid "plugin.runtime.validation.hookSyntax"
+msgstr "The lifecycle hook cannot be statically parsed: %(error)s"
+
+msgid "plugin.runtime.validation.installedMenuConflict"
+msgstr "Permission %(perms)s in plugin %(id)s conflicts with existing menu %(menu_id)s (%(conflict_label)s)"
+
+msgid "plugin.runtime.validation.jobHealthMissing"
+msgstr "The plugin declares enabled jobs but no health check callable"
+
+msgid "plugin.runtime.validation.jobSyntax"
+msgstr "The job callable cannot be statically parsed: %(error)s"
+
+msgid "plugin.runtime.validation.numericConstraintsIgnored"
+msgstr "Configuration %(key)s is not a number, so min/max constraints have no effect"
+
+msgid "plugin.runtime.validation.optionsIgnored"
+msgstr "Configuration %(key)s is not a select field, so its options have no effect"
+
+msgid "plugin.runtime.validation.passwordNotSecret"
+msgstr "Password configuration %(key)s does not declare secret=true"
+
+msgid "plugin.runtime.validation.pathEscapesRoot"
+msgstr "The file path must remain inside the plugin root: %(relative_path)s"
+
+msgid "plugin.runtime.validation.patternIgnored"
+msgstr "Configuration %(key)s is not text, so the pattern constraint has no effect"
+
+msgid "plugin.runtime.validation.permissionConflict"
+msgstr "Permission %(perms)s in plugin %(plugin_id)s conflicts with plugin %(conflict_plugin_id)s"
+
+msgid "plugin.runtime.validation.permissionMenuMissing"
+msgstr ""
+"Permission %(permission)s has no menu and the plugin has no page or directory where a permission button can be "
+"attached"
+
+msgid "plugin.runtime.validation.permissionPrefix"
+msgstr "Permission %(permission)s does not use the plugin ID prefix"
+
+msgid "plugin.runtime.validation.permissionsMissing"
+msgstr "The plugin declares frontend menus but no permissions"
+
+msgid "plugin.runtime.validation.pluginVersionMissing"
+msgstr "Plugin dependency %(id)s has no version constraint"
+
+msgid "plugin.runtime.validation.purgeHookMissing"
+msgstr "The plugin declares resources but no onPurge cleanup hook"
+
+msgid "plugin.runtime.validation.requiredDefaultMissing"
+msgstr "Required configuration %(key)s has no default value"
+
+msgid "plugin.runtime.validation.secretDefault"
+msgstr "Sensitive configuration %(key)s has a non-empty default value"
+
+msgid "plugin.runtime.validation.secretNotPassword"
+msgstr "Sensitive configuration %(key)s is not of type password"
+
+msgid "plugin.runtime.validation.versionMismatch"
+msgstr "%(target_name)s does not meet the compatibility requirement: current=%(current_version)s required=%(constraint)s"
+
+msgid "plugin.runtime.validation.versionUnavailable"
+msgstr "Unable to read the current %(target_name)s version. Compatibility checking was skipped."
+
+msgid "plugin.uninstalled"
+msgstr "Plugin uninstalled"
+
+msgid "post.addDuplicateCode"
+msgstr "Unable to add position %(post_name)s: the position code already exists"
+
+msgid "post.addDuplicateName"
+msgstr "Unable to add position %(post_name)s: the position name already exists"
+
+msgid "post.assigned"
+msgstr "Position %(post_name)s is assigned and cannot be deleted"
+
+msgid "post.editDuplicateCode"
+msgstr "Unable to update position %(post_name)s: the position code already exists"
+
+msgid "post.editDuplicateName"
+msgstr "Unable to update position %(post_name)s: the position name already exists"
+
+msgid "post.idRequired"
+msgstr "Position ID is required"
+
+msgid "post.notFound"
+msgstr "Position not found"
+
+msgid "profile.localeSaved"
+msgstr "Language preference saved"
+
+msgid "profile.timezoneSaved"
+msgstr "Time zone settings saved"
+
+msgid "role.addDuplicateName"
+msgstr "Unable to add role %(role_name)s: the role name already exists"
+
+msgid "role.addDuplicatePermission"
+msgstr "Unable to add role %(role_name)s: the role permission key already exists"
+
+msgid "role.assigned"
+msgstr "Role %(role_name)s is assigned and cannot be deleted"
+
+msgid "role.editDuplicateName"
+msgstr "Unable to update role %(role_name)s: the role name already exists"
+
+msgid "role.editDuplicatePermission"
+msgstr "Unable to update role %(role_name)s: the role permission key already exists"
+
+msgid "role.forbidden"
+msgstr "You do not have permission to access role data"
+
+msgid "role.idRequired"
+msgstr "Role ID is required"
+
+msgid "role.notFound"
+msgstr "Role not found"
+
+msgid "role.superAdminProtected"
+msgstr "The super administrator role cannot be changed"
+
+msgid "session.forcedOut"
+msgstr "Forced sign-out successful"
+
+msgid "session.idRequired"
+msgstr "Session ID is required"
+
+msgid "transport.decryptFailed"
+msgstr "Unable to decrypt the request"
+
+msgid "transport.invalidRequest"
+msgstr "Invalid encrypted request"
+
+msgid "transport.keyExpired"
+msgstr "The encryption key is no longer available"
+
+msgid "transport.required"
+msgstr "Encrypted transport is required"
+
+msgid "user.addConditionsNotMet"
+msgstr "The requirements for adding a user are not met"
+
+msgid "user.addDuplicateEmail"
+msgstr "Unable to add user %(user_name)s: the email address already exists"
+
+msgid "user.addDuplicateName"
+msgstr "Unable to add user %(user_name)s: the login account already exists"
+
+msgid "user.addDuplicatePhone"
+msgstr "Unable to add user %(user_name)s: the phone number already exists"
+
+msgid "user.avatar.uploadFailed"
+msgstr "Unable to upload the image. Please contact an administrator."
+
+msgid "user.deleteConditionsNotMet"
+msgstr "The requirements for deleting a user are not met"
+
+msgid "user.deleteCurrentUser"
+msgstr "You cannot delete the currently signed-in user"
+
+msgid "user.editDuplicateEmail"
+msgstr "Unable to update user %(user_name)s: the email address already exists"
+
+msgid "user.editDuplicateName"
+msgstr "Unable to update user %(user_name)s: the login account already exists"
+
+msgid "user.editDuplicatePhone"
+msgstr "Unable to update user %(user_name)s: the phone number already exists"
+
+msgid "user.forbidden"
+msgstr "You do not have permission to access user data"
+
+msgid "user.idRequired"
+msgstr "User ID is required"
+
+msgid "user.notFound"
+msgstr "User not found"
+
+msgid "user.oldPasswordIncorrect"
+msgstr "Unable to change the password: the old password is incorrect"
+
+msgid "user.passwordUnchanged"
+msgstr "The new password must differ from the old password"
+
+msgid "user.rolesRequired"
+msgstr "User-role association information is required"
+
+msgid "user.superAdminProtected"
+msgstr "The super administrator account cannot be changed"
+
+msgid "validation.authorRequired"
+msgstr "Generation author is required"
+
+msgid "validation.baseUrlLength"
+msgstr "Base URL must not exceed 255 characters"
+
+msgid "validation.baseUrlRequired"
+msgstr "Base URL is required"
+
+msgid "validation.businessNameRequired"
+msgstr "Generation business name is required"
+
+msgid "validation.classNameRequired"
+msgstr "Entity class name is required"
+
+msgid "validation.componentPathLength"
+msgstr "Component path must not exceed 255 characters"
+
+msgid "validation.configKeyLength"
+msgstr "Configuration key must not exceed 100 characters"
+
+msgid "validation.configKeyRequired"
+msgstr "Configuration key is required"
+
+msgid "validation.configNameLength"
+msgstr "Configuration name must not exceed 100 characters"
+
+msgid "validation.configNameRequired"
+msgstr "Configuration name is required"
+
+msgid "validation.configValueLength"
+msgstr "Configuration value must not exceed 500 characters"
+
+msgid "validation.configValueRequired"
+msgstr "Configuration value is required"
+
+msgid "validation.contactPhoneLength"
+msgstr "Contact phone number must not exceed 11 characters"
+
+msgid "validation.cronLength"
+msgstr "Cron expression must not exceed 255 characters"
+
+msgid "validation.cronRequired"
+msgstr "Cron expression is required"
+
+msgid "validation.cssClassLength"
+msgstr "CSS class must not exceed 100 characters"
+
+msgid "validation.deptNameLength"
+msgstr "Department name must not exceed 30 characters"
+
+msgid "validation.deptNameRequired"
+msgstr "Department name is required"
+
+msgid "validation.dictLabelLength"
+msgstr "Dictionary label must not exceed 100 characters"
+
+msgid "validation.dictLabelRequired"
+msgstr "Dictionary label is required"
+
+msgid "validation.dictNameLength"
+msgstr "Dictionary name must not exceed 100 characters"
+
+msgid "validation.dictNameRequired"
+msgstr "Dictionary name is required"
+
+msgid "validation.dictTypeFormat"
+msgstr "Dictionary type must start with a lowercase letter and contain only lowercase letters, numbers, and underscores"
+
+msgid "validation.dictTypeLength"
+msgstr "Dictionary type must not exceed 100 characters"
+
+msgid "validation.dictTypeNameLength"
+msgstr "Dictionary type must not exceed 100 characters"
+
+msgid "validation.dictTypeRequired"
+msgstr "Dictionary type is required"
+
+msgid "validation.dictValueLength"
+msgstr "Dictionary value must not exceed 100 characters"
+
+msgid "validation.dictValueRequired"
+msgstr "Dictionary value is required"
+
+msgid "validation.emailFormat"
+msgstr "Invalid email address format"
+
+msgid "validation.emailLength"
+msgstr "Email address must not exceed 50 characters"
+
+msgid "validation.functionNameRequired"
+msgstr "Generation feature name is required"
+
+msgid "validation.invalid"
+msgstr "Invalid input"
+
+msgid "validation.invokeTargetLength"
+msgstr "Invocation target must not exceed 500 characters"
+
+msgid "validation.invokeTargetRequired"
+msgstr "Invocation target is required"
+
+msgid "validation.locale"
+msgstr "Invalid language tag"
+
+msgid "validation.menuNameLength"
+msgstr "Menu name must not exceed 50 characters"
+
+msgid "validation.menuNameRequired"
+msgstr "Menu name is required"
+
+msgid "validation.menuTypeRequired"
+msgstr "Menu type is required"
+
+msgid "validation.mobileLength"
+msgstr "Mobile number must not exceed 11 characters"
+
+msgid "validation.modelCodeLength"
+msgstr "Model code must not exceed 100 characters"
+
+msgid "validation.modelCodeRequired"
+msgstr "Model code is required"
+
+msgid "validation.moduleNameRequired"
+msgstr "Generation module name is required"
+
+msgid "validation.namedInvalid"
+msgstr "Invalid %(field_name)s format"
+
+msgid "validation.namedRequired"
+msgstr "%(field_name)s is required"
+
+msgid "validation.nickNameLength"
+msgstr "Display name must not exceed 30 characters"
+
+msgid "validation.nickNameScript"
+msgstr "Display name must not contain script characters"
+
+msgid "validation.noticeTitleLength"
+msgstr "Notice title must not exceed 50 characters"
+
+msgid "validation.noticeTitleRequired"
+msgstr "Notice title is required"
+
+msgid "validation.noticeTitleScript"
+msgstr "Notice title must not contain script characters"
+
+msgid "validation.orderRequired"
+msgstr "Display order is required"
+
+msgid "validation.packageNameRequired"
+msgstr "Generation package path is required"
+
+msgid "validation.permissionLength"
+msgstr "Permission identifier must not exceed 100 characters"
+
+msgid "validation.postCodeLength"
+msgstr "Position code must not exceed 64 characters"
+
+msgid "validation.postCodeRequired"
+msgstr "Position code is required"
+
+msgid "validation.postNameLength"
+msgstr "Position name must not exceed 50 characters"
+
+msgid "validation.postNameRequired"
+msgstr "Position name is required"
+
+msgid "validation.pythonFieldRequired"
+msgstr "Python attribute is required"
+
+msgid "validation.required"
+msgstr "This field is required"
+
+msgid "validation.roleKeyLength"
+msgstr "Role permission key must not exceed 100 characters"
+
+msgid "validation.roleKeyRequired"
+msgstr "Role permission key is required"
+
+msgid "validation.roleNameLength"
+msgstr "Role name must not exceed 30 characters"
+
+msgid "validation.roleNameRequired"
+msgstr "Role name is required"
+
+msgid "validation.routePathLength"
+msgstr "Route path must not exceed 200 characters"
+
+msgid "validation.tableCommentRequired"
+msgstr "Table description is required"
+
+msgid "validation.tableNameRequired"
+msgstr "Table name is required"
+
+msgid "validation.userNameLength"
+msgstr "User account must not exceed 30 characters"
+
+msgid "validation.userNameRequired"
+msgstr "User account is required"
+
+msgid "validation.userNameScript"
+msgstr "User account must not contain script characters"

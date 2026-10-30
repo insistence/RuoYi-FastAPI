@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import {
   SearchOutlined,
   ReloadOutlined,
@@ -26,8 +29,11 @@ const initial = {
   isAsc: 'descending',
 }
 export default function Logininfor() {
+  useI18n()
+
   const [form] = Form.useForm(),
     { sys_common_status } = useDict('sys_common_status')
+  useLocalizedFormErrors(form)
   const [query, setQuery] = useState(initial),
     [rows, setRows] = useState([]),
     [total, setTotal] = useState(0),
@@ -61,31 +67,33 @@ export default function Logininfor() {
   async function remove(all) {
     try {
       await confirm(
-        all ? '是否确认清空所有登录日志？' : `是否确认删除选中的 ${selected.length} 条登录日志？`
+        all
+          ? t('monitor:clearAllSignInLogs')
+          : t('monitor:deleteTheValueSelectedSignInLogs', { length: selected.length })
       )
       await (all ? cleanLogininfor() : delLogininfor(selected.map((row) => row.infoId)))
-      message.success(all ? '清空成功' : '删除成功')
+      message.success(all ? t('common:clearSuccess') : t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
   async function unlock() {
     const name = selected[0].userName
     try {
-      await confirm(`是否确认解锁用户“${name}”？`)
+      await confirm(t('monitor:unlockUserValue', { name }))
       await unlockLogininfor(name)
-      message.success(`用户 ${name} 解锁成功`)
+      message.success(t('monitor:userValueUnlocked', { name }))
     } catch {}
   }
   const columns = [
-    ['infoId', '访问编号'],
-    ['userName', '用户名称'],
-    ['ipaddr', '地址'],
-    ['loginLocation', '登录地点'],
-    ['os', '操作系统'],
-    ['browser', '浏览器'],
-    ['status', '登录状态'],
-    ['msg', '描述'],
-    ['loginTime', '访问时间'],
+    ['infoId', t('monitor:accessId')],
+    ['userName', t('system:user.username')],
+    ['ipaddr', t('common:address')],
+    ['loginLocation', t('monitor:signInLocation')],
+    ['os', t('monitor:server.os')],
+    ['browser', t('monitor:browser')],
+    ['status', t('monitor:signInStatus')],
+    ['msg', t('monitor:description')],
+    ['loginTime', t('monitor:accessedAt')],
   ].map(([dataIndex, title]) => ({
     align: 'center',
     title,
@@ -121,44 +129,44 @@ export default function Logininfor() {
           onFinish={search}
         >
           <Form.Item
-            label="登录地址"
+            label={t('monitor:login.location')}
             name="ipaddr"
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入登录地址"
+              placeholder={t('monitor:enterSignInAddress')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="用户名称"
+            label={t('system:user.username')}
             name="userName"
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入用户名称"
+              placeholder={t('system:user.usernamePlaceholder')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="状态"
+            label={t('common:status')}
             name="status"
           >
             <Select
               style={{ width: 240 }}
-              placeholder="登录状态"
+              placeholder={t('monitor:signInStatus')}
               allowClear
               options={sys_common_status}
             />
           </Form.Item>
           <Form.Item
-            label="登录时间"
+            label={t('monitor:login.time')}
             name="dateRange"
           >
             <DatePicker.RangePicker
               style={{ width: 308 }}
-              placeholder={['开始日期', '结束日期']}
-              aria-label={`日期范围（${getDisplayTimezone()}）`}
+              placeholder={[t('common:startDate'), t('common:endDate')]}
+              aria-label={t('monitor:dateRangeValue', { arg0: getDisplayTimezone() })}
             />
           </Form.Item>
           <Form.Item>
@@ -168,7 +176,7 @@ export default function Logininfor() {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -177,7 +185,7 @@ export default function Logininfor() {
                   search({})
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -192,7 +200,7 @@ export default function Logininfor() {
             disabled={!selected.length}
             onClick={() => remove(false)}
           >
-            删除
+            {t('common:delete')}
           </Button>
           <Button
             icon={<DeleteOutlined />}
@@ -200,7 +208,7 @@ export default function Logininfor() {
             type="default"
             onClick={() => remove(true)}
           >
-            清空
+            {t('common:clear')}
           </Button>
         </HasPermi>
         <HasPermi value={['monitor:logininfor:unlock']}>
@@ -211,7 +219,7 @@ export default function Logininfor() {
             disabled={selected.length !== 1}
             onClick={unlock}
           >
-            解锁
+            {t('auth:lock.unlock')}
           </Button>
         </HasPermi>
         <HasPermi value={['monitor:logininfor:export']}>
@@ -225,7 +233,7 @@ export default function Logininfor() {
               )
             }
           >
-            导出
+            {t('common:export')}
           </Button>
         </HasPermi>
         <RightToolbar

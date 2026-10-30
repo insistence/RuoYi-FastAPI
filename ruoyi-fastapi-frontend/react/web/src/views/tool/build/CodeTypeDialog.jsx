@@ -1,14 +1,20 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
+import { useLocalizedFormErrors } from '@/i18n/form'
 import { useEffect } from 'react'
 import { Form, Input, Modal, Radio } from 'antd'
 export default function CodeTypeDialog({ open, onClose, onConfirm, showFileName }) {
+  useI18n()
+
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   useEffect(() => {
     if (open) form.setFieldsValue({ type: 'file', fileName: `form-${Date.now()}.jsx` })
   }, [open])
   return (
     <Modal
       width="500px"
-      title="选择生成类型"
+      title={t('tool:chooseOutputType')}
       open={open}
       onCancel={onClose}
       onOk={() =>
@@ -30,33 +36,33 @@ export default function CodeTypeDialog({ open, onClose, onConfirm, showFileName 
       >
         <Form.Item
           name="type"
-          label="生成类型"
-          rules={[{ required: true, message: '请选择生成类型' }]}
+          label={t('tool:outputType')}
+          rules={[{ required: true, message: t('tool:selectAnOutputType') }]}
         >
           <Radio.Group
             optionType="button"
             buttonStyle="solid"
             options={[
-              { label: '页面', value: 'file' },
-              { label: '弹窗', value: 'dialog' },
+              { label: t('tool:page'), value: 'file' },
+              { label: t('tool:dialog'), value: 'dialog' },
             ]}
           />
         </Form.Item>
         {showFileName && (
           <Form.Item
             name="fileName"
-            label="文件名"
+            label={t('tool:fileName')}
             rules={[
-              { required: true, message: '请输入文件名' },
+              { required: true, message: t('tool:enterAFileName') },
               {
                 pattern: /^[^\\/:*?"<>|]+\.jsx$/,
-                message: '请输入合法的 .jsx 文件名',
+                message: t('tool:enterAValidJsxFileName'),
               },
             ]}
           >
             <Input
               allowClear
-              placeholder="请输入文件名"
+              placeholder={t('tool:enterAFileName')}
             />
           </Form.Item>
         )}

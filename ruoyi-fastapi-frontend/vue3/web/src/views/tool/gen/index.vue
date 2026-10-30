@@ -7,36 +7,36 @@
       v-show="showSearch"
     >
       <el-form-item
-        label="表名称"
+        :label="$t('tools:tableName')"
         prop="tableName"
       >
         <el-input
           v-model="queryParams.tableName"
-          placeholder="请输入表名称"
+          :placeholder="$t('tools:enterTableName')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="表描述"
+        :label="$t('tools:tableDescription')"
         prop="tableComment"
       >
         <el-input
           v-model="queryParams.tableComment"
-          placeholder="请输入表描述"
+          :placeholder="$t('tools:enterTableDescription')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="数据源"
+        :label="$t('tools:dataSource')"
         prop="dataSourceName"
       >
         <el-select
           v-model="queryParams.dataSourceName"
-          placeholder="请选择数据源"
+          :placeholder="$t('tools:selectADataSource')"
           clearable
           filterable
           style="width: 220px"
@@ -50,7 +50,7 @@
         </el-select>
       </el-form-item>
       <el-form-item
-        label="创建时间"
+        :label="$t('system:createdAt')"
         style="width: 308px"
       >
         <el-date-picker
@@ -58,8 +58,8 @@
           value-format="YYYY-MM-DD"
           type="daterange"
           range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
+          :start-placeholder="$t('system:startDate')"
+          :end-placeholder="$t('system:endDate')"
         ></el-date-picker>
       </el-form-item>
       <el-form-item>
@@ -67,12 +67,12 @@
           type="primary"
           icon="Search"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('system:search') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -89,7 +89,7 @@
           :disabled="multiple"
           @click="handleGenTable"
           v-hasPermi="['tool:gen:code']"
-          >生成</el-button
+          >{{ $t('tools:generate') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -99,7 +99,7 @@
           icon="Plus"
           @click="openCreateTable"
           v-hasRole="['admin']"
-          >创建</el-button
+          >{{ $t('tools:create') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -109,7 +109,7 @@
           icon="Upload"
           @click="openImportTable"
           v-hasPermi="['tool:gen:import']"
-          >导入</el-button
+          >{{ $t('system:import') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -120,7 +120,7 @@
           :disabled="single"
           @click="handleEditTable"
           v-hasPermi="['tool:gen:edit']"
-          >修改</el-button
+          >{{ $t('system:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -131,7 +131,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['tool:gen:remove']"
-          >删除</el-button
+          >{{ $t('system:delete') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -151,7 +151,7 @@
         width="55"
       ></el-table-column>
       <el-table-column
-        label="序号"
+        :label="$t('system:noLabel')"
         type="index"
         width="50"
         align="center"
@@ -161,50 +161,50 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="表名称"
+        :label="$t('tools:tableName')"
         align="center"
         prop="tableName"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="表描述"
+        :label="$t('tools:tableDescription')"
         align="center"
         prop="tableComment"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="实体"
+        :label="$t('tools:entity')"
         align="center"
         prop="className"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="数据源"
+        :label="$t('tools:dataSource')"
         align="center"
         prop="dataSourceName"
         width="160"
       />
       <el-table-column
-        label="创建时间"
+        :label="$t('system:createdAt')"
         align="center"
         prop="createTime"
         width="160"
       />
       <el-table-column
-        label="更新时间"
+        :label="$t('monitor:updatedAt')"
         align="center"
         prop="updateTime"
         width="160"
       />
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         align="center"
         width="330"
         class-name="small-padding fixed-width"
       >
         <template #default="scope">
           <el-tooltip
-            content="预览"
+            :content="$t('components:preview')"
             placement="top"
           >
             <el-button
@@ -216,7 +216,7 @@
             ></el-button>
           </el-tooltip>
           <el-tooltip
-            content="编辑"
+            :content="$t('oauth:edit')"
             placement="top"
           >
             <el-button
@@ -228,7 +228,7 @@
             ></el-button>
           </el-tooltip>
           <el-tooltip
-            content="删除"
+            :content="$t('system:delete')"
             placement="top"
           >
             <el-button
@@ -240,7 +240,7 @@
             ></el-button>
           </el-tooltip>
           <el-tooltip
-            content="同步"
+            :content="$t('tools:synchronize')"
             placement="top"
           >
             <el-button
@@ -252,7 +252,7 @@
             ></el-button>
           </el-tooltip>
           <el-tooltip
-            content="生成代码"
+            :content="$t('tools:generateCode')"
             placement="top"
           >
             <el-button
@@ -295,7 +295,7 @@
             v-copyText="value"
             v-copyText:callback="copyTextSuccess"
             style="float: right"
-            >&nbsp;复制</el-link
+            >{{ $t('monitor:copy') }}</el-link
           >
           <pre>{{ value }}</pre>
         </el-tab-pane>
@@ -315,6 +315,7 @@
 </template>
 
 <script setup name="Gen">
+import { t } from '@/i18n/adapter'
 import {
   listDataSources,
   listTable,
@@ -353,7 +354,9 @@ const data = reactive({
   },
   preview: {
     open: false,
-    title: '代码预览',
+    get title() {
+      return t('tools:codePreview')
+    },
     data: {},
     activeName: 'do.py',
   },
@@ -399,19 +402,19 @@ function handleQuery() {
 function handleGenTable(row) {
   const tbNames = row.tableName || tableNames.value
   if (tbNames == '') {
-    proxy.$modal.msgError('请选择要生成的数据')
+    proxy.$modal.msgError(t('tools:selectItemsToGenerate'))
     return
   }
   const sourceNames = row.tableName ? [row.dataSourceName] : selectedSourceNames.value
   const uniqueSourceNames = [...new Set(sourceNames.filter(Boolean))]
   if (uniqueSourceNames.length !== 1) {
-    proxy.$modal.msgError('请选择同一数据源下的生成配置')
+    proxy.$modal.msgError(t('tools:selectGenerationConfigurationsFromTheSameDataSource'))
     return
   }
   const dataSourceName = uniqueSourceNames[0]
   if (row.genType === '1') {
     genCode(row.tableName, dataSourceName).then((response) => {
-      proxy.$modal.msgSuccess('成功生成到自定义路径：' + row.genPath)
+      proxy.$modal.msgSuccess(t('tools:generatedAt', { path: row.genPath }))
     })
   } else {
     const zipName = Array.isArray(tbNames) ? 'ruoyi-fastapi.zip' : tbNames + '.zip'
@@ -430,12 +433,12 @@ function handleGenTable(row) {
 function handleSynchDb(row) {
   const tableName = row.tableName
   proxy.$modal
-    .confirm('确认要强制同步"' + tableName + '"表结构吗？')
+    .confirm(t('tools:confirm.syncTable', { name: tableName }))
     .then(function () {
       return synchDb(tableName, row.dataSourceName)
     })
     .then(() => {
-      proxy.$modal.msgSuccess('同步成功')
+      proxy.$modal.msgSuccess(t('tools:synchronizedSuccessfully'))
     })
     .catch(() => {})
 }
@@ -468,7 +471,7 @@ function handlePreview(row) {
 
 /** 复制代码成功 */
 function copyTextSuccess() {
-  proxy.$modal.msgSuccess('复制成功')
+  proxy.$modal.msgSuccess(t('tools:copiedSuccessfully'))
 }
 
 // 多选框选中数据
@@ -485,20 +488,24 @@ function handleEditTable(row) {
   const tableId = row.tableId || ids.value[0]
   const tableName = row.tableName || tableNames.value[0]
   const params = { pageNum: queryParams.value.pageNum }
-  proxy.$tab.openPage('修改[' + tableName + ']生成配置', '/tool/gen-edit/index/' + tableId, params)
+  proxy.$tab.openPage(
+    t('tools:editTable', { name: tableName }),
+    '/tool/gen-edit/index/' + tableId,
+    params
+  )
 }
 
 /** 删除按钮操作 */
 function handleDelete(row) {
   const tableIds = row.tableId || ids.value
   proxy.$modal
-    .confirm('是否确认删除表编号为"' + tableIds + '"的数据项？')
+    .confirm(t('system:confirmation.deleteIds', { ids: tableIds }))
     .then(function () {
       return delTable(tableIds)
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('删除成功')
+      proxy.$modal.msgSuccess(t('system:deletedSuccessfully'))
     })
     .catch(() => {})
 }

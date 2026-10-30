@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Input, Space, Spin, Typography } from 'antd'
 import { SlidersOutlined, FullscreenOutlined } from '@ant-design/icons'
@@ -10,12 +12,14 @@ export default function JsonEditor({
   onChange,
   onBlur,
   readOnly = false,
-  label = 'JSON参数',
+  label = t('common:jsonParameters'),
   valueType = 'object',
   validate,
   rows = 7,
   ...props
 }) {
+  const { locale } = useI18n()
+
   const host = useRef(),
     instance = useRef(),
     latest = useRef({ value, onChange, onBlur })
@@ -27,7 +31,7 @@ export default function JsonEditor({
   const dark = useSettingsStore((state) => state.dark)
   const validation = useMemo(
     () => validateJson(value, valueType, validate),
-    [value, valueType, validate]
+    [value, valueType, validate, locale]
   )
   const name = props['aria-label'] || label
   useEffect(() => {
@@ -127,7 +131,7 @@ export default function JsonEditor({
       style={props.style}
     >
       <div className="json-editor-toolbar">
-        <span>{valueType === 'array' ? 'JSON 数组 [ ]' : 'JSON 对象 { }'}</span>
+        <span>{valueType === 'array' ? t('common:jsonArray') : t('common:jsonObject')}</span>
         <Space>
           <Button
             type="link"
@@ -135,19 +139,22 @@ export default function JsonEditor({
             icon={<SlidersOutlined />}
             disabled={readOnly || !validation.valid || (!ready && !failed)}
             onClick={format}
-            aria-label={`格式化${name}`}
+            aria-label={t('common:formatValue', { name })}
           >
-            格式化
+            {t('common:format')}
           </Button>
           <Button
             type="text"
             size="small"
             icon={<FullscreenOutlined />}
             onClick={() => setExpanded(!expanded)}
-            aria-label={`${expanded ? '收起' : '展开'}${name}编辑器`}
+            aria-label={t('common:valuevalueEditor', {
+              arg0: expanded ? t('common:collapse') : t('common:expand'),
+              name,
+            })}
             aria-expanded={expanded}
           >
-            {expanded ? '收起' : '展开'}
+            {expanded ? t('common:collapse') : t('common:expand')}
           </Button>
         </Space>
       </div>
@@ -160,7 +167,7 @@ export default function JsonEditor({
         )}
         {!ready && !failed && (
           <div className="json-editor-loading">
-            <Spin size="small" /> 正在加载编辑器…
+            <Spin size="small" /> {t('common:loadingEditor')}
           </div>
         )}
         {failed && (
@@ -181,7 +188,7 @@ export default function JsonEditor({
             role="status"
             className="json-editor-valid"
           >
-            格式正确
+            {t('common:validFormat')}
           </Typography.Text>
         ) : (
           <Button
@@ -189,13 +196,19 @@ export default function JsonEditor({
             danger
             onClick={revealError}
           >
-            {marker && `第 ${marker.startLineNumber} 行，第 ${marker.startColumn} 列：`}
+            {marker &&
+              t('common:lineValueColumnValue', {
+                startLineNumber: marker.startLineNumber,
+                startColumn: marker.startColumn,
+              })}
             {validation.message}
           </Button>
         )}
         {validation.valid && (
           <Typography.Text type="secondary">
-            {failed ? '编辑器加载失败，已切换文本输入' : 'Tab 切换焦点 · Alt+Shift+F 格式化'}
+            {failed
+              ? t('common:failedToLoadTheEditorPlainTextInputIs')
+              : t('common:tabToChangeFocusAltShiftFToFormat')}
           </Typography.Text>
         )}
       </div>

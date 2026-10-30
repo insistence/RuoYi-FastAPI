@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useMemo, useState } from 'react'
 import { Button, Empty, Form, Input, InputNumber, Modal, Select, Space, Switch } from 'antd'
@@ -11,15 +14,18 @@ import { FormatPainterOutlined } from '@ant-design/icons'
 export default function PluginConfigDialog({
   open,
   pluginId,
-  title = '插件配置',
+  title = t('system:pluginConfiguration'),
   items = [],
   loading,
   onClose,
   onSubmit,
   refreshKey = 0,
 }) {
+  const { locale } = useI18n()
+
   const [form] = Form.useForm(),
     [validating, setValidating] = useState(false)
+  useLocalizedFormErrors(form)
   useEffect(() => {
     if (!open) return
     form.resetFields()
@@ -49,34 +55,34 @@ export default function PluginConfigDialog({
         map.get(group).push(item)
       })
     return [...map]
-  }, [items])
+  }, [items, locale])
   function rules(item) {
     return [
-      { required: !!item.required, message: '不能为空' },
+      { required: !!item.required, message: t('system:required') },
       {
         validator: async (_, value) => {
           if (value === undefined || value === null || value === '') return
           if (item.type === 'number') {
-            if (!Number.isFinite(Number(value))) throw new Error('请输入数字')
+            if (!Number.isFinite(Number(value))) throw new Error(t('system:enterANumber'))
             if (item.min != null && value < Number(item.min))
-              throw new Error(`不能小于 ${item.min}`)
+              throw new Error(t('pluginAdmin:mustBeAtLeastValue', { min: item.min }))
             if (item.max != null && value > Number(item.max))
-              throw new Error(`不能大于 ${item.max}`)
+              throw new Error(t('pluginAdmin:mustNotExceedValue', { max: item.max }))
           }
           if (item.pattern && ['string', 'textarea', 'password'].includes(item.type)) {
             let regex
             try {
               regex = new RegExp(item.pattern)
             } catch {
-              throw new Error('配置正则表达式无效')
+              throw new Error(t('system:invalidConfigurationRegularExpression'))
             }
-            if (!regex.test(String(value))) throw new Error('格式不符合要求')
+            if (!regex.test(String(value))) throw new Error(t('system:invalidFormat'))
           }
           if (item.type === 'json') {
             try {
               JSON.parse(value)
             } catch {
-              throw new Error('请输入合法 JSON')
+              throw new Error(t('system:enterValidJson'))
             }
           }
         },
@@ -159,10 +165,10 @@ export default function PluginConfigDialog({
               disabled={!items.length}
               onClick={submit}
             >
-              保存
+              {t('common:save')}
             </Button>
           </HasPermi>
-          <Button onClick={onClose}>关闭</Button>
+          <Button onClick={onClose}>{t('layout:search.close')}</Button>
         </Space>
       }
     >
@@ -181,7 +187,7 @@ export default function PluginConfigDialog({
         form={form}
         layout="horizontal"
       >
-        {!items.length && <Empty description="暂无插件配置" />}
+        {!items.length && <Empty description={t('system:noPluginConfiguration')} />}
         {groups.map(([group, groupItems]) => (
           <div
             key={group}
@@ -190,10 +196,10 @@ export default function PluginConfigDialog({
             {(groups.length > 1 || group !== 'default') && (
               <div className="plugin-config-section-title">
                 {{
-                  default: '基础配置',
-                  model: '模型配置',
-                  security: '安全配置',
-                  advanced: '高级配置',
+                  default: t('system:basicConfiguration'),
+                  model: t('system:modelConfiguration'),
+                  security: t('system:securityConfiguration'),
+                  advanced: t('system:advancedConfiguration'),
                 }[group] || group}
               </div>
             )}
@@ -218,11 +224,15 @@ export default function PluginConfigDialog({
                                   JSON.stringify(JSON.parse(value), null, 2)
                                 )
                             } catch {
-                              message.error(`${item.label || item.key} 不是合法 JSON`)
+                              message.error(
+                                t('pluginAdmin:valueIsNotValidJson', {
+                                  arg0: item.label || item.key,
+                                })
+                              )
                             }
                           }}
                         >
-                          格式化 JSON
+                          {t('system:formatJson')}
                         </Button>
                       </div>
                     )}
@@ -238,7 +248,7 @@ export default function PluginConfigDialog({
                           type="warning"
                           effect="plain"
                         >
-                          必填
+                          {t('system:components.required')}
                         </PluginTag>
                       )}
                       {item.secret && (
@@ -246,11 +256,13 @@ export default function PluginConfigDialog({
                           type="warning"
                           effect="plain"
                         >
-                          敏感
+                          {t('system:sensitive')}
                         </PluginTag>
                       )}
                       {formatConfigDefaultValue(item) !== '-' && (
-                        <PluginTag effect="plain">默认 {formatConfigDefaultValue(item)}</PluginTag>
+                        <PluginTag effect="plain">
+                          {t('layout:size.default')} {formatConfigDefaultValue(item)}
+                        </PluginTag>
                       )}
                       {formatConfigConstraint(item) !== '-' && (
                         <PluginTag effect="plain">{formatConfigConstraint(item)}</PluginTag>

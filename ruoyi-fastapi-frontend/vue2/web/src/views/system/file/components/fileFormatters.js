@@ -1,3 +1,4 @@
+import { t } from '@/i18n/adapter'
 import { parseTime } from '@/utils/ruoyi'
 
 export function formatFileSize(size) {
@@ -9,24 +10,26 @@ export function formatFileSize(size) {
 }
 
 export function accessTypeLabel(accessType) {
-  return accessType === 'public' ? '公开文件' : '受保护文件'
+  return accessType === 'public'
+    ? t('file:messages.publicFiles')
+    : t('file:messages.protectedFiles')
 }
 
 export function statusLabel(status) {
   return (
     {
-      active: '正常',
-      deleted: '已删除',
-      purging: '清理中',
+      active: t('layout:notices.active'),
+      deleted: t('file:messages.deleted'),
+      purging: t('file:messages.deleting'),
     }[status] || status
   )
 }
 
 export function expirationLabel(expireTime) {
-  if (!expireTime) return '永久有效'
+  if (!expireTime) return t('file:messages.noExpiry')
   const remainingTime = new Date(expireTime).getTime() - Date.now()
-  if (remainingTime <= 0) return '已过期'
-  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return '即将过期'
+  if (remainingTime <= 0) return t('common:expired')
+  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return t('file:messages.expiringSoon')
   return parseTime(expireTime, '{y}-{m}-{d}')
 }
 
@@ -46,11 +49,11 @@ export function isAclExpiring(expireTime) {
 export function storageStatusLabel(storageStatus) {
   return (
     {
-      normal: '正常',
-      missing: '文件缺失',
-      quarantined: '已隔离',
-      invalid: '异常',
-    }[storageStatus] || '未知'
+      normal: t('layout:notices.active'),
+      missing: t('file:messages.fileMissing'),
+      quarantined: t('file:messages.quarantined'),
+      invalid: t('common:exception'),
+    }[storageStatus] || t('common:unknown')
   )
 }
 
@@ -68,16 +71,16 @@ export function storageStatusTagType(storageStatus) {
 export function actionLabel(action) {
   return (
     {
-      upload: '上传',
-      download: '下载',
-      acl_update: '授权变更',
-      transfer: '归属转移',
-      delete: '移入回收站',
-      restore: '恢复',
-      purge: '永久清理',
-      reconcile: '存储对账',
-      retention_extend: '保留延期',
-      retention_dispose: '到期处置',
+      upload: t('common:upload'),
+      download: t('common:download'),
+      acl_update: t('file:messages.permissionChange'),
+      transfer: t('file:messages.ownershipTransfer'),
+      delete: t('file:messages.moveToRecycleBin'),
+      restore: t('common:restore'),
+      purge: t('file:messages.permanentlyDelete'),
+      reconcile: t('file:messages.storageReconciliation'),
+      retention_extend: t('file:messages.retentionExtension'),
+      retention_dispose: t('file:messages.expiryDisposal'),
     }[action] || action
   )
 }
@@ -85,10 +88,10 @@ export function actionLabel(action) {
 export function resultLabel(result) {
   return (
     {
-      allowed: '已授权',
-      denied: '已拒绝',
-      completed: '已完成',
-      failed: '失败',
+      allowed: t('file:messages.allowed'),
+      denied: t('file:messages.denied'),
+      completed: t('common:completed'),
+      failed: t('common:failed'),
     }[result] || result
   )
 }
@@ -116,48 +119,48 @@ export function parseOperationDetail(operationDetail) {
           : String(value === undefined || value === null ? '-' : value),
     }))
   } catch {
-    return [{ label: '操作详情', value: operationDetail }]
+    return [{ label: t('file:messages.operationDetails'), value: operationDetail }]
   }
 }
 
 function auditDetailKeyLabel(key) {
   return (
     {
-      previousAclVersion: '原权限版本',
-      newAclVersion: '新权限版本',
-      entryCount: '授权项数量',
-      allowCount: '允许项数量',
-      denyCount: '拒绝项数量',
-      subjectTypeCounts: '主体类型统计',
-      previousOwnerUserId: '原所有者ID',
-      previousDeptId: '原所属部门ID',
-      newOwnerUserId: '新所有者ID',
-      newOwnerName: '新所有者',
-      newDeptId: '新所属部门ID',
-      reason: '操作原因',
-      originalName: '原始文件名',
-      accessType: '访问类型',
-      referenceCount: '业务引用数量',
-      previousStatus: '原状态',
-      newStatus: '新状态',
-      truncated: '详情已截断',
-      preview: '详情预览',
-      issueId: '对账异常ID',
-      issueType: '异常类型',
-      action: '处理动作',
-      actualRoot: '实际存储区域',
-      actualKey: '实际相对路径',
-      expectedRoot: '预期存储区域',
-      expectedKey: '预期相对路径',
-      previousExpireTime: '原到期时间',
-      newExpireTime: '新到期时间',
-      expireTime: '到期时间',
-      range: '请求范围',
-      rangeStart: '分段起始字节',
-      rangeEnd: '分段结束字节',
-      fileSize: '文件总大小',
-      releasedReferenceCount: '解除引用数量',
-      releasedReferences: '解除引用明细',
+      previousAclVersion: t('file:messages.previousPermissionsVersion'),
+      newAclVersion: t('file:messages.newPermissionsVersion'),
+      entryCount: t('file:messages.permissionCount'),
+      allowCount: t('file:messages.allowCount'),
+      denyCount: t('file:messages.denyCount'),
+      subjectTypeCounts: t('file:messages.principalTypeStatistics'),
+      previousOwnerUserId: t('file:messages.previousOwnerID'),
+      previousDeptId: t('file:messages.previousDepartmentID'),
+      newOwnerUserId: t('file:messages.newOwnerID'),
+      newOwnerName: t('file:messages.newOwner'),
+      newDeptId: t('file:messages.newDepartmentID'),
+      reason: t('common:operationReason'),
+      originalName: t('file:originalName'),
+      accessType: t('file:accessType'),
+      referenceCount: t('file:messages.businessReferenceCount'),
+      previousStatus: t('file:messages.previousStatus'),
+      newStatus: t('file:messages.newStatus'),
+      truncated: t('file:messages.detailsTruncated'),
+      preview: t('file:messages.detailsPreview'),
+      issueId: t('file:messages.reconciliationIssueID'),
+      issueType: t('file:messages.issueType'),
+      action: t('file:messages.processingAction'),
+      actualRoot: t('file:messages.actualStorageArea'),
+      actualKey: t('file:messages.actualRelativePath'),
+      expectedRoot: t('file:messages.expectedStorageArea'),
+      expectedKey: t('file:messages.expectedRelativePath'),
+      previousExpireTime: t('file:messages.previousExpiryTime'),
+      newExpireTime: t('file:messages.newExpiryTime'),
+      expireTime: t('file:messages.expiryTime'),
+      range: t('file:messages.requestedRange'),
+      rangeStart: t('file:messages.rangeStartByte'),
+      rangeEnd: t('file:messages.rangeEndByte'),
+      fileSize: t('file:messages.totalFileSize'),
+      releasedReferenceCount: t('file:messages.removedReferenceCount'),
+      releasedReferences: t('file:messages.removedReferenceDetails'),
     }[key] || key
   )
 }

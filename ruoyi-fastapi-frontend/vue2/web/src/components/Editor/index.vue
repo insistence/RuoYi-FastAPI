@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :style="editorLocaleStyles">
     <el-upload
       :action="uploadUrl"
       :before-upload="handleBeforeUpload"
@@ -22,6 +22,9 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+import { i18n } from '@/i18n'
+
 import axios from 'axios'
 import Quill from 'quill'
 import 'quill/dist/quill.core.css'
@@ -66,9 +69,6 @@ export default {
   data() {
     return {
       uploadUrl: process.env.VUE_APP_BASE_API + '/common/upload', // 上传的图片服务器地址
-      headers: {
-        Authorization: 'Bearer ' + getToken(),
-      },
       Quill: null,
       currentValue: '',
       options: {
@@ -90,12 +90,39 @@ export default {
             ['link', 'image', 'video'], // 链接、图片、视频
           ],
         },
-        placeholder: '请输入内容',
+        get placeholder() {
+          return t('common:contentPlaceholder')
+        },
         readOnly: this.readOnly,
       },
     }
   },
   computed: {
+    headers() {
+      void this.$locale.locale
+      return { Authorization: 'Bearer ' + getToken(), ...i18n.headers }
+    },
+
+    editorLocaleStyles() {
+      return {
+        '--editor-linkPrompt': JSON.stringify(t('common:editor.linkPrompt')),
+        '--editor-save': JSON.stringify(t('common:editor.save')),
+        '--editor-videoPrompt': JSON.stringify(t('common:editor.videoPrompt')),
+        '--editor-text': JSON.stringify(t('common:editor.text')),
+        '--editor-heading1': JSON.stringify(t('common:editor.heading1')),
+        '--editor-heading2': JSON.stringify(t('common:editor.heading2')),
+        '--editor-heading3': JSON.stringify(t('common:editor.heading3')),
+        '--editor-heading4': JSON.stringify(t('common:editor.heading4')),
+        '--editor-heading5': JSON.stringify(t('common:editor.heading5')),
+        '--editor-heading6': JSON.stringify(t('common:editor.heading6')),
+        '--editor-standardFont': JSON.stringify(t('common:editor.standardFont')),
+        '--editor-serifFont': JSON.stringify(t('common:editor.serifFont')),
+        '--editor-monospaceFont': JSON.stringify(t('common:editor.monospaceFont')),
+        '--editor-visitLink': JSON.stringify(t('common:editor.visitLink')),
+        '--editor-editLink': JSON.stringify(t('common:editor.editLink')),
+        '--editor-removeLink': JSON.stringify(t('common:editor.removeLink')),
+      }
+    },
     styles() {
       let style = {}
       if (this.minHeight) {
@@ -108,6 +135,9 @@ export default {
     },
   },
   watch: {
+    '$locale.locale'() {
+      if (this.Quill) this.Quill.root.dataset.placeholder = t('common:contentPlaceholder')
+    },
     value: {
       handler(val) {
         if (val !== this.currentValue) {
@@ -167,14 +197,16 @@ export default {
       const isJPG = type.includes(file.type)
       // 检验文件格式
       if (!isJPG) {
-        this.$message.error(`图片格式错误!`)
+        this.$message.error(t('file:interface.invalidImageFormat', {}))
         return false
       }
       // 校检文件大小
       if (this.fileSize) {
         const isLt = file.size / 1024 / 1024 < this.fileSize
         if (!isLt) {
-          this.$message.error(`上传文件大小不能超过 ${this.fileSize} MB!`)
+          this.$message.error(
+            t('file:interface.filesMustNotExceedValueMB', { value0: this.fileSize })
+          )
           return false
         }
       }
@@ -192,11 +224,11 @@ export default {
         // 调整光标到最后
         quill.setSelection(length + 1)
       } else {
-        this.$message.error('图片插入失败')
+        this.$message.error(t('file:interface.failedToInsertImage'))
       }
     },
     handleUploadError() {
-      this.$message.error('图片插入失败')
+      this.$message.error(t('file:interface.failedToInsertImage'))
     },
     // 复制粘贴图片处理
     handlePasteCapture(e) {
@@ -220,6 +252,7 @@ export default {
           headers: {
             'Content-Type': 'multipart/form-data',
             Authorization: this.headers.Authorization,
+            ...i18n.headers,
           },
         })
         .then((res) => {
@@ -239,16 +272,25 @@ export default {
 .quill-img {
   display: none;
 }
+.ql-snow .ql-tooltip::before {
+  content: var(--editor-visitLink);
+}
+.ql-snow .ql-tooltip a.ql-action::after {
+  content: var(--editor-editLink);
+}
+.ql-snow .ql-tooltip a.ql-remove::before {
+  content: var(--editor-removeLink);
+}
 .ql-snow .ql-tooltip[data-mode='link']::before {
-  content: '请输入链接地址:';
+  content: var(--editor-linkPrompt);
 }
 .ql-snow .ql-tooltip.ql-editing a.ql-action::after {
   border-right: 0px;
-  content: '保存';
+  content: var(--editor-save);
   padding-right: 0px;
 }
 .ql-snow .ql-tooltip[data-mode='video']::before {
-  content: '请输入视频地址:';
+  content: var(--editor-videoPrompt);
 }
 .ql-snow .ql-picker.ql-size .ql-picker-label::before,
 .ql-snow .ql-picker.ql-size .ql-picker-item::before {
@@ -268,42 +310,42 @@ export default {
 }
 .ql-snow .ql-picker.ql-header .ql-picker-label::before,
 .ql-snow .ql-picker.ql-header .ql-picker-item::before {
-  content: '文本';
+  content: var(--editor-text);
 }
 .ql-snow .ql-picker.ql-header .ql-picker-label[data-value='1']::before,
 .ql-snow .ql-picker.ql-header .ql-picker-item[data-value='1']::before {
-  content: '标题1';
+  content: var(--editor-heading1);
 }
 .ql-snow .ql-picker.ql-header .ql-picker-label[data-value='2']::before,
 .ql-snow .ql-picker.ql-header .ql-picker-item[data-value='2']::before {
-  content: '标题2';
+  content: var(--editor-heading2);
 }
 .ql-snow .ql-picker.ql-header .ql-picker-label[data-value='3']::before,
 .ql-snow .ql-picker.ql-header .ql-picker-item[data-value='3']::before {
-  content: '标题3';
+  content: var(--editor-heading3);
 }
 .ql-snow .ql-picker.ql-header .ql-picker-label[data-value='4']::before,
 .ql-snow .ql-picker.ql-header .ql-picker-item[data-value='4']::before {
-  content: '标题4';
+  content: var(--editor-heading4);
 }
 .ql-snow .ql-picker.ql-header .ql-picker-label[data-value='5']::before,
 .ql-snow .ql-picker.ql-header .ql-picker-item[data-value='5']::before {
-  content: '标题5';
+  content: var(--editor-heading5);
 }
 .ql-snow .ql-picker.ql-header .ql-picker-label[data-value='6']::before,
 .ql-snow .ql-picker.ql-header .ql-picker-item[data-value='6']::before {
-  content: '标题6';
+  content: var(--editor-heading6);
 }
 .ql-snow .ql-picker.ql-font .ql-picker-label::before,
 .ql-snow .ql-picker.ql-font .ql-picker-item::before {
-  content: '标准字体';
+  content: var(--editor-standardFont);
 }
 .ql-snow .ql-picker.ql-font .ql-picker-label[data-value='serif']::before,
 .ql-snow .ql-picker.ql-font .ql-picker-item[data-value='serif']::before {
-  content: '衬线字体';
+  content: var(--editor-serifFont);
 }
 .ql-snow .ql-picker.ql-font .ql-picker-label[data-value='monospace']::before,
 .ql-snow .ql-picker.ql-font .ql-picker-item[data-value='monospace']::before {
-  content: '等宽字体';
+  content: var(--editor-monospaceFont);
 }
 </style>

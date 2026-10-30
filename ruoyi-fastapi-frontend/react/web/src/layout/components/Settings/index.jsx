@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { App, Button, ColorPicker, Divider, Drawer, Radio, Switch, Tooltip } from 'antd'
 import { CheckOutlined, DownOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons'
 import useSettingsStore from '@/store/modules/settings'
@@ -15,13 +17,15 @@ const colors = [
   '#1e90ff',
   '#c71585',
 ]
-const navigationModes = [
-  [1, '左侧菜单', 'left'],
-  [2, '混合菜单', 'mix'],
-  [3, '顶部菜单', 'top'],
+const navigationModes = () => [
+  [1, t('layout:settings.sidebar'), 'left'],
+  [2, t('layout:settings.mixed'), 'mix'],
+  [3, t('layout:settings.top'), 'top'],
 ]
 
 export default function Settings({ open, onClose }) {
+  useI18n()
+
   const settings = useSettingsStore()
   const { message } = App.useApp()
   function switchRow(key, label, disabled = false) {
@@ -44,33 +48,33 @@ export default function Settings({ open, onClose }) {
     try {
       settings.save()
       useTagsViewStore.getState().persistViews()
-      message.success('配置已保存到本地')
+      message.success(t('layout:settingsSavedLocally'))
     } catch {
-      message.error('保存失败，请检查浏览器存储是否可用')
+      message.error(t('layout:saveFailedCheckBrowserStorageAvailability'))
     }
   }
   function reset() {
     settings.reset()
     useTagsViewStore.getState().reset()
     onClose()
-    message.success('已恢复默认布局配置')
+    message.success(t('layout:defaultLayoutRestored'))
   }
   return (
     <Drawer
       size="300px"
       rootClassName="layout-settings"
-      aria-label="布局设置"
+      aria-label={t('layout:navbar.settings')}
       closable={false}
       open={open}
       onClose={onClose}
     >
-      <h3 className="layout-settings-title">菜单导航设置</h3>
+      <h3 className="layout-settings-title">{t('layout:settings.navigation')}</h3>
       <div
         className="layout-nav-options"
         role="group"
-        aria-label="菜单导航设置"
+        aria-label={t('layout:settings.navigation')}
       >
-        {navigationModes.map(([value, label, style]) => (
+        {navigationModes().map(([value, label, style]) => (
           <Tooltip
             title={label}
             placement="bottom"
@@ -89,15 +93,15 @@ export default function Settings({ open, onClose }) {
           </Tooltip>
         ))}
       </div>
-      <h3 className="layout-settings-title">主题风格设置</h3>
+      <h3 className="layout-settings-title">{t('layout:settings.theme')}</h3>
       <div
         className="layout-theme-options"
         role="group"
-        aria-label="主题风格设置"
+        aria-label={t('layout:settings.theme')}
       >
         {[
-          ['dark', '深色侧栏', darkPreview],
-          ['light', '浅色侧栏', lightPreview],
+          ['dark', t('layout:darkSidebar'), darkPreview],
+          ['light', t('layout:lightSidebar'), lightPreview],
         ].map(([value, label, image]) => (
           <button
             type="button"
@@ -116,17 +120,17 @@ export default function Settings({ open, onClose }) {
         ))}
       </div>
       <div className="layout-setting-row">
-        <span>主题颜色</span>
+        <span>{t('layout:settings.color')}</span>
         <ColorPicker
           value={settings.colorPrimary}
-          presets={[{ label: '预设颜色', colors }]}
+          presets={[{ label: t('layout:presetColor'), colors }]}
           disabledAlpha
           onChange={(color) => settings.update({ colorPrimary: color.toHexString() })}
         >
           <button
             type="button"
             className="layout-theme-color"
-            aria-label="主题颜色"
+            aria-label={t('layout:settings.color')}
           >
             <span style={{ background: settings.colorPrimary }} />
             <DownOutlined />
@@ -134,30 +138,32 @@ export default function Settings({ open, onClose }) {
         </ColorPicker>
       </div>
       <Divider />
-      <h3 className="layout-settings-title layout-settings-section">系统布局配置</h3>
-      {switchRow('tagsView', '开启页签')}
-      {switchRow('tagsViewPersist', '持久化标签页', !settings.tagsView)}
-      {switchRow('tagsIcon', '显示页签图标', !settings.tagsView)}
+      <h3 className="layout-settings-title layout-settings-section">
+        {t('layout:settings.layout')}
+      </h3>
+      {switchRow('tagsView', t('layout:settings.tabs'))}
+      {switchRow('tagsViewPersist', t('layout:settings.persistTabs'), !settings.tagsView)}
+      {switchRow('tagsIcon', t('layout:settings.tabIcons'), !settings.tagsView)}
       <div className="layout-setting-row">
-        <span>标签页样式</span>
+        <span>{t('layout:settings.tabStyle')}</span>
         <Radio.Group
           size="small"
-          aria-label="标签页样式"
+          aria-label={t('layout:settings.tabStyle')}
           optionType="button"
           buttonStyle="solid"
           value={settings.tagsViewStyle}
           disabled={!settings.tagsView}
           options={[
-            { label: '卡片', value: 'card' },
-            { label: '谷歌', value: 'chrome' },
+            { label: t('layout:settings.card'), value: 'card' },
+            { label: t('layout:settings.chrome'), value: 'chrome' },
           ]}
           onChange={(event) => settings.update({ tagsViewStyle: event.target.value })}
         />
       </div>
-      {switchRow('fixedHeader', '固定 Header')}
-      {switchRow('sidebarLogo', '显示 Logo')}
-      {switchRow('dynamicTitle', '动态标题')}
-      {switchRow('footerVisible', '底部版权')}
+      {switchRow('fixedHeader', t('layout:settings.fixedHeader'))}
+      {switchRow('sidebarLogo', t('layout:settings.logo'))}
+      {switchRow('dynamicTitle', t('layout:settings.dynamicTitle'))}
+      {switchRow('footerVisible', t('layout:settings.footer'))}
       <Divider />
       <div className="layout-settings-actions">
         <Button
@@ -166,13 +172,13 @@ export default function Settings({ open, onClose }) {
           icon={<SaveOutlined />}
           onClick={save}
         >
-          保存配置
+          {t('layout:settings.save')}
         </Button>
         <Button
           icon={<ReloadOutlined />}
           onClick={reset}
         >
-          重置配置
+          {t('layout:settings.reset')}
         </Button>
       </div>
     </Drawer>

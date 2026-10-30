@@ -264,7 +264,7 @@ class OAuthSessionManagementService:
             return count
         except Exception as exc:
             await coordinator.rollback(db)
-            raise ServiceException(message='批量撤销会话失败') from exc
+            raise ServiceException(message='批量撤销会话失败', msg_key='identity.session.batchRevokeFailed') from exc
 
     @staticmethod
     async def revoke_sessions(db: AsyncSession, redis: Redis, sids: list[str], actor: str, reason: str) -> int:
@@ -297,7 +297,7 @@ class OAuthSessionManagementService:
             return count
         except Exception as exc:
             await coordinator.rollback(db)
-            raise ServiceException(message='批量撤销会话失败') from exc
+            raise ServiceException(message='批量撤销会话失败', msg_key='identity.session.batchRevokeFailed') from exc
 
     @staticmethod
     async def revoke_grants(db: AsyncSession, grant_ids: list[str], actor: str, reason: str) -> int:
@@ -333,7 +333,7 @@ class OAuthSessionManagementService:
             return count
         except Exception as exc:
             await db.rollback()
-            raise ServiceException(message='批量撤销授权失败') from exc
+            raise ServiceException(message='批量撤销授权失败', msg_key='identity.grant.batchRevokeFailed') from exc
 
     @staticmethod
     async def set_access(db: AsyncSession, user_id: int, client_id: str, blocked: bool, actor: str, reason: str) -> int:
@@ -354,7 +354,7 @@ class OAuthSessionManagementService:
             client = await OAuthClientDao.get_by_client_id(db, client_id)
             user = await IdentityUserDao.get_user(db, user_id)
             if client is None or user is None or user.del_flag != '0':
-                raise ServiceException(message='用户或应用不存在')
+                raise ServiceException(message='用户或应用不存在', msg_key='identity.access.subjectNotFound')
             await OAuthAccessPolicyDao.lock_client(db, client.client_pk)
             await OAuthAccessPolicyDao.set_status(db, user_id, client.client_pk, blocked, actor, reason)
             revoked = (
@@ -385,4 +385,4 @@ class OAuthSessionManagementService:
             raise
         except Exception as exc:
             await db.rollback()
-            raise ServiceException(message='更新用户应用访问策略失败') from exc
+            raise ServiceException(message='更新用户应用访问策略失败', msg_key='identity.access.updateFailed') from exc

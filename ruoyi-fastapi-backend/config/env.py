@@ -57,6 +57,15 @@ class AppSettings(BaseSettings):
             raise ValueError(f'APP_TIMEZONE: {exc}') from None
 
 
+class I18nSettings(BaseSettings):
+    """
+    国际化配置
+    """
+
+    SOURCE_LOCALE: ClassVar[str] = 'zh-CN'
+    i18n_default_locale: str = Field(default=SOURCE_LOCALE, min_length=1, max_length=63)
+
+
 class JwtSettings(BaseSettings):
     """
     Jwt配置
@@ -660,6 +669,12 @@ class GetConfig:
         # 实例化应用配置模型
         return AppSettings()
 
+    def get_i18n_config(self) -> I18nSettings:
+        """
+        获取国际化配置
+        """
+        return I18nSettings()
+
     def get_jwt_config(self) -> JwtSettings:
         """
         获取Jwt配置
@@ -761,6 +776,8 @@ class GetConfig:
 get_config = GetConfig()
 # 应用配置
 AppConfig = get_config.get_app_config()
+# 国际化配置
+I18nConfig = get_config.get_i18n_config()
 # Jwt配置
 JwtConfig = get_config.get_jwt_config()
 # 数据库配置

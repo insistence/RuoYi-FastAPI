@@ -2,15 +2,17 @@
   <section class="file-statistics">
     <div class="file-statistics-header">
       <div>
-        <div class="file-statistics-title">文件概览</div>
-        <div class="file-statistics-tip">统计数据随当前查询条件实时更新</div>
+        <div class="file-statistics-title">{{ $t('files:fileOverview') }}</div>
+        <div class="file-statistics-tip">
+          {{ $t('files:statisticsUpdateWithTheCurrentFilters') }}
+        </div>
       </div>
     </div>
     <div class="file-statistics-content">
       <div class="file-stat-item stat-primary">
         <div class="file-stat-main">
           <div>
-            <div class="file-stat-title">文件总数</div>
+            <div class="file-stat-title">{{ $t('files:totalFiles') }}</div>
             <div class="file-stat-value">{{ stats.totalCount }}</div>
           </div>
           <div class="file-stat-icon">
@@ -18,15 +20,15 @@
           </div>
         </div>
         <div class="file-stat-extra">
-          <span>正常 {{ stats.activeCount }}</span>
-          <span>回收站 {{ stats.deletedCount }}</span>
+          <span>{{ $t('layout:notices.active') }}{{ stats.activeCount }}</span>
+          <span>{{ $t('files:recycleBin') }}{{ stats.deletedCount }}</span>
         </div>
       </div>
 
       <div class="file-stat-item stat-purple">
         <div class="file-stat-main">
           <div>
-            <div class="file-stat-title">占用空间</div>
+            <div class="file-stat-title">{{ $t('files:storageUsed') }}</div>
             <div class="file-stat-value">{{ formatFileSize(stats.totalSize) }}</div>
           </div>
           <div class="file-stat-icon">
@@ -34,14 +36,14 @@
           </div>
         </div>
         <div class="file-stat-extra">
-          <span>全部文件累计占用</span>
+          <span>{{ $t('files:totalStorageUsedByAllFiles') }}</span>
         </div>
       </div>
 
       <div class="file-stat-item stat-green">
         <div class="file-stat-main">
           <div>
-            <div class="file-stat-title">公开文件空间</div>
+            <div class="file-stat-title">{{ $t('files:publicFileStorage') }}</div>
             <div class="file-stat-value">{{ formatFileSize(stats.publicSize) }}</div>
           </div>
           <div class="file-stat-icon">
@@ -49,14 +51,14 @@
           </div>
         </div>
         <div class="file-stat-extra">
-          <span>占总空间 {{ formatPercentage(stats.publicSize) }}</span>
+          <span>{{ $t('files:shareOfTotalStorage') }}{{ formatPercentage(stats.publicSize) }}</span>
         </div>
       </div>
 
       <div class="file-stat-item stat-orange">
         <div class="file-stat-main">
           <div>
-            <div class="file-stat-title">受保护文件空间</div>
+            <div class="file-stat-title">{{ $t('files:protectedFileStorage') }}</div>
             <div class="file-stat-value">{{ formatFileSize(stats.privateSize) }}</div>
           </div>
           <div class="file-stat-icon">
@@ -64,14 +66,16 @@
           </div>
         </div>
         <div class="file-stat-extra">
-          <span>占总空间 {{ formatPercentage(stats.privateSize) }}</span>
+          <span
+            >{{ $t('files:shareOfTotalStorage') }}{{ formatPercentage(stats.privateSize) }}</span
+          >
         </div>
       </div>
 
       <div class="file-stat-item stat-red">
         <div class="file-stat-main">
           <div>
-            <div class="file-stat-title">已过期文件</div>
+            <div class="file-stat-title">{{ $t('files:expiredFiles') }}</div>
             <div class="file-stat-value">{{ stats.expiredCount }}</div>
           </div>
           <div class="file-stat-icon">
@@ -79,14 +83,14 @@
           </div>
         </div>
         <div class="file-stat-extra">
-          <span>7天内到期 {{ stats.retentionExpiringCount }}</span>
+          <span>{{ $t('files:expiringWithin7Days') }}{{ stats.retentionExpiringCount }}</span>
         </div>
       </div>
 
       <div class="file-stat-item stat-cyan">
         <div class="file-stat-main">
           <div>
-            <div class="file-stat-title">即将过期授权</div>
+            <div class="file-stat-title">{{ $t('files:expiringPermissions') }}</div>
             <div class="file-stat-value">{{ stats.aclExpiringCount }}</div>
           </div>
           <div class="file-stat-icon">
@@ -94,7 +98,7 @@
           </div>
         </div>
         <div class="file-stat-extra">
-          <span>7天内失效的 ACL 项</span>
+          <span>{{ $t('files:aCLEntriesExpiringWithin7Days') }}</span>
         </div>
       </div>
     </div>

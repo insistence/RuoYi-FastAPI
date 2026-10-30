@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.manifest.schema import PluginDependencyManifest, PluginManifest
 from plugins.core.state import PluginStateResolver
@@ -244,7 +245,11 @@ class PluginDependencyChecker:
                     required_version=dependency.version,
                     installed_version=installed_version,
                     status='dependent',
-                    message=f'插件正在被已启用插件依赖：{dependent_id} -> {plugin_id}',
+                    message=I18nMessage(
+                        f'插件正在被已启用插件依赖：{dependent_id} -> {plugin_id}',
+                        msg_key='plugin.runtime.dependencies.enabledDependent',
+                        msg_params={'dependent_id': str(dependent_id), 'plugin_id': str(plugin_id)},
+                    ),
                 )
             )
 
@@ -319,7 +324,11 @@ class PluginDependencyChecker:
                 required_version=None,
                 installed_version=None,
                 status='cycle',
-                message=f'插件依赖存在循环：{cycle_text}',
+                message=I18nMessage(
+                    f'插件依赖存在循环：{cycle_text}',
+                    msg_key='plugin.runtime.dependencies.cycle',
+                    msg_params={'cycle_text': str(cycle_text)},
+                ),
             )
         ]
 
@@ -520,7 +529,11 @@ class PluginDependencyPlanBuilder:
                         plugin_id=requested_by,
                         dependency_id=plugin_id,
                         status='missing',
-                        message=f'依赖插件不存在：{plugin_id}',
+                        message=I18nMessage(
+                            f'依赖插件不存在：{plugin_id}',
+                            msg_key='plugin.runtime.dependencies.missing',
+                            msg_params={'plugin_id': str(plugin_id)},
+                        ),
                     )
                 )
                 return
@@ -590,7 +603,11 @@ class PluginDependencyPlanBuilder:
                 plugin_id=plugin_id,
                 dependency_id=cycle_path[-1],
                 status='cycle',
-                message=f'插件依赖存在循环：{cycle_text}',
+                message=I18nMessage(
+                    f'插件依赖存在循环：{cycle_text}',
+                    msg_key='plugin.runtime.dependencies.cycle',
+                    msg_params={'cycle_text': str(cycle_text)},
+                ),
             )
             for plugin_id in set(cycle_path)
         ]

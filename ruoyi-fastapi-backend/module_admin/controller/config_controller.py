@@ -68,7 +68,9 @@ async def add_system_config(
     add_config_result = await ConfigService.add_config_services(request, query_db, add_config)
     logger.info(add_config_result.message)
 
-    return ResponseUtil.success(msg=add_config_result.message)
+    return ResponseUtil.success(
+        msg=add_config_result.message, msg_key=add_config_result.msg_key, msg_params=add_config_result.msg_params
+    )
 
 
 @config_controller.put(
@@ -91,7 +93,9 @@ async def edit_system_config(
     edit_config_result = await ConfigService.edit_config_services(request, query_db, edit_config)
     logger.info(edit_config_result.message)
 
-    return ResponseUtil.success(msg=edit_config_result.message)
+    return ResponseUtil.success(
+        msg=edit_config_result.message, msg_key=edit_config_result.msg_key, msg_params=edit_config_result.msg_params
+    )
 
 
 @config_controller.delete(
@@ -110,7 +114,11 @@ async def refresh_system_config(
     refresh_config_result = await ConfigService.refresh_sys_config_services(request, query_db)
     logger.info(refresh_config_result.message)
 
-    return ResponseUtil.success(msg=refresh_config_result.message)
+    return ResponseUtil.success(
+        msg=refresh_config_result.message,
+        msg_key=refresh_config_result.msg_key,
+        msg_params=refresh_config_result.msg_params,
+    )
 
 
 @config_controller.delete(
@@ -131,7 +139,11 @@ async def delete_system_config(
     delete_config_result = await ConfigService.delete_config_services(request, query_db, delete_config)
     logger.info(delete_config_result.message)
 
-    return ResponseUtil.success(msg=delete_config_result.message)
+    return ResponseUtil.success(
+        msg=delete_config_result.message,
+        msg_key=delete_config_result.msg_key,
+        msg_params=delete_config_result.msg_params,
+    )
 
 
 @config_controller.get(

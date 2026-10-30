@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -9,36 +10,36 @@
       label-width="68px"
     >
       <el-form-item
-        label="字典名称"
+        :label="$t('system:dict.name')"
         prop="dictName"
       >
         <el-input
           v-model="queryParams.dictName"
-          placeholder="请输入字典名称"
+          :placeholder="$t('system:dict.namePlaceholder')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="字典类型"
+        :label="$t('system:dict.type')"
         prop="dictType"
       >
         <el-input
           v-model="queryParams.dictType"
-          placeholder="请输入字典类型"
+          :placeholder="$t('system:dict.typePlaceholder')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('common:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="字典状态"
+          :placeholder="$t('system:dict.dictionaryStatus')"
           clearable
           style="width: 240px"
         >
@@ -50,16 +51,16 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="创建时间">
+      <el-form-item :label="$t('common:createdTime')">
         <el-date-picker
           v-model="dateRange"
           style="width: 240px"
           value-format="yyyy-MM-dd"
           type="daterange"
-          :aria-label="`日期范围（${getDisplayTimezone()}）`"
+          :aria-label="$t('common:time.dateRangeInZone', { zone: getDisplayTimezone() })"
           range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
+          :start-placeholder="$t('common:startDate')"
+          :end-placeholder="$t('common:endDate')"
         ></el-date-picker>
       </el-form-item>
       <el-form-item>
@@ -68,13 +69,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -91,7 +92,7 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['system:dict:add']"
-          >新增</el-button
+          >{{ $t('common:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -103,7 +104,7 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['system:dict:edit']"
-          >修改</el-button
+          >{{ $t('common:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -115,7 +116,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['system:dict:remove']"
-          >删除</el-button
+          >{{ $t('common:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -126,7 +127,7 @@
           size="mini"
           @click="handleExport"
           v-hasPermi="['system:dict:export']"
-          >导出</el-button
+          >{{ $t('common:export') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -137,7 +138,7 @@
           size="mini"
           @click="handleRefreshCache"
           v-hasPermi="['system:dict:remove']"
-          >刷新缓存</el-button
+          >{{ $t('system:config.refreshCache') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -157,18 +158,22 @@
         align="center"
       />
       <el-table-column
-        label="字典编号"
+        :label="$t('system:dict.dictionaryID')"
         align="center"
         prop="dictId"
       />
       <el-table-column
-        label="字典名称"
+        :label="$t('system:dict.name')"
         align="center"
         prop="dictName"
         :show-overflow-tooltip="true"
-      />
+      >
+        <template slot-scope="scope">{{
+          $resolveText(scope.row.dictName, scope.row.dictNameI18n)
+        }}</template>
+      </el-table-column>
       <el-table-column
-        label="字典类型"
+        :label="$t('system:dict.type')"
         align="center"
         :show-overflow-tooltip="true"
       >
@@ -182,7 +187,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="状态"
+        :label="$t('common:status')"
         align="center"
         prop="status"
       >
@@ -194,13 +199,13 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="备注"
+        :label="$t('common:remark')"
         align="center"
         prop="remark"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="创建时间"
+        :label="$t('common:createdTime')"
         align="center"
         prop="createTime"
         width="180"
@@ -210,7 +215,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -221,7 +226,7 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:dict:edit']"
-            >修改</el-button
+            >{{ $t('common:edit') }}</el-button
           >
           <el-button
             size="mini"
@@ -229,7 +234,7 @@
             icon="el-icon-s-operation"
             @click="handleDataList(scope.row)"
             v-hasPermi="['system:dict:edit']"
-            >列表</el-button
+            >{{ $t('system:dict.list') }}</el-button
           >
           <el-button
             size="mini"
@@ -237,7 +242,7 @@
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:dict:remove']"
-            >删除</el-button
+            >{{ $t('common:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -253,44 +258,50 @@
 
     <!-- 添加或修改参数配置对话框 -->
     <el-dialog
-      :title="title"
+      :title="$t(titleKey)"
       :visible.sync="open"
       width="500px"
       append-to-body
     >
       <el-form
+        :validate-on-rule-change="false"
         ref="form"
         :model="form"
         :rules="rules"
         label-width="80px"
       >
         <el-form-item
-          label="字典名称"
+          :label="$t('system:dict.name')"
           prop="dictName"
         >
           <el-input
             v-model="form.dictName"
-            placeholder="请输入字典名称"
+            :placeholder="$t('system:dict.namePlaceholder')"
           />
         </el-form-item>
+        <locale-text-fields
+          :value="form.dictNameI18n"
+          :patch="form.dictNameI18nPatch"
+          @input="$set(form, 'dictNameI18nPatch', $event)"
+        />
         <el-form-item prop="dictType">
           <el-input
             v-model="form.dictType"
-            placeholder="请输入字典类型"
+            :placeholder="$t('system:dict.typePlaceholder')"
             maxlength="100"
           />
           <span slot="label">
             <el-tooltip
-              content="数据存储中的Key值，如：sys_user_sex"
+              :content="$t('system:storageKeyForExampleSysUserSex')"
               placement="top"
             >
               <i class="el-icon-question"></i>
             </el-tooltip>
-            字典类型
+            {{ $t('system:dict.type') }}
           </span>
         </el-form-item>
         <el-form-item
-          label="状态"
+          :label="$t('common:status')"
           prop="status"
         >
           <el-radio-group v-model="form.status">
@@ -303,13 +314,13 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item
-          label="备注"
+          :label="$t('common:remark')"
           prop="remark"
         >
           <el-input
             v-model="form.remark"
             type="textarea"
-            placeholder="请输入内容"
+            :placeholder="$t('common:contentPlaceholder')"
           ></el-input>
         </el-form-item>
       </el-form>
@@ -320,9 +331,9 @@
         <el-button
           type="primary"
           @click="submitForm"
-          >确 定</el-button
+          >{{ $t('common:confirm') }}</el-button
         >
-        <el-button @click="cancel">取 消</el-button>
+        <el-button @click="cancel">{{ $t('common:cancel') }}</el-button>
       </div>
     </el-dialog>
 
@@ -334,6 +345,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getDisplayTimezone } from '@/utils/time'
 import DictDataDrawer from './detail'
 import {
@@ -366,7 +379,7 @@ export default {
       // 字典表格数据
       typeList: [],
       // 弹出层标题
-      title: '',
+      titleKey: '',
       // 是否显示弹出层
       open: false,
       // 字典数据抽屉状态
@@ -387,8 +400,12 @@ export default {
       form: {},
       // 表单校验
       rules: {
-        dictName: [{ required: true, message: '字典名称不能为空', trigger: 'blur' }],
-        dictType: [{ required: true, message: '字典类型不能为空', trigger: 'blur' }],
+        dictName: [
+          { required: true, message: () => t('system:dict.nameRequired'), trigger: 'blur' },
+        ],
+        dictType: [
+          { required: true, message: () => t('system:dict.typeRequired'), trigger: 'blur' },
+        ],
       },
     }
   },
@@ -441,7 +458,7 @@ export default {
     handleAdd() {
       this.reset()
       this.open = true
-      this.title = '添加字典类型'
+      this.titleKey = 'system:dict.addType'
     },
     // 多选框选中数据
     handleSelectionChange(selection) {
@@ -456,7 +473,7 @@ export default {
     },
     /** 字典数据列表页面 */
     handleDataList(row) {
-      this.$tab.openPage('字典数据', '/system/dict-data/index/' + row.dictId)
+      this.$tab.openPage(t('layout:routes.dictData'), '/system/dict-data/index/' + row.dictId)
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
@@ -465,7 +482,7 @@ export default {
       getType(dictId).then((response) => {
         this.form = response.data
         this.open = true
-        this.title = '修改字典类型'
+        this.titleKey = 'system:dict.editType'
       })
     },
     /** 提交按钮 */
@@ -474,13 +491,13 @@ export default {
         if (valid) {
           if (this.form.dictId != undefined) {
             updateType(this.form).then(() => {
-              this.$modal.msgSuccess('修改成功')
+              this.$modal.msgSuccess(t('common:updateSuccess'))
               this.open = false
               this.getList()
             })
           } else {
             addType(this.form).then(() => {
-              this.$modal.msgSuccess('新增成功')
+              this.$modal.msgSuccess(t('common:addSuccess'))
               this.open = false
               this.getList()
             })
@@ -492,13 +509,13 @@ export default {
     handleDelete(row) {
       const dictIds = row.dictId || this.ids
       this.$modal
-        .confirm('是否确认删除字典编号为"' + dictIds + '"的数据项？')
+        .confirm(t('system:confirmation.deleteDictionariesWithIDsValue', { value0: dictIds }))
         .then(function () {
           return delType(dictIds)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
         })
         .catch(() => {})
     },
@@ -515,7 +532,7 @@ export default {
     /** 刷新缓存按钮操作 */
     handleRefreshCache() {
       refreshCache().then(() => {
-        this.$modal.msgSuccess('刷新成功')
+        this.$modal.msgSuccess(t('system:refreshedSuccessfully'))
         this.$store.dispatch('dict/cleanDict')
       })
     },

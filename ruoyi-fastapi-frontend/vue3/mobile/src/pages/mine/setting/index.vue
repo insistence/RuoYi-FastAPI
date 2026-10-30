@@ -1,5 +1,6 @@
 <template>
   <view class="flex h-full flex-col overflow-y-auto bg-gray-50 pt-4 pb-10">
+    <LanguageSelect />
     <view class="bg-white">
       <!-- Change Password -->
       <view
@@ -8,7 +9,7 @@
       >
         <view class="flex items-center">
           <view class="i-mdi-lock text-xl text-gray-600 mr-3"></view>
-          <text class="text-base text-gray-800">修改密码</text>
+          <text class="text-base text-gray-800">{{ $t('mobile:password.title') }}</text>
         </view>
         <view class="i-mdi-chevron-right text-base text-gray-400"></view>
       </view>
@@ -20,7 +21,7 @@
       >
         <view class="flex items-center">
           <view class="i-mdi-earth text-xl text-gray-600 mr-3"></view>
-          <text class="text-base text-gray-800">时区设置</text>
+          <text class="text-base text-gray-800">{{ $t('mobile:timezone.title') }}</text>
         </view>
         <view class="i-mdi-chevron-right text-base text-gray-400"></view>
       </view>
@@ -32,7 +33,7 @@
       >
         <view class="flex items-center">
           <view class="i-mdi-refresh text-xl text-gray-600 mr-3"></view>
-          <text class="text-base text-gray-800">检查更新</text>
+          <text class="text-base text-gray-800">{{ $t('mobile:settings.checkUpdates') }}</text>
         </view>
         <view class="i-mdi-chevron-right text-base text-gray-400"></view>
       </view>
@@ -44,7 +45,7 @@
       >
         <view class="flex items-center">
           <view class="i-mdi-delete text-xl text-gray-600 mr-3"></view>
-          <text class="text-base text-gray-800">清理缓存</text>
+          <text class="text-base text-gray-800">{{ $t('mobile:settings.clearCache') }}</text>
         </view>
         <view class="i-mdi-chevron-right text-base text-gray-400"></view>
       </view>
@@ -55,13 +56,14 @@
       <view
         class="flex h-12 w-full items-center justify-center rounded-xl bg-red-50 text-base font-semibold text-red-600 transition-colors active:bg-red-100"
         @click="handleLogout"
-        >退出登录</view
+        >{{ $t('mobile:settings.signOut') }}</view
       >
     </view>
   </view>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { useUserStore } from '@/store'
 import { getCurrentInstance } from 'vue'
 
@@ -76,15 +78,15 @@ function handleToTimezone() {
 }
 
 function handleToUpgrade() {
-  proxy.$modal.showToast('模块建设中~')
+  proxy.$modal.showToast(t('mobile:app.comingSoon'))
 }
 
 function handleCleanTmp() {
-  proxy.$modal.showToast('模块建设中~')
+  proxy.$modal.showToast(t('mobile:app.comingSoon'))
 }
 
 function handleLogout() {
-  proxy.$modal.confirm('确定注销并退出系统吗？').then(() => {
+  proxy.$modal.confirm(t('mobile:settings.signOutConfirm')).then(() => {
     useUserStore()
       .logOut()
       .then(() => {})

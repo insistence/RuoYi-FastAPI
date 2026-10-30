@@ -1,3 +1,4 @@
+import { t } from '../../../../i18n/index.js'
 import { parseTime } from '@/utils/ruoyi'
 
 export function formatFileSize(size) {
@@ -9,24 +10,24 @@ export function formatFileSize(size) {
 }
 
 export function accessTypeLabel(accessType) {
-  return accessType === 'public' ? '公开文件' : '受保护文件'
+  return accessType === 'public' ? t('system:publicFiles') : t('system:protectedFiles')
 }
 
 export function statusLabel(status) {
   return (
     {
-      active: '正常',
-      deleted: '已删除',
-      purging: '清理中',
+      active: t('layout:notices.active'),
+      deleted: t('system:deleted'),
+      purging: t('system:deleting'),
     }[status] || status
   )
 }
 
 export function expirationLabel(expireTime) {
-  if (!expireTime) return '永久有效'
+  if (!expireTime) return t('system:noExpiry')
   const remainingTime = new Date(expireTime).getTime() - Date.now()
-  if (remainingTime <= 0) return '已过期'
-  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return '即将过期'
+  if (remainingTime <= 0) return t('common:expired')
+  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return t('system:components.expiringSoonLabel')
   return parseTime(expireTime, '{y}-{m}-{d}')
 }
 
@@ -46,11 +47,11 @@ export function isAclExpiring(expireTime) {
 export function storageStatusLabel(storageStatus) {
   return (
     {
-      normal: '正常',
-      missing: '文件缺失',
-      quarantined: '已隔离',
-      invalid: '异常',
-    }[storageStatus] || '未知'
+      normal: t('layout:notices.active'),
+      missing: t('system:fileMissing'),
+      quarantined: t('system:quarantined'),
+      invalid: t('common:exception'),
+    }[storageStatus] || t('common:unknown')
   )
 }
 
@@ -68,16 +69,16 @@ export function storageStatusTagType(storageStatus) {
 export function actionLabel(action) {
   return (
     {
-      upload: '上传',
-      download: '下载',
-      acl_update: '授权变更',
-      transfer: '归属转移',
-      delete: '移入回收站',
-      restore: '恢复',
-      purge: '永久清理',
-      reconcile: '存储对账',
-      retention_extend: '保留延期',
-      retention_dispose: '到期处置',
+      upload: t('common:upload'),
+      download: t('common:download'),
+      acl_update: t('system:permissionChange'),
+      transfer: t('system:ownershipTransfer'),
+      delete: t('system:moveToRecycleBin'),
+      restore: t('common:restore'),
+      purge: t('system:permanentlyDelete'),
+      reconcile: t('system:storageReconciliation'),
+      retention_extend: t('system:retentionExtension'),
+      retention_dispose: t('system:expiryDisposal'),
     }[action] || action
   )
 }
@@ -85,10 +86,10 @@ export function actionLabel(action) {
 export function resultLabel(result) {
   return (
     {
-      allowed: '已授权',
-      denied: '已拒绝',
-      completed: '已完成',
-      failed: '失败',
+      allowed: t('system:allowed'),
+      denied: t('system:denied'),
+      completed: t('common:completed'),
+      failed: t('common:failed'),
     }[result] || result
   )
 }
@@ -113,48 +114,48 @@ export function parseOperationDetail(operationDetail) {
       value: typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '-'),
     }))
   } catch {
-    return [{ label: '操作详情', value: operationDetail }]
+    return [{ label: t('system:operationDetails'), value: operationDetail }]
   }
 }
 
 function auditDetailKeyLabel(key) {
   return (
     {
-      previousAclVersion: '原权限版本',
-      newAclVersion: '新权限版本',
-      entryCount: '授权项数量',
-      allowCount: '允许项数量',
-      denyCount: '拒绝项数量',
-      subjectTypeCounts: '主体类型统计',
-      previousOwnerUserId: '原所有者ID',
-      previousDeptId: '原所属部门ID',
-      newOwnerUserId: '新所有者ID',
-      newOwnerName: '新所有者',
-      newDeptId: '新所属部门ID',
-      reason: '操作原因',
-      originalName: '原始文件名',
-      accessType: '访问类型',
-      referenceCount: '业务引用数量',
-      previousStatus: '原状态',
-      newStatus: '新状态',
-      truncated: '详情已截断',
-      preview: '详情预览',
-      issueId: '对账异常ID',
-      issueType: '异常类型',
-      action: '处理动作',
-      actualRoot: '实际存储区域',
-      actualKey: '实际相对路径',
-      expectedRoot: '预期存储区域',
-      expectedKey: '预期相对路径',
-      previousExpireTime: '原到期时间',
-      newExpireTime: '新到期时间',
-      expireTime: '到期时间',
-      range: '请求范围',
-      rangeStart: '分段起始字节',
-      rangeEnd: '分段结束字节',
-      fileSize: '文件总大小',
-      releasedReferenceCount: '解除引用数量',
-      releasedReferences: '解除引用明细',
+      previousAclVersion: t('system:previousPermissionsVersion'),
+      newAclVersion: t('system:newPermissionsVersion'),
+      entryCount: t('system:permissionCount'),
+      allowCount: t('system:allowCount'),
+      denyCount: t('system:denyCount'),
+      subjectTypeCounts: t('system:principalTypeStatistics'),
+      previousOwnerUserId: t('system:previousOwnerId'),
+      previousDeptId: t('system:previousDepartmentId'),
+      newOwnerUserId: t('system:newOwnerId'),
+      newOwnerName: t('system:newOwner'),
+      newDeptId: t('system:newDepartmentId'),
+      reason: t('common:operationReason'),
+      originalName: t('file:originalName'),
+      accessType: t('file:accessType'),
+      referenceCount: t('system:businessReferenceCount'),
+      previousStatus: t('system:previousStatus'),
+      newStatus: t('system:newStatus'),
+      truncated: t('system:detailsTruncated'),
+      preview: t('system:detailsPreview'),
+      issueId: t('system:reconciliationIssueId'),
+      issueType: t('system:issueType'),
+      action: t('system:processingAction'),
+      actualRoot: t('system:actualStorageArea'),
+      actualKey: t('system:actualRelativePath'),
+      expectedRoot: t('system:expectedStorageArea'),
+      expectedKey: t('system:expectedRelativePath'),
+      previousExpireTime: t('system:previousExpiryTime'),
+      newExpireTime: t('system:newExpiryTime'),
+      expireTime: t('system:expiryTime'),
+      range: t('system:requestedRange'),
+      rangeStart: t('system:rangeStartByte'),
+      rangeEnd: t('system:rangeEndByte'),
+      fileSize: t('system:totalFileSize'),
+      releasedReferenceCount: t('system:removedReferenceCount'),
+      releasedReferences: t('system:removedReferenceDetails'),
     }[key] || key
   )
 }

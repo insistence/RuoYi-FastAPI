@@ -1,3 +1,5 @@
+import { i18n, t } from '../i18n/index.js'
+import { getDisplayTimezone } from './time.js'
 import { parseTime } from './ruoyi.js'
 
 /**
@@ -13,7 +15,7 @@ export function formatDate(cellValue) {
  * @returns {string}
  */
 export function formatTime(time, option) {
-  const formattedTime = parseTime(time, option || '{m}月{d}日{h}时{i}分')
+  const formattedTime = parseTime(time, option)
   if (!formattedTime) return ''
   time = new Date(time).getTime()
   const now = Date.now()
@@ -21,16 +23,30 @@ export function formatTime(time, option) {
   const diff = (now - time) / 1000
 
   if (diff < 30) {
-    return '刚刚'
+    return t('common:utils.justNow')
   } else if (diff < 3600) {
     // less 1 hour
-    return Math.ceil(diff / 60) + '分钟前'
+    return new Intl.RelativeTimeFormat(i18n.locale, { numeric: 'always' }).format(
+      -Math.ceil(diff / 60),
+      'minute'
+    )
   } else if (diff < 3600 * 24) {
-    return Math.ceil(diff / 3600) + '小时前'
+    return new Intl.RelativeTimeFormat(i18n.locale, { numeric: 'always' }).format(
+      -Math.ceil(diff / 3600),
+      'hour'
+    )
   } else if (diff < 3600 * 24 * 2) {
-    return '1天前'
+    return t('common:1DayAgo')
   }
-  return formattedTime
+  return !option && Number.isFinite(time)
+    ? new Intl.DateTimeFormat(i18n.locale, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: getDisplayTimezone(),
+      }).format(time)
+    : formattedTime
 }
 
 /**

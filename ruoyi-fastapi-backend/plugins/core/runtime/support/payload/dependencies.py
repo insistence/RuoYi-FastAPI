@@ -2,6 +2,7 @@ from typing import TypeAlias
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
 from plugins.core.validation.dependencies import DependencyCheckResult, DependencyInstallPlanItem
 from plugins.core.validation.dependency_policy import DependencyInstallPolicyDecision
 
@@ -147,7 +148,9 @@ class PluginDependencyInstallPayloadBuilder:
             install_plan_items=install_plan_items,
             dry_run=True,
             ok=True,
-            message='插件依赖安装演练完成，未执行实际安装',
+            message=I18nMessage(
+                '插件依赖安装演练完成，未执行实际安装', msg_key='plugin.runtime.dependencies.previewCompleted'
+            ),
             policy_decision=policy_decision,
         )
 
@@ -174,7 +177,7 @@ class PluginDependencyInstallPayloadBuilder:
             install_plan_items=install_plan_items,
             dry_run=False,
             ok=True,
-            message='插件依赖已满足，无需安装',
+            message=I18nMessage('插件依赖已满足，无需安装', msg_key='plugin.runtime.dependencies.satisfied'),
             include_results=True,
             policy_decision=policy_decision,
         )

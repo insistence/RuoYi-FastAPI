@@ -3,6 +3,7 @@ from typing import Protocol, TypeAlias
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.purge import PluginPurgePlan
 from plugins.core.types import JSONObject
@@ -298,7 +299,11 @@ class PluginRuntimePayloadBuilder:
         """
         return PluginRuntimeBatchItemUnsupportedPayload(
             ok=False,
-            message=f'插件批量操作不支持：{operation}',
+            message=I18nMessage(
+                f'插件批量操作不支持：{operation}',
+                msg_key='plugin.runtime.batch.unsupportedOperation',
+                msg_params={'operation': str(operation)},
+            ),
             plugin_id=plugin_id,
         ).to_payload()
 
@@ -315,7 +320,7 @@ class PluginRuntimePayloadBuilder:
         """
         return PluginRuntimeDiagnoseFailurePayload(
             ok=False,
-            message='插件诊断包生成失败',
+            message=I18nMessage('插件诊断包生成失败', msg_key='plugin.runtime.diagnostics.failed'),
             plugin_id=plugin_id,
             info=dict(info_payload),
         ).to_payload()
@@ -353,7 +358,9 @@ class PluginRuntimePayloadBuilder:
         ok = bool(info_payload.get('ok')) and bool(check_payload.get('ok')) and bool(config_payload.get('ok'))
         return PluginRuntimeDiagnosePayload(
             ok=ok,
-            message='插件诊断包生成完成' if ok else '插件诊断包生成完成，发现问题',
+            message=I18nMessage('插件诊断包生成完成', msg_key='plugin.runtime.diagnostics.completed')
+            if ok
+            else '插件诊断包生成完成，发现问题',
             plugin_id=plugin_id,
             info=info_payload.get('plugin'),
             check=dict(check_payload),
@@ -395,7 +402,9 @@ class PluginRuntimePayloadBuilder:
             ]
         payload: PluginRuntimePrecheckPayloadDict = {
             'ok': precheck.ok and purge_plan_error is None,
-            'message': '插件操作预检通过' if precheck.ok and purge_plan_error is None else '插件操作预检存在问题',
+            'message': I18nMessage('插件操作预检通过', msg_key='plugin.runtime.precheck.passed')
+            if precheck.ok and purge_plan_error is None
+            else I18nMessage('插件操作预检存在问题', msg_key='plugin.runtime.precheck.blocked'),
             'pluginId': plugin_id,
             'operation': operation,
             'databaseAvailable': database_error is None,
@@ -505,7 +514,7 @@ class PluginRuntimePayloadBuilder:
         if not version_state['installed']:
             return PluginRuntimePayloadBuilder._build_upgrade_blocker_payload(
                 plugin_id=plugin_id,
-                message='插件尚未安装，升级已中止',
+                message=I18nMessage('插件尚未安装，升级已中止', msg_key='plugin.runtime.upgrade.notInstalled'),
                 version_state=version_state,
                 actions=actions,
                 precheck=precheck,
@@ -513,7 +522,9 @@ class PluginRuntimePayloadBuilder:
         if not precheck.manifest_result.ok:
             return PluginRuntimePayloadBuilder._build_upgrade_blocker_payload(
                 plugin_id=plugin_id,
-                message='插件 manifest 检查失败，升级已中止',
+                message=I18nMessage(
+                    '插件 manifest 检查失败，升级已中止', msg_key='plugin.runtime.upgrade.invalidManifest'
+                ),
                 version_state=version_state,
                 actions=actions,
                 precheck=precheck,

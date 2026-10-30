@@ -7,32 +7,32 @@
         src="/static/logo200.png"
         mode="widthFix"
       />
-      <text class="mt-4 text-xl font-bold text-gray-800">RuoYi-FastAPI移动端</text>
+      <text class="mt-4 text-xl font-bold text-gray-800">{{ $t('mobile:brand') }}</text>
     </view>
 
     <!-- Info List -->
     <view class="bg-white">
       <!-- Version -->
       <view class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-        <text class="text-base text-gray-800">版本信息</text>
+        <text class="text-base text-gray-800">{{ $t('mobile:about.version') }}</text>
         <text class="text-sm text-gray-500">v{{ version }}</text>
       </view>
 
       <!-- Email -->
       <view class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-        <text class="text-base text-gray-800">官方邮箱</text>
+        <text class="text-base text-gray-800">{{ $t('mobile:about.email') }}</text>
         <text class="text-sm text-gray-500">xxx@xxx.com</text>
       </view>
 
       <!-- Hotline -->
       <view class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-        <text class="text-base text-gray-800">服务热线</text>
+        <text class="text-base text-gray-800">{{ $t('mobile:about.phone') }}</text>
         <text class="text-sm text-gray-500">400-999-9999</text>
       </view>
 
       <!-- Website -->
       <view class="flex items-center justify-between px-5 py-4">
-        <text class="text-base text-gray-800">公司网站</text>
+        <text class="text-base text-gray-800">{{ $t('mobile:about.website') }}</text>
         <text class="text-sm text-blue-500 underline active:opacity-70">{{ url }}</text>
       </view>
     </view>

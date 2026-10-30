@@ -91,7 +91,7 @@ async def revoke_user_oauth_sessions(
         query_db, request.app.state.redis, user_id, _actor(current_user), payload.reason
     )
 
-    return ResponseUtil.success(msg='单点登录会话已撤销', data={'count': count})
+    return ResponseUtil.success(msg='单点登录会话已撤销', msg_key='identity.session.revoked', data={'count': count})
 
 
 @oauth_session_controller.get(
@@ -106,7 +106,7 @@ async def get_oauth_session(
 ) -> Response:
     data = await OAuthSessionManagementService.get_session(query_db, sid)
     if data is None:
-        raise ServiceException(message='会话不存在')
+        raise ServiceException(message='会话不存在', msg_key='identity.session.notFound')
     return ResponseUtil.success(data=data)
 
 
@@ -134,7 +134,7 @@ async def revoke_oauth_sessions(
         query_db, request.app.state.redis, batch_ids, _actor(current_user), payload.reason
     )
 
-    return ResponseUtil.success(msg='单点登录会话已撤销', data={'count': count})
+    return ResponseUtil.success(msg='单点登录会话已撤销', msg_key='identity.session.revoked', data={'count': count})
 
 
 @oauth_grant_controller.get(
@@ -180,7 +180,7 @@ async def get_oauth_grant(
 ) -> Response:
     data = await OAuthSessionManagementService.get_grant(query_db, grant_id)
     if data is None:
-        raise ServiceException(message='授权记录不存在')
+        raise ServiceException(message='授权记录不存在', msg_key='identity.grant.notFound')
     return ResponseUtil.success(data=data)
 
 
@@ -206,7 +206,7 @@ async def revoke_oauth_grants(
         raise ServiceException(message=str(exc)) from exc
     count = await OAuthSessionManagementService.revoke_grants(query_db, batch_ids, _actor(current_user), payload.reason)
 
-    return ResponseUtil.success(msg='OAuth 授权已撤销', data={'count': count})
+    return ResponseUtil.success(msg='OAuth 授权已撤销', msg_key='identity.grant.revoked', data={'count': count})
 
 
 @oauth_grant_controller.put(

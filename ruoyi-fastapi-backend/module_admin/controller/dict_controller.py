@@ -77,7 +77,11 @@ async def add_system_dict_type(
     add_dict_type_result = await DictTypeService.add_dict_type_services(request, query_db, add_dict_type)
     logger.info(add_dict_type_result.message)
 
-    return ResponseUtil.success(msg=add_dict_type_result.message)
+    return ResponseUtil.success(
+        msg=add_dict_type_result.message,
+        msg_key=add_dict_type_result.msg_key,
+        msg_params=add_dict_type_result.msg_params,
+    )
 
 
 @dict_controller.put(
@@ -100,7 +104,11 @@ async def edit_system_dict_type(
     edit_dict_type_result = await DictTypeService.edit_dict_type_services(request, query_db, edit_dict_type)
     logger.info(edit_dict_type_result.message)
 
-    return ResponseUtil.success(msg=edit_dict_type_result.message)
+    return ResponseUtil.success(
+        msg=edit_dict_type_result.message,
+        msg_key=edit_dict_type_result.msg_key,
+        msg_params=edit_dict_type_result.msg_params,
+    )
 
 
 @dict_controller.delete(
@@ -116,7 +124,9 @@ async def refresh_system_dict(request: Request, query_db: Annotated[AsyncSession
     refresh_dict_result = await DictTypeService.refresh_sys_dict_services(request, query_db)
     logger.info(refresh_dict_result.message)
 
-    return ResponseUtil.success(msg=refresh_dict_result.message)
+    return ResponseUtil.success(
+        msg=refresh_dict_result.message, msg_key=refresh_dict_result.msg_key, msg_params=refresh_dict_result.msg_params
+    )
 
 
 @dict_controller.delete(
@@ -137,7 +147,11 @@ async def delete_system_dict_type(
     delete_dict_type_result = await DictTypeService.delete_dict_type_services(request, query_db, delete_dict_type)
     logger.info(delete_dict_type_result.message)
 
-    return ResponseUtil.success(msg=delete_dict_type_result.message)
+    return ResponseUtil.success(
+        msg=delete_dict_type_result.message,
+        msg_key=delete_dict_type_result.msg_key,
+        msg_params=delete_dict_type_result.msg_params,
+    )
 
 
 @dict_controller.get(
@@ -272,7 +286,11 @@ async def add_system_dict_data(
     add_dict_data_result = await DictDataService.add_dict_data_services(request, query_db, add_dict_data)
     logger.info(add_dict_data_result.message)
 
-    return ResponseUtil.success(msg=add_dict_data_result.message)
+    return ResponseUtil.success(
+        msg=add_dict_data_result.message,
+        msg_key=add_dict_data_result.msg_key,
+        msg_params=add_dict_data_result.msg_params,
+    )
 
 
 @dict_controller.put(
@@ -295,7 +313,11 @@ async def edit_system_dict_data(
     edit_dict_data_result = await DictDataService.edit_dict_data_services(request, query_db, edit_dict_data)
     logger.info(edit_dict_data_result.message)
 
-    return ResponseUtil.success(msg=edit_dict_data_result.message)
+    return ResponseUtil.success(
+        msg=edit_dict_data_result.message,
+        msg_key=edit_dict_data_result.msg_key,
+        msg_params=edit_dict_data_result.msg_params,
+    )
 
 
 @dict_controller.delete(
@@ -316,7 +338,11 @@ async def delete_system_dict_data(
     delete_dict_data_result = await DictDataService.delete_dict_data_services(request, query_db, delete_dict_data)
     logger.info(delete_dict_data_result.message)
 
-    return ResponseUtil.success(msg=delete_dict_data_result.message)
+    return ResponseUtil.success(
+        msg=delete_dict_data_result.message,
+        msg_key=delete_dict_data_result.msg_key,
+        msg_params=delete_dict_data_result.msg_params,
+    )
 
 
 @dict_controller.get(

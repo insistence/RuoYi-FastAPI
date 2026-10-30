@@ -19,11 +19,11 @@ def test_react_templates_render_all_business_files(db_type: str, category: str) 
     assert '' not in files
     assert len(files) == len(rendered)
     assert {name for name in files if name.startswith('frontend/')} == {
-        'frontend/api/test/item.js',
-        'frontend/views/test/item/index.jsx',
-        'frontend/views/test/item/view.jsx',
+        'frontend/src/api/test/item.js',
+        'frontend/src/views/test/item/index.jsx',
+        'frontend/src/views/test/item/view.jsx',
     }
-    page = files['frontend/views/test/item/index.jsx']
+    page = files['frontend/src/views/test/item/index.jsx']
     assert 'serializeTimeFieldsForSubmit' in page
     assert 'prepareTimeFields' in page
     assert 'BusinessDateTimePicker' in page

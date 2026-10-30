@@ -29,6 +29,7 @@ class SysUser(AuditTimeMixin, Base):
     phonenumber = Column(String(11), nullable=True, server_default="''", comment='手机号码')
     sex = Column(CHAR(1), nullable=True, server_default='0', comment='用户性别（0男 1女 2未知）')
     avatar = Column(String(100), nullable=True, server_default="''", comment='头像地址')
+    locale = Column(String(63), nullable=False, server_default='zh-CN', comment='语言偏好')
     time_zone = Column(String(64), nullable=False, server_default='auto', comment='显示时区（auto跟随设备或IANA名称）')
     password = Column(String(100), nullable=True, server_default="''", comment='密码')
     status = Column(CHAR(1), nullable=True, server_default='0', comment='帐号状态（0正常 1停用）')

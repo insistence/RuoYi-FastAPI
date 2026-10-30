@@ -18,10 +18,15 @@ class PluginVue2FrontendScaffoldTemplateBuilder:
   <div class=\"app-container\">
     <el-card shadow=\"never\">
       <div slot=\"header\">{plugin_id}</div>
-      <div>{plugin_id} plugin</div>
+      <div>{{{{ $t('plugin.{plugin_id}:ready', {{ pluginId: '{plugin_id}' }}) }}}}</div>
     </el-card>
   </div>
 </template>
+
+<script>
+import '../i18n'
+export default {{}}
+</script>
 """
 
     @staticmethod
@@ -36,57 +41,58 @@ class PluginVue2FrontendScaffoldTemplateBuilder:
         return f"""<template>
   <div class=\"app-container\">
     <el-form ref=\"queryForm\" :model=\"queryParams\" size=\"small\" :inline=\"true\">
-      <el-form-item label=\"名称\">
-        <el-input v-model=\"queryParams.keyword\" placeholder=\"请输入名称\" clearable />
+      <el-form-item :label=\"$t('plugin.{plugin_id}:name')\">
+        <el-input v-model=\"queryParams.keyword\" :placeholder=\"$t('plugin.{plugin_id}:namePlaceholder')\" clearable />
       </el-form-item>
       <el-form-item>
-        <el-button type=\"primary\" icon=\"el-icon-search\" size=\"mini\" @click=\"getList\">搜索</el-button>
-        <el-button icon=\"el-icon-refresh\" size=\"mini\" @click=\"resetQuery\">重置</el-button>
-        <el-button type=\"primary\" plain icon=\"el-icon-plus\" size=\"mini\" @click=\"handleAdd\">新增</el-button>
+        <el-button type=\"primary\" icon=\"el-icon-search\" size=\"mini\" @click=\"getList\">{{{{ $t('plugin.{plugin_id}:search') }}}}</el-button>
+        <el-button icon=\"el-icon-refresh\" size=\"mini\" @click=\"resetQuery\">{{{{ $t('plugin.{plugin_id}:reset') }}}}</el-button>
+        <el-button type=\"primary\" plain icon=\"el-icon-plus\" size=\"mini\" @click=\"handleAdd\">{{{{ $t('plugin.{plugin_id}:add') }}}}</el-button>
       </el-form-item>
     </el-form>
 
     <el-table v-loading=\"loading\" :data=\"itemList\" border>
-      <el-table-column label=\"ID\" prop=\"itemId\" width=\"90\" align=\"center\" />
-      <el-table-column label=\"名称\" prop=\"itemName\" min-width=\"180\" />
-      <el-table-column label=\"状态\" prop=\"status\" width=\"90\" align=\"center\">
+      <el-table-column :label=\"$t('plugin.{plugin_id}:id')\" prop=\"itemId\" width=\"90\" align=\"center\" />
+      <el-table-column :label=\"$t('plugin.{plugin_id}:name')\" prop=\"itemName\" min-width=\"180\" />
+      <el-table-column :label=\"$t('plugin.{plugin_id}:status')\" prop=\"status\" width=\"90\" align=\"center\">
         <template slot-scope=\"scope\">
-          <el-tag :type=\"scope.row.status === '0' ? 'success' : 'info'\">{{{{ scope.row.status === '0' ? '正常' : '停用' }}}}</el-tag>
+          <el-tag :type=\"scope.row.status === '0' ? 'success' : 'info'\">{{{{ scope.row.status === '0' ? $t('plugin.{plugin_id}:enabled') : $t('plugin.{plugin_id}:disabled') }}}}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label=\"备注\" prop=\"remark\" min-width=\"220\" />
-      <el-table-column label=\"操作\" width=\"150\" align=\"center\">
+      <el-table-column :label=\"$t('plugin.{plugin_id}:remark')\" prop=\"remark\" min-width=\"220\" />
+      <el-table-column :label=\"$t('plugin.{plugin_id}:actions')\" width=\"150\" align=\"center\">
         <template slot-scope=\"scope\">
-          <el-button type=\"text\" icon=\"el-icon-edit\" size=\"mini\" @click=\"handleUpdate(scope.row)\">修改</el-button>
-          <el-button type=\"text\" icon=\"el-icon-delete\" size=\"mini\" @click=\"handleDelete(scope.row)\">删除</el-button>
+          <el-button type=\"text\" icon=\"el-icon-edit\" size=\"mini\" @click=\"handleUpdate(scope.row)\">{{{{ $t('plugin.{plugin_id}:edit') }}}}</el-button>
+          <el-button type=\"text\" icon=\"el-icon-delete\" size=\"mini\" @click=\"handleDelete(scope.row)\">{{{{ $t('plugin.{plugin_id}:delete') }}}}</el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <el-dialog :title=\"dialogTitle\" :visible.sync=\"open\" width=\"520px\" append-to-body>
-      <el-form ref=\"itemForm\" :model=\"form\" :rules=\"rules\" label-width=\"90px\">
-        <el-form-item label=\"名称\" prop=\"itemName\">
-          <el-input v-model=\"form.itemName\" placeholder=\"请输入名称\" />
+      <el-form ref=\"itemForm\" :model=\"form\" :rules=\"rules\" :validate-on-rule-change=\"false\" label-width=\"90px\">
+        <el-form-item :label=\"$t('plugin.{plugin_id}:name')\" prop=\"itemName\">
+          <el-input v-model=\"form.itemName\" :placeholder=\"$t('plugin.{plugin_id}:namePlaceholder')\" />
         </el-form-item>
-        <el-form-item label=\"状态\" prop=\"status\">
+        <el-form-item :label=\"$t('plugin.{plugin_id}:status')\" prop=\"status\">
           <el-radio-group v-model=\"form.status\">
-            <el-radio label=\"0\">正常</el-radio>
-            <el-radio label=\"1\">停用</el-radio>
+            <el-radio label=\"0\">{{{{ $t('plugin.{plugin_id}:enabled') }}}}</el-radio>
+            <el-radio label=\"1\">{{{{ $t('plugin.{plugin_id}:disabled') }}}}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label=\"备注\" prop=\"remark\">
+        <el-form-item :label=\"$t('plugin.{plugin_id}:remark')\" prop=\"remark\">
           <el-input v-model=\"form.remark\" type=\"textarea\" :rows=\"3\" />
         </el-form-item>
       </el-form>
       <div slot=\"footer\" class=\"dialog-footer\">
-        <el-button type=\"primary\" @click=\"submitForm\">确 定</el-button>
-        <el-button @click=\"open = false\">取 消</el-button>
+        <el-button type=\"primary\" @click=\"submitForm\">{{{{ $t('plugin.{plugin_id}:confirm') }}}}</el-button>
+        <el-button @click=\"open = false\">{{{{ $t('plugin.{plugin_id}:cancel') }}}}</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
+import '../i18n'
 import {{
   add{class_name}Item,
   del{class_name}Item,
@@ -100,7 +106,6 @@ export default {{
     return {{
       loading: false,
       open: false,
-      dialogTitle: '',
       itemList: [],
       queryParams: {{
         keyword: ''
@@ -110,10 +115,23 @@ export default {{
         itemName: '',
         status: '0',
         remark: ''
-      }},
-      rules: {{
-        itemName: [{{ required: true, message: '名称不能为空', trigger: 'blur' }}]
       }}
+    }}
+  }},
+  computed: {{
+    dialogTitle() {{
+      return this.form.itemId
+        ? this.$t('plugin.{plugin_id}:editTitle', {{ pluginId: '{plugin_id}' }})
+        : this.$t('plugin.{plugin_id}:addTitle', {{ pluginId: '{plugin_id}' }})
+    }},
+    rules() {{
+      return {{ itemName: [{{ required: true, message: this.$t('plugin.{plugin_id}:nameRequired'), trigger: 'blur' }}] }}
+    }}
+  }},
+  watch: {{
+    '$locale.locale'() {{
+      const fields = (this.$refs.itemForm?.fields || []).filter(field => field.validateState === 'error').map(field => field.prop)
+      this.$nextTick(() => {{ if (fields.length) this.$refs.itemForm?.validateField(fields, () => {{}}) }})
     }}
   }},
   created() {{
@@ -143,7 +161,6 @@ export default {{
     }},
     handleAdd() {{
       this.resetFormData()
-      this.dialogTitle = '新增{plugin_id}'
       this.open = true
     }},
     handleUpdate(row) {{
@@ -154,7 +171,6 @@ export default {{
         status: row.status,
         remark: row.remark
       }}
-      this.dialogTitle = '修改{plugin_id}'
       this.open = true
     }},
     submitForm() {{
@@ -166,17 +182,17 @@ export default {{
           ? update{class_name}Item(this.form.itemId, this.form)
           : add{class_name}Item(this.form)
         request.then(() => {{
-          this.$modal.msgSuccess('保存成功')
+          this.$modal.msgSuccess(this.$t('plugin.{plugin_id}:saved'))
           this.open = false
           this.getList()
         }})
       }})
     }},
     handleDelete(row) {{
-      this.$modal.confirm('确认删除数据\"' + row.itemName + '\"吗?').then(function () {{
+      this.$modal.confirm(this.$t('plugin.{plugin_id}:deleteConfirm', {{ name: row.itemName }})).then(function () {{
         return del{class_name}Item(row.itemId)
       }}).then(() => {{
-        this.$modal.msgSuccess('删除成功')
+        this.$modal.msgSuccess(this.$t('plugin.{plugin_id}:deleted'))
         this.getList()
       }})
     }}

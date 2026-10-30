@@ -38,7 +38,7 @@ class UserRegister(BaseModel):
         pattern = r"""^[^<>"'|\\]+$"""
         if self.password is None or re.match(pattern, self.password):
             return self
-        raise ModelValidatorException(message='密码不能包含非法字符：< > " \' \\ |')
+        raise ModelValidatorException(message='密码不能包含非法字符：< > " \' \\ |', msg_key='auth.passwordCharacters')
 
 
 class Token(BaseModel):
@@ -76,6 +76,7 @@ class MetaModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel)
 
     title: str | None = Field(default=None, description='设置路由在侧边栏和面包屑中展示的名字')
+    title_i18n: dict[str, str] = Field(default_factory=dict, alias='titleI18n', description='路由标题译文')
     icon: str | None = Field(default=None, description='设置路由的图标')
     no_cache: bool | None = Field(default=None, description='设置为true，则不会被 <keep-alive>缓存')
     link: str | None = Field(default=None, description='内链地址（http(s)://开头）')

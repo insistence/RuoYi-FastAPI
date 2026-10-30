@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Protocol, cast
 
+from i18n.message import I18nMessage
 from plugins.core.capability import PluginRuntimeCapability
 from plugins.core.discovery.registry import PluginRegistry
 from plugins.core.discovery.scanner import DiscoveredPlugin
@@ -160,7 +161,9 @@ class PluginQueryUseCase:
                 self._with_plugin_capability(item, plugin.discovered_plugin)
             return cast('PluginCatalogListResponse', payload)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('读取插件列表失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('读取插件列表失败', msg_key='plugin.runtime.listFailed'), exc
+            )
 
     async def list_plugins_with_state(self) -> PluginCatalogListResponse:
         """
@@ -183,7 +186,9 @@ class PluginQueryUseCase:
                 self._with_plugin_capability(item, plugin.discovered_plugin)
             return cast('PluginCatalogListResponse', payload)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('读取插件列表失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('读取插件列表失败', msg_key='plugin.runtime.listFailed'), exc
+            )
 
     def get_plugin_info(self, plugin_id: str) -> PluginCatalogInfoResponse:
         """
@@ -207,7 +212,9 @@ class PluginQueryUseCase:
                 ),
             )
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('读取插件详情失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('读取插件详情失败', msg_key='plugin.runtime.detailFailed'), exc
+            )
 
     async def get_plugin_info_with_state(self, plugin_id: str) -> PluginCatalogInfoResponse:
         """
@@ -237,7 +244,9 @@ class PluginQueryUseCase:
                 ),
             )
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('读取插件详情失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('读取插件详情失败', msg_key='plugin.runtime.detailFailed'), exc
+            )
 
     def check_plugin(self, plugin_id: str | None = None) -> PluginCheckResponse:
         """
@@ -250,7 +259,9 @@ class PluginQueryUseCase:
             database_plugins, database_error = self._load_database_plugin_states_sync_with_error()
             return self._build_check_plugin_payload(plugin_id, database_plugins, database_error)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('插件检查失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('插件检查失败', msg_key='plugin.runtime.checkFailed'), exc
+            )
 
     async def check_plugin_async(self, plugin_id: str | None = None) -> PluginCheckResponse:
         """
@@ -263,7 +274,9 @@ class PluginQueryUseCase:
             database_plugins, database_error = await self._load_database_plugin_states_with_error()
             return self._build_check_plugin_payload(plugin_id, database_plugins, database_error)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('插件检查失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('插件检查失败', msg_key='plugin.runtime.checkFailed'), exc
+            )
 
     def _build_check_plugin_payload(
         self,
@@ -326,7 +339,9 @@ class PluginQueryUseCase:
 
             return cast('PluginCheckResponse', PluginPayloadBuilder.build_check_payload(checks, database_error))
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('插件检查失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('插件检查失败', msg_key='plugin.runtime.checkFailed'), exc
+            )
 
     def check_plugin_dependencies(self, plugin_id: str) -> PluginDependencyCheckResponse:
         """
@@ -347,7 +362,9 @@ class PluginQueryUseCase:
                 self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
             )
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('检查插件依赖失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('检查插件依赖失败', msg_key='plugin.runtime.dependencies.checkFailed'), exc
+            )
 
     async def health_plugin(self, plugin_id: str) -> PluginHealthResponse:
         """
@@ -364,7 +381,9 @@ class PluginQueryUseCase:
             health_result = await PluginHealthChecker(discovered_plugin).check()
             return PluginRuntimePayloadBuilder.build_health_response_payload(plugin_id, health_result)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('插件健康检查失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('插件健康检查失败', msg_key='plugin.runtime.health.failed'), exc
+            )
 
     async def diagnose_plugin(self, plugin_id: str) -> PluginDiagnoseResponse:
         """
@@ -420,7 +439,10 @@ class PluginQueryUseCase:
             'ok': False,
             'supported': False,
             'scope': 'database_only',
-            'message': '当前诊断进程未发现制品 manifest，请结合发布与运行快照查看实际状态',
+            'message': I18nMessage(
+                '当前诊断进程未发现制品 manifest，请结合发布与运行快照查看实际状态',
+                msg_key='plugin.runtime.diagnostics.manifestMissing',
+            ),
         }
         return PluginRuntimePayloadBuilder.build_diagnose_payload(
             plugin_id,

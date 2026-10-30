@@ -7,24 +7,24 @@
       :inline="true"
     >
       <el-form-item
-        label="用户名称"
+        :label="$t('system:userName')"
         prop="userName"
       >
         <el-input
           v-model="queryParams.userName"
-          placeholder="请输入用户名称"
+          :placeholder="$t('system:enterUserName')"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="手机号码"
+        :label="$t('system:phoneNumber')"
         prop="phonenumber"
       >
         <el-input
           v-model="queryParams.phonenumber"
-          placeholder="请输入手机号码"
+          :placeholder="$t('system:enterPhoneNumber')"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
@@ -35,12 +35,12 @@
           type="primary"
           icon="Search"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('system:search') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -56,7 +56,7 @@
           icon="Plus"
           @click="openSelectUser"
           v-hasPermi="['system:role:add']"
-          >添加用户</el-button
+          >{{ $t('system:addUser') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -67,7 +67,7 @@
           :disabled="multiple"
           @click="cancelAuthUserAll"
           v-hasPermi="['system:role:remove']"
-          >批量取消授权</el-button
+          >{{ $t('system:revokeSelectedAuthorizations') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -76,7 +76,7 @@
           plain
           icon="Close"
           @click="handleClose"
-          >关闭</el-button
+          >{{ $t('layout:search.close') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -96,27 +96,27 @@
         align="center"
       />
       <el-table-column
-        label="用户名称"
+        :label="$t('system:userName')"
         prop="userName"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="用户昵称"
+        :label="$t('system:nickname')"
         prop="nickName"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="邮箱"
+        :label="$t('system:email')"
         prop="email"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="手机"
+        :label="$t('system:phone')"
         prop="phonenumber"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="状态"
+        :label="$t('system:status')"
         align="center"
         prop="status"
       >
@@ -128,7 +128,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="创建时间"
+        :label="$t('system:createdAt')"
         align="center"
         prop="createTime"
         width="180"
@@ -138,7 +138,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -149,7 +149,7 @@
             icon="CircleClose"
             @click="cancelAuthUser(scope.row)"
             v-hasPermi="['system:role:remove']"
-            >取消授权</el-button
+            >{{ $t('system:revokeAuthorization') }}</el-button
           >
         </template>
       </el-table-column>
@@ -171,6 +171,7 @@
 </template>
 
 <script setup name="AuthUser">
+import { t } from '@/i18n/adapter'
 import selectUser from './selectUser'
 import { allocatedUserList, authUserCancel, authUserCancelAll } from '@/api/system/role'
 
@@ -229,13 +230,13 @@ function openSelectUser() {
 /** 取消授权按钮操作 */
 function cancelAuthUser(row) {
   proxy.$modal
-    .confirm('确认要取消该用户"' + row.userName + '"角色吗？')
+    .confirm(t('system:confirmation.revokeUser', { name: row.userName }))
     .then(function () {
       return authUserCancel({ userId: row.userId, roleId: queryParams.roleId })
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('取消授权成功')
+      proxy.$modal.msgSuccess(t('system:authorizationRevoked'))
     })
     .catch(() => {})
 }
@@ -244,13 +245,13 @@ function cancelAuthUserAll() {
   const roleId = queryParams.roleId
   const uIds = userIds.value.join(',')
   proxy.$modal
-    .confirm('是否取消选中用户授权数据项?')
+    .confirm(t('system:revokeAuthorizationForTheSelectedUsers'))
     .then(function () {
       return authUserCancelAll({ roleId: roleId, userIds: uIds })
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('取消授权成功')
+      proxy.$modal.msgSuccess(t('system:authorizationRevoked'))
     })
     .catch(() => {})
 }

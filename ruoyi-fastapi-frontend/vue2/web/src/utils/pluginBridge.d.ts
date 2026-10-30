@@ -136,6 +136,7 @@ export function createPluginHostBridge(options: {
   onReady?(): void
   onRoute?(route: string): void
   onDisconnect?(message: string): void
+  translate?(code: string, fallback: string): string
   eventTarget?: Window
   origin?: string
   now?(): number

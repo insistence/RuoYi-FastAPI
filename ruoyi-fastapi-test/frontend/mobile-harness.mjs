@@ -84,6 +84,10 @@ export async function createMobileHarness(
     URL,
   })
   const mocks = {
+    '@/i18n': {
+      i18n: { headers: { 'Accept-Language': 'zh-CN', 'X-I18n-Version': '1' }, setAccount() {} },
+      t: key => ({ 'common:network.error': '后端接口连接异常', 'common:network.timeout': '系统接口请求超时' })[key] || key,
+    },
     '@/config': { default: { baseUrl: 'https://api.example.test' } },
     '@/static/images/profile.jpg': { default: '/static/profile.jpg' },
     '@/api/login': {

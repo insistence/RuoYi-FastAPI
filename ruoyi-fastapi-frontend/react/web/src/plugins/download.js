@@ -1,4 +1,6 @@
-﻿import axios from 'axios'
+import { i18n } from '@/i18n'
+import { getDisplayTimezone } from '@/utils/time'
+import axios from 'axios'
 import { message } from '@/plugins/modal'
 import { saveAs } from 'file-saver'
 import { getToken } from '@/utils/auth'
@@ -9,11 +11,15 @@ const baseURL = import.meta.env.VITE_APP_BASE_API
 const DOWNLOAD_CHUNK_SIZE = 8 * 1024 * 1024
 const DOWNLOAD_CHUNK_RETRY_COUNT = 2
 let downloadLoadingInstance
+const snapshot = () => ({
+  headers: { ...i18n.headers, 'X-Timezone': getDisplayTimezone() },
+  t: i18n.engine.getFixedT(i18n.locale),
+})
 
-function parseContentRange(contentRange) {
+function parseContentRange(contentRange, t) {
   const rangeMatch = /^bytes (\d+)-(\d+)\/(\d+)$/i.exec(contentRange || '')
   if (!rangeMatch) {
-    throw new Error('分段下载响应缺少有效的Content-Range')
+    throw new Error(t('file:thePartialDownloadResponseIsMissingAValidContent'))
   }
   return {
     start: Number(rangeMatch[1]),
@@ -26,7 +32,7 @@ function isRetryableDownloadError(error) {
   return !error.response || error.response.status >= 500
 }
 
-async function requestDownloadChunk(url, start) {
+async function requestDownloadChunk(url, start, context) {
   let lastError
   for (let retryCount = 0; retryCount <= DOWNLOAD_CHUNK_RETRY_COUNT; retryCount++) {
     try {
@@ -35,6 +41,7 @@ async function requestDownloadChunk(url, start) {
         url,
         responseType: 'blob',
         headers: {
+          ...context.headers,
           Authorization: 'Bearer ' + getToken(),
           Range: `bytes=${start}-${start + DOWNLOAD_CHUNK_SIZE - 1}`,
         },
@@ -49,16 +56,17 @@ async function requestDownloadChunk(url, start) {
   throw lastError
 }
 
-function requestFullDownload(url) {
+function requestFullDownload(url, context) {
   return axios({
     method: 'get',
     url,
     responseType: 'blob',
-    headers: { Authorization: 'Bearer ' + getToken() },
+    headers: { ...context.headers, Authorization: 'Bearer ' + getToken() },
   })
 }
 
-async function downloadByRange(url) {
+async function downloadByRange(url, context) {
+  const { t } = context
   const chunks = []
   let filename
   let contentType
@@ -67,12 +75,12 @@ async function downloadByRange(url) {
   while (true) {
     let response
     try {
-      response = await requestDownloadChunk(url, nextStart)
+      response = await requestDownloadChunk(url, nextStart, context)
     } catch (error) {
       if (nextStart !== 0 || error.response?.status !== 416) {
         throw error
       }
-      response = await requestFullDownload(url)
+      response = await requestFullDownload(url, context)
     }
     if (!blobValidate(response.data)) {
       return { errorData: response.data }
@@ -87,14 +95,14 @@ async function downloadByRange(url) {
       }
     }
 
-    const contentRange = parseContentRange(response.headers['content-range'])
+    const contentRange = parseContentRange(response.headers['content-range'], t)
     if (
       contentRange.start !== nextStart ||
       contentRange.end < contentRange.start ||
       contentRange.total <= contentRange.end ||
       response.data.size !== contentRange.end - contentRange.start + 1
     ) {
-      throw new Error('分段下载响应范围不一致')
+      throw new Error(t('file:thePartialDownloadResponseHasAnInconsistentRange'))
     }
     chunks.push(response.data)
     if (contentRange.end + 1 === contentRange.total) {
@@ -109,43 +117,49 @@ async function downloadByRange(url) {
 
 export default {
   name(name, isDelete = true) {
+    const context = snapshot()
+    const { t } = context
     var url =
       baseURL + '/common/download?fileName=' + encodeURIComponent(name) + '&delete=' + isDelete
     axios({
       method: 'get',
       url: url,
       responseType: 'blob',
-      headers: { Authorization: 'Bearer ' + getToken() },
+      headers: { ...context.headers, Authorization: 'Bearer ' + getToken() },
     }).then((res) => {
       const isBlob = blobValidate(res.data)
       if (isBlob) {
         const blob = new Blob([res.data])
         this.saveAs(blob, decodeURIComponent(res.headers['download-filename']))
       } else {
-        this.printErrMsg(res.data)
+        this.printErrMsg(res.data, context)
       }
     })
   },
   async resource(resource) {
+    const context = snapshot()
+    const { t } = context
     var url = baseURL + '/common/download/resource?resource=' + encodeURIComponent(resource)
     try {
-      const result = await downloadByRange(url)
+      const result = await downloadByRange(url, context)
       if (result.errorData) {
-        await this.printErrMsg(result.errorData)
+        await this.printErrMsg(result.errorData, context)
         return
       }
       this.saveAs(result.blob, decodeURIComponent(result.filename))
     } catch (error) {
       console.error(error)
-      message.error('下载文件出现错误，请联系管理员！')
+      message.error(t('file:download.failed'))
     }
   },
   async file(resource) {
+    const context = snapshot()
+    const { t } = context
     var url = baseURL + resource
     try {
-      const result = await downloadByRange(url)
+      const result = await downloadByRange(url, context)
       if (result.errorData) {
-        await this.printErrMsg(result.errorData)
+        await this.printErrMsg(result.errorData, context)
         return
       }
       const fallbackFileName = resource.split('/').pop()
@@ -155,19 +169,21 @@ export default {
       )
     } catch (error) {
       console.error(error)
-      message.error('下载文件出现错误，请联系管理员！')
+      message.error(t('file:download.failed'))
     }
   },
   zip(url, name) {
+    const context = snapshot()
+    const { t } = context
     var url = baseURL + url
     downloadLoadingInstance = {
-      close: message.loading('正在下载数据，请稍候', 0),
+      close: message.loading(t('file:downloadingDataPleaseWait'), 0),
     }
     axios({
       method: 'get',
       url: url,
       responseType: 'blob',
-      headers: { Authorization: 'Bearer ' + getToken() },
+      headers: { ...context.headers, Authorization: 'Bearer ' + getToken() },
     })
       .then((res) => {
         const isBlob = blobValidate(res.data)
@@ -175,23 +191,24 @@ export default {
           const blob = new Blob([res.data], { type: 'application/zip' })
           this.saveAs(blob, name)
         } else {
-          this.printErrMsg(res.data)
+          this.printErrMsg(res.data, context)
         }
         downloadLoadingInstance.close()
       })
       .catch((r) => {
         console.error(r)
-        message.error('下载文件出现错误，请联系管理员！')
+        message.error(t('file:download.failed'))
         downloadLoadingInstance.close()
       })
   },
   saveAs(text, name, opts) {
     saveAs(text, name, opts)
   },
-  async printErrMsg(data) {
+  async printErrMsg(data, context = snapshot()) {
+    const { t } = context
     const resText = await data.text()
     const rspObj = JSON.parse(resText)
-    const errMsg = errorCode[rspObj.code] || rspObj.msg || errorCode['default']
+    const errMsg = errorCode(t)[rspObj.code] || rspObj.msg || errorCode(t).default
     message.error(errMsg)
   },
 }

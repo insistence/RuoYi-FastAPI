@@ -47,7 +47,9 @@
     "upload:dev": "weapp upload -p dist/dev/mp-weixin -v 1.0.0 -d \"dev version\"",
     "upload:build": "weapp upload -p dist/build/mp-weixin -v 1.0.0 -d \"release version\"",
     "up:pkg": "pnpm up -rLi \"!@dcloudio/*\"",
-    "up:uniapp": "pnpm dlx @dcloudio/uvm@latest"
+    "up:uniapp": "pnpm dlx @dcloudio/uvm@latest",
+    "i18n:check": "node scripts/check-i18n.mjs && x18n --root . check --json",
+    "test:i18n": "node --test tests/i18n/*.test.mjs"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5020620260917001",
@@ -73,6 +75,7 @@
     "@formatjs/intl-pluralrules": "6.3.15",
     "@vue/shared": "3.4.21",
     "dayjs": "1.11.23",
+    "i18next": "26.5.11",
     "node-forge": "1.4.0",
     "pinia": "2.2.4",
     "vue": "3.4.21",
@@ -91,6 +94,7 @@
     "@iconify-json/svg-spinners": "1.2.4",
     "@types/node": "22.20.5",
     "@vue/runtime-core": "3.4.21",
+    "@x18n/cli": "0.1.3",
     "autoprefixer": "10.6.1",
     "postcss": "8.5.30",
     "prettier": "3.9.10",

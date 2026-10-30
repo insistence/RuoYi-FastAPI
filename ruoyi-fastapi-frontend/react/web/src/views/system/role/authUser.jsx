@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { TableAction } from '@/components/TableActions'
 import {
   SearchOutlined,
@@ -20,9 +23,12 @@ import Pagination from '@/components/Pagination'
 import RightToolbar from '@/components/RightToolbar'
 import SelectUser from './selectUser'
 export default function AuthUser({ params }) {
+  useI18n()
+
   const [form] = Form.useForm(),
     navigate = useNavigate(),
     { sys_normal_disable } = useDict('sys_normal_disable')
+  useLocalizedFormErrors(form)
   const [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
     [rows, setRows] = useState([]),
     [total, setTotal] = useState(0),
@@ -51,7 +57,9 @@ export default function AuthUser({ params }) {
   async function cancel(row) {
     try {
       await confirm(
-        row ? `确认取消用户“${row.userName}”的角色授权吗？` : '是否取消选中用户的角色授权？'
+        row
+          ? t('system:removeTheRoleAssignmentForUserValue', { userName: row.userName })
+          : t('system:removeRoleAssignmentsForTheSelectedUsers')
       )
       if (row) await authUserCancel({ userId: row.userId, roleId: params.roleId })
       else
@@ -59,7 +67,7 @@ export default function AuthUser({ params }) {
           roleId: params.roleId,
           userIds: ids.join(','),
         })
-      message.success('取消授权成功')
+      message.success(t('system:authorizationRevoked'))
       await getList()
     } catch {}
   }
@@ -73,22 +81,22 @@ export default function AuthUser({ params }) {
           onFinish={(values) => setQuery({ ...values, pageNum: 1, pageSize: query.pageSize })}
         >
           <Form.Item
-            label="用户名称"
+            label={t('system:user.username')}
             name="userName"
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入用户名称"
+              placeholder={t('system:user.usernamePlaceholder')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="手机号码"
+            label={t('system:user.phone')}
             name="phonenumber"
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入手机号码"
+              placeholder={t('system:user.phonePlaceholder')}
               allowClear
             />
           </Form.Item>
@@ -99,7 +107,7 @@ export default function AuthUser({ params }) {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -108,7 +116,7 @@ export default function AuthUser({ params }) {
                   setQuery({ pageNum: 1, pageSize: query.pageSize })
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -122,7 +130,7 @@ export default function AuthUser({ params }) {
             type="default"
             onClick={() => setSelectOpen(true)}
           >
-            添加用户
+            {t('system:addUser')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:role:remove']}>
@@ -133,7 +141,7 @@ export default function AuthUser({ params }) {
             disabled={!ids.length}
             onClick={() => cancel()}
           >
-            批量取消授权
+            {t('system:revokeSelectedAuthorizations')}
           </Button>
         </HasPermi>
         <Button
@@ -142,7 +150,7 @@ export default function AuthUser({ params }) {
           type="default"
           onClick={() => navigate('/system/role')}
         >
-          关闭
+          {t('layout:search.close')}
         </Button>
         <RightToolbar
           showSearch={showSearch}
@@ -158,13 +166,13 @@ export default function AuthUser({ params }) {
         scroll={{ x: 900 }}
         rowSelection={{ selectedRowKeys: ids, onChange: setIds }}
         columns={[
-          { title: '用户名称', dataIndex: 'userName' },
-          { title: '用户昵称', dataIndex: 'nickName' },
-          { title: '邮箱', dataIndex: 'email' },
-          { title: '手机号码', dataIndex: 'phonenumber' },
+          { title: t('system:user.username'), dataIndex: 'userName' },
+          { title: t('system:user.nickname'), dataIndex: 'nickName' },
+          { title: t('system:user.email'), dataIndex: 'email' },
+          { title: t('system:user.phone'), dataIndex: 'phonenumber' },
           {
             align: 'center',
-            title: '状态',
+            title: t('common:status'),
             dataIndex: 'status',
             render: (value) => (
               <DictTag
@@ -176,21 +184,21 @@ export default function AuthUser({ params }) {
           {
             width: 180,
             align: 'center',
-            title: '创建时间',
+            title: t('common:createdTime'),
             dataIndex: 'createTime',
             render: (value) => parseTime(value),
           },
           {
             className: 'ruoyi-actions-cell',
             align: 'center',
-            title: '操作',
+            title: t('common:actions'),
             render: (_, row) => (
               <HasPermi value={['system:role:remove']}>
                 <TableAction
                   symbol="CircleClose"
                   onClick={() => cancel(row)}
                 >
-                  取消授权
+                  {t('system:revokeAuthorization')}
                 </TableAction>
               </HasPermi>
             ),

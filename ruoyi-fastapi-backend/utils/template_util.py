@@ -10,6 +10,7 @@ from config.env import DataBaseConfig
 from exceptions.exception import ServiceWarning
 from module_generator.entity.vo.gen_vo import GenTableColumnModel, GenTableModel
 from utils.common_util import CamelCaseUtil, SnakeCaseUtil
+from utils.gen_i18n_util import GenI18nUtil
 from utils.string_util import StringUtil
 from utils.time_util import GenTimeUtil, TimezoneUtil
 
@@ -55,7 +56,7 @@ class TemplateUtils:
     """
 
     # 项目路径
-    FRONTEND_PROJECT_PATH = 'frontend'
+    FRONTEND_PROJECT_PATH = 'frontend/src'
     BACKEND_PROJECT_PATH = 'backend'
     DEFAULT_PARENT_MENU_ID = '3'
     FORM_COL_SPAN_MAP = {2: '12', 3: '8'}
@@ -69,7 +70,7 @@ class TemplateUtils:
         :return: 模板上下文字典
         """
         if not gen_table.options:
-            raise ServiceWarning(message='请先完善生成配置信息')
+            raise ServiceWarning(message='请先完善生成配置信息', msg_key='generator.configurationRequired')
         gen_table = gen_table.model_copy(deep=True)
         cls.prepare_time_columns(gen_table)
         class_name = gen_table.class_name
@@ -138,6 +139,19 @@ class TemplateUtils:
             cls.set_tree_context(context, gen_table)
         if tpl_category == GenConstant.TPL_SUB:
             cls.set_sub_context(context, gen_table)
+
+        i18n = GenI18nUtil(gen_table)
+        context.update(
+            {
+                'generatedI18n': i18n,
+                'i18nNamespace': i18n.namespace,
+                'i18nKey': i18n.key,
+                'i18nText': i18n.text,
+                'i18nFieldKey': i18n.field_key,
+                'i18nBackendText': i18n.backend_text,
+                'i18nBackendFieldKey': i18n.backend_field_key,
+            }
+        )
 
         return context
 

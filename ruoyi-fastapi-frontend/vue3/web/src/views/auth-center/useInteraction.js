@@ -1,3 +1,4 @@
+import { t } from '@/i18n/adapter'
 import { completeInteraction } from '@/api/authCenter'
 import {
   interactionRouteLocation,
@@ -84,15 +85,15 @@ export function useInteractionContext() {
    */
   async function followServerRedirect(url) {
     if (!interactionId.value || typeof url !== 'string') {
-      throw new Error('认证流程返回了无效跳转地址')
+      throw new Error(t('authCenter:theAuthenticationFlowReturnedAnInvalidRedirectURL'))
     }
     if (!trustedCompletionUrl(url, window.location.origin, interactionId.value)) {
-      throw new Error('认证流程返回了不受信任的跳转地址')
+      throw new Error(t('authCenter:theAuthenticationFlowReturnedAnUntrustedRedirectURL'))
     }
     const response = await completeInteraction(interactionId.value, csrfToken())
     const redirectUrl = response.data?.redirectUrl
     if (typeof redirectUrl !== 'string') {
-      throw new Error('认证流程返回了无效跳转地址')
+      throw new Error(t('authCenter:theAuthenticationFlowReturnedAnInvalidRedirectURL'))
     }
     clearInteraction()
     window.location.assign(redirectUrl)

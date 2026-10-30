@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import config from '@/config'
@@ -90,6 +91,7 @@ export const useUserStore = defineStore('user', () => {
       getInfo()
         .then((res) => {
           const user = res.user
+          i18n.setAccount(user?.userId, user?.locale)
           appTimezone.value = res.appTimezone
           setBusinessTimezone(res.appTimezone)
           applyTimezone(user.timeZone)
@@ -131,6 +133,7 @@ export const useUserStore = defineStore('user', () => {
       SET_ROLES([])
       SET_PERMISSIONS([])
       removeToken()
+      i18n.setAccount(null)
       storage.clean()
     }
   }

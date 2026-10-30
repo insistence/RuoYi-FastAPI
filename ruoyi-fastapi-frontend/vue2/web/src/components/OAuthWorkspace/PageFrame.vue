@@ -3,7 +3,7 @@
     <header class="workspace-header">
       <div class="workspace-heading">
         <h2>{{ title }}</h2>
-        <span class="workspace-section">{{ section }}</span>
+        <span class="workspace-section">{{ section || $t('layout:routes.authLogin') }}</span>
         <p>{{ description }}</p>
       </div>
       <div
@@ -17,7 +17,7 @@
     <section
       v-if="$slots.context || $scopedSlots.context"
       class="workspace-context"
-      aria-label="页面概览"
+      :aria-label="$t('system:interface.pageOverview')"
     >
       <slot name="context" />
     </section>
@@ -25,11 +25,11 @@
     <section
       v-if="$slots.filters || $scopedSlots.filters"
       class="workspace-filters"
-      aria-label="筛选条件"
+      :aria-label="$t('authCenter:interface.filters')"
     >
       <div class="filter-heading">
         <div>
-          <span class="filter-title">筛选条件</span>
+          <span class="filter-title">{{ $t('authCenter:interface.filters') }}</span>
           <span
             v-if="filterHint"
             class="filter-hint"
@@ -54,8 +54,10 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
+
 defineProps({
-  section: { type: String, default: '统一认证' },
+  section: { type: String, default: '' },
   title: { type: String, required: true },
   description: { type: String, required: true },
   filterHint: { type: String, default: '' },

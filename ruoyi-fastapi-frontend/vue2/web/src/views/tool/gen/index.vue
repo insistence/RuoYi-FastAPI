@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -9,34 +10,34 @@
       label-width="68px"
     >
       <el-form-item
-        label="表名称"
+        :label="$t('tool:gen.tableName')"
         prop="tableName"
       >
         <el-input
           v-model="queryParams.tableName"
-          placeholder="请输入表名称"
+          :placeholder="$t('tool:messages.enterTableName')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="表描述"
+        :label="$t('tool:gen.tableComment')"
         prop="tableComment"
       >
         <el-input
           v-model="queryParams.tableComment"
-          placeholder="请输入表描述"
+          :placeholder="$t('tool:messages.enterTableDescription')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="数据源"
+        :label="$t('tool:datasource.title')"
         prop="dataSourceName"
       >
         <el-select
           v-model="queryParams.dataSourceName"
-          placeholder="请选择数据源"
+          :placeholder="$t('tool:datasource.select')"
           clearable
           filterable
           style="width: 220px"
@@ -49,15 +50,15 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="创建时间">
+      <el-form-item :label="$t('common:createdTime')">
         <el-date-picker
           v-model="dateRange"
           style="width: 240px"
           value-format="yyyy-MM-dd"
           type="daterange"
           range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
+          :start-placeholder="$t('common:startDate')"
+          :end-placeholder="$t('common:endDate')"
         ></el-date-picker>
       </el-form-item>
       <el-form-item>
@@ -66,13 +67,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -90,7 +91,7 @@
           :disabled="multiple"
           @click="handleGenTable"
           v-hasPermi="['tool:gen:code']"
-          >生成</el-button
+          >{{ $t('tool:messages.generate') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -101,7 +102,7 @@
           size="mini"
           @click="openCreateTable"
           v-hasRole="['admin']"
-          >创建</el-button
+          >{{ $t('tool:messages.create') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -112,7 +113,7 @@
           size="mini"
           @click="openImportTable"
           v-hasPermi="['tool:gen:import']"
-          >导入</el-button
+          >{{ $t('system:user.import') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -124,7 +125,7 @@
           :disabled="single"
           @click="handleEditTable"
           v-hasPermi="['tool:gen:edit']"
-          >修改</el-button
+          >{{ $t('common:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -136,7 +137,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['tool:gen:remove']"
-          >删除</el-button
+          >{{ $t('common:delete') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -156,7 +157,7 @@
         width="55"
       ></el-table-column>
       <el-table-column
-        label="序号"
+        :label="$t('common:index')"
         type="index"
         width="50"
         align="center"
@@ -166,46 +167,46 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="表名称"
+        :label="$t('tool:gen.tableName')"
         align="center"
         prop="tableName"
         :show-overflow-tooltip="true"
         width="140"
       />
       <el-table-column
-        label="表描述"
+        :label="$t('tool:gen.tableComment')"
         align="center"
         prop="tableComment"
         :show-overflow-tooltip="true"
         width="140"
       />
       <el-table-column
-        label="实体"
+        :label="$t('tool:messages.entity')"
         align="center"
         prop="className"
         :show-overflow-tooltip="true"
         width="140"
       />
       <el-table-column
-        label="数据源"
+        :label="$t('tool:datasource.title')"
         align="center"
         prop="dataSourceName"
         width="160"
       />
       <el-table-column
-        label="创建时间"
+        :label="$t('common:createdTime')"
         align="center"
         prop="createTime"
         width="160"
       />
       <el-table-column
-        label="更新时间"
+        :label="$t('common:updatedTime')"
         align="center"
         prop="updateTime"
         width="160"
       />
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -216,7 +217,7 @@
             icon="el-icon-view"
             @click="handlePreview(scope.row)"
             v-hasPermi="['tool:gen:preview']"
-            >预览</el-button
+            >{{ $t('common:preview') }}</el-button
           >
           <el-button
             type="text"
@@ -224,7 +225,7 @@
             icon="el-icon-edit"
             @click="handleEditTable(scope.row)"
             v-hasPermi="['tool:gen:edit']"
-            >编辑</el-button
+            >{{ $t('common:editAction') }}</el-button
           >
           <el-button
             type="text"
@@ -232,7 +233,7 @@
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['tool:gen:remove']"
-            >删除</el-button
+            >{{ $t('common:delete') }}</el-button
           >
           <el-button
             type="text"
@@ -240,7 +241,7 @@
             icon="el-icon-refresh"
             @click="handleSynchDb(scope.row)"
             v-hasPermi="['tool:gen:edit']"
-            >同步</el-button
+            >{{ $t('tool:messages.synchronize') }}</el-button
           >
           <el-button
             type="text"
@@ -248,7 +249,7 @@
             icon="el-icon-download"
             @click="handleGenTable(scope.row)"
             v-hasPermi="['tool:gen:code']"
-            >生成代码</el-button
+            >{{ $t('tool:messages.generateCode') }}</el-button
           >
         </template>
       </el-table-column>
@@ -282,7 +283,7 @@
             v-clipboard:copy="value"
             v-clipboard:success="clipboardSuccess"
             style="float: right"
-            >复制</el-link
+            >{{ $t('common:copy') }}</el-link
           >
           <pre><code class="hljs" v-html="highlightedCode(value, key)"></code></pre>
         </el-tab-pane>
@@ -302,6 +303,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import {
   listDataSources,
   listTable,
@@ -360,7 +363,9 @@ export default {
       // 预览参数
       preview: {
         open: false,
-        title: '代码预览',
+        get title() {
+          return t('tool:messages.codePreview')
+        },
         data: {},
         activeName: 'do.py',
       },
@@ -403,19 +408,21 @@ export default {
     handleGenTable(row) {
       const tableNames = row.tableName || this.tableNames
       if (tableNames == '') {
-        this.$modal.msgError('请选择要生成的数据')
+        this.$modal.msgError(t('tool:messages.selectItemsToGenerate'))
         return
       }
       const sourceNames = row.tableName ? [row.dataSourceName] : this.selectedSourceNames
       const uniqueSourceNames = [...new Set(sourceNames.filter(Boolean))]
       if (uniqueSourceNames.length !== 1) {
-        this.$modal.msgError('请选择同一数据源下的生成配置')
+        this.$modal.msgError(t('tool:messages.selectGenerationConfigurationsFromTheSameDataSource'))
         return
       }
       const dataSourceName = uniqueSourceNames[0]
       if (row.genType === '1') {
         genCode(row.tableName, dataSourceName).then(() => {
-          this.$modal.msgSuccess('成功生成到自定义路径：' + row.genPath)
+          this.$modal.msgSuccess(
+            t('tool:confirmation.generatedFilesAtValue', { value0: row.genPath })
+          )
         })
       } else {
         const zipName = Array.isArray(tableNames) ? 'ruoyi-fastapi.zip' : tableNames + '.zip'
@@ -436,12 +443,12 @@ export default {
       const tableName = row.tableName
       const dataSourceName = row.dataSourceName
       this.$modal
-        .confirm('确认要强制同步"' + tableName + '"表结构吗？')
+        .confirm(t('tool:confirmation.forceSynchronizationOfTableValue', { value0: tableName }))
         .then(function () {
           return synchDb(tableName, dataSourceName)
         })
         .then(() => {
-          this.$modal.msgSuccess('同步成功')
+          this.$modal.msgSuccess(t('tool:messages.synchronizedSuccessfully'))
         })
         .catch(() => {})
     },
@@ -476,7 +483,7 @@ export default {
     },
     /** 复制代码成功 */
     clipboardSuccess() {
-      this.$modal.msgSuccess('复制成功')
+      this.$modal.msgSuccess(t('tool:messages.copiedSuccessfully'))
     },
     // 多选框选中数据
     handleSelectionChange(selection) {
@@ -492,7 +499,7 @@ export default {
       const tableName = row.tableName || this.tableNames[0]
       const params = { pageNum: this.queryParams.pageNum }
       this.$tab.openPage(
-        '修改[' + tableName + ']生成配置',
+        t('tool:confirmation.editGenerationSettingsForValue', { value0: tableName }),
         '/tool/gen-edit/index/' + tableId,
         params
       )
@@ -501,13 +508,13 @@ export default {
     handleDelete(row) {
       const tableIds = row.tableId || this.ids
       this.$modal
-        .confirm('是否确认删除表编号为"' + tableIds + '"的数据项？')
+        .confirm(t('tool:confirmation.deleteTablesWithIDsValue', { value0: tableIds }))
         .then(function () {
           return delTable(tableIds)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
         })
         .catch(() => {})
     },

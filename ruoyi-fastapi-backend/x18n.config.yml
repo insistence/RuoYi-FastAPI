@@ -1,0 +1,19 @@
+# https://x18n.dev/raw/presets/python-gettext.md
+# 只读诊断；PO 的完整语义由 scripts/compile_i18n.py 校验并编译。
+sourceLocale: zh-CN
+presets: [python-gettext]
+resources:
+  - pattern: i18n/catalogs/{locale}/LC_MESSAGES/core.po
+usage:
+  include: ['**/*.py']
+  exclude: ['tests/**', '.x18n/**', 'target/**', 'i18n/translator.py']
+  regex:
+    - extensions: [py]
+      patterns:
+        - 'msg_key\s*=\s*["'']([^"'']+)["'']'
+        - '(?<![\w.])(?:t|I18nUtil\.translate)\s*\(\s*(?:msg_key\s*=\s*)?"([^"\\\r\n]+)"(?=\s*[,)])'
+        - '(?<![\w.])(?:t|I18nUtil\.translate)\s*\(\s*(?:msg_key\s*=\s*)?''([^''\\\r\n]+)''(?=\s*[,)])'
+checks:
+  missing-translation: error
+  empty-translation: error
+  unused-key: warning

@@ -3,7 +3,7 @@
     <section
       class="auth-shell"
       :class="{ 'is-compact': !showProgress }"
-      aria-label="统一认证中心"
+      :aria-label="$t('authCenter:messages.authenticationCenter')"
     >
       <aside class="trust-panel">
         <div>
@@ -16,25 +16,33 @@
             ></span>
             <div>
               <strong>{{ productTitle }}</strong
-              ><small>统一认证中心</small>
+              ><small>{{ $t('authCenter:messages.authenticationCenter') }}</small>
             </div>
           </div>
 
           <div class="trust-copy">
-            <p class="trust-kicker">安全连接</p>
-            <h1>确认身份后，安全返回应用</h1>
-            <p>认证过程在这里完成。你的密码、验证码和登录会话不会交给接入应用。</p>
+            <p class="trust-kicker">{{ $t('authCenter:messages.secureConnection') }}</p>
+            <h1>{{ $t('authCenter:messages.verifyYourIdentityAndReturnSecurelyToTheApp') }}</h1>
+            <p>
+              {{
+                $t(
+                  'authCenter:messages.authenticationTakesPlaceHereYourPasswordVerificationCodeAndSignInSession'
+                )
+              }}
+            </p>
           </div>
 
           <div
             v-if="applicationName || applicationId"
             class="application-card"
           >
-            <small>正在请求访问的应用</small>
+            <small>{{ $t('authCenter:messages.appRequestingAccess') }}</small>
             <div class="application-identity">
               <span>{{ applicationInitial }}</span>
               <div>
-                <strong>{{ applicationName || '外部应用' }}</strong
+                <strong>{{
+                  applicationName || $t('authCenter:expression.externalApplication')
+                }}</strong
                 ><code v-if="applicationId">{{ applicationId }}</code>
               </div>
             </div>
@@ -46,14 +54,18 @@
                 class="el-icon el-icon-circle-check"
                 aria-hidden="true"
               ></i
-              ><span>只会分享你明确确认的信息</span>
+              ><span>{{
+                $t('authCenter:messages.onlyInformationYouExplicitlyApproveWillBeShared')
+              }}</span>
             </li>
             <li>
               <i
                 class="el-icon el-icon-circle-check"
                 aria-hidden="true"
               ></i
-              ><span>你可以取消，并返回发起登录的应用</span>
+              ><span>{{
+                $t('authCenter:messages.youCanCancelAndReturnToTheAppThatRequestedSignIn')
+              }}</span>
             </li>
           </ul>
         </div>
@@ -63,8 +75,10 @@
             class="status-dot"
             aria-hidden="true"
           />
-          <span v-if="hasExpiry">本次请求将在 {{ formatTime(remainingSeconds) }} 后失效</span>
-          <span v-else>受保护的认证连接</span>
+          <span v-if="hasExpiry">{{
+            $t('authCenter:request.expiresIn', { time: formatTime(remainingSeconds) })
+          }}</span>
+          <span v-else>{{ $t('authCenter:messages.protectedAuthenticationConnection') }}</span>
         </div>
       </aside>
 
@@ -72,9 +86,9 @@
         <div
           v-if="showProgress"
           class="progress-wrap"
-          aria-label="认证进度"
+          :aria-label="$t('authCenter:messages.authenticationProgress')"
         >
-          <span>认证进度</span>
+          <span>{{ $t('authCenter:messages.authenticationProgress') }}</span>
           <el-steps
             :active="currentStep"
             finish-status="success"
@@ -93,7 +107,12 @@
             class="el-icon el-icon-lock"
             aria-hidden="true"
           ></i>
-          <span>{{ productTitle }} 不会向应用提供密码或验证码</span>
+          <span
+            >{{ productTitle }}
+            {{
+              $t('authCenter:messages.yourPasswordAndVerificationCodeWillNotBeSharedWithTheApp')
+            }}</span
+          >
         </footer>
       </div>
     </section>
@@ -101,10 +120,18 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
+
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 const props = defineProps({
   currentStep: { type: Number, default: 0 },
-  steps: { type: Array, default: () => ['验证身份', '确认权限'] },
+  steps: {
+    type: Array,
+    default: () => [
+      t('authCenter:messages.verifyIdentity'),
+      t('authCenter:messages.confirmPermissions'),
+    ],
+  },
   expiresIn: { type: Number, default: 0 },
   applicationName: { type: String, default: '' },
   applicationId: { type: String, default: '' },
@@ -117,7 +144,7 @@ const hasExpiry = ref(false)
 let countdownTimer
 
 const applicationInitial = computed(() => {
-  const name = String(props.applicationName || props.applicationId || '应用').trim()
+  const name = String(props.applicationName || props.applicationId || t('common:apply')).trim()
   return name.slice(0, 1).toUpperCase()
 })
 

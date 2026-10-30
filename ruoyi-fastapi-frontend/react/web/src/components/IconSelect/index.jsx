@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useId, useRef, useState } from 'react'
 import { Empty, Input, Popover } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
@@ -14,11 +16,13 @@ const icons = Object.keys(files).map((path) => path.split('/').at(-1).replace('.
 export default function IconSelect({
   value,
   onChange,
-  placeholder = '点击选择图标',
+  placeholder = t('common:clickToChooseAnIcon'),
   inline = false,
   disabled = false,
   ...props
 }) {
+  useI18n()
+
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const triggerRef = useRef(null)
@@ -45,15 +49,15 @@ export default function IconSelect({
       }}
     >
       <Input
-        aria-label="搜索图标"
-        placeholder="请输入图标名称"
+        aria-label={t('common:searchIcons')}
+        placeholder={t('common:enterAnIconName')}
         allowClear
         value={search}
         onChange={(event) => setSearch(event.target.value)}
       />
       <div
         className="icon-select-list"
-        aria-label="图标列表"
+        aria-label={t('common:icons')}
       >
         {filtered.length ? (
           <div className="icon-select-grid">
@@ -65,7 +69,7 @@ export default function IconSelect({
                 <button
                   type="button"
                   className={`icon-select-item${icon === value ? ' is-active' : ''}`}
-                  aria-label={`选择图标 ${icon}`}
+                  aria-label={t('common:chooseIconValue', { icon })}
                   aria-pressed={icon === value}
                   title={icon}
                   disabled={disabled}
@@ -86,7 +90,7 @@ export default function IconSelect({
         ) : (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="暂无匹配图标"
+            description={t('common:noMatchingIcons')}
           />
         )}
       </div>

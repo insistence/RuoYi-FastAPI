@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { SearchOutlined, ReloadOutlined, CheckOutlined } from '@ant-design/icons'
 import FileTag from './FileTag'
@@ -20,6 +23,8 @@ import { parseTime } from '@/utils/ruoyi'
 import { message } from '@/plugins/modal'
 
 export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }) {
+  useI18n()
+
   const [form] = Form.useForm(),
     [actionForm] = Form.useForm(),
     [query, setQuery] = useState({ pageNum: 1, pageSize: 10, status: '0' }),
@@ -30,6 +35,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
     [action, setAction] = useState(),
     [saving, setSaving] = useState(false),
     [revision, setRevision] = useState(0)
+  useLocalizedFormErrors(form, actionForm)
   const refresh = () => {
     setSelected([])
     setRevision((value) => value + 1)
@@ -68,7 +74,11 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
         action.row.noticeId,
         payload
       )
-      message.success(action.type === 'extend' ? '文件保留期限已延长' : '到期文件已移入回收站')
+      message.success(
+        action.type === 'extend'
+          ? t('system:fileRetentionExtended')
+          : t('system:expiredFileMovedToRecycleBin')
+      )
       setAction(undefined)
       refresh()
       onSuccess()
@@ -81,13 +91,13 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
     <>
       <Drawer
         rootClassName="file-drawer"
-        title="文件保留期限提醒"
+        title={t('system:fileRetentionReminders')}
         open={open}
         onClose={onClose}
         size="70%"
       >
         <Alert
-          title="到期前可延长保留期限；到期后仅在全部业务引用均已到期时才可移入回收站，处置会解除这些业务引用。"
+          title={t('system:retentionCanBeExtendedBeforeExpiryAfterExpiryA')}
           type="info"
           showIcon
           style={{ marginBottom: 8 }}
@@ -106,39 +116,39 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
         >
           <Form.Item
             name="originalName"
-            label="文件名称"
+            label={t('file:name')}
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入原始文件名"
+              placeholder={t('system:enterTheOriginalFileName')}
               allowClear
             />
           </Form.Item>
           <Form.Item
             name="noticeType"
-            label="提醒类型"
+            label={t('system:reminderType')}
           >
             <Select
-              placeholder="请选择提醒类型"
+              placeholder={t('system:selectAReminderType')}
               allowClear
               style={{ width: 200 }}
               options={[
-                { label: '即将到期', value: 'expiring' },
-                { label: '已到期', value: 'expired' },
+                { label: t('system:expiringSoon'), value: 'expiring' },
+                { label: t('system:expired'), value: 'expired' },
               ]}
             />
           </Form.Item>
           <Form.Item
             name="status"
-            label="提醒状态"
+            label={t('system:reminderStatus')}
           >
             <Select
-              placeholder="请选择提醒状态"
+              placeholder={t('system:selectAReminderStatus')}
               allowClear
               style={{ width: 200 }}
               options={[
-                { label: '未读', value: '0' },
-                { label: '已读', value: '1' },
+                { label: t('system:unread'), value: '0' },
+                { label: t('system:read'), value: '1' },
               ]}
             />
           </Form.Item>
@@ -149,7 +159,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -159,7 +169,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                   setSelected([])
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -178,7 +188,10 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                 try {
                   const result = await scanFileRetentionReminder()
                   message.success(
-                    `扫描完成，新增即将到期 ${result.data.expiringCount} 条、已到期 ${result.data.expiredCount} 条提醒`
+                    t('system:scanCompleteValueNewUpcomingExpiryRemindersAndValue', {
+                      expiringCount: result.data.expiringCount,
+                      expiredCount: result.data.expiredCount,
+                    })
                   )
                   refresh()
                   onSuccess()
@@ -188,7 +201,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                 }
               }}
             >
-              扫描
+              {t('system:scan')}
             </Button>
           </HasPermi>
           <Button
@@ -198,12 +211,12 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
             onClick={async () => {
               try {
                 await readFileRetentionReminder(selected.join(','))
-                message.success('提醒已标记为已读')
+                message.success(t('system:reminderMarkedAsRead'))
                 refresh()
               } catch {}
             }}
           >
-            已读
+            {t('system:read')}
           </Button>
         </Space>
         <Table
@@ -219,11 +232,11 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
             getCheckboxProps: (row) => ({ disabled: row.status !== '0' }),
           }}
           columns={[
-            { width: 180, title: '文件名称', dataIndex: 'originalName', ellipsis: true },
+            { width: 180, title: t('file:name'), dataIndex: 'originalName', ellipsis: true },
             {
               width: 120,
               align: 'center',
-              title: '所有者',
+              title: t('file:owner'),
               dataIndex: 'ownerName',
               ellipsis: true,
               render: (value) => value || '-',
@@ -231,52 +244,57 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
             {
               width: 140,
               align: 'center',
-              title: '所属部门',
+              title: t('system:user.department'),
               dataIndex: 'deptName',
               ellipsis: true,
               render: (value) => value || '-',
             },
             {
               align: 'center',
-              title: '提醒类型',
+              title: t('system:reminderType'),
               width: 110,
               dataIndex: 'noticeType',
               render: (value) => (
                 <FileTag type={value === 'expired' ? 'danger' : 'warning'}>
-                  {value === 'expired' ? '已到期' : '即将到期'}
+                  {value === 'expired' ? t('system:expired') : t('system:expiringSoon')}
                 </FileTag>
               ),
             },
             {
               width: 180,
               align: 'center',
-              title: '到期时间',
+              title: t('system:expiryTime'),
               dataIndex: 'expireTime',
               render: (value) => parseTime(value),
             },
             {
               width: 90,
               align: 'center',
-              title: '状态',
+              title: t('common:status'),
               dataIndex: 'status',
               render: (value) => (
                 <FileTag type={value === '0' ? 'warning' : 'success'}>
-                  {value === '0' ? '未读' : '已读'}
+                  {value === '0' ? t('system:unread') : t('system:read')}
                 </FileTag>
               ),
             },
-            { width: 90, align: 'center', title: '业务引用', dataIndex: 'referenceCount' },
+            {
+              width: 90,
+              align: 'center',
+              title: t('system:businessReferences'),
+              dataIndex: 'referenceCount',
+            },
             {
               width: 180,
               align: 'center',
-              title: '提醒时间',
+              title: t('system:reminderTime'),
               dataIndex: 'createTime',
               render: (value) => parseTime(value),
             },
             {
               width: 110,
               align: 'center',
-              title: '读取人',
+              title: t('system:readBy'),
               dataIndex: 'readBy',
               ellipsis: true,
               render: (value) => value || '-',
@@ -284,7 +302,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
             {
               className: 'ruoyi-actions-cell',
               align: 'center',
-              title: '操作',
+              title: t('common:actions'),
               fixed: 'right',
               width: 100,
               render: (_, row) => (
@@ -295,7 +313,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                       symbol="Clock"
                       onClick={() => openAction('extend', row)}
                     >
-                      延长保留期限
+                      {t('system:extendRetention')}
                     </TableAction>
                   </HasPermi>
                   {new Date(row.expireTime).getTime() <= Date.now() && (
@@ -307,7 +325,9 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                         disabled={!row.canDispose}
                         onClick={() => openAction('dispose', row)}
                       >
-                        {row.canDispose ? '移入回收站' : '存在永久或尚未到期的业务引用，暂不可处置'}
+                        {row.canDispose
+                          ? t('system:moveToRecycleBin')
+                          : t('file:permanentOrUnexpiredBusinessReferencesPreventDisposal')}
                       </TableAction>
                     </HasPermi>
                   )}
@@ -326,10 +346,16 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
       <Modal
         className="file-dialog"
         mask={{ closable: action?.type !== 'dispose' }}
-        okText={action?.type === 'dispose' ? '确定处置' : '确 定'}
+        okText={
+          action?.type === 'dispose' ? t('system:confirmDisposal') : t('system:components.ok')
+        }
         footer={renderDialogFooter}
         width="520px"
-        title={action?.type === 'extend' ? '延长文件保留期限' : '到期文件处置'}
+        title={
+          action?.type === 'extend'
+            ? t('system:extendFileRetention')
+            : t('system:disposeOfExpiredFile')
+        }
         open={!!action}
         onCancel={() => setAction(undefined)}
         onOk={submit}
@@ -339,7 +365,10 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
           <Alert
             type="warning"
             showIcon
-            title={`处置后“${action.row.originalName}”将移入回收站，并解除 ${action.row.referenceCount || 0} 条已到期业务引用。`}
+            title={t('file:valueWillBeMovedToTheRecycleBinAnd', {
+              originalName: action.row.originalName,
+              arg1: action.row.referenceCount || 0,
+            })}
             style={{ marginBottom: 16 }}
           />
         )}
@@ -354,26 +383,36 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
         >
           {action?.type === 'extend' && (
             <>
-              <Form.Item label="文件名称">{action.row.originalName}</Form.Item>
-              <Form.Item label="原到期时间">{parseTime(action.row.expireTime)}</Form.Item>
+              <Form.Item label={t('file:name')}>{action.row.originalName}</Form.Item>
+              <Form.Item label={t('system:previousExpiryTime')}>
+                {parseTime(action.row.expireTime)}
+              </Form.Item>
             </>
           )}
           {action?.type === 'extend' && (
             <Form.Item
               name="expireTime"
-              label="新到期时间"
-              rules={[{ required: true, message: '请选择新的到期时间' }]}
+              label={t('system:newExpiryTime')}
+              rules={[{ required: true, message: t('file:chooseANewExpirationTime') }]}
             >
-              <BusinessDateTimePicker label="新到期时间" />
+              <BusinessDateTimePicker label={t('system:newExpiryTime')} />
             </Form.Item>
           )}
           <Form.Item
             name="reason"
-            label={action?.type === 'extend' ? '延期原因' : '处置原因'}
-            rules={[{ required: true, whitespace: true, message: '请输入操作原因' }]}
+            label={
+              action?.type === 'extend' ? t('system:extensionReason') : t('file:dispositionReason')
+            }
+            rules={[
+              { required: true, whitespace: true, message: t('file:enterAReasonForTheOperation') },
+            ]}
           >
             <Input.TextArea
-              placeholder={action?.type === 'extend' ? '请输入延期原因' : '请输入处置原因'}
+              placeholder={
+                action?.type === 'extend'
+                  ? t('system:enterAnExtensionReason')
+                  : t('system:enterADisposalReason')
+              }
               rows={3}
               maxLength={500}
               showCount

@@ -1,3 +1,6 @@
+import { useI18n } from '@/i18n/adapter'
+import { i18n, t } from '@/i18n'
+import { Trans } from 'react-i18next'
 import './style.css'
 import { useEffect, useRef } from 'react'
 import { Avatar, Card, Col, Row, Statistic, theme } from 'antd'
@@ -6,6 +9,8 @@ import { projectNotice, activities, radarData } from './data'
 import EditableLinkGroup from './editable-link-group'
 
 export default function Dashboard() {
+  const { locale } = useI18n()
+
   const { token } = theme.useToken()
   const user = {
     avatar: 'https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png',
@@ -13,6 +18,11 @@ export default function Dashboard() {
   }
   const radarContainer = useRef(null)
   useEffect(() => {
+    const names = {
+      personal: t('common:dashboard.individual'),
+      team: t('common:team'),
+      department: t('system:dept.nameShort'),
+    }
     const chart = echarts.init(radarContainer.current)
     const labels = [...new Set(radarData.map((item) => item.label))]
     chart.setOption({
@@ -55,7 +65,7 @@ export default function Dashboard() {
           symbolSize: 8,
           lineStyle: { width: 2 },
           data: [...new Set(radarData.map((item) => item.name))].map((name) => ({
-            name,
+            name: names[name],
             value: labels.map(
               (label) => radarData.find((item) => item.name === name && item.label === label).value
             ),
@@ -69,7 +79,7 @@ export default function Dashboard() {
       observer.disconnect()
       chart.dispose()
     }
-  }, [token.colorTextSecondary, token.colorBorderSecondary, token.colorSplit])
+  }, [locale, token.colorTextSecondary, token.colorBorderSecondary, token.colorSplit])
   return (
     <div className="dashboard-page">
       <div className="dashboard-welcome">
@@ -79,22 +89,24 @@ export default function Dashboard() {
             src={user.avatar}
           />
           <div>
-            <h1>早安，{user.name}，祝你开心每一天！</h1>
-            <p>交互专家 |蚂蚁金服－某某某事业群－某某平台部－某某技术部－UED</p>
+            <h1>{t('common:dashboard.greeting', { name: user.name })}</h1>
+            <p>
+              {t('common:interactionDesignerAntFinancialBusinessGroupPlatformDivisionTechnology')}
+            </p>
           </div>
         </div>
         <div className="dashboard-stats">
           <Statistic
-            title="项目数"
+            title={t('common:projects')}
             value={56}
           />
           <Statistic
-            title="团队内排名"
+            title={t('common:teamRanking')}
             value={8}
             suffix="/ 24"
           />
           <Statistic
-            title="项目访问"
+            title={t('common:projectVisits')}
             value={2223}
           />
         </div>
@@ -107,8 +119,8 @@ export default function Dashboard() {
           >
             <Card
               variant="borderless"
-              extra={<a href="">全部项目</a>}
-              title="进行中的项目"
+              extra={<a href="">{t('common:allProjects')}</a>}
+              title={t('common:projectsInProgress')}
               className="dashboard-section dashboard-projects"
             >
               {projectNotice.map((item) => (
@@ -142,7 +154,7 @@ export default function Dashboard() {
             </Card>
             <Card
               variant="borderless"
-              title="动态"
+              title={t('common:activity')}
               className="dashboard-activities"
             >
               <ul>
@@ -154,9 +166,15 @@ export default function Dashboard() {
                     <Avatar src={item.user.avatar} />
                     <div>
                       <p>
-                        <a className="dashboard-activity-user">{item.user.name}</a> {item.template1}{' '}
-                        <a href="">{item.group?.name}</a> {item.template2}{' '}
-                        <a href="">{item.project?.name}</a>
+                        <Trans
+                          i18n={i18n.engine}
+                          i18nKey={item.messageKey}
+                          components={{
+                            user: <a className="dashboard-activity-user">{item.user.name}</a>,
+                            group: <a href="">{item.group?.name}</a>,
+                            project: <a href="">{item.project?.name}</a>,
+                          }}
+                        />
                       </p>
                       <time title={item.updatedAt}>{item.updatedAt}</time>
                     </div>
@@ -171,26 +189,28 @@ export default function Dashboard() {
           >
             <Card
               variant="borderless"
-              title="快速开始 / 便捷导航"
+              title={t('common:quickStartShortcuts')}
               className="dashboard-section dashboard-navigation"
             >
               <EditableLinkGroup />
             </Card>
             <Card
               variant="borderless"
-              title="XX 指数"
+              title={t('common:performanceIndex')}
               className="dashboard-section"
             >
               <div
                 ref={radarContainer}
                 className="dashboard-radar"
                 role="img"
-                aria-label="个人、团队和部门在引用、口碑、产量、贡献、热度五个维度的示例雷达图"
+                aria-label={t(
+                  'common:exampleRadarChartComparingIndividualsTeamsAndDepartmentsAcross'
+                )}
               />
             </Card>
             <Card
               variant="borderless"
-              title="团队"
+              title={t('common:team')}
               className="dashboard-teams"
             >
               <Row gutter={48}>

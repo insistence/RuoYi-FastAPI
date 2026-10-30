@@ -1,5 +1,6 @@
 from typing import Literal
 
+from i18n.message import I18nMessage
 from plugins.core.runtime.support import PluginRuntimePayloadBuilder
 
 from .dependency_container import PluginRuntimeDependencies
@@ -37,7 +38,7 @@ class PluginMigrationUseCase:
 
             return {
                 'ok': True,
-                'message': '插件 migration 历史查询完成',
+                'message': I18nMessage('插件 migration 历史查询完成', msg_key='plugin.runtime.migration.historyLoaded'),
                 'pluginId': plugin_id,
                 'status': status,
                 'count': len(migrations),
@@ -45,7 +46,7 @@ class PluginMigrationUseCase:
             }
         except Exception as exc:
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '查询插件 migration 历史失败',
+                I18nMessage('查询插件 migration 历史失败', msg_key='plugin.runtime.migration.historyFailed'),
                 exc,
                 plugin_id=plugin_id,
             )
@@ -77,15 +78,23 @@ class PluginMigrationUseCase:
                 return PluginRuntimePayloadBuilder.build_invalid_operation_payload(
                     plugin_id,
                     f'migration_mark_{status}',
-                    message='插件 migration 历史不存在',
+                    message=I18nMessage('插件 migration 历史不存在', msg_key='plugin.runtime.migration.notFound'),
                 )
             current_status = getattr(existing_migration, 'status', 'success') or 'success'
             if current_status not in MIGRATION_MANUAL_TRANSITIONS[status]:
-                label = '成功' if status == 'success' else '失败'
+                label = (
+                    I18nMessage('成功', msg_key='plugin.runtime.migration.successStatus')
+                    if status == 'success'
+                    else I18nMessage('失败', msg_key='plugin.runtime.migration.failedStatus')
+                )
                 return PluginRuntimePayloadBuilder.build_invalid_operation_payload(
                     plugin_id,
                     f'migration_mark_{status}',
-                    message=f'插件 migration 当前状态为 {current_status}，不能人工标记为{label}',
+                    message=I18nMessage(
+                        f'插件 migration 当前状态为 {current_status}，不能人工标记为{label}',
+                        msg_key='plugin.runtime.migration.transitionBlocked',
+                        msg_params={'current_status': str(current_status), 'label': label},
+                    ),
                 )
             migration = await self.dependencies.migration_history_gateway.mark_plugin_migration_status(
                 plugin_id,
@@ -97,13 +106,21 @@ class PluginMigrationUseCase:
                 return PluginRuntimePayloadBuilder.build_invalid_operation_payload(
                     plugin_id,
                     f'migration_mark_{status}',
-                    message='插件 migration 历史不存在',
+                    message=I18nMessage('插件 migration 历史不存在', msg_key='plugin.runtime.migration.notFound'),
                 )
 
-            label = '成功' if status == 'success' else '失败'
+            label = (
+                I18nMessage('成功', msg_key='plugin.runtime.migration.successStatus')
+                if status == 'success'
+                else I18nMessage('失败', msg_key='plugin.runtime.migration.failedStatus')
+            )
             payload = {
                 'ok': True,
-                'message': f'插件 migration 已人工标记为{label}',
+                'message': I18nMessage(
+                    f'插件 migration 已人工标记为{label}',
+                    msg_key='plugin.runtime.migration.marked',
+                    msg_params={'label': label},
+                ),
                 'operation': f'migration_mark_{status}',
                 'pluginId': plugin_id,
                 'migrationPath': migration_path,
@@ -115,7 +132,7 @@ class PluginMigrationUseCase:
             return payload
         except Exception as exc:
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '人工标记插件 migration 状态失败',
+                I18nMessage('人工标记插件 migration 状态失败', msg_key='plugin.runtime.migration.markFailed'),
                 exc,
                 plugin_id=plugin_id,
             )

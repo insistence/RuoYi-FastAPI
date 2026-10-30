@@ -1,12 +1,12 @@
 <template>
   <el-drawer
-    :title="`业务引用 - ${fileName}`"
+    :title="$t('files:businessReferencesValue', { fileName: fileName })"
     v-model="visible"
     size="55%"
     append-to-body
   >
     <el-alert
-      title="存在业务引用时文件不能移入回收站，请先在对应业务中解除文件引用。"
+      :title="$t('files:referencedFilesCannotBeMovedToTheRecycleBinRemove')"
       type="warning"
       :closable="false"
       show-icon
@@ -17,14 +17,14 @@
       :data="referenceList"
     >
       <el-table-column
-        label="业务类型"
+        :label="$t('monitor:businessType')"
         align="center"
         prop="businessType"
         width="130"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="业务名称"
+        :label="$t('files:businessName')"
         align="left"
         prop="businessName"
         min-width="180"
@@ -33,26 +33,28 @@
         <template #default="scope">{{ scope.row.businessName || '-' }}</template>
       </el-table-column>
       <el-table-column
-        label="业务ID"
+        :label="$t('files:businessID')"
         align="center"
         prop="businessId"
         min-width="160"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="保留到期"
+        :label="$t('files:retentionExpires')"
         align="center"
         prop="retentionExpireTime"
         width="180"
       >
         <template #default="scope">
           {{
-            scope.row.retentionExpireTime ? parseTime(scope.row.retentionExpireTime) : '永久保留'
+            scope.row.retentionExpireTime
+              ? parseTime(scope.row.retentionExpireTime)
+              : $t('files:keepPermanently')
           }}
         </template>
       </el-table-column>
       <el-table-column
-        label="来源"
+        :label="$t('monitor:source')"
         align="center"
         width="100"
       >
@@ -62,18 +64,18 @@
             type="info"
             effect="plain"
           >
-            兼容字段
-          </el-tag>
+            {{ $t('files:legacyField') }}</el-tag
+          >
           <el-tag
             v-else
             type="success"
             effect="plain"
-            >引用关系</el-tag
+            >{{ $t('files:references') }}</el-tag
           >
         </template>
       </el-table-column>
       <el-table-column
-        label="登记人"
+        :label="$t('files:registeredBy')"
         align="center"
         prop="createBy"
         width="110"
@@ -82,7 +84,7 @@
         <template #default="scope">{{ scope.row.createBy || '-' }}</template>
       </el-table-column>
       <el-table-column
-        label="登记时间"
+        :label="$t('files:registeredAt')"
         align="center"
         prop="createTime"
         width="180"

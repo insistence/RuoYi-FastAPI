@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import {
   SearchOutlined,
@@ -62,14 +65,28 @@ const actionRequests = {
   purge: api.purgePlugin,
 }
 const actionLabels = {
-  install: '安装',
-  upgrade: '升级',
-  uninstall: '卸载',
-  purge: '清理孤儿元数据',
-  enable: '启用',
-  disable: '停用',
+  get install() {
+    return t('system:install')
+  },
+  get upgrade() {
+    return t('system:upgrade')
+  },
+  get uninstall() {
+    return t('system:uninstall')
+  },
+  get purge() {
+    return t('system:cleanUpOrphanedMetadata')
+  },
+  get enable() {
+    return t('common:enable')
+  },
+  get disable() {
+    return t('common:disable')
+  },
 }
 export default function Plugin() {
+  useI18n()
+
   const { plugin_operation_type } = useDict('plugin_operation_type'),
     [form] = Form.useForm(),
     [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
@@ -78,6 +95,7 @@ export default function Plugin() {
     [showSearch, setShowSearch] = useState(true),
     [selected, setSelected] = useState([]),
     [revision, setRevision] = useState(0)
+  useLocalizedFormErrors(form)
   const [detail, setDetail] = useState(),
     [migrations, setMigrations] = useState([]),
     [migrationLoading, setMigrationLoading] = useState(false),
@@ -131,14 +149,19 @@ export default function Plugin() {
     if (isOperationBlocked(row, operation))
       return message.warning(getCapabilityReason(row.capability))
     try {
-      await confirm(`确认${enabled ? '启用' : '停用'}「${row.pluginName}」插件吗？`)
+      await confirm(
+        t('pluginAdmin:valuePluginValue', {
+          arg0: enabled ? t('common:enable') : t('common:disable'),
+          pluginName: row.pluginName,
+        })
+      )
       await (enabled ? api.enablePlugin : api.disablePlugin)(row.pluginId)
-      message.success('操作成功')
+      message.success(t('file:operationCompleted'))
       refresh()
     } catch (error) {
       if (!isUserCancel(error))
         showAction(
-          `插件${actionLabels[operation]}失败`,
+          t('pluginAdmin:pluginValueFailed', { operation: actionLabels[operation] }),
           buildErrorActionResult(error, { pluginId: row.pluginId, operation })
         )
     }
@@ -166,17 +189,24 @@ export default function Plugin() {
   async function markMigration(row, success) {
     try {
       await confirm(
-        `确认将「${row.migrationPath}」标记为${success ? '执行成功' : '失败并允许后续重试'}吗？`
+        t('pluginAdmin:markValueAsValue', {
+          migrationPath: row.migrationPath,
+          arg1: success
+            ? t('common:completedSuccessfully')
+            : t('pluginAdmin:failedAllowSubsequentRetries'),
+        })
       )
       setMigrationLoading(true)
       await (success ? api.markPluginMigrationSuccess : api.markPluginMigrationFailed)(
         detail.pluginId,
         {
           migrationPath: row.migrationPath,
-          note: `管理页人工标记为${success ? '成功' : '失败'}`,
+          note: t('pluginAdmin:manuallyMarkedAsValueInTheAdminConsole', {
+            arg0: success ? t('common:success') : t('common:failed'),
+          }),
         }
       )
-      message.success('Migration 状态已更新')
+      message.success(t('pluginAdmin:migrationStatusUpdated'))
       await loadMigrations(detail.pluginId)
       refresh()
     } catch {
@@ -192,7 +222,7 @@ export default function Plugin() {
       if (current === configRequest.current) {
         setConfig({
           pluginId: row.pluginId,
-          title: `${row.pluginName}配置`,
+          title: t('pluginAdmin:valueSettings', { pluginName: row.pluginName }),
           items: result.data?.configs || [],
         })
         setConfigRevision((value) => value + 1)
@@ -208,7 +238,7 @@ export default function Plugin() {
     try {
       const result = await api.updatePluginConfig(config.pluginId, { values })
       if (current === configRequest.current) {
-        message.success('插件配置已保存')
+        message.success(t('system:pluginConfigurationSaved'))
         setConfig((previous) => ({
           ...previous,
           items: result.data?.configs || previous.items,
@@ -246,14 +276,19 @@ export default function Plugin() {
     if (!dryRun && result.policy?.allowed === false)
       return message.warning(getDependencyPolicyReason(result.policy))
     try {
-      if (!dryRun) await confirm(`确认安装「${dependency.pluginId}」插件的缺失依赖吗？`)
+      if (!dryRun)
+        await confirm(
+          t('pluginAdmin:installMissingDependenciesForPluginValue', {
+            pluginId: dependency.pluginId,
+          })
+        )
       setDependencyLoading(true)
       const response = await api.installPluginDependencies(dependency.pluginId, dryRun)
       setDependency((previous) => ({
         ...previous,
         result: response.data || {},
       }))
-      if (!dryRun) message.success('插件依赖安装完成')
+      if (!dryRun) message.success(t('system:pluginDependenciesInstalled'))
     } catch {
     } finally {
       setDependencyLoading(false)
@@ -263,10 +298,10 @@ export default function Plugin() {
     setActionLoading(true)
     try {
       const result = await api.checkPlugin(row.pluginId)
-      showAction('插件检查结果', result.data)
+      showAction(t('system:pluginCheckResults'), result.data)
     } catch (error) {
       showAction(
-        '插件检查失败',
+        t('system:pluginCheckFailed'),
         buildErrorActionResult(error, {
           pluginId: row.pluginId,
           operation: 'check',
@@ -277,7 +312,7 @@ export default function Plugin() {
     }
   }
   async function diagnose(row, health) {
-    const title = `${row.pluginName}${health ? '健康检查' : '诊断包'}`
+    const title = `${row.pluginName}${health ? t('system:healthCheck') : t('system:diagnosticBundle')}`
     setDiagnostic({ title, result: { pluginId: row.pluginId } })
     setDiagnosticLoading(true)
     try {
@@ -302,7 +337,7 @@ export default function Plugin() {
     setActionLoading(true)
     try {
       const result = await actionRequests[type](row.pluginId, true)
-      showAction(`插件${actionLabels[type]}预演`, result.data, {
+      showAction(t('pluginAdmin:pluginValueDryRun', { type: actionLabels[type] }), result.data, {
         type,
         label: actionLabels[type],
         pluginId: row.pluginId,
@@ -310,7 +345,7 @@ export default function Plugin() {
       })
     } catch (error) {
       showAction(
-        `插件${actionLabels[type]}预演失败`,
+        t('pluginAdmin:pluginValueDryRunFailed', { type: actionLabels[type] }),
         buildErrorActionResult(error, {
           pluginId: row.pluginId,
           operation: type,
@@ -324,16 +359,21 @@ export default function Plugin() {
     const pending = action?.pending
     if (!pending) return
     try {
-      await confirm(`确认执行「${pending.pluginName}」插件${pending.label}吗？`)
+      await confirm(
+        t('pluginAdmin:executeValueForPluginValue', {
+          pluginName: pending.pluginName,
+          label: pending.label,
+        })
+      )
       setActionLoading(true)
       const result = await actionRequests[pending.type](pending.pluginId, false)
-      showAction(`插件${pending.label}结果`, result.data)
-      message.success(`插件${pending.label}完成`)
+      showAction(t('pluginAdmin:pluginValueResult', { label: pending.label }), result.data)
+      message.success(t('pluginAdmin:pluginValueCompleted', { label: pending.label }))
       refresh()
     } catch (error) {
       if (!isUserCancel(error))
         showAction(
-          `插件${pending.label}失败`,
+          t('pluginAdmin:plugin.pluginValueFailed', { label: pending.label }),
           buildErrorActionResult(error, {
             pluginId: pending.pluginId,
             operation: pending.type,
@@ -359,7 +399,10 @@ export default function Plugin() {
     if (!plan?.ok || !plan.executablePluginIds.length) return
     try {
       await confirm(
-        `确认批量执行插件${operationLabel(plan.operation)}吗？目标：${plan.executablePluginIds.join(', ')}`
+        t('pluginAdmin:executePluginValueInBulkTargetsValue', {
+          arg0: operationLabel(plan.operation),
+          arg1: plan.executablePluginIds.join(', '),
+        })
       )
       setPlanLoading(true)
       const result = await api.batchPlugins(
@@ -370,7 +413,7 @@ export default function Plugin() {
       )
       setBatch(normalizePluginBatchResponse(result.data))
       setPlan(normalizePluginPlanResponse(result.data))
-      message.success(result.data?.message || '插件批量操作完成')
+      message.success(result.data?.message || t('system:batchPluginOperationCompleted'))
       refresh()
     } catch (error) {
       if (!isUserCancel(error))
@@ -391,33 +434,33 @@ export default function Plugin() {
   }
   function switchTooltip(row) {
     if (row.source === 'artifact')
-      return '签名制品须在停机维护窗口通过 release enable/disable 修改启停设置，再启动全部 worker'
+      return t('system:forSignedArtifactsChangeTheEnabledStateWithRelease')
     if (row.status === 'error')
       return row.enabled === '0'
-        ? '插件当前被异常状态隔离；关闭开关可取消自动恢复意图'
-        : '插件处于异常状态，请重新安装或升级修复，不能直接启用'
+        ? t('system:thePluginIsIsolatedDueToAnErrorTurn')
+        : t('system:thePluginIsInAnErrorStateReinstallOr')
     return switchBlocked(row) ? getCapabilityReason(row.capability) : ''
   }
   const columns = [
-    { align: 'center', title: '插件ID', dataIndex: 'pluginId', width: 120 },
-    { align: 'center', title: '插件名称', dataIndex: 'pluginName', width: 140 },
-    { align: 'center', title: '代码版本', dataIndex: 'version', width: 100 },
+    { align: 'center', title: t('pluginAdmin:id'), dataIndex: 'pluginId', width: 120 },
+    { align: 'center', title: t('pluginAdmin:name'), dataIndex: 'pluginName', width: 140 },
+    { align: 'center', title: t('system:codeVersion'), dataIndex: 'version', width: 100 },
     {
       align: 'center',
-      title: '已安装版本',
+      title: t('system:installedVersion'),
       dataIndex: 'installedVersion',
       width: 110,
       render: (value) => value || '-',
     },
     {
       align: 'center',
-      title: '启用设置',
+      title: t('pluginAdmin:enableSettings'),
       width: 90,
       render: (_, row) => (
         <HasPermi value={['system:plugin:edit']}>
           <Tooltip title={switchTooltip(row)}>
             <Switch
-              aria-label={`${row.pluginName}启用设置`}
+              aria-label={t('pluginAdmin:valueActivationSettings', { pluginName: row.pluginName })}
               disabled={switchBlocked(row)}
               checked={row.enabled === '0'}
               onChange={(enabled) => toggle(row, enabled)}
@@ -428,7 +471,7 @@ export default function Plugin() {
     },
     {
       align: 'center',
-      title: '插件状态',
+      title: t('pluginAdmin:status'),
       dataIndex: 'status',
       width: 110,
       render: (value) => (
@@ -437,14 +480,14 @@ export default function Plugin() {
     },
     {
       align: 'center',
-      title: '制品发布',
+      title: t('system:artifactRelease'),
       width: 220,
       render: (_, row) => (row.source === 'artifact' ? <PluginReleaseStatus plugin={row} /> : '-'),
     },
-    { align: 'center', title: '来源', dataIndex: 'source', width: 80 },
+    { align: 'center', title: t('common:source'), dataIndex: 'source', width: 80 },
     {
       align: 'center',
-      title: '更新时间',
+      title: t('common:updatedTime'),
       dataIndex: 'updateTime',
       width: 165,
       render: formatPluginTime,
@@ -452,7 +495,7 @@ export default function Plugin() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       fixed: 'right',
       width: 260,
       render: (_, row) => (
@@ -463,7 +506,7 @@ export default function Plugin() {
               symbol="View"
               onClick={() => showDetail(row)}
             >
-              详情
+              {t('common:details')}
             </TableAction>
             {!isOrphanPlugin(row) && (
               <>
@@ -473,35 +516,35 @@ export default function Plugin() {
                   loading={configLoading}
                   onClick={() => showConfig(row)}
                 >
-                  配置
+                  {t('system:configuration')}
                 </TableAction>
                 <TableAction
                   iconOnly={true}
                   symbol="Connection"
                   onClick={() => showDependencies(row)}
                 >
-                  依赖
+                  {t('pluginAdmin:dependencies')}
                 </TableAction>
                 <TableAction
                   iconOnly={true}
                   symbol="CircleCheck"
                   onClick={() => check(row)}
                 >
-                  检查
+                  {t('system:check')}
                 </TableAction>
                 <TableAction
                   iconOnly={true}
                   symbol="FirstAidKit"
                   onClick={() => diagnose(row, true)}
                 >
-                  健康检查
+                  {t('system:healthCheck')}
                 </TableAction>
                 <TableAction
                   iconOnly={true}
                   symbol="DocumentChecked"
                   onClick={() => diagnose(row, false)}
                 >
-                  诊断包
+                  {t('system:diagnosticBundle')}
                 </TableAction>
               </>
             )}
@@ -546,7 +589,7 @@ export default function Plugin() {
                 symbol="Delete"
                 onClick={() => preview(row, 'purge')}
               >
-                清理孤儿元数据
+                {t('system:cleanUpOrphanedMetadata')}
               </TableAction>
             </HasPermi>
           )}
@@ -570,45 +613,45 @@ export default function Plugin() {
       >
         <Form.Item
           name="pluginId"
-          label="插件ID"
+          label={t('pluginAdmin:id')}
         >
           <Input
             style={{ width: 220 }}
-            placeholder="请输入插件ID"
+            placeholder={t('system:enterAPluginId')}
             allowClear
           />
         </Form.Item>
         <Form.Item
           name="pluginName"
-          label="插件名称"
+          label={t('pluginAdmin:name')}
         >
           <Input
             style={{ width: 220 }}
-            placeholder="请输入插件名称"
+            placeholder={t('system:enterAPluginName')}
             allowClear
           />
         </Form.Item>
         <Form.Item
           name="enabled"
-          label="启用设置"
+          label={t('pluginAdmin:enableSettings')}
         >
           <Select
             style={{ width: 220 }}
-            placeholder="启用设置"
+            placeholder={t('pluginAdmin:enableSettings')}
             allowClear
             options={[
-              { label: '启用', value: '0' },
-              { label: '停用', value: '1' },
+              { label: t('common:enable'), value: '0' },
+              { label: t('common:disable'), value: '1' },
             ]}
           />
         </Form.Item>
         <Form.Item
           name="status"
-          label="插件状态"
+          label={t('pluginAdmin:status')}
         >
           <Select
             style={{ width: 220 }}
-            placeholder="插件状态"
+            placeholder={t('pluginAdmin:status')}
             allowClear
             options={pluginStatusOptions}
           />
@@ -620,7 +663,7 @@ export default function Plugin() {
               type="primary"
               htmlType="submit"
             >
-              搜索
+              {t('common:search')}
             </Button>
             <Button
               icon={<ReloadOutlined />}
@@ -630,7 +673,7 @@ export default function Plugin() {
                 setSelected([])
               }}
             >
-              重置
+              {t('common:reset')}
             </Button>
           </Space>
         </Form.Item>
@@ -655,14 +698,15 @@ export default function Plugin() {
                 disabled={!selected.length}
                 onClick={() => createPlan(type)}
               >
-                {actionLabels[type]}计划
+                {actionLabels[type]}
+                {t('system:plans')}
               </Button>
             ))}
             <Button
               icon={<AuditOutlined />}
               onClick={() => setAuditOpen(true)}
             >
-              审计记录
+              {t('system:auditRecords')}
             </Button>
           </HasPermi>
           <Tooltip title={formatPluginIdsForDisplay(selected)}>
@@ -671,7 +715,9 @@ export default function Plugin() {
               onClose={() => setSelected([])}
               type={selected.length ? 'success' : 'info'}
             >
-              {selected.length ? `已选 ${selected.length} 个插件` : '请选择插件'}
+              {selected.length
+                ? t('system:valuePluginsSelected', { length: selected.length })
+                : t('system:selectAPlugin')}
             </PluginTag>
           </Tooltip>
         </div>

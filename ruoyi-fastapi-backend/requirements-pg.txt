@@ -3,6 +3,7 @@ alembic==1.20.0
 APScheduler==3.11.3
 async-lru==2.4.0
 asyncpg==0.32.0
+Babel==2.17.0
 bcrypt==5.0.0
 fastapi[all]==0.143.3
 loguru==0.7.3

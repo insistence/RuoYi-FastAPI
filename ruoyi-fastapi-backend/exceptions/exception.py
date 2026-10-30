@@ -6,9 +6,18 @@ class LoginException(Exception):
     自定义登录异常LoginException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+    ) -> None:
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
 
 
 class AuthException(Exception):
@@ -16,9 +25,18 @@ class AuthException(Exception):
     自定义令牌异常AuthException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+    ) -> None:
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
 
 
 class OAuthProtocolException(Exception):
@@ -147,9 +165,18 @@ class PermissionException(Exception):
     自定义权限异常PermissionException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+    ) -> None:
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
 
 
 class ServiceException(Exception):
@@ -157,9 +184,18 @@ class ServiceException(Exception):
     自定义服务异常ServiceException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+    ) -> None:
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
 
 
 class ServiceWarning(Exception):
@@ -167,9 +203,18 @@ class ServiceWarning(Exception):
     自定义服务警告ServiceWarning
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+    ) -> None:
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
 
 
 class FileRangeNotSatisfiableException(Exception):
@@ -186,9 +231,18 @@ class ModelValidatorException(Exception):
     自定义模型校验异常ModelValidatorException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+    ) -> None:
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
 
 
 class DataSourceException(ServiceException):

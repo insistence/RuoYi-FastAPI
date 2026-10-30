@@ -56,6 +56,10 @@ jobs:
           if ! pnpm list --depth Infinity --json > test-results/dependency-tree.json; then
             echo "Dependency tree includes peer diagnostics; inspect dependency-tree.json." >&2
           fi
+      - name: Verify independent locale resources and runtime contracts
+        run: |
+          pnpm run i18n:check > test-results/i18n.json.log
+          pnpm run test:i18n
       - name: Run unit and component behavior tests
         run: pnpm run test:unit
       - name: Verify time contracts in three host timezones

@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { getDicts } from '@/api/system/dict/data'
+import { useI18n } from '@/i18n/adapter'
 // 字典结果和进行中的请求按类型共享，多个组件使用同一字典时复用请求。
 const cache = new Map()
 const pending = new Map()
@@ -22,6 +23,7 @@ export function clearDictCache() {
  * @returns {Object<string, Array>} 以字典类型为键的选项列表，未加载时为空数组
  */
 export function useDict(...types) {
+  const { i18n } = useI18n()
   const key = types.join(',')
   const version = useSyncExternalStore(subscribe, () => revision)
   const [values, setValues] = useState({})
@@ -39,6 +41,7 @@ export function useDict(...types) {
             .then((result) => {
               const data = (result.data || []).map((item) => ({
                 label: item.dictLabel,
+                labelI18n: item.dictLabelI18n,
                 value: item.dictValue,
                 elTagType: item.listClass,
                 elTagClass: item.cssClass,
@@ -63,5 +66,13 @@ export function useDict(...types) {
       active = false
     }
   }, [key, version])
-  return Object.fromEntries(types.map((type) => [type, values[type] || []]))
+  return Object.fromEntries(
+    types.map((type) => [
+      type,
+      (values[type] || []).map((item) => ({
+        ...item,
+        label: i18n.resolveText(item.label, item.labelI18n),
+      })),
+    ])
+  )
 }

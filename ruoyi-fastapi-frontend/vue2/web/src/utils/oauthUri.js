@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 const DEVELOPMENT_HTTP_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 const URI_TYPES = new Set(['redirect', 'post_logout', 'backchannel_logout', 'cors_origin'])
 
@@ -24,41 +25,41 @@ export function splitRegisteredUris(value) {
  */
 export function validateRegisteredUri(value, uriType) {
   if (!URI_TYPES.has(uriType)) {
-    throw new Error('URI 类型无效')
+    throw new Error(t('authCenter:messages.invalidURIType'))
   }
   if (typeof value !== 'string' || !value || value.length > 1000) {
-    throw new Error('URI 长度必须为 1 到 1000 个字符')
+    throw new Error(t('authCenter:messages.uRIMustContain11000Characters'))
   }
   if (value.includes('*')) {
-    throw new Error('URI 不允许使用通配符')
+    throw new Error(t('authCenter:messages.wildcardsAreNotAllowedInURIs'))
   }
 
   let target
   try {
     target = new URL(value)
   } catch {
-    throw new Error('URI 必须是完整的 HTTP 或 HTTPS 地址')
+    throw new Error(t('authCenter:messages.uRIMustBeACompleteHTTPOrHTTPSURL'))
   }
   if (!['http:', 'https:'].includes(target.protocol) || !target.hostname) {
-    throw new Error('URI 必须是完整的 HTTP 或 HTTPS 地址')
+    throw new Error(t('authCenter:messages.uRIMustBeACompleteHTTPOrHTTPSURL'))
   }
   if (target.username || target.password) {
-    throw new Error('URI 不允许包含用户信息')
+    throw new Error(t('authCenter:messages.uRIMustNotContainUserInformation'))
   }
   if (target.hash) {
-    throw new Error('URI 不允许包含 Fragment')
+    throw new Error(t('authCenter:messages.uRIMustNotContainAFragment'))
   }
   if (target.protocol === 'http:' && !DEVELOPMENT_HTTP_HOSTS.has(target.hostname.toLowerCase())) {
-    throw new Error('仅本地开发地址允许使用 HTTP')
+    throw new Error(t('authCenter:messages.hTTPIsAllowedOnlyForLocalDevelopmentAddresses'))
   }
   if (uriType === 'backchannel_logout' && target.search) {
-    throw new Error('Back-Channel URI 不允许包含查询参数')
+    throw new Error(t('authCenter:messages.backChannelURIMustNotContainQueryParameters'))
   }
   if (
     uriType === 'cors_origin' &&
     (target.pathname !== '/' || target.search || value.endsWith('/'))
   ) {
-    throw new Error('CORS Origin 只能包含协议、主机和端口')
+    throw new Error(t('authCenter:messages.cORSOriginMayContainOnlyASchemeHostAndPort'))
   }
   return value
 }
@@ -75,7 +76,7 @@ export function validateRegisteredUri(value, uriType) {
 export function validateRegisteredUriList(value, uriType, required = false) {
   const uris = splitRegisteredUris(value)
   if (required && uris.length === 0) {
-    throw new Error('请至少填写一个 Redirect URI')
+    throw new Error(t('authCenter:messages.enterAtLeastOneRedirectURI'))
   }
   uris.forEach((uri) => validateRegisteredUri(uri, uriType))
   return uris

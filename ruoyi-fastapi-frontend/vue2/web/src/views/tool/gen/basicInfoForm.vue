@@ -1,5 +1,6 @@
 <template>
   <el-form
+    :validate-on-rule-change="false"
     ref="basicInfoForm"
     :model="info"
     :rules="rules"
@@ -8,51 +9,51 @@
     <el-row>
       <el-col :span="12">
         <el-form-item
-          label="表名称"
+          :label="$t('tool:gen.tableName')"
           prop="tableName"
         >
           <el-input
-            placeholder="请输入仓库名称"
+            :placeholder="$t('tool:messages.enterRepositoryName')"
             v-model="info.tableName"
           />
         </el-form-item>
       </el-col>
       <el-col :span="12">
         <el-form-item
-          label="表描述"
+          :label="$t('tool:gen.tableComment')"
           prop="tableComment"
         >
           <el-input
-            placeholder="请输入"
+            :placeholder="$t('tool:messages.enterAValue')"
             v-model="info.tableComment"
           />
         </el-form-item>
       </el-col>
       <el-col :span="12">
         <el-form-item
-          label="实体类名称"
+          :label="$t('tool:messages.entityClassName')"
           prop="className"
         >
           <el-input
-            placeholder="请输入"
+            :placeholder="$t('tool:messages.enterAValue')"
             v-model="info.className"
           />
         </el-form-item>
       </el-col>
       <el-col :span="12">
         <el-form-item
-          label="作者"
+          :label="$t('pluginAdmin:messages.author')"
           prop="functionAuthor"
         >
           <el-input
-            placeholder="请输入"
+            :placeholder="$t('tool:messages.enterAValue')"
             v-model="info.functionAuthor"
           />
         </el-form-item>
       </el-col>
       <el-col :span="24">
         <el-form-item
-          label="备注"
+          :label="$t('common:remark')"
           prop="remark"
         >
           <el-input
@@ -67,6 +68,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 export default {
   props: {
     info: {
@@ -77,10 +80,26 @@ export default {
   data() {
     return {
       rules: {
-        tableName: [{ required: true, message: '请输入表名称', trigger: 'blur' }],
-        tableComment: [{ required: true, message: '请输入表描述', trigger: 'blur' }],
-        className: [{ required: true, message: '请输入实体类名称', trigger: 'blur' }],
-        functionAuthor: [{ required: true, message: '请输入作者', trigger: 'blur' }],
+        tableName: [
+          { required: true, message: () => t('tool:messages.enterTableName'), trigger: 'blur' },
+        ],
+        tableComment: [
+          {
+            required: true,
+            message: () => t('tool:messages.enterTableDescription'),
+            trigger: 'blur',
+          },
+        ],
+        className: [
+          {
+            required: true,
+            message: () => t('tool:messages.enterEntityClassName'),
+            trigger: 'blur',
+          },
+        ],
+        functionAuthor: [
+          { required: true, message: () => t('tool:messages.enterAuthor'), trigger: 'blur' },
+        ],
       },
     }
   },

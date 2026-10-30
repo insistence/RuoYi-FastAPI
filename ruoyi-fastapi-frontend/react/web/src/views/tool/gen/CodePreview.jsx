@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { CopyOutlined } from '@ant-design/icons'
 import { Button, Modal, Tabs } from 'antd'
@@ -8,6 +10,8 @@ const fileName = (path) => path.slice(path.lastIndexOf('/') + 1).replace(/\.jinj
 const defaultFile = (files) => files.find((path) => fileName(path) === 'do.py') || files[0]
 
 export default function CodePreview({ preview, onClose }) {
+  useI18n()
+
   const files = Object.keys(preview || {})
   const [activeFile, setActiveFile] = useState(() => defaultFile(files))
   useEffect(() => {
@@ -17,15 +21,15 @@ export default function CodePreview({ preview, onClose }) {
   async function copy(content) {
     try {
       await copyText(content)
-      message.success('复制成功')
+      message.success(t('tool:copiedSuccessfully'))
     } catch {
-      message.error('复制失败，请手动复制')
+      message.error(t('common:copyFailedPleaseCopyManually'))
     }
   }
 
   return (
     <Modal
-      title="代码预览"
+      title={t('tool:codePreview')}
       className="gen-preview"
       open={!!preview}
       onCancel={onClose}
@@ -47,7 +51,7 @@ export default function CodePreview({ preview, onClose }) {
                 icon={<CopyOutlined />}
                 onClick={() => copy(preview[path])}
               >
-                复制
+                {t('common:copy')}
               </Button>
               <pre className="gen-preview-code">{preview[path]}</pre>
             </>

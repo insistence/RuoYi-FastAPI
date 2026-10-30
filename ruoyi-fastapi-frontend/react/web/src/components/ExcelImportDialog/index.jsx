@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import { useEffect, useState } from 'react'
 import { Alert, Button, Checkbox, Modal, Upload } from 'antd'
@@ -8,13 +10,15 @@ export default function ExcelImportDialog({
   open,
   onClose,
   onSuccess,
-  title = '导入',
+  title = t('common:import'),
   width = '400px',
   action,
   templateAction,
   templateFileName = 'template',
-  updateSupportLabel = '是否更新已经存在的数据',
+  updateSupportLabel = t('common:updateExistingRecords'),
 }) {
+  useI18n()
+
   const [files, setFiles] = useState([]),
     [updateSupport, setUpdateSupport] = useState(false),
     [loading, setLoading] = useState(false),
@@ -29,7 +33,7 @@ export default function ExcelImportDialog({
   async function submit() {
     const file = files[0]?.originFileObj || files[0]
     if (!file || !/\.xlsx?$/i.test(file.name))
-      return message.error('请选择后缀为 xls 或 xlsx 的文件')
+      return message.error(t('common:chooseAnXlsOrXlsxFile'))
     setLoading(true)
     try {
       const data = new FormData()
@@ -42,7 +46,7 @@ export default function ExcelImportDialog({
         headers: { 'Content-Type': 'multipart/form-data', repeatSubmit: false },
       })
       setResult(
-        String(response.msg || '导入成功')
+        String(response.msg || t('common:importCompleted'))
           .replace(/<br\s*\/?\s*>/gi, '\n')
           .replace(/<[^>]*>/g, '')
       )
@@ -60,14 +64,14 @@ export default function ExcelImportDialog({
       open={open}
       onCancel={loading ? undefined : onClose}
       onOk={result ? onClose : submit}
-      okText={result ? '关闭' : '开始导入'}
+      okText={result ? t('layout:search.close') : t('common:startImport')}
       confirmLoading={loading}
       cancelButtonProps={{ disabled: loading }}
     >
       {result ? (
         <Alert
           type="success"
-          title="导入结果"
+          title={t('common:importResults')}
           description={
             <pre
               style={{
@@ -93,8 +97,8 @@ export default function ExcelImportDialog({
             <p>
               <InboxOutlined style={{ fontSize: 40 }} />
             </p>
-            <p>将文件拖到此处，或点击上传</p>
-            <p>仅允许导入 xls、xlsx 格式文件</p>
+            <p>{t('common:dragAFileHereOrClickToUpload')}</p>
+            <p>{t('common:onlyXlsAndXlsxFilesAreSupported')}</p>
           </Upload.Dragger>
           <p>
             <Checkbox
@@ -113,7 +117,7 @@ export default function ExcelImportDialog({
                 )
               }
             >
-              下载模板
+              {t('common:downloadTemplate')}
             </Button>
           )}
         </>

@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -9,34 +10,34 @@
       label-width="68px"
     >
       <el-form-item
-        label="任务名称"
+        :label="$t('monitor:job.name')"
         prop="jobName"
       >
         <el-input
           v-model="queryParams.jobName"
-          placeholder="请输入任务名称"
+          :placeholder="$t('monitor:job.namePlaceholder')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="任务组名"
+        :label="$t('monitor:job.groupName')"
         prop="jobGroup"
       >
         <el-input
           v-model="queryParams.jobGroup"
-          placeholder="请输入任务组名"
+          :placeholder="$t('monitor:interface.enterATaskGroupName')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="任务状态"
+        :label="$t('monitor:messages.taskStatus')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="请选择任务状态"
+          :placeholder="$t('monitor:messages.selectTaskStatus')"
           clearable
         >
           <el-option
@@ -53,13 +54,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -76,7 +77,7 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['monitor:job:add']"
-          >新增</el-button
+          >{{ $t('common:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -88,7 +89,7 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['monitor:job:edit']"
-          >修改</el-button
+          >{{ $t('common:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -100,7 +101,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['monitor:job:remove']"
-          >删除</el-button
+          >{{ $t('common:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -111,7 +112,7 @@
           size="mini"
           @click="handleExport"
           v-hasPermi="['monitor:job:export']"
-          >导出</el-button
+          >{{ $t('common:export') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -122,7 +123,7 @@
           size="mini"
           @click="handleJobLog"
           v-hasPermi="['monitor:job:query']"
-          >日志</el-button
+          >{{ $t('monitor:messages.logs') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -133,7 +134,7 @@
           size="mini"
           @click="handleRuntime('executions')"
           v-hasPermi="['monitor:job:query']"
-          >运行记录</el-button
+          >{{ $t('monitor:messages.executionHistory') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -153,13 +154,13 @@
         align="center"
       />
       <el-table-column
-        label="任务编号"
+        :label="$t('monitor:job.id')"
         width="100"
         align="center"
         prop="jobId"
       />
       <el-table-column
-        label="任务名称"
+        :label="$t('monitor:job.name')"
         min-width="120"
         align="center"
         :show-overflow-tooltip="true"
@@ -174,34 +175,34 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="任务组名"
+        :label="$t('monitor:job.groupName')"
         min-width="100"
         align="center"
         prop="jobGroup"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="调用目标字符串"
+        :label="$t('monitor:messages.callTarget')"
         min-width="130"
         align="center"
         prop="invokeTarget"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="cron执行表达式"
+        :label="$t('monitor:messages.cronExpression')"
         min-width="130"
         align="center"
         prop="cronExpression"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="cron时区"
+        :label="$t('monitor:job.timezone')"
         align="center"
         prop="timeZone"
         width="150"
       />
       <el-table-column
-        label="状态"
+        :label="$t('common:status')"
         align="center"
         width="80"
       >
@@ -210,14 +211,14 @@
             v-model="scope.row.status"
             active-value="0"
             inactive-value="1"
-            :aria-label="'任务 ' + scope.row.jobName + ' 的启停状态'"
+            :aria-label="$t('monitor:job.toggleLabel', { name: scope.row.jobName })"
             :disabled="changingIds.includes(scope.row.jobId)"
             @change="handleStatusChange(scope.row)"
           ></el-switch>
         </template>
       </el-table-column>
       <el-table-column
-        label="同步状态"
+        :label="$t('common:syncStatus')"
         align="center"
         width="100"
       >
@@ -240,7 +241,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         fixed="right"
         width="180"
@@ -253,7 +254,7 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['monitor:job:edit']"
-            >修改</el-button
+            >{{ $t('common:edit') }}</el-button
           >
           <el-button
             size="mini"
@@ -261,7 +262,7 @@
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['monitor:job:remove']"
-            >删除</el-button
+            >{{ $t('common:delete') }}</el-button
           >
           <el-dropdown
             size="mini"
@@ -272,7 +273,7 @@
               size="mini"
               type="text"
               icon="el-icon-d-arrow-right"
-              >更多</el-button
+              >{{ $t('common:more') }}</el-button
             >
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item
@@ -280,25 +281,25 @@
                 icon="el-icon-caret-right"
                 :disabled="runningIds.includes(scope.row.jobId)"
                 v-hasPermi="['monitor:job:changeStatus']"
-                >执行一次</el-dropdown-item
+                >{{ $t('monitor:job.runOnce') }}</el-dropdown-item
               >
               <el-dropdown-item
                 command="handleJobLog"
                 icon="el-icon-s-operation"
                 v-hasPermi="['monitor:job:query']"
-                >调度日志</el-dropdown-item
+                >{{ $t('layout:routes.jobLog') }}</el-dropdown-item
               >
               <el-dropdown-item
                 command="handleExecutions"
                 icon="el-icon-tickets"
                 v-hasPermi="['monitor:job:query']"
-                >执行记录</el-dropdown-item
+                >{{ $t('monitor:job.history') }}</el-dropdown-item
               >
               <el-dropdown-item
                 command="handleSync"
                 icon="el-icon-refresh"
                 v-hasPermi="['monitor:job:query']"
-                >同步状态</el-dropdown-item
+                >{{ $t('common:syncStatus') }}</el-dropdown-item
               >
             </el-dropdown-menu>
           </el-dropdown>
@@ -316,12 +317,13 @@
 
     <!-- 添加或修改定时任务对话框 -->
     <el-dialog
-      :title="title"
+      :title="$t(titleKey)"
       :visible.sync="open"
       width="800px"
       append-to-body
     >
       <el-form
+        :validate-on-rule-change="false"
         ref="form"
         :model="form"
         :rules="rules"
@@ -330,38 +332,40 @@
         <el-row>
           <el-col :span="24">
             <el-form-item
-              label="任务名称"
+              :label="$t('monitor:job.name')"
               prop="jobName"
             >
               <el-input
                 v-model="form.jobName"
-                placeholder="请输入任务名称"
+                :placeholder="$t('monitor:job.namePlaceholder')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="任务分组"
+              :label="$t('monitor:job.group')"
               prop="jobGroup"
             >
               <el-input
                 v-model="form.jobGroup"
-                placeholder="请输入业务分组"
+                :placeholder="$t('monitor:messages.enterBusinessGroup')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item prop="jobExecutor">
               <span slot="label">
-                任务执行器
+                {{ $t('monitor:job.executor') }}
                 <el-tooltip placement="top">
-                  <div slot="content">调用方法为异步函数时此选项无效</div>
+                  <div slot="content">
+                    {{ $t('monitor:messages.thisOptionHasNoEffectForAsynchronousFunctions') }}
+                  </div>
                   <i class="el-icon-question"></i>
                 </el-tooltip>
               </span>
               <el-select
                 v-model="form.jobExecutor"
-                placeholder="请选择任务执行器"
+                :placeholder="$t('monitor:messages.selectTaskExecutor')"
               >
                 <el-option
                   v-for="dict in dict.type.sys_job_executor"
@@ -374,12 +378,12 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="调度存储"
+              :label="$t('monitor:job.store')"
               prop="jobStore"
             >
               <el-select
                 v-model="form.jobStore"
-                placeholder="请选择调度存储"
+                :placeholder="$t('monitor:messages.selectJobStore')"
               >
                 <el-option
                   v-for="dict in dict.type.sys_job_store"
@@ -392,14 +396,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="cron时区"
+              :label="$t('monitor:job.timezone')"
               prop="timeZone"
             >
               <el-select
                 v-model="form.timeZone"
                 filterable
                 allow-create
-                placeholder="选择IANA时区"
+                :placeholder="$t('monitor:messages.selectAnIANATimeZone')"
               >
                 <el-option
                   v-for="zone in timeZoneOptions"
@@ -413,61 +417,67 @@
           <el-col :span="24">
             <el-form-item prop="invokeTarget">
               <span slot="label">
-                调用方法
+                {{ $t('monitor:messages.callMethod') }}
                 <el-tooltip placement="top">
-                  <div slot="content">调用示例：module_task.scheduler_test.job</div>
+                  <div slot="content">
+                    {{ $t('monitor:messages.exampleModuleTaskSchedulerTestJob') }}
+                  </div>
                   <i class="el-icon-question"></i>
                 </el-tooltip>
               </span>
               <el-input
                 v-model="form.invokeTarget"
-                placeholder="请输入调用目标字符串"
+                :placeholder="$t('monitor:messages.enterCallTarget')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-              label="位置参数"
+              :label="$t('monitor:job.args')"
               prop="jobArgs"
             >
               <json-editor
                 v-model="form.jobArgs"
-                label="位置参数"
+                :label="$t('monitor:job.args')"
                 value-type="array"
                 :validate="(value) => parseJobParameter(value, 'jobArgs')"
               />
-              <div class="form-help">使用 JSON 数组，无参数时填写 []。</div>
+              <div class="form-help">
+                {{ $t('monitor:interface.useAJSONArrayEnterWhenNoArgumentsAreNeeded') }}
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-              label="关键字参数"
+              :label="$t('monitor:job.kwargs')"
               prop="jobKwargs"
             >
               <json-editor
                 v-model="form.jobKwargs"
-                label="关键字参数"
+                :label="$t('monitor:job.kwargs')"
                 value-type="object"
                 :validate="(value) => parseJobParameter(value, 'jobKwargs')"
               />
-              <div class="form-help">使用 JSON 对象，无参数时填写 {}。</div>
+              <div class="form-help">
+                {{ $t('monitor:interface.useAJSONObjectEnterWhenNoArgumentsAreNeeded') }}
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-              label="cron表达式"
+              :label="$t('monitor:messages.cronExpression')"
               prop="cronExpression"
             >
               <el-input
                 v-model="form.cronExpression"
-                placeholder="请输入cron执行表达式"
+                :placeholder="$t('monitor:messages.enterCronExpression')"
               >
                 <template slot="append">
                   <el-button
                     type="primary"
                     @click="handleShowCron"
                   >
-                    生成表达式
+                    {{ $t('monitor:messages.generateExpression') }}
                     <i class="el-icon-time el-icon--right"></i>
                   </el-button>
                 </template>
@@ -478,7 +488,7 @@
             :span="24"
             v-if="form.jobId !== undefined"
           >
-            <el-form-item label="状态">
+            <el-form-item :label="$t('common:status')">
               <el-radio-group v-model="form.status">
                 <el-radio
                   v-for="dict in dict.type.sys_job_status"
@@ -491,7 +501,7 @@
           </el-col>
           <el-col :span="24">
             <el-form-item
-              label="允许延迟"
+              :label="$t('monitor:messages.allowedDelay')"
               prop="misfireGraceTime"
             >
               <el-input-number
@@ -501,34 +511,46 @@
                 :max="2147483647"
                 :precision="0"
                 controls-position="right"
-                aria-label="允许延迟秒数"
+                :aria-label="$t('monitor:messages.allowedDelayInSeconds')"
               />
               <span
                 v-if="!unlimitedDelay"
                 class="field-unit"
-                >秒</span
+                >{{ $t('common:seconds') }}</span
               >
-              <el-checkbox v-model="unlimitedDelay">不限延迟</el-checkbox>
-              <div class="form-help">超过允许延迟的计划会跳过；不限延迟时允许补跑过期计划。</div>
+              <el-checkbox v-model="unlimitedDelay">{{
+                $t('monitor:messages.unlimitedDelay')
+              }}</el-checkbox>
+              <div class="form-help">
+                {{
+                  $t(
+                    'monitor:interface.runsBeyondTheAllowedDelayAreSkippedUnlimitedDelayAllowsOverdueRunsToExecute'
+                  )
+                }}
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="积压处理"
+              :label="$t('monitor:messages.missedRuns')"
               prop="coalesce"
             >
               <el-radio-group
                 v-model="form.coalesce"
                 size="small"
               >
-                <el-radio-button :label="false">逐次执行</el-radio-button>
-                <el-radio-button :label="true">仅最近一次</el-radio-button>
+                <el-radio-button :label="false">{{
+                  $t('monitor:messages.runEachOccurrence')
+                }}</el-radio-button>
+                <el-radio-button :label="true">{{
+                  $t('monitor:expression.latestOnly')
+                }}</el-radio-button>
               </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="最大并发数"
+              :label="$t('monitor:messages.maximumConcurrency')"
               prop="maxInstances"
             >
               <el-input-number
@@ -543,7 +565,11 @@
           <el-col :span="24">
             <el-form-item>
               <div class="form-help">
-                积压处理仍受允许延迟限制；定时和手动执行共同遵守并发上限，超限时跳过并记录原因。
+                {{
+                  $t(
+                    'monitor:interface.backlogProcessingRespectsTheAllowedDelayScheduledAndManualRunsShareTheConcurrencyLimit'
+                  )
+                }}
               </div>
             </el-form-item>
           </el-col>
@@ -557,18 +583,18 @@
           type="primary"
           :loading="submitting"
           @click="submitForm"
-          >确 定</el-button
+          >{{ $t('common:confirm') }}</el-button
         >
         <el-button
           :disabled="submitting"
           @click="cancel"
-          >取 消</el-button
+          >{{ $t('common:cancel') }}</el-button
         >
       </div>
     </el-dialog>
 
     <el-dialog
-      title="Cron表达式生成器"
+      :title="$t('monitor:messages.cronExpressionGenerator')"
       :visible.sync="openCron"
       append-to-body
       destroy-on-close
@@ -599,6 +625,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import {
   listJob,
   getJob,
@@ -612,7 +640,12 @@ import JobDetail from './detail'
 import Crontab from '@/components/Crontab'
 import JobRuntime from './runtime'
 import JsonEditor from '@/components/JsonEditor'
-import { parseJobParameter, buildJobPayload, syncStates, notifyJobMutation } from '@/utils/job'
+import {
+  parseJobParameter,
+  buildJobPayload,
+  syncStates,
+  notifyJobMutation,
+} from '@/utils/jobDisplay'
 import { checkPermi } from '@/utils/permission'
 
 export default {
@@ -636,7 +669,7 @@ export default {
       // 定时任务表格数据
       jobList: [],
       // 弹出层标题
-      title: '',
+      titleKey: '',
       // 是否显示弹出层
       open: false,
       // 是否显示详细弹出层
@@ -672,7 +705,7 @@ export default {
         timeZone: [
           {
             required: true,
-            message: 'cron时区不能为空',
+            message: () => t('monitor:messages.cronTimeZoneIsRequired'),
             trigger: 'blur',
           },
         ],
@@ -687,7 +720,7 @@ export default {
             required: true,
             type: 'number',
             min: 1,
-            message: '最大并发数必须为正整数',
+            message: () => t('monitor:messages.maximumConcurrencyMustBeAPositiveInteger'),
             trigger: 'change',
           },
         ],
@@ -706,7 +739,7 @@ export default {
         jobStore: [
           {
             required: true,
-            message: '调度存储不能为空',
+            message: () => t('monitor:messages.jobStoreIsRequired'),
             trigger: 'change',
           },
         ],
@@ -714,13 +747,31 @@ export default {
           {
             required: true,
             whitespace: true,
-            message: '业务分组不能为空',
+            message: () => t('monitor:messages.businessGroupIsRequired'),
             trigger: 'blur',
           },
         ],
-        jobName: [{ required: true, message: '任务名称不能为空', trigger: 'blur' }],
-        invokeTarget: [{ required: true, message: '调用目标字符串不能为空', trigger: 'blur' }],
-        cronExpression: [{ required: true, message: 'cron执行表达式不能为空', trigger: 'blur' }],
+        jobName: [
+          {
+            required: true,
+            message: () => t('monitor:messages.taskNameIsRequired'),
+            trigger: 'blur',
+          },
+        ],
+        invokeTarget: [
+          {
+            required: true,
+            message: () => t('monitor:messages.callTargetIsRequired'),
+            trigger: 'blur',
+          },
+        ],
+        cronExpression: [
+          {
+            required: true,
+            message: () => t('monitor:messages.cronExpressionIsRequired'),
+            trigger: 'blur',
+          },
+        ],
       },
     }
   },
@@ -776,7 +827,11 @@ export default {
     },
     validateGraceTime(_rule, value, callback) {
       const valid = value === null || (Number.isInteger(value) && value >= 1 && value <= 2147483647)
-      callback(valid ? undefined : new Error('允许延迟必须为正整数秒'))
+      callback(
+        valid
+          ? undefined
+          : new Error(t('monitor:messages.allowedDelayMustBeAPositiveIntegerInSeconds'))
+      )
     },
     handleRuntime(tab, row, executionId) {
       if (!this.canQueryRuntime) return
@@ -920,9 +975,9 @@ export default {
     async handleStatusChange(row) {
       if (this.changingIds.includes(row.jobId)) return
       this.changingIds.push(row.jobId)
-      let text = row.status === '0' ? '启用' : '停用'
+      let text = row.status === '0' ? t('common:enable') : t('common:disable')
       try {
-        await this.$modal.confirm(`确认要${text}任务“${row.jobName}”吗？`)
+        await this.$modal.confirm(t('monitor:messages.task', { text, jobName: row.jobName }))
         const response = await changeJobStatus(row.jobId, row.status)
         this.showMutationResult(response)
         await this.getList()
@@ -937,7 +992,7 @@ export default {
       if (this.runningIds.includes(row.jobId)) return
       this.runningIds.push(row.jobId)
       try {
-        await this.$modal.confirm(`确认要立即执行一次任务“${row.jobName}”吗？`)
+        await this.$modal.confirm(t('monitor:messages.runTaskOnceNow', { jobName: row.jobName }))
         const response = await runJob(row.jobId)
         this.$modal.msg(response.msg)
         this.handleRuntime('executions', row, response.data.executionId)
@@ -972,7 +1027,7 @@ export default {
     handleAdd() {
       this.reset()
       this.open = true
-      this.title = '添加任务'
+      this.titleKey = 'monitor:messages.addTask'
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
@@ -985,7 +1040,7 @@ export default {
           jobKwargs: JSON.stringify(response.data.jobKwargs ?? {}, null, 2),
         }
         this.open = true
-        this.title = '修改任务'
+        this.titleKey = 'monitor:messages.editTask'
       })
     },
     /** 提交按钮 */
@@ -1011,7 +1066,7 @@ export default {
     handleDelete(row) {
       const jobIds = row.jobId || this.ids
       this.$modal
-        .confirm('是否确认删除定时任务编号为"' + jobIds + '"的数据项？')
+        .confirm(t('monitor:confirmation.deleteScheduledTasksWithIDsValue', { value0: jobIds }))
         .then(function () {
           return delJob(jobIds)
         })

@@ -1,3 +1,4 @@
+import { testLocale } from '../i18n/localeFixture.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { effectScope, nextTick, reactive, ref, watch } from 'vue'
@@ -18,6 +19,7 @@ const sessionWatch = compiled.scriptSetupAst.find(
     statement.expression.callee.name === 'watch'
 ).expression
 const installWatcher = new Function(
+  't',
   'watch',
   'route',
   'userStore',
@@ -35,6 +37,7 @@ let reopened = 0
 const scope = effectScope()
 scope.run(() =>
   installWatcher(
+    testLocale.t,
     watch,
     route,
     userStore,

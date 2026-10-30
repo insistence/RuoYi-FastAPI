@@ -9,6 +9,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from common.constant import HttpStatusConstant
 from config.env import AppConfig, TransportCryptoConfig
+from i18n.translator import I18nUtil
 from utils.transport_crypto_util import (
     DecryptedTransportEnvelope,
     TransportCryptoMonitorUtil,
@@ -666,7 +667,16 @@ class TransportCryptoMiddleware:
         :param headers: 需要追加的诊断响应头
         :return: None
         """
-        response_content = {'code': HttpStatusConstant.BAD_REQUEST, 'msg': message, 'success': False}
+        key = {
+            'Decryption failed': 'transport.decryptFailed',
+            '密钥版本不存在': 'transport.keyExpired',
+            '当前接口要求使用加密传输': 'transport.required',
+        }.get(message, 'transport.invalidRequest')
+        response_content = {
+            'code': HttpStatusConstant.BAD_REQUEST,
+            **I18nUtil.message_fields(message, msg_key=key),
+            'success': False,
+        }
         response = JSONResponse(status_code=HttpStatusConstant.BAD_REQUEST, content=response_content)
         if crypto_context:
             encrypted_body = TransportCryptoUtil.encrypt_response_body(

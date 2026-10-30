@@ -1,5 +1,6 @@
 from typing import cast
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.support import (
     PluginConfigPayloadBuilder,
@@ -57,7 +58,9 @@ class PluginConfigUseCase:
 
             return PluginConfigPayloadBuilder.build_read_payload(plugin_id, configs)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('读取插件配置失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('读取插件配置失败', msg_key='plugin.runtime.config.readFailed'), exc
+            )
 
     async def export_plugin_config(self, plugin_id: str, *, reveal_secret: bool = False) -> PluginConfigExportResponse:
         """
@@ -84,7 +87,7 @@ class PluginConfigUseCase:
         values: dict[str, PluginConfigValue],
         *,
         audit_operation: str = 'config_set',
-        success_message: str = '插件配置已更新',
+        success_message: str = I18nMessage('插件配置已更新', msg_key='plugin.runtime.config.updated'),
     ) -> PluginConfigStateResponse:
         """
         更新插件配置。
@@ -114,7 +117,9 @@ class PluginConfigUseCase:
                 configs=configs,
             )
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('更新插件配置失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('更新插件配置失败', msg_key='plugin.runtime.config.updateFailed'), exc
+            )
 
     async def import_plugin_config(
         self, plugin_id: str, values: dict[str, PluginConfigValue]

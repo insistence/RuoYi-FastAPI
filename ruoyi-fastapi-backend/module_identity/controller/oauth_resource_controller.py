@@ -158,7 +158,7 @@ async def delete_system_oauth_resources(
         after_commit=OidcRuntimeService.cors_snapshot_callback(request.app),
     )
 
-    return ResponseUtil.success(msg='OAuth 资源已停用')
+    return ResponseUtil.success(msg='OAuth 资源已停用', msg_key='identity.resource.disabled')
 
 
 @oauth_resource_controller.put(
@@ -284,7 +284,7 @@ async def delete_system_oauth_scopes(
         after_commit=OidcRuntimeService.cors_snapshot_callback(request.app),
     )
 
-    return ResponseUtil.success(msg='OAuth 权限范围已停用')
+    return ResponseUtil.success(msg='OAuth 权限范围已停用', msg_key='identity.scope.disabled')
 
 
 @oauth_scope_controller.put(

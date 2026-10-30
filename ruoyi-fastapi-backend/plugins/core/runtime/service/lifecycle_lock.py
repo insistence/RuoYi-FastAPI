@@ -11,6 +11,7 @@ from redis.exceptions import RedisError
 from common.constant import LockConstant
 from config.get_redis import RedisUtil
 from exceptions.exception import ServiceException
+from i18n.message import I18nMessage
 from utils.log_util import logger
 
 
@@ -122,14 +123,20 @@ class RedisPluginLifecycleLock:
                 if not acquired:
                     yield PluginLifecycleLockResult(
                         acquired=False,
-                        message='插件生命周期操作正在执行中，请稍后重试',
+                        message=I18nMessage(
+                            '插件生命周期操作正在执行中，请稍后重试', msg_key='plugin.runtime.lifecycle.busy'
+                        ),
                     )
                     return
                 renewal_task = self._start_lock_renewal(redis, lock_key, lock_value, asyncio.current_task())
             except RedisError as exc:
                 yield PluginLifecycleLockResult(
                     acquired=False,
-                    message=f'插件生命周期操作锁不可用：{exc}',
+                    message=I18nMessage(
+                        f'插件生命周期操作锁不可用：{exc}',
+                        msg_key='plugin.runtime.lifecycle.lockUnavailable',
+                        msg_params={'error': str(exc)},
+                    ),
                 )
                 return
 

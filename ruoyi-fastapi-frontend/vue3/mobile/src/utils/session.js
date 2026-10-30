@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { useUserStore } from '@/store/modules/user'
 import { getToken } from '@/utils/auth'
 import { showConfirm } from '@/utils/common'
@@ -14,7 +15,7 @@ export function handleSessionExpired(token) {
   if (!token || token !== getToken()) return Promise.resolve(false)
   if (sessionExpiredPromise) return sessionExpiredPromise
   sessionExpiredPromise = Promise.resolve()
-    .then(() => showConfirm('登录状态已过期，您可以继续留在该页面，或者重新登录?'))
+    .then(() => showConfirm(t('common:session.expired')))
     .then(async (result) => {
       if (!result.confirm || token !== getToken()) return false
       await useUserStore().logOut()

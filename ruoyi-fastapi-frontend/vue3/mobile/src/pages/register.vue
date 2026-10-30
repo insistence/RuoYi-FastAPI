@@ -11,8 +11,12 @@
           mode="widthFix"
         />
       </view>
-      <text class="text-xl font-bold tracking-wide text-gray-800">RuoYi-FastAPI移动端注册</text>
+      <text class="text-xl font-bold tracking-wide text-gray-800">{{
+        $t('mobile:auth.registerTitle')
+      }}</text>
     </view>
+
+    <LanguageSelect />
 
     <!-- Form Section -->
     <view class="w-full rounded-3xl bg-white/80 p-6 shadow-xl backdrop-blur-md">
@@ -27,7 +31,7 @@
           v-model="registerForm.username"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
           type="text"
-          placeholder="请输入账号"
+          :placeholder="$t('mobile:auth.usernamePlaceholder')"
           maxlength="30"
         />
       </view>
@@ -43,7 +47,7 @@
           v-model="registerForm.password"
           type="password"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-          placeholder="请输入密码"
+          :placeholder="$t('mobile:auth.passwordPlaceholder')"
           maxlength="20"
         />
       </view>
@@ -59,7 +63,7 @@
           v-model="registerForm.confirmPassword"
           type="password"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-          placeholder="请输入重复密码"
+          :placeholder="$t('mobile:auth.confirmPasswordPlaceholder')"
           maxlength="20"
         />
       </view>
@@ -79,7 +83,7 @@
             v-model="registerForm.code"
             type="number"
             class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-            placeholder="验证码"
+            :placeholder="$t('common:login.code')"
             maxlength="4"
           />
         </view>
@@ -99,7 +103,7 @@
         @click="handleRegister"
         class="flex h-12 w-full items-center justify-center rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-transform active:scale-95"
       >
-        注 册
+        {{ $t('mobile:auth.register') }}
       </button>
 
       <!-- Footer Links -->
@@ -108,7 +112,7 @@
           <text
             @click="handleUserLogin"
             class="ml-1 font-medium text-blue-600 active:opacity-70"
-            >使用已有账号登录</text
+            >{{ $t('mobile:auth.existingAccount') }}</text
           >
         </view>
       </view>
@@ -117,6 +121,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { getCodeImg, register } from '@/api/login'
 import { ref, getCurrentInstance } from 'vue'
 import { useConfigStore } from '@/store'
@@ -153,17 +158,17 @@ function getCode() {
 // 注册方法
 async function handleRegister() {
   if (registerForm.value.username === '') {
-    proxy.$modal.msgError('请输入您的账号')
+    proxy.$modal.msgError(t('common:login.usernameRequired'))
   } else if (registerForm.value.password === '') {
-    proxy.$modal.msgError('请输入您的密码')
+    proxy.$modal.msgError(t('common:login.passwordRequired'))
   } else if (registerForm.value.confirmPassword === '') {
-    proxy.$modal.msgError('请再次输入您的密码')
+    proxy.$modal.msgError(t('mobile:auth.confirmPasswordRequired'))
   } else if (registerForm.value.password !== registerForm.value.confirmPassword) {
-    proxy.$modal.msgError('两次输入的密码不一致')
+    proxy.$modal.msgError(t('mobile:password.mismatch'))
   } else if (registerForm.value.code === '' && captchaEnabled.value) {
-    proxy.$modal.msgError('请输入验证码')
+    proxy.$modal.msgError(t('common:login.codeRequired'))
   } else {
-    proxy.$modal.loading('注册中，请耐心等待...')
+    proxy.$modal.loading(t('mobile:auth.registering'))
     userRegister()
   }
 }
@@ -174,8 +179,10 @@ async function userRegister() {
     .then((res) => {
       proxy.$modal.closeLoading()
       uni.showModal({
-        title: '系统提示',
-        content: '恭喜你，您的账号 ' + registerForm.value.username + ' 注册成功！',
+        title: t('mobile:app.systemNotice'),
+        content: t('mobile:auth.registerSuccess', { username: registerForm.value.username }),
+        confirmText: t('common:confirm'),
+        cancelText: t('common:cancel'),
         success: function (res) {
           if (res.confirm) {
             uni.redirectTo({ url: `/pages/login` })

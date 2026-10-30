@@ -1,9 +1,24 @@
 import re
 from contextvars import ContextVar, Token
-from typing import Literal
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal
 
+from config.env import I18nConfig
 from exceptions.exception import LoginException
-from module_admin.entity.vo.user_vo import CurrentUserModel
+
+if TYPE_CHECKING:
+    from module_admin.entity.vo.user_vo import CurrentUserModel
+
+
+@dataclass(frozen=True)
+class LocaleContext:
+    """
+    当前请求的有效语言和国际化能力版本
+    """
+
+    locale: str = I18nConfig.i18n_default_locale
+    version: str = 'legacy'
+
 
 # 定义上下文变量
 # 存储当前请求的编译后的排除路由模式列表
@@ -11,8 +26,10 @@ current_exclude_patterns: ContextVar[
     list[dict[str, str | list[Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']] | re.Pattern]] | None
 ] = ContextVar('current_exclude_patterns', default=None)
 # 存储当前用户信息
-current_user: ContextVar[CurrentUserModel | None] = ContextVar('current_user', default=None)
+current_user: ContextVar['CurrentUserModel | None'] = ContextVar('current_user', default=None)
 current_timezone: ContextVar[str | None] = ContextVar('current_timezone', default=None)
+# 存储当前请求的有效语言和国际化能力版本
+current_locale: ContextVar[LocaleContext | None] = ContextVar('request_locale', default=None)
 
 
 class RequestContext:
@@ -49,7 +66,7 @@ class RequestContext:
         return _exclude_patterns
 
     @staticmethod
-    def set_current_user(user: CurrentUserModel) -> Token:
+    def set_current_user(user: 'CurrentUserModel') -> Token:
         """
         设置当前用户信息
 
@@ -59,7 +76,7 @@ class RequestContext:
         return current_user.set(user)
 
     @staticmethod
-    def get_current_user() -> CurrentUserModel:
+    def get_current_user() -> 'CurrentUserModel':
         """
         获取当前用户信息
 
@@ -67,7 +84,9 @@ class RequestContext:
         """
         _current_user = current_user.get()
         if _current_user is None:
-            raise LoginException(data='', message='当前用户信息为空，请检查是否已登录')
+            raise LoginException(
+                data='', message='当前用户信息为空，请检查是否已登录', msg_key='auth.currentUserMissing'
+            )
         return _current_user
 
     @staticmethod
@@ -121,6 +140,37 @@ class RequestContext:
         return preference if preference != 'auto' else None
 
     @staticmethod
+    def set_current_locale(context: LocaleContext) -> Token[LocaleContext | None]:
+        """
+        保存中间件已协商的请求语言上下文
+
+        :param context: 当前请求的有效语言和国际化能力版本
+        :return: 用于恢复上下文的令牌
+        """
+        return current_locale.set(context)
+
+    @staticmethod
+    def get_current_locale() -> LocaleContext:
+        """
+        获取当前请求的语言上下文，未设置时使用默认语言和旧协议
+
+        :return: 当前请求的语言上下文
+        """
+        context = current_locale.get()
+        if context is not None:
+            return context
+        return LocaleContext()
+
+    @staticmethod
+    def reset_current_locale(token: Token[LocaleContext | None]) -> None:
+        """
+        恢复进入当前作用域前的语言上下文
+
+        :param token: 设置语言上下文时返回的令牌
+        """
+        current_locale.reset(token)
+
+    @staticmethod
     def clear_all() -> None:
         """
         清除所有上下文变量
@@ -128,3 +178,4 @@ class RequestContext:
         current_exclude_patterns.set(None)
         current_user.set(None)
         current_timezone.set(None)
+        current_locale.set(None)

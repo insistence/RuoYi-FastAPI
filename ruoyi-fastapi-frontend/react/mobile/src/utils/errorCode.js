@@ -1,6 +1,16 @@
-export default {
-  401: '认证失败，无法访问系统资源',
-  403: '当前操作没有权限',
-  404: '访问资源不存在',
-  default: '系统未知错误，请反馈给管理员',
+export default function errorCode(t) {
+  return {
+    get 401() {
+      return t('mobile:authenticationFailedUnableToAccessSystemResources')
+    },
+    get 403() {
+      return t('mobile:youDoNotHavePermissionForThisAction')
+    },
+    get 404() {
+      return t('mobile:theRequestedResourceWasNotFound')
+    },
+    get default() {
+      return t('mobile:unknownSystemErrorContactYourAdministrator')
+    },
+  }
 }

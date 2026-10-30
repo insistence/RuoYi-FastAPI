@@ -85,41 +85,49 @@ export const dynamicRoutes = [
     path: '/system/user-auth/role/:userId',
     component: 'system/user/authRole',
     permissions: ['system:user:edit'],
-    meta: { title: '分配角色', activeMenu: '/system/user' },
+    meta: { title: '分配角色', titleKey: 'layout:route.assignRoles', activeMenu: '/system/user' },
   },
   {
     path: '/system/role-auth/user/:roleId',
     component: 'system/role/authUser',
     permissions: ['system:role:edit'],
-    meta: { title: '分配用户', activeMenu: '/system/role' },
+    meta: { title: '分配用户', titleKey: 'layout:route.assignUsers', activeMenu: '/system/role' },
   },
   {
     path: '/system/dict-data/index/:dictId',
     component: 'system/dict/data',
     permissions: ['system:dict:list'],
-    meta: { title: '字典数据', activeMenu: '/system/dict' },
+    meta: {
+      title: '字典数据',
+      titleKey: 'layout:route.dictionaryData',
+      activeMenu: '/system/dict',
+    },
   },
   {
     path: '/monitor/job-log/index/:jobId',
     component: 'monitor/job/log',
     permissions: ['monitor:job:list'],
-    meta: { title: '调度日志', activeMenu: '/monitor/job' },
+    meta: { title: '调度日志', titleKey: 'layout:route.jobLog', activeMenu: '/monitor/job' },
   },
   {
     path: '/tool/gen-edit/index/:tableId',
     component: 'tool/gen/editTable',
     permissions: ['tool:gen:edit'],
-    meta: { title: '修改生成配置', activeMenu: '/tool/gen' },
+    meta: {
+      title: '修改生成配置',
+      titleKey: 'layout:route.generatorEdit',
+      activeMenu: '/tool/gen',
+    },
   },
   {
     path: '/user/profile/:activeTab?',
     component: 'system/user/profile/index',
-    meta: { title: '个人中心' },
+    meta: { title: '个人中心', titleKey: 'layout:route.profile' },
   },
   {
     path: '/index',
     component: 'dashboard/index',
-    meta: { title: '首页', affix: true },
+    meta: { title: '首页', titleKey: 'layout:route.home', affix: true },
   },
 ]
 /**

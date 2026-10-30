@@ -2,7 +2,7 @@
   <el-card>
     <el-tabs v-model="activeName">
       <el-tab-pane
-        label="基本信息"
+        :label="$t('system:basicInformation')"
         name="basic"
       >
         <basic-info-form
@@ -11,7 +11,7 @@
         />
       </el-tab-pane>
       <el-tab-pane
-        label="字段信息"
+        :label="$t('tools:columnInformation')"
         name="columnInfo"
       >
         <el-table
@@ -21,20 +21,20 @@
           :max-height="tableHeight"
         >
           <el-table-column
-            label="序号"
+            :label="$t('system:noLabel')"
             type="index"
             min-width="5%"
             class-name="allowDrag"
           />
           <el-table-column
-            label="字段列名"
+            :label="$t('tools:columnName')"
             prop="columnName"
             min-width="10%"
             :show-overflow-tooltip="true"
             class-name="allowDrag"
           />
           <el-table-column
-            label="字段描述"
+            :label="$t('tools:columnDescription')"
             min-width="10%"
           >
             <template #default="scope">
@@ -42,13 +42,13 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="物理类型"
+            :label="$t('tools:databaseType')"
             prop="columnType"
             min-width="10%"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="Python类型"
+            :label="$t('tools:pythonType')"
             min-width="11%"
           >
             <template #default="scope">
@@ -97,7 +97,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="Python属性"
+            :label="$t('tools:pythonAttribute')"
             min-width="10%"
           >
             <template #default="scope">
@@ -106,7 +106,7 @@
           </el-table-column>
 
           <el-table-column
-            label="插入"
+            :label="$t('tools:insert')"
             min-width="5%"
           >
             <template #default="scope">
@@ -118,7 +118,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="编辑"
+            :label="$t('oauth:edit')"
             min-width="5%"
           >
             <template #default="scope">
@@ -130,7 +130,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="列表"
+            :label="$t('system:list')"
             min-width="5%"
           >
             <template #default="scope">
@@ -142,7 +142,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="查询"
+            :label="$t('monitor:search')"
             min-width="5%"
           >
             <template #default="scope">
@@ -154,7 +154,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="查询方式"
+            :label="$t('tools:queryMethod')"
             min-width="10%"
           >
             <template #default="scope">
@@ -195,7 +195,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="必填"
+            :label="$t('tools:required')"
             min-width="5%"
           >
             <template #default="scope">
@@ -207,7 +207,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="唯一"
+            :label="$t('tools:unique')"
             min-width="5%"
           >
             <template #default="scope">
@@ -219,60 +219,60 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="显示类型"
+            :label="$t('tools:displayType')"
             min-width="12%"
           >
             <template #default="scope">
               <el-select v-model="scope.row.htmlType">
                 <el-option
-                  label="文本框"
+                  :label="$t('tools:textInput')"
                   value="input"
                 />
                 <el-option
-                  label="文本域"
+                  :label="$t('tools:textArea')"
                   value="textarea"
                 />
                 <el-option
-                  label="下拉框"
+                  :label="$t('tools:dropdown')"
                   value="select"
                 />
                 <el-option
-                  label="单选框"
+                  :label="$t('tools:radioButtons')"
                   value="radio"
                 />
                 <el-option
-                  label="复选框"
+                  :label="$t('tools:checkboxes')"
                   value="checkbox"
                 />
                 <el-option
-                  label="日期（不含时间）"
+                  :label="$t('tools:dateNoTime')"
                   value="date"
                 />
                 <el-option
-                  label="时间（一天内）"
+                  :label="$t('tools:timeOfDay')"
                   value="time"
                 />
                 <el-option
-                  label="日期时间（真实时刻）"
+                  :label="$t('tools:dateAndTimeInstant')"
                   value="datetime"
                 />
                 <el-option
-                  label="图片上传"
+                  :label="$t('tools:imageUpload')"
                   value="imageUpload"
                 />
                 <el-option
-                  label="文件上传"
+                  :label="$t('tools:fileUpload')"
                   value="fileUpload"
                 />
                 <el-option
-                  label="富文本控件"
+                  :label="$t('tools:richTextEditor')"
                   value="editor"
                 />
               </el-select>
             </template>
           </el-table-column>
           <el-table-column
-            label="字典类型"
+            :label="$t('system:dictionaryType')"
             min-width="12%"
           >
             <template #default="scope">
@@ -280,7 +280,7 @@
                 v-model="scope.row.dictType"
                 clearable
                 filterable
-                placeholder="请选择"
+                :placeholder="$t('system:select')"
               >
                 <el-option
                   v-for="dict in dictOptions"
@@ -299,7 +299,7 @@
         </el-table>
       </el-tab-pane>
       <el-tab-pane
-        label="生成信息"
+        :label="$t('tools:generationSettings')"
         name="genInfo"
       >
         <gen-info-form
@@ -314,15 +314,16 @@
         <el-button
           type="primary"
           @click="submitForm()"
-          >提交</el-button
+          >{{ $t('system:submit') }}</el-button
         >
-        <el-button @click="close()">返回</el-button>
+        <el-button @click="close()">{{ $t('layout:error.back') }}</el-button>
       </div>
     </el-form>
   </el-card>
 </template>
 
 <script setup name="GenEdit">
+import { t } from '@/i18n/adapter'
 import { getGenTable, updateGenTable } from '@/api/tool/gen'
 import { optionselect as getDictOptionselect } from '@/api/system/dict/type'
 import basicInfoForm from './basicInfoForm'
@@ -362,7 +363,7 @@ function submitForm() {
         }
       })
     } else {
-      proxy.$modal.msgError('表单校验未通过，请重新检查提交内容')
+      proxy.$modal.msgError(t('tools:formValidationFailedCheckTheSubmittedValues'))
     }
   })
 }

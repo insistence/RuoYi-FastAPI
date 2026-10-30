@@ -28,7 +28,7 @@
         v-show="!collapsed"
       >
         <el-tooltip
-          :content="isExpandedAll ? '收起全部' : '展开全部'"
+          :content="isExpandedAll ? $t('components:collapseAll') : $t('components:expandAll')"
           placement="right"
         >
           <el-icon
@@ -40,7 +40,7 @@
           </el-icon>
         </el-tooltip>
         <el-tooltip
-          content="刷新"
+          :content="$t('layout:tags.refresh')"
           placement="right"
         >
           <el-icon
@@ -56,7 +56,7 @@
     <!-- 侧边栏展开/收起按钮 -->
     <div class="collapse-button-container">
       <el-tooltip
-        :content="collapsed ? '展开' : '收起'"
+        :content="collapsed ? $t('components:expand') : $t('components:collapse')"
         placement="right"
       >
         <el-icon
@@ -130,6 +130,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 const props = defineProps({
   // 树形数据
   treeData: {
@@ -139,7 +140,7 @@ const props = defineProps({
   // 标题
   title: {
     type: String,
-    default: '树形结构',
+    default: () => t('components:treeStructure'),
   },
   // 标题图标
   titleIcon: {
@@ -154,7 +155,7 @@ const props = defineProps({
   // 搜索框占位符
   searchPlaceholder: {
     type: String,
-    default: '请输入名称',
+    default: '',
   },
   // 是否默认收起侧边栏
   defaultCollapsed: {

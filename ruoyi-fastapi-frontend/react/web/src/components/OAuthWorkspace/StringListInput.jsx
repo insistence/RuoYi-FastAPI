@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Button, Input } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import './style.css'
@@ -5,8 +7,10 @@ export default function StringListInput({
   value = [],
   onChange,
   placeholder = '',
-  addText = '添加一项',
+  addText = t('common:addItem'),
 }) {
+  useI18n()
+
   const items = value.length ? value : ['']
   function update(index, next) {
     const list = [...items]
@@ -33,7 +37,7 @@ export default function StringListInput({
           <Button
             danger
             type="text"
-            aria-label={`删除第 ${index + 1} 项`}
+            aria-label={t('common:deleteItemValue', { arg0: index + 1 })}
             icon={<DeleteOutlined />}
             onClick={() => onChange?.(items.filter((_, i) => i !== index))}
           />

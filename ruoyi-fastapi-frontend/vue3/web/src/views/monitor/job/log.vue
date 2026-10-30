@@ -8,60 +8,60 @@
       label-width="68px"
     >
       <el-form-item
-        label="任务名称"
+        :label="$t('monitor:taskName')"
         prop="jobName"
       >
         <el-input
           v-model="queryParams.jobName"
-          placeholder="请输入任务名称"
+          :placeholder="$t('monitor:enterATaskName')"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="业务分组"
+        :label="$t('monitor:businessGroup')"
         prop="jobGroup"
       >
         <el-input
           v-model="queryParams.jobGroup"
-          placeholder="请输入业务分组"
+          :placeholder="$t('monitor:enterBusinessGroup')"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="任务编号"
+        :label="$t('monitor:taskID')"
         prop="jobId"
       >
         <el-input
           v-model="queryParams.jobId"
-          placeholder="精确匹配任务ID"
+          :placeholder="$t('monitor:exactTaskID')"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="执行编号"
+        :label="$t('monitor:executionID')"
         prop="executionId"
       >
         <el-input
           v-model="queryParams.executionId"
-          placeholder="精确匹配执行ID"
+          :placeholder="$t('monitor:exactExecutionID')"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="执行状态"
+        :label="$t('monitor:executionStatus')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="请选择执行状态"
+          :placeholder="$t('monitor:selectExecutionStatus')"
           clearable
           style="width: 240px"
         >
@@ -74,17 +74,17 @@
         </el-select>
       </el-form-item>
       <el-form-item
-        label="执行时间"
+        :label="$t('monitor:executionTime')"
         style="width: 308px"
       >
         <el-date-picker
           v-model="dateRange"
           value-format="YYYY-MM-DD"
           type="daterange"
-          :aria-label="`日期范围（${getDisplayTimezone()}）`"
+          :aria-label="$t('monitor:dateRangeValue', { value0: getDisplayTimezone() })"
           range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
+          :start-placeholder="$t('system:startDate')"
+          :end-placeholder="$t('system:endDate')"
         ></el-date-picker>
       </el-form-item>
       <el-form-item>
@@ -92,12 +92,12 @@
           type="primary"
           icon="Search"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('system:search') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -114,7 +114,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['monitor:job:remove']"
-          >删除</el-button
+          >{{ $t('system:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -124,7 +124,7 @@
           icon="Delete"
           @click="handleClean"
           v-hasPermi="['monitor:job:remove']"
-          >清空</el-button
+          >{{ $t('monitor:clear') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -134,7 +134,7 @@
           icon="Download"
           @click="handleExport"
           v-hasPermi="['monitor:job:export']"
-          >导出</el-button
+          >{{ $t('system:export') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -143,7 +143,7 @@
           plain
           icon="Close"
           @click="handleClose"
-          >关闭</el-button
+          >{{ $t('layout:search.close') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -163,25 +163,25 @@
         align="center"
       />
       <el-table-column
-        label="日志编号"
+        :label="$t('monitor:logID')"
         width="80"
         align="center"
         prop="jobLogId"
       />
       <el-table-column
-        label="任务编号"
+        :label="$t('monitor:taskID')"
         width="90"
         align="center"
         prop="jobId"
       />
       <el-table-column
-        label="任务名称"
+        :label="$t('monitor:taskName')"
         align="center"
         prop="jobName"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="业务分组"
+        :label="$t('monitor:businessGroup')"
         align="center"
         prop="jobGroup"
         :show-overflow-tooltip="true"
@@ -191,19 +191,19 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="调用目标字符串"
+        :label="$t('monitor:callTarget')"
         align="center"
         prop="invokeTarget"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="日志信息"
+        :label="$t('monitor:logInformation')"
         align="center"
         prop="jobMessage"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="执行状态"
+        :label="$t('monitor:executionStatus')"
         align="center"
         prop="status"
       >
@@ -215,7 +215,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="执行时间"
+        :label="$t('monitor:executionTime')"
         align="center"
         prop="createTime"
         width="180"
@@ -225,7 +225,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -236,7 +236,7 @@
             icon="View"
             @click="handleView(scope.row)"
             v-hasPermi="['monitor:job:query']"
-            >详细</el-button
+            >{{ $t('monitor:details') }}</el-button
           >
         </template>
       </el-table-column>
@@ -260,6 +260,7 @@
 </template>
 
 <script setup name="JobLog">
+import { t } from '@/i18n/adapter'
 import { getDisplayTimezone } from '@/utils/time'
 import JobDetail from './detail'
 import { listJobLog, delJobLog, cleanJobLog } from '@/api/monitor/jobLog'
@@ -338,26 +339,26 @@ function handleView(row) {
 /** 删除按钮操作 */
 function handleDelete(row) {
   proxy.$modal
-    .confirm('是否确认删除调度日志编号为"' + ids.value + '"的数据项?')
+    .confirm(t('system:confirmation.deleteIds', { ids: ids.value }))
     .then(function () {
       return delJobLog(ids.value)
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('删除成功')
+      proxy.$modal.msgSuccess(t('system:deletedSuccessfully'))
     })
     .catch(() => {})
 }
 /** 清空按钮操作 */
 function handleClean() {
   proxy.$modal
-    .confirm('是否确认清空所有调度日志数据项?')
+    .confirm(t('monitor:clearAllSchedulerLogs'))
     .then(function () {
       return cleanJobLog()
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('清空成功')
+      proxy.$modal.msgSuccess(t('monitor:clearedSuccessfully'))
     })
     .catch(() => {})
 }

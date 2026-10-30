@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -150,6 +151,8 @@ def test_builtin_sql_uses_ordered_plugin_operation_dict_ids() -> None:
     """校验内置 SQL 中插件操作类型字典 ID 已顺序整理。"""
     for sql_path, _quote in SQL_FILES:
         sql_content = read_sql(sql_path)
-        assert "insert into sys_dict_type values(12, '插件操作类型', 'plugin_operation_type'" in sql_content
+        assert re.search(
+            r"insert into sys_dict_type(?: \([^)]*\))? values\(12, '插件操作类型', 'plugin_operation_type'", sql_content
+        )
         for dict_code in range(33, 48):
-            assert f'insert into sys_dict_data values({dict_code},' in sql_content
+            assert re.search(rf'insert into sys_dict_data(?: \([^)]*\))? values\({dict_code},', sql_content)

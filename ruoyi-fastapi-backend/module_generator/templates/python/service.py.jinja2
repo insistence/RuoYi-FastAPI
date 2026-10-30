@@ -10,8 +10,13 @@ from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.constant import CommonConstant
+from common.context import RequestContext
 from common.vo import CrudResponseModel, PageModel
 from exceptions.exception import ServiceException
+from i18n.message import I18nMessage
+{% if dicts %}
+from i18n.translation import TranslationUtil
+{% endif %}
 from {{ packageName }}.dao.{{ businessName }}_dao import {{ BusinessName }}Dao
 from {{ packageName }}.entity.vo.{{ businessName }}_vo import Delete{{ BusinessName }}Model, {{ BusinessName }}Model, {{ BusinessName }}PageQueryModel
 {% if dicts %}
@@ -78,7 +83,11 @@ class {{ BusinessName }}Service:
         {% set comment = column.column_comment[:parentheseIndex] if parentheseIndex != -1 else column.column_comment %}
         {% if column.unique %}
         if not await cls.check_{{ column.python_field | camel_to_snake }}_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增{{ functionName }}{page_object.{{ column.python_field | camel_to_snake }}}失败，{{ comment }}已存在')
+            raise ServiceException(
+                message={{ ('新增' ~ functionName) | tojson }} + str(page_object.{{ column.python_field | camel_to_snake }}) + {{ ('失败，' ~ comment ~ '已存在') | tojson }},
+                msg_key={{ i18nBackendText('fields.' ~ column.python_field ~ '.createDuplicate', '新增' ~ functionName ~ '%(value)s失败，' ~ comment ~ '已存在') | tojson }},
+                msg_params={'value': page_object.{{ column.python_field | camel_to_snake }}},
+            )
         {% endif %}
         {% endfor %}
         try:
@@ -91,7 +100,7 @@ class {{ BusinessName }}Service:
             await {{ BusinessName }}Dao.add_{{ businessName }}_dao(query_db, page_object)
             {% endif %}
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -113,7 +122,11 @@ class {{ BusinessName }}Service:
             {% set comment = column.column_comment[:parentheseIndex] if parentheseIndex != -1 else column.column_comment %}
             {% if column.unique %}
             if not await cls.check_{{ column.python_field | camel_to_snake }}_unique_services(query_db, page_object):
-                raise ServiceException(message=f'修改{{ functionName }}{page_object.{{ column.python_field | camel_to_snake }}}失败，{{ comment }}已存在')
+                raise ServiceException(
+                    message={{ ('修改' ~ functionName) | tojson }} + str(page_object.{{ column.python_field | camel_to_snake }}) + {{ ('失败，' ~ comment ~ '已存在') | tojson }},
+                    msg_key={{ i18nBackendText('fields.' ~ column.python_field ~ '.updateDuplicate', '修改' ~ functionName ~ '%(value)s失败，' ~ comment ~ '已存在') | tojson }},
+                    msg_params={'value': page_object.{{ column.python_field | camel_to_snake }}},
+                )
             {% endif %}
             {% endfor %}
             try:
@@ -125,12 +138,15 @@ class {{ BusinessName }}Service:
                     await {{ BusinessName }}Dao.add_{{ subTable.business_name }}_dao(query_db, sub_table)
                 {% endif %}
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='更新成功')
+                return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='{{ functionName }}不存在')
+            raise ServiceException(
+                message={{ (functionName ~ '不存在') | tojson }},
+                msg_key={{ i18nBackendText('notFound', functionName ~ '不存在') | tojson }},
+            )
 
     @classmethod
     async def delete_{{ businessName }}_services(cls, query_db: AsyncSession, page_object: Delete{{ BusinessName }}Model) -> CrudResponseModel:
@@ -152,12 +168,15 @@ class {{ BusinessName }}Service:
                     {% endif %}
                     await {{ BusinessName }}Dao.delete_{{ businessName }}_dao(query_db, {{ BusinessName }}Model({{ pkField }}={{ pk_field }}))
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入{{ pk_field_comment }}为空')
+            raise ServiceException(
+                message={{ ('传入' ~ pk_field_comment ~ '为空') | tojson }},
+                msg_key={{ i18nBackendText('idsRequired', '传入' ~ pk_field_comment ~ '为空') | tojson }},
+            )
 
     @classmethod
     async def {{ businessName }}_detail_services(cls, query_db: AsyncSession, {{ pk_field }}: int) -> {{ BusinessName }}Model:
@@ -181,12 +200,16 @@ class {{ BusinessName }}Service:
         :param {{ businessName }}_list: {{ functionName }}信息列表
         :return: {{ functionName }}信息对应excel的二进制数据
         """
-        # 创建一个映射字典，将英文键映射到中文键
+        # 导出前捕获语言，表头和字典显示按同一快照生成。
+        locale_context = RequestContext.get_current_locale()
         mapping_dict = {
             {% for column in columns %}
             {% set parentheseIndex = column.column_comment.find("（") %}
             {% set comment = column.column_comment[:parentheseIndex] if parentheseIndex != -1 else column.column_comment %}
-            '{{ column.python_field }}': '{{ comment }}',
+            '{{ column.python_field }}': I18nMessage(
+                {{ comment | tojson }},
+                msg_key={{ i18nBackendFieldKey(column) | tojson }},
+            ),
             {% endfor %}
         }
         {% if dicts %}
@@ -194,7 +217,17 @@ class {{ BusinessName }}Service:
         {{ dict_type[1:-1] }}_list = await DictDataService.query_dict_data_list_from_cache_services(
             request.app.state.redis, dict_type={{ dict_type }}
         )
-        {{ dict_type[1:-1] }}_option = [{'label': item.get('dictLabel'), 'value': item.get('dictValue')} for item in {{ dict_type[1:-1] }}_list]
+        {{ dict_type[1:-1] }}_option = [
+            {
+                'label': TranslationUtil.resolve(
+                    item.get('dictLabel'),
+                    item.get('dictLabelI18n'),
+                    locale=locale_context.locale,
+                ) if locale_context.version == 'v1' else item.get('dictLabel'),
+                'value': item.get('dictValue'),
+            }
+            for item in {{ dict_type[1:-1] }}_list
+        ]
         {{ dict_type[1:-1] }}_option_dict = {item.get('value'): item for item in {{ dict_type[1:-1] }}_option}
         {% endfor %}
         for item in {{ businessName }}_list:
@@ -205,6 +238,6 @@ class {{ BusinessName }}Service:
             {% endif %}
             {% endfor %}
         {% endif %}
-        binary_data = ExcelUtil.export_list2excel({{ businessName }}_list, mapping_dict)
+        binary_data = ExcelUtil.export_list2excel({{ businessName }}_list, mapping_dict, locale_context=locale_context)
 
         return binary_data

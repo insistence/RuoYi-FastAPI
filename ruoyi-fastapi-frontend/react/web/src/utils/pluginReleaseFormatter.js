@@ -1,21 +1,60 @@
+import { t } from '../i18n/index.js'
 const RELEASE_STATUSES = {
-  active: { label: '已生效', tagType: 'success' },
-  disabled: { label: '已停用', tagType: 'info' },
-  partial: { label: '部分生效', tagType: 'warning' },
-  pending_restart: { label: '等待重启', tagType: 'warning' },
-  failed: { label: '发布异常', tagType: 'danger' },
-  no_target: { label: '未选择目标', tagType: 'info' },
+  active: {
+    get label() {
+      return t('common:active')
+    },
+    tagType: 'success',
+  },
+  disabled: {
+    get label() {
+      return t('common:disabled')
+    },
+    tagType: 'info',
+  },
+  partial: {
+    get label() {
+      return t('common:partiallyActive')
+    },
+    tagType: 'warning',
+  },
+  pending_restart: {
+    get label() {
+      return t('common:waitingForRestart')
+    },
+    tagType: 'warning',
+  },
+  failed: {
+    get label() {
+      return t('common:releaseError')
+    },
+    tagType: 'danger',
+  },
+  no_target: {
+    get label() {
+      return t('common:noTargetSelected')
+    },
+    tagType: 'info',
+  },
 }
 
 const PREPARATION_LABELS = {
-  idle: '尚未准备',
-  preparing: '准备中',
-  prepared: '准备完成',
-  failed: '准备失败',
+  get idle() {
+    return t('common:notPrepared')
+  },
+  get preparing() {
+    return t('common:preparing')
+  },
+  get prepared() {
+    return t('common:prepared')
+  },
+  get failed() {
+    return t('common:preparationFailed')
+  },
 }
 
 function workerCount(value) {
-  return Number.isInteger(value) && value >= 0 ? String(value) : '未知'
+  return Number.isInteger(value) && value >= 0 ? String(value) : t('common:unknown')
 }
 
 /**
@@ -27,18 +66,21 @@ function workerCount(value) {
 export function getPluginReleaseView(plugin = {}) {
   const release = plugin.release || {}
   const status = RELEASE_STATUSES[release.status] || {
-    label: '状态未知',
+    label: t('common:unknownStatus'),
     tagType: 'info',
   }
   const error = release.verificationError || release.lastError || ''
   return {
     ...status,
-    label: release.verificationError ? '验证失败' : status.label,
+    label: release.verificationError ? t('common:validationFailed') : status.label,
     tagType: release.verificationError ? 'danger' : status.tagType,
-    preparationLabel: PREPARATION_LABELS[release.prepareStatus] || '未知',
-    workerSummary: `${plugin.enabled === '1' ? '已停用' : '已就绪'} ${workerCount(
-      plugin.enabled === '1' ? release.disabledWorkers : release.healthyWorkers
-    )} · 在线 ${workerCount(release.liveWorkers)} / 预期 ${workerCount(release.expectedWorkers)}`,
+    preparationLabel: PREPARATION_LABELS[release.prepareStatus] || t('common:unknown'),
+    workerSummary: t('common:valueValueOnlineValueExpectedValue', {
+      arg0: plugin.enabled === '1' ? t('common:disabled') : t('common:ready'),
+      arg1: workerCount(plugin.enabled === '1' ? release.disabledWorkers : release.healthyWorkers),
+      arg2: workerCount(release.liveWorkers),
+      arg3: workerCount(release.expectedWorkers),
+    }),
     counts: {
       healthy: workerCount(release.healthyWorkers),
       disabled: workerCount(release.disabledWorkers),

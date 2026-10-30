@@ -1,16 +1,16 @@
 <template>
   <section
     class="config-status"
-    aria-label="配置生效状态"
+    :aria-label="$t('pluginAdmin:messages.configurationActivationStatus')"
     :aria-busy="loading"
   >
     <div class="config-status-toolbar">
-      <strong>配置生效状态</strong>
+      <strong>{{ $t('pluginAdmin:messages.configurationActivationStatus') }}</strong>
       <el-button
         type="text"
         :loading="loading"
         @click="refresh"
-        >刷新状态</el-button
+        >{{ $t('pluginAdmin:messages.refreshStatus') }}</el-button
       >
     </div>
     <p
@@ -23,7 +23,7 @@
       v-else-if="loading && !data"
       role="status"
     >
-      正在查询配置版本…
+      {{ $t('pluginAdmin:messages.loadingConfigurationVersions') }}
     </p>
     <template v-else-if="data">
       <el-alert
@@ -35,13 +35,18 @@
       <p class="config-status-help">
         {{
           data.scope === 'reporting_workers'
-            ? '仅统计已上报进程'
+            ? $t('pluginAdmin:expression.includesOnlyReportingProcesses')
             : data.scope === 'current_worker'
-              ? '当前查询仅有本进程数据'
-              : '当前尚无可用的进程数据'
-        }}。 启动快照在重启后更新；插件主动读取最新配置时，由插件负责应用。
+              ? $t('pluginAdmin:expression.thisQueryIncludesOnlyTheCurrentProcess')
+              : $t('pluginAdmin:expression.noProcessDataAvailable')
+        }}{{
+          $t(
+            'pluginAdmin:messages.startupSnapshotsUpdateAfterRestartPluginsAreResponsibleForApplyingConfigurationThey'
+          )
+        }}
         <template v-if="data.sampleIntervalSeconds"
-          >远程状态每 {{ data.sampleIntervalSeconds }} 秒上报。</template
+          >{{ $t('pluginAdmin:messages.remoteStatusIsReportedEvery') }}
+          {{ data.sampleIntervalSeconds }} {{ $t('pluginAdmin:messages.seconds') }}</template
         >
       </p>
       <p
@@ -53,13 +58,22 @@
         "
         class="config-status-help"
       >
-        部分进程版本尚不能确认：{{ data.unknownWorkers || 0 }} 个未上报配置版本，
-        {{ data.invalidSnapshots || 0 }} 个无效采样，{{ data.staleSnapshots || 0 }} 个过期采样。
-        <template v-if="data.workerLimitReached">本次查询已达到进程采样上限。</template>
+        {{ $t('pluginAdmin:messages.someProcessVersionsAreUnconfirmed')
+        }}{{ data.unknownWorkers || 0 }}
+        {{ $t('pluginAdmin:messages.haveNotReportedAConfigurationVersion') }}
+        {{ data.invalidSnapshots || 0 }} {{ $t('pluginAdmin:messages.invalidSamples')
+        }}{{ data.staleSnapshots || 0 }} {{ $t('pluginAdmin:messages.expiredSamples') }}
+        <template v-if="data.workerLimitReached">{{
+          $t('pluginAdmin:messages.thisQueryReachedTheProcessSamplingLimit')
+        }}</template>
       </p>
       <details>
-        <summary>查看配置版本与进程明细</summary>
-        <p class="config-revision">已保存版本：{{ data.desiredRevision }}</p>
+        <summary>
+          {{ $t('pluginAdmin:messages.viewConfigurationVersionsAndProcessDetails') }}
+        </summary>
+        <p class="config-revision">
+          {{ $t('pluginAdmin:messages.savedVersion') }}{{ data.desiredRevision }}
+        </p>
         <ul
           v-if="(data.workers || []).length"
           class="config-workers"
@@ -68,32 +82,46 @@
             v-for="worker in data.workers"
             :key="worker.workerId"
           >
-            <p class="config-revision">进程 {{ worker.workerId }} · 插件 {{ worker.version }}</p>
+            <p class="config-revision">
+              {{ $t('pluginAdmin:messages.process') }} {{ worker.workerId }}
+              {{ $t('pluginAdmin:messages.plugin') }} {{ worker.version }}
+            </p>
             <p>
               {{
                 !worker.active
-                  ? '尚未激活'
+                  ? $t('pluginAdmin:expression.notActivated')
                   : worker.matchesDesired
-                    ? '启动快照匹配'
-                    : '启动快照待重启更新'
+                    ? $t('pluginAdmin:expression.startupSnapshotMatches')
+                    : $t('pluginAdmin:expression.startupSnapshotWillUpdateAfterRestart')
               }}
             </p>
-            <p class="config-revision">启动版本：{{ worker.startupRevision }}</p>
+            <p class="config-revision">
+              {{ $t('pluginAdmin:messages.startupVersion') }}{{ worker.startupRevision }}
+            </p>
             <p
               v-if="worker.lastReadRevision"
               class="config-revision"
             >
-              最近按需读取：{{ worker.lastReadRevision }}（不表示业务已应用）
+              {{ $t('pluginAdmin:messages.lastOnDemandRead') }}{{ worker.lastReadRevision
+              }}{{ $t('pluginAdmin:messages.doesNotConfirmApplicationByTheBusinessLogic') }}
             </p>
           </li>
         </ul>
-        <p v-else>尚未观测到支持配置版本上报的进程。</p>
+        <p v-else>
+          {{
+            $t(
+              'pluginAdmin:messages.noProcessesSupportingConfigurationVersionReportingHaveBeenObserved'
+            )
+          }}
+        </p>
       </details>
     </template>
   </section>
 </template>
 
 <script setup name="PluginConfigStatus">
+import { t } from '@/i18n/adapter'
+
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { getPluginConfigStatus } from '@/api/system/plugin'
 
@@ -108,10 +136,16 @@ let revision = 0
 let controller
 const statusText = computed(() => {
   if (data.value?.state === 'restart_required')
-    return `${data.value.pendingWorkers} 个已观测进程的启动配置待重启更新`
+    return t(
+      'pluginAdmin:messages.startupConfigurationForObservedProcessesWillUpdateAfterRestart',
+      { pendingWorkers: data.value.pendingWorkers }
+    )
   if (data.value?.state === 'observed_match')
-    return `${data.value.matchedWorkers} 个已观测进程的启动配置与保存版本匹配`
-  return '尚未观测到运行中的启动配置版本，请确认插件已启用并完成启动'
+    return t(
+      'pluginAdmin:messages.startupConfigurationForObservedProcessesMatchesTheSavedVersion',
+      { matchedWorkers: data.value.matchedWorkers }
+    )
+  return t('pluginAdmin:messages.noRunningStartupConfigurationHasBeenObservedCheckThatThePluginIs')
 })
 const statusType = computed(() => (data.value?.state === 'restart_required' ? 'warning' : 'info'))
 
@@ -127,7 +161,9 @@ async function refresh() {
   } catch {
     if (current === revision) {
       data.value = null
-      error.value = '配置状态查询失败，已保存内容不受影响，可刷新重试。'
+      error.value = t(
+        'pluginAdmin:messages.couldNotLoadConfigurationStatusSavedSettingsAreUnaffectedRefreshToTry'
+      )
     }
   } finally {
     if (current === revision) loading.value = false

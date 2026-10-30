@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Modal, Tag } from 'antd'
 import {
   InfoCircleOutlined,
@@ -13,7 +15,7 @@ import DictTag from '@/components/DictTag'
 import { DetailCard, DetailFields, DetailCode, DetailError } from '@/components/DetailPanel'
 
 function formatJson(value) {
-  if (!value) return '（无数据）'
+  if (!value) return t('monitor:noData')
   try {
     return JSON.stringify(typeof value === 'string' ? JSON.parse(value) : value, null, 2)
   } catch {
@@ -21,11 +23,13 @@ function formatJson(value) {
   }
 }
 export default function OperlogDetail({ open, row = {}, onClose }) {
+  useI18n()
+
   const { sys_oper_type } = useDict('sys_oper_type')
   const field = (label, value, full = false, mono = false) => ({ label, value, full, mono })
   return (
     <Modal
-      title="操作日志详细"
+      title={t('monitor:operationLogDetails')}
       open={open}
       onCancel={onClose}
       width={780}
@@ -33,39 +37,39 @@ export default function OperlogDetail({ open, row = {}, onClose }) {
     >
       <div className="detail-wrap">
         <DetailCard
-          title="基本信息"
+          title={t('common:basicInfo')}
           icon={<InfoCircleOutlined />}
         >
           <DetailFields
             items={[
-              field('操作模块', row.title),
+              field(t('monitor:module'), row.title),
               field(
-                '业务类型',
+                t('monitor:log.businessType'),
                 <DictTag
                   value={row.businessType}
                   options={sys_oper_type}
                 />
               ),
-              field('操作时间', parseTime(row.operTime) || '-'),
+              field(t('monitor:log.operationTime'), parseTime(row.operTime) || '-'),
               field(
-                '执行状态',
+                t('monitor:job.executionStatus'),
                 <Tag color={String(row.status) === '0' ? 'success' : 'error'}>
-                  {String(row.status) === '0' ? '正常' : '异常'}
+                  {String(row.status) === '0' ? t('layout:notices.active') : t('common:exception')}
                 </Tag>
               ),
             ]}
           />
         </DetailCard>
         <DetailCard
-          title="操作人员"
+          title={t('monitor:log.operator')}
           icon={<UserOutlined />}
         >
           <DetailFields
             items={[
-              field('操作人员', row.operName),
-              row.deptName && field('所属部门', row.deptName),
+              field(t('monitor:log.operator'), row.operName),
+              row.deptName && field(t('system:user.department'), row.deptName),
               field(
-                '操作地址',
+                t('monitor:operationAddress'),
                 <>
                   {row.operIp}　<span className="detail-location">{row.operLocation}</span>
                 </>,
@@ -75,13 +79,13 @@ export default function OperlogDetail({ open, row = {}, onClose }) {
           />
         </DetailCard>
         <DetailCard
-          title="请求信息"
+          title={t('monitor:requestInformation')}
           icon={<SwapOutlined />}
         >
           <DetailFields
             items={[
               field(
-                '请求地址',
+                t('monitor:requestUrl'),
                 <>
                   <span className={`method-tag method-${row.requestMethod}`}>
                     {row.requestMethod}
@@ -90,13 +94,16 @@ export default function OperlogDetail({ open, row = {}, onClose }) {
                 </>,
                 true
               ),
-              field('操作方法', row.method, true, true),
-              field('消耗时间', `${row.costTime ?? '-'} 毫秒`),
+              field(t('monitor:operationMethod'), row.method, true, true),
+              field(
+                t('monitor:duration'),
+                t('monitor:operlog.valueMs', { arg0: row.costTime ?? '-' })
+              ),
             ]}
           />
         </DetailCard>
         <DetailCard
-          title="请求参数"
+          title={t('monitor:requestParameters')}
           icon={<UploadOutlined />}
         >
           <DetailCode
@@ -105,7 +112,7 @@ export default function OperlogDetail({ open, row = {}, onClose }) {
           />
         </DetailCard>
         <DetailCard
-          title="返回参数"
+          title={t('monitor:responseData')}
           icon={<DownloadOutlined />}
         >
           <DetailCode
@@ -115,7 +122,7 @@ export default function OperlogDetail({ open, row = {}, onClose }) {
         </DetailCard>
         {String(row.status) !== '0' && (
           <DetailCard
-            title="异常信息"
+            title={t('monitor:exceptionDetails')}
             icon={<WarningOutlined />}
             error
           >

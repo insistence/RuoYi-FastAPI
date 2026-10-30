@@ -6,24 +6,24 @@
       :inline="true"
     >
       <el-form-item
-        label="登录地址"
+        :label="$t('monitor:signInLocation')"
         prop="ipaddr"
       >
         <el-input
           v-model="queryParams.ipaddr"
-          placeholder="请输入登录地址"
+          :placeholder="$t('monitor:enterSignInAddress')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="用户名称"
+        :label="$t('system:userName')"
         prop="userName"
       >
         <el-input
           v-model="queryParams.userName"
-          placeholder="请输入用户名称"
+          :placeholder="$t('system:enterUserName')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
@@ -34,12 +34,12 @@
           type="primary"
           icon="Search"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('system:search') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -49,7 +49,7 @@
       style="width: 100%"
     >
       <el-table-column
-        label="序号"
+        :label="$t('system:noLabel')"
         width="50"
         type="index"
         align="center"
@@ -59,49 +59,49 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="会话编号"
+        :label="$t('monitor:sessionIDLabel')"
         align="center"
         prop="tokenId"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="登录名称"
+        :label="$t('system:loginName')"
         align="center"
         prop="userName"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="所属部门"
+        :label="$t('system:department')"
         align="center"
         prop="deptName"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="主机"
+        :label="$t('monitor:host')"
         align="center"
         prop="ipaddr"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="登录地点"
+        :label="$t('monitor:signInLocationLabel')"
         align="center"
         prop="loginLocation"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="操作系统"
+        :label="$t('monitor:operatingSystem')"
         align="center"
         prop="os"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="浏览器"
+        :label="$t('monitor:browser')"
         align="center"
         prop="browser"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="登录时间"
+        :label="$t('monitor:signInTime')"
         align="center"
         prop="loginTime"
         width="180"
@@ -111,7 +111,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -122,7 +122,7 @@
             icon="Delete"
             @click="handleForceLogout(scope.row)"
             v-hasPermi="['monitor:online:forceLogout']"
-            >强退</el-button
+            >{{ $t('monitor:forceSignOut') }}</el-button
           >
         </template>
       </el-table-column>
@@ -138,6 +138,7 @@
 </template>
 
 <script setup name="Online">
+import { t } from '@/i18n/adapter'
 import { forceLogout, list as initData } from '@/api/monitor/online'
 
 const { proxy } = getCurrentInstance()
@@ -175,13 +176,13 @@ function resetQuery() {
 /** 强退按钮操作 */
 function handleForceLogout(row) {
   proxy.$modal
-    .confirm('是否确认强退名称为"' + row.userName + '"的用户?')
+    .confirm(t('monitor:confirm.forceSignOut', { name: row.userName }))
     .then(function () {
       return forceLogout(row.tokenId)
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('删除成功')
+      proxy.$modal.msgSuccess(t('system:deletedSuccessfully'))
     })
     .catch(() => {})
 }

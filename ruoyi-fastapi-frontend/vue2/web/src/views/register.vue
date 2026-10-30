@@ -1,6 +1,7 @@
 <template>
   <div class="register">
     <el-form
+      :validate-on-rule-change="false"
       ref="registerForm"
       :model="registerForm"
       :rules="registerRules"
@@ -12,7 +13,7 @@
           v-model="registerForm.username"
           type="text"
           auto-complete="off"
-          placeholder="账号"
+          :placeholder="$t('authCenter:interface.username')"
         >
           <svg-icon
             slot="prefix"
@@ -29,7 +30,7 @@
           v-model="registerForm.password"
           type="password"
           auto-complete="off"
-          placeholder="密码"
+          :placeholder="$t('authCenter:interface.password')"
           @keyup.enter.native="handleRegister"
         >
           <svg-icon
@@ -44,7 +45,7 @@
           v-model="registerForm.confirmPassword"
           type="password"
           auto-complete="off"
-          placeholder="确认密码"
+          :placeholder="$t('auth:register.confirmPassword')"
           @keyup.enter.native="handleRegister"
         >
           <svg-icon
@@ -61,7 +62,7 @@
         <el-input
           v-model="registerForm.code"
           auto-complete="off"
-          placeholder="验证码"
+          :placeholder="$t('common:login.code')"
           style="width: 63%"
           @keyup.enter.native="handleRegister"
         >
@@ -87,14 +88,14 @@
           style="width: 100%"
           @click.native.prevent="handleRegister"
         >
-          <span v-if="!loading">注 册</span>
-          <span v-else>注 册 中...</span>
+          <span v-if="!loading">{{ $t('auth:register.submit') }}</span>
+          <span v-else>{{ $t('auth:register.submitting') }}</span>
         </el-button>
         <div style="float: right">
           <router-link
             class="link-type"
             :to="'/login'"
-            >使用已有账户登录</router-link
+            >{{ $t('common:alreadyHaveAnAccountSignIn') }}</router-link
           >
         </div>
       </el-form-item>
@@ -107,6 +108,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getCodeImg, register } from '@/api/login'
 import passwordRule from '@/utils/passwordRule'
 import defaultSettings from '@/settings'
@@ -133,15 +136,20 @@ export default {
     registerRules() {
       return {
         username: [
-          { required: true, trigger: 'blur', message: '请输入您的账号' },
-          { min: 2, max: 20, message: '用户账号长度必须介于 2 和 20 之间', trigger: 'blur' },
+          { required: true, trigger: 'blur', message: () => t('auth:register.usernameRequired') },
+          {
+            min: 2,
+            max: 20,
+            message: () => t('common:usernameMustBeBetween2And20Characters'),
+            trigger: 'blur',
+          },
         ],
         confirmPassword: [
-          { required: true, message: '请再次输入您的密码', trigger: 'blur' },
+          { required: true, message: () => t('auth:register.confirmRequired'), trigger: 'blur' },
           {
             validator: (rule, value, callback) => {
               if (this.registerForm.password !== value) {
-                callback(new Error('两次输入的密码不一致'))
+                callback(new Error(t('auth:register.passwordMismatch')))
               } else {
                 callback()
               }
@@ -149,7 +157,9 @@ export default {
             trigger: 'blur',
           },
         ],
-        code: [{ required: true, trigger: 'change', message: '请输入验证码' }],
+        code: [
+          { required: true, trigger: 'change', message: () => t('common:login.codeRequired') },
+        ],
       }
     },
   },
@@ -173,14 +183,9 @@ export default {
           register(this.registerForm)
             .then(() => {
               const username = this.registerForm.username
-              this.$alert(
-                "<font color='red'>恭喜你，您的账号 " + username + ' 注册成功！</font>',
-                '系统提示',
-                {
-                  dangerouslyUseHTMLString: true,
-                  type: 'success',
-                }
-              )
+              this.$alert(t('auth:register.success', { username }), t('common:notice'), {
+                type: 'success',
+              })
                 .then(() => {
                   this.$router.push('/login')
                 })

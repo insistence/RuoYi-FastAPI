@@ -12,8 +12,8 @@
       type="primary"
       ghost
     >
-      <PlusOutlined /> 添加
-    </a-button>
+      <PlusOutlined /> {{ $t('dashboard:add') }}</a-button
+    >
   </div>
 </template>
 
@@ -32,27 +32,39 @@ import { PlusOutlined } from '@ant-design/icons-vue'
 
 const links = [
   {
-    title: '操作一',
+    get title() {
+      return t('dashboard:action1')
+    },
     href: '',
   },
   {
-    title: '操作二',
+    get title() {
+      return t('dashboard:action2')
+    },
     href: '',
   },
   {
-    title: '操作三',
+    get title() {
+      return t('dashboard:action3')
+    },
     href: '',
   },
   {
-    title: '操作四',
+    get title() {
+      return t('dashboard:action4')
+    },
     href: '',
   },
   {
-    title: '操作五',
+    get title() {
+      return t('dashboard:action5')
+    },
     href: '',
   },
   {
-    title: '操作六',
+    get title() {
+      return t('dashboard:action6')
+    },
     href: '',
   },
 ]

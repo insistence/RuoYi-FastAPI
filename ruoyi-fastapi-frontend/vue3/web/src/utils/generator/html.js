@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+import { translateMessage } from '../../i18n/message.mjs'
 import { trigger } from './config'
 
 let confGlobal
@@ -8,8 +9,8 @@ export function dialogWrapper(str) {
   return `<el-dialog v-model="dialogVisible"  @open="onOpen" @close="onClose" title="Dialog Titile">
     ${str}
     <template #footer>
-      <el-button @click="close">取消</el-button>
-	  <el-button type="primary" @click="handelConfirm">确定</el-button>
+      <el-button @click="close">${translateMessage('tools:builder.cancel', '取消')}</el-button>
+	  <el-button type="primary" @click="handelConfirm">${translateMessage('tools:builder.confirm', '确定')}</el-button>
     </template>
   </el-dialog>`
 }
@@ -56,8 +57,8 @@ function buildFromBtns(conf, type) {
   let str = ''
   if (conf.formBtns && type === 'file') {
     str = `<el-form-item>
-          <el-button type="primary" @click="submitForm">提交</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button type="primary" @click="submitForm">${translateMessage('tools:builder.submit', '提交')}</el-button>
+          <el-button @click="resetForm">${translateMessage('tools:builder.reset', '重置')}</el-button>
         </el-form-item>`
     if (someSpanIsNot24) {
       str = `<el-col :span="24">
@@ -349,7 +350,7 @@ function buildElUploadChild(conf) {
     )
   if (conf.showTip)
     list.push(
-      `<div slot="tip" class="el-upload__tip">只能上传不超过 ${conf.fileSize}${conf.sizeUnit} 的${conf.accept}文件</div>`
+      `<div slot="tip" class="el-upload__tip">${translateMessage('tools:builder.fileHint', `只能上传不超过 ${conf.fileSize}${conf.sizeUnit} 的${conf.accept}文件`, { size: conf.fileSize, unit: conf.sizeUnit, type: conf.accept })}</div>`
     )
   return list.join('\n')
 }

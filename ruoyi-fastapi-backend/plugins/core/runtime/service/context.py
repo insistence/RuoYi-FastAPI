@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 from time import monotonic
 
+from i18n.message import I18nMessage
 from plugins.core.capability import STATE_CHANGE_OPERATIONS, PluginRuntimeCapability, PluginRuntimeCapabilityResolver
 from plugins.core.discovery.registry import PluginRegistry
 from plugins.core.discovery.scanner import (
@@ -318,7 +319,7 @@ class PluginRuntimeContextService:
             status='blocked',
             operation=operation,
             plugin_id=discovered_plugin.manifest.id,
-            message='当前环境不允许执行该插件操作',
+            message=I18nMessage('当前环境不允许执行该插件操作', msg_key='plugin.runtime.operationForbidden'),
             suggestion='请在开发模式或维护窗口中执行插件变更，并重启后端或重新构建前端。',
             capability=capability.to_payload(),
             dry_run=dry_run,
@@ -448,7 +449,11 @@ class PluginRuntimeContextService:
             category='lifecycle',
             kind='lifecycle_script_precheck_failed',
             path='backend',
-            message=f'插件生命周期脚本预检失败：{exc}',
+            message=I18nMessage(
+                f'插件生命周期脚本预检失败：{exc}',
+                msg_key='plugin.runtime.precheck.scriptFailed',
+                msg_params={'error': str(exc)},
+            ),
             suggestion='请检查 migration/seed 声明和脚本文件',
         )
 

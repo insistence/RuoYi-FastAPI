@@ -1,3 +1,4 @@
+import { i18n, t } from '@/i18n'
 import { handleSessionExpired } from '@/utils/session'
 import { getDisplayTimezone } from '@/utils/time'
 import config from '@/config'
@@ -25,7 +26,7 @@ const baseUrl = config.baseUrl
 const request = async (config) => {
   // 是否需要设置 token
   const isToken = (config.headers || {}).isToken === false
-  config.header = config.header || {}
+  config.header = { ...i18n.headers, ...config.header }
   config.headers = config.headers || {}
   config.header['X-Timezone'] = config.header['X-Timezone'] || getDisplayTimezone()
   const token = getToken()
@@ -70,7 +71,7 @@ const request = async (config) => {
             const { code, msg } = getResponseStatus(res, res.data)
             if (code === 401) {
               handleSessionExpired(isToken ? null : token)
-              const error = new Error('无效的会话，或者会话已过期，请重新登录。')
+              const error = new Error(t('common:session.invalid'))
               error.response = res
               reject(error)
             } else if (code === 500) {
@@ -116,9 +117,9 @@ const request = async (config) => {
 
     let { message } = error
     if (message === 'Network Error') {
-      message = '后端接口连接异常'
+      message = t('common:network.error')
     } else if (message && message.includes('timeout')) {
-      message = '系统接口请求超时'
+      message = t('common:network.timeout')
     } else if (message && message.includes('Request failed with status code')) {
       message = '系统接口' + message.substr(message.length - 3) + '异常'
     }

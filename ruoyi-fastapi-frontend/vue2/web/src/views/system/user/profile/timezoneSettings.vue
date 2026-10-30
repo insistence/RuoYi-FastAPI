@@ -1,20 +1,21 @@
 <template>
   <el-form
+    :validate-on-rule-change="false"
     label-width="100px"
     @submit.native.prevent="save"
   >
-    <el-form-item label="时间显示方式">
+    <el-form-item :label="$t('system:timeDisplayMode')">
       <el-radio-group
         v-model="mode"
         :disabled="saving"
       >
-        <el-radio label="auto">自动跟随设备</el-radio>
-        <el-radio label="custom">手动选择</el-radio>
+        <el-radio label="auto">{{ $t('system:user.followDeviceAutomatically') }}</el-radio>
+        <el-radio label="custom">{{ $t('system:chooseManually') }}</el-radio>
       </el-radio-group>
     </el-form-item>
     <el-form-item
       v-if="mode === 'custom'"
-      label="显示时区"
+      :label="$t('system:user.displayTimeZone')"
       :error="fieldError"
     >
       <el-select
@@ -22,8 +23,8 @@
         filterable
         :disabled="saving"
         :loading="loading"
-        placeholder="搜索时区，例如 Asia/Shanghai"
-        aria-label="显示时区"
+        :placeholder="$t('system:user.searchTimeZonesEGAsiaShanghai')"
+        :aria-label="$t('system:user.displayTimeZone')"
         style="width: 100%"
         @change="fieldError = ''"
       >
@@ -41,30 +42,30 @@
         :closable="false"
       >
         <span slot="title">
-          时区列表加载失败，仍可使用当前时区。
+          {{ $t('system:user.failedToLoadTheTimeZoneListYourCurrentTime') }}
           <el-button
             type="text"
             size="mini"
             :loading="loading"
             @click="loadOptions"
-            >重试</el-button
+            >{{ $t('common:retry') }}</el-button
           >
         </span>
       </el-alert>
     </el-form-item>
-    <el-form-item label="预览时区">
+    <el-form-item :label="$t('system:interface.previewTimeZone')">
       <span>{{ previewZone }}</span>
     </el-form-item>
-    <el-form-item label="时间预览">
+    <el-form-item :label="$t('system:user.timePreview')">
       <span aria-live="polite">{{ previewTime }}</span>
       <div
         v-if="mode === 'auto' && !deviceZone"
         class="timezone-help"
       >
-        当前设备无法识别时区，已使用系统时区；你也可以手动选择。
+        {{ $t('system:user.thisDeviceCannotIdentifyItsTimeZoneTheSystemTime') }}
       </div>
       <div class="timezone-help">
-        用于时间显示、日期筛选和导出。定时任务和业务统计使用各自配置的时区。
+        {{ $t('system:user.usedForTimeDisplayDateFilteringAndExportsScheduledJobs') }}
       </div>
     </el-form-item>
     <el-form-item :error="saveError">
@@ -73,19 +74,21 @@
         size="mini"
         native-type="submit"
         :loading="saving"
-        >保存</el-button
+        >{{ $t('common:save') }}</el-button
       >
       <el-button
         type="danger"
         size="mini"
         @click="close"
-        >关闭</el-button
+        >{{ $t('layout:search.close') }}</el-button
       >
     </el-form-item>
   </el-form>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getTimezoneOptions, updateUserTimezone } from '@/api/system/user'
 import {
   formatBusinessTime,
@@ -161,7 +164,7 @@ export default {
         return
       }
       if (this.mode === 'custom' && !this.selectedZone) {
-        this.fieldError = '请选择显示时区'
+        this.fieldError = t('system:selectDisplayTimeZone')
         return
       }
       this.saving = true
@@ -172,9 +175,9 @@ export default {
         this.$store.dispatch('ApplyTimezone', preference)
         this.$emit('saved', preference)
         this.now = new Date()
-        this.$modal.msgSuccess('时区设置已保存')
+        this.$modal.msgSuccess(t('system:user.timeZoneSaved'))
       } catch (error) {
-        this.saveError = error.message || '保存失败，请重试'
+        this.saveError = error.message || t('common:saveFailed')
       } finally {
         this.saving = false
       }

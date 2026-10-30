@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import Taro from '@tarojs/taro'
 export default {
   // 消息提示
@@ -28,7 +29,7 @@ export default {
   // 弹出提示
   alert(content, title) {
     Taro.showModal({
-      title: title || '系统提示',
+      title: title || t('mobile:notice'),
       content: content,
       showCancel: false,
     })
@@ -37,10 +38,10 @@ export default {
   confirm(content, title) {
     return new Promise((resolve, reject) => {
       Taro.showModal({
-        title: title || '系统提示',
+        title: title || t('mobile:notice'),
         content: content,
-        cancelText: '取消',
-        confirmText: '确定',
+        cancelText: t('common:cancel'),
+        confirmText: t('common:confirm'),
         success: function (res) {
           if (res.confirm) {
             resolve(res.confirm)

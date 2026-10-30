@@ -36,7 +36,7 @@
           :icon-class="tag.meta.icon"
           style="margin-right: 3px"
         />
-        {{ tag.title }}
+        {{ getTagTitle(tag) }}
         <span
           v-if="!isAffix(tag)"
           @click.prevent.stop="closeSelectedTag(tag)"
@@ -71,28 +71,40 @@
           <el-dropdown-item
             v-if="!isAffix(selectedDropdownTag)"
             command="close"
-            ><close style="width: 1em; height: 1em" />关闭当前</el-dropdown-item
+            ><close style="width: 1em; height: 1em" />{{
+              $t('layout:tags.close')
+            }}</el-dropdown-item
           >
           <el-dropdown-item command="closeOthers"
-            ><circle-close style="width: 1em; height: 1em" />关闭其他</el-dropdown-item
+            ><circle-close style="width: 1em; height: 1em" />{{
+              $t('layout:tags.closeOthers')
+            }}</el-dropdown-item
           >
           <el-dropdown-item
             command="closeLeft"
             :disabled="isFirstView()"
-            ><back style="width: 1em; height: 1em" />关闭左侧</el-dropdown-item
+            ><back style="width: 1em; height: 1em" />{{
+              $t('layout:tags.closeLeft')
+            }}</el-dropdown-item
           >
           <el-dropdown-item
             command="closeRight"
             :disabled="isLastView()"
-            ><right style="width: 1em; height: 1em" />关闭右侧</el-dropdown-item
+            ><right style="width: 1em; height: 1em" />{{
+              $t('layout:tags.closeRight')
+            }}</el-dropdown-item
           >
           <el-dropdown-item command="closeAll"
-            ><circle-close style="width: 1em; height: 1em" />全部关闭</el-dropdown-item
+            ><circle-close style="width: 1em; height: 1em" />{{
+              $t('layout:tags.closeAll')
+            }}</el-dropdown-item
           >
           <el-dropdown-item
             command="fullscreen"
             divided
-            ><full-screen style="width: 1em; height: 1em" />全屏显示</el-dropdown-item
+            ><full-screen style="width: 1em; height: 1em" />{{
+              $t('layout:tags.fullscreen')
+            }}</el-dropdown-item
           >
         </el-dropdown-menu>
       </template>
@@ -101,10 +113,10 @@
     <!-- 刷新按钮 -->
     <span
       class="tags-action-btn tags-refresh-btn"
-      title="刷新页面"
+      :title="$t('layout:tags.refreshPage')"
       @click="refreshSelectedTag(selectedDropdownTag)"
     >
-      <el-icon><refresh-right /></el-icon> 刷新
+      <el-icon><refresh-right /></el-icon> {{ $t('layout:tags.refresh') }}
     </span>
 
     <!-- 右键上下文菜单 -->
@@ -114,35 +126,38 @@
       class="contextmenu"
     >
       <li @click="refreshSelectedTag(selectedTag)">
-        <refresh-right style="width: 1em; height: 1em" />刷新页面
+        <refresh-right style="width: 1em; height: 1em" />{{ $t('layout:tags.refreshPage') }}
       </li>
       <li
         v-if="!isAffix(selectedTag)"
         @click="closeSelectedTag(selectedTag)"
       >
-        <close style="width: 1em; height: 1em" />关闭当前
+        <close style="width: 1em; height: 1em" />{{ $t('layout:tags.close') }}
       </li>
-      <li @click="closeOthersTags"><circle-close style="width: 1em; height: 1em" />关闭其他</li>
+      <li @click="closeOthersTags">
+        <circle-close style="width: 1em; height: 1em" />{{ $t('layout:tags.closeOthers') }}
+      </li>
       <li
         v-if="!isFirstView()"
         @click="closeLeftTags"
       >
-        <back style="width: 1em; height: 1em" />关闭左侧
+        <back style="width: 1em; height: 1em" />{{ $t('layout:tags.closeLeft') }}
       </li>
       <li
         v-if="!isLastView()"
         @click="closeRightTags"
       >
-        <right style="width: 1em; height: 1em" />关闭右侧
+        <right style="width: 1em; height: 1em" />{{ $t('layout:tags.closeRight') }}
       </li>
       <li @click="closeAllTags(selectedTag)">
-        <circle-close style="width: 1em; height: 1em" />全部关闭
+        <circle-close style="width: 1em; height: 1em" />{{ $t('layout:tags.closeAll') }}
       </li>
     </ul>
   </div>
 </template>
 
 <script setup>
+import { resolveRouteTitle } from '@/i18n/adapter'
 import ScrollPane from './ScrollPane'
 import { getNormalPath } from '@/utils/ruoyi'
 import useTagsViewStore from '@/store/modules/tagsView'
@@ -185,9 +200,15 @@ watch(visible, (value) => {
     document.body.removeEventListener('click', closeMenu)
   }
 })
-watch(visitedViews, () => {
-  nextTick(() => updateArrowState())
-})
+watch(
+  () => visitedViews.value.map(getTagTitle),
+  () => {
+    nextTick(() => {
+      moveToCurrentTag()
+      updateArrowState()
+    })
+  }
+)
 onMounted(() => {
   initTags()
   addTags()
@@ -198,6 +219,14 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', updateArrowState)
   document.removeEventListener('fullscreenchange', onFullscreenChange)
 })
+
+function getTagTitle(tag) {
+  if (typeof tag.customTitle === 'string') return tag.customTitle
+  const current = router.resolve(
+    tag.fullPath || { path: tag.path, query: tag.query, hash: tag.hash }
+  )
+  return resolveRouteTitle(current.meta.title || current.meta.titleKey ? current : tag)
+}
 
 function isActive(r) {
   return r.path === route.path
@@ -257,7 +286,7 @@ function filterAffixTags(routes, basePath = '') {
 }
 function initTags() {
   if (tagsViewPersist.value) {
-    useTagsViewStore().loadPersistedViews()
+    useTagsViewStore().loadPersistedViews((view) => router.resolve(view))
   }
   const res = filterAffixTags(routes.value)
   affixTags.value = res
@@ -548,7 +577,11 @@ $tags-bar-height: 34px;
   }
 
   .tags-refresh-btn {
-    width: 60px;
+    width: auto;
+    min-width: 60px;
+    padding: 0 10px;
+    gap: 4px;
+    white-space: nowrap;
   }
 
   .contextmenu {

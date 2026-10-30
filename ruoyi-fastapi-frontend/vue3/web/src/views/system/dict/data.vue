@@ -7,7 +7,7 @@
       v-show="showSearch"
     >
       <el-form-item
-        label="字典名称"
+        :label="$t('system:dictionaryName')"
         prop="dictType"
       >
         <el-select
@@ -17,30 +17,30 @@
           <el-option
             v-for="item in typeOptions"
             :key="item.dictId"
-            :label="item.dictName"
+            :label="resolveText(item.dictName, item.dictNameI18n)"
             :value="item.dictType"
           />
         </el-select>
       </el-form-item>
       <el-form-item
-        label="字典标签"
+        :label="$t('system:dictionaryLabel')"
         prop="dictLabel"
       >
         <el-input
           v-model="queryParams.dictLabel"
-          placeholder="请输入字典标签"
+          :placeholder="$t('system:enterDictionaryLabel')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('system:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="数据状态"
+          :placeholder="$t('system:dataStatus')"
           clearable
           style="width: 200px"
         >
@@ -57,12 +57,12 @@
           type="primary"
           icon="Search"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('system:search') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -78,7 +78,7 @@
           icon="Plus"
           @click="handleAdd"
           v-hasPermi="['system:dict:add']"
-          >新增</el-button
+          >{{ $t('system:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -89,7 +89,7 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['system:dict:edit']"
-          >修改</el-button
+          >{{ $t('system:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -100,7 +100,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['system:dict:remove']"
-          >删除</el-button
+          >{{ $t('system:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -110,7 +110,7 @@
           icon="Download"
           @click="handleExport"
           v-hasPermi="['system:dict:export']"
-          >导出</el-button
+          >{{ $t('system:export') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -119,7 +119,7 @@
           plain
           icon="Close"
           @click="handleClose"
-          >关闭</el-button
+          >{{ $t('layout:search.close') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -139,12 +139,12 @@
         align="center"
       />
       <el-table-column
-        label="字典编码"
+        :label="$t('system:dictionaryCode')"
         align="center"
         prop="dictCode"
       />
       <el-table-column
-        label="字典标签"
+        :label="$t('system:dictionaryLabel')"
         align="center"
         prop="dictLabel"
       >
@@ -154,28 +154,28 @@
               (scope.row.listClass == '' || scope.row.listClass == 'default') &&
               (scope.row.cssClass == '' || scope.row.cssClass == null)
             "
-            >{{ scope.row.dictLabel }}</span
+            >{{ resolveText(scope.row.dictLabel, scope.row.dictLabelI18n) }}</span
           >
           <el-tag
             v-else
             :type="scope.row.listClass == 'primary' ? '' : scope.row.listClass"
             :class="scope.row.cssClass"
-            >{{ scope.row.dictLabel }}</el-tag
+            >{{ resolveText(scope.row.dictLabel, scope.row.dictLabelI18n) }}</el-tag
           >
         </template>
       </el-table-column>
       <el-table-column
-        label="字典键值"
+        :label="$t('system:dictionaryValue')"
         align="center"
         prop="dictValue"
       />
       <el-table-column
-        label="字典排序"
+        :label="$t('system:dictionaryOrder')"
         align="center"
         prop="dictSort"
       />
       <el-table-column
-        label="状态"
+        :label="$t('system:status')"
         align="center"
         prop="status"
       >
@@ -187,13 +187,13 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="备注"
+        :label="$t('system:remarks')"
         align="center"
         prop="remark"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="创建时间"
+        :label="$t('system:createdAt')"
         align="center"
         prop="createTime"
         width="180"
@@ -203,7 +203,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         align="center"
         width="160"
         class-name="small-padding fixed-width"
@@ -215,7 +215,7 @@
             icon="Edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:dict:edit']"
-            >修改</el-button
+            >{{ $t('system:edit') }}</el-button
           >
           <el-button
             link
@@ -223,7 +223,7 @@
             icon="Delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:dict:remove']"
-            >删除</el-button
+            >{{ $t('system:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -239,7 +239,7 @@
 
     <!-- 添加或修改参数配置对话框 -->
     <el-dialog
-      :title="title"
+      :title="typeof title === 'function' ? title() : title"
       v-model="open"
       width="500px"
       append-to-body
@@ -248,43 +248,48 @@
         ref="dataRef"
         :model="form"
         :rules="rules"
-        label-width="80px"
+        :validate-on-rule-change="false"
+        label-width="auto"
       >
-        <el-form-item label="字典类型">
+        <el-form-item :label="$t('system:dictionaryType')">
           <el-input
             v-model="form.dictType"
             :disabled="true"
           />
         </el-form-item>
         <el-form-item
-          label="数据标签"
+          :label="$t('system:dataLabel')"
           prop="dictLabel"
         >
           <el-input
             v-model="form.dictLabel"
-            placeholder="请输入数据标签"
+            :placeholder="$t('system:enterDataLabel')"
           />
         </el-form-item>
+        <locale-name-input
+          v-model="form.dictLabelI18n"
+          :original="originalTranslations"
+        />
         <el-form-item
-          label="数据键值"
+          :label="$t('system:dataValue')"
           prop="dictValue"
         >
           <el-input
             v-model="form.dictValue"
-            placeholder="请输入数据键值"
+            :placeholder="$t('system:enterDataValue')"
           />
         </el-form-item>
         <el-form-item
-          label="样式属性"
+          :label="$t('system:styleClass')"
           prop="cssClass"
         >
           <el-input
             v-model="form.cssClass"
-            placeholder="请输入样式属性"
+            :placeholder="$t('system:enterStyleClass')"
           />
         </el-form-item>
         <el-form-item
-          label="显示排序"
+          :label="$t('system:displayOrder')"
           prop="dictSort"
         >
           <el-input-number
@@ -294,7 +299,7 @@
           />
         </el-form-item>
         <el-form-item
-          label="回显样式"
+          :label="$t('system:displayStyle')"
           prop="listClass"
         >
           <el-select v-model="form.listClass">
@@ -307,7 +312,7 @@
           </el-select>
         </el-form-item>
         <el-form-item
-          label="状态"
+          :label="$t('system:status')"
           prop="status"
         >
           <el-radio-group v-model="form.status">
@@ -320,13 +325,13 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item
-          label="备注"
+          :label="$t('system:remarks')"
           prop="remark"
         >
           <el-input
             v-model="form.remark"
             type="textarea"
-            placeholder="请输入内容"
+            :placeholder="$t('system:enterContent')"
           ></el-input>
         </el-form-item>
       </el-form>
@@ -335,9 +340,9 @@
           <el-button
             type="primary"
             @click="submitForm"
-            >确 定</el-button
+            >{{ $t('system:confirm') }}</el-button
           >
-          <el-button @click="cancel">取 消</el-button>
+          <el-button @click="cancel">{{ $t('system:cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -345,11 +350,16 @@
 </template>
 
 <script setup name="Data">
+import { t } from '@/i18n/adapter'
+import { useLocaleForm } from '@/composables/useLocaleForm'
+import { resolveText } from '@/i18n/adapter'
+import LocaleNameInput from '@/components/LocaleNameInput/index.vue'
 import useDictStore from '@/store/modules/dict'
 import { optionselect as getDictOptionselect, getType } from '@/api/system/dict/type'
 import { listData, getData, delData, addData, updateData } from '@/api/system/dict/data'
 
 const { proxy } = getCurrentInstance()
+useLocaleForm(computed(() => proxy.$refs.dataRef))
 const { sys_normal_disable } = proxy.useDict('sys_normal_disable')
 
 const dataList = ref([])
@@ -366,13 +376,45 @@ const typeOptions = ref([])
 const route = useRoute()
 // 数据标签回显样式
 const listClassOptions = ref([
-  { value: 'default', label: '默认' },
-  { value: 'primary', label: '主要' },
-  { value: 'success', label: '成功' },
-  { value: 'info', label: '信息' },
-  { value: 'warning', label: '警告' },
-  { value: 'danger', label: '危险' },
+  {
+    value: 'default',
+    get label() {
+      return t('layout:size.default')
+    },
+  },
+  {
+    value: 'primary',
+    get label() {
+      return t('system:primary')
+    },
+  },
+  {
+    value: 'success',
+    get label() {
+      return t('system:success')
+    },
+  },
+  {
+    value: 'info',
+    get label() {
+      return t('system:information')
+    },
+  },
+  {
+    value: 'warning',
+    get label() {
+      return t('system:warning')
+    },
+  },
+  {
+    value: 'danger',
+    get label() {
+      return t('system:danger')
+    },
+  },
 ])
+
+const originalTranslations = ref({})
 
 const data = reactive({
   form: {},
@@ -384,9 +426,33 @@ const data = reactive({
     status: undefined,
   },
   rules: {
-    dictLabel: [{ required: true, message: '数据标签不能为空', trigger: 'blur' }],
-    dictValue: [{ required: true, message: '数据键值不能为空', trigger: 'blur' }],
-    dictSort: [{ required: true, message: '数据顺序不能为空', trigger: 'blur' }],
+    dictLabel: [
+      {
+        required: true,
+        get message() {
+          return t('system:dataLabelIsRequired')
+        },
+        trigger: 'blur',
+      },
+    ],
+    dictValue: [
+      {
+        required: true,
+        get message() {
+          return t('system:dataValueIsRequired')
+        },
+        trigger: 'blur',
+      },
+    ],
+    dictSort: [
+      {
+        required: true,
+        get message() {
+          return t('system:dataOrderIsRequired')
+        },
+        trigger: 'blur',
+      },
+    ],
   },
 })
 
@@ -423,6 +489,7 @@ function cancel() {
 }
 /** 表单重置 */
 function reset() {
+  originalTranslations.value = {}
   form.value = {
     dictCode: undefined,
     dictLabel: undefined,
@@ -455,7 +522,7 @@ function resetQuery() {
 function handleAdd() {
   reset()
   open.value = true
-  title.value = '添加字典数据'
+  title.value = () => t('system:addDictionaryEntry')
   form.value.dictType = queryParams.value.dictType
 }
 /** 多选框选中数据 */
@@ -469,9 +536,10 @@ function handleUpdate(row) {
   reset()
   const dictCode = row.dictCode || ids.value
   getData(dictCode).then((response) => {
-    form.value = response.data
+    originalTranslations.value = response.data.dictLabelI18n || {}
+    form.value = { ...response.data, dictLabelI18n: {} }
     open.value = true
-    title.value = '修改字典数据'
+    title.value = () => t('system:editDictionaryEntry')
   })
 }
 /** 提交按钮 */
@@ -481,14 +549,14 @@ function submitForm() {
       if (form.value.dictCode != undefined) {
         updateData(form.value).then((response) => {
           useDictStore().removeDict(queryParams.value.dictType)
-          proxy.$modal.msgSuccess('修改成功')
+          proxy.$modal.msgSuccess(t('system:updatedSuccessfully'))
           open.value = false
           getList()
         })
       } else {
         addData(form.value).then((response) => {
           useDictStore().removeDict(queryParams.value.dictType)
-          proxy.$modal.msgSuccess('新增成功')
+          proxy.$modal.msgSuccess(t('system:addedSuccessfully'))
           open.value = false
           getList()
         })
@@ -500,13 +568,13 @@ function submitForm() {
 function handleDelete(row) {
   const dictCodes = row.dictCode || ids.value
   proxy.$modal
-    .confirm('是否确认删除字典编码为"' + dictCodes + '"的数据项？')
+    .confirm(t('system:confirmation.deleteIds', { ids: dictCodes }))
     .then(function () {
       return delData(dictCodes)
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('删除成功')
+      proxy.$modal.msgSuccess(t('system:deletedSuccessfully'))
       useDictStore().removeDict(queryParams.value.dictType)
     })
     .catch(() => {})

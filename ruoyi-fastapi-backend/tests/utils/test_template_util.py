@@ -114,7 +114,7 @@ def test_template_list_and_context_include_optional_view(tpl_web_type: str, view
 
     assert view_template in templates
     assert context['genView'] is True
-    assert TemplateUtils.get_file_name(view_template, gen_table) == 'frontend/views/test/item/view.vue'
+    assert TemplateUtils.get_file_name(view_template, gen_table) == 'frontend/src/views/test/item/view.vue'
 
 
 def test_template_list_omits_view_when_disabled() -> None:
@@ -142,7 +142,8 @@ def test_detail_templates_render_with_list_integration(tpl_web_type: str, tpl_ca
 
     assert 'handleViewData' in rendered[index_template]
     assert '<item-view-drawer ref="itemViewRef" />' in rendered[index_template]
-    assert '测试项详情' in rendered[view_template]
+    assert 'generated.test.item:detailTitle' in rendered[view_template]
+    assert context['generatedI18n'].frontend['zh-CN']['detailTitle'] == '测试项详情'
     assert 'getItem(itemId)' in rendered[view_template]
     assert 'sys_normal_disable' in rendered[view_template]
 

@@ -3,41 +3,49 @@
     <view class="space-y-5">
       <!-- Nickname -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700">用户昵称</text>
+        <text class="mb-2 block text-sm font-medium text-gray-700">{{
+          $t('system:user.nickname')
+        }}</text>
         <input
           v-model="user.nickName"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="text"
-          placeholder="请输入昵称"
+          :placeholder="$t('system:user.nicknamePlaceholder')"
         />
       </view>
 
       <!-- Phone -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700">手机号码</text>
+        <text class="mb-2 block text-sm font-medium text-gray-700">{{
+          $t('system:user.phone')
+        }}</text>
         <input
           v-model="user.phonenumber"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="number"
-          placeholder="请输入手机号码"
+          :placeholder="$t('system:user.phonePlaceholder')"
           maxlength="11"
         />
       </view>
 
       <!-- Email -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700">邮箱</text>
+        <text class="mb-2 block text-sm font-medium text-gray-700">{{
+          $t('system:user.email')
+        }}</text>
         <input
           v-model="user.email"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="text"
-          placeholder="请输入邮箱"
+          :placeholder="$t('system:user.emailPlaceholder')"
         />
       </view>
 
       <!-- Sex -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700">性别</text>
+        <text class="mb-2 block text-sm font-medium text-gray-700">{{
+          $t('system:user.sex')
+        }}</text>
         <view class="flex space-x-4">
           <view
             v-for="item in sexs"
@@ -61,7 +69,7 @@
           @click="submit"
           class="flex h-12 w-full items-center justify-center rounded-xl bg-blue-500 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-all active:scale-95 active:bg-blue-600"
         >
-          提 交
+          {{ $t('common:submit') }}
         </button>
       </view>
     </view>
@@ -69,6 +77,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getUserProfile, updateUserProfile } from '@/api/system/user'
 
 export default {
@@ -80,17 +90,21 @@ export default {
         email: '',
         sex: '',
       },
-      sexs: [
+    }
+  },
+  computed: {
+    sexs() {
+      return [
         {
-          text: '男',
+          text: t('system:user.male'),
           value: '0',
         },
         {
-          text: '女',
+          text: t('system:user.female'),
           value: '1',
         },
-      ],
-    }
+      ]
+    },
   },
   onLoad() {
     this.getUser()
@@ -104,28 +118,28 @@ export default {
     },
     submit() {
       if (!this.user.nickName) {
-        this.$modal.msgError('用户昵称不能为空')
+        this.$modal.msgError(t('system:user.nicknameRequired'))
         return
       }
       if (!this.user.phonenumber) {
-        this.$modal.msgError('手机号码不能为空')
+        this.$modal.msgError(t('system:user.phoneRequired'))
         return
       }
       if (!/^1[3-9]\d{9}$/.test(this.user.phonenumber)) {
-        this.$modal.msgError('请输入正确的手机号码')
+        this.$modal.msgError(t('system:user.phoneInvalid'))
         return
       }
       if (!this.user.email) {
-        this.$modal.msgError('邮箱不能为空')
+        this.$modal.msgError(t('system:user.emailRequired'))
         return
       }
       if (!/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/.test(this.user.email)) {
-        this.$modal.msgError('请输入正确的邮箱')
+        this.$modal.msgError(t('system:user.emailInvalid'))
         return
       }
 
       updateUserProfile(this.user).then((response) => {
-        this.$modal.msgSuccess('修改成功')
+        this.$modal.msgSuccess(t('common:updateSuccess'))
         setTimeout(() => {
           this.$tab.navigateBack()
         }, 1500)

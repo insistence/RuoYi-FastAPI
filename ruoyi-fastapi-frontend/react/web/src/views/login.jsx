@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import LanguageSelect from '@/components/LanguageSelect/index.jsx'
 import defaultSettings from '@/settings'
 import { useEffect, useState } from 'react'
 import { Alert, Button, Checkbox, Form, Input } from 'antd'
@@ -10,7 +13,9 @@ import useUserStore from '@/store/modules/user'
 import { getLoginRedirect } from '@/utils/router'
 
 export default function Login() {
+  const { t } = useI18n()
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   const [captcha, setCaptcha] = useState({
     captchaEnabled: true,
     registerEnabled: false,
@@ -54,6 +59,7 @@ export default function Login() {
   }
   return (
     <main className="login-page">
+      <LanguageSelect />
       <section className="login-card">
         <h1>{import.meta.env.VITE_APP_TITLE}</h1>
         {error && (
@@ -76,22 +82,22 @@ export default function Login() {
         >
           <Form.Item
             name="username"
-            label="账号"
-            rules={[{ required: true, message: '请输入您的账号' }]}
+            label={t('common:login.username')}
+            rules={[{ required: true, message: t('common:login.usernameRequired') }]}
           >
             <Input
-              placeholder="账号"
+              placeholder={t('common:login.username')}
               prefix={<UserOutlined />}
               autoComplete="username"
             />
           </Form.Item>
           <Form.Item
             name="password"
-            label="密码"
-            rules={[{ required: true, message: '请输入您的密码' }]}
+            label={t('common:login.password')}
+            rules={[{ required: true, message: t('common:login.passwordRequired') }]}
           >
             <Input.Password
-              placeholder="密码"
+              placeholder={t('common:login.password')}
               prefix={<LockOutlined />}
               autoComplete="current-password"
             />
@@ -100,11 +106,11 @@ export default function Login() {
             <div className="captcha-row">
               <Form.Item
                 name="code"
-                label="验证码"
-                rules={[{ required: true, message: '请输入验证码' }]}
+                label={t('common:login.code')}
+                rules={[{ required: true, message: t('common:login.codeRequired') }]}
               >
                 <Input
-                  placeholder="验证码"
+                  placeholder={t('common:login.code')}
                   prefix={<SafetyOutlined />}
                   maxLength={8}
                   autoComplete="off"
@@ -112,12 +118,12 @@ export default function Login() {
               </Form.Item>
               <button
                 type="button"
-                aria-label="刷新验证码"
+                aria-label={t('auth:refreshVerificationCode')}
                 onClick={getCode}
               >
                 {captcha.img && (
                   <img
-                    alt="登录验证码"
+                    alt={t('auth:signInVerificationCode')}
                     src={`data:image/gif;base64,${captcha.img}`}
                   />
                 )}
@@ -129,7 +135,7 @@ export default function Login() {
             valuePropName="checked"
             className="login-remember"
           >
-            <Checkbox>记住密码</Checkbox>
+            <Checkbox>{t('common:login.remember')}</Checkbox>
           </Form.Item>
           <Form.Item className="login-submit">
             <Button
@@ -138,11 +144,11 @@ export default function Login() {
               htmlType="submit"
               loading={loading}
             >
-              登录
+              {t('common:login.submit')}
             </Button>
             {captcha.registerEnabled && (
               <div className="login-link">
-                <Link to="/register">立即注册</Link>
+                <Link to="/register">{t('auth:register.link')}</Link>
               </div>
             )}
           </Form.Item>

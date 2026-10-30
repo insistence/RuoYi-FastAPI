@@ -33,6 +33,11 @@ export default {
       chart: null,
     }
   },
+  watch: {
+    '$locale.locale'() {
+      if (this.chart) this.setOptions()
+    },
+  },
   mounted() {
     this.$nextTick(() => {
       this.initChart()
@@ -48,7 +53,9 @@ export default {
   methods: {
     initChart() {
       this.chart = echarts.init(this.$el, 'macarons')
-
+      this.setOptions()
+    },
+    setOptions() {
       this.chart.setOption({
         tooltip: {
           trigger: 'axis',
@@ -67,7 +74,15 @@ export default {
         xAxis: [
           {
             type: 'category',
-            data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            data: [
+              this.$t('layout:dashboard.monday'),
+              this.$t('layout:dashboard.tuesday'),
+              this.$t('layout:dashboard.wednesday'),
+              this.$t('layout:dashboard.thursday'),
+              this.$t('layout:dashboard.friday'),
+              this.$t('layout:dashboard.saturday'),
+              this.$t('layout:dashboard.sunday'),
+            ],
             axisTick: {
               alignWithLabel: true,
             },
@@ -83,7 +98,7 @@ export default {
         ],
         series: [
           {
-            name: 'pageA',
+            name: this.$t('layout:dashboard.pageA'),
             type: 'bar',
             stack: 'vistors',
             barWidth: '60%',
@@ -91,7 +106,7 @@ export default {
             animationDuration,
           },
           {
-            name: 'pageB',
+            name: this.$t('layout:dashboard.pageB'),
             type: 'bar',
             stack: 'vistors',
             barWidth: '60%',
@@ -99,7 +114,7 @@ export default {
             animationDuration,
           },
           {
-            name: 'pageC',
+            name: this.$t('layout:dashboard.pageC'),
             type: 'bar',
             stack: 'vistors',
             barWidth: '60%',

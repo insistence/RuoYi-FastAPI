@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useState } from 'react'
 import {
@@ -51,10 +53,12 @@ function parseValue(text, previous) {
   return Array.isArray(previous) ? text.split(',').map(scalar) : scalar(text)
 }
 function ValueInput({ value, onChange, label }) {
+  useI18n()
+
   return (
     <Input
       aria-label={label}
-      placeholder={`请输入${label}`}
+      placeholder={t('monitor:enterValue', { label })}
       value={Array.isArray(value) ? value.join(',') : value == null ? '' : String(value)}
       onChange={(event) => onChange(parseValue(event.target.value, value))}
     />
@@ -71,6 +75,8 @@ const dateFormats = {
   datetimerange: 'YYYY-MM-DD HH:mm:ss',
 }
 export default function RightPanel({ field, onChange, formConf, onFormChange, onTypeChange }) {
+  useI18n()
+
   const [adding, setAdding] = useState(null)
   const [iconKey, setIconKey] = useState('')
   const update = (key, value) => {
@@ -160,7 +166,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                 type="text"
                 onClick={() => setAdding(path)}
               >
-                子项
+                {t('tool:childItem')}
               </Button>
             )}
             <Button
@@ -169,7 +175,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
               danger
               onClick={() => updateOption(path, null)}
             >
-              删除
+              {t('common:delete')}
             </Button>
           </Space>
         ),
@@ -178,56 +184,56 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
     })
   }
   const textFields = [
-    ['vModel', '字段名', '请输入字段名（v-model）'],
-    ['label', '标题', '请输入标题'],
-    ['placeholder', '占位提示', '请输入占位提示'],
-    ['start-placeholder', '开始占位', '请输入占位提示'],
-    ['end-placeholder', '结束占位', '请输入占位提示'],
-    ['style.width', '组件宽度'],
-    ['prepend', '前缀'],
-    ['append', '后缀'],
-    ['separator', '选项分隔符'],
-    ['active-text', '开启提示'],
-    ['inactive-text', '关闭提示'],
-    ['name', '文件字段名', '请输入上传文件字段名'],
-    ['action', '上传地址'],
-    ['buttonText', '按钮文字'],
-    ['tip', '上传提示'],
-    ['range-separator', '分隔符'],
-    ['format', '时间格式', '请输入时间格式'],
-    ['labelKey', '标签键名'],
-    ['valueKey', '值键名'],
-    ['childrenKey', '子级键名'],
+    ['vModel', t('tool:fieldName'), t('tool:enterAFieldNameVModel')],
+    ['label', t('tool:title'), t('tool:enterATitle')],
+    ['placeholder', t('tool:placeholder'), t('tool:enterPlaceholderText')],
+    ['start-placeholder', t('tool:startPlaceholder'), t('tool:enterPlaceholderText')],
+    ['end-placeholder', t('tool:endPlaceholder'), t('tool:enterPlaceholderText')],
+    ['style.width', t('tool:componentWidth')],
+    ['prepend', t('tool:prefix')],
+    ['append', t('tool:suffix')],
+    ['separator', t('tool:optionSeparator')],
+    ['active-text', t('tool:onText')],
+    ['inactive-text', t('tool:offText')],
+    ['name', t('tool:fileFieldName'), t('tool:enterTheUploadFileFieldName')],
+    ['action', t('tool:uploadUrl')],
+    ['buttonText', t('tool:buttonText')],
+    ['tip', t('tool:uploadHint')],
+    ['range-separator', t('tool:separator')],
+    ['format', t('tool:timeFormat'), t('tool:enterATimeFormat')],
+    ['labelKey', t('tool:labelProperty')],
+    ['valueKey', t('tool:valueProperty')],
+    ['childrenKey', t('tool:childrenProperty')],
   ]
   const numberFields = [
-    ['gutter', '栅格间隔'],
-    ['labelWidth', '标签宽度', '请输入标签宽度'],
-    ['autosize.minRows', '最小行数'],
-    ['autosize.maxRows', '最大行数'],
-    ['min', '最小值'],
-    ['max', '最大值'],
-    ['step', '步长', '步数'],
-    ['precision', '精度'],
+    ['gutter', t('tool:gridGap')],
+    ['labelWidth', t('tool:labelWidth'), t('tool:enterLabelWidth')],
+    ['autosize.minRows', t('tool:minimumRows')],
+    ['autosize.maxRows', t('tool:maximumRows')],
+    ['min', t('tool:minimumValue')],
+    ['max', t('tool:maximumValue')],
+    ['step', t('tool:step'), t('tool:steps')],
+    ['precision', t('tool:precision')],
   ]
   const boolFields = [
-    ['props.props.multiple', '是否多选'],
-    ['show-all-levels', '展示全路径'],
-    ['allow-half', '允许半选'],
-    ['show-text', '辅助文字'],
-    ['show-score', '显示分数'],
-    ['show-stops', '显示间断点'],
-    ['range', '范围选择'],
-    ['show-alpha', '透明度'],
-    ['show-word-limit', '输入统计'],
-    ['step-strictly', '严格步数'],
-    ['showTip', '显示提示'],
-    ['auto-upload', '自动上传'],
-    ['clearable', '能否清空'],
-    ['multiple', field?.tag === 'Upload' ? '多选文件' : '是否多选'],
-    ['filterable', field?.tag === 'Cascader' ? '可否筛选' : '是否可搜索'],
-    ['readonly', '是否只读'],
-    ['disabled', '是否禁用'],
-    ['required', '是否必填'],
+    ['props.props.multiple', t('tool:multipleSelection')],
+    ['show-all-levels', t('tool:showFullPath')],
+    ['allow-half', t('tool:allowHalfValues')],
+    ['show-text', t('tool:helperText')],
+    ['show-score', t('tool:showScore')],
+    ['show-stops', t('tool:showStepMarks')],
+    ['range', t('tool:rangeSelection')],
+    ['show-alpha', t('tool:transparency')],
+    ['show-word-limit', t('tool:characterCount')],
+    ['step-strictly', t('tool:strictStep')],
+    ['showTip', t('tool:showTooltip')],
+    ['auto-upload', t('tool:uploadAutomatically')],
+    ['clearable', t('tool:allowClearing')],
+    ['multiple', field?.tag === 'Upload' ? t('tool:multipleFiles') : t('tool:multipleSelection')],
+    ['filterable', field?.tag === 'Cascader' ? t('tool:allowFiltering') : t('tool:searchable')],
+    ['readonly', t('tool:readOnly')],
+    ['disabled', t('tool:disabled')],
+    ['required', t('tool:required')],
   ]
   const exists = (key) =>
     get(field, key) !== undefined ||
@@ -248,7 +254,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
           label={label}
         >
           <Input
-            placeholder={placeholder || `请输入${label}`}
+            placeholder={placeholder || t('monitor:enterValue', { label })}
             value={get(field, key)}
             onChange={(event) => update(key, event.target.value)}
           />
@@ -258,8 +264,8 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
     <div className="builder-properties">
       <a
         className="builder-document-link"
-        title="查看组件文档"
-        aria-label="查看组件文档"
+        title={t('tool:viewComponentDocumentation')}
+        aria-label={t('tool:viewComponentDocumentation')}
         href={field?.document || 'https://ant.design/components/overview-cn'}
         target="_blank"
         rel="noreferrer"
@@ -270,17 +276,17 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
         items={[
           {
             key: 'field',
-            label: '组件属性',
+            label: t('tool:componentProperties'),
             children: field ? (
               <Form layout="vertical">
                 {field.changeTag && (
-                  <Form.Item label="组件类型">
+                  <Form.Item label={t('tool:componentType')}>
                     <Select
-                      placeholder="请选择组件类型"
+                      placeholder={t('tool:chooseAComponentType')}
                       value={field.tagIcon}
                       options={[
-                        ['输入型组件', inputComponents],
-                        ['选择型组件', selectComponents],
+                        [t('tool:inputComponents'), inputComponents],
+                        [t('tool:selectionComponents'), selectComponents],
                       ].map(([label, items]) => ({
                         label,
                         options: items.map((item) => ({ label: item.label, value: item.tagIcon })),
@@ -291,11 +297,11 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                 )}
                 {renderTextFields(['vModel'])}
                 {field.componentName !== undefined && (
-                  <Form.Item label="组件名">{field.componentName}</Form.Item>
+                  <Form.Item label={t('tool:componentName')}>{field.componentName}</Form.Item>
                 )}
                 {renderTextFields(['label', 'placeholder', 'start-placeholder', 'end-placeholder'])}
                 {exists('span') && (
-                  <Form.Item label="表单栅格">
+                  <Form.Item label={t('tool:formGrid')}>
                     <Slider
                       min={1}
                       max={24}
@@ -307,11 +313,11 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                 )}
                 {renderTextFields(['style.width'])}
                 {field.vModel !== undefined && (
-                  <Form.Item label="默认值">
+                  <Form.Item label={t('system:defaultValue')}>
                     <ValueInput
                       value={field.defaultValue}
                       onChange={(value) => update('defaultValue', value)}
-                      label="默认值"
+                      label={t('system:defaultValue')}
                     />
                   </Form.Item>
                 )}
@@ -319,15 +325,28 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                 {['prefix-icon', 'suffix-icon', 'icon'].filter(exists).map((key) => (
                   <Form.Item
                     key={key}
-                    label={key === 'icon' ? '图标' : key === 'prefix-icon' ? '前图标' : '后图标'}
+                    label={
+                      key === 'icon'
+                        ? t('tool:icon')
+                        : key === 'prefix-icon'
+                          ? t('tool:prefixIcon')
+                          : t('tool:suffixIcon')
+                    }
                   >
                     <Space.Compact block>
                       <Input
-                        placeholder={`请输入${key === 'prefix-icon' ? '前' : key === 'suffix-icon' ? '后' : ''}图标名称`}
+                        placeholder={t('tool:enterTheValueIconName', {
+                          arg0:
+                            key === 'prefix-icon'
+                              ? t('tool:build.prefix')
+                              : key === 'suffix-icon'
+                                ? t('tool:build.suffix')
+                                : '',
+                        })}
                         value={field[key]}
                         onChange={(event) => update(key, event.target.value)}
                       />
-                      <Button onClick={() => setIconKey(key)}>选择</Button>
+                      <Button onClick={() => setIconKey(key)}>{t('layout:search.select')}</Button>
                     </Space.Compact>
                   </Form.Item>
                 ))}
@@ -339,8 +358,8 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                       label={
                         field.tag === 'Checkbox.Group' && ['min', 'max'].includes(key)
                           ? key === 'min'
-                            ? '至少应选'
-                            : '最多可选'
+                            ? t('tool:minimumSelections')
+                            : t('tool:maximumSelections')
                           : label
                       }
                     >
@@ -348,8 +367,8 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                         placeholder={
                           field.tag === 'Checkbox.Group' && ['min', 'max'].includes(key)
                             ? key === 'min'
-                              ? '至少应选'
-                              : '最多可选'
+                              ? t('tool:minimumSelections')
+                              : t('tool:maximumSelections')
                             : placeholder || label
                         }
                         value={get(field, key)}
@@ -377,8 +396,8 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                 {field.tag === 'Switch' && (
                   <>
                     {[
-                      ['active-value', '开启值'],
-                      ['inactive-value', '关闭值'],
+                      ['active-value', t('tool:onValue')],
+                      ['inactive-value', t('tool:offValue')],
                     ].map(([key, label]) => (
                       <Form.Item
                         key={key}
@@ -394,22 +413,22 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   </>
                 )}
                 {field.tag === 'DatePicker' && (
-                  <Form.Item label="时间类型">
+                  <Form.Item label={t('tool:timeType')}>
                     <Select
-                      placeholder="请选择时间类型"
+                      placeholder={t('tool:chooseATimeType')}
                       value={field.type}
                       options={(field['start-placeholder'] === undefined
                         ? [
-                            ['日(date)', 'date'],
-                            ['周(week)', 'week'],
-                            ['月(month)', 'month'],
-                            ['年(year)', 'year'],
-                            ['日期时间(datetime)', 'datetime'],
+                            [t('tool:dayDate'), 'date'],
+                            [t('tool:weekWeek'), 'week'],
+                            [t('tool:monthMonth'), 'month'],
+                            [t('tool:yearYear'), 'year'],
+                            [t('tool:dateAndTimeDatetime'), 'datetime'],
                           ]
                         : [
-                            ['日期范围(daterange)', 'daterange'],
-                            ['月范围(monthrange)', 'monthrange'],
-                            ['日期时间范围(datetimerange)', 'datetimerange'],
+                            [t('tool:dateRangeDaterange'), 'daterange'],
+                            [t('tool:monthRangeMonthrange'), 'monthrange'],
+                            [t('tool:dateAndTimeRangeDatetimerange'), 'datetimerange'],
                           ]
                       ).map(([label, value]) => ({ label, value }))}
                       onChange={(value) => update('type', value)}
@@ -417,23 +436,23 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   </Form.Item>
                 )}
                 {field.tag === 'InputNumber' && (
-                  <Form.Item label="按钮位置">
+                  <Form.Item label={t('tool:buttonPosition')}>
                     <Radio.Group
                       optionType="button"
                       value={field['controls-position']}
                       options={[
-                        { label: '默认', value: '' },
-                        { label: '右侧', value: 'right' },
+                        { label: t('layout:size.default'), value: '' },
+                        { label: t('tool:right'), value: 'right' },
                       ]}
                       onChange={(event) => update('controls-position', event.target.value)}
                     />
                   </Form.Item>
                 )}
                 {field.maxlength !== undefined && (
-                  <Form.Item label="最多输入">
+                  <Form.Item label={t('tool:maximumLength')}>
                     <Input
-                      placeholder="请输入字符长度"
-                      suffix="个字符"
+                      placeholder={t('tool:enterACharacterLimit')}
+                      suffix={t('tool:characters')}
                       value={field.maxlength}
                       onChange={(event) =>
                         update('maxlength', event.target.value ? Number(event.target.value) : null)
@@ -442,9 +461,9 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   </Form.Item>
                 )}
                 {field['picker-options'] && (
-                  <Form.Item label="时间段">
+                  <Form.Item label={t('tool:timePeriod')}>
                     <Input
-                      placeholder="请输入时间段"
+                      placeholder={t('tool:enterATimePeriod')}
                       value={field['picker-options'].selectableRange}
                       onChange={(event) =>
                         update('picker-options.selectableRange', event.target.value)
@@ -454,9 +473,9 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                 )}
                 {field.layout === 'rowFormItem' && (
                   <>
-                    <Form.Item label="水平排列">
+                    <Form.Item label={t('tool:horizontalAlignment')}>
                       <Select
-                        placeholder="请选择水平排列"
+                        placeholder={t('tool:chooseHorizontalAlignment')}
                         value={field.justify}
                         options={[
                           'start',
@@ -469,7 +488,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                         onChange={(value) => update('justify', value)}
                       />
                     </Form.Item>
-                    <Form.Item label="垂直排列">
+                    <Form.Item label={t('tool:verticalAlignment')}>
                       <Radio.Group
                         optionType="button"
                         value={field.align}
@@ -483,21 +502,21 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   </>
                 )}
                 {field.dataType && (
-                  <Form.Item label="数据类型">
+                  <Form.Item label={t('tool:dataType')}>
                     <Radio.Group
                       optionType="button"
                       value={field.dataType}
                       onChange={(e) => update('dataType', e.target.value)}
                       options={[
-                        { label: '静态数据', value: 'static' },
-                        { label: '动态数据', value: 'dynamic' },
+                        { label: t('tool:staticData'), value: 'static' },
+                        { label: t('tool:dynamicData'), value: 'dynamic' },
                       ]}
                     />
                   </Form.Item>
                 )}
                 {field.options && (field.tag !== 'Cascader' || field.dataType === 'static') && (
                   <>
-                    <Divider>选项</Divider>
+                    <Divider>{t('tool:options')}</Divider>
                     {field.tag === 'Cascader' ? (
                       <Tree
                         blockNode
@@ -528,12 +547,12 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                         >
                           <span
                             className="builder-option-drag"
-                            aria-label="拖动选项"
+                            aria-label={t('tool:dragOption')}
                           >
                             <HolderOutlined />
                           </span>
                           <Input
-                            placeholder="选项名"
+                            placeholder={t('tool:optionLabel')}
                             value={option.label}
                             onChange={(event) =>
                               update(
@@ -545,7 +564,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                             }
                           />
                           <Input
-                            placeholder="选项值"
+                            placeholder={t('tool:optionValue')}
                             value={option.value}
                             onChange={(event) =>
                               update(
@@ -562,7 +581,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                             size="small"
                             type="text"
                             danger
-                            aria-label={`删除选项 ${index + 1}`}
+                            aria-label={t('tool:deleteOptionValue', { arg0: index + 1 })}
                             onClick={() => updateOption([index], null)}
                           >
                             <MinusCircleOutlined />
@@ -579,35 +598,35 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                           : update('options', [...field.options, { label: '', value: '' }])
                       }
                     >
-                      {field.tag === 'Cascader' ? '添加父级' : '添加选项'}
+                      {field.tag === 'Cascader' ? t('tool:addParent') : t('tool:addOption')}
                     </Button>
                     <Divider />
                   </>
                 )}
                 {field.optionType && (
-                  <Form.Item label="选项样式">
+                  <Form.Item label={t('tool:optionStyle')}>
                     <Radio.Group
                       optionType="button"
                       value={field.optionType}
                       onChange={(e) => update('optionType', e.target.value)}
                       options={[
-                        { label: '默认', value: 'default' },
-                        { label: '按钮', value: 'button' },
+                        { label: t('layout:size.default'), value: 'default' },
+                        { label: t('system:menu.button'), value: 'button' },
                       ]}
                     />
                   </Form.Item>
                 )}
                 {field.tag === 'Upload' && (
                   <>
-                    <Form.Item label="文件类型">
+                    <Form.Item label={t('tool:fileType')}>
                       <Select
                         allowClear
-                        placeholder="请选择文件类型"
+                        placeholder={t('tool:chooseAFileType')}
                         value={field.accept || undefined}
                         options={[
-                          ['图片', 'image/*'],
-                          ['视频', 'video/*'],
-                          ['音频', 'audio/*'],
+                          [t('file:image'), 'image/*'],
+                          [t('tool:video'), 'video/*'],
+                          [t('tool:audio'), 'audio/*'],
                           ['excel', '.xls,.xlsx'],
                           ['word', '.doc,.docx'],
                           ['pdf', '.pdf'],
@@ -616,10 +635,10 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                         onChange={(value) => update('accept', value || '')}
                       />
                     </Form.Item>
-                    <Form.Item label="文件大小">
+                    <Form.Item label={t('system:fileSize')}>
                       <Space.Compact block>
                         <InputNumber
-                          placeholder="请输入文件大小"
+                          placeholder={t('tool:enterAFileSize')}
                           min={0}
                           value={field.fileSize}
                           onChange={(value) => update('fileSize', value)}
@@ -632,7 +651,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                         />
                       </Space.Compact>
                     </Form.Item>
-                    <Form.Item label="列表类型">
+                    <Form.Item label={t('tool:listType')}>
                       <Radio.Group
                         optionType="button"
                         value={field['list-type']}
@@ -647,14 +666,14 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                 )}
                 {field.tag === 'Button' && (
                   <>
-                    <Form.Item label="按钮文字">
+                    <Form.Item label={t('tool:buttonText')}>
                       <Input
-                        placeholder="请输入按钮文字"
+                        placeholder={t('tool:enterButtonText')}
                         value={field.default}
                         onChange={(e) => update('default', e.target.value)}
                       />
                     </Form.Item>
-                    <Form.Item label="按钮类型">
+                    <Form.Item label={t('tool:buttonType')}>
                       <Select
                         value={field.type}
                         options={['primary', 'default', 'dashed', 'text', 'link'].map((value) => ({
@@ -669,7 +688,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                 {['active-color', 'inactive-color'].filter(exists).map((key) => (
                   <Form.Item
                     key={key}
-                    label={key === 'active-color' ? '开启颜色' : '关闭颜色'}
+                    label={key === 'active-color' ? t('tool:onColor') : t('tool:offColor')}
                   >
                     <ColorPicker
                       value={field[key] || undefined}
@@ -678,7 +697,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   </Form.Item>
                 ))}
                 {exists('border') && field.optionType === 'default' && (
-                  <Form.Item label="是否带边框">
+                  <Form.Item label={t('tool:bordered')}>
                     <Switch
                       checked={field.border}
                       onChange={(value) => update('border', value)}
@@ -686,9 +705,9 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   </Form.Item>
                 )}
                 {field.tag === 'ColorPicker' && (
-                  <Form.Item label="颜色格式">
+                  <Form.Item label={t('tool:colorFormat')}>
                     <Select
-                      placeholder="请选择颜色格式"
+                      placeholder={t('tool:chooseAColorFormat')}
                       value={field['color-format'] || undefined}
                       options={['hex', 'rgb', 'rgba', 'hsv', 'hsl'].map((value) => ({
                         label: value,
@@ -702,14 +721,14 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   (field.optionType === 'button' ||
                     field.border ||
                     field.tag === 'ColorPicker') && (
-                    <Form.Item label="选项尺寸">
+                    <Form.Item label={t('tool:optionSize')}>
                       <Radio.Group
                         optionType="button"
                         value={field.size}
                         options={[
-                          { label: '较大', value: 'large' },
-                          { label: '默认', value: 'default' },
-                          { label: '较小', value: 'small' },
+                          { label: t('layout:size.large'), value: 'large' },
+                          { label: t('layout:size.default'), value: 'default' },
+                          { label: t('tool:smaller'), value: 'small' },
                         ]}
                         onChange={(event) => update('size', event.target.value)}
                       />
@@ -717,7 +736,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   )}
                 {field.layoutTree && (
                   <>
-                    <Divider>布局结构树</Divider>
+                    <Divider>{t('tool:layoutTree')}</Divider>
                     <Tree
                       defaultExpandAll
                       blockNode
@@ -744,25 +763,25 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   ))}
                 {field.regList && (
                   <>
-                    <Divider>正则校验</Divider>
+                    <Divider>{t('tool:regularExpressionValidation')}</Divider>
                     {field.regList.map((rule, i) => (
                       <div
                         key={i}
                         className="builder-rule"
                       >
                         <Form.Item
-                          label="表达式"
+                          label={t('tool:expression')}
                           validateStatus={
                             rule.pattern && !parsePattern(rule.pattern) ? 'error' : undefined
                           }
                           help={
                             rule.pattern && !parsePattern(rule.pattern)
-                              ? '无效的正则表达式'
+                              ? t('tool:invalidRegularExpression')
                               : undefined
                           }
                         >
                           <Input
-                            placeholder="请输入正则"
+                            placeholder={t('tool:enterARegularExpression')}
                             value={rule.pattern}
                             onChange={(e) =>
                               update(
@@ -774,9 +793,9 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                             }
                           />
                         </Form.Item>
-                        <Form.Item label="错误提示">
+                        <Form.Item label={t('tool:errorMessage')}>
                           <Input
-                            placeholder="请输入错误提示"
+                            placeholder={t('tool:enterAnErrorMessage')}
                             value={rule.message}
                             onChange={(e) =>
                               update(
@@ -792,7 +811,7 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                           danger
                           type="text"
                           className="builder-rule-delete"
-                          aria-label="删除规则"
+                          aria-label={t('tool:deleteRule')}
                           icon={<CloseCircleFilled />}
                           size="small"
                           onClick={() =>
@@ -811,24 +830,24 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                         update('regList', [...field.regList, { pattern: '', message: '' }])
                       }
                     >
-                      添加规则
+                      {t('tool:addRule')}
                     </Button>
                   </>
                 )}
               </Form>
             ) : (
-              <Empty description="请选择组件" />
+              <Empty description={t('tool:chooseAComponent')} />
             ),
           },
           {
             key: 'form',
-            label: '表单属性',
+            label: t('tool:formProperties'),
             children: (
               <Form layout="vertical">
                 {[
-                  ['formRef', '表单名', '请输入表单名（ref）'],
-                  ['formModel', '表单模型', '请输入数据模型'],
-                  ['formRules', '校验模型', '请输入校验模型'],
+                  ['formRef', t('tool:formName'), t('tool:enterAFormNameRef')],
+                  ['formModel', t('tool:formModel'), t('tool:enterADataModel')],
+                  ['formRules', t('tool:validationModel'), t('tool:enterAValidationModel')],
                 ].map(([key, label, placeholder]) => (
                   <Form.Item
                     key={key}
@@ -841,26 +860,26 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                     />
                   </Form.Item>
                 ))}
-                <Form.Item label="表单尺寸">
+                <Form.Item label={t('tool:formSize')}>
                   <Radio.Group
                     optionType="button"
                     value={formConf.size}
                     options={[
-                      { label: '较大', value: 'large' },
-                      { label: '默认', value: 'default' },
-                      { label: '较小', value: 'small' },
+                      { label: t('layout:size.large'), value: 'large' },
+                      { label: t('layout:size.default'), value: 'default' },
+                      { label: t('tool:smaller'), value: 'small' },
                     ]}
                     onChange={(event) => onFormChange({ ...formConf, size: event.target.value })}
                   />
                 </Form.Item>
-                <Form.Item label="标签对齐">
+                <Form.Item label={t('tool:labelAlignment')}>
                   <Radio.Group
                     optionType="button"
                     value={formConf.labelPosition}
                     options={[
-                      { label: '左对齐', value: 'left' },
-                      { label: '右对齐', value: 'right' },
-                      { label: '顶部对齐', value: 'top' },
+                      { label: t('tool:alignLeft'), value: 'left' },
+                      { label: t('tool:alignRight'), value: 'right' },
+                      { label: t('tool:alignTop'), value: 'top' },
                     ]}
                     onChange={(event) =>
                       onFormChange({ ...formConf, labelPosition: event.target.value })
@@ -868,8 +887,8 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   />
                 </Form.Item>
                 {[
-                  ['labelWidth', '标签宽度'],
-                  ['gutter', '栅格间隔'],
+                  ['labelWidth', t('tool:labelWidth')],
+                  ['gutter', t('tool:gridGap')],
                 ].map(([key, label]) => (
                   <Form.Item
                     key={key}
@@ -885,9 +904,9 @@ export default function RightPanel({ field, onChange, formConf, onFormChange, on
                   </Form.Item>
                 ))}
                 {[
-                  ['disabled', '禁用表单'],
-                  ['formBtns', '表单按钮'],
-                  ['unFocusedComponentBorder', '显示未选中组件边框'],
+                  ['disabled', t('tool:disableForm')],
+                  ['formBtns', t('tool:formButtons')],
+                  ['unFocusedComponentBorder', t('tool:showBordersOnUnselectedComponents')],
                 ].map(([key, label]) => (
                   <Form.Item
                     key={key}

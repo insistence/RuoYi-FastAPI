@@ -4,6 +4,7 @@ from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.migration import PluginMigrationError, PluginMigrationResult
 from plugins.core.lifecycle.seed import PluginSeedResult, PluginSeedRunner
@@ -125,7 +126,7 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         except PluginLifecycleStepFailed as exc:
             await self._close_install_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '插件安装失败',
+                I18nMessage('插件安装失败', msg_key='plugin.runtime.install.failed'),
                 exc.original_error,
                 plugin_id=plugin_id,
                 failed_step=exc.step_name,
@@ -134,7 +135,7 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         except Exception as exc:
             await self._close_install_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '插件安装失败',
+                I18nMessage('插件安装失败', msg_key='plugin.runtime.install.failed'),
                 exc,
                 plugin_id=plugin_id,
                 failed_step='prepare_install',
@@ -250,7 +251,9 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
 
         return PluginLifecyclePayloadBuilder.build_precheck_blocker_payload(
             context.plugin_id,
-            message='插件依赖缺失，安装已中止，请先显式安装依赖',
+            message=I18nMessage(
+                '插件依赖缺失，安装已中止，请先显式安装依赖', msg_key='plugin.runtime.install.missingDependencies'
+            ),
             actions=context.actions or [],
             precheck=cast('PluginPrecheckContext', context.precheck),
             extra_payload={'dependencyInstall': context.dependency_install_view},
@@ -315,7 +318,9 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
 
         return PluginLifecyclePayloadBuilder.build_installed_menu_conflict_payload(
             context.plugin_id,
-            message='插件菜单与已安装菜单存在冲突，安装已中止',
+            message=I18nMessage(
+                '插件菜单与已安装菜单存在冲突，安装已中止', msg_key='plugin.runtime.install.menuConflict'
+            ),
             actions=context.actions or [],
             precheck=cast('PluginPrecheckContext', context.precheck),
             installed_menu_conflicts=installed_menu_conflicts,
@@ -541,7 +546,7 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         """
         return PluginLifecyclePayloadBuilder.build_success_payload(
             context.plugin_id,
-            message='插件安装完成',
+            message=I18nMessage('插件安装完成', msg_key='plugin.runtime.install.completed'),
             actions=context.actions or [],
             precheck=cast('PluginPrecheckContext', context.precheck),
             plugin=context.plugin,

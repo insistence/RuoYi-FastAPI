@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    title="插件详情"
+    :title="$t('pluginAdmin:messages.pluginDetails')"
     :visible="visible"
     width="min(920px, calc(100vw - 32px))"
     append-to-body
@@ -8,56 +8,75 @@
   >
     <el-tabs v-model="activeTab">
       <el-tab-pane
-        label="概览"
+        :label="$t('pluginAdmin:messages.overview')"
         name="overview"
       >
-        <div class="detail-section-title detail-section-title-first">基础信息</div>
+        <div class="detail-section-title detail-section-title-first">
+          {{ $t('pluginAdmin:messages.basicInformation') }}
+        </div>
         <el-descriptions
           :column="2"
           border
           class="mb16"
         >
-          <el-descriptions-item label="插件ID">{{ detail.pluginId }}</el-descriptions-item>
-          <el-descriptions-item label="插件名称">{{ detail.pluginName }}</el-descriptions-item>
-          <el-descriptions-item :label="detail.source === 'artifact' ? '制品版本' : '源码版本'">{{
-            detail.version
+          <el-descriptions-item :label="$t('pluginAdmin:id')">{{
+            detail.pluginId
           }}</el-descriptions-item>
-          <el-descriptions-item label="已安装版本">{{
+          <el-descriptions-item :label="$t('pluginAdmin:name')">{{
+            detail.pluginName
+          }}</el-descriptions-item>
+          <el-descriptions-item
+            :label="
+              detail.source === 'artifact'
+                ? $t('pluginAdmin:expression.artifactVersion')
+                : $t('pluginAdmin:expression.sourceVersion')
+            "
+            >{{ detail.version }}</el-descriptions-item
+          >
+          <el-descriptions-item :label="$t('pluginAdmin:messages.installedVersion')">{{
             detail.installedVersion || '-'
           }}</el-descriptions-item>
-          <el-descriptions-item label="启用设置">{{
-            detail.enabled === '0' ? '启用' : '停用'
+          <el-descriptions-item :label="$t('pluginAdmin:enableSettings')">{{
+            detail.enabled === '0' ? $t('system:oauth.enable') : $t('system:oauth.disabled')
           }}</el-descriptions-item>
-          <el-descriptions-item label="插件状态">{{
+          <el-descriptions-item :label="$t('pluginAdmin:status')">{{
             getStatusLabel(detail.status)
           }}</el-descriptions-item>
-          <el-descriptions-item label="来源">{{ detail.source || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="更新时间">{{
+          <el-descriptions-item :label="$t('common:source')">{{
+            detail.source || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('common:updatedTime')">{{
             formatPluginTime(detail.updateTime)
           }}</el-descriptions-item>
-          <el-descriptions-item label="分类">{{ metadata.category || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="标签">{{
+          <el-descriptions-item :label="$t('pluginAdmin:messages.category')">{{
+            metadata.category || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('system:dict.label')">{{
             formatDetailTags(metadata.tags)
           }}</el-descriptions-item>
-          <el-descriptions-item label="作者">{{ metadata.author || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="许可证">{{ metadata.license || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('pluginAdmin:messages.author')">{{
+            metadata.author || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('pluginAdmin:messages.license')">{{
+            metadata.license || '-'
+          }}</el-descriptions-item>
           <el-descriptions-item
-            label="最近错误"
+            :label="$t('pluginAdmin:messages.latestError')"
             :span="2"
             >{{ detail.lastError || '-' }}</el-descriptions-item
           >
           <el-descriptions-item
-            label="插件说明"
+            :label="$t('pluginAdmin:messages.pluginDescription')"
             :span="2"
             >{{ detail.description || '-' }}</el-descriptions-item
           >
         </el-descriptions>
 
         <template v-if="detail.source === 'artifact'">
-          <div class="detail-section-title">制品发布</div>
+          <div class="detail-section-title">{{ $t('pluginAdmin:messages.artifactRelease') }}</div>
           <el-alert
             v-if="releaseView.unavailable"
-            title="暂未获取发布状态，请刷新列表后查看"
+            :title="$t('pluginAdmin:messages.releaseStatusIsUnavailableRefreshTheListAndTryAgain')"
             type="info"
             show-icon
             :closable="false"
@@ -65,7 +84,7 @@
           />
           <el-alert
             v-if="releaseView.error"
-            title="制品发布异常"
+            :title="$t('pluginAdmin:messages.artifactReleaseError')"
             :description="releaseView.error"
             type="error"
             show-icon
@@ -74,8 +93,12 @@
           />
           <el-alert
             v-if="releaseView.restartRequired"
-            title="尚未完成全部 worker 的状态确认"
-            description="请在停机维护窗口完成发布操作，再启动全部 worker；以下状态以实际进程报告为准。"
+            :title="$t('pluginAdmin:messages.notAllWorkerStatusesHaveBeenConfirmed')"
+            :description="
+              $t(
+                'pluginAdmin:messages.completeTheReleaseDuringAMaintenanceWindowThenStartAllWorkersThe'
+              )
+            "
             type="warning"
             show-icon
             :closable="false"
@@ -86,118 +109,128 @@
             border
             class="mb16"
           >
-            <el-descriptions-item label="发布状态">
+            <el-descriptions-item :label="$t('pluginAdmin:messages.releaseStatus')">
               <el-tag :type="releaseView.tagType">{{ releaseView.label }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="维护准备">{{
+            <el-descriptions-item :label="$t('pluginAdmin:messages.maintenancePreparation')">{{
               releaseView.preparationLabel
             }}</el-descriptions-item>
             <el-descriptions-item
-              label="Worker 状态"
+              :label="$t('pluginAdmin:messages.workerStatus')"
               :span="2"
               >{{ releaseView.workerSummary }}</el-descriptions-item
             >
-            <el-descriptions-item label="目标匹配 / 停用确认"
+            <el-descriptions-item :label="$t('pluginAdmin:messages.targetMatchedDisabledConfirmed')"
               >{{ releaseView.counts.healthy }} /
               {{ releaseView.counts.disabled }}</el-descriptions-item
             >
-            <el-descriptions-item label="不一致 / 失败"
+            <el-descriptions-item :label="$t('pluginAdmin:messages.mismatchFailed')"
               >{{ releaseView.counts.mismatch }} /
               {{ releaseView.counts.failed }}</el-descriptions-item
             >
-            <el-descriptions-item label="未确认 / 心跳过期"
+            <el-descriptions-item :label="$t('pluginAdmin:messages.unconfirmedHeartbeatExpired')"
               >{{ releaseView.counts.missing }} /
               {{ releaseView.counts.stale }}</el-descriptions-item
             >
-            <el-descriptions-item label="目标代码版本">{{
+            <el-descriptions-item :label="$t('pluginAdmin:messages.targetCodeVersion')">{{
               release.targetVersion || '-'
             }}</el-descriptions-item>
             <el-descriptions-item
-              label="目标制品摘要"
+              :label="$t('pluginAdmin:messages.targetArtifactDigest')"
               :span="2"
               ><code class="release-identity">{{
-                release.targetDigest || '未选择目标'
+                release.targetDigest || $t('pluginAdmin:release.no_target')
               }}</code></el-descriptions-item
             >
             <el-descriptions-item
-              label="已准备摘要"
+              :label="$t('pluginAdmin:messages.preparedDigest')"
               :span="2"
               ><code class="release-identity">{{
-                release.preparedDigest || '尚未完成维护准备'
+                release.preparedDigest ||
+                $t('pluginAdmin:expression.maintenancePreparationIsIncomplete')
               }}</code></el-descriptions-item
             >
             <el-descriptions-item
-              label="发布代际"
+              :label="$t('pluginAdmin:messages.releaseGeneration')"
               :span="2"
               ><code class="release-identity">{{
                 release.generation || '-'
               }}</code></el-descriptions-item
             >
             <el-descriptions-item
-              label="已安装数据结构版本"
+              :label="$t('pluginAdmin:messages.installedSchemaVersion')"
               :span="2"
             >
               {{ detail.installedVersion || '-' }}
               <div class="release-explanation">
-                表示数据库迁移和安装资源已到达的版本；代码回滚不会降低此版本。worker
-                是否使用目标代码由发布状态确认。
+                {{
+                  $t(
+                    'pluginAdmin:messages.theVersionReachedByDatabaseMigrationsAndInstalledResourcesRollingBackCode'
+                  )
+                }}
               </div>
             </el-descriptions-item>
           </el-descriptions>
         </template>
 
-        <div class="detail-section-title">后端声明</div>
+        <div class="detail-section-title">{{ $t('pluginAdmin:messages.backendDeclarations') }}</div>
         <el-descriptions
           :column="2"
           border
           class="mb16"
         >
           <el-descriptions-item
-            label="后端路径"
+            :label="$t('pluginAdmin:messages.backendPath')"
             :span="2"
             >{{ detail.backendPath || '-' }}</el-descriptions-item
           >
           <el-descriptions-item
-            label="后端模块"
+            :label="$t('pluginAdmin:messages.backendModule')"
             :span="2"
             >{{ backend.module || '-' }}</el-descriptions-item
           >
-          <el-descriptions-item label="自动扫描路由">{{
+          <el-descriptions-item :label="$t('pluginAdmin:messages.automaticRouteDiscovery')">{{
             formatYesNo(backend.autoScanRouters)
           }}</el-descriptions-item>
-          <el-descriptions-item label="定时任务">{{ backendJobs.length }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('pluginAdmin:messages.scheduledTasks')">{{
+            backendJobs.length
+          }}</el-descriptions-item>
         </el-descriptions>
 
-        <div class="detail-section-title">前端声明</div>
+        <div class="detail-section-title">
+          {{ $t('pluginAdmin:messages.frontendDeclarations') }}
+        </div>
         <el-descriptions
           :column="2"
           border
         >
           <el-descriptions-item
-            label="前端路径"
+            :label="$t('pluginAdmin:messages.frontendPath')"
             :span="2"
             >{{ detail.frontendPath || '-' }}</el-descriptions-item
           >
-          <el-descriptions-item label="前端插件ID">{{
+          <el-descriptions-item :label="$t('pluginAdmin:messages.frontendPluginID')">{{
             frontend.pluginId || '-'
           }}</el-descriptions-item>
-          <el-descriptions-item label="前端基础路径">{{
+          <el-descriptions-item :label="$t('pluginAdmin:messages.frontendBasePath')">{{
             frontend.basePath || '-'
           }}</el-descriptions-item>
-          <el-descriptions-item label="视图目录">{{
+          <el-descriptions-item :label="$t('pluginAdmin:messages.viewDirectory')">{{
             frontend.viewsPath || '-'
           }}</el-descriptions-item>
-          <el-descriptions-item label="API 目录">{{
+          <el-descriptions-item :label="$t('pluginAdmin:messages.aPIDirectory')">{{
             frontend.apiPath || '-'
           }}</el-descriptions-item>
-          <el-descriptions-item label="前端交付">{{
+          <el-descriptions-item :label="$t('pluginAdmin:messages.frontendDelivery')">{{
             getFrontendDeliveryLabel(frontend.delivery)
           }}</el-descriptions-item>
-          <el-descriptions-item label="菜单声明">{{ frontendMenus.length }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('pluginAdmin:messages.menuDeclarations')">{{
+            frontendMenus.length
+          }}</el-descriptions-item>
         </el-descriptions>
       </el-tab-pane>
       <el-tab-pane
-        label="运行观测"
+        :label="$t('pluginAdmin:messages.runtimeMonitoring')"
         name="metrics"
         lazy
       >
@@ -206,33 +239,33 @@
           :plugin-id="detail.pluginId"
         />
       </el-tab-pane>
-      <el-tab-pane label="菜单">
+      <el-tab-pane :label="$t('system:menu.menu')">
         <el-table
           :data="frontendMenus"
           size="small"
           border
-          empty-text="暂无菜单声明"
+          :empty-text="$t('pluginAdmin:messages.noMenuDeclarations')"
         >
           <el-table-column
-            label="名称"
+            :label="$t('common:name')"
             prop="name"
             min-width="140"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="路径"
+            :label="$t('pluginAdmin:messages.path')"
             prop="path"
             min-width="140"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="组件"
+            :label="$t('pluginAdmin:messages.component')"
             prop="component"
             min-width="180"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="权限"
+            :label="$t('system:permission.title')"
             prop="perms"
             min-width="160"
             :show-overflow-tooltip="true"
@@ -240,34 +273,34 @@
             <template slot-scope="scope">{{ scope.row.perms || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="类型"
+            :label="$t('common:type')"
             prop="type"
             width="70"
             align="center"
           />
           <el-table-column
-            label="排序"
+            :label="$t('common:sort')"
             prop="orderNum"
             width="70"
             align="center"
           />
         </el-table>
       </el-tab-pane>
-      <el-tab-pane label="权限">
+      <el-tab-pane :label="$t('system:permission.title')">
         <el-table
           :data="detail.permissions || []"
           size="small"
           border
-          empty-text="暂无权限声明"
+          :empty-text="$t('pluginAdmin:messages.noPermissionDeclarations')"
         >
           <el-table-column
-            label="权限标识"
+            :label="$t('system:menu.permission')"
             prop="code"
             min-width="180"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="展示名称"
+            :label="$t('pluginAdmin:messages.displayName')"
             prop="name"
             min-width="140"
             :show-overflow-tooltip="true"
@@ -275,7 +308,7 @@
             <template slot-scope="scope">{{ scope.row.name || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="说明"
+            :label="$t('common:description')"
             prop="description"
             min-width="220"
             :show-overflow-tooltip="true"
@@ -284,21 +317,21 @@
           </el-table-column>
         </el-table>
       </el-tab-pane>
-      <el-tab-pane label="配置">
+      <el-tab-pane :label="$t('pluginAdmin:messages.configuration')">
         <el-table
           :data="detail.config || []"
           size="small"
           border
-          empty-text="暂无配置声明"
+          :empty-text="$t('pluginAdmin:messages.noConfigurationDeclarations')"
         >
           <el-table-column
-            label="配置键"
+            :label="$t('pluginAdmin:messages.configurationKey')"
             prop="key"
             min-width="160"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="名称"
+            :label="$t('common:name')"
             prop="label"
             min-width="140"
             :show-overflow-tooltip="true"
@@ -306,78 +339,80 @@
             <template slot-scope="scope">{{ scope.row.label || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="类型"
+            :label="$t('common:type')"
             prop="type"
             width="100"
             align="center"
           />
           <el-table-column
-            label="必填"
+            :label="$t('pluginAdmin:messages.required')"
             width="70"
             align="center"
           >
             <template slot-scope="scope">
               <el-tag :type="scope.row.required ? 'warning' : 'info'">{{
-                scope.row.required ? '是' : '否'
+                scope.row.required ? $t('common:yes') : $t('common:no')
               }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column
-            label="敏感"
+            :label="$t('pluginAdmin:messages.sensitive')"
             width="70"
             align="center"
           >
             <template slot-scope="scope">
               <el-tag :type="scope.row.secret ? 'warning' : 'info'">{{
-                scope.row.secret ? '是' : '否'
+                scope.row.secret ? $t('common:yes') : $t('common:no')
               }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column
-            label="默认值"
+            :label="$t('pluginAdmin:messages.defaultValue')"
             min-width="160"
             :show-overflow-tooltip="true"
           >
             <template slot-scope="scope">{{ formatConfigDefaultValue(scope.row) }}</template>
           </el-table-column>
           <el-table-column
-            label="约束"
+            :label="$t('pluginAdmin:messages.constraints')"
             min-width="200"
             :show-overflow-tooltip="true"
           >
             <template slot-scope="scope">{{ formatConfigConstraint(scope.row) }}</template>
           </el-table-column>
           <el-table-column
-            label="说明"
+            :label="$t('common:description')"
             prop="description"
             min-width="220"
             :show-overflow-tooltip="true"
           />
         </el-table>
       </el-tab-pane>
-      <el-tab-pane label="依赖">
-        <div class="detail-section-title detail-section-title-first">运行依赖</div>
+      <el-tab-pane :label="$t('pluginAdmin:dependencies')">
+        <div class="detail-section-title detail-section-title-first">
+          {{ $t('pluginAdmin:messages.runtimeDependencies') }}
+        </div>
         <el-table
           :data="detailDependencyRows"
           size="small"
           border
-          empty-text="暂无运行依赖声明"
+          :empty-text="$t('pluginAdmin:messages.noRuntimeDependencyDeclarations')"
         >
           <el-table-column
-            label="类型"
+            :label="$t('common:type')"
             prop="label"
             width="120"
             align="center"
           />
           <el-table-column
-            label="数量"
+            :label="$t('common:count')"
             width="80"
             align="center"
           >
             <template slot-scope="scope">{{ scope.row.items.length }}</template>
           </el-table-column>
           <el-table-column
-            label="依赖项"
+            :label="$t('pluginAdmin:messages.dependency')"
             min-width="520"
           >
             <template slot-scope="scope">
@@ -399,28 +434,28 @@
           </el-table-column>
         </el-table>
 
-        <div class="detail-section-title">数据库脚本</div>
+        <div class="detail-section-title">{{ $t('pluginAdmin:messages.databaseScripts') }}</div>
         <el-table
           :data="detailScriptRows"
           size="small"
           border
-          empty-text="暂无数据库脚本声明"
+          :empty-text="$t('pluginAdmin:messages.noDatabaseScriptDeclarations')"
         >
           <el-table-column
-            label="类型"
+            :label="$t('common:type')"
             prop="label"
             width="120"
             align="center"
           />
           <el-table-column
-            label="数量"
+            :label="$t('common:count')"
             width="80"
             align="center"
           >
             <template slot-scope="scope">{{ scope.row.items.length }}</template>
           </el-table-column>
           <el-table-column
-            label="脚本"
+            :label="$t('pluginAdmin:messages.script')"
             min-width="520"
           >
             <template slot-scope="scope">
@@ -442,22 +477,22 @@
           </el-table-column>
         </el-table>
 
-        <div class="detail-section-title">执行历史</div>
+        <div class="detail-section-title">{{ $t('pluginAdmin:messages.executionHistory') }}</div>
         <el-table
           v-loading="migrationLoading"
           :data="migrationHistory"
           size="small"
           border
-          empty-text="暂无 migration 执行历史"
+          :empty-text="$t('pluginAdmin:messages.noMigrationHistory')"
         >
           <el-table-column
-            label="脚本"
+            :label="$t('pluginAdmin:messages.script')"
             prop="migrationPath"
             min-width="220"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="版本"
+            :label="$t('pluginAdmin:messages.version')"
             prop="version"
             width="100"
             align="center"
@@ -465,7 +500,7 @@
             <template slot-scope="scope">{{ scope.row.version || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="状态"
+            :label="$t('common:status')"
             width="120"
             align="center"
           >
@@ -476,7 +511,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="次数"
+            :label="$t('monitor:messages.count')"
             prop="attemptCount"
             width="70"
             align="center"
@@ -484,7 +519,7 @@
             <template slot-scope="scope">{{ formatCount(scope.row.attemptCount) }}</template>
           </el-table-column>
           <el-table-column
-            label="语句"
+            :label="$t('pluginAdmin:messages.statement')"
             prop="statementCount"
             width="70"
             align="center"
@@ -492,7 +527,7 @@
             <template slot-scope="scope">{{ formatCount(scope.row.statementCount) }}</template>
           </el-table-column>
           <el-table-column
-            label="开始时间"
+            :label="$t('common:startTime')"
             width="160"
             align="center"
           >
@@ -501,21 +536,21 @@
             }}</template>
           </el-table-column>
           <el-table-column
-            label="结束时间"
+            :label="$t('common:endTime')"
             width="160"
             align="center"
           >
             <template slot-scope="scope">{{ formatPluginTime(scope.row.finishedTime) }}</template>
           </el-table-column>
           <el-table-column
-            label="错误信息"
+            :label="$t('pluginAdmin:messages.errorMessage')"
             min-width="220"
             :show-overflow-tooltip="true"
           >
             <template slot-scope="scope">{{ scope.row.errorMessage || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="操作"
+            :label="$t('common:actions')"
             width="110"
             align="center"
             fixed="right"
@@ -524,7 +559,7 @@
               <div class="detail-row-actions">
                 <el-tooltip
                   v-if="canMarkMigrationSuccess(scope.row)"
-                  content="标记成功"
+                  :content="$t('pluginAdmin:messages.markSuccessful')"
                   placement="top"
                 >
                   <el-button
@@ -536,7 +571,7 @@
                 </el-tooltip>
                 <el-tooltip
                   v-if="canMarkMigrationFailed(scope.row)"
-                  content="标记失败"
+                  :content="$t('pluginAdmin:messages.markFailed')"
                   placement="top"
                 >
                   <el-button
@@ -555,21 +590,21 @@
           </el-table-column>
         </el-table>
 
-        <div class="detail-section-title">插件依赖</div>
+        <div class="detail-section-title">{{ $t('pluginAdmin:dependencyTitle') }}</div>
         <el-table
           :data="detail.pluginDependencies || []"
           size="small"
           border
-          empty-text="暂无插件依赖"
+          :empty-text="$t('pluginAdmin:messages.noPluginDependencies')"
         >
           <el-table-column
-            label="插件ID"
+            :label="$t('pluginAdmin:id')"
             prop="id"
             width="160"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="版本约束"
+            :label="$t('pluginAdmin:messages.versionConstraint')"
             prop="version"
             width="140"
             :show-overflow-tooltip="true"
@@ -577,27 +612,27 @@
             <template slot-scope="scope">{{ scope.row.version || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="说明"
+            :label="$t('common:description')"
             prop="description"
             min-width="220"
             :show-overflow-tooltip="true"
           />
         </el-table>
-        <div class="detail-section-title">定时任务</div>
+        <div class="detail-section-title">{{ $t('pluginAdmin:messages.scheduledTasks') }}</div>
         <el-table
           :data="backendJobs"
           size="small"
           border
-          empty-text="暂无定时任务声明"
+          :empty-text="$t('pluginAdmin:messages.noScheduledTaskDeclarations')"
         >
           <el-table-column
-            label="任务ID"
+            :label="$t('pluginAdmin:messages.taskID')"
             prop="id"
             width="140"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="名称"
+            :label="$t('common:name')"
             prop="name"
             min-width="140"
             :show-overflow-tooltip="true"
@@ -605,7 +640,7 @@
             <template slot-scope="scope">{{ scope.row.name || '-' }}</template>
           </el-table-column>
           <el-table-column
-            label="调用目标"
+            :label="$t('monitor:job.target')"
             prop="callable"
             min-width="220"
             :show-overflow-tooltip="true"
@@ -617,18 +652,18 @@
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="默认启用"
+            :label="$t('pluginAdmin:messages.enabledByDefault')"
             width="90"
             align="center"
           >
             <template slot-scope="scope">
               <el-tag :type="scope.row.enabled ? 'success' : 'info'">{{
-                scope.row.enabled ? '是' : '否'
+                scope.row.enabled ? $t('common:yes') : $t('common:no')
               }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column
-            label="说明"
+            :label="$t('common:description')"
             prop="description"
             min-width="220"
             :show-overflow-tooltip="true"
@@ -645,16 +680,18 @@
         type="primary"
         @click="emit('repair')"
         v-hasPermi="['system:plugin:edit']"
-        >重新安装修复</el-button
+        >{{ $t('pluginAdmin:messages.reinstallToRepair') }}</el-button
       >
-      <el-button @click="emit('update:visible', false)">关 闭</el-button>
+      <el-button @click="emit('update:visible', false)">{{ $t('common:close') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script setup name="PluginDetailDialog">
+import { t } from '@/i18n/adapter'
+
 import { computed, ref } from 'vue'
-import { getPluginReleaseView } from '@/utils/pluginReleaseFormatter'
+import { getPluginReleaseView } from '@/utils/pluginReleaseDisplay'
 import PluginRuntimeMetrics from './PluginRuntimeMetrics.vue'
 
 const activeTab = ref('overview')
@@ -755,7 +792,7 @@ function formatYesNo(value) {
   if (value === undefined || value === null) {
     return '-'
   }
-  return value ? '是' : '否'
+  return value ? t('common:yes') : t('common:no')
 }
 
 function formatCount(value) {
@@ -771,9 +808,9 @@ function getFrontendDeliveryLabel(delivery) {
     return '-'
   }
   const typeMap = {
-    none: '无前端资源',
-    source: '源码交付',
-    bundle: '独立前端制品',
+    none: t('pluginAdmin:messages.noFrontendResources'),
+    source: t('pluginAdmin:messages.sourceDelivery'),
+    bundle: t('pluginAdmin:messages.standaloneFrontendArtifact'),
   }
   return typeMap[delivery.type] || delivery.type || '-'
 }
@@ -784,10 +821,10 @@ function normalizeDetailItems(items) {
 
 function getMigrationStatusLabel(status) {
   const statusMap = {
-    running: '执行中/中断',
-    success: '成功',
-    failed: '失败',
-    unknown: '未知',
+    running: t('pluginAdmin:messages.runningInterrupted'),
+    success: t('common:success'),
+    failed: t('common:failed'),
+    unknown: t('common:unknown'),
   }
   return statusMap[status] || status || '-'
 }

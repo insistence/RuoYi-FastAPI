@@ -7,12 +7,14 @@
             :src="logo"
             alt="logo"
           />
-          Form Generator
+          {{ $t('tool:builder.formDesigner') }}
         </div>
       </div>
       <el-scrollbar class="left-scrollbar">
         <div class="components-list">
-          <div class="components-title"><svg-icon icon-class="component" />输入型组件</div>
+          <div class="components-title">
+            <svg-icon icon-class="component" />{{ $t('tool:builder.inputComponents') }}
+          </div>
           <draggable
             class="components-draggable"
             :list="inputComponents"
@@ -34,7 +36,9 @@
               </div>
             </div>
           </draggable>
-          <div class="components-title"><svg-icon icon-class="component" />选择型组件</div>
+          <div class="components-title">
+            <svg-icon icon-class="component" />{{ $t('tool:builder.selectionComponents') }}
+          </div>
           <draggable
             class="components-draggable"
             :list="selectComponents"
@@ -56,7 +60,9 @@
               </div>
             </div>
           </draggable>
-          <div class="components-title"><svg-icon icon-class="component" /> 布局型组件</div>
+          <div class="components-title">
+            <svg-icon icon-class="component" /> {{ $t('tool:builder.layoutComponents') }}
+          </div>
           <draggable
             class="components-draggable"
             :list="layoutComponents"
@@ -89,7 +95,7 @@
           type="text"
           @click="download"
         >
-          导出vue文件
+          {{ $t('tool:builder.exportVueFile') }}
         </el-button>
         <el-button
           class="copy-btn-main"
@@ -97,7 +103,7 @@
           type="text"
           @click="copy"
         >
-          复制代码
+          {{ $t('tool:builder.copyCode') }}
         </el-button>
         <el-button
           class="delete-btn"
@@ -105,7 +111,7 @@
           type="text"
           @click="empty"
         >
-          清空
+          {{ $t('common:clear') }}
         </el-button>
       </div>
       <el-scrollbar class="center-scrollbar">
@@ -142,7 +148,7 @@
               v-show="!drawingList.length"
               class="empty-info"
             >
-              从左侧拖入或点选组件进行表单设计
+              {{ $t('tool:builder.dragOrClickComponentsOnTheLeftToDesignYourForm') }}
             </div>
           </el-form>
         </el-row>
@@ -158,7 +164,7 @@
 
     <code-type-dialog
       :visible.sync="dialogVisible"
-      title="选择生成类型"
+      :title="$t('tool:builder.chooseGenerationType')"
       :show-file-name="showFileName"
       @confirm="generate"
     />
@@ -170,6 +176,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import draggable from 'vuedraggable'
 import beautifier from 'js-beautify'
 import ClipboardJS from 'clipboard'
@@ -259,15 +267,15 @@ export default {
       text: (trigger) => {
         const codeStr = this.generateCode()
         this.$notify({
-          title: '成功',
-          message: '代码已复制到剪切板，可粘贴。',
+          title: t('tool:builder.success'),
+          message: t('tool:builder.copied'),
           type: 'success',
         })
         return codeStr
       },
     })
     clipboard.on('error', (e) => {
-      this.$message.error('代码复制失败')
+      this.$message.error(t('tool:builder.copyFailed'))
     })
   },
   beforeDestroy() {
@@ -331,10 +339,12 @@ export default {
       document.getElementById('copyNode').click()
     },
     empty() {
-      this.$confirm('确定要清空所有组件吗？', '提示', { type: 'warning' }).then(() => {
-        this.drawingList = []
-        cleanDrawingDefaultValue()
-      })
+      this.$confirm(t('tool:builder.clearConfirm'), t('common:tip'), { type: 'warning' }).then(
+        () => {
+          this.drawingList = []
+          cleanDrawingDefaultValue()
+        }
+      )
     },
     drawingItemCopy(item, parent) {
       let clone = JSON.parse(JSON.stringify(item))

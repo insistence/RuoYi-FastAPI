@@ -13,9 +13,11 @@ from agno.run.cancel import acancel_run
 from agno.session import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from common.context import LocaleContext, RequestContext
 from common.vo import CrudResponseModel
 from config.env import UploadConfig
 from exceptions.exception import ServiceException
+from i18n.translator import I18nUtil
 from plugins.ai.dao.ai_chat_dao import AiChatConfigDao
 from plugins.ai.dao.ai_model_dao import AiModelDao
 from plugins.ai.entity.vo.ai_chat_vo import (
@@ -224,6 +226,7 @@ class AiChatService:
         run_kwargs: dict[str, Any],
         is_reasoning: bool,
         session_id: str,
+        locale_context: LocaleContext | None = None,
     ) -> AsyncGenerator[str, None]:
         """
         将Agent输出流式转换为前端SSE消息
@@ -233,8 +236,10 @@ class AiChatService:
         :param run_kwargs: 运行参数字典
         :param is_reasoning: 是否输出推理内容
         :param session_id: 会话ID
+        :param locale_context: 流创建时的语言上下文
         :return: SSE消息生成器
         """
+        locale_context = locale_context or RequestContext.get_current_locale()
         full_response = ''
         full_reasoning = ''
         try:
@@ -270,11 +275,55 @@ class AiChatService:
                     full_response += content
                     yield json.dumps({'content': content, 'type': 'content'}) + '\n'
         except Exception as e:
-            yield json.dumps({'error': str(e), 'type': 'error'}) + '\n'
+            yield cls._stream_error(e, locale_context)
+
+    @staticmethod
+    def _stream_error(error: Exception, context: LocaleContext) -> str:
+        """
+        使用流创建时的语言快照生成错误事件，保留原有事件类型
+
+        :param error: 平台或模型调用异常
+        :param context: 流创建时的语言上下文
+        :return: 序列化的错误事件
+        """
+        fields = I18nUtil.message_fields(
+            getattr(error, 'message', None) or str(error),
+            msg_key='ai.stream.failed' if not getattr(error, 'msg_key', None) else error.msg_key,
+            msg_params=getattr(error, 'msg_params', None),
+            context=context,
+        )
+        return json.dumps({'error': fields.pop('msg'), 'type': 'error', **fields}) + '\n'
 
     @classmethod
     async def chat_services(
-        cls, query_db: AsyncSession, chat_req: AiChatRequestModel, user_id: int
+        cls,
+        query_db: AsyncSession,
+        chat_req: AiChatRequestModel,
+        user_id: int,
+        *,
+        locale_context: LocaleContext | None = None,
+    ) -> AsyncGenerator[str, None]:
+        """
+        在流生命周期内固定语言，并将初始化错误转换为平台错误事件
+
+        :param query_db: orm对象
+        :param chat_req: 对话请求对象
+        :param user_id: 用户ID
+        :param locale_context: 请求创建流时捕获的语言上下文
+        :return: 对话响应流
+        """
+        snapshot = locale_context or RequestContext.get_current_locale()
+        try:
+            async for chunk in cls._chat_services(query_db, chat_req, user_id, snapshot):
+                yield chunk
+        except Exception as error:
+            if snapshot.version != 'v1':
+                raise
+            yield cls._stream_error(error, snapshot)
+
+    @classmethod
+    async def _chat_services(
+        cls, query_db: AsyncSession, chat_req: AiChatRequestModel, user_id: int, locale_context: LocaleContext
     ) -> AsyncGenerator[str, None]:
         """
         流式对话
@@ -282,14 +331,15 @@ class AiChatService:
         :param query_db: orm对象
         :param chat_req: 对话请求对象
         :param user_id: 用户ID
+        :param locale_context: 流创建时的语言上下文
         :return: 对话响应流
         """
         ai_model = await AiModelDao.get_ai_model_detail_by_id(query_db, chat_req.model_id)
         if ai_model is None:
-            raise ServiceException(message='模型不存在')
+            raise ServiceException(message='模型不存在', msg_key='ai.model.notFound')
         model_config = AiModelModel(**CamelCaseUtil.transform_result(ai_model))
         if model_config.status != '0':
-            raise ServiceException(message='模型已停用')
+            raise ServiceException(message='模型已停用', msg_key='ai.model.disabled')
 
         user_config = await cls.ai_chat_config_detail_services(query_db, user_id)
 
@@ -320,6 +370,7 @@ class AiChatService:
             run_kwargs=run_kwargs,
             is_reasoning=is_reasoning,
             session_id=session_id,
+            locale_context=locale_context,
         ):
             yield chunk
 
@@ -358,7 +409,7 @@ class AiChatService:
         try:
             if chat_config:
                 if chat_config.chat_config_id != page_object.chat_config_id:
-                    raise ServiceException(message='只允许修改当前用户的配置')
+                    raise ServiceException(message='只允许修改当前用户的配置', msg_key='ai.settings.otherUser')
                 edit_ai_chat_config = page_object.model_dump(
                     exclude_unset=True,
                     exclude={'create_time', 'update_time'},
@@ -372,7 +423,7 @@ class AiChatService:
             await query_db.rollback()
             raise e
 
-        return CrudResponseModel(is_success=True, message='保存成功')
+        return CrudResponseModel(is_success=True, message='保存成功', msg_key='common.saved')
 
     @classmethod
     async def get_chat_session_list_services(cls, user_id: int) -> list[AiChatSessionBaseModel]:
@@ -421,9 +472,9 @@ class AiChatService:
         """
         session: Session | None = await storage.get_session(session_id=session_id, session_type=SessionType.AGENT)
         if not session:
-            raise ServiceException(message='会话不存在')
+            raise ServiceException(message='会话不存在', msg_key='identity.session.notFound')
         if str(session.user_id) != str(user_id):
-            raise ServiceException(message='无权访问该会话')
+            raise ServiceException(message='无权访问该会话', msg_key='ai.conversation.forbidden')
 
         return session
 
@@ -440,8 +491,8 @@ class AiChatService:
         await cls._get_owned_session(storage, session_id, user_id)
         delete_result = await storage.delete_session(session_id=session_id)
         if not delete_result:
-            raise ServiceException(message='删除会话失败')
-        return CrudResponseModel(is_success=True, message='删除成功')
+            raise ServiceException(message='删除会话失败', msg_key='ai.conversation.deleteFailed')
+        return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
 
     @classmethod
     async def get_chat_session_detail_services(cls, session_id: str, user_id: int) -> AiChatSessionModel:
@@ -522,11 +573,11 @@ class AiChatService:
         :return: 取消结果
         """
         if not await cls._user_owns_run(run_id, user_id):
-            raise ServiceException(message='无权取消该运行')
+            raise ServiceException(message='无权取消该运行', msg_key='ai.run.cancelForbidden')
         cancel_result = await acancel_run(run_id)
         if not cancel_result:
-            raise ServiceException(message='取消运行失败')
-        return CrudResponseModel(is_success=True, message='取消成功')
+            raise ServiceException(message='取消运行失败', msg_key='ai.run.cancelFailed')
+        return CrudResponseModel(is_success=True, message='取消成功', msg_key='common.cancelled')
 
     @classmethod
     async def _user_owns_run(cls, run_id: str, user_id: int) -> bool:

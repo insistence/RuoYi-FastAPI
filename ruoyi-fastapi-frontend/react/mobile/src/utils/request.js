@@ -1,3 +1,4 @@
+import { i18n, t } from '@/i18n'
 import Taro from '@tarojs/taro'
 import appConfig from '@/config'
 import { getToken } from '@/utils/auth'
@@ -17,10 +18,10 @@ let expiryPrompt
 export function handleSessionExpired() {
   if (!expiryPrompt)
     expiryPrompt = Taro.showModal({
-      title: '提示',
-      content: '登录状态已过期，请重新登录。',
-      confirmText: '重新登录',
-      cancelText: '留在此页',
+      title: t('common:notice'),
+      content: t('common:session.expired'),
+      confirmText: t('common:session.signIn'),
+      cancelText: t('common:session.stay'),
     })
       .then((result) => {
         if (result.confirm) {
@@ -34,7 +35,9 @@ export function handleSessionExpired() {
 }
 export default async function request(options) {
   let config = options
-  config.header = { 'X-Timezone': getDisplayTimezone(), ...config.header }
+  config.__locale ??= i18n.locale
+  const t = i18n.engine.getFixedT(config.__locale)
+  config.header = { ...i18n.headers, 'X-Timezone': getDisplayTimezone(), ...config.header }
   config.headers = { ...config.headers }
   if (getToken() && config.headers.isToken !== false)
     config.header.Authorization = `Bearer ${getToken()}`
@@ -57,7 +60,9 @@ export default async function request(options) {
     const code = result.data?.code ?? result.statusCode
     if (code !== 200 || result.statusCode >= 400) {
       const error = new Error(
-        result.data?.msg || errorCode[code] || `系统接口 ${result.statusCode} 异常`
+        result.data?.msg ||
+          errorCode(t)[code] ||
+          t('mobile:apiRequestFailedWithStatusValue', { statusCode: result.statusCode })
       )
       error.response = result
       if (code === 401 || result.statusCode === 401) handleSessionExpired()
@@ -67,8 +72,9 @@ export default async function request(options) {
   } catch (caught) {
     const error = await decryptTransportErrorResponse(caught, config)
     if (shouldRetryTransportWithFreshKey(error) && !config.__transportRetried) return retry(config)
-    const message = error.response?.data?.msg || error.message || error.errMsg || '后端接口连接异常'
-    toast(message.includes('timeout') ? '系统接口请求超时' : message)
+    const message =
+      error.response?.data?.msg || error.message || error.errMsg || t('common:network.error')
+    toast(message.includes('timeout') ? t('common:network.timeout') : message)
     throw error
   }
 }

@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -9,36 +10,36 @@
       label-width="68px"
     >
       <el-form-item
-        label="参数名称"
+        :label="$t('system:config.name')"
         prop="configName"
       >
         <el-input
           v-model="queryParams.configName"
-          placeholder="请输入参数名称"
+          :placeholder="$t('system:enterParameterName')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="参数键名"
+        :label="$t('system:config.key')"
         prop="configKey"
       >
         <el-input
           v-model="queryParams.configKey"
-          placeholder="请输入参数键名"
+          :placeholder="$t('system:enterParameterKey')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="系统内置"
+        :label="$t('system:config.builtIn')"
         prop="configType"
       >
         <el-select
           v-model="queryParams.configType"
-          placeholder="系统内置"
+          :placeholder="$t('system:config.builtIn')"
           clearable
         >
           <el-option
@@ -49,16 +50,16 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="创建时间">
+      <el-form-item :label="$t('common:createdTime')">
         <el-date-picker
           v-model="dateRange"
           style="width: 240px"
           value-format="yyyy-MM-dd"
           type="daterange"
-          :aria-label="`日期范围（${getDisplayTimezone()}）`"
+          :aria-label="$t('common:time.dateRangeInZone', { zone: getDisplayTimezone() })"
           range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
+          :start-placeholder="$t('common:startDate')"
+          :end-placeholder="$t('common:endDate')"
         ></el-date-picker>
       </el-form-item>
       <el-form-item>
@@ -67,13 +68,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -90,7 +91,7 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['system:config:add']"
-          >新增</el-button
+          >{{ $t('common:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -102,7 +103,7 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['system:config:edit']"
-          >修改</el-button
+          >{{ $t('common:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -114,7 +115,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['system:config:remove']"
-          >删除</el-button
+          >{{ $t('common:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -125,7 +126,7 @@
           size="mini"
           @click="handleExport"
           v-hasPermi="['system:config:export']"
-          >导出</el-button
+          >{{ $t('common:export') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -136,7 +137,7 @@
           size="mini"
           @click="handleRefreshCache"
           v-hasPermi="['system:config:remove']"
-          >刷新缓存</el-button
+          >{{ $t('system:config.refreshCache') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -156,30 +157,30 @@
         align="center"
       />
       <el-table-column
-        label="参数主键"
+        :label="$t('system:parameterID')"
         align="center"
         prop="configId"
       />
       <el-table-column
-        label="参数名称"
+        :label="$t('system:config.name')"
         align="center"
         prop="configName"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="参数键名"
+        :label="$t('system:config.key')"
         align="center"
         prop="configKey"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="参数键值"
+        :label="$t('system:config.value')"
         align="center"
         prop="configValue"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="系统内置"
+        :label="$t('system:config.builtIn')"
         align="center"
         prop="configType"
       >
@@ -191,13 +192,13 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="备注"
+        :label="$t('common:remark')"
         align="center"
         prop="remark"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="创建时间"
+        :label="$t('common:createdTime')"
         align="center"
         prop="createTime"
         width="180"
@@ -207,7 +208,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -218,7 +219,7 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:config:edit']"
-            >修改</el-button
+            >{{ $t('common:edit') }}</el-button
           >
           <el-button
             size="mini"
@@ -226,7 +227,7 @@
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:config:remove']"
-            >删除</el-button
+            >{{ $t('common:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -242,47 +243,48 @@
 
     <!-- 添加或修改参数配置对话框 -->
     <el-dialog
-      :title="title"
+      :title="$t(titleKey)"
       :visible.sync="open"
       width="500px"
       append-to-body
     >
       <el-form
+        :validate-on-rule-change="false"
         ref="form"
         :model="form"
         :rules="rules"
         label-width="80px"
       >
         <el-form-item
-          label="参数名称"
+          :label="$t('system:config.name')"
           prop="configName"
         >
           <el-input
             v-model="form.configName"
-            placeholder="请输入参数名称"
+            :placeholder="$t('system:enterParameterName')"
           />
         </el-form-item>
         <el-form-item
-          label="参数键名"
+          :label="$t('system:config.key')"
           prop="configKey"
         >
           <el-input
             v-model="form.configKey"
-            placeholder="请输入参数键名"
+            :placeholder="$t('system:enterParameterKey')"
           />
         </el-form-item>
         <el-form-item
-          label="参数键值"
+          :label="$t('system:config.value')"
           prop="configValue"
         >
           <el-input
             v-model="form.configValue"
             type="textarea"
-            placeholder="请输入参数键值"
+            :placeholder="$t('system:enterParameterValue')"
           />
         </el-form-item>
         <el-form-item
-          label="系统内置"
+          :label="$t('system:config.builtIn')"
           prop="configType"
         >
           <el-radio-group v-model="form.configType">
@@ -295,13 +297,13 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item
-          label="备注"
+          :label="$t('common:remark')"
           prop="remark"
         >
           <el-input
             v-model="form.remark"
             type="textarea"
-            placeholder="请输入内容"
+            :placeholder="$t('common:contentPlaceholder')"
           />
         </el-form-item>
       </el-form>
@@ -312,15 +314,17 @@
         <el-button
           type="primary"
           @click="submitForm"
-          >确 定</el-button
+          >{{ $t('common:confirm') }}</el-button
         >
-        <el-button @click="cancel">取 消</el-button>
+        <el-button @click="cancel">{{ $t('common:cancel') }}</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getDisplayTimezone } from '@/utils/time'
 import {
   listConfig,
@@ -351,7 +355,7 @@ export default {
       // 参数表格数据
       configList: [],
       // 弹出层标题
-      title: '',
+      titleKey: '',
       // 是否显示弹出层
       open: false,
       // 日期范围
@@ -368,9 +372,15 @@ export default {
       form: {},
       // 表单校验
       rules: {
-        configName: [{ required: true, message: '参数名称不能为空', trigger: 'blur' }],
-        configKey: [{ required: true, message: '参数键名不能为空', trigger: 'blur' }],
-        configValue: [{ required: true, message: '参数键值不能为空', trigger: 'blur' }],
+        configName: [
+          { required: true, message: () => t('system:parameterNameIsRequired'), trigger: 'blur' },
+        ],
+        configKey: [
+          { required: true, message: () => t('system:parameterKeyIsRequired'), trigger: 'blur' },
+        ],
+        configValue: [
+          { required: true, message: () => t('system:parameterValueIsRequired'), trigger: 'blur' },
+        ],
       },
     }
   },
@@ -424,7 +434,7 @@ export default {
     handleAdd() {
       this.reset()
       this.open = true
-      this.title = '添加参数'
+      this.titleKey = 'system:addParameter'
     },
     // 多选框选中数据
     handleSelectionChange(selection) {
@@ -439,7 +449,7 @@ export default {
       getConfig(configId).then((response) => {
         this.form = response.data
         this.open = true
-        this.title = '修改参数'
+        this.titleKey = 'system:editParameter'
       })
     },
     /** 提交按钮 */
@@ -448,13 +458,13 @@ export default {
         if (valid) {
           if (this.form.configId != undefined) {
             updateConfig(this.form).then(() => {
-              this.$modal.msgSuccess('修改成功')
+              this.$modal.msgSuccess(t('common:updateSuccess'))
               this.open = false
               this.getList()
             })
           } else {
             addConfig(this.form).then(() => {
-              this.$modal.msgSuccess('新增成功')
+              this.$modal.msgSuccess(t('common:addSuccess'))
               this.open = false
               this.getList()
             })
@@ -466,13 +476,13 @@ export default {
     handleDelete(row) {
       const configIds = row.configId || this.ids
       this.$modal
-        .confirm('是否确认删除参数编号为"' + configIds + '"的数据项？')
+        .confirm(t('system:confirmation.deleteParametersWithIDsValue', { value0: configIds }))
         .then(function () {
           return delConfig(configIds)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
         })
         .catch(() => {})
     },
@@ -489,7 +499,7 @@ export default {
     /** 刷新缓存按钮操作 */
     handleRefreshCache() {
       refreshCache().then(() => {
-        this.$modal.msgSuccess('刷新成功')
+        this.$modal.msgSuccess(t('system:refreshedSuccessfully'))
       })
     },
   },

@@ -20,7 +20,7 @@
       <el-button
         size="mini"
         type="primary"
-        >选取文件</el-button
+        >{{ $t('file:upload.select') }}</el-button
       >
       <!-- 上传提示 -->
       <div
@@ -28,14 +28,10 @@
         slot="tip"
         v-if="showTip"
       >
-        请上传
-        <template v-if="fileSize">
-          大小不超过 <b style="color: #f56c6c">{{ fileSize }}MB</b>
-        </template>
-        <template v-if="fileType">
-          格式为 <b style="color: #f56c6c">{{ fileType.join('/') }}</b>
-        </template>
-        的文件
+        <span v-if="fileSize">{{ $t('file:upload.maxSize', { size: fileSize }) }}</span>
+        <span v-if="fileType && fileType.length">{{
+          $t('file:upload.acceptedFormats', { formats: fileType.join('/') })
+        }}</span>
       </div>
     </el-upload>
 
@@ -65,7 +61,7 @@
             @click="handleDelete(index)"
             type="danger"
             v-if="!disabled"
-            >删除</el-link
+            >{{ $t('common:delete') }}</el-link
           >
         </div>
       </li>
@@ -74,6 +70,9 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+import { i18n } from '@/i18n'
+
 import { getToken } from '@/utils/auth'
 import Sortable from 'sortablejs'
 
@@ -135,9 +134,6 @@ export default {
       uploadList: [],
       baseUrl: process.env.VUE_APP_BASE_API,
       uploadFileUrl: process.env.VUE_APP_BASE_API + uploadAction, // 上传文件服务器地址
-      headers: {
-        Authorization: 'Bearer ' + getToken(),
-      },
       fileList: [],
     }
   },
@@ -181,6 +177,11 @@ export default {
     },
   },
   computed: {
+    headers() {
+      void this.$locale.locale
+      return { Authorization: 'Bearer ' + getToken(), ...i18n.headers }
+    },
+
     // 是否显示提示
     showTip() {
       return this.isShowTip && (this.fileType || this.fileSize)
@@ -195,34 +196,40 @@ export default {
         const fileExt = fileName[fileName.length - 1]
         const isTypeOk = this.fileType.indexOf(fileExt) >= 0
         if (!isTypeOk) {
-          this.$modal.msgError(`文件格式不正确，请上传${this.fileType.join('/')}格式文件!`)
+          this.$modal.msgError(
+            t('file:interface.invalidFormatUploadAFileInValueFormat', {
+              value0: this.fileType.join('/'),
+            })
+          )
           return false
         }
       }
       // 校检文件名是否包含特殊字符
       if (file.name.includes(',')) {
-        this.$modal.msgError('文件名不正确，不能包含英文逗号!')
+        this.$modal.msgError(t('file:interface.fileNamesMustNotContainCommas'))
         return false
       }
       // 校检文件大小
       if (this.fileSize) {
         const isLt = file.size / 1024 / 1024 < this.fileSize
         if (!isLt) {
-          this.$modal.msgError(`上传文件大小不能超过 ${this.fileSize} MB!`)
+          this.$modal.msgError(
+            t('file:interface.filesMustNotExceedValueMB.index', { value0: this.fileSize })
+          )
           return false
         }
       }
-      this.$modal.loading('正在上传文件，请稍候...')
+      this.$modal.loading(t('file:upload.uploading'))
       this.number++
       return true
     },
     // 文件个数超出
     handleExceed() {
-      this.$modal.msgError(`上传文件数量不能超过 ${this.limit} 个!`)
+      this.$modal.msgError(t('file:interface.youCanUploadAtMostValueFiles', { value0: this.limit }))
     },
     // 上传失败
     handleUploadError(err) {
-      this.$modal.msgError('上传文件失败，请重试')
+      this.$modal.msgError(t('file:interface.fileUploadFailedTryAgain'))
       this.$modal.closeLoading()
     },
     // 上传成功回调

@@ -1,11 +1,14 @@
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request, Response, status
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse as FastAPIJSONResponse
 from fastapi.responses import RedirectResponse
 from pydantic_validation_decorator import FieldValidationError
 from starlette.exceptions import HTTPException
 
+from common.context import LocaleContext, RequestContext
 from exceptions.exception import (
     AuthException,
     FileRangeNotSatisfiableException,
@@ -17,6 +20,9 @@ from exceptions.exception import (
     ServiceException,
     ServiceWarning,
 )
+from i18n import t
+from i18n.locale import LocaleUtil
+from i18n.message import I18nMessage
 from utils.exception_util import ExceptionUtil
 from utils.log_util import logger
 from utils.oidc_util import OidcUtil
@@ -33,7 +39,7 @@ def handle_exception(app: FastAPI) -> None:
     # 自定义token检验异常
     @app.exception_handler(AuthException)
     async def auth_exception_handler(request: Request, exc: AuthException) -> Response:
-        return ResponseUtil.unauthorized(data=exc.data, msg=exc.message)
+        return ResponseUtil.unauthorized(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义OAuth协议异常
     @app.exception_handler(OAuthProtocolException)
@@ -53,13 +59,13 @@ def handle_exception(app: FastAPI) -> None:
     @app.exception_handler(OidcInteractionException)
     async def oidc_interaction_exception_handler(request: Request, exc: OidcInteractionException) -> Response:
         safe_message = {
-            'invalid_request': '认证交互请求无效',
-            'interaction_required': '认证交互已过期或不可用',
-            'login_required': '需要登录',
-            'consent_required': '需要授权确认',
-            'invalid_scope': '请求权限无效',
-            'server_error': '认证服务暂不可用',
-        }.get(exc.error, '认证交互无效或已过期')
+            'invalid_request': I18nMessage('认证交互请求无效', msg_key='identity.interaction.invalidRequest'),
+            'interaction_required': I18nMessage('认证交互已过期或不可用', msg_key='identity.interaction.unavailable'),
+            'login_required': I18nMessage('需要登录', msg_key='identity.interaction.loginRequired'),
+            'consent_required': I18nMessage('需要授权确认', msg_key='identity.interaction.consentRequired'),
+            'invalid_scope': I18nMessage('请求权限无效', msg_key='identity.interaction.invalidScope'),
+            'server_error': I18nMessage('认证服务暂不可用', msg_key='identity.interaction.serviceUnavailable'),
+        }.get(exc.error, I18nMessage('认证交互无效或已过期', msg_key='identity.interaction.invalidOrExpired'))
         return ResponseUtil.failure(
             data=exc.interaction_id,
             msg=safe_message,
@@ -69,13 +75,13 @@ def handle_exception(app: FastAPI) -> None:
     # 自定义登录检验异常
     @app.exception_handler(LoginException)
     async def login_exception_handler(request: Request, exc: LoginException) -> Response:
-        return ResponseUtil.failure(data=exc.data, msg=exc.message)
+        return ResponseUtil.failure(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义模型检验异常
     @app.exception_handler(ModelValidatorException)
     async def model_validator_exception_handler(request: Request, exc: ModelValidatorException) -> Response:
         logger.warning(exc.message)
-        return ResponseUtil.failure(data=exc.data, msg=exc.message)
+        return ResponseUtil.failure(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义字段检验异常
     @app.exception_handler(FieldValidationError)
@@ -86,19 +92,19 @@ def handle_exception(app: FastAPI) -> None:
     # 自定义权限检验异常
     @app.exception_handler(PermissionException)
     async def permission_exception_handler(request: Request, exc: PermissionException) -> Response:
-        return ResponseUtil.forbidden(data=exc.data, msg=exc.message)
+        return ResponseUtil.forbidden(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义服务异常
     @app.exception_handler(ServiceException)
     async def service_exception_handler(request: Request, exc: ServiceException) -> Response:
         logger.error(exc.message)
-        return ResponseUtil.error(data=exc.data, msg=exc.message)
+        return ResponseUtil.error(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义服务警告
     @app.exception_handler(ServiceWarning)
     async def service_warning_handler(request: Request, exc: ServiceWarning) -> Response:
         logger.warning(exc.message)
-        return ResponseUtil.failure(data=exc.data, msg=exc.message)
+        return ResponseUtil.failure(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 文件Range范围不可满足异常
     @app.exception_handler(FileRangeNotSatisfiableException)
@@ -115,6 +121,19 @@ def handle_exception(app: FastAPI) -> None:
             },
         )
 
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError) -> Response:
+        """
+        按客户端能力本地化参数校验消息，保留字段位置和错误类型
+        """
+        if RequestContext.get_current_locale().version != 'v1':
+            return await request_validation_exception_handler(request, exc)
+        details = []
+        for error in exc.errors():
+            key = 'validation.required' if error['type'] == 'missing' else 'validation.invalid'
+            details.append({'loc': error['loc'], 'type': error['type'], 'msg': t(key), 'msgKey': key})
+        return JSONResponse(status_code=422, content={'detail': details})
+
     # 处理其他http请求异常
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> Response:
@@ -127,7 +146,14 @@ def handle_exception(app: FastAPI) -> None:
     # 处理其他异常
     @app.exception_handler(Exception)
     async def exception_handler(request: Request, exc: Exception) -> Response:
-        return ExceptionUtil.handle_unexpected_exception(exc)
+        context = getattr(request.state, 'locale_context', LocaleContext())
+        token = RequestContext.set_current_locale(context)
+        try:
+            response = ExceptionUtil.handle_unexpected_exception(exc)
+            LocaleUtil.add_locale_headers(response.headers, context)
+            return response
+        finally:
+            RequestContext.reset_current_locale(token)
 
 
 def _build_oauth_redirect(exc: OAuthProtocolException) -> Response:

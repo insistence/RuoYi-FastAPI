@@ -1,12 +1,17 @@
+import { useLocalizedText } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useState } from 'react'
 import { previewJob } from '@/api/monitor/job'
 import { formatBusinessTime } from '@/utils/time'
 
 export default function CrontabResult({ expression, timeZone }) {
+  useI18n()
+
   const [result, setResult] = useState({ nextRunTimes: [], timeZone }),
     [loading, setLoading] = useState(false),
-    [error, setError] = useState('')
+    [error, setError] = useLocalizedText('')
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true)
@@ -20,7 +25,8 @@ export default function CrontabResult({ expression, timeZone }) {
         )
         if (!controller.signal.aborted) setResult(response.data)
       } catch (err) {
-        if (!controller.signal.aborted) setError(err.message || '无法获取运行时间')
+        if (!controller.signal.aborted)
+          setError((t) => err.message || t('common:unableToRetrieveRunTimes'))
       } finally {
         if (!controller.signal.aborted) setLoading(false)
       }
@@ -35,7 +41,10 @@ export default function CrontabResult({ expression, timeZone }) {
       className="cron-result"
       aria-busy={loading}
     >
-      <p>最近 5 次运行时间（{result.timeZone}）</p>
+      <p>
+        {t('common:next5Runs')}
+        {result.timeZone}）
+      </p>
       {error ? (
         <p
           role="alert"
@@ -49,9 +58,9 @@ export default function CrontabResult({ expression, timeZone }) {
           aria-live="polite"
         >
           {loading ? (
-            <li>正在获取运行时间…</li>
+            <li>{t('common:retrievingRunTimes')}</li>
           ) : !result.nextRunTimes.length ? (
-            <li>没有未来执行时间</li>
+            <li>{t('common:noFutureRuns')}</li>
           ) : (
             result.nextRunTimes.map((item) => (
               <li key={item}>

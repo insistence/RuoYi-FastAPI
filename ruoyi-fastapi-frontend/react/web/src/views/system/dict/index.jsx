@@ -1,3 +1,8 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import TranslationFields, { SourceLocaleLabel } from '@/components/TranslationFields'
+import { translationPatch, localizeOptions } from '@/i18n/entities.mjs'
+import { useI18n } from '@/i18n/adapter'
+import { i18n, t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import FormLabel from '@/components/FormLabel'
@@ -34,12 +39,16 @@ import Pagination from '@/components/Pagination'
 import RightToolbar from '@/components/RightToolbar'
 
 export default function Dict() {
+  useI18n()
+  const [originalTranslations, setOriginalTranslations] = useState({})
+
   const navigate = useNavigate()
   const { sys_normal_disable } = useDict('sys_normal_disable')
   const [drawerRow, setDrawerRow] = useState(null)
   const timeZone = useUserStore((state) => state.timeZone)
   const [queryRef] = Form.useForm(),
     [dictRef] = Form.useForm()
+  useLocalizedFormErrors(queryRef, dictRef)
   const [dictList, setDictList] = useState([]),
     [total, setTotal] = useState(0),
     [ids, setIds] = useState([])
@@ -76,6 +85,7 @@ export default function Dict() {
   function handleAdd() {
     setDictId(undefined)
     dictRef.resetFields()
+    setOriginalTranslations({})
     dictRef.setFieldsValue({ status: '0' })
     setOpen(true)
   }
@@ -84,24 +94,27 @@ export default function Dict() {
       const result = await getType(id)
       setDictId(id)
       dictRef.resetFields()
+      setOriginalTranslations({})
       dictRef.setFieldsValue(result.data)
+      setOriginalTranslations(result.data.dictNameI18n || {})
       setOpen(true)
     } catch {}
   }
   async function handleDelete(values) {
     try {
-      await confirm(`是否确认删除字典编号为“${values}”的数据项？`)
+      await confirm(t('system:deleteDictionariesWithIdsValue', { values }))
       await delType(values)
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
   async function submitForm() {
     try {
       const values = await dictRef.validateFields()
+      values.dictNameI18n = translationPatch(values.dictNameI18n, originalTranslations)
       setSaving(true)
       await (dictId !== undefined ? updateType({ ...values, dictId }) : addType(values))
-      message.success(dictId !== undefined ? '修改成功' : '新增成功')
+      message.success(dictId !== undefined ? t('common:updateSuccess') : t('common:addSuccess'))
       setOpen(false)
       await getList()
     } catch {
@@ -110,11 +123,17 @@ export default function Dict() {
     }
   }
   const columns = [
-    { align: 'center', title: '字典编号', dataIndex: 'dictId' },
-    { align: 'center', title: '字典名称', dataIndex: 'dictName', ellipsis: true },
+    { align: 'center', title: t('system:dictionaryId'), dataIndex: 'dictId' },
     {
       align: 'center',
-      title: '字典类型',
+      title: t('system:dict.name'),
+      dataIndex: 'dictName',
+      ellipsis: true,
+      render: (value, row) => i18n.resolveText(value, row.dictNameI18n),
+    },
+    {
+      align: 'center',
+      title: t('system:dict.type'),
       dataIndex: 'dictType',
       render: (value, row) => (
         <Button
@@ -128,7 +147,7 @@ export default function Dict() {
     },
     {
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       render: (value) => (
         <DictTag
@@ -137,10 +156,10 @@ export default function Dict() {
         />
       ),
     },
-    { align: 'center', title: '备注', dataIndex: 'remark', ellipsis: true },
+    { align: 'center', title: t('common:remark'), dataIndex: 'remark', ellipsis: true },
     {
       align: 'center',
-      title: '创建时间',
+      title: t('common:createdTime'),
       dataIndex: 'createTime',
       width: 180,
       render: (value) => parseTime(value),
@@ -148,7 +167,7 @@ export default function Dict() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 280,
       render: (_, row) => (
         <TableActions>
@@ -157,7 +176,7 @@ export default function Dict() {
               symbol="Edit"
               onClick={() => handleUpdate(row.dictId)}
             >
-              修改
+              {t('common:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:dict:edit']}>
@@ -165,7 +184,7 @@ export default function Dict() {
               symbol="Operation"
               onClick={() => navigate(`/system/dict-data/index/${row.dictId}`)}
             >
-              列表
+              {t('system:list')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:dict:remove']}>
@@ -173,7 +192,7 @@ export default function Dict() {
               symbol="Delete"
               onClick={() => handleDelete([row.dictId])}
             >
-              删除
+              {t('common:delete')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -190,44 +209,44 @@ export default function Dict() {
           onFinish={handleQuery}
         >
           <Form.Item
-            label="字典名称"
+            label={<SourceLocaleLabel>{t('system:dict.name')}</SourceLocaleLabel>}
             name="dictName"
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入字典名称"
+              placeholder={t('system:dict.namePlaceholder')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="字典类型"
+            label={t('system:dict.type')}
             name="dictType"
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入字典类型"
+              placeholder={t('system:dict.typePlaceholder')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="状态"
+            label={t('common:status')}
             name="status"
           >
             <Select
               style={{ width: 240 }}
-              placeholder="字典状态"
+              placeholder={t('system:dictionaryStatus')}
               allowClear
               options={sys_normal_disable}
             />
           </Form.Item>
           <Form.Item
-            label="创建时间"
+            label={t('common:createdTime')}
             name="dateRange"
           >
             <DatePicker.RangePicker
               style={{ width: 308 }}
-              placeholder={['开始日期', '结束日期']}
-              aria-label={`日期范围（${getDisplayTimezone()}）`}
+              placeholder={[t('common:startDate'), t('common:endDate')]}
+              aria-label={t('monitor:dateRangeValue', { arg0: getDisplayTimezone() })}
             />
           </Form.Item>
           <Form.Item>
@@ -237,7 +256,7 @@ export default function Dict() {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -246,7 +265,7 @@ export default function Dict() {
                   handleQuery({})
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -260,7 +279,7 @@ export default function Dict() {
             type="default"
             onClick={handleAdd}
           >
-            新增
+            {t('common:add')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:dict:edit']}>
@@ -271,7 +290,7 @@ export default function Dict() {
             disabled={ids.length !== 1}
             onClick={() => handleUpdate(ids[0])}
           >
-            修改
+            {t('common:edit')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:dict:remove']}>
@@ -282,7 +301,7 @@ export default function Dict() {
             disabled={!ids.length}
             onClick={() => handleDelete(ids)}
           >
-            删除
+            {t('common:delete')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:dict:export']}>
@@ -296,7 +315,7 @@ export default function Dict() {
               )
             }
           >
-            导出
+            {t('common:export')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:dict:remove']}>
@@ -308,12 +327,12 @@ export default function Dict() {
               refreshCache()
                 .then(() => {
                   clearDictCache()
-                  message.success('刷新缓存成功')
+                  message.success(t('system:cacheRefreshed'))
                 })
                 .catch(() => {})
             }
           >
-            刷新缓存
+            {t('system:refreshCache')}
           </Button>
         </HasPermi>
         <RightToolbar
@@ -341,7 +360,7 @@ export default function Dict() {
         footer={renderDialogFooter}
         width="500px"
         open={open}
-        title={dictId !== undefined ? '修改字典类型' : '添加字典类型'}
+        title={dictId !== undefined ? t('system:dict.editType') : t('system:dict.addType')}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
         confirmLoading={saving}
@@ -357,36 +376,40 @@ export default function Dict() {
           layout="horizontal"
         >
           <Form.Item
-            label="字典名称"
+            label={<SourceLocaleLabel>{t('system:dict.name')}</SourceLocaleLabel>}
             name="dictName"
-            rules={[{ required: true, message: '字典名称不能为空' }]}
+            rules={[{ required: true, message: t('system:dict.nameRequired') }]}
           >
-            <Input placeholder="请输入字典名称" />
+            <Input placeholder={t('system:dict.namePlaceholder')} />
           </Form.Item>
+          <TranslationFields
+            name="dictNameI18n"
+            label={t('system:dict.name')}
+          />
           <Form.Item
             label={
               <FormLabel
-                label="字典类型"
-                help="数据存储中的Key值，如：sys_user_sex"
+                label={t('system:dict.type')}
+                help={t('system:storageKeyForExampleSysUserSex')}
               />
             }
             name="dictType"
-            rules={[{ required: true, message: '字典类型不能为空' }]}
+            rules={[{ required: true, message: t('system:dict.typeRequired') }]}
           >
-            <Input placeholder="请输入字典类型" />
+            <Input placeholder={t('system:dict.typePlaceholder')} />
           </Form.Item>
           <Form.Item
-            label="状态"
+            label={t('common:status')}
             name="status"
           >
             <Radio.Group options={sys_normal_disable} />
           </Form.Item>
           <Form.Item
-            label="备注"
+            label={t('common:remark')}
             name="remark"
           >
             <Input.TextArea
-              placeholder="请输入内容"
+              placeholder={t('common:contentPlaceholder')}
               rows={2}
             />
           </Form.Item>

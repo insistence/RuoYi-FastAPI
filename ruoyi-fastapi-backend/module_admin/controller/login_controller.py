@@ -94,7 +94,7 @@ async def login(
     request_from_redoc = request.headers.get('referer').endswith('redoc') if request.headers.get('referer') else False
     if request_from_swagger or request_from_redoc:
         return {'access_token': access_token, 'token_type': 'Bearer'}
-    return ResponseUtil.success(msg='登录成功', dict_content={'token': access_token})
+    return ResponseUtil.success(msg='登录成功', msg_key='auth.signedIn', dict_content={'token': access_token})
 
 
 @login_controller.get(
@@ -145,7 +145,7 @@ async def unlock_screen(
     await LoginService.unlock_screen_services(query_db, current_user, unlock_screen_data.password)
     logger.info('解锁成功')
 
-    return ResponseUtil.success(msg='解锁成功')
+    return ResponseUtil.success(msg='解锁成功', msg_key='auth.unlocked')
 
 
 @login_controller.post(
@@ -164,7 +164,12 @@ async def register_user(
     user_register_result = await LoginService.register_user_services(request, query_db, user_register)
     logger.info(user_register_result.message)
 
-    return ResponseUtil.success(data=user_register_result, msg=user_register_result.message)
+    return ResponseUtil.success(
+        data=user_register_result,
+        msg=user_register_result.message,
+        msg_key=user_register_result.msg_key,
+        msg_params=user_register_result.msg_params,
+    )
 
 
 # @login_controller.post("/getSmsCode", response_model=SmsCode)
@@ -213,4 +218,4 @@ async def logout(request: Request, token: Annotated[str | None, Depends(oauth2_s
     await LoginService.logout_services(request, token_id, token)
     logger.info('退出成功')
 
-    return ResponseUtil.success(msg='退出成功')
+    return ResponseUtil.success(msg='退出成功', msg_key='auth.signedOut')

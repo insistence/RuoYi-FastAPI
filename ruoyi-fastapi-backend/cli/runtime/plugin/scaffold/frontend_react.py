@@ -9,12 +9,15 @@ class PluginReactFrontendScaffoldTemplateBuilder:
         """生成与基础 Vue 模板相同的插件信息卡片。"""
         class_name = PluginScaffoldNaming.to_class_name(plugin_id)
         return f"""import {{ Card }} from 'antd';
+import '../i18n';
+import {{ useI18n }} from '@/i18n/adapter';
 
 export default function {class_name}Plugin() {{
+  const {{ t }} = useI18n();
   return (
     <div className="app-container">
       <Card title="{plugin_id}">
-        <div>{plugin_id} plugin</div>
+        <div>{{t('plugin.{plugin_id}:ready', {{ pluginId: '{plugin_id}' }})}}</div>
       </Card>
     </div>
   );
@@ -26,6 +29,9 @@ export default function {class_name}Plugin() {{
         """生成筛选、列表和编辑弹窗，复用宿主请求及消息组件。"""
         class_name = PluginScaffoldNaming.to_class_name(plugin_id)
         return f"""import {{ useEffect, useState }} from 'react';
+import '../i18n';
+import {{ useI18n }} from '@/i18n/adapter';
+import {{ useLocalizedFormErrors }} from '@/i18n/form';
 import {{ Button, Form, Input, Modal, Radio, Space, Table, Tag }} from 'antd';
 import TableActions, {{ TableAction }} from '@/components/TableActions';
 import {{ DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined, SearchOutlined }} from '@ant-design/icons';
@@ -41,8 +47,10 @@ import {{
 const emptyForm = {{ itemName: '', status: '0', remark: '' }};
 
 export default function {class_name}Plugin() {{
+  const {{ t }} = useI18n();
   const [queryForm] = Form.useForm();
   const [form] = Form.useForm();
+  useLocalizedFormErrors(form);
   const [query, setQuery] = useState({{ keyword: '' }});
   const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -87,7 +95,7 @@ export default function {class_name}Plugin() {{
       }} else {{
         await add{class_name}Item(values);
       }}
-      message.success('保存成功');
+      message.success(t('plugin.{plugin_id}:saved'));
       setEditing(null);
       setRevision((value) => value + 1);
     }} catch {{
@@ -99,9 +107,9 @@ export default function {class_name}Plugin() {{
 
   async function remove(row) {{
     try {{
-      await confirm('确认删除数据“' + row.itemName + '”吗？');
+      await confirm(t('plugin.{plugin_id}:deleteConfirm', {{ name: row.itemName }}));
       await del{class_name}Item(row.itemId);
-      message.success('删除成功');
+      message.success(t('plugin.{plugin_id}:deleted'));
       setRevision((value) => value + 1);
     }} catch {{
       // 取消确认或请求失败时保留列表。
@@ -109,19 +117,19 @@ export default function {class_name}Plugin() {{
   }}
 
   const columns = [
-    {{ title: 'ID', dataIndex: 'itemId', width: 90, align: 'center' }},
-    {{ title: '名称', dataIndex: 'itemName', width: 180 }},
+    {{ title: t('plugin.{plugin_id}:id'), dataIndex: 'itemId', width: 90, align: 'center' }},
+    {{ title: t('plugin.{plugin_id}:name'), dataIndex: 'itemName', width: 180 }},
     {{
-      title: '状态', dataIndex: 'status', width: 90, align: 'center',
-      render: (status) => <Tag color={{status === '0' ? 'success' : 'default'}}>{{status === '0' ? '正常' : '停用'}}</Tag>
+      title: t('plugin.{plugin_id}:status'), dataIndex: 'status', width: 90, align: 'center',
+      render: (status) => <Tag color={{status === '0' ? 'success' : 'default'}}>{{status === '0' ? t('plugin.{plugin_id}:enabled') : t('plugin.{plugin_id}:disabled')}}</Tag>
     }},
-    {{ title: '备注', dataIndex: 'remark', width: 220 }},
+    {{ title: t('plugin.{plugin_id}:remark'), dataIndex: 'remark', width: 220 }},
     {{
-      title: '操作', width: 150, align: 'center',
+      title: t('plugin.{plugin_id}:actions'), width: 150, align: 'center',
       render: (_, row) => (
         <TableActions>
-          <TableAction symbol="Edit" onClick={{() => openEditor(row)}}>修改</TableAction>
-          <TableAction symbol="Delete" tone="danger" onClick={{() => remove(row)}}>删除</TableAction>
+          <TableAction symbol="Edit" onClick={{() => openEditor(row)}}>{{t('plugin.{plugin_id}:edit')}}</TableAction>
+          <TableAction symbol="Delete" tone="danger" onClick={{() => remove(row)}}>{{t('plugin.{plugin_id}:delete')}}</TableAction>
         </TableActions>
       )
     }}
@@ -130,26 +138,26 @@ export default function {class_name}Plugin() {{
   return (
     <div className="app-container">
       <Form form={{queryForm}} layout="inline" className="search-form" onFinish={{(values) => setQuery({{ keyword: values.keyword || '' }})}}>
-        <Form.Item name="keyword" label="名称">
-          <Input placeholder="请输入名称" allowClear />
+        <Form.Item name="keyword" label={{t('plugin.{plugin_id}:name')}}>
+          <Input placeholder={{t('plugin.{plugin_id}:namePlaceholder')}} allowClear />
         </Form.Item>
         <Form.Item>
           <Space wrap>
-            <Button type="primary" htmlType="submit" icon={{<SearchOutlined />}}>搜索</Button>
-            <Button icon={{<ReloadOutlined />}} onClick={{resetQuery}}>重置</Button>
-            <Button className="ruoyi-plain-button ruoyi-plain-button--primary" icon={{<PlusOutlined />}} onClick={{() => openEditor()}}>新增</Button>
+            <Button type="primary" htmlType="submit" icon={{<SearchOutlined />}}>{{t('plugin.{plugin_id}:search')}}</Button>
+            <Button icon={{<ReloadOutlined />}} onClick={{resetQuery}}>{{t('plugin.{plugin_id}:reset')}}</Button>
+            <Button className="ruoyi-plain-button ruoyi-plain-button--primary" icon={{<PlusOutlined />}} onClick={{() => openEditor()}}>{{t('plugin.{plugin_id}:add')}}</Button>
           </Space>
         </Form.Item>
       </Form>
       <Table rowKey="itemId" loading={{loading}} columns={{columns}} dataSource={{items}} bordered pagination={{false}} scroll={{{{ x: 760 }}}} />
       <Modal
-        title={{editing?.itemId != null ? '修改{plugin_id}' : '新增{plugin_id}'}}
+        title={{editing?.itemId != null ? t('plugin.{plugin_id}:editTitle', {{ pluginId: '{plugin_id}' }}) : t('plugin.{plugin_id}:addTitle', {{ pluginId: '{plugin_id}' }})}}
         open={{editing !== null}}
         width={{520}}
         onCancel={{() => {{ if (!saving) setEditing(null); }}}}
         onOk={{() => form.submit()}}
-        okText="确定"
-        cancelText="取消"
+        okText={{t('plugin.{plugin_id}:confirm')}}
+        cancelText={{t('plugin.{plugin_id}:cancel')}}
         footer={{renderDialogFooter}}
         confirmLoading={{saving}}
         cancelButtonProps={{{{ disabled: saving }}}}
@@ -159,13 +167,13 @@ export default function {class_name}Plugin() {{
         forceRender
       >
         <Form form={{form}} className="ruoyi-dialog-form" layout="horizontal" colon={{false}} labelCol={{{{ flex: '90px' }}}} wrapperCol={{{{ flex: '1 1 0' }}}} onFinish={{save}}>
-          <Form.Item name="itemName" label="名称" rules={{[{{ required: true, whitespace: true, message: '名称不能为空' }}]}}>
-            <Input placeholder="请输入名称" disabled={{saving}} />
+          <Form.Item name="itemName" label={{t('plugin.{plugin_id}:name')}} rules={{[{{ required: true, whitespace: true, message: t('plugin.{plugin_id}:nameRequired') }}]}}>
+            <Input placeholder={{t('plugin.{plugin_id}:namePlaceholder')}} disabled={{saving}} />
           </Form.Item>
-          <Form.Item name="status" label="状态">
-            <Radio.Group disabled={{saving}} options={{[{{ label: '正常', value: '0' }}, {{ label: '停用', value: '1' }}]}} />
+          <Form.Item name="status" label={{t('plugin.{plugin_id}:status')}}>
+            <Radio.Group disabled={{saving}} options={{[{{ label: t('plugin.{plugin_id}:enabled'), value: '0' }}, {{ label: t('plugin.{plugin_id}:disabled'), value: '1' }}]}} />
           </Form.Item>
-          <Form.Item name="remark" label="备注">
+          <Form.Item name="remark" label={{t('plugin.{plugin_id}:remark')}}>
             <Input.TextArea rows={{3}} disabled={{saving}} />
           </Form.Item>
           <button type="submit" hidden aria-hidden="true" tabIndex={{-1}} />

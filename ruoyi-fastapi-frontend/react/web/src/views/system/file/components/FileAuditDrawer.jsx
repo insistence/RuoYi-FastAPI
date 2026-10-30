@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import './style.css'
 import { useEffect, useState } from 'react'
@@ -13,29 +16,60 @@ import { TableAction } from '@/components/TableActions'
 import FileTag from './FileTag'
 
 const actions = {
-  upload: '上传',
-  download: '下载',
-  acl_update: '授权变更',
-  transfer: '归属转移',
-  delete: '移入回收站',
-  restore: '恢复',
-  purge: '永久清理',
-  reconcile: '存储对账',
-  retention_extend: '保留延期',
-  retention_dispose: '到期处置',
+  get upload() {
+    return t('common:upload')
+  },
+  get download() {
+    return t('common:download')
+  },
+  get acl_update() {
+    return t('system:permissionChange')
+  },
+  get transfer() {
+    return t('system:ownershipTransfer')
+  },
+  get delete() {
+    return t('system:moveToRecycleBin')
+  },
+  get restore() {
+    return t('common:restore')
+  },
+  get purge() {
+    return t('system:permanentlyDelete')
+  },
+  get reconcile() {
+    return t('system:storageReconciliation')
+  },
+  get retention_extend() {
+    return t('system:retentionExtension')
+  },
+  get retention_dispose() {
+    return t('system:expiryDisposal')
+  },
 }
 const results = {
-  allowed: '已授权',
-  denied: '已拒绝',
-  completed: '已完成',
-  failed: '失败',
+  get allowed() {
+    return t('system:allowed')
+  },
+  get denied() {
+    return t('system:denied')
+  },
+  get completed() {
+    return t('common:completed')
+  },
+  get failed() {
+    return t('common:failed')
+  },
 }
 export default function FileAuditDrawer({ file, onClose }) {
+  useI18n()
+
   const [form] = Form.useForm(),
     [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
     [data, setData] = useState({ rows: [], total: 0 }),
     [loading, setLoading] = useState(false),
     [detail, setDetail] = useState()
+  useLocalizedFormErrors(form)
   useEffect(() => {
     if (!file) return
     form.resetFields()
@@ -58,14 +92,14 @@ export default function FileAuditDrawer({ file, onClose }) {
     {
       width: 105,
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       dataIndex: 'action',
       render: (value) => actions[value] || value,
     },
     {
       width: 100,
       align: 'center',
-      title: '结果',
+      title: t('system:result'),
       dataIndex: 'result',
       render: (value) => (
         <FileTag type={['denied', 'failed'].includes(value) ? 'danger' : 'success'}>
@@ -73,19 +107,31 @@ export default function FileAuditDrawer({ file, onClose }) {
         </FileTag>
       ),
     },
-    { width: 120, align: 'center', title: '操作用户', dataIndex: 'actorName', ellipsis: true },
-    { width: 140, align: 'center', title: '客户端地址', dataIndex: 'ipAddress', ellipsis: true },
+    {
+      width: 120,
+      align: 'center',
+      title: t('system:actingUser'),
+      dataIndex: 'actorName',
+      ellipsis: true,
+    },
+    {
+      width: 140,
+      align: 'center',
+      title: t('system:clientAddress'),
+      dataIndex: 'ipAddress',
+      ellipsis: true,
+    },
     {
       width: 110,
       align: 'right',
-      title: '传输字节',
+      title: t('system:bytesTransferred'),
       dataIndex: 'bytesSent',
       render: (value) => (value ? formatFileSize(value) : '-'),
     },
-    { width: 140, title: '失败原因', dataIndex: 'errorMessage', ellipsis: true },
+    { width: 140, title: t('common:failureReason'), dataIndex: 'errorMessage', ellipsis: true },
     {
       align: 'center',
-      title: '访问时间',
+      title: t('monitor:accessedAt'),
       width: 180,
       dataIndex: 'accessTime',
       render: (value) => parseTime(value),
@@ -93,14 +139,14 @@ export default function FileAuditDrawer({ file, onClose }) {
     {
       width: 70,
       align: 'center',
-      title: '详情',
+      title: t('common:details'),
       render: (_, row) => (
         <TableAction
           iconOnly
           symbol="View"
           onClick={() => setDetail(row)}
         >
-          查看审计详情
+          {t('system:viewAuditDetails')}
         </TableAction>
       ),
     },
@@ -109,14 +155,14 @@ export default function FileAuditDrawer({ file, onClose }) {
     <>
       <Drawer
         rootClassName="file-drawer"
-        title={`文件审计 - ${file?.originalName || ''}`}
+        title={t('file:fileAuditValue', { arg0: file?.originalName || '' })}
         open={!!file}
         onClose={onClose}
         size="80%"
         afterOpenChange={(open) => !open && setDetail(undefined)}
         footer={
           <div style={{ textAlign: 'right' }}>
-            <Button onClick={onClose}>关 闭</Button>
+            <Button onClick={onClose}>{t('common:close')}</Button>
           </div>
         }
       >
@@ -144,10 +190,10 @@ export default function FileAuditDrawer({ file, onClose }) {
         >
           <Form.Item
             name="action"
-            label="操作类型"
+            label={t('monitor:log.operationType')}
           >
             <Select
-              placeholder="全部操作"
+              placeholder={t('monitor:allOperations')}
               allowClear
               style={{ width: 200 }}
               options={Object.entries(actions).map(([value, label]) => ({
@@ -158,10 +204,10 @@ export default function FileAuditDrawer({ file, onClose }) {
           </Form.Item>
           <Form.Item
             name="result"
-            label="操作结果"
+            label={t('system:operationResult')}
           >
             <Select
-              placeholder="全部结果"
+              placeholder={t('monitor:allResults')}
               allowClear
               style={{ width: 200 }}
               options={Object.entries(results).map(([value, label]) => ({
@@ -172,17 +218,17 @@ export default function FileAuditDrawer({ file, onClose }) {
           </Form.Item>
           <Form.Item
             name="actorName"
-            label="操作用户"
+            label={t('system:actingUser')}
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入用户名"
+              placeholder={t('system:enterAUsername')}
               allowClear
             />
           </Form.Item>
           <Form.Item
             name="dateRange"
-            label="操作时间"
+            label={t('monitor:log.operationTime')}
           >
             <BusinessDateTimeRangePicker
               style={{ width: 200 }}
@@ -196,7 +242,7 @@ export default function FileAuditDrawer({ file, onClose }) {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -205,7 +251,7 @@ export default function FileAuditDrawer({ file, onClose }) {
                   setQuery({ pageNum: 1, pageSize: 10 })
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -227,11 +273,11 @@ export default function FileAuditDrawer({ file, onClose }) {
       </Drawer>
       <Modal
         className="file-dialog file-audit-detail"
-        title="审计详情"
+        title={t('system:auditDetails')}
         open={!!detail}
         onCancel={() => setDetail(undefined)}
         width={720}
-        footer={<Button onClick={() => setDetail(undefined)}>关 闭</Button>}
+        footer={<Button onClick={() => setDetail(undefined)}>{t('common:close')}</Button>}
       >
         <Descriptions
           styles={{ label: { width: 110 } }}
@@ -242,33 +288,45 @@ export default function FileAuditDrawer({ file, onClose }) {
               ? [
                   {
                     key: 'action',
-                    label: '操作类型',
+                    label: t('monitor:log.operationType'),
                     children: actions[detail.action] || detail.action,
                   },
                   {
                     key: 'result',
-                    label: '操作结果',
+                    label: t('system:operationResult'),
                     children: results[detail.result] || detail.result,
                   },
-                  { key: 'actorName', label: '操作用户', children: detail.actorName || '-' },
-                  { key: 'ipAddress', label: '客户端地址', children: detail.ipAddress || '-' },
-                  { key: 'requestId', label: '请求ID', children: detail.requestId || '-' },
-                  { key: 'traceId', label: '链路ID', children: detail.traceId || '-' },
+                  {
+                    key: 'actorName',
+                    label: t('system:actingUser'),
+                    children: detail.actorName || '-',
+                  },
+                  {
+                    key: 'ipAddress',
+                    label: t('system:clientAddress'),
+                    children: detail.ipAddress || '-',
+                  },
+                  {
+                    key: 'requestId',
+                    label: t('system:requestId'),
+                    children: detail.requestId || '-',
+                  },
+                  { key: 'traceId', label: t('system:traceId'), children: detail.traceId || '-' },
                   {
                     key: 'accessTime',
-                    label: '操作时间',
+                    label: t('monitor:log.operationTime'),
                     span: 2,
                     children: parseTime(detail.accessTime) || '-',
                   },
                   {
                     key: 'userAgent',
-                    label: '用户代理',
+                    label: t('system:userAgent'),
                     span: 2,
                     children: detail.userAgent || '-',
                   },
                   {
                     key: 'errorMessage',
-                    label: '失败原因',
+                    label: t('common:failureReason'),
                     span: 2,
                     children: detail.errorMessage || '-',
                   },
@@ -284,13 +342,13 @@ export default function FileAuditDrawer({ file, onClose }) {
             rowKey="label"
             dataSource={parseOperationDetail(detail.operationDetail)}
             columns={[
-              { title: '详情项', dataIndex: 'label', width: 180 },
-              { title: '内容', dataIndex: 'value', ellipsis: true },
+              { title: t('system:detailItem'), dataIndex: 'label', width: 180 },
+              { title: t('common:content'), dataIndex: 'value', ellipsis: true },
             ]}
           />
         ) : (
           <Empty
-            description="无操作详情"
+            description={t('system:noOperationDetails')}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         )}

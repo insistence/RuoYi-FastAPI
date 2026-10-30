@@ -1,3 +1,6 @@
+import { useLocalizedError } from '@/i18n/error'
+import { usePageLocale } from '@/i18n/navigation'
+import { t } from '@/i18n'
 import React, { useState } from 'react'
 import { useDidShow } from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
@@ -8,9 +11,11 @@ import { getToken } from '@/utils/auth'
 import { formatBusinessTime } from '@/utils/time'
 import { usePageAuth } from '@/permission'
 export default function UserInfo() {
+  usePageLocale()
+
   const allowed = usePageAuth()
   const [data, setData] = useState({ data: {} })
-  const [error, setError] = useState('')
+  const [error, setError] = useLocalizedError()
   const [loading, setLoading] = useState(false)
   async function load() {
     if (!getToken()) return
@@ -20,7 +25,7 @@ export default function UserInfo() {
       const [, result] = await Promise.all([useUserStore.getState().getInfo(), getUserProfile()])
       setData(result)
     } catch (failure) {
-      setError(failure.message || '个人信息加载失败')
+      setError(failure.message || (() => t('mobile:failedToLoadPersonalInformation')))
     } finally {
       setLoading(false)
     }
@@ -28,12 +33,17 @@ export default function UserInfo() {
   useDidShow(load)
   if (!allowed) return null
   const fields = [
-    ['昵称', data.data.nickName, 'account', 'bg-blue-50 text-blue-500'],
-    ['手机号码', data.data.phonenumber, 'phone', 'bg-green-50 text-green-500'],
-    ['邮箱', data.data.email, 'email', 'bg-indigo-50 text-indigo-500'],
-    ['岗位', data.postGroup, 'shield-account', 'bg-orange-50 text-orange-500'],
-    ['角色', data.roleGroup, 'badge-account', 'bg-purple-50 text-purple-500'],
-    ['创建日期', formatBusinessTime(data.data.createTime), 'calendar', 'bg-pink-50 text-pink-500'],
+    [t('mobile:nicknameMineInfo'), data.data.nickName, 'account', 'bg-blue-50 text-blue-500'],
+    [t('mobile:mobileNumber'), data.data.phonenumber, 'phone', 'bg-green-50 text-green-500'],
+    [t('mobile:emailMineInfoEdit'), data.data.email, 'email', 'bg-indigo-50 text-indigo-500'],
+    [t('mobile:position'), data.postGroup, 'shield-account', 'bg-orange-50 text-orange-500'],
+    [t('mobile:role'), data.roleGroup, 'badge-account', 'bg-purple-50 text-purple-500'],
+    [
+      t('mobile:createdOn'),
+      formatBusinessTime(data.data.createTime),
+      'calendar',
+      'bg-pink-50 text-pink-500',
+    ],
   ]
   return (
     <View className="list-page">
@@ -60,7 +70,7 @@ export default function UserInfo() {
             onClick={load}
             loading={loading}
           >
-            重试
+            {t('common:retry')}
           </Button>
         </>
       )}

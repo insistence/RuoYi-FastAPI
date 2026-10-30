@@ -2,6 +2,7 @@ import io
 import json
 import os
 import zipfile
+from pathlib import Path
 from typing import Any
 
 import aiofiles
@@ -13,7 +14,7 @@ from common.constant import GenConstant
 from common.vo import CrudResponseModel, PageModel
 from config.database import DataSourceRegistry
 from config.env import DataBaseConfig, GenConfig
-from exceptions.exception import ServiceException
+from exceptions.exception import ServiceException, ServiceWarning
 from module_admin.entity.vo.user_vo import CurrentUserModel
 from module_generator.dao.gen_dao import GenTableColumnDao, GenTableDao
 from module_generator.entity.vo.gen_vo import (
@@ -25,6 +26,7 @@ from module_generator.entity.vo.gen_vo import (
     GenTablePageQueryModel,
 )
 from utils.common_util import CamelCaseUtil
+from utils.gen_i18n_util import GenI18nUtil
 from utils.gen_util import GenUtils
 from utils.template_util import TemplateInitializer, TemplateUtils
 
@@ -159,10 +161,12 @@ class GenTableService:
                             GenUtils.init_column_field(column, table)
                             await GenTableColumnDao.add_gen_table_column_dao(query_db, column)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='导入成功')
+            return CrudResponseModel(is_success=True, message='导入成功', msg_key='common.imported')
         except Exception as e:
             await query_db.rollback()
-            raise ServiceException(message=f'导入失败, {e}') from e
+            raise ServiceException(
+                message=f'导入失败, {e}', msg_key='generator.importFailed', msg_params={'error': str(e)}
+            ) from e
 
     @classmethod
     async def edit_gen_table_services(cls, query_db: AsyncSession, page_object: EditGenTableModel) -> CrudResponseModel:
@@ -183,7 +187,9 @@ class GenTableService:
             try:
                 # 数据源归属在导入时确定，编辑生成配置时不得隐式迁移到其他数据库。
                 edit_gen_table['data_source_name'] = gen_table_info.data_source_name
-                edit_gen_table['options'] = json.dumps(edit_gen_table.get('params'))
+                options = json.loads(getattr(gen_table_info, 'options', None) or '{}')
+                options.update(edit_gen_table.get('params') or {})
+                edit_gen_table['options'] = json.dumps(options)
                 await GenTableDao.edit_gen_table_dao(query_db, edit_gen_table)
                 for gen_table_column in page_object.columns:
                     gen_table_column.update_by = page_object.update_by
@@ -195,12 +201,12 @@ class GenTableService:
                         ),
                     )
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='更新成功')
+                return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='业务表不存在')
+            raise ServiceException(message='业务表不存在', msg_key='generator.tableNotFound')
 
     @classmethod
     async def delete_gen_table_services(
@@ -222,12 +228,12 @@ class GenTableService:
                         query_db, GenTableColumnModel(tableId=table_id)
                     )
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入业务表id为空')
+            raise ServiceException(message='传入业务表id为空', msg_key='generator.tableIdRequired')
 
     @classmethod
     async def get_gen_table_by_id_services(cls, query_db: AsyncSession, table_id: int) -> GenTableModel:
@@ -284,11 +290,15 @@ class GenTableService:
                 gen_table_list = await cls.get_gen_db_table_list_by_name_services(query_db, table_names, source_name)
                 await cls.import_gen_table_services(query_db, gen_table_list, current_user)
 
-                return CrudResponseModel(is_success=True, message='创建表结构成功')
+                return CrudResponseModel(is_success=True, message='创建表结构成功', msg_key='generator.tableCreated')
             except Exception as e:
-                raise ServiceException(message=f'创建表结构异常，详细错误信息：{e}') from e
+                raise ServiceException(
+                    message=f'创建表结构异常，详细错误信息：{e}',
+                    msg_key='generator.tableCreateFailed',
+                    msg_params={'error': str(e)},
+                ) from e
         else:
-            raise ServiceException(message='建表语句不合法')
+            raise ServiceException(message='建表语句不合法', msg_key='generator.invalidCreateStatement')
 
     @classmethod
     def __is_valid_create_table(cls, sql_statements: list[Expression]) -> bool:
@@ -343,6 +353,7 @@ class GenTableService:
         for template in template_list:
             render_content = env.get_template(template).render(**context)
             preview_code_result[template] = render_content
+        preview_code_result.update(context['generatedI18n'].artifacts())
         return preview_code_result
 
     @classmethod
@@ -361,16 +372,40 @@ class GenTableService:
         env = TemplateInitializer.init_jinja2()
         render_info = await cls.__get_gen_render_info(query_db, table_name, source_name)
         try:
-            for template in render_info[0]:
-                render_content = env.get_template(template).render(**render_info[2])
-                gen_path = cls.__get_gen_path(render_info[3], template)
-                os.makedirs(os.path.dirname(gen_path), exist_ok=True)
-                async with aiofiles.open(gen_path, 'w', encoding='utf-8') as f:
-                    await f.write(render_content)
+            output_root = cls.__get_output_root(render_info[3])
+            files = cls.__render_files(env, render_info)
+            output_paths = {name: cls.__get_output_path(output_root, name) for name in files}
+            # 全部词库解析、合并及编译成功后才开始写入，避免无效资源造成半份产物。
+            for relative_path, content in files.items():
+                output_path = output_paths[relative_path]
+                if output_path.exists():
+                    existing = output_path.read_text(encoding='utf-8')
+                    files[relative_path] = GenI18nUtil.merge_content(relative_path, existing, content)
+            render_info[2]['generatedI18n'].refresh_pending(files)
+            compiled = {
+                relative_path[:-3] + '.mo': GenI18nUtil.compile_po(content)
+                for relative_path, content in files.items()
+                if relative_path.startswith('backend/i18n/catalogs/') and relative_path.endswith('.po')
+            }
+            output_paths.update({name: cls.__get_output_path(output_root, name) for name in compiled})
+            for relative_path, content in files.items():
+                output_path = output_paths[relative_path]
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                async with aiofiles.open(output_path, 'w', encoding='utf-8') as output:
+                    await output.write(content)
+            for relative_path, content in compiled.items():
+                async with aiofiles.open(output_paths[relative_path], 'wb') as output:
+                    await output.write(content)
+        except ServiceWarning:
+            raise
         except Exception as e:
-            raise ServiceException(message=f'渲染模板失败，表名：{render_info[3].table_name}，详细错误信息：{e}') from e
+            raise ServiceException(
+                message=f'渲染模板失败，表名：{render_info[3].table_name}，详细错误信息：{e}',
+                msg_key='generator.renderFailed',
+                msg_params={'table_name': str(render_info[3].table_name), 'error': str(e)},
+            ) from e
 
-        return CrudResponseModel(is_success=True, message='生成代码成功')
+        return CrudResponseModel(is_success=True, message='生成代码成功', msg_key='generator.generated')
 
     @classmethod
     async def batch_gen_code_services(
@@ -389,21 +424,91 @@ class GenTableService:
         invalid_table_names = list(dict.fromkeys(name for name in table_names if name not in configured_table_names))
         if invalid_table_names:
             raise ServiceException(
-                message=f'业务表不存在或不属于数据源 {source_name}：{", ".join(invalid_table_names)}'
+                message=f'业务表不存在或不属于数据源 {source_name}：{", ".join(invalid_table_names)}',
+                msg_key='generator.tablesOutsideSource',
+                msg_params={'source_name': str(source_name), 'value': str(', '.join(invalid_table_names))},
             )
+
+        files = {}
+        generators = []
+        for table_name in table_names:
+            env = TemplateInitializer.init_jinja2()
+            render_info = await cls.__get_gen_render_info(query_db, table_name, source_name)
+            generated_files = cls.__render_files(env, render_info)
+            generators.append(render_info[2]['generatedI18n'])
+            for path, content in generated_files.items():
+                files[path] = GenI18nUtil.merge_content(path, files[path], content) if path in files else content
+        for generator in generators:
+            generator.refresh_pending(files)
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            for table_name in table_names:
-                env = TemplateInitializer.init_jinja2()
-                render_info = await cls.__get_gen_render_info(query_db, table_name, source_name)
-                for template_file, output_file in zip(render_info[0], render_info[1], strict=False):
-                    render_content = env.get_template(template_file).render(**render_info[2])
-                    zip_file.writestr(output_file, render_content)
+            for path, content in files.items():
+                zip_file.writestr(path, content)
+                if path.startswith('backend/i18n/catalogs/') and path.endswith('.po'):
+                    zip_file.writestr(path[:-3] + '.mo', GenI18nUtil.compile_po(content))
 
         zip_data = zip_buffer.getvalue()
         zip_buffer.close()
         return zip_data
+
+    @classmethod
+    def __render_files(cls, env: Any, render_info: list) -> dict[str, str]:
+        """
+        渲染源码后收集模板登记的独立语言资源
+
+        :param env: 模板环境
+        :param render_info: 模板、输出路径、上下文和业务表
+        :return: 生成包内相对路径及内容
+        """
+        files = {
+            output_file: env.get_template(template).render(**render_info[2])
+            for template, output_file in zip(render_info[0], render_info[1], strict=True)
+        }
+        files.update(render_info[2]['generatedI18n'].artifacts())
+        if any(Path(name).is_absolute() or '..' in Path(name).parts or '\\' in name for name in files):
+            GenI18nUtil.invalid_configuration()
+        return files
+
+    @staticmethod
+    def __get_output_path(output_root: Path, relative_path: str) -> Path:
+        """
+        校验已有符号链接和生成文件始终位于独立生成目录内
+
+        :param output_root: 独立生成目录
+        :param relative_path: 生成文件的相对路径
+        :return: 已校验的输出路径
+        """
+        resolved = (output_root / relative_path).resolve()
+        if not resolved.is_relative_to(output_root.resolve()):
+            raise ServiceWarning(
+                message='请选择独立生成目录，不能直接覆盖应用源码目录',
+                msg_key='generator.outputMustBeBundleRoot',
+            )
+        return resolved
+
+    @staticmethod
+    def __get_output_root(gen_table: GenTableModel) -> Path:
+        """
+        保持生成路径为独立生成包根，拒绝直接覆盖已知应用源码
+
+        :param gen_table: 生成配置
+        :return: 独立生成目录
+        """
+        root = (
+            Path(os.getcwd(), GenConfig.GEN_PATH) if gen_table.gen_path in (None, '', '/') else Path(gen_table.gen_path)
+        )
+        resolved = root.resolve()
+        app_roots = [
+            GenI18nUtil.PROJECT_ROOT / 'ruoyi-fastapi-frontend' / framework / 'web'
+            for framework in GenI18nUtil.FRAMEWORKS.values()
+        ]
+        if any(resolved == app.resolve() or app.resolve() in resolved.parents for app in app_roots):
+            raise ServiceWarning(
+                message='请选择独立生成目录，不能直接覆盖应用源码目录',
+                msg_key='generator.outputMustBeBundleRoot',
+            )
+        return root
 
     @classmethod
     async def __get_gen_render_info(
@@ -419,7 +524,11 @@ class GenTableService:
         """
         gen_table_info = await GenTableDao.get_gen_table_by_name(query_db, table_name, source_name)
         if gen_table_info is None:
-            raise ServiceException(message=f'业务表不存在或不属于数据源 {source_name}：{table_name}')
+            raise ServiceException(
+                message=f'业务表不存在或不属于数据源 {source_name}：{table_name}',
+                msg_key='generator.tableOutsideSource',
+                msg_params={'source_name': str(source_name), 'table_name': str(table_name)},
+            )
         gen_table = GenTableModel(**CamelCaseUtil.transform_result(gen_table_info))
         await cls.set_sub_table(query_db, gen_table)
         await cls.set_pk_column(gen_table)
@@ -497,7 +606,7 @@ class GenTableService:
                 for column in del_columns:
                     await GenTableColumnDao.delete_gen_table_column_by_column_id_dao(query_db, column)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='同步成功')
+            return CrudResponseModel(is_success=True, message='同步成功', msg_key='common.synced')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -571,16 +680,18 @@ class GenTableService:
             params_obj = edit_gen_table.params.model_dump(by_alias=True)
 
             if GenConstant.TREE_CODE not in params_obj:
-                raise ServiceException(message='树编码字段不能为空')
+                raise ServiceException(message='树编码字段不能为空', msg_key='generator.treeCodeRequired')
             if GenConstant.TREE_PARENT_CODE not in params_obj:
-                raise ServiceException(message='树父编码字段不能为空')
+                raise ServiceException(message='树父编码字段不能为空', msg_key='generator.treeParentCodeRequired')
             if GenConstant.TREE_NAME not in params_obj:
-                raise ServiceException(message='树名称字段不能为空')
+                raise ServiceException(message='树名称字段不能为空', msg_key='generator.treeNameRequired')
             if edit_gen_table.tpl_category == GenConstant.TPL_SUB:
                 if not edit_gen_table.sub_table_name:
-                    raise ServiceException(message='关联子表的表名不能为空')
+                    raise ServiceException(message='关联子表的表名不能为空', msg_key='generator.childTableRequired')
                 if not edit_gen_table.sub_table_fk_name:
-                    raise ServiceException(message='子表关联的外键名不能为空')
+                    raise ServiceException(
+                        message='子表关联的外键名不能为空', msg_key='generator.childForeignKeyRequired'
+                    )
 
 
 class GenTableColumnService:

@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -8,23 +9,23 @@
       label-width="68px"
     >
       <el-form-item
-        label="登录地址"
+        :label="$t('monitor:login.location')"
         prop="ipaddr"
       >
         <el-input
           v-model="queryParams.ipaddr"
-          placeholder="请输入登录地址"
+          :placeholder="$t('monitor:messages.enterSignInAddress')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="用户名称"
+        :label="$t('system:user.username')"
         prop="userName"
       >
         <el-input
           v-model="queryParams.userName"
-          placeholder="请输入用户名称"
+          :placeholder="$t('system:user.usernamePlaceholder')"
           clearable
           @keyup.enter.native="handleQuery"
         />
@@ -35,13 +36,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -51,7 +52,7 @@
       style="width: 100%"
     >
       <el-table-column
-        label="序号"
+        :label="$t('common:index')"
         type="index"
         align="center"
       >
@@ -60,46 +61,46 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="会话编号"
+        :label="$t('monitor:messages.sessionID')"
         align="center"
         prop="tokenId"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="登录名称"
+        :label="$t('system:loginName')"
         align="center"
         prop="userName"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="部门名称"
+        :label="$t('system:dept.name')"
         align="center"
         prop="deptName"
       />
       <el-table-column
-        label="主机"
+        :label="$t('monitor:messages.host')"
         align="center"
         prop="ipaddr"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="登录地点"
+        :label="$t('monitor:messages.signInLocation')"
         align="center"
         prop="loginLocation"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="浏览器"
+        :label="$t('monitor:messages.browser')"
         align="center"
         prop="browser"
       />
       <el-table-column
-        label="操作系统"
+        :label="$t('monitor:server.os')"
         align="center"
         prop="os"
       />
       <el-table-column
-        label="登录时间"
+        :label="$t('monitor:login.time')"
         align="center"
         prop="loginTime"
         width="180"
@@ -109,7 +110,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -120,7 +121,7 @@
             icon="el-icon-delete"
             @click="handleForceLogout(scope.row)"
             v-hasPermi="['monitor:online:forceLogout']"
-            >强退</el-button
+            >{{ $t('monitor:messages.forceSignOut') }}</el-button
           >
         </template>
       </el-table-column>
@@ -136,6 +137,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { list, forceLogout } from '@/api/monitor/online'
 
 export default {
@@ -183,13 +186,13 @@ export default {
     /** 强退按钮操作 */
     handleForceLogout(row) {
       this.$modal
-        .confirm('是否确认强退名称为"' + row.userName + '"的用户？')
+        .confirm(t('monitor:confirmation.forceUserValueToSignOut', { value0: row.userName }))
         .then(function () {
           return forceLogout(row.tokenId)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('强退成功')
+          this.$modal.msgSuccess(t('monitor:interface.userSignedOut'))
         })
         .catch(() => {})
     },

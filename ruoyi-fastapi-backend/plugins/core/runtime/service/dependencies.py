@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 from typing import cast
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.support import (
     PluginDependencyInstallPayloadBuilder,
@@ -140,7 +141,9 @@ class PluginDependencyUseCase:
                 output_callback=output_callback,
             )
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('安装插件依赖失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('安装插件依赖失败', msg_key='plugin.runtime.dependencies.installFailed'), exc
+            )
 
     def install_plugin_dependencies_from_cli(
         self,
@@ -179,7 +182,9 @@ class PluginDependencyUseCase:
             cast('dict[str, object]', payload).pop('capability', None)
             return payload
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('安装插件依赖失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('安装插件依赖失败', msg_key='plugin.runtime.dependencies.installFailed'), exc
+            )
 
     def _install_discovered_plugin_dependencies(
         self,
@@ -279,7 +284,7 @@ class PluginDependencyUseCase:
                 install_plan_items=install_plan_items,
                 dry_run=False,
                 ok=False,
-                message='插件依赖安装被策略阻断',
+                message=I18nMessage('插件依赖安装被策略阻断', msg_key='plugin.runtime.dependencies.installBlocked'),
                 policy_decision=policy_decision,
             )
             payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)
@@ -385,7 +390,7 @@ class PluginDependencyUseCase:
                 install_plan_items=install_plan_items,
                 dry_run=False,
                 ok=False,
-                message='插件依赖安装被策略阻断',
+                message=I18nMessage('插件依赖安装被策略阻断', msg_key='plugin.runtime.dependencies.installBlocked'),
                 policy_decision=policy_decision,
             )
             payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)

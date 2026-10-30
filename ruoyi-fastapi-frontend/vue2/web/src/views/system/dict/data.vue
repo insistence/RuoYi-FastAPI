@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -9,36 +10,36 @@
       label-width="68px"
     >
       <el-form-item
-        label="字典名称"
+        :label="$t('system:dict.name')"
         prop="dictType"
       >
         <el-select v-model="queryParams.dictType">
           <el-option
             v-for="item in typeOptions"
             :key="item.dictId"
-            :label="item.dictName"
+            :label="$resolveText(item.dictName, item.dictNameI18n)"
             :value="item.dictType"
           />
         </el-select>
       </el-form-item>
       <el-form-item
-        label="字典标签"
+        :label="$t('system:dict.dictionaryLabel')"
         prop="dictLabel"
       >
         <el-input
           v-model="queryParams.dictLabel"
-          placeholder="请输入字典标签"
+          :placeholder="$t('system:dict.enterADictionaryLabel')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('common:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="数据状态"
+          :placeholder="$t('system:dict.dataStatus')"
           clearable
         >
           <el-option
@@ -55,13 +56,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -78,7 +79,7 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['system:dict:add']"
-          >新增</el-button
+          >{{ $t('common:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -90,7 +91,7 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['system:dict:edit']"
-          >修改</el-button
+          >{{ $t('common:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -102,7 +103,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['system:dict:remove']"
-          >删除</el-button
+          >{{ $t('common:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -113,7 +114,7 @@
           size="mini"
           @click="handleExport"
           v-hasPermi="['system:dict:export']"
-          >导出</el-button
+          >{{ $t('common:export') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -123,7 +124,7 @@
           icon="el-icon-close"
           size="mini"
           @click="handleClose"
-          >关闭</el-button
+          >{{ $t('layout:search.close') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -143,12 +144,12 @@
         align="center"
       />
       <el-table-column
-        label="字典编码"
+        :label="$t('system:dict.dictionaryCode')"
         align="center"
         prop="dictCode"
       />
       <el-table-column
-        label="字典标签"
+        :label="$t('system:dict.dictionaryLabel')"
         align="center"
         prop="dictLabel"
       >
@@ -158,28 +159,28 @@
               (scope.row.listClass == '' || scope.row.listClass == 'default') &&
               (scope.row.cssClass == '' || scope.row.cssClass == null)
             "
-            >{{ scope.row.dictLabel }}</span
+            >{{ $resolveText(scope.row.dictLabel, scope.row.dictLabelI18n) }}</span
           >
           <el-tag
             v-else
             :type="scope.row.listClass == 'primary' ? '' : scope.row.listClass"
             :class="scope.row.cssClass"
-            >{{ scope.row.dictLabel }}</el-tag
+            >{{ $resolveText(scope.row.dictLabel, scope.row.dictLabelI18n) }}</el-tag
           >
         </template>
       </el-table-column>
       <el-table-column
-        label="字典键值"
+        :label="$t('system:dict.dictionaryValue')"
         align="center"
         prop="dictValue"
       />
       <el-table-column
-        label="字典排序"
+        :label="$t('system:dict.dictionarySortOrder')"
         align="center"
         prop="dictSort"
       />
       <el-table-column
-        label="状态"
+        :label="$t('common:status')"
         align="center"
         prop="status"
       >
@@ -191,13 +192,13 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="备注"
+        :label="$t('common:remark')"
         align="center"
         prop="remark"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="创建时间"
+        :label="$t('common:createdTime')"
         align="center"
         prop="createTime"
         width="180"
@@ -207,7 +208,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -218,7 +219,7 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:dict:edit']"
-            >修改</el-button
+            >{{ $t('common:edit') }}</el-button
           >
           <el-button
             size="mini"
@@ -226,7 +227,7 @@
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:dict:remove']"
-            >删除</el-button
+            >{{ $t('common:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -242,52 +243,58 @@
 
     <!-- 添加或修改参数配置对话框 -->
     <el-dialog
-      :title="title"
+      :title="$t(titleKey)"
       :visible.sync="open"
       width="500px"
       append-to-body
     >
       <el-form
+        :validate-on-rule-change="false"
         ref="form"
         :model="form"
         :rules="rules"
         label-width="80px"
       >
-        <el-form-item label="字典类型">
+        <el-form-item :label="$t('system:dict.type')">
           <el-input
             v-model="form.dictType"
             :disabled="true"
           />
         </el-form-item>
         <el-form-item
-          label="数据标签"
+          :label="$t('system:dict.label')"
           prop="dictLabel"
         >
           <el-input
             v-model="form.dictLabel"
-            placeholder="请输入数据标签"
+            :placeholder="$t('system:dict.labelPlaceholder')"
           />
         </el-form-item>
+        <locale-text-fields
+          :value="form.dictLabelI18n"
+          :patch="form.dictLabelI18nPatch"
+          @input="$set(form, 'dictLabelI18nPatch', $event)"
+        />
         <el-form-item
-          label="数据键值"
+          :label="$t('system:dict.value')"
           prop="dictValue"
         >
           <el-input
             v-model="form.dictValue"
-            placeholder="请输入数据键值"
+            :placeholder="$t('system:dict.valuePlaceholder')"
           />
         </el-form-item>
         <el-form-item
-          label="样式属性"
+          :label="$t('system:dict.cSSClass')"
           prop="cssClass"
         >
           <el-input
             v-model="form.cssClass"
-            placeholder="请输入样式属性"
+            :placeholder="$t('system:dict.enterACSSClass')"
           />
         </el-form-item>
         <el-form-item
-          label="显示排序"
+          :label="$t('system:dept.order')"
           prop="dictSort"
         >
           <el-input-number
@@ -297,7 +304,7 @@
           />
         </el-form-item>
         <el-form-item
-          label="回显样式"
+          :label="$t('system:dict.listClass')"
           prop="listClass"
         >
           <el-select v-model="form.listClass">
@@ -310,7 +317,7 @@
           </el-select>
         </el-form-item>
         <el-form-item
-          label="状态"
+          :label="$t('common:status')"
           prop="status"
         >
           <el-radio-group v-model="form.status">
@@ -323,13 +330,13 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item
-          label="备注"
+          :label="$t('common:remark')"
           prop="remark"
         >
           <el-input
             v-model="form.remark"
             type="textarea"
-            placeholder="请输入内容"
+            :placeholder="$t('common:contentPlaceholder')"
           ></el-input>
         </el-form-item>
       </el-form>
@@ -340,15 +347,17 @@
         <el-button
           type="primary"
           @click="submitForm"
-          >确 定</el-button
+          >{{ $t('common:confirm') }}</el-button
         >
-        <el-button @click="cancel">取 消</el-button>
+        <el-button @click="cancel">{{ $t('common:cancel') }}</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { listData, getData, delData, addData, updateData } from '@/api/system/dict/data'
 import { optionselect as getDictOptionselect, getType } from '@/api/system/dict/type'
 
@@ -374,34 +383,46 @@ export default {
       // 默认字典类型
       defaultDictType: '',
       // 弹出层标题
-      title: '',
+      titleKey: '',
       // 是否显示弹出层
       open: false,
       // 数据标签回显样式
       listClassOptions: [
         {
           value: 'default',
-          label: '默认',
+          get label() {
+            return t('layout:size.default')
+          },
         },
         {
           value: 'primary',
-          label: '主要',
+          get label() {
+            return t('system:dict.primary')
+          },
         },
         {
           value: 'success',
-          label: '成功',
+          get label() {
+            return t('common:success')
+          },
         },
         {
           value: 'info',
-          label: '信息',
+          get label() {
+            return t('system:dict.information')
+          },
         },
         {
           value: 'warning',
-          label: '警告',
+          get label() {
+            return t('common:warning')
+          },
         },
         {
           value: 'danger',
-          label: '危险',
+          get label() {
+            return t('system:dict.danger')
+          },
         },
       ],
       // 类型数据字典
@@ -418,9 +439,15 @@ export default {
       form: {},
       // 表单校验
       rules: {
-        dictLabel: [{ required: true, message: '数据标签不能为空', trigger: 'blur' }],
-        dictValue: [{ required: true, message: '数据键值不能为空', trigger: 'blur' }],
-        dictSort: [{ required: true, message: '数据顺序不能为空', trigger: 'blur' }],
+        dictLabel: [
+          { required: true, message: () => t('system:dict.labelRequired'), trigger: 'blur' },
+        ],
+        dictValue: [
+          { required: true, message: () => t('system:dict.valueRequired'), trigger: 'blur' },
+        ],
+        dictSort: [
+          { required: true, message: () => t('system:dataOrderIsRequired'), trigger: 'blur' },
+        ],
       },
     }
   },
@@ -492,7 +519,7 @@ export default {
     handleAdd() {
       this.reset()
       this.open = true
-      this.title = '添加字典数据'
+      this.titleKey = 'system:dict.addData'
       this.form.dictType = this.queryParams.dictType
     },
     // 多选框选中数据
@@ -508,7 +535,7 @@ export default {
       getData(dictCode).then((response) => {
         this.form = response.data
         this.open = true
-        this.title = '修改字典数据'
+        this.titleKey = 'system:dict.editData'
       })
     },
     /** 提交按钮 */
@@ -518,14 +545,14 @@ export default {
           if (this.form.dictCode != undefined) {
             updateData(this.form).then(() => {
               this.$store.dispatch('dict/removeDict', this.queryParams.dictType)
-              this.$modal.msgSuccess('修改成功')
+              this.$modal.msgSuccess(t('common:updateSuccess'))
               this.open = false
               this.getList()
             })
           } else {
             addData(this.form).then(() => {
               this.$store.dispatch('dict/removeDict', this.queryParams.dictType)
-              this.$modal.msgSuccess('新增成功')
+              this.$modal.msgSuccess(t('common:addSuccess'))
               this.open = false
               this.getList()
             })
@@ -537,13 +564,15 @@ export default {
     handleDelete(row) {
       const dictCodes = row.dictCode || this.ids
       this.$modal
-        .confirm('是否确认删除字典编码为"' + dictCodes + '"的数据项？')
+        .confirm(
+          t('system:confirmation.deleteDictionaryEntriesWithCodesValue', { value0: dictCodes })
+        )
         .then(function () {
           return delData(dictCodes)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
           this.$store.dispatch('dict/removeDict', this.queryParams.dictType)
         })
         .catch(() => {})

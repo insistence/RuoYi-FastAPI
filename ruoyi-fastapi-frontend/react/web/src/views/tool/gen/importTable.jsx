@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import './style.css'
 import { renderDialogFooter } from '@/components/DialogFooter'
@@ -9,7 +12,10 @@ import { parseTime } from '@/utils/ruoyi'
 import { message } from '@/plugins/modal'
 import Pagination from '@/components/Pagination'
 export default function ImportTable({ open, dataSources, onClose, onSuccess }) {
+  useI18n()
+
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   const [query, setQuery] = useState({ pageNum: 1, pageSize: 10 })
   const [rows, setRows] = useState([])
   const [total, setTotal] = useState(0)
@@ -49,14 +55,14 @@ export default function ImportTable({ open, dataSources, onClose, onSuccess }) {
     }
   }, [query, open])
   async function submit() {
-    if (!selected.length) return message.warning('请选择要导入的表')
+    if (!selected.length) return message.warning(t('tool:selectTablesToImport'))
     setSaving(true)
     try {
       await importTable({
         tables: selected.join(','),
         dataSourceName: query.dataSourceName,
       })
-      message.success('导入成功')
+      message.success(t('common:importCompleted'))
       onClose()
       onSuccess()
     } catch {
@@ -67,7 +73,7 @@ export default function ImportTable({ open, dataSources, onClose, onSuccess }) {
   return (
     <Modal
       footer={renderDialogFooter}
-      title="导入表"
+      title={t('tool:importTables')}
       className="gen-import"
       style={{ top: '6vh' }}
       open={open}
@@ -89,12 +95,12 @@ export default function ImportTable({ open, dataSources, onClose, onSuccess }) {
         }}
       >
         <Form.Item
-          label="数据源"
+          label={t('tool:datasource.title')}
           name="dataSourceName"
           required
         >
           <Select
-            placeholder="请选择数据源"
+            placeholder={t('tool:datasource.select')}
             showSearch
             optionFilterProp="label"
             style={{ width: 220 }}
@@ -114,21 +120,21 @@ export default function ImportTable({ open, dataSources, onClose, onSuccess }) {
           />
         </Form.Item>
         <Form.Item
-          label="表名称"
+          label={t('tool:gen.tableName')}
           name="tableName"
         >
           <Input
-            placeholder="请输入表名称"
+            placeholder={t('tool:enterTableName')}
             allowClear
             style={{ width: 180 }}
           />
         </Form.Item>
         <Form.Item
-          label="表描述"
+          label={t('tool:gen.tableComment')}
           name="tableComment"
         >
           <Input
-            placeholder="请输入表描述"
+            placeholder={t('tool:enterTableDescription')}
             allowClear
             style={{ width: 180 }}
           />
@@ -140,7 +146,7 @@ export default function ImportTable({ open, dataSources, onClose, onSuccess }) {
               htmlType="submit"
               type="primary"
             >
-              搜索
+              {t('common:search')}
             </Button>
             <Button
               icon={<ReloadOutlined />}
@@ -151,7 +157,7 @@ export default function ImportTable({ open, dataSources, onClose, onSuccess }) {
                 form.submit()
               }}
             >
-              重置
+              {t('common:reset')}
             </Button>
           </Space>
         </Form.Item>
@@ -175,15 +181,15 @@ export default function ImportTable({ open, dataSources, onClose, onSuccess }) {
         })}
         rowSelection={{ columnWidth: 55, selectedRowKeys: selected, onChange: setSelected }}
         columns={[
-          { title: '表名称', dataIndex: 'tableName' },
-          { title: '表描述', dataIndex: 'tableComment' },
+          { title: t('tool:gen.tableName'), dataIndex: 'tableName' },
+          { title: t('tool:gen.tableComment'), dataIndex: 'tableComment' },
           {
-            title: '创建时间',
+            title: t('common:createdTime'),
             dataIndex: 'createTime',
             render: (value) => parseTime(value),
           },
           {
-            title: '更新时间',
+            title: t('common:updatedTime'),
             dataIndex: 'updateTime',
             render: (value) => parseTime(value),
           },

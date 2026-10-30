@@ -26,7 +26,10 @@ function install() {
         valueField: 'dictValue',
         request(dictMeta) {
           const storeDict = searchDictByKey(store.getters.dict, dictMeta.type)
-          if (storeDict) {
+          if (
+            storeDict &&
+            storeDict.every((row) => Object.prototype.hasOwnProperty.call(row, 'dictLabelI18n'))
+          ) {
             return new Promise((resolve) => {
               resolve(storeDict)
             })

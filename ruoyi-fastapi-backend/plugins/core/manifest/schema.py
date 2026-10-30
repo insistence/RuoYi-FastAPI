@@ -5,6 +5,7 @@ from typing import Any, Literal
 from packaging.requirements import InvalidRequirement
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
+from i18n.translation import TranslationUtil
 from plugins.core.frontend import validate_frontend_framework
 from plugins.core.manifest.menu_tree import PluginMenuTree
 from plugins.core.types import PluginConfigValue
@@ -560,7 +561,19 @@ class PluginPermissionManifest(BaseModel):
 
     code: str = Field(validation_alias=AliasChoices('code', 'perms', 'permission'), description='权限标识')
     name: str | None = Field(default=None, description='权限展示名称')
+    name_i18n: dict[str, str] = Field(default_factory=dict, alias='nameI18n', description='多语言名称')
     description: str = Field(default='', description='权限说明')
+
+    @field_validator('name_i18n', mode='before')
+    @classmethod
+    def validate_name_i18n(cls, value: object) -> dict[str, str | None]:
+        """
+        校验名称译文，允许声明宿主尚未启用的语言
+
+        :param value: 名称译文映射
+        :return: 语言标识规范化后的名称译文
+        """
+        return TranslationUtil.validate(value, 50)
 
     @model_validator(mode='before')
     @classmethod
@@ -842,6 +855,7 @@ class PluginMenuManifest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
     name: str = Field(description='菜单名称')
+    name_i18n: dict[str, str] = Field(default_factory=dict, alias='nameI18n', description='多语言名称')
     path: str = Field(description='路由路径')
     component: str = Field(default='Layout', description='组件路径')
     perms: str = Field(default='', description='权限标识')
@@ -855,6 +869,17 @@ class PluginMenuManifest(BaseModel):
     visible: Literal['0', '1'] = Field(default='0', description='是否显示')
     status: Literal['0', '1'] = Field(default='0', description='菜单状态')
     children: list['PluginMenuManifest'] = Field(default_factory=list, description='子菜单列表')
+
+    @field_validator('name_i18n', mode='before')
+    @classmethod
+    def validate_name_i18n(cls, value: object) -> dict[str, str | None]:
+        """
+        校验名称译文，允许声明宿主尚未启用的语言
+
+        :param value: 名称译文映射
+        :return: 语言标识规范化后的名称译文
+        """
+        return TranslationUtil.validate(value, 50)
 
     @field_validator('name', 'path')
     @classmethod
@@ -1055,6 +1080,20 @@ class PluginManifest(BaseModel):
         if duplicated_permissions:
             raise ValueError(f'插件权限不能重复：{"、".join(sorted(duplicated_permissions))}')
         return value
+
+    @model_validator(mode='after')
+    def validate_translation_compatibility(self) -> 'PluginManifest':
+        """
+        含名称译文的插件必须显式声明支持该结构的后端版本
+
+        :return: 校验后的插件清单
+        """
+        translated = any(menu.name_i18n for menu in PluginMenuTree.flatten(self.frontend.menus)) or any(
+            permission.name_i18n for permission in self.permissions
+        )
+        if translated and not self.compatibility.backend_version:
+            raise ValueError('使用 nameI18n 时必须声明 compatibility.backendVersion')
+        return self
 
     @property
     def permission_codes(self) -> list[str]:

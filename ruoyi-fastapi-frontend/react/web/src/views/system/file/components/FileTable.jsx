@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import FileTag from './FileTag'
 import TableActions, { TableAction } from '@/components/TableActions'
 import './style.css'
@@ -47,14 +49,16 @@ export default function FileTable({
   onRestore,
   onPurge,
 }) {
+  useI18n()
+
   const action = (permission, label, icon, handler, row, danger = false, disabled = false) => (
     <HasPermi value={[`system:file:${permission}`]}>
       <TableAction
         iconOnly
-        tooltip={disabled ? '存在业务引用，无法删除' : label}
+        tooltip={disabled ? t('system:cannotDeleteAReferencedFile') : label}
         symbol={
           permission === 'query'
-            ? label === '审计'
+            ? handler === onAudit
               ? 'Tickets'
               : 'View'
             : {
@@ -77,46 +81,46 @@ export default function FileTable({
   )
   const columns = [
     {
-      title: '原始文件名',
+      title: t('file:originalName'),
       dataIndex: 'originalName',
       width: 200,
       ellipsis: true,
     },
     {
       align: 'center',
-      title: '访问类型',
+      title: t('file:accessType'),
       dataIndex: 'accessType',
       width: 110,
       render: (value) => (
         <FileTag type={value === 'public' ? 'success' : 'warning'}>
-          {value === 'public' ? '公开' : '受保护'}
+          {value === 'public' ? t('system:public') : t('system:protected')}
         </FileTag>
       ),
     },
-    { align: 'center', title: '扩展名', dataIndex: 'extension', width: 90 },
+    { align: 'center', title: t('system:extension'), dataIndex: 'extension', width: 90 },
     {
       align: 'right',
-      title: '文件大小',
+      title: t('system:fileSize'),
       dataIndex: 'fileSize',
       width: 120,
       render: formatFileSize,
     },
-    { align: 'center', title: '上传用户', dataIndex: 'createBy', width: 120 },
+    { align: 'center', title: t('system:uploader'), dataIndex: 'createBy', width: 120 },
     {
       align: 'center',
-      title: '所有者',
+      title: t('file:owner'),
       width: 120,
       render: (_, row) => row.ownerName || row.ownerUserId || '-',
     },
     {
       align: 'center',
-      title: '所属部门',
+      title: t('system:user.department'),
       width: 140,
       render: (_, row) => row.deptName || row.deptId || '-',
     },
     {
       align: 'center',
-      title: '文件有效期',
+      title: t('system:fileExpiry'),
       dataIndex: 'expireTime',
       width: 150,
       render: (value) => (
@@ -129,18 +133,22 @@ export default function FileTable({
       width: 130,
       render: (_, row) => (
         <Tooltip
-          title={row.aclNearestExpireTime ? `最近过期：${parseTime(row.aclNearestExpireTime)}` : ''}
+          title={
+            row.aclNearestExpireTime
+              ? t('file:mostRecentExpirationValue', { arg0: parseTime(row.aclNearestExpireTime) })
+              : ''
+          }
         >
           <FileTag type={isAclExpiring(row.aclNearestExpireTime) ? 'warning' : 'info'}>
-            {row.aclEntryCount || 0} 项
-            {isAclExpiring(row.aclNearestExpireTime) ? ' · 即将过期' : ''}
+            {row.aclEntryCount || 0} {t('system:items')}
+            {isAclExpiring(row.aclNearestExpireTime) ? t('system:components.expiringSoon') : ''}
           </FileTag>
         </Tooltip>
       ),
     },
     {
       align: 'center',
-      title: '业务引用',
+      title: t('system:businessReferences'),
       dataIndex: 'referenceCount',
       width: 100,
       render: (value, row) =>
@@ -150,15 +158,15 @@ export default function FileTable({
             type="link"
             onClick={() => onReference(row)}
           >
-            {value} 项
+            {value} {t('system:items')}
           </Button>
         ) : (
-          '0 项'
+          t('system:0Items')
         ),
     },
     {
       align: 'center',
-      title: '存储状态',
+      title: t('system:storageStatus'),
       dataIndex: 'storageStatus',
       width: 110,
       render: (value) => (
@@ -167,14 +175,14 @@ export default function FileTable({
     },
     {
       align: 'center',
-      title: '上传时间',
+      title: t('system:uploadedAt'),
       dataIndex: 'createTime',
       width: 180,
       render: (value) => parseTime(value),
     },
     {
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       width: 90,
       render: (value) => (
@@ -186,26 +194,38 @@ export default function FileTable({
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 250,
       fixed: 'right',
       render: (_, row) => (
         <TableActions>
-          {action('query', '详细', <EyeOutlined />, onView, row)}
+          {action('query', t('common:detail'), <EyeOutlined />, onView, row)}
           {row.status === 'active' &&
-            action('download', '下载', <DownloadOutlined />, onDownload, row)}
+            action('download', t('common:download'), <DownloadOutlined />, onDownload, row)}
           {row.status === 'active' &&
             row.accessType === 'private' &&
-            action('edit', '授权', <LockOutlined />, onAcl, row)}
-          {row.status === 'active' && action('transfer', '转移', <SwapOutlined />, onTransfer, row)}
-          {action('query', '审计', <AuditOutlined />, onAudit, row)}
+            action('edit', t('system:permissions'), <LockOutlined />, onAcl, row)}
           {row.status === 'active' &&
-            action('remove', '删除', <DeleteOutlined />, onDelete, row, true, !!row.referenceCount)}
-          {row.status === 'deleted' && action('restore', '恢复', <UndoOutlined />, onRestore, row)}
+            action('transfer', t('system:transfer'), <SwapOutlined />, onTransfer, row)}
+          {action('query', t('system:audit'), <AuditOutlined />, onAudit, row)}
+          {row.status === 'active' &&
+            action(
+              'remove',
+              t('common:delete'),
+              <DeleteOutlined />,
+              onDelete,
+              row,
+              true,
+              !!row.referenceCount
+            )}
+          {row.status === 'deleted' &&
+            action('restore', t('common:restore'), <UndoOutlined />, onRestore, row)}
           {row.status !== 'active' &&
             action(
               'purge',
-              row.status === 'purging' ? '重试永久清理' : '永久清理',
+              row.status === 'purging'
+                ? t('file:retryPermanentDeletion')
+                : t('system:permanentlyDelete'),
               <ClearOutlined />,
               onPurge,
               row,

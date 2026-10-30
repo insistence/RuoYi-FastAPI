@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useState } from 'react'
 import { Button, Form, Input, Space } from 'antd'
 import tab from '@/plugins/tab'
@@ -6,13 +9,17 @@ import { usePasswordRule } from '@/utils/passwordRule'
 import { message } from '@/plugins/modal'
 import useUserStore from '@/store/modules/user'
 export default function ResetPwd() {
+  useI18n()
+  const { infoPwdValidator } = usePasswordRule()
+
   const [form] = Form.useForm(),
     [saving, setSaving] = useState(false)
+  useLocalizedFormErrors(form)
   async function submit(values) {
     setSaving(true)
     try {
       await updateUserPwd(values.oldPassword, values.newPassword)
-      message.success('修改成功')
+      message.success(t('common:updateSuccess'))
       form.resetFields()
       useUserStore.setState({ passwordWarning: '' })
     } catch {
@@ -30,41 +37,41 @@ export default function ResetPwd() {
       onFinish={submit}
     >
       <Form.Item
-        label="旧密码"
+        label={t('auth:password.old')}
         name="oldPassword"
-        rules={[{ required: true, message: '旧密码不能为空' }]}
+        rules={[{ required: true, message: t('auth:password.oldRequired') }]}
       >
         <Input.Password
-          placeholder="请输入旧密码"
+          placeholder={t('auth:password.oldPlaceholder')}
           autoComplete="current-password"
         />
       </Form.Item>
       <Form.Item
-        label="新密码"
+        label={t('auth:password.new')}
         name="newPassword"
-        rules={usePasswordRule().infoPwdValidator}
+        rules={infoPwdValidator}
       >
         <Input.Password
-          placeholder="请输入新密码"
+          placeholder={t('auth:password.newPlaceholder')}
           autoComplete="new-password"
         />
       </Form.Item>
       <Form.Item
-        label="确认密码"
+        label={t('auth:register.confirmPassword')}
         name="confirmPassword"
         dependencies={['newPassword']}
         rules={[
-          { required: true, message: '确认密码不能为空' },
+          { required: true, message: t('auth:password.confirmRequired') },
           ({ getFieldValue }) => ({
             validator: (_, value) =>
               value === getFieldValue('newPassword')
                 ? Promise.resolve()
-                : Promise.reject(new Error('两次输入的密码不一致')),
+                : Promise.reject(new Error(t('auth:register.passwordMismatch'))),
           }),
         ]}
       >
         <Input.Password
-          placeholder="请确认新密码"
+          placeholder={t('auth:password.confirmPlaceholder')}
           autoComplete="new-password"
         />
       </Form.Item>
@@ -75,14 +82,14 @@ export default function ResetPwd() {
             type="primary"
             loading={saving}
           >
-            保存
+            {t('common:save')}
           </Button>
           <Button
             type="primary"
             danger
             onClick={() => tab.closePage()}
           >
-            关闭
+            {t('layout:search.close')}
           </Button>
         </Space>
       </Form.Item>

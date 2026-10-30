@@ -12,6 +12,7 @@ from common.aspect.pre_auth import CurrentUserDependency, PreAuthDependency
 from common.enums import BusinessType
 from common.router import APIRouterPro
 from common.vo import DataResponseModel, PageResponseModel
+from i18n.message import I18nMessage
 from module_admin.entity.vo.user_vo import CurrentUserModel
 from module_plugin.service.plugin_service import (
     PluginOperationService,
@@ -90,7 +91,7 @@ async def _execute_plugin_operation(
         payload = await operation()
     except Exception:
         logger.exception('插件操作执行异常：%s', default_message)
-        return ResponseUtil.failure(msg=default_message)
+        return ResponseUtil.failure(msg=default_message, msg_key='plugin.runtime.failed')
 
     logger.info(payload.get('message', default_message))
     return _plugin_operation_response(payload, default_message)
@@ -134,7 +135,7 @@ async def plan_system_plugins(
 ) -> Response:
     return await _execute_plugin_operation(
         lambda: get_plugin_runtime_service().plan_plugins_async(operation, plugin_ids),
-        '插件批量操作计划生成完成',
+        I18nMessage('插件批量操作计划生成完成', msg_key='plugin.runtime.batch.planCompleted'),
     )
 
 
@@ -155,7 +156,7 @@ async def precheck_system_plugin(
 ) -> Response:
     return await _execute_plugin_operation(
         lambda: get_plugin_runtime_service().precheck_plugin_operation(plugin_id, operation),
-        '插件操作预检完成',
+        I18nMessage('插件操作预检完成', msg_key='plugin.runtime.precheck.completed'),
     )
 
 
@@ -178,7 +179,7 @@ async def batch_system_plugins(
             dry_run=batch_action.dry_run,
             continue_on_error=batch_action.continue_on_error,
         ),
-        '插件批量操作完成',
+        I18nMessage('插件批量操作完成', msg_key='plugin.runtime.batch.completed'),
     )
 
 
@@ -256,7 +257,9 @@ async def retain_system_plugin_operation_log(
     await query_db.commit()
     logger.info('插件操作审计日志保留策略执行完成')
 
-    return ResponseUtil.success(data=retention_result, msg='插件操作审计日志保留策略执行完成')
+    return ResponseUtil.success(
+        data=retention_result, msg='插件操作审计日志保留策略执行完成', msg_key='plugin.audit.retentionApplied'
+    )
 
 
 @plugin_controller.get(
@@ -274,7 +277,7 @@ async def query_detail_system_plugin_operation_log(
     operation_log_detail_result = await PluginService.plugin_operation_log_detail_services(query_db, operation_id)
     if not operation_log_detail_result:
         logger.warning(f'插件批量操作审计日志不存在：{operation_id}')
-        return ResponseUtil.failure(msg='插件批量操作审计日志不存在')
+        return ResponseUtil.failure(msg='插件批量操作审计日志不存在', msg_key='plugin.audit.batchNotFound')
     logger.info(f'获取operation_id为{operation_id}的插件批量操作审计日志成功')
 
     return ResponseUtil.success(data=operation_log_detail_result)
@@ -298,7 +301,9 @@ async def list_system_plugin_migrations(
     migration_result = await get_plugin_runtime_service().list_plugin_migrations(plugin_id, status)
     logger.info(migration_result.get('message', '插件 migration 历史查询完成'))
 
-    return _plugin_operation_response(migration_result, '插件 migration 历史查询完成')
+    return _plugin_operation_response(
+        migration_result, I18nMessage('插件 migration 历史查询完成', msg_key='plugin.runtime.migration.historyLoaded')
+    )
 
 
 @plugin_controller.post(
@@ -321,7 +326,9 @@ async def mark_system_plugin_migration_success(
     )
     logger.info(mark_result.get('message', '插件 migration 已人工标记为成功'))
 
-    return _plugin_operation_response(mark_result, '插件 migration 已人工标记为成功')
+    return _plugin_operation_response(
+        mark_result, I18nMessage('插件 migration 已人工标记为成功', msg_key='plugin.runtime.migration.markedSuccess')
+    )
 
 
 @plugin_controller.post(
@@ -344,7 +351,9 @@ async def mark_system_plugin_migration_failed(
     )
     logger.info(mark_result.get('message', '插件 migration 已人工标记为失败'))
 
-    return _plugin_operation_response(mark_result, '插件 migration 已人工标记为失败')
+    return _plugin_operation_response(
+        mark_result, I18nMessage('插件 migration 已人工标记为失败', msg_key='plugin.runtime.migration.markedFailure')
+    )
 
 
 @plugin_controller.get(
@@ -362,7 +371,7 @@ async def query_detail_system_plugin(
     plugin_detail_result = await PluginService.plugin_detail_services(query_db, plugin_id)
     if not plugin_detail_result:
         logger.warning(f'插件不存在：{plugin_id}')
-        return ResponseUtil.failure(msg='插件不存在')
+        return ResponseUtil.failure(msg='插件不存在', msg_key='plugin.notFound')
     logger.info(f'获取plugin_id为{plugin_id}的信息成功')
 
     return ResponseUtil.success(data=plugin_detail_result)
@@ -383,7 +392,7 @@ async def enable_system_plugin(
 ) -> Response:
     return await _execute_plugin_operation(
         lambda: get_plugin_runtime_service().set_plugin_enabled(plugin_id, enabled=True),
-        '插件启用完成',
+        I18nMessage('插件启用完成', msg_key='plugin.runtime.enable.completed'),
     )
 
 
@@ -401,7 +410,7 @@ async def disable_system_plugin(
 ) -> Response:
     return await _execute_plugin_operation(
         lambda: get_plugin_runtime_service().set_plugin_enabled(plugin_id, enabled=False),
-        '插件停用完成',
+        I18nMessage('插件停用完成', msg_key='plugin.runtime.disable.completed'),
     )
 
 
@@ -419,7 +428,9 @@ async def check_system_plugin(
     check_plugin_result = await get_plugin_runtime_service().check_plugin_async(plugin_id)
     logger.info(check_plugin_result.get('message', '插件检查完成'))
 
-    return _plugin_operation_response(check_plugin_result, '插件检查完成')
+    return _plugin_operation_response(
+        check_plugin_result, I18nMessage('插件检查完成', msg_key='plugin.runtime.checkCompleted')
+    )
 
 
 @plugin_controller.get(
@@ -436,7 +447,9 @@ async def health_system_plugin(
     health_plugin_result = await get_plugin_runtime_service().health_plugin(plugin_id)
     logger.info(health_plugin_result.get('message', '插件健康检查完成'))
 
-    return _plugin_operation_response(health_plugin_result, '插件健康检查完成')
+    return _plugin_operation_response(
+        health_plugin_result, I18nMessage('插件健康检查完成', msg_key='plugin.runtime.health.completed')
+    )
 
 
 @plugin_controller.get(
@@ -471,7 +484,9 @@ async def diagnose_system_plugin(
             msg=str(diagnose_plugin_result.get('message') or '插件诊断包生成完成'),
             data=_public_plugin_payload(diagnose_plugin_result),
         )
-    return _plugin_operation_response(diagnose_plugin_result, '插件诊断包生成完成')
+    return _plugin_operation_response(
+        diagnose_plugin_result, I18nMessage('插件诊断包生成完成', msg_key='plugin.runtime.diagnostics.completed')
+    )
 
 
 @plugin_controller.get(
@@ -488,7 +503,9 @@ async def generate_system_plugin_docs(
     docs_result = get_plugin_runtime_service().generate_plugin_docs(plugin_id)
     logger.info(docs_result.get('message', '插件文档生成完成'))
 
-    return _plugin_operation_response(docs_result, '插件文档生成完成')
+    return _plugin_operation_response(
+        docs_result, I18nMessage('插件文档生成完成', msg_key='plugin.runtime.docs.generated')
+    )
 
 
 @plugin_controller.post(
@@ -511,7 +528,7 @@ async def install_system_plugin(
             dry_run=dry_run,
             operated_by=current_user.user.user_name,
         ),
-        '插件安装完成',
+        I18nMessage('插件安装完成', msg_key='plugin.runtime.install.completed'),
     )
 
 
@@ -535,7 +552,7 @@ async def upgrade_system_plugin(
             dry_run=dry_run,
             operated_by=current_user.user.user_name,
         ),
-        '插件升级完成',
+        I18nMessage('插件升级完成', msg_key='plugin.runtime.upgrade.completed'),
     )
 
 
@@ -559,7 +576,7 @@ async def uninstall_system_plugin(
             dry_run=dry_run,
             operated_by=current_user.user.user_name,
         ),
-        '插件卸载完成',
+        I18nMessage('插件卸载完成', msg_key='plugin.runtime.uninstall.completed'),
     )
 
 
@@ -583,7 +600,7 @@ async def purge_system_plugin(
             dry_run=dry_run,
             operated_by=current_user.user.user_name,
         ),
-        '插件物理清理完成',
+        I18nMessage('插件物理清理完成', msg_key='plugin.runtime.purge.completed'),
     )
 
 
@@ -601,7 +618,9 @@ async def query_system_plugin_config(
     plugin_config_result = await get_plugin_runtime_service().get_plugin_config(plugin_id)
     logger.info(plugin_config_result.get('message', '插件配置读取完成'))
 
-    return _plugin_operation_response(plugin_config_result, '插件配置读取完成')
+    return _plugin_operation_response(
+        plugin_config_result, I18nMessage('插件配置读取完成', msg_key='plugin.runtime.config.loaded')
+    )
 
 
 @plugin_controller.put(
@@ -622,7 +641,7 @@ async def update_system_plugin_config(
             plugin_id,
             plugin_config.values,
         ),
-        '插件配置已更新',
+        I18nMessage('插件配置已更新', msg_key='plugin.runtime.config.updated'),
     )
 
 
@@ -639,14 +658,18 @@ async def export_system_plugin_config(
     reveal_secret: Annotated[bool, Query(alias='revealSecret', description='是否导出敏感配置明文')] = False,
 ) -> Response:
     if reveal_secret:
-        return ResponseUtil.failure(msg='Web 端不允许导出敏感配置明文，请使用 CLI 通道')
+        return ResponseUtil.failure(
+            msg='Web 端不允许导出敏感配置明文，请使用 CLI 通道', msg_key='plugin.config.plaintextExportForbidden'
+        )
     plugin_config_result = await get_plugin_runtime_service().export_plugin_config(
         plugin_id,
         reveal_secret=False,
     )
     logger.info(plugin_config_result.get('message', '插件配置导出完成'))
 
-    return _plugin_operation_response(plugin_config_result, '插件配置导出完成')
+    return _plugin_operation_response(
+        plugin_config_result, I18nMessage('插件配置导出完成', msg_key='plugin.runtime.config.exported')
+    )
 
 
 @plugin_controller.post(
@@ -667,7 +690,7 @@ async def import_system_plugin_config(
             plugin_id,
             plugin_config.values,
         ),
-        '插件配置导入完成',
+        I18nMessage('插件配置导入完成', msg_key='plugin.runtime.config.imported'),
     )
 
 
@@ -685,7 +708,9 @@ async def check_system_plugin_dependencies(
     dependency_result = get_plugin_runtime_service().check_plugin_dependencies(plugin_id)
     logger.info(dependency_result.get('message', '插件依赖检查完成'))
 
-    return _plugin_operation_response(dependency_result, '插件依赖检查完成')
+    return _plugin_operation_response(
+        dependency_result, I18nMessage('插件依赖检查完成', msg_key='plugin.runtime.dependencies.checked')
+    )
 
 
 @plugin_controller.post(
@@ -707,4 +732,6 @@ async def install_system_plugin_dependencies(
     )
     logger.info(dependency_result.get('message', '插件依赖安装演练完成'))
 
-    return _plugin_operation_response(dependency_result, '插件依赖安装演练完成')
+    return _plugin_operation_response(
+        dependency_result, I18nMessage('插件依赖安装演练完成', msg_key='plugin.runtime.dependencies.previewReady')
+    )

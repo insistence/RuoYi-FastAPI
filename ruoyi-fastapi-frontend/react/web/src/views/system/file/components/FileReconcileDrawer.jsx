@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import FileTag from './FileTag'
 import { TableAction } from '@/components/TableActions'
@@ -44,6 +47,8 @@ import {
 } from './reconcileFormatters'
 
 export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
+  useI18n()
+
   const [stats, setStats] = useState({}),
     [issues, setIssues] = useState({ rows: [], total: 0 }),
     [runs, setRuns] = useState({ rows: [], total: 0 }),
@@ -56,6 +61,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
     [saving, setSaving] = useState(false),
     [form] = Form.useForm(),
     [actionForm] = Form.useForm()
+  useLocalizedFormErrors(form, actionForm)
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -100,7 +106,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
         reason: values.reason,
         ...(action.key === 'register_orphan' ? { originalName: values.originalName } : {}),
       })
-      message.success('文件存储异常处理成功')
+      message.success(t('system:storageIssueProcessedSuccessfully'))
       setAction(undefined)
       load()
       onSuccess()
@@ -112,62 +118,68 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
   const issueColumns = [
     {
       align: 'center',
-      title: '级别',
+      title: t('system:level'),
       dataIndex: 'severity',
       width: 80,
       render: (value) => <FileTag type={severityTagType(value)}>{severityLabel(value)}</FileTag>,
     },
     {
       align: 'center',
-      title: '异常类型',
+      title: t('system:issueType'),
       dataIndex: 'issueType',
       width: 130,
       render: issueTypeLabel,
     },
     {
-      title: '文件',
+      title: t('file:file'),
       width: 170,
       render: (_, row) => (
         <>
-          {row.originalName || '未登记文件'}
+          {row.originalName || t('file:unregisteredFile')}
           <div className="cell-secondary">{row.fileId || '-'}</div>
         </>
       ),
     },
     {
-      title: '存储位置',
+      title: t('system:storageLocation'),
       width: 230,
       render: (_, row) => (
         <>
-          预期：{formatLocation(row.expectedRoot, row.expectedKey)}
+          {t('system:expected')}
+          {formatLocation(row.expectedRoot, row.expectedKey)}
           <div className="cell-secondary">
-            实际：{formatLocation(row.actualRoot, row.actualKey)}
+            {t('system:actual')}
+            {formatLocation(row.actualRoot, row.actualKey)}
           </div>
         </>
       ),
     },
     {
       align: 'right',
-      title: '大小',
+      title: t('system:size'),
       width: 130,
       render: (_, row) => (
         <>
-          预期：{formatOptionalSize(row.expectedSize)}
-          <div className="cell-secondary">实际：{formatOptionalSize(row.actualSize)}</div>
+          {t('system:expected')}
+          {formatOptionalSize(row.expectedSize)}
+          <div className="cell-secondary">
+            {t('system:actual')}
+            {formatOptionalSize(row.actualSize)}
+          </div>
         </>
       ),
     },
     {
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       width: 90,
       render: (value) => <FileTag type={issueStatusType(value)}>{issueStatusLabel(value)}</FileTag>,
     },
-    { title: '异常说明', dataIndex: 'detail', width: 180 },
+    { title: t('system:issueDescription'), dataIndex: 'detail', width: 180 },
     {
       align: 'center',
-      title: '最近发现',
+      title: t('system:lastDetected'),
       dataIndex: 'lastSeenTime',
       width: 170,
       render: (value) => parseTime(value),
@@ -175,7 +187,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       fixed: 'right',
       width: 70,
       render: (_, row) =>
@@ -196,7 +208,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
               symbol="Setting"
               disabled={stats.latestRun?.status === 'running'}
             >
-              处理异常
+              {t('file:processIssue')}
             </TableAction>
           </Dropdown>
         ) : (
@@ -208,31 +220,31 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
     {
       width: 100,
       align: 'center',
-      title: '任务状态',
+      title: t('monitor:taskStatus'),
       dataIndex: 'status',
       render: (value) => <FileTag type={runStatusType(value)}>{runStatusLabel(value)}</FileTag>,
     },
     {
       width: 100,
       align: 'center',
-      title: '触发方式',
+      title: t('system:trigger'),
       dataIndex: 'triggerType',
-      render: (value) => (value === 'scheduled' ? '定时任务' : '手动'),
+      render: (value) => (value === 'scheduled' ? t('system:scheduledTasks') : t('monitor:manual')),
     },
     {
       width: 90,
       align: 'center',
-      title: '摘要校验',
+      title: t('system:digestVerification'),
       dataIndex: 'checkHash',
-      render: (value) => (value ? '是' : '否'),
+      render: (value) => (value ? t('common:yes') : t('common:no')),
     },
     ...Object.entries({
-      scannedFileCount: '文件记录',
-      scannedStorageCount: '物理文件',
-      issueCount: '发现异常',
-      newIssueCount: '新增异常',
-      resolvedIssueCount: '自动恢复',
-      startedBy: '发起人',
+      scannedFileCount: t('system:fileRecords'),
+      scannedStorageCount: t('system:physicalFiles'),
+      issueCount: t('system:issuesFound'),
+      newIssueCount: t('system:newIssues'),
+      resolvedIssueCount: t('system:automaticallyRecovered'),
+      startedBy: t('system:initiatedBy'),
     }).map(([dataIndex, title]) => ({
       dataIndex,
       title,
@@ -241,40 +253,55 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
     {
       width: 170,
       align: 'center',
-      title: '开始时间',
+      title: t('common:startTime'),
       dataIndex: 'startedTime',
       render: (value) => parseTime(value),
     },
     {
       width: 170,
       align: 'center',
-      title: '完成时间',
+      title: t('system:completedAt'),
       dataIndex: 'finishedTime',
       render: (value) => parseTime(value),
     },
-    { width: 180, title: '失败原因', dataIndex: 'errorMessage' },
+    { width: 180, title: t('common:failureReason'), dataIndex: 'errorMessage' },
   ]
   return (
     <>
       <Drawer
         rootClassName="file-drawer"
-        title="文件存储对账"
+        title={t('system:fileStorageReconciliation')}
         open={open}
         onClose={onClose}
         size="88%"
       >
         <Alert
-          title="对账会双向检查文件信息表与公开、受保护、回收站存储区；隔离区不对外提供静态访问。修复操作仅使用异常中已校验的相对路径。"
+          title={t('system:reconciliationChecksFileMetadataAgainstPublicProtectedAndRecycled')}
           type="info"
           showIcon
           style={{ marginBottom: 0 }}
         />
         <div className="file-reconcile-summary">
           {[
-            ['待处理', 'openCount', 'danger', '需要确认或修复的异常'],
-            ['严重异常', 'criticalCount', 'critical', '文件缺失、错位或内容不一致'],
-            ['警告异常', 'warningCount', 'warning', '孤立文件或回收状态异常'],
-            ['隔离文件', 'quarantinedCount', 'quarantine', '仅管理员可恢复或永久删除'],
+            [t('system:pending'), 'openCount', 'danger', t('system:issuesRequiringReviewOrRepair')],
+            [
+              t('system:criticalIssues'),
+              'criticalCount',
+              'critical',
+              t('system:missingMisplacedOrInconsistentFiles'),
+            ],
+            [
+              t('system:warnings'),
+              'warningCount',
+              'warning',
+              t('system:orphanedFilesOrInconsistentRecycleStatus'),
+            ],
+            [
+              t('system:quarantineFile'),
+              'quarantinedCount',
+              'quarantine',
+              t('system:onlyAdministratorsCanRestoreOrPermanentlyDelete'),
+            ],
           ].map(([title, key, tone, hint]) => (
             <div
               key={key}
@@ -286,23 +313,23 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
             </div>
           ))}
           <div className="summary-card summary-card--run">
-            <div className="summary-card__label">最近任务</div>
+            <div className="summary-card__label">{t('system:latestTask')}</div>
             <div className="summary-card__status">
               <FileTag type={runStatusType(stats.latestRun?.status)}>
                 {runStatusLabel(stats.latestRun?.status)}
               </FileTag>
             </div>
             <div className="summary-card__hint">
-              {stats.latestRun ? parseTime(stats.latestRun.startedTime) : '尚未执行'}
+              {stats.latestRun ? parseTime(stats.latestRun.startedTime) : t('system:notRunYet')}
             </div>
           </div>
         </div>
         <div className="file-reconcile-toolbar">
           <div className="reconcile-toolbar__tip">
-            完整摘要校验会读取全部文件内容，建议在低峰期启用。
+            {t('system:fullDigestVerificationReadsAllFileContentsEnableIt')}
           </div>
           <Space>
-            <span>校验 SHA-256</span>
+            <span>{t('system:verifySha256')}</span>
             <Switch
               checked={checkHash}
               onChange={setCheckHash}
@@ -316,7 +343,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                 setScanning(true)
                 try {
                   await startFileReconcile({ checkHash })
-                  message.success('文件存储对账任务已启动')
+                  message.success(t('system:storageReconciliationStarted'))
                   load()
                 } catch {
                 } finally {
@@ -324,7 +351,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                 }
               }}
             >
-              开始对账
+              {t('system:startReconciliation')}
             </Button>
           </Space>
         </div>
@@ -332,7 +359,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
           items={[
             {
               key: 'issues',
-              label: '异常明细',
+              label: t('system:issueDetails'),
               children: (
                 <>
                   <Form
@@ -351,21 +378,21 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                     }
                   >
                     <Form.Item
-                      label="关键字"
+                      label={t('system:keyword')}
                       name="keyword"
                     >
                       <Input
                         style={{ width: 200 }}
                         allowClear
-                        placeholder="文件名、ID或相对路径"
+                        placeholder={t('system:fileNameIdOrRelativePath')}
                       />
                     </Form.Item>
                     <Form.Item
                       name="issueType"
-                      label="异常类型"
+                      label={t('system:issueType')}
                     >
                       <Select
-                        placeholder="全部类型"
+                        placeholder={t('system:allTypes')}
                         allowClear
                         style={{ width: 200 }}
                         options={issueTypeOptions}
@@ -373,10 +400,10 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                     </Form.Item>
                     <Form.Item
                       name="severity"
-                      label="严重级别"
+                      label={t('system:severity')}
                     >
                       <Select
-                        placeholder="全部级别"
+                        placeholder={t('system:allSeverities')}
                         allowClear
                         style={{ width: 200 }}
                         options={['critical', 'warning', 'info'].map((value) => ({
@@ -387,10 +414,10 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                     </Form.Item>
                     <Form.Item
                       name="status"
-                      label="处理状态"
+                      label={t('system:processingStatus')}
                     >
                       <Select
-                        placeholder="全部状态"
+                        placeholder={t('common:allStatuses')}
                         allowClear
                         style={{ width: 200 }}
                         options={['open', 'ignored', 'quarantined', 'resolved'].map((value) => ({
@@ -406,7 +433,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                           htmlType="submit"
                           type="primary"
                         >
-                          搜索
+                          {t('common:search')}
                         </Button>
                         <Button
                           icon={<ReloadOutlined />}
@@ -419,7 +446,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                             })
                           }}
                         >
-                          重置
+                          {t('common:reset')}
                         </Button>
                       </Space>
                     </Form.Item>
@@ -443,7 +470,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
             },
             {
               key: 'runs',
-              label: '任务记录',
+              label: t('system:taskHistory'),
               children: (
                 <>
                   <Table
@@ -493,22 +520,24 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
           {action?.key === 'register_orphan' && (
             <Form.Item
               name="originalName"
-              label="原始文件名"
+              label={t('file:originalName')}
               rules={[{ required: true, whitespace: true }]}
             >
               <Input
                 maxLength={255}
-                placeholder="需与物理文件扩展名一致"
+                placeholder={t('system:mustMatchThePhysicalFileExtension')}
               />
             </Form.Item>
           )}
           <Form.Item
             name="reason"
-            label="处理原因"
-            rules={[{ required: true, whitespace: true, message: '处理原因不能为空' }]}
+            label={t('system:processingReason')}
+            rules={[
+              { required: true, whitespace: true, message: t('system:enterAReasonForProcessing') },
+            ]}
           >
             <Input.TextArea
-              placeholder="请填写处理依据，内容会保留在对账记录中"
+              placeholder={t('system:enterTheReasonItWillBeRetainedInThe')}
               rows={4}
               maxLength={500}
               showCount

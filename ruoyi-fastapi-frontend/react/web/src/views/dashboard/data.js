@@ -1,10 +1,13 @@
+import { t } from '@/i18n'
 export const projectNotice = [
   {
     id: 'xxx1',
     title: 'Alipay',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/WdGqmHpayyMjiEhcKoVE.png',
     description: '那是一种内在的东西，他们到达不了，也无法触及的',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('common:justNow')
+    },
     member: '科学搬砖组',
     href: '',
     memberLink: '',
@@ -14,7 +17,9 @@ export const projectNotice = [
     title: 'Angular',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/zOsKZmFRdUtvpqCImOVY.png',
     description: '希望是一个好东西，也许是最好的，好东西是不会消亡的',
-    updatedAt: '6 年前',
+    get updatedAt() {
+      return t('common:6YearsAgo')
+    },
     member: '全组都是吴彦祖',
     href: '',
     memberLink: '',
@@ -24,7 +29,9 @@ export const projectNotice = [
     title: 'Ant Design',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/dURIMkkrRFpPgTuzkwnB.png',
     description: '城镇中有那么多的酒馆，她却偏偏走进了我的酒馆',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('common:justNow')
+    },
     member: '中二少女团',
     href: '',
     memberLink: '',
@@ -34,7 +41,9 @@ export const projectNotice = [
     title: 'Ant Design Pro',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/sfjbOqnsXXJgNCjCzDBL.png',
     description: '那时候我只会想自己想要什么，从不想自己拥有什么',
-    updatedAt: '6 年前',
+    get updatedAt() {
+      return t('common:6YearsAgo')
+    },
     member: '程序员日常',
     href: '',
     memberLink: '',
@@ -44,7 +53,9 @@ export const projectNotice = [
     title: 'Bootstrap',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/siCrBXXhmvTQGWPNLBow.png',
     description: '凛冬将至',
-    updatedAt: '6 年前',
+    get updatedAt() {
+      return t('common:6YearsAgo')
+    },
     member: '高逼格设计天团',
     href: '',
     memberLink: '',
@@ -54,7 +65,9 @@ export const projectNotice = [
     title: 'React',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/kZzEzemZyKLKFsojXItE.png',
     description: '生命就像一盒巧克力，结果往往出人意料',
-    updatedAt: '6 年前',
+    get updatedAt() {
+      return t('common:6YearsAgo')
+    },
     member: '骗你来学计算机',
     href: '',
     memberLink: '',
@@ -64,7 +77,9 @@ export const projectNotice = [
 export const activities = [
   {
     id: 'trend-1',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('common:justNow')
+    },
     user: {
       name: '曲丽丽',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png',
@@ -77,12 +92,13 @@ export const activities = [
       name: '六月迭代',
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '新建项目',
+    messageKey: 'common:dashboard.activity.created',
   },
   {
     id: 'trend-2',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('common:justNow')
+    },
     user: {
       name: '付小小',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/cnrhVkzwxjPwAaCfPbdc.png',
@@ -95,12 +111,13 @@ export const activities = [
       name: '六月迭代',
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '新建项目',
+    messageKey: 'common:dashboard.activity.created',
   },
   {
     id: 'trend-3',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('common:justNow')
+    },
     user: {
       name: '林东东',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/gaOngJwsRYRaVAuXXcmB.png',
@@ -113,12 +130,13 @@ export const activities = [
       name: '六月迭代',
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '新建项目',
+    messageKey: 'common:dashboard.activity.created',
   },
   {
     id: 'trend-4',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('common:justNow')
+    },
     user: {
       name: '周星星',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/WhxKECPNujWoWEFNdnJE.png',
@@ -127,12 +145,13 @@ export const activities = [
       name: '5 月日常迭代',
       link: 'http://github.com/',
     },
-    template1: '将',
-    template2: '更新至已发布状态',
+    messageKey: 'common:dashboard.activity.updated',
   },
   {
     id: 'trend-5',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('common:justNow')
+    },
     user: {
       name: '朱偏右',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/ubnKSIfAJTxIgXOKlciN.png',
@@ -145,12 +164,13 @@ export const activities = [
       name: '留言',
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '发布了',
+    messageKey: 'common:dashboard.activity.published',
   },
   {
     id: 'trend-6',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('common:justNow')
+    },
     user: {
       name: '乐哥',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/jZUIxmJycoymBprLOUbT.png',
@@ -163,85 +183,114 @@ export const activities = [
       name: '品牌迭代',
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '新建项目',
+    messageKey: 'common:dashboard.activity.created',
   },
 ]
 
 export const radarData = [
   {
-    name: '个人',
-    label: '引用',
+    name: 'personal',
+    get label() {
+      return t('common:reference')
+    },
     value: 10,
   },
   {
-    name: '个人',
-    label: '口碑',
+    name: 'personal',
+    get label() {
+      return t('common:reputation')
+    },
     value: 8,
   },
   {
-    name: '个人',
-    label: '产量',
+    name: 'personal',
+    get label() {
+      return t('common:output')
+    },
     value: 4,
   },
   {
-    name: '个人',
-    label: '贡献',
+    name: 'personal',
+    get label() {
+      return t('common:contribution')
+    },
     value: 5,
   },
   {
-    name: '个人',
-    label: '热度',
+    name: 'personal',
+    get label() {
+      return t('common:popularity')
+    },
     value: 7,
   },
   {
-    name: '团队',
-    label: '引用',
+    name: 'team',
+    get label() {
+      return t('common:reference')
+    },
     value: 3,
   },
   {
-    name: '团队',
-    label: '口碑',
+    name: 'team',
+    get label() {
+      return t('common:reputation')
+    },
     value: 9,
   },
   {
-    name: '团队',
-    label: '产量',
+    name: 'team',
+    get label() {
+      return t('common:output')
+    },
     value: 6,
   },
   {
-    name: '团队',
-    label: '贡献',
+    name: 'team',
+    get label() {
+      return t('common:contribution')
+    },
     value: 3,
   },
   {
-    name: '团队',
-    label: '热度',
+    name: 'team',
+    get label() {
+      return t('common:popularity')
+    },
     value: 1,
   },
   {
-    name: '部门',
-    label: '引用',
+    name: 'department',
+    get label() {
+      return t('common:reference')
+    },
     value: 4,
   },
   {
-    name: '部门',
-    label: '口碑',
+    name: 'department',
+    get label() {
+      return t('common:reputation')
+    },
     value: 1,
   },
   {
-    name: '部门',
-    label: '产量',
+    name: 'department',
+    get label() {
+      return t('common:output')
+    },
     value: 6,
   },
   {
-    name: '部门',
-    label: '贡献',
+    name: 'department',
+    get label() {
+      return t('common:contribution')
+    },
     value: 5,
   },
   {
-    name: '部门',
-    label: '热度',
+    name: 'department',
+    get label() {
+      return t('common:popularity')
+    },
     value: 7,
   },
 ]

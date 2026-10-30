@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useRef } from 'react'
 import Quill from 'quill'
 import DOMPurify from 'dompurify'
@@ -26,6 +28,8 @@ export default function Editor({
   height,
   fileSize = 5,
 }) {
+  useI18n()
+
   const host = useRef(null),
     editor = useRef(null),
     change = useRef(onChange)
@@ -36,13 +40,13 @@ export default function Editor({
     const quill = new Quill(container, {
       theme: 'snow',
       readOnly,
-      placeholder: '请输入内容',
+      placeholder: t('common:contentPlaceholder'),
       modules: { toolbar },
     })
     editor.current = quill
     quill.root.style.minHeight = `${minHeight}px`
     if (height) quill.root.style.height = `${height}px`
-    quill.root.setAttribute('aria-label', '内容')
+    quill.root.setAttribute('aria-label', t('common:content'))
     quill.setContents(quill.clipboard.convert({ html: DOMPurify.sanitize(value || '') }), 'silent')
     const changed = (_, __, source) => {
       if (source === 'user') change.current?.(quill.root.innerHTML)
@@ -50,11 +54,11 @@ export default function Editor({
     quill.on('text-change', changed)
     async function insertImage(file) {
       if (!file || !/^image\/(jpeg|png|gif|webp)$/.test(file.type))
-        return message.error('请上传 JPG、PNG、GIF 或 WebP 图片')
+        return message.error(t('common:uploadAJpgPngGifOrWebpImage'))
       if (file.size > fileSize * 1024 * 1024)
-        return message.error(`上传文件大小不能超过 ${fileSize} MB`)
+        return message.error(t('file:uploadedFilesCannotExceedValueMb', { fileSize }))
       const index = quill.getSelection()?.index ?? quill.getLength() - 1
-      const close = message.loading('正在上传图片', 0)
+      const close = message.loading(t('common:uploadingImage'), 0)
       try {
         const data = new FormData()
         data.append('file', file)

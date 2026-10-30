@@ -1,0 +1,1869 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "ai.conversation.deleteFailed"
+msgstr "删除会话失败"
+
+msgid "ai.conversation.forbidden"
+msgstr "无权访问该会话"
+
+msgid "ai.model.disabled"
+msgstr "模型已停用"
+
+msgid "ai.model.forbidden"
+msgstr "没有权限访问AI模型数据"
+
+msgid "ai.model.idRequired"
+msgstr "传入AI模型id为空"
+
+msgid "ai.model.missing"
+msgstr "AI模型不存在"
+
+msgid "ai.model.notFound"
+msgstr "模型不存在"
+
+msgid "ai.run.cancelFailed"
+msgstr "取消运行失败"
+
+msgid "ai.run.cancelForbidden"
+msgstr "无权取消该运行"
+
+msgid "ai.settings.otherUser"
+msgstr "只允许修改当前用户的配置"
+
+msgid "ai.stream.failed"
+msgstr "对话生成失败，请稍后重试"
+
+msgid "auth.accountLocked"
+msgstr "账号已锁定，请稍后再试"
+
+msgid "auth.apiForbidden"
+msgstr "该用户无此接口权限"
+
+msgid "auth.captchaExpired"
+msgstr "验证码已失效"
+
+msgid "auth.captchaIncorrect"
+msgstr "验证码错误"
+
+msgid "auth.captchaMissing"
+msgstr "验证码已失效或不存在"
+
+msgid "auth.currentUserMissing"
+msgstr "当前用户信息为空，请检查是否已登录"
+
+msgid "auth.currentUserUnavailable"
+msgstr "无法获取当前用户信息"
+
+msgid "auth.incorrectPassword"
+msgstr "密码错误，请重新输入"
+
+msgid "auth.invalidCredentials"
+msgstr "账号或密码错误"
+
+msgid "auth.invalidToken"
+msgstr "用户token不合法"
+
+msgid "auth.ipBlocked"
+msgstr "当前IP禁止登录"
+
+msgid "auth.passwordCharacters"
+msgstr "密码不能包含非法字符：< > \" ' \\ |"
+
+msgid "auth.passwordIncorrect"
+msgstr "密码错误"
+
+msgid "auth.passwordLength"
+msgstr "密码长度必须介于 6 和 20 之间"
+
+msgid "auth.passwordLockout"
+msgstr "10分钟内密码已输错超过5次，账号已锁定，请10分钟后再试"
+
+msgid "auth.passwordMismatch"
+msgstr "两次输入的密码不一致"
+
+msgid "auth.passwordRequired"
+msgstr "密码不能为空"
+
+msgid "auth.registrationDisabled"
+msgstr "注册程序已关闭，禁止注册"
+
+msgid "auth.serverTimeout"
+msgstr "服务器超时，请重新登录"
+
+msgid "auth.signInRequired"
+msgstr "用户未登录，请先完成登录"
+
+msgid "auth.signedIn"
+msgstr "登录成功"
+
+msgid "auth.signedOut"
+msgstr "退出成功"
+
+msgid "auth.tokenExpired"
+msgstr "用户token已失效，请重新登录"
+
+msgid "auth.tokenGenerationFailed"
+msgstr "用户token生成失败"
+
+msgid "auth.unlocked"
+msgstr "解锁成功"
+
+msgid "auth.userDisabled"
+msgstr "用户已停用"
+
+msgid "cache.allCleared"
+msgstr "所有缓存清除成功"
+
+msgid "cache.keyCleared"
+msgstr "%(cache_key)s清除成功"
+
+msgid "cache.namespaceCleared"
+msgstr "%(cache_name)s对应键值清除成功"
+
+msgid "common.added"
+msgstr "新增成功"
+
+msgid "common.assigned"
+msgstr "分配成功"
+
+msgid "common.cancelled"
+msgstr "取消成功"
+
+msgid "common.cleared"
+msgstr "清除成功"
+
+msgid "common.deleted"
+msgstr "删除成功"
+
+msgid "common.demoReadOnly"
+msgstr "演示模式，不允许操作！"
+
+msgid "common.error"
+msgstr "接口异常"
+
+msgid "common.failure"
+msgstr "操作失败"
+
+msgid "common.forbidden"
+msgstr "该用户无此接口权限"
+
+msgid "common.imported"
+msgstr "导入成功"
+
+msgid "common.marked"
+msgstr "标记成功"
+
+msgid "common.modified"
+msgstr "修改成功"
+
+msgid "common.rateLimited"
+msgstr "请求过于频繁，请稍后再试"
+
+msgid "common.refreshed"
+msgstr "刷新成功"
+
+msgid "common.reset"
+msgstr "重置成功"
+
+msgid "common.saved"
+msgstr "保存成功"
+
+msgid "common.sortFailed"
+msgstr "保存排序异常，请联系管理员"
+
+msgid "common.success"
+msgstr "操作成功"
+
+msgid "common.synced"
+msgstr "同步成功"
+
+msgid "common.unauthorized"
+msgstr "登录信息已过期，访问系统资源失败"
+
+msgid "common.unavailable"
+msgstr "服务暂时不可用，请稍后重试"
+
+msgid "common.updated"
+msgstr "更新成功"
+
+msgid "common.validated"
+msgstr "校验通过"
+
+msgid "config.addDuplicateKey"
+msgstr "新增参数%(config_name)s失败，参数键名已存在"
+
+msgid "config.builtInProtected"
+msgstr "内置参数%(config_key)s不能删除"
+
+msgid "config.editDuplicateKey"
+msgstr "修改参数%(config_name)s失败，参数键名已存在"
+
+msgid "config.idRequired"
+msgstr "传入参数配置id为空"
+
+msgid "config.notFound"
+msgstr "参数配置不存在"
+
+msgid "dept.activeChildren"
+msgstr "修改部门%(dept_name)s失败，该部门包含未停用的子部门"
+
+msgid "dept.addDuplicate"
+msgstr "新增部门%(dept_name)s失败，部门名称已存在"
+
+msgid "dept.childrenPreventDelete"
+msgstr "存在下级部门,不允许删除"
+
+msgid "dept.descendantParent"
+msgstr "上级部门不能是当前部门的子部门"
+
+msgid "dept.editDuplicate"
+msgstr "修改部门%(dept_name)s失败，部门名称已存在"
+
+msgid "dept.forbidden"
+msgstr "没有权限访问部门数据"
+
+msgid "dept.idRequired"
+msgstr "传入部门id为空"
+
+msgid "dept.invalidSort"
+msgstr "部门排序参数不正确"
+
+msgid "dept.notFound"
+msgstr "部门不存在"
+
+msgid "dept.parentDisabled"
+msgstr "部门%(dept_name)s停用，不允许新增"
+
+msgid "dept.parentNotFound"
+msgstr "上级部门不存在"
+
+msgid "dept.selfParent"
+msgstr "修改部门%(dept_name)s失败，上级部门不能是自己"
+
+msgid "dept.usersPreventDelete"
+msgstr "部门存在用户,不允许删除"
+
+msgid "dict.addDuplicateType"
+msgstr "新增字典%(dict_name)s失败，字典类型已存在"
+
+msgid "dict.assigned"
+msgstr "%(dict_name)s已分配，不能删除"
+
+msgid "dict.dataIdRequired"
+msgstr "传入字典数据id为空"
+
+msgid "dict.dataNotFound"
+msgstr "字典数据不存在"
+
+msgid "dict.duplicateLabel"
+msgstr "新增字典数据%(dict_label)s失败，%(dict_type)s下已存在该字典数据"
+
+msgid "dict.editDuplicateType"
+msgstr "修改字典%(dict_name)s失败，字典类型已存在"
+
+msgid "dict.typeIdRequired"
+msgstr "传入字典类型id为空"
+
+msgid "dict.typeNotFound"
+msgstr "字典类型不存在"
+
+msgid "export.accessId"
+msgstr "访问编号"
+
+msgid "export.accountStatus"
+msgstr "帐号状态"
+
+msgid "export.active"
+msgstr "正常"
+
+msgid "export.args"
+msgstr "位置参数"
+
+msgid "export.browser"
+msgstr "浏览器"
+
+msgid "export.builtIn"
+msgstr "系统内置"
+
+msgid "export.coalesce"
+msgstr "积压处理"
+
+msgid "export.configId"
+msgstr "参数主键"
+
+msgid "export.configKey"
+msgstr "参数键名"
+
+msgid "export.configName"
+msgstr "参数名称"
+
+msgid "export.configValue"
+msgstr "参数键值"
+
+msgid "export.createdAt"
+msgstr "创建时间"
+
+msgid "export.createdBy"
+msgstr "创建者"
+
+msgid "export.cron"
+msgstr "cron执行表达式"
+
+msgid "export.cronTimezone"
+msgstr "cron时区"
+
+msgid "export.cssClass"
+msgstr "样式属性"
+
+msgid "export.department"
+msgstr "部门"
+
+msgid "export.deptId"
+msgstr "部门编号"
+
+msgid "export.deptName"
+msgstr "部门名称"
+
+msgid "export.dictCode"
+msgstr "字典编码"
+
+msgid "export.dictId"
+msgstr "字典编号"
+
+msgid "export.dictLabel"
+msgstr "字典标签"
+
+msgid "export.dictName"
+msgstr "字典名称"
+
+msgid "export.dictSort"
+msgstr "字典排序"
+
+msgid "export.dictType"
+msgstr "字典类型"
+
+msgid "export.dictValue"
+msgstr "字典键值"
+
+msgid "export.disabled"
+msgstr "停用"
+
+msgid "export.displayOrder"
+msgstr "显示顺序"
+
+msgid "export.duration"
+msgstr "消耗时间（毫秒）"
+
+msgid "export.email"
+msgstr "邮箱地址"
+
+msgid "export.errorMessage"
+msgstr "错误消息"
+
+msgid "export.exception"
+msgstr "异常信息"
+
+msgid "export.executionDuration"
+msgstr "执行耗时（毫秒）"
+
+msgid "export.executionId"
+msgstr "执行ID"
+
+msgid "export.executionStatus"
+msgstr "执行状态"
+
+msgid "export.executor"
+msgstr "任务执行器"
+
+msgid "export.failure"
+msgstr "失败"
+
+msgid "export.female"
+msgstr "女"
+
+msgid "export.finishedAt"
+msgstr "执行结束时间"
+
+msgid "export.gender"
+msgstr "性别"
+
+msgid "export.invokeTarget"
+msgstr "调用目标字符串"
+
+msgid "export.isDefault"
+msgstr "是否默认"
+
+msgid "export.jobCode"
+msgstr "任务编码"
+
+msgid "export.jobGroup"
+msgstr "任务组名"
+
+msgid "export.jobId"
+msgstr "任务ID"
+
+msgid "export.jobLogId"
+msgstr "任务日志编码"
+
+msgid "export.jobName"
+msgstr "任务名称"
+
+msgid "export.jobStore"
+msgstr "调度存储"
+
+msgid "export.jobTimezone"
+msgstr "任务时区"
+
+msgid "export.kwargs"
+msgstr "关键字参数"
+
+msgid "export.latestOnly"
+msgstr "只执行最近一次"
+
+msgid "export.listClass"
+msgstr "表格回显样式"
+
+msgid "export.logId"
+msgstr "日志编号"
+
+msgid "export.logMessage"
+msgstr "日志信息"
+
+msgid "export.loginName"
+msgstr "登录名称"
+
+msgid "export.male"
+msgstr "男"
+
+msgid "export.maxInstances"
+msgstr "最大并发数"
+
+msgid "export.method"
+msgstr "方法名称"
+
+msgid "export.misfireGraceTime"
+msgstr "允许延迟秒数"
+
+msgid "export.module"
+msgstr "系统模块"
+
+msgid "export.nickName"
+msgstr "用户昵称"
+
+msgid "export.no"
+msgstr "否"
+
+msgid "export.operatingSystem"
+msgstr "操作系统"
+
+msgid "export.operationDate"
+msgstr "操作日期"
+
+msgid "export.operationIp"
+msgstr "操作地址"
+
+msgid "export.operationLocation"
+msgstr "操作地点"
+
+msgid "export.operationMessage"
+msgstr "操作信息"
+
+msgid "export.operationStatus"
+msgstr "操作状态"
+
+msgid "export.operationType"
+msgstr "操作类型"
+
+msgid "export.operator"
+msgstr "操作人员"
+
+msgid "export.paused"
+msgstr "暂停"
+
+msgid "export.phone"
+msgstr "手机号码"
+
+msgid "export.postCode"
+msgstr "岗位编码"
+
+msgid "export.postId"
+msgstr "岗位编号"
+
+msgid "export.postName"
+msgstr "岗位名称"
+
+msgid "export.remark"
+msgstr "备注"
+
+msgid "export.requestMethod"
+msgstr "请求方式"
+
+msgid "export.requestParams"
+msgstr "请求参数"
+
+msgid "export.requestUrl"
+msgstr "请求URL"
+
+msgid "export.responseParams"
+msgstr "返回参数"
+
+msgid "export.roleId"
+msgstr "角色编号"
+
+msgid "export.roleKey"
+msgstr "权限字符"
+
+msgid "export.roleName"
+msgstr "角色名称"
+
+msgid "export.runEach"
+msgstr "逐次执行"
+
+msgid "export.scheduledAt"
+msgstr "计划执行时刻"
+
+msgid "export.signInDate"
+msgstr "登录日期"
+
+msgid "export.signInIp"
+msgstr "登录地址"
+
+msgid "export.signInLocation"
+msgstr "登录地点"
+
+msgid "export.signInStatus"
+msgstr "登录状态"
+
+msgid "export.startedAt"
+msgstr "执行开始时间"
+
+msgid "export.status"
+msgstr "状态"
+
+msgid "export.success"
+msgstr "成功"
+
+msgid "export.trigger"
+msgstr "任务触发器"
+
+msgid "export.unknown"
+msgstr "未知"
+
+msgid "export.unlimited"
+msgstr "不限"
+
+msgid "export.updatedAt"
+msgstr "更新时间"
+
+msgid "export.updatedBy"
+msgstr "更新者"
+
+msgid "export.userEmail"
+msgstr "用户邮箱"
+
+msgid "export.userGender"
+msgstr "用户性别"
+
+msgid "export.userId"
+msgstr "用户编号"
+
+msgid "export.userName"
+msgstr "用户名称"
+
+msgid "export.yes"
+msgstr "是"
+
+msgid "file.access.batchRequiresProtected"
+msgstr "批量授权仅支持受保护文件"
+
+msgid "file.access.batchSaved"
+msgstr "文件权限批量保存成功"
+
+msgid "file.access.concurrentChange"
+msgstr "文件权限已被其他用户修改，请刷新后重试"
+
+msgid "file.access.duplicateSubject"
+msgstr "同一授权主体不能重复配置"
+
+msgid "file.access.expiryInPast"
+msgstr "授权过期时间必须晚于当前时间"
+
+msgid "file.access.fileUnavailable"
+msgstr "文件信息不存在、已删除或超出数据权限"
+
+msgid "file.access.publicFile"
+msgstr "公开文件不支持配置访问权限"
+
+msgid "file.access.saved"
+msgstr "文件权限保存成功"
+
+msgid "file.access.subjectUnavailable"
+msgstr "部分授权主体不存在、已停用或超出数据权限"
+
+msgid "file.business.batchSizeRange"
+msgstr "单批处理数量必须在1到%(max_batch_size)s之间"
+
+msgid "file.business.invalidFileId"
+msgstr "文件ID格式错误"
+
+msgid "file.business.invalidType"
+msgstr "业务类型格式错误"
+
+msgid "file.business.policyExists"
+msgstr "业务类型%(business_type)s的保留策略已存在"
+
+msgid "file.business.policyNotFound"
+msgstr "文件业务保留策略不存在"
+
+msgid "file.business.protectedRequired"
+msgstr "配置保留策略的业务只能引用受保护文件"
+
+msgid "file.business.referenceLimit"
+msgstr "单个业务对象最多引用%(max_reference_files)s个文件"
+
+msgid "file.business.referenceUnavailable"
+msgstr "部分引用文件不存在或已失效"
+
+msgid "file.idRequired"
+msgstr "文件ID不能为空"
+
+msgid "file.invalidAccessType"
+msgstr "文件访问类型不合法"
+
+msgid "file.invalidId"
+msgstr "文件ID格式不正确"
+
+msgid "file.invalidNameOrMissing"
+msgstr "文件名称不合法或文件不存在"
+
+msgid "file.invalidPathOrMissing"
+msgstr "资源路径不合法或文件不存在"
+
+msgid "file.invalidResourceName"
+msgstr "资源文件名称不合法"
+
+msgid "file.invalidResourcePath"
+msgstr "资源路径不合法"
+
+msgid "file.invalidType"
+msgstr "文件类型不合法"
+
+msgid "file.nameConflict"
+msgstr "文件名生成冲突，请重新上传"
+
+msgid "file.notFoundOrForbidden"
+msgstr "文件信息不存在或超出数据权限"
+
+msgid "file.notFoundOrUnauthorized"
+msgstr "文件不存在或无权访问"
+
+msgid "file.purge.batchSizeRange"
+msgstr "单批处理数量必须在1到%(max_purge_batch_size)s之间"
+
+msgid "file.purge.physicalDeleteFailed"
+msgstr "永久清理物理文件失败，文件已保留为清理中状态，可重试"
+
+msgid "file.purge.verificationFailed"
+msgstr "回收区文件校验失败，未执行永久清理"
+
+msgid "file.purged"
+msgstr "文件已永久清理"
+
+msgid "file.reconciliation.actionUnavailable"
+msgstr "当前异常状态不支持该处理动作"
+
+msgid "file.reconciliation.adminRequired"
+msgstr "仅系统管理员可以使用文件存储对账功能"
+
+msgid "file.reconciliation.alreadyRegistered"
+msgstr "该物理文件已登记到文件信息表"
+
+msgid "file.reconciliation.alreadyRunning"
+msgstr "已有文件存储对账任务正在运行"
+
+msgid "file.reconciliation.extensionForbidden"
+msgstr "孤立文件扩展名不在允许范围内"
+
+msgid "file.reconciliation.extensionMismatch"
+msgstr "原始文件名扩展名必须与物理文件一致"
+
+msgid "file.reconciliation.fileRecordMissing"
+msgstr "异常关联的文件信息不存在"
+
+msgid "file.reconciliation.invalidStorageArea"
+msgstr "异常记录的存储区域不合法"
+
+msgid "file.reconciliation.invalidTrigger"
+msgstr "对账任务触发类型不正确"
+
+msgid "file.reconciliation.issueNotFound"
+msgstr "文件存储对账异常不存在"
+
+msgid "file.reconciliation.locationMissing"
+msgstr "异常记录缺少可处理的存储位置"
+
+msgid "file.reconciliation.noFileReference"
+msgstr "异常未关联文件信息"
+
+msgid "file.reconciliation.quarantineMissing"
+msgstr "隔离区文件路径不存在"
+
+msgid "file.reconciliation.registrationUnsupported"
+msgstr "仅公开或受保护存储区的孤立文件可以登记"
+
+msgid "file.reconciliation.resolveFailed"
+msgstr "文件存储异常处理失败：%(error)s"
+
+msgid "file.reconciliation.resolved"
+msgstr "文件存储异常处理成功"
+
+msgid "file.reconciliation.scanInProgress"
+msgstr "文件存储对账任务运行中，请等待扫描完成后再处理异常"
+
+msgid "file.reconciliation.started"
+msgstr "文件存储对账任务已启动"
+
+msgid "file.recycle.failed"
+msgstr "文件移入回收区失败"
+
+msgid "file.recycle.retentionRange"
+msgstr "回收站保留天数必须在1到%(max_purge_retention_days)s之间"
+
+msgid "file.recycle.selectionUnavailable"
+msgstr "部分文件不存在、未进入回收站或超出数据权限"
+
+msgid "file.recycled"
+msgstr "文件已移入回收站"
+
+msgid "file.references.autoPurgeBlocked"
+msgstr "自动清理候选文件仍存在业务引用"
+
+msgid "file.references.preventDelete"
+msgstr "文件%(referenced_name_text)s仍被业务引用，请先解除引用后再删除"
+
+msgid "file.references.preventPurge"
+msgstr "部分文件仍被业务引用，不能永久清理"
+
+msgid "file.reminder.daysRange"
+msgstr "提前提醒天数必须在1到%(max_remind_days)s之间"
+
+msgid "file.reminder.invalidId"
+msgstr "提醒ID格式不正确"
+
+msgid "file.reminder.markedRead"
+msgstr "提醒已标记为已读"
+
+msgid "file.reminder.selectionUnavailable"
+msgstr "部分提醒不存在、已失效或超出数据权限"
+
+msgid "file.reminder.unavailable"
+msgstr "提醒不存在、已失效或超出数据权限"
+
+msgid "file.restore.failed"
+msgstr "文件从回收区恢复失败"
+
+msgid "file.restore.selectionUnavailable"
+msgstr "部分文件不存在、未删除或超出数据权限"
+
+msgid "file.restored"
+msgstr "文件恢复成功"
+
+msgid "file.retention.activeReference"
+msgstr "文件存在永久或尚未到期的业务引用，不能执行到期处置"
+
+msgid "file.retention.expiredRecycled"
+msgstr "到期文件已移入回收站"
+
+msgid "file.retention.extended"
+msgstr "文件保留期限已延长"
+
+msgid "file.retention.invalidExtension"
+msgstr "新的到期时间必须晚于当前时间和原到期时间"
+
+msgid "file.retention.noTimedReference"
+msgstr "文件不存在可延期的限时业务引用，请先重新关联业务"
+
+msgid "file.retention.notConfigured"
+msgstr "文件未配置保留期限"
+
+msgid "file.retention.notExpired"
+msgstr "文件尚未到期，不能执行到期处置"
+
+msgid "file.retention.permanentReference"
+msgstr "文件存在永久业务引用，不能通过到期提醒延期"
+
+msgid "file.retention.recycleFailed"
+msgstr "到期文件移入回收区失败"
+
+msgid "file.retention.referenceMismatch"
+msgstr "文件到期时间与业务引用不一致，请先检查业务引用"
+
+msgid "file.selection.unavailable"
+msgstr "部分文件不存在、已删除或超出数据权限"
+
+msgid "file.sizeLimit"
+msgstr "文件大小不能超过%(value)sMB"
+
+msgid "file.transfer.departmentMismatch"
+msgstr "目标用户不属于所选部门"
+
+msgid "file.transfer.targetUnavailable"
+msgstr "目标用户或部门不存在、已停用或超出数据权限"
+
+msgid "file.transferred"
+msgstr "文件转移成功"
+
+msgid "file.uploaded"
+msgstr "上传成功"
+
+msgid "generator.childForeignKeyRequired"
+msgstr "子表关联的外键名不能为空"
+
+msgid "generator.childTableRequired"
+msgstr "关联子表的表名不能为空"
+
+msgid "generator.configurationRequired"
+msgstr "请先完善生成配置信息"
+
+msgid "generator.creationDateUnsupported"
+msgstr "PostgreSQL 系统目录不记录建表时间，请清除建表日期筛选"
+
+msgid "generator.generated"
+msgstr "生成代码成功"
+
+msgid "generator.i18nCatalogInvalid"
+msgstr "已有语言资源格式无效，生成已停止以保留原文件"
+
+msgid "generator.i18nInvalidConfiguration"
+msgstr "国际化生成配置无效，请检查语言列表与译文占位符"
+
+msgid "generator.i18nSourceLocaleMismatch"
+msgstr "生成基准语言必须与目标应用及后端一致：%(locale)s"
+
+msgid "generator.importFailed"
+msgstr "导入失败, %(error)s"
+
+msgid "generator.invalidCreateStatement"
+msgstr "建表语句不合法"
+
+msgid "generator.mysqlTimeAmbiguous"
+msgstr "MySQL TIME 也可表示时长。确认字段表示一天内时间后，将显示类型设为“时间（一天内）”；时长请使用明确单位的数值列后重新导入"
+
+msgid "generator.outputMustBeBundleRoot"
+msgstr "请选择独立生成目录，不能直接覆盖应用源码目录"
+
+msgid "generator.postgresTimestampAmbiguous"
+msgstr "PostgreSQL 无时区 timestamp 含义不明确，请将真实时刻列改为 TIMESTAMP(3) WITH TIME ZONE 后重新导入生成配置"
+
+msgid "generator.renderFailed"
+msgstr "渲染模板失败，表名：%(table_name)s，详细错误信息：%(error)s"
+
+msgid "generator.tableCreateFailed"
+msgstr "创建表结构异常，详细错误信息：%(error)s"
+
+msgid "generator.tableCreated"
+msgstr "创建表结构成功"
+
+msgid "generator.tableIdRequired"
+msgstr "传入业务表id为空"
+
+msgid "generator.tableNotFound"
+msgstr "业务表不存在"
+
+msgid "generator.tableOutsideSource"
+msgstr "业务表不存在或不属于数据源 %(source_name)s：%(table_name)s"
+
+msgid "generator.tablesOutsideSource"
+msgstr "业务表不存在或不属于数据源 %(source_name)s：%(value)s"
+
+msgid "generator.timeWithZoneUnsupported"
+msgstr "带时区的 time 不能作为一天内时间生成，请使用 TIME WITHOUT TIME ZONE；真实时刻请使用 TIMESTAMP(3) WITH TIME ZONE"
+
+msgid "generator.treeCodeRequired"
+msgstr "树编码字段不能为空"
+
+msgid "generator.treeNameRequired"
+msgstr "树名称字段不能为空"
+
+msgid "generator.treeParentCodeRequired"
+msgstr "树父编码字段不能为空"
+
+msgid "identity.access.subjectNotFound"
+msgstr "用户或应用不存在"
+
+msgid "identity.access.updateFailed"
+msgstr "更新用户应用访问策略失败"
+
+msgid "identity.client.disabled"
+msgstr "OAuth 客户端已停用"
+
+msgid "identity.client.secretCreated"
+msgstr "客户端密钥生成成功，请立即保存"
+
+msgid "identity.client.secretRevoked"
+msgstr "客户端密钥已撤销"
+
+msgid "identity.client.uriAdded"
+msgstr "客户端 URI 已增加"
+
+msgid "identity.client.uriDisabled"
+msgstr "客户端 URI 已停用"
+
+msgid "identity.grant.batchRevokeFailed"
+msgstr "批量撤销授权失败"
+
+msgid "identity.grant.notFound"
+msgstr "授权记录不存在"
+
+msgid "identity.grant.revoked"
+msgstr "OAuth 授权已撤销"
+
+msgid "identity.interaction.consentRequired"
+msgstr "需要授权确认"
+
+msgid "identity.interaction.invalidOrExpired"
+msgstr "认证交互无效或已过期"
+
+msgid "identity.interaction.invalidRequest"
+msgstr "认证交互请求无效"
+
+msgid "identity.interaction.invalidScope"
+msgstr "请求权限无效"
+
+msgid "identity.interaction.loginRequired"
+msgstr "需要登录"
+
+msgid "identity.interaction.serviceUnavailable"
+msgstr "认证服务暂不可用"
+
+msgid "identity.interaction.unavailable"
+msgstr "认证交互已过期或不可用"
+
+msgid "identity.key.activated"
+msgstr "OIDC 签名密钥已激活"
+
+msgid "identity.key.created"
+msgstr "OIDC 签名密钥创建成功"
+
+msgid "identity.key.deleted"
+msgstr "OIDC 签名密钥已删除"
+
+msgid "identity.key.operationFailed"
+msgstr "OIDC 签名密钥操作失败"
+
+msgid "identity.key.retired"
+msgstr "OIDC 签名密钥已退役"
+
+msgid "identity.resource.disabled"
+msgstr "OAuth 资源已停用"
+
+msgid "identity.scope.disabled"
+msgstr "OAuth 权限范围已停用"
+
+msgid "identity.session.batchRevokeFailed"
+msgstr "批量撤销会话失败"
+
+msgid "identity.session.notFound"
+msgstr "会话不存在"
+
+msgid "identity.session.revoked"
+msgstr "单点登录会话已撤销"
+
+msgid "import.duplicateColumn"
+msgstr "导入文件存在重复列：%(column)s"
+
+msgid "import.empty"
+msgstr "导入文件为空"
+
+msgid "import.invalidValue"
+msgstr "导入字段%(field)s的值无效：%(value)s"
+
+msgid "import.missingColumns"
+msgstr "导入文件缺少必需列：%(columns)s"
+
+msgid "import.user.duplicates"
+msgstr "已跳过已存在的用户账号：%(accounts)s"
+
+msgid "import.user.nickName"
+msgstr "用户名称"
+
+msgid "job.addDuplicate"
+msgstr "新增定时任务%(job_name)s失败，定时任务已存在"
+
+msgid "job.editDuplicate"
+msgstr "修改定时任务%(job_name)s失败，定时任务已存在"
+
+msgid "job.executionNotFound"
+msgstr "执行记录不存在"
+
+msgid "job.executionSubmitted"
+msgstr "已提交执行，请查看执行记录"
+
+msgid "job.idRequired"
+msgstr "传入定时任务id为空"
+
+msgid "job.invalidConfiguration"
+msgstr "任务配置无效：%(error)s"
+
+msgid "job.invalidId"
+msgstr "任务ID必须为正整数"
+
+msgid "job.notFound"
+msgstr "定时任务不存在"
+
+msgid "job.syncNotFound"
+msgstr "调度同步记录不存在"
+
+msgid "log.operationIdRequired"
+msgstr "传入操作日志id为空"
+
+msgid "log.signInIdRequired"
+msgstr "传入登录日志id为空"
+
+msgid "log.userNotLocked"
+msgstr "该用户未锁定"
+
+msgid "menu.addDuplicateName"
+msgstr "新增菜单%(menu_name)s失败，菜单名称已存在"
+
+msgid "menu.addDuplicateRoute"
+msgstr "新增菜单%(menu_name)s失败，路由名称或地址已存在"
+
+msgid "menu.addInvalidUrl"
+msgstr "新增菜单%(menu_name)s失败，地址必须以http(s)://开头"
+
+msgid "menu.assigned"
+msgstr "菜单已分配,不允许删除"
+
+msgid "menu.childrenPreventDelete"
+msgstr "存在子菜单,不允许删除"
+
+msgid "menu.editDuplicateName"
+msgstr "修改菜单%(menu_name)s失败，菜单名称已存在"
+
+msgid "menu.editDuplicateRoute"
+msgstr "修改菜单%(menu_name)s失败，路由名称或地址已存在"
+
+msgid "menu.editInvalidUrl"
+msgstr "修改菜单%(menu_name)s失败，地址必须以http(s)://开头"
+
+msgid "menu.idRequired"
+msgstr "传入菜单id为空"
+
+msgid "menu.invalidSort"
+msgstr "菜单排序参数不正确"
+
+msgid "menu.notFound"
+msgstr "菜单不存在"
+
+msgid "menu.parentCycle"
+msgstr "上级菜单存在循环关系"
+
+msgid "menu.parentNotFound"
+msgstr "上级菜单不存在"
+
+msgid "menu.selfParent"
+msgstr "修改菜单%(menu_name)s失败，上级菜单不能选择自己"
+
+msgid "monitor.uptime"
+msgstr "%(days)s天%(hours)s小时%(minutes)s分钟"
+
+msgid "notice.addDuplicate"
+msgstr "新增通知公告%(notice_title)s失败，通知公告已存在"
+
+msgid "notice.editDuplicate"
+msgstr "修改通知公告%(notice_title)s失败，通知公告已存在"
+
+msgid "notice.idRequired"
+msgstr "传入通知公告id为空"
+
+msgid "notice.invalidId"
+msgstr "公告ID格式不正确"
+
+msgid "notice.notFound"
+msgstr "通知公告不存在"
+
+msgid "plugin.audit.batchNotFound"
+msgstr "插件批量操作审计日志不存在"
+
+msgid "plugin.audit.retentionApplied"
+msgstr "插件操作审计日志保留策略执行完成"
+
+msgid "plugin.config.plaintextExportForbidden"
+msgstr "Web 端不允许导出敏感配置明文，请使用 CLI 通道"
+
+msgid "plugin.config.statusReadFailed"
+msgstr "插件配置状态读取失败"
+
+msgid "plugin.dependenciesRecovered"
+msgstr "插件启动依赖已恢复，状态：%(target_status)s"
+
+msgid "plugin.disabled"
+msgstr "插件未启用，接口不可访问"
+
+msgid "plugin.invalidState"
+msgstr "插件状态不允许执行当前启停操作"
+
+msgid "plugin.markedAbnormal"
+msgstr "插件状态已标记为异常"
+
+msgid "plugin.noDependencyFailure"
+msgstr "插件不是启动依赖检查异常状态"
+
+msgid "plugin.notFound"
+msgstr "插件不存在"
+
+msgid "plugin.notInstalled"
+msgstr "插件尚未安装，不能启用"
+
+msgid "plugin.release.statusReadFailed"
+msgstr "读取插件制品发布状态失败"
+
+msgid "plugin.runtime.audit.snapshotFailed"
+msgstr "最近审计快照读取失败：%(error)s"
+
+msgid "plugin.runtime.batch.blocked"
+msgstr "插件批量操作计划存在阻塞项，未执行任何写操作"
+
+msgid "plugin.runtime.batch.completed"
+msgstr "插件批量操作完成"
+
+msgid "plugin.runtime.batch.failed"
+msgstr "插件批量操作失败"
+
+msgid "plugin.runtime.batch.partial"
+msgstr "插件批量操作完成，存在失败项"
+
+msgid "plugin.runtime.batch.planCompleted"
+msgstr "插件批量操作计划生成完成"
+
+msgid "plugin.runtime.batch.planFailed"
+msgstr "生成插件批量操作计划失败"
+
+msgid "plugin.runtime.batch.previewCompleted"
+msgstr "插件批量操作演练完成，未执行实际写入"
+
+msgid "plugin.runtime.batch.stopped"
+msgstr "插件批量操作中止"
+
+msgid "plugin.runtime.batch.unsupportedOperation"
+msgstr "插件批量操作不支持：%(operation)s"
+
+msgid "plugin.runtime.batch.unsupportedPlan"
+msgstr "插件计划操作不支持：%(operation)s"
+
+msgid "plugin.runtime.checkCompleted"
+msgstr "插件检查完成"
+
+msgid "plugin.runtime.checkFailed"
+msgstr "插件检查失败"
+
+msgid "plugin.runtime.completed"
+msgstr "插件操作完成"
+
+msgid "plugin.runtime.config.exported"
+msgstr "插件配置导出完成"
+
+msgid "plugin.runtime.config.imported"
+msgstr "插件配置导入完成"
+
+msgid "plugin.runtime.config.loaded"
+msgstr "插件配置读取完成"
+
+msgid "plugin.runtime.config.readFailed"
+msgstr "读取插件配置失败"
+
+msgid "plugin.runtime.config.updateFailed"
+msgstr "更新插件配置失败"
+
+msgid "plugin.runtime.config.updated"
+msgstr "插件配置已更新"
+
+msgid "plugin.runtime.dependencies.builtFrontend"
+msgstr "当前为已构建前端环境，前端依赖需在构建前安装。"
+
+msgid "plugin.runtime.dependencies.checkFailed"
+msgstr "检查插件依赖失败"
+
+msgid "plugin.runtime.dependencies.checked"
+msgstr "插件依赖检查完成"
+
+msgid "plugin.runtime.dependencies.cycle"
+msgstr "插件依赖存在循环：%(cycle_text)s"
+
+msgid "plugin.runtime.dependencies.enabledDependent"
+msgstr "插件正在被已启用插件依赖：%(dependent_id)s -> %(plugin_id)s"
+
+msgid "plugin.runtime.dependencies.installBlocked"
+msgstr "插件依赖安装被策略阻断"
+
+msgid "plugin.runtime.dependencies.installFailed"
+msgstr "安装插件依赖失败"
+
+msgid "plugin.runtime.dependencies.invalidRequirement"
+msgstr "Python 依赖声明无效：%(requirement)s，%(error)s"
+
+msgid "plugin.runtime.dependencies.markerSkipped"
+msgstr "Python 依赖 marker 不适用当前环境，已跳过：%(name)s"
+
+msgid "plugin.runtime.dependencies.missing"
+msgstr "依赖插件不存在：%(plugin_id)s"
+
+msgid "plugin.runtime.dependencies.previewCompleted"
+msgstr "插件依赖安装演练完成，未执行实际安装"
+
+msgid "plugin.runtime.dependencies.previewReady"
+msgstr "插件依赖安装演练完成"
+
+msgid "plugin.runtime.dependencies.satisfied"
+msgstr "插件依赖已满足，无需安装"
+
+msgid "plugin.runtime.detailFailed"
+msgstr "读取插件详情失败"
+
+msgid "plugin.runtime.diagnostics.completed"
+msgstr "插件诊断包生成完成"
+
+msgid "plugin.runtime.diagnostics.failed"
+msgstr "插件诊断包生成失败"
+
+msgid "plugin.runtime.diagnostics.manifestMissing"
+msgstr "当前诊断进程未发现制品 manifest，请结合发布与运行快照查看实际状态"
+
+msgid "plugin.runtime.disable.completed"
+msgstr "插件停用完成"
+
+msgid "plugin.runtime.docs.failed"
+msgstr "插件文档生成失败"
+
+msgid "plugin.runtime.docs.generated"
+msgstr "插件文档生成完成"
+
+msgid "plugin.runtime.enable.completed"
+msgstr "插件启用完成"
+
+msgid "plugin.runtime.enable.previewCompleted"
+msgstr "插件启停演练完成，未执行实际写入"
+
+msgid "plugin.runtime.enable.updateFailed"
+msgstr "更新插件启停状态失败"
+
+msgid "plugin.runtime.failed"
+msgstr "插件操作失败"
+
+msgid "plugin.runtime.health.completed"
+msgstr "插件健康检查完成"
+
+msgid "plugin.runtime.health.executionFailed"
+msgstr "插件健康检查执行失败"
+
+msgid "plugin.runtime.health.failed"
+msgstr "插件健康检查失败"
+
+msgid "plugin.runtime.health.passed"
+msgstr "插件健康检查通过"
+
+msgid "plugin.runtime.health.timeout"
+msgstr "插件健康检查执行超时"
+
+msgid "plugin.runtime.health.undeclared"
+msgstr "插件未声明健康检查"
+
+msgid "plugin.runtime.install.completed"
+msgstr "插件安装完成"
+
+msgid "plugin.runtime.install.dependencyCheckFailed"
+msgstr "插件依赖检查失败，安装已中止"
+
+msgid "plugin.runtime.install.failed"
+msgstr "插件安装失败"
+
+msgid "plugin.runtime.install.menuConflict"
+msgstr "插件菜单与已安装菜单存在冲突，安装已中止"
+
+msgid "plugin.runtime.install.missingDependencies"
+msgstr "插件依赖缺失，安装已中止，请先显式安装依赖"
+
+msgid "plugin.runtime.install.previewCompleted"
+msgstr "插件安装演练完成，未执行实际写入"
+
+msgid "plugin.runtime.lifecycle.busy"
+msgstr "插件生命周期操作正在执行中，请稍后重试"
+
+msgid "plugin.runtime.lifecycle.lockUnavailable"
+msgstr "插件生命周期操作锁不可用：%(error)s"
+
+msgid "plugin.runtime.listFailed"
+msgstr "读取插件列表失败"
+
+msgid "plugin.runtime.migration.contentChanged"
+msgstr "插件 migration 已执行但内容已变化：%(migration_path)s"
+
+msgid "plugin.runtime.migration.failedStatus"
+msgstr "失败"
+
+msgid "plugin.runtime.migration.historyFailed"
+msgstr "查询插件 migration 历史失败"
+
+msgid "plugin.runtime.migration.historyLoaded"
+msgstr "插件 migration 历史查询完成"
+
+msgid "plugin.runtime.migration.markFailed"
+msgstr "人工标记插件 migration 状态失败"
+
+msgid "plugin.runtime.migration.marked"
+msgstr "插件 migration 已人工标记为%(label)s"
+
+msgid "plugin.runtime.migration.markedFailure"
+msgstr "插件 migration 已人工标记为失败"
+
+msgid "plugin.runtime.migration.markedSuccess"
+msgstr "插件 migration 已人工标记为成功"
+
+msgid "plugin.runtime.migration.notFound"
+msgstr "插件 migration 历史不存在"
+
+msgid "plugin.runtime.migration.stillRunning"
+msgstr "插件 migration 上次执行仍处于 running 状态：%(migration_path)s"
+
+msgid "plugin.runtime.migration.successStatus"
+msgstr "成功"
+
+msgid "plugin.runtime.migration.transitionBlocked"
+msgstr "插件 migration 当前状态为 %(current_status)s，不能人工标记为%(label)s"
+
+msgid "plugin.runtime.migration.unsupportedState"
+msgstr "插件 migration 历史状态不支持自动执行：%(migration_path)s，状态：%(status)s"
+
+msgid "plugin.runtime.notFoundNamed"
+msgstr "插件不存在：%(plugin_id)s"
+
+msgid "plugin.runtime.operationForbidden"
+msgstr "当前环境不允许执行该插件操作"
+
+msgid "plugin.runtime.precheck.blocked"
+msgstr "插件操作预检存在问题"
+
+msgid "plugin.runtime.precheck.completed"
+msgstr "插件操作预检完成"
+
+msgid "plugin.runtime.precheck.failed"
+msgstr "插件操作预检失败"
+
+msgid "plugin.runtime.precheck.invalidOperation"
+msgstr "插件预检操作只支持 install、enable、upgrade、uninstall 或 purge"
+
+msgid "plugin.runtime.precheck.passed"
+msgstr "插件操作预检通过"
+
+msgid "plugin.runtime.precheck.scriptFailed"
+msgstr "插件生命周期脚本预检失败：%(error)s"
+
+msgid "plugin.runtime.precheck.writeBlocked"
+msgstr "插件操作预检存在问题，未执行实际写入"
+
+msgid "plugin.runtime.purge.completed"
+msgstr "插件物理清理完成"
+
+msgid "plugin.runtime.purge.enabledDependent"
+msgstr "插件仍被已启用插件依赖，物理清理已中止"
+
+msgid "plugin.runtime.purge.failed"
+msgstr "插件物理清理失败"
+
+msgid "plugin.runtime.purge.orphanBlocked"
+msgstr "插件仍被已启用插件依赖，孤儿元数据清理已中止"
+
+msgid "plugin.runtime.purge.previewCompleted"
+msgstr "插件物理清理演练完成，未执行实际删除"
+
+msgid "plugin.runtime.release.alreadyPrepared"
+msgstr "该制品已完成维护准备"
+
+msgid "plugin.runtime.release.containerVerified"
+msgstr "容器验签和摘要检查通过；平台及目录结构将在正式导入的临时目录中检查"
+
+msgid "plugin.runtime.release.imported"
+msgstr "已导入并验证制品，尚未选择发布目标"
+
+msgid "plugin.runtime.release.prepared"
+msgstr "维护准备完成；选择目标制品后再启动 worker"
+
+msgid "plugin.runtime.release.previousSelected"
+msgstr "已选择上一代码制品，数据库版本保持不变；请重启全部 worker"
+
+msgid "plugin.runtime.release.sameVersionBlocked"
+msgstr "同版本制品缺少匹配的维护准备证据；请提升版本后发布，不能猜测已安装内容"
+
+msgid "plugin.runtime.release.stateSaved"
+msgstr "维护启停状态已保存，请启动全部 worker"
+
+msgid "plugin.runtime.release.targetSelected"
+msgstr "发布目标已更新，等待全部 worker 重启并报告实际版本"
+
+msgid "plugin.runtime.seed.pending"
+msgstr "插件 seed 将在实际操作时执行：%(seed_path)s"
+
+msgid "plugin.runtime.uninstall.completed"
+msgstr "插件卸载完成"
+
+msgid "plugin.runtime.uninstall.failed"
+msgstr "插件卸载失败"
+
+msgid "plugin.runtime.uninstall.previewCompleted"
+msgstr "插件卸载演练完成，未执行实际写入"
+
+msgid "plugin.runtime.upgrade.completed"
+msgstr "插件升级完成"
+
+msgid "plugin.runtime.upgrade.current"
+msgstr "插件已是最新版本，无需升级"
+
+msgid "plugin.runtime.upgrade.failed"
+msgstr "插件升级失败"
+
+msgid "plugin.runtime.upgrade.invalidManifest"
+msgstr "插件 manifest 检查失败，升级已中止"
+
+msgid "plugin.runtime.upgrade.menuConflict"
+msgstr "插件菜单与已安装菜单存在冲突，升级已中止"
+
+msgid "plugin.runtime.upgrade.notInstalled"
+msgstr "插件尚未安装，升级已中止"
+
+msgid "plugin.runtime.upgrade.previewCompleted"
+msgstr "插件升级演练完成，未执行实际写入"
+
+msgid "plugin.runtime.validation.buttonChildren"
+msgstr "按钮菜单 %(name)s 声明了子菜单"
+
+msgid "plugin.runtime.validation.buttonComponent"
+msgstr "按钮菜单 %(name)s 声明了 component"
+
+msgid "plugin.runtime.validation.buttonPermissionMissing"
+msgstr "按钮菜单 %(name)s 未声明权限标识"
+
+msgid "plugin.runtime.validation.componentPath"
+msgstr "插件组件路径格式错误：%(component)s"
+
+msgid "plugin.runtime.validation.controllerSyntax"
+msgstr "controller 文件语法错误，无法检查路由前缀：%(error)s"
+
+msgid "plugin.runtime.validation.databaseMismatch"
+msgstr "database 类型不满足插件兼容性声明：current=%(current_database)s required=%(value)s"
+
+msgid "plugin.runtime.validation.dependencyVersionMissing"
+msgstr "%(dependency_kind)s 依赖 %(name)s 未声明版本约束"
+
+msgid "plugin.runtime.validation.duplicateMenuKey"
+msgstr "插件 %(plugin_id)s 存在重复菜单自然键：%(menu_key)s"
+
+msgid "plugin.runtime.validation.fileOrder"
+msgstr "backend.%(field_name)s 未按文件名顺序声明"
+
+msgid "plugin.runtime.validation.hookMissing"
+msgstr "插件声明了 %(declared_hook)s，但未声明 %(missing_hook)s"
+
+msgid "plugin.runtime.validation.hookSyntax"
+msgstr "生命周期钩子不可静态解析：%(error)s"
+
+msgid "plugin.runtime.validation.installedMenuConflict"
+msgstr "插件 %(id)s 权限 %(perms)s 与已存在菜单 %(menu_id)s（%(conflict_label)s）冲突"
+
+msgid "plugin.runtime.validation.jobHealthMissing"
+msgstr "插件声明了默认启用的定时任务，但未声明健康检查 callable"
+
+msgid "plugin.runtime.validation.jobSyntax"
+msgstr "任务 callable 不可静态解析：%(error)s"
+
+msgid "plugin.runtime.validation.numericConstraintsIgnored"
+msgstr "配置 %(key)s 不是 number 类型，min/max 约束不会生效"
+
+msgid "plugin.runtime.validation.optionsIgnored"
+msgstr "配置 %(key)s 不是 select 类型，options 声明不会生效"
+
+msgid "plugin.runtime.validation.passwordNotSecret"
+msgstr "密码配置 %(key)s 未声明 secret=true"
+
+msgid "plugin.runtime.validation.pathEscapesRoot"
+msgstr "文件路径不能越过插件根目录：%(relative_path)s"
+
+msgid "plugin.runtime.validation.patternIgnored"
+msgstr "配置 %(key)s 不是文本类型，pattern 约束不会生效"
+
+msgid "plugin.runtime.validation.permissionConflict"
+msgstr "插件 %(plugin_id)s 权限 %(perms)s 与插件 %(conflict_plugin_id)s 冲突"
+
+msgid "plugin.runtime.validation.permissionMenuMissing"
+msgstr "权限标识 %(permission)s 未声明菜单承载，且插件没有可挂载按钮的页面或目录菜单"
+
+msgid "plugin.runtime.validation.permissionPrefix"
+msgstr "权限标识 %(permission)s 未使用插件 ID 前缀"
+
+msgid "plugin.runtime.validation.permissionsMissing"
+msgstr "插件声明了前端菜单，但没有声明任何权限标识"
+
+msgid "plugin.runtime.validation.pluginVersionMissing"
+msgstr "插件依赖 %(id)s 未声明版本约束"
+
+msgid "plugin.runtime.validation.purgeHookMissing"
+msgstr "插件声明了资源清单，但未声明 onPurge 清理钩子"
+
+msgid "plugin.runtime.validation.requiredDefaultMissing"
+msgstr "必填配置 %(key)s 未声明默认值"
+
+msgid "plugin.runtime.validation.secretDefault"
+msgstr "敏感配置 %(key)s 声明了非空默认值"
+
+msgid "plugin.runtime.validation.secretNotPassword"
+msgstr "敏感配置 %(key)s 的类型不是 password"
+
+msgid "plugin.runtime.validation.versionMismatch"
+msgstr "%(target_name)s 版本不满足插件兼容性声明：current=%(current_version)s required=%(constraint)s"
+
+msgid "plugin.runtime.validation.versionUnavailable"
+msgstr "无法读取当前 %(target_name)s 版本，跳过兼容性判断"
+
+msgid "plugin.uninstalled"
+msgstr "卸载成功"
+
+msgid "post.addDuplicateCode"
+msgstr "新增岗位%(post_name)s失败，岗位编码已存在"
+
+msgid "post.addDuplicateName"
+msgstr "新增岗位%(post_name)s失败，岗位名称已存在"
+
+msgid "post.assigned"
+msgstr "%(post_name)s已分配，不能删除"
+
+msgid "post.editDuplicateCode"
+msgstr "修改岗位%(post_name)s失败，岗位编码已存在"
+
+msgid "post.editDuplicateName"
+msgstr "修改岗位%(post_name)s失败，岗位名称已存在"
+
+msgid "post.idRequired"
+msgstr "传入岗位id为空"
+
+msgid "post.notFound"
+msgstr "岗位不存在"
+
+msgid "profile.localeSaved"
+msgstr "语言设置已保存"
+
+msgid "profile.timezoneSaved"
+msgstr "时区设置已保存"
+
+msgid "role.addDuplicateName"
+msgstr "新增角色%(role_name)s失败，角色名称已存在"
+
+msgid "role.addDuplicatePermission"
+msgstr "新增角色%(role_name)s失败，角色权限已存在"
+
+msgid "role.assigned"
+msgstr "角色%(role_name)s已分配,不能删除"
+
+msgid "role.editDuplicateName"
+msgstr "修改角色%(role_name)s失败，角色名称已存在"
+
+msgid "role.editDuplicatePermission"
+msgstr "修改角色%(role_name)s失败，角色权限已存在"
+
+msgid "role.forbidden"
+msgstr "没有权限访问角色数据"
+
+msgid "role.idRequired"
+msgstr "传入角色id为空"
+
+msgid "role.notFound"
+msgstr "角色不存在"
+
+msgid "role.superAdminProtected"
+msgstr "不允许操作超级管理员角色"
+
+msgid "session.forcedOut"
+msgstr "强退成功"
+
+msgid "session.idRequired"
+msgstr "传入session_id为空"
+
+msgid "transport.decryptFailed"
+msgstr "加密请求解析失败"
+
+msgid "transport.invalidRequest"
+msgstr "加密请求解析失败"
+
+msgid "transport.keyExpired"
+msgstr "密钥版本不存在"
+
+msgid "transport.required"
+msgstr "当前接口要求使用加密传输"
+
+msgid "user.addConditionsNotMet"
+msgstr "不满足新增条件"
+
+msgid "user.addDuplicateEmail"
+msgstr "新增用户%(user_name)s失败，邮箱账号已存在"
+
+msgid "user.addDuplicateName"
+msgstr "新增用户%(user_name)s失败，登录账号已存在"
+
+msgid "user.addDuplicatePhone"
+msgstr "新增用户%(user_name)s失败，手机号码已存在"
+
+msgid "user.avatar.uploadFailed"
+msgstr "上传图片异常，请联系管理员"
+
+msgid "user.deleteConditionsNotMet"
+msgstr "不满足删除条件"
+
+msgid "user.deleteCurrentUser"
+msgstr "当前登录用户不能删除"
+
+msgid "user.editDuplicateEmail"
+msgstr "修改用户%(user_name)s失败，邮箱账号已存在"
+
+msgid "user.editDuplicateName"
+msgstr "修改用户%(user_name)s失败，登录账号已存在"
+
+msgid "user.editDuplicatePhone"
+msgstr "修改用户%(user_name)s失败，手机号码已存在"
+
+msgid "user.forbidden"
+msgstr "没有权限访问用户数据"
+
+msgid "user.idRequired"
+msgstr "传入用户id为空"
+
+msgid "user.notFound"
+msgstr "用户不存在"
+
+msgid "user.oldPasswordIncorrect"
+msgstr "修改密码失败，旧密码错误"
+
+msgid "user.passwordUnchanged"
+msgstr "新密码不能与旧密码相同"
+
+msgid "user.rolesRequired"
+msgstr "传入用户角色关联信息为空"
+
+msgid "user.superAdminProtected"
+msgstr "不允许操作超级管理员用户"
+
+msgid "validation.authorRequired"
+msgstr "生成功能作者不能为空"
+
+msgid "validation.baseUrlLength"
+msgstr "Base URL长度不能超过255个字符"
+
+msgid "validation.baseUrlRequired"
+msgstr "Base URL不能为空"
+
+msgid "validation.businessNameRequired"
+msgstr "生成业务名不能为空"
+
+msgid "validation.classNameRequired"
+msgstr "实体类名称不能为空"
+
+msgid "validation.componentPathLength"
+msgstr "组件路径长度不能超过255个字符"
+
+msgid "validation.configKeyLength"
+msgstr "参数键名长度不能超过100个字符"
+
+msgid "validation.configKeyRequired"
+msgstr "参数键名不能为空"
+
+msgid "validation.configNameLength"
+msgstr "参数名称长度不能超过100个字符"
+
+msgid "validation.configNameRequired"
+msgstr "参数名称不能为空"
+
+msgid "validation.configValueLength"
+msgstr "参数键值长度不能超过500个字符"
+
+msgid "validation.configValueRequired"
+msgstr "参数键值不能为空"
+
+msgid "validation.contactPhoneLength"
+msgstr "联系电话长度不能超过11个字符"
+
+msgid "validation.cronLength"
+msgstr "Cron执行表达式不能超过255个字符"
+
+msgid "validation.cronRequired"
+msgstr "Cron执行表达式不能为空"
+
+msgid "validation.cssClassLength"
+msgstr "样式属性长度不能超过100个字符"
+
+msgid "validation.deptNameLength"
+msgstr "部门名称长度不能超过30个字符"
+
+msgid "validation.deptNameRequired"
+msgstr "部门名称不能为空"
+
+msgid "validation.dictLabelLength"
+msgstr "字典标签长度不能超过100个字符"
+
+msgid "validation.dictLabelRequired"
+msgstr "字典标签不能为空"
+
+msgid "validation.dictNameLength"
+msgstr "字典类型名称长度不能超过100个字符"
+
+msgid "validation.dictNameRequired"
+msgstr "字典名称不能为空"
+
+msgid "validation.dictTypeFormat"
+msgstr "字典类型必须以字母开头，且只能为（小写字母，数字，下滑线）"
+
+msgid "validation.dictTypeLength"
+msgstr "字典类型长度不能超过100个字符"
+
+msgid "validation.dictTypeNameLength"
+msgstr "字典类型类型长度不能超过100个字符"
+
+msgid "validation.dictTypeRequired"
+msgstr "字典类型不能为空"
+
+msgid "validation.dictValueLength"
+msgstr "字典键值长度不能超过100个字符"
+
+msgid "validation.dictValueRequired"
+msgstr "字典键值不能为空"
+
+msgid "validation.emailFormat"
+msgstr "邮箱格式不正确"
+
+msgid "validation.emailLength"
+msgstr "邮箱长度不能超过50个字符"
+
+msgid "validation.functionNameRequired"
+msgstr "生成功能名不能为空"
+
+msgid "validation.invalid"
+msgstr "输入值无效"
+
+msgid "validation.invokeTargetLength"
+msgstr "调用目标字符串长度不能超过500个字符"
+
+msgid "validation.invokeTargetRequired"
+msgstr "调用目标字符串不能为空"
+
+msgid "validation.locale"
+msgstr "语言标识无效"
+
+msgid "validation.menuNameLength"
+msgstr "菜单名称长度不能超过50个字符"
+
+msgid "validation.menuNameRequired"
+msgstr "菜单名称不能为空"
+
+msgid "validation.menuTypeRequired"
+msgstr "菜单类型不能为空"
+
+msgid "validation.mobileLength"
+msgstr "手机号码长度不能超过11个字符"
+
+msgid "validation.modelCodeLength"
+msgstr "模型编码长度不能超过100个字符"
+
+msgid "validation.modelCodeRequired"
+msgstr "模型编码不能为空"
+
+msgid "validation.moduleNameRequired"
+msgstr "生成模块名不能为空"
+
+msgid "validation.namedInvalid"
+msgstr "%(field_name)s格式错误"
+
+msgid "validation.namedRequired"
+msgstr "%(field_name)s不能为空"
+
+msgid "validation.nickNameLength"
+msgstr "用户昵称长度不能超过30个字符"
+
+msgid "validation.nickNameScript"
+msgstr "用户昵称不能包含脚本字符"
+
+msgid "validation.noticeTitleLength"
+msgstr "公告标题不能超过50个字符"
+
+msgid "validation.noticeTitleRequired"
+msgstr "公告标题不能为空"
+
+msgid "validation.noticeTitleScript"
+msgstr "公告标题不能包含脚本字符"
+
+msgid "validation.orderRequired"
+msgstr "显示顺序不能为空"
+
+msgid "validation.packageNameRequired"
+msgstr "生成包路径不能为空"
+
+msgid "validation.permissionLength"
+msgstr "权限标识长度不能超过100个字符"
+
+msgid "validation.postCodeLength"
+msgstr "岗位编码长度不能超过64个字符"
+
+msgid "validation.postCodeRequired"
+msgstr "岗位编码不能为空"
+
+msgid "validation.postNameLength"
+msgstr "岗位名称长度不能超过50个字符"
+
+msgid "validation.postNameRequired"
+msgstr "岗位名称不能为空"
+
+msgid "validation.pythonFieldRequired"
+msgstr "Python属性不能为空"
+
+msgid "validation.required"
+msgstr "此字段为必填项"
+
+msgid "validation.roleKeyLength"
+msgstr "权限字符长度不能超过100个字符"
+
+msgid "validation.roleKeyRequired"
+msgstr "权限字符不能为空"
+
+msgid "validation.roleNameLength"
+msgstr "角色名称长度不能超过30个字符"
+
+msgid "validation.roleNameRequired"
+msgstr "角色名称不能为空"
+
+msgid "validation.routePathLength"
+msgstr "路由地址长度不能超过200个字符"
+
+msgid "validation.tableCommentRequired"
+msgstr "表描述不能为空"
+
+msgid "validation.tableNameRequired"
+msgstr "表名称不能为空"
+
+msgid "validation.userNameLength"
+msgstr "用户账号长度不能超过30个字符"
+
+msgid "validation.userNameRequired"
+msgstr "用户账号不能为空"
+
+msgid "validation.userNameScript"
+msgstr "用户账号不能包含脚本字符"

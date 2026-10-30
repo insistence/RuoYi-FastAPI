@@ -1,9 +1,13 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import '@/assets/styles/components.css'
 import { useEffect, useState } from 'react'
 import { Button } from 'antd'
 import { FullscreenExitOutlined, FullscreenOutlined } from '@ant-design/icons'
 import { message } from '@/plugins/modal'
 export default function Screenfull() {
+  useI18n()
+
   const [active, setActive] = useState(!!document.fullscreenElement)
   useEffect(() => {
     const update = () => setActive(!!document.fullscreenElement)
@@ -13,7 +17,7 @@ export default function Screenfull() {
   return (
     <Button
       className="header-icon-button"
-      aria-label={active ? '退出全屏' : '全屏'}
+      aria-label={active ? t('common:exitFullScreen') : t('common:fullScreen')}
       type="text"
       icon={active ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
       onClick={async () => {
@@ -21,9 +25,9 @@ export default function Screenfull() {
           if (document.fullscreenElement) await document.exitFullscreen()
           else if (document.documentElement.requestFullscreen)
             await document.documentElement.requestFullscreen()
-          else message.warning('当前浏览器不支持全屏')
+          else message.warning(t('common:thisBrowserDoesNotSupportFullScreen'))
         } catch {
-          message.warning('无法切换全屏，请检查浏览器设置')
+          message.warning(t('common:unableToChangeFullScreenModeCheckYourBrowser'))
         }
       }}
     />

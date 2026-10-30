@@ -276,6 +276,7 @@ class ApiCache(_ApiCacheSupport):
         """
         request_body = await request.body()
         user_scope = self._get_user_scope(request) if self.vary_by_user else ''
+        locale_context = RequestContext.get_current_locale()
         key_material = {
             'method': request.method,
             'path': request.url.path,
@@ -284,6 +285,9 @@ class ApiCache(_ApiCacheSupport):
             'body_digest': hashlib.sha256(request_body).hexdigest() if request_body else '',
             'user_scope': user_scope,
             'timezone': TimezoneUtil.get_request_timezone(),
+            'locale': locale_context.locale,
+            'i18n_version': locale_context.version,
+            'response_version': 'i18n-1',
         }
         key_digest = hashlib.sha256(
             json.dumps(

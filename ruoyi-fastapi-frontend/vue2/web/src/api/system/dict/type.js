@@ -1,3 +1,4 @@
+import { withLocalePatch } from '@/utils/localePayload.mjs'
 import request from '@/utils/request'
 
 // 查询字典类型列表
@@ -22,7 +23,7 @@ export function addType(data) {
   return request({
     url: '/system/dict/type',
     method: 'post',
-    data: data,
+    data: withLocalePatch(data),
   })
 }
 
@@ -31,7 +32,7 @@ export function updateType(data) {
   return request({
     url: '/system/dict/type',
     method: 'put',
-    data: data,
+    data: withLocalePatch(data),
   })
 }
 

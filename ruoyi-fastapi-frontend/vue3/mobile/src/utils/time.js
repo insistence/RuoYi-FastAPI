@@ -1,3 +1,4 @@
+import { translateMessage } from '../i18n/message.mjs'
 // 补齐小程序运行时可能缺失的 Intl 能力和 IANA 时区数据。
 // 同步加载，保证业务时区初始化和首屏渲染时已具备完整能力。
 import '@formatjs/intl-getcanonicallocales/polyfill.js'
@@ -20,7 +21,15 @@ const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 const WALL_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/
 const RFC3339_PATTERN =
   /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+const WEEKDAYS = [
+  () => translateMessage('utility:weekday.sunday', '日'),
+  () => translateMessage('utility:weekday.monday', '一'),
+  () => translateMessage('utility:weekday.tuesday', '二'),
+  () => translateMessage('utility:weekday.wednesday', '三'),
+  () => translateMessage('utility:weekday.thursday', '四'),
+  () => translateMessage('utility:weekday.friday', '五'),
+  () => translateMessage('utility:weekday.saturday', '六'),
+]
 const MILLISECONDS_PER_SECOND = 1000
 const MILLISECONDS_PER_MINUTE = 60 * MILLISECONDS_PER_SECOND
 const MILLISECONDS_PER_HOUR = 60 * MILLISECONDS_PER_MINUTE
@@ -55,7 +64,11 @@ export class TimeInputError extends Error {
  */
 function getFormatter(timezoneName) {
   if (typeof timezoneName !== 'string' || !timezoneName.trim() || /^[+-]/.test(timezoneName)) {
-    throw new Error(`无效的 IANA 时区: ${timezoneName}`)
+    throw new Error(
+      translateMessage('utility:timezone.invalid', `无效的 IANA 时区: ${timezoneName}`, {
+        timezoneName,
+      })
+    )
   }
 
   const name = timezoneName.trim()
@@ -75,7 +88,11 @@ function getFormatter(timezoneName) {
       })
       timezoneFormatters.set(name, formatter)
     } catch {
-      throw new Error(`无效的 IANA 时区: ${timezoneName}`)
+      throw new Error(
+        translateMessage('utility:timezone.invalid', `无效的 IANA 时区: ${timezoneName}`, {
+          timezoneName,
+        })
+      )
     }
   }
   return timezoneFormatters.get(name)
@@ -295,7 +312,7 @@ function formatEpoch(epoch, pattern, timezoneName) {
     .replaceAll('{h}', 'HH')
     .replaceAll('{i}', 'mm')
     .replaceAll('{s}', 'ss')
-    .replaceAll('{a}', `[${WEEKDAYS[value.day()]}]`)
+    .replaceAll('{a}', `[${WEEKDAYS[value.day()]()}]`)
   return value.format(format)
 }
 
@@ -363,7 +380,10 @@ export function formatEpochSeconds(value, pattern, timezoneName) {
 export function getWallTimeCandidates(value, timezoneName = getDisplayTimezone()) {
   const wallMilliseconds = parseWallTimeMilliseconds(value)
   if (wallMilliseconds === null) {
-    throw new TimeInputError(`无效的日期时间: ${value}`, 'INVALID_TIME')
+    throw new TimeInputError(
+      translateMessage('utility:timezone.invalidDateTime', `无效的日期时间: ${value}`, { value }),
+      'INVALID_TIME'
+    )
   }
 
   const offsets = new Set()
@@ -414,7 +434,11 @@ export function toRfc3339(value, { timezoneName = getDisplayTimezone(), offset }
   const candidates = getWallTimeCandidates(value, timezoneName)
   if (!candidates.length) {
     throw new TimeInputError(
-      `${value} 在 ${timezoneName} 不存在，请选择夏令时跳转后的有效时间`,
+      translateMessage(
+        'utility:timezone.nonexistent',
+        `${value} 在 ${timezoneName} 不存在，请选择夏令时跳转后的有效时间`,
+        { value, timezoneName }
+      ),
       'DST_GAP'
     )
   }
@@ -427,7 +451,11 @@ export function toRfc3339(value, { timezoneName = getDisplayTimezone(), offset }
     return selected.value
   }
   throw new TimeInputError(
-    `${value} 在 ${timezoneName} 出现两次，请选择 UTC 偏移`,
+    translateMessage(
+      'utility:timezone.ambiguous',
+      `${value} 在 ${timezoneName} 出现两次，请选择 UTC 偏移`,
+      { value, timezoneName }
+    ),
     'DST_FOLD',
     candidates
   )
@@ -456,7 +484,10 @@ export function normalizeRangeBoundary(value) {
   }
   if (typeof value === 'string' && DATE_ONLY_PATTERN.test(value)) {
     if (parseWallTimeMilliseconds(value, true) === null) {
-      throw new TimeInputError(`无效的日期: ${value}`, 'INVALID_DATE')
+      throw new TimeInputError(
+        translateMessage('utility:timezone.invalidDate', `无效的日期: ${value}`, { value }),
+        'INVALID_DATE'
+      )
     }
     return value
   }
@@ -485,7 +516,14 @@ export function prepareTimeFields(record, fields, timezoneName = getDisplayTimez
         ? original
         : toBusinessDateTimeInput(original, timezoneName)
     if (input === null && original != null) {
-      throw new TimeInputError(`字段 ${field} 包含无效的 RFC 3339 时间`, 'INVALID_TIME')
+      throw new TimeInputError(
+        translateMessage(
+          'utility:timezone.invalidField',
+          `字段 ${field} 包含无效的 RFC 3339 时间`,
+          { field }
+        ),
+        'INVALID_TIME'
+      )
     }
     result[field] = input
     originals[field] = { original, input }

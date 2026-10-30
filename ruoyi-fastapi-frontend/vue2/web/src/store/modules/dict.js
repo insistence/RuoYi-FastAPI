@@ -4,6 +4,8 @@ const state = {
 const mutations = {
   SET_DICT: (state, { key, value }) => {
     if (key !== null && key !== '') {
+      const index = state.dict.findIndex((item) => item.key === key)
+      if (index !== -1) state.dict.splice(index, 1)
       state.dict.push({
         key: key,
         value: value,

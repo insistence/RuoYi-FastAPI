@@ -10,7 +10,7 @@
             slot="header"
             class="clearfix"
           >
-            <span>个人信息</span>
+            <span>{{ $t('system:profile') }}</span>
           </div>
           <div>
             <div class="text-center">
@@ -18,19 +18,19 @@
             </div>
             <ul class="list-group list-group-striped">
               <li class="list-group-item">
-                <svg-icon icon-class="user" />用户名称
+                <svg-icon icon-class="user" />{{ $t('system:user.username') }}
                 <div class="pull-right">{{ user.userName }}</div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="phone" />手机号码
+                <svg-icon icon-class="phone" />{{ $t('system:user.phone') }}
                 <div class="pull-right">{{ user.phonenumber }}</div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="email" />用户邮箱
+                <svg-icon icon-class="email" />{{ $t('system:userEmail') }}
                 <div class="pull-right">{{ user.email }}</div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="tree" />所属部门
+                <svg-icon icon-class="tree" />{{ $t('system:user.department') }}
                 <div
                   class="pull-right"
                   v-if="user.dept"
@@ -39,11 +39,11 @@
                 </div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="peoples" />所属角色
+                <svg-icon icon-class="peoples" />{{ $t('system:roles') }}
                 <div class="pull-right">{{ roleGroup }}</div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="date" />创建日期
+                <svg-icon icon-class="date" />{{ $t('common:createdDate') }}
                 <div class="pull-right">{{ parseTime(user.createTime) || '-' }}</div>
               </li>
             </ul>
@@ -59,23 +59,23 @@
             slot="header"
             class="clearfix"
           >
-            <span>基本资料</span>
+            <span>{{ $t('system:basicProfile') }}</span>
           </div>
           <el-tabs v-model="selectedTab">
             <el-tab-pane
-              label="基本资料"
+              :label="$t('system:basicProfile')"
               name="userinfo"
             >
               <userInfo :user="user" />
             </el-tab-pane>
             <el-tab-pane
-              label="修改密码"
+              :label="$t('system:user.changePassword')"
               name="resetPwd"
             >
               <resetPwd />
             </el-tab-pane>
             <el-tab-pane
-              label="时区设置"
+              :label="$t('system:user.timeZoneSettings')"
               name="timezone"
             >
               <timezoneSettings

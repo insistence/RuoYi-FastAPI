@@ -42,7 +42,9 @@
     "build:app": "pnpm build:rn:android",
     "generate:icons": "node scripts/generate-icons.cjs",
     "check:platforms": "node scripts/check-platforms.cjs",
-    "test:session": "node --experimental-vm-modules --test tests/logout.test.mjs"
+    "test:session": "node --experimental-vm-modules --test tests/logout.test.mjs",
+    "i18n:check": "node scripts/check-i18n.mjs && x18n --root . check --json",
+    "test:i18n": "node --test tests/i18n/*.test.mjs"
   },
   "dependencies": {
     "@babel/runtime": "7.29.10",
@@ -102,9 +104,11 @@
     "expo-location": "16.5.5",
     "expo-sensors": "12.9.1",
     "fflate": "0.8.3",
+    "i18next": "26.5.11",
     "node-forge": "1.4.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-i18next": "17.1.9",
     "react-native": "0.73.11",
     "react-native-device-info": "14.0.0",
     "react-native-gesture-handler": "2.14.1",
@@ -127,6 +131,7 @@
     "@tarojs/cli": "4.3.0",
     "@tarojs/vite-runner": "4.3.0",
     "@vitejs/plugin-react": "4.7.0",
+    "@x18n/cli": "0.1.3",
     "babel-plugin-global-define": "1.0.3",
     "babel-plugin-transform-react-jsx-to-rn-stylesheet": "4.3.0",
     "babel-preset-taro": "4.3.0",

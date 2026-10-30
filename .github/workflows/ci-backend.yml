@@ -33,6 +33,16 @@ jobs:
             ruoyi-fastapi-backend/plugins/ai/plugin.yaml
       - name: Install MySQL, PostgreSQL and test dependencies
         run: python -m pip install -r requirements.txt -r requirements-pg.txt -r requirements-test.txt
+      - name: Compile and validate gettext catalogs
+        run: python scripts/compile_i18n.py
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install locked backend translation tooling and run read-only checks
+        run: |
+          npm ci --prefix .x18n/tooling --ignore-scripts
+          node .x18n/tooling/node_modules/@x18n/cli/bin.mjs --root . check --json
+          npm test --prefix .x18n/tooling
       - name: Install AI plugin dependencies from its manifest
         run: python ../.github/scripts/install_ai_test_dependencies.py
       - name: Check dependency consistency

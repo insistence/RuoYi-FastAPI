@@ -78,7 +78,7 @@ async def rotate_oidc_key(
 ) -> Response:
     result = await OidcKeyManagementService.rotate(query_db, payload, _actor(current_user))
 
-    return ResponseUtil.success(msg='OIDC 签名密钥创建成功', data=result)
+    return ResponseUtil.success(msg='OIDC 签名密钥创建成功', msg_key='identity.key.created', data=result)
 
 
 @oidc_key_controller.put(
@@ -101,7 +101,7 @@ async def activate_oidc_key(
     )
     await OidcRuntimeService.refresh_readiness(request.app, query_db)
 
-    return ResponseUtil.success(msg='OIDC 签名密钥已激活', data={'changed': result})
+    return ResponseUtil.success(msg='OIDC 签名密钥已激活', msg_key='identity.key.activated', data={'changed': result})
 
 
 @oidc_key_controller.put(
@@ -121,7 +121,7 @@ async def retire_oidc_key(
 ) -> Response:
     result = await OidcKeyManagementService.retire(query_db, kid, _actor(current_user))
 
-    return ResponseUtil.success(msg='OIDC 签名密钥已退役', data={'changed': result})
+    return ResponseUtil.success(msg='OIDC 签名密钥已退役', msg_key='identity.key.retired', data={'changed': result})
 
 
 @oidc_key_controller.delete(
@@ -141,4 +141,4 @@ async def delete_oidc_key(
 ) -> Response:
     result = await OidcKeyManagementService.delete(query_db, kid, _actor(current_user))
 
-    return ResponseUtil.success(msg='OIDC 签名密钥已删除', data={'changed': result})
+    return ResponseUtil.success(msg='OIDC 签名密钥已删除', msg_key='identity.key.deleted', data={'changed': result})

@@ -8,6 +8,8 @@ from pydantic_validation_decorator import Network, NotBlank, Size, Xss
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
 from exceptions.exception import ModelValidatorException
+from i18n.message import I18nMessage
+from i18n.registry import LocaleRegistry
 from module_admin.entity.vo.dept_vo import DeptModel
 from module_admin.entity.vo.post_vo import PostModel
 from module_admin.entity.vo.role_vo import RoleModel
@@ -38,6 +40,7 @@ class UserModel(BaseModel):
     phonenumber: str | None = Field(default=None, description='手机号码')
     sex: Literal['0', '1', '2'] | None = Field(default=None, description='用户性别（0男 1女 2未知）')
     avatar: str | None = Field(default=None, description='头像地址')
+    locale: str = Field(default='zh-CN', max_length=63, description='语言偏好')
     time_zone: str = Field(default='auto', max_length=64, description='显示时区（auto跟随设备或IANA名称）')
     password: str | None = Field(default=None, description='密码')
     status: Literal['0', '1'] | None = Field(default=None, description='帐号状态（0正常 1停用）')
@@ -51,6 +54,17 @@ class UserModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
     remark: str | None = Field(default=None, description='备注')
     admin: bool | None = Field(default=False, description='是否为admin')
+
+    @field_validator('locale')
+    @classmethod
+    def validate_user_locale(cls, value: str) -> str:
+        """
+        校验并规范化账号语言偏好
+
+        :param value: auto或语言标识
+        :return: 规范化后的语言偏好
+        """
+        return LocaleRegistry.normalize_locale(value, preference=True)
 
     @field_validator('time_zone')
     @classmethod
@@ -68,7 +82,7 @@ class UserModel(BaseModel):
         pattern = r"""^[^<>"'|\\]+$"""
         if self.password is None or re.match(pattern, self.password):
             return self
-        raise ModelValidatorException(message='密码不能包含非法字符：< > " \' \\ |')
+        raise ModelValidatorException(message='密码不能包含非法字符：< > " \' \\ |', msg_key='auth.passwordCharacters')
 
     @model_validator(mode='after')
     def check_admin(self) -> 'UserModel':
@@ -78,23 +92,47 @@ class UserModel(BaseModel):
             self.admin = False
         return self
 
-    @Xss(field_name='user_name', message='用户账号不能包含脚本字符')
-    @NotBlank(field_name='user_name', message='用户账号不能为空')
-    @Size(field_name='user_name', min_length=0, max_length=30, message='用户账号长度不能超过30个字符')
+    @Xss(field_name='user_name', message=I18nMessage('用户账号不能包含脚本字符', msg_key='validation.userNameScript'))
+    @NotBlank(field_name='user_name', message=I18nMessage('用户账号不能为空', msg_key='validation.userNameRequired'))
+    @Size(
+        field_name='user_name',
+        min_length=0,
+        max_length=30,
+        message=I18nMessage('用户账号长度不能超过30个字符', msg_key='validation.userNameLength'),
+    )
     def get_user_name(self) -> str | None:
         return self.user_name
 
-    @Xss(field_name='nick_name', message='用户昵称不能包含脚本字符')
-    @Size(field_name='nick_name', min_length=0, max_length=30, message='用户昵称长度不能超过30个字符')
+    @Xss(field_name='nick_name', message=I18nMessage('用户昵称不能包含脚本字符', msg_key='validation.nickNameScript'))
+    @Size(
+        field_name='nick_name',
+        min_length=0,
+        max_length=30,
+        message=I18nMessage('用户昵称长度不能超过30个字符', msg_key='validation.nickNameLength'),
+    )
     def get_nick_name(self) -> str | None:
         return self.nick_name
 
-    @Network(field_name='email', field_type='EmailStr', message='邮箱格式不正确')
-    @Size(field_name='email', min_length=0, max_length=50, message='邮箱长度不能超过50个字符')
+    @Network(
+        field_name='email',
+        field_type='EmailStr',
+        message=I18nMessage('邮箱格式不正确', msg_key='validation.emailFormat'),
+    )
+    @Size(
+        field_name='email',
+        min_length=0,
+        max_length=50,
+        message=I18nMessage('邮箱长度不能超过50个字符', msg_key='validation.emailLength'),
+    )
     def get_email(self) -> str | None:
         return self.email
 
-    @Size(field_name='phonenumber', min_length=0, max_length=11, message='手机号码长度不能超过11个字符')
+    @Size(
+        field_name='phonenumber',
+        min_length=0,
+        max_length=11,
+        message=I18nMessage('手机号码长度不能超过11个字符', msg_key='validation.mobileLength'),
+    )
     def get_phonenumber(self) -> str | None:
         return self.phonenumber
 
@@ -174,6 +212,26 @@ class UserTimezoneModel(BaseModel):
         :return: 校验后的时区偏好
         """
         return TimezoneUtil.validate_timezone_preference(value)
+
+
+class UserLocaleModel(BaseModel):
+    """
+    当前用户的语言偏好模型
+    """
+
+    model_config = ConfigDict(extra='forbid')
+    locale: str = Field(max_length=63, description='语言偏好（auto跟随设备或语言标识）')
+
+    @field_validator('locale')
+    @classmethod
+    def validate_locale(cls, value: str) -> str:
+        """
+        校验并规范化语言偏好设置
+
+        :param value: auto或语言标识
+        :return: 规范化后的语言偏好
+        """
+        return LocaleRegistry.normalize_locale(value, preference=True)
 
 
 class CurrentUserModel(BaseModel):
@@ -275,7 +333,7 @@ class ResetPasswordModel(BaseModel):
         pattern = r"""^[^<>"'|\\]+$"""
         if self.new_password is None or re.match(pattern, self.new_password):
             return self
-        raise ModelValidatorException(message='密码不能包含非法字符：< > " \' \\ |')
+        raise ModelValidatorException(message='密码不能包含非法字符：< > " \' \\ |', msg_key='auth.passwordCharacters')
 
 
 class ResetUserModel(UserModel):

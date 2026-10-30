@@ -8,7 +8,7 @@
         <el-card class="box-card">
           <template v-slot:header>
             <div class="clearfix">
-              <span>个人信息</span>
+              <span>{{ $t('system:profile') }}</span>
             </div>
           </template>
           <div>
@@ -17,19 +17,19 @@
             </div>
             <ul class="list-group list-group-striped">
               <li class="list-group-item">
-                <svg-icon icon-class="user" />用户名称
+                <svg-icon icon-class="user" />{{ $t('system:userName') }}
                 <div class="pull-right">{{ state.user.userName }}</div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="phone" />手机号码
+                <svg-icon icon-class="phone" />{{ $t('system:phoneNumber') }}
                 <div class="pull-right">{{ state.user.phonenumber }}</div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="email" />用户邮箱
+                <svg-icon icon-class="email" />{{ $t('system:userEmail') }}
                 <div class="pull-right">{{ state.user.email }}</div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="tree" />所属部门
+                <svg-icon icon-class="tree" />{{ $t('system:department') }}
                 <div
                   class="pull-right"
                   v-if="state.user.dept"
@@ -38,11 +38,11 @@
                 </div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="peoples" />所属角色
+                <svg-icon icon-class="peoples" />{{ $t('system:roles') }}
                 <div class="pull-right">{{ state.roleGroup }}</div>
               </li>
               <li class="list-group-item">
-                <svg-icon icon-class="date" />创建日期
+                <svg-icon icon-class="date" />{{ $t('system:createdOn') }}
                 <div class="pull-right">{{ parseTime(state.user.createTime) || '-' }}</div>
               </li>
             </ul>
@@ -56,24 +56,24 @@
         <el-card>
           <template v-slot:header>
             <div class="clearfix">
-              <span>基本资料</span>
+              <span>{{ $t('system:basicProfile') }}</span>
             </div>
           </template>
           <el-tabs v-model="selectedTab">
             <el-tab-pane
-              label="基本资料"
+              :label="$t('system:basicProfile')"
               name="userinfo"
             >
               <userInfo :user="state.user" />
             </el-tab-pane>
             <el-tab-pane
-              label="修改密码"
+              :label="$t('system:changePassword')"
               name="resetPwd"
             >
               <resetPwd />
             </el-tab-pane>
             <el-tab-pane
-              label="时区设置"
+              :label="$t('system:timeZone')"
               name="timezone"
             >
               <timezoneSettings

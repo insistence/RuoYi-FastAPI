@@ -1,0 +1,38 @@
+{
+  "user": {
+    "male": "Male",
+    "female": "Female",
+    "nicknameRequired": "Enter a nickname",
+    "phoneRequired": "Enter a phone number",
+    "phoneInvalid": "Enter a valid phone number",
+    "emailRequired": "Enter an email address",
+    "emailInvalid": "Enter a valid email address",
+    "nickname": "Nickname",
+    "nicknamePlaceholder": "Enter a nickname",
+    "phone": "Phone number",
+    "phonePlaceholder": "Enter a phone number",
+    "email": "Email",
+    "emailPlaceholder": "Enter an email address",
+    "sex": "Gender",
+    "nicknameShort": "Nickname",
+    "post": "Post",
+    "role": "Role",
+    "title": "Users"
+  },
+  "management": "System management",
+  "role": {
+    "title": "Roles"
+  },
+  "dept": {
+    "title": "Departments"
+  },
+  "config": {
+    "title": "Configuration"
+  },
+  "dict": {
+    "title": "Dictionaries"
+  },
+  "notice": {
+    "title": "Announcements"
+  }
+}

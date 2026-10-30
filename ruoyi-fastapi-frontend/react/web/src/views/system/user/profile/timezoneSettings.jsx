@@ -1,3 +1,6 @@
+import { useLocalizedText } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useState } from 'react'
 import { Alert, Button, Form, Radio, Select } from 'antd'
@@ -12,13 +15,15 @@ import {
 import useUserStore from '@/store/modules/user'
 import { message } from '@/plugins/modal'
 export default function TimezoneSettings({ user, onSaved }) {
+  useI18n()
+
   const [mode, setMode] = useState(user.timeZone === 'auto' ? 'auto' : 'custom'),
     [selectedZone, setSelectedZone] = useState(getDisplayTimezone())
   const [zones, setZones] = useState(getSupportedTimezones()),
     [loading, setLoading] = useState(false),
     [loadError, setLoadError] = useState(false),
     [saving, setSaving] = useState(false),
-    [error, setError] = useState(''),
+    [error, setError] = useLocalizedText(''),
     [fieldError, setFieldError] = useState(''),
     [now, setNow] = useState(new Date())
   const deviceZone = getDeviceTimezone(),
@@ -46,7 +51,7 @@ export default function TimezoneSettings({ user, onSaved }) {
   }, [user.timeZone])
   async function save() {
     if (saving) return
-    if (mode === 'custom' && !selectedZone) return setFieldError('请选择显示时区')
+    if (mode === 'custom' && !selectedZone) return setFieldError(t('system:selectDisplayTimeZone'))
     setSaving(true)
     setError('')
     const preference = mode === 'auto' ? 'auto' : selectedZone
@@ -55,9 +60,9 @@ export default function TimezoneSettings({ user, onSaved }) {
       useUserStore.getState().applyTimezone(preference)
       setNow(new Date())
       onSaved?.(preference)
-      message.success('时区设置已保存')
+      message.success(t('system:timeZoneSaved'))
     } catch (error) {
-      setError(error.message || '保存失败，请重试')
+      setError((t) => error.message || t('common:saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -68,27 +73,27 @@ export default function TimezoneSettings({ user, onSaved }) {
       onFinish={save}
       className="timezone-settings"
     >
-      <Form.Item label="时间显示方式">
+      <Form.Item label={t('system:timeDisplayMode')}>
         <Radio.Group
-          aria-label="时间显示方式"
+          aria-label={t('system:timeDisplayMode')}
           disabled={saving}
           value={mode}
           onChange={(event) => setMode(event.target.value)}
           options={[
-            { value: 'auto', label: '自动跟随设备' },
-            { value: 'custom', label: '手动选择' },
+            { value: 'auto', label: t('system:followDeviceAutomatically') },
+            { value: 'custom', label: t('system:chooseManually') },
           ]}
         />
       </Form.Item>
       {mode === 'custom' && (
         <Form.Item
-          label="显示时区"
+          label={t('system:displayTimeZone')}
           validateStatus={fieldError ? 'error' : undefined}
           help={fieldError || undefined}
         >
           <Select
-            aria-label="显示时区"
-            placeholder="搜索时区，例如 Asia/Shanghai"
+            aria-label={t('system:displayTimeZone')}
+            placeholder={t('system:searchTimeZonesEGAsiaShanghai')}
             showSearch
             value={selectedZone}
             loading={loading}
@@ -105,7 +110,7 @@ export default function TimezoneSettings({ user, onSaved }) {
         <Alert
           className="timezone-settings-notice"
           type="warning"
-          title="时区列表加载失败，仍可使用当前时区。"
+          title={t('system:failedToLoadTheTimeZoneListYourCurrent')}
           action={
             <Button
               className="ruoyi-table-action"
@@ -113,7 +118,7 @@ export default function TimezoneSettings({ user, onSaved }) {
               loading={loading}
               onClick={loadOptions}
             >
-              重试
+              {t('common:retry')}
             </Button>
           }
         />
@@ -123,20 +128,21 @@ export default function TimezoneSettings({ user, onSaved }) {
         aria-live="polite"
       >
         <div>
-          预览时区：<strong>{previewZone}</strong>
+          {t('system:previewTimeZone')}
+          <strong>{previewZone}</strong>
         </div>
         <div>
-          时间预览：
+          {t('system:timePreview')}
           {formatBusinessTime(now, 'YYYY-MM-DD HH:mm:ss', previewZone)}
         </div>
         {mode === 'auto' && !deviceZone && (
           <div className="timezone-settings-fallback">
-            当前设备无法识别时区，已使用系统时区；你也可以手动选择。
+            {t('system:thisDeviceCannotIdentifyItsTimeZoneTheSystem')}
           </div>
         )}
       </div>
       <p className="timezone-settings-hint">
-        用于时间显示、日期筛选和导出。定时任务和业务统计使用各自配置的时区。
+        {t('system:usedForTimeDisplayDateFilteringAndExportsScheduled')}
       </p>
       {error && (
         <p
@@ -151,7 +157,7 @@ export default function TimezoneSettings({ user, onSaved }) {
         htmlType="submit"
         loading={saving}
       >
-        保存时区
+        {t('system:saveTimeZone')}
       </Button>
     </Form>
   )

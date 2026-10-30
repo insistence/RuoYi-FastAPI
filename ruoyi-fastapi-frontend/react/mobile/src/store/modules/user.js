@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n'
 import { create } from 'zustand'
 import config from '@/config'
 import storage from '@/utils/storage'
@@ -69,6 +70,7 @@ export const useUserStore = create((set, get) => ({
   async getInfo() {
     const result = await getInfo()
     const user = result.user
+    i18n.setAccount(user?.userId, user?.locale)
     setBusinessTimezone(result.appTimezone)
     set({ appTimezone: result.appTimezone })
     get().applyTimezone(user.timeZone || 'auto')
@@ -85,6 +87,7 @@ export const useUserStore = create((set, get) => ({
   },
   clear() {
     removeToken()
+    i18n.setAccount(null)
     storage.clean()
     setUserTimezone('auto')
     set({

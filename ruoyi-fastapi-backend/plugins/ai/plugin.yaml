@@ -34,6 +34,8 @@ frontend:
     buildRequired: true
   menus:
     - name: AI 管理
+      nameI18n:
+        en-US: AI management
       path: ai
       component: Layout
       perms: ''
@@ -42,6 +44,8 @@ frontend:
       icon: ai-manage
       children:
         - name: 模型管理
+          nameI18n:
+            en-US: Models
           path: model
           component: plugin/ai/model/index
           routeName: AiModel
@@ -50,6 +54,8 @@ frontend:
           orderNum: 1
           icon: ai-model
         - name: AI 对话
+          nameI18n:
+            en-US: AI chat
           path: chat
           component: plugin/ai/chat/index
           routeName: AiChat
@@ -61,16 +67,28 @@ frontend:
 permissions:
   - code: ai:model:list
     name: 模型列表
+    nameI18n:
+      en-US: List models
   - code: ai:model:add
     name: 新增模型
+    nameI18n:
+      en-US: Add models
   - code: ai:model:edit
     name: 修改模型
+    nameI18n:
+      en-US: Edit models
   - code: ai:model:remove
     name: 删除模型
+    nameI18n:
+      en-US: Delete models
   - code: ai:model:query
     name: 查询模型
+    nameI18n:
+      en-US: View models
   - code: ai:chat:list
     name: AI 对话
+    nameI18n:
+      en-US: AI chat
 
 dependencies:
   python:
@@ -119,6 +137,7 @@ dependencies:
   plugins: []
 
 compatibility:
+  backendVersion: ">=2.0.0"
   databases:
     - mysql
     - postgresql

@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import {
   LockOutlined,
   SwapOutlined,
@@ -37,6 +39,8 @@ import FileTable from './components/FileTable'
 import FileTransferDialog from './components/FileTransferDialog'
 
 export default function File() {
+  useI18n()
+
   const [query, setQuery] = useState({
       pageNum: 1,
       pageSize: 10,
@@ -91,26 +95,29 @@ export default function File() {
     const rows = row ? [row] : selected
     if (!rows.length) return
     if (action === 'delete' && rows.some((item) => item.referenceCount))
-      return message.warning('文件仍被业务引用，请先解除引用后再删除')
-    const label = rows.length === 1 ? rows[0].originalName : `${rows.length} 个文件`
+      return message.warning(t('system:thisFileIsStillReferencedRemoveItsReferencesBefore'))
+    const label =
+      rows.length === 1
+        ? rows[0].originalName
+        : t('system:file.valueFiles', { length: rows.length })
     try {
       await confirm(
         {
-          delete: `是否将“${label}”移入回收站？`,
-          restore: `是否恢复“${label}”？`,
-          purge: `永久清理后无法恢复，是否确认清理“${label}”？`,
+          delete: t('file:moveValueToTheRecycleBin', { label }),
+          restore: t('file:restoreValue', { label }),
+          purge: t('file:permanentDeletionCannotBeUndoneDeleteValuePermanently', { label }),
         }[action]
       )
       await { delete: delFile, restore: restoreFile, purge: purgeFile }[action](
         rows.map((item) => item.fileId).join(',')
       )
-      message.success('操作成功')
+      message.success(t('file:operationCompleted'))
       refresh()
     } catch {}
   }
   function batchAcl() {
     if (privateFiles.length !== selected.length)
-      message.warning('仅对所选正常的受保护文件配置授权，其余文件已忽略')
+      message.warning(t('file:permissionsApplyOnlyToTheSelectedActiveProtectedFiles'))
     setAcl({ files: privateFiles, batch: true })
   }
   return (
@@ -133,7 +140,7 @@ export default function File() {
               disabled={!privateFiles.length}
               onClick={batchAcl}
             >
-              授权
+              {t('system:permissions')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:file:transfer']}>
@@ -143,7 +150,7 @@ export default function File() {
               disabled={!allActive}
               onClick={() => setTransfer(selected)}
             >
-              转移
+              {t('system:transfer')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:file:restore']}>
@@ -153,7 +160,7 @@ export default function File() {
               disabled={!selected.length || selected.some((row) => row.status !== 'deleted')}
               onClick={() => mutate('restore')}
             >
-              恢复
+              {t('common:restore')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:file:purge']}>
@@ -166,11 +173,15 @@ export default function File() {
               }
               onClick={() => mutate('purge')}
             >
-              清理
+              {t('monitor:deletePermanently')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:file:remove']}>
-            <Tooltip title={references ? '所选文件存在业务引用，请先解除引用' : ''}>
+            <Tooltip
+              title={
+                references ? t('system:selectedFilesAreReferencedRemoveTheirReferencesFirst') : ''
+              }
+            >
               <span>
                 <Button
                   className="ruoyi-plain-button ruoyi-plain-button--danger"
@@ -178,7 +189,7 @@ export default function File() {
                   disabled={!allActive || !!references}
                   onClick={() => mutate('delete')}
                 >
-                  删除
+                  {t('common:delete')}
                 </Button>
               </span>
             </Tooltip>
@@ -189,7 +200,7 @@ export default function File() {
               icon={<ClockCircleOutlined />}
               onClick={() => setPolicyOpen(true)}
             >
-              策略
+              {t('system:policies')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:file:reconcile']}>
@@ -198,7 +209,7 @@ export default function File() {
               icon={<ApiOutlined />}
               onClick={() => setReconcileOpen(true)}
             >
-              对账
+              {t('system:reconciliation')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:file:list']}>
@@ -207,7 +218,7 @@ export default function File() {
               icon={<BellOutlined />}
               onClick={() => setReminderOpen(true)}
             >
-              提醒
+              {t('system:reminders')}
             </Button>
           </HasPermi>
         </Space>

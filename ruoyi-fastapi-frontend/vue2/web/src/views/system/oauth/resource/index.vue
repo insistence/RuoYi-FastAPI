@@ -1,10 +1,14 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      section="接入管理"
-      title="服务"
-      description="登记接收访问凭据的接口服务，并限制每个服务能够获得的用户信息。"
-      filter-hint="按服务名称或当前状态查找"
+      :section="$t('authCenter:help.integrationManagement')"
+      :title="$t('common:service')"
+      :description="
+        $t(
+          'authCenter:messages.registerAPIServicesThatReceiveAccessCredentialsAndLimitTheUserInformation'
+        )
+      "
+      :filter-hint="$t('authCenter:messages.findServicesByNameOrStatus')"
     >
       <template #actions>
         <el-button
@@ -12,45 +16,46 @@
           icon="el-icon-plus"
           v-hasPermi="['system:oauthResource:add']"
           @click="handleAdd"
-          >新增服务</el-button
+          >{{ $t('authCenter:messages.addService') }}</el-button
         >
       </template>
 
       <template #filters>
         <el-form
+          :validate-on-rule-change="false"
           v-show="showSearch"
           ref="queryRef"
           :model="queryParams"
           :inline="true"
         >
           <el-form-item
-            label="服务名称"
+            :label="$t('authCenter:messages.serviceName')"
             prop="resourceName"
           >
             <el-input
               v-model="queryParams.resourceName"
               clearable
-              placeholder="输入服务名称"
+              :placeholder="$t('authCenter:messages.enterServiceName')"
               style="width: 200px"
               @keyup.enter.native="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            label="状态"
+            :label="$t('common:status')"
             prop="status"
           >
             <el-select
               v-model="queryParams.status"
               clearable
-              placeholder="全部状态"
+              :placeholder="$t('common:allStatuses')"
               style="width: 200px"
             >
               <el-option
-                label="使用中"
+                :label="$t('authCenter:messages.inUse')"
                 value="0"
               />
               <el-option
-                label="已停用"
+                :label="$t('common:disabled')"
                 value="1"
               />
             </el-select>
@@ -60,12 +65,12 @@
               type="primary"
               icon="el-icon-search"
               @click="handleQuery"
-              >查找</el-button
+              >{{ $t('common:find') }}</el-button
             >
             <el-button
               icon="el-icon-refresh"
               @click="resetQuery"
-              >清空</el-button
+              >{{ $t('common:clear') }}</el-button
             >
           </el-form-item>
         </el-form>
@@ -73,7 +78,8 @@
 
       <template #toolbar>
         <span class="result-count"
-          >已登记 <strong>{{ total }}</strong> 个服务</span
+          >{{ $t('authCenter:messages.registered') }} <strong>{{ total }}</strong>
+          {{ $t('authCenter:messages.services') }}</span
         >
         <right-toolbar
           :showSearch.sync="showSearch"
@@ -87,7 +93,7 @@
         row-key="resourceId"
       >
         <el-table-column
-          label="服务"
+          :label="$t('common:service')"
           min-width="230"
         >
           <template #default="scope">
@@ -106,7 +112,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="令牌目标"
+          :label="$t('authCenter:messages.tokenAudience')"
           prop="audience"
           min-width="250"
           show-overflow-tooltip
@@ -116,7 +122,7 @@
           >
         </el-table-column>
         <el-table-column
-          label="返回的用户信息"
+          :label="$t('authCenter:messages.returnedUserInformation')"
           min-width="240"
         >
           <template #default="scope">
@@ -137,29 +143,31 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="有效时长"
+          :label="$t('authCenter:messages.validityPeriods')"
           width="120"
           align="center"
         >
           <template #default="scope">{{
             scope.row.accessTokenTtlSeconds
               ? formatDuration(scope.row.accessTokenTtlSeconds)
-              : '平台默认'
+              : $t('pluginAdmin:platformDefault')
           }}</template>
         </el-table-column>
         <el-table-column
-          label="状态"
+          :label="$t('common:status')"
           width="105"
           align="center"
         >
           <template #default="scope">
             <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">{{
-              scope.row.status === '0' ? '使用中' : '已停用'
+              scope.row.status === '0'
+                ? $t('authCenter:messages.inUse')
+                : $t('pluginAdmin:release.disabled')
             }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          label="操作"
+          :label="$t('common:actions')"
           width="180"
           fixed="right"
           align="center"
@@ -171,7 +179,7 @@
                 icon="el-icon-edit"
                 v-hasPermi="['system:oauthResource:edit']"
                 @click="handleUpdate(scope.row)"
-                >编辑</el-button
+                >{{ $t('common:editAction') }}</el-button
               >
               <el-dropdown
                 trigger="click"
@@ -180,7 +188,7 @@
                 <el-button
                   type="text"
                   icon="el-icon-arrow-down"
-                  >更多</el-button
+                  >{{ $t('common:more') }}</el-button
                 >
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -189,14 +197,14 @@
                       command="enable"
                       icon="el-icon-circle-check"
                       v-hasPermi="['system:oauthResource:edit']"
-                      >重新启用</el-dropdown-item
+                      >{{ $t('authCenter:messages.reEnable') }}</el-dropdown-item
                     >
                     <el-dropdown-item
                       v-else
                       command="disable"
                       icon="el-icon-circle-close"
                       v-hasPermi="['system:oauthResource:remove']"
-                      >停用服务</el-dropdown-item
+                      >{{ $t('authCenter:messages.disableService') }}</el-dropdown-item
                     >
                   </el-dropdown-menu>
                 </template>
@@ -205,12 +213,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="还没有符合条件的服务">
+          <el-empty :description="$t('authCenter:messages.noMatchingServices')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthResource:add']"
               @click="handleAdd"
-              >新增第一个服务</el-button
+              >{{ $t('authCenter:messages.addYourFirstService') }}</el-button
             >
           </el-empty>
         </template>
@@ -227,12 +235,17 @@
     <el-dialog
       custom-class="oauth-overlay"
       :visible.sync="open"
-      :title="form.persisted ? '编辑服务' : '新增服务'"
+      :title="
+        form.persisted
+          ? $t('authCenter:expression.editService')
+          : $t('authCenter:messages.addService')
+      "
       width="min(820px, calc(100vw - 48px))"
       append-to-body
       :close-on-click-modal="false"
     >
       <el-form
+        :validate-on-rule-change="false"
         ref="formRef"
         :model="form"
         :rules="rules"
@@ -241,8 +254,14 @@
       >
         <section class="form-section">
           <div class="section-heading">
-            <h3>服务身份</h3>
-            <p>应用通过服务标识申请访问，服务通过令牌目标判断凭据是否发给自己。</p>
+            <h3>{{ $t('authCenter:messages.serviceIdentity') }}</h3>
+            <p>
+              {{
+                $t(
+                  'authCenter:messages.applicationsRequestAccessUsingTheServiceIdentifierServicesUseTheTokenAudience'
+                )
+              }}
+            </p>
           </div>
           <el-row :gutter="18">
             <el-col
@@ -252,12 +271,14 @@
               <el-form-item prop="resourceName">
                 <template #label
                   ><FieldLabel
-                    label="服务名称"
-                    help="管理端展示名称，便于管理员识别这个服务。"
+                    :label="$t('authCenter:messages.serviceName')"
+                    :help="
+                      $t('authCenter:help.aDisplayNameThatHelpsAdministratorsIdentifyThisService')
+                    "
                 /></template>
                 <el-input
                   v-model="form.resourceName"
-                  placeholder="例如：订单服务"
+                  :placeholder="$t('authCenter:messages.forExampleOrderService')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -269,13 +290,17 @@
               <el-form-item prop="resourceId">
                 <template #label
                   ><FieldLabel
-                    label="服务标识"
-                    help="应用通过这个唯一标识关联服务，保存后不能修改。"
+                    :label="$t('authCenter:messages.serviceIdentifier')"
+                    :help="
+                      $t(
+                        'authCenter:help.applicationsAssociateThisServiceWithItsUniqueIdentifierWhichCannotBeChanged'
+                      )
+                    "
                 /></template>
                 <el-input
                   v-model="form.resourceId"
                   :disabled="form.persisted"
-                  placeholder="例如：orders-api"
+                  :placeholder="$t('authCenter:messages.forExampleOrdersApi')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -284,13 +309,15 @@
           <el-form-item prop="audience">
             <template #label
               ><FieldLabel
-                label="令牌目标"
-                help="服务校验访问凭据时使用的唯一值，必须与服务端配置完全一致。"
+                :label="$t('authCenter:messages.tokenAudience')"
+                :help="
+                  $t('authCenter:help.theUniqueValueUsedByTheServiceToValidateAccessTokensIt')
+                "
             /></template>
             <el-input
               v-model="form.audience"
               :disabled="form.persisted"
-              placeholder="例如：https://api.example.com"
+              :placeholder="$t('authCenter:messages.forExampleHttpsApiExampleCom')"
               style="width: 100%"
             />
           </el-form-item>
@@ -298,8 +325,14 @@
 
         <section class="form-section">
           <div class="section-heading">
-            <h3>凭据和用户信息</h3>
-            <p>控制访问凭据的寿命，以及这个服务最多可以获得哪些用户信息。</p>
+            <h3>{{ $t('authCenter:messages.credentialsAndUserInformation') }}</h3>
+            <p>
+              {{
+                $t(
+                  'authCenter:messages.controlAccessCredentialLifetimesAndTheMaximumUserInformationThisServiceMay'
+                )
+              }}
+            </p>
           </div>
           <el-row :gutter="18">
             <el-col
@@ -309,18 +342,22 @@
               <el-form-item class="duration-field">
                 <template #label
                   ><FieldLabel
-                    label="有效时长"
-                    help="服务收到的访问凭据最多可以使用多久，留空使用平台默认值。"
+                    :label="$t('authCenter:messages.validityPeriods')"
+                    :help="
+                      $t(
+                        'authCenter:help.theMaximumLifetimeOfAccessTokensReceivedByTheServiceLeaveEmpty'
+                      )
+                    "
                 /></template>
                 <el-input-number
                   :value="form.accessTokenTtlSeconds ?? undefined"
                   @input="form.accessTokenTtlSeconds = $event ?? null"
                   :min="1"
-                  placeholder="平台默认"
+                  :placeholder="$t('pluginAdmin:platformDefault')"
                   controls-position="right"
                   style="width: 100%"
                 />
-                <span class="input-unit">秒</span>
+                <span class="input-unit">{{ $t('common:seconds') }}</span>
               </el-form-item>
             </el-col>
             <el-col
@@ -330,12 +367,16 @@
               <el-form-item>
                 <template #label
                   ><FieldLabel
-                    label="令牌检查应用"
-                    help="可选。填写一个后端应用编号，用于检查凭据是否仍然有效。"
+                    :label="$t('authCenter:messages.tokenIntrospectionApplication')"
+                    :help="
+                      $t(
+                        'authCenter:help.optionalEnterABackendApplicationIDToCheckWhetherTokensRemainValid'
+                      )
+                    "
                 /></template>
                 <el-input
                   v-model="form.introspectionClientId"
-                  placeholder="可选：后端应用编号"
+                  :placeholder="$t('authCenter:messages.optionalBackendApplicationID')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -344,8 +385,12 @@
           <el-form-item prop="allowedClaims">
             <template #label
               ><FieldLabel
-                label="可返回用户信息"
-                help="限制这个服务最多能收到哪些用户信息，最终结果仍会受权限项限制。"
+                :label="$t('authCenter:messages.allowedUserInformation')"
+                :help="
+                  $t(
+                    'authCenter:help.limitsTheUserInformationThisServiceCanReceiveTheFinalResultAlso'
+                  )
+                "
             /></template>
             <el-select
               v-model="form.allowedClaims"
@@ -353,7 +398,7 @@
               filterable
               allow-create
               default-first-option
-              placeholder="选择或输入用户字段"
+              :placeholder="$t('authCenter:messages.selectOrEnterUserFields')"
               style="width: 100%"
             >
               <el-option
@@ -367,8 +412,12 @@
           <el-form-item>
             <template #label
               ><FieldLabel
-                label="备注"
-                help="仅供管理员记录，不会发送给外部应用或服务。"
+                :label="$t('common:remark')"
+                :help="
+                  $t(
+                    'authCenter:help.forAdministratorsRecordsOnlyThisIsNotSentToExternalApplicationsOr'
+                  )
+                "
             /></template>
             <el-input
               v-model="form.remark"
@@ -382,12 +431,12 @@
         </section>
       </el-form>
       <template #footer>
-        <el-button @click="open = false">取消</el-button>
+        <el-button @click="open = false">{{ $t('common:cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="saving"
           @click="submitForm"
-          >保存服务</el-button
+          >{{ $t('authCenter:messages.saveService') }}</el-button
         >
       </template>
     </el-dialog>
@@ -395,6 +444,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 export default { name: 'OAuthResource' }
 </script>
 
@@ -426,21 +477,74 @@ const queryParams = reactive({
 })
 const form = reactive(emptyForm())
 const claimOptions = [
-  { value: 'sub', label: '用户唯一标识（sub）' },
-  { value: 'name', label: '姓名（name）' },
-  { value: 'email', label: '邮箱（email）' },
-  { value: 'roles', label: '角色（roles）' },
-  { value: 'client_id', label: '应用编号（client_id）' },
-  { value: 'scope', label: '已获权限（scope）' },
-  { value: 'sid', label: '会话标识（sid）' },
+  {
+    value: 'sub',
+    get label() {
+      return t('auth:interface.userIdentifierSub')
+    },
+  },
+  {
+    value: 'name',
+    get label() {
+      return t('auth:interface.nameName')
+    },
+  },
+  {
+    value: 'email',
+    get label() {
+      return t('auth:interface.emailEmail')
+    },
+  },
+  {
+    value: 'roles',
+    get label() {
+      return t('auth:interface.rolesRoles')
+    },
+  },
+  {
+    value: 'client_id',
+    get label() {
+      return t('auth:interface.clientIDClientId')
+    },
+  },
+  {
+    value: 'scope',
+    get label() {
+      return t('auth:interface.grantedPermissionsScope')
+    },
+  },
+  {
+    value: 'sid',
+    get label() {
+      return t('auth:interface.sessionIDSid')
+    },
+  },
 ]
 const rules = {
-  resourceId: [{ required: true, message: '请输入服务标识', trigger: 'blur' }],
-  resourceName: [{ required: true, message: '请输入服务名称', trigger: 'blur' }],
+  resourceId: [
+    {
+      required: true,
+      get message() {
+        return t('auth:interface.enterAServiceIdentifier')
+      },
+      trigger: 'blur',
+    },
+  ],
+  resourceName: [
+    {
+      required: true,
+      get message() {
+        return t('auth:interface.enterAServiceName')
+      },
+      trigger: 'blur',
+    },
+  ],
   audience: [
     {
       required: true,
-      message: '请输入令牌目标（通常填写服务地址）',
+      get message() {
+        return t('auth:interface.enterTheTokenAudienceUsuallyTheServiceURL')
+      },
       trigger: 'blur',
     },
   ],
@@ -449,7 +553,7 @@ const rules = {
       required: true,
       type: 'array',
       min: 1,
-      message: '至少选择一项可返回的用户信息',
+      message: () => t('authCenter:messages.selectAtLeastOneAllowedUserInformationField'),
       trigger: 'change',
     },
   ],
@@ -530,7 +634,7 @@ async function submitForm() {
       delete data.status
     }
     await (persisted ? updateOAuthResource(data) : addOAuthResource(data))
-    proxy.$modal.msgSuccess('资源配置已保存')
+    proxy.$modal.msgSuccess(t('authCenter:messages.resourceSettingsSaved'))
     open.value = false
     await getList()
   } finally {
@@ -541,7 +645,12 @@ async function submitForm() {
 /** 修改资源服务状态 */
 async function changeStatus(row, status) {
   try {
-    await proxy.$modal.confirm(`${status === '0' ? '启用' : '停用'}资源“${row.resourceName}”？`)
+    await proxy.$modal.confirm(
+      t('auth:interface.valueResourceValue', {
+        value0: status === '0' ? t('system:oauth.enable') : t('system:oauth.disabled'),
+        value1: row.resourceName,
+      })
+    )
     await changeOAuthResourceStatus({ resourceId: row.resourceId, status })
     getList()
   } catch {
@@ -552,10 +661,12 @@ async function changeStatus(row, status) {
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    `停用“${row.resourceName}”后将停止为该服务签发和刷新访问令牌，是否继续？`
+    t('auth:interface.disablingValueStopsIssuanceAndRefreshOfAccessTokensForThisServiceContinue', {
+      value0: row.resourceName,
+    })
   )
   await deleteOAuthResources(row.resourceId)
-  proxy.$modal.msgSuccess('资源已停用')
+  proxy.$modal.msgSuccess(t('authCenter:messages.resourceDisabled'))
   await getList()
 }
 
@@ -578,12 +689,12 @@ function claimLabel(value) {
 function formatDuration(value) {
   const seconds = Number(value) || 0
   if (seconds >= 3600 && seconds % 3600 === 0) {
-    return `${seconds / 3600} 小时`
+    return t('auth:interface.valueHours', { value0: seconds / 3600 })
   }
   if (seconds >= 60 && seconds % 60 === 0) {
-    return `${seconds / 60} 分钟`
+    return t('auth:interface.valueMinutes', { value0: seconds / 60 })
   }
-  return `${seconds} 秒`
+  return t('auth:interface.valueSeconds', { value0: seconds })
 }
 
 getList()

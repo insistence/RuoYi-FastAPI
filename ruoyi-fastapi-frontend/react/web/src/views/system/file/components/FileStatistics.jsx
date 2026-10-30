@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import {
   FileOutlined,
   DatabaseOutlined,
@@ -10,21 +12,46 @@ import './statistics.css'
 import { formatFileSize } from './fileFormatters'
 
 export default function FileStatistics({ stats = {} }) {
+  useI18n()
+
   const percent = (size) =>
     stats.totalSize
       ? `${((Number(size || 0) / stats.totalSize) * 100).toFixed(Number(size || 0) / stats.totalSize >= 0.1 ? 0 : 1)}%`
       : '0%'
   const items = [
     [
-      '文件总数',
+      t('system:totalFiles'),
       stats.totalCount || 0,
-      `正常 ${stats.activeCount || 0}　回收站 ${stats.deletedCount || 0}`,
+      t('file:activeValueRecycleBinValue', {
+        arg0: stats.activeCount || 0,
+        arg1: stats.deletedCount || 0,
+      }),
     ],
-    ['占用空间', formatFileSize(stats.totalSize), '全部文件累计占用'],
-    ['公开文件空间', formatFileSize(stats.publicSize), `占总空间 ${percent(stats.publicSize)}`],
-    ['受保护文件空间', formatFileSize(stats.privateSize), `占总空间 ${percent(stats.privateSize)}`],
-    ['已过期文件', stats.expiredCount || 0, `7天内到期 ${stats.retentionExpiringCount || 0}`],
-    ['即将过期授权', stats.aclExpiringCount || 0, '7天内失效的 ACL 项'],
+    [
+      t('system:storageUsed'),
+      formatFileSize(stats.totalSize),
+      t('system:totalStorageUsedByAllFiles'),
+    ],
+    [
+      t('system:publicFileStorage'),
+      formatFileSize(stats.publicSize),
+      t('file:valueOfTotalSpace', { arg0: percent(stats.publicSize) }),
+    ],
+    [
+      t('system:protectedFileStorage'),
+      formatFileSize(stats.privateSize),
+      t('file:valueOfTotalSpace', { arg0: percent(stats.privateSize) }),
+    ],
+    [
+      t('system:expiredFiles'),
+      stats.expiredCount || 0,
+      t('file:expiringWithin7DaysValue', { arg0: stats.retentionExpiringCount || 0 }),
+    ],
+    [
+      t('system:expiringPermissions'),
+      stats.aclExpiringCount || 0,
+      t('system:aclEntriesExpiringWithin7Days'),
+    ],
   ]
   const icons = [
     FileOutlined,
@@ -38,12 +65,14 @@ export default function FileStatistics({ stats = {} }) {
   return (
     <section
       className="file-statistics"
-      aria-label="文件概览"
+      aria-label={t('system:fileOverview')}
     >
       <div className="file-statistics-header">
         <div>
-          <div className="file-statistics-title">文件概览</div>
-          <div className="file-statistics-tip">统计数据随当前查询条件实时更新</div>
+          <div className="file-statistics-title">{t('system:fileOverview')}</div>
+          <div className="file-statistics-tip">
+            {t('system:statisticsUpdateWithTheCurrentFilters')}
+          </div>
         </div>
       </div>
       <div className="file-statistics-content">

@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import { PlusOutlined, SearchOutlined, ReloadOutlined, CheckOutlined } from '@ant-design/icons'
@@ -34,9 +37,12 @@ import DictTag from '@/components/DictTag'
 import RightToolbar from '@/components/RightToolbar'
 
 export default function Dept() {
+  useI18n()
+
   const { sys_normal_disable } = useDict('sys_normal_disable')
   const [queryRef] = Form.useForm(),
     [deptRef] = Form.useForm()
+  useLocalizedFormErrors(queryRef, deptRef)
   const [rows, setRows] = useState([]),
     [orders, setOrders] = useState({}),
     [expanded, setExpanded] = useState([])
@@ -91,9 +97,9 @@ export default function Dept() {
   }
   async function handleDelete(row) {
     try {
-      await confirm(`是否确认删除名称为“${row.deptName}”的数据项？`)
+      await confirm(t('system:dept.deleteTheItemNamedValue', { deptName: row.deptName }))
       await delDept(row.deptId)
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
@@ -102,7 +108,7 @@ export default function Dept() {
       const values = await deptRef.validateFields()
       setSaving(true)
       await (deptId !== undefined ? updateDept({ ...values, deptId }) : addDept(values))
-      message.success('保存成功')
+      message.success(t('system:savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -115,20 +121,20 @@ export default function Dept() {
       (row) =>
         orders[row.deptId] !== undefined && String(orders[row.deptId]) !== String(row.orderNum)
     )
-    if (!changed.length) return message.warning('未检测到排序修改')
+    if (!changed.length) return message.warning(t('system:noSortOrderChangesDetected'))
     try {
       await updateDeptSort({
         deptIds: changed.map((row) => row.deptId).join(','),
         orderNums: changed.map((row) => orders[row.deptId]).join(','),
       })
-      message.success('排序保存成功')
+      message.success(t('system:sortOrderSaved'))
       await getList()
     } catch {}
   }
   const columns = [
-    { title: '部门名称', dataIndex: 'deptName', width: 260 },
+    { title: t('system:dept.name'), dataIndex: 'deptName', width: 260 },
     {
-      title: '排序',
+      title: t('common:sort'),
       dataIndex: 'orderNum',
       width: 200,
       render: (value, row) => (
@@ -144,7 +150,7 @@ export default function Dept() {
     },
     {
       width: 100,
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       render: (value) => (
         <DictTag
@@ -156,14 +162,14 @@ export default function Dept() {
     {
       width: 200,
       align: 'center',
-      title: '创建时间',
+      title: t('common:createdTime'),
       dataIndex: 'createTime',
       render: (value) => parseTime(value),
     },
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       render: (_, row) => (
         <TableActions>
           <HasPermi value={['system:dept:edit']}>
@@ -171,7 +177,7 @@ export default function Dept() {
               symbol="Edit"
               onClick={() => handleUpdate(row)}
             >
-              修改
+              {t('common:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:dept:add']}>
@@ -179,7 +185,7 @@ export default function Dept() {
               symbol="Plus"
               onClick={() => handleAdd(row)}
             >
-              新增
+              {t('common:add')}
             </TableAction>
           </HasPermi>
           {row.parentId !== 0 && (
@@ -188,7 +194,7 @@ export default function Dept() {
                 symbol="Delete"
                 onClick={() => handleDelete(row)}
               >
-                删除
+                {t('common:delete')}
               </TableAction>
             </HasPermi>
           )}
@@ -206,22 +212,22 @@ export default function Dept() {
           onFinish={setQuery}
         >
           <Form.Item
-            label="部门名称"
+            label={t('system:dept.name')}
             name="deptName"
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入部门名称"
+              placeholder={t('common:enterADepartmentName')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="状态"
+            label={t('common:status')}
             name="status"
           >
             <Select
               style={{ width: 200 }}
-              placeholder="部门状态"
+              placeholder={t('system:dept.status')}
               allowClear
               options={sys_normal_disable}
             />
@@ -233,7 +239,7 @@ export default function Dept() {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -242,7 +248,7 @@ export default function Dept() {
                   setQuery({})
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -256,7 +262,7 @@ export default function Dept() {
             type="default"
             onClick={() => handleAdd()}
           >
-            新增
+            {t('common:add')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:dept:edit']}>
@@ -266,7 +272,7 @@ export default function Dept() {
             type="default"
             onClick={handleSaveSort}
           >
-            保存排序
+            {t('system:saveSortOrder')}
           </Button>
         </HasPermi>
         <Button
@@ -274,7 +280,7 @@ export default function Dept() {
           type="default"
           onClick={() => setExpanded(expanded.length ? [] : rows.map((row) => row.deptId))}
         >
-          展开 / 折叠
+          {t('system:expandCollapse')}
         </Button>
         <RightToolbar
           showSearch={showSearch}
@@ -299,7 +305,7 @@ export default function Dept() {
       />
       <Modal
         footer={renderDialogFooter}
-        title={deptId !== undefined ? '修改部门' : '添加部门'}
+        title={deptId !== undefined ? t('system:editDepartment') : t('system:addDepartment')}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
@@ -317,13 +323,15 @@ export default function Dept() {
           layout="horizontal"
         >
           <Form.Item
-            label="上级部门"
+            label={t('system:dept.parent')}
             name="parentId"
-            rules={[{ required: true, message: '上级部门不能为空' }]}
+            rules={[{ required: true, message: t('system:parentDepartmentIsRequired') }]}
           >
             <TreeSelect
-              placeholder="选择上级部门"
-              treeData={[{ deptId: 0, deptName: '顶级部门', children: deptOptions }]}
+              placeholder={t('system:selectParentDepartment')}
+              treeData={[
+                { deptId: 0, deptName: t('system:rootDepartment'), children: deptOptions },
+              ]}
               fieldNames={{
                 value: 'deptId',
                 label: 'deptName',
@@ -341,11 +349,11 @@ export default function Dept() {
             >
               <Form.Item
                 name="deptName"
-                label="部门名称"
+                label={t('system:dept.name')}
                 rules={[{ required: true }]}
               >
                 <Input
-                  placeholder="请输入部门名称"
+                  placeholder={t('common:enterADepartmentName')}
                   maxLength={30}
                 />
               </Form.Item>
@@ -356,7 +364,7 @@ export default function Dept() {
             >
               <Form.Item
                 name="orderNum"
-                label="显示排序"
+                label={t('system:dept.order')}
                 rules={[{ required: true }]}
               >
                 <InputNumber
@@ -368,10 +376,10 @@ export default function Dept() {
             <Col span={12}>
               <Form.Item
                 name="leader"
-                label="负责人"
+                label={t('system:dept.leader')}
               >
                 <Input
-                  placeholder="请输入负责人"
+                  placeholder={t('system:enterManagerName')}
                   maxLength={20}
                 />
               </Form.Item>
@@ -379,11 +387,11 @@ export default function Dept() {
             <Col span={12}>
               <Form.Item
                 name="phone"
-                label="联系电话"
-                rules={[{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' }]}
+                label={t('system:dept.phone')}
+                rules={[{ pattern: /^1[3-9]\d{9}$/, message: t('system:user.phoneInvalid') }]}
               >
                 <Input
-                  placeholder="请输入联系电话"
+                  placeholder={t('system:enterContactNumber')}
                   maxLength={11}
                 />
               </Form.Item>
@@ -391,11 +399,11 @@ export default function Dept() {
             <Col span={12}>
               <Form.Item
                 name="email"
-                label="邮箱"
+                label={t('system:user.email')}
                 rules={[{ type: 'email' }]}
               >
                 <Input
-                  placeholder="请输入邮箱"
+                  placeholder={t('system:user.emailPlaceholder')}
                   maxLength={50}
                 />
               </Form.Item>
@@ -403,7 +411,7 @@ export default function Dept() {
             <Col span={12}>
               <Form.Item
                 name="status"
-                label="部门状态"
+                label={t('system:dept.status')}
               >
                 <Radio.Group options={sys_normal_disable} />
               </Form.Item>

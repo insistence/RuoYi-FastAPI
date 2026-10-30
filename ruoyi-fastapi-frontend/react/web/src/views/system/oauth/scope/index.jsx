@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TagSummary from '@/components/OAuthWorkspace/TagSummary'
 import OAuthTag from '@/components/OAuthWorkspace/OAuthTag'
 import {
@@ -30,13 +33,14 @@ import HasPermi from '@/directive/permission/hasPermi'
 import Pagination from '@/components/Pagination'
 import RightToolbar from '@/components/RightToolbar'
 
-const claimOptions = [
-  ['sub', '用户唯一标识'],
-  ['name', '姓名'],
-  ['email', '邮箱'],
-  ['roles', '角色'],
-  ['preferred_username', '登录账号'],
-].map(([value, label]) => ({ value, label: `${label}（${value}）` }))
+const claimOptions = () =>
+  [
+    ['sub', t('system:uniqueUserIdentifier')],
+    ['name', t('system:name')],
+    ['email', t('system:user.email')],
+    ['roles', t('system:user.role')],
+    ['preferred_username', t('system:loginAccount')],
+  ].map(([value, label]) => ({ value, label: `${label}（${value}）` }))
 const defaults = {
   scopeCode: '',
   scopeName: '',
@@ -49,14 +53,27 @@ const defaults = {
   remark: '',
 }
 const scopeTypes = [
-  { value: 'identity', label: '登录身份信息' },
-  { value: 'resource', label: '服务访问' },
+  {
+    value: 'identity',
+    get label() {
+      return t('system:signInIdentityInformation')
+    },
+  },
+  {
+    value: 'resource',
+    get label() {
+      return t('system:serviceAccess')
+    },
+  },
 ]
 export default function OAuthScope() {
+  useI18n()
+
   const [queryForm] = Form.useForm(),
     [form] = Form.useForm(),
     type = Form.useWatch('scopeType', form),
     scopeCode = Form.useWatch('scopeCode', form)
+  useLocalizedFormErrors(queryForm, form)
   const [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
     [rows, setRows] = useState([]),
     [resources, setResources] = useState([]),
@@ -117,7 +134,7 @@ export default function OAuthScope() {
       if (data.scopeType === 'identity') data.resourceId = null
       setSaving(true)
       await (editing ? updateOAuthScope : addOAuthScope)(data)
-      message.success('权限已保存')
+      message.success(t('system:permissionSaved'))
       setOpen(false)
       await getList()
     } catch {
@@ -129,19 +146,21 @@ export default function OAuthScope() {
     try {
       await confirm(
         enable
-          ? `启用权限“${row.scopeName}”？`
-          : `停用权限“${row.scopeName}”后，应用不能再申请这项权限，是否继续？`
+          ? t('system:enablePermissionValue', { scopeName: row.scopeName })
+          : t('system:disablingPermissionValuePreventsApplicationsFromRequestingItContinue', {
+              scopeName: row.scopeName,
+            })
       )
       await (enable
         ? changeOAuthScopeStatus({ scopeCode: row.scopeCode, status: '0' })
         : deleteOAuthScopes(row.scopeCode))
-      message.success(enable ? '权限已启用' : '权限已停用')
+      message.success(enable ? t('system:permissionEnabled') : t('system:permissionDisabled'))
       await getList()
     } catch {}
   }
   const columns = [
     {
-      title: '权限',
+      title: t('system:permission.title'),
       width: 230,
       render: (_, row) => (
         <EntityCell
@@ -154,7 +173,7 @@ export default function OAuthScope() {
     },
     {
       width: 135,
-      title: '用途',
+      title: t('system:purpose'),
       dataIndex: 'scopeType',
       render: (value) => (
         <OAuthTag
@@ -167,30 +186,32 @@ export default function OAuthScope() {
     },
     {
       width: 180,
-      title: '所属服务',
+      title: t('system:service'),
       dataIndex: 'resourceId',
       render: (value) =>
         value
           ? resources.find((item) => item.resourceId === value)?.resourceName || value
-          : '统一身份信息',
+          : t('system:unifiedIdentityInformation'),
     },
     {
       width: 230,
-      title: '返回的用户信息',
+      title: t('system:returnedUserInformation'),
       render: (_, row) => (
         <TagSummary
           effect="plain"
           values={row.claims}
           label={(value) =>
-            claimOptions.find((item) => item.value === value)?.label.split('（')[0] || value
+            claimOptions()
+              .find((item) => item.value === value)
+              ?.label.split('（')[0] || value
           }
-          empty="不返回额外信息"
+          empty={t('authCenter:returnNoAdditionalInformation')}
         />
       ),
     },
     {
       width: 145,
-      title: '用户确认',
+      title: t('system:userConfirmation'),
       dataIndex: 'consentRequired',
       render: (value, row) => (
         <div className="oauth-policy-cell">
@@ -199,28 +220,30 @@ export default function OAuthScope() {
               size="small"
               type="warning"
             >
-              敏感权限
+              {t('system:sensitivePermission')}
             </OAuthTag>
           )}
-          <span>{value ? '需要确认' : '无需重复确认'}</span>
+          <span>
+            {value ? t('system:confirmationRequired') : t('system:scope.skipRepeatedConfirmation')}
+          </span>
         </div>
       ),
     },
     {
       width: 105,
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       render: (value) => (
         <OAuthTag type={value === '0' ? 'success' : 'info'}>
-          {value === '0' ? '使用中' : '已停用'}
+          {value === '0' ? t('system:inUse') : t('common:disabled')}
         </OAuthTag>
       ),
     },
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 180,
       fixed: 'right',
       render: (_, row) => (
@@ -230,7 +253,7 @@ export default function OAuthScope() {
               symbol="Edit"
               onClick={() => edit(row)}
             >
-              编辑
+              {t('common:editAction')}
             </TableAction>
           </HasPermi>
           {row.scopeCode !== 'openid' && (
@@ -241,19 +264,19 @@ export default function OAuthScope() {
                   row.status !== '0' &&
                     checkPermi(['system:oauthScope:edit']) && {
                       key: 'enable',
-                      label: '重新启用',
+                      label: t('system:reEnable'),
                       onClick: () => change(row, true),
                     },
                   row.status === '0' &&
                     checkPermi(['system:oauthScope:remove']) && {
                       key: 'disable',
-                      label: '停用权限',
+                      label: t('system:disablePermission'),
                       onClick: () => change(row, false),
                     },
                 ].filter(Boolean),
               }}
             >
-              <TableAction symbol="ArrowDown">更多</TableAction>
+              <TableAction symbol="ArrowDown">{t('common:more')}</TableAction>
             </Dropdown>
           )}
         </TableActions>
@@ -263,10 +286,10 @@ export default function OAuthScope() {
   return (
     <PageFrame
       className="oauth-scope-page"
-      title="权限"
-      description="用业务语言定义应用可以申请的身份信息和服务操作。"
-      section="接入管理"
-      filterHint="协议代码作为次要信息展示，日常按名称查找即可"
+      title={t('system:permission.title')}
+      description={t('system:describeTheIdentityInformationAndServiceOperationsApplicationsMay')}
+      section={t('authCenter:integrationManagement')}
+      filterHint={t('system:protocolCodesAppearAsSecondaryInformationSearchByName')}
       actions={
         <HasPermi value={['system:oauthScope:add']}>
           <Button
@@ -274,7 +297,7 @@ export default function OAuthScope() {
             type="primary"
             onClick={add}
           >
-            新增权限
+            {t('system:scope.addPermission')}
           </Button>
         </HasPermi>
       }
@@ -288,37 +311,37 @@ export default function OAuthScope() {
             onFinish={(values) => setQuery({ ...values, pageNum: 1, pageSize: query.pageSize })}
           >
             <Form.Item
-              label="权限名称"
+              label={t('system:permissionName')}
               name="scopeName"
             >
               <Input
                 style={{ width: 200 }}
-                placeholder="输入权限名称"
+                placeholder={t('system:enterPermissionName')}
                 allowClear
               />
             </Form.Item>
             <Form.Item
-              label="用途"
+              label={t('system:purpose')}
               name="scopeType"
             >
               <Select
                 style={{ width: 200 }}
-                placeholder="全部用途"
+                placeholder={t('system:allPurposes')}
                 allowClear
                 options={scopeTypes}
               />
             </Form.Item>
             <Form.Item
-              label="状态"
+              label={t('common:status')}
               name="status"
             >
               <Select
                 style={{ width: 200 }}
-                placeholder="全部状态"
+                placeholder={t('common:allStatuses')}
                 allowClear
                 options={[
-                  { value: '0', label: '使用中' },
-                  { value: '1', label: '已停用' },
+                  { value: '0', label: t('system:inUse') },
+                  { value: '1', label: t('common:disabled') },
                 ]}
               />
             </Form.Item>
@@ -329,7 +352,7 @@ export default function OAuthScope() {
                   htmlType="submit"
                   type="primary"
                 >
-                  查找
+                  {t('common:find')}
                 </Button>
                 <Button
                   icon={<QueryResetIcon />}
@@ -338,7 +361,7 @@ export default function OAuthScope() {
                     setQuery({ pageNum: 1, pageSize: 10 })
                   }}
                 >
-                  清空
+                  {t('common:clear')}
                 </Button>
               </Space>
             </Form.Item>
@@ -348,7 +371,7 @@ export default function OAuthScope() {
       toolbar={
         <>
           <span className="result-count">
-            已定义 <strong>{total}</strong> 项权限
+            {t('system:defined')} <strong>{total}</strong> {t('system:scope.permissions')}
           </span>
           <RightToolbar
             showSearch={showSearch}
@@ -361,13 +384,13 @@ export default function OAuthScope() {
       <Table
         locale={{
           emptyText: (
-            <Empty description="还没有符合条件的权限">
+            <Empty description={t('system:noMatchingPermissions')}>
               <HasPermi value={['system:oauthScope:add']}>
                 <Button
                   type="primary"
                   onClick={add}
                 >
-                  新增第一项权限
+                  {t('system:addYourFirstPermission')}
                 </Button>
               </HasPermi>
             </Empty>
@@ -388,7 +411,7 @@ export default function OAuthScope() {
       />
       <Modal
         className="oauth-dialog oauth-scope-editor"
-        title={editing ? '编辑权限' : '新增权限'}
+        title={editing ? t('system:editPermission') : t('system:scope.addPermission')}
         open={open}
         width="min(780px, calc(100vw - 48px))"
         onCancel={() => setOpen(false)}
@@ -396,13 +419,13 @@ export default function OAuthScope() {
         forceRender
         footer={
           <Space>
-            <Button onClick={() => setOpen(false)}>取消</Button>
+            <Button onClick={() => setOpen(false)}>{t('common:cancel')}</Button>
             <Button
               type="primary"
               loading={saving}
               onClick={save}
             >
-              保存权限
+              {t('system:savePermission')}
             </Button>
           </Space>
         }
@@ -417,15 +440,17 @@ export default function OAuthScope() {
           className="permission-form ruoyi-dialog-form"
         >
           <div className="section-heading">
-            <h3>权限含义</h3>
-            <p>先选择这项权限用于登录信息还是服务访问，再说明它可以返回什么。</p>
+            <h3>{t('system:permissionMeaning')}</h3>
+            <p>{t('system:chooseWhetherThisPermissionProvidesSignInInformationOr')}</p>
           </div>
           <Form.Item
             name="scopeType"
             label={
               <FieldLabel
-                label="权限用途"
-                help="登录身份信息用于返回用户资料；服务访问用于允许应用调用某个服务。"
+                label={t('system:permissionPurpose')}
+                help={t(
+                  'authCenter:identityPermissionsReturnUserProfileInformationServiceAccessPermissionsAllow'
+                )}
               />
             }
             rules={[{ required: true }]}
@@ -435,12 +460,12 @@ export default function OAuthScope() {
               disabled={scopeCode === 'openid'}
             >
               <Radio value="identity">
-                <strong>登录身份信息</strong>
-                <small>例如姓名、邮箱和角色</small>
+                <strong>{t('system:signInIdentityInformation')}</strong>
+                <small>{t('system:forExampleNameEmailAndRoles')}</small>
               </Radio>
               <Radio value="resource">
-                <strong>服务访问</strong>
-                <small>例如查看订单或修改库存</small>
+                <strong>{t('system:serviceAccess')}</strong>
+                <small>{t('system:forExampleViewingOrdersOrUpdatingInventory')}</small>
               </Radio>
             </Radio.Group>
           </Form.Item>
@@ -453,15 +478,15 @@ export default function OAuthScope() {
                 name="scopeName"
                 label={
                   <FieldLabel
-                    label="显示名称"
-                    help="用户授权和后台列表中看到的名称，应直接说明允许做什么。"
+                    label={t('system:displayName')}
+                    help={t('authCenter:theNameShownToUsersDuringConsentAndInAdmin')}
                   />
                 }
                 rules={[{ required: true, whitespace: true }]}
               >
                 <Input
                   maxLength={100}
-                  placeholder="例如：查看订单"
+                  placeholder={t('system:forExampleViewOrders')}
                 />
               </Form.Item>
             </Col>
@@ -473,8 +498,8 @@ export default function OAuthScope() {
                 name="scopeCode"
                 label={
                   <FieldLabel
-                    label="权限代码"
-                    help="应用在登录请求中使用的协议代码，保存后不能修改。"
+                    label={t('system:permissionCode')}
+                    help={t('authCenter:theProtocolCodeTheApplicationUsesInSignInRequests')}
                   />
                 }
                 rules={[{ required: true, whitespace: true }]}
@@ -482,7 +507,7 @@ export default function OAuthScope() {
                 <Input
                   disabled={editing}
                   maxLength={100}
-                  placeholder="例如：orders.read"
+                  placeholder={t('system:forExampleOrdersRead')}
                 />
               </Form.Item>
             </Col>
@@ -492,15 +517,17 @@ export default function OAuthScope() {
               name="resourceId"
               label={
                 <FieldLabel
-                  label="所属服务"
-                  help="选择应用获得这项权限后可以访问的服务。"
+                  label={t('system:service')}
+                  help={t('authCenter:chooseTheServiceTheApplicationCanAccessWithThisPermission')}
                 />
               }
-              rules={[{ required: true, message: '请选择这项权限所属的服务' }]}
+              rules={[
+                { required: true, message: t('system:chooseTheServiceThisPermissionBelongsTo') },
+              ]}
             >
               <Select
                 showSearch={{ optionFilterProp: 'label' }}
-                placeholder="选择服务"
+                placeholder={t('system:chooseAService')}
                 options={resources.map((row) => ({
                   value: row.resourceId,
                   label: row.resourceName,
@@ -518,22 +545,24 @@ export default function OAuthScope() {
             name="claims"
             label={
               <FieldLabel
-                label="返回用户信息"
-                help="应用获得这项权限后可以收到的用户信息，可多选。"
+                label={t('system:returnUserInformation')}
+                help={t('authCenter:theUserInformationAnApplicationCanReceiveWithThisPermission')}
               />
             }
           >
             <Select
               mode="tags"
-              options={claimOptions}
-              placeholder="选择或输入用户字段"
+              options={claimOptions()}
+              placeholder={t('system:selectOrEnterUserFields')}
             />
           </Form.Item>
           <Form.Item
             label={
               <FieldLabel
-                label="用户确认"
-                help="敏感权限应要求用户明确确认，并在授权页突出展示。"
+                label={t('system:userConfirmation')}
+                help={t(
+                  'authCenter:sensitivePermissionsShouldRequireExplicitUserConfirmationAndBeEmphasized'
+                )}
               />
             }
           >
@@ -543,14 +572,14 @@ export default function OAuthScope() {
                 valuePropName="checked"
                 noStyle
               >
-                <Checkbox>使用前让用户确认</Checkbox>
+                <Checkbox>{t('system:askTheUserToConfirmBeforeUse')}</Checkbox>
               </Form.Item>
               <Form.Item
                 name="sensitive"
                 valuePropName="checked"
                 noStyle
               >
-                <Checkbox>标记为敏感权限</Checkbox>
+                <Checkbox>{t('system:markAsSensitivePermission')}</Checkbox>
               </Form.Item>
             </div>
           </Form.Item>
@@ -558,8 +587,8 @@ export default function OAuthScope() {
             name="remark"
             label={
               <FieldLabel
-                label="备注"
-                help="仅供管理员记录，不会显示给外部应用。"
+                label={t('common:remark')}
+                help={t('authCenter:forAdministratorsRecordsOnlyThisIsNotShownToExternal')}
               />
             }
           >

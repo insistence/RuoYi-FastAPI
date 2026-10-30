@@ -68,7 +68,9 @@ async def add_system_post(
     add_post_result = await PostService.add_post_services(query_db, add_post)
     logger.info(add_post_result.message)
 
-    return ResponseUtil.success(msg=add_post_result.message)
+    return ResponseUtil.success(
+        msg=add_post_result.message, msg_key=add_post_result.msg_key, msg_params=add_post_result.msg_params
+    )
 
 
 @post_controller.put(
@@ -91,7 +93,9 @@ async def edit_system_post(
     edit_post_result = await PostService.edit_post_services(query_db, edit_post)
     logger.info(edit_post_result.message)
 
-    return ResponseUtil.success(msg=edit_post_result.message)
+    return ResponseUtil.success(
+        msg=edit_post_result.message, msg_key=edit_post_result.msg_key, msg_params=edit_post_result.msg_params
+    )
 
 
 @post_controller.delete(
@@ -112,7 +116,9 @@ async def delete_system_post(
     delete_post_result = await PostService.delete_post_services(query_db, delete_post)
     logger.info(delete_post_result.message)
 
-    return ResponseUtil.success(msg=delete_post_result.message)
+    return ResponseUtil.success(
+        msg=delete_post_result.message, msg_key=delete_post_result.msg_key, msg_params=delete_post_result.msg_params
+    )
 
 
 @post_controller.get(

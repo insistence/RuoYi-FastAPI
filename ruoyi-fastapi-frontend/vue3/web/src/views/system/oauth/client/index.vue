@@ -1,10 +1,10 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      section="接入管理"
-      title="应用"
-      description="管理哪些网站、移动端和后端服务可以使用统一登录或访问受保护服务。"
-      filter-hint="按应用名称、运行形态或当前状态查找"
+      :section="$t('oauth:integrationManagement')"
+      :title="$t('components:apply')"
+      :description="$t('oauth:manageWhichWebsitesMobileApplicationsAndBackendServicesMayUse')"
+      :filter-hint="$t('oauth:findApplicationsByNameTypeOrStatus')"
     >
       <template #actions>
         <el-button
@@ -13,8 +13,8 @@
           v-hasPermi="['system:oauthClient:add']"
           @click="handleAdd"
         >
-          注册应用
-        </el-button>
+          {{ $t('oauth:registerApplication') }}</el-button
+        >
       </template>
 
       <template #filters>
@@ -25,53 +25,53 @@
           :inline="true"
         >
           <el-form-item
-            label="应用名称"
+            :label="$t('oauth:applicationName')"
             prop="clientName"
           >
             <el-input
               v-model="queryParams.clientName"
               clearable
-              placeholder="输入应用名称"
+              :placeholder="$t('oauth:enterApplicationName')"
               style="width: 200px"
               @keyup.enter="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            label="运行形态"
+            :label="$t('oauth:applicationType')"
             prop="clientType"
           >
             <el-select
               v-model="queryParams.clientType"
               clearable
-              placeholder="全部形态"
+              :placeholder="$t('oauth:allTypes')"
               style="width: 200px"
             >
               <el-option
-                label="后端服务"
+                :label="$t('oauth:backendService')"
                 value="confidential"
               />
               <el-option
-                label="网页或移动端"
+                :label="$t('oauth:webOrMobileApplication')"
                 value="public"
               />
             </el-select>
           </el-form-item>
           <el-form-item
-            label="状态"
+            :label="$t('system:status')"
             prop="status"
           >
             <el-select
               v-model="queryParams.status"
               clearable
-              placeholder="全部状态"
+              :placeholder="$t('components:allStatuses')"
               style="width: 200px"
             >
               <el-option
-                label="使用中"
+                :label="$t('oauth:inUse')"
                 value="0"
               />
               <el-option
-                label="已停用"
+                :label="$t('components:disabled')"
                 value="1"
               />
             </el-select>
@@ -81,12 +81,12 @@
               type="primary"
               icon="Search"
               @click="handleQuery"
-              >查找</el-button
+              >{{ $t('monitor:find') }}</el-button
             >
             <el-button
               icon="Refresh"
               @click="resetQuery"
-              >清空</el-button
+              >{{ $t('monitor:clear') }}</el-button
             >
           </el-form-item>
         </el-form>
@@ -94,7 +94,8 @@
 
       <template #toolbar>
         <span class="result-count"
-          >已登记 <strong>{{ total }}</strong> 个应用</span
+          >{{ $t('oauth:registered') }}<strong>{{ total }}</strong>
+          {{ $t('oauth:applications') }}</span
         >
         <right-toolbar
           v-model:showSearch="showSearch"
@@ -108,12 +109,14 @@
         row-key="clientId"
       >
         <el-table-column
-          label="应用"
+          :label="$t('components:apply')"
           min-width="250"
         >
           <template #default="scope">
             <div class="entity-cell">
-              <span class="entity-avatar">{{ (scope.row.clientName || '应').slice(0, 1) }}</span>
+              <span class="entity-avatar">{{
+                (scope.row.clientName || $t('oauth:app')).slice(0, 1)
+              }}</span>
               <span class="entity-copy">
                 <strong>{{ scope.row.clientName }}</strong>
                 <code>{{ scope.row.clientId }}</code>
@@ -122,7 +125,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="运行形态"
+          :label="$t('oauth:applicationType')"
           width="130"
         >
           <template #default="scope">
@@ -130,12 +133,16 @@
               :type="scope.row.clientType === 'confidential' ? 'primary' : 'info'"
               effect="plain"
             >
-              {{ scope.row.clientType === 'confidential' ? '后端服务' : '网页/移动端' }}
+              {{
+                scope.row.clientType === 'confidential'
+                  ? $t('oauth:backendService')
+                  : $t('oauth:webMobile')
+              }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          label="登录与调用方式"
+          :label="$t('oauth:signInAndAccessMethods')"
           min-width="240"
         >
           <template #default="scope">
@@ -143,7 +150,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="可访问服务"
+          :label="$t('oauth:accessibleServices')"
           min-width="200"
         >
           <template #default="scope">
@@ -158,7 +165,7 @@
               <span
                 v-if="!(scope.row.resourceIds || []).length"
                 class="muted-value"
-                >仅身份信息</span
+                >{{ $t('components:identityInformationOnly') }}</span
               >
               <span
                 v-else-if="scope.row.resourceIds.length > 2"
@@ -169,7 +176,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="状态"
+          :label="$t('system:status')"
           width="105"
           align="center"
         >
@@ -178,18 +185,18 @@
               :type="scope.row.status === '0' ? 'success' : 'info'"
               effect="light"
             >
-              {{ scope.row.status === '0' ? '使用中' : '已停用' }}
+              {{ scope.row.status === '0' ? $t('oauth:inUse') : $t('components:disabled') }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          label="最近更新"
+          :label="$t('oauth:recentUpdates')"
           width="170"
         >
           <template #default="scope">{{ parseTime(scope.row.updateTime) || '—' }}</template>
         </el-table-column>
         <el-table-column
-          label="操作"
+          :label="$t('system:actions')"
           fixed="right"
           width="180"
           align="center"
@@ -202,7 +209,7 @@
                 icon="Edit"
                 v-hasPermi="['system:oauthClient:edit']"
                 @click="handleUpdate(scope.row)"
-                >编辑</el-button
+                >{{ $t('oauth:edit') }}</el-button
               >
               <el-dropdown
                 trigger="click"
@@ -212,7 +219,7 @@
                   link
                   type="primary"
                   icon="ArrowDown"
-                  >更多</el-button
+                  >{{ $t('oauth:more') }}</el-button
                 >
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -222,16 +229,16 @@
                       icon="Key"
                       v-hasPermi="['system:oauthClient:rotateSecret']"
                     >
-                      轮换应用密钥
-                    </el-dropdown-item>
+                      {{ $t('oauth:rotateApplicationSecret') }}</el-dropdown-item
+                    >
                     <el-dropdown-item
                       v-if="scope.row.status !== '0'"
                       command="enable"
                       icon="CircleCheck"
                       v-hasPermi="['system:oauthClient:edit']"
                     >
-                      重新启用
-                    </el-dropdown-item>
+                      {{ $t('oauth:reEnable') }}</el-dropdown-item
+                    >
                     <el-dropdown-item
                       v-else
                       command="disable"
@@ -239,8 +246,8 @@
                       divided
                       v-hasPermi="['system:oauthClient:remove']"
                     >
-                      停用应用
-                    </el-dropdown-item>
+                      {{ $t('oauth:disableApplication') }}</el-dropdown-item
+                    >
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -248,12 +255,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="还没有符合条件的应用">
+          <el-empty :description="$t('oauth:noMatchingApplications')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthClient:add']"
               @click="handleAdd"
-              >注册第一个应用</el-button
+              >{{ $t('oauth:registerYourFirstApplication') }}</el-button
             >
           </el-empty>
         </template>
@@ -270,7 +277,7 @@
 
     <el-dialog
       v-model="editorOpen"
-      :title="form.clientId ? '编辑应用' : '注册应用'"
+      :title="form.clientId ? $t('oauth:editApplication') : $t('oauth:registerApplication')"
       width="min(960px, calc(100vw - 48px))"
       append-to-body
       destroy-on-close
@@ -278,7 +285,7 @@
       class="oauth-editor-dialog"
     >
       <div class="editor-map">
-        <span class="editor-map-title">访问关系预览</span>
+        <span class="editor-map-title">{{ $t('oauth:accessRelationshipPreview') }}</span>
         <AccessMap
           :application="form.clientName"
           :type="form.clientType"
@@ -291,6 +298,7 @@
         ref="formRef"
         :model="form"
         :rules="rules"
+        :validate-on-rule-change="false"
         label-width="160px"
         class="sectioned-form"
       >
@@ -300,18 +308,18 @@
           class="editor-tabs"
         >
           <el-tab-pane
-            label="基本信息"
+            :label="$t('system:basicInformation')"
             name="basic"
           >
             <div class="section-heading">
-              <h3>这个应用是谁</h3>
-              <p>名称用于后台识别，运行形态决定它是否能够安全保存应用密钥。</p>
+              <h3>{{ $t('oauth:applicationIdentity') }}</h3>
+              <p>{{ $t('oauth:theNameIdentifiesTheApplicationInTheConsoleItsType') }}</p>
             </div>
             <el-form-item prop="clientName">
               <template #label
                 ><FieldLabel
-                  label="应用名称"
-                  help="便于管理员识别这个应用，不影响登录流程。"
+                  :label="$t('oauth:applicationName')"
+                  :help="$t('oauth:helpsAdministratorsIdentifyTheAppWithoutAffectingSignIn')"
               /></template>
               <el-input
                 v-model="form.clientName"
@@ -323,8 +331,8 @@
             <el-form-item prop="clientType">
               <template #label
                 ><FieldLabel
-                  label="运行形态"
-                  help="网页或移动端无法安全保存密钥；后端服务可以在服务器中安全保存密钥。"
+                  :label="$t('oauth:applicationType')"
+                  :help="$t('oauth:webAndMobileClientsCannotSafelyStoreASecretBackend')"
               /></template>
               <el-radio-group
                 v-model="form.clientType"
@@ -336,23 +344,23 @@
                   value="confidential"
                   border
                 >
-                  <span class="choice-title">后端服务</span>
-                  <small>可以安全保存应用密钥</small>
+                  <span class="choice-title">{{ $t('oauth:backendService') }}</span>
+                  <small>{{ $t('oauth:canSafelyStoreAnApplicationSecret') }}</small>
                 </el-radio>
                 <el-radio
                   value="public"
                   border
                 >
-                  <span class="choice-title">网页或移动端</span>
-                  <small>不能在终端中保存密钥</small>
+                  <span class="choice-title">{{ $t('oauth:webOrMobileApplication') }}</span>
+                  <small>{{ $t('oauth:cannotStoreASecretSecurelyOnTheDevice') }}</small>
                 </el-radio>
               </el-radio-group>
             </el-form-item>
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  label="备注"
-                  help="仅供管理员记录用途，不会发送给外部应用。"
+                  :label="$t('system:remarks')"
+                  :help="$t('oauth:forAdministratorNotesOnlyNotSentToExternalApps')"
               /></template>
               <el-input
                 v-model="form.remark"
@@ -366,76 +374,84 @@
           </el-tab-pane>
 
           <el-tab-pane
-            label="登录方式"
+            :label="$t('oauth:signInMethods')"
             name="login"
           >
             <div class="section-heading">
-              <h3>应用怎样完成登录或调用</h3>
-              <p>只选择应用实际需要的方式，减少不必要的访问能力。</p>
+              <h3>{{ $t('oauth:howTheApplicationSignsInOrCallsServices') }}</h3>
+              <p>{{ $t('oauth:selectOnlyTheMethodsTheApplicationNeedsToLimitUnnecessary') }}</p>
             </div>
             <el-form-item prop="grantTypes">
               <template #label
                 ><FieldLabel
-                  label="允许的方式"
-                  help="网页或移动端通常使用用户登录；没有具体用户的后台任务使用服务间调用。"
+                  :label="$t('oauth:allowedMethods')"
+                  :help="$t('oauth:webAndMobileClientsTypicallyUseUserSignInBackground')"
               /></template>
               <el-checkbox-group
                 v-model="form.grantTypes"
                 class="option-stack"
               >
-                <el-checkbox value="authorization_code">用户登录</el-checkbox>
-                <small>用户在统一认证中心输入账号后返回应用。</small>
+                <el-checkbox value="authorization_code">{{ $t('oauth:userSignIn') }}</el-checkbox>
+                <small>{{ $t('oauth:usersSignInAtTheAuthenticationCenterThenReturnTo') }}</small>
                 <el-checkbox
                   value="refresh_token"
                   :disabled="!form.grantTypes.includes('authorization_code')"
-                  >保持登录</el-checkbox
+                  >{{ $t('oauth:staySignedIn') }}</el-checkbox
                 >
-                <small>允许应用在用户离开后延长登录状态。</small>
+                <small>{{ $t('oauth:allowTheApplicationToExtendASessionAfterTheUser') }}</small>
                 <el-checkbox
                   value="client_credentials"
                   :disabled="form.clientType === 'public'"
-                  >服务间调用</el-checkbox
+                  >{{ $t('oauth:serviceToServiceCalls') }}</el-checkbox
                 >
-                <small>后台服务以自身身份调用其他服务，不代表具体用户。</small>
+                <small>{{
+                  $t('oauth:aBackendServiceCallsOtherServicesAsItselfWithoutRepresenting')
+                }}</small>
               </el-checkbox-group>
             </el-form-item>
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  label="登录安全"
-                  help="系统自动启用登录安全保护；其余选项控制是否展示用户确认和是否信任该应用。"
+                  :label="$t('oauth:signInSecurity')"
+                  :help="$t('oauth:signInSecurityIsEnabledAutomaticallyOtherOptionsControlUser')"
               /></template>
               <div class="option-stack">
                 <el-checkbox
                   v-model="form.requirePkce"
                   disabled
-                  >登录安全保护（系统自动开启）</el-checkbox
+                  >{{ $t('oauth:signInProtectionEnabledAutomatically') }}</el-checkbox
                 >
-                <el-checkbox v-model="form.requireConsent">登录时让用户确认权限</el-checkbox>
-                <el-checkbox v-model="form.trustedClient">标记为受信任应用</el-checkbox>
+                <el-checkbox v-model="form.requireConsent">{{
+                  $t('oauth:askUsersToConfirmPermissionsAtSignIn')
+                }}</el-checkbox>
+                <el-checkbox v-model="form.trustedClient">{{
+                  $t('oauth:markAsATrustedApplication')
+                }}</el-checkbox>
               </div>
             </el-form-item>
           </el-tab-pane>
 
           <el-tab-pane
-            label="权限与服务"
+            :label="$t('oauth:permissionsAndServices')"
             name="access"
           >
             <div class="section-heading">
-              <h3>应用能够申请什么</h3>
-              <p>从已经启用的权限和服务中选择，避免保存后才发现标识不存在。</p>
+              <h3>{{ $t('oauth:whatTheApplicationMayRequest') }}</h3>
+              <p>
+                {{ $t('oauth:chooseEnabledPermissionsAndServicesToAvoidSavingUnknownIdentifiers') }}
+              </p>
             </div>
             <el-form-item prop="scopeCodes">
               <template #label
                 ><FieldLabel
-                  label="可申请权限"
-                  help="应用登录或访问服务时，只能申请这里列出的权限。"
+                  :label="$t('oauth:availablePermissions')"
+                  :help="$t('oauth:theAppMayRequestOnlyThesePermissionsWhenSigningIn')"
               /></template>
               <el-select
                 v-model="form.scopeCodes"
                 multiple
                 filterable
-                placeholder="选择应用可申请的权限"
+                :placeholder="$t('oauth:selectPermissionsTheApplicationMayRequest')"
                 style="width: 100%"
               >
                 <el-option
@@ -455,8 +471,8 @@
             >
               <template #label
                 ><FieldLabel
-                  label="可公开角色"
-                  help="只公开用户已拥有且列在此处的角色。留空时不公开任何角色。"
+                  :label="$t('oauth:disclosableRoles')"
+                  :help="$t('oauth:onlyRolesAlreadyHeldByTheUserAndListedHere')"
               /></template>
               <el-select
                 v-model="form.allowedRoleKeys"
@@ -464,21 +480,21 @@
                 filterable
                 allow-create
                 default-first-option
-                placeholder="输入允许向此应用公开的角色标识"
+                :placeholder="$t('oauth:enterRoleIdentifiersThatMayBeDisclosedToThisApplication')"
                 style="width: 100%"
               />
             </el-form-item>
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  label="免重复确认"
-                  help="这些权限可以减少用户重复确认，必须属于上面的可申请权限。"
+                  :label="$t('oauth:skipRepeatedConfirmation')"
+                  :help="$t('oauth:thesePermissionsReduceRepeatedConsentAndMustBeIncludedIn')"
               /></template>
               <el-select
                 v-model="form.preAuthorizedScopeCodes"
                 multiple
                 filterable
-                placeholder="从已选权限中选择"
+                :placeholder="$t('oauth:chooseFromSelectedPermissions')"
                 style="width: 100%"
               >
                 <el-option
@@ -495,14 +511,14 @@
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  label="可访问服务"
-                  help="填写服务与权限页面中已创建服务的标识，不是网址。"
+                  :label="$t('oauth:accessibleServices')"
+                  :help="$t('oauth:enterAnExistingServiceIdentifierFromServicesAndPermissionsNot')"
               /></template>
               <el-select
                 v-model="form.resourceIds"
                 multiple
                 filterable
-                placeholder="选择应用可访问的服务"
+                :placeholder="$t('oauth:selectServicesTheApplicationMayAccess')"
                 style="width: 100%"
               >
                 <el-option
@@ -519,70 +535,70 @@
           </el-tab-pane>
 
           <el-tab-pane
-            label="回调地址"
+            :label="$t('oauth:callbackURLs')"
             name="uri"
           >
             <div class="section-heading">
-              <h3>登录完成后可以去哪里</h3>
-              <p>每个地址单独填写并校验。正式环境应使用 HTTPS 完整地址。</p>
+              <h3>{{ $t('oauth:whereUsersMayGoAfterSignIn') }}</h3>
+              <p>{{ $t('oauth:enterAndValidateEachURLSeparatelyUseCompleteHTTPSURLs') }}</p>
             </div>
             <el-form-item prop="redirectUris">
               <template #label
                 ><FieldLabel
-                  label="登录返回地址"
-                  help="用户完成登录后，系统只会跳转到这里登记的地址。"
+                  :label="$t('oauth:signInReturnURLs')"
+                  :help="$t('oauth:afterSignInTheSystemRedirectsUsersOnlyToURLs')"
               /></template>
               <StringListInput
                 v-model="form.redirectUris"
                 placeholder="https://portal.example.com/callback"
-                add-text="添加登录返回地址"
+                :add-text="$t('oauth:addSignInReturnURL')"
               />
             </el-form-item>
             <el-form-item prop="postLogoutRedirectUris">
               <template #label
                 ><FieldLabel
-                  label="退出返回地址"
-                  help="用户退出登录后可以返回的地址。"
+                  :label="$t('oauth:signOutReturnURLs')"
+                  :help="$t('oauth:uRLsUsersMayReturnToAfterSigningOut')"
               /></template>
               <StringListInput
                 v-model="form.postLogoutRedirectUris"
                 placeholder="https://portal.example.com/signed-out"
-                add-text="添加退出返回地址"
+                :add-text="$t('oauth:addSignOutReturnURL')"
               />
             </el-form-item>
             <el-form-item prop="backchannelLogoutUris">
               <template #label
                 ><FieldLabel
-                  label="后台退出通知"
-                  help="应用需要接收后台退出通知时填写，可以留空。"
+                  :label="$t('oauth:backChannelSignOutNotifications')"
+                  :help="$t('oauth:enterAURLIfTheApplicationNeedsBackChannelSign')"
               /></template>
               <StringListInput
                 v-model="form.backchannelLogoutUris"
                 placeholder="https://portal.example.com/backchannel-logout"
-                add-text="添加后台通知地址"
+                :add-text="$t('oauth:addBackChannelNotificationURL')"
               />
             </el-form-item>
             <el-form-item prop="corsOrigins">
               <template #label
                 ><FieldLabel
-                  label="允许的网页来源"
-                  help="允许哪些网页从浏览器直接发起调用，只填写协议、域名和端口。"
+                  :label="$t('oauth:allowedWebOrigins')"
+                  :help="$t('oauth:webOriginsAllowedToCallDirectlyFromABrowserEnter')"
               /></template>
               <StringListInput
                 v-model="form.corsOrigins"
                 placeholder="https://portal.example.com"
-                add-text="添加网页来源"
+                :add-text="$t('oauth:addWebOrigin')"
               />
             </el-form-item>
           </el-tab-pane>
 
           <el-tab-pane
-            label="有效时长"
+            :label="$t('oauth:validityPeriods')"
             name="duration"
           >
             <div class="section-heading">
-              <h3>登录凭据可以使用多久</h3>
-              <p>留空时使用平台默认值。只有确有业务需要时才延长有效时间。</p>
+              <h3>{{ $t('oauth:howLongSignInCredentialsRemainValid') }}</h3>
+              <p>{{ $t('oauth:leaveBlankToUsePlatformDefaultsExtendLifetimesOnlyWhen') }}</p>
             </div>
             <el-row :gutter="18">
               <el-col
@@ -592,17 +608,17 @@
                 <el-form-item>
                   <template #label
                     ><FieldLabel
-                      label="访问凭据"
-                      help="应用访问服务时使用的短期凭据有效多久。"
+                      :label="$t('oauth:accessCredentials')"
+                      :help="$t('oauth:howLongShortLivedCredentialsRemainValidWhenTheApplication')"
                   /></template>
                   <el-input-number
                     v-model="form.accessTokenTtlSeconds"
                     :min="1"
-                    placeholder="平台默认"
+                    :placeholder="$t('oauth:platformDefault')"
                     controls-position="right"
                     style="width: 100%"
                   />
-                  <span class="input-unit">秒</span>
+                  <span class="input-unit">{{ $t('components:seconds') }}</span>
                 </el-form-item>
               </el-col>
               <el-col
@@ -612,17 +628,17 @@
                 <el-form-item>
                   <template #label
                     ><FieldLabel
-                      label="闲置后失效"
-                      help="保持登录凭据连续多久未使用后自动失效。"
+                      :label="$t('oauth:expireAfterInactivity')"
+                      :help="$t('oauth:howLongPersistentSignInCredentialsMayRemainUnusedBefore')"
                   /></template>
                   <el-input-number
                     v-model="form.refreshTokenIdleSeconds"
                     :min="1"
-                    placeholder="平台默认"
+                    :placeholder="$t('oauth:platformDefault')"
                     controls-position="right"
                     style="width: 100%"
                   />
-                  <span class="input-unit">秒</span>
+                  <span class="input-unit">{{ $t('components:seconds') }}</span>
                 </el-form-item>
               </el-col>
               <el-col
@@ -632,17 +648,17 @@
                 <el-form-item>
                   <template #label
                     ><FieldLabel
-                      label="最长有效时间"
-                      help="保持登录凭据从签发起最多可以存在多久。"
+                      :label="$t('oauth:maximumLifetime')"
+                      :help="$t('oauth:maximumLifetimeOfPersistentSignInCredentialsFromIssuance')"
                   /></template>
                   <el-input-number
                     v-model="form.refreshTokenAbsoluteSeconds"
                     :min="1"
-                    placeholder="平台默认"
+                    :placeholder="$t('oauth:platformDefault')"
                     controls-position="right"
                     style="width: 100%"
                   />
-                  <span class="input-unit">秒</span>
+                  <span class="input-unit">{{ $t('components:seconds') }}</span>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -650,12 +666,12 @@
         </el-tabs>
       </el-form>
       <template #footer>
-        <el-button @click="editorOpen = false">取消</el-button>
+        <el-button @click="editorOpen = false">{{ $t('common:cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="submitting"
           @click="submit"
-          >保存应用</el-button
+          >{{ $t('oauth:saveApplication') }}</el-button
         >
       </template>
     </el-dialog>
@@ -668,6 +684,8 @@
 </template>
 
 <script setup name="OAuthClient">
+import { useLocaleForm } from '@/composables/useLocaleForm'
+import { t } from '@/i18n/adapter'
 import {
   addOAuthClient,
   changeOAuthClientStatus,
@@ -686,6 +704,7 @@ import StringListInput from '@/components/OAuthWorkspace/StringListInput.vue'
 import SecretDialog from './secret.vue'
 
 const { proxy } = getCurrentInstance()
+useLocaleForm(computed(() => proxy.$refs.formRef))
 const loading = ref(false)
 const submitting = ref(false)
 const showSearch = ref(true)
@@ -710,14 +729,32 @@ const selectedScopeOptions = computed(() => {
   return form.scopeCodes.map((code) => known.get(code) || { scopeCode: code, scopeName: code })
 })
 const rules = {
-  clientName: [{ required: true, message: '请输入应用名称', trigger: 'blur' }],
-  clientType: [{ required: true, message: '请选择应用类型', trigger: 'change' }],
+  clientName: [
+    {
+      required: true,
+      get message() {
+        return t('oauth:enterAnApplicationName')
+      },
+      trigger: 'blur',
+    },
+  ],
+  clientType: [
+    {
+      required: true,
+      get message() {
+        return t('oauth:selectAppType')
+      },
+      trigger: 'change',
+    },
+  ],
   grantTypes: [
     {
       required: true,
       type: 'array',
       min: 1,
-      message: '至少选择一种登录或调用方式',
+      get message() {
+        return t('oauth:selectAtLeastOneSignInOrServiceAccessMethod')
+      },
       trigger: 'change',
     },
   ],
@@ -726,7 +763,9 @@ const rules = {
       required: true,
       type: 'array',
       min: 1,
-      message: '至少添加一项可申请权限',
+      get message() {
+        return t('oauth:addAtLeastOneAvailablePermission')
+      },
       trigger: 'change',
     },
   ],
@@ -907,11 +946,17 @@ async function handleUpdate(row) {
 /** 获取授权类型名称 */
 function grantTypeText(types = []) {
   const labels = {
-    authorization_code: '用户登录',
-    refresh_token: '保持登录',
-    client_credentials: '服务间调用',
+    get authorization_code() {
+      return t('oauth:userSignIn')
+    },
+    get refresh_token() {
+      return t('oauth:staySignedIn')
+    },
+    get client_credentials() {
+      return t('oauth:serviceToServiceCalls')
+    },
   }
-  return types.map((item) => labels[item] || item).join(' · ') || '尚未配置'
+  return types.map((item) => labels[item] || item).join(' · ') || t('oauth:notConfigured')
 }
 
 /** 处理客户端行操作 */
@@ -950,7 +995,7 @@ async function submit() {
   try {
     const action = form.clientId ? updateOAuthClient : addOAuthClient
     await action(payload())
-    proxy.$modal.msgSuccess('应用配置已保存')
+    proxy.$modal.msgSuccess(t('oauth:applicationSettingsSaved'))
     editorOpen.value = false
     await getList()
   } finally {
@@ -960,11 +1005,11 @@ async function submit() {
 
 /** 修改客户端状态 */
 async function changeStatus(row, status) {
-  const verb = status === '0' ? '启用' : '停用'
+  const verb = status === '0' ? t('system:enable') : t('system:disabled')
   try {
-    await proxy.$modal.confirm(`${verb}应用“${row.clientName}”？`)
+    await proxy.$modal.confirm(t('oauth:valueAppValue', { verb, clientName: row.clientName }))
     await changeOAuthClientStatus({ clientId: row.clientId, status })
-    proxy.$modal.msgSuccess(`${verb}成功`)
+    proxy.$modal.msgSuccess(t('oauth:valueSuccessfully', { verb }))
     await getList()
   } catch {
     // 用户取消或请求失败时刷新事实状态，避免保留乐观 UI
@@ -974,15 +1019,21 @@ async function changeStatus(row, status) {
 
 /** 删除按钮操作 */
 async function handleDelete(row) {
-  await proxy.$modal.confirm(`停用“${row.clientName}”将同时撤销该应用的授权与刷新凭据，是否继续？`)
+  await proxy.$modal.confirm(
+    t('oauth:disablingValueWillAlsoRevokeItsAuthorizationsAndRefreshTokens', {
+      clientName: row.clientName,
+    })
+  )
   await deleteOAuthClients(row.clientId)
-  proxy.$modal.msgSuccess('应用已停用')
+  proxy.$modal.msgSuccess(t('monitor:appDisabled'))
   await getList()
 }
 
 /** 轮换客户端密钥并显示一次性明文 */
 async function rotateSecret(row) {
-  await proxy.$modal.confirm(`为“${row.clientName}”生成新密钥？旧密钥将进入有界退役窗口。`)
+  await proxy.$modal.confirm(
+    t('oauth:generateANewSecretForValueTheOldSecretWill', { clientName: row.clientName })
+  )
   const response = await rotateOAuthClientSecret(row.clientId)
   secret.value = response.data
   secretOpen.value = true

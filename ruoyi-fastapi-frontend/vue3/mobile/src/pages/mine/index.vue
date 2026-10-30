@@ -40,7 +40,7 @@
                 class="mt-1 flex items-center text-sm text-blue-100"
                 @click="handleToInfo"
               >
-                <text>查看个人信息</text>
+                <text>{{ $t('mobile:profile.view') }}</text>
                 <view class="i-mdi-chevron-right ml-1 text-xs"></view>
               </view>
             </template>
@@ -49,8 +49,8 @@
               class="text-xl font-bold"
               @click="handleToLogin"
             >
-              点击登录
-            </view>
+              {{ $t('mobile:profile.signIn') }}</view
+            >
           </view>
         </view>
       </view>
@@ -71,7 +71,9 @@
           >
             <view class="i-mdi-account-group text-2xl"></view>
           </view>
-          <text class="text-xs font-medium text-gray-600">交流群</text>
+          <text class="text-xs font-medium text-gray-600">{{
+            $t('mobile:profile.community')
+          }}</text>
         </view>
         <view
           class="flex flex-1 flex-col items-center justify-center space-y-2 active:opacity-70"
@@ -82,7 +84,7 @@
           >
             <view class="i-mdi-face-agent text-2xl"></view>
           </view>
-          <text class="text-xs font-medium text-gray-600">在线客服</text>
+          <text class="text-xs font-medium text-gray-600">{{ $t('mobile:profile.support') }}</text>
         </view>
         <view
           class="flex flex-1 flex-col items-center justify-center space-y-2 active:opacity-70"
@@ -93,7 +95,7 @@
           >
             <view class="i-mdi-forum text-2xl"></view>
           </view>
-          <text class="text-xs font-medium text-gray-600">反馈社区</text>
+          <text class="text-xs font-medium text-gray-600">{{ $t('mobile:profile.feedback') }}</text>
         </view>
         <view
           class="flex flex-1 flex-col items-center justify-center space-y-2 active:opacity-70"
@@ -104,7 +106,7 @@
           >
             <view class="i-mdi-thumb-up text-2xl"></view>
           </view>
-          <text class="text-xs font-medium text-gray-600">点赞我们</text>
+          <text class="text-xs font-medium text-gray-600">{{ $t('mobile:profile.like') }}</text>
         </view>
       </view>
 
@@ -116,7 +118,7 @@
         >
           <view class="flex items-center space-x-3">
             <view class="i-mdi-account-edit text-xl text-blue-500"></view>
-            <text class="text-base text-gray-700">编辑资料</text>
+            <text class="text-base text-gray-700">{{ $t('mobile:profile.edit') }}</text>
           </view>
           <view class="i-mdi-chevron-right text-gray-400"></view>
         </view>
@@ -127,7 +129,7 @@
         >
           <view class="flex items-center space-x-3">
             <view class="i-mdi-help-circle text-xl text-orange-500"></view>
-            <text class="text-base text-gray-700">常见问题</text>
+            <text class="text-base text-gray-700">{{ $t('mobile:help.title') }}</text>
           </view>
           <view class="i-mdi-chevron-right text-gray-400"></view>
         </view>
@@ -138,7 +140,7 @@
         >
           <view class="flex items-center space-x-3">
             <view class="i-mdi-heart-outline text-xl text-red-500"></view>
-            <text class="text-base text-gray-700">关于我们</text>
+            <text class="text-base text-gray-700">{{ $t('mobile:about.title') }}</text>
           </view>
           <view class="i-mdi-chevron-right text-gray-400"></view>
         </view>
@@ -149,7 +151,7 @@
         >
           <view class="flex items-center space-x-3">
             <view class="i-mdi-cog-outline text-xl text-gray-500"></view>
-            <text class="text-base text-gray-700">应用设置</text>
+            <text class="text-base text-gray-700">{{ $t('mobile:settings.title') }}</text>
           </view>
           <view class="i-mdi-chevron-right text-gray-400"></view>
         </view>
@@ -159,6 +161,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { useUserStore } from '@/store'
 import { computed, getCurrentInstance } from 'vue'
 
@@ -198,10 +201,10 @@ function handleAbout() {
 }
 
 function handleJiaoLiuQun() {
-  proxy.$modal.showToast('模块建设中~')
+  proxy.$modal.showToast(t('mobile:app.comingSoon'))
 }
 
 function handleBuilding() {
-  proxy.$modal.showToast('模块建设中~')
+  proxy.$modal.showToast(t('mobile:app.comingSoon'))
 }
 </script>

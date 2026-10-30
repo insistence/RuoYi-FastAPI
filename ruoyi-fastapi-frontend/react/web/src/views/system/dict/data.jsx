@@ -1,3 +1,8 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import TranslationFields, { SourceLocaleLabel } from '@/components/TranslationFields'
+import { translationPatch, localizeOptions } from '@/i18n/entities.mjs'
+import { useI18n } from '@/i18n/adapter'
+import { i18n, t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import {
@@ -24,19 +29,53 @@ import DictTag from '@/components/DictTag'
 import Pagination from '@/components/Pagination'
 import RightToolbar from '@/components/RightToolbar'
 const listClassOptions = [
-  { value: 'default', label: '默认' },
-  { value: 'primary', label: '主要' },
-  { value: 'success', label: '成功' },
-  { value: 'info', label: '信息' },
-  { value: 'warning', label: '警告' },
-  { value: 'danger', label: '危险' },
+  {
+    value: 'default',
+    get label() {
+      return t('layout:size.default')
+    },
+  },
+  {
+    value: 'primary',
+    get label() {
+      return t('system:primary')
+    },
+  },
+  {
+    value: 'success',
+    get label() {
+      return t('common:success')
+    },
+  },
+  {
+    value: 'info',
+    get label() {
+      return t('system:information')
+    },
+  },
+  {
+    value: 'warning',
+    get label() {
+      return t('common:warning')
+    },
+  },
+  {
+    value: 'danger',
+    get label() {
+      return t('system:danger')
+    },
+  },
 ]
 
 export default function DictData({ params }) {
+  useI18n()
+  const [originalTranslations, setOriginalTranslations] = useState({})
+
   const { sys_normal_disable } = useDict('sys_normal_disable')
   const [queryRef] = Form.useForm(),
     [dataRef] = Form.useForm(),
     navigate = useNavigate()
+  useLocalizedFormErrors(queryRef, dataRef)
   const [dataList, setDataList] = useState([]),
     [total, setTotal] = useState(0),
     [typeOptions, setTypeOptions] = useState([]),
@@ -65,6 +104,7 @@ export default function DictData({ params }) {
         setTypeOptions(
           result.data.map((item) => ({
             label: item.dictName,
+            labelI18n: item.dictNameI18n,
             value: item.dictType,
           }))
         )
@@ -93,6 +133,7 @@ export default function DictData({ params }) {
   function handleAdd() {
     setDictCode(undefined)
     dataRef.resetFields()
+    setOriginalTranslations({})
     dataRef.setFieldsValue({
       dictType: queryParams.dictType,
       dictSort: 0,
@@ -106,26 +147,29 @@ export default function DictData({ params }) {
       const result = await getData(id)
       setDictCode(id)
       dataRef.resetFields()
+      setOriginalTranslations({})
       dataRef.setFieldsValue(result.data)
+      setOriginalTranslations(result.data.dictLabelI18n || {})
       setOpen(true)
     } catch {}
   }
   async function handleDelete(values) {
     try {
-      await confirm(`是否确认删除字典编码为“${values}”的数据项？`)
+      await confirm(t('system:deleteDictionaryEntriesWithCodesValue', { values }))
       await delData(values)
       clearDictCache()
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
   async function submitForm() {
     try {
       const values = await dataRef.validateFields()
+      values.dictLabelI18n = translationPatch(values.dictLabelI18n, originalTranslations)
       setSaving(true)
       await (dictCode !== undefined ? updateData({ ...values, dictCode }) : addData(values))
       clearDictCache()
-      message.success(dictCode !== undefined ? '修改成功' : '新增成功')
+      message.success(dictCode !== undefined ? t('common:updateSuccess') : t('common:addSuccess'))
       setOpen(false)
       await getList()
     } catch {
@@ -134,23 +178,29 @@ export default function DictData({ params }) {
     }
   }
   const columns = [
-    { align: 'center', title: '字典编码', dataIndex: 'dictCode' },
+    { align: 'center', title: t('system:dictionaryCode'), dataIndex: 'dictCode' },
     {
       align: 'center',
-      title: '字典标签',
+      title: t('system:dictionaryLabel'),
       dataIndex: 'dictLabel',
       render: (value, row) => (
         <DictTag
-          options={[{ label: value, value: row.dictValue, elTagType: row.listClass }]}
+          options={[
+            {
+              label: i18n.resolveText(value, row.dictLabelI18n),
+              value: row.dictValue,
+              elTagType: row.listClass,
+            },
+          ]}
           value={row.dictValue}
         />
       ),
     },
-    { align: 'center', title: '字典键值', dataIndex: 'dictValue' },
-    { align: 'center', title: '字典排序', dataIndex: 'dictSort' },
+    { align: 'center', title: t('system:dictionaryValue'), dataIndex: 'dictValue' },
+    { align: 'center', title: t('system:dictionarySortOrder'), dataIndex: 'dictSort' },
     {
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       render: (value) => (
         <DictTag
@@ -159,11 +209,11 @@ export default function DictData({ params }) {
         />
       ),
     },
-    { align: 'center', title: '备注', dataIndex: 'remark' },
+    { align: 'center', title: t('common:remark'), dataIndex: 'remark' },
     {
       width: 180,
       align: 'center',
-      title: '创建时间',
+      title: t('common:createdTime'),
       dataIndex: 'createTime',
       render: (value) => parseTime(value),
     },
@@ -171,7 +221,7 @@ export default function DictData({ params }) {
       width: 160,
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       render: (_, row) => (
         <TableActions>
           <HasPermi value={['system:dict:edit']}>
@@ -179,7 +229,7 @@ export default function DictData({ params }) {
               symbol="Edit"
               onClick={() => handleUpdate(row.dictCode)}
             >
-              修改
+              {t('common:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:dict:remove']}>
@@ -187,7 +237,7 @@ export default function DictData({ params }) {
               symbol="Delete"
               onClick={() => handleDelete([row.dictCode])}
             >
-              删除
+              {t('common:delete')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -205,32 +255,32 @@ export default function DictData({ params }) {
         >
           <Form.Item
             name="dictType"
-            label="字典名称"
+            label={t('system:dict.name')}
           >
             <Select
               style={{ width: 200 }}
-              options={typeOptions}
+              options={localizeOptions(typeOptions, i18n.resolveText)}
               showSearch
               optionFilterProp="label"
             />
           </Form.Item>
           <Form.Item
             name="dictLabel"
-            label="字典标签"
+            label={t('system:dictionaryLabel')}
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入字典标签"
+              placeholder={t('system:enterADictionaryLabel')}
               allowClear
             />
           </Form.Item>
           <Form.Item
             name="status"
-            label="状态"
+            label={t('common:status')}
           >
             <Select
               style={{ width: 200 }}
-              placeholder="数据状态"
+              placeholder={t('system:dataStatus')}
               allowClear
               options={sys_normal_disable}
             />
@@ -242,7 +292,7 @@ export default function DictData({ params }) {
                 htmlType="submit"
                 type="primary"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -252,7 +302,7 @@ export default function DictData({ params }) {
                   handleQuery({ dictType: defaultType })
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -266,7 +316,7 @@ export default function DictData({ params }) {
             type="default"
             onClick={handleAdd}
           >
-            新增
+            {t('common:add')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:dict:edit']}>
@@ -277,7 +327,7 @@ export default function DictData({ params }) {
             disabled={ids.length !== 1}
             onClick={() => handleUpdate(ids[0])}
           >
-            修改
+            {t('common:edit')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:dict:remove']}>
@@ -288,7 +338,7 @@ export default function DictData({ params }) {
             disabled={!ids.length}
             onClick={() => handleDelete(ids)}
           >
-            删除
+            {t('common:delete')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:dict:export']}>
@@ -304,7 +354,7 @@ export default function DictData({ params }) {
               ).catch(() => {})
             }
           >
-            导出
+            {t('common:export')}
           </Button>
         </HasPermi>
         <Button
@@ -313,7 +363,7 @@ export default function DictData({ params }) {
           type="default"
           onClick={() => navigate('/system/dict')}
         >
-          关闭
+          {t('layout:search.close')}
         </Button>
         <RightToolbar
           showSearch={showSearch}
@@ -340,7 +390,7 @@ export default function DictData({ params }) {
         footer={renderDialogFooter}
         width="500px"
         open={open}
-        title={dictCode !== undefined ? '修改字典数据' : '添加字典数据'}
+        title={dictCode !== undefined ? t('system:dict.editData') : t('system:dict.addData')}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
         confirmLoading={saving}
@@ -357,27 +407,31 @@ export default function DictData({ params }) {
         >
           <Form.Item
             name="dictType"
-            label="字典类型"
+            label={t('system:dict.type')}
           >
             <Input disabled />
           </Form.Item>
           <Form.Item
             name="dictLabel"
-            label="数据标签"
+            label={<SourceLocaleLabel>{t('system:dict.label')}</SourceLocaleLabel>}
             rules={[{ required: true }]}
           >
-            <Input placeholder="请输入数据标签" />
+            <Input placeholder={t('system:dict.labelPlaceholder')} />
           </Form.Item>
+          <TranslationFields
+            name="dictLabelI18n"
+            label={t('system:dict.label')}
+          />
           <Form.Item
             name="dictValue"
-            label="数据键值"
+            label={t('system:dict.value')}
             rules={[{ required: true }]}
           >
-            <Input placeholder="请输入数据键值" />
+            <Input placeholder={t('system:dict.valuePlaceholder')} />
           </Form.Item>
           <Form.Item
             name="dictSort"
-            label="显示排序"
+            label={t('system:dept.order')}
             rules={[{ required: true }]}
           >
             <InputNumber
@@ -387,28 +441,28 @@ export default function DictData({ params }) {
           </Form.Item>
           <Form.Item
             name="cssClass"
-            label="样式属性"
+            label={t('system:cssClass')}
           >
-            <Input placeholder="请输入样式属性" />
+            <Input placeholder={t('system:enterACssClass')} />
           </Form.Item>
           <Form.Item
             name="listClass"
-            label="回显样式"
+            label={t('system:dict.listClass')}
           >
             <Select options={listClassOptions} />
           </Form.Item>
           <Form.Item
             name="status"
-            label="状态"
+            label={t('common:status')}
           >
             <Radio.Group options={sys_normal_disable} />
           </Form.Item>
           <Form.Item
             name="remark"
-            label="备注"
+            label={t('common:remark')}
           >
             <Input.TextArea
-              placeholder="请输入内容"
+              placeholder={t('common:contentPlaceholder')}
               rows={2}
             />
           </Form.Item>

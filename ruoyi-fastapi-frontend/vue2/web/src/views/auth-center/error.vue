@@ -9,7 +9,13 @@
           aria-hidden="true"
         ></i
       ></span>
-      <p class="panel-kicker">{{ serviceUnavailable ? '服务不可用' : '认证未完成' }}</p>
+      <p class="panel-kicker">
+        {{
+          serviceUnavailable
+            ? $t('authCenter:expression.serviceUnavailable')
+            : $t('layout:route.authError')
+        }}
+      </p>
       <h2>{{ errorTitle }}</h2>
       <p
         class="panel-lead"
@@ -19,14 +25,16 @@
       </p>
 
       <div class="next-steps">
-        <strong>你可以这样处理</strong>
+        <strong>{{ $t('authCenter:messages.whatYouCanDo') }}</strong>
         <ol v-if="serviceUnavailable">
-          <li>返回刚才的应用，或关闭当前页面。</li>
-          <li>联系管理员确认服务状态。</li>
+          <li>{{ $t('authCenter:messages.returnToTheAppOrCloseThisPage') }}</li>
+          <li>{{ $t('authCenter:messages.askYourAdministratorToCheckTheServiceStatus') }}</li>
         </ol>
         <ol v-else>
-          <li>返回刚才的应用，重新发起登录。</li>
-          <li>如果仍然失败，把出现问题的时间和应用名称告诉管理员。</li>
+          <li>{{ $t('authCenter:messages.returnToTheAppAndStartSignInAgain') }}</li>
+          <li>
+            {{ $t('authCenter:messages.ifItStillFailsTellYourAdministratorTheAppNameAndWhen') }}
+          </li>
         </ol>
       </div>
 
@@ -37,7 +45,7 @@
         class="return-action"
         @click="returnBack"
       >
-        返回上一页
+        {{ $t('authCenter:messages.goBack') }}
       </el-button>
       <p
         v-else
@@ -45,8 +53,8 @@
       >
         {{
           serviceUnavailable
-            ? '可以安全关闭此页面，返回原应用。'
-            : '可以安全关闭此页面，再回到应用重新登录。'
+            ? $t('authCenter:expression.youCanSafelyCloseThisPageAndReturnToTheApplication')
+            : $t('authCenter:expression.youCanSafelyCloseThisPageAndRestartSignInFromThe')
         }}
       </p>
     </div>
@@ -54,6 +62,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 export default { name: 'AuthCenterError' }
 </script>
 
@@ -68,19 +78,26 @@ const canGoBack = typeof window !== 'undefined' && window.history.length > 1
 const serviceReason = computed(() => route.value.query.reason)
 const serviceUnavailable = computed(() => ['disabled', 'unavailable'].includes(serviceReason.value))
 const errorTitle = computed(() => {
-  if (serviceReason.value === 'disabled') return '统一认证服务未启用'
-  if (serviceReason.value === 'unavailable') return '统一认证服务暂不可用'
-  return '这次访问无法继续'
+  if (serviceReason.value === 'disabled')
+    return t('authCenter:messages.authenticationServiceIsDisabled')
+  if (serviceReason.value === 'unavailable')
+    return t('authCenter:messages.authenticationServiceIsUnavailable')
+  return t('authCenter:messages.unableToContinue')
 })
 const safeMessage = computed(() => {
   if (serviceReason.value === 'disabled') {
-    return '当前未开放统一认证服务，请返回原应用或联系管理员。'
+    return t(
+      'authCenter:messages.authenticationIsNotEnabledReturnToTheAppOrContactYourAdministrator'
+    )
   }
   if (serviceReason.value === 'unavailable') {
-    return '暂时无法连接认证服务，请稍后从原应用重试。'
+    return t('authCenter:messages.theAuthenticationServiceCannotBeReachedTryAgainLaterFromTheApp')
   }
   const message = typeof route.value.query.message === 'string' ? route.value.query.message : ''
-  return message.slice(0, 240) || '认证请求可能已经过期、内容不完整，或应用的接入配置已经变更。'
+  return (
+    message.slice(0, 240) ||
+    t('authCenter:messages.theAuthenticationRequestMayHaveExpiredBeIncompleteOrReferToAn')
+  )
 })
 
 /** 返回浏览器历史中的上一页 */

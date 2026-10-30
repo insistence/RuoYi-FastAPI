@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { PlusOutlined } from '@ant-design/icons'
 import FileTag from './FileTag'
@@ -15,11 +18,14 @@ import { confirm, message } from '@/plugins/modal'
 import { parseTime } from '@/utils/ruoyi'
 
 export default function FileRetentionPolicyDrawer({ open, onClose }) {
+  useI18n()
+
   const [rows, setRows] = useState([]),
     [loading, setLoading] = useState(false),
     [editing, setEditing] = useState(),
     [saving, setSaving] = useState(false),
     [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   async function load() {
     setLoading(true)
     try {
@@ -48,7 +54,7 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
         status: values.status,
         remark: values.remark,
       })
-      message.success('保留策略保存成功')
+      message.success(t('file:retentionPolicySaved'))
       setEditing(undefined)
       load()
     } catch {
@@ -60,13 +66,13 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
     <>
       <Drawer
         rootClassName="file-drawer"
-        title="文件保留策略"
+        title={t('system:fileRetentionPolicies')}
         open={open}
         onClose={onClose}
         size="900px"
       >
         <Alert
-          title="策略仅应用于后续新建或重建的业务引用；未配置或已停用的业务类型永久保留，既有引用不会被追溯修改。"
+          title={t('system:policiesApplyOnlyToNewOrRecreatedBusinessReferences')}
           type="info"
           showIcon
           style={{ marginBottom: 8 }}
@@ -77,7 +83,7 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
           onClick={() => edit()}
           style={{ marginBottom: 8 }}
         >
-          新增
+          {t('common:add')}
         </Button>
         <Table
           rowKey="businessType"
@@ -86,22 +92,32 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
           pagination={false}
           scroll={{ x: 760 }}
           columns={[
-            { minWidth: 140, align: 'center', title: '业务类型', dataIndex: 'businessType' },
-            { width: 100, align: 'center', title: '保留天数', dataIndex: 'retentionDays' },
+            {
+              minWidth: 140,
+              align: 'center',
+              title: t('monitor:log.businessType'),
+              dataIndex: 'businessType',
+            },
+            {
+              width: 100,
+              align: 'center',
+              title: t('system:retentionDays'),
+              dataIndex: 'retentionDays',
+            },
             {
               width: 90,
               align: 'center',
-              title: '状态',
+              title: t('common:status'),
               dataIndex: 'status',
               render: (value) => (
                 <FileTag type={value === '0' ? 'success' : 'info'}>
-                  {value === '0' ? '启用' : '停用'}
+                  {value === '0' ? t('common:enable') : t('common:disable')}
                 </FileTag>
               ),
             },
             {
               minWidth: 160,
-              title: '备注',
+              title: t('common:remark'),
               dataIndex: 'remark',
               ellipsis: true,
               render: (value) => value || '-',
@@ -109,7 +125,7 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
             {
               width: 180,
               align: 'center',
-              title: '更新时间',
+              title: t('common:updatedTime'),
               dataIndex: 'updateTime',
               render: (value) => parseTime(value) || '-',
             },
@@ -118,7 +134,7 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
               fixed: 'right',
               className: 'ruoyi-actions-cell',
               align: 'center',
-              title: '操作',
+              title: t('common:actions'),
               render: (_, row) => (
                 <TableActions>
                   <TableAction
@@ -126,7 +142,7 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
                     symbol="Edit"
                     onClick={() => edit(row)}
                   >
-                    修改
+                    {t('common:edit')}
                   </TableAction>
                   <TableAction
                     iconOnly={true}
@@ -134,13 +150,17 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
                     symbol="Delete"
                     onClick={async () => {
                       try {
-                        await confirm(`是否删除业务类型「${row.businessType}」的保留策略？`)
+                        await confirm(
+                          t('file:deleteTheRetentionPolicyForBusinessTypeValue', {
+                            businessType: row.businessType,
+                          })
+                        )
                         await delFileRetentionPolicy(row.businessType)
                         load()
                       } catch {}
                     }}
                   >
-                    删除
+                    {t('common:delete')}
                   </TableAction>
                 </TableActions>
               ),
@@ -152,7 +172,11 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
         className="file-dialog"
         footer={renderDialogFooter}
         width="520px"
-        title={editing?.businessType ? '修改文件保留策略' : '新增文件保留策略'}
+        title={
+          editing?.businessType
+            ? t('system:editFileRetentionPolicy')
+            : t('system:addFileRetentionPolicy')
+        }
         open={!!editing}
         onCancel={() => setEditing(undefined)}
         onOk={save}
@@ -169,18 +193,18 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
         >
           <Form.Item
             name="businessType"
-            label="业务类型"
-            rules={[{ required: true, message: '请输入业务类型' }]}
+            label={t('monitor:log.businessType')}
+            rules={[{ required: true, message: t('system:enterABusinessType') }]}
           >
             <Input
-              placeholder="请输入业务类型"
+              placeholder={t('system:enterABusinessType')}
               maxLength={50}
               disabled={!!editing?.businessType}
             />
           </Form.Item>
           <Form.Item
             name="retentionDays"
-            label="保留天数"
+            label={t('system:retentionDays')}
             rules={[{ required: true }]}
           >
             <InputNumber
@@ -192,21 +216,21 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
           </Form.Item>
           <Form.Item
             name="status"
-            label="状态"
+            label={t('common:status')}
           >
             <Radio.Group
               options={[
-                { label: '启用', value: '0' },
-                { label: '停用', value: '1' },
+                { label: t('common:enable'), value: '0' },
+                { label: t('common:disable'), value: '1' },
               ]}
             />
           </Form.Item>
           <Form.Item
             name="remark"
-            label="备注"
+            label={t('common:remark')}
           >
             <Input.TextArea
-              placeholder="请输入备注"
+              placeholder={t('system:dict.remarkPlaceholder')}
               rows={3}
               maxLength={500}
               showCount

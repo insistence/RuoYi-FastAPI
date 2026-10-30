@@ -1,3 +1,6 @@
+import { useLocalizedText } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { ReloadOutlined } from '@ant-design/icons'
 import './style.css'
 import { Fragment, useEffect, useState } from 'react'
@@ -6,8 +9,10 @@ import { getPluginRuntimeMetrics } from '@/api/system/plugin'
 import PluginTag from './PluginTag'
 
 export default function PluginRuntimeMetrics({ pluginId }) {
+  useI18n()
+
   const [data, setData] = useState(),
-    [error, setError] = useState(''),
+    [error, setError] = useLocalizedText(''),
     [loading, setLoading] = useState(false),
     [updatedAt, setUpdatedAt] = useState(''),
     [revision, setRevision] = useState(0)
@@ -28,7 +33,7 @@ export default function PluginRuntimeMetrics({ pluginId }) {
           setUpdatedAt(new Date().toLocaleTimeString())
         }
       })
-      .catch(() => active && setError('运行指标查询失败，请重试。'))
+      .catch(() => active && setError((t) => t('system:couldNotLoadRuntimeMetricsTryAgain')))
       .finally(() => active && setLoading(false))
     return () => {
       active = false
@@ -42,19 +47,21 @@ export default function PluginRuntimeMetrics({ pluginId }) {
   return (
     <section
       className="plugin-metrics"
-      aria-label="插件运行观测"
+      aria-label={t('system:pluginRuntimeMonitoring')}
       aria-busy={loading}
     >
       <div className="metrics-toolbar">
         <span role="status">
-          {updatedAt ? `查询时间：${updatedAt}` : '查询实际运行进程的累计指标'}
+          {updatedAt
+            ? t('pluginAdmin:queriedAtValue', { updatedAt })
+            : t('pluginAdmin:queryCumulativeMetricsFromRunningProcesses')}
         </span>
         <Button
           icon={<ReloadOutlined />}
           loading={loading}
           onClick={() => setRevision((value) => value + 1)}
         >
-          刷新指标
+          {t('system:refreshMetrics')}
         </Button>
       </div>
       {error ? (
@@ -72,17 +79,19 @@ export default function PluginRuntimeMetrics({ pluginId }) {
                   <Alert
                     title={
                       data.scope === 'reporting_workers'
-                        ? `已上报进程：${data.observedWorkers} 个`
-                        : '当前仅显示接收本次请求的进程'
+                        ? t('pluginAdmin:reportedProcessesValue', {
+                            observedWorkers: data.observedWorkers,
+                          })
+                        : t('pluginAdmin:showingOnlyTheProcessHandlingThisRequest')
                     }
-                    description="指标从进程启动后累计，重启会归零；已上报进程不代表全部预期进程。"
+                    description={t('system:metricsAccumulateFromProcessStartupAndResetOnRestart')}
                     showIcon
                     type={data.scope === 'reporting_workers' ? 'info' : 'warning'}
                   />
                   <p className="metrics-hint">
-                    采样间隔 {data.sampleIntervalSeconds || '-'} 秒，有效期{' '}
-                    {data.sampleTtlSeconds || '-'} 秒。耗时包含完整请求或任务，P95
-                    为直方图估算上界。
+                    {t('system:samplingInterval')} {data.sampleIntervalSeconds || '-'}{' '}
+                    {t('system:secondsValidityPeriod')} {data.sampleTtlSeconds || '-'}{' '}
+                    {t('system:secondsDurationCoversTheCompleteRequestOrTaskP95')}
                   </p>
                 </>
               )}
@@ -93,16 +102,26 @@ export default function PluginRuntimeMetrics({ pluginId }) {
                 <Alert
                   showIcon
                   type="warning"
-                  title="部分采样未纳入统计"
-                  description={`无效 ${data.invalidSnapshots || 0}，过期 ${data.staleSnapshots || 0}，超出指标容量 ${dropped}；进程读取上限${data.workerLimitReached ? '已达到' : '未达到'}。`}
+                  title={t('system:someSamplesWereExcludedFromTheStatistics')}
+                  description={t(
+                    'pluginAdmin:invalidValueExpiredValueOverMetricCapacityValueProcess',
+                    {
+                      arg0: data.invalidSnapshots || 0,
+                      arg1: data.staleSnapshots || 0,
+                      dropped,
+                      arg3: data.workerLimitReached
+                        ? t('pluginAdmin:reached')
+                        : t('pluginAdmin:notReached'),
+                    }
+                  )}
                 />
               ) : null}
               {!data.series?.length && (
                 <Empty
                   description={
                     data.supported === false
-                      ? '当前进程未启用运行观测'
-                      : '暂无该插件的运行指标，仅支持已加载的 v2 插件'
+                      ? t('pluginAdmin:runtimeMonitoringIsDisabledForThisProcess')
+                      : t('pluginAdmin:noRuntimeMetricsForThisPluginOnlyLoadedV2')
                   }
                 />
               )}{' '}
@@ -122,16 +141,19 @@ export default function PluginRuntimeMetrics({ pluginId }) {
                   </div>
                   <dl className="metrics-values">
                     {[
-                      ['调用', row.started],
-                      ['在途', row.active],
-                      ['成功', row.succeeded],
-                      ['拒绝', row.rejected],
-                      ['失败 / 失败率', `${row.failed} / ${row.failureRatePercent}%`],
-                      ['取消', row.cancelled],
-                      ['超时（计入失败）', row.timedOut],
-                      ['平均耗时', `${row.averageDurationMs} ms`],
-                      ['P95 估算上界', `${row.p95UpperBoundMs} ms`],
-                      ['最大耗时', `${Number(row.durationMaxMs).toFixed(1)} ms`],
+                      [t('system:calls'), row.started],
+                      [t('system:inFlight'), row.active],
+                      [t('common:success'), row.succeeded],
+                      [t('system:rejected'), row.rejected],
+                      [
+                        t('system:failuresFailureRate'),
+                        `${row.failed} / ${row.failureRatePercent}%`,
+                      ],
+                      [t('common:cancel'), row.cancelled],
+                      [t('system:timeoutsIncludedInFailures'), row.timedOut],
+                      [t('system:averageDuration'), `${row.averageDurationMs} ms`],
+                      [t('system:p95EstimatedUpperBound'), `${row.p95UpperBoundMs} ms`],
+                      [t('system:maximumDuration'), `${Number(row.durationMaxMs).toFixed(1)} ms`],
                     ].map(([title, value]) => (
                       <div key={title}>
                         <dt>{title}</dt>
@@ -140,13 +162,13 @@ export default function PluginRuntimeMetrics({ pluginId }) {
                     ))}
                   </dl>
                   <details>
-                    <summary>版本身份与最近异常</summary>
+                    <summary>{t('system:versionIdentityAndRecentErrors')}</summary>
                     <dl className="metrics-identities">
                       {[
-                        ['制品摘要', row.digest || '源码插件'],
-                        ['发布代际', row.generation],
-                        ['最近异常', row.lastErrorType],
-                        ['追踪标识', row.lastErrorRequestId],
+                        [t('system:artifactDigest'), row.digest || t('pluginAdmin:sourcePlugin')],
+                        [t('system:releaseGeneration'), row.generation],
+                        [t('system:components.latestError'), row.lastErrorType],
+                        [t('system:components.traceId'), row.lastErrorRequestId],
                       ].map(([label, children]) => (
                         <Fragment key={label}>
                           <dt>{label}</dt>

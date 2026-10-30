@@ -49,14 +49,14 @@
     </el-row>
     <span
       class="drawing-item-copy"
-      title="复制"
+      :title="$t('monitor:copy')"
       @click.stop="copyItem(element)"
     >
       <el-icon><CopyDocument /></el-icon>
     </span>
     <span
       class="drawing-item-delete"
-      title="删除"
+      :title="$t('system:delete')"
       @click.stop="deleteItem(index)"
     >
       <el-icon><Delete /></el-icon>

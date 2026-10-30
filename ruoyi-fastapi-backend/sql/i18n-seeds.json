@@ -1,0 +1,2204 @@
+{
+  "sys_menu": [
+    {
+      "identity": {
+        "menu_id": 1,
+        "menu_name": "系统管理",
+        "path": "system",
+        "perms": ""
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "System administration"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 2,
+        "menu_name": "系统监控",
+        "path": "monitor",
+        "perms": ""
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "System monitoring"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 3,
+        "menu_name": "系统工具",
+        "path": "tool",
+        "perms": ""
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "System tools"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 99,
+        "menu_name": "若依官网",
+        "path": "http://ruoyi.vip",
+        "perms": ""
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "RuoYi website"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 100,
+        "menu_name": "用户管理",
+        "path": "user",
+        "perms": "system:user:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Users"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 101,
+        "menu_name": "角色管理",
+        "path": "role",
+        "perms": "system:role:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Roles"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 102,
+        "menu_name": "菜单管理",
+        "path": "menu",
+        "perms": "system:menu:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Menus"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 103,
+        "menu_name": "部门管理",
+        "path": "dept",
+        "perms": "system:dept:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Departments"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 104,
+        "menu_name": "岗位管理",
+        "path": "post",
+        "perms": "system:post:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Positions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 105,
+        "menu_name": "字典管理",
+        "path": "dict",
+        "perms": "system:dict:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Dictionaries"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 106,
+        "menu_name": "参数设置",
+        "path": "config",
+        "perms": "system:config:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Configuration"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 107,
+        "menu_name": "通知公告",
+        "path": "notice",
+        "perms": "system:notice:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Notices"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 108,
+        "menu_name": "日志管理",
+        "path": "log",
+        "perms": ""
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 119,
+        "menu_name": "文件管理",
+        "path": "file",
+        "perms": "system:file:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Files"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 120,
+        "menu_name": "插件管理",
+        "path": "plugin",
+        "perms": "system:plugin:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Plugins"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 121,
+        "menu_name": "认证中心",
+        "path": "oauth",
+        "perms": ""
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Authentication center"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 109,
+        "menu_name": "在线用户",
+        "path": "online",
+        "perms": "monitor:online:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Online users"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 110,
+        "menu_name": "定时任务",
+        "path": "job",
+        "perms": "monitor:job:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Scheduled jobs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 111,
+        "menu_name": "数据监控",
+        "path": "druid",
+        "perms": "monitor:druid:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Database monitoring"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 112,
+        "menu_name": "服务监控",
+        "path": "server",
+        "perms": "monitor:server:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Server monitoring"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 113,
+        "menu_name": "缓存监控",
+        "path": "cache",
+        "perms": "monitor:cache:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Cache monitoring"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 114,
+        "menu_name": "缓存列表",
+        "path": "cacheList",
+        "perms": "monitor:cache:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Cache entries"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 118,
+        "menu_name": "传输加密",
+        "path": "transportCrypto",
+        "perms": "monitor:transportCrypto:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Transport encryption"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 122,
+        "menu_name": "OAuth审计",
+        "path": "oauthAudit",
+        "perms": "monitor:oauthAudit:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "OAuth audit"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 115,
+        "menu_name": "表单构建",
+        "path": "build",
+        "perms": "tool:build:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Form builder"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 116,
+        "menu_name": "代码生成",
+        "path": "gen",
+        "perms": "tool:gen:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Code generation"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 117,
+        "menu_name": "系统接口",
+        "path": "swagger",
+        "perms": "tool:swagger:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "API documentation"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 500,
+        "menu_name": "操作日志",
+        "path": "operlog",
+        "perms": "monitor:operlog:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Operation logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 501,
+        "menu_name": "登录日志",
+        "path": "logininfor",
+        "perms": "monitor:logininfor:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Sign-in logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 502,
+        "menu_name": "客户端管理",
+        "path": "client",
+        "perms": "system:oauthClient:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "OAuth clients"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 503,
+        "menu_name": "资源管理",
+        "path": "resource",
+        "perms": "system:oauthResource:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "OAuth resources"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 504,
+        "menu_name": "范围管理",
+        "path": "scope",
+        "perms": "system:oauthScope:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "OAuth scopes"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 505,
+        "menu_name": "外部会话",
+        "path": "session",
+        "perms": "system:oauthSession:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "External sessions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 506,
+        "menu_name": "外部授权",
+        "path": "grant",
+        "perms": "system:oauthGrant:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "External grants"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 507,
+        "menu_name": "签名密钥",
+        "path": "key",
+        "perms": "system:oauthKey:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Signing keys"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1000,
+        "menu_name": "用户查询",
+        "path": "",
+        "perms": "system:user:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View users"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1001,
+        "menu_name": "用户新增",
+        "path": "",
+        "perms": "system:user:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add users"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1002,
+        "menu_name": "用户修改",
+        "path": "",
+        "perms": "system:user:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit users"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1003,
+        "menu_name": "用户删除",
+        "path": "",
+        "perms": "system:user:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete users"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1004,
+        "menu_name": "用户导出",
+        "path": "",
+        "perms": "system:user:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export users"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1005,
+        "menu_name": "用户导入",
+        "path": "",
+        "perms": "system:user:import"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Import users"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1006,
+        "menu_name": "重置密码",
+        "path": "",
+        "perms": "system:user:resetPwd"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Reset passwords"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1007,
+        "menu_name": "角色查询",
+        "path": "",
+        "perms": "system:role:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View roles"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1008,
+        "menu_name": "角色新增",
+        "path": "",
+        "perms": "system:role:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add roles"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1009,
+        "menu_name": "角色修改",
+        "path": "",
+        "perms": "system:role:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit roles"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1010,
+        "menu_name": "角色删除",
+        "path": "",
+        "perms": "system:role:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete roles"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1011,
+        "menu_name": "角色导出",
+        "path": "",
+        "perms": "system:role:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export roles"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1012,
+        "menu_name": "菜单查询",
+        "path": "",
+        "perms": "system:menu:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View menus"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1013,
+        "menu_name": "菜单新增",
+        "path": "",
+        "perms": "system:menu:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add menus"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1014,
+        "menu_name": "菜单修改",
+        "path": "",
+        "perms": "system:menu:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit menus"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1015,
+        "menu_name": "菜单删除",
+        "path": "",
+        "perms": "system:menu:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete menus"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1016,
+        "menu_name": "部门查询",
+        "path": "",
+        "perms": "system:dept:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View departments"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1017,
+        "menu_name": "部门新增",
+        "path": "",
+        "perms": "system:dept:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add departments"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1018,
+        "menu_name": "部门修改",
+        "path": "",
+        "perms": "system:dept:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit departments"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1019,
+        "menu_name": "部门删除",
+        "path": "",
+        "perms": "system:dept:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete departments"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1020,
+        "menu_name": "岗位查询",
+        "path": "",
+        "perms": "system:post:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View positions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1021,
+        "menu_name": "岗位新增",
+        "path": "",
+        "perms": "system:post:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add positions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1022,
+        "menu_name": "岗位修改",
+        "path": "",
+        "perms": "system:post:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit positions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1023,
+        "menu_name": "岗位删除",
+        "path": "",
+        "perms": "system:post:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete positions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1024,
+        "menu_name": "岗位导出",
+        "path": "",
+        "perms": "system:post:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export positions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1025,
+        "menu_name": "字典查询",
+        "path": "#",
+        "perms": "system:dict:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View dictionaries"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1026,
+        "menu_name": "字典新增",
+        "path": "#",
+        "perms": "system:dict:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add dictionaries"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1027,
+        "menu_name": "字典修改",
+        "path": "#",
+        "perms": "system:dict:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit dictionaries"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1028,
+        "menu_name": "字典删除",
+        "path": "#",
+        "perms": "system:dict:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete dictionaries"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1029,
+        "menu_name": "字典导出",
+        "path": "#",
+        "perms": "system:dict:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export dictionaries"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1030,
+        "menu_name": "参数查询",
+        "path": "#",
+        "perms": "system:config:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View configuration"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1031,
+        "menu_name": "参数新增",
+        "path": "#",
+        "perms": "system:config:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add configuration"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1032,
+        "menu_name": "参数修改",
+        "path": "#",
+        "perms": "system:config:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit configuration"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1033,
+        "menu_name": "参数删除",
+        "path": "#",
+        "perms": "system:config:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete configuration"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1034,
+        "menu_name": "参数导出",
+        "path": "#",
+        "perms": "system:config:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export configuration"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1035,
+        "menu_name": "公告查询",
+        "path": "#",
+        "perms": "system:notice:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View notices"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1036,
+        "menu_name": "公告新增",
+        "path": "#",
+        "perms": "system:notice:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add notices"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1037,
+        "menu_name": "公告修改",
+        "path": "#",
+        "perms": "system:notice:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit notices"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1038,
+        "menu_name": "公告删除",
+        "path": "#",
+        "perms": "system:notice:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete notices"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1061,
+        "menu_name": "文件查询",
+        "path": "#",
+        "perms": "system:file:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View files"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1062,
+        "menu_name": "文件下载",
+        "path": "#",
+        "perms": "system:file:download"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Download files"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1063,
+        "menu_name": "文件删除",
+        "path": "#",
+        "perms": "system:file:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete files"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1064,
+        "menu_name": "文件授权",
+        "path": "#",
+        "perms": "system:file:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Authorize files"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1065,
+        "menu_name": "文件转移",
+        "path": "#",
+        "perms": "system:file:transfer"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Transfer files"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1066,
+        "menu_name": "文件恢复",
+        "path": "#",
+        "perms": "system:file:restore"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Restore files"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1067,
+        "menu_name": "文件清理",
+        "path": "#",
+        "perms": "system:file:purge"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Purge files"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1068,
+        "menu_name": "存储对账",
+        "path": "#",
+        "perms": "system:file:reconcile"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Storage reconciliation"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1069,
+        "menu_name": "插件查询",
+        "path": "#",
+        "perms": "system:plugin:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View plugins"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1070,
+        "menu_name": "插件修改",
+        "path": "#",
+        "perms": "system:plugin:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit plugins"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1071,
+        "menu_name": "插件列表",
+        "path": "#",
+        "perms": "system:plugin:list"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "List plugins"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1072,
+        "menu_name": "插件导出",
+        "path": "#",
+        "perms": "system:plugin:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export plugins"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1039,
+        "menu_name": "操作查询",
+        "path": "#",
+        "perms": "monitor:operlog:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View operation logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1040,
+        "menu_name": "操作删除",
+        "path": "#",
+        "perms": "monitor:operlog:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete operation logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1041,
+        "menu_name": "日志导出",
+        "path": "#",
+        "perms": "monitor:operlog:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1042,
+        "menu_name": "登录查询",
+        "path": "#",
+        "perms": "monitor:logininfor:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View sign-in logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1043,
+        "menu_name": "登录删除",
+        "path": "#",
+        "perms": "monitor:logininfor:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete sign-in logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1044,
+        "menu_name": "日志导出",
+        "path": "#",
+        "perms": "monitor:logininfor:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1045,
+        "menu_name": "账户解锁",
+        "path": "#",
+        "perms": "monitor:logininfor:unlock"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Unlock accounts"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1073,
+        "menu_name": "客户端查询",
+        "path": "#",
+        "perms": "system:oauthClient:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View clients"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1074,
+        "menu_name": "客户端新增",
+        "path": "#",
+        "perms": "system:oauthClient:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add clients"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1075,
+        "menu_name": "客户端修改",
+        "path": "#",
+        "perms": "system:oauthClient:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit clients"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1076,
+        "menu_name": "客户端删除",
+        "path": "#",
+        "perms": "system:oauthClient:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete clients"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1077,
+        "menu_name": "密钥轮换",
+        "path": "#",
+        "perms": "system:oauthClient:rotateSecret"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Rotate keys"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1079,
+        "menu_name": "资源新增",
+        "path": "#",
+        "perms": "system:oauthResource:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add resources"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1080,
+        "menu_name": "资源修改",
+        "path": "#",
+        "perms": "system:oauthResource:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit resources"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1081,
+        "menu_name": "资源删除",
+        "path": "#",
+        "perms": "system:oauthResource:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete resources"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1083,
+        "menu_name": "范围新增",
+        "path": "#",
+        "perms": "system:oauthScope:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add scopes"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1084,
+        "menu_name": "范围修改",
+        "path": "#",
+        "perms": "system:oauthScope:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit scopes"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1085,
+        "menu_name": "范围删除",
+        "path": "#",
+        "perms": "system:oauthScope:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete scopes"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1086,
+        "menu_name": "会话下线",
+        "path": "#",
+        "perms": "system:oauthSession:revoke"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "End sessions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1087,
+        "menu_name": "授权撤销",
+        "path": "#",
+        "perms": "system:oauthGrant:revoke"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Revoke grants"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1088,
+        "menu_name": "密钥轮换",
+        "path": "#",
+        "perms": "system:oauthKey:rotate"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Rotate keys"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1089,
+        "menu_name": "密钥启用",
+        "path": "#",
+        "perms": "system:oauthKey:activate"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Activate keys"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1090,
+        "menu_name": "密钥退役",
+        "path": "#",
+        "perms": "system:oauthKey:retire"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Retire keys"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1091,
+        "menu_name": "审计导出",
+        "path": "#",
+        "perms": "monitor:oauthAudit:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export audit logs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1046,
+        "menu_name": "在线查询",
+        "path": "#",
+        "perms": "monitor:online:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View online users"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1047,
+        "menu_name": "批量强退",
+        "path": "#",
+        "perms": "monitor:online:batchLogout"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Force sign-out in bulk"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1048,
+        "menu_name": "单条强退",
+        "path": "#",
+        "perms": "monitor:online:forceLogout"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Force sign-out"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1049,
+        "menu_name": "任务查询",
+        "path": "#",
+        "perms": "monitor:job:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View jobs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1050,
+        "menu_name": "任务新增",
+        "path": "#",
+        "perms": "monitor:job:add"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Add jobs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1051,
+        "menu_name": "任务修改",
+        "path": "#",
+        "perms": "monitor:job:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit jobs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1052,
+        "menu_name": "任务删除",
+        "path": "#",
+        "perms": "monitor:job:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete jobs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1053,
+        "menu_name": "状态修改",
+        "path": "#",
+        "perms": "monitor:job:changeStatus"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Change status"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1054,
+        "menu_name": "任务导出",
+        "path": "#",
+        "perms": "monitor:job:export"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Export jobs"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1055,
+        "menu_name": "生成查询",
+        "path": "#",
+        "perms": "tool:gen:query"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "View generation definitions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1056,
+        "menu_name": "生成修改",
+        "path": "#",
+        "perms": "tool:gen:edit"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Edit generation definitions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1057,
+        "menu_name": "生成删除",
+        "path": "#",
+        "perms": "tool:gen:remove"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Delete generation definitions"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1058,
+        "menu_name": "导入代码",
+        "path": "#",
+        "perms": "tool:gen:import"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Import tables"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1059,
+        "menu_name": "预览代码",
+        "path": "#",
+        "perms": "tool:gen:preview"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Preview code"
+      }
+    },
+    {
+      "identity": {
+        "menu_id": 1060,
+        "menu_name": "生成代码",
+        "path": "#",
+        "perms": "tool:gen:code"
+      },
+      "field": "menu_name_i18n",
+      "translations": {
+        "en-US": "Generate code"
+      }
+    }
+  ],
+  "sys_dict_type": [
+    {
+      "identity": {
+        "dict_id": 1,
+        "dict_name": "用户性别",
+        "dict_type": "sys_user_sex"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "User gender"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 2,
+        "dict_name": "菜单状态",
+        "dict_type": "sys_show_hide"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "Menu visibility"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 3,
+        "dict_name": "系统开关",
+        "dict_type": "sys_normal_disable"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "System enablement"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 4,
+        "dict_name": "任务状态",
+        "dict_type": "sys_job_status"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "Job status"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 5,
+        "dict_name": "调度存储",
+        "dict_type": "sys_job_store"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "Job store"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 6,
+        "dict_name": "任务执行器",
+        "dict_type": "sys_job_executor"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "Job executor"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 7,
+        "dict_name": "系统是否",
+        "dict_type": "sys_yes_no"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "Yes or no"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 8,
+        "dict_name": "通知类型",
+        "dict_type": "sys_notice_type"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "Notice type"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 9,
+        "dict_name": "通知状态",
+        "dict_type": "sys_notice_status"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "Notice status"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 10,
+        "dict_name": "操作类型",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "Operation type"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 11,
+        "dict_name": "系统状态",
+        "dict_type": "sys_common_status"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "System status"
+      }
+    },
+    {
+      "identity": {
+        "dict_id": 12,
+        "dict_name": "插件操作类型",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_name_i18n",
+      "translations": {
+        "en-US": "Plugin operation type"
+      }
+    }
+  ],
+  "sys_dict_data": [
+    {
+      "identity": {
+        "dict_code": 1,
+        "dict_label": "男",
+        "dict_value": "0",
+        "dict_type": "sys_user_sex"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Male"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 2,
+        "dict_label": "女",
+        "dict_value": "1",
+        "dict_type": "sys_user_sex"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Female"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 3,
+        "dict_label": "未知",
+        "dict_value": "2",
+        "dict_type": "sys_user_sex"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Unknown"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 4,
+        "dict_label": "显示",
+        "dict_value": "0",
+        "dict_type": "sys_show_hide"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Visible"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 5,
+        "dict_label": "隐藏",
+        "dict_value": "1",
+        "dict_type": "sys_show_hide"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Hidden"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 6,
+        "dict_label": "正常",
+        "dict_value": "0",
+        "dict_type": "sys_normal_disable"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Enabled"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 7,
+        "dict_label": "停用",
+        "dict_value": "1",
+        "dict_type": "sys_normal_disable"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Disabled"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 8,
+        "dict_label": "正常",
+        "dict_value": "0",
+        "dict_type": "sys_job_status"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Active"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 9,
+        "dict_label": "暂停",
+        "dict_value": "1",
+        "dict_type": "sys_job_status"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Paused"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 10,
+        "dict_label": "内存",
+        "dict_value": "default",
+        "dict_type": "sys_job_store"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Memory"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 11,
+        "dict_label": "数据库",
+        "dict_value": "sqlalchemy",
+        "dict_type": "sys_job_store"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Database"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 12,
+        "dict_label": "Redis",
+        "dict_value": "redis",
+        "dict_type": "sys_job_store"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Redis"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 13,
+        "dict_label": "默认",
+        "dict_value": "default",
+        "dict_type": "sys_job_executor"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Default"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 14,
+        "dict_label": "进程池",
+        "dict_value": "processpool",
+        "dict_type": "sys_job_executor"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Process pool"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 15,
+        "dict_label": "是",
+        "dict_value": "Y",
+        "dict_type": "sys_yes_no"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Yes"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 16,
+        "dict_label": "否",
+        "dict_value": "N",
+        "dict_type": "sys_yes_no"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "No"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 17,
+        "dict_label": "通知",
+        "dict_value": "1",
+        "dict_type": "sys_notice_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Notice"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 18,
+        "dict_label": "公告",
+        "dict_value": "2",
+        "dict_type": "sys_notice_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Announcement"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 19,
+        "dict_label": "正常",
+        "dict_value": "0",
+        "dict_type": "sys_notice_status"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Active"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 20,
+        "dict_label": "关闭",
+        "dict_value": "1",
+        "dict_type": "sys_notice_status"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Closed"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 21,
+        "dict_label": "其他",
+        "dict_value": "0",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Other"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 22,
+        "dict_label": "新增",
+        "dict_value": "1",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Add"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 23,
+        "dict_label": "修改",
+        "dict_value": "2",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Edit"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 24,
+        "dict_label": "删除",
+        "dict_value": "3",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Delete"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 25,
+        "dict_label": "授权",
+        "dict_value": "4",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Authorize"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 26,
+        "dict_label": "导出",
+        "dict_value": "5",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Export"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 27,
+        "dict_label": "导入",
+        "dict_value": "6",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Import"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 28,
+        "dict_label": "强退",
+        "dict_value": "7",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Force sign-out"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 29,
+        "dict_label": "生成代码",
+        "dict_value": "8",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Generate code"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 30,
+        "dict_label": "清空数据",
+        "dict_value": "9",
+        "dict_type": "sys_oper_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Clear data"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 31,
+        "dict_label": "成功",
+        "dict_value": "0",
+        "dict_type": "sys_common_status"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Success"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 32,
+        "dict_label": "失败",
+        "dict_value": "1",
+        "dict_type": "sys_common_status"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Failure"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 33,
+        "dict_label": "安装",
+        "dict_value": "install",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Install"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 34,
+        "dict_label": "启用",
+        "dict_value": "enable",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Enable"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 35,
+        "dict_label": "停用",
+        "dict_value": "disable",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Disable"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 36,
+        "dict_label": "升级",
+        "dict_value": "upgrade",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Upgrade"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 37,
+        "dict_label": "卸载",
+        "dict_value": "uninstall",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Uninstall"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 38,
+        "dict_label": "清理",
+        "dict_value": "purge",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Purge"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 39,
+        "dict_label": "批量",
+        "dict_value": "batch",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Batch"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 40,
+        "dict_label": "批量安装",
+        "dict_value": "batch_install",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Batch install"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 41,
+        "dict_label": "批量启用",
+        "dict_value": "batch_enable",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Batch enable"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 42,
+        "dict_label": "批量升级",
+        "dict_value": "batch_upgrade",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Batch upgrade"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 43,
+        "dict_label": "配置保存",
+        "dict_value": "config_set",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Save configuration"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 44,
+        "dict_label": "配置更新",
+        "dict_value": "config_update",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Update configuration"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 45,
+        "dict_label": "配置导入",
+        "dict_value": "config_import",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Import configuration"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 46,
+        "dict_label": "配置导出",
+        "dict_value": "config_export",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Export configuration"
+      }
+    },
+    {
+      "identity": {
+        "dict_code": 47,
+        "dict_label": "未知操作",
+        "dict_value": "unknown",
+        "dict_type": "plugin_operation_type"
+      },
+      "field": "dict_label_i18n",
+      "translations": {
+        "en-US": "Unknown operation"
+      }
+    }
+  ]
+}

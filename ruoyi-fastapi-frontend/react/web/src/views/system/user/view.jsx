@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './view.css'
 import { useEffect, useState } from 'react'
 import { Drawer, Spin, Row, Col, Tag } from 'antd'
@@ -5,6 +7,8 @@ import { getUser } from '@/api/system/user'
 import { useDict } from '@/utils/dict'
 import { parseTime, selectDictLabel } from '@/utils/ruoyi'
 export default function UserView({ userId, onClose }) {
+  useI18n()
+
   const [result, setResult] = useState(null),
     [loading, setLoading] = useState(false)
   const { sys_user_sex } = useDict('sys_user_sex')
@@ -29,52 +33,52 @@ export default function UserView({ userId, onClose }) {
     result?.posts
       ?.filter((item) => (result.postIds || user.postIds || []).includes(item.postId))
       .map((item) => item.postName)
-      .join('、') || '无岗位'
+      .join('、') || t('system:noPosts')
   const roles =
     result?.roles
       ?.filter((item) => (result.roleIds || user.roleIds || []).includes(item.roleId))
       .map((item) => item.roleName)
-      .join('、') || '无角色'
+      .join('、') || t('system:noRoles')
   const sections = [
     [
-      '基本信息',
+      t('common:basicInfo'),
       [
-        ['用户名称', user.nickName],
-        ['归属部门', user.dept?.deptName],
-        ['手机号码', user.phonenumber],
-        ['邮箱', user.email],
-        ['登录账号', user.userName],
+        [t('system:user.username'), user.nickName],
+        [t('system:department'), user.dept?.deptName],
+        [t('system:user.phone'), user.phonenumber],
+        [t('system:user.email'), user.email],
+        [t('system:loginAccount'), user.userName],
         [
-          '用户状态',
+          t('system:user.status'),
           <Tag
             className="dict-tag"
             color={user.status === '0' ? 'success' : 'error'}
           >
-            {user.status === '0' ? '正常' : '停用'}
+            {user.status === '0' ? t('layout:notices.active') : t('common:disable')}
           </Tag>,
         ],
-        ['岗位', posts],
-        ['用户性别', selectDictLabel(sys_user_sex, user.sex) || '-'],
-        ['角色', roles, 24],
+        [t('system:user.post'), posts],
+        [t('system:gender'), selectDictLabel(sys_user_sex, user.sex) || '-'],
+        [t('system:user.role'), roles, 24],
       ],
     ],
     [
-      '其他信息',
+      t('system:otherInformation'),
       [
-        ['创建者', user.createBy],
-        ['创建时间', parseTime(user.createTime)],
-        ['更新者', user.updateBy],
-        ['更新时间', parseTime(user.updateTime)],
-        ['最后登录IP', user.loginIp],
-        ['最后登录时间', parseTime(user.loginDate)],
-        ['备注', user.remark, 24],
+        [t('system:createdBy'), user.createBy],
+        [t('common:createdTime'), parseTime(user.createTime)],
+        [t('system:updatedBy'), user.updateBy],
+        [t('common:updatedTime'), parseTime(user.updateTime)],
+        [t('system:lastSignInIp'), user.loginIp],
+        [t('system:lastSignInTime'), parseTime(user.loginDate)],
+        [t('common:remark'), user.remark, 24],
       ],
     ],
   ]
   return (
     <Drawer
       rootClassName="user-detail-drawer"
-      title="用户信息详情"
+      title={t('system:userDetails')}
       open={userId != null}
       onClose={onClose}
       size="68%"

@@ -7,87 +7,87 @@
     label-width="68px"
   >
     <el-form-item
-      label="文件名称"
+      :label="$t('components:fileName')"
       prop="originalName"
     >
       <el-input
         v-model="queryParams.originalName"
-        placeholder="请输入原始文件名"
+        :placeholder="$t('files:enterTheOriginalFileName')"
         clearable
         style="width: 200px"
         @keyup.enter="emit('query')"
       />
     </el-form-item>
     <el-form-item
-      label="访问类型"
+      :label="$t('components:accessType')"
       prop="accessType"
     >
       <el-select
         v-model="queryParams.accessType"
-        placeholder="请选择访问类型"
+        :placeholder="$t('files:selectAnAccessType')"
         clearable
         style="width: 200px"
       >
         <el-option
-          label="公开文件"
+          :label="$t('files:publicFiles')"
           value="public"
         />
         <el-option
-          label="受保护文件"
+          :label="$t('files:protectedFiles')"
           value="private"
         />
       </el-select>
     </el-form-item>
     <el-form-item
-      label="文件状态"
+      :label="$t('files:fileStatus')"
       prop="status"
     >
       <el-select
         v-model="queryParams.status"
-        placeholder="请选择文件状态"
+        :placeholder="$t('files:selectAFileStatus')"
         clearable
         style="width: 200px"
       >
         <el-option
-          label="正常"
+          :label="$t('layout:notices.active')"
           value="active"
         />
         <el-option
-          label="已删除"
+          :label="$t('files:deleted')"
           value="deleted"
         />
         <el-option
-          label="清理中"
+          :label="$t('files:deleting')"
           value="purging"
         />
       </el-select>
     </el-form-item>
     <el-form-item
-      label="上传用户"
+      :label="$t('files:uploader')"
       prop="createBy"
     >
       <el-input
         v-model="queryParams.createBy"
-        placeholder="请输入上传用户"
+        :placeholder="$t('files:enterAnUploader')"
         clearable
         style="width: 200px"
         @keyup.enter="emit('query')"
       />
     </el-form-item>
     <el-form-item
-      label="所有者"
+      :label="$t('components:owner')"
       prop="ownerName"
     >
       <el-input
         v-model="queryParams.ownerName"
-        placeholder="请输入所有者"
+        :placeholder="$t('files:enterAnOwner')"
         clearable
         style="width: 200px"
         @keyup.enter="emit('query')"
       />
     </el-form-item>
     <el-form-item
-      label="所属部门"
+      :label="$t('system:department')"
       prop="deptId"
     >
       <el-tree-select
@@ -95,7 +95,7 @@
         :data="deptOptions"
         :props="{ value: 'id', label: 'label', children: 'children' }"
         value-key="id"
-        placeholder="请选择所属部门"
+        :placeholder="$t('files:selectADepartmentLabel')"
         filterable
         clearable
         check-strictly
@@ -104,42 +104,42 @@
       />
     </el-form-item>
     <el-form-item
-      label="过期状态"
+      :label="$t('files:expiryStatus')"
       prop="expirationStatus"
     >
       <el-select
         v-model="queryParams.expirationStatus"
-        placeholder="请选择过期状态"
+        :placeholder="$t('files:selectAnExpiryStatus')"
         clearable
         style="width: 200px"
       >
         <el-option
-          label="永久有效"
+          :label="$t('files:noExpiry')"
           value="permanent"
         />
         <el-option
-          label="有效"
+          :label="$t('files:valid')"
           value="valid"
         />
         <el-option
-          label="7天内过期"
+          :label="$t('files:expiresWithin7Days')"
           value="expiring"
         />
         <el-option
-          label="已过期"
+          :label="$t('components:expired')"
           value="expired"
         />
       </el-select>
     </el-form-item>
-    <el-form-item label="上传时间">
+    <el-form-item :label="$t('files:uploadedAt')">
       <el-date-picker
         v-model="dateRange"
         value-format="YYYY-MM-DD HH:mm:ss"
         type="datetimerange"
         style="width: 200px"
         range-separator="-"
-        start-placeholder="开始时间"
-        end-placeholder="结束时间"
+        :start-placeholder="$t('monitor:startTime')"
+        :end-placeholder="$t('monitor:endTime')"
       />
     </el-form-item>
     <el-form-item>
@@ -147,12 +147,12 @@
         type="primary"
         icon="Search"
         @click="emit('query')"
-        >搜索</el-button
+        >{{ $t('system:search') }}</el-button
       >
       <el-button
         icon="Refresh"
         @click="handleReset"
-        >重置</el-button
+        >{{ $t('system:reset') }}</el-button
       >
     </el-form-item>
   </el-form>

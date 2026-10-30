@@ -19,7 +19,7 @@
     >
       <el-empty
         v-if="!items.length"
-        description="暂无插件配置"
+        :description="$t('plugins:noPluginConfiguration')"
       />
       <div
         v-for="group in configGroups"
@@ -82,7 +82,7 @@
                 type="primary"
                 icon="MagicStick"
                 @click="formatConfigJsonValue(item)"
-                >格式化 JSON</el-button
+                >{{ $t('plugins:formatJSON') }}</el-button
               >
             </div>
           </template>
@@ -115,21 +115,21 @@
                 size="small"
                 type="warning"
                 effect="plain"
-                >必填</el-tag
+                >{{ $t('tools:required') }}</el-tag
               >
               <el-tag
                 v-if="item.secret"
                 size="small"
                 type="warning"
                 effect="plain"
-                >敏感</el-tag
+                >{{ $t('plugins:sensitive') }}</el-tag
               >
               <el-tag
                 v-if="formatConfigDefaultValue(item) !== '-'"
                 size="small"
                 type="info"
                 effect="plain"
-                >默认 {{ formatConfigDefaultValue(item) }}</el-tag
+                >{{ $t('layout:size.default') }}{{ formatConfigDefaultValue(item) }}</el-tag
               >
               <el-tag
                 v-if="formatConfigConstraint(item) !== '-'"
@@ -151,15 +151,16 @@
           :loading="loading"
           @click="submit"
           v-hasPermi="['system:plugin:edit']"
-          >保 存</el-button
+          >{{ $t('files:save') }}</el-button
         >
-        <el-button @click="emit('update:modelValue', false)">关 闭</el-button>
+        <el-button @click="emit('update:modelValue', false)">{{ $t('monitor:close') }}</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup name="PluginConfigDialog">
+import { t } from '@/i18n/adapter'
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import PluginConfigStatus from './PluginConfigStatus.vue'
@@ -173,7 +174,7 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: '插件配置',
+    default: () => t('plugins:pluginConfiguration'),
   },
   items: {
     type: Array,
@@ -244,7 +245,7 @@ function submit() {
     try {
       values = buildConfigSubmitValues()
     } catch (error) {
-      ElMessage.error(error.message || '配置格式不正确')
+      ElMessage.error(error.message || t('plugins:invalidConfigurationFormat'))
       return
     }
     emit('submit', values)
@@ -285,7 +286,9 @@ function getConfigItemRules(item) {
   if (item.required) {
     rules.push({
       required: true,
-      message: '不能为空',
+      get message() {
+        return t('plugins:required')
+      },
       trigger: item.type === 'select' ? 'change' : 'blur',
     })
   }
@@ -313,7 +316,7 @@ function buildNumberConfigValidator(item) {
     }
     const numberValue = Number(value)
     if (Number.isNaN(numberValue)) {
-      callback(new Error('请输入数字'))
+      callback(new Error(t('plugins:enterANumber')))
       return
     }
     if (item.min !== undefined && item.min !== null && numberValue < Number(item.min)) {
@@ -336,11 +339,11 @@ function buildPatternConfigValidator(item) {
     }
     try {
       if (!new RegExp(item.pattern).test(String(value))) {
-        callback(new Error('格式不符合要求'))
+        callback(new Error(t('plugins:invalidFormat')))
         return
       }
     } catch {
-      callback(new Error('配置正则表达式无效'))
+      callback(new Error(t('plugins:invalidConfigurationRegularExpression')))
       return
     }
     callback()
@@ -356,7 +359,7 @@ function validateJsonConfig(_rule, value, callback) {
     JSON.parse(value)
     callback()
   } catch {
-    callback(new Error('请输入合法 JSON'))
+    callback(new Error(t('plugins:enterValidJSON')))
   }
 }
 
@@ -392,10 +395,16 @@ function hasConfigMeta(item) {
 
 function formatConfigGroupLabel(groupName) {
   const groupMap = {
-    default: '基础配置',
-    model: '模型配置',
-    security: '安全配置',
-    advanced: '高级配置',
+    default: () => t('plugins:basicConfiguration'),
+    get model() {
+      return t('plugins:modelConfiguration')
+    },
+    get security() {
+      return t('plugins:securityConfiguration')
+    },
+    get advanced() {
+      return t('plugins:advancedConfiguration')
+    },
   }
   return groupMap[groupName] || groupName
 }

@@ -23,27 +23,27 @@
     <template v-else>
       <div class="diagnostic-summary">
         <div class="diagnostic-summary-item">
-          <span class="diagnostic-summary-label">插件ID</span>
+          <span class="diagnostic-summary-label">{{ $t('components:pluginID') }}</span>
           <span class="diagnostic-summary-value">{{ result.pluginId || '-' }}</span>
         </div>
         <div class="diagnostic-summary-item">
-          <span class="diagnostic-summary-label">结果</span>
+          <span class="diagnostic-summary-label">{{ $t('files:result') }}</span>
           <el-tag :type="result.ok ? 'success' : 'danger'">{{
-            result.ok ? '正常' : '异常'
+            result.ok ? $t('layout:notices.active') : $t('monitor:error')
           }}</el-tag>
         </div>
         <div
           v-if="health"
           class="diagnostic-summary-item"
         >
-          <span class="diagnostic-summary-label">状态</span>
+          <span class="diagnostic-summary-label">{{ $t('system:status') }}</span>
           <span class="diagnostic-summary-value">{{ health.status || '-' }}</span>
         </div>
         <div
           v-if="health"
           class="diagnostic-summary-item"
         >
-          <span class="diagnostic-summary-label">耗时</span>
+          <span class="diagnostic-summary-label">{{ $t('monitor:duration') }}</span>
           <span class="diagnostic-summary-value">{{ health.durationMs ?? '-' }}ms</span>
         </div>
       </div>
@@ -51,22 +51,26 @@
       <el-tabs>
         <el-tab-pane
           v-if="health"
-          label="健康状态"
+          :label="$t('plugins:healthStatus')"
         >
           <el-descriptions
             :column="2"
             border
             class="mb16"
           >
-            <el-descriptions-item label="检查器">{{ health.checker || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="状态">{{ health.status || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('plugins:checker')">{{
+              health.checker || '-'
+            }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('system:status')">{{
+              health.status || '-'
+            }}</el-descriptions-item>
             <el-descriptions-item
-              label="说明"
+              :label="$t('components:description')"
               :span="2"
               >{{ health.message || '-' }}</el-descriptions-item
             >
             <el-descriptions-item
-              label="错误"
+              :label="$t('plugins:error')"
               :span="2"
               >{{ health.error || '-' }}</el-descriptions-item
             >
@@ -81,29 +85,29 @@
 
         <el-tab-pane
           v-if="diagnose"
-          label="检查摘要"
+          :label="$t('plugins:checkSummary')"
         >
           <el-descriptions
             :column="3"
             border
             class="mb16"
           >
-            <el-descriptions-item label="依赖">{{
+            <el-descriptions-item :label="$t('components:dependencies')">{{
               formatBoolean(diagnose.check?.dependencyOk)
             }}</el-descriptions-item>
             <el-descriptions-item label="Manifest">{{
               formatBoolean(diagnose.check?.manifestOk)
             }}</el-descriptions-item>
-            <el-descriptions-item label="结构">{{
+            <el-descriptions-item :label="$t('components:structure')">{{
               formatBoolean(diagnose.check?.structureOk)
             }}</el-descriptions-item>
-            <el-descriptions-item label="插件依赖">{{
+            <el-descriptions-item :label="$t('components:pluginDependencies')">{{
               formatBoolean(diagnose.check?.pluginDependencyOk)
             }}</el-descriptions-item>
-            <el-descriptions-item label="菜单冲突">{{
+            <el-descriptions-item :label="$t('components:menuConflicts')">{{
               formatBoolean(diagnose.check?.menuConflictOk)
             }}</el-descriptions-item>
-            <el-descriptions-item label="配置项">{{
+            <el-descriptions-item :label="$t('plugins:configurationItem')">{{
               diagnose.config?.summary?.total ?? '-'
             }}</el-descriptions-item>
           </el-descriptions>
@@ -111,16 +115,16 @@
             :data="validationItems"
             size="small"
             border
-            empty-text="暂无诊断问题"
+            :empty-text="$t('plugins:noDiagnosticIssues')"
           >
             <el-table-column
-              label="分类"
+              :label="$t('plugins:category')"
               prop="category"
               width="120"
               align="center"
             />
             <el-table-column
-              label="等级"
+              :label="$t('components:level')"
               width="90"
               align="center"
             >
@@ -131,19 +135,19 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="类型"
+              :label="$t('system:type')"
               prop="kind"
               width="170"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="对象"
+              :label="$t('plugins:object')"
               prop="value"
               min-width="180"
               :show-overflow-tooltip="true"
             />
             <el-table-column
-              label="说明"
+              :label="$t('components:description')"
               prop="message"
               min-width="260"
               :show-overflow-tooltip="true"
@@ -153,7 +157,7 @@
 
         <el-tab-pane
           v-if="diagnose"
-          label="菜单计划"
+          :label="$t('plugins:menuPlan')"
         >
           <el-input
             :model-value="formatJson(diagnose.menuPlan)"
@@ -163,7 +167,7 @@
           />
         </el-tab-pane>
 
-        <el-tab-pane label="原始数据">
+        <el-tab-pane :label="$t('plugins:rawData')">
           <el-input
             :model-value="formatJson(result)"
             type="textarea"
@@ -176,13 +180,14 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="emit('update:modelValue', false)">关 闭</el-button>
+        <el-button @click="emit('update:modelValue', false)">{{ $t('monitor:close') }}</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup name="PluginDiagnosticDialog">
+import { t } from '@/i18n/adapter'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -192,7 +197,7 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: '插件诊断',
+    default: () => t('plugins:pluginDiagnostics'),
   },
   result: {
     type: Object,
@@ -228,19 +233,19 @@ const diagnose = computed(() => (props.result.info || props.result.check ? props
 const validationItems = computed(() => {
   const check = diagnose.value?.check || {}
   const groups = [
-    ['依赖', check.dependencies],
-    ['Manifest 错误', check.manifestIssues],
-    ['Manifest 警告', check.manifestWarnings],
-    ['插件依赖', check.pluginDependencyErrors],
-    ['结构', check.structureErrors],
-    ['菜单冲突', check.menuConflicts],
+    [t('components:dependencies'), check.dependencies],
+    [t('plugins:manifestError'), check.manifestIssues],
+    [t('plugins:manifestWarning'), check.manifestWarnings],
+    [t('components:pluginDependencies'), check.pluginDependencyErrors],
+    [t('components:structure'), check.structureErrors],
+    [t('components:menuConflicts'), check.menuConflicts],
   ]
 
   return groups.flatMap(([category, items]) =>
     Array.isArray(items)
       ? items.map((item) => ({
           category,
-          level: item.level || (category.includes('警告') ? 'warning' : 'error'),
+          level: item.level || (category.includes(t('system:warning')) ? 'warning' : 'error'),
           kind: item.kind || item.name || item.status || '-',
           value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
           message: item.message || item.suggestion || item.reason || '',

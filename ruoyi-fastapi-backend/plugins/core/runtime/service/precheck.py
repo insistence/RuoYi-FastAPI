@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import cast
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.purge import PluginPurgePlan
 from plugins.core.runtime.support import PluginPayloadBuilder, PluginPrecheckContext, PluginRuntimePayloadBuilder
@@ -104,7 +105,10 @@ class PluginPrecheckUseCase:
             return PluginRuntimePayloadBuilder.build_invalid_operation_payload(
                 plugin_id,
                 operation,
-                message='插件预检操作只支持 install、enable、upgrade、uninstall 或 purge',
+                message=I18nMessage(
+                    '插件预检操作只支持 install、enable、upgrade、uninstall 或 purge',
+                    msg_key='plugin.runtime.precheck.invalidOperation',
+                ),
             )
 
         try:
@@ -137,7 +141,9 @@ class PluginPrecheckUseCase:
                 self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
             )
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('插件操作预检失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('插件操作预检失败', msg_key='plugin.runtime.precheck.failed'), exc
+            )
 
     async def _build_precheck_purge_plan(
         self,

@@ -1,8 +1,12 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Table as AntTable } from 'antd'
 import { forwardRef, useLayoutEffect, useRef, useState } from 'react'
 import './style.css'
 
 const Table = forwardRef(function Table(props, ref) {
+  useI18n()
+
   const host = useRef(null)
   const viewport = useRef(null)
   const drag = useRef(null)
@@ -78,7 +82,7 @@ const Table = forwardRef(function Table(props, ref) {
           className="table-scrollbar"
           style={{ left: bar.left, top: bar.top, width: bar.trackWidth }}
           role="scrollbar"
-          aria-label="表格横向滚动"
+          aria-label={t('common:scrollTableHorizontally')}
           aria-orientation="horizontal"
           aria-valuemin={0}
           aria-valuemax={Math.round(bar.max)}

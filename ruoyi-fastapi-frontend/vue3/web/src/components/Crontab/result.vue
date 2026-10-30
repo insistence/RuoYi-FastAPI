@@ -3,7 +3,7 @@
     class="popup-result"
     :aria-busy="loading"
   >
-    <p class="title">最近 5 次运行时间（{{ resultTimeZone }}）</p>
+    <p class="title">{{ $t('components:next5Runs') }}{{ resultTimeZone }}）</p>
     <p
       v-if="errorMessage"
       role="alert"
@@ -16,8 +16,8 @@
       class="popup-result-scroll"
       aria-live="polite"
     >
-      <li v-if="loading">正在获取运行时间…</li>
-      <li v-else-if="!resultList.length">没有未来执行时间</li>
+      <li v-if="loading">{{ $t('components:retrievingRunTimes') }}</li>
+      <li v-else-if="!resultList.length">{{ $t('components:noFutureRuns') }}</li>
       <li
         v-for="item in resultList"
         v-else
@@ -30,6 +30,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { previewJob } from '@/api/monitor/job'
 import { formatBusinessTime } from '@/utils/time'
 
@@ -73,7 +74,7 @@ watch(
         if (requestId !== previewRequestSequence || controller.signal.aborted) {
           return
         }
-        errorMessage.value = error.message || '无法获取运行时间，请稍后重试'
+        errorMessage.value = error.message || t('components:unableToCalculateRunTimesTryAgainLater')
       } finally {
         if (requestId === previewRequestSequence) {
           loading.value = false

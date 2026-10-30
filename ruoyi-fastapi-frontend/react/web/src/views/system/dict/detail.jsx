@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { i18n, t } from '@/i18n'
 import { UnorderedListOutlined } from '@ant-design/icons'
 import './style.css'
 import { useEffect, useState } from 'react'
@@ -5,6 +7,8 @@ import { Drawer, Spin, Empty, Tag } from 'antd'
 import Table from '@/components/Table'
 import { listData } from '@/api/system/dict/data'
 export default function DictDataDrawer({ row, onClose }) {
+  useI18n()
+
   const [data, setData] = useState([]),
     [loading, setLoading] = useState(false)
   useEffect(() => {
@@ -29,7 +33,9 @@ export default function DictDataDrawer({ row, onClose }) {
       title={
         <div className="drawer-head">
           <UnorderedListOutlined style={{ color: '#5b9bd5', marginRight: 8 }} />
-          <span className="drawer-head-name">{row?.dictName}</span>
+          <span className="drawer-head-name">
+            {i18n.resolveText(row?.dictName, row?.dictNameI18n)}
+          </span>
           <span className="drawer-head-type">{row?.dictType}</span>
         </div>
       }
@@ -41,10 +47,10 @@ export default function DictDataDrawer({ row, onClose }) {
         {loading ? (
           <div className="drawer-loading">
             <Spin size="small" />
-            <span>加载中...</span>
+            <span>{t('system:dict.loading')}</span>
           </div>
         ) : !data.length ? (
-          <Empty description="暂无字典数据" />
+          <Empty description={t('system:noDictionaryEntries')} />
         ) : (
           <>
             <div
@@ -57,20 +63,20 @@ export default function DictDataDrawer({ row, onClose }) {
             >
               <div className="stat-card">
                 <div className="stat-num">{data.length}</div>
-                <div className="stat-label">共计条目</div>
+                <div className="stat-label">{t('system:totalEntries')}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-num success">
                   {data.filter((item) => item.status === '0').length}
                 </div>
-                <div className="stat-label">正常</div>
+                <div className="stat-label">{t('layout:notices.active')}</div>
               </div>
               {data.some((item) => item.status !== '0') && (
                 <div className="stat-card">
                   <div className="stat-num danger">
                     {data.filter((item) => item.status !== '0').length}
                   </div>
-                  <div className="stat-label">停用</div>
+                  <div className="stat-label">{t('common:disable')}</div>
                 </div>
               )}
             </div>
@@ -80,7 +86,7 @@ export default function DictDataDrawer({ row, onClose }) {
                 key={item.dictCode}
               >
                 <div className="dict-cell">
-                  <div className="dict-cell-key">标签</div>
+                  <div className="dict-cell-key">{t('system:label')}</div>
                   <div className="dict-cell-val">
                     {item.listClass && item.listClass !== 'default' ? (
                       <Tag
@@ -95,25 +101,25 @@ export default function DictDataDrawer({ row, onClose }) {
                           }[item.listClass]
                         }
                       >
-                        {item.dictLabel}
+                        {i18n.resolveText(item.dictLabel, item.dictLabelI18n)}
                       </Tag>
                     ) : (
-                      item.dictLabel
+                      i18n.resolveText(item.dictLabel, item.dictLabelI18n)
                     )}
                   </div>
                 </div>
                 <div className="dict-cell">
-                  <div className="dict-cell-key">键值</div>
+                  <div className="dict-cell-key">{t('system:value')}</div>
                   <div className="dict-cell-val">{item.dictValue}</div>
                 </div>
                 <div className="dict-cell">
-                  <div className="dict-cell-key">状态</div>
+                  <div className="dict-cell-key">{t('common:status')}</div>
                   <div className="dict-cell-val">
                     <Tag
                       className="dict-tag"
                       color={item.status === '0' ? 'success' : 'error'}
                     >
-                      {item.status === '0' ? '正常' : '停用'}
+                      {item.status === '0' ? t('layout:notices.active') : t('common:disable')}
                     </Tag>
                   </div>
                 </div>

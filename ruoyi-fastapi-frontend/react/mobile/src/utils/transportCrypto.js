@@ -1012,6 +1012,9 @@ export function shouldRetryTransportWithFreshKey(responseOrError) {
   const responseMsg = responseOrError?.data?.msg || responseOrError?.response?.data?.msg
   const errorMessage = responseOrError?.message
   return (
+    ['transport.decryptFailed', 'transport.keyExpired'].includes(
+      responseOrError?.data?.msgKey || responseOrError?.response?.data?.msgKey
+    ) ||
     TRANSPORT_RETRYABLE_ERROR_MESSAGES.has(responseMsg) ||
     TRANSPORT_RETRYABLE_ERROR_MESSAGES.has(errorMessage)
   )

@@ -58,12 +58,14 @@ class PreAuthOAuth2PasswordBearer(OAuth2PasswordBearer):
         if mode == 'excluded':
             return None
         if mode == 'pre_auth' and not request.headers.get('Authorization'):
-            raise AuthException(data='', message='用户未登录，请先完成登录')
+            raise AuthException(data='', message='用户未登录，请先完成登录', msg_key='auth.signInRequired')
         try:
             return await super().__call__(request)
         except HTTPException as exc:
             if mode == 'pre_auth':
-                raise AuthException(data='', message='用户token已失效，请重新登录') from exc
+                raise AuthException(
+                    data='', message='用户token已失效，请重新登录', msg_key='auth.tokenExpired'
+                ) from exc
             raise
 
 
@@ -156,12 +158,12 @@ class LoginService:
         :return: 解锁结果
         """
         if not password:
-            raise ServiceException(message='密码不能为空')
+            raise ServiceException(message='密码不能为空', msg_key='auth.passwordRequired')
         user = await UserDao.get_user_by_name(query_db, current_user.user.user_name)
         if not user:
-            raise ServiceException(message='服务器超时，请重新登录')
+            raise ServiceException(message='服务器超时，请重新登录', msg_key='auth.serverTimeout')
         if not PwdUtil.verify_password(password, user.password):
-            raise ServiceException(message='密码错误，请重新输入')
+            raise ServiceException(message='密码错误，请重新输入', msg_key='auth.incorrectPassword')
 
         return True
 
@@ -200,7 +202,7 @@ class LoginService:
         if token is None:
             if AuthPolicy.get_auth_mode(request, (cls.get_current_user, oauth2_scheme)) == 'excluded':
                 return None
-            raise AuthException(data='', message='用户未登录，请先完成登录')
+            raise AuthException(data='', message='用户未登录，请先完成登录', msg_key='auth.signInRequired')
         return await cls._resolve_current_user(request, token, query_db, refresh_session=True)
 
     @classmethod
@@ -238,17 +240,17 @@ class LoginService:
             session_id: str = payload.get('session_id')
             if not user_id:
                 logger.warning('用户token不合法')
-                raise AuthException(data='', message='用户token不合法')
+                raise AuthException(data='', message='用户token不合法', msg_key='auth.invalidToken')
             token_data = TokenData(user_id=int(user_id))
         except (TypeError, ValueError) as e:
             logger.warning('用户token已失效，请重新登录')
-            raise AuthException(data='', message='用户token已失效，请重新登录') from e
+            raise AuthException(data='', message='用户token已失效，请重新登录', msg_key='auth.tokenExpired') from e
         redis = request.app.state.redis
         token_key = f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id if AppConfig.app_same_time_login else token_data.user_id}'
         redis_token = await redis.get(token_key)
         if token != redis_token:
             logger.warning('用户token已失效，请重新登录')
-            raise AuthException(data='', message='用户token已失效，请重新登录')
+            raise AuthException(data='', message='用户token已失效，请重新登录', msg_key='auth.tokenExpired')
 
         current_user = await cls._get_current_user_snapshot(redis, query_db, token_data.user_id)
         # 密码策略及过期状态在本次鉴权时计算
@@ -275,7 +277,7 @@ class LoginService:
             session_valid = await redis.get(token_key) == token
         if not session_valid:
             logger.warning('用户token已失效，请重新登录')
-            raise AuthException(data='', message='用户token已失效，请重新登录')
+            raise AuthException(data='', message='用户token已失效，请重新登录', msg_key='auth.tokenExpired')
         RequestContext.set_current_user(current_user)
         return current_user
 
@@ -333,7 +335,7 @@ class LoginService:
         query_user = await UserDao.get_user_by_id(query_db, user_id=user_id, for_auth=True)
         basic_info = query_user.get('user_basic_info')
         if basic_info is None:
-            raise AuthException(data='', message='用户token不合法')
+            raise AuthException(data='', message='用户token不合法', msg_key='auth.invalidToken')
 
         roles = query_user.get('user_role_info') or []
         user_info = CamelCaseUtil.transform_result(basic_info)
@@ -466,6 +468,7 @@ class LoginService:
                 query=permission.query,
                 meta=MetaModel(
                     title=permission.menu_name,
+                    titleI18n=permission.menu_name_i18n or {},
                     icon=permission.icon,
                     noCache=permission.is_cache == 1,
                     link=permission.path if RouterUtil.is_http(permission.path) else None,
@@ -485,6 +488,7 @@ class LoginService:
                     name=RouterUtil.get_route_name(permission.route_name, permission.path),
                     meta=MetaModel(
                         title=permission.menu_name,
+                        titleI18n=permission.menu_name_i18n or {},
                         icon=permission.icon,
                         noCache=permission.is_cache == 1,
                         link=permission.path if RouterUtil.is_http(permission.path) else None,
@@ -494,7 +498,9 @@ class LoginService:
                 children_list.append(children)
                 router.children = children_list
             elif permission.parent_id == MenuConstant.ROOT_ID and RouterUtil.is_inner_link(permission):
-                router.meta = MetaModel(title=permission.menu_name, icon=permission.icon)
+                router.meta = MetaModel(
+                    title=permission.menu_name, titleI18n=permission.menu_name_i18n or {}, icon=permission.icon
+                )
                 router.path = '/'
                 children_list: list[RouterModel] = []
                 router_path = RouterUtil.inner_link_replace_each(permission.path)
@@ -504,6 +510,7 @@ class LoginService:
                     name=RouterUtil.get_route_name(permission.route_name, permission.path),
                     meta=MetaModel(
                         title=permission.menu_name,
+                        titleI18n=permission.menu_name_i18n or {},
                         icon=permission.icon,
                         link=permission.path if RouterUtil.is_http(permission.path) else None,
                     ),
@@ -548,9 +555,9 @@ class LoginService:
                         f'{RedisInitKeyConfig.CAPTCHA_CODES.key}:{user_register.uuid}'
                     )
                     if not captcha_value:
-                        raise ServiceException(message='验证码已失效')
+                        raise ServiceException(message='验证码已失效', msg_key='auth.captchaExpired')
                     if user_register.code != str(captcha_value):
-                        raise ServiceException(message='验证码错误')
+                        raise ServiceException(message='验证码错误', msg_key='auth.captchaIncorrect')
                 await UserService.validate_password_services(
                     request.app.state.redis, user_register.password, PasswordCharacterType.DEFAULT
                 )
@@ -562,8 +569,8 @@ class LoginService:
                 )
                 result = await UserService.add_user_services(query_db, add_user)
                 return result
-            raise ServiceException(message='注册程序已关闭，禁止注册')
-        raise ServiceException(message='两次输入的密码不一致')
+            raise ServiceException(message='注册程序已关闭，禁止注册', msg_key='auth.registrationDisabled')
+        raise ServiceException(message='两次输入的密码不一致', msg_key='auth.passwordMismatch')
 
     @classmethod
     async def get_sms_code_services(cls, request: Request, query_db: AsyncSession, user: ResetUserModel) -> SmsCode:

@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import {
@@ -61,6 +64,8 @@ function enabledDepartments(nodes) {
     }))
 }
 export default function User() {
+  useI18n()
+
   const { sys_normal_disable, sys_user_sex } = useDict('sys_normal_disable', 'sys_user_sex')
   const { pwdValidator } = usePasswordRule(),
     navigate = useNavigate(),
@@ -68,6 +73,7 @@ export default function User() {
   const [queryRef] = Form.useForm(),
     [userRef] = Form.useForm(),
     [pwdRef] = Form.useForm()
+  useLocalizedFormErrors(queryRef, userRef, pwdRef)
   const [userList, setUserList] = useState([]),
     [total, setTotal] = useState(0),
     [ids, setIds] = useState([]),
@@ -155,7 +161,7 @@ export default function User() {
       const values = await userRef.validateFields()
       setSaving(true)
       await (userId !== undefined ? updateUser({ ...values, userId }) : addUser(values))
-      message.success('保存成功')
+      message.success(t('system:savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -165,17 +171,22 @@ export default function User() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(`是否确认删除用户编号为“${values}”的数据项？`)
+      await confirm(t('system:deleteUsersWithIdsValue', { values }))
       await delUser(values)
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
   async function handleStatusChange(row, checked) {
     try {
-      await confirm(`确认要${checked ? '启用' : '停用'}“${row.userName}”用户吗？`)
+      await confirm(
+        t('system:valueUserValue', {
+          arg0: checked ? t('common:enable') : t('common:disable'),
+          userName: row.userName,
+        })
+      )
       await changeUserStatus(row.userId, checked ? '0' : '1')
-      message.success('修改成功')
+      message.success(t('common:updateSuccess'))
       await getList()
     } catch {}
   }
@@ -184,7 +195,7 @@ export default function User() {
       const values = await pwdRef.validateFields()
       setSaving(true)
       await resetUserPwd(pwdUser.userId, values.password)
-      message.success('密码重置成功')
+      message.success(t('system:passwordReset'))
       setPwdUser(null)
       pwdRef.resetFields()
     } catch {
@@ -193,10 +204,10 @@ export default function User() {
     }
   }
   const columns = [
-    { align: 'center', title: '用户编号', dataIndex: 'userId' },
+    { align: 'center', title: t('system:user.id'), dataIndex: 'userId' },
     {
       align: 'center',
-      title: '用户名称',
+      title: t('system:user.username'),
       dataIndex: 'userName',
       render: (value, row) => (
         <Button
@@ -207,12 +218,17 @@ export default function User() {
         </Button>
       ),
     },
-    { align: 'center', title: '用户昵称', dataIndex: 'nickName' },
-    { align: 'center', title: '部门', dataIndex: ['dept', 'deptName'], key: 'deptName' },
-    { width: 120, align: 'center', title: '手机号码', dataIndex: 'phonenumber' },
+    { align: 'center', title: t('system:user.nickname'), dataIndex: 'nickName' },
     {
       align: 'center',
-      title: '状态',
+      title: t('system:dept.nameShort'),
+      dataIndex: ['dept', 'deptName'],
+      key: 'deptName',
+    },
+    { width: 120, align: 'center', title: t('system:user.phone'), dataIndex: 'phonenumber' },
+    {
+      align: 'center',
+      title: t('common:status'),
       dataIndex: 'status',
       render: (value, row) => (
         <Switch
@@ -224,7 +240,7 @@ export default function User() {
     },
     {
       align: 'center',
-      title: '创建时间',
+      title: t('common:createdTime'),
       dataIndex: 'createTime',
       width: 160,
       render: (value) => parseTime(value),
@@ -233,7 +249,7 @@ export default function User() {
   const actions = {
     className: 'ruoyi-actions-cell',
     align: 'center',
-    title: '操作',
+    title: t('common:actions'),
     key: 'action',
     width: 150,
     render: (_, row) =>
@@ -245,7 +261,7 @@ export default function User() {
               symbol="Edit"
               onClick={() => handleEdit(row.userId)}
             >
-              修改
+              {t('common:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:user:remove']}>
@@ -254,7 +270,7 @@ export default function User() {
               symbol="Delete"
               onClick={() => handleDelete([row.userId])}
             >
-              删除
+              {t('common:delete')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:user:resetPwd']}>
@@ -266,7 +282,7 @@ export default function User() {
                 setPwdUser(row)
               }}
             >
-              重置密码
+              {t('system:user.resetPassword')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:user:edit']}>
@@ -275,7 +291,7 @@ export default function User() {
               symbol="CircleCheck"
               onClick={() => navigate(`/system/user-auth/role/${row.userId}`)}
             >
-              分配角色
+              {t('layout:route.assignRoles')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -284,10 +300,10 @@ export default function User() {
   return (
     <div className="app-container tree-sidebar-manage-wrap">
       <TreePanel
-        title="组织机构"
+        title={t('common:organization')}
         storageKey="dept-sidebar-width"
         onRefresh={getDeptTree}
-        searchPlaceholder="请输入部门名称"
+        searchPlaceholder={t('common:enterADepartmentName')}
         data={deptOptions}
         selectedKeys={queryParams.deptId ? [queryParams.deptId] : []}
         onSelect={(keys) => setQueryParams({ ...queryParams, deptId: keys[0], pageNum: 1 })}
@@ -302,43 +318,43 @@ export default function User() {
           >
             <Form.Item
               name="userName"
-              label="用户名称"
+              label={t('system:user.username')}
             >
               <Input
                 style={{ width: 240 }}
-                placeholder="请输入用户名称"
+                placeholder={t('system:user.usernamePlaceholder')}
                 allowClear
               />
             </Form.Item>
             <Form.Item
               name="phonenumber"
-              label="手机号码"
+              label={t('system:user.phone')}
             >
               <Input
                 style={{ width: 240 }}
-                placeholder="请输入手机号码"
+                placeholder={t('system:user.phonePlaceholder')}
                 allowClear
               />
             </Form.Item>
             <Form.Item
               name="status"
-              label="状态"
+              label={t('common:status')}
             >
               <Select
                 style={{ width: 240 }}
-                placeholder="用户状态"
+                placeholder={t('system:user.status')}
                 allowClear
                 options={sys_normal_disable}
               />
             </Form.Item>
             <Form.Item
               name="dateRange"
-              label="创建时间"
+              label={t('common:createdTime')}
             >
               <DatePicker.RangePicker
                 style={{ width: 308 }}
-                placeholder={['开始日期', '结束日期']}
-                aria-label={`日期范围（${getDisplayTimezone()}）`}
+                placeholder={[t('common:startDate'), t('common:endDate')]}
+                aria-label={t('monitor:dateRangeValue', { arg0: getDisplayTimezone() })}
               />
             </Form.Item>
             <Form.Item>
@@ -348,7 +364,7 @@ export default function User() {
                   type="primary"
                   htmlType="submit"
                 >
-                  搜索
+                  {t('common:search')}
                 </Button>
                 <Button
                   icon={<ReloadOutlined />}
@@ -360,7 +376,7 @@ export default function User() {
                     })
                   }}
                 >
-                  重置
+                  {t('common:reset')}
                 </Button>
               </Space>
             </Form.Item>
@@ -374,7 +390,7 @@ export default function User() {
               type="default"
               onClick={() => handleEdit()}
             >
-              新增
+              {t('common:add')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:user:edit']}>
@@ -385,7 +401,7 @@ export default function User() {
               disabled={ids.length !== 1}
               onClick={() => handleEdit(ids[0])}
             >
-              修改
+              {t('common:edit')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:user:remove']}>
@@ -396,7 +412,7 @@ export default function User() {
               disabled={!ids.length}
               onClick={() => handleDelete(ids)}
             >
-              删除
+              {t('common:delete')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:user:import']}>
@@ -406,7 +422,7 @@ export default function User() {
               type="default"
               onClick={() => setImportOpen(true)}
             >
-              导入
+              {t('common:import')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:user:export']}>
@@ -420,7 +436,7 @@ export default function User() {
                 )
               }
             >
-              导出
+              {t('common:export')}
             </Button>
           </HasPermi>
           <RightToolbar
@@ -462,7 +478,7 @@ export default function User() {
         />
         <Modal
           footer={renderDialogFooter}
-          title={userId !== undefined ? '修改用户' : '添加用户'}
+          title={userId !== undefined ? t('system:editUser') : t('system:addUser')}
           open={open}
           onCancel={() => setOpen(false)}
           onOk={submitForm}
@@ -483,11 +499,11 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="nickName"
-                  label="用户昵称"
+                  label={t('system:user.nickname')}
                   rules={[{ required: true }]}
                 >
                   <Input
-                    placeholder="请输入用户昵称"
+                    placeholder={t('system:enterNickname')}
                     maxLength={30}
                   />
                 </Form.Item>
@@ -495,10 +511,10 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="deptId"
-                  label="归属部门"
+                  label={t('system:department')}
                 >
                   <TreeSelect
-                    placeholder="请选择归属部门"
+                    placeholder={t('system:selectDepartment')}
                     treeData={enabledDepartments(deptOptions)}
                     fieldNames={{
                       value: 'id',
@@ -514,16 +530,16 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="phonenumber"
-                  label="手机号码"
+                  label={t('system:user.phone')}
                   rules={[
                     {
                       pattern: /^1[3-9]\d{9}$/,
-                      message: '请输入正确的手机号码',
+                      message: t('system:user.phoneInvalid'),
                     },
                   ]}
                 >
                   <Input
-                    placeholder="请输入手机号码"
+                    placeholder={t('system:user.phonePlaceholder')}
                     maxLength={11}
                   />
                 </Form.Item>
@@ -531,11 +547,11 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="email"
-                  label="邮箱"
+                  label={t('system:user.email')}
                   rules={[{ type: 'email' }]}
                 >
                   <Input
-                    placeholder="请输入邮箱"
+                    placeholder={t('system:user.emailPlaceholder')}
                     maxLength={50}
                   />
                 </Form.Item>
@@ -543,18 +559,18 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="userName"
-                  label="用户名称"
+                  label={t('system:user.username')}
                   rules={[
                     {
                       required: true,
                       min: 2,
                       max: 20,
-                      message: '用户名称长度必须介于 2 和 20 之间',
+                      message: t('system:userNameMustBeBetween2And20Characters'),
                     },
                   ]}
                 >
                   <Input
-                    placeholder="请输入用户名称"
+                    placeholder={t('system:user.usernamePlaceholder')}
                     disabled={userId !== undefined}
                     autoComplete="off"
                   />
@@ -564,11 +580,11 @@ export default function User() {
                 <Col span={12}>
                   <Form.Item
                     name="password"
-                    label="用户密码"
+                    label={t('system:user.password')}
                     rules={pwdValidator}
                   >
                     <Input.Password
-                      placeholder="请输入用户密码"
+                      placeholder={t('system:enterPassword')}
                       autoComplete="new-password"
                     />
                   </Form.Item>
@@ -577,10 +593,10 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="sex"
-                  label="用户性别"
+                  label={t('system:gender')}
                 >
                   <Select
-                    placeholder="请选择"
+                    placeholder={t('common:selectPlaceholder')}
                     options={sys_user_sex}
                   />
                 </Form.Item>
@@ -588,7 +604,7 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="status"
-                  label="状态"
+                  label={t('common:status')}
                 >
                   <Radio.Group options={sys_normal_disable} />
                 </Form.Item>
@@ -596,10 +612,10 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="postIds"
-                  label="岗位"
+                  label={t('system:user.post')}
                 >
                   <Select
-                    placeholder="请选择"
+                    placeholder={t('common:selectPlaceholder')}
                     mode="multiple"
                     options={postOptions.map((post) => ({
                       label: post.postName,
@@ -612,10 +628,10 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="roleIds"
-                  label="角色"
+                  label={t('system:user.role')}
                 >
                   <Select
-                    placeholder="请选择"
+                    placeholder={t('common:selectPlaceholder')}
                     mode="multiple"
                     options={roleOptions.map((role) => ({
                       label: role.roleName,
@@ -628,17 +644,17 @@ export default function User() {
             </Row>
             <Form.Item
               name="remark"
-              label="备注"
+              label={t('common:remark')}
             >
               <Input.TextArea
-                placeholder="请输入内容"
+                placeholder={t('common:contentPlaceholder')}
                 rows={2}
               />
             </Form.Item>
           </Form>
         </Modal>
         <Modal
-          title={`重置“${pwdUser?.userName || ''}”的密码`}
+          title={t('system:resetPasswordForValue', { arg0: pwdUser?.userName || '' })}
           open={!!pwdUser}
           onCancel={() => setPwdUser(null)}
           onOk={handleResetPwd}
@@ -651,7 +667,7 @@ export default function User() {
           >
             <Form.Item
               name="password"
-              label="新密码"
+              label={t('auth:password.new')}
               rules={pwdValidator}
             >
               <Input.Password autoComplete="new-password" />
@@ -663,13 +679,13 @@ export default function User() {
           onClose={() => setViewId(null)}
         />
         <ExcelImportDialog
-          title="用户导入"
+          title={t('system:importUsers')}
           open={importOpen}
           onClose={() => setImportOpen(false)}
           action="/system/user/importData"
           templateAction="/system/user/importTemplate"
           templateFileName="user_template"
-          updateSupportLabel="是否更新已经存在的用户数据"
+          updateSupportLabel={t('system:updateExistingUsers')}
           onSuccess={getList}
         />
       </section>

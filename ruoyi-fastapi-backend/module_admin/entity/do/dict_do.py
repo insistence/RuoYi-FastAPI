@@ -1,4 +1,4 @@
-from sqlalchemy import CHAR, BigInteger, Column, Integer, String
+from sqlalchemy import CHAR, JSON, BigInteger, Column, Integer, String
 
 from common.mixin import AuditTimeMixin
 from config.database import Base
@@ -16,6 +16,7 @@ class SysDictType(AuditTimeMixin, Base):
 
     dict_id = Column(BigInteger, primary_key=True, nullable=False, autoincrement=True, comment='字典主键')
     dict_name = Column(String(100), nullable=True, server_default="''", comment='字典名称')
+    dict_name_i18n = Column(JSON, nullable=True, comment='多语言译文')
     dict_type = Column(String(100), unique=True, nullable=True, server_default="''", comment='字典类型')
     status = Column(CHAR(1), nullable=True, server_default='0', comment='状态（0正常 1停用）')
     create_by = Column(String(64), nullable=True, server_default="''", comment='创建者')
@@ -39,6 +40,7 @@ class SysDictData(AuditTimeMixin, Base):
     dict_code = Column(BigInteger, primary_key=True, nullable=False, autoincrement=True, comment='字典编码')
     dict_sort = Column(Integer, nullable=True, server_default='0', comment='字典排序')
     dict_label = Column(String(100), nullable=True, server_default="''", comment='字典标签')
+    dict_label_i18n = Column(JSON, nullable=True, comment='多语言译文')
     dict_value = Column(String(100), nullable=True, server_default="''", comment='字典键值')
     dict_type = Column(String(100), nullable=True, server_default="''", comment='字典类型')
     css_class = Column(

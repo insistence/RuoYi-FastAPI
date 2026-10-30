@@ -2,9 +2,9 @@
   <div class="app-container tree-sidebar-manage-wrap">
     <tree-panel
       ref="deptTreeRef"
-      title="组织机构"
+      :title="$t('system:user.organization')"
       :tree-data="deptOptions"
-      search-placeholder="请输入部门名称"
+      :search-placeholder="$t('system:dept.enterADepartmentName')"
       storage-key="dept-sidebar-width"
       :default-expand-all="true"
       @node-click="handleNodeClick"
@@ -13,6 +13,7 @@
     <div class="tree-sidebar-content">
       <div class="content-inner">
         <el-form
+          :validate-on-rule-change="false"
           :model="queryParams"
           ref="queryForm"
           size="small"
@@ -21,36 +22,36 @@
           label-width="68px"
         >
           <el-form-item
-            label="用户名称"
+            :label="$t('system:user.username')"
             prop="userName"
           >
             <el-input
               v-model="queryParams.userName"
-              placeholder="请输入用户名称"
+              :placeholder="$t('system:user.usernamePlaceholder')"
               clearable
               style="width: 240px"
               @keyup.enter.native="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            label="手机号码"
+            :label="$t('system:user.phone')"
             prop="phonenumber"
           >
             <el-input
               v-model="queryParams.phonenumber"
-              placeholder="请输入手机号码"
+              :placeholder="$t('system:user.phonePlaceholder')"
               clearable
               style="width: 240px"
               @keyup.enter.native="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            label="状态"
+            :label="$t('common:status')"
             prop="status"
           >
             <el-select
               v-model="queryParams.status"
-              placeholder="用户状态"
+              :placeholder="$t('system:user.status')"
               clearable
               style="width: 240px"
             >
@@ -62,16 +63,16 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="创建时间">
+          <el-form-item :label="$t('common:createdTime')">
             <el-date-picker
               v-model="dateRange"
               style="width: 240px"
               value-format="yyyy-MM-dd"
               type="daterange"
-              :aria-label="`日期范围（${getDisplayTimezone()}）`"
+              :aria-label="$t('common:time.dateRangeInZone', { zone: getDisplayTimezone() })"
               range-separator="-"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
+              :start-placeholder="$t('common:startDate')"
+              :end-placeholder="$t('common:endDate')"
             ></el-date-picker>
           </el-form-item>
           <el-form-item>
@@ -80,13 +81,13 @@
               icon="el-icon-search"
               size="mini"
               @click="handleQuery"
-              >搜索</el-button
+              >{{ $t('common:search') }}</el-button
             >
             <el-button
               icon="el-icon-refresh"
               size="mini"
               @click="resetQuery"
-              >重置</el-button
+              >{{ $t('common:reset') }}</el-button
             >
           </el-form-item>
         </el-form>
@@ -103,7 +104,7 @@
               size="mini"
               @click="handleAdd"
               v-hasPermi="['system:user:add']"
-              >新增</el-button
+              >{{ $t('common:add') }}</el-button
             >
           </el-col>
           <el-col :span="1.5">
@@ -115,7 +116,7 @@
               :disabled="single"
               @click="handleUpdate"
               v-hasPermi="['system:user:edit']"
-              >修改</el-button
+              >{{ $t('common:edit') }}</el-button
             >
           </el-col>
           <el-col :span="1.5">
@@ -127,7 +128,7 @@
               :disabled="multiple"
               @click="handleDelete"
               v-hasPermi="['system:user:remove']"
-              >删除</el-button
+              >{{ $t('common:delete') }}</el-button
             >
           </el-col>
           <el-col :span="1.5">
@@ -138,7 +139,7 @@
               size="mini"
               @click="handleImport"
               v-hasPermi="['system:user:import']"
-              >导入</el-button
+              >{{ $t('system:user.import') }}</el-button
             >
           </el-col>
           <el-col :span="1.5">
@@ -149,7 +150,7 @@
               size="mini"
               @click="handleExport"
               v-hasPermi="['system:user:export']"
-              >导出</el-button
+              >{{ $t('common:export') }}</el-button
             >
           </el-col>
           <right-toolbar
@@ -170,14 +171,14 @@
             align="center"
           />
           <el-table-column
-            label="用户编号"
+            :label="$t('system:user.id')"
             align="center"
             key="userId"
             prop="userId"
             v-if="columns.userId.visible"
           />
           <el-table-column
-            label="用户名称"
+            :label="$t('system:user.username')"
             align="center"
             key="userName"
             v-if="columns.userName.visible"
@@ -193,7 +194,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="用户昵称"
+            :label="$t('system:user.nickname')"
             align="center"
             key="nickName"
             prop="nickName"
@@ -201,7 +202,7 @@
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="部门"
+            :label="$t('system:dept.nameShort')"
             align="center"
             key="deptName"
             prop="dept.deptName"
@@ -209,7 +210,7 @@
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="手机号码"
+            :label="$t('system:user.phone')"
             align="center"
             key="phonenumber"
             prop="phonenumber"
@@ -217,7 +218,7 @@
             width="120"
           />
           <el-table-column
-            label="状态"
+            :label="$t('common:status')"
             align="center"
             key="status"
             v-if="columns.status.visible"
@@ -232,7 +233,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="创建时间"
+            :label="$t('common:createdTime')"
             align="center"
             prop="createTime"
             v-if="columns.createTime.visible"
@@ -243,7 +244,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="操作"
+            :label="$t('common:actions')"
             align="center"
             width="160"
             class-name="small-padding fixed-width"
@@ -258,7 +259,7 @@
                 icon="el-icon-edit"
                 @click="handleUpdate(scope.row)"
                 v-hasPermi="['system:user:edit']"
-                >修改</el-button
+                >{{ $t('common:edit') }}</el-button
               >
               <el-button
                 size="mini"
@@ -266,7 +267,7 @@
                 icon="el-icon-delete"
                 @click="handleDelete(scope.row)"
                 v-hasPermi="['system:user:remove']"
-                >删除</el-button
+                >{{ $t('common:delete') }}</el-button
               >
               <el-dropdown
                 size="mini"
@@ -277,20 +278,20 @@
                   size="mini"
                   type="text"
                   icon="el-icon-d-arrow-right"
-                  >更多</el-button
+                  >{{ $t('common:more') }}</el-button
                 >
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item
                     command="handleResetPwd"
                     icon="el-icon-key"
                     v-hasPermi="['system:user:resetPwd']"
-                    >重置密码</el-dropdown-item
+                    >{{ $t('system:user.resetPassword') }}</el-dropdown-item
                   >
                   <el-dropdown-item
                     command="handleAuthRole"
                     icon="el-icon-circle-check"
                     v-hasPermi="['system:user:edit']"
-                    >分配角色</el-dropdown-item
+                    >{{ $t('layout:routes.assignRole') }}</el-dropdown-item
                   >
                 </el-dropdown-menu>
               </el-dropdown>
@@ -310,12 +311,13 @@
 
     <!-- 添加或修改用户配置对话框 -->
     <el-dialog
-      :title="title"
+      :title="$t(titleKey)"
       :visible.sync="open"
       width="600px"
       append-to-body
     >
       <el-form
+        :validate-on-rule-change="false"
         ref="form"
         :model="form"
         :rules="rules"
@@ -324,26 +326,26 @@
         <el-row>
           <el-col :span="12">
             <el-form-item
-              label="用户昵称"
+              :label="$t('system:user.nickname')"
               prop="nickName"
             >
               <el-input
                 v-model="form.nickName"
-                placeholder="请输入用户昵称"
+                :placeholder="$t('system:enterNickname')"
                 maxlength="30"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="归属部门"
+              :label="$t('system:interface.department')"
               prop="deptId"
             >
               <treeselect
                 v-model="form.deptId"
                 :options="enabledDeptOptions"
                 :show-count="true"
-                placeholder="请选择归属部门"
+                :placeholder="$t('system:selectDepartment')"
               />
             </el-form-item>
           </el-col>
@@ -351,24 +353,24 @@
         <el-row>
           <el-col :span="12">
             <el-form-item
-              label="手机号码"
+              :label="$t('system:user.phone')"
               prop="phonenumber"
             >
               <el-input
                 v-model="form.phonenumber"
-                placeholder="请输入手机号码"
+                :placeholder="$t('system:user.phonePlaceholder')"
                 maxlength="11"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="邮箱"
+              :label="$t('system:user.email')"
               prop="email"
             >
               <el-input
                 v-model="form.email"
-                placeholder="请输入邮箱"
+                :placeholder="$t('system:user.emailPlaceholder')"
                 maxlength="50"
               />
             </el-form-item>
@@ -378,12 +380,12 @@
           <el-col :span="12">
             <el-form-item
               v-if="form.userId == undefined"
-              label="用户名称"
+              :label="$t('system:user.username')"
               prop="userName"
             >
               <el-input
                 v-model="form.userName"
-                placeholder="请输入用户名称"
+                :placeholder="$t('system:user.usernamePlaceholder')"
                 maxlength="30"
               />
             </el-form-item>
@@ -391,13 +393,13 @@
           <el-col :span="12">
             <el-form-item
               v-if="form.userId == undefined"
-              label="用户密码"
+              :label="$t('system:user.password')"
               prop="password"
               :rules="pwdValidator"
             >
               <el-input
                 v-model="form.password"
-                placeholder="请输入用户密码"
+                :placeholder="$t('system:enterPassword')"
                 type="password"
                 maxlength="20"
                 show-password
@@ -407,10 +409,10 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="用户性别">
+            <el-form-item :label="$t('system:gender')">
               <el-select
                 v-model="form.sex"
-                placeholder="请选择性别"
+                :placeholder="$t('system:interface.selectAGender')"
               >
                 <el-option
                   v-for="dict in dict.type.sys_user_sex"
@@ -422,7 +424,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="状态">
+            <el-form-item :label="$t('common:status')">
               <el-radio-group v-model="form.status">
                 <el-radio
                   v-for="dict in dict.type.sys_normal_disable"
@@ -436,11 +438,11 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="岗位">
+            <el-form-item :label="$t('system:user.post')">
               <el-select
                 v-model="form.postIds"
                 multiple
-                placeholder="请选择岗位"
+                :placeholder="$t('system:interface.selectAPosition')"
               >
                 <el-option
                   v-for="item in postOptions"
@@ -453,11 +455,11 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="角色">
+            <el-form-item :label="$t('system:user.role')">
               <el-select
                 v-model="form.roleIds"
                 multiple
-                placeholder="请选择角色"
+                :placeholder="$t('system:interface.selectARole')"
               >
                 <el-option
                   v-for="item in roleOptions"
@@ -472,11 +474,11 @@
         </el-row>
         <el-row>
           <el-col :span="24">
-            <el-form-item label="备注">
+            <el-form-item :label="$t('common:remark')">
               <el-input
                 v-model="form.remark"
                 type="textarea"
-                placeholder="请输入内容"
+                :placeholder="$t('common:contentPlaceholder')"
               ></el-input>
             </el-form-item>
           </el-col>
@@ -489,9 +491,9 @@
         <el-button
           type="primary"
           @click="submitForm"
-          >确 定</el-button
+          >{{ $t('common:confirm') }}</el-button
         >
-        <el-button @click="cancel">取 消</el-button>
+        <el-button @click="cancel">{{ $t('common:cancel') }}</el-button>
       </div>
     </el-dialog>
 
@@ -500,17 +502,19 @@
     <!-- 用户导入对话框 -->
     <excel-import-dialog
       ref="importUserRef"
-      title="用户导入"
+      :title="$t('system:importUsers')"
       action="/system/user/importData"
       template-action="/system/user/importTemplate"
       template-file-name="user_template"
-      update-support-label="是否更新已经存在的用户数据"
+      :update-support-label="$t('system:updateExistingUsers')"
       @success="getList"
     />
   </div>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getDisplayTimezone } from '@/utils/time'
 import {
   listUser,
@@ -551,7 +555,7 @@ export default {
       // 用户表格数据
       userList: null,
       // 弹出层标题
-      title: '',
+      titleKey: '',
       // 所有部门树选项
       deptOptions: undefined,
       // 过滤掉已禁用部门树选项
@@ -579,32 +583,74 @@ export default {
       },
       // 列信息
       columns: {
-        userId: { label: '用户编号', visible: true },
-        userName: { label: '用户名称', visible: true },
-        nickName: { label: '用户昵称', visible: true },
-        deptName: { label: '部门', visible: true },
-        phonenumber: { label: '手机号码', visible: true },
-        status: { label: '状态', visible: true },
-        createTime: { label: '创建时间', visible: true },
+        userId: {
+          get label() {
+            return t('system:user.id')
+          },
+          visible: true,
+        },
+        userName: {
+          get label() {
+            return t('system:user.username')
+          },
+          visible: true,
+        },
+        nickName: {
+          get label() {
+            return t('system:user.nickname')
+          },
+          visible: true,
+        },
+        deptName: {
+          get label() {
+            return t('system:dept.nameShort')
+          },
+          visible: true,
+        },
+        phonenumber: {
+          get label() {
+            return t('system:user.phone')
+          },
+          visible: true,
+        },
+        status: {
+          get label() {
+            return t('common:status')
+          },
+          visible: true,
+        },
+        createTime: {
+          get label() {
+            return t('common:createdTime')
+          },
+          visible: true,
+        },
       },
       // 表单校验
       rules: {
         userName: [
-          { required: true, message: '用户名称不能为空', trigger: 'blur' },
-          { min: 2, max: 20, message: '用户名称长度必须介于 2 和 20 之间', trigger: 'blur' },
+          { required: true, message: () => t('system:userNameIsRequired'), trigger: 'blur' },
+          {
+            min: 2,
+            max: 20,
+            message: () => t('system:userNameMustBeBetween2And20Characters'),
+            trigger: 'blur',
+          },
         ],
-        nickName: [{ required: true, message: '用户昵称不能为空', trigger: 'blur' }],
+        nickName: [
+          { required: true, message: () => t('system:user.nicknameRequired'), trigger: 'blur' },
+        ],
         email: [
           {
             type: 'email',
-            message: '请输入正确的邮箱地址',
+            message: () => t('system:dept.enterAValidEmailAddress'),
             trigger: ['blur', 'change'],
           },
         ],
         phonenumber: [
           {
             pattern: /^1[3|4|5|6|7|8|9][0-9]\d{8}$/,
-            message: '请输入正确的手机号码',
+            message: () => t('system:user.phoneInvalid'),
             trigger: 'blur',
           },
         ],
@@ -659,14 +705,14 @@ export default {
     },
     // 用户状态修改
     handleStatusChange(row) {
-      let text = row.status === '0' ? '启用' : '停用'
+      let text = row.status === '0' ? t('common:enable') : t('common:disable')
       this.$modal
-        .confirm('确认要"' + text + '""' + row.userName + '"用户吗？')
+        .confirm(t('system:confirmation.valueUserValue', { value0: text, value1: row.userName }))
         .then(function () {
           return changeUserStatus(row.userId, row.status)
         })
         .then(() => {
-          this.$modal.msgSuccess(text + '成功')
+          this.$modal.msgSuccess(t('system:confirmation.valueSucceeded', { value0: text }))
         })
         .catch(function () {
           row.status = row.status === '0' ? '1' : '0'
@@ -734,7 +780,7 @@ export default {
         this.postOptions = response.posts
         this.roleOptions = response.roles
         this.open = true
-        this.title = '添加用户'
+        this.titleKey = 'system:addUser'
         this.form.password = this.initPassword
       })
     },
@@ -749,21 +795,27 @@ export default {
         this.$set(this.form, 'postIds', response.postIds)
         this.$set(this.form, 'roleIds', response.roleIds)
         this.open = true
-        this.title = '修改用户'
+        this.titleKey = 'system:editUser'
         this.form.password = undefined
       })
     },
     /** 重置密码按钮操作 */
     handleResetPwd(row) {
-      this.$prompt(`请输入「${row.userName}」的新密码`, '重置密码', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        closeOnClickModal: false,
-        inputValidator: this.pwdPromptValidator,
-      })
+      this.$prompt(
+        t('system:interface.enterANewPasswordForValue', { value0: row.userName }),
+        t('system:user.resetPassword'),
+        {
+          confirmButtonText: t('common:confirm'),
+          cancelButtonText: t('common:cancel'),
+          closeOnClickModal: false,
+          inputValidator: this.pwdPromptValidator,
+        }
+      )
         .then(({ value }) => {
           resetUserPwd(row.userId, value).then(() => {
-            this.$modal.msgSuccess('修改成功，新密码是：' + value)
+            this.$modal.msgSuccess(
+              t('system:confirmation.passwordUpdatedTheNewPasswordIsValue', { value0: value })
+            )
           })
         })
         .catch(() => {})
@@ -779,13 +831,13 @@ export default {
         if (valid) {
           if (this.form.userId != undefined) {
             updateUser(this.form).then(() => {
-              this.$modal.msgSuccess('修改成功')
+              this.$modal.msgSuccess(t('common:updateSuccess'))
               this.open = false
               this.getList()
             })
           } else {
             addUser(this.form).then(() => {
-              this.$modal.msgSuccess('新增成功')
+              this.$modal.msgSuccess(t('common:addSuccess'))
               this.open = false
               this.getList()
             })
@@ -797,13 +849,13 @@ export default {
     handleDelete(row) {
       const userIds = row.userId || this.ids
       this.$modal
-        .confirm('是否确认删除用户编号为"' + userIds + '"的数据项？')
+        .confirm(t('system:confirmation.deleteUsersWithIDsValue', { value0: userIds }))
         .then(function () {
           return delUser(userIds)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
         })
         .catch(() => {})
     },

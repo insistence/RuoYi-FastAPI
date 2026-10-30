@@ -1,3 +1,7 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { localizeOptions } from '@/i18n/entities.mjs'
+import { useI18n } from '@/i18n/adapter'
+import { i18n, t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import FormLabel from '@/components/FormLabel'
@@ -60,6 +64,8 @@ function withParents(nodes, selected, linked) {
   return [...result]
 }
 function PermissionTree({ nodes, value, onChange, linked, onLinkedChange }) {
+  useI18n()
+
   const [expandedKeys, setExpandedKeys] = useState([])
   const keys = allKeys(nodes)
   return (
@@ -69,25 +75,25 @@ function PermissionTree({ nodes, value, onChange, linked, onLinkedChange }) {
           checked={expandedKeys.length > 0}
           onChange={(event) => setExpandedKeys(event.target.checked ? keys : [])}
         >
-          展开/折叠
+          {t('common:expandCollapse')}
         </Checkbox>
         <Checkbox
           checked={keys.length > 0 && value.length === keys.length}
           onChange={(event) => onChange(event.target.checked ? keys : [])}
         >
-          全选/全不选
+          {t('common:checkAll')}
         </Checkbox>
         <Checkbox
           checked={linked}
           onChange={(event) => onLinkedChange(event.target.checked)}
         >
-          父子联动
+          {t('system:linkParentAndChildSelection')}
         </Checkbox>
       </div>
       <Tree
         className="permission-tree-border"
         checkable
-        treeData={nodes}
+        treeData={localizeOptions(nodes, i18n.resolveText)}
         fieldNames={{ title: 'label', key: 'id', children: 'children' }}
         checkedKeys={value}
         checkStrictly={!linked}
@@ -99,20 +105,48 @@ function PermissionTree({ nodes, value, onChange, linked, onLinkedChange }) {
   )
 }
 const dataScopeOptions = [
-  { value: '1', label: '全部数据权限' },
-  { value: '2', label: '自定数据权限' },
-  { value: '3', label: '本部门数据权限' },
-  { value: '4', label: '本部门及以下数据权限' },
-  { value: '5', label: '仅本人数据权限' },
+  {
+    value: '1',
+    get label() {
+      return t('system:allData')
+    },
+  },
+  {
+    value: '2',
+    get label() {
+      return t('system:customDataScope')
+    },
+  },
+  {
+    value: '3',
+    get label() {
+      return t('system:thisDepartment')
+    },
+  },
+  {
+    value: '4',
+    get label() {
+      return t('system:thisDepartmentAndItsSubdepartments')
+    },
+  },
+  {
+    value: '5',
+    get label() {
+      return t('system:ownDataOnly')
+    },
+  },
 ]
 
 export default function Role() {
+  useI18n()
+
   const { sys_normal_disable } = useDict('sys_normal_disable'),
     navigate = useNavigate(),
     timeZone = useUserStore((state) => state.timeZone)
   const [queryRef] = Form.useForm(),
     [roleRef] = Form.useForm(),
     [scopeRef] = Form.useForm()
+  useLocalizedFormErrors(queryRef, roleRef, scopeRef)
   const [roleList, setRoleList] = useState([]),
     [total, setTotal] = useState(0),
     [ids, setIds] = useState([]),
@@ -188,7 +222,7 @@ export default function Role() {
         menuCheckStrictly: menuLinked,
       }
       await (roleId !== undefined ? updateRole(data) : addRole(data))
-      message.success('保存成功')
+      message.success(t('system:savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -198,17 +232,22 @@ export default function Role() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(`是否确认删除角色编号为“${values}”的数据项？`)
+      await confirm(t('system:deleteRolesWithIdsValue', { values }))
       await delRole(values)
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
   async function handleStatusChange(row, checked) {
     try {
-      await confirm(`确认要${checked ? '启用' : '停用'}“${row.roleName}”角色吗？`)
+      await confirm(
+        t('system:valueRoleValue', {
+          arg0: checked ? t('common:enable') : t('common:disable'),
+          roleName: row.roleName,
+        })
+      )
       await changeRoleStatus(row.roleId, checked ? '0' : '1')
-      message.success('修改成功')
+      message.success(t('common:updateSuccess'))
       await getList()
     } catch {}
   }
@@ -233,7 +272,7 @@ export default function Role() {
         deptIds: values.dataScope === '2' ? withParents(deptOptions, deptIds, deptLinked) : [],
         deptCheckStrictly: deptLinked,
       })
-      message.success('修改成功')
+      message.success(t('common:updateSuccess'))
       setScopeRole(null)
       await getList()
     } catch {
@@ -242,14 +281,14 @@ export default function Role() {
     }
   }
   const columns = [
-    { width: 120, title: '角色编号', dataIndex: 'roleId' },
-    { width: 150, title: '角色名称', dataIndex: 'roleName' },
-    { width: 150, title: '权限字符', dataIndex: 'roleKey' },
-    { width: 100, title: '显示顺序', dataIndex: 'roleSort' },
+    { width: 120, title: t('system:roleID'), dataIndex: 'roleId' },
+    { width: 150, title: t('system:role.name'), dataIndex: 'roleName' },
+    { width: 150, title: t('system:permission.code'), dataIndex: 'roleKey' },
+    { width: 100, title: t('system:displayOrderLabel'), dataIndex: 'roleSort' },
     {
       width: 100,
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       render: (value, row) => (
         <Switch
@@ -261,14 +300,14 @@ export default function Role() {
     },
     {
       align: 'center',
-      title: '创建时间',
+      title: t('common:createdTime'),
       dataIndex: 'createTime',
       render: (value) => parseTime(value),
     },
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 150,
       render: (_, row) =>
         row.roleId !== 1 && (
@@ -279,7 +318,7 @@ export default function Role() {
                 symbol="Edit"
                 onClick={() => handleEdit(row.roleId)}
               >
-                修改
+                {t('common:edit')}
               </TableAction>
             </HasPermi>
             <HasPermi value={['system:role:remove']}>
@@ -288,7 +327,7 @@ export default function Role() {
                 symbol="Delete"
                 onClick={() => handleDelete([row.roleId])}
               >
-                删除
+                {t('common:delete')}
               </TableAction>
             </HasPermi>
             <HasPermi value={['system:role:edit']}>
@@ -297,14 +336,14 @@ export default function Role() {
                 symbol="CircleCheck"
                 onClick={() => handleDataScope(row)}
               >
-                数据权限
+                {t('system:role.dataScope')}
               </TableAction>
               <TableAction
                 iconOnly
                 symbol="User"
                 onClick={() => navigate(`/system/role-auth/user/${row.roleId}`)}
               >
-                分配用户
+                {t('layout:route.assignUsers')}
               </TableAction>
             </HasPermi>
           </TableActions>
@@ -322,42 +361,42 @@ export default function Role() {
         >
           <Form.Item
             name="roleName"
-            label="角色名称"
+            label={t('system:role.name')}
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入角色名称"
+              placeholder={t('system:enterRoleName')}
               allowClear
             />
           </Form.Item>
           <Form.Item
             name="roleKey"
-            label="权限字符"
+            label={t('system:permission.code')}
           >
             <Input
               style={{ width: 240 }}
-              placeholder="请输入权限字符"
+              placeholder={t('system:enterPermissionString')}
               allowClear
             />
           </Form.Item>
           <Form.Item
             name="status"
-            label="状态"
+            label={t('common:status')}
           >
             <Select
               style={{ width: 240 }}
-              placeholder="角色状态"
+              placeholder={t('system:role.status')}
               allowClear
               options={sys_normal_disable}
             />
           </Form.Item>
           <Form.Item
             name="dateRange"
-            label="创建时间"
+            label={t('common:createdTime')}
           >
             <DatePicker.RangePicker
               style={{ width: 308 }}
-              placeholder={['开始日期', '结束日期']}
+              placeholder={[t('common:startDate'), t('common:endDate')]}
             />
           </Form.Item>
           <Form.Item>
@@ -367,7 +406,7 @@ export default function Role() {
                 htmlType="submit"
                 type="primary"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -376,7 +415,7 @@ export default function Role() {
                   handleQuery({})
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -390,7 +429,7 @@ export default function Role() {
             type="default"
             onClick={() => handleEdit()}
           >
-            新增
+            {t('common:add')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:role:edit']}>
@@ -401,7 +440,7 @@ export default function Role() {
             disabled={ids.length !== 1}
             onClick={() => handleEdit(ids[0])}
           >
-            修改
+            {t('common:edit')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:role:remove']}>
@@ -412,7 +451,7 @@ export default function Role() {
             disabled={!ids.length}
             onClick={() => handleDelete(ids)}
           >
-            删除
+            {t('common:delete')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:role:export']}>
@@ -426,7 +465,7 @@ export default function Role() {
               )
             }
           >
-            导出
+            {t('common:export')}
           </Button>
         </HasPermi>
         <RightToolbar
@@ -456,7 +495,7 @@ export default function Role() {
       />
       <Modal
         footer={renderDialogFooter}
-        title={roleId !== undefined ? '修改角色' : '添加角色'}
+        title={roleId !== undefined ? t('system:editRole') : t('system:addRole')}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
@@ -475,26 +514,28 @@ export default function Role() {
         >
           <Form.Item
             name="roleName"
-            label="角色名称"
+            label={t('system:role.name')}
             rules={[{ required: true }]}
           >
-            <Input placeholder="请输入角色名称" />
+            <Input placeholder={t('system:enterRoleName')} />
           </Form.Item>
           <Form.Item
             name="roleKey"
             label={
               <FormLabel
-                label="权限字符"
-                help="控制器中定义的权限字符，如：RoleInterfaceAuthDependency('admin')"
+                label={t('system:permission.code')}
+                help={t(
+                  'system:rolePermissionDefinedInTheControllerEGRoleinterfaceauthdependencyAdmin'
+                )}
               />
             }
             rules={[{ required: true }]}
           >
-            <Input placeholder="请输入权限字符" />
+            <Input placeholder={t('system:enterPermissionString')} />
           </Form.Item>
           <Form.Item
             name="roleSort"
-            label="角色顺序"
+            label={t('system:role.order')}
             rules={[{ required: true }]}
           >
             <InputNumber
@@ -504,11 +545,11 @@ export default function Role() {
           </Form.Item>
           <Form.Item
             name="status"
-            label="状态"
+            label={t('common:status')}
           >
             <Radio.Group options={sys_normal_disable} />
           </Form.Item>
-          <Form.Item label="菜单权限">
+          <Form.Item label={t('system:menuPermissions')}>
             <PermissionTree
               key={`${roleId}-${open}`}
               nodes={menuOptions}
@@ -520,10 +561,10 @@ export default function Role() {
           </Form.Item>
           <Form.Item
             name="remark"
-            label="备注"
+            label={t('common:remark')}
           >
             <Input.TextArea
-              placeholder="请输入内容"
+              placeholder={t('common:contentPlaceholder')}
               rows={2}
             />
           </Form.Item>
@@ -532,7 +573,7 @@ export default function Role() {
       <Modal
         footer={renderDialogFooter}
         width="500px"
-        title="分配数据权限"
+        title={t('system:assignDataScope')}
         open={!!scopeRole}
         onCancel={() => setScopeRole(null)}
         onOk={submitDataScope}
@@ -550,19 +591,19 @@ export default function Role() {
         >
           <Form.Item
             name="roleName"
-            label="角色名称"
+            label={t('system:role.name')}
           >
             <Input disabled />
           </Form.Item>
           <Form.Item
             name="roleKey"
-            label="权限字符"
+            label={t('system:permission.code')}
           >
             <Input disabled />
           </Form.Item>
           <Form.Item
             name="dataScope"
-            label="权限范围"
+            label={t('system:permissionScope')}
             rules={[{ required: true }]}
           >
             <Select
@@ -573,7 +614,7 @@ export default function Role() {
             />
           </Form.Item>
           {scopeValue === '2' && (
-            <Form.Item label="数据权限">
+            <Form.Item label={t('system:role.dataScope')}>
               <PermissionTree
                 key={scopeRole?.roleId}
                 nodes={deptOptions}

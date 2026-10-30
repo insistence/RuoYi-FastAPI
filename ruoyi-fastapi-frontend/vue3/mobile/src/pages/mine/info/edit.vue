@@ -3,41 +3,49 @@
     <view class="space-y-5">
       <!-- Nickname -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700">用户昵称</text>
+        <text class="mb-2 block text-sm font-medium text-gray-700">{{
+          $t('mobile:profile.nickname')
+        }}</text>
         <input
           v-model="user.nickName"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="text"
-          placeholder="请输入昵称"
+          :placeholder="$t('mobile:profile.nicknamePlaceholder')"
         />
       </view>
 
       <!-- Phone -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700">手机号码</text>
+        <text class="mb-2 block text-sm font-medium text-gray-700">{{
+          $t('mobile:profile.phone')
+        }}</text>
         <input
           v-model="user.phonenumber"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="number"
-          placeholder="请输入手机号码"
+          :placeholder="$t('mobile:profile.phonePlaceholder')"
           maxlength="11"
         />
       </view>
 
       <!-- Email -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700">邮箱</text>
+        <text class="mb-2 block text-sm font-medium text-gray-700">{{
+          $t('mobile:profile.email')
+        }}</text>
         <input
           v-model="user.email"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="text"
-          placeholder="请输入邮箱"
+          :placeholder="$t('mobile:profile.emailPlaceholder')"
         />
       </view>
 
       <!-- Sex -->
       <view class="group relative">
-        <text class="mb-2 block text-sm font-medium text-gray-700">性别</text>
+        <text class="mb-2 block text-sm font-medium text-gray-700">{{
+          $t('mobile:profile.sex')
+        }}</text>
         <view class="flex space-x-4">
           <view
             v-for="item in sexs"
@@ -61,7 +69,7 @@
           @click="submit"
           class="flex h-12 w-full items-center justify-center rounded-xl bg-blue-500 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-all active:scale-95 active:bg-blue-600"
         >
-          提 交
+          {{ $t('mobile:actions.submit') }}
         </button>
       </view>
     </view>
@@ -69,8 +77,9 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { getUserProfile, updateUserProfile } from '@/api/system/user'
-import { ref, getCurrentInstance } from 'vue'
+import { computed, ref, getCurrentInstance } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 
 const { proxy } = getCurrentInstance()
@@ -80,16 +89,16 @@ const user = ref({
   email: '',
   sex: '',
 })
-const sexs = [
+const sexs = computed(() => [
   {
-    text: '男',
+    text: t('mobile:profile.male'),
     value: '0',
   },
   {
-    text: '女',
+    text: t('mobile:profile.female'),
     value: '1',
   },
-]
+])
 
 function getUser() {
   getUserProfile().then((response) => {
@@ -100,28 +109,28 @@ function getUser() {
 
 function submit() {
   if (!user.value.nickName) {
-    proxy.$modal.msgError('用户昵称不能为空')
+    proxy.$modal.msgError(t('mobile:profile.nicknameRequired'))
     return
   }
   if (!user.value.phonenumber) {
-    proxy.$modal.msgError('手机号码不能为空')
+    proxy.$modal.msgError(t('mobile:profile.phoneRequired'))
     return
   }
   if (!/^1[3|4|5|6|7|8|9][0-9]\d{8}$/.test(user.value.phonenumber)) {
-    proxy.$modal.msgError('请输入正确的手机号码')
+    proxy.$modal.msgError(t('mobile:profile.phoneInvalid'))
     return
   }
   if (!user.value.email) {
-    proxy.$modal.msgError('邮箱地址不能为空')
+    proxy.$modal.msgError(t('mobile:profile.emailRequired'))
     return
   }
   if (!/^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/.test(user.value.email)) {
-    proxy.$modal.msgError('请输入正确的邮箱地址')
+    proxy.$modal.msgError(t('mobile:profile.emailInvalid'))
     return
   }
 
   updateUserProfile(user.value).then((response) => {
-    proxy.$modal.msgSuccess('修改成功')
+    proxy.$modal.msgSuccess(t('mobile:actions.updated'))
     setTimeout(() => {
       proxy.$tab.navigateBack()
     }, 1500)

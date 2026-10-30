@@ -1,6 +1,7 @@
 <template>
   <div>
     <AConfigProvider
+      :locale="componentLocales[localeState.locale].ant"
       :theme="{
         algorithm: settingsStore.isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
       }"
@@ -14,29 +15,27 @@
         </div>
         <div class="content">
           <div class="contentTitle">
-            早安，
-            {{ currentUser.name }}
-            ，祝你开心每一天！
+            {{ $t('dashboard:greeting', { name: currentUser.name }) }}
           </div>
           <div>{{ currentUser.title }} |{{ currentUser.group }}</div>
         </div>
         <div class="extraContent">
           <div class="statItem">
             <a-statistic
-              title="项目数"
+              :title="$t('dashboard:projects')"
               :value="56"
             />
           </div>
           <div class="statItem">
             <a-statistic
-              title="团队内排名"
+              :title="$t('dashboard:teamRanking')"
               :value="8"
               suffix="/ 24"
             />
           </div>
           <div class="statItem">
             <a-statistic
-              title="项目访问"
+              :title="$t('dashboard:projectVisits')"
               :value="2223"
             />
           </div>
@@ -55,14 +54,16 @@
             <a-card
               class="projectList"
               :style="{ marginBottom: '24px' }"
-              title="进行中的项目"
+              :title="$t('dashboard:projectsInProgress')"
               :bordered="false"
               :loading="false"
               :body-style="{ padding: 0 }"
             >
               <template #extra>
                 <a href="">
-                  <span style="color: var(--el-color-primary)">全部项目</span>
+                  <span style="color: var(--el-color-primary)">{{
+                    $t('dashboard:allProjects')
+                  }}</span>
                 </a>
               </template>
               <a-card-grid
@@ -110,7 +111,7 @@
               :body-style="{ padding: 0 }"
               :bordered="false"
               class="activeCard"
-              title="动态"
+              :title="$t('dashboard:activity')"
               :loading="false"
             >
               <a-list
@@ -169,7 +170,7 @@
           >
             <a-card
               :style="{ marginBottom: '24px' }"
-              title="快速开始 / 便捷导航"
+              :title="$t('dashboard:quickStartShortcuts')"
               :bordered="false"
               :body-style="{ padding: 0 }"
             >
@@ -178,7 +179,7 @@
             <a-card
               :style="{ marginBottom: '24px' }"
               :bordered="false"
-              title="XX 指数"
+              :title="$t('dashboard:performanceIndex')"
             >
               <div class="chart">
                 <div ref="radarContainer" />
@@ -187,7 +188,7 @@
             <a-card
               :body-style="{ paddingTop: '12px', paddingBottom: '12px' }"
               :bordered="false"
-              title="团队"
+              :title="$t('dashboard:team')"
             >
               <div class="members">
                 <a-row :gutter="48">
@@ -215,6 +216,8 @@
 </template>
 
 <script>
+import { t, localeState } from '@/i18n/adapter'
+import { componentLocales } from '@/i18n/components'
 import {
   Statistic,
   Row,
@@ -275,7 +278,9 @@ const projectNotice = [
     title: 'Alipay',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/WdGqmHpayyMjiEhcKoVE.png',
     description: '那是一种内在的东西，他们到达不了，也无法触及的',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('dashboard:justNow')
+    },
     member: '科学搬砖组',
     href: '',
     memberLink: '',
@@ -285,7 +290,9 @@ const projectNotice = [
     title: 'Angular',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/zOsKZmFRdUtvpqCImOVY.png',
     description: '希望是一个好东西，也许是最好的，好东西是不会消亡的',
-    updatedAt: '6 年前',
+    get updatedAt() {
+      return t('dashboard:6YearsAgo')
+    },
     member: '全组都是吴彦祖',
     href: '',
     memberLink: '',
@@ -295,7 +302,9 @@ const projectNotice = [
     title: 'Ant Design',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/dURIMkkrRFpPgTuzkwnB.png',
     description: '城镇中有那么多的酒馆，她却偏偏走进了我的酒馆',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('dashboard:justNow')
+    },
     member: '中二少女团',
     href: '',
     memberLink: '',
@@ -305,7 +314,9 @@ const projectNotice = [
     title: 'Ant Design Pro',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/sfjbOqnsXXJgNCjCzDBL.png',
     description: '那时候我只会想自己想要什么，从不想自己拥有什么',
-    updatedAt: '6 年前',
+    get updatedAt() {
+      return t('dashboard:6YearsAgo')
+    },
     member: '程序员日常',
     href: '',
     memberLink: '',
@@ -315,7 +326,9 @@ const projectNotice = [
     title: 'Bootstrap',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/siCrBXXhmvTQGWPNLBow.png',
     description: '凛冬将至',
-    updatedAt: '6 年前',
+    get updatedAt() {
+      return t('dashboard:6YearsAgo')
+    },
     member: '高逼格设计天团',
     href: '',
     memberLink: '',
@@ -325,7 +338,9 @@ const projectNotice = [
     title: 'React',
     logo: 'https://gw.alipayobjects.com/zos/rmsportal/kZzEzemZyKLKFsojXItE.png',
     description: '生命就像一盒巧克力，结果往往出人意料',
-    updatedAt: '6 年前',
+    get updatedAt() {
+      return t('dashboard:6YearsAgo')
+    },
     member: '骗你来学计算机',
     href: '',
     memberLink: '',
@@ -335,7 +350,9 @@ const projectNotice = [
 const activities = [
   {
     id: 'trend-1',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('dashboard:justNow')
+    },
     user: {
       name: '曲丽丽',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png',
@@ -348,12 +365,18 @@ const activities = [
       name: '六月迭代',
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '新建项目',
+    get template1() {
+      return t('dashboard:in')
+    },
+    get template2() {
+      return t('dashboard:createdAProject')
+    },
   },
   {
     id: 'trend-2',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('dashboard:justNow')
+    },
     user: {
       name: '付小小',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/cnrhVkzwxjPwAaCfPbdc.png',
@@ -366,12 +389,18 @@ const activities = [
       name: '六月迭代',
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '新建项目',
+    get template1() {
+      return t('dashboard:in')
+    },
+    get template2() {
+      return t('dashboard:createdAProject')
+    },
   },
   {
     id: 'trend-3',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('dashboard:justNow')
+    },
     user: {
       name: '林东东',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/gaOngJwsRYRaVAuXXcmB.png',
@@ -384,12 +413,18 @@ const activities = [
       name: '六月迭代',
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '新建项目',
+    get template1() {
+      return t('dashboard:in')
+    },
+    get template2() {
+      return t('dashboard:createdAProject')
+    },
   },
   {
     id: 'trend-4',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('dashboard:justNow')
+    },
     user: {
       name: '周星星',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/WhxKECPNujWoWEFNdnJE.png',
@@ -398,12 +433,18 @@ const activities = [
       name: '5 月日常迭代',
       link: 'http://github.com/',
     },
-    template1: '将',
-    template2: '更新至已发布状态',
+    get template1() {
+      return t('dashboard:marked')
+    },
+    get template2() {
+      return t('dashboard:asPublished')
+    },
   },
   {
     id: 'trend-5',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('dashboard:justNow')
+    },
     user: {
       name: '朱偏右',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/ubnKSIfAJTxIgXOKlciN.png',
@@ -413,15 +454,23 @@ const activities = [
       link: 'http://github.com/',
     },
     project: {
-      name: '留言',
+      get name() {
+        return t('dashboard:leftAMessage')
+      },
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '发布了',
+    get template1() {
+      return t('dashboard:in')
+    },
+    get template2() {
+      return t('dashboard:published')
+    },
   },
   {
     id: 'trend-6',
-    updatedAt: '几秒前',
+    get updatedAt() {
+      return t('dashboard:justNow')
+    },
     user: {
       name: '乐哥',
       avatar: 'https://gw.alipayobjects.com/zos/rmsportal/jZUIxmJycoymBprLOUbT.png',
@@ -434,86 +483,150 @@ const activities = [
       name: '品牌迭代',
       link: 'http://github.com/',
     },
-    template1: '在',
-    template2: '新建项目',
+    get template1() {
+      return t('dashboard:in')
+    },
+    get template2() {
+      return t('dashboard:createdAProject')
+    },
   },
 ]
 
 const radarContainer = ref()
 const radarData = [
   {
-    name: '个人',
-    label: '引用',
+    get name() {
+      return t('dashboard:personal')
+    },
+    get label() {
+      return t('dashboard:reference')
+    },
     value: 10,
   },
   {
-    name: '个人',
-    label: '口碑',
+    get name() {
+      return t('dashboard:personal')
+    },
+    get label() {
+      return t('dashboard:reputation')
+    },
     value: 8,
   },
   {
-    name: '个人',
-    label: '产量',
+    get name() {
+      return t('dashboard:personal')
+    },
+    get label() {
+      return t('dashboard:output')
+    },
     value: 4,
   },
   {
-    name: '个人',
-    label: '贡献',
+    get name() {
+      return t('dashboard:personal')
+    },
+    get label() {
+      return t('dashboard:contribution')
+    },
     value: 5,
   },
   {
-    name: '个人',
-    label: '热度',
+    get name() {
+      return t('dashboard:personal')
+    },
+    get label() {
+      return t('dashboard:popularity')
+    },
     value: 7,
   },
   {
-    name: '团队',
-    label: '引用',
+    get name() {
+      return t('dashboard:team')
+    },
+    get label() {
+      return t('dashboard:reference')
+    },
     value: 3,
   },
   {
-    name: '团队',
-    label: '口碑',
+    get name() {
+      return t('dashboard:team')
+    },
+    get label() {
+      return t('dashboard:reputation')
+    },
     value: 9,
   },
   {
-    name: '团队',
-    label: '产量',
+    get name() {
+      return t('dashboard:team')
+    },
+    get label() {
+      return t('dashboard:output')
+    },
     value: 6,
   },
   {
-    name: '团队',
-    label: '贡献',
+    get name() {
+      return t('dashboard:team')
+    },
+    get label() {
+      return t('dashboard:contribution')
+    },
     value: 3,
   },
   {
-    name: '团队',
-    label: '热度',
+    get name() {
+      return t('dashboard:team')
+    },
+    get label() {
+      return t('dashboard:popularity')
+    },
     value: 1,
   },
   {
-    name: '部门',
-    label: '引用',
+    get name() {
+      return t('system:departmentLabel')
+    },
+    get label() {
+      return t('dashboard:reference')
+    },
     value: 4,
   },
   {
-    name: '部门',
-    label: '口碑',
+    get name() {
+      return t('system:departmentLabel')
+    },
+    get label() {
+      return t('dashboard:reputation')
+    },
     value: 1,
   },
   {
-    name: '部门',
-    label: '产量',
+    get name() {
+      return t('system:departmentLabel')
+    },
+    get label() {
+      return t('dashboard:output')
+    },
     value: 6,
   },
   {
-    name: '部门',
-    label: '贡献',
+    get name() {
+      return t('system:departmentLabel')
+    },
+    get label() {
+      return t('dashboard:contribution')
+    },
     value: 5,
   },
   {
-    name: '部门',
-    label: '热度',
+    get name() {
+      return t('system:departmentLabel')
+    },
+    get label() {
+      return t('dashboard:popularity')
+    },
     value: 7,
   },
 ]
@@ -534,6 +647,13 @@ onMounted(() => {
   })
   radar.render()
 })
+
+watch(
+  () => localeState.locale,
+  () => {
+    radar?.changeData(radarData.map((item) => ({ ...item })))
+  }
+)
 
 onBeforeUnmount(() => {
   radar?.destroy?.()

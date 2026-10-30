@@ -4,6 +4,7 @@ from sqlalchemy import and_, bindparam, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.constant import MenuConstant
+from i18n.translation import TranslationUtil
 from module_admin.entity.do.menu_do import SysMenu
 from module_admin.entity.do.role_do import SysRole, SysRoleMenu
 from module_admin.entity.do.user_do import SysUser, SysUserRole
@@ -200,6 +201,7 @@ class MenuDao:
         :return:
         """
         db_menu = SysMenu(**menu.model_dump(exclude={'create_time', 'update_time'}))
+        db_menu.menu_name_i18n = TranslationUtil.merge(None, menu.menu_name_i18n)
         db.add(db_menu)
         await db.flush()
 
@@ -214,6 +216,11 @@ class MenuDao:
         :param menu: 需要更新的菜单字典
         :return:
         """
+        if 'menu_name_i18n' in menu:
+            current = await db.scalar(
+                select(SysMenu.menu_name_i18n).where(SysMenu.menu_id == menu['menu_id']).with_for_update()
+            )
+            menu = {**menu, 'menu_name_i18n': TranslationUtil.merge(current, menu['menu_name_i18n'])}
         await db.execute(
             update(SysMenu),
             [{key: value for key, value in menu.items() if key not in {'create_time', 'update_time'}}],

@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Button, Col, Form, Row, Space } from 'antd'
 import { CopyOutlined, DeleteOutlined } from '@ant-design/icons'
 import FieldControl, { fieldItemProps } from '@/utils/generator/render'
@@ -12,6 +14,8 @@ export default function DraggableItem({
   onDrop,
   onValueChange,
 }) {
+  useI18n()
+
   return (
     <Col
       xs={24}
@@ -39,7 +43,7 @@ export default function DraggableItem({
           <Button
             type="text"
             size="small"
-            aria-label="复制组件"
+            aria-label={t('tool:duplicateComponent')}
             icon={<CopyOutlined />}
             onClick={(event) => {
               event.stopPropagation()
@@ -50,7 +54,7 @@ export default function DraggableItem({
             type="text"
             size="small"
             danger
-            aria-label="删除组件"
+            aria-label={t('tool:deleteComponent')}
             icon={<DeleteOutlined />}
             onClick={(event) => {
               event.stopPropagation()
@@ -68,7 +72,9 @@ export default function DraggableItem({
               onDrop(field.formId)
             }}
           >
-            <small>行容器 · {field.componentName}</small>
+            <small>
+              {t('tool:rowContainer')} {field.componentName}
+            </small>
             <Row
               gutter={field.gutter}
               justify={field.justify}
@@ -89,7 +95,9 @@ export default function DraggableItem({
                 />
               ))}
             </Row>
-            {!field.children?.length && <div className="builder-empty">拖入组件</div>}
+            {!field.children?.length && (
+              <div className="builder-empty">{t('tool:dropAComponentHere')}</div>
+            )}
           </div>
         ) : (
           <Form.Item

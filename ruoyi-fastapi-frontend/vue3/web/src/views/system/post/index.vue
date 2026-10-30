@@ -7,36 +7,36 @@
       v-show="showSearch"
     >
       <el-form-item
-        label="岗位编码"
+        :label="$t('system:postCode')"
         prop="postCode"
       >
         <el-input
           v-model="queryParams.postCode"
-          placeholder="请输入岗位编码"
+          :placeholder="$t('system:enterPostCode')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="岗位名称"
+        :label="$t('system:postName')"
         prop="postName"
       >
         <el-input
           v-model="queryParams.postName"
-          placeholder="请输入岗位名称"
+          :placeholder="$t('system:enterPostName')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('system:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="岗位状态"
+          :placeholder="$t('system:postStatus')"
           clearable
           style="width: 200px"
         >
@@ -53,12 +53,12 @@
           type="primary"
           icon="Search"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('system:search') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -74,7 +74,7 @@
           icon="Plus"
           @click="handleAdd"
           v-hasPermi="['system:post:add']"
-          >新增</el-button
+          >{{ $t('system:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -85,7 +85,7 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['system:post:edit']"
-          >修改</el-button
+          >{{ $t('system:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -96,7 +96,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['system:post:remove']"
-          >删除</el-button
+          >{{ $t('system:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -106,7 +106,7 @@
           icon="Download"
           @click="handleExport"
           v-hasPermi="['system:post:export']"
-          >导出</el-button
+          >{{ $t('system:export') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -126,27 +126,27 @@
         align="center"
       />
       <el-table-column
-        label="岗位编号"
+        :label="$t('system:postID')"
         align="center"
         prop="postId"
       />
       <el-table-column
-        label="岗位编码"
+        :label="$t('system:postCode')"
         align="center"
         prop="postCode"
       />
       <el-table-column
-        label="岗位名称"
+        :label="$t('system:postName')"
         align="center"
         prop="postName"
       />
       <el-table-column
-        label="岗位排序"
+        :label="$t('system:postOrder')"
         align="center"
         prop="postSort"
       />
       <el-table-column
-        label="状态"
+        :label="$t('system:status')"
         align="center"
         prop="status"
       >
@@ -158,7 +158,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="创建时间"
+        :label="$t('system:createdAt')"
         align="center"
         prop="createTime"
         width="180"
@@ -168,7 +168,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         width="180"
         align="center"
         class-name="small-padding fixed-width"
@@ -180,7 +180,7 @@
             icon="Edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:post:edit']"
-            >修改</el-button
+            >{{ $t('system:edit') }}</el-button
           >
           <el-button
             link
@@ -188,7 +188,7 @@
             icon="Delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:post:remove']"
-            >删除</el-button
+            >{{ $t('system:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -204,7 +204,7 @@
 
     <!-- 添加或修改岗位对话框 -->
     <el-dialog
-      :title="title"
+      :title="typeof title === 'function' ? title() : title"
       v-model="open"
       width="500px"
       append-to-body
@@ -213,28 +213,29 @@
         ref="postRef"
         :model="form"
         :rules="rules"
-        label-width="80px"
+        :validate-on-rule-change="false"
+        label-width="auto"
       >
         <el-form-item
-          label="岗位名称"
+          :label="$t('system:postName')"
           prop="postName"
         >
           <el-input
             v-model="form.postName"
-            placeholder="请输入岗位名称"
+            :placeholder="$t('system:enterPostName')"
           />
         </el-form-item>
         <el-form-item
-          label="岗位编码"
+          :label="$t('system:postCode')"
           prop="postCode"
         >
           <el-input
             v-model="form.postCode"
-            placeholder="请输入编码名称"
+            :placeholder="$t('system:enterCodeName')"
           />
         </el-form-item>
         <el-form-item
-          label="岗位顺序"
+          :label="$t('system:postOrderLabel')"
           prop="postSort"
         >
           <el-input-number
@@ -244,7 +245,7 @@
           />
         </el-form-item>
         <el-form-item
-          label="岗位状态"
+          :label="$t('system:postStatus')"
           prop="status"
         >
           <el-radio-group v-model="form.status">
@@ -257,13 +258,13 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item
-          label="备注"
+          :label="$t('system:remarks')"
           prop="remark"
         >
           <el-input
             v-model="form.remark"
             type="textarea"
-            placeholder="请输入内容"
+            :placeholder="$t('system:enterContent')"
           />
         </el-form-item>
       </el-form>
@@ -272,9 +273,9 @@
           <el-button
             type="primary"
             @click="submitForm"
-            >确 定</el-button
+            >{{ $t('system:confirm') }}</el-button
           >
-          <el-button @click="cancel">取 消</el-button>
+          <el-button @click="cancel">{{ $t('system:cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -282,9 +283,12 @@
 </template>
 
 <script setup name="Post">
+import { t } from '@/i18n/adapter'
+import { useLocaleForm } from '@/composables/useLocaleForm'
 import { listPost, addPost, delPost, getPost, updatePost } from '@/api/system/post'
 
 const { proxy } = getCurrentInstance()
+useLocaleForm(computed(() => proxy.$refs.postRef))
 const { sys_normal_disable } = proxy.useDict('sys_normal_disable')
 
 const postList = ref([])
@@ -307,9 +311,33 @@ const data = reactive({
     status: undefined,
   },
   rules: {
-    postName: [{ required: true, message: '岗位名称不能为空', trigger: 'blur' }],
-    postCode: [{ required: true, message: '岗位编码不能为空', trigger: 'blur' }],
-    postSort: [{ required: true, message: '岗位顺序不能为空', trigger: 'blur' }],
+    postName: [
+      {
+        required: true,
+        get message() {
+          return t('system:postNameIsRequired')
+        },
+        trigger: 'blur',
+      },
+    ],
+    postCode: [
+      {
+        required: true,
+        get message() {
+          return t('system:postCodeIsRequired')
+        },
+        trigger: 'blur',
+      },
+    ],
+    postSort: [
+      {
+        required: true,
+        get message() {
+          return t('system:postOrderIsRequired')
+        },
+        trigger: 'blur',
+      },
+    ],
   },
 })
 
@@ -361,7 +389,7 @@ function handleSelectionChange(selection) {
 function handleAdd() {
   reset()
   open.value = true
-  title.value = '添加岗位'
+  title.value = () => t('system:addPost')
 }
 /** 修改按钮操作 */
 function handleUpdate(row) {
@@ -370,7 +398,7 @@ function handleUpdate(row) {
   getPost(postId).then((response) => {
     form.value = response.data
     open.value = true
-    title.value = '修改岗位'
+    title.value = () => t('system:editPost')
   })
 }
 /** 提交按钮 */
@@ -379,13 +407,13 @@ function submitForm() {
     if (valid) {
       if (form.value.postId != undefined) {
         updatePost(form.value).then(() => {
-          proxy.$modal.msgSuccess('修改成功')
+          proxy.$modal.msgSuccess(t('system:updatedSuccessfully'))
           open.value = false
           getList()
         })
       } else {
         addPost(form.value).then(() => {
-          proxy.$modal.msgSuccess('新增成功')
+          proxy.$modal.msgSuccess(t('system:addedSuccessfully'))
           open.value = false
           getList()
         })
@@ -397,13 +425,13 @@ function submitForm() {
 function handleDelete(row) {
   const postIds = row.postId || ids.value
   proxy.$modal
-    .confirm('是否确认删除岗位编号为"' + postIds + '"的数据项？')
+    .confirm(t('system:confirmation.deleteIds', { ids: postIds }))
     .then(function () {
       return delPost(postIds)
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('删除成功')
+      proxy.$modal.msgSuccess(t('system:deletedSuccessfully'))
     })
     .catch(() => {})
 }

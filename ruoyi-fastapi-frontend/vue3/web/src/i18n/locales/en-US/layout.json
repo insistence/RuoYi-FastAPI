@@ -1,0 +1,108 @@
+{
+  "routes": {
+    "home": "Home",
+    "login": "Sign in",
+    "register": "Sign up",
+    "authLogin": "Single sign-on",
+    "authConsent": "Authorize access",
+    "authPassword": "Update password",
+    "authError": "Authentication incomplete",
+    "lock": "Lock screen",
+    "profile": "Profile",
+    "assignRole": "Assign roles",
+    "assignUser": "Assign users",
+    "dictData": "Dictionary data",
+    "jobLog": "Job logs",
+    "genEdit": "Edit generation settings",
+    "forbidden": "Access denied",
+    "notFound": "Page not found"
+  },
+  "navbar": {
+    "source": "Source code",
+    "docs": "Documentation",
+    "theme": "Theme mode",
+    "size": "Layout size",
+    "notices": "Notifications",
+    "settings": "Layout settings",
+    "signOut": "Sign out",
+    "signOutConfirm": "Are you sure you want to sign out?"
+  },
+  "menu": {
+    "more": "More menus"
+  },
+  "tags": {
+    "close": "Close tab",
+    "closeOthers": "Close other tabs",
+    "closeLeft": "Close tabs to the left",
+    "closeRight": "Close tabs to the right",
+    "closeAll": "Close all tabs",
+    "fullscreen": "Full screen",
+    "refreshPage": "Refresh page",
+    "refresh": "Refresh"
+  },
+  "search": {
+    "placeholder": "Search menus by title or URL",
+    "results_other": "Found {{count}} results",
+    "noResults": "No menus found for “{{query}}”",
+    "tryAgain": "Try another keyword or path",
+    "navigate": "Navigate",
+    "select": "Select",
+    "close": "Close",
+    "results_one": "Found {{count}} result"
+  },
+  "size": {
+    "large": "Large",
+    "default": "Default",
+    "small": "Small",
+    "applying": "Applying layout size. Please wait…"
+  },
+  "settings": {
+    "navigation": "Menu navigation",
+    "sidebar": "Side menu",
+    "mixed": "Mixed menu",
+    "top": "Top menu",
+    "theme": "Theme style",
+    "dark": "Dark sidebar",
+    "light": "Light sidebar",
+    "selected": "Selected",
+    "color": "Theme color",
+    "layout": "System layout",
+    "tabs": "Enable tabs",
+    "persistTabs": "Remember open tabs",
+    "tabIcons": "Show tab icons",
+    "tabStyle": "Tab style",
+    "card": "Card",
+    "chrome": "Chrome",
+    "fixedHeader": "Fixed header",
+    "logo": "Show logo",
+    "dynamicTitle": "Dynamic page title",
+    "footer": "Copyright footer",
+    "save": "Save settings",
+    "reset": "Reset settings",
+    "saving": "Saving settings locally. Please wait…",
+    "resetting": "Clearing saved settings and refreshing. Please wait…"
+  },
+  "notices": {
+    "title": "Notifications",
+    "readAll": "Mark all as read",
+    "empty": "No announcements",
+    "notification": "Notification",
+    "announcement": "Announcement",
+    "message": "Message",
+    "details": "Announcement details",
+    "noData": "No data",
+    "active": "Active",
+    "closed": "Closed",
+    "noContent": "No content"
+  },
+  "error": {
+    "back": "Back",
+    "home": "Back to home",
+    "forbiddenCode": "Error 401",
+    "forbidden": "You do not have access to this page.",
+    "forbiddenHint": "You do not have permission to access this page. You can return to the home page.",
+    "notFoundCode": "Error 404",
+    "notFound": "Page not found!",
+    "notFoundHint": "The page you are looking for does not exist. Check the URL or return to the home page."
+  }
+}

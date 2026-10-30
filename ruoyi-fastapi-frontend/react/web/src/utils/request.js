@@ -1,3 +1,4 @@
+import { i18n, t } from '@/i18n'
 import axios from 'axios'
 import { getToken, removeToken } from './auth'
 import { getDisplayTimezone } from './time'
@@ -29,6 +30,8 @@ const service = axios.create({
  * @returns {Promise<Object>} 最终发送的请求配置
  */
 service.interceptors.request.use(async (config) => {
+  config.__locale ??= i18n.locale
+  const t = i18n.engine.getFixedT(config.__locale)
   // 内部控制标记在密钥轮换重试时保留，但不作为 HTTP 请求头发出。
   config.__requestFlags ||= Object.fromEntries(
     ['isToken', 'encrypt', 'encryptResponse']
@@ -37,6 +40,7 @@ service.interceptors.request.use(async (config) => {
   )
   Object.assign(config.headers, config.__requestFlags)
   // 调用方可覆盖显示时区，并通过 isToken: false 禁止自动携带令牌。
+  Object.assign(config.headers, { ...i18n.headers, ...config.headers })
   config.headers['X-Timezone'] ||= getDisplayTimezone()
   if (getToken() && config.headers.isToken !== false)
     config.headers.Authorization = `Bearer ${getToken()}`
@@ -63,7 +67,7 @@ service.interceptors.request.use(async (config) => {
         // 防重间隔单位为毫秒，默认 1000；显示时区不同视为不同请求。
         current.time - previous.time < (config.headers.interval || 1000)
       )
-        throw new Error('数据正在处理，请勿重复提交')
+        throw new Error(t('common:yourRequestIsBeingProcessedDoNotSubmitIt'))
       cache.session.setJSON('sessionObj', current)
     }
   }
@@ -85,7 +89,7 @@ async function expireSession() {
   if (isRelogin.show) return
   isRelogin.show = true
   try {
-    await confirm('登录状态已过期，是否重新登录？')
+    await confirm(t('common:utils.yourSessionHasExpiredSignInAgain'))
     removeToken()
     location.assign(`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`)
   } catch {
@@ -101,19 +105,21 @@ service.interceptors.response.use(
    * @returns {Promise<*>} 业务数据或二进制响应数据
    */
   async (response) => {
+    const t = i18n.engine.getFixedT(response.config.__locale || i18n.locale)
     response = await decryptTransportResponse(response)
     if (['blob', 'arraybuffer'].includes(response.config.responseType)) return response.data
     // 未设置业务状态码时默认成功。
     const code = response.data.code || 200
     if (code === 200) return response.data
     // 插件会话异常由 PluginFrame 局部处理，不触发宿主账号重新登录。
-    if (response.config.pluginBridge) throw new Error('插件请求失败，请重试')
-    const text = errorCode[code] || response.data.msg || errorCode.default
+    if (response.config.pluginBridge) throw new Error(t('common:thePluginRequestFailedTryAgain'))
+    const text = response.data.msg || errorCode(t)[code] || errorCode(t).default
     if (code === 401) void expireSession()
     else if (!response.config.skipErrorMessage) message[code === 601 ? 'warning' : 'error'](text)
     throw new Error(text)
   },
   async (error) => {
+    const t = i18n.engine.getFixedT(error.config?.__locale || i18n.locale)
     if (axios.isCancel(error)) throw error
     // 错误响应也可能是加密信封，先解密再提取错误信息。
     error = await decryptTransportErrorResponse(error)
@@ -132,31 +138,32 @@ service.interceptors.response.use(
       return service.request(error.config)
     }
     // HTTP 错误中的插件会话同样与宿主登录状态隔离。
-    if (error.config?.pluginBridge) throw new Error('插件请求失败，请重试')
+    if (error.config?.pluginBridge) throw new Error(t('common:thePluginRequestFailedTryAgain'))
     const response = error.response
     // 保留字段级错误供表单使用，同时拼接可读提示。
     if (response?.status === 422) {
       const details = Array.isArray(response.data?.detail) ? response.data.detail : []
       error.fieldErrors = Object.fromEntries(
-        details.map((item) => [item.loc?.slice(1).join('.') || '参数', item.msg])
+        details.map((item) => [item.loc?.slice(1).join('.') || t('common:parameters'), item.msg])
       )
       error.message =
         details
-          .map((item) => `${item.loc?.slice(1).join('.') || '参数'}：${item.msg}`)
+          .map((item) => `${item.loc?.slice(1).join('.') || t('common:parameters')}：${item.msg}`)
           .join('；') ||
         response.data?.msg ||
-        '请检查输入参数'
+        t('common:checkTheInputParameters')
     } else
       error.message =
         response?.data?.msg ||
         ([502, 503, 504].includes(response?.status) || error.message === 'Network Error'
-          ? '后端接口连接异常'
+          ? t('common:network.error')
           : error.message?.includes('timeout')
-            ? '系统接口请求超时'
+            ? t('common:network.timeout')
             : error.message)
     if (response?.status === 401) void expireSession()
     // 调用方接管提示时仍抛出错误，避免吞掉失败结果。
-    else if (!error.config?.skipErrorMessage) message.error(error.message || '请求失败')
+    else if (!error.config?.skipErrorMessage)
+      message.error(error.message || t('common:requestFailed'))
     throw error
   }
 )
@@ -169,7 +176,8 @@ service.interceptors.response.use(
  * @returns {Promise<void>} 下载处理完成；失败时提示并继续抛出错误
  */
 export async function download(url, params, filename, config = {}) {
-  const close = message.loading('正在下载数据，请稍候', 0)
+  const t = i18n.engine.getFixedT(i18n.locale)
+  const close = message.loading(t('file:downloadingDataPleaseWait'), 0)
   try {
     const data = await service.post(url, params, {
       transformRequest: [tansParams],
@@ -186,7 +194,7 @@ export async function download(url, params, filename, config = {}) {
     else {
       // 文件接口可能返回业务错误 JSON，需要读取 Blob 内容后提示。
       const result = JSON.parse(await data.text())
-      throw new Error(result.msg || '下载失败')
+      throw new Error(result.msg || t('common:downloadFailed'))
     }
   } catch (error) {
     message.error(error.message)

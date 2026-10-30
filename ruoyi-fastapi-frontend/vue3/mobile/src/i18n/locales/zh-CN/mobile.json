@@ -1,0 +1,251 @@
+{
+  "app": {
+    "title": "RuoYi-FastAPI移动端",
+    "comingSoon": "模块建设中~",
+    "systemNotice": "系统提示"
+  },
+  "home": {
+    "search": "搜索...",
+    "healthy": "系统运行正常",
+    "updated": "刚刚更新",
+    "productivity": "工作效率",
+    "notifications": "新通知",
+    "tasks": "待办任务",
+    "shortcuts": "快捷入口",
+    "requests": "申请",
+    "news": "新闻",
+    "statistics": "统计",
+    "plans": "计划",
+    "recent": "最近更新",
+    "viewAll": "查看全部",
+    "leaveRequest": "请假申请",
+    "awaitingApproval": "等待经理审批",
+    "pending": "待处理",
+    "weeklyReport": "周报",
+    "submitted": "提交成功",
+    "completed": "已完成",
+    "greeting": "你好，{{name}}",
+    "welcome": "欢迎回来"
+  },
+  "auth": {
+    "usernamePlaceholder": "请输入账号",
+    "passwordPlaceholder": "请输入密码",
+    "signingIn": "登录中，请耐心等待...",
+    "loginTitle": "RuoYi-FastAPI移动端登录",
+    "login": "登 录",
+    "noAccount": "没有账号？",
+    "registerNow": "立即注册",
+    "acceptTerms": "登录即代表同意",
+    "agreementLink": "《用户协议》",
+    "and": "和",
+    "privacyLink": "《隐私协议》",
+    "confirmPasswordRequired": "请再次输入您的密码",
+    "registering": "注册中，请耐心等待...",
+    "registerTitle": "RuoYi-FastAPI移动端注册",
+    "confirmPasswordPlaceholder": "请输入重复密码",
+    "register": "注 册",
+    "existingAccount": "使用已有账号登录",
+    "registerSuccess": "恭喜你，您的账号 {{username}} 注册成功！"
+  },
+  "about": {
+    "version": "版本信息",
+    "email": "官方邮箱",
+    "hotline": "服务热线",
+    "website": "公司网站",
+    "title": "关于我们"
+  },
+  "avatar": {
+    "generating": "图片生成中...",
+    "choose": "选择头像"
+  },
+  "actions": {
+    "updated": "修改成功",
+    "submit": "提交",
+    "saveFailed": "保存失败，请重试"
+  },
+  "help": {
+    "product": "RuoYi-FastAPI问题",
+    "openSourceQuestion": "RuoYi-FastAPI开源吗？",
+    "openSourceAnswer": "开源",
+    "commercialQuestion": "RuoYi-FastAPI可以商用吗？",
+    "commercialAnswer": "可以",
+    "websiteQuestion": "RuoYi-FastAPI官网地址多少？",
+    "docsQuestion": "RuoYi-FastAPI文档地址多少？",
+    "other": "其他问题",
+    "signOutQuestion": "如何退出登录？",
+    "signOutAnswer": "请点击[我的] - [应用设置] - [退出登录]即可退出登录",
+    "avatarQuestion": "如何修改用户头像？",
+    "avatarAnswer": "请点击[我的] - [选择头像] - [点击提交]即可更换用户头像",
+    "passwordQuestion": "如何修改登录密码？",
+    "passwordAnswer": "请点击[我的] - [应用设置] - [修改密码]即可修改登录密码",
+    "title": "常见问题"
+  },
+  "profile": {
+    "view": "查看个人信息",
+    "signIn": "点击登录",
+    "community": "交流群",
+    "support": "在线客服",
+    "feedback": "反馈社区",
+    "like": "点赞我们",
+    "edit": "编辑资料",
+    "male": "男",
+    "female": "女",
+    "nicknameRequired": "用户昵称不能为空",
+    "phoneRequired": "手机号码不能为空",
+    "phoneInvalid": "请输入正确的手机号码",
+    "emailRequired": "邮箱地址不能为空",
+    "emailInvalid": "请输入正确的邮箱地址",
+    "nickname": "用户昵称",
+    "nicknamePlaceholder": "请输入昵称",
+    "phone": "手机号码",
+    "phonePlaceholder": "请输入手机号码",
+    "email": "邮箱",
+    "emailPlaceholder": "请输入邮箱",
+    "sex": "性别",
+    "shortNickname": "昵称",
+    "post": "岗位",
+    "role": "角色",
+    "createdAt": "创建日期"
+  },
+  "settings": {
+    "title": "应用设置",
+    "signOutConfirm": "确定注销并退出系统吗？",
+    "checkUpdates": "检查更新",
+    "clearCache": "清理缓存",
+    "signOut": "退出登录"
+  },
+  "password": {
+    "oldRequired": "旧密码不能为空",
+    "newRequired": "新密码不能为空",
+    "length": "长度在 6 到 20 个字符",
+    "confirmRequired": "确认密码不能为空",
+    "mismatch": "两次输入的密码不一致",
+    "old": "旧密码",
+    "oldPlaceholder": "请输入旧密码",
+    "new": "新密码",
+    "newPlaceholder": "请输入新密码",
+    "confirm": "确认密码",
+    "confirmPlaceholder": "请确认新密码",
+    "title": "修改密码"
+  },
+  "timezone": {
+    "title": "时区设置",
+    "saved": "时区设置已保存",
+    "profileFailed": "账号设置读取失败，请重试保存或重新进入页面",
+    "automatic": "自动跟随设备",
+    "display": "显示时区",
+    "searchPlaceholder": "搜索时区，例如 Asia/Shanghai",
+    "search": "搜索时区",
+    "choose": "选择显示时区",
+    "noResults": "没有匹配的时区，请修改搜索词。",
+    "loadFailed": "时区列表加载失败，仍可使用当前时区。",
+    "preview": "时间预览",
+    "previewZone": "预览时区：",
+    "previewTime": "时间预览：",
+    "deviceFallback": "当前设备无法识别时区，已使用系统时区；你也可以手动选择。",
+    "hint": "用于时间显示、日期筛选和导出。定时任务和业务统计使用各自配置的时区。",
+    "save": "保存时区"
+  },
+  "work": {
+    "ai": "AI 生产力",
+    "chat": "智能对话",
+    "assistant": "智能助手",
+    "image": "图像生成",
+    "studio": "创意工坊",
+    "system": "系统管理",
+    "users": "用户管理",
+    "roles": "角色管理",
+    "departments": "部门管理",
+    "config": "配置管理",
+    "dictionaries": "字典管理",
+    "notices": "通知公告",
+    "logs": "日志管理",
+    "more": "更多",
+    "subtitle": "工作台"
+  },
+  "errors": {
+    "unauthorized": "认证失败，无法访问系统资源",
+    "forbidden": "当前操作没有权限",
+    "notFound": "访问资源不存在",
+    "unknown": "系统未知错误，请反馈给管理员",
+    "sessionInvalid": "无效的会话，或者会话已过期，请重新登录。",
+    "uploadResponse": "上传响应格式不正确",
+    "upload": "上传失败",
+    "httpStatus": "系统接口 {{status}} 异常"
+  },
+  "agreement": {
+    "title": "用户协议",
+    "acceptance": {
+      "title": "1. 服务条款的确认和接纳",
+      "body": "欢迎使用RuoYi-FastAPI移动端框架（以下简称“本产品”）。本产品的服务所有权和运作权归RuoYi-FastAPI所有。用户在使用本产品前，请仔细阅读本协议。当您点击“同意”或实际使用本产品服务时，即视为您已阅读并完全同意本协议的所有条款。"
+    },
+    "security": {
+      "title": "2. 用户账号与安全",
+      "body": "您在注册账号时，应提供真实、准确、最新和完整的个人资料。您有责任维护账号和密码的安全，并对以您账号进行的所有活动承担法律责任。如发现账号被非法使用，请立即通知我们。"
+    },
+    "conduct": {
+      "title": "3. 用户行为规范",
+      "body": "用户在使用本产品过程中，必须遵守国家法律法规，不得利用本产品从事违法违规活动，包括但不限于：发布虚假信息、侵犯他人知识产权、传播淫秽色情信息、进行网络攻击等。"
+    },
+    "changes": {
+      "title": "4. 服务内容的变更、中断或终止",
+      "body": "鉴于网络服务的特殊性，我们有权随时变更、中断或终止部分或全部网络服务。对于因服务器维护、网络故障等原因导致的服务中断，我们将尽量提前公告，但不对因此产生的损失承担责任。"
+    },
+    "intellectualProperty": {
+      "title": "5. 知识产权声明",
+      "body": "本产品包含的所有内容（包括但不限于文字、图片、音频、视频、软件代码等）的知识产权归RuoYi-FastAPI或相关权利人所有。未经授权，任何人不得擅自使用、复制、修改或传播。"
+    },
+    "disclaimer": {
+      "title": "6. 免责声明",
+      "body": "本产品按“现状”提供，不包含任何明示或暗示的保证。我们不对因不可抗力、黑客攻击、系统不稳定等原因导致的服务中断或数据丢失承担责任。"
+    },
+    "updated": "更新日期：2024年01月01日"
+  },
+  "privacy": {
+    "title": "隐私协议",
+    "intro": "RuoYi-FastAPI非常重视您的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。请您在使用本产品前仔细阅读本政策。",
+    "collection": {
+      "title": "1. 我们如何收集和使用您的个人信息",
+      "body": "为了向您提供更好的服务，我们可能会收集您的以下信息：",
+      "account": "• 账号信息：当您注册或登录时，我们需要收集您的用户名、密码、手机号码等信息。",
+      "device": "• 设备信息：为了保障账户安全和优化服务，我们会收集您的设备型号、操作系统版本、唯一设备标识符等信息。",
+      "log": "• 日志信息：当您使用本产品时，我们会自动收集您的操作日志、IP地址、访问时间等信息。"
+    },
+    "sharing": {
+      "title": "2. 我们如何共享、转让、公开披露您的个人信息",
+      "body": "我们不会向任何第三方共享、转让或公开披露您的个人信息，但以下情况除外：",
+      "consent": "• 获得您的明确授权或同意；",
+      "law": "• 根据法律法规或司法机关的要求；",
+      "publicInterest": "• 为了维护国家安全、公共安全或重大公共利益。"
+    },
+    "protection": {
+      "title": "3. 我们如何保护您的个人信息",
+      "body": "我们采取了多种安全措施来保护您的个人信息，包括数据加密、访问控制、安全审计等。我们会尽力防止您的信息被未经授权的访问、篡改或泄露。"
+    },
+    "rights": {
+      "title": "4. 您的权利",
+      "body": "您有权访问、更正或删除您的个人信息。您也可以随时注销账号。如您需要行使这些权利，请通过“联系我们”章节中的方式与我们联系。"
+    },
+    "updates": {
+      "title": "5. 本政策如何更新",
+      "body": "随着法律法规的变化或业务的发展，我们可能会不时更新本隐私政策。更新后的政策将在本产品中发布，并在生效前通过适当方式通知您。"
+    },
+    "contact": {
+      "title": "6. 联系我们",
+      "body": "如果您对本隐私政策有任何疑问或建议，请通过以下方式联系我们：",
+      "email": "邮箱：xxx@xxx.com"
+    },
+    "updated": "更新日期：2024年01月01日"
+  },
+  "nav": {
+    "home": "首页",
+    "work": "工作台",
+    "mine": "我的",
+    "login": "登录",
+    "register": "注册",
+    "avatar": "修改头像",
+    "profile": "个人信息",
+    "web": "浏览网页",
+    "text": "浏览文本"
+  }
+}

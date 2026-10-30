@@ -1,7 +1,11 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 
 // Keep native scrolling (including keyboard/touch), with an overlay thumb like Vue's el-scrollbar.
 export default function SidebarScrollbar({ children }) {
+  useI18n()
+
   const viewport = useRef(null)
   const content = useRef(null)
   const drag = useRef(null)
@@ -87,7 +91,7 @@ export default function SidebarScrollbar({ children }) {
         className="layout-sidebar-viewport"
         tabIndex={0}
         role="region"
-        aria-label="侧边菜单"
+        aria-label={t('layout:sideMenu')}
         onScroll={onScroll}
       >
         <div ref={content}>{children}</div>

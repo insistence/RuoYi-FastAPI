@@ -1,3 +1,7 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 export default function Druid() {
-  return <div className="app-container">我是数据监控</div>
+  useI18n()
+
+  return <div className="app-container">{t('monitor:dataMonitoring')}</div>
 }

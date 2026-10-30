@@ -1,19 +1,19 @@
 <template>
   <div class="access-map">
     <div class="access-node">
-      <span class="node-label">应用</span>
-      <strong>{{ application || '尚未命名' }}</strong>
+      <span class="node-label">{{ $t('components:apply') }}</span>
+      <strong>{{ application || $t('components:unnamed') }}</strong>
       <small>{{ applicationType }}</small>
     </div>
     <div
       class="access-link"
       aria-hidden="true"
     >
-      <span>申请</span>
+      <span>{{ $t('components:requests') }}</span>
       <el-icon><right /></el-icon>
     </div>
     <div class="access-node">
-      <span class="node-label">权限</span>
+      <span class="node-label">{{ $t('components:permissions') }}</span>
       <strong>{{ permissionSummary }}</strong>
       <small>{{ permissionHint }}</small>
     </div>
@@ -21,11 +21,11 @@
       class="access-link"
       aria-hidden="true"
     >
-      <span>访问</span>
+      <span>{{ $t('components:access') }}</span>
       <el-icon><right /></el-icon>
     </div>
     <div class="access-node">
-      <span class="node-label">服务</span>
+      <span class="node-label">{{ $t('components:service') }}</span>
       <strong>{{ resourceSummary }}</strong>
       <small>{{ resourceHint }}</small>
     </div>
@@ -33,6 +33,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 const props = defineProps({
   application: { type: String, default: '' },
   type: { type: String, default: 'confidential' },
@@ -41,17 +42,25 @@ const props = defineProps({
 })
 
 const applicationType = computed(() =>
-  props.type === 'public' ? '网页或移动端应用' : '后端服务应用'
+  props.type === 'public'
+    ? t('components:webOrMobileApplication')
+    : t('components:backendServiceApplication')
 )
-const permissionSummary = computed(() => props.permissions.slice(0, 2).join('、') || '尚未选择')
+const permissionSummary = computed(
+  () => props.permissions.slice(0, 2).join('、') || t('components:notSelected')
+)
 const permissionHint = computed(() =>
   props.permissions.length > 2
-    ? `另有 ${props.permissions.length - 2} 项权限`
-    : '应用可以申请的信息'
+    ? t('components:valueMorePermissions', { arg0: props.permissions.length - 2 })
+    : t('components:informationTheApplicationCanRequest')
 )
-const resourceSummary = computed(() => props.resources.slice(0, 2).join('、') || '仅身份信息')
+const resourceSummary = computed(
+  () => props.resources.slice(0, 2).join('、') || t('components:identityInformationOnly')
+)
 const resourceHint = computed(() =>
-  props.resources.length > 2 ? `另有 ${props.resources.length - 2} 个服务` : '令牌可以访问的目标'
+  props.resources.length > 2
+    ? t('components:valueMoreServices', { arg0: props.resources.length - 2 })
+    : t('components:resourcesTheTokenCanAccess')
 )
 </script>
 

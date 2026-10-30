@@ -1,0 +1,67 @@
+{
+  "weekday": {
+    "sunday": "日",
+    "monday": "一",
+    "tuesday": "二",
+    "wednesday": "三",
+    "thursday": "四",
+    "friday": "五",
+    "saturday": "六"
+  },
+  "timezone": {
+    "invalid": "无效的 IANA 时区: {{timezoneName}}",
+    "invalidDateTime": "无效的日期时间: {{value}}",
+    "nonexistent": "{{value}} 在 {{timezoneName}} 不存在，请选择夏令时跳转后的有效时间",
+    "ambiguous": "{{value}} 在 {{timezoneName}} 出现两次，请选择 UTC 偏移",
+    "invalidDate": "无效的日期: {{value}}",
+    "invalidField": "字段 {{field}} 包含无效的 RFC 3339 时间",
+    "occurrences": "{{message}}。第一次：{{arg1}}；第二次：{{arg2}}。",
+    "chooseOccurrence": "选择重复时间",
+    "enterOffset": "请输入 {{arg0}}",
+    "or": " 或 ",
+    "offsetInvalid": "请输入上述 UTC 偏移之一",
+    "useTime": "使用所选时间",
+    "editTime": "返回修改"
+  },
+  "crypto": {
+    "unavailable": "当前浏览器不支持 Web Crypto API",
+    "publicKeyFailed": "获取传输层公钥失败",
+    "keyProtocol": "传输层公钥协议版本不受支持",
+    "keyAlgorithm": "传输层公钥算法不受支持",
+    "responseProtocol": "传输层响应协议版本不受支持",
+    "responseAlgorithm": "传输层响应算法不受支持",
+    "keyVersion": "传输层响应密钥版本不匹配",
+    "headerVersion": "传输层响应头与响应体密钥版本不一致",
+    "aad": "传输层响应AAD不合法",
+    "requestMismatch": "传输层响应的method/path与当前请求不匹配",
+    "direction": "传输层响应方向标识不合法",
+    "queryLength": "当前GET/DELETE请求参数加密后长度超限，请改用POST请求或精简查询条件",
+    "missingContext": "缺少响应解密上下文",
+    "envelope": "传输层响应信封格式不合法"
+  },
+  "uri": {
+    "invalidType": "URI 类型无效",
+    "length": "URI 长度必须为 1 到 1000 个字符",
+    "wildcard": "URI 不允许使用通配符",
+    "absolute": "URI 必须是完整的 HTTP 或 HTTPS 地址",
+    "userInfo": "URI 不允许包含用户信息",
+    "fragment": "URI 不允许包含 Fragment",
+    "http": "仅本地开发地址允许使用 HTTP",
+    "backChannelQuery": "Back-Channel URI 不允许包含查询参数",
+    "cors": "CORS Origin 只能包含协议、主机和端口",
+    "redirectRequired": "请至少填写一个 Redirect URI"
+  },
+  "request": {
+    "processing": "数据正在处理，请勿重复提交",
+    "pluginFailure": "插件请求失败，请重试",
+    "parameter": "参数",
+    "checkParameters": "请检查输入参数"
+  },
+  "relative": {
+    "format": "{m}月{d}日{h}时{i}分",
+    "justNow": "刚刚",
+    "minutes_other": "{{count}}分钟前",
+    "hours_other": "{{count}}小时前",
+    "days_other": "{{count}}天前"
+  }
+}

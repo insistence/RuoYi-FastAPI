@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n'
 import { setBusinessTimezone, setUserTimezone } from '@/utils/time'
 import config from '@/config'
 import storage from '@/utils/storage'
@@ -85,6 +86,7 @@ const user = {
         getInfo()
           .then((res) => {
             const user = res.user
+            i18n.setAccount(user?.userId, user?.locale)
             commit('SET_APP_TIMEZONE', res.appTimezone)
             commit('SET_TIMEZONE', user.timeZone)
             let avatar = user.avatar || ''
@@ -125,6 +127,7 @@ const user = {
         commit('SET_ROLES', [])
         commit('SET_PERMISSIONS', [])
         removeToken()
+        i18n.setAccount(null)
         storage.clean()
       }
     },

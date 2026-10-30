@@ -12,6 +12,8 @@ from common.constant import CommonConstant
 from common.enums import PasswordCharacterType
 from common.vo import CrudResponseModel, PageModel
 from exceptions.exception import ServiceException
+from i18n.message import I18nMessage
+from i18n.registry import LocaleRegistry
 from module_admin.dao.user_dao import UserDao
 from module_admin.entity.do.user_do import SysUserRole
 from module_admin.entity.vo.post_vo import PostPageQueryModel
@@ -43,6 +45,7 @@ from utils.common_util import CamelCaseUtil
 from utils.excel_util import ExcelUtil
 from utils.pwd_util import PwdUtil
 from utils.time_util import TimezoneUtil
+from utils.user_import_util import UserImportUtil
 
 
 class UserService:
@@ -108,9 +111,9 @@ class UserService:
         )
 
         if not password:
-            raise ServiceException(message='密码不能为空')
+            raise ServiceException(message='密码不能为空', msg_key='auth.passwordRequired')
         if len(password) < cls.PASSWORD_MIN_LENGTH or len(password) > cls.PASSWORD_MAX_LENGTH:
-            raise ServiceException(message='密码长度必须介于 6 和 20 之间')
+            raise ServiceException(message='密码长度必须介于 6 和 20 之间', msg_key='auth.passwordLength')
 
         if not re.fullmatch(password_character_type.pattern, password):
             raise ServiceException(message=password_character_type.message)
@@ -156,8 +159,8 @@ class UserService:
         :return: 校验结果
         """
         if check_user.admin:
-            raise ServiceException(message='不允许操作超级管理员用户')
-        return CrudResponseModel(is_success=True, message='校验通过')
+            raise ServiceException(message='不允许操作超级管理员用户', msg_key='user.superAdminProtected')
+        return CrudResponseModel(is_success=True, message='校验通过', msg_key='common.validated')
 
     @classmethod
     async def check_user_data_scope_services(
@@ -173,8 +176,8 @@ class UserService:
         """
         users = await UserDao.get_user_list(query_db, UserPageQueryModel(userId=user_id), data_scope_sql, is_page=False)
         if users:
-            return CrudResponseModel(is_success=True, message='校验通过')
-        raise ServiceException(message='没有权限访问用户数据')
+            return CrudResponseModel(is_success=True, message='校验通过', msg_key='common.validated')
+        raise ServiceException(message='没有权限访问用户数据', msg_key='user.forbidden')
 
     @classmethod
     async def check_user_name_unique_services(cls, query_db: AsyncSession, page_object: UserModel) -> bool:
@@ -232,11 +235,23 @@ class UserService:
         """
         add_user = UserModel(**page_object.model_dump(by_alias=True, exclude={'create_time', 'update_time'}))
         if not await cls.check_user_name_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增用户{page_object.user_name}失败，登录账号已存在')
+            raise ServiceException(
+                message=f'新增用户{page_object.user_name}失败，登录账号已存在',
+                msg_key='user.addDuplicateName',
+                msg_params={'user_name': str(page_object.user_name)},
+            )
         if page_object.phonenumber and not await cls.check_phonenumber_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增用户{page_object.user_name}失败，手机号码已存在')
+            raise ServiceException(
+                message=f'新增用户{page_object.user_name}失败，手机号码已存在',
+                msg_key='user.addDuplicatePhone',
+                msg_params={'user_name': str(page_object.user_name)},
+            )
         if page_object.email and not await cls.check_email_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增用户{page_object.user_name}失败，邮箱账号已存在')
+            raise ServiceException(
+                message=f'新增用户{page_object.user_name}失败，邮箱账号已存在',
+                msg_key='user.addDuplicateEmail',
+                msg_params={'user_name': str(page_object.user_name)},
+            )
         try:
             add_result = await UserDao.add_user_dao(query_db, add_user)
             user_id = add_result.user_id
@@ -252,7 +267,7 @@ class UserService:
                 for post in page_object.post_ids:
                     await UserDao.add_user_post_dao(query_db, UserPostModel(userId=user_id, postId=post))
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -290,7 +305,7 @@ class UserService:
         """
         user_id = page_object.user_id
         if user_id is None:
-            raise ServiceException(message='用户不存在')
+            raise ServiceException(message='用户不存在', msg_key='user.notFound')
         if page_object.type == 'status':
             if page_object.status == '1' and current_user.status != '1':
                 await IdentitySecurityEventService.handle_user_event(
@@ -343,11 +358,23 @@ class UserService:
         if user_info.data and user_info.data.user_id:
             if page_object.type not in ['status', 'avatar', 'pwd']:
                 if not await cls.check_user_name_unique_services(query_db, page_object):
-                    raise ServiceException(message=f'修改用户{page_object.user_name}失败，登录账号已存在')
+                    raise ServiceException(
+                        message=f'修改用户{page_object.user_name}失败，登录账号已存在',
+                        msg_key='user.editDuplicateName',
+                        msg_params={'user_name': str(page_object.user_name)},
+                    )
                 if page_object.phonenumber and not await cls.check_phonenumber_unique_services(query_db, page_object):
-                    raise ServiceException(message=f'修改用户{page_object.user_name}失败，手机号码已存在')
+                    raise ServiceException(
+                        message=f'修改用户{page_object.user_name}失败，手机号码已存在',
+                        msg_key='user.editDuplicatePhone',
+                        msg_params={'user_name': str(page_object.user_name)},
+                    )
                 if page_object.email and not await cls.check_email_unique_services(query_db, page_object):
-                    raise ServiceException(message=f'修改用户{page_object.user_name}失败，邮箱账号已存在')
+                    raise ServiceException(
+                        message=f'修改用户{page_object.user_name}失败，邮箱账号已存在',
+                        msg_key='user.editDuplicateEmail',
+                        msg_params={'user_name': str(page_object.user_name)},
+                    )
             try:
                 await UserDao.edit_user_dao(query_db, edit_user)
                 if page_object.type not in {'status', 'avatar', 'pwd'}:
@@ -365,12 +392,12 @@ class UserService:
                             )
                 await cls._handle_edit_identity_security_event(query_db, page_object, user_info.data)
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='更新成功')
+                return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='用户不存在')
+            raise ServiceException(message='用户不存在', msg_key='user.notFound')
 
     @classmethod
     async def delete_user_services(cls, query_db: AsyncSession, page_object: DeleteUserModel) -> CrudResponseModel:
@@ -400,12 +427,12 @@ class UserService:
                         actor=page_object.update_by,
                     )
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入用户id为空')
+            raise ServiceException(message='传入用户id为空', msg_key='user.idRequired')
 
     @classmethod
     async def user_detail_services(cls, query_db: AsyncSession, user_id: int | str) -> UserDetailModel:
@@ -442,6 +469,28 @@ class UserService:
         return UserDetailModel(posts=posts, roles=roles)
 
     @classmethod
+    async def update_user_locale_services(
+        cls, query_db: AsyncSession, user_id: int, user_name: str, locale: str
+    ) -> CrudResponseModel:
+        """
+        更新当前账号的语言偏好
+
+        :param query_db: 数据库会话
+        :param user_id: 当前登录用户ID
+        :param user_name: 当前登录用户账号
+        :param locale: auto或规范化语言标识
+        :return: 语言偏好更新结果
+        """
+        preference = LocaleRegistry.normalize_locale(locale, preference=True)
+        try:
+            await UserDao.edit_user_dao(query_db, {'user_id': user_id, 'locale': preference, 'update_by': user_name})
+            await query_db.commit()
+        except Exception:
+            await query_db.rollback()
+            raise
+        return CrudResponseModel(is_success=True, message='语言设置已保存', msg_key='profile.localeSaved')
+
+    @classmethod
     async def update_user_timezone_services(
         cls, query_db: AsyncSession, user_id: int, user_name: str, time_zone: str
     ) -> CrudResponseModel:
@@ -461,7 +510,7 @@ class UserService:
         except Exception:
             await query_db.rollback()
             raise
-        return CrudResponseModel(is_success=True, message='时区设置已保存')
+        return CrudResponseModel(is_success=True, message='时区设置已保存', msg_key='profile.timezoneSaved')
 
     @classmethod
     async def user_profile_services(cls, query_db: AsyncSession, user_id: int) -> UserProfileModel:
@@ -506,9 +555,9 @@ class UserService:
         if page_object.old_password:
             user = (await UserDao.get_user_detail_by_id(query_db, user_id=page_object.user_id)).get('user_basic_info')
             if not PwdUtil.verify_password(page_object.old_password, user.password):
-                raise ServiceException(message='修改密码失败，旧密码错误')
+                raise ServiceException(message='修改密码失败，旧密码错误', msg_key='user.oldPasswordIncorrect')
             if PwdUtil.verify_password(page_object.password, user.password):
-                raise ServiceException(message='新密码不能与旧密码相同')
+                raise ServiceException(message='新密码不能与旧密码相同', msg_key='user.passwordUnchanged')
             del reset_user['old_password']
         if page_object.sms_code and page_object.session_id:
             del reset_user['sms_code']
@@ -523,7 +572,7 @@ class UserService:
                 actor=page_object.update_by,
             )
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='重置成功')
+            return CrudResponseModel(is_success=True, message='重置成功', msg_key='common.reset')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -536,12 +585,7 @@ class UserService:
         :param row: 行数据
         :return: None
         """
-        if row['sex'] == '男':
-            row['sex'] = '0'
-        if row['sex'] == '女':
-            row['sex'] = '1'
-        if row['sex'] == '未知':
-            row['sex'] = '2'
+        row['sex'] = UserImportUtil.normalize_value('sex', row['sex'])
 
     @classmethod
     def _set_row_status_value(cls, row: pd.Series) -> None:
@@ -551,10 +595,7 @@ class UserService:
         :param row: 行数据
         :return: None
         """
-        if row['status'] == '正常':
-            row['status'] = '0'
-        if row['status'] == '停用':
-            row['status'] = '1'
+        row['status'] = UserImportUtil.normalize_value('status', row['status'])
 
     @classmethod
     async def batch_import_user_services(
@@ -579,20 +620,17 @@ class UserService:
         :param dept_data_scope_sql: 部门数据权限sql
         :return: 批量导入用户结果
         """
-        header_dict = {
-            '部门编号': 'dept_id',
-            '登录名称': 'user_name',
-            '用户名称': 'nick_name',
-            '用户邮箱': 'email',
-            '手机号码': 'phonenumber',
-            '用户性别': 'sex',
-            '帐号状态': 'status',
-        }
         contents = await file.read()
-        df = pd.read_excel(io.BytesIO(contents))
         await file.close()
-        df.rename(columns=header_dict, inplace=True)
+        df = pd.read_excel(io.BytesIO(contents), header=None, dtype=object)
+        if df.empty:
+            raise ServiceException(message='导入文件为空', msg_key='import.empty')
+        headers = UserImportUtil.normalize_headers(df.iloc[0].tolist())
+        df = df.iloc[1:].copy()
+        df.columns = headers
+        df = df.where(pd.notna(df), None)
         add_error_result = []
+        duplicate_accounts = []
         count = 0
         init_password = await ConfigService.query_config_list_from_cache_services(
             request.app.state.redis, 'sys.user.initPassword'
@@ -609,7 +647,7 @@ class UserService:
                     password=PwdUtil.get_password_hash(init_password),
                     nickName=row['nick_name'],
                     email=row['email'],
-                    phonenumber=str(row['phonenumber']),
+                    phonenumber=str(row['phonenumber']) if row['phonenumber'] is not None else None,
                     sex=row['sex'],
                     status=row['status'],
                     createBy=current_user.user.user_name,
@@ -624,7 +662,7 @@ class UserService:
                             userName=row['user_name'],
                             nickName=row['nick_name'],
                             email=row['email'],
-                            phonenumber=str(row['phonenumber']),
+                            phonenumber=str(row['phonenumber']) if row['phonenumber'] is not None else None,
                             sex=row['sex'],
                             status=row['status'],
                             updateBy=current_user.user.user_name,
@@ -659,6 +697,7 @@ class UserService:
                             )
                     else:
                         add_error_result.append(f'{count}.用户账号{row["user_name"]}已存在')
+                        duplicate_accounts.append(f'{count}. {row["user_name"]}')
                 else:
                     add_user.validate_fields()
                     if not current_user.user.admin:
@@ -672,7 +711,12 @@ class UserService:
                         create_by=current_user.user.user_name,
                     )
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='\n'.join(add_error_result))
+            return CrudResponseModel(
+                is_success=True,
+                message='\n'.join(add_error_result),
+                msg_key='import.user.duplicates' if duplicate_accounts else 'common.imported',
+                msg_params={'accounts': '; '.join(duplicate_accounts)} if duplicate_accounts else {},
+            )
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -684,9 +728,34 @@ class UserService:
 
         :return: 用户导入模板excel的二进制数据
         """
-        header_list = ['部门编号', '登录名称', '用户名称', '用户邮箱', '手机号码', '用户性别', '帐号状态']
-        selector_header_list = ['用户性别', '帐号状态']
-        option_list = [{'用户性别': ['男', '女', '未知']}, {'帐号状态': ['正常', '停用']}]
+        header_list = [
+            I18nMessage('部门编号', msg_key='export.deptId'),
+            I18nMessage('登录名称', msg_key='export.loginName'),
+            I18nMessage('用户名称', msg_key='import.user.nickName'),
+            I18nMessage('用户邮箱', msg_key='export.userEmail'),
+            I18nMessage('手机号码', msg_key='export.phone'),
+            I18nMessage('用户性别', msg_key='export.userGender'),
+            I18nMessage('帐号状态', msg_key='export.accountStatus'),
+        ]
+        selector_header_list = [
+            I18nMessage('用户性别', msg_key='export.userGender'),
+            I18nMessage('帐号状态', msg_key='export.accountStatus'),
+        ]
+        option_list = [
+            {
+                I18nMessage('用户性别', msg_key='export.userGender'): [
+                    I18nMessage('男', msg_key='export.male'),
+                    I18nMessage('女', msg_key='export.female'),
+                    I18nMessage('未知', msg_key='export.unknown'),
+                ]
+            },
+            {
+                I18nMessage('帐号状态', msg_key='export.accountStatus'): [
+                    I18nMessage('正常', msg_key='export.active'),
+                    I18nMessage('停用', msg_key='export.disabled'),
+                ]
+            },
+        ]
         binary_data = ExcelUtil.get_excel_template(
             header_list=header_list, selector_header_list=selector_header_list, option_list=option_list
         )
@@ -703,33 +772,33 @@ class UserService:
         """
         # 创建一个映射字典，将英文键映射到中文键
         mapping_dict = {
-            'userId': '用户编号',
-            'userName': '用户名称',
-            'nickName': '用户昵称',
-            'deptName': '部门',
-            'email': '邮箱地址',
-            'phonenumber': '手机号码',
-            'sex': '性别',
-            'status': '状态',
-            'createBy': '创建者',
-            'createTime': '创建时间',
-            'updateBy': '更新者',
-            'updateTime': '更新时间',
-            'remark': '备注',
+            'userId': I18nMessage('用户编号', msg_key='export.userId'),
+            'userName': I18nMessage('用户名称', msg_key='export.userName'),
+            'nickName': I18nMessage('用户昵称', msg_key='export.nickName'),
+            'deptName': I18nMessage('部门', msg_key='export.department'),
+            'email': I18nMessage('邮箱地址', msg_key='export.email'),
+            'phonenumber': I18nMessage('手机号码', msg_key='export.phone'),
+            'sex': I18nMessage('性别', msg_key='export.gender'),
+            'status': I18nMessage('状态', msg_key='export.status'),
+            'createBy': I18nMessage('创建者', msg_key='export.createdBy'),
+            'createTime': I18nMessage('创建时间', msg_key='export.createdAt'),
+            'updateBy': I18nMessage('更新者', msg_key='export.updatedBy'),
+            'updateTime': I18nMessage('更新时间', msg_key='export.updatedAt'),
+            'remark': I18nMessage('备注', msg_key='export.remark'),
         }
 
         for item in user_list:
             item['deptName'] = item.get('dept').get('deptName')
             if item.get('status') == '0':
-                item['status'] = '正常'
+                item['status'] = I18nMessage('正常', msg_key='export.active')
             else:
-                item['status'] = '停用'
+                item['status'] = I18nMessage('停用', msg_key='export.disabled')
             if item.get('sex') == '0':
-                item['sex'] = '男'
+                item['sex'] = I18nMessage('男', msg_key='export.male')
             elif item.get('sex') == '1':
-                item['sex'] = '女'
+                item['sex'] = I18nMessage('女', msg_key='export.female')
             else:
-                item['sex'] = '未知'
+                item['sex'] = I18nMessage('未知', msg_key='export.unknown')
         binary_data = ExcelUtil.export_list2excel(user_list, mapping_dict)
 
         return binary_data
@@ -784,7 +853,7 @@ class UserService:
                 requested_role_ids = {int(role_id) for role_id in role_id_list}
                 if await cls._current_role_ids(query_db, page_object.user_id) == requested_role_ids:
                     await query_db.commit()
-                    return CrudResponseModel(is_success=True, message='分配成功')
+                    return CrudResponseModel(is_success=True, message='分配成功', msg_key='common.assigned')
                 await UserDao.delete_user_role_by_user_and_role_dao(query_db, UserRoleModel(userId=page_object.user_id))
                 for role_id in role_id_list:
                     await UserDao.add_user_role_dao(query_db, UserRoleModel(userId=page_object.user_id, roleId=role_id))
@@ -795,7 +864,7 @@ class UserService:
                     actor=actor,
                 )
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='分配成功')
+                return CrudResponseModel(is_success=True, message='分配成功', msg_key='common.assigned')
             except Exception as e:
                 await query_db.rollback()
                 raise e
@@ -803,7 +872,7 @@ class UserService:
             try:
                 if not await cls._current_role_ids(query_db, page_object.user_id):
                     await query_db.commit()
-                    return CrudResponseModel(is_success=True, message='分配成功')
+                    return CrudResponseModel(is_success=True, message='分配成功', msg_key='common.assigned')
                 await UserDao.delete_user_role_by_user_and_role_dao(query_db, UserRoleModel(userId=page_object.user_id))
                 await IdentitySecurityEventService.handle_user_event(
                     query_db,
@@ -812,7 +881,7 @@ class UserService:
                     actor=actor,
                 )
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='分配成功')
+                return CrudResponseModel(is_success=True, message='分配成功', msg_key='common.assigned')
             except Exception as e:
                 await query_db.rollback()
                 raise e
@@ -830,12 +899,12 @@ class UserService:
                     changed_user_ids.append(int(user_id))
                 await cls._handle_role_assignment_changes(query_db, changed_user_ids, actor)
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='新增成功')
+                return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='不满足新增条件')
+            raise ServiceException(message='不满足新增条件', msg_key='user.addConditionsNotMet')
 
     @classmethod
     async def delete_user_role_services(
@@ -867,7 +936,7 @@ class UserService:
                             actor=actor,
                         )
                     await query_db.commit()
-                    return CrudResponseModel(is_success=True, message='删除成功')
+                    return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
                 except Exception as e:
                     await query_db.rollback()
                     raise e
@@ -887,14 +956,14 @@ class UserService:
                             changed_user_ids.append(int(user_id))
                     await cls._handle_role_assignment_changes(query_db, changed_user_ids, actor)
                     await query_db.commit()
-                    return CrudResponseModel(is_success=True, message='删除成功')
+                    return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
                 except Exception as e:
                     await query_db.rollback()
                     raise e
             else:
-                raise ServiceException(message='不满足删除条件')
+                raise ServiceException(message='不满足删除条件', msg_key='user.deleteConditionsNotMet')
         else:
-            raise ServiceException(message='传入用户角色关联信息为空')
+            raise ServiceException(message='传入用户角色关联信息为空', msg_key='user.rolesRequired')
 
     @classmethod
     async def detail_user_role_services(cls, query_db: AsyncSession, page_object: UserRoleModel) -> SysUserRole | None:

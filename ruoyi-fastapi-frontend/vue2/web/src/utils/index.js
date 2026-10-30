@@ -1,3 +1,4 @@
+import { t } from '@/i18n/adapter'
 import { parseTime } from './ruoyi'
 
 /**
@@ -13,7 +14,7 @@ export function formatDate(cellValue) {
  * @returns {string}
  */
 export function formatTime(time, option) {
-  const formattedTime = parseTime(time, option || '{m}月{d}日{h}时{i}分')
+  const formattedTime = parseTime(time, option || t('common:time.relativeDatePattern'))
   if (!formattedTime) return ''
   time = new Date(time).getTime()
   const now = Date.now()
@@ -21,14 +22,14 @@ export function formatTime(time, option) {
   const diff = (now - time) / 1000
 
   if (diff < 30) {
-    return '刚刚'
+    return t('common:time.justNow')
   } else if (diff < 3600) {
     // less 1 hour
-    return Math.ceil(diff / 60) + '分钟前'
+    return t('common:time.minutesAgo', { count: Math.ceil(diff / 60) })
   } else if (diff < 3600 * 24) {
-    return Math.ceil(diff / 3600) + '小时前'
+    return t('common:time.hoursAgo', { count: Math.ceil(diff / 3600) })
   } else if (diff < 3600 * 24 * 2) {
-    return '1天前'
+    return t('common:time.oneDayAgo')
   }
   return formattedTime
 }

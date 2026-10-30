@@ -1,0 +1,6 @@
+{
+  "thePartialDownloadResponseIsMissingAValidContentRange": "分段下载响应缺少有效的Content-Range",
+  "thePartialDownloadResponseHasAnInconsistentRange": "分段下载响应范围不一致",
+  "downloadingDataPleaseWait": "正在下载数据，请稍候",
+  "disabled": "已停用"
+}

@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -9,48 +10,48 @@
       label-width="68px"
     >
       <el-form-item
-        label="操作地址"
+        :label="$t('monitor:messages.operationAddress')"
         prop="operIp"
       >
         <el-input
           v-model="queryParams.operIp"
-          placeholder="请输入操作地址"
+          :placeholder="$t('monitor:messages.enterOperationAddress')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="系统模块"
+        :label="$t('monitor:messages.systemModule')"
         prop="title"
       >
         <el-input
           v-model="queryParams.title"
-          placeholder="请输入系统模块"
+          :placeholder="$t('monitor:messages.enterSystemModule')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="操作人员"
+        :label="$t('monitor:log.operator')"
         prop="operName"
       >
         <el-input
           v-model="queryParams.operName"
-          placeholder="请输入操作人员"
+          :placeholder="$t('system:enterOperatorName')"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="类型"
+        :label="$t('common:type')"
         prop="businessType"
       >
         <el-select
           v-model="queryParams.businessType"
-          placeholder="操作类型"
+          :placeholder="$t('monitor:log.operationType')"
           clearable
           style="width: 240px"
         >
@@ -63,12 +64,12 @@
         </el-select>
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('common:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="操作状态"
+          :placeholder="$t('monitor:messages.operationStatus')"
           clearable
           style="width: 240px"
         >
@@ -80,16 +81,16 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="操作时间">
+      <el-form-item :label="$t('monitor:log.operationTime')">
         <el-date-picker
           v-model="dateRange"
           style="width: 240px"
           value-format="yyyy-MM-dd"
           type="daterange"
-          :aria-label="`日期范围（${getDisplayTimezone()}）`"
+          :aria-label="$t('common:time.dateRangeInZone', { zone: getDisplayTimezone() })"
           range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
+          :start-placeholder="$t('common:startDate')"
+          :end-placeholder="$t('common:endDate')"
         ></el-date-picker>
       </el-form-item>
       <el-form-item>
@@ -98,13 +99,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -122,7 +123,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['monitor:operlog:remove']"
-          >删除</el-button
+          >{{ $t('common:delete') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -133,7 +134,7 @@
           size="mini"
           @click="handleClean"
           v-hasPermi="['monitor:operlog:remove']"
-          >清空</el-button
+          >{{ $t('common:clear') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -144,7 +145,7 @@
           size="mini"
           @click="handleExport"
           v-hasPermi="['monitor:operlog:export']"
-          >导出</el-button
+          >{{ $t('common:export') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -167,18 +168,18 @@
         align="center"
       />
       <el-table-column
-        label="日志编号"
+        :label="$t('monitor:log.id')"
         align="center"
         prop="operId"
       />
       <el-table-column
-        label="系统模块"
+        :label="$t('monitor:messages.systemModule')"
         align="center"
         prop="title"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="操作类型"
+        :label="$t('monitor:log.operationType')"
         align="center"
         prop="businessType"
       >
@@ -190,7 +191,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作人员"
+        :label="$t('monitor:log.operator')"
         align="center"
         prop="operName"
         width="110"
@@ -199,20 +200,20 @@
         :sort-orders="['descending', 'ascending']"
       />
       <el-table-column
-        label="操作地址"
+        :label="$t('monitor:messages.operationAddress')"
         align="center"
         prop="operIp"
         width="130"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="操作地点"
+        :label="$t('monitor:interface.operationLocation')"
         align="center"
         prop="operLocation"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="操作状态"
+        :label="$t('monitor:messages.operationStatus')"
         align="center"
         prop="status"
       >
@@ -224,7 +225,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作日期"
+        :label="$t('monitor:messages.operationDate')"
         align="center"
         prop="operTime"
         width="160"
@@ -236,7 +237,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="消耗时间"
+        :label="$t('monitor:messages.duration')"
         align="center"
         prop="costTime"
         width="110"
@@ -245,11 +246,11 @@
         :sort-orders="['descending', 'ascending']"
       >
         <template slot-scope="scope">
-          <span>{{ scope.row.costTime }}毫秒</span>
+          <span>{{ scope.row.costTime }}{{ $t('common:milliseconds') }}</span>
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -260,7 +261,7 @@
             icon="el-icon-view"
             @click="handleDetail(scope.row, scope.index)"
             v-hasPermi="['monitor:operlog:query']"
-            >详细</el-button
+            >{{ $t('common:detail') }}</el-button
           >
         </template>
       </el-table-column>
@@ -282,6 +283,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getDisplayTimezone } from '@/utils/time'
 import OperlogDetail from './detail'
 import { list, delOperlog, cleanOperlog } from '@/api/monitor/operlog'
@@ -375,26 +378,26 @@ export default {
     handleDelete(row) {
       const operIds = row.operId || this.ids
       this.$modal
-        .confirm('是否确认删除日志编号为"' + operIds + '"的数据项？')
+        .confirm(t('monitor:confirmation.deleteLogsWithIDsValue', { value0: operIds }))
         .then(function () {
           return delOperlog(operIds)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
         })
         .catch(() => {})
     },
     /** 清空按钮操作 */
     handleClean() {
       this.$modal
-        .confirm('是否确认清空所有操作日志数据项？')
+        .confirm(t('monitor:interface.clearAllOperationLogs'))
         .then(function () {
           return cleanOperlog()
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('清空成功')
+          this.$modal.msgSuccess(t('common:clearSuccess'))
         })
         .catch(() => {})
     },

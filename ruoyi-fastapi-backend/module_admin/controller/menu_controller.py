@@ -103,7 +103,9 @@ async def add_system_menu(
     add_menu_result = await MenuService.add_menu_services(query_db, add_menu)
     logger.info(add_menu_result.message)
 
-    return ResponseUtil.success(msg=add_menu_result.message)
+    return ResponseUtil.success(
+        msg=add_menu_result.message, msg_key=add_menu_result.msg_key, msg_params=add_menu_result.msg_params
+    )
 
 
 @menu_controller.put(
@@ -126,7 +128,9 @@ async def edit_system_menu(
     edit_menu_result = await MenuService.edit_menu_services(query_db, edit_menu)
     logger.info(edit_menu_result.message)
 
-    return ResponseUtil.success(msg=edit_menu_result.message)
+    return ResponseUtil.success(
+        msg=edit_menu_result.message, msg_key=edit_menu_result.msg_key, msg_params=edit_menu_result.msg_params
+    )
 
 
 @menu_controller.put(
@@ -146,7 +150,9 @@ async def update_system_menu_sort(
     update_sort_result = await MenuService.update_menu_sort_services(query_db, menu_sort)
     logger.info(update_sort_result.message)
 
-    return ResponseUtil.success(msg=update_sort_result.message)
+    return ResponseUtil.success(
+        msg=update_sort_result.message, msg_key=update_sort_result.msg_key, msg_params=update_sort_result.msg_params
+    )
 
 
 @menu_controller.delete(
@@ -167,7 +173,9 @@ async def delete_system_menu(
     delete_menu_result = await MenuService.delete_menu_services(query_db, delete_menu)
     logger.info(delete_menu_result.message)
 
-    return ResponseUtil.success(msg=delete_menu_result.message)
+    return ResponseUtil.success(
+        msg=delete_menu_result.message, msg_key=delete_menu_result.msg_key, msg_params=delete_menu_result.msg_params
+    )
 
 
 @menu_controller.get(

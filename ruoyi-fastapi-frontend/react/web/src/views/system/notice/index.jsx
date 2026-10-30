@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import {
@@ -22,9 +25,12 @@ import Editor from '@/components/Editor'
 import NoticeDetailView from '@/layout/components/HeaderNotice/DetailView'
 import ReadUsers from './ReadUsers'
 export default function Notice() {
+  useI18n()
+
   const { sys_notice_status, sys_notice_type } = useDict('sys_notice_status', 'sys_notice_type')
   const [queryRef] = Form.useForm(),
     [noticeRef] = Form.useForm()
+  useLocalizedFormErrors(queryRef, noticeRef)
   const [noticeList, setNoticeList] = useState([]),
     [total, setTotal] = useState(0),
     [ids, setIds] = useState([]),
@@ -69,7 +75,7 @@ export default function Notice() {
       const values = await noticeRef.validateFields()
       setSaving(true)
       await (noticeId !== undefined ? updateNotice({ ...values, noticeId }) : addNotice(values))
-      message.success('保存成功')
+      message.success(t('system:savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -79,17 +85,17 @@ export default function Notice() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(`是否确认删除公告编号为“${values}”的数据项？`)
+      await confirm(t('system:deleteAnnouncementsWithIdsValue', { values }))
       await delNotice(values)
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
   const columns = [
-    { width: 100, align: 'center', title: '序号', dataIndex: 'noticeId' },
+    { width: 100, align: 'center', title: t('common:index'), dataIndex: 'noticeId' },
     {
       align: 'center',
-      title: '公告标题',
+      title: t('system:notice.titleLabel'),
       dataIndex: 'noticeTitle',
       render: (value, row) => (
         <Button
@@ -103,7 +109,7 @@ export default function Notice() {
     {
       width: 100,
       align: 'center',
-      title: '公告类型',
+      title: t('system:notice.type'),
       dataIndex: 'noticeType',
       render: (value) => (
         <DictTag
@@ -115,7 +121,7 @@ export default function Notice() {
     {
       width: 100,
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       render: (value) => (
         <DictTag
@@ -124,18 +130,18 @@ export default function Notice() {
         />
       ),
     },
-    { width: 100, align: 'center', title: '创建者', dataIndex: 'createBy' },
+    { width: 100, align: 'center', title: t('system:createdBy'), dataIndex: 'createBy' },
     {
       width: 100,
       align: 'center',
-      title: '创建时间',
+      title: t('common:createdTime'),
       dataIndex: 'createTime',
       render: (value) => parseTime(value),
     },
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 250,
       render: (_, row) => (
         <TableActions>
@@ -144,7 +150,7 @@ export default function Notice() {
               symbol="User"
               onClick={() => setReadRow(row)}
             >
-              阅读用户
+              {t('system:readersLabel')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:notice:edit']}>
@@ -152,7 +158,7 @@ export default function Notice() {
               symbol="Edit"
               onClick={() => handleEdit(row.noticeId)}
             >
-              修改
+              {t('common:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:notice:remove']}>
@@ -160,7 +166,7 @@ export default function Notice() {
               symbol="Delete"
               onClick={() => handleDelete([row.noticeId])}
             >
-              删除
+              {t('common:delete')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -183,32 +189,32 @@ export default function Notice() {
           }
         >
           <Form.Item
-            label="公告标题"
+            label={t('system:notice.titleLabel')}
             name="noticeTitle"
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入公告标题"
+              placeholder={t('system:enterAnnouncementTitle')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="操作人员"
+            label={t('monitor:log.operator')}
             name="createBy"
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入操作人员"
+              placeholder={t('system:enterOperatorName')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="类型"
+            label={t('common:type')}
             name="noticeType"
           >
             <Select
               style={{ width: 200 }}
-              placeholder="公告类型"
+              placeholder={t('system:notice.type')}
               allowClear
               options={sys_notice_type}
             />
@@ -220,7 +226,7 @@ export default function Notice() {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -229,7 +235,7 @@ export default function Notice() {
                   setQueryParams({ pageNum: 1, pageSize: queryParams.pageSize })
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -243,7 +249,7 @@ export default function Notice() {
             type="default"
             onClick={() => handleEdit()}
           >
-            新增
+            {t('common:add')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:notice:edit']}>
@@ -254,7 +260,7 @@ export default function Notice() {
             disabled={ids.length !== 1}
             onClick={() => handleEdit(ids[0])}
           >
-            修改
+            {t('common:edit')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:notice:remove']}>
@@ -265,7 +271,7 @@ export default function Notice() {
             disabled={!ids.length}
             onClick={() => handleDelete(ids)}
           >
-            删除
+            {t('common:delete')}
           </Button>
         </HasPermi>
         <RightToolbar
@@ -291,7 +297,7 @@ export default function Notice() {
       />
       <Modal
         footer={renderDialogFooter}
-        title={noticeId !== undefined ? '修改公告' : '添加公告'}
+        title={noticeId !== undefined ? t('system:editAnnouncement') : t('system:addAnnouncement')}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
@@ -315,11 +321,11 @@ export default function Notice() {
             >
               <Form.Item
                 name="noticeTitle"
-                label="公告标题"
+                label={t('system:notice.titleLabel')}
                 rules={[{ required: true }]}
               >
                 <Input
-                  placeholder="请输入公告标题"
+                  placeholder={t('system:enterAnnouncementTitle')}
                   maxLength={50}
                 />
               </Form.Item>
@@ -330,11 +336,11 @@ export default function Notice() {
             >
               <Form.Item
                 name="noticeType"
-                label="公告类型"
+                label={t('system:notice.type')}
                 rules={[{ required: true }]}
               >
                 <Select
-                  placeholder="请选择"
+                  placeholder={t('common:selectPlaceholder')}
                   options={sys_notice_type}
                 />
               </Form.Item>
@@ -342,13 +348,13 @@ export default function Notice() {
           </Row>
           <Form.Item
             name="status"
-            label="状态"
+            label={t('common:status')}
           >
             <Radio.Group options={sys_notice_status} />
           </Form.Item>
           <Form.Item
             name="noticeContent"
-            label="内容"
+            label={t('common:content')}
           >
             <Editor />
           </Form.Item>

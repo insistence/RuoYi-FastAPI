@@ -4,8 +4,10 @@
       ref="loginRef"
       :model="loginForm"
       :rules="loginRules"
+      :validate-on-rule-change="false"
       class="login-form"
     >
+      <LanguageSelect />
       <h3 class="title">{{ title }}</h3>
       <el-form-item prop="username">
         <el-input
@@ -13,7 +15,7 @@
           type="text"
           size="large"
           auto-complete="off"
-          placeholder="账号"
+          :placeholder="$t('common:login.username')"
         >
           <template #prefix
             ><svg-icon
@@ -28,7 +30,7 @@
           type="password"
           size="large"
           auto-complete="off"
-          placeholder="密码"
+          :placeholder="$t('common:login.password')"
           @keyup.enter="handleLogin"
         >
           <template #prefix
@@ -46,7 +48,7 @@
           v-model="loginForm.code"
           size="large"
           auto-complete="off"
-          placeholder="验证码"
+          :placeholder="$t('common:login.code')"
           style="width: 63%"
           @keyup.enter="handleLogin"
         >
@@ -59,6 +61,7 @@
         <div class="login-code">
           <img
             :src="codeUrl"
+            :alt="$t('auth:captcha.refresh')"
             @click="getCode"
             class="login-code-img"
           />
@@ -67,7 +70,7 @@
       <el-checkbox
         v-model="loginForm.rememberMe"
         style="margin: 0px 0px 25px 0px"
-        >记住密码</el-checkbox
+        >{{ $t('common:login.remember') }}</el-checkbox
       >
       <el-form-item style="width: 100%">
         <el-button
@@ -77,8 +80,8 @@
           style="width: 100%"
           @click.prevent="handleLogin"
         >
-          <span v-if="!loading">登 录</span>
-          <span v-else>登 录 中...</span>
+          <span v-if="!loading">{{ $t('common:login.submit') }}</span>
+          <span v-else>{{ $t('common:login.signingIn') }}</span>
         </el-button>
         <div
           style="float: right"
@@ -87,7 +90,7 @@
           <router-link
             class="link-type"
             :to="'/register'"
-            >立即注册</router-link
+            >{{ $t('auth:register.link') }}</router-link
           >
         </div>
       </el-form-item>
@@ -100,6 +103,8 @@
 </template>
 
 <script setup>
+import { useLocaleForm } from '@/composables/useLocaleForm'
+import { t } from '@/i18n/adapter'
 import { getCodeImg } from '@/api/login'
 import Cookies from 'js-cookie'
 import { encrypt, decrypt } from '@/utils/jsencrypt'
@@ -111,7 +116,8 @@ const footerContent = defaultSettings.footerContent
 const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
-const { proxy } = getCurrentInstance()
+const loginRef = ref(null)
+useLocaleForm(loginRef)
 
 const loginForm = ref({
   username: '',
@@ -122,9 +128,33 @@ const loginForm = ref({
 })
 
 const loginRules = {
-  username: [{ required: true, trigger: 'blur', message: '请输入您的账号' }],
-  password: [{ required: true, trigger: 'blur', message: '请输入您的密码' }],
-  code: [{ required: true, trigger: 'change', message: '请输入验证码' }],
+  username: [
+    {
+      required: true,
+      trigger: 'blur',
+      get message() {
+        return t('common:login.usernameRequired')
+      },
+    },
+  ],
+  password: [
+    {
+      required: true,
+      trigger: 'blur',
+      get message() {
+        return t('common:login.passwordRequired')
+      },
+    },
+  ],
+  code: [
+    {
+      required: true,
+      trigger: 'change',
+      get message() {
+        return t('common:login.codeRequired')
+      },
+    },
+  ],
 }
 
 const codeUrl = ref('')
@@ -144,7 +174,7 @@ watch(
 )
 
 function handleLogin() {
-  proxy.$refs.loginRef.validate((valid) => {
+  loginRef.value.validate((valid) => {
     if (valid) {
       loading.value = true
       // 勾选了需要记住密码设置在 cookie 中设置记住用户名和密码

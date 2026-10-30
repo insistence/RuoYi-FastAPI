@@ -1,3 +1,6 @@
+import { useLocalizedError } from '@/i18n/error'
+import { usePageLocale } from '@/i18n/navigation'
+import { t } from '@/i18n'
 import { cropImage } from '@/utils/cropImage'
 import { imageInfo } from '@/utils/imageInfo'
 import React, { useRef, useState } from 'react'
@@ -11,13 +14,15 @@ import { usePageAuth } from '@/permission'
 import { getToken } from '@/utils/auth'
 import { initialCrop, moveCrop, resizeCrop, sourceCrop } from '@/utils/avatarCrop'
 export default function Avatar() {
+  usePageLocale()
+
   const allowed = usePageAuth()
   const [image, setImage] = useState(null)
   const [crop, setCrop] = useState(null)
   const [view, setView] = useState({ width: 300, height: 300 })
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useLocalizedError()
   const drag = useRef(null)
   const canvasId = 'avatar-canvas'
   async function load(src) {
@@ -31,7 +36,11 @@ export default function Avatar() {
       setCrop(initialCrop(size.width, size.height))
       setError('')
     } catch (failure) {
-      setError(failure.errMsg || failure.message || '图片加载失败，请重新选择头像')
+      setError(
+        failure.errMsg ||
+          failure.message ||
+          t('mobile:failedToLoadTheImagePleaseChooseAnotherAvatar')
+      )
     }
   }
   useReady(() => {
@@ -47,7 +56,7 @@ export default function Avatar() {
       })
       await load(result.tempFilePaths[0])
     } catch (failure) {
-      if (!/cancel/i.test(failure.errMsg || '')) setError('选择图片失败')
+      if (!/cancel/i.test(failure.errMsg || '')) setError((t) => t('mobile:failedToSelectAnImage'))
     }
   }
   function start(event, mode) {
@@ -87,10 +96,10 @@ export default function Avatar() {
         filePath: croppedPath,
       })
       useUserStore.getState().SET_AVATAR(avatarUrl(response.imgUrl))
-      await Taro.showToast({ title: '修改成功', icon: 'success' })
+      await Taro.showToast({ title: t('mobile:updatedSuccessfully'), icon: 'success' })
       Taro.navigateBack()
     } catch (failure) {
-      setError(failure.message || failure.errMsg || '头像上传失败')
+      setError(failure.message || failure.errMsg || t('mobile:failedToUploadAvatar'))
     } finally {
       lock.current = false
       setBusy(false)
@@ -101,7 +110,7 @@ export default function Avatar() {
   return (
     <View className="mobile-page bg-black text-white">
       <Text className="block text-sm text-center text-gray-300">
-        拖动选框调整位置，拖动四边或右下角调整大小
+        {t('mobile:dragTheSelectionToMoveItDragItsEdges')}
       </Text>
       {image && crop && (
         <View
@@ -147,7 +156,7 @@ export default function Avatar() {
           onClick={choose}
           disabled={busy}
         >
-          选择头像
+          {t('mobile:chooseAvatar')}
         </Button>
         <Button
           className="mobile-button avatar-button avatar-submit"
@@ -155,7 +164,7 @@ export default function Avatar() {
           disabled={busy || !image}
           loading={busy}
         >
-          提 交
+          {t('mobile:submit')}
         </Button>
       </View>
       <Canvas

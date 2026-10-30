@@ -1,0 +1,6 @@
+{
+  "thePartialDownloadResponseIsMissingAValidContentRange": "The partial download response is missing a valid Content-Range",
+  "thePartialDownloadResponseHasAnInconsistentRange": "The partial download response has an inconsistent range",
+  "downloadingDataPleaseWait": "Downloading data. Please wait.",
+  "disabled": "Disabled"
+}

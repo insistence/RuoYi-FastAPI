@@ -1,3 +1,4 @@
+import { translateMessage } from '../i18n/message.mjs'
 export function normalizePluginPlanResponse(result) {
   const payload = result || {}
   const plan = payload.plan || {}
@@ -64,13 +65,16 @@ export function getPlanReadyTagType(ready) {
 
 export function getPlanBlockerStatusLabel(status) {
   const statusMap = {
-    missing: '依赖缺失',
-    not_installed: '未安装',
-    disabled: '未启用',
-    version_unsatisfied: '版本不满足',
-    source_version_unsatisfied: '源码版本不满足',
-    cycle: '循环依赖',
-    unknown_operation: '未知操作',
+    missing: translateMessage('plugins:missingDependencies', '依赖缺失'),
+    not_installed: translateMessage('plugins:notInstalled', '未安装'),
+    disabled: translateMessage('plugins:notEnabled', '未启用'),
+    version_unsatisfied: translateMessage('plugins:versionRequirementNotMet', '版本不满足'),
+    source_version_unsatisfied: translateMessage(
+      'plugins:sourceVersionRequirementNotMet',
+      '源码版本不满足'
+    ),
+    cycle: translateMessage('plugins:circularDependency', '循环依赖'),
+    unknown_operation: translateMessage('plugins:unknownOperation', '未知操作'),
   }
 
   return statusMap[status] || status || '-'
@@ -78,9 +82,9 @@ export function getPlanBlockerStatusLabel(status) {
 
 export function getValidationLevelLabel(level) {
   const levelMap = {
-    error: '错误',
-    warning: '警告',
-    info: '提示',
+    error: translateMessage('plugins:error', '错误'),
+    warning: translateMessage('system:warning', '警告'),
+    info: translateMessage('common:notice', '提示'),
   }
 
   return levelMap[level] || level || '-'
@@ -146,19 +150,39 @@ export function normalizePluginOperationLogDetail(detail) {
 function buildOperationValidationItems(result) {
   const firstCheck = Array.isArray(result.checks) ? result.checks[0] : {}
   const validationGroups = [
-    ['依赖', result.dependencies || firstCheck.dependencies],
-    ['Manifest 错误', result.manifestIssues || firstCheck.manifestIssues],
-    ['Manifest 警告', result.manifestWarnings || firstCheck.manifestWarnings],
-    ['插件依赖', result.pluginDependencyErrors || firstCheck.pluginDependencyErrors],
-    ['结构', result.structureErrors || firstCheck.structureErrors],
-    ['菜单冲突', result.menuConflicts || firstCheck.menuConflicts],
+    [
+      translateMessage('components:dependencies', '依赖'),
+      result.dependencies || firstCheck.dependencies,
+    ],
+    [
+      translateMessage('plugins:manifestError', 'Manifest 错误'),
+      result.manifestIssues || firstCheck.manifestIssues,
+    ],
+    [
+      translateMessage('plugins:manifestWarning', 'Manifest 警告'),
+      result.manifestWarnings || firstCheck.manifestWarnings,
+    ],
+    [
+      translateMessage('components:pluginDependencies', '插件依赖'),
+      result.pluginDependencyErrors || firstCheck.pluginDependencyErrors,
+    ],
+    [
+      translateMessage('components:structure', '结构'),
+      result.structureErrors || firstCheck.structureErrors,
+    ],
+    [
+      translateMessage('components:menuConflicts', '菜单冲突'),
+      result.menuConflicts || firstCheck.menuConflicts,
+    ],
   ]
 
   return validationGroups.flatMap(([category, items]) =>
     Array.isArray(items)
       ? items.map((item) => ({
           category,
-          level: item.level || (category.includes('警告') ? 'warning' : 'error'),
+          level:
+            item.level ||
+            (category.includes(translateMessage('system:warning', '警告')) ? 'warning' : 'error'),
           kind: item.kind || item.name || item.status || '-',
           value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
           message: item.message || item.suggestion || item.reason || '',

@@ -1,22 +1,22 @@
 <template>
   <div class="access-map">
     <div class="access-node">
-      <span class="node-label">应用</span>
-      <strong>{{ application || '尚未命名' }}</strong>
+      <span class="node-label">{{ $t('common:apply') }}</span>
+      <strong>{{ application || $t('authCenter:expression.unnamed') }}</strong>
       <small>{{ applicationType }}</small>
     </div>
     <div
       class="access-link"
       aria-hidden="true"
     >
-      <span>申请</span>
+      <span>{{ $t('authCenter:interface.requests') }}</span>
       <i
         class="el-icon el-icon-right"
         aria-hidden="true"
       ></i>
     </div>
     <div class="access-node">
-      <span class="node-label">权限</span>
+      <span class="node-label">{{ $t('system:permission.title') }}</span>
       <strong>{{ permissionSummary }}</strong>
       <small>{{ permissionHint }}</small>
     </div>
@@ -24,14 +24,14 @@
       class="access-link"
       aria-hidden="true"
     >
-      <span>访问</span>
+      <span>{{ $t('authCenter:interface.access') }}</span>
       <i
         class="el-icon el-icon-right"
         aria-hidden="true"
       ></i>
     </div>
     <div class="access-node">
-      <span class="node-label">服务</span>
+      <span class="node-label">{{ $t('common:service') }}</span>
       <strong>{{ resourceSummary }}</strong>
       <small>{{ resourceHint }}</small>
     </div>
@@ -39,6 +39,8 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
+
 import { computed } from 'vue'
 const props = defineProps({
   application: { type: String, default: '' },
@@ -48,17 +50,25 @@ const props = defineProps({
 })
 
 const applicationType = computed(() =>
-  props.type === 'public' ? '网页或移动端应用' : '后端服务应用'
+  props.type === 'public'
+    ? t('authCenter:interface.webOrMobileApplication')
+    : t('authCenter:interface.backendServiceApplication')
 )
-const permissionSummary = computed(() => props.permissions.slice(0, 2).join('、') || '尚未选择')
+const permissionSummary = computed(
+  () => props.permissions.slice(0, 2).join('、') || t('authCenter:interface.notSelected')
+)
 const permissionHint = computed(() =>
   props.permissions.length > 2
-    ? `另有 ${props.permissions.length - 2} 项权限`
-    : '应用可以申请的信息'
+    ? t('system:interface.valueMorePermissions', { value0: props.permissions.length - 2 })
+    : t('authCenter:interface.informationTheApplicationCanRequest')
 )
-const resourceSummary = computed(() => props.resources.slice(0, 2).join('、') || '仅身份信息')
+const resourceSummary = computed(
+  () => props.resources.slice(0, 2).join('、') || t('authCenter:interface.identityInformationOnly')
+)
 const resourceHint = computed(() =>
-  props.resources.length > 2 ? `另有 ${props.resources.length - 2} 个服务` : '令牌可以访问的目标'
+  props.resources.length > 2
+    ? t('system:interface.valueMoreServices', { value0: props.resources.length - 2 })
+    : t('authCenter:interface.resourcesTheTokenCanAccess')
 )
 </script>
 

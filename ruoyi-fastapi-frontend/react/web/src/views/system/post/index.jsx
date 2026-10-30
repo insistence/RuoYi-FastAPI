@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import { ReloadOutlined } from '@ant-design/icons'
@@ -22,9 +25,12 @@ import Pagination from '@/components/Pagination'
 import RightToolbar from '@/components/RightToolbar'
 
 export default function Post() {
+  useI18n()
+
   const { sys_normal_disable } = useDict('sys_normal_disable')
   const [queryRef] = Form.useForm(),
     [postRef] = Form.useForm()
+  useLocalizedFormErrors(queryRef, postRef)
   const [postList, setPostList] = useState([]),
     [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false),
@@ -69,9 +75,9 @@ export default function Post() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(`是否确认删除岗位编号为“${values}”的数据项？`)
+      await confirm(t('system:deletePositionsWithIdsValue', { values }))
       await delPost(values)
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
@@ -80,7 +86,7 @@ export default function Post() {
       const values = await postRef.validateFields()
       setSaving(true)
       await (postId !== undefined ? updatePost({ ...values, postId }) : addPost(values))
-      message.success(postId !== undefined ? '修改成功' : '新增成功')
+      message.success(postId !== undefined ? t('common:updateSuccess') : t('common:addSuccess'))
       setOpen(false)
       await getList()
     } catch {
@@ -89,13 +95,13 @@ export default function Post() {
     }
   }
   const columns = [
-    { align: 'center', title: '岗位编号', dataIndex: 'postId' },
-    { align: 'center', title: '岗位编码', dataIndex: 'postCode' },
-    { align: 'center', title: '岗位名称', dataIndex: 'postName' },
-    { align: 'center', title: '岗位排序', dataIndex: 'postSort' },
+    { align: 'center', title: t('system:postID'), dataIndex: 'postId' },
+    { align: 'center', title: t('system:post.code'), dataIndex: 'postCode' },
+    { align: 'center', title: t('system:post.name'), dataIndex: 'postName' },
+    { align: 'center', title: t('system:post.order'), dataIndex: 'postSort' },
     {
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       render: (value) => (
         <DictTag
@@ -106,7 +112,7 @@ export default function Post() {
     },
     {
       align: 'center',
-      title: '创建时间',
+      title: t('common:createdTime'),
       dataIndex: 'createTime',
       render: (value) => parseTime(value),
       width: 180,
@@ -114,7 +120,7 @@ export default function Post() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       key: 'action',
       width: 180,
       render: (_, row) => (
@@ -124,7 +130,7 @@ export default function Post() {
               symbol="Edit"
               onClick={() => handleUpdate(row.postId)}
             >
-              修改
+              {t('common:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:post:remove']}>
@@ -132,7 +138,7 @@ export default function Post() {
               symbol="Delete"
               onClick={() => handleDelete([row.postId])}
             >
-              删除
+              {t('common:delete')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -149,32 +155,32 @@ export default function Post() {
           onFinish={handleQuery}
         >
           <Form.Item
-            label="岗位编码"
+            label={t('system:post.code')}
             name="postCode"
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入岗位编码"
+              placeholder={t('system:enterPostCode')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="岗位名称"
+            label={t('system:post.name')}
             name="postName"
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入岗位名称"
+              placeholder={t('system:enterPostName')}
               allowClear
             />
           </Form.Item>
           <Form.Item
-            label="状态"
+            label={t('common:status')}
             name="status"
           >
             <Select
               style={{ width: 200 }}
-              placeholder="岗位状态"
+              placeholder={t('system:post.status')}
               allowClear
               options={sys_normal_disable}
             />
@@ -186,7 +192,7 @@ export default function Post() {
                 htmlType="submit"
                 icon={<SearchOutlined />}
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -195,7 +201,7 @@ export default function Post() {
                   handleQuery({})
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -209,7 +215,7 @@ export default function Post() {
             icon={<PlusOutlined />}
             onClick={handleAdd}
           >
-            新增
+            {t('common:add')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:post:edit']}>
@@ -220,7 +226,7 @@ export default function Post() {
             disabled={ids.length !== 1}
             onClick={() => handleUpdate(ids[0])}
           >
-            修改
+            {t('common:edit')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:post:remove']}>
@@ -231,7 +237,7 @@ export default function Post() {
             disabled={!ids.length}
             onClick={() => handleDelete(ids)}
           >
-            删除
+            {t('common:delete')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:post:export']}>
@@ -245,7 +251,7 @@ export default function Post() {
               )
             }
           >
-            导出
+            {t('common:export')}
           </Button>
         </HasPermi>
         <RightToolbar
@@ -273,7 +279,7 @@ export default function Post() {
         footer={renderDialogFooter}
         width="500px"
         open={open}
-        title={postId !== undefined ? '修改岗位' : '添加岗位'}
+        title={postId !== undefined ? t('system:editPost') : t('system:addPost')}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
         confirmLoading={saving}
@@ -289,29 +295,29 @@ export default function Post() {
           layout="horizontal"
         >
           <Form.Item
-            label="岗位名称"
+            label={t('system:post.name')}
             name="postName"
-            rules={[{ required: true, message: '岗位名称不能为空' }]}
+            rules={[{ required: true, message: t('system:postNameIsRequired') }]}
           >
             <Input
-              placeholder="请输入岗位名称"
+              placeholder={t('system:enterPostName')}
               maxLength={50}
             />
           </Form.Item>
           <Form.Item
-            label="岗位编码"
+            label={t('system:post.code')}
             name="postCode"
-            rules={[{ required: true, message: '岗位编码不能为空' }]}
+            rules={[{ required: true, message: t('system:postCodeIsRequired') }]}
           >
             <Input
-              placeholder="请输入编码名称"
+              placeholder={t('system:enterCodeName')}
               maxLength={64}
             />
           </Form.Item>
           <Form.Item
-            label="岗位顺序"
+            label={t('system:postOrderLabel')}
             name="postSort"
-            rules={[{ required: true, message: '岗位顺序不能为空' }]}
+            rules={[{ required: true, message: t('system:postOrderIsRequired') }]}
           >
             <InputNumber
               min={0}
@@ -319,17 +325,17 @@ export default function Post() {
             />
           </Form.Item>
           <Form.Item
-            label="状态"
+            label={t('common:status')}
             name="status"
           >
             <Radio.Group options={sys_normal_disable} />
           </Form.Item>
           <Form.Item
-            label="备注"
+            label={t('common:remark')}
             name="remark"
           >
             <Input.TextArea
-              placeholder="请输入内容"
+              placeholder={t('common:contentPlaceholder')}
               rows={2}
             />
           </Form.Item>

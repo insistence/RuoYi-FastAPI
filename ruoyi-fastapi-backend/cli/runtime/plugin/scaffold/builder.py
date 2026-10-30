@@ -7,6 +7,7 @@ from plugins.core.utils import validate_plugin_id_value
 
 from .backend import PluginBackendScaffoldTemplateBuilder
 from .frontend import FrontendFramework, PluginFrontendFrameworkResolver, PluginFrontendScaffoldTemplateBuilder
+from .locales import PluginLocaleScaffoldBuilder
 from .options import PluginScaffoldOptions, PluginScaffoldTemplateResolver
 from .payload import PluginScaffoldPayloadBuilder, PluginScaffoldPlanPayload
 from .v2 import PluginV2ScaffoldBuilder
@@ -312,6 +313,7 @@ class PluginScaffoldBuilder:
                 PluginFrontendScaffoldTemplateBuilder.build_readme(plugin_id, frontend_framework),
             ),
         ]
+        files.extend(PluginLocaleScaffoldBuilder.build_files(plugin_id, plugin_root, plugin_root.parents[1]))
         if options.test:
             files.append(
                 (

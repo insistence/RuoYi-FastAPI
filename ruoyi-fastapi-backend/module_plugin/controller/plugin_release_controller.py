@@ -47,7 +47,7 @@ async def _read_release_payload(operation: Callable[[], Awaitable[dict[str, Any]
         return ResponseUtil.failure(msg=str(exc), data={'ok': False, 'status': 'blocked'})
     except Exception:
         logger.exception('读取插件制品发布状态失败')
-        return ResponseUtil.failure(msg='读取插件制品发布状态失败')
+        return ResponseUtil.failure(msg='读取插件制品发布状态失败', msg_key='plugin.release.statusReadFailed')
     if not payload.get('ok', True):
         return ResponseUtil.failure(msg=str(payload.get('message') or '插件发布预检未通过'), data=payload)
     return ResponseUtil.success(data=payload)

@@ -110,7 +110,12 @@ async def add_system_job(
     add_job_result = await JobService.add_job_services(query_db, add_job)
     logger.info(add_job_result.message)
 
-    return ResponseUtil.success(msg=add_job_result.message, data=add_job_result.result)
+    return ResponseUtil.success(
+        msg=add_job_result.message,
+        msg_key=add_job_result.msg_key,
+        msg_params=add_job_result.msg_params,
+        data=add_job_result.result,
+    )
 
 
 @job_controller.put(
@@ -133,7 +138,12 @@ async def edit_system_job(
     edit_job_result = await JobService.edit_job_services(query_db, edit_job)
     logger.info(edit_job_result.message)
 
-    return ResponseUtil.success(msg=edit_job_result.message, data=edit_job_result.result)
+    return ResponseUtil.success(
+        msg=edit_job_result.message,
+        msg_key=edit_job_result.msg_key,
+        msg_params=edit_job_result.msg_params,
+        data=edit_job_result.result,
+    )
 
 
 @job_controller.put(
@@ -160,7 +170,12 @@ async def change_system_job_status(
     edit_job_result = await JobService.edit_job_services(query_db, edit_job)
     logger.info(edit_job_result.message)
 
-    return ResponseUtil.success(msg=edit_job_result.message, data=edit_job_result.result)
+    return ResponseUtil.success(
+        msg=edit_job_result.message,
+        msg_key=edit_job_result.msg_key,
+        msg_params=edit_job_result.msg_params,
+        data=edit_job_result.result,
+    )
 
 
 @job_controller.put(
@@ -186,7 +201,12 @@ async def execute_system_job(
     )
     logger.info(execute_job_result.message)
 
-    return ResponseUtil.success(msg=execute_job_result.message, data=execute_job_result.result)
+    return ResponseUtil.success(
+        msg=execute_job_result.message,
+        msg_key=execute_job_result.msg_key,
+        msg_params=execute_job_result.msg_params,
+        data=execute_job_result.result,
+    )
 
 
 @job_controller.get(
@@ -265,7 +285,9 @@ async def retry_system_job_sync(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
     result = await JobService.retry_sync_services(query_db, job_id)
-    return ResponseUtil.success(msg=result.message, data=result.result)
+    return ResponseUtil.success(
+        msg=result.message, msg_key=result.msg_key, msg_params=result.msg_params, data=result.result
+    )
 
 
 @job_controller.delete(
@@ -287,7 +309,12 @@ async def delete_system_job(
     delete_job_result = await JobService.delete_job_services(query_db, delete_job)
     logger.info(delete_job_result.message)
 
-    return ResponseUtil.success(msg=delete_job_result.message, data=delete_job_result.result)
+    return ResponseUtil.success(
+        msg=delete_job_result.message,
+        msg_key=delete_job_result.msg_key,
+        msg_params=delete_job_result.msg_params,
+        data=delete_job_result.result,
+    )
 
 
 @job_controller.get(
@@ -375,7 +402,11 @@ async def clear_system_job_log(
     clear_job_log_result = await JobLogService.clear_job_log_services(query_db)
     logger.info(clear_job_log_result.message)
 
-    return ResponseUtil.success(msg=clear_job_log_result.message)
+    return ResponseUtil.success(
+        msg=clear_job_log_result.message,
+        msg_key=clear_job_log_result.msg_key,
+        msg_params=clear_job_log_result.msg_params,
+    )
 
 
 @job_controller.delete(
@@ -396,7 +427,11 @@ async def delete_system_job_log(
     delete_job_log_result = await JobLogService.delete_job_log_services(query_db, delete_job_log)
     logger.info(delete_job_log_result.message)
 
-    return ResponseUtil.success(msg=delete_job_log_result.message)
+    return ResponseUtil.success(
+        msg=delete_job_log_result.message,
+        msg_key=delete_job_log_result.msg_key,
+        msg_params=delete_job_log_result.msg_params,
+    )
 
 
 @job_controller.post(

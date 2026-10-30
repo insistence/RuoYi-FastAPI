@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useState } from 'react'
 import { Badge, Button, Empty, Popover, Space, Spin, Tag } from 'antd'
@@ -6,6 +8,8 @@ import { listNoticeTop, markNoticeRead, markNoticeReadAll } from '@/api/system/n
 import { parseTime } from '@/utils/ruoyi'
 import NoticeDetailView from './DetailView'
 export default function HeaderNotice() {
+  useI18n()
+
   const [rows, setRows] = useState([]),
     [loading, setLoading] = useState(false),
     [unread, setUnread] = useState(0),
@@ -43,13 +47,13 @@ export default function HeaderNotice() {
   const content = (
     <div className="notice-popover">
       <Space className="notice-header">
-        <strong>通知公告</strong>
+        <strong>{t('layout:notices.title')}</strong>
         <Button
           type="link"
           onClick={markAll}
           disabled={!unread}
         >
-          全部已读
+          {t('layout:notices.readAll')}
         </Button>
       </Space>
       <Spin spinning={loading}>
@@ -68,7 +72,11 @@ export default function HeaderNotice() {
                   align="start"
                 >
                   <span>
-                    <Tag color="blue">{row.noticeType === '2' ? '公告' : '通知'}</Tag>
+                    <Tag color="blue">
+                      {row.noticeType === '2'
+                        ? t('layout:notices.announcement')
+                        : t('layout:notices.notification')}
+                    </Tag>
                     {row.noticeTitle}
                   </span>
                   <small>{parseTime(row.createTime)}</small>
@@ -77,7 +85,7 @@ export default function HeaderNotice() {
             ))
           ) : (
             <Empty
-              description="暂无通知"
+              description={t('layout:noNotifications')}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )}
@@ -94,7 +102,7 @@ export default function HeaderNotice() {
       >
         <Button
           type="text"
-          aria-label={`通知公告，${unread} 条未读`}
+          aria-label={t('layout:announcementsValueUnread', { unread })}
         >
           <Badge
             count={unread}

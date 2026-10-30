@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 export const formConf = {
   formRef: 'formRef',
   formModel: 'formData',
@@ -13,11 +14,15 @@ export const formConf = {
 
 export const inputComponents = [
   {
-    label: '单行文本',
+    get label() {
+      return t('tool:singleLineText')
+    },
     tag: 'Input',
     tagIcon: 'input',
     type: 'text',
-    placeholder: '请输入',
+    get placeholder() {
+      return t('tool:enterAValue')
+    },
     defaultValue: undefined,
     span: 24,
     labelWidth: null,
@@ -36,11 +41,15 @@ export const inputComponents = [
     changeTag: true,
   },
   {
-    label: '多行文本',
+    get label() {
+      return t('tool:multiLineText')
+    },
     tag: 'Input',
     tagIcon: 'textarea',
     type: 'textarea',
-    placeholder: '请输入',
+    get placeholder() {
+      return t('tool:enterAValue')
+    },
     defaultValue: undefined,
     span: 24,
     labelWidth: null,
@@ -58,11 +67,15 @@ export const inputComponents = [
     changeTag: true,
   },
   {
-    label: '密码',
+    get label() {
+      return t('common:login.password')
+    },
     tag: 'Input',
     tagIcon: 'password',
     type: 'password',
-    placeholder: '请输入',
+    get placeholder() {
+      return t('tool:enterAValue')
+    },
     defaultValue: undefined,
     span: 24,
     'show-password': true,
@@ -82,7 +95,9 @@ export const inputComponents = [
     changeTag: true,
   },
   {
-    label: '计数器',
+    get label() {
+      return t('tool:numberInput')
+    },
     tag: 'InputNumber',
     tagIcon: 'number',
     placeholder: '',
@@ -104,10 +119,14 @@ export const inputComponents = [
 
 export const selectComponents = [
   {
-    label: '下拉选择',
+    get label() {
+      return t('tool:builder.dropdown')
+    },
     tag: 'Select',
     tagIcon: 'select',
-    placeholder: '请选择',
+    get placeholder() {
+      return t('common:selectPlaceholder')
+    },
     defaultValue: undefined,
     span: 24,
     labelWidth: null,
@@ -119,11 +138,15 @@ export const selectComponents = [
     multiple: false,
     options: [
       {
-        label: '选项一',
+        get label() {
+          return t('tool:optionOne')
+        },
         value: 1,
       },
       {
-        label: '选项二',
+        get label() {
+          return t('tool:optionTwo')
+        },
         value: 2,
       },
     ],
@@ -131,10 +154,14 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '级联选择',
+    get label() {
+      return t('tool:cascader')
+    },
     tag: 'Cascader',
     tagIcon: 'cascader',
-    placeholder: '请选择',
+    get placeholder() {
+      return t('common:selectPlaceholder')
+    },
     defaultValue: [],
     span: 24,
     labelWidth: null,
@@ -153,12 +180,16 @@ export const selectComponents = [
       {
         id: 1,
         value: 1,
-        label: '选项1',
+        get label() {
+          return t('tool:option1')
+        },
         children: [
           {
             id: 2,
             value: 2,
-            label: '选项1-1',
+            get label() {
+              return t('tool:option11')
+            },
           },
         ],
       },
@@ -172,7 +203,9 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '单选框组',
+    get label() {
+      return t('tool:radioGroup')
+    },
     tag: 'Radio.Group',
     tagIcon: 'radio',
     defaultValue: 0,
@@ -186,11 +219,15 @@ export const selectComponents = [
     required: true,
     options: [
       {
-        label: '选项一',
+        get label() {
+          return t('tool:optionOne')
+        },
         value: 1,
       },
       {
-        label: '选项二',
+        get label() {
+          return t('tool:optionTwo')
+        },
         value: 2,
       },
     ],
@@ -198,7 +235,9 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '多选框组',
+    get label() {
+      return t('tool:checkboxGroup')
+    },
     tag: 'Checkbox.Group',
     tagIcon: 'checkbox',
     defaultValue: [],
@@ -212,11 +251,15 @@ export const selectComponents = [
     required: true,
     options: [
       {
-        label: '选项一',
+        get label() {
+          return t('tool:optionOne')
+        },
         value: 1,
       },
       {
-        label: '选项二',
+        get label() {
+          return t('tool:optionTwo')
+        },
         value: 2,
       },
     ],
@@ -224,7 +267,9 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '开关',
+    get label() {
+      return t('tool:switch')
+    },
     tag: 'Switch',
     tagIcon: 'switch',
     defaultValue: false,
@@ -243,7 +288,9 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '滑块',
+    get label() {
+      return t('tool:slider')
+    },
     tag: 'Slider',
     tagIcon: 'slider',
     defaultValue: null,
@@ -260,11 +307,15 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '时间选择',
+    get label() {
+      return t('tool:timePicker')
+    },
     tag: 'TimePicker',
     'picker-options': { selectableRange: '00:00:00 - 23:59:59' },
     tagIcon: 'time',
-    placeholder: '请选择',
+    get placeholder() {
+      return t('common:selectPlaceholder')
+    },
     defaultValue: '',
     span: 24,
     labelWidth: null,
@@ -278,7 +329,9 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '时间范围',
+    get label() {
+      return t('tool:timeRange')
+    },
     tag: 'TimePicker',
     'picker-options': { selectableRange: '00:00:00 - 23:59:59' },
     tagIcon: 'time-range',
@@ -290,19 +343,29 @@ export const selectComponents = [
     clearable: true,
     required: true,
     'is-range': true,
-    'range-separator': '至',
-    'start-placeholder': '开始时间',
-    'end-placeholder': '结束时间',
+    get 'range-separator'() {
+      return t('common:to')
+    },
+    get 'start-placeholder'() {
+      return t('common:startTime')
+    },
+    get 'end-placeholder'() {
+      return t('common:endTime')
+    },
     format: 'HH:mm:ss',
     'value-format': 'HH:mm:ss',
     regList: [],
     changeTag: true,
   },
   {
-    label: '日期选择',
+    get label() {
+      return t('tool:datePicker')
+    },
     tag: 'DatePicker',
     tagIcon: 'date',
-    placeholder: '请选择',
+    get placeholder() {
+      return t('common:selectPlaceholder')
+    },
     defaultValue: null,
     type: 'date',
     span: 24,
@@ -318,7 +381,9 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '日期范围',
+    get label() {
+      return t('tool:dateRange')
+    },
     tag: 'DatePicker',
     tagIcon: 'date-range',
     defaultValue: null,
@@ -326,9 +391,15 @@ export const selectComponents = [
     labelWidth: null,
     style: { width: '100%' },
     type: 'daterange',
-    'range-separator': '至',
-    'start-placeholder': '开始日期',
-    'end-placeholder': '结束日期',
+    get 'range-separator'() {
+      return t('common:to')
+    },
+    get 'start-placeholder'() {
+      return t('common:startDate')
+    },
+    get 'end-placeholder'() {
+      return t('common:endDate')
+    },
     disabled: false,
     clearable: true,
     required: true,
@@ -339,7 +410,9 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '评分',
+    get label() {
+      return t('tool:rating')
+    },
     tag: 'Rate',
     tagIcon: 'rate',
     defaultValue: 0,
@@ -356,7 +429,9 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '颜色选择',
+    get label() {
+      return t('tool:colorPicker')
+    },
     tag: 'ColorPicker',
     tagIcon: 'color',
     defaultValue: null,
@@ -370,7 +445,9 @@ export const selectComponents = [
     changeTag: true,
   },
   {
-    label: '上传',
+    get label() {
+      return t('common:upload')
+    },
     tag: 'Upload',
     tagIcon: 'upload',
     action: '/common/upload',
@@ -382,7 +459,9 @@ export const selectComponents = [
     name: 'file',
     'auto-upload': true,
     showTip: false,
-    buttonText: '点击上传',
+    get buttonText() {
+      return t('file:upload.click')
+    },
     fileSize: 2,
     sizeUnit: 'MB',
     'list-type': 'text',
@@ -390,7 +469,9 @@ export const selectComponents = [
     regList: [],
     changeTag: true,
 
-    tip: '只能上传不超过 2MB 的文件',
+    get tip() {
+      return t('tool:uploadFilesNoLargerThan2Mb')
+    },
     style: { width: '100%' },
   },
 ]
@@ -402,19 +483,25 @@ export const layoutComponents = [
     type: 'default',
     justify: 'start',
     align: 'top',
-    label: '行容器',
+    get label() {
+      return t('tool:builder.rowContainer')
+    },
     layoutTree: true,
     children: [],
   },
   {
     layout: 'colFormItem',
-    label: '按钮',
+    get label() {
+      return t('system:menu.button')
+    },
     changeTag: true,
     labelWidth: null,
     tag: 'Button',
     tagIcon: 'button',
     span: 24,
-    default: '主要按钮',
+    get default() {
+      return t('tool:primaryButton')
+    },
     type: 'primary',
     icon: 'search',
     size: 'default',

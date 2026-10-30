@@ -53,7 +53,7 @@ class FileReferenceService:
         """
         file_info = await FileInfoDao.get_file_management_detail_by_id(query_db, file_id, file_data_scope_sql)
         if file_info is None:
-            raise ServiceException(message='文件信息不存在或超出数据权限')
+            raise ServiceException(message='文件信息不存在或超出数据权限', msg_key='file.notFoundOrForbidden')
         file_reference_list = await FileReferenceDao.get_file_reference_list(query_db, file_id)
         result = [FileReferenceModel(**CamelCaseUtil.transform_result(item)) for item in file_reference_list]
         business_type = file_info.get('business_type')
@@ -107,7 +107,9 @@ class FileReferenceService:
                 file_data_scope_sql,
             )
             if len(file_infos) != len(normalized_file_ids):
-                raise ServiceException(message='部分引用文件不存在或已失效')
+                raise ServiceException(
+                    message='部分引用文件不存在或已失效', msg_key='file.business.referenceUnavailable'
+                )
         create_time = TimezoneUtil.utc_now()
         retention_policy = await FileRetentionPolicyService.get_enabled_file_retention_policy_services(
             query_db,
@@ -116,7 +118,9 @@ class FileReferenceService:
         if retention_policy and any(
             getattr(file_info, 'access_type', 'private') != 'private' for file_info in file_infos
         ):
-            raise ServiceException(message='配置保留策略的业务只能引用受保护文件')
+            raise ServiceException(
+                message='配置保留策略的业务只能引用受保护文件', msg_key='file.business.protectedRequired'
+            )
         retention_expire_time = (
             create_time + timedelta(days=retention_policy.retention_days) if retention_policy else None
         )
@@ -190,11 +194,15 @@ class FileReferenceService:
     def _normalize_file_ids(cls, file_ids: list[str]) -> list[str]:
         """校验并标准化文件ID列表。"""
         if len(file_ids) > cls.MAX_REFERENCE_FILES:
-            raise ServiceException(message=f'单个业务对象最多引用{cls.MAX_REFERENCE_FILES}个文件')
+            raise ServiceException(
+                message=f'单个业务对象最多引用{cls.MAX_REFERENCE_FILES}个文件',
+                msg_key='file.business.referenceLimit',
+                msg_params={'max_reference_files': str(cls.MAX_REFERENCE_FILES)},
+            )
         try:
             normalized_file_ids = [str(uuid.UUID(str(file_id))) for file_id in file_ids]
         except (AttributeError, TypeError, ValueError) as exc:
-            raise ServiceException(message='文件ID格式错误') from exc
+            raise ServiceException(message='文件ID格式错误', msg_key='file.business.invalidFileId') from exc
         return list(dict.fromkeys(normalized_file_ids))
 
     @staticmethod
@@ -202,9 +210,17 @@ class FileReferenceService:
         """校验并标准化业务引用文本字段。"""
         normalized_value = value.strip() if value else None
         if required and not normalized_value:
-            raise ServiceException(message=f'{field_name}不能为空')
+            raise ServiceException(
+                message=f'{field_name}不能为空',
+                msg_key='validation.namedRequired',
+                msg_params={'field_name': str(field_name)},
+            )
         if normalized_value and (len(normalized_value) > max_length or not normalized_value.isprintable()):
-            raise ServiceException(message=f'{field_name}格式错误')
+            raise ServiceException(
+                message=f'{field_name}格式错误',
+                msg_key='validation.namedInvalid',
+                msg_params={'field_name': str(field_name)},
+            )
         return normalized_value
 
     @staticmethod
@@ -275,7 +291,11 @@ class FileRetentionPolicyService:
             policy.business_type,
         )
         if exists_policy:
-            raise ServiceException(message=f'业务类型{policy.business_type}的保留策略已存在')
+            raise ServiceException(
+                message=f'业务类型{policy.business_type}的保留策略已存在',
+                msg_key='file.business.policyExists',
+                msg_params={'business_type': str(policy.business_type)},
+            )
         db_policy = SysFileRetentionPolicy(
             **policy.model_dump(
                 exclude={
@@ -291,7 +311,7 @@ class FileRetentionPolicyService:
         try:
             await FileRetentionPolicyDao.add_file_retention_policy(query_db, db_policy)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception:
             await query_db.rollback()
             raise
@@ -317,7 +337,7 @@ class FileRetentionPolicyService:
             policy.business_type,
         )
         if exists_policy is None:
-            raise ServiceException(message='文件业务保留策略不存在')
+            raise ServiceException(message='文件业务保留策略不存在', msg_key='file.business.policyNotFound')
         policy_data = policy.model_dump(
             exclude={
                 'business_type',
@@ -335,7 +355,7 @@ class FileRetentionPolicyService:
                 policy_data,
             )
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='修改成功')
+            return CrudResponseModel(is_success=True, message='修改成功', msg_key='common.modified')
         except Exception:
             await query_db.rollback()
             raise
@@ -360,11 +380,11 @@ class FileRetentionPolicyService:
             normalized_business_type,
         )
         if exists_policy is None:
-            raise ServiceException(message='文件业务保留策略不存在')
+            raise ServiceException(message='文件业务保留策略不存在', msg_key='file.business.policyNotFound')
         try:
             await FileRetentionPolicyDao.delete_file_retention_policy(query_db, normalized_business_type)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='删除成功')
+            return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
         except Exception:
             await query_db.rollback()
             raise
@@ -373,7 +393,7 @@ class FileRetentionPolicyService:
     def _validate_business_type(business_type: str) -> None:
         """校验业务类型。"""
         if not business_type.isprintable():
-            raise ServiceException(message='业务类型格式错误')
+            raise ServiceException(message='业务类型格式错误', msg_key='file.business.invalidType')
 
 
 class FileRetentionNoticeService:
@@ -500,7 +520,9 @@ class FileRetentionNoticeService:
         )
         if len(scoped_notice_ids) != len(parsed_notice_ids):
             await query_db.rollback()
-            raise ServiceException(message='部分提醒不存在、已失效或超出数据权限')
+            raise ServiceException(
+                message='部分提醒不存在、已失效或超出数据权限', msg_key='file.reminder.selectionUnavailable'
+            )
         try:
             await FileRetentionNoticeDao.mark_file_retention_notices_read(
                 query_db,
@@ -509,7 +531,7 @@ class FileRetentionNoticeService:
                 TimezoneUtil.utc_now(),
             )
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='提醒已标记为已读')
+            return CrudResponseModel(is_success=True, message='提醒已标记为已读', msg_key='file.reminder.markedRead')
         except Exception:
             await query_db.rollback()
             raise
@@ -518,9 +540,17 @@ class FileRetentionNoticeService:
     def _validate_scan_parameters(cls, remind_days: int, batch_size: int) -> None:
         """校验提醒扫描参数。"""
         if remind_days < 1 or remind_days > cls.MAX_REMIND_DAYS:
-            raise ServiceException(message=f'提前提醒天数必须在1到{cls.MAX_REMIND_DAYS}之间')
+            raise ServiceException(
+                message=f'提前提醒天数必须在1到{cls.MAX_REMIND_DAYS}之间',
+                msg_key='file.reminder.daysRange',
+                msg_params={'max_remind_days': str(cls.MAX_REMIND_DAYS)},
+            )
         if batch_size < 1 or batch_size > cls.MAX_BATCH_SIZE:
-            raise ServiceException(message=f'单批处理数量必须在1到{cls.MAX_BATCH_SIZE}之间')
+            raise ServiceException(
+                message=f'单批处理数量必须在1到{cls.MAX_BATCH_SIZE}之间',
+                msg_key='file.business.batchSizeRange',
+                msg_params={'max_batch_size': str(cls.MAX_BATCH_SIZE)},
+            )
 
     @staticmethod
     def _parse_notice_ids(notice_ids: str) -> list[int]:
@@ -528,7 +558,7 @@ class FileRetentionNoticeService:
         try:
             parsed_notice_ids = list(dict.fromkeys(int(item.strip()) for item in notice_ids.split(',') if item.strip()))
         except (AttributeError, ValueError) as exc:
-            raise ServiceException(message='提醒ID格式不正确') from exc
+            raise ServiceException(message='提醒ID格式不正确', msg_key='file.reminder.invalidId') from exc
         if not parsed_notice_ids or any(notice_id <= 0 for notice_id in parsed_notice_ids):
-            raise ServiceException(message='提醒ID格式不正确')
+            raise ServiceException(message='提醒ID格式不正确', msg_key='file.reminder.invalidId')
         return parsed_notice_ids

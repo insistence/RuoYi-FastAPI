@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { TableAction } from '@/components/TableActions'
 import { SearchOutlined, ReloadOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState } from 'react'
@@ -22,8 +25,11 @@ const initial = {
   isAsc: 'descending',
 }
 export default function Operlog() {
+  useI18n()
+
   const [form] = Form.useForm(),
     { sys_oper_type, sys_common_status } = useDict('sys_oper_type', 'sys_common_status')
+  useLocalizedFormErrors(form)
   const [query, setQuery] = useState(initial),
     [rows, setRows] = useState([]),
     [total, setTotal] = useState(0),
@@ -58,24 +64,26 @@ export default function Operlog() {
   async function remove(all) {
     try {
       await confirm(
-        all ? '是否确认清空所有操作日志？' : `是否确认删除选中的 ${ids.length} 条操作日志？`
+        all
+          ? t('monitor:clearAllOperationLogs')
+          : t('monitor:deleteTheValueSelectedOperationLogs', { length: ids.length })
       )
       await (all ? cleanOperlog() : delOperlog(ids))
-      message.success(all ? '清空成功' : '删除成功')
+      message.success(all ? t('common:clearSuccess') : t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
   const columns = [
-    ['operId', '日志编号'],
-    ['title', '系统模块'],
-    ['businessType', '操作类型'],
-    ['requestMethod', '请求方式'],
-    ['operName', '操作人员'],
-    ['operIp', '主机'],
-    ['operLocation', '操作地点'],
-    ['status', '操作状态'],
-    ['operTime', '操作日期'],
-    ['costTime', '消耗时间'],
+    ['operId', t('monitor:log.id')],
+    ['title', t('monitor:systemModule')],
+    ['businessType', t('monitor:log.operationType')],
+    ['requestMethod', t('monitor:operlog.requestMethod')],
+    ['operName', t('monitor:log.operator')],
+    ['operIp', t('monitor:host')],
+    ['operLocation', t('monitor:operationLocation')],
+    ['status', t('monitor:operationStatus')],
+    ['operTime', t('monitor:operationDate')],
+    ['costTime', t('monitor:duration')],
   ].map(([dataIndex, title]) => ({
     align: 'center',
     title,
@@ -107,13 +115,13 @@ export default function Operlog() {
                 />
               )
             : dataIndex === 'costTime'
-              ? (value) => `${value ?? 0} 毫秒`
+              ? (value) => t('monitor:operlog.valueMs', { arg0: value ?? 0 })
               : undefined,
   }))
   columns.push({
     className: 'ruoyi-actions-cell',
     align: 'center',
-    title: '操作',
+    title: t('common:actions'),
     width: 85,
     fixed: 'right',
     render: (_, row) => (
@@ -122,7 +130,7 @@ export default function Operlog() {
           symbol="View"
           onClick={() => setDetail(row)}
         >
-          详细
+          {t('common:detail')}
         </TableAction>
       </HasPermi>
     ),
@@ -137,9 +145,9 @@ export default function Operlog() {
           onFinish={search}
         >
           {[
-            ['operIp', '操作地址'],
-            ['title', '系统模块'],
-            ['operName', '操作人员'],
+            ['operIp', t('monitor:operationAddress')],
+            ['title', t('monitor:systemModule')],
+            ['operName', t('monitor:log.operator')],
           ].map(([name, label]) => (
             <Form.Item
               key={name}
@@ -147,41 +155,41 @@ export default function Operlog() {
               label={label}
             >
               <Input
-                placeholder={`请输入${label}`}
+                placeholder={t('monitor:enterValue', { label })}
                 allowClear
               />
             </Form.Item>
           ))}
           <Form.Item
-            label="类型"
+            label={t('common:type')}
             name="businessType"
           >
             <Select
               style={{ width: 240 }}
-              placeholder="操作类型"
+              placeholder={t('monitor:log.operationType')}
               allowClear
               options={sys_oper_type}
             />
           </Form.Item>
           <Form.Item
-            label="状态"
+            label={t('common:status')}
             name="status"
           >
             <Select
               style={{ width: 240 }}
-              placeholder="操作状态"
+              placeholder={t('monitor:operationStatus')}
               allowClear
               options={sys_common_status}
             />
           </Form.Item>
           <Form.Item
-            label="操作时间"
+            label={t('monitor:log.operationTime')}
             name="dateRange"
           >
             <DatePicker.RangePicker
               style={{ width: 308 }}
-              placeholder={['开始日期', '结束日期']}
-              aria-label={`日期范围（${getDisplayTimezone()}）`}
+              placeholder={[t('common:startDate'), t('common:endDate')]}
+              aria-label={t('monitor:dateRangeValue', { arg0: getDisplayTimezone() })}
             />
           </Form.Item>
           <Form.Item>
@@ -191,7 +199,7 @@ export default function Operlog() {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -200,7 +208,7 @@ export default function Operlog() {
                   search({})
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -215,7 +223,7 @@ export default function Operlog() {
             disabled={!ids.length}
             onClick={() => remove(false)}
           >
-            删除
+            {t('common:delete')}
           </Button>
           <Button
             icon={<DeleteOutlined />}
@@ -223,7 +231,7 @@ export default function Operlog() {
             type="default"
             onClick={() => remove(true)}
           >
-            清空
+            {t('common:clear')}
           </Button>
         </HasPermi>
         <HasPermi value={['monitor:operlog:export']}>
@@ -237,7 +245,7 @@ export default function Operlog() {
               )
             }
           >
-            导出
+            {t('common:export')}
           </Button>
         </HasPermi>
         <RightToolbar

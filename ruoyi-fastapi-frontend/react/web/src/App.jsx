@@ -1,5 +1,6 @@
 import { App as AntApp, ConfigProvider, theme } from 'antd'
-import zhCN from './utils/locale'
+import { componentLocales } from './utils/locale'
+import { useI18n } from '@/i18n/adapter'
 import { RouterProvider } from 'react-router-dom'
 import { useEffect, useLayoutEffect } from 'react'
 import LoadingProgress from './components/LoadingProgress'
@@ -30,13 +31,14 @@ function Content() {
 }
 
 export default function App() {
+  const { locale } = useI18n()
   const { dark, colorPrimary, size } = useSettingsStore()
   useLayoutEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
   }, [dark])
   return (
     <ConfigProvider
-      locale={zhCN}
+      locale={componentLocales[locale]}
       componentSize={size}
       theme={{
         cssVar: true,

@@ -64,12 +64,15 @@ export default {
   },
   // 添加tab页签
   openPage(title, url, params) {
-    const obj = { path: url, meta: { title: title } }
+    const obj = { ...router.resolve({ path: url, query: params }).route, customTitle: title }
     store.dispatch('tagsView/addView', obj)
     return router.push({ path: url, query: params })
   },
   // 修改tab页签
   updatePage(obj) {
-    return store.dispatch('tagsView/updateVisitedView', obj)
+    return store.dispatch('tagsView/updateVisitedView', {
+      ...obj,
+      ...(Object.prototype.hasOwnProperty.call(obj, 'title') ? { customTitle: obj.title } : {}),
+    })
   },
 }

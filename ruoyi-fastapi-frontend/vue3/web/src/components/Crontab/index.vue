@@ -2,7 +2,7 @@
   <div>
     <el-tabs type="border-card">
       <el-tab-pane
-        label="秒"
+        :label="$t('components:seconds')"
         v-if="shouldHide('second')"
       >
         <CrontabSecond
@@ -14,7 +14,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        label="分钟"
+        :label="$t('components:minutes')"
         v-if="shouldHide('min')"
       >
         <CrontabMin
@@ -26,7 +26,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        label="小时"
+        :label="$t('components:hours')"
         v-if="shouldHide('hour')"
       >
         <CrontabHour
@@ -38,7 +38,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        label="日"
+        :label="$t('components:day')"
         v-if="shouldHide('day')"
       >
         <CrontabDay
@@ -50,7 +50,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        label="月"
+        :label="$t('components:month')"
         v-if="shouldHide('month')"
       >
         <CrontabMonth
@@ -62,7 +62,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        label="周"
+        :label="$t('components:week')"
         v-if="shouldHide('week')"
       >
         <CrontabWeek
@@ -74,7 +74,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        label="年"
+        :label="$t('components:year')"
         v-if="shouldHide('year')"
       >
         <CrontabYear
@@ -88,7 +88,7 @@
 
     <div class="popup-main">
       <div class="popup-result">
-        <p class="title">时间表达式</p>
+        <p class="title">{{ $t('components:timeExpression') }}</p>
         <table>
           <thead>
             <tr>
@@ -98,7 +98,7 @@
               >
                 {{ item }}
               </th>
-              <th>Cron 表达式</th>
+              <th>{{ $t('components:cronExpression') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -188,20 +188,21 @@
         <el-button
           type="primary"
           @click="submitFill"
-          >确定</el-button
+          >{{ $t('common:confirm') }}</el-button
         >
         <el-button
           type="warning"
           @click="clearCron"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
-        <el-button @click="hidePopup">取消</el-button>
+        <el-button @click="hidePopup">{{ $t('common:cancel') }}</el-button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import CrontabSecond from './second.vue'
 import CrontabMin from './min.vue'
 import CrontabHour from './hour.vue'
@@ -226,7 +227,15 @@ const props = defineProps({
     required: true,
   },
 })
-const tabTitles = ref(['秒', '分钟', '小时', '日', '月', '周', '年'])
+const tabTitles = computed(() => [
+  t('components:seconds'),
+  t('components:minutes'),
+  t('components:hours'),
+  t('components:day'),
+  t('components:month'),
+  t('components:week'),
+  t('components:year'),
+])
 const tabActive = ref(0)
 const hideComponent = ref([])
 const expression = ref('')

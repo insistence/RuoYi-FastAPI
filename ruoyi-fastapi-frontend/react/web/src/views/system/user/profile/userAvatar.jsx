@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useRef, useState } from 'react'
 import { Avatar, Button, Col, Modal, Row, Upload } from 'antd'
@@ -35,10 +37,15 @@ async function cropImage(source, area, rotation) {
     .getContext('2d')
     .drawImage(rotated, area.x, area.y, area.width, area.height, 0, 0, 200, 200)
   return new Promise((resolve, reject) =>
-    result.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('无法裁剪图片'))), 'image/png')
+    result.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error(t('system:unableToCropTheImage')))),
+      'image/png'
+    )
   )
 }
 export default function UserAvatar() {
+  useI18n()
+
   const avatar = useUserStore((state) => state.avatar),
     objectUrl = useRef(null)
   const [open, setOpen] = useState(false),
@@ -74,7 +81,7 @@ export default function UserAvatar() {
   )
   function selectFile(file) {
     if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
-      message.error('请上传 JPG、PNG、WebP 或 GIF 图片')
+      message.error(t('system:uploadAJpgPngWebpOrGifImage'))
       return Upload.LIST_IGNORE
     }
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current)
@@ -98,7 +105,7 @@ export default function UserAvatar() {
           ? response.imgUrl
           : import.meta.env.VITE_APP_BASE_API + response.imgUrl,
       })
-      message.success('修改成功')
+      message.success(t('common:updateSuccess'))
       setOpen(false)
     } catch (error) {
       message.error(error.message)
@@ -110,8 +117,8 @@ export default function UserAvatar() {
     <>
       <Button
         type="text"
-        aria-label="修改头像"
-        title="点击上传头像"
+        aria-label={t('system:changeAvatar')}
+        title={t('system:clickToUploadAvatar')}
         className="user-avatar-button"
         onClick={() => {
           setSource(avatar)
@@ -128,7 +135,7 @@ export default function UserAvatar() {
       </Button>
       <Modal
         className="avatar-crop-dialog"
-        title="修改头像"
+        title={t('system:changeAvatar')}
         footer={null}
         open={open}
         afterOpenChange={setVisible}
@@ -164,7 +171,7 @@ export default function UserAvatar() {
             <div className="avatar-preview-area">
               <img
                 src={preview || source}
-                alt="头像裁剪预览"
+                alt={t('system:avatarCropPreview')}
               />
             </div>
           </Col>
@@ -183,7 +190,7 @@ export default function UserAvatar() {
               accept="image/jpeg,image/png,image/webp,image/gif"
             >
               <Button>
-                选择 <UploadOutlined />
+                {t('layout:search.select')} <UploadOutlined />
               </Button>
             </Upload>
           </Col>
@@ -193,7 +200,7 @@ export default function UserAvatar() {
           >
             <Button
               icon={<PlusOutlined />}
-              aria-label="放大头像"
+              aria-label={t('system:zoomIn')}
               onClick={() => setZoom((value) => Math.min(3, value + 0.1))}
             />
           </Col>
@@ -203,7 +210,7 @@ export default function UserAvatar() {
           >
             <Button
               icon={<MinusOutlined />}
-              aria-label="缩小头像"
+              aria-label={t('system:zoomOut')}
               onClick={() => setZoom((value) => Math.max(1, value - 0.1))}
             />
           </Col>
@@ -213,7 +220,7 @@ export default function UserAvatar() {
           >
             <Button
               icon={<UndoOutlined />}
-              aria-label="向左旋转"
+              aria-label={t('system:rotateLeft')}
               onClick={() => setRotation((value) => value - 90)}
             />
           </Col>
@@ -223,7 +230,7 @@ export default function UserAvatar() {
           >
             <Button
               icon={<RedoOutlined />}
-              aria-label="向右旋转"
+              aria-label={t('system:rotateRight')}
               onClick={() => setRotation((value) => value + 90)}
             />
           </Col>
@@ -236,7 +243,7 @@ export default function UserAvatar() {
               loading={saving}
               onClick={submit}
             >
-              提 交
+              {t('system:submit')}
             </Button>
           </Col>
         </Row>

@@ -7,24 +7,24 @@
       v-show="showSearch"
     >
       <el-form-item
-        label="菜单名称"
+        :label="$t('system:menuName')"
         prop="menuName"
       >
         <el-input
           v-model="queryParams.menuName"
-          placeholder="请输入菜单名称"
+          :placeholder="$t('system:enterMenuName')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('system:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="菜单状态"
+          :placeholder="$t('system:menuStatus')"
           clearable
           style="width: 200px"
         >
@@ -41,12 +41,12 @@
           type="primary"
           icon="Search"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('system:search') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -62,7 +62,7 @@
           icon="Plus"
           @click="handleAdd"
           v-hasPermi="['system:menu:add']"
-          >新增</el-button
+          >{{ $t('system:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -72,7 +72,7 @@
           icon="Check"
           @click="handleSaveSort"
           v-hasPermi="['system:menu:edit']"
-          >保存排序</el-button
+          >{{ $t('system:saveOrder') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -81,7 +81,7 @@
           plain
           icon="Sort"
           @click="toggleExpandAll"
-          >展开/折叠</el-button
+          >{{ $t('system:expandCollapse') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -100,18 +100,18 @@
     >
       <el-table-column
         prop="menuName"
-        label="菜单名称"
+        :label="$t('system:menuName')"
         :show-overflow-tooltip="true"
         width="220"
       >
         <template #default="scope">
           <svg-icon :icon-class="scope.row.icon" />
-          <span class="ml5">{{ scope.row.menuName }}</span>
+          <span class="ml5">{{ resolveText(scope.row.menuName, scope.row.menuNameI18n) }}</span>
         </template>
       </el-table-column>
       <el-table-column
         prop="menuName"
-        label="类型"
+        :label="$t('system:type')"
         :show-overflow-tooltip="true"
         width="100"
       >
@@ -120,37 +120,37 @@
             v-if="scope.row.menuType === 'M' && scope.row.isFrame === 0"
             type="danger"
             size="small"
-            >外链</el-tag
+            >{{ $t('system:externalLink') }}</el-tag
           >
           <el-tag
             v-else-if="scope.row.menuType === 'M'"
             type="primary"
             size="small"
-            >目录</el-tag
+            >{{ $t('system:directory') }}</el-tag
           >
           <el-tag
             v-else-if="scope.row.menuType === 'C' && scope.row.isFrame === 0"
             type="danger"
             size="small"
-            >外链</el-tag
+            >{{ $t('system:externalLink') }}</el-tag
           >
           <el-tag
             v-else-if="scope.row.menuType === 'C'"
             type="success"
             size="small"
-            >菜单</el-tag
+            >{{ $t('system:menu') }}</el-tag
           >
           <el-tag
             v-else-if="scope.row.menuType === 'F'"
             type="warning"
             size="small"
-            >按钮</el-tag
+            >{{ $t('system:button') }}</el-tag
           >
         </template>
       </el-table-column>
       <el-table-column
         prop="orderNum"
-        label="排序"
+        :label="$t('system:order')"
         width="200"
       >
         <template #default="scope">
@@ -164,17 +164,17 @@
       </el-table-column>
       <el-table-column
         prop="perms"
-        label="权限标识"
+        :label="$t('system:permissionIdentifier')"
         :show-overflow-tooltip="true"
       />
       <el-table-column
         prop="component"
-        label="组件路径"
+        :label="$t('system:componentPath')"
         :show-overflow-tooltip="true"
       />
       <el-table-column
         prop="status"
-        label="状态"
+        :label="$t('system:status')"
         width="80"
       >
         <template #default="scope">
@@ -185,7 +185,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         align="center"
         width="210"
         class-name="small-padding fixed-width"
@@ -197,7 +197,7 @@
             icon="Edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:menu:edit']"
-            >修改</el-button
+            >{{ $t('system:edit') }}</el-button
           >
           <el-button
             link
@@ -205,7 +205,7 @@
             icon="Plus"
             @click="handleAdd(scope.row)"
             v-hasPermi="['system:menu:add']"
-            >新增</el-button
+            >{{ $t('system:add') }}</el-button
           >
           <el-button
             link
@@ -213,7 +213,7 @@
             icon="Delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:menu:remove']"
-            >删除</el-button
+            >{{ $t('system:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -221,7 +221,7 @@
 
     <!-- 添加或修改菜单对话框 -->
     <el-dialog
-      :title="title"
+      :title="typeof title === 'function' ? title() : title"
       v-model="open"
       width="680px"
       append-to-body
@@ -230,30 +230,35 @@
         ref="menuRef"
         :model="form"
         :rules="rules"
-        label-width="100px"
+        :validate-on-rule-change="false"
+        label-width="auto"
       >
         <el-row>
           <el-col :span="24">
-            <el-form-item label="上级菜单">
+            <el-form-item :label="$t('system:parentMenu')">
               <el-tree-select
                 v-model="form.parentId"
                 :data="menuOptions"
-                :props="{ value: 'menuId', label: 'menuName', children: 'children' }"
+                :props="{
+                  value: 'menuId',
+                  label: (item) => resolveText(item.menuName, item.menuNameI18n),
+                  children: 'children',
+                }"
                 value-key="menuId"
-                placeholder="选择上级菜单"
+                :placeholder="$t('system:selectParentMenu')"
                 check-strictly
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-              label="菜单类型"
+              :label="$t('system:menuType')"
               prop="menuType"
             >
               <el-radio-group v-model="form.menuType">
-                <el-radio value="M">目录</el-radio>
-                <el-radio value="C">菜单</el-radio>
-                <el-radio value="F">按钮</el-radio>
+                <el-radio value="M">{{ $t('system:directory') }}</el-radio>
+                <el-radio value="C">{{ $t('system:menu') }}</el-radio>
+                <el-radio value="F">{{ $t('system:button') }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -262,7 +267,7 @@
             v-if="form.menuType != 'F'"
           >
             <el-form-item
-              label="菜单图标"
+              :label="$t('system:menuIcon')"
               prop="icon"
             >
               <el-popover
@@ -273,7 +278,7 @@
                 <template #reference>
                   <el-input
                     v-model="form.icon"
-                    placeholder="点击选择图标"
+                    :placeholder="$t('system:clickToChooseAnIcon')"
                     @blur="showSelectIcon"
                     readonly
                   >
@@ -302,7 +307,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="显示排序"
+              :label="$t('system:displayOrder')"
               prop="orderNum"
             >
               <el-input-number
@@ -314,14 +319,19 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="菜单名称"
+              :label="$t('system:menuName')"
               prop="menuName"
             >
               <el-input
                 v-model="form.menuName"
-                placeholder="请输入菜单名称"
+                :placeholder="$t('system:enterMenuName')"
               />
-            </el-form-item>
+            </el-form-item> </el-col
+          ><el-col :span="24"
+            ><locale-name-input
+              v-model="form.menuNameI18n"
+              :original="originalTranslations"
+            />
           </el-col>
           <el-col
             :span="12"
@@ -331,17 +341,17 @@
               <template #label>
                 <span>
                   <el-tooltip
-                    content="默认不填则和路由地址相同：如地址为：`user`，则名称为`User`（注意：因为router会删除名称相同路由，为避免名字的冲突，特殊情况下请自定义，保证唯一性）"
+                    :content="$t('system:defaultsToTheRoutePathWithItsFirstLetterCapitalized')"
                     placement="top"
                   >
                     <el-icon><question-filled /></el-icon>
                   </el-tooltip>
-                  路由名称
-                </span>
+                  {{ $t('system:routeName') }}</span
+                >
               </template>
               <el-input
                 v-model="form.routeName"
-                placeholder="请输入路由名称"
+                :placeholder="$t('system:enterRouteName')"
               />
             </el-form-item>
           </el-col>
@@ -353,16 +363,16 @@
               <template #label>
                 <span>
                   <el-tooltip
-                    content="选择是外链则路由地址需要以`http(s)://`开头"
+                    :content="$t('system:externalLinkPathsMustStartWithHttpOrHttps')"
                     placement="top"
                   >
                     <el-icon><question-filled /></el-icon> </el-tooltip
-                  >是否外链
-                </span>
+                  >{{ $t('system:externalLinkLabel') }}</span
+                >
               </template>
               <el-radio-group v-model="form.isFrame">
-                <el-radio :value="0">是</el-radio>
-                <el-radio :value="1">否</el-radio>
+                <el-radio :value="0">{{ $t('system:yes') }}</el-radio>
+                <el-radio :value="1">{{ $t('system:no') }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -374,17 +384,17 @@
               <template #label>
                 <span>
                   <el-tooltip
-                    content="访问的路由地址，如：`user`，如外网地址需内链访问则以`http(s)://`开头"
+                    :content="$t('system:routePathEGUserToEmbedAnExternalPage')"
                     placement="top"
                   >
                     <el-icon><question-filled /></el-icon>
                   </el-tooltip>
-                  路由地址
-                </span>
+                  {{ $t('system:routePath') }}</span
+                >
               </template>
               <el-input
                 v-model="form.path"
-                placeholder="请输入路由地址"
+                :placeholder="$t('system:enterRoutePath')"
               />
             </el-form-item>
           </el-col>
@@ -396,17 +406,17 @@
               <template #label>
                 <span>
                   <el-tooltip
-                    content="访问的组件路径，如：`system/user/index`，默认在`views`目录下"
+                    :content="$t('system:componentPathRelativeToViewsEGSystemUserIndex')"
                     placement="top"
                   >
                     <el-icon><question-filled /></el-icon>
                   </el-tooltip>
-                  组件路径
-                </span>
+                  {{ $t('system:componentPath') }}</span
+                >
               </template>
               <el-input
                 v-model="form.component"
-                placeholder="请输入组件路径"
+                :placeholder="$t('system:enterComponentPath')"
               />
             </el-form-item>
           </el-col>
@@ -417,19 +427,23 @@
             <el-form-item>
               <el-input
                 v-model="form.perms"
-                placeholder="请输入权限标识"
+                :placeholder="$t('system:enterPermissionIdentifier')"
                 maxlength="100"
               />
               <template #label>
                 <span>
                   <el-tooltip
-                    content="控制器中定义的权限字符，如：UserInterfaceAuthDependency('system:user:list')"
+                    :content="
+                      $t(
+                        'system:permissionDefinedInTheControllerEGUserInterfaceAuthDependencySystemUser'
+                      )
+                    "
                     placement="top"
                   >
                     <el-icon><question-filled /></el-icon>
                   </el-tooltip>
-                  权限字符
-                </span>
+                  {{ $t('system:permissionString') }}</span
+                >
               </template>
             </el-form-item>
           </el-col>
@@ -440,19 +454,19 @@
             <el-form-item>
               <el-input
                 v-model="form.query"
-                placeholder="请输入路由参数"
+                :placeholder="$t('system:enterRouteParameters')"
                 maxlength="255"
               />
               <template #label>
                 <span>
                   <el-tooltip
-                    content='访问路由的默认传递参数，如：`{"id": 1, "name": "ry"}`'
+                    :content="$t('system:defaultRouteParametersEGId1NameRy')"
                     placement="top"
                   >
                     <el-icon><question-filled /></el-icon>
                   </el-tooltip>
-                  路由参数
-                </span>
+                  {{ $t('system:routeParameters') }}</span
+                >
               </template>
             </el-form-item>
           </el-col>
@@ -464,17 +478,17 @@
               <template #label>
                 <span>
                   <el-tooltip
-                    content="选择是则会被`keep-alive`缓存，需要匹配组件的`name`和地址保持一致"
+                    :content="$t('system:enableKeepAliveCachingTheComponentNameMustMatchThe')"
                     placement="top"
                   >
                     <el-icon><question-filled /></el-icon>
                   </el-tooltip>
-                  是否缓存
-                </span>
+                  {{ $t('system:cacheComponent') }}</span
+                >
               </template>
               <el-radio-group v-model="form.isCache">
-                <el-radio :value="0">缓存</el-radio>
-                <el-radio :value="1">不缓存</el-radio>
+                <el-radio :value="0">{{ $t('system:cache') }}</el-radio>
+                <el-radio :value="1">{{ $t('system:doNotCache') }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -486,13 +500,13 @@
               <template #label>
                 <span>
                   <el-tooltip
-                    content="选择隐藏则路由将不会出现在侧边栏，但仍然可以访问"
+                    :content="$t('system:hiddenRoutesRemainAccessibleButDoNotAppearInThe')"
                     placement="top"
                   >
                     <el-icon><question-filled /></el-icon>
                   </el-tooltip>
-                  显示状态
-                </span>
+                  {{ $t('system:visibility') }}</span
+                >
               </template>
               <el-radio-group v-model="form.visible">
                 <el-radio
@@ -509,13 +523,13 @@
               <template #label>
                 <span>
                   <el-tooltip
-                    content="选择停用则路由将不会出现在侧边栏，也不能被访问"
+                    :content="$t('system:disabledRoutesDoNotAppearInTheSidebarAndCannot')"
                     placement="top"
                   >
                     <el-icon><question-filled /></el-icon>
                   </el-tooltip>
-                  菜单状态
-                </span>
+                  {{ $t('system:menuStatus') }}</span
+                >
               </template>
               <el-radio-group v-model="form.status">
                 <el-radio
@@ -534,9 +548,9 @@
           <el-button
             type="primary"
             @click="submitForm"
-            >确 定</el-button
+            >{{ $t('system:confirm') }}</el-button
           >
-          <el-button @click="cancel">取 消</el-button>
+          <el-button @click="cancel">{{ $t('system:cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -544,11 +558,16 @@
 </template>
 
 <script setup name="Menu">
+import { t } from '@/i18n/adapter'
+import { useLocaleForm } from '@/composables/useLocaleForm'
+import { resolveText } from '@/i18n/adapter'
+import LocaleNameInput from '@/components/LocaleNameInput/index.vue'
 import { addMenu, delMenu, getMenu, listMenu, updateMenu, updateMenuSort } from '@/api/system/menu'
 import SvgIcon from '@/components/SvgIcon'
 import IconSelect from '@/components/IconSelect'
 
 const { proxy } = getCurrentInstance()
+useLocaleForm(computed(() => proxy.$refs.menuRef))
 const { sys_show_hide, sys_normal_disable } = proxy.useDict('sys_show_hide', 'sys_normal_disable')
 
 const menuList = ref([])
@@ -562,6 +581,8 @@ const refreshTable = ref(true)
 const iconSelectRef = ref(null)
 const originalOrders = ref({})
 
+const originalTranslations = ref({})
+
 const data = reactive({
   form: {},
   queryParams: {
@@ -569,9 +590,33 @@ const data = reactive({
     visible: undefined,
   },
   rules: {
-    menuName: [{ required: true, message: '菜单名称不能为空', trigger: 'blur' }],
-    orderNum: [{ required: true, message: '菜单顺序不能为空', trigger: 'blur' }],
-    path: [{ required: true, message: '路由地址不能为空', trigger: 'blur' }],
+    menuName: [
+      {
+        required: true,
+        get message() {
+          return t('system:menuNameIsRequired')
+        },
+        trigger: 'blur',
+      },
+    ],
+    orderNum: [
+      {
+        required: true,
+        get message() {
+          return t('system:menuOrderIsRequired')
+        },
+        trigger: 'blur',
+      },
+    ],
+    path: [
+      {
+        required: true,
+        get message() {
+          return t('system:routePathIsRequired')
+        },
+        trigger: 'blur',
+      },
+    ],
   },
 })
 
@@ -590,7 +635,13 @@ function getList() {
 function getTreeselect() {
   menuOptions.value = []
   listMenu().then((response) => {
-    const menu = { menuId: 0, menuName: '主类目', children: [] }
+    const menu = {
+      menuId: 0,
+      get menuName() {
+        return t('system:root')
+      },
+      children: [],
+    }
     menu.children = proxy.handleTree(response.data, 'menuId')
     menuOptions.value.push(menu)
   })
@@ -602,6 +653,7 @@ function cancel() {
 }
 /** 表单重置 */
 function reset() {
+  originalTranslations.value = {}
   form.value = {
     menuId: undefined,
     parentId: 0,
@@ -644,7 +696,7 @@ function handleAdd(row) {
     form.value.parentId = 0
   }
   open.value = true
-  title.value = '添加菜单'
+  title.value = () => t('system:addMenu')
 }
 /** 展开/折叠操作 */
 function toggleExpandAll() {
@@ -659,9 +711,10 @@ async function handleUpdate(row) {
   reset()
   await getTreeselect()
   getMenu(row.menuId).then((response) => {
-    form.value = response.data
+    originalTranslations.value = response.data.menuNameI18n || {}
+    form.value = { ...response.data, menuNameI18n: {} }
     open.value = true
-    title.value = '修改菜单'
+    title.value = () => t('system:editMenu')
   })
 }
 /** 提交按钮 */
@@ -670,13 +723,13 @@ function submitForm() {
     if (valid) {
       if (form.value.menuId != undefined) {
         updateMenu(form.value).then((response) => {
-          proxy.$modal.msgSuccess('修改成功')
+          proxy.$modal.msgSuccess(t('system:updatedSuccessfully'))
           open.value = false
           getList()
         })
       } else {
         addMenu(form.value).then((response) => {
-          proxy.$modal.msgSuccess('新增成功')
+          proxy.$modal.msgSuccess(t('system:addedSuccessfully'))
           open.value = false
           getList()
         })
@@ -712,12 +765,12 @@ function handleSaveSort() {
   }
   collectChanged(menuList.value)
   if (changedMenuIds.length === 0) {
-    proxy.$modal.msgWarning('未检测到排序修改')
+    proxy.$modal.msgWarning(t('system:theOrderHasNotChanged'))
     return
   }
   updateMenuSort({ menuIds: changedMenuIds.join(','), orderNums: changedOrderNums.join(',') }).then(
     () => {
-      proxy.$modal.msgSuccess('排序保存成功')
+      proxy.$modal.msgSuccess(t('system:orderSaved'))
       recordOriginalOrders(menuList.value)
     }
   )
@@ -726,13 +779,15 @@ function handleSaveSort() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   proxy.$modal
-    .confirm('是否确认删除名称为"' + row.menuName + '"的数据项?')
+    .confirm(
+      t('system:confirmation.deleteName', { name: resolveText(row.menuName, row.menuNameI18n) })
+    )
     .then(function () {
       return delMenu(row.menuId)
     })
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('删除成功')
+      proxy.$modal.msgSuccess(t('system:deletedSuccessfully'))
     })
     .catch(() => {})
 }

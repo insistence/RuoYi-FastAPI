@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from config.database import DataSourceRegistry
+from i18n.message import I18nMessage
 from plugins.core.artifacts import ArtifactStore, StoredArtifact, verify_artifact
 from plugins.core.deployment.config import PluginDeploymentConfig
 from plugins.core.discovery.scanner import DiscoveredPlugin, PluginScanner
@@ -144,7 +145,10 @@ class PluginArtifactCatalog:
             return {
                 'ok': True,
                 'dryRun': True,
-                'message': '容器验签和摘要检查通过；平台及目录结构将在正式导入的临时目录中检查',
+                'message': I18nMessage(
+                    '容器验签和摘要检查通过；平台及目录结构将在正式导入的临时目录中检查',
+                    msg_key='plugin.runtime.release.containerVerified',
+                ),
                 **artifact_payload(verified),
             }
         async with self.lifecycle_lock.lock('__artifacts__', 'artifact_import') as lock:
@@ -183,7 +187,11 @@ class PluginArtifactCatalog:
                 created_by=actor,
             )
             await db.commit()
-        return {'ok': True, 'message': '已导入并验证制品，尚未选择发布目标', **artifact_payload(stored)}
+        return {
+            'ok': True,
+            'message': I18nMessage('已导入并验证制品，尚未选择发布目标', msg_key='plugin.runtime.release.imported'),
+            **artifact_payload(stored),
+        }
 
     async def get(self, digest: str) -> StoredArtifact:
         """

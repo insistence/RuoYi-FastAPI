@@ -9,8 +9,8 @@
     <el-alert
       :title="
         batchMode
-          ? '批量操作仅覆盖所选文件的显式授权；内置权限仍按各文件规则生效。'
-          : '内置权限只读展示；管理员和所有者不可被拒绝，启用的上传人权限可被匹配的显式拒绝覆盖。'
+          ? $t('files:batchOperationsAffectOnlyExplicitGrantsForTheSelectedFiles')
+          : $t('files:builtInPermissionsAreReadOnlyAdministratorsAndOwnersCannot')
       "
       type="info"
       :closable="false"
@@ -21,14 +21,14 @@
       v-if="!batchMode"
       class="permission-section"
     >
-      <div class="permission-section__title">内置权限</div>
+      <div class="permission-section__title">{{ $t('files:builtInPermissions') }}</div>
       <el-table
         v-loading="loading"
         :data="builtinPermissions"
         border
       >
         <el-table-column
-          label="权限来源"
+          :label="$t('files:permissionSource')"
           align="center"
           width="110"
         >
@@ -42,7 +42,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="权限主体"
+          :label="$t('files:permissionPrincipal')"
           align="center"
           min-width="180"
         >
@@ -51,7 +51,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="规则"
+          :label="$t('files:rule')"
           align="center"
           width="110"
         >
@@ -60,12 +60,12 @@
               :type="scope.row.enabled ? 'success' : 'info'"
               effect="plain"
             >
-              {{ scope.row.enabled ? '允许下载' : '已移除' }}
+              {{ scope.row.enabled ? $t('files:allowDownload') : $t('files:removed') }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          label="拒绝覆盖"
+          :label="$t('files:denyTakesPrecedence')"
           align="center"
           width="135"
         >
@@ -75,14 +75,18 @@
               :type="scope.row.denyOverridable ? 'warning' : 'info'"
               effect="plain"
             >
-              {{ scope.row.denyOverridable ? '可以覆盖' : '不可覆盖' }}
+              {{
+                scope.row.denyOverridable
+                  ? $t('files:canBeOverridden')
+                  : $t('files:cannotBeOverridden')
+              }}
             </el-tag>
             <span v-else>-</span>
           </template>
         </el-table-column>
         <el-table-column
           prop="description"
-          label="权限说明"
+          :label="$t('files:permissionDetails')"
           align="left"
           min-width="320"
           show-overflow-tooltip
@@ -90,22 +94,22 @@
       </el-table>
     </div>
     <div class="permission-section__header">
-      <span class="permission-section__title">显式授权</span>
+      <span class="permission-section__title">{{ $t('files:explicitPermissions') }}</span>
       <el-button
         type="primary"
         plain
         icon="Plus"
         @click="addEntry"
       >
-        添加授权
-      </el-button>
+        {{ $t('files:addPermission') }}</el-button
+      >
     </div>
     <el-table
       v-loading="loading"
       :data="entries"
     >
       <el-table-column
-        label="主体类型"
+        :label="$t('files:principalType')"
         align="center"
         width="125"
       >
@@ -115,22 +119,22 @@
             @change="handleSubjectTypeChange(scope.row)"
           >
             <el-option
-              label="用户"
+              :label="$t('monitor:user')"
               value="user"
             />
             <el-option
-              label="角色"
+              :label="$t('system:role')"
               value="role"
             />
             <el-option
-              label="部门"
+              :label="$t('system:departmentLabel')"
               value="dept"
             />
           </el-select>
         </template>
       </el-table-column>
       <el-table-column
-        label="授权主体"
+        :label="$t('files:principal')"
         align="center"
         min-width="230"
       >
@@ -141,7 +145,7 @@
             :data="deptOptions"
             :props="{ value: 'id', label: 'label', children: 'children' }"
             value-key="id"
-            placeholder="请选择部门"
+            :placeholder="$t('files:selectADepartment')"
             filterable
             clearable
             check-strictly
@@ -157,7 +161,7 @@
             :loading="scope.row.subjectLoading"
             :remote-method="(keyword) => searchSubjectOptions(scope.row, keyword)"
             @visible-change="(visible) => handleSubjectVisible(scope.row, visible)"
-            placeholder="输入名称搜索"
+            :placeholder="$t('files:searchByName')"
             style="width: 100%"
           >
             <el-option
@@ -170,25 +174,25 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="规则"
+        :label="$t('files:rule')"
         align="center"
         width="120"
       >
         <template #default="scope">
           <el-select v-model="scope.row.effect">
             <el-option
-              label="允许下载"
+              :label="$t('files:allowDownload')"
               value="allow"
             />
             <el-option
-              label="拒绝下载"
+              :label="$t('files:denyDownload')"
               value="deny"
             />
           </el-select>
         </template>
       </el-table-column>
       <el-table-column
-        label="包含下级部门"
+        :label="$t('files:includeSubdepartments')"
         align="center"
         width="125"
       >
@@ -201,25 +205,25 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="有效期至"
+        :label="$t('files:validUntil')"
         align="center"
         width="310"
       >
         <template #default="scope">
           <BusinessDateTimePicker
             v-model="scope.row.expireTime"
-            label="有效期至，留空为永久有效"
+            :label="$t('files:validUntilLeaveEmptyForNoExpiry')"
           />
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         align="center"
         width="70"
       >
         <template #default="scope">
           <el-tooltip
-            content="删除"
+            :content="$t('system:delete')"
             placement="top"
           >
             <el-button
@@ -239,15 +243,16 @@
           :loading="saving"
           @click="submit"
         >
-          保 存
-        </el-button>
-        <el-button @click="visible = false">取 消</el-button>
+          {{ $t('files:save') }}</el-button
+        >
+        <el-button @click="visible = false">{{ $t('system:cancel') }}</el-button>
       </div>
     </template>
   </el-drawer>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import {
   batchSaveFileAcl,
   getFileAclDeptTree,
@@ -273,13 +278,15 @@ const builtinPermissions = ref([])
 const entries = ref([])
 const deptOptions = ref([])
 const drawerTitle = computed(() =>
-  batchMode.value ? `批量授权 - ${batchCount.value}个文件` : `访问权限 - ${fileName.value}`
+  batchMode.value
+    ? t('files:batchPermissionsValueFiles', { value: batchCount.value })
+    : t('files:accessPermissionsValue', { value: fileName.value })
 )
 
 function open(row, selectedIds, selectedPrivateIds) {
   batchMode.value = !row?.fileId
   if (batchMode.value && !selectedPrivateIds.length) {
-    proxy.$modal.msgWarning('请选择正常状态的受保护文件')
+    proxy.$modal.msgWarning(t('files:selectActiveProtectedFiles'))
     return
   }
   fileId.value = row?.fileId || ''
@@ -288,7 +295,9 @@ function open(row, selectedIds, selectedPrivateIds) {
   fileName.value = row?.originalName || ''
   if (batchMode.value && selectedPrivateIds.length < selectedIds.length) {
     proxy.$modal.msgWarning(
-      `已忽略${selectedIds.length - selectedPrivateIds.length}个公开或非正常状态的文件`
+      t('files:skippedValuePublicOrInactiveFiles', {
+        arg0: selectedIds.length - selectedPrivateIds.length,
+      })
     )
   }
   visible.value = true
@@ -334,9 +343,15 @@ function open(row, selectedIds, selectedPrivateIds) {
 function builtinSourceLabel(source) {
   return (
     {
-      admin: '平台管理员',
-      owner: '文件所有者',
-      uploader: '文件上传人',
+      get admin() {
+        return t('files:platformAdministrator')
+      },
+      get owner() {
+        return t('files:fileOwner')
+      },
+      get uploader() {
+        return t('files:fileUploader')
+      },
     }[source] || source
   )
 }
@@ -396,7 +411,7 @@ function searchSubjectOptions(row, keyword) {
 
 async function submit() {
   if (entries.value.some((item) => !item.subjectId)) {
-    proxy.$modal.msgError('请选择完整的授权主体')
+    proxy.$modal.msgError(t('files:selectACompletePermissionPrincipal'))
     return
   }
   const convertedEntries = []
@@ -422,7 +437,11 @@ async function submit() {
         })
     saveRequest
       .then(() => {
-        proxy.$modal.msgSuccess(batchMode.value ? '文件权限批量保存成功' : '文件权限保存成功')
+        proxy.$modal.msgSuccess(
+          batchMode.value
+            ? t('files:filePermissionsSavedForAllSelectedFiles')
+            : t('files:filePermissionsSaved')
+        )
         visible.value = false
         emit('refresh')
       })
@@ -432,7 +451,9 @@ async function submit() {
   }
   if (batchMode.value) {
     proxy.$modal
-      .confirm(`将覆盖所选${batchCount.value}个文件的全部授权，是否继续?`)
+      .confirm(
+        t('files:replaceAllPermissionsForTheValueSelectedFiles', { value: batchCount.value })
+      )
       .then(saveAcl)
       .catch(() => {})
   } else {

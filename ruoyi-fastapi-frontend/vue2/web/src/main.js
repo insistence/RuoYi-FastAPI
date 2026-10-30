@@ -1,3 +1,11 @@
+import LocaleForms from '@/i18n/forms'
+import LocaleTextFields from '@/components/LocaleTextFields'
+import { componentLocales } from '@/i18n/components'
+import { localeState } from '@/i18n/adapter'
+import LocalePlugin from '@/i18n/adapter'
+import LanguageSelect from '@/components/LanguageSelect/index.vue'
+import { i18n } from '@/i18n'
+import { getToken } from '@/utils/auth'
 import Vue from 'vue'
 
 import Cookies from 'js-cookie'
@@ -63,6 +71,7 @@ Vue.prototype.handleTree = handleTree
 
 // 全局组件挂载
 Vue.component('DictTag', DictTag)
+Vue.component('LocaleTextFields', LocaleTextFields)
 Vue.component('Pagination', Pagination)
 Vue.component('RightToolbar', RightToolbar)
 Vue.component('Editor', Editor)
@@ -85,6 +94,14 @@ DictData.install()
  */
 
 Vue.use(Element, {
+  i18n: (key, options = {}) => {
+    const message = key
+      .split('.')
+      .reduce((value, part) => value?.[part], componentLocales[localeState.locale].element)
+    return typeof message === 'string'
+      ? message.replace(/\{(\w+)\}/g, (_, name) => String(options[name] ?? ''))
+      : message
+  },
   size: Cookies.get('size') || 'medium', // set element-ui default size
 })
 
@@ -98,6 +115,10 @@ store.watch(
   { immediate: true }
 )
 
+Vue.use(LocalePlugin)
+Vue.use(LocaleForms)
+Vue.component('LanguageSelect', LanguageSelect)
+i18n.initialize(Boolean(getToken()))
 Vue.config.productionTip = false
 
 new Vue({

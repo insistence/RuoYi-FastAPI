@@ -1,40 +1,41 @@
 <template>
   <el-form
+    :validate-on-rule-change="false"
     ref="form"
     :model="user"
     :rules="formRules"
     label-width="80px"
   >
     <el-form-item
-      label="旧密码"
+      :label="$t('auth:password.old')"
       prop="oldPassword"
     >
       <el-input
         v-model="user.oldPassword"
-        placeholder="请输入旧密码"
+        :placeholder="$t('auth:password.oldPlaceholder')"
         type="password"
         show-password
       />
     </el-form-item>
     <el-form-item
-      label="新密码"
+      :label="$t('auth:password.new')"
       prop="newPassword"
       :rules="infoPwdValidator"
     >
       <el-input
         v-model="user.newPassword"
-        placeholder="请输入新密码"
+        :placeholder="$t('auth:password.newPlaceholder')"
         type="password"
         show-password
       />
     </el-form-item>
     <el-form-item
-      label="确认密码"
+      :label="$t('auth:register.confirmPassword')"
       prop="confirmPassword"
     >
       <el-input
         v-model="user.confirmPassword"
-        placeholder="请确认新密码"
+        :placeholder="$t('auth:password.confirmPlaceholder')"
         type="password"
         show-password
       />
@@ -44,19 +45,21 @@
         type="primary"
         size="mini"
         @click="submit"
-        >保存</el-button
+        >{{ $t('common:save') }}</el-button
       >
       <el-button
         type="danger"
         size="mini"
         @click="close"
-        >关闭</el-button
+        >{{ $t('layout:search.close') }}</el-button
       >
     </el-form-item>
   </el-form>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { updateUserPwd } from '@/api/system/user'
 import passwordRule from '@/utils/passwordRule'
 
@@ -74,13 +77,15 @@ export default {
   computed: {
     formRules() {
       return {
-        oldPassword: [{ required: true, message: '旧密码不能为空', trigger: 'blur' }],
+        oldPassword: [
+          { required: true, message: () => t('auth:password.oldRequired'), trigger: 'blur' },
+        ],
         confirmPassword: [
-          { required: true, message: '确认密码不能为空', trigger: 'blur' },
+          { required: true, message: () => t('auth:password.confirmRequired'), trigger: 'blur' },
           {
             validator: (rule, value, callback) => {
               if (this.user.newPassword !== value) {
-                callback(new Error('两次输入的密码不一致'))
+                callback(new Error(t('auth:register.passwordMismatch')))
               } else {
                 callback()
               }
@@ -96,7 +101,7 @@ export default {
       this.$refs['form'].validate((valid) => {
         if (valid) {
           updateUserPwd(this.user.oldPassword, this.user.newPassword).then(() => {
-            this.$modal.msgSuccess('修改成功')
+            this.$modal.msgSuccess(t('common:updateSuccess'))
           })
         }
       })

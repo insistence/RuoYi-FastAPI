@@ -31,6 +31,11 @@ export default {
       chart: null,
     }
   },
+  watch: {
+    '$locale.locale'() {
+      if (this.chart) this.setOptions()
+    },
+  },
   mounted() {
     this.$nextTick(() => {
       this.initChart()
@@ -46,7 +51,9 @@ export default {
   methods: {
     initChart() {
       this.chart = echarts.init(this.$el, 'macarons')
-
+      this.setOptions()
+    },
+    setOptions() {
       this.chart.setOption({
         tooltip: {
           trigger: 'item',
@@ -55,21 +62,27 @@ export default {
         legend: {
           left: 'center',
           bottom: '10',
-          data: ['Industries', 'Technology', 'Forex', 'Gold', 'Forecasts'],
+          data: [
+            this.$t('layout:dashboard.industries'),
+            this.$t('layout:dashboard.technology'),
+            this.$t('layout:dashboard.forex'),
+            this.$t('layout:dashboard.gold'),
+            this.$t('layout:dashboard.forecasts'),
+          ],
         },
         series: [
           {
-            name: 'WEEKLY WRITE ARTICLES',
+            name: this.$t('layout:dashboard.weeklyArticles'),
             type: 'pie',
             roseType: 'radius',
             radius: [15, 95],
             center: ['50%', '38%'],
             data: [
-              { value: 320, name: 'Industries' },
-              { value: 240, name: 'Technology' },
-              { value: 149, name: 'Forex' },
-              { value: 100, name: 'Gold' },
-              { value: 59, name: 'Forecasts' },
+              { value: 320, name: this.$t('layout:dashboard.industries') },
+              { value: 240, name: this.$t('layout:dashboard.technology') },
+              { value: 149, name: this.$t('layout:dashboard.forex') },
+              { value: 100, name: this.$t('layout:dashboard.gold') },
+              { value: 59, name: this.$t('layout:dashboard.forecasts') },
             ],
             animationEasing: 'cubicInOut',
             animationDuration: 2600,

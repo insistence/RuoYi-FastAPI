@@ -9,27 +9,28 @@
       </div>
       <div class="content">
         <div class="content-title">
-          早安，{{ currentUser.name }}<span class="welcome-text">，祝你开心每一天！</span>
+          {{ $t('layout:dashboard.greeting', { name: currentUser.name })
+          }}<span class="welcome-text">{{ $t('layout:home.haveAWonderfulDay') }}</span>
         </div>
         <div>{{ currentUser.title }} |{{ currentUser.group }}</div>
       </div>
       <div class="extra-content">
         <div class="stat-item">
           <a-statistic
-            title="项目数"
+            :title="$t('layout:home.projects')"
             :value="56"
           />
         </div>
         <div class="stat-item">
           <a-statistic
-            title="团队内排名"
+            :title="$t('layout:home.teamRanking')"
             :value="8"
             suffix="/ 24"
           />
         </div>
         <div class="stat-item">
           <a-statistic
-            title="项目访问"
+            :title="$t('layout:home.projectVisits')"
             :value="2223"
           />
         </div>
@@ -50,10 +51,10 @@
             :loading="loading"
             style="margin-bottom: 24px"
             :bordered="false"
-            title="进行中的项目"
+            :title="$t('layout:home.projectsInProgress')"
             :body-style="{ padding: 0 }"
           >
-            <a slot="extra">全部项目</a>
+            <a slot="extra">{{ $t('layout:home.allProjects') }}</a>
             <div>
               <a-card-grid
                 class="project-card-grid"
@@ -93,7 +94,7 @@
 
           <a-card
             :loading="loading"
-            title="动态"
+            :title="$t('layout:home.activity')"
             :bordered="false"
           >
             <a-list>
@@ -133,29 +134,29 @@
           :xs="24"
         >
           <a-card
-            title="快速开始 / 便捷导航"
+            :title="$t('layout:home.quickStartShortcuts')"
             style="margin-bottom: 24px"
             :bordered="false"
             :body-style="{ padding: 0 }"
           >
             <div class="item-group">
-              <a>操作一</a>
-              <a>操作二</a>
-              <a>操作三</a>
-              <a>操作四</a>
-              <a>操作五</a>
-              <a>操作六</a>
+              <a>{{ $t('layout:home.action1') }}</a>
+              <a>{{ $t('layout:home.action2') }}</a>
+              <a>{{ $t('layout:home.action3') }}</a>
+              <a>{{ $t('layout:home.action4') }}</a>
+              <a>{{ $t('layout:home.action5') }}</a>
+              <a>{{ $t('layout:home.action6') }}</a>
               <a-button
                 size="small"
                 type="primary"
                 ghost
                 icon="plus"
-                >添加</a-button
+                >{{ $t('layout:home.add') }}</a-button
               >
             </div>
           </a-card>
           <a-card
-            title="XX 指数"
+            :title="$t('layout:home.xXIndex')"
             style="margin-bottom: 24px"
             :loading="radarLoading"
             :bordered="false"
@@ -167,7 +168,7 @@
           </a-card>
           <a-card
             :loading="loading"
-            title="团队"
+            :title="$t('common:team')"
             :bordered="false"
           >
             <div class="members">
@@ -196,6 +197,7 @@
 
 <script>
 import Radar from './Radar.vue'
+import { t } from '@/i18n/adapter'
 import { Avatar, Button, Card, Col, List, Row, Statistic } from 'ant-design-vue'
 import 'ant-design-vue/dist/antd.css'
 import Vue from 'vue'
@@ -234,7 +236,9 @@ export default {
           title: 'Alipay',
           logo: 'https://gw.alipayobjects.com/zos/rmsportal/WdGqmHpayyMjiEhcKoVE.png',
           description: '那是一种内在的东西，他们到达不了，也无法触及的',
-          updatedAt: '几秒前',
+          get updatedAt() {
+            return t('layout:dashboard.secondsAgo')
+          },
           member: '科学搬砖组',
           href: '',
           memberLink: '',
@@ -244,7 +248,9 @@ export default {
           title: 'Angular',
           logo: 'https://gw.alipayobjects.com/zos/rmsportal/zOsKZmFRdUtvpqCImOVY.png',
           description: '希望是一个好东西，也许是最好的，好东西是不会消亡的',
-          updatedAt: '6 年前',
+          get updatedAt() {
+            return t('layout:dashboard.yearsAgo', { count: 6 })
+          },
           member: '全组都是吴彦祖',
           href: '',
           memberLink: '',
@@ -254,7 +260,9 @@ export default {
           title: 'Ant Design',
           logo: 'https://gw.alipayobjects.com/zos/rmsportal/dURIMkkrRFpPgTuzkwnB.png',
           description: '城镇中有那么多的酒馆，她却偏偏走进了我的酒馆',
-          updatedAt: '几秒前',
+          get updatedAt() {
+            return t('layout:dashboard.secondsAgo')
+          },
           member: '中二少女团',
           href: '',
           memberLink: '',
@@ -264,7 +272,9 @@ export default {
           title: 'Ant Design Pro',
           logo: 'https://gw.alipayobjects.com/zos/rmsportal/sfjbOqnsXXJgNCjCzDBL.png',
           description: '那时候我只会想自己想要什么，从不想自己拥有什么',
-          updatedAt: '6 年前',
+          get updatedAt() {
+            return t('layout:dashboard.yearsAgo', { count: 6 })
+          },
           member: '程序员日常',
           href: '',
           memberLink: '',
@@ -274,7 +284,9 @@ export default {
           title: 'Bootstrap',
           logo: 'https://gw.alipayobjects.com/zos/rmsportal/siCrBXXhmvTQGWPNLBow.png',
           description: '凛冬将至',
-          updatedAt: '6 年前',
+          get updatedAt() {
+            return t('layout:dashboard.yearsAgo', { count: 6 })
+          },
           member: '高逼格设计天团',
           href: '',
           memberLink: '',
@@ -284,7 +296,9 @@ export default {
           title: 'React',
           logo: 'https://gw.alipayobjects.com/zos/rmsportal/kZzEzemZyKLKFsojXItE.png',
           description: '生命就像一盒巧克力，结果往往出人意料',
-          updatedAt: '6 年前',
+          get updatedAt() {
+            return t('layout:dashboard.yearsAgo', { count: 6 })
+          },
           member: '骗你来学计算机',
           href: '',
           memberLink: '',
@@ -293,7 +307,9 @@ export default {
       activities: [
         {
           id: 'trend-1',
-          updatedAt: '几秒前',
+          get updatedAt() {
+            return t('layout:dashboard.secondsAgo')
+          },
           user: {
             name: '曲丽丽',
             avatar: 'https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png',
@@ -311,7 +327,9 @@ export default {
         },
         {
           id: 'trend-2',
-          updatedAt: '几秒前',
+          get updatedAt() {
+            return t('layout:dashboard.secondsAgo')
+          },
           user: {
             name: '付小小',
             avatar: 'https://gw.alipayobjects.com/zos/rmsportal/cnrhVkzwxjPwAaCfPbdc.png',
@@ -329,7 +347,9 @@ export default {
         },
         {
           id: 'trend-3',
-          updatedAt: '几秒前',
+          get updatedAt() {
+            return t('layout:dashboard.secondsAgo')
+          },
           user: {
             name: '林东东',
             avatar: 'https://gw.alipayobjects.com/zos/rmsportal/gaOngJwsRYRaVAuXXcmB.png',
@@ -347,7 +367,9 @@ export default {
         },
         {
           id: 'trend-4',
-          updatedAt: '几秒前',
+          get updatedAt() {
+            return t('layout:dashboard.secondsAgo')
+          },
           user: {
             name: '周星星',
             avatar: 'https://gw.alipayobjects.com/zos/rmsportal/WhxKECPNujWoWEFNdnJE.png',
@@ -361,7 +383,9 @@ export default {
         },
         {
           id: 'trend-5',
-          updatedAt: '几秒前',
+          get updatedAt() {
+            return t('layout:dashboard.secondsAgo')
+          },
           user: {
             name: '朱偏右',
             avatar: 'https://gw.alipayobjects.com/zos/rmsportal/ubnKSIfAJTxIgXOKlciN.png',
@@ -379,7 +403,9 @@ export default {
         },
         {
           id: 'trend-6',
-          updatedAt: '几秒前',
+          get updatedAt() {
+            return t('layout:dashboard.secondsAgo')
+          },
           user: {
             name: '乐哥',
             avatar: 'https://gw.alipayobjects.com/zos/rmsportal/jZUIxmJycoymBprLOUbT.png',
@@ -398,93 +424,165 @@ export default {
       ],
       radarData: [
         {
-          item: '引用',
-          user: '个人',
+          get item() {
+            return t('layout:dashboard.citations')
+          },
+          get user() {
+            return t('layout:dashboard.individual')
+          },
           score: 70,
         },
         {
-          item: '引用',
-          user: '团队',
+          get item() {
+            return t('layout:dashboard.citations')
+          },
+          get user() {
+            return t('layout:dashboard.team')
+          },
           score: 30,
         },
         {
-          item: '引用',
-          user: '部门',
+          get item() {
+            return t('layout:dashboard.citations')
+          },
+          get user() {
+            return t('layout:dashboard.department')
+          },
           score: 40,
         },
         {
-          item: '口碑',
-          user: '个人',
+          get item() {
+            return t('layout:dashboard.reputation')
+          },
+          get user() {
+            return t('layout:dashboard.individual')
+          },
           score: 60,
         },
         {
-          item: '口碑',
-          user: '团队',
+          get item() {
+            return t('layout:dashboard.reputation')
+          },
+          get user() {
+            return t('layout:dashboard.team')
+          },
           score: 70,
         },
         {
-          item: '口碑',
-          user: '部门',
+          get item() {
+            return t('layout:dashboard.reputation')
+          },
+          get user() {
+            return t('layout:dashboard.department')
+          },
           score: 40,
         },
         {
-          item: '产量',
-          user: '个人',
+          get item() {
+            return t('layout:dashboard.output')
+          },
+          get user() {
+            return t('layout:dashboard.individual')
+          },
           score: 50,
         },
         {
-          item: '产量',
-          user: '团队',
+          get item() {
+            return t('layout:dashboard.output')
+          },
+          get user() {
+            return t('layout:dashboard.team')
+          },
           score: 60,
         },
         {
-          item: '产量',
-          user: '部门',
+          get item() {
+            return t('layout:dashboard.output')
+          },
+          get user() {
+            return t('layout:dashboard.department')
+          },
           score: 40,
         },
         {
-          item: '贡献',
-          user: '个人',
+          get item() {
+            return t('layout:dashboard.contribution')
+          },
+          get user() {
+            return t('layout:dashboard.individual')
+          },
           score: 40,
         },
         {
-          item: '贡献',
-          user: '团队',
+          get item() {
+            return t('layout:dashboard.contribution')
+          },
+          get user() {
+            return t('layout:dashboard.team')
+          },
           score: 50,
         },
         {
-          item: '贡献',
-          user: '部门',
+          get item() {
+            return t('layout:dashboard.contribution')
+          },
+          get user() {
+            return t('layout:dashboard.department')
+          },
           score: 40,
         },
         {
-          item: '热度',
-          user: '个人',
+          get item() {
+            return t('layout:dashboard.popularity')
+          },
+          get user() {
+            return t('layout:dashboard.individual')
+          },
           score: 60,
         },
         {
-          item: '热度',
-          user: '团队',
+          get item() {
+            return t('layout:dashboard.popularity')
+          },
+          get user() {
+            return t('layout:dashboard.team')
+          },
           score: 70,
         },
         {
-          item: '热度',
-          user: '部门',
+          get item() {
+            return t('layout:dashboard.popularity')
+          },
+          get user() {
+            return t('layout:dashboard.department')
+          },
           score: 40,
         },
         {
-          item: '引用',
-          user: '个人',
+          get item() {
+            return t('layout:dashboard.citations')
+          },
+          get user() {
+            return t('layout:dashboard.individual')
+          },
           score: 70,
         },
         {
-          item: '引用',
-          user: '团队',
+          get item() {
+            return t('layout:dashboard.citations')
+          },
+          get user() {
+            return t('layout:dashboard.team')
+          },
           score: 50,
         },
         {
-          item: '引用',
-          user: '部门',
+          get item() {
+            return t('layout:dashboard.citations')
+          },
+          get user() {
+            return t('layout:dashboard.department')
+          },
           score: 40,
         },
       ],

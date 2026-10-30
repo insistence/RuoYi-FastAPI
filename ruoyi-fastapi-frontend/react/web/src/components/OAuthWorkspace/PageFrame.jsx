@@ -1,7 +1,9 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 export default function PageFrame({
   title,
-  section = '统一认证',
+  section = t('layout:route.authLogin'),
   description,
   actions,
   context,
@@ -12,6 +14,8 @@ export default function PageFrame({
   children,
   className = '',
 }) {
+  useI18n()
+
   return (
     <div className={'app-container oauth-workspace ' + className}>
       <header className="workspace-header">
@@ -27,7 +31,7 @@ export default function PageFrame({
         <section className="workspace-filters">
           <div className="filter-heading">
             <div>
-              <strong className="filter-title">筛选条件</strong>
+              <strong className="filter-title">{t('common:filters')}</strong>
               {filterHint && <span className="filter-hint">{filterHint}</span>}
             </div>
             {filterExtra}

@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import OAuthTag from '@/components/OAuthWorkspace/OAuthTag'
 import TagSummary from '@/components/OAuthWorkspace/TagSummary'
 import FieldLabel from '@/components/OAuthWorkspace/FieldLabel'
@@ -52,11 +55,19 @@ import SecretDialog from './secret'
 import { uriFields, toEditor, clientPayload } from './form'
 
 const grantLabels = {
-  authorization_code: '用户登录',
-  refresh_token: '保持登录',
-  client_credentials: '服务间调用',
+  get authorization_code() {
+    return t('system:userSignIn')
+  },
+  get refresh_token() {
+    return t('system:staySignedIn')
+  },
+  get client_credentials() {
+    return t('system:serviceToServiceCalls')
+  },
 }
 export default function OAuthClient() {
+  useI18n()
+
   const [queryForm] = Form.useForm(),
     [form] = Form.useForm(),
     [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
@@ -64,6 +75,7 @@ export default function OAuthClient() {
     [total, setTotal] = useState(0),
     [loading, setLoading] = useState(false),
     [showSearch, setShowSearch] = useState(true)
+  useLocalizedFormErrors(queryForm, form)
   const [open, setOpen] = useState(false),
     [clientId, setClientId] = useState(),
     [tab, setTab] = useState('basic'),
@@ -164,7 +176,7 @@ export default function OAuthClient() {
           grantTypes: 'login',
           scopeCodes: 'access',
           allowedRoleKeys: 'access',
-          ...Object.fromEntries(uriFields.map(([name]) => [name, 'uri'])),
+          ...Object.fromEntries(uriFields().map(([name]) => [name, 'uri'])),
         }[name] || 'basic'
       )
       return
@@ -173,7 +185,7 @@ export default function OAuthClient() {
     try {
       const data = clientPayload(form.getFieldsValue(true), clientId)
       const result = await (clientId ? updateOAuthClient : addOAuthClient)(data)
-      message.success('应用配置已保存')
+      message.success(t('system:applicationSettingsSaved'))
       setOpen(false)
       if (result.data?.clientSecret) setSecret(result.data)
       await getList()
@@ -186,19 +198,23 @@ export default function OAuthClient() {
     try {
       await confirm(
         enable
-          ? `启用应用“${row.clientName}”？`
-          : `停用“${row.clientName}”将同时撤销该应用的授权与刷新凭据，是否继续？`
+          ? t('system:enableApplicationValue', { clientName: row.clientName })
+          : t('system:disablingValueAlsoRevokesItsGrantsAndRefreshCredentials', {
+              clientName: row.clientName,
+            })
       )
       await (enable
         ? changeOAuthClientStatus({ clientId: row.clientId, status: '0' })
         : deleteOAuthClients(row.clientId))
-      message.success(enable ? '应用已启用' : '应用已停用')
+      message.success(enable ? t('system:applicationEnabled') : t('monitor:appDisabled'))
       await getList()
     } catch {}
   }
   async function rotate(row) {
     try {
-      await confirm(`为“${row.clientName}”生成新密钥？旧密钥将进入有界退役窗口。`)
+      await confirm(
+        t('system:generateANewSecretForValueTheOldSecret', { clientName: row.clientName })
+      )
       const result = await rotateOAuthClientSecret(row.clientId)
       setSecret(result.data)
       await getList()
@@ -226,18 +242,22 @@ export default function OAuthClient() {
   const sections = [
     {
       key: 'basic',
-      label: '基本信息',
+      label: t('common:basicInfo'),
       children: (
         <>
           <Form.Item
             name="clientName"
             label={
               <FieldLabel
-                label="应用名称"
-                help="便于管理员识别这个应用，不影响登录流程。"
+                label={t('system:applicationName')}
+                help={t(
+                  'authCenter:helpsAdministratorsIdentifyThisApplicationWithoutAffectingTheSignIn'
+                )}
               />
             }
-            rules={[{ required: true, whitespace: true, message: '请输入应用名称' }]}
+            rules={[
+              { required: true, whitespace: true, message: t('system:enterAnApplicationName') },
+            ]}
           >
             <Input
               maxLength={100}
@@ -248,8 +268,10 @@ export default function OAuthClient() {
             name="clientType"
             label={
               <FieldLabel
-                label="运行形态"
-                help="网页或移动端无法安全保存密钥；后端服务可以在服务器中安全保存密钥。"
+                label={t('system:applicationType')}
+                help={t(
+                  'authCenter:webAndMobileApplicationsCannotKeepSecretsSecurelyBackendServices'
+                )}
               />
             }
             rules={[{ required: true }]}
@@ -262,8 +284,8 @@ export default function OAuthClient() {
                   value: 'confidential',
                   label: (
                     <>
-                      <strong>后端服务</strong>
-                      <small>可以安全保存应用密钥</small>
+                      <strong>{t('system:backendService')}</strong>
+                      <small>{t('system:canSafelyStoreAnApplicationSecret')}</small>
                     </>
                   ),
                 },
@@ -271,8 +293,8 @@ export default function OAuthClient() {
                   value: 'public',
                   label: (
                     <>
-                      <strong>网页或移动端</strong>
-                      <small>不能在终端中保存密钥</small>
+                      <strong>{t('system:webOrMobileApplication')}</strong>
+                      <small>{t('system:cannotStoreASecretSecurelyOnTheDevice')}</small>
                     </>
                   ),
                 },
@@ -283,8 +305,8 @@ export default function OAuthClient() {
             name="remark"
             label={
               <FieldLabel
-                label="备注"
-                help="仅供管理员记录用途，不会发送给外部应用。"
+                label={t('common:remark')}
+                help={t('authCenter:forAdministratorsRecordsOnlyThisIsNotSentToExternal')}
               />
             }
           >
@@ -299,15 +321,15 @@ export default function OAuthClient() {
     },
     {
       key: 'login',
-      label: '登录方式',
+      label: t('system:signInMethods'),
       children: (
         <>
           <Form.Item
             name="grantTypes"
             label={
               <FieldLabel
-                label="允许的方式"
-                help="网页或移动端通常使用用户登录；没有具体用户的后台任务使用服务间调用。"
+                label={t('system:allowedMethods')}
+                help={t('authCenter:webAndMobileApplicationsUsuallyUseUserSignInBackground')}
               />
             }
             rules={[
@@ -315,7 +337,7 @@ export default function OAuthClient() {
                 required: true,
                 type: 'array',
                 min: 1,
-                message: '至少选择一种登录或调用方式',
+                message: t('system:selectAtLeastOneSignInOrServiceAccess'),
               },
             ]}
           >
@@ -329,9 +351,13 @@ export default function OAuthClient() {
                     <small>
                       {
                         {
-                          authorization_code: '用户在统一认证中心输入账号后返回应用。',
-                          refresh_token: '允许应用在用户离开后延长登录状态。',
-                          client_credentials: '后台服务以自身身份调用其他服务，不代表具体用户。',
+                          authorization_code: t(
+                            'system:usersSignInAtTheAuthenticationCenterThenReturn'
+                          ),
+                          refresh_token: t('system:allowTheApplicationToExtendASessionAfterThe'),
+                          client_credentials: t(
+                            'system:aBackendServiceCallsOtherServicesAsItselfWithout'
+                          ),
                         }[value]
                       }
                     </small>
@@ -346,8 +372,10 @@ export default function OAuthClient() {
           <Form.Item
             label={
               <FieldLabel
-                label="登录安全"
-                help="系统自动启用登录安全保护；其余选项控制是否展示用户确认和是否信任该应用。"
+                label={t('system:signInSecurity')}
+                help={t(
+                  'authCenter:signInSecurityProtectionIsEnabledAutomaticallyTheRemainingOptions'
+                )}
               />
             }
           >
@@ -360,21 +388,21 @@ export default function OAuthClient() {
                 name="requirePkce"
                 valuePropName="checked"
               >
-                <Checkbox disabled>登录安全保护（系统自动开启）</Checkbox>
+                <Checkbox disabled>{t('system:signInProtectionEnabledAutomatically')}</Checkbox>
               </Form.Item>
               <Form.Item
                 noStyle
                 name="requireConsent"
                 valuePropName="checked"
               >
-                <Checkbox>登录时让用户确认权限</Checkbox>
+                <Checkbox>{t('system:askUsersToConfirmPermissionsAtSignIn')}</Checkbox>
               </Form.Item>
               <Form.Item
                 noStyle
                 name="trustedClient"
                 valuePropName="checked"
               >
-                <Checkbox>标记为受信任应用</Checkbox>
+                <Checkbox>{t('system:markAsATrustedApplication')}</Checkbox>
               </Form.Item>
             </Space>
           </Form.Item>
@@ -383,15 +411,15 @@ export default function OAuthClient() {
     },
     {
       key: 'access',
-      label: '权限与服务',
+      label: t('system:permissionsAndServices'),
       children: (
         <>
           <Form.Item
             name="scopeCodes"
             label={
               <FieldLabel
-                label="可申请权限"
-                help="应用登录或访问服务时，只能申请这里列出的权限。"
+                label={t('system:availablePermissions')}
+                help={t('authCenter:theApplicationCanRequestOnlyThePermissionsListedHereWhen')}
               />
             }
             rules={[
@@ -399,12 +427,12 @@ export default function OAuthClient() {
                 required: true,
                 type: 'array',
                 min: 1,
-                message: '至少添加一项可申请权限',
+                message: t('system:addAtLeastOneAvailablePermission'),
               },
             ]}
           >
             <Select
-              placeholder="选择应用可申请的权限"
+              placeholder={t('system:selectPermissionsTheApplicationMayRequest')}
               mode="multiple"
               optionFilterProp="label"
               options={scopeOptions}
@@ -415,8 +443,8 @@ export default function OAuthClient() {
               name="allowedRoleKeys"
               label={
                 <FieldLabel
-                  label="可公开角色"
-                  help="只公开用户已拥有且列在此处的角色。留空时不公开任何角色。"
+                  label={t('system:disclosableRoles')}
+                  help={t('authCenter:onlyTheRolesTheUserAlreadyHasAndThatAppear')}
                 />
               }
               rules={[
@@ -424,14 +452,16 @@ export default function OAuthClient() {
                   validator: (_, values = []) =>
                     values.some((value) => !value || value.length > 100 || /\s|\*/.test(value))
                       ? Promise.reject(
-                          new Error('角色标识不得包含通配符或空白字符，长度不能超过100')
+                          new Error(
+                            t('system:roleIdentifiersMustNotContainWildcardsOrWhitespaceAnd')
+                          )
                         )
                       : Promise.resolve(),
                 },
               ]}
             >
               <Select
-                placeholder="输入允许向此应用公开的角色标识"
+                placeholder={t('system:enterRoleIdentifiersThatMayBeDisclosedToThis')}
                 mode="tags"
                 tokenSeparators={[',']}
               />
@@ -441,13 +471,15 @@ export default function OAuthClient() {
             name="preAuthorizedScopeCodes"
             label={
               <FieldLabel
-                label="免重复确认"
-                help="这些权限可以减少用户重复确认，必须属于上面的可申请权限。"
+                label={t('system:skipRepeatedConfirmation')}
+                help={t(
+                  'authCenter:thesePermissionsReduceRepeatedUserConfirmationsAndMustBeIncluded'
+                )}
               />
             }
           >
             <Select
-              placeholder="从已选权限中选择"
+              placeholder={t('system:chooseFromSelectedPermissions')}
               mode="multiple"
               optionFilterProp="label"
               options={scopeOptions.filter((item) => scopeCodes.includes(item.value))}
@@ -457,13 +489,13 @@ export default function OAuthClient() {
             name="resourceIds"
             label={
               <FieldLabel
-                label="可访问服务"
-                help="填写服务与权限页面中已创建服务的标识，不是网址。"
+                label={t('pluginAdmin:accessibleServices')}
+                help={t('authCenter:enterTheIdentifierOfAServiceCreatedOnTheServices')}
               />
             }
           >
             <Select
-              placeholder="选择应用可访问的服务"
+              placeholder={t('system:selectServicesTheApplicationMayAccess')}
               mode="multiple"
               optionFilterProp="label"
               options={resourceOptions}
@@ -474,8 +506,8 @@ export default function OAuthClient() {
     },
     {
       key: 'uri',
-      label: '回调地址',
-      children: uriFields.map(([name, label, uriType]) => (
+      label: t('system:callbackUrls'),
+      children: uriFields().map(([name, label, uriType]) => (
         <Form.Item
           key={name}
           name={name}
@@ -484,10 +516,10 @@ export default function OAuthClient() {
               label={label}
               help={
                 {
-                  redirectUris: '用户完成登录后，系统只会跳转到这里登记的地址。',
-                  postLogoutRedirectUris: '用户退出登录后可以返回的地址。',
-                  backchannelLogoutUris: '应用需要接收后台退出通知时填写，可以留空。',
-                  corsOrigins: '允许哪些网页从浏览器直接发起调用，只填写协议、域名和端口。',
+                  redirectUris: t('system:afterSignInTheSystemRedirectsUsersOnlyTo'),
+                  postLogoutRedirectUris: t('system:urlsUsersMayReturnToAfterSigningOut'),
+                  backchannelLogoutUris: t('system:enterAUrlIfTheApplicationNeedsBackChannel'),
+                  corsOrigins: t('system:webOriginsAllowedToCallDirectlyFromABrowser'),
                 }[name]
               }
             />
@@ -521,10 +553,10 @@ export default function OAuthClient() {
             }
             addText={
               {
-                redirectUris: '添加登录返回地址',
-                postLogoutRedirectUris: '添加退出返回地址',
-                backchannelLogoutUris: '添加后台通知地址',
-                corsOrigins: '添加网页来源',
+                redirectUris: t('system:addSignInReturnUrl'),
+                postLogoutRedirectUris: t('system:addSignOutReturnUrl'),
+                backchannelLogoutUris: t('system:addBackChannelNotificationUrl'),
+                corsOrigins: t('system:addWebOrigin'),
               }[name]
             }
           />
@@ -533,17 +565,25 @@ export default function OAuthClient() {
     },
     {
       key: 'duration',
-      label: '有效时长',
+      label: t('system:validityPeriods'),
       children: (
         <>
           <Row gutter={18}>
             {[
-              ['accessTokenTtlSeconds', '访问凭据', '应用访问服务时使用的短期凭据有效多久。'],
-              ['refreshTokenIdleSeconds', '闲置后失效', '保持登录凭据连续多久未使用后自动失效。'],
+              [
+                'accessTokenTtlSeconds',
+                t('system:accessCredentials'),
+                t('system:howLongShortLivedCredentialsRemainValidWhenThe'),
+              ],
+              [
+                'refreshTokenIdleSeconds',
+                t('system:expireAfterInactivity'),
+                t('system:howLongPersistentSignInCredentialsMayRemainUnused'),
+              ],
               [
                 'refreshTokenAbsoluteSeconds',
-                '最长有效时间',
-                '保持登录凭据从签发起最长可以使用多久。',
+                t('system:maximumLifetime'),
+                t('system:theMaximumTimePersistentSignInCredentialsMayBe'),
               ],
             ].map(([name, label, help]) => (
               <Col
@@ -567,10 +607,10 @@ export default function OAuthClient() {
                       <InputNumber
                         min={1}
                         precision={0}
-                        placeholder="平台默认"
+                        placeholder={t('pluginAdmin:platformDefault')}
                       />
                     </Form.Item>
-                    <span className="input-unit">秒</span>
+                    <span className="input-unit">{t('common:seconds')}</span>
                   </div>
                 </Form.Item>
               </Col>
@@ -588,22 +628,22 @@ export default function OAuthClient() {
           <h3>
             {
               {
-                basic: '这个应用是谁',
-                login: '应用怎样完成登录或调用',
-                access: '应用能够申请什么',
-                uri: '登录完成后可以去哪里',
-                duration: '登录凭据可以使用多久',
+                basic: t('system:applicationIdentity'),
+                login: t('system:howTheApplicationSignsInOrCallsServices'),
+                access: t('system:whatTheApplicationMayRequest'),
+                uri: t('system:whereUsersMayGoAfterSignIn'),
+                duration: t('system:howLongSignInCredentialsRemainValid'),
               }[item.key]
             }
           </h3>
           <p>
             {
               {
-                basic: '名称用于后台识别，运行形态决定它是否能够安全保存应用密钥。',
-                login: '只选择应用实际需要的方式，减少不必要的访问能力。',
-                access: '从已经启用的权限和服务中选择，避免保存后才发现标识不存在。',
-                uri: '每个地址单独填写并校验。正式环境应使用 HTTPS 完整地址。',
-                duration: '留空时使用平台默认值。只有确有业务需要时才延长有效时间。',
+                basic: t('system:theNameIdentifiesTheApplicationInTheConsoleIts'),
+                login: t('system:selectOnlyTheMethodsTheApplicationNeedsToLimit'),
+                access: t('system:chooseEnabledPermissionsAndServicesToAvoidSavingUnknown'),
+                uri: t('system:enterAndValidateEachUrlSeparatelyUseCompleteHttps'),
+                duration: t('system:leaveBlankToUsePlatformDefaultsExtendLifetimesOnly'),
               }[item.key]
             }
           </p>
@@ -614,7 +654,7 @@ export default function OAuthClient() {
   }))
   const columns = [
     {
-      title: '应用',
+      title: t('common:apply'),
       width: 250,
       render: (_, row) => (
         <EntityCell
@@ -627,50 +667,51 @@ export default function OAuthClient() {
     },
     {
       width: 130,
-      title: '运行形态',
+      title: t('system:applicationType'),
       dataIndex: 'clientType',
       render: (value) => (
         <OAuthTag
           effect="plain"
           type={value === 'confidential' ? 'primary' : 'info'}
         >
-          {value === 'confidential' ? '后端服务' : '网页/移动端'}
+          {value === 'confidential' ? t('system:backendService') : t('system:webMobile')}
         </OAuthTag>
       ),
     },
     {
       width: 240,
-      title: '登录与调用方式',
+      title: t('system:signInAndAccessMethods'),
       dataIndex: 'grantTypes',
       render: (values) =>
-        (values || []).map((value) => grantLabels[value] || value).join(' · ') || '尚未配置',
+        (values || []).map((value) => grantLabels[value] || value).join(' · ') ||
+        t('system:notConfigured'),
     },
     {
       width: 200,
-      title: '可访问服务',
+      title: t('pluginAdmin:accessibleServices'),
       dataIndex: 'resourceIds',
       render: (values) => (
         <TagSummary
           effect="plain"
           values={values}
           limit={2}
-          empty="仅身份信息"
+          empty={t('common:identityInformationOnly')}
         />
       ),
     },
     {
       width: 105,
       align: 'center',
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       render: (value) => (
         <OAuthTag type={value === '0' ? 'success' : 'info'}>
-          {value === '0' ? '使用中' : '已停用'}
+          {value === '0' ? t('system:inUse') : t('common:disabled')}
         </OAuthTag>
       ),
     },
     {
-      title: '最近更新',
+      title: t('system:recentUpdates'),
       dataIndex: 'updateTime',
       width: 170,
       render: (value) => parseTime(value),
@@ -678,7 +719,7 @@ export default function OAuthClient() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 180,
       fixed: 'right',
       render: (_, row) => (
@@ -688,7 +729,7 @@ export default function OAuthClient() {
               symbol="Edit"
               onClick={() => edit(row)}
             >
-              编辑
+              {t('common:editAction')}
             </TableAction>
           </HasPermi>
           <Dropdown
@@ -698,25 +739,25 @@ export default function OAuthClient() {
                 row.clientType === 'confidential' &&
                   checkPermi(['system:oauthClient:rotateSecret']) && {
                     key: 'rotate',
-                    label: '轮换应用密钥',
+                    label: t('system:rotateApplicationSecret'),
                     onClick: () => rotate(row),
                   },
                 row.status !== '0' &&
                   checkPermi(['system:oauthClient:edit']) && {
                     key: 'enable',
-                    label: '重新启用',
+                    label: t('system:reEnable'),
                     onClick: () => change(row, true),
                   },
                 row.status === '0' &&
                   checkPermi(['system:oauthClient:remove']) && {
                     key: 'disable',
-                    label: '停用应用',
+                    label: t('system:disableApplication'),
                     onClick: () => change(row, false),
                   },
               ].filter(Boolean),
             }}
           >
-            <TableAction symbol="ArrowDown">更多</TableAction>
+            <TableAction symbol="ArrowDown">{t('common:more')}</TableAction>
           </Dropdown>
         </TableActions>
       ),
@@ -725,10 +766,10 @@ export default function OAuthClient() {
   return (
     <PageFrame
       className="oauth-client-page"
-      title="应用"
-      description="管理哪些网站、移动端和后端服务可以使用统一登录或访问受保护服务。"
-      section="接入管理"
-      filterHint="按应用名称、运行形态或当前状态查找"
+      title={t('common:apply')}
+      description={t('system:manageWhichWebsitesMobileApplicationsAndBackendServicesMay')}
+      section={t('authCenter:integrationManagement')}
+      filterHint={t('system:findApplicationsByNameTypeOrStatus')}
       actions={
         <HasPermi value={['system:oauthClient:add']}>
           <Button
@@ -736,7 +777,7 @@ export default function OAuthClient() {
             type="primary"
             onClick={add}
           >
-            注册应用
+            {t('system:registerApplication')}
           </Button>
         </HasPermi>
       }
@@ -750,39 +791,39 @@ export default function OAuthClient() {
           >
             <Form.Item
               name="clientName"
-              label="应用名称"
+              label={t('system:applicationName')}
             >
               <Input
                 style={{ width: 200 }}
-                placeholder="输入应用名称"
+                placeholder={t('system:enterApplicationName')}
                 allowClear
               />
             </Form.Item>
             <Form.Item
               name="clientType"
-              label="运行形态"
+              label={t('system:applicationType')}
             >
               <Select
                 style={{ width: 200 }}
-                placeholder="全部形态"
+                placeholder={t('system:client.allTypes')}
                 allowClear
                 options={[
-                  { value: 'confidential', label: '后端服务' },
-                  { value: 'public', label: '网页或移动端' },
+                  { value: 'confidential', label: t('system:backendService') },
+                  { value: 'public', label: t('system:webOrMobileApplication') },
                 ]}
               />
             </Form.Item>
             <Form.Item
               name="status"
-              label="状态"
+              label={t('common:status')}
             >
               <Select
                 style={{ width: 200 }}
-                placeholder="全部状态"
+                placeholder={t('common:allStatuses')}
                 allowClear
                 options={[
-                  { value: '0', label: '使用中' },
-                  { value: '1', label: '已停用' },
+                  { value: '0', label: t('system:inUse') },
+                  { value: '1', label: t('common:disabled') },
                 ]}
               />
             </Form.Item>
@@ -793,7 +834,7 @@ export default function OAuthClient() {
                   type="primary"
                   htmlType="submit"
                 >
-                  查找
+                  {t('common:find')}
                 </Button>
                 <Button
                   icon={<QueryResetIcon />}
@@ -802,7 +843,7 @@ export default function OAuthClient() {
                     setQuery({ pageNum: 1, pageSize: 10 })
                   }}
                 >
-                  清空
+                  {t('common:clear')}
                 </Button>
               </Space>
             </Form.Item>
@@ -812,7 +853,7 @@ export default function OAuthClient() {
       toolbar={
         <>
           <span className="result-count">
-            已登记 <strong>{total}</strong> 个应用
+            {t('system:registered')} <strong>{total}</strong> {t('system:applications')}
           </span>
           <RightToolbar
             showSearch={showSearch}
@@ -825,13 +866,13 @@ export default function OAuthClient() {
       <Table
         locale={{
           emptyText: (
-            <Empty description="还没有符合条件的应用">
+            <Empty description={t('system:noMatchingApplications')}>
               <HasPermi value={['system:oauthClient:add']}>
                 <Button
                   type="primary"
                   onClick={add}
                 >
-                  注册第一个应用
+                  {t('system:registerYourFirstApplication')}
                 </Button>
               </HasPermi>
             </Empty>
@@ -852,18 +893,18 @@ export default function OAuthClient() {
       />
       <Modal
         className="oauth-dialog oauth-client-editor"
-        title={clientId ? '编辑应用' : '注册应用'}
+        title={clientId ? t('system:editApplication') : t('system:registerApplication')}
         width="min(960px, calc(100vw - 48px))"
         open={open}
         onCancel={() => setOpen(false)}
         onOk={save}
-        okText="保存应用"
+        okText={t('system:saveApplication')}
         mask={{ closable: false }}
         confirmLoading={saving}
         forceRender
       >
         <div className="oauth-editor-map">
-          <span>访问关系预览</span>
+          <span>{t('system:accessRelationshipPreview')}</span>
           <AccessMap
             application={clientName}
             type={type}

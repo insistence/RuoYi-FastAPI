@@ -31,6 +31,7 @@
     </template>
 
     <div class="right-menu">
+      <LanguageSelect class="language-select" />
       <template v-if="appStore.device !== 'mobile'">
         <header-search
           id="header-search"
@@ -38,7 +39,7 @@
         />
 
         <el-tooltip
-          content="源码地址"
+          :content="$t('layout:navbar.source')"
           effect="dark"
           placement="bottom"
         >
@@ -49,7 +50,7 @@
         </el-tooltip>
 
         <el-tooltip
-          content="文档地址"
+          :content="$t('layout:navbar.docs')"
           effect="dark"
           placement="bottom"
         >
@@ -65,7 +66,7 @@
         />
 
         <el-tooltip
-          content="主题模式"
+          :content="$t('layout:navbar.theme')"
           effect="dark"
           placement="bottom"
         >
@@ -85,7 +86,7 @@
         </el-tooltip>
 
         <el-tooltip
-          content="布局大小"
+          :content="$t('layout:navbar.size')"
           effect="dark"
           placement="bottom"
         >
@@ -96,7 +97,7 @@
         </el-tooltip>
 
         <el-tooltip
-          content="消息通知"
+          :content="$t('layout:navbar.notices')"
           effect="dark"
           placement="bottom"
         >
@@ -122,22 +123,22 @@
         <template #dropdown>
           <el-dropdown-menu>
             <router-link to="/user/profile">
-              <el-dropdown-item>个人中心</el-dropdown-item>
+              <el-dropdown-item>{{ $t('layout:routes.profile') }}</el-dropdown-item>
             </router-link>
             <el-dropdown-item
               command="setLayout"
               v-if="settingsStore.showSettings"
             >
-              <span>布局设置</span>
+              <span>{{ $t('layout:navbar.settings') }}</span>
             </el-dropdown-item>
             <el-dropdown-item command="lockScreen">
-              <span>锁定屏幕</span>
+              <span>{{ $t('layout:routes.lock') }}</span>
             </el-dropdown-item>
             <el-dropdown-item
               divided
               command="logout"
             >
-              <span>退出登录</span>
+              <span>{{ $t('layout:navbar.signOut') }}</span>
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -147,6 +148,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { ElMessageBox } from 'element-plus'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from './TopNav'
@@ -192,9 +194,9 @@ function handleCommand(command) {
 }
 
 function logout() {
-  ElMessageBox.confirm('确定注销并退出系统吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  ElMessageBox.confirm(t('layout:navbar.signOutConfirm'), t('common:notice'), {
+    confirmButtonText: t('common:confirm'),
+    cancelButtonText: t('common:cancel'),
     type: 'warning',
   })
     .then(() => {
@@ -262,6 +264,10 @@ async function toggleTheme(event) {
 </script>
 
 <style lang="scss" scoped>
+.language-select {
+  vertical-align: middle;
+  margin: 0 8px;
+}
 .navbar.nav3 {
   .hamburger-container {
     display: none !important;

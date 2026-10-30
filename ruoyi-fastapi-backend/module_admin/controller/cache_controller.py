@@ -96,7 +96,11 @@ async def clear_monitor_cache_name(
     clear_cache_name_result = await CacheService.clear_cache_monitor_cache_name_services(request, cache_name)
     logger.info(clear_cache_name_result.message)
 
-    return ResponseUtil.success(msg=clear_cache_name_result.message)
+    return ResponseUtil.success(
+        msg=clear_cache_name_result.message,
+        msg_key=clear_cache_name_result.msg_key,
+        msg_params=clear_cache_name_result.msg_params,
+    )
 
 
 @cache_controller.delete(
@@ -111,7 +115,11 @@ async def clear_monitor_cache_key(request: Request, cache_key: Annotated[str, Pa
     clear_cache_key_result = await CacheService.clear_cache_monitor_cache_key_services(request, cache_key)
     logger.info(clear_cache_key_result.message)
 
-    return ResponseUtil.success(msg=clear_cache_key_result.message)
+    return ResponseUtil.success(
+        msg=clear_cache_key_result.message,
+        msg_key=clear_cache_key_result.msg_key,
+        msg_params=clear_cache_key_result.msg_params,
+    )
 
 
 @cache_controller.delete(
@@ -126,4 +134,8 @@ async def clear_monitor_cache_all(request: Request) -> Response:
     clear_cache_all_result = await CacheService.clear_cache_monitor_all_services(request)
     logger.info(clear_cache_all_result.message)
 
-    return ResponseUtil.success(msg=clear_cache_all_result.message)
+    return ResponseUtil.success(
+        msg=clear_cache_all_result.message,
+        msg_key=clear_cache_all_result.msg_key,
+        msg_params=clear_cache_all_result.msg_params,
+    )

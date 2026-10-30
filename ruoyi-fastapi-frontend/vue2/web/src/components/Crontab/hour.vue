@@ -1,11 +1,14 @@
 <template>
-  <el-form size="small">
+  <el-form
+    :validate-on-rule-change="false"
+    size="small"
+  >
     <el-form-item>
       <el-radio
         v-model="radioValue"
         :label="1"
       >
-        小时，允许的通配符[, - * /]
+        {{ $t('tool:interface.hourAllowedWildcards') }}
       </el-radio>
     </el-form-item>
 
@@ -14,7 +17,7 @@
         v-model="radioValue"
         :label="2"
       >
-        周期从
+        {{ $t('tool:cron.rangeFrom') }}
         <el-input-number
           v-model="cycle01"
           :min="0"
@@ -26,7 +29,7 @@
           :min="cycle01 ? cycle01 + 1 : 1"
           :max="23"
         />
-        小时
+        {{ $t('common:hours') }}
       </el-radio>
     </el-form-item>
 
@@ -35,19 +38,19 @@
         v-model="radioValue"
         :label="3"
       >
-        从
+        {{ $t('tool:cron.from') }}
         <el-input-number
           v-model="average01"
           :min="0"
           :max="22"
         />
-        小时开始，每
+        {{ $t('tool:interface.repeatEvery.hour') }}
         <el-input-number
           v-model="average02"
           :min="1"
           :max="23 - average01 || 0"
         />
-        小时执行一次
+        {{ $t('tool:interface.hours') }}
       </el-radio>
     </el-form-item>
 
@@ -56,11 +59,11 @@
         v-model="radioValue"
         :label="4"
       >
-        指定
+        {{ $t('common:specified') }}
         <el-select
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('common:multipleSelect')"
           multiple
           style="width: 100%"
         >

@@ -10,6 +10,8 @@ COPY . .
 # 安装依赖
 RUN pip install --no-cache-dir -r requirements.txt -i ${PIP_INDEX_URL}
 
+RUN python scripts/compile_i18n.py
+
 # 暴露端口
 EXPOSE 9099
 

@@ -5,8 +5,8 @@
         v-model="radioValue"
         :value="1"
       >
-        周，允许的通配符[, - * ? / L #]
-      </el-radio>
+        {{ $t('components:weekAllowedWildcardsL') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -14,8 +14,8 @@
         v-model="radioValue"
         :value="2"
       >
-        不指定
-      </el-radio>
+        {{ $t('components:notSpecified') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -23,8 +23,8 @@
         v-model="radioValue"
         :value="3"
       >
-        周期从
-        <el-select
+        {{ $t('components:rangeFrom')
+        }}<el-select
           clearable
           v-model="cycle01"
         >
@@ -59,14 +59,14 @@
         v-model="radioValue"
         :value="4"
       >
-        第
-        <el-input-number
+        {{ $t('components:number')
+        }}<el-input-number
           v-model="average01"
           :min="1"
           :max="4"
         />
-        周的
-        <el-select
+        {{ $t('components:on')
+        }}<el-select
           clearable
           v-model="average02"
         >
@@ -85,8 +85,8 @@
         v-model="radioValue"
         :value="5"
       >
-        本月最后一个
-        <el-select
+        {{ $t('components:lastInTheMonth')
+        }}<el-select
           clearable
           v-model="weekday"
         >
@@ -105,12 +105,12 @@
         v-model="radioValue"
         :value="6"
       >
-        指定
-        <el-select
+        {{ $t('components:specify')
+        }}<el-select
           class="multiselect"
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('components:multipleSelectionsAllowed')"
           multiple
           :multiple-limit="6"
         >
@@ -127,6 +127,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 const emit = defineEmits(['update'])
 const props = defineProps({
   cron: {
@@ -154,14 +155,49 @@ const average02 = ref(2)
 const weekday = ref(2)
 const checkboxList = ref([])
 const checkCopy = ref([2])
-const weekList = ref([
-  { key: 1, value: '星期日' },
-  { key: 2, value: '星期一' },
-  { key: 3, value: '星期二' },
-  { key: 4, value: '星期三' },
-  { key: 5, value: '星期四' },
-  { key: 6, value: '星期五' },
-  { key: 7, value: '星期六' },
+const weekList = computed(() => [
+  {
+    key: 1,
+    get value() {
+      return t('components:sunday')
+    },
+  },
+  {
+    key: 2,
+    get value() {
+      return t('components:monday')
+    },
+  },
+  {
+    key: 3,
+    get value() {
+      return t('components:tuesday')
+    },
+  },
+  {
+    key: 4,
+    get value() {
+      return t('components:wednesday')
+    },
+  },
+  {
+    key: 5,
+    get value() {
+      return t('components:thursday')
+    },
+  },
+  {
+    key: 6,
+    get value() {
+      return t('components:friday')
+    },
+  },
+  {
+    key: 7,
+    get value() {
+      return t('components:saturday')
+    },
+  },
 ])
 const cycleTotal = computed(() => {
   cycle01.value = props.check(cycle01.value, 1, 6)

@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+import { i18n } from '@/i18n'
 import { handleSessionExpired } from '@/utils/session'
 import config from '@/config'
 import { getToken } from '@/utils/auth'
@@ -10,7 +12,7 @@ const baseUrl = config.baseUrl
 const upload = (config) => {
   // 是否需要设置 token
   const isToken = (config.headers || {}).isToken === false
-  config.header = config.header || {}
+  config.header = { ...i18n.headers, ...config.header }
   const token = getToken()
   if (token && !isToken) {
     config.header['Authorization'] = 'Bearer ' + token
@@ -33,14 +35,14 @@ const upload = (config) => {
         try {
           const result = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
           if (!result || typeof result !== 'object') {
-            throw new Error('上传响应格式不正确')
+            throw new Error(t('file:upload.invalidResponse'))
           }
           const { code, msg } = getResponseStatus(res, result)
           if (code === 200) {
             resolve(result)
           } else if (code == 401) {
             handleSessionExpired(isToken ? null : token)
-            reject('无效的会话，或者会话已过期，请重新登录。')
+            reject(t('common:session.invalid'))
           } else if (code === 500) {
             toast(msg)
             reject('500')
@@ -49,16 +51,16 @@ const upload = (config) => {
             reject(code)
           }
         } catch (error) {
-          toast('上传响应格式不正确')
+          toast(t('file:upload.invalidResponse'))
           reject(error)
         }
       },
       fail: (error) => {
-        let message = String(error?.message || error?.errMsg || '上传失败')
+        let message = String(error?.message || error?.errMsg || t('file:upload.failed'))
         if (message == 'Network Error') {
-          message = '后端接口连接异常'
+          message = t('common:network.error')
         } else if (message.includes('timeout')) {
-          message = '系统接口请求超时'
+          message = t('common:network.timeout')
         } else if (message.includes('Request failed with status code')) {
           message = '系统接口' + message.substr(message.length - 3) + '异常'
         }

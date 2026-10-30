@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { TableAction } from '@/components/TableActions'
 import {
   SearchOutlined,
@@ -23,10 +26,13 @@ import useTagsViewStore from '@/store/modules/tagsView'
 import Detail from './detail'
 
 export default function JobLog({ params }) {
+  useI18n()
+
   const [form] = Form.useForm(),
     navigate = useNavigate(),
     location = useLocation(),
     { sys_common_status } = useDict('sys_common_status')
+  useLocalizedFormErrors(form)
   const [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
     [rows, setRows] = useState([]),
     [total, setTotal] = useState(0),
@@ -70,25 +76,27 @@ export default function JobLog({ params }) {
   async function remove(all) {
     try {
       await confirm(
-        all ? '是否确认清空所有调度日志？' : `是否确认删除选中的 ${ids.length} 条日志？`
+        all
+          ? t('monitor:clearAllJobLogs')
+          : t('monitor:deleteTheValueSelectedLogs', { length: ids.length })
       )
       await (all ? cleanJobLog() : delJobLog(ids))
-      message.success(all ? '清空成功' : '删除成功')
+      message.success(all ? t('common:clearSuccess') : t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
   const columns = [
     ...[
-      ['jobLogId', '日志编号'],
-      ['jobId', '任务编号'],
-      ['jobName', '任务名称'],
-      ['jobGroup', '业务分组'],
-      ['invokeTarget', '调用目标字符串'],
-      ['jobMessage', '日志信息'],
+      ['jobLogId', t('monitor:log.id')],
+      ['jobId', t('monitor:job.id')],
+      ['jobName', t('monitor:job.name')],
+      ['jobGroup', t('monitor:businessGroup')],
+      ['invokeTarget', t('monitor:callTarget')],
+      ['jobMessage', t('monitor:logInformation')],
     ].map(([dataIndex, title]) => ({ align: 'center', dataIndex, title, ellipsis: true })),
     {
       align: 'center',
-      title: '执行状态',
+      title: t('monitor:job.executionStatus'),
       dataIndex: 'status',
       render: (value) => (
         <DictTag
@@ -99,7 +107,7 @@ export default function JobLog({ params }) {
     },
     {
       align: 'center',
-      title: '执行时间',
+      title: t('monitor:executionTime'),
       dataIndex: 'createTime',
       width: 180,
       render: (value) => parseTime(value),
@@ -107,7 +115,7 @@ export default function JobLog({ params }) {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 80,
       render: (_, row) => (
         <HasPermi value={['monitor:job:query']}>
@@ -115,7 +123,7 @@ export default function JobLog({ params }) {
             symbol="View"
             onClick={() => setDetail(row)}
           >
-            详细
+            {t('common:detail')}
           </TableAction>
         </HasPermi>
       ),
@@ -131,9 +139,9 @@ export default function JobLog({ params }) {
           onFinish={search}
         >
           {[
-            ['jobName', '任务名称', '请输入任务名称'],
-            ['jobGroup', '业务分组', '请输入业务分组'],
-            ['executionId', '执行编号', '精确匹配执行ID'],
+            ['jobName', t('monitor:job.name'), t('monitor:job.namePlaceholder')],
+            ['jobGroup', t('monitor:businessGroup'), t('monitor:enterBusinessGroup')],
+            ['executionId', t('monitor:executionId'), t('monitor:exactExecutionId')],
           ].map(([name, label, placeholder]) => (
             <Form.Item
               key={name}
@@ -147,33 +155,33 @@ export default function JobLog({ params }) {
             </Form.Item>
           ))}
           <Form.Item
-            label="任务编号"
+            label={t('monitor:job.id')}
             name="jobId"
           >
             <InputNumber
-              placeholder="精确匹配任务ID"
+              placeholder={t('monitor:exactTaskId')}
               min={1}
               precision={0}
             />
           </Form.Item>
           <Form.Item
-            label="执行状态"
+            label={t('monitor:job.executionStatus')}
             name="status"
           >
             <Select
               style={{ width: 240 }}
-              placeholder="请选择执行状态"
+              placeholder={t('monitor:selectExecutionStatus')}
               allowClear
               options={sys_common_status}
             />
           </Form.Item>
           <Form.Item
-            label="执行时间"
+            label={t('monitor:executionTime')}
             name="dateRange"
           >
             <DatePicker.RangePicker
               style={{ width: 308 }}
-              placeholder={['开始日期', '结束日期']}
+              placeholder={[t('common:startDate'), t('common:endDate')]}
             />
           </Form.Item>
           <Form.Item>
@@ -183,7 +191,7 @@ export default function JobLog({ params }) {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -192,7 +200,7 @@ export default function JobLog({ params }) {
                   search({})
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -207,7 +215,7 @@ export default function JobLog({ params }) {
             disabled={!ids.length}
             onClick={() => remove(false)}
           >
-            删除
+            {t('common:delete')}
           </Button>
           <Button
             icon={<DeleteOutlined />}
@@ -215,7 +223,7 @@ export default function JobLog({ params }) {
             type="default"
             onClick={() => remove(true)}
           >
-            清空
+            {t('common:clear')}
           </Button>
         </HasPermi>
         <HasPermi value={['monitor:job:export']}>
@@ -229,7 +237,7 @@ export default function JobLog({ params }) {
               )
             }
           >
-            导出
+            {t('common:export')}
           </Button>
         </HasPermi>
         <Button
@@ -240,7 +248,7 @@ export default function JobLog({ params }) {
             navigate('/monitor/job')
           }}
         >
-          关闭
+          {t('layout:search.close')}
         </Button>
         <RightToolbar
           showSearch={showSearch}

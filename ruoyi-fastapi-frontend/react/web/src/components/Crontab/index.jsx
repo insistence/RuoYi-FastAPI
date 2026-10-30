@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useState } from 'react'
 import { Button, Tabs, Tooltip } from 'antd'
@@ -11,14 +13,14 @@ import Month from './month'
 import Week from './week'
 import Year from './year'
 
-const fields = [
-  ['second', '秒', Second],
-  ['min', '分钟', Min],
-  ['hour', '小时', Hour],
-  ['day', '日', Day],
-  ['month', '月', Month],
-  ['week', '周', Week],
-  ['year', '年', Year],
+const fields = () => [
+  ['second', t('common:seconds'), Second],
+  ['min', t('common:minutes'), Min],
+  ['hour', t('common:hours'), Hour],
+  ['day', t('common:day'), Day],
+  ['month', t('common:month'), Month],
+  ['week', t('common:week'), Week],
+  ['year', t('common:year'), Year],
 ]
 const defaults = ['*', '*', '*', '*', '*', '?', '']
 function parseExpression(expression) {
@@ -26,6 +28,8 @@ function parseExpression(expression) {
   return parsed.length >= 6 ? [...parsed.slice(0, 6), parsed[6] || ''] : defaults
 }
 export default function Crontab({ expression = '', timeZone, onFill, onHide, hideComponent = [] }) {
+  useI18n()
+
   const [parts, setParts] = useState(() => parseExpression(expression))
   const [resetKey, setResetKey] = useState(0)
   useEffect(() => {
@@ -37,7 +41,7 @@ export default function Crontab({ expression = '', timeZone, onFill, onHide, hid
       <Tabs
         className="cron-tabs"
         type="card"
-        items={fields
+        items={fields()
           .filter(([name]) => !hideComponent.includes(name))
           .map(([name, label, Field]) => ({
             key: name,
@@ -45,12 +49,12 @@ export default function Crontab({ expression = '', timeZone, onFill, onHide, hid
             children: (
               <Field
                 key={resetKey}
-                value={parts[fields.findIndex((field) => field[0] === name)]}
+                value={parts[fields().findIndex((field) => field[0] === name)]}
                 onChange={(next) =>
                   setParts((previous) =>
                     updateCronPart(
                       previous,
-                      fields.findIndex((field) => field[0] === name),
+                      fields().findIndex((field) => field[0] === name),
                       next
                     )
                   )
@@ -62,14 +66,14 @@ export default function Crontab({ expression = '', timeZone, onFill, onHide, hid
       <div className="cron-summary">
         <section
           className="cron-expression"
-          aria-label="时间表达式"
+          aria-label={t('common:timeExpression')}
         >
-          <h4>时间表达式</h4>
+          <h4>{t('common:timeExpression')}</h4>
           <div className="cron-expression-scroll">
             <table>
               <thead>
                 <tr>
-                  {fields.map(([name, label]) => (
+                  {fields().map(([name, label]) => (
                     <th
                       key={name}
                       scope="col"
@@ -77,7 +81,7 @@ export default function Crontab({ expression = '', timeZone, onFill, onHide, hid
                       {label}
                     </th>
                   ))}
-                  <th scope="col">Cron 表达式</th>
+                  <th scope="col">{t('common:cronExpression')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -106,7 +110,7 @@ export default function Crontab({ expression = '', timeZone, onFill, onHide, hid
               onHide()
             }}
           >
-            确定
+            {t('common:confirm')}
           </Button>
           <Button
             className="cron-reset"
@@ -115,9 +119,9 @@ export default function Crontab({ expression = '', timeZone, onFill, onHide, hid
               setResetKey((key) => key + 1)
             }}
           >
-            重置
+            {t('common:reset')}
           </Button>
-          <Button onClick={onHide}>取消</Button>
+          <Button onClick={onHide}>{t('common:cancel')}</Button>
         </div>
       </div>
     </div>

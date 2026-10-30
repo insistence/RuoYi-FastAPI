@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import PluginSummary from './PluginSummary'
 import './style.css'
 import { Alert, Button, Descriptions, Modal, Space, Switch, Tabs } from 'antd'
@@ -26,24 +28,30 @@ export default function PluginPlanDialog({
   onExecute,
   onClose,
 }) {
+  useI18n()
+
   const operation = (value) => formatPluginOperation(value, dictionary)
   return (
     <Modal
       className="plugin-dialog plugin-result-dialog plugin-plan-dialog"
-      title={`插件${operation(plan.operation)}计划`}
+      title={t('pluginAdmin:pluginValuePlan', { arg0: operation(plan.operation) })}
       open={open}
       onCancel={onClose}
       width="min(920px, calc(100vw - 32px))"
       footer={
         <Space wrap>
           <div className="plugin-plan-continue">
-            <span className={!continueOnError ? 'is-active' : undefined}>失败即中止</span>
+            <span className={!continueOnError ? 'is-active' : undefined}>
+              {t('system:stopOnFailure')}
+            </span>
             <Switch
               checked={continueOnError}
-              aria-label="失败后继续"
+              aria-label={t('system:continueAfterFailure')}
               onChange={onContinueOnError}
             />
-            <span className={continueOnError ? 'is-active' : undefined}>失败后继续</span>
+            <span className={continueOnError ? 'is-active' : undefined}>
+              {t('system:continueAfterFailure')}
+            </span>
           </div>
           <HasPermi value={['system:plugin:edit']}>
             <Button
@@ -52,10 +60,11 @@ export default function PluginPlanDialog({
               disabled={!plan.ok || !plan.executablePluginIds.length}
               onClick={onExecute}
             >
-              执行计划：{operation(plan.operation)}
+              {t('system:executionPlan')}
+              {operation(plan.operation)}
             </Button>
           </HasPermi>
-          <Button onClick={onClose}>关闭</Button>
+          <Button onClick={onClose}>{t('layout:search.close')}</Button>
         </Space>
       }
     >
@@ -70,10 +79,13 @@ export default function PluginPlanDialog({
       <PluginSummary
         columns={4}
         items={[
-          ['计划操作', operation(plan.operation)],
-          ['目标插件', plan.requestedPluginIds.length],
-          ['可执行', plan.executablePluginIds.length],
-          ['阻塞项', <span className="plugin-summary-danger">{plan.blockerCount}</span>],
+          [t('system:plannedOperation'), operation(plan.operation)],
+          [t('system:targetPlugin'), plan.requestedPluginIds.length],
+          [t('system:executable'), plan.executablePluginIds.length],
+          [
+            t('system:blockers'),
+            <span className="plugin-summary-danger">{plan.blockerCount}</span>,
+          ],
         ].map(([label, children]) => ({ key: label, label, children }))}
       />
       <Descriptions
@@ -81,9 +93,9 @@ export default function PluginPlanDialog({
         column={1}
         className="plugin-plan-scope"
         items={[
-          ['目标范围', formatPluginIdsForDisplay(plan.requestedPluginIds)],
+          [t('system:targetScope'), formatPluginIdsForDisplay(plan.requestedPluginIds)],
           [
-            '执行顺序',
+            t('system:executionOrder'),
             <Space
               wrap
               size={[6, 4]}
@@ -100,46 +112,46 @@ export default function PluginPlanDialog({
         items={[
           {
             key: 'items',
-            label: '计划项',
+            label: t('system:planItem'),
             children: (
               <Table
                 size="small"
                 bordered
                 scroll={{ x: 910 }}
-                locale={{ emptyText: '暂无计划项' }}
+                locale={{ emptyText: t('system:noPlanItems') }}
                 rowKey="pluginId"
                 dataSource={plan.items}
                 pagination={false}
                 columns={[
-                  { width: 70, align: 'center', title: '顺序', dataIndex: 'order' },
-                  { width: 140, title: '插件ID', dataIndex: 'pluginId', ellipsis: true },
-                  { width: 150, title: '插件名称', dataIndex: 'name', ellipsis: true },
-                  { width: 100, align: 'center', title: '版本', dataIndex: 'version' },
+                  { width: 70, align: 'center', title: t('system:order'), dataIndex: 'order' },
+                  { width: 140, title: t('pluginAdmin:id'), dataIndex: 'pluginId', ellipsis: true },
+                  { width: 150, title: t('pluginAdmin:name'), dataIndex: 'name', ellipsis: true },
+                  { width: 100, align: 'center', title: t('system:version'), dataIndex: 'version' },
                   {
                     width: 90,
                     align: 'center',
-                    title: '显式选择',
+                    title: t('system:explicitlySelected'),
                     dataIndex: 'requested',
                     render: (value) => (
                       <PluginTag type={value ? 'success' : 'info'}>
-                        {value ? '是' : '依赖'}
+                        {value ? t('common:yes') : t('pluginAdmin:dependencies')}
                       </PluginTag>
                     ),
                   },
                   {
                     width: 90,
                     align: 'center',
-                    title: '可执行',
+                    title: t('system:executable'),
                     dataIndex: 'ready',
                     render: (value) => (
                       <PluginTag type={value ? 'success' : 'danger'}>
-                        {value ? '是' : '否'}
+                        {value ? t('common:yes') : t('common:no')}
                       </PluginTag>
                     ),
                   },
                   {
                     width: 180,
-                    title: '依赖',
+                    title: t('pluginAdmin:dependencies'),
                     dataIndex: 'dependencies',
                     ellipsis: true,
                     render: formatPlanDependencies,
@@ -147,7 +159,7 @@ export default function PluginPlanDialog({
                   {
                     width: 90,
                     align: 'center',
-                    title: '阻塞项',
+                    title: t('system:blockers'),
                     dataIndex: 'blockers',
                     render: (value) => (
                       <PluginTag type={value?.length ? 'danger' : 'success'}>
@@ -161,30 +173,45 @@ export default function PluginPlanDialog({
           },
           {
             key: 'blockers',
-            label: '阻塞原因',
+            label: t('system:components.blockingReason'),
             children: (
               <>
                 <Table
                   size="small"
                   bordered
                   scroll={{ x: 750 }}
-                  locale={{ emptyText: '暂无阻塞项' }}
+                  locale={{ emptyText: t('system:noBlockers') }}
                   rowKey={(_, index) => index}
                   pagination={false}
                   dataSource={plan.blockers}
                   columns={[
-                    { width: 140, title: '插件ID', dataIndex: 'pluginId', ellipsis: true },
-                    { width: 140, title: '依赖插件', dataIndex: 'dependencyId', ellipsis: true },
+                    {
+                      width: 140,
+                      title: t('pluginAdmin:id'),
+                      dataIndex: 'pluginId',
+                      ellipsis: true,
+                    },
+                    {
+                      width: 140,
+                      title: t('system:requiredPlugin'),
+                      dataIndex: 'dependencyId',
+                      ellipsis: true,
+                    },
                     {
                       width: 150,
                       align: 'center',
-                      title: '状态',
+                      title: t('common:status'),
                       dataIndex: 'status',
                       render: (value) => (
                         <PluginTag type="danger">{getPlanBlockerStatusLabel(value)}</PluginTag>
                       ),
                     },
-                    { width: 320, title: '说明', dataIndex: 'message', ellipsis: true },
+                    {
+                      width: 320,
+                      title: t('common:description'),
+                      dataIndex: 'message',
+                      ellipsis: true,
+                    },
                   ]}
                 />
                 {plan.capabilityBlockers.map((item, index) => (
@@ -203,7 +230,7 @@ export default function PluginPlanDialog({
           },
           {
             key: 'executed',
-            label: '执行结果',
+            label: t('monitor:executionResult'),
             children: (
               <>
                 <Descriptions
@@ -211,10 +238,10 @@ export default function PluginPlanDialog({
                   column={4}
                   style={{ marginBottom: 16 }}
                   items={Object.entries({
-                    total: '总数',
-                    succeeded: '成功',
-                    failed: '失败',
-                    skipped: '跳过',
+                    total: t('system:total'),
+                    succeeded: t('common:success'),
+                    failed: t('common:failed'),
+                    skipped: t('system:skipped'),
                   }).map(([key, label]) => ({
                     key,
                     label,
@@ -232,23 +259,28 @@ export default function PluginPlanDialog({
                   size="small"
                   bordered
                   scroll={{ x: 890 }}
-                  locale={{ emptyText: '暂无执行记录' }}
+                  locale={{ emptyText: t('system:noExecutionRecords') }}
                   rowKey="pluginId"
                   dataSource={batch.executed}
                   pagination={false}
                   columns={[
-                    { width: 140, title: '插件ID', dataIndex: 'pluginId', ellipsis: true },
+                    {
+                      width: 140,
+                      title: t('pluginAdmin:id'),
+                      dataIndex: 'pluginId',
+                      ellipsis: true,
+                    },
                     {
                       width: 90,
                       align: 'center',
-                      title: '操作',
+                      title: t('common:actions'),
                       dataIndex: 'operation',
                       render: operation,
                     },
                     {
                       width: 90,
                       align: 'center',
-                      title: '状态',
+                      title: t('common:status'),
                       render: (_, row) => (
                         <PluginTag type={row.ok ? 'success' : 'danger'}>
                           {row.status || '-'}
@@ -258,12 +290,22 @@ export default function PluginPlanDialog({
                     {
                       width: 90,
                       align: 'center',
-                      title: '耗时',
+                      title: t('monitor:job.duration'),
                       dataIndex: 'durationMs',
                       render: (value) => `${value ?? '-'}ms`,
                     },
-                    { width: 220, title: '说明', dataIndex: 'message', ellipsis: true },
-                    { width: 260, title: '建议', dataIndex: 'suggestion', ellipsis: true },
+                    {
+                      width: 220,
+                      title: t('common:description'),
+                      dataIndex: 'message',
+                      ellipsis: true,
+                    },
+                    {
+                      width: 260,
+                      title: t('common:suggestion'),
+                      dataIndex: 'suggestion',
+                      ellipsis: true,
+                    },
                   ]}
                 />
               </>

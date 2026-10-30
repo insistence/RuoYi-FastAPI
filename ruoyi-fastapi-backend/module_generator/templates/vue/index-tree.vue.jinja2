@@ -2,7 +2,7 @@
 {% macro picker(column, model, vue3=True, range=False) -%}
 {% set date_format = 'YYYY-MM-DD' if vue3 else 'yyyy-MM-dd' %}
 {% if column.time_kind == 'instant' and not range %}
-<business-date-time-picker v-model="{{ model }}" :timezone="getTimeFieldsTimezone({{ model.rsplit('.', 1)[0] }})" label="{{ column.column_comment }}" />
+<business-date-time-picker v-model="{{ model }}" :timezone="getTimeFieldsTimezone({{ model.rsplit('.', 1)[0] }})" :label="$t('{{ i18nFieldKey(column) }}')" />
 {% elif column.time_kind == 'time' %}
 <el-time-picker
   v-model="{{ model }}"
@@ -10,7 +10,7 @@
   value-format="HH:mm:ss.SSS"
   format="HH:mm:ss"
   clearable
-  placeholder="请选择{{ column.column_comment }}"
+  :placeholder="$t('{{ i18nFieldKey(column, "select") }}')"
 />
 {% else %}
 <el-date-picker
@@ -19,10 +19,10 @@
   value-format="{{ date_format }}{{ ' HH:mm:ss' if not range and column.time_kind == 'instant' else '' }}"
   {% if range %}
   range-separator="-"
-  start-placeholder="开始日期"
-  end-placeholder="结束日期"
+  :start-placeholder="$t('common:startDate')"
+  :end-placeholder="$t('common:endDate')"
   {% else %}
-  placeholder="请选择{{ column.column_comment }}"
+  :placeholder="$t('{{ i18nFieldKey(column, "select") }}')"
   {% endif %}
   clearable
 />
@@ -30,7 +30,7 @@
 {%- endmacro %}
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="68px">
+    <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="auto">
       {% for column in columns %}
       {% if column.query %}
       {% set dictType = column.dict_type %}
@@ -38,17 +38,17 @@
       {% set parentheseIndex = column.column_comment.find("（") %}
       {% set comment = column.column_comment[:parentheseIndex] if parentheseIndex != -1 else column.column_comment %}
       {% if column.html_type == "input" %}
-      <el-form-item label="{{ comment }}" prop="{{ column.python_field }}">
+      <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ column.python_field }}">
         <el-input
           v-model="queryParams.{{ column.python_field }}"
-          placeholder="请输入{{ comment }}"
+          :placeholder="$t('{{ i18nFieldKey(column, "input") }}')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       {% elif (column.html_type == "select" or column.html_type == "radio") and dictType %}
-      <el-form-item label="{{ comment }}" prop="{{ column.python_field }}">
-        <el-select v-model="queryParams.{{ column.python_field }}" placeholder="请选择{{ comment }}" clearable>
+      <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ column.python_field }}">
+        <el-select v-model="queryParams.{{ column.python_field }}" :placeholder="$t('{{ i18nFieldKey(column, "select") }}')" clearable>
           <el-option
             v-for="dict in dict.type.{{ dictType }}"
             :key="dict.value"
@@ -58,25 +58,25 @@
         </el-select>
       </el-form-item>
       {% elif (column.html_type == "select" or column.html_type == "radio") and not dictType %}
-      <el-form-item label="{{ comment }}" prop="{{ column.python_field }}">
-        <el-select v-model="queryParams.{{ column.python_field }}" placeholder="请选择{{ comment }}" clearable>
-          <el-option label="请选择字典生成" value="" />
+      <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ column.python_field }}">
+        <el-select v-model="queryParams.{{ column.python_field }}" :placeholder="$t('{{ i18nFieldKey(column, "select") }}')" clearable>
+          <el-option :label="$t('{{ i18nText('dictionary.configure', '请选择字典生成', 'Configure a dictionary') }}')" value="" />
         </el-select>
       </el-form-item>
       {% elif column.time_kind and column.query_type != "BETWEEN" %}
-      <el-form-item label="{{ comment }}" prop="{{ column.python_field }}">
+      <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ column.python_field }}">
         {{ picker(column, "queryParams." ~ column.python_field ~ "", False, False) | indent(10) }}
       </el-form-item>
       {% elif column.time_kind and column.query_type == "BETWEEN" %}
-      <el-form-item label="{{ comment }}">
+      <el-form-item :label="$t('{{ i18nFieldKey(column) }}')">
         {{ picker(column, "daterange" ~ AttrName ~ "", False, True) | indent(10) }}
       </el-form-item>
       {% endif %}
       {% endif %}
       {% endfor %}
       <el-form-item>
-        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
-        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
+        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">{% raw %}{{{% endraw %} $t('common:search') {% raw %}}}{% endraw %}</el-button>
+        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">{% raw %}{{{% endraw %} $t('common:reset') {% raw %}}}{% endraw %}</el-button>
       </el-form-item>
     </el-form>
 
@@ -89,7 +89,7 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['{{ moduleName }}:{{ businessName }}:add']"
-        >新增</el-button>
+        >{% raw %}{{{% endraw %} $t('common:add') {% raw %}}}{% endraw %}</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -98,7 +98,7 @@
           icon="el-icon-sort"
           size="mini"
           @click="toggleExpandAll"
-        >展开/折叠</el-button>
+        >{% raw %}{{{% endraw %} $t('common:expandCollapse') {% raw %}}}{% endraw %}</el-button>
       </el-col>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
@@ -117,19 +117,19 @@
       {% set comment = column.column_comment[:parentheseIndex] if parentheseIndex != -1 else column.column_comment %}
       {% if column.pk %}
       {% elif column.list and column.time_kind == "instant" %}
-      <el-table-column label="{{ comment }}" align="center" prop="{{ pythonField }}" width="180">
+      <el-table-column :label="$t('{{ i18nFieldKey(column) }}')" align="center" prop="{{ pythonField }}" width="180">
         <template slot-scope="scope">
           <span>{% raw %}{{{% endraw %} parseTime(scope.row.{{ pythonField }}) {% raw %}}}{% endraw %}</span>
         </template>
       </el-table-column>
       {% elif column.list and column.html_type == "imageUpload" %}
-      <el-table-column label="{{ comment }}" align="center" prop="{{ pythonField }}" width="100">
+      <el-table-column :label="$t('{{ i18nFieldKey(column) }}')" align="center" prop="{{ pythonField }}" width="100">
         <template slot-scope="scope">
           <image-preview :src="scope.row.{{ pythonField }}" :width="50" :height="50"/>
         </template>
       </el-table-column>
       {% elif column.list and column.dict_type %}
-      <el-table-column label="{{ comment }}" align="center" prop="{{ pythonField }}">
+      <el-table-column :label="$t('{{ i18nFieldKey(column) }}')" align="center" prop="{{ pythonField }}">
         <template slot-scope="scope">
           {% if column.html_type == "checkbox" %}
             <dict-tag :options="{{ column.dict_type }}" :value="scope.row.{{ pythonField }} ? scope.row.{{ pythonField }}.split(',') : []"/>
@@ -140,13 +140,13 @@
       </el-table-column>
       {% elif column.list and pythonField %}
       {% if loop.index == 1 %}
-      <el-table-column label="{{ comment }}" prop="{{ pythonField }}" />
+      <el-table-column :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ pythonField }}" />
       {% else %}
-      <el-table-column label="{{ comment }}" align="center" prop="{{ pythonField }}" />
+      <el-table-column :label="$t('{{ i18nFieldKey(column) }}')" align="center" prop="{{ pythonField }}" />
       {% endif %}
       {% endif %}
       {% endfor %}
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column :label="$t('common:actions')" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           {% if genView %}
           <el-button
@@ -155,7 +155,7 @@
             icon="el-icon-view"
             @click="handleViewData(scope.row)"
             v-hasPermi="['{{ moduleName }}:{{ businessName }}:query']"
-          >详情</el-button>
+          >{% raw %}{{{% endraw %} $t('common:details') {% raw %}}}{% endraw %}</el-button>
           {% endif %}
           <el-button
             size="mini"
@@ -163,21 +163,21 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['{{ moduleName }}:{{ businessName }}:edit']"
-          >修改</el-button>
+          >{% raw %}{{{% endraw %} $t('common:edit') {% raw %}}}{% endraw %}</el-button>
           <el-button
             size="mini"
             type="text"
             icon="el-icon-plus"
             @click="handleAdd(scope.row)"
             v-hasPermi="['{{ moduleName }}:{{ businessName }}:add']"
-          >新增</el-button>
+          >{% raw %}{{{% endraw %} $t('common:add') {% raw %}}}{% endraw %}</el-button>
           <el-button
             size="mini"
             type="text"
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['{{ moduleName }}:{{ businessName }}:remove']"
-          >删除</el-button>
+          >{% raw %}{{{% endraw %} $t('common:delete') {% raw %}}}{% endraw %}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -195,7 +195,7 @@
     {% set dialogWidth = "500px" %}
     {% endif %}
     <el-dialog :title="title" :visible.sync="open" width="{{ dialogWidth }}" append-to-body>
-      <el-form ref="form" :model="form" :rules="rules" label-width="100px">
+      <el-form :validate-on-rule-change="false" ref="form" :model="form" :rules="rules" label-width="auto">
         <el-row>
       {% for column in columns %}
       {% set field = column.python_field %}
@@ -206,38 +206,38 @@
       {% set dictType = column.dict_type %}
       {% if treeParentCode and column.python_field == treeParentCode %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ treeParentCode }}">
-              <treeselect v-model="form.{{ treeParentCode }}" :options="{{ businessName }}Options" :normalizer="normalizer" placeholder="请选择{{ comment }}" />
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ treeParentCode }}">
+              <treeselect v-model="form.{{ treeParentCode }}" :options="{{ businessName }}Options" :normalizer="normalizer" :placeholder="$t('{{ i18nFieldKey(column, "select") }}')" />
             </el-form-item>
           </el-col>
       {% elif column.html_type == "input" %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
-              <el-input v-model="form.{{ field }}" placeholder="请输入{{ comment }}" />
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
+              <el-input v-model="form.{{ field }}" :placeholder="$t('{{ i18nFieldKey(column, "input") }}')" />
             </el-form-item>
           </el-col>
       {% elif column.html_type == "imageUpload" %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
               <image-upload v-model="form.{{ field }}"/>
             </el-form-item>
           </el-col>
       {% elif column.html_type == "fileUpload" %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
               <file-upload v-model="form.{{ field }}"/>
             </el-form-item>
           </el-col>
       {% elif column.html_type == "editor" %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="24">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
               <editor v-model="form.{{ field }}" :min-height="192"/>
             </el-form-item>
           </el-col>
       {% elif column.html_type == "select" and dictType %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
-              <el-select v-model="form.{{ field }}" placeholder="请选择{{ comment }}">
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
+              <el-select v-model="form.{{ field }}" :placeholder="$t('{{ i18nFieldKey(column, "select") }}')">
                 <el-option
                   v-for="dict in dict.type.{{ dictType }}"
                   :key="dict.value"
@@ -253,15 +253,15 @@
           </el-col>
       {% elif column.html_type == "select" and not dictType %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
-              <el-select v-model="form.{{ field }}" placeholder="请选择{{ comment }}">
-                <el-option label="请选择字典生成" value="" />
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
+              <el-select v-model="form.{{ field }}" :placeholder="$t('{{ i18nFieldKey(column, "select") }}')">
+                <el-option :label="$t('{{ i18nText('dictionary.configure', '请选择字典生成', 'Configure a dictionary') }}')" value="" />
               </el-select>
             </el-form-item>
           </el-col>
       {% elif column.html_type == "checkbox" and dictType %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
               <el-checkbox-group v-model="form.{{ field }}">
                 <el-checkbox
                   v-for="dict in dict.type.{{ dictType }}"
@@ -274,15 +274,15 @@
           </el-col>
       {% elif column.html_type == "checkbox" and not dictType %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
               <el-checkbox-group v-model="form.{{ field }}">
-                <el-checkbox>请选择字典生成</el-checkbox>
+                <el-checkbox label="">{% raw %}{{{% endraw %} $t('{{ i18nText('dictionary.configure', '请选择字典生成', 'Configure a dictionary') }}') {% raw %}}}{% endraw %}</el-checkbox>
               </el-checkbox-group>
             </el-form-item>
           </el-col>
       {% elif column.html_type == "radio" and dictType %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
               <el-radio-group v-model="form.{{ field }}">
                 <el-radio
                   v-for="dict in dict.type.{{ dictType }}"
@@ -299,22 +299,22 @@
           </el-col>
       {% elif column.html_type == "radio" and not dictType %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
               <el-radio-group v-model="form.{{ field }}">
-                <el-radio label="请选择字典生成" value="" />
+                <el-radio label="">{% raw %}{{{% endraw %} $t('{{ i18nText('dictionary.configure', '请选择字典生成', 'Configure a dictionary') }}') {% raw %}}}{% endraw %}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
       {% elif column.time_kind %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="{{ colSpan }}">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
               {{ picker(column, "form." ~ field ~ "", False, False) | indent(10) }}
             </el-form-item>
           </el-col>
       {% elif column.html_type == "textarea" %}
           <el-col v-if="renderField({{ column.insert | lower }}, {{ column.edit | lower }})" :span="24">
-            <el-form-item label="{{ comment }}" prop="{{ field }}">
-              <el-input v-model="form.{{ field }}" type="textarea" placeholder="请输入内容" />
+            <el-form-item :label="$t('{{ i18nFieldKey(column) }}')" prop="{{ field }}">
+              <el-input v-model="form.{{ field }}" type="textarea" :placeholder="$t('common:contentPlaceholder')" />
             </el-form-item>
           </el-col>
       {% endif %}
@@ -325,8 +325,8 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm">{% raw %}{{{% endraw %} $t('common:confirm') {% raw %}}}{% endraw %}</el-button>
+          <el-button @click="cancel">{% raw %}{{{% endraw %} $t('common:cancel') {% raw %}}}{% endraw %}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -334,6 +334,7 @@
 </template>
 
 <script>
+import { t } from "@/i18n/adapter";
 import BusinessDateTimePicker from "@/components/BusinessDateTimePicker";
 import { list{{ BusinessName }}, get{{ BusinessName }}, del{{ BusinessName }}, add{{ BusinessName }}, update{{ BusinessName }} } from "@/api/{{ moduleName }}/{{ businessName }}";
 import { {% if hasUserDateQuery %}getDisplayTimezone, {% endif %}getTimeFieldsTimezone, prepareTimeFields, formatBusinessTime, serializeTimeFieldsForSubmit } from "@/utils/time";
@@ -365,7 +366,7 @@ export default {
       // {{ functionName }}树选项
       {{ businessName }}Options: [],
       // 弹出层标题
-      title: "",
+      dialogMode: "create",
       // 是否显示弹出层
       open: false,
       // 是否展开，默认全部展开
@@ -375,7 +376,7 @@ export default {
       {% for column in columns %}
       {% if column.time_kind and column.query_type == "BETWEEN" %}
       {% set AttrName = column.python_field[0] | upper + column.python_field[1:] %}
-      // {{ comment }}时间范围
+      // {{ column.column_comment }}时间范围
       daterange{{ AttrName }}: [],
       {% endif %}
       {% endfor %}
@@ -396,17 +397,22 @@ export default {
         {% set parentheseIndex = column.column_comment.find("（") %}
         {% set comment = column.column_comment[:parentheseIndex] if parentheseIndex != -1 else column.column_comment %}
         {{ column.python_field }}: [
-          { required: true, message: "{{ comment }}不能为空", trigger: "{% if column.html_type == 'select' or column.html_type == 'radio' %}change{% else %}blur{% endif %}" }
+          { required: true, get message() { return t('{{ i18nFieldKey(column, "required") }}'); }, trigger: "{% if column.html_type == 'select' or column.html_type == 'radio' %}change{% else %}blur{% endif %}" }
         ],
         {% endif %}
         {% endfor %}
       }
     };
   },
-{% if hasUserDateQuery %}
   computed: {
+    title() {
+      return this.dialogMode === 'edit' ? t('{{ i18nKey("editTitle") }}') : t('{{ i18nKey("createTitle") }}');
+    },
+{% if hasUserDateQuery %}
     displayTimezone() { return getDisplayTimezone(); }
+{% endif %}
   },
+{% if hasUserDateQuery %}
   watch: {
     displayTimezone() { this.handleQuery(); }
   },
@@ -457,7 +463,7 @@ export default {
     getTreeselect() {
       list{{ BusinessName }}().then(response => {
         this.{{ businessName }}Options = [];
-        const data = { {{ treeCode }}: 0, {{ treeName }}: '顶级节点', children: [] };
+        const data = { {{ treeCode }}: 0, get {{ treeName }}() { return t('{{ i18nText("tree.root", "顶级节点", "Root") }}'); }, children: [] };
         data.children = this.handleTree(response.data, "{{ treeCode }}", "{{ treeParentCode }}");
         this.{{ businessName }}Options.push(data);
       });
@@ -505,7 +511,7 @@ export default {
         this.form.{{ treeParentCode }} = 0;
       }
       this.open = true;
-      this.title = "添加{{ functionName }}";
+      this.dialogMode = "create";
     },
     /** 展开/折叠操作 */
     toggleExpandAll() {
@@ -536,7 +542,7 @@ export default {
         {% endif %}
         {% endfor %}
         this.open = true;
-        this.title = "修改{{ functionName }}";
+        this.dialogMode = "edit";
       });
     },
     /** 提交按钮 */
@@ -564,13 +570,13 @@ export default {
           {% endif %}
           if (this.form.{{ pkColumn.python_field }} != null) {
             update{{ BusinessName }}(submitData).then(response => {
-              this.$modal.msgSuccess("修改成功");
+              this.$modal.msgSuccess(t('common:updateSuccess'));
               this.open = false;
               this.getList();
             });
           } else {
             add{{ BusinessName }}(submitData).then(response => {
-              this.$modal.msgSuccess("新增成功");
+              this.$modal.msgSuccess(t('common:addSuccess'));
               this.open = false;
               this.getList();
             });
@@ -580,11 +586,11 @@ export default {
     },
     /** 删除按钮操作 */
     handleDelete(row) {
-      this.$modal.confirm('是否确认删除{{ functionName }}编号为"' + row.{{ pkColumn.python_field }} + '"的数据项？').then(function() {
+      this.$modal.confirm(t('{{ i18nKey("deleteConfirm") }}', { ids: row.{{ pkColumn.python_field }} })).then(function() {
         return del{{ BusinessName }}(row.{{ pkColumn.python_field }});
       }).then(() => {
         this.getList();
-        this.$modal.msgSuccess("删除成功");
+        this.$modal.msgSuccess(t('common:deleteSuccess'));
       }).catch(() => {});
     },
     /** 是否渲染字段 */

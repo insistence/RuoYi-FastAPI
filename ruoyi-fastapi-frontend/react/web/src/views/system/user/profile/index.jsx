@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { Card, Col, Row, Tabs } from 'antd'
 import { PageLoading } from '@/components/LoadingProgress'
@@ -11,6 +13,8 @@ import ResetPwd from './resetPwd'
 import TimezoneSettings from './timezoneSettings'
 import './style.css'
 export default function Profile({ params = {} }) {
+  useI18n()
+
   const [result, setResult] = useState(null),
     [selectedTab, setSelectedTab] = useState(params.activeTab || 'userinfo')
   async function getUser() {
@@ -33,7 +37,7 @@ export default function Profile({ params = {} }) {
           md={6}
         >
           <Card
-            title="个人信息"
+            title={t('system:profile')}
             className="profile-card"
           >
             <div className="profile-avatar">
@@ -41,16 +45,16 @@ export default function Profile({ params = {} }) {
             </div>
             <ul className="profile-info-list">
               {[
-                ['user', '用户名称', user.userName],
-                ['phone', '手机号码', user.phonenumber],
-                ['email', '用户邮箱', user.email],
+                ['user', t('system:user.username'), user.userName],
+                ['phone', t('system:user.phone'), user.phonenumber],
+                ['email', t('system:userEmail'), user.email],
                 [
                   'tree',
-                  '所属部门',
+                  t('system:user.department'),
                   user.dept ? `${user.dept.deptName} / ${result.postGroup || ''}` : '',
                 ],
-                ['peoples', '所属角色', result.roleGroup],
-                ['date', '创建日期', parseTime(user.createTime) || '-'],
+                ['peoples', t('system:roles'), result.roleGroup],
+                ['date', t('common:createdDate'), parseTime(user.createTime) || '-'],
               ].map(([icon, label, value]) => (
                 <li key={label}>
                   <SvgIcon iconClass={icon} />
@@ -66,7 +70,7 @@ export default function Profile({ params = {} }) {
           md={18}
         >
           <Card
-            title="基本资料"
+            title={t('system:basicProfile')}
             className="profile-card"
           >
             <Tabs
@@ -75,7 +79,7 @@ export default function Profile({ params = {} }) {
               items={[
                 {
                   key: 'userinfo',
-                  label: '基本资料',
+                  label: t('system:basicProfile'),
                   children: (
                     <UserInfo
                       user={user}
@@ -83,10 +87,10 @@ export default function Profile({ params = {} }) {
                     />
                   ),
                 },
-                { key: 'resetPwd', label: '修改密码', children: <ResetPwd /> },
+                { key: 'resetPwd', label: t('layout:changePassword'), children: <ResetPwd /> },
                 {
                   key: 'timezone',
-                  label: '时区设置',
+                  label: t('system:timeZoneSettings'),
                   children: (
                     <TimezoneSettings
                       user={user}

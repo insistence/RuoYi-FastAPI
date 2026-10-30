@@ -1,25 +1,34 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useRef, useState } from 'react'
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Input, InputNumber, Radio, Select } from 'antd'
 import { parseCronField, serializeCronField } from './model'
 
-const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'].map(
-  (label, index) => ({ label, value: index + 1 })
-)
-const months = [
-  '一月',
-  '二月',
-  '三月',
-  '四月',
-  '五月',
-  '六月',
-  '七月',
-  '八月',
-  '九月',
-  '十月',
-  '十一月',
-  '十二月',
+const weekdays = () =>
+  [
+    t('common:sunday'),
+    t('common:monday'),
+    t('common:tuesday'),
+    t('common:wednesday'),
+    t('common:thursday'),
+    t('common:friday'),
+    t('common:saturday'),
+  ].map((label, index) => ({ label, value: index + 1 }))
+const months = () => [
+  t('common:january'),
+  t('common:february'),
+  t('common:march'),
+  t('common:april'),
+  t('common:may'),
+  t('common:june'),
+  t('common:july'),
+  t('common:august'),
+  t('common:september'),
+  t('common:october'),
+  t('common:november'),
+  t('common:december'),
 ]
 
 function initialState(value, min, name) {
@@ -38,6 +47,8 @@ function initialState(value, min, name) {
 }
 
 export default function CronField({ name, label, min, max, value, onChange }) {
+  useI18n()
+
   const [state, setState] = useState(() => initialState(value, min, name))
   const emitted = useRef(value)
   useEffect(() => {
@@ -83,7 +94,7 @@ export default function CronField({ name, label, min, max, value, onChange }) {
       <span className="cron-number">
         <Button
           type="text"
-          aria-label={`减少${title}`}
+          aria-label={t('common:decreaseValue', { title })}
           icon={<MinusOutlined />}
           disabled={state[key] <= lower}
           onClick={() => change(state[key] - 1)}
@@ -99,7 +110,7 @@ export default function CronField({ name, label, min, max, value, onChange }) {
         />
         <Button
           type="text"
-          aria-label={`增加${title}`}
+          aria-label={t('common:increaseValue', { title })}
           icon={<PlusOutlined />}
           disabled={state[key] >= upper}
           onClick={() => change(state[key] + 1)}
@@ -107,7 +118,7 @@ export default function CronField({ name, label, min, max, value, onChange }) {
       </span>
     )
   }
-  const weekday = (key, title, options = weekdays) => (
+  const weekday = (key, title, options = weekdays()) => (
     <Select
       className="cron-weekday"
       aria-label={title}
@@ -134,30 +145,40 @@ export default function CronField({ name, label, min, max, value, onChange }) {
   const yearStart = Math.min(new Date().getFullYear(), ...state.values)
   const options =
     name === 'week'
-      ? weekdays
+      ? weekdays()
       : Array.from({ length: max - (name === 'year' ? yearStart : min) + 1 }, (_, index) => {
           const value = index + (name === 'year' ? yearStart : min)
-          return { label: name === 'month' ? months[value - 1] : String(value), value }
+          return { label: name === 'month' ? months()[value - 1] : String(value), value }
         })
   const rows = [
-    ...(name === 'year' ? [row('omit', `不填，允许的通配符[${wildcard}]`)] : []),
-    row('every', name === 'year' ? '每年' : `${label}，允许的通配符[${wildcard}]`),
-    ...(['day', 'week'].includes(name) ? [row('omit', '不指定')] : []),
+    ...(name === 'year'
+      ? [row('omit', t('common:leaveBlankSupportedWildcardsValue', { wildcard }))]
+      : []),
+    row(
+      'every',
+      name === 'year'
+        ? t('common:everyYear')
+        : t('common:valueSupportedWildcardsValue', { label, wildcard })
+    ),
+    ...(['day', 'week'].includes(name) ? [row('omit', t('common:notSpecified'))] : []),
     row(
       'range',
-      '周期从',
+      t('common:rangeFrom'),
       <>
         {name === 'week'
-          ? weekday('rangeStart', '周周期开始', weekdays.slice(0, -1))
-          : number('rangeStart', `${label}周期开始`, min, max - 1)}
+          ? weekday('rangeStart', t('common:startWeekday'), weekdays().slice(0, -1))
+          : number('rangeStart', t('common:startValue', { label }), min, max - 1)}
         <span>-</span>
         {name === 'week'
           ? weekday(
               'rangeEnd',
-              '周周期结束',
-              weekdays.map((option) => ({ ...option, disabled: option.value <= state.rangeStart }))
+              t('common:endWeekday'),
+              weekdays().map((option) => ({
+                ...option,
+                disabled: option.value <= state.rangeStart,
+              }))
             )
-          : number('rangeEnd', `${label}周期结束`, state.rangeStart + 1, max)}
+          : number('rangeEnd', t('common:endValue', { label }), state.rangeStart + 1, max)}
         {!['week', 'year'].includes(name) && <span>{label}</span>}
       </>
     ),
@@ -165,12 +186,23 @@ export default function CronField({ name, label, min, max, value, onChange }) {
       ? [
           row(
             'step',
-            '从',
+            t('common:from'),
             <>
-              {number('stepStart', `${label}间隔开始`, min, max - 1)}
-              <span>{name === 'day' ? '号' : label}开始，每</span>
-              {number('stepEvery', `${label}执行间隔`, 1, Math.max(1, max - state.stepStart))}
-              <span>{label}执行一次</span>
+              {number('stepStart', t('common:startValueInterval', { label }), min, max - 1)}
+              <span>
+                {name === 'day' ? t('common:Crontab.day') : label}
+                {t('common:startingEvery')}
+              </span>
+              {number(
+                'stepEvery',
+                t('common:valueInterval', { label }),
+                1,
+                Math.max(1, max - state.stepStart)
+              )}
+              <span>
+                {label}
+                {t('common:runOnce')}
+              </span>
             </>
           ),
         ]
@@ -179,39 +211,45 @@ export default function CronField({ name, label, min, max, value, onChange }) {
       ? [
           row(
             'workday',
-            '每月',
+            t('common:everyMonth'),
             <>
-              {number('day', '最近工作日日期', 1, 31)}
-              <span>号最近的那个工作日</span>
+              {number('day', t('common:nearestWeekdayDate'), 1, 31)}
+              <span>{t('common:nearestWeekday')}</span>
             </>
           ),
-          row('lastDay', '本月最后一天'),
-          ...(state.mode === 'lastWorkday' ? [row('lastWorkday', '本月最后工作日')] : []),
+          row('lastDay', t('common:lastDayOfTheMonth')),
+          ...(state.mode === 'lastWorkday'
+            ? [row('lastWorkday', t('common:lastWeekdayOfTheMonth'))]
+            : []),
         ]
       : []),
     ...(name === 'week'
       ? [
           row(
             'nthWeekday',
-            '第',
+            t('common:number'),
             <>
-              {number('occurrence', '第几周', 1, 5)}
-              <span>周的</span>
-              {weekday('nthWeekday', '第几周的星期')}
+              {number('occurrence', t('common:weekNumber'), 1, 5)}
+              <span>{t('common:on')}</span>
+              {weekday('nthWeekday', t('common:dayOfTheSelectedWeek'))}
             </>
           ),
-          row('lastWeekday', '本月最后一个', weekday('lastWeekday', '最后一个星期')),
+          row(
+            'lastWeekday',
+            t('common:lastInTheMonth'),
+            weekday('lastWeekday', t('common:lastWeekday'))
+          ),
         ]
       : []),
     row(
       'values',
-      '指定',
+      t('common:specified'),
       <Select
         className="cron-values"
-        placeholder="可多选"
+        placeholder={t('common:multipleSelect')}
         mode="multiple"
         allowClear
-        aria-label={`${label}指定值`}
+        aria-label={t('common:selectedValueValues', { label })}
         value={state.values}
         options={options}
         onChange={(values) => update({ values })}
@@ -221,10 +259,10 @@ export default function CronField({ name, label, min, max, value, onChange }) {
       ? [
           row(
             'custom',
-            '自定义',
+            t('common:custom'),
             <Input
               value={value}
-              aria-label={`${label}表达式`}
+              aria-label={t('common:valueExpression', { label })}
               onChange={(event) => {
                 emitted.current = event.target.value
                 onChange(event.target.value)

@@ -3,6 +3,7 @@
     class="navbar"
     :class="'nav' + navType"
   >
+    <LanguageSelect />
     <hamburger
       id="hamburger-container"
       :is-active="sidebar.opened"
@@ -38,7 +39,7 @@
         />
 
         <el-tooltip
-          content="源码地址"
+          :content="$t('layout:navbar.source')"
           effect="dark"
           placement="bottom"
         >
@@ -49,7 +50,7 @@
         </el-tooltip>
 
         <el-tooltip
-          content="文档地址"
+          :content="$t('layout:navbar.docs')"
           effect="dark"
           placement="bottom"
         >
@@ -65,7 +66,7 @@
         />
 
         <el-tooltip
-          content="布局大小"
+          :content="$t('layout:navbar.size')"
           effect="dark"
           placement="bottom"
         >
@@ -76,7 +77,7 @@
         </el-tooltip>
 
         <el-tooltip
-          content="消息通知"
+          :content="$t('layout:navbar.notices')"
           effect="dark"
           placement="bottom"
         >
@@ -100,22 +101,22 @@
         </div>
         <el-dropdown-menu slot="dropdown">
           <router-link to="/user/profile">
-            <el-dropdown-item>个人中心</el-dropdown-item>
+            <el-dropdown-item>{{ $t('layout:routes.profile') }}</el-dropdown-item>
           </router-link>
           <el-dropdown-item
             @click.native="setLayout"
             v-if="setting"
           >
-            <span>布局设置</span>
+            <span>{{ $t('layout:navbar.settings') }}</span>
           </el-dropdown-item>
           <el-dropdown-item @click.native="lockScreen">
-            <span>锁定屏幕</span>
+            <span>{{ $t('layout:routes.lock') }}</span>
           </el-dropdown-item>
           <el-dropdown-item
             divided
             @click.native="logout"
           >
-            <span>退出登录</span>
+            <span>{{ $t('layout:navbar.signOut') }}</span>
           </el-dropdown-item>
         </el-dropdown-menu>
       </el-dropdown>
@@ -124,6 +125,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { mapGetters } from 'vuex'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from './TopNav'
@@ -183,9 +186,9 @@ export default {
       })
     },
     logout() {
-      this.$confirm('确定注销并退出系统吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      this.$confirm(t('layout:navbar.signOutConfirm'), t('common:tip'), {
+        confirmButtonText: t('common:confirm'),
+        cancelButtonText: t('common:cancel'),
         type: 'warning',
       })
         .then(() => {

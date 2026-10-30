@@ -36,7 +36,7 @@ class CheckUserInterfaceAuth:
                     return True
             elif any(perm_str in user_auth_list for perm_str in self.perm):
                 return True
-        raise PermissionException(data='', message='该用户无此接口权限')
+        raise PermissionException(data='', message='该用户无此接口权限', msg_key='auth.apiForbidden')
 
 
 class CheckRoleInterfaceAuth:
@@ -69,7 +69,7 @@ class CheckRoleInterfaceAuth:
                     return True
             elif any(role_key_str in user_role_key_list for role_key_str in self.role_key):
                 return True
-        raise PermissionException(data='', message='该用户无此接口权限')
+        raise PermissionException(data='', message='该用户无此接口权限', msg_key='auth.apiForbidden')
 
 
 def UserInterfaceAuthDependency(perm: str | list, is_strict: bool = False) -> params.Depends:  # noqa: N802

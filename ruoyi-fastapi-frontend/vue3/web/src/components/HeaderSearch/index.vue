@@ -7,7 +7,7 @@
     />
     <el-dialog
       v-model="show"
-      width="600"
+      width="min(600px, calc(100vw - 32px))"
       @close="close"
       @opened="onDialogOpened"
       :show-close="false"
@@ -19,7 +19,7 @@
         size="large"
         @input="querySearch"
         prefix-icon="Search"
-        placeholder="菜单搜索，支持标题、URL模糊查询"
+        :placeholder="$t('layout:search.placeholder')"
         clearable
         @keyup.enter="selectActiveResult"
         @keydown.up.prevent="navigateResult('up')"
@@ -31,7 +31,7 @@
         class="result-count"
         v-if="search && options.length > 0"
       >
-        找到 <strong>{{ options.length }}</strong> 个结果
+        {{ $t('layout:search.results', { count: options.length }) }}
       </div>
 
       <div class="result-wrap">
@@ -57,14 +57,22 @@
                 class="search-info"
                 @click="change(item)"
               >
-                <div
-                  class="menu-title"
-                  v-html="highlightText(item.title.join(' / '))"
-                ></div>
-                <div
-                  class="menu-path"
-                  v-html="highlightText(item.path)"
-                ></div>
+                <div class="menu-title">
+                  <span
+                    v-for="(part, partIndex) in highlightText(item.title.join(' / '))"
+                    :key="partIndex"
+                    :class="{ highlight: part.matched }"
+                    >{{ part.text }}</span
+                  >
+                </div>
+                <div class="menu-path">
+                  <span
+                    v-for="(part, partIndex) in highlightText(item.path)"
+                    :key="partIndex"
+                    :class="{ highlight: part.matched }"
+                    >{{ part.text }}</span
+                  >
+                </div>
               </div>
               <svg-icon
                 icon-class="enter"
@@ -79,18 +87,19 @@
           >
             <el-icon class="empty-icon"><Search /></el-icon>
             <p class="empty-text">
-              未找到 "<strong>{{ search }}</strong
-              >" 相关菜单
+              {{ $t('layout:search.noResults', { query: search }) }}
             </p>
-            <p class="empty-tip">试试其他关键词或路径</p>
+            <p class="empty-tip">{{ $t('layout:search.tryAgain') }}</p>
           </div>
         </el-scrollbar>
       </div>
 
       <div class="search-footer">
-        <span class="shortcut-item"> <kbd>↑</kbd><kbd>↓</kbd> 切换 </span>
-        <span class="shortcut-item"> <kbd>↵</kbd> 选择 </span>
-        <span class="shortcut-item"> <kbd>Esc</kbd> 关闭 </span>
+        <span class="shortcut-item">
+          <kbd>↑</kbd><kbd>↓</kbd> {{ $t('layout:search.navigate') }}
+        </span>
+        <span class="shortcut-item"> <kbd>↵</kbd> {{ $t('layout:search.select') }} </span>
+        <span class="shortcut-item"> <kbd>Esc</kbd> {{ $t('layout:search.close') }} </span>
       </div>
     </el-dialog>
   </div>
@@ -98,6 +107,7 @@
 
 <script setup>
 import Fuse from 'fuse.js'
+import { resolveRouteTitle } from '@/i18n/adapter'
 import { getNormalPath } from '@/utils/ruoyi'
 import { isHttp } from '@/utils/validate'
 import useSettingsStore from '@/store/modules/settings'
@@ -105,7 +115,6 @@ import usePermissionStore from '@/store/modules/permission'
 
 const search = ref('')
 const options = ref([])
-const searchPool = ref([])
 const activeIndex = ref(-1)
 const show = ref(false)
 const fuse = ref(undefined)
@@ -113,6 +122,7 @@ const headerSearchSelectRef = ref(null)
 const router = useRouter()
 const theme = computed(() => useSettingsStore().theme)
 const routes = computed(() => usePermissionStore().defaultRoutes)
+const searchPool = computed(() => generateRoutes(routes.value))
 
 function click() {
   show.value = !show.value
@@ -187,8 +197,8 @@ function generateRoutes(routes, basePath = '', prefixTitle = []) {
       title: [...prefixTitle],
       icon: '',
     }
-    if (r.meta && r.meta.title) {
-      data.title = [...data.title, r.meta.title]
+    if (r.meta && (r.meta.title || r.meta.titleKey)) {
+      data.title = [...data.title, resolveRouteTitle(r)]
       data.icon = r.meta.icon
       if (r.redirect !== 'noRedirect') {
         res.push(data)
@@ -248,24 +258,24 @@ function selectActiveResult() {
 }
 
 function highlightText(text) {
-  if (!text) return ''
-  if (!search.value) return text
+  if (!search.value) return [{ text, matched: false }]
   const keyword = escapeRegExp(search.value)
   const reg = new RegExp(`(${keyword})`, 'gi')
-  return text.replace(reg, '<span class="highlight">$1</span>')
+  return text.split(reg).map((part, index) => ({ text: part, matched: index % 2 === 1 }))
 }
 
 function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-onMounted(() => {
-  searchPool.value = generateRoutes(routes.value)
-})
-
-watch(searchPool, (list) => {
-  initFuse(list)
-})
+watch(
+  searchPool,
+  (list) => {
+    initFuse(list)
+    querySearch(search.value)
+  },
+  { immediate: true }
+)
 </script>
 
 <style lang="scss" scoped>

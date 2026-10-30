@@ -1,3 +1,4 @@
+import { i18n, t as translate } from '../i18n/index.js'
 import { PLUGIN_BRIDGE_MAX_BYTES, PLUGIN_BRIDGE_MAX_STREAM_BYTES } from './pluginBridge.js'
 
 /**
@@ -7,7 +8,7 @@ import { PLUGIN_BRIDGE_MAX_BYTES, PLUGIN_BRIDGE_MAX_STREAM_BYTES } from './plugi
  * @param {ReadableStream<Uint8Array>} body 响应字节流
  * @returns {AsyncGenerator<Object>} 按服务端顺序解析的事件
  */
-export async function* readPluginSse(body) {
+export async function* readPluginSse(body, t = translate) {
   const reader = body.getReader()
   const decoder = new TextDecoder('utf-8', { fatal: true })
   const encoder = new TextEncoder()
@@ -20,7 +21,7 @@ export async function* readPluginSse(body) {
   let id = ''
   const consume = () => {
     size += encoder.encode(line).byteLength + 1
-    if (size > PLUGIN_BRIDGE_MAX_BYTES) throw new Error('事件内容超过 64 KiB')
+    if (size > PLUGIN_BRIDGE_MAX_BYTES) throw new Error(t('common:eventContentExceeds64Kib'))
     if (!line) {
       const value = data.length ? { event: event || 'message', data: data.join('\n'), id } : null
       data = []
@@ -45,7 +46,8 @@ export async function* readPluginSse(body) {
         break
       }
       total += chunk.value.byteLength
-      if (total > PLUGIN_BRIDGE_MAX_STREAM_BYTES) throw new Error('事件流超过 10 MiB')
+      if (total > PLUGIN_BRIDGE_MAX_STREAM_BYTES)
+        throw new Error(t('common:eventStreamExceeds10Mib'))
       let text = decoder.decode(chunk.value, { stream: true })
       if (!text) continue
       if (skipLf && text.startsWith('\n')) text = text.slice(1)
@@ -60,7 +62,7 @@ export async function* readPluginSse(body) {
       }
       line += text.slice(offset)
       if (size + encoder.encode(line).byteLength > PLUGIN_BRIDGE_MAX_BYTES)
-        throw new Error('事件内容超过 64 KiB')
+        throw new Error(t('common:eventContentExceeds64Kib'))
     }
   } finally {
     try {
@@ -83,10 +85,14 @@ export function createPluginSseTransport({
   shouldEncryptRequest,
   serializeParams,
   getTimezone,
+  getLocaleHeaders = () => ({}),
   fetchImpl = globalThis.fetch,
   origin = globalThis.location?.origin,
 }) {
   return async function* ({ url, params, lastEventId, csrfToken, signal }) {
+    const localeHeaders = { ...getLocaleHeaders() }
+    const timezone = getTimezone()
+    const t = i18n.engine.getFixedT(localeHeaders['Accept-Language'] || i18n.locale)
     const endpoint = new URL(url, origin)
     if (
       endpoint.origin !== origin ||
@@ -95,10 +101,11 @@ export function createPluginSseTransport({
       endpoint.search ||
       endpoint.hash
     )
-      throw new Error('实时接口地址无效')
+      throw new Error(t('common:invalidLiveApiUrl'))
     const policy = await loadPolicy()
-    if (shouldEncryptRequest({ url }, policy)) throw new Error('实时接口尚未配置传输策略例外')
-    if (signal.aborted) throw new Error('实时连接已取消')
+    if (shouldEncryptRequest({ url }, policy))
+      throw new Error(t('common:theLiveApiHasNoConfiguredTransportPolicyException'))
+    if (signal.aborted) throw new Error(t('common:liveConnectionCancelled'))
     endpoint.search = serializeParams(params || {})
     const response = await fetchImpl(endpoint.href, {
       method: 'GET',
@@ -106,9 +113,10 @@ export function createPluginSseTransport({
       redirect: 'error',
       cache: 'no-store',
       headers: {
+        ...localeHeaders,
         Accept: 'text/event-stream',
         'X-Plugin-CSRF': csrfToken,
-        'X-Timezone': getTimezone(),
+        'X-Timezone': timezone,
         ...(lastEventId ? { 'Last-Event-ID': lastEventId } : {}),
       },
       signal,
@@ -120,11 +128,11 @@ export function createPluginSseTransport({
       !response.body
     ) {
       await response.body?.cancel()
-      throw new Error('实时接口响应无效')
+      throw new Error(t('common:invalidLiveApiResponse'))
     }
-    for await (const event of readPluginSse(response.body)) {
+    for await (const event of readPluginSse(response.body, t)) {
       if (event.event === 'ruoyi.plugin.closed') {
-        const error = new Error('实时连接已由宿主关闭')
+        const error = new Error(t('common:theHostClosedTheLiveConnection'))
         error.name = 'PluginStreamClosedError'
         throw error
       }

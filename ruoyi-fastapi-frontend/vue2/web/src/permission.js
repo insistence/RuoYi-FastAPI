@@ -32,7 +32,6 @@ router.beforeEach(async (to, from, next) => {
     return next(authCenterRedirect)
   }
   if (getToken()) {
-    to.meta.title && store.dispatch('settings/setTitle', to.meta.title)
     const isLock = store.getters.isLock
     /* has token*/
     if (to.path === '/login') {

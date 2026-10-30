@@ -51,7 +51,7 @@ class DemoModeMiddleware(BaseHTTPMiddleware):
                 logger.warning(
                     '请求IP:{}||请求API:{}||请求方法:{}||请求结果:演示模式，不允许操作！', operate_ip, url_path, method
                 )
-                return ResponseUtil.failure(msg='演示模式，不允许操作！')
+                return ResponseUtil.failure(msg='演示模式，不允许操作！', msg_key='common.demoReadOnly')
         response = await call_next(request)
         return response
 

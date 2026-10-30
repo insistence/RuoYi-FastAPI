@@ -1,3 +1,8 @@
+export type PluginBridgeTranslator = (key: string, options?: Record<string, unknown>) => string
+
+/** 注入当前应用的翻译函数，清空后使用 SDK 默认信息。 */
+export function setPluginBridgeTranslator(translator?: PluginBridgeTranslator | null): void
+
 export const PLUGIN_BRIDGE_NAMESPACE: 'ruoyi.plugin'
 /** SDK 源码交付版本，独立于桥消息协议版本。 */
 export const PLUGIN_BRIDGE_SDK_VERSION: '1.0.0'

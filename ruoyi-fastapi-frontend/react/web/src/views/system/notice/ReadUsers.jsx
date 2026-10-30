@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import Pagination from '@/components/Pagination'
 import './style.css'
@@ -7,7 +10,10 @@ import Table from '@/components/Table'
 import { listNoticeReadUsers } from '@/api/system/notice'
 import { parseTime } from '@/utils/ruoyi'
 export default function ReadUsers({ row, onClose }) {
+  useI18n()
+
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   const [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
     [rows, setRows] = useState([]),
     [total, setTotal] = useState(0),
@@ -38,7 +44,7 @@ export default function ReadUsers({ row, onClose }) {
   return (
     <Modal
       className="notice-read-users"
-      title={`「${row?.noticeTitle || ''}」已读用户`}
+      title={t('system:usersWhoReadValue', { arg0: row?.noticeTitle || '' })}
       open={!!row}
       onCancel={onClose}
       footer={null}
@@ -54,7 +60,7 @@ export default function ReadUsers({ row, onClose }) {
         <Form.Item name="searchValue">
           <Input
             prefix={<SearchOutlined />}
-            placeholder="登录名称 / 用户名称"
+            placeholder={t('system:loginNameUserName')}
             allowClear
             style={{ width: 220 }}
             onClear={() => {
@@ -70,7 +76,7 @@ export default function ReadUsers({ row, onClose }) {
               type="primary"
               htmlType="submit"
             >
-              搜索
+              {t('common:search')}
             </Button>
             <Button
               icon={<ReloadOutlined />}
@@ -79,12 +85,12 @@ export default function ReadUsers({ row, onClose }) {
                 form.submit()
               }}
             >
-              重置
+              {t('common:reset')}
             </Button>
           </Space>
         </Form.Item>
         <span className="read-stat">
-          共 <strong>{total}</strong> 人已读
+          {t('common:total')} <strong>{total}</strong> {t('system:readers')}
         </span>
       </Form>
       <Table
@@ -94,15 +100,30 @@ export default function ReadUsers({ row, onClose }) {
         loading={loading}
         dataSource={rows}
         columns={[
-          { title: '序号', width: 55, align: 'center', render: (_, row, index) => index + 1 },
-          { align: 'center', title: '登录名称', dataIndex: 'userName', ellipsis: true },
-          { title: '用户名称', dataIndex: 'nickName', align: 'center', ellipsis: true },
-          { align: 'center', title: '所属部门', dataIndex: 'deptName', ellipsis: true },
-          { title: '手机号码', dataIndex: 'phonenumber', width: 120, align: 'center' },
+          {
+            title: t('common:index'),
+            width: 55,
+            align: 'center',
+            render: (_, row, index) => index + 1,
+          },
+          { align: 'center', title: t('system:loginName'), dataIndex: 'userName', ellipsis: true },
+          {
+            title: t('system:user.username'),
+            dataIndex: 'nickName',
+            align: 'center',
+            ellipsis: true,
+          },
+          {
+            align: 'center',
+            title: t('system:user.department'),
+            dataIndex: 'deptName',
+            ellipsis: true,
+          },
+          { title: t('system:user.phone'), dataIndex: 'phonenumber', width: 120, align: 'center' },
           {
             width: 160,
             align: 'center',
-            title: '阅读时间',
+            title: t('system:readAt'),
             dataIndex: 'readTime',
             render: (value) => parseTime(value),
           },

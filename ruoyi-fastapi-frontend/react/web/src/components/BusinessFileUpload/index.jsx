@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Button, List, Progress, Space, Tag, Tooltip, Upload } from 'antd'
@@ -21,6 +23,8 @@ export default function BusinessFileUpload({
   disabled = false,
   drag = true,
 }) {
+  useI18n()
+
   const [files, setFiles] = useState(() => normalizeFiles(value))
   const [pending, setPending] = useState([])
   const saved = useRef(files),
@@ -110,7 +114,7 @@ export default function BusinessFileUpload({
     } catch (error) {
       if (!mounted.current) return
       entry.status = 'failed'
-      entry.error = error.message || '上传失败，请重试'
+      entry.error = error.message || t('file:uploadFailedPleaseTryAgain')
       options.onError?.(error)
     } finally {
       syncPending()
@@ -140,13 +144,15 @@ export default function BusinessFileUpload({
             return { abort: () => active.current.get(options.file.uid)?.controller?.abort() }
           }}
         >
-          <Button icon={<UploadOutlined />}>选择文件</Button>
+          <Button icon={<UploadOutlined />}>{t('file:chooseFile')}</Button>
         </Upload>
       )}
       {isShowTip && !disabled && (
         <small>
-          请上传{fileSize > 0 && `大小不超过 ${fileSize} MB、`}
-          {fileType.length > 0 && `格式为 ${fileType.join('/')} 的`}文件，最多上传 {limit} 个
+          {t('file:upload')}
+          {fileSize > 0 && t('file:upToValueMb', { fileSize })}
+          {fileType.length > 0 && t('file:inValueFormat', { arg0: fileType.join('/') })}
+          {t('file:filesUpTo')} {limit} {t('file:items')}
         </small>
       )}
       {!!files.length && (
@@ -177,7 +183,7 @@ export default function BusinessFileUpload({
                   type="link"
                   onClick={() => download.file(file.url)}
                 >
-                  下载
+                  {t('common:download')}
                 </Button>,
                 ...(!disabled
                   ? [
@@ -189,7 +195,7 @@ export default function BusinessFileUpload({
                           publish(saved.current.filter((item) => item.fileId !== file.fileId))
                         }
                       >
-                        删除
+                        {t('common:delete')}
                       </Button>,
                     ]
                   : []),
@@ -198,7 +204,7 @@ export default function BusinessFileUpload({
                       <Button
                         key="up"
                         type="text"
-                        aria-label={`上移 ${file.name}`}
+                        aria-label={t('file:moveValueUp', { name: file.name })}
                         disabled={index === 0}
                         icon={<UpOutlined />}
                         onClick={() => reorder(index, index - 1)}
@@ -206,7 +212,7 @@ export default function BusinessFileUpload({
                       <Button
                         key="down"
                         type="text"
-                        aria-label={`下移 ${file.name}`}
+                        aria-label={t('file:moveValueDown', { name: file.name })}
                         disabled={index === files.length - 1}
                         icon={<DownOutlined />}
                         onClick={() => reorder(index, index + 1)}
@@ -217,7 +223,7 @@ export default function BusinessFileUpload({
             >
               <div className="upload-file-label">
                 <span title={file.name}>{file.name}</span>
-                <Tag color="success">已上传</Tag>
+                <Tag color="success">{t('file:uploaded')}</Tag>
               </div>
             </List.Item>
           )}
@@ -241,7 +247,7 @@ export default function BusinessFileUpload({
                           if (reserve(file.raw)) void send(file.raw)
                         }}
                       >
-                        重试
+                        {t('common:retry')}
                       </Button>,
                       <Button
                         key="remove"
@@ -252,7 +258,7 @@ export default function BusinessFileUpload({
                           syncPending()
                         }}
                       >
-                        删除
+                        {t('common:delete')}
                       </Button>,
                     ]
                   : []
@@ -268,7 +274,7 @@ export default function BusinessFileUpload({
                   />
                 ) : (
                   <Tooltip title={file.error}>
-                    <Tag color="error">上传失败</Tag>
+                    <Tag color="error">{t('file:upload.failed')}</Tag>
                   </Tooltip>
                 )}
               </div>

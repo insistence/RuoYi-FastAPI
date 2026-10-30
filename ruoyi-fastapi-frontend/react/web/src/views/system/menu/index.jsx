@@ -1,3 +1,8 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import TranslationFields, { SourceLocaleLabel } from '@/components/TranslationFields'
+import { translationPatch, localizeOptions } from '@/i18n/entities.mjs'
+import { useI18n } from '@/i18n/adapter'
+import { i18n, t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import {
@@ -38,9 +43,13 @@ import RightToolbar from '@/components/RightToolbar'
 import './style.css'
 
 export default function Menu() {
+  useI18n()
+  const [originalTranslations, setOriginalTranslations] = useState({})
+
   const { sys_normal_disable, sys_show_hide } = useDict('sys_normal_disable', 'sys_show_hide')
   const [queryRef] = Form.useForm(),
     [menuRef] = Form.useForm()
+  useLocalizedFormErrors(queryRef, menuRef)
   const menuType = Form.useWatch('menuType', menuRef)
   const [rows, setRows] = useState([]),
     [orders, setOrders] = useState({}),
@@ -76,13 +85,14 @@ export default function Menu() {
           ...row,
           children: row.children && filter(row.children),
         }))
-    setMenuOptions([{ menuId: 0, menuName: '主类目', children: filter(nodes) }])
+    setMenuOptions([{ menuId: 0, menuName: '', children: filter(nodes) }])
   }
   async function handleAdd(parent) {
     try {
       await loadOptions()
       setMenuId(undefined)
       menuRef.resetFields()
+      setOriginalTranslations({})
       menuRef.setFieldsValue({
         parentId: parent?.menuId || 0,
         menuType: 'M',
@@ -100,24 +110,27 @@ export default function Menu() {
       const [, result] = await Promise.all([loadOptions(row.menuId), getMenu(row.menuId)])
       setMenuId(row.menuId)
       menuRef.resetFields()
+      setOriginalTranslations({})
       menuRef.setFieldsValue(result.data)
+      setOriginalTranslations(result.data.menuNameI18n || {})
       setOpen(true)
     } catch {}
   }
   async function handleDelete(row) {
     try {
-      await confirm(`是否确认删除名称为“${row.menuName}”的数据项？`)
+      await confirm(t('system:deleteTheItemNamedValue', { menuName: row.menuName }))
       await delMenu(row.menuId)
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       await getList()
     } catch {}
   }
   async function submitForm() {
     try {
       const values = await menuRef.validateFields()
+      values.menuNameI18n = translationPatch(values.menuNameI18n, originalTranslations)
       setSaving(true)
       await (menuId !== undefined ? updateMenu({ ...values, menuId }) : addMenu(values))
-      message.success('保存成功')
+      message.success(t('system:savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -130,40 +143,42 @@ export default function Menu() {
       (row) =>
         orders[row.menuId] !== undefined && String(orders[row.menuId]) !== String(row.orderNum)
     )
-    if (!changed.length) return message.warning('未检测到排序修改')
+    if (!changed.length) return message.warning(t('system:noSortOrderChangesDetected'))
     try {
       await updateMenuSort({
         menuIds: changed.map((row) => row.menuId).join(','),
         orderNums: changed.map((row) => orders[row.menuId]).join(','),
       })
-      message.success('排序保存成功')
+      message.success(t('system:sortOrderSaved'))
       await getList()
     } catch {}
   }
   const columns = [
     {
-      title: '菜单名称',
+      title: t('system:menu.name'),
       dataIndex: 'menuName',
       width: 220,
       ellipsis: true,
       render: (value, row) => (
-        <span title={value}>
+        <span title={i18n.resolveText(value, row.menuNameI18n)}>
           <SvgIcon iconClass={row.icon} />
-          <span style={{ marginLeft: 5 }}>{value}</span>
+          <span style={{ marginLeft: 5 }}>{i18n.resolveText(value, row.menuNameI18n)}</span>
         </span>
       ),
     },
     {
-      title: '类型',
+      title: t('common:type'),
       dataIndex: 'menuType',
       width: 100,
       render: (value, row) => {
         const [label, color] =
           (value === 'M' || value === 'C') && String(row.isFrame) === '0'
-            ? ['外链', 'error']
-            : { M: ['目录', 'processing'], C: ['菜单', 'success'], F: ['按钮', 'warning'] }[
-                value
-              ] || []
+            ? [t('system:menu.external'), 'error']
+            : {
+                M: [t('system:menu.directory'), 'processing'],
+                C: [t('system:menu.menu'), 'success'],
+                F: [t('system:menu.button'), 'warning'],
+              }[value] || []
         return label ? (
           <Tag
             className="dict-tag menu-type-tag"
@@ -175,7 +190,7 @@ export default function Menu() {
       },
     },
     {
-      title: '排序',
+      title: t('common:sort'),
       dataIndex: 'orderNum',
       width: 200,
       render: (value, row) => (
@@ -190,10 +205,10 @@ export default function Menu() {
         />
       ),
     },
-    { title: '权限标识', dataIndex: 'perms', ellipsis: true },
-    { title: '组件路径', dataIndex: 'component', ellipsis: true },
+    { title: t('system:menu.permission'), dataIndex: 'perms', ellipsis: true },
+    { title: t('system:menu.component'), dataIndex: 'component', ellipsis: true },
     {
-      title: '状态',
+      title: t('common:status'),
       dataIndex: 'status',
       width: 80,
       render: (value) => (
@@ -206,7 +221,7 @@ export default function Menu() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 210,
       render: (_, row) => (
         <TableActions>
@@ -215,7 +230,7 @@ export default function Menu() {
               symbol="Edit"
               onClick={() => handleUpdate(row)}
             >
-              修改
+              {t('common:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:menu:add']}>
@@ -223,7 +238,7 @@ export default function Menu() {
               symbol="Plus"
               onClick={() => handleAdd(row)}
             >
-              新增
+              {t('common:add')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:menu:remove']}>
@@ -231,7 +246,7 @@ export default function Menu() {
               symbol="Delete"
               onClick={() => handleDelete(row)}
             >
-              删除
+              {t('common:delete')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -249,21 +264,21 @@ export default function Menu() {
         >
           <Form.Item
             name="menuName"
-            label="菜单名称"
+            label={<SourceLocaleLabel>{t('system:menu.name')}</SourceLocaleLabel>}
           >
             <Input
               style={{ width: 200 }}
-              placeholder="请输入菜单名称"
+              placeholder={t('system:menu.placeholder')}
               allowClear
             />
           </Form.Item>
           <Form.Item
             name="status"
-            label="状态"
+            label={t('common:status')}
           >
             <Select
               style={{ width: 200 }}
-              placeholder="菜单状态"
+              placeholder={t('system:menuStatus')}
               allowClear
               options={sys_normal_disable}
             />
@@ -275,7 +290,7 @@ export default function Menu() {
                 htmlType="submit"
                 type="primary"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -284,7 +299,7 @@ export default function Menu() {
                   setQuery({})
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -298,7 +313,7 @@ export default function Menu() {
             type="default"
             onClick={() => handleAdd()}
           >
-            新增
+            {t('common:add')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:menu:edit']}>
@@ -308,7 +323,7 @@ export default function Menu() {
             type="default"
             onClick={handleSaveSort}
           >
-            保存排序
+            {t('system:saveSortOrder')}
           </Button>
         </HasPermi>
         <Button
@@ -316,7 +331,7 @@ export default function Menu() {
           type="default"
           onClick={() => setExpanded(expanded.length ? [] : rows.map((row) => row.menuId))}
         >
-          展开 / 折叠
+          {t('system:expandCollapse')}
         </Button>
         <RightToolbar
           showSearch={showSearch}
@@ -344,7 +359,7 @@ export default function Menu() {
               <button
                 type="button"
                 className="menu-tree-toggle"
-                aria-label={`${expanded ? '收起' : '展开'}${record.menuName}`}
+                aria-label={`${expanded ? t('common:collapse') : t('common:expand')}${record.menuName}`}
                 aria-expanded={expanded}
                 onClick={(event) => onExpand(record, event)}
               >
@@ -358,7 +373,7 @@ export default function Menu() {
       />
       <Modal
         footer={renderDialogFooter}
-        title={menuId !== undefined ? '修改菜单' : '添加菜单'}
+        title={menuId !== undefined ? t('system:menu.edit') : t('system:menu.add')}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
@@ -381,20 +396,27 @@ export default function Menu() {
               sm={24}
             >
               <Form.Item
-                label="上级菜单"
+                label={t('system:menu.parent')}
                 name="parentId"
               >
                 <TreeSelect
-                  placeholder="选择上级菜单"
+                  placeholder={t('system:chooseAParentMenu')}
                   fieldNames={{
                     value: 'menuId',
-                    label: 'menuName',
+                    label: 'label',
                     children: 'children',
                   }}
-                  treeData={menuOptions}
+                  treeData={localizeOptions(
+                    menuOptions,
+                    i18n.resolveText,
+                    'menuName',
+                    'menuNameI18n'
+                  ).map((node) =>
+                    node.menuId === 0 ? { ...node, label: t('system:menu.root') } : node
+                  )}
                   treeDefaultExpandAll
                   showSearch
-                  treeNodeFilterProp="menuName"
+                  treeNodeFilterProp="label"
                 />
               </Form.Item>
             </Col>
@@ -404,13 +426,13 @@ export default function Menu() {
             >
               <Form.Item
                 name="menuType"
-                label="菜单类型"
+                label={t('system:menu.type')}
               >
                 <Radio.Group
                   options={[
-                    { value: 'M', label: '目录' },
-                    { value: 'C', label: '菜单' },
-                    { value: 'F', label: '按钮' },
+                    { value: 'M', label: t('system:menu.directory') },
+                    { value: 'C', label: t('system:menu.menu') },
+                    { value: 'F', label: t('system:menu.button') },
                   ]}
                 />
               </Form.Item>
@@ -422,9 +444,9 @@ export default function Menu() {
               >
                 <Form.Item
                   name="icon"
-                  label="菜单图标"
+                  label={t('system:menuIcon')}
                 >
-                  <IconSelect placeholder="点击选择图标" />
+                  <IconSelect placeholder={t('common:clickToChooseAnIcon')} />
                 </Form.Item>
               </Col>
             )}
@@ -434,7 +456,7 @@ export default function Menu() {
             >
               <Form.Item
                 name="orderNum"
-                label="显示排序"
+                label={t('system:dept.order')}
                 rules={[{ required: true }]}
               >
                 <InputNumber
@@ -449,11 +471,17 @@ export default function Menu() {
             >
               <Form.Item
                 name="menuName"
-                label="菜单名称"
+                label={<SourceLocaleLabel>{t('system:menu.name')}</SourceLocaleLabel>}
                 rules={[{ required: true }]}
               >
-                <Input placeholder="请输入菜单名称" />
+                <Input placeholder={t('system:menu.placeholder')} />
               </Form.Item>
+            </Col>
+            <Col span={24}>
+              <TranslationFields
+                name="menuNameI18n"
+                label={t('system:menu.name')}
+              />
             </Col>
             {menuType === 'C' && (
               <Col
@@ -464,12 +492,12 @@ export default function Menu() {
                   name="routeName"
                   label={
                     <FormLabel
-                      label="路由名称"
-                      help="默认不填则和路由地址相同：如地址为：`user`，则名称为`User`（注意：因为router会删除名称相同路由，为避免名字的冲突，特殊情况下请自定义，保证唯一性）"
+                      label={t('system:routeName')}
+                      help={t('system:defaultsToTheRoutePathWithItsFirstLetterCapitalized')}
                     />
                   }
                 >
-                  <Input placeholder="请输入路由名称" />
+                  <Input placeholder={t('system:enterARouteName')} />
                 </Form.Item>
               </Col>
             )}
@@ -482,15 +510,15 @@ export default function Menu() {
                   name="isFrame"
                   label={
                     <FormLabel
-                      label="是否外链"
-                      help="选择是外链则路由地址需要以`http(s)://`开头"
+                      label={t('system:externalLink')}
+                      help={t('system:externalLinkPathsMustStartWithHttpOrHttps')}
                     />
                   }
                 >
                   <Radio.Group
                     options={[
-                      { value: 0, label: '是' },
-                      { value: 1, label: '否' },
+                      { value: 0, label: t('common:yes') },
+                      { value: 1, label: t('common:no') },
                     ]}
                   />
                 </Form.Item>
@@ -505,13 +533,13 @@ export default function Menu() {
                   name="path"
                   label={
                     <FormLabel
-                      label="路由地址"
-                      help="访问的路由地址，如：`user`，如外网地址需内链访问则以`http(s)://`开头"
+                      label={t('system:routePath')}
+                      help={t('system:routePathEGUserToEmbedAnExternalPage')}
                     />
                   }
                   rules={[{ required: true }]}
                 >
-                  <Input placeholder="请输入路由地址" />
+                  <Input placeholder={t('system:enterARoutePath')} />
                 </Form.Item>
               </Col>
             )}
@@ -524,12 +552,12 @@ export default function Menu() {
                   name="component"
                   label={
                     <FormLabel
-                      label="组件路径"
-                      help="访问的组件路径，如：`system/user/index`，默认在`views`目录下"
+                      label={t('system:menu.component')}
+                      help={t('system:componentPathRelativeToViewsEGSystemUserIndex')}
                     />
                   }
                 >
-                  <Input placeholder="请输入组件路径" />
+                  <Input placeholder={t('system:enterAComponentPath')} />
                 </Form.Item>
               </Col>
             )}
@@ -542,13 +570,15 @@ export default function Menu() {
                   name="perms"
                   label={
                     <FormLabel
-                      label="权限字符"
-                      help="控制器中定义的权限字符，如：UserInterfaceAuthDependency('system:user:list')"
+                      label={t('system:permission.code')}
+                      help={t(
+                        'system:permissionDefinedInTheControllerEGUserinterfaceauthdependencySystemUser'
+                      )}
                     />
                   }
                 >
                   <Input
-                    placeholder="请输入权限标识"
+                    placeholder={t('system:enterAPermissionIdentifier')}
                     maxLength={100}
                   />
                 </Form.Item>
@@ -563,13 +593,13 @@ export default function Menu() {
                   name="query"
                   label={
                     <FormLabel
-                      label="路由参数"
-                      help={'访问路由的默认传递参数，如：`{"id": 1, "name": "ry"}`'}
+                      label={t('system:routeParameters')}
+                      help={t('system:defaultParametersForThisRouteEGId1')}
                     />
                   }
                 >
                   <Input
-                    placeholder="请输入路由参数"
+                    placeholder={t('system:enterRouteParameters')}
                     maxLength={255}
                   />
                 </Form.Item>
@@ -584,15 +614,17 @@ export default function Menu() {
                   name="isCache"
                   label={
                     <FormLabel
-                      label="是否缓存"
-                      help="选择缓存则切换页面时保留页面状态；选择不缓存则重新加载页面。"
+                      label={t('system:cacheEnabled')}
+                      help={t(
+                        'system:cachingPreservesPageStateWhenSwitchingPagesDisablingCachingReloads'
+                      )}
                     />
                   }
                 >
                   <Radio.Group
                     options={[
-                      { value: 0, label: '缓存' },
-                      { value: 1, label: '不缓存' },
+                      { value: 0, label: t('system:cache') },
+                      { value: 1, label: t('system:doNotCache') },
                     ]}
                   />
                 </Form.Item>
@@ -607,8 +639,8 @@ export default function Menu() {
                   name="visible"
                   label={
                     <FormLabel
-                      label="显示状态"
-                      help="选择隐藏则路由将不会出现在侧边栏，但仍然可以访问"
+                      label={t('system:visibility')}
+                      help={t('system:hiddenRoutesRemainAccessibleButDoNotAppearInThe')}
                     />
                   }
                 >
@@ -624,8 +656,8 @@ export default function Menu() {
                 name="status"
                 label={
                   <FormLabel
-                    label="菜单状态"
-                    help="选择停用则路由将不会出现在侧边栏，也不能被访问"
+                    label={t('system:menuStatus')}
+                    help={t('system:disabledRoutesDoNotAppearInTheSidebarAndCannot')}
                   />
                 }
               >

@@ -19,6 +19,8 @@ class CrudResponseModel(BaseModel):
     is_success: bool = Field(description='操作是否成功')
     message: str = Field(description='响应信息')
     result: Any | None = Field(default=None, description='响应结果')
+    msg_key: str | None = Field(default=None, description='国际化消息标识')
+    msg_params: dict | None = Field(default=None, description='国际化消息插值参数')
 
 
 class ResponseBaseModel(BaseModel):
@@ -28,6 +30,8 @@ class ResponseBaseModel(BaseModel):
 
     code: int = Field(default=HttpStatusConstant.SUCCESS, description='响应码')
     msg: str = Field(default='操作成功', description='响应信息')
+    msg_key: str | None = Field(default=None, alias='msgKey', description='国际化消息标识')
+    msg_params: dict | None = Field(default=None, alias='msgParams', description='国际化消息插值参数')
     success: bool = Field(default=True, description='响应是否成功')
     time: ApiUtcDateTime = Field(default_factory=TimezoneUtil.utc_now, description='响应时间')
 

@@ -2,7 +2,6 @@ import { create } from 'zustand'
 const home = {
   key: '/index',
   fullPath: '/index',
-  label: '首页',
   icon: 'dashboard',
   closable: false,
 }
@@ -11,13 +10,27 @@ function restore() {
   try {
     const settings = JSON.parse(localStorage.getItem('react-layout-settings'))?.state
     if (settings?.tagsViewPersist) {
-      const tags = JSON.parse(localStorage.getItem('react-visited-views'))
+      const saved = JSON.parse(localStorage.getItem('react-visited-views'))
+      const tags = Array.isArray(saved) ? saved : saved?.version === 2 ? saved.items : []
       if (Array.isArray(tags))
         return [
           home,
-          ...tags.filter(
-            (tag) => tag.key !== '/index' && tag.key?.startsWith('/') && !tag.key.startsWith('//')
-          ),
+          ...tags
+            .filter(
+              (tag) =>
+                tag.key !== '/index' &&
+                tag.key?.startsWith('/') &&
+                !tag.key.startsWith('//') &&
+                !/[\\\u0000-\u001f]/.test(tag.key)
+            )
+            .map(({ key, fullPath, closable, icon, customTitle }) => ({
+              key,
+              fullPath:
+                typeof fullPath === 'string' && fullPath.split(/[?#]/)[0] === key ? fullPath : key,
+              closable,
+              icon,
+              ...(typeof customTitle === 'string' ? { customTitle } : {}),
+            })),
         ]
     }
   } catch {}
@@ -30,12 +43,22 @@ const useTagsViewStore = create((set, get) => ({
   addView(view) {
     const tags = get().visitedViews
     const prior = tags.find((tag) => tag.key === view.key)
-    if (prior && prior.fullPath === view.fullPath && prior.label === view.label) return
+    if (
+      prior &&
+      prior.fullPath === view.fullPath &&
+      (view.customTitle === undefined || prior.customTitle === view.customTitle) &&
+      (view.icon === undefined || prior.icon === view.icon)
+    )
+      return
     set({
       visitedViews: prior
         ? tags.map((tag) => (tag.key === view.key ? { ...tag, ...view } : tag))
         : [...tags, view],
     })
+  },
+  reconcileViews(isValid) {
+    const views = get().visitedViews.filter((view) => view.key === '/index' || isValid(view.key))
+    if (views.length !== get().visitedViews.length) set({ visitedViews: views })
   },
   // 固定标签不能通过关闭操作移除。
   closeView(key) {
@@ -76,7 +99,10 @@ function persistViews(state) {
   try {
     const settings = JSON.parse(localStorage.getItem('react-layout-settings'))?.state
     if (settings?.tagsViewPersist)
-      localStorage.setItem('react-visited-views', JSON.stringify(state.visitedViews))
+      localStorage.setItem(
+        'react-visited-views',
+        JSON.stringify({ version: 2, items: state.visitedViews })
+      )
     else localStorage.removeItem('react-visited-views')
   } catch {}
 }

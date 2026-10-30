@@ -1,3 +1,6 @@
+import { useLocalizedError } from '@/i18n/error'
+import { usePageLocale } from '@/i18n/navigation'
+import { t } from '@/i18n'
 import React, { useRef, useState } from 'react'
 import Taro, { useLoad } from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
@@ -8,6 +11,8 @@ import { usePageAuth } from '@/permission'
 import { getToken } from '@/utils/auth'
 import FormField from '@/components/FormField'
 export default function EditProfile() {
+  usePageLocale()
+
   const allowed = usePageAuth()
   const [user, setUser] = useState({
     nickName: '',
@@ -18,7 +23,7 @@ export default function EditProfile() {
   const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useLocalizedError()
   const update = (key, value) => setUser((old) => ({ ...old, [key]: value }))
   async function load() {
     if (!getToken()) return
@@ -33,18 +38,18 @@ export default function EditProfile() {
       setReady(true)
       setError('')
     } catch (failure) {
-      setError(failure.message || '资料加载失败')
+      setError(failure.message || (() => t('mobile:failedToLoadProfile')))
     }
   }
   useLoad(load)
   async function submit() {
     if (lock.current || !ready) return
     const message = !user.nickName?.trim()
-      ? '用户昵称不能为空'
+      ? () => t('mobile:nicknameIsRequired')
       : !/^1[3-9]\d{9}$/.test(user.phonenumber)
-        ? '请输入正确的手机号码'
+        ? () => t('mobile:enterAValidMobileNumber')
         : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)
-          ? '请输入正确的邮箱地址'
+          ? () => t('mobile:enterAValidEmailAddress')
           : ''
     if (message) {
       setError(message)
@@ -56,10 +61,10 @@ export default function EditProfile() {
     try {
       await updateUserProfile(user)
       await useUserStore.getState().getInfo()
-      await Taro.showToast({ title: '修改成功', icon: 'success' })
+      await Taro.showToast({ title: t('mobile:updatedSuccessfully'), icon: 'success' })
       Taro.navigateBack()
     } catch (failure) {
-      setError(failure.message || '修改失败')
+      setError(failure.message || (() => t('mobile:updateFailed')))
     } finally {
       lock.current = false
       setBusy(false)
@@ -69,36 +74,36 @@ export default function EditProfile() {
   return (
     <View className="mobile-page bg-white">
       <FormField
-        label="用户昵称"
-        placeholder="请输入昵称"
+        label={t('mobile:nickname')}
+        placeholder={t('mobile:enterYourNickname')}
         maxlength={30}
         value={user.nickName}
         onChange={(value) => update('nickName', value)}
       />
       <FormField
-        label="手机号码"
-        placeholder="请输入手机号码"
+        label={t('mobile:mobileNumber')}
+        placeholder={t('mobile:enterYourMobileNumber')}
         type="number"
         maxlength={11}
         value={user.phonenumber}
         onChange={(value) => update('phonenumber', value)}
       />
       <FormField
-        label="邮箱"
-        placeholder="请输入邮箱"
+        label={t('mobile:emailMineInfoEdit')}
+        placeholder={t('mobile:enterYourEmailAddress')}
         maxlength={50}
         value={user.email}
         onChange={(value) => update('email', value)}
       />
-      <Text className="mobile-label">性别</Text>
+      <Text className="mobile-label">{t('mobile:gender')}</Text>
       <View
         className="flex gap-4"
         role="group"
-        aria-label="性别"
+        aria-label={t('mobile:gender')}
       >
         {[
-          ['0', '男'],
-          ['1', '女'],
+          ['0', t('mobile:male')],
+          ['1', t('mobile:female')],
         ].map(([value, label]) => (
           <Button
             key={value}
@@ -112,14 +117,14 @@ export default function EditProfile() {
         ))}
       </View>
       {error && <Text className="mobile-error">{error}</Text>}
-      {!ready && <Button onClick={load}>重新加载</Button>}
+      {!ready && <Button onClick={load}>{t('mobile:reload')}</Button>}
       <Button
         className="mobile-button"
         disabled={busy || !ready}
         loading={busy}
         onClick={submit}
       >
-        提 交
+        {t('mobile:submit')}
       </Button>
     </View>
   )

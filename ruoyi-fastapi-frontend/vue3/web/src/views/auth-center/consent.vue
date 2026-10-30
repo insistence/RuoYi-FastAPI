@@ -9,11 +9,11 @@
       v-loading="initializing"
       class="auth-flow"
     >
-      <p class="panel-kicker">确认权限</p>
-      <h2>确认要分享的信息</h2>
+      <p class="panel-kicker">{{ $t('authCenter:confirmPermissions') }}</p>
+      <h2>{{ $t('authCenter:confirmWhatToShare') }}</h2>
       <p class="panel-lead">
         <strong>{{ applicationName }}</strong>
-        正在请求以下信息。必需信息用于完成本次访问，可选信息由你决定。
+        {{ $t('authCenter:isRequestingTheInformationBelowRequiredInformationIsNeededFor') }}
       </p>
       <el-alert
         v-if="errorMessage"
@@ -34,10 +34,10 @@
         >
           <div class="group-heading">
             <div>
-              <h3 id="required-scope-title">完成访问所需</h3>
-              <p>拒绝这些权限将无法继续进入应用</p>
+              <h3 id="required-scope-title">{{ $t('authCenter:requiredForAccess') }}</h3>
+              <p>{{ $t('authCenter:decliningThesePermissionsPreventsAccessToTheApp') }}</p>
             </div>
-            <span>{{ requiredScopes.length }} 项</span>
+            <span>{{ $t('authCenter:permissionCount', { count: requiredScopes.length }) }}</span>
           </div>
           <div class="scope-list">
             <label
@@ -54,24 +54,26 @@
                   <strong>{{ scope.name || scope.scope }}</strong>
                   <el-tooltip
                     v-if="scope.name && scope.name !== scope.scope"
-                    :content="`系统权限代码：${scope.scope}`"
+                    :content="$t('authCenter:permissionCodeValue', { scope: scope.scope })"
                     placement="top"
                   >
                     <el-icon
                       class="scope-help"
                       tabindex="0"
-                      aria-label="查看系统权限代码"
+                      :aria-label="$t('authCenter:viewPermissionCodes')"
                       ><QuestionFilled
                     /></el-icon>
                   </el-tooltip>
                 </span>
-                <small>{{ scope.description || '用于完成登录或提供应用的核心功能' }}</small>
+                <small>{{
+                  scope.description || $t('authCenter:usedToCompleteSignInOrProvideTheApplicationS')
+                }}</small>
               </span>
               <el-tag
                 size="small"
                 type="info"
                 effect="plain"
-                >必需</el-tag
+                >{{ $t('authCenter:required') }}</el-tag
               >
             </label>
           </div>
@@ -84,10 +86,15 @@
         >
           <div class="group-heading">
             <div>
-              <h3 id="optional-scope-title">由你选择</h3>
-              <p>不勾选也可以继续使用应用</p>
+              <h3 id="optional-scope-title">{{ $t('authCenter:yourChoice') }}</h3>
+              <p>{{ $t('authCenter:youCanUseTheAppWithoutSelectingThese') }}</p>
             </div>
-            <span>已选 {{ selectedOptionalCount }}/{{ optionalScopes.length }}</span>
+            <span>{{
+              $t('authCenter:selectedCount', {
+                selected: selectedOptionalCount,
+                total: optionalScopes.length,
+              })
+            }}</span>
           </div>
           <div class="scope-list">
             <label
@@ -101,25 +108,28 @@
                   <strong>{{ scope.name || scope.scope }}</strong>
                   <el-tooltip
                     v-if="scope.name && scope.name !== scope.scope"
-                    :content="`系统权限代码：${scope.scope}`"
+                    :content="$t('authCenter:permissionCodeValue', { scope: scope.scope })"
                     placement="top"
                   >
                     <el-icon
                       class="scope-help"
                       tabindex="0"
-                      aria-label="查看系统权限代码"
+                      :aria-label="$t('authCenter:viewPermissionCodes')"
                       ><QuestionFilled
                     /></el-icon>
                   </el-tooltip>
                 </span>
-                <small>{{ scope.description || '允许应用使用这项信息或能力' }}</small>
+                <small>{{
+                  scope.description ||
+                  $t('authCenter:allowTheApplicationToUseThisInformationOrCapability')
+                }}</small>
               </span>
               <el-tag
                 v-if="scope.sensitive"
                 size="small"
                 type="warning"
                 effect="plain"
-                >敏感信息</el-tag
+                >{{ $t('authCenter:sensitiveInformation') }}</el-tag
               >
             </label>
           </div>
@@ -129,11 +139,13 @@
       <label class="remember-card">
         <el-checkbox v-model="rememberConsent" />
         <span>
-          <strong>记住本次选择</strong>
-          <small>记住后可在已同意的范围内免于重复确认；不勾选也会保存可撤销的授权记录。</small>
-          <small v-if="selectedScopes.includes('offline_access')"
-            >持续访问允许应用在你不在线时续期，与是否记住本次选择无关。</small
-          >
+          <strong>{{ $t('authCenter:rememberMyChoices') }}</strong>
+          <small>{{
+            $t('authCenter:rememberingYourChoicesAvoidsRepeatedConfirmationForApprovedPermissionsA')
+          }}</small>
+          <small v-if="selectedScopes.includes('offline_access')">{{
+            $t('authCenter:offlineAccessAllowsTheAppToRenewAccessWhenYou')
+          }}</small>
         </span>
       </label>
 
@@ -142,14 +154,14 @@
           size="large"
           :disabled="submitting"
           @click="submit(false)"
-          >不允许并返回</el-button
+          >{{ $t('authCenter:declineAndReturn') }}</el-button
         >
         <el-button
           type="primary"
           size="large"
           :loading="submitting"
           @click="submit(true)"
-          >允许 {{ selectedScopes.length }} 项并继续</el-button
+          >{{ $t('authCenter:allowCount', { count: selectedScopes.length }) }}</el-button
         >
       </div>
       <div
@@ -161,7 +173,7 @@
           target="_blank"
           rel="noopener noreferrer"
           type="primary"
-          >查看该应用的隐私说明</el-link
+          >{{ $t('authCenter:viewThisAppSPrivacyPolicy') }}</el-link
         >
       </div>
     </div>
@@ -169,6 +181,7 @@
 </template>
 
 <script setup name="AuthCenterConsent">
+import { t } from '@/i18n/adapter'
 import { getInteraction, submitInteractionConsent } from '@/api/authCenter'
 import AuthCenterShell from './AuthCenterShell.vue'
 import { useInteractionContext } from './useInteraction'
@@ -182,7 +195,9 @@ const initializing = ref(true)
 const submitting = ref(false)
 const errorMessage = ref('')
 
-const applicationName = computed(() => interaction.value.client?.clientName || '发起登录的应用')
+const applicationName = computed(
+  () => interaction.value.client?.clientName || t('authCenter:appRequestingSignIn')
+)
 const requiredScopes = computed(() =>
   (interaction.value.requestedScopes || []).filter((item) => item.required)
 )
@@ -210,7 +225,7 @@ function safeExternalUrl(value) {
 /** 读取授权请求并初始化必选权限 */
 async function initialize() {
   if (!interactionId.value || !csrfToken()) {
-    return fatal('认证请求不完整，请返回应用重新登录')
+    return fatal(t('authCenter:theAuthenticationRequestIsIncompleteReturnToTheAppAnd'))
   }
   try {
     const response = await getInteraction(interactionId.value, csrfToken())
@@ -220,7 +235,7 @@ async function initialize() {
     }
     selectedScopes.value = requiredScopes.value.map((item) => item.scope)
   } catch (error) {
-    fatal(error?.message || '授权请求已失效')
+    fatal(error?.message || t('authCenter:theAuthorizationRequestHasExpired'))
   } finally {
     initializing.value = false
   }
@@ -240,7 +255,7 @@ async function submit(approved) {
     })
     await followServerRedirect(response.data?.redirectUrl)
   } catch (error) {
-    errorMessage.value = error?.message || '未能保存本次权限选择，请重试'
+    errorMessage.value = error?.message || t('authCenter:couldNotSaveYourPermissionChoicesTryAgain')
   } finally {
     submitting.value = false
   }

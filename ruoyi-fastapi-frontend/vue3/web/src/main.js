@@ -1,3 +1,10 @@
+import { setPluginBridgeTranslator } from '@/utils/pluginBridge'
+import LocalePlugin, { localeState, t } from '@/i18n/adapter'
+import { componentLocales } from '@/i18n/components'
+import LanguageSelect from '@/components/LanguageSelect/index.vue'
+import { i18n } from '@/i18n'
+import { registerGeneratedResources } from '@/i18n/generated.mjs'
+import { getToken } from '@/utils/auth'
 import { createApp } from 'vue'
 
 import Cookies from 'js-cookie'
@@ -5,7 +12,6 @@ import Cookies from 'js-cookie'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
-import locale from 'element-plus/es/locale/lang/zh-cn'
 
 import '@/assets/styles/index.scss' // global css
 
@@ -53,6 +59,11 @@ import ImagePreview from '@/components/ImagePreview'
 // 字典标签组件
 import DictTag from '@/components/DictTag'
 
+registerGeneratedResources(
+  i18n,
+  import.meta.glob('./i18n/locales/*/generated.*.json', { eager: true, import: 'default' })
+)
+
 const app = createApp(App)
 
 // 全局方法挂载
@@ -78,6 +89,10 @@ app.component('Editor', Editor)
 
 app.use(router)
 app.use(store)
+app.use(LocalePlugin)
+setPluginBridgeTranslator(t)
+app.component('LanguageSelect', LanguageSelect)
+i18n.initialize(Boolean(getToken()))
 app.use(plugins)
 app.use(elementIcons)
 app.component('svg-icon', SvgIcon)
@@ -86,7 +101,10 @@ directive(app)
 
 // 使用element-plus 并且设置全局的大小
 app.use(ElementPlus, {
-  locale: locale,
+  // 命令式弹窗也从全局配置读取当前语言。
+  get locale() {
+    return componentLocales[localeState.locale].element
+  },
   // 支持 large、default、small
   size: Cookies.get('size') || 'default',
 })

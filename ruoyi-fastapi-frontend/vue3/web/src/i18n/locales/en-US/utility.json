@@ -1,0 +1,70 @@
+{
+  "weekday": {
+    "sunday": "Sun",
+    "monday": "Mon",
+    "tuesday": "Tue",
+    "wednesday": "Wed",
+    "thursday": "Thu",
+    "friday": "Fri",
+    "saturday": "Sat"
+  },
+  "timezone": {
+    "invalid": "Invalid IANA time zone: {{timezoneName}}",
+    "invalidDateTime": "Invalid date and time: {{value}}",
+    "nonexistent": "{{value}} does not exist in {{timezoneName}}. Choose a valid time after the daylight saving transition.",
+    "ambiguous": "{{value}} occurs twice in {{timezoneName}}. Select a UTC offset.",
+    "invalidDate": "Invalid date: {{value}}",
+    "invalidField": "Field {{field}} contains an invalid RFC 3339 timestamp",
+    "occurrences": "{{message}}. First occurrence: {{arg1}}; second occurrence: {{arg2}}.",
+    "chooseOccurrence": "Choose a repeated time",
+    "enterOffset": "Enter {{arg0}}",
+    "or": " or ",
+    "offsetInvalid": "Enter one of the UTC offsets above",
+    "useTime": "Use selected time",
+    "editTime": "Go back and edit"
+  },
+  "crypto": {
+    "unavailable": "This browser does not support the Web Crypto API",
+    "publicKeyFailed": "Could not retrieve the transport public key",
+    "keyProtocol": "Unsupported transport public key protocol version",
+    "keyAlgorithm": "Unsupported transport public key algorithm",
+    "responseProtocol": "Unsupported transport response protocol version",
+    "responseAlgorithm": "Unsupported transport response algorithm",
+    "keyVersion": "Transport response key version mismatch",
+    "headerVersion": "Transport response header and body key versions do not match",
+    "aad": "Invalid transport response AAD",
+    "requestMismatch": "The transport response method/path does not match the request",
+    "direction": "Invalid transport response direction",
+    "queryLength": "Encrypted GET/DELETE parameters are too long. Use POST or reduce the query parameters.",
+    "missingContext": "Missing response decryption context",
+    "envelope": "Invalid transport response envelope"
+  },
+  "uri": {
+    "invalidType": "Invalid URI type",
+    "length": "URI must contain 1–1000 characters",
+    "wildcard": "Wildcards are not allowed in URIs",
+    "absolute": "URI must be an absolute HTTP or HTTPS address",
+    "userInfo": "URIs cannot contain user information",
+    "fragment": "URIs cannot contain fragments",
+    "http": "HTTP is allowed only for local development addresses",
+    "backChannelQuery": "Back-channel URIs cannot contain query parameters",
+    "cors": "CORS origins may contain only a scheme, host and port",
+    "redirectRequired": "Enter at least one redirect URI"
+  },
+  "request": {
+    "processing": "Processing data. Do not submit again",
+    "pluginFailure": "Plugin request failed. Try again",
+    "parameter": "Parameter",
+    "checkParameters": "Check the input parameters"
+  },
+  "relative": {
+    "format": "{m}/{d} {h}:{i}",
+    "justNow": "Just now",
+    "minutes_other": "{{count}} minutes ago",
+    "hours_other": "{{count}} hours ago",
+    "days_other": "{{count}} days ago",
+    "minutes_one": "{{count}} minute ago",
+    "hours_one": "{{count}} hour ago",
+    "days_one": "{{count}} day ago"
+  }
+}

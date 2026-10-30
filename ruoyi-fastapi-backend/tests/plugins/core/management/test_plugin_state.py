@@ -127,6 +127,7 @@ async def create_sqlite_sys_menu_table(connection: object) -> None:
             create table sys_menu (
                 menu_id integer primary key autoincrement,
                 menu_name varchar(50) not null,
+                menu_name_i18n json,
                 parent_id integer default 0,
                 order_num integer default 0,
                 path varchar(200) default '',

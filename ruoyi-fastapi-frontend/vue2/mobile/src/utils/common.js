@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 /**
  * 显示消息提示框
  * @param content 提示的标题
@@ -16,10 +17,10 @@ export function toast(content) {
 export function showConfirm(content) {
   return new Promise((resolve, reject) => {
     uni.showModal({
-      title: '提示',
+      title: t('common:tip'),
       content: content,
-      cancelText: '取消',
-      confirmText: '确定',
+      cancelText: t('common:cancel'),
+      confirmText: t('common:confirm'),
       success: function (res) {
         resolve(res)
       },

@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import OAuthTag from '@/components/OAuthWorkspace/OAuthTag'
 import { SearchOutlined, ReloadOutlined, DownloadOutlined, KeyOutlined } from '@ant-design/icons'
 import { TableAction } from '@/components/TableActions'
@@ -27,6 +30,8 @@ import {
 import './style.css'
 
 function EventMark({ row, large = false }) {
+  useI18n()
+
   return (
     <span
       className={`event-mark is-${eventTone(row)}${large ? ' large' : ''}`}
@@ -37,6 +42,8 @@ function EventMark({ row, large = false }) {
   )
 }
 export default function OAuthAudit() {
+  useI18n()
+
   const [form] = Form.useForm(),
     [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
     [rows, setRows] = useState([]),
@@ -44,6 +51,7 @@ export default function OAuthAudit() {
     [loading, setLoading] = useState(false),
     [showSearch, setShowSearch] = useState(true),
     [detail, setDetail] = useState(null)
+  useLocalizedFormErrors(form)
   const getList = useCallback(async () => {
     setLoading(true)
     try {
@@ -84,12 +92,12 @@ export default function OAuthAudit() {
   }
   const columns = [
     {
-      title: '发生时间',
+      title: t('monitor:occurredAt'),
       width: 170,
       render: (_, row) => parseTime(row.occurredAt || row.createTime),
     },
     {
-      title: '发生的操作',
+      title: t('monitor:operation'),
       width: 230,
       render: (_, row) => (
         <div className="event-cell">
@@ -102,45 +110,45 @@ export default function OAuthAudit() {
       ),
     },
     {
-      title: '相关对象',
+      title: t('monitor:relatedEntities'),
       width: 200,
       render: (_, row) => (
         <div className="subject-cell">
-          <span>{row.userName || row.userId || '系统或机器身份'}</span>
-          <small>{row.clientName || row.clientId || '未关联具体应用'}</small>
+          <span>{row.userName || row.userId || t('monitor:systemOrMachineIdentity')}</span>
+          <small>{row.clientName || row.clientId || t('monitor:noApplicationLinked')}</small>
         </div>
       ),
     },
     {
-      title: '来源',
+      title: t('common:source'),
       width: 150,
       render: (_, row) => (
         <div className="subject-cell">
-          <span>{row.ipAddress || '系统内部'}</span>
+          <span>{row.ipAddress || t('monitor:internal')}</span>
           <small>{sourceText(row)}</small>
         </div>
       ),
     },
     {
       align: 'center',
-      title: '处理结果',
+      title: t('monitor:result'),
       width: 105,
       render: (_, row) => (
         <OAuthTag type={row.result === 'success' ? 'success' : 'danger'}>
-          {row.result === 'success' ? '已完成' : '未完成'}
+          {row.result === 'success' ? t('common:completed') : t('monitor:incomplete')}
         </OAuthTag>
       ),
     },
     {
       align: 'center',
-      title: '风险',
+      title: t('monitor:risk'),
       width: 110,
       render: (_, row) => (
         <OAuthTag type={riskType(row.riskLevel)}>{riskText(row.riskLevel)}</OAuthTag>
       ),
     },
     {
-      title: '需要关注',
+      title: t('monitor:oauthAudit.needsAttention'),
       width: 210,
       ellipsis: true,
       render: (_, row) => failureText(row.failureCode, row.result),
@@ -148,7 +156,7 @@ export default function OAuthAudit() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 100,
       fixed: 'right',
       render: (_, row) => (
@@ -156,7 +164,7 @@ export default function OAuthAudit() {
           symbol="View"
           onClick={() => setDetail(row)}
         >
-          查看
+          {t('common:view')}
         </TableAction>
       ),
     },
@@ -169,11 +177,11 @@ export default function OAuthAudit() {
       onFinish={search}
     >
       <Form.Item
-        label="发生的操作"
+        label={t('monitor:operation')}
         name="eventType"
       >
         <Select
-          placeholder="全部操作"
+          placeholder={t('monitor:allOperations')}
           allowClear
           showSearch
           optionFilterProp="label"
@@ -182,59 +190,59 @@ export default function OAuthAudit() {
         />
       </Form.Item>
       <Form.Item
-        label="应用"
+        label={t('common:apply')}
         name="clientId"
       >
         <Input
           style={{ width: 200 }}
-          placeholder="应用编号"
+          placeholder={t('authCenter:appId')}
           allowClear
         />
       </Form.Item>
       <Form.Item
-        label="用户"
+        label={t('system:user.user')}
         name="userId"
       >
         <Input
-          placeholder="用户编号"
+          placeholder={t('system:user.id')}
           allowClear
           style={{ width: 200 }}
         />
       </Form.Item>
       <Form.Item
-        label="处理结果"
+        label={t('monitor:result')}
         name="result"
       >
         <Select
           style={{ width: 200 }}
-          placeholder="全部结果"
+          placeholder={t('monitor:allResults')}
           allowClear
           options={[
-            { value: 'success', label: '已完成' },
-            { value: 'failure', label: '未完成' },
+            { value: 'success', label: t('common:completed') },
+            { value: 'failure', label: t('monitor:incomplete') },
           ]}
         />
       </Form.Item>
       <Form.Item
-        label="风险程度"
+        label={t('monitor:riskLevel')}
         name="riskLevel"
       >
         <Select
           style={{ width: 200 }}
-          placeholder="全部风险"
+          placeholder={t('monitor:allRiskLevels')}
           allowClear
           options={['normal', 'medium', 'high', 'critical'].map((value) => ({
             value,
-            label: value === 'medium' ? '需要关注' : riskText(value),
+            label: value === 'medium' ? t('monitor:oauthAudit.needsAttention') : riskText(value),
           }))}
         />
       </Form.Item>
       <Form.Item
-        label="发生时间"
+        label={t('monitor:occurredAt')}
         name="dateRange"
       >
         <BusinessDateTimeRangePicker
-          label="发生时间"
+          label={t('monitor:occurredAt')}
           style={{ width: 200 }}
         />
       </Form.Item>
@@ -245,7 +253,7 @@ export default function OAuthAudit() {
             type="primary"
             htmlType="submit"
           >
-            查找
+            {t('common:find')}
           </Button>
           <Button
             icon={<ReloadOutlined />}
@@ -254,7 +262,7 @@ export default function OAuthAudit() {
               setQuery((current) => ({ pageNum: 1, pageSize: current.pageSize }))
             }}
           >
-            清空
+            {t('common:clear')}
           </Button>
         </Space>
       </Form.Item>
@@ -263,10 +271,10 @@ export default function OAuthAudit() {
   return (
     <PageFrame
       className="oauth-audit-page"
-      title="安全日志"
-      description="按时间查看登录、授权、凭据签发和策略变更，快速判断一次操作是否正常、影响了谁。"
-      section="安全运维"
-      filterHint="日志内容已经脱敏，不包含密码、密钥或完整凭据"
+      title={t('monitor:securityLogs')}
+      description={t('monitor:reviewSignInsAuthorizationsIssuedCredentialsAndPolicyChanges')}
+      section={t('monitor:securityOperations')}
+      filterHint={t('monitor:logsAreSanitizedAndContainNoPasswordsSecretsOr')}
       actions={
         <HasPermi value={['monitor:oauthAudit:export']}>
           <Button
@@ -274,7 +282,7 @@ export default function OAuthAudit() {
             icon={<DownloadOutlined />}
             onClick={exportRows}
           >
-            导出当前结果
+            {t('monitor:exportCurrentResults')}
           </Button>
         </HasPermi>
       }
@@ -282,7 +290,7 @@ export default function OAuthAudit() {
       toolbar={
         <>
           <span className="result-count">
-            找到 <strong>{total}</strong> 条记录
+            {t('layout:found')} <strong>{total}</strong> {t('monitor:records')}
           </span>
           <RightToolbar
             showSearch={showSearch}
@@ -293,7 +301,9 @@ export default function OAuthAudit() {
       }
     >
       <Table
-        locale={{ emptyText: <Empty description="当前条件下没有安全日志" /> }}
+        locale={{
+          emptyText: <Empty description={t('monitor:noSecurityLogsMatchTheCurrentFilters')} />,
+        }}
         rowKey={(row) => row.auditId || row.eventId}
         loading={loading}
         dataSource={rows}
@@ -309,7 +319,7 @@ export default function OAuthAudit() {
       />
       <Drawer
         rootClassName="oauth-detail-drawer oauth-audit-detail"
-        title="安全事件详情"
+        title={t('monitor:securityEventDetails')}
         size="min(660px, 92vw)"
         open={!!detail}
         onClose={() => setDetail(null)}
@@ -323,20 +333,22 @@ export default function OAuthAudit() {
               />
               <div>
                 <strong>{eventLabel(detail.eventType)}</strong>
-                <p>{parseTime(detail.occurredAt || detail.createTime) || '时间未知'}</p>
+                <p>
+                  {parseTime(detail.occurredAt || detail.createTime) || t('monitor:timeUnknown')}
+                </p>
               </div>
               <div className="detail-tags">
                 <OAuthTag type={detail.result === 'success' ? 'success' : 'danger'}>
-                  {detail.result === 'success' ? '已完成' : '未完成'}
+                  {detail.result === 'success' ? t('common:completed') : t('monitor:incomplete')}
                 </OAuthTag>
                 <OAuthTag type={riskType(detail.riskLevel)}>{riskText(detail.riskLevel)}</OAuthTag>
               </div>
             </div>
             <section className="detail-section">
-              <h4>发生了什么</h4>
+              <h4>{t('monitor:whatHappened')}</h4>
               <p>
                 {eventSummary(detail)}
-                {failureText(detail.failureCode, detail.result) !== '无需处理'
+                {detail.result === 'failure' || detail.failureCode
                   ? `。${failureText(detail.failureCode, detail.result)}`
                   : ''}
               </p>
@@ -346,11 +358,17 @@ export default function OAuthAudit() {
               column={1}
               bordered
               items={[
-                ['相关用户', detail.userName || detail.userId || '系统或机器身份'],
-                ['相关应用', detail.clientName || detail.clientId || '未关联具体应用'],
-                ['相关服务', detail.resourceId || '未关联具体服务'],
-                ['来源地址', detail.ipAddress || '系统内部'],
-                ['失败原因', failureText(detail.failureCode, detail.result)],
+                [
+                  t('monitor:relatedUser'),
+                  detail.userName || detail.userId || t('monitor:systemOrMachineIdentity'),
+                ],
+                [
+                  t('monitor:relatedApp'),
+                  detail.clientName || detail.clientId || t('monitor:noApplicationLinked'),
+                ],
+                [t('monitor:relatedService'), detail.resourceId || t('monitor:noServiceLinked')],
+                [t('monitor:sourceAddress'), detail.ipAddress || t('monitor:internal')],
+                [t('common:failureReason'), failureText(detail.failureCode, detail.result)],
               ].map(([label, children]) => ({ key: label, label, children }))}
             />
             <Collapse
@@ -360,19 +378,19 @@ export default function OAuthAudit() {
               items={[
                 {
                   key: 'diagnostics',
-                  label: '查看排障信息',
+                  label: t('monitor:viewTroubleshootingDetails'),
                   children: (
                     <dl>
                       {[
-                        ['事件代码', detail.eventType],
-                        ['事件 ID', detail.auditId || detail.eventId],
-                        ['链路 ID', detail.traceId],
-                        ['用户主体', detail.subjectId],
-                        ['会话 ID', detail.sid],
-                        ['授权 ID', detail.grantId],
-                        ['凭据 ID', detail.tokenId],
-                        ['错误代码', detail.failureCode],
-                        ['浏览器信息', detail.userAgent],
+                        [t('monitor:eventCode'), detail.eventType],
+                        [t('monitor:eventId'), detail.auditId || detail.eventId],
+                        [t('monitor:traceId'), detail.traceId],
+                        [t('authCenter:userPrincipal'), detail.subjectId],
+                        [t('monitor:sessionId'), detail.sid],
+                        [t('monitor:authorizationId'), detail.grantId],
+                        [t('monitor:tokenId'), detail.tokenId],
+                        [t('monitor:errorCode'), detail.failureCode],
+                        [t('monitor:browserInformation'), detail.userAgent],
                       ].map(([label, value]) => (
                         <Fragment key={label}>
                           <dt>{label}</dt>

@@ -1,10 +1,10 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      section="安全运维"
-      title="安全日志"
-      description="按时间查看登录、授权、凭据签发和策略变更，快速判断一次操作是否正常、影响了谁。"
-      filter-hint="日志内容已经脱敏，不包含密码、密钥或完整凭据"
+      :section="$t('monitor:securityOperations')"
+      :title="$t('monitor:securityLogs')"
+      :description="$t('monitor:reviewSignInsAuthorizationsIssuedCredentialsAndPolicyChangesOver')"
+      :filter-hint="$t('monitor:logsAreSanitizedAndContainNoPasswordsSecretsOrComplete')"
     >
       <template #actions>
         <el-button
@@ -14,8 +14,8 @@
           v-hasPermi="['monitor:oauthAudit:export']"
           @click="exportRows"
         >
-          导出当前结果
-        </el-button>
+          {{ $t('monitor:exportCurrentResults') }}</el-button
+        >
       </template>
 
       <template #filters>
@@ -26,14 +26,14 @@
           :inline="true"
         >
           <el-form-item
-            label="发生的操作"
+            :label="$t('monitor:operation')"
             prop="eventType"
           >
             <el-select
               v-model="queryParams.eventType"
               clearable
               filterable
-              placeholder="全部操作"
+              :placeholder="$t('monitor:allOperations')"
               style="width: 200px"
             >
               <el-option-group
@@ -51,83 +51,83 @@
             </el-select>
           </el-form-item>
           <el-form-item
-            label="应用"
+            :label="$t('components:apply')"
             prop="clientId"
           >
             <el-input
               v-model="queryParams.clientId"
               clearable
-              placeholder="应用编号"
+              :placeholder="$t('monitor:applicationID')"
               style="width: 200px"
             />
           </el-form-item>
           <el-form-item
-            label="用户"
+            :label="$t('monitor:user')"
             prop="userId"
           >
             <el-input
               v-model="queryParams.userId"
               clearable
-              placeholder="用户编号"
+              :placeholder="$t('system:userID')"
               style="width: 200px"
             />
           </el-form-item>
           <el-form-item
-            label="处理结果"
+            :label="$t('monitor:result')"
             prop="result"
           >
             <el-select
               v-model="queryParams.result"
               clearable
-              placeholder="全部结果"
+              :placeholder="$t('monitor:allResults')"
               style="width: 200px"
             >
               <el-option
-                label="已完成"
+                :label="$t('monitor:completed')"
                 value="success"
               />
               <el-option
-                label="未完成"
+                :label="$t('monitor:incomplete')"
                 value="failure"
               />
             </el-select>
           </el-form-item>
           <el-form-item
-            label="风险程度"
+            :label="$t('monitor:riskLevel')"
             prop="riskLevel"
           >
             <el-select
               v-model="queryParams.riskLevel"
               clearable
-              placeholder="全部风险"
+              :placeholder="$t('monitor:allRiskLevels')"
               style="width: 200px"
             >
               <el-option
-                label="常规"
+                :label="$t('monitor:general')"
                 value="normal"
               />
               <el-option
-                label="需要关注"
+                :label="$t('monitor:needsAttentionLabel')"
                 value="medium"
               />
               <el-option
-                label="高风险"
+                :label="$t('monitor:highRisk')"
                 value="high"
               />
               <el-option
-                label="严重"
+                :label="$t('monitor:critical')"
                 value="critical"
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="发生时间">
+          <el-form-item :label="$t('monitor:occurredAt')">
             <el-date-picker
               v-model="dateRange"
               type="datetimerange"
               value-format="YYYY-MM-DD HH:mm:ss"
-              range-separator="至"
-              start-placeholder="开始"
-              end-placeholder="结束"
+              :range-separator="$t('monitor:to')"
+              :start-placeholder="$t('monitor:start')"
+              :end-placeholder="$t('monitor:end')"
               style="width: 200px"
             />
           </el-form-item>
@@ -136,12 +136,12 @@
               type="primary"
               icon="Search"
               @click="handleQuery"
-              >查找</el-button
+              >{{ $t('monitor:find') }}</el-button
             >
             <el-button
               icon="Refresh"
               @click="resetQuery"
-              >清空</el-button
+              >{{ $t('monitor:clear') }}</el-button
             >
           </el-form-item>
         </el-form>
@@ -149,7 +149,8 @@
 
       <template #toolbar>
         <span class="result-count"
-          >找到 <strong>{{ total }}</strong> 条记录</span
+          >{{ $t('monitor:found') }}<strong>{{ total }}</strong>
+          {{ $t('monitor:recordsLabel') }}</span
         >
         <right-toolbar
           v-model:showSearch="showSearch"
@@ -163,7 +164,7 @@
         row-key="auditId"
       >
         <el-table-column
-          label="发生时间"
+          :label="$t('monitor:occurredAt')"
           width="170"
         >
           <template #default="scope">{{
@@ -171,7 +172,7 @@
           }}</template>
         </el-table-column>
         <el-table-column
-          label="发生的操作"
+          :label="$t('monitor:operation')"
           min-width="230"
         >
           <template #default="scope">
@@ -189,40 +190,44 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="相关对象"
+          :label="$t('monitor:relatedEntities')"
           min-width="200"
         >
           <template #default="scope">
             <div class="subject-cell">
-              <span>{{ scope.row.userName || scope.row.userId || '系统或机器身份' }}</span>
-              <small>{{ scope.row.clientName || scope.row.clientId || '未关联具体应用' }}</small>
+              <span>{{
+                scope.row.userName || scope.row.userId || $t('monitor:systemOrMachineIdentity')
+              }}</span>
+              <small>{{
+                scope.row.clientName || scope.row.clientId || $t('monitor:noLinkedApp')
+              }}</small>
             </div>
           </template>
         </el-table-column>
         <el-table-column
-          label="来源"
+          :label="$t('monitor:source')"
           min-width="150"
         >
           <template #default="scope"
             ><div class="subject-cell">
-              <span>{{ scope.row.ipAddress || '系统内部' }}</span
+              <span>{{ scope.row.ipAddress || $t('monitor:internalSystem') }}</span
               ><small>{{ sourceText(scope.row) }}</small>
             </div></template
           >
         </el-table-column>
         <el-table-column
-          label="处理结果"
+          :label="$t('monitor:result')"
           width="105"
           align="center"
         >
           <template #default="scope"
             ><el-tag :type="scope.row.result === 'success' ? 'success' : 'danger'">{{
-              scope.row.result === 'success' ? '已完成' : '未完成'
+              scope.row.result === 'success' ? $t('monitor:completed') : $t('monitor:incomplete')
             }}</el-tag></template
           >
         </el-table-column>
         <el-table-column
-          label="风险"
+          :label="$t('monitor:risk')"
           width="110"
           align="center"
         >
@@ -233,7 +238,7 @@
           >
         </el-table-column>
         <el-table-column
-          label="需要关注"
+          :label="$t('monitor:needsAttentionLabel')"
           min-width="210"
           show-overflow-tooltip
         >
@@ -242,7 +247,7 @@
           }}</template>
         </el-table-column>
         <el-table-column
-          label="操作"
+          :label="$t('system:actions')"
           width="100"
           fixed="right"
           align="center"
@@ -254,12 +259,14 @@
                 type="primary"
                 icon="View"
                 @click="showDetail(scope.row)"
-                >查看</el-button
+                >{{ $t('monitor:view') }}</el-button
               >
             </div>
           </template>
         </el-table-column>
-        <template #empty><el-empty description="当前条件下没有安全日志" /></template>
+        <template #empty
+          ><el-empty :description="$t('monitor:noSecurityLogsMatchTheCurrentFilters')"
+        /></template>
       </el-table>
       <pagination
         v-show="total > 0"
@@ -272,7 +279,7 @@
 
     <el-drawer
       v-model="detailOpen"
-      title="安全事件详情"
+      :title="$t('monitor:securityEventDetails')"
       size="min(660px, 92vw)"
     >
       <div class="detail-hero">
@@ -283,23 +290,23 @@
         ></span>
         <div>
           <strong>{{ eventLabel(detail.eventType) }}</strong>
-          <p>{{ parseTime(detail.occurredAt || detail.createTime) || '时间未知' }}</p>
+          <p>
+            {{ parseTime(detail.occurredAt || detail.createTime) || $t('monitor:unknownTime') }}
+          </p>
         </div>
         <div class="detail-tags">
           <el-tag :type="detail.result === 'success' ? 'success' : 'danger'">{{
-            detail.result === 'success' ? '已完成' : '未完成'
+            detail.result === 'success' ? $t('monitor:completed') : $t('monitor:incomplete')
           }}</el-tag>
           <el-tag :type="riskType(detail.riskLevel)">{{ riskText(detail.riskLevel) }}</el-tag>
         </div>
       </div>
       <section class="detail-section">
-        <h4>发生了什么</h4>
+        <h4>{{ $t('monitor:whatHappened') }}</h4>
         <p>
           {{ eventSummary(detail)
           }}{{
-            failureText(detail.failureCode, detail.result) !== '无需处理'
-              ? `。${failureText(detail.failureCode, detail.result)}`
-              : ''
+            detail.result !== 'success' ? `。${failureText(detail.failureCode, detail.result)}` : ''
           }}
         </p>
       </section>
@@ -308,45 +315,45 @@
         border
         class="detail-descriptions"
       >
-        <el-descriptions-item label="相关用户">{{
-          detail.userName || detail.userId || '系统或机器身份'
+        <el-descriptions-item :label="$t('monitor:relatedUser')">{{
+          detail.userName || detail.userId || $t('monitor:systemOrMachineIdentity')
         }}</el-descriptions-item>
-        <el-descriptions-item label="相关应用">{{
-          detail.clientName || detail.clientId || '未关联具体应用'
+        <el-descriptions-item :label="$t('monitor:relatedApp')">{{
+          detail.clientName || detail.clientId || $t('monitor:noLinkedApp')
         }}</el-descriptions-item>
-        <el-descriptions-item label="相关服务">{{
-          detail.resourceId || '未关联具体服务'
+        <el-descriptions-item :label="$t('monitor:relatedService')">{{
+          detail.resourceId || $t('monitor:noLinkedService')
         }}</el-descriptions-item>
-        <el-descriptions-item label="来源地址">{{
-          detail.ipAddress || '系统内部'
+        <el-descriptions-item :label="$t('monitor:sourceAddress')">{{
+          detail.ipAddress || $t('monitor:internalSystem')
         }}</el-descriptions-item>
-        <el-descriptions-item label="失败原因">{{
+        <el-descriptions-item :label="$t('monitor:failureReason')">{{
           failureText(detail.failureCode, detail.result)
         }}</el-descriptions-item>
       </el-descriptions>
       <el-collapse class="technical-details">
         <el-collapse-item
-          title="查看排障信息"
+          :title="$t('monitor:viewTroubleshootingDetails')"
           name="technical"
         >
           <dl>
-            <dt>事件代码</dt>
+            <dt>{{ $t('monitor:eventCode') }}</dt>
             <dd>{{ detail.eventType || '—' }}</dd>
-            <dt>事件 ID</dt>
+            <dt>{{ $t('monitor:eventID') }}</dt>
             <dd>{{ detail.auditId || detail.eventId || '—' }}</dd>
-            <dt>链路 ID</dt>
+            <dt>{{ $t('monitor:traceID') }}</dt>
             <dd>{{ detail.traceId || '—' }}</dd>
-            <dt>用户主体</dt>
+            <dt>{{ $t('monitor:userPrincipal') }}</dt>
             <dd>{{ detail.subjectId || '—' }}</dd>
-            <dt>会话 ID</dt>
+            <dt>{{ $t('monitor:sessionID') }}</dt>
             <dd>{{ detail.sid || '—' }}</dd>
-            <dt>授权 ID</dt>
+            <dt>{{ $t('monitor:authorizationID') }}</dt>
             <dd>{{ detail.grantId || '—' }}</dd>
-            <dt>凭据 ID</dt>
+            <dt>{{ $t('monitor:tokenID') }}</dt>
             <dd>{{ detail.tokenId || '—' }}</dd>
-            <dt>错误代码</dt>
+            <dt>{{ $t('monitor:errorCode') }}</dt>
             <dd>{{ detail.failureCode || '—' }}</dd>
-            <dt>浏览器信息</dt>
+            <dt>{{ $t('monitor:browserInformation') }}</dt>
             <dd>{{ detail.userAgent || '—' }}</dd>
           </dl>
         </el-collapse-item>
@@ -356,6 +363,7 @@
 </template>
 
 <script setup name="OAuthAudit">
+import { t } from '@/i18n/adapter'
 import { listOAuthAudit } from '@/api/monitor/oauthAudit'
 import PageFrame from '@/components/OAuthWorkspace/PageFrame.vue'
 
@@ -370,52 +378,200 @@ const detailOpen = ref(false)
 
 const eventGroups = [
   {
-    label: '登录与授权',
+    get label() {
+      return t('monitor:signInAndAuthorization')
+    },
     options: [
-      { label: '收到登录授权请求', value: 'authorize_requested' },
-      { label: '登录授权已完成', value: 'authorize_succeeded' },
-      { label: '登录授权被拒绝', value: 'authorize_denied' },
-      { label: '用户登录成功', value: 'login_succeeded' },
-      { label: '用户登录失败', value: 'login_failed' },
-      { label: '用户同意授权', value: 'consent_granted' },
-      { label: '用户撤销授权', value: 'consent_revoked' },
+      {
+        get label() {
+          return t('monitor:signInAuthorizationRequested')
+        },
+        value: 'authorize_requested',
+      },
+      {
+        get label() {
+          return t('monitor:signInAuthorizationCompleted')
+        },
+        value: 'authorize_succeeded',
+      },
+      {
+        get label() {
+          return t('monitor:signInAuthorizationDeclined')
+        },
+        value: 'authorize_denied',
+      },
+      {
+        get label() {
+          return t('monitor:userSignedIn')
+        },
+        value: 'login_succeeded',
+      },
+      {
+        get label() {
+          return t('monitor:userSignInFailed')
+        },
+        value: 'login_failed',
+      },
+      {
+        get label() {
+          return t('monitor:userGrantedAuthorization')
+        },
+        value: 'consent_granted',
+      },
+      {
+        get label() {
+          return t('monitor:userWithdrewAuthorization')
+        },
+        value: 'consent_revoked',
+      },
     ],
   },
   {
-    label: '凭据与会话',
+    get label() {
+      return t('monitor:credentialsAndSessions')
+    },
     options: [
-      { label: '访问凭据已签发', value: 'token_issued' },
-      { label: '访问凭据处理失败', value: 'token_failed' },
-      { label: '刷新凭据已更新', value: 'refresh_rotated' },
-      { label: '发现刷新凭据被重复使用', value: 'refresh_reuse_detected' },
-      { label: '访问凭据已撤销', value: 'token_revoked' },
-      { label: '登录会话已下线', value: 'session_revoked' },
-      { label: '用户授权已撤销', value: 'grant_revoked' },
-      { label: '用户应用访问已禁止', value: 'client_access_blocked' },
-      { label: '用户应用访问已允许', value: 'client_access_allowed' },
-      { label: '应用退出通知成功', value: 'backchannel_logout_succeeded' },
-      { label: '应用退出通知失败', value: 'backchannel_logout_failed' },
+      {
+        get label() {
+          return t('monitor:accessTokenIssued')
+        },
+        value: 'token_issued',
+      },
+      {
+        get label() {
+          return t('monitor:accessTokenProcessingFailed')
+        },
+        value: 'token_failed',
+      },
+      {
+        get label() {
+          return t('monitor:refreshTokenRenewed')
+        },
+        value: 'refresh_rotated',
+      },
+      {
+        get label() {
+          return t('monitor:refreshTokenReuseDetected')
+        },
+        value: 'refresh_reuse_detected',
+      },
+      {
+        get label() {
+          return t('monitor:accessTokenRevoked')
+        },
+        value: 'token_revoked',
+      },
+      {
+        get label() {
+          return t('monitor:sessionEnded')
+        },
+        value: 'session_revoked',
+      },
+      {
+        get label() {
+          return t('monitor:userAuthorizationRevoked')
+        },
+        value: 'grant_revoked',
+      },
+      {
+        get label() {
+          return t('monitor:userAccessToAppBlocked')
+        },
+        value: 'client_access_blocked',
+      },
+      {
+        get label() {
+          return t('monitor:userAccessToAppAllowed')
+        },
+        value: 'client_access_allowed',
+      },
+      {
+        get label() {
+          return t('monitor:appSignOutNotificationDelivered')
+        },
+        value: 'backchannel_logout_succeeded',
+      },
+      {
+        get label() {
+          return t('monitor:appSignOutNotificationFailed')
+        },
+        value: 'backchannel_logout_failed',
+      },
     ],
   },
   {
-    label: '配置与安全',
+    get label() {
+      return t('monitor:configurationAndSecurity')
+    },
     options: [
-      { label: '应用已注册', value: 'client_created' },
-      { label: '应用已停用', value: 'client_disabled' },
-      { label: '应用密钥已更新', value: 'client_secret_rotated' },
-      { label: '签名密钥已轮换', value: 'signing_key_rotated' },
-      { label: '服务访问策略已变更', value: 'resource_policy_changed' },
-      { label: '权限策略已变更', value: 'scope_policy_changed' },
-      { label: '发现授权码被重复使用', value: 'authorization_code_reused' },
-      { label: '应用身份验证失败', value: 'invalid_client' },
-      { label: '用户身份标识缺失', value: 'identity_subject_missing' },
-      { label: '账户安全版本已变更', value: 'security_version_changed' },
+      {
+        get label() {
+          return t('monitor:appRegistered')
+        },
+        value: 'client_created',
+      },
+      {
+        get label() {
+          return t('monitor:appDisabled')
+        },
+        value: 'client_disabled',
+      },
+      {
+        get label() {
+          return t('monitor:appSecretUpdated')
+        },
+        value: 'client_secret_rotated',
+      },
+      {
+        get label() {
+          return t('monitor:signingKeyRotated')
+        },
+        value: 'signing_key_rotated',
+      },
+      {
+        get label() {
+          return t('monitor:serviceAccessPolicyChanged')
+        },
+        value: 'resource_policy_changed',
+      },
+      {
+        get label() {
+          return t('monitor:permissionPolicyChanged')
+        },
+        value: 'scope_policy_changed',
+      },
+      {
+        get label() {
+          return t('monitor:authorizationCodeReuseDetected')
+        },
+        value: 'authorization_code_reused',
+      },
+      {
+        get label() {
+          return t('monitor:appAuthenticationFailed')
+        },
+        value: 'invalid_client',
+      },
+      {
+        get label() {
+          return t('monitor:userIdentityMissing')
+        },
+        value: 'identity_subject_missing',
+      },
+      {
+        get label() {
+          return t('monitor:accountSecurityVersionChanged')
+        },
+        value: 'security_version_changed',
+      },
     ],
   },
 ]
 
-const eventLabels = Object.fromEntries(
-  eventGroups.flatMap((group) => group.options).map((item) => [item.value, item.label])
+const eventLabels = computed(() =>
+  Object.fromEntries(
+    eventGroups.flatMap((group) => group.options).map((item) => [item.value, item.label])
+  )
 )
 const queryParams = reactive({
   pageNum: 1,
@@ -429,42 +585,98 @@ const queryParams = reactive({
 
 /** 获取安全事件名称 */
 function eventLabel(value) {
-  return eventLabels[value] || value || '未知安全操作'
+  return eventLabels.value[value] || value || t('monitor:unknownSecurityOperation')
 }
 
 /** 获取安全事件的业务说明 */
 function eventSummary(row = {}) {
   const labels = {
-    authorize_requested: '应用发起了用户登录或权限授权请求',
-    authorize_succeeded: '用户身份确认和应用授权流程已经完成',
-    authorize_denied: '登录或权限授权请求没有继续执行',
-    login_succeeded: '用户已经通过身份验证',
-    login_failed: '用户身份验证没有通过',
-    consent_granted: '用户允许应用访问所请求的信息',
-    consent_revoked: '用户取消了应用的持续访问权限',
-    token_issued: '系统为应用签发了新的短期访问凭据',
-    token_failed: '系统没有为应用签发访问凭据',
-    refresh_rotated: '应用用于续期的凭据已经安全更新',
-    refresh_reuse_detected: '同一份旧续期凭据被再次使用，可能存在泄露',
-    token_revoked: '一份访问凭据已经作废',
-    session_revoked: '一个外部登录会话已经被强制结束',
-    grant_revoked: '一项用户对应用的访问授权已经撤销',
-    client_access_blocked: '管理员已禁止用户访问指定应用，并撤销现有授权',
-    client_access_allowed: '管理员已解除用户对指定应用的访问禁止，仍需重新授权',
-    backchannel_logout_succeeded: '系统已经通知关联应用结束本地登录会话',
-    backchannel_logout_failed: '关联应用没有成功接收退出通知',
-    client_created: '一个新应用已接入统一认证',
-    client_disabled: '一个应用已被禁止继续使用统一认证',
-    client_secret_rotated: '应用用于证明身份的密钥已经更新',
-    signing_key_rotated: '系统用于签署身份凭据的密钥已经更新',
-    resource_policy_changed: '一个服务允许访问的凭据或用户信息配置已变更',
-    scope_policy_changed: '一个权限的适用范围或用户确认要求已变更',
-    authorization_code_reused: '一次性登录授权码被再次使用，可能存在攻击',
-    invalid_client: '应用无法证明自己的身份',
-    identity_subject_missing: '用户缺少统一认证所需的稳定身份标识',
-    security_version_changed: '账户安全信息变更，旧登录状态将逐步失效',
+    get authorize_requested() {
+      return t('monitor:anAppRequestedUserSignInOrPermissionAuthorization')
+    },
+    get authorize_succeeded() {
+      return t('monitor:identityVerificationAndAppAuthorizationCompleted')
+    },
+    get authorize_denied() {
+      return t('monitor:theSignInOrAuthorizationRequestWasNotContinued')
+    },
+    get login_succeeded() {
+      return t('monitor:theUserPassedAuthentication')
+    },
+    get login_failed() {
+      return t('monitor:theUserDidNotPassAuthentication')
+    },
+    get consent_granted() {
+      return t('monitor:theUserAllowedTheAppToAccessTheRequestedInformation')
+    },
+    get consent_revoked() {
+      return t('monitor:theUserWithdrewTheAppSOngoingAccess')
+    },
+    get token_issued() {
+      return t('monitor:theSystemIssuedANewShortLivedAccessTokenTo')
+    },
+    get token_failed() {
+      return t('monitor:theSystemDidNotIssueAnAccessTokenToThe')
+    },
+    get refresh_rotated() {
+      return t('monitor:theAppSRefreshTokenWasSecurelyRenewed')
+    },
+    get refresh_reuse_detected() {
+      return t('monitor:anOldRefreshTokenWasReusedAndMayHaveBeen')
+    },
+    get token_revoked() {
+      return t('monitor:anAccessTokenWasInvalidated')
+    },
+    get session_revoked() {
+      return t('monitor:anExternalSignInSessionWasForciblyEnded')
+    },
+    get grant_revoked() {
+      return t('monitor:aUserSAuthorizationForAnAppWasRevoked')
+    },
+    get client_access_blocked() {
+      return t('monitor:anAdministratorBlockedTheUserSAccessToTheApp')
+    },
+    get client_access_allowed() {
+      return t('monitor:anAdministratorUnblockedTheUserSAccessToTheApp')
+    },
+    get backchannel_logout_succeeded() {
+      return t('monitor:theSystemNotifiedRelatedAppsToEndTheirLocalSessions')
+    },
+    get backchannel_logout_failed() {
+      return t('monitor:aRelatedAppDidNotReceiveTheSignOutNotification')
+    },
+    get client_created() {
+      return t('monitor:aNewAppRegisteredWithTheAuthenticationService')
+    },
+    get client_disabled() {
+      return t('monitor:anAppWasBlockedFromUsingTheAuthenticationService')
+    },
+    get client_secret_rotated() {
+      return t('monitor:theSecretUsedToAuthenticateTheAppWasUpdated')
+    },
+    get signing_key_rotated() {
+      return t('monitor:theKeyUsedToSignIdentityCredentialsWasUpdated')
+    },
+    get resource_policy_changed() {
+      return t('monitor:aServiceSAllowedCredentialsOrUserInformationSettingsChanged')
+    },
+    get scope_policy_changed() {
+      return t('monitor:aPermissionSScopeOrUserConfirmationRequirementsChanged')
+    },
+    get authorization_code_reused() {
+      return t('monitor:aOneTimeAuthorizationCodeWasReusedIndicatingAPossible')
+    },
+    get invalid_client() {
+      return t('monitor:theAppCouldNotAuthenticateItself')
+    },
+    get identity_subject_missing() {
+      return t('monitor:theUserLacksTheStableIdentityRequiredForAuthentication')
+    },
+    get security_version_changed() {
+      return t('monitor:accountSecurityInformationChangedExistingSessionsWillGraduallyExpire')
+    },
   }
-  return labels[row.eventType] || '系统记录了一次认证安全操作'
+  return labels[row.eventType] || t('monitor:theSystemRecordedAnAuthenticationSecurityOperation')
 }
 
 /** 根据处理结果和风险等级显示事件颜色 */
@@ -483,33 +695,75 @@ function sourceText(row = {}) {
   if (row.userAgent) {
     return row.userAgent.length > 26 ? `${row.userAgent.slice(0, 26)}…` : row.userAgent
   }
-  return row.ipAddress ? '外部请求' : '后台操作'
+  return row.ipAddress ? t('monitor:externalRequest') : t('monitor:administrativeAction')
 }
 
 /** 将协议失败代码转换为处理说明 */
 function failureText(code, result) {
   if (result !== 'failure' && !code) {
-    return '无需处理'
+    return t('monitor:noActionRequired')
   }
   const labels = {
-    invalid_request: '请求信息不完整或格式不正确',
-    invalid_client: '应用身份验证失败，请检查应用凭据',
-    invalid_grant: '登录或授权凭据已经失效',
-    unauthorized_client: '应用未获准使用当前登录方式',
-    unsupported_grant_type: '系统不支持当前登录方式',
-    invalid_scope: '应用请求了尚未开放的权限',
-    access_denied: '用户或安全策略拒绝了本次操作',
-    login_required: '用户需要重新登录',
-    consent_required: '需要用户确认应用所需权限',
-    server_error: '认证服务暂时无法完成请求',
-    temporarily_unavailable: '认证服务暂时不可用',
+    get invalid_request() {
+      return t('monitor:theRequestIsIncompleteOrIncorrectlyFormatted')
+    },
+    get invalid_client() {
+      return t('monitor:appAuthenticationFailedCheckTheAppCredentials')
+    },
+    get invalid_grant() {
+      return t('monitor:theSignInOrAuthorizationCredentialsHaveExpired')
+    },
+    get unauthorized_client() {
+      return t('monitor:theAppIsNotAllowedToUseThisSignIn')
+    },
+    get unsupported_grant_type() {
+      return t('monitor:thisSignInMethodIsNotSupported')
+    },
+    get invalid_scope() {
+      return t('monitor:theAppRequestedAPermissionThatIsNotAvailable')
+    },
+    get access_denied() {
+      return t('monitor:theUserOrASecurityPolicyDeniedThisOperation')
+    },
+    get login_required() {
+      return t('monitor:theUserNeedsToSignInAgain')
+    },
+    get consent_required() {
+      return t('monitor:theUserMustConfirmTheAppSRequestedPermissions')
+    },
+    get server_error() {
+      return t('monitor:theAuthenticationServiceCannotCompleteTheRequestRightNow')
+    },
+    get temporarily_unavailable() {
+      return t('monitor:theAuthenticationServiceIsTemporarilyUnavailable')
+    },
   }
-  return labels[code] || (code ? `操作未完成（${code}）` : '操作未完成，详情中暂无具体原因')
+  return (
+    labels[code] ||
+    (code
+      ? t('monitor:operationIncompleteValue', { code })
+      : t('monitor:theOperationDidNotCompleteNoSpecificReasonIsAvailable'))
+  )
 }
 
 /** 获取风险等级名称 */
 function riskText(value) {
-  return { normal: '常规', medium: '需关注', high: '高风险', critical: '严重' }[value] || '常规'
+  return (
+    {
+      get normal() {
+        return t('monitor:general')
+      },
+      get medium() {
+        return t('monitor:needsAttention')
+      },
+      get high() {
+        return t('monitor:highRisk')
+      },
+      get critical() {
+        return t('monitor:critical')
+      },
+    }[value] || t('monitor:general')
+  )
 }
 /** 获取风险等级标签类型 */
 function riskType(value) {

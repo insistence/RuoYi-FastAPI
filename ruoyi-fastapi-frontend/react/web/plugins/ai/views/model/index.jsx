@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import {
@@ -35,6 +38,8 @@ const defaults = {
   remark: undefined,
 }
 export default function AiModel() {
+  useI18n()
+
   const { ai_provider_type, sys_normal_disable, sys_yes_no } = useDict(
       'ai_provider_type',
       'sys_normal_disable',
@@ -50,6 +55,7 @@ export default function AiModel() {
     [editing, setEditing] = useState(),
     [saving, setSaving] = useState(false),
     [revision, setRevision] = useState(0)
+  useLocalizedFormErrors(queryForm, form)
   const refresh = () => {
     setSelected([])
     setRevision((value) => value + 1)
@@ -82,7 +88,7 @@ export default function AiModel() {
         ...(editing.modelId ? { modelId: editing.modelId } : {}),
       }
       await (editing.modelId ? updateModel : addModel)(payload)
-      message.success('保存成功')
+      message.success(t('plugin.ai:savedSuccessfully'))
       setEditing(undefined)
       refresh()
     } catch {
@@ -93,18 +99,18 @@ export default function AiModel() {
   async function remove(row) {
     const ids = row ? [row.modelId] : selected
     try {
-      await confirm(`是否删除模型编号为「${ids.join(',')}」的数据项？`)
+      await confirm(t('plugin.ai:deleteTheModelWithIdValue', { arg0: ids.join(',') }))
       await delModel(ids.join(','))
-      message.success('删除成功')
+      message.success(t('plugin.ai:deletedSuccessfully'))
       refresh()
     } catch {}
   }
   const columns = [
-    { align: 'center', title: '模型 ID', dataIndex: 'modelId' },
-    { align: 'center', title: '模型编码', dataIndex: 'modelCode' },
+    { align: 'center', title: t('plugin.ai:modelId'), dataIndex: 'modelId' },
+    { align: 'center', title: t('plugin.ai:modelCode'), dataIndex: 'modelCode' },
     {
       align: 'center',
-      title: '提供商',
+      title: t('plugin.ai:provider'),
       dataIndex: 'provider',
       render: (value) => (
         <DictTag
@@ -115,7 +121,7 @@ export default function AiModel() {
     },
     {
       align: 'center',
-      title: '支持推理',
+      title: t('plugin.ai:supportsReasoning'),
       dataIndex: 'supportReasoning',
       render: (value) => (
         <DictTag
@@ -126,7 +132,7 @@ export default function AiModel() {
     },
     {
       align: 'center',
-      title: '支持图片',
+      title: t('plugin.ai:supportsImages'),
       dataIndex: 'supportImages',
       render: (value) => (
         <DictTag
@@ -137,7 +143,7 @@ export default function AiModel() {
     },
     {
       align: 'center',
-      title: '状态',
+      title: t('plugin.ai:status'),
       dataIndex: 'status',
       render: (value) => (
         <DictTag
@@ -148,14 +154,14 @@ export default function AiModel() {
     },
     {
       align: 'center',
-      title: '创建时间',
+      title: t('plugin.ai:createdAt'),
       dataIndex: 'createTime',
       render: (value) => parseTime(value),
     },
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('plugin.ai:actions'),
       width: 180,
       render: (_, row) => (
         <TableActions>
@@ -164,7 +170,7 @@ export default function AiModel() {
               symbol="Edit"
               onClick={() => edit(row)}
             >
-              修改
+              {t('plugin.ai:edit')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['ai:model:remove']}>
@@ -172,7 +178,7 @@ export default function AiModel() {
               symbol="Delete"
               onClick={() => remove(row)}
             >
-              删除
+              {t('plugin.ai:delete')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -193,29 +199,29 @@ export default function AiModel() {
       >
         <Form.Item
           name="modelCode"
-          label="模型编码"
+          label={t('plugin.ai:modelCode')}
         >
           <Input
-            placeholder="请输入模型编码"
+            placeholder={t('plugin.ai:enterAModelCode')}
             allowClear
           />
         </Form.Item>
         <Form.Item
           name="provider"
-          label="提供商"
+          label={t('plugin.ai:provider')}
         >
           <Select
-            placeholder="请选择提供商"
+            placeholder={t('plugin.ai:chooseAProvider')}
             allowClear
             options={ai_provider_type}
           />
         </Form.Item>
         <Form.Item
           name="status"
-          label="状态"
+          label={t('plugin.ai:status')}
         >
           <Select
-            placeholder="模型状态"
+            placeholder={t('plugin.ai:modelStatus')}
             allowClear
             options={sys_normal_disable}
           />
@@ -227,7 +233,7 @@ export default function AiModel() {
               type="primary"
               htmlType="submit"
             >
-              搜索
+              {t('plugin.ai:search')}
             </Button>
             <Button
               icon={<ReloadOutlined />}
@@ -237,7 +243,7 @@ export default function AiModel() {
                 setSelected([])
               }}
             >
-              重置
+              {t('plugin.ai:reset')}
             </Button>
           </Space>
         </Form.Item>
@@ -251,7 +257,7 @@ export default function AiModel() {
               type="default"
               onClick={() => edit()}
             >
-              新增
+              {t('plugin.ai:add')}
             </Button>
           </HasPermi>
           <HasPermi value={['ai:model:edit']}>
@@ -262,7 +268,7 @@ export default function AiModel() {
               disabled={selected.length !== 1}
               onClick={() => edit({ modelId: selected[0] })}
             >
-              修改
+              {t('plugin.ai:edit')}
             </Button>
           </HasPermi>
           <HasPermi value={['ai:model:remove']}>
@@ -273,7 +279,7 @@ export default function AiModel() {
               disabled={!selected.length}
               onClick={() => remove()}
             >
-              删除
+              {t('plugin.ai:delete')}
             </Button>
           </HasPermi>
         </Space>
@@ -303,7 +309,7 @@ export default function AiModel() {
       />
       <Modal
         footer={renderDialogFooter}
-        title={editing?.modelId ? '修改模型' : '添加模型'}
+        title={editing?.modelId ? t('plugin.ai:editModel') : t('plugin.ai:addModel')}
         open={!!editing}
         width="700px"
         onCancel={() => setEditing(undefined)}
@@ -327,16 +333,16 @@ export default function AiModel() {
             >
               <Form.Item
                 name="modelCode"
-                label="模型编码"
+                label={t('plugin.ai:modelCode')}
                 rules={[
                   {
                     required: true,
                     whitespace: true,
-                    message: '模型编码不能为空',
+                    message: t('plugin.ai:modelCodeIsRequired'),
                   },
                 ]}
               >
-                <Input placeholder="如 deepseek-r1" />
+                <Input placeholder={t('plugin.ai:forExampleDeepseekR1')} />
               </Form.Item>
             </Col>
             <Col
@@ -345,9 +351,9 @@ export default function AiModel() {
             >
               <Form.Item
                 name="modelName"
-                label="模型名称"
+                label={t('plugin.ai:modelName')}
               >
-                <Input placeholder="请输入模型名称" />
+                <Input placeholder={t('plugin.ai:enterAModelName')} />
               </Form.Item>
             </Col>
             <Col
@@ -356,11 +362,11 @@ export default function AiModel() {
             >
               <Form.Item
                 name="provider"
-                label="提供商"
-                rules={[{ required: true, message: '提供商不能为空' }]}
+                label={t('plugin.ai:provider')}
+                rules={[{ required: true, message: t('plugin.ai:providerIsRequired') }]}
               >
                 <Select
-                  placeholder="请选择提供商"
+                  placeholder={t('plugin.ai:chooseAProvider')}
                   options={ai_provider_type}
                 />
               </Form.Item>
@@ -371,8 +377,8 @@ export default function AiModel() {
             >
               <Form.Item
                 name="modelSort"
-                label="模型排序"
-                rules={[{ required: true, message: '模型排序不能为空' }]}
+                label={t('plugin.ai:modelSortOrder')}
+                rules={[{ required: true, message: t('plugin.ai:modelSortOrderIsRequired') }]}
               >
                 <InputNumber
                   min={0}
@@ -384,18 +390,18 @@ export default function AiModel() {
           </Row>
           <Form.Item
             name="apiKey"
-            label="API Key"
+            label={t('plugin.ai:model.apiKey')}
           >
             <Input.Password
-              placeholder="请输入API Key"
+              placeholder={t('plugin.ai:enterAnApiKey')}
               autoComplete="off"
             />
           </Form.Item>
           <Form.Item
             name="baseUrl"
-            label="Base URL"
+            label={t('plugin.ai:model.baseUrl')}
           >
-            <Input placeholder="请输入Base URL" />
+            <Input placeholder={t('plugin.ai:enterABaseUrl')} />
           </Form.Item>
           <Row gutter={20}>
             <Col
@@ -404,10 +410,10 @@ export default function AiModel() {
             >
               <Form.Item
                 name="maxTokens"
-                label="最大输出"
+                label={t('plugin.ai:maximumOutput')}
               >
                 <InputNumber
-                  placeholder="最大输出"
+                  placeholder={t('plugin.ai:maximumOutput')}
                   min={0}
                   precision={0}
                   style={{ width: '100%' }}
@@ -420,10 +426,10 @@ export default function AiModel() {
             >
               <Form.Item
                 name="temperature"
-                label="默认温度"
+                label={t('plugin.ai:defaultTemperature')}
               >
                 <InputNumber
-                  placeholder="默认温度"
+                  placeholder={t('plugin.ai:defaultTemperature')}
                   min={0}
                   max={2}
                   step={0.1}
@@ -437,7 +443,7 @@ export default function AiModel() {
             >
               <Form.Item
                 name="supportReasoning"
-                label="支持推理"
+                label={t('plugin.ai:supportsReasoning')}
               >
                 <Radio.Group options={sys_yes_no} />
               </Form.Item>
@@ -448,7 +454,7 @@ export default function AiModel() {
             >
               <Form.Item
                 name="supportImages"
-                label="支持图片"
+                label={t('plugin.ai:supportsImages')}
               >
                 <Radio.Group options={sys_yes_no} />
               </Form.Item>
@@ -459,9 +465,9 @@ export default function AiModel() {
             >
               <Form.Item
                 name="modelType"
-                label="模型类型"
+                label={t('plugin.ai:modelType')}
               >
-                <Input placeholder="请输入模型类型 (可选)" />
+                <Input placeholder={t('plugin.ai:enterAModelTypeOptional')} />
               </Form.Item>
             </Col>
             <Col
@@ -470,7 +476,7 @@ export default function AiModel() {
             >
               <Form.Item
                 name="status"
-                label="状态"
+                label={t('plugin.ai:status')}
               >
                 <Radio.Group options={sys_normal_disable} />
               </Form.Item>
@@ -478,10 +484,10 @@ export default function AiModel() {
           </Row>
           <Form.Item
             name="remark"
-            label="备注"
+            label={t('plugin.ai:remark')}
           >
             <Input.TextArea
-              placeholder="请输入内容"
+              placeholder={t('plugin.ai:enterContent')}
               rows={2}
             />
           </Form.Item>

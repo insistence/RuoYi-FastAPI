@@ -1,3 +1,4 @@
+import { t } from '@/i18n/adapter'
 export function normalizePluginPlanResponse(result) {
   const payload = result || {}
   const plan = payload.plan || {}
@@ -64,13 +65,13 @@ export function getPlanReadyTagType(ready) {
 
 export function getPlanBlockerStatusLabel(status) {
   const statusMap = {
-    missing: '依赖缺失',
-    not_installed: '未安装',
-    disabled: '未启用',
-    version_unsatisfied: '版本不满足',
-    source_version_unsatisfied: '源码版本不满足',
-    cycle: '循环依赖',
-    unknown_operation: '未知操作',
+    missing: t('pluginAdmin:plan.blocker.missing'),
+    not_installed: t('pluginAdmin:plan.blocker.not_installed'),
+    disabled: t('pluginAdmin:plan.blocker.disabled'),
+    version_unsatisfied: t('pluginAdmin:plan.blocker.version_unsatisfied'),
+    source_version_unsatisfied: t('pluginAdmin:plan.blocker.source_version_unsatisfied'),
+    cycle: t('pluginAdmin:plan.blocker.cycle'),
+    unknown_operation: t('pluginAdmin:plan.blocker.unknown_operation'),
   }
 
   return statusMap[status] || status || '-'
@@ -78,9 +79,9 @@ export function getPlanBlockerStatusLabel(status) {
 
 export function getValidationLevelLabel(level) {
   const levelMap = {
-    error: '错误',
-    warning: '警告',
-    info: '提示',
+    error: t('system:messages.error'),
+    warning: t('common:warning'),
+    info: t('common:tip'),
   }
 
   return levelMap[level] || level || '-'
@@ -146,19 +147,22 @@ export function normalizePluginOperationLogDetail(detail) {
 function buildOperationValidationItems(result) {
   const firstCheck = Array.isArray(result.checks) ? result.checks[0] : {}
   const validationGroups = [
-    ['依赖', result.dependencies || firstCheck.dependencies],
-    ['Manifest 错误', result.manifestIssues || firstCheck.manifestIssues],
-    ['Manifest 警告', result.manifestWarnings || firstCheck.manifestWarnings],
-    ['插件依赖', result.pluginDependencyErrors || firstCheck.pluginDependencyErrors],
-    ['结构', result.structureErrors || firstCheck.structureErrors],
-    ['菜单冲突', result.menuConflicts || firstCheck.menuConflicts],
+    [t('pluginAdmin:dependencies'), result.dependencies || firstCheck.dependencies],
+    [t('system:messages.manifestErrors'), result.manifestIssues || firstCheck.manifestIssues],
+    [t('system:messages.manifestWarnings'), result.manifestWarnings || firstCheck.manifestWarnings],
+    [
+      t('pluginAdmin:dependencyTitle'),
+      result.pluginDependencyErrors || firstCheck.pluginDependencyErrors,
+    ],
+    [t('common:structure'), result.structureErrors || firstCheck.structureErrors],
+    [t('pluginAdmin:menuConflict'), result.menuConflicts || firstCheck.menuConflicts],
   ]
 
   return validationGroups.flatMap(([category, items]) =>
     Array.isArray(items)
       ? items.map((item) => ({
           category,
-          level: item.level || (category.includes('警告') ? 'warning' : 'error'),
+          level: item.level || (category.includes(t('common:warning')) ? 'warning' : 'error'),
           kind: item.kind || item.name || item.status || '-',
           value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
           message: item.message || item.suggestion || item.reason || '',
