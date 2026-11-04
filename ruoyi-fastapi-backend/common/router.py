@@ -305,10 +305,21 @@ class RouterRegister:
         """
         查找所有controller目录下的py文件
 
+        支持任意层级的业务包嵌套：module_xxx/.../controller
+        （代码生成按点号包路径，如 module_xx.xxx、module_x.y.z，
+        产出的 controller 落在任意深度均可被注册）。
+
         :return: py文件路径列表
         """
-        pattern = os.path.join(self.project_root, '*', 'controller', '[!_]*.py')
-        return sorted(glob.glob(pattern))
+        patterns = [
+            os.path.join(self.project_root, '*', 'controller', '[!_]*.py'),
+            os.path.join(self.project_root, 'module_*', '**', 'controller', '[!_]*.py'),
+        ]
+        files: list[str] = []
+        for pattern in patterns:
+            files.extend(glob.glob(pattern, recursive=True))
+
+        return sorted(set(files))
 
     def _import_module_and_get_routers(self, controller_files: list[str]) -> list[tuple[str, APIRouter]]:
         """
