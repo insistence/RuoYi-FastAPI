@@ -14,6 +14,7 @@ from utils.transport_crypto_util import (
     DecryptedTransportEnvelope,
     TransportCryptoMonitorUtil,
     TransportCryptoUtil,
+    TransportKeyError,
     TransportSecurityUtil,
 )
 
@@ -93,7 +94,7 @@ class TransportCryptoMiddleware:
                 scope,
                 receive,
                 send,
-                '当前接口要求使用加密传输',
+                'transport.required',
                 headers=self._build_monitor_headers(
                     request_mode='plain',
                     response_mode='plain',
@@ -143,7 +144,7 @@ class TransportCryptoMiddleware:
                 scope,
                 receive,
                 send,
-                str(exc) or '加密请求解析失败',
+                exc.msg_key if isinstance(exc, TransportKeyError) else 'transport.invalidRequest',
                 error_crypto_context,
                 headers=self._build_monitor_headers(
                     request_mode='encrypted',
@@ -652,7 +653,7 @@ class TransportCryptoMiddleware:
         scope: Scope,
         receive: Receive,
         send: Send,
-        message: str,
+        msg_key: str,
         crypto_context: dict[str, str | bytes | bool] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
@@ -662,19 +663,14 @@ class TransportCryptoMiddleware:
         :param scope: 当前ASGI请求作用域
         :param receive: ASGI receive函数
         :param send: ASGI send函数
-        :param message: 错误信息
+        :param msg_key: 错误消息的语义标识
         :param crypto_context: 可选的请求加密上下文
         :param headers: 需要追加的诊断响应头
         :return: None
         """
-        key = {
-            'Decryption failed': 'transport.decryptFailed',
-            '密钥版本不存在': 'transport.keyExpired',
-            '当前接口要求使用加密传输': 'transport.required',
-        }.get(message, 'transport.invalidRequest')
         response_content = {
             'code': HttpStatusConstant.BAD_REQUEST,
-            **I18nUtil.message_fields(message, msg_key=key),
+            **I18nUtil.message_fields(msg_key=msg_key),
             'success': False,
         }
         response = JSONResponse(status_code=HttpStatusConstant.BAD_REQUEST, content=response_content)

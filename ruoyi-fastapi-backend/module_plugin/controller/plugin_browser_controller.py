@@ -7,6 +7,7 @@ from common.aspect.db_session import DBSessionDependency
 from common.aspect.pre_auth import CurrentUserDependency
 from common.router import APIRouterPro
 from common.vo import DataResponseModel
+from i18n.message import I18nMessage
 from module_admin.entity.vo.user_vo import CurrentUserModel
 from module_admin.service.login_service import oauth2_scheme
 from plugins.core.runtime.browser_session import COOKIE_NAME_PREFIX, issue_browser_session, plugin_browser_base
@@ -32,12 +33,12 @@ async def create_plugin_browser_session(
     runtime = getattr(request.app.state, 'plugin_explicit_runtime', None)
     loaded = runtime.loaded.get(plugin_id) if isinstance(runtime, ExplicitPluginRuntime) else None
     if loaded is None or loaded.plugin.discovered_plugin.manifest.frontend.delivery.type != 'bundle':
-        raise HTTPException(status_code=404, detail='插件页面不存在')
+        raise HTTPException(status_code=404, detail=I18nMessage('插件页面不存在', msg_key='plugin.session.pageMissing'))
     if not loaded.active or loaded.lifespan is None or not loaded.lifespan.ready:
-        raise HTTPException(status_code=503, detail='插件页面尚未就绪')
+        raise HTTPException(status_code=503, detail=I18nMessage('插件页面尚未就绪', msg_key='plugin.session.notReady'))
     try:
         if not await runtime.route_state_gateway.is_plugin_enabled(query_db, plugin_id):
-            raise PermissionError('插件未启用')
+            raise HTTPException(status_code=403, detail=I18nMessage('插件未启用', msg_key='plugin.disabled'))
         runtime._request_context(loaded, current_user)
         cookie, csrf, seconds = await issue_browser_session(
             request,
@@ -47,9 +48,19 @@ async def create_plugin_browser_session(
             user_id=current_user.user.user_id,
         )
     except PermissionError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
+        detail = (
+            exc.args[0]
+            if exc.args and isinstance(exc.args[0], I18nMessage)
+            else I18nMessage(str(exc), msg_key='plugin.session.forbidden')
+        )
+        raise HTTPException(status_code=403, detail=detail) from exc
     except LookupError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
+        detail = (
+            exc.args[0]
+            if exc.args and isinstance(exc.args[0], I18nMessage)
+            else I18nMessage(str(exc), msg_key='plugin.session.invalid')
+        )
+        raise HTTPException(status_code=401, detail=detail) from exc
     base = plugin_browser_base(request, plugin_id)
     response = ResponseUtil.success(
         data={

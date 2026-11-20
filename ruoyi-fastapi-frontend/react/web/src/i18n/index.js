@@ -1,5 +1,6 @@
 import { setMessageTranslator } from './message.mjs'
 import { setPluginMessageTranslator } from '../utils/pluginBridge.js'
+import appManifest from '../../package.json' with { type: 'json' }
 import { createLocaleRuntime } from './runtime.mjs'
 import { meta, resources } from './registry.js'
 import dayjs from 'dayjs'
@@ -7,6 +8,7 @@ import 'dayjs/locale/zh-cn.js'
 import 'dayjs/locale/en.js'
 
 export const i18n = createLocaleRuntime({
+  appVersion: appManifest.version,
   meta,
   resources,
   storage: {

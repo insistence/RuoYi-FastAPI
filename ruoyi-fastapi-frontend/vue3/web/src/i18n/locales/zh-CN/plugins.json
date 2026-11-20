@@ -1,4 +1,6 @@
 {
+  "maxValue": "不能大于 {{limit}}",
+  "minValue": "不能小于 {{limit}}",
   "positionalArgumentsMustBeAJSONArrayEGTest": "位置参数必须是JSON数组，例如 [\"test\", 1]",
   "keywordArgumentsMustBeAJSONObjectEGEnabled": "关键字参数必须是JSON对象，例如 {\"enabled\": true}",
   "aParameterNumberIsOutsideTheSupportedRange": "参数中的数字超出可表示范围",

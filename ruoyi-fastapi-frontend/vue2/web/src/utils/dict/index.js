@@ -19,6 +19,12 @@ export default function (Vue, options) {
       }
     },
     watch: {
+      '$store.state.dict.revision'() {
+        if (!(this.dict instanceof Dict)) return
+        for (const meta of this.dict._dictMetas || []) {
+          if (!meta.lazy) this.dict.reloadDict(meta.type).catch(() => {})
+        }
+      },
       '$locale.locale'() {
         if (!(this.dict instanceof Dict)) return
         Object.entries(this.dict.type).forEach(([type, rows]) => {

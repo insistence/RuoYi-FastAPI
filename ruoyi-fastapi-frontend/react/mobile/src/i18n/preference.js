@@ -10,8 +10,11 @@ import { i18n } from './index'
  */
 export function saveLocale(preference) {
   return i18n.setPreference(preference, {
-    save: (locale) =>
-      request({ url: '/system/user/profile/locale', method: 'put', data: { locale } }),
-    readBack: async () => (await getInfo()).user?.locale,
+    save: async (locale) =>
+      (await request({ url: '/system/user/profile/locale', method: 'put', data: { locale } })).data,
+    readBack: async () => {
+      const user = (await getInfo()).user
+      return { locale: user?.locale, revision: user?.localeRevision }
+    },
   })
 }

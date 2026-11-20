@@ -11,11 +11,10 @@ function restore() {
     const settings = JSON.parse(localStorage.getItem('react-layout-settings'))?.state
     if (settings?.tagsViewPersist) {
       const saved = JSON.parse(localStorage.getItem('react-visited-views'))
-      const tags = Array.isArray(saved) ? saved : saved?.version === 2 ? saved.items : []
-      if (Array.isArray(tags))
+      if (saved?.version === 2 && Array.isArray(saved.items))
         return [
           home,
-          ...tags
+          ...saved.items
             .filter(
               (tag) =>
                 tag.key !== '/index' &&

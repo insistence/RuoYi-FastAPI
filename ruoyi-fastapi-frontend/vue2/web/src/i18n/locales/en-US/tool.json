@@ -323,6 +323,7 @@
   "interface": {
     "dayAllowedWildcardsLW": "Day; allowed wildcards: [, - * ? / L W]",
     "repeatEvery": {
+      "day": "day, every",
       "hour": ", repeat every",
       "min": ", repeat every",
       "month": ", repeat every",

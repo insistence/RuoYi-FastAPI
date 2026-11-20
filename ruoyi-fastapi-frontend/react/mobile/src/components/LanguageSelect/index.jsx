@@ -21,7 +21,10 @@ export default function LanguageSelect() {
     try {
       await saveLocale(value)
     } catch {
-      Taro.showToast({ title: t('common:languageFailed'), icon: 'none' })
+      Taro.showToast({
+        title: t('common:languageFailed'),
+        icon: 'none',
+      })
     } finally {
       setBusy(false)
     }

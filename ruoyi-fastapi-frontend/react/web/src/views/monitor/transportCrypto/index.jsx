@@ -1,3 +1,4 @@
+import { formatNumber, formatPercentage } from '@/i18n/numbers'
 import { useI18n } from '@/i18n/adapter'
 import { t } from '@/i18n'
 import { ReloadOutlined } from '@ant-design/icons'
@@ -178,30 +179,30 @@ export default function TransportCrypto() {
             ],
             [
               t('monitor:requestOverview'),
-              Number(data.requestsTotal || 0).toString(),
+              formatNumber(data.requestsTotal || 0),
               t('monitor:plaintextValueEncryptedValue', {
-                arg0: Number(data.plainRequestsTotal || 0).toString(),
-                arg1: Number(data.encryptedRequestsTotal || 0).toString(),
+                arg0: formatNumber(data.plainRequestsTotal || 0),
+                arg1: formatNumber(data.encryptedRequestsTotal || 0),
               }),
               t('monitor:matchingRules'),
               'processing',
             ],
             [
               t('monitor:decryptionSuccessRate'),
-              Number(data.decryptSuccessTotal || 0).toString(),
+              formatNumber(data.decryptSuccessTotal || 0),
               t('monitor:failedValueEnforcedRejectionsValue', {
-                arg0: Number(data.decryptFailureTotal || 0).toString(),
-                arg1: Number(data.requiredRejectedTotal || 0).toString(),
+                arg0: formatNumber(data.decryptFailureTotal || 0),
+                arg1: formatNumber(data.requiredRejectedTotal || 0),
               }),
-              `${successRate.toFixed(1)}%`,
+              formatPercentage(successRate),
               successRate >= 95 ? 'success' : successRate >= 80 ? 'warning' : 'error',
             ],
             [
               t('monitor:responseEncryption'),
-              Number(data.encryptedResponsesTotal || 0).toString(),
+              formatNumber(data.encryptedResponsesTotal || 0),
               t('monitor:plaintextValueEncryptedErrorsValue', {
-                arg0: Number(data.plainResponsesTotal || 0).toString(),
-                arg1: Number(data.encryptedErrorResponsesTotal || 0).toString(),
+                arg0: formatNumber(data.plainResponsesTotal || 0),
+                arg1: formatNumber(data.encryptedErrorResponsesTotal || 0),
               }),
               t('monitor:jsonResponses'),
               'warning',
@@ -311,7 +312,7 @@ export default function TransportCrypto() {
                 >
                   <div className="crypto-health-label">
                     <span>{label}</span>
-                    <span>{value.toFixed(1)}%</span>
+                    <span>{formatPercentage(value)}</span>
                   </div>
                   <Progress
                     strokeColor={
@@ -380,7 +381,7 @@ export default function TransportCrypto() {
                             ? t('monitor:valueCountValuePercentageValue', {
                                 reason: item.reason,
                                 count: item.count,
-                                arg2: rate(item.count, reasonsTotal).toFixed(1),
+                                arg2: formatPercentage(rate(item.count, reasonsTotal)),
                               })
                             : ''
                         },
@@ -450,7 +451,7 @@ export default function TransportCrypto() {
                     width: 120,
                     align: 'center',
                     title: t('monitor:share'),
-                    render: (_, row) => `${rate(row.count, reasonsTotal).toFixed(1)}%`,
+                    render: (_, row) => formatPercentage(rate(row.count, reasonsTotal)),
                   },
                 ]}
               />
@@ -546,7 +547,12 @@ export default function TransportCrypto() {
                     align: 'center',
                     title: t('monitor:successRate'),
                     render: (_, row) =>
-                      `${rate(row.decryptSuccess, Number(row.decryptSuccess || 0) + Number(row.decryptFailure || 0)).toFixed(1)}%`,
+                      formatPercentage(
+                        rate(
+                          row.decryptSuccess,
+                          Number(row.decryptSuccess || 0) + Number(row.decryptFailure || 0)
+                        )
+                      ),
                   },
                 ]}
               />

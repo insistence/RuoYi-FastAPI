@@ -1,7 +1,10 @@
 import Vue from 'vue'
 import { i18n } from './index'
 
-export const localeState = Vue.observable({ locale: i18n.locale, preference: i18n.preference })
+export const localeState = Vue.observable({
+  locale: i18n.locale,
+  preference: i18n.preference,
+})
 i18n.engine.on('languageChanged', (locale) => {
   localeState.locale = locale
 })

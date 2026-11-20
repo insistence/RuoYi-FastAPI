@@ -7,24 +7,24 @@
       v-show="showSearch"
     >
       <el-form-item
-        :label="$t('plugin.ai:modelCode')"
+        :label="t('plugin.ai:modelCode')"
         prop="modelCode"
       >
         <el-input
           v-model="queryParams.modelCode"
-          :placeholder="$t('plugin.ai:enterAModelCode')"
+          :placeholder="t('plugin.ai:enterAModelCode')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        :label="$t('plugin.ai:provider')"
+        :label="t('plugin.ai:provider')"
         prop="provider"
       >
         <el-select
           v-model="queryParams.provider"
-          :placeholder="$t('plugin.ai:chooseAProvider')"
+          :placeholder="t('plugin.ai:chooseAProvider')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
@@ -38,12 +38,12 @@
         </el-select>
       </el-form-item>
       <el-form-item
-        :label="$t('plugin.ai:status')"
+        :label="t('plugin.ai:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          :placeholder="$t('plugin.ai:modelStatus')"
+          :placeholder="t('plugin.ai:modelStatus')"
           clearable
           style="width: 240px"
         >
@@ -60,12 +60,12 @@
           type="primary"
           icon="Search"
           @click="handleQuery"
-          >{{ $t('plugin.ai:search') }}</el-button
+          >{{ t('plugin.ai:search') }}</el-button
         >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >{{ $t('plugin.ai:reset') }}</el-button
+          >{{ t('plugin.ai:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -81,7 +81,7 @@
           icon="Plus"
           @click="handleAdd"
           v-hasPermi="['ai:model:add']"
-          >{{ $t('plugin.ai:add') }}</el-button
+          >{{ t('plugin.ai:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -92,7 +92,7 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['ai:model:edit']"
-          >{{ $t('plugin.ai:edit') }}</el-button
+          >{{ t('plugin.ai:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -103,7 +103,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['ai:model:remove']"
-          >{{ $t('plugin.ai:delete') }}</el-button
+          >{{ t('plugin.ai:delete') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -123,17 +123,17 @@
         align="center"
       />
       <el-table-column
-        :label="$t('plugin.ai:modelID')"
+        :label="t('plugin.ai:modelID')"
         align="center"
         prop="modelId"
       />
       <el-table-column
-        :label="$t('plugin.ai:modelCode')"
+        :label="t('plugin.ai:modelCode')"
         align="center"
         prop="modelCode"
       />
       <el-table-column
-        :label="$t('plugin.ai:provider')"
+        :label="t('plugin.ai:provider')"
         align="center"
         prop="provider"
       >
@@ -145,7 +145,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('plugin.ai:supportsReasoning')"
+        :label="t('plugin.ai:supportsReasoning')"
         align="center"
         prop="supportReasoning"
       >
@@ -157,7 +157,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('plugin.ai:supportsImages')"
+        :label="t('plugin.ai:supportsImages')"
         align="center"
         prop="supportImages"
       >
@@ -169,7 +169,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('plugin.ai:status')"
+        :label="t('plugin.ai:status')"
         align="center"
         prop="status"
       >
@@ -181,7 +181,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('plugin.ai:createdAt')"
+        :label="t('plugin.ai:createdAt')"
         align="center"
         prop="createTime"
         width="180"
@@ -191,7 +191,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('plugin.ai:actions')"
+        :label="t('plugin.ai:actions')"
         width="180"
         align="center"
         class-name="small-padding fixed-width"
@@ -203,7 +203,7 @@
             icon="Edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['ai:model:edit']"
-            >{{ $t('plugin.ai:edit') }}</el-button
+            >{{ t('plugin.ai:edit') }}</el-button
           >
           <el-button
             link
@@ -211,7 +211,7 @@
             icon="Delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['ai:model:remove']"
-            >{{ $t('plugin.ai:delete') }}</el-button
+            >{{ t('plugin.ai:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -242,34 +242,34 @@
         <el-row :gutter="10">
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:modelCode')"
+              :label="t('plugin.ai:modelCode')"
               prop="modelCode"
             >
               <el-input
                 v-model="form.modelCode"
-                :placeholder="$t('plugin.ai:enterModelCodeEGDeepseekR1')"
+                :placeholder="t('plugin.ai:enterModelCodeEGDeepseekR1')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:modelName')"
+              :label="t('plugin.ai:modelName')"
               prop="modelName"
             >
               <el-input
                 v-model="form.modelName"
-                :placeholder="$t('plugin.ai:enterAModelName')"
+                :placeholder="t('plugin.ai:enterAModelName')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:provider')"
+              :label="t('plugin.ai:provider')"
               prop="provider"
             >
               <el-select
                 v-model="form.provider"
-                :placeholder="$t('plugin.ai:chooseAProvider')"
+                :placeholder="t('plugin.ai:chooseAProvider')"
                 style="width: 100%"
               >
                 <el-option
@@ -283,7 +283,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:modelSortOrder')"
+              :label="t('plugin.ai:modelSortOrder')"
               prop="modelSort"
             >
               <el-input-number
@@ -300,7 +300,7 @@
             >
               <el-input
                 v-model="form.apiKey"
-                :placeholder="$t('plugin.ai:enterAnAPIKey')"
+                :placeholder="t('plugin.ai:enterAnAPIKey')"
                 type="password"
               />
             </el-form-item>
@@ -312,26 +312,26 @@
             >
               <el-input
                 v-model="form.baseUrl"
-                :placeholder="$t('plugin.ai:enterABaseURL')"
+                :placeholder="t('plugin.ai:enterABaseURL')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:maximumOutput')"
+              :label="t('plugin.ai:maximumOutput')"
               prop="maxTokens"
             >
               <el-input-number
                 v-model="form.maxTokens"
                 :min="0"
                 style="width: 100%"
-                :placeholder="$t('plugin.ai:maximumOutput')"
+                :placeholder="t('plugin.ai:maximumOutput')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:defaultTemperature')"
+              :label="t('plugin.ai:defaultTemperature')"
               prop="temperature"
             >
               <el-input-number
@@ -339,14 +339,14 @@
                 :min="0"
                 :max="2"
                 :step="0.1"
-                :placeholder="$t('plugin.ai:defaultTemperature')"
+                :placeholder="t('plugin.ai:defaultTemperature')"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:supportsReasoning')"
+              :label="t('plugin.ai:supportsReasoning')"
               prop="supportReasoning"
             >
               <el-radio-group v-model="form.supportReasoning">
@@ -361,7 +361,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:supportsImages')"
+              :label="t('plugin.ai:supportsImages')"
               prop="supportImages"
             >
               <el-radio-group v-model="form.supportImages">
@@ -376,18 +376,18 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:modelType')"
+              :label="t('plugin.ai:modelType')"
               prop="modelType"
             >
               <el-input
                 v-model="form.modelType"
-                :placeholder="$t('plugin.ai:enterAModelTypeOptional')"
+                :placeholder="t('plugin.ai:enterAModelTypeOptional')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:status')"
+              :label="t('plugin.ai:status')"
               prop="status"
             >
               <el-radio-group v-model="form.status">
@@ -402,13 +402,13 @@
           </el-col>
           <el-col :span="24">
             <el-form-item
-              :label="$t('plugin.ai:remark')"
+              :label="t('plugin.ai:remark')"
               prop="remark"
             >
               <el-input
                 v-model="form.remark"
                 type="textarea"
-                :placeholder="$t('plugin.ai:enterContent')"
+                :placeholder="t('plugin.ai:enterContent')"
               />
             </el-form-item>
           </el-col>
@@ -419,9 +419,9 @@
           <el-button
             type="primary"
             @click="submitForm"
-            >{{ $t('plugin.ai:confirm') }}</el-button
+            >{{ t('plugin.ai:confirm') }}</el-button
           >
-          <el-button @click="cancel">{{ $t('plugin.ai:cancel') }}</el-button>
+          <el-button @click="cancel">{{ t('plugin.ai:cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -430,7 +430,7 @@
 
 <script setup name="AiModel">
 import { useLocaleForm } from '@/composables/useLocaleForm'
-import { t } from '@/i18n/adapter'
+import { t } from '../../i18n'
 import { listModel, addModel, delModel, getModel, updateModel } from '../../api/model'
 
 const { proxy } = getCurrentInstance()

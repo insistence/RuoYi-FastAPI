@@ -16,6 +16,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 def test_i18n_settings_read_environment_without_limiting_languages(
     monkeypatch: pytest.MonkeyPatch, locale: str
 ) -> None:
+    """验证语言配置允许尚未发布的语言标签。"""
     monkeypatch.setenv('I18N_DEFAULT_LOCALE', locale)
 
     assert I18nSettings().i18n_default_locale == locale
@@ -23,6 +24,7 @@ def test_i18n_settings_read_environment_without_limiting_languages(
 
 @pytest.mark.parametrize('locale', ['', 'a' * 64])
 def test_i18n_settings_reject_invalid_length(locale: str) -> None:
+    """验证语言配置拒绝空标签和过长标签。"""
     with pytest.raises(ValidationError, match='i18n_default_locale'):
         I18nSettings(i18n_default_locale=locale)
 
@@ -30,6 +32,7 @@ def test_i18n_settings_reject_invalid_length(locale: str) -> None:
 def _load_i18n_config(
     tmp_path: Path, file_locale: str | None, external_locale: str | None
 ) -> subprocess.CompletedProcess[str]:
+    """在独立进程中读取指定环境文件和环境变量，返回配置加载结果。"""
     (tmp_path / '.env.i18n-test').write_text(
         '' if file_locale is None else f'I18N_DEFAULT_LOCALE={file_locale}\n', encoding='utf-8'
     )
@@ -84,6 +87,7 @@ print(json.dumps({
 def test_i18n_config_uses_selected_env_file_and_external_priority(
     tmp_path: Path, file_locale: str | None, external_locale: str | None, expected: str
 ) -> None:
+    """验证指定环境文件生效，且外部环境变量可以覆盖文件配置。"""
     result = _load_i18n_config(tmp_path, file_locale, external_locale)
 
     assert result.returncode == 0, result.stderr
@@ -98,6 +102,7 @@ def test_i18n_config_uses_selected_env_file_and_external_priority(
 
 
 def test_i18n_config_rejects_unregistered_default_locale(tmp_path: Path) -> None:
+    """验证服务启动时会拒绝未注册的默认语言。"""
     result = _load_i18n_config(tmp_path, 'ja-JP', None)
 
     assert result.returncode != 0

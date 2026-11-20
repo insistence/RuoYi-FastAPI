@@ -12,7 +12,7 @@
             class="new-chat-btn"
             icon="el-icon-plus"
             @click="clearChat"
-            >{{ $t('plugin.ai:messages.newConversation') }}</el-button
+            >{{ t('plugin.ai:messages.newConversation') }}</el-button
           >
         </div>
         <div
@@ -30,10 +30,10 @@
             </div>
             <div class="session-info">
               <div class="session-title">
-                {{ session.sessionTitle || $t('plugin.ai:expression.newConversation') }}
+                {{ session.sessionTitle || t('plugin.ai:expression.newConversation') }}
               </div>
               <div class="session-time">
-                {{ formatTime(session.createdAt) }}
+                {{ parseTime(session.createdAt) }}
               </div>
             </div>
             <el-button
@@ -48,7 +48,7 @@
             v-if="sessionList.length === 0 && !sessionLoading"
             class="empty-session"
           >
-            {{ $t('plugin.ai:messages.noConversationHistory') }}
+            {{ t('plugin.ai:messages.noConversationHistory') }}
           </div>
         </div>
       </el-aside>
@@ -57,11 +57,11 @@
       <el-main class="chat-main">
         <div class="chat-header">
           <div class="header-left">
-            <span class="header-title">{{ $t('plugin.ai:messages.aIAssistant') }}</span>
+            <span class="header-title">{{ t('plugin.ai:messages.aIAssistant') }}</span>
           </div>
           <div class="header-right">
             <el-tooltip
-              :content="$t('plugin.ai:messages.globalSettings')"
+              :content="t('plugin.ai:messages.globalSettings')"
               placement="bottom"
             >
               <el-button
@@ -73,7 +73,7 @@
             </el-tooltip>
             <el-select
               v-model="currentModelId"
-              :placeholder="$t('plugin.ai:messages.chooseAModel')"
+              :placeholder="t('plugin.ai:messages.chooseAModel')"
               size="large"
               style="width: 210px"
             >
@@ -107,8 +107,8 @@
                   style="font-size: 60px"
                 ></i>
               </div>
-              <h2>{{ $t('plugin.ai:messages.helloIAmYourAIAssistant') }}</h2>
-              <p>{{ $t('plugin.ai:messages.enterAQuestionBelowToStartAConversation') }}</p>
+              <h2>{{ t('plugin.ai:messages.helloIAmYourAIAssistant') }}</h2>
+              <p>{{ t('plugin.ai:messages.enterAQuestionBelowToStartAConversation') }}</p>
             </div>
 
             <div
@@ -127,13 +127,13 @@
                 <div class="message-sender">
                   {{
                     msg.role === 'user'
-                      ? $t('plugin.ai:expression.me')
-                      : $t('plugin.ai:expression.aIAssistant')
+                      ? t('plugin.ai:expression.me')
+                      : t('plugin.ai:expression.aIAssistant')
                   }}
                   <span
                     class="message-time"
                     v-if="msg.createdAt"
-                    >{{ formatTime(msg.createdAt) }}</span
+                    >{{ parseTime(msg.createdAt) }}</span
                   >
                 </div>
                 <div class="message-bubble">
@@ -164,7 +164,7 @@
                 <div class="message-footer">
                   <div class="footer-actions">
                     <el-tooltip
-                      :content="$t('plugin.ai:messages.copy')"
+                      :content="t('plugin.ai:messages.copy')"
                       placement="top"
                     >
                       <el-button
@@ -185,8 +185,8 @@
                           msg.metrics.duration !== null &&
                           msg.metrics.duration !== undefined
                         "
-                        >{{ $t('plugin.ai:messages.duration') }}
-                        {{ msg.metrics.duration.toFixed(3) }} s</span
+                        >{{ t('plugin.ai:messages.duration') }}
+                        {{ formatNumber(msg.metrics.duration, 3) }} s</span
                       >
                       <span
                         v-if="
@@ -194,7 +194,7 @@
                           msg.metrics.inputTokens !== null &&
                           msg.metrics.inputTokens !== undefined
                         "
-                        >{{ $t('plugin.ai:messages.input') }}
+                        >{{ t('plugin.ai:messages.input') }}
                         {{ msg.metrics.inputTokens }} tokens</span
                       >
                       <span
@@ -203,7 +203,7 @@
                           msg.metrics.outputTokens !== null &&
                           msg.metrics.outputTokens !== undefined
                         "
-                        >{{ $t('plugin.ai:messages.output') }}
+                        >{{ t('plugin.ai:messages.output') }}
                         {{ msg.metrics.outputTokens }} tokens</span
                       >
                       <span
@@ -212,7 +212,7 @@
                           msg.metrics.totalTokens !== null &&
                           msg.metrics.totalTokens !== undefined
                         "
-                        >{{ $t('plugin.ai:messages.total') }}
+                        >{{ t('plugin.ai:messages.total') }}
                         {{ msg.metrics.totalTokens }} tokens</span
                       >
                       <span
@@ -221,7 +221,7 @@
                           msg.metrics.reasoningTokens !== null &&
                           msg.metrics.reasoningTokens !== undefined
                         "
-                        >{{ $t('plugin.ai:messages.reasoning') }}
+                        >{{ t('plugin.ai:messages.reasoning') }}
                         {{ msg.metrics.reasoningTokens }} tokens</span
                       >
                     </div>
@@ -263,7 +263,7 @@
               :rows="3"
               resize="none"
               :placeholder="
-                $t('plugin.ai:messages.enterYourQuestionEnterToSendShiftEnterForANewLine')
+                t('plugin.ai:messages.enterYourQuestionEnterToSendShiftEnterForANewLine')
               "
               @keydown.enter.native.exact.prevent="handleSend"
               :disabled="loading"
@@ -289,7 +289,7 @@
                     currentModelInfo.supportImages === 'Y' &&
                     userConfig.visionEnabled == '0'
                   "
-                  :content="$t('plugin.ai:messages.uploadImages')"
+                  :content="t('plugin.ai:messages.uploadImages')"
                   placement="top"
                 >
                   <el-button
@@ -310,7 +310,7 @@
                   @click="chatConfig.isReasoning = !chatConfig.isReasoning"
                 >
                   <svg-icon icon-class="deepthink" />
-                  {{ $t('plugin.ai:messages.deepReasoning') }}
+                  {{ t('plugin.ai:messages.deepReasoning') }}
                 </el-button>
               </div>
               <el-button
@@ -319,7 +319,7 @@
                 @click="handleMainAction"
                 :disabled="!loading && !inputMessage.trim() && !inputImages.length"
               >
-                {{ loading ? $t('plugin.ai:expression.stop') : $t('plugin.ai:expression.send') }}
+                {{ loading ? t('plugin.ai:expression.stop') : t('plugin.ai:expression.send') }}
               </el-button>
             </div>
           </div>
@@ -330,7 +330,7 @@
     <!-- 全局配置弹窗 -->
     <el-dialog
       :visible.sync="showConfigDialog"
-      :title="$t('plugin.ai:messages.globalUserSettings')"
+      :title="t('plugin.ai:messages.globalUserSettings')"
       width="700px"
       append-to-body
       class="chat-config-dialog"
@@ -341,20 +341,20 @@
       >
         <el-row>
           <el-col :span="12">
-            <el-form-item :label="$t('plugin.ai:messages.defaultTemperature')">
+            <el-form-item :label="t('plugin.ai:messages.defaultTemperature')">
               <el-input-number
                 v-model="editingUserConfig.temperature"
                 :min="0"
                 :max="2"
                 :step="0.1"
                 :precision="1"
-                :placeholder="$t('plugin.ai:messages.defaultTemperature')"
+                :placeholder="t('plugin.ai:messages.defaultTemperature')"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item :label="$t('plugin.ai:messages.includeConversationHistory')">
+            <el-form-item :label="t('plugin.ai:messages.includeConversationHistory')">
               <el-switch
                 active-value="0"
                 inactive-value="1"
@@ -366,20 +366,20 @@
         <el-row>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:messages.historyRounds')"
+              :label="t('plugin.ai:messages.historyRounds')"
               v-if="editingUserConfig.addHistoryToContext == '0'"
             >
               <el-input-number
                 v-model="editingUserConfig.numHistoryRuns"
                 :min="1"
                 :max="20"
-                :placeholder="$t('plugin.ai:messages.historyRounds')"
+                :placeholder="t('plugin.ai:messages.historyRounds')"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item :label="$t('plugin.ai:messages.showMetricsByDefault')">
+            <el-form-item :label="t('plugin.ai:messages.showMetricsByDefault')">
               <el-switch
                 active-value="0"
                 inactive-value="1"
@@ -390,7 +390,7 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item :label="$t('plugin.ai:messages.enableVision')">
+            <el-form-item :label="t('plugin.ai:messages.enableVision')">
               <el-switch
                 active-value="0"
                 inactive-value="1"
@@ -400,14 +400,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:messages.maximumImageSize')"
+              :label="t('plugin.ai:messages.maximumImageSize')"
               v-if="editingUserConfig.visionEnabled"
             >
               <el-input-number
                 v-model="editingUserConfig.imageMaxSizeMb"
                 :min="1"
                 :max="50"
-                :placeholder="$t('plugin.ai:messages.imageSize')"
+                :placeholder="t('plugin.ai:messages.imageSize')"
                 style="width: 100%"
               >
                 <template #suffix>
@@ -419,12 +419,12 @@
         </el-row>
         <el-row>
           <el-col :span="24">
-            <el-form-item :label="$t('plugin.ai:messages.systemPrompt')">
+            <el-form-item :label="t('plugin.ai:messages.systemPrompt')">
               <el-input
                 v-model="editingUserConfig.systemPrompt"
                 type="textarea"
                 :rows="4"
-                :placeholder="$t('plugin.ai:messages.setTheGlobalSystemPrompt')"
+                :placeholder="t('plugin.ai:messages.setTheGlobalSystemPrompt')"
               />
             </el-form-item>
           </el-col>
@@ -433,12 +433,12 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="showConfigDialog = false">{{
-            $t('plugin.ai:messages.cancel')
+            t('plugin.ai:messages.cancel')
           }}</el-button>
           <el-button
             type="primary"
             @click="handleSaveConfig"
-            >{{ $t('plugin.ai:messages.save') }}</el-button
+            >{{ t('plugin.ai:messages.save') }}</el-button
           >
         </span>
       </template>
@@ -456,9 +456,11 @@
 </template>
 
 <script>
-import { t } from '@/i18n/adapter'
+import { t } from '../../i18n'
 
 import { i18n } from '@/i18n'
+import { parseTime } from '@/utils/ruoyi'
+import { formatNumber } from '@/i18n/numbers'
 
 import { listModelAll } from '../../api/model'
 import {
@@ -564,6 +566,7 @@ export default {
     }
   },
   methods: {
+    t,
     generateSessionId() {
       return uuidv4()
     },
@@ -614,15 +617,8 @@ export default {
       }
       return process.env.VUE_APP_BASE_API + url
     },
-    formatTime(timeStr) {
-      if (!timeStr) return ''
-      try {
-        const date = new Date(timeStr)
-        return date.toLocaleString()
-      } catch (e) {
-        return timeStr
-      }
-    },
+    parseTime,
+    formatNumber,
     getModels() {
       listModelAll().then((res) => {
         this.modelOptions = res.data

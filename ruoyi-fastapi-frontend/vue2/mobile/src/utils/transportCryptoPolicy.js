@@ -1,3 +1,4 @@
+import { localeRequestHeaders } from './transportLocale.mjs'
 import config from '@/config'
 
 const TRANSPORT_BASE_URL = config.baseUrl
@@ -227,11 +228,12 @@ function loadPersistedTransportPolicy() {
  *
  * @returns {Promise<Object>} Uni 请求响应结果
  */
-function requestFrontendConfig() {
+function requestFrontendConfig(requestHeaders) {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${TRANSPORT_BASE_URL}${TRANSPORT_FRONTEND_CONFIG_URL}`,
       method: 'GET',
+      header: localeRequestHeaders(requestHeaders),
       timeout: 10000,
       success: resolve,
       fail: reject,
@@ -276,7 +278,7 @@ export function invalidateTransportCryptoPolicy() {
  * @param {boolean} forceRefresh 是否强制从后端刷新
  * @returns {Promise<Object>} 当前可用策略
  */
-export async function ensureTransportCryptoPolicyLoaded(forceRefresh = false) {
+export async function ensureTransportCryptoPolicyLoaded(forceRefresh = false, requestHeaders = {}) {
   if (!forceRefresh && !cachedTransportPolicy) {
     const persistedTransportPolicy = loadPersistedTransportPolicy()
     if (isUsableTransportPolicy(persistedTransportPolicy)) {
@@ -292,7 +294,7 @@ export async function ensureTransportCryptoPolicyLoaded(forceRefresh = false) {
     return inflightTransportPolicyPromise
   }
 
-  inflightTransportPolicyPromise = requestFrontendConfig()
+  inflightTransportPolicyPromise = requestFrontendConfig(requestHeaders)
     .then((response) => {
       const payload = normalizeTransportPolicy(response?.data?.data || {})
       cachedTransportPolicy = payload

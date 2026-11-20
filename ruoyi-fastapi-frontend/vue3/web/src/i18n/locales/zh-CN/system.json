@@ -241,6 +241,7 @@
   "departmentLabelText": "归属部门：",
   "selectDepartment": "请选择归属部门",
   "password": {
+    "label": "用户密码",
     "prompt": "请输入“{{name}}”的新密码",
     "updated": "修改成功，新密码是：{{password}}"
   },

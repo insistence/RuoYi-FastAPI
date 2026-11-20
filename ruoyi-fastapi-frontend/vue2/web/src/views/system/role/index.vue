@@ -834,7 +834,7 @@ export default {
         {
           ...this.queryParams,
         },
-        `role_${new Date().getTime()}.xlsx`
+        `${t('common:exportFiles.roles')}_${new Date().getTime()}.xlsx`
       )
     },
   },

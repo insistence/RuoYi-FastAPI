@@ -970,7 +970,7 @@ function handleExport() {
     {
       ...queryParams.value,
     },
-    `job_${new Date().getTime()}.xlsx`
+    `${t('common:exportFiles.jobs')}_${new Date().getTime()}.xlsx`
   )
 }
 

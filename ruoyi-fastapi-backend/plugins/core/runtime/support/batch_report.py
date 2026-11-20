@@ -358,15 +358,31 @@ class PluginBatchReportBuilder:
         :return: 失败建议
         """
         if result.get('pluginDependencyErrors'):
-            return f'先执行 ruoyi plugin plan {operation} {plugin_id} 查看插件依赖阻塞项'
+            return I18nMessage(
+                f'先执行 ruoyi plugin plan {operation} {plugin_id} 查看插件依赖阻塞项',
+                msg_key='plugin.suggestion.batchDependencies',
+                msg_params={'operation': operation, 'plugin_id': plugin_id},
+            )
         if result.get('structureErrors'):
-            return f'先执行 ruoyi plugin check {plugin_id} 修复插件目录结构问题'
+            return I18nMessage(
+                f'先执行 ruoyi plugin check {plugin_id} 修复插件目录结构问题',
+                msg_key='plugin.suggestion.batchStructure',
+                msg_params={'plugin_id': plugin_id},
+            )
         if result.get('menuConflicts'):
-            return f'先执行 ruoyi plugin check {plugin_id} 查看菜单或权限冲突'
+            return I18nMessage(
+                f'先执行 ruoyi plugin check {plugin_id} 查看菜单或权限冲突',
+                msg_key='plugin.suggestion.batchMenus',
+                msg_params={'plugin_id': plugin_id},
+            )
         if result.get('error'):
-            return '查看错误详情并修复后重新执行批量命令'
+            return I18nMessage('查看错误详情并修复后重新执行批量命令', msg_key='plugin.suggestion.batchError')
 
-        return f'先单独执行 ruoyi plugin {operation} {plugin_id} --dry-run 定位失败原因'
+        return I18nMessage(
+            f'先单独执行 ruoyi plugin {operation} {plugin_id} --dry-run 定位失败原因',
+            msg_key='plugin.suggestion.batchDryRun',
+            msg_params={'operation': operation, 'plugin_id': plugin_id},
+        )
 
     @staticmethod
     def _count_planned_items(plan_payload: BatchPlanPayload) -> int:

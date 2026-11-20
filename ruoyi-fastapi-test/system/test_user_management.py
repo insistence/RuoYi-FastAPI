@@ -39,6 +39,26 @@ async def reset_password(view: SystemPage, name: str, browser_harness: BrowserHa
     assert logout.ok and (await logout.json())['code'] == HTTPStatus.OK
 
 
+async def verify_optional_date_keyboard(view: SystemPage) -> None:
+    """验证用户管理的空日期筛选支持双向 Tab 导航和键盘开闭日历。"""
+    start = view.page.get_by_placeholder('开始日期', exact=True)
+    end = view.page.get_by_placeholder('结束日期', exact=True)
+    await start.focus()
+    await view.page.keyboard.press('Tab')
+    await expect(end).to_be_focused()
+    await view.page.keyboard.press('Tab')
+    await expect(view.button(view.form, '搜索')).to_be_focused()
+    await view.page.keyboard.press('Shift+Tab')
+    await expect(end).to_be_focused()
+    await view.page.keyboard.press('Shift+Tab')
+    await expect(start).to_be_focused()
+    await start.press('Enter')
+    calendar = view.page.locator('.ant-picker-dropdown:visible')
+    await expect(calendar).to_be_visible()
+    await view.page.keyboard.press('Escape')
+    await expect(calendar).to_have_count(0)
+
+
 @pytest.mark.asyncio
 async def test_user_management_page(browser_harness: BrowserHarness) -> None:
     """用户完整 CRUD、状态、密码及独立分配角色页面。"""
@@ -49,6 +69,8 @@ async def test_user_management_page(browser_harness: BrowserHarness) -> None:
     name, nick = f'e2e_{suffix}', f'测试用户_{suffix}'
     phone = f'138{int(suffix, 16) % 100000000:08d}'
     await view.open('/system/user', f'{resource}/list')
+    if view.is_react:
+        await verify_optional_date_keyboard(view)
     try:
         dialog = await view.add()
         for label, value in {

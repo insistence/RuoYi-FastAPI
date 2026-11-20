@@ -1,5 +1,5 @@
 import { t } from '@/i18n/adapter'
-export default {
+const errorCode = {
   get 401() {
     return t('components:authenticationFailedUnableToAccessSystemResources')
   },
@@ -9,5 +9,14 @@ export default {
   get 404() {
     return t('components:theRequestedResourceDoesNotExist')
   },
-  default: () => t('components:anUnknownErrorOccurredPleaseContactTheAdministrator'),
+  get default() {
+    return t('components:anUnknownErrorOccurredPleaseContactTheAdministrator')
+  },
+}
+
+export default errorCode
+
+export function getResponseMessage({ msg, code }) {
+  if (typeof msg === 'string' && msg.trim()) return msg
+  return Object.prototype.hasOwnProperty.call(errorCode, code) ? errorCode[code] : errorCode.default
 }

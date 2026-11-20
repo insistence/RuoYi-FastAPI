@@ -1083,7 +1083,7 @@ export default {
         {
           ...this.queryParams,
         },
-        `job_${new Date().getTime()}.xlsx`
+        `${t('common:exportFiles.jobs')}_${new Date().getTime()}.xlsx`
       )
     },
   },

@@ -142,7 +142,9 @@ class PluginManifestChecker:
                         msg_key='plugin.runtime.validation.secretDefault',
                         msg_params={'key': str(config_item.key)},
                     ),
-                    suggestion='建议删除默认值，改为安装后在插件配置中录入',
+                    suggestion=I18nMessage(
+                        '建议删除默认值，改为安装后在插件配置中录入', msg_key='plugin.suggestion.secretDefault'
+                    ),
                     ok=True,
                 )
             )
@@ -171,7 +173,10 @@ class PluginManifestChecker:
                             msg_key='plugin.runtime.validation.passwordNotSecret',
                             msg_params={'key': str(config_item.key)},
                         ),
-                        suggestion='建议为 password 类型配置显式声明 secret=true，避免配置展示和导出时泄露敏感值',
+                        suggestion=I18nMessage(
+                            '建议为 password 类型配置显式声明 secret=true，避免配置展示和导出时泄露敏感值',
+                            msg_key='plugin.suggestion.passwordSecret',
+                        ),
                         ok=True,
                     )
                 )
@@ -187,7 +192,10 @@ class PluginManifestChecker:
                             msg_key='plugin.runtime.validation.secretNotPassword',
                             msg_params={'key': str(config_item.key)},
                         ),
-                        suggestion='建议将敏感配置类型设置为 password，便于前端输入控件、导出和审计统一脱敏处理',
+                        suggestion=I18nMessage(
+                            '建议将敏感配置类型设置为 password，便于前端输入控件、导出和审计统一脱敏处理',
+                            msg_key='plugin.suggestion.secretPasswordType',
+                        ),
                         ok=True,
                     )
                 )
@@ -234,7 +242,10 @@ class PluginManifestChecker:
                             msg_key='plugin.runtime.validation.dependencyVersionMissing',
                             msg_params={'dependency_kind': str(dependency_kind), 'name': str(name)},
                         ),
-                        suggestion='建议为插件依赖声明最小版本或兼容版本范围，降低环境漂移风险',
+                        suggestion=I18nMessage(
+                            '建议为插件依赖声明最小版本或兼容版本范围，降低环境漂移风险',
+                            msg_key='plugin.suggestion.dependencyVersion',
+                        ),
                         ok=True,
                     )
                 )
@@ -252,7 +263,9 @@ class PluginManifestChecker:
                         msg_key='plugin.runtime.validation.pluginVersionMissing',
                         msg_params={'id': str(dependency.id)},
                     ),
-                    suggestion='建议声明依赖插件的最小版本或兼容版本范围',
+                    suggestion=I18nMessage(
+                        '建议声明依赖插件的最小版本或兼容版本范围', msg_key='plugin.suggestion.pluginVersion'
+                    ),
                     ok=True,
                 )
             )
@@ -282,7 +295,10 @@ class PluginManifestChecker:
                     '插件声明了资源清单，但未声明 onPurge 清理钩子',
                     msg_key='plugin.runtime.validation.purgeHookMissing',
                 ),
-                suggestion='如资源需要随插件物理清理，请通过 backend.hooks.onPurge 显式实现清理逻辑',
+                suggestion=I18nMessage(
+                    '如资源需要随插件物理清理，请通过 backend.hooks.onPurge 显式实现清理逻辑',
+                    msg_key='plugin.suggestion.purgeHook',
+                ),
                 ok=True,
             )
         ]
@@ -310,7 +326,10 @@ class PluginManifestChecker:
                         msg_key='plugin.runtime.validation.requiredDefaultMissing',
                         msg_params={'key': str(config_item.key)},
                     ),
-                    suggestion='建议提供安全默认值，或在插件 README 中明确安装后必须配置该项',
+                    suggestion=I18nMessage(
+                        '建议提供安全默认值，或在插件 README 中明确安装后必须配置该项',
+                        msg_key='plugin.suggestion.requiredConfig',
+                    ),
                     ok=True,
                 )
             )
@@ -341,7 +360,10 @@ class PluginManifestChecker:
                             msg_key='plugin.runtime.validation.numericConstraintsIgnored',
                             msg_params={'key': str(config_item.key)},
                         ),
-                        suggestion='仅 number 类型配置支持 min/max；请删除该约束或将配置类型改为 number',
+                        suggestion=I18nMessage(
+                            '仅 number 类型配置支持 min/max；请删除该约束或将配置类型改为 number',
+                            msg_key='plugin.suggestion.numberBounds',
+                        ),
                         ok=True,
                     )
                 )
@@ -357,7 +379,10 @@ class PluginManifestChecker:
                             msg_key='plugin.runtime.validation.patternIgnored',
                             msg_params={'key': str(config_item.key)},
                         ),
-                        suggestion='仅 string、textarea、password 类型配置支持 pattern；请删除该约束或调整配置类型',
+                        suggestion=I18nMessage(
+                            '仅 string、textarea、password 类型配置支持 pattern；请删除该约束或调整配置类型',
+                            msg_key='plugin.suggestion.patternType',
+                        ),
                         ok=True,
                     )
                 )
@@ -373,7 +398,10 @@ class PluginManifestChecker:
                             msg_key='plugin.runtime.validation.optionsIgnored',
                             msg_params={'key': str(config_item.key)},
                         ),
-                        suggestion='仅 select 类型配置支持 options；请删除 options 或将配置类型改为 select',
+                        suggestion=I18nMessage(
+                            '仅 select 类型配置支持 options；请删除 options 或将配置类型改为 select',
+                            msg_key='plugin.suggestion.selectOptions',
+                        ),
                         ok=True,
                     )
                 )
@@ -404,7 +432,11 @@ class PluginManifestChecker:
                     msg_key='plugin.runtime.validation.permissionPrefix',
                     msg_params={'permission': str(permission)},
                 ),
-                suggestion=f'建议使用 {expected_prefix}<resource>:<action> 格式，降低与平台或其他插件权限冲突的风险',
+                suggestion=I18nMessage(
+                    f'建议使用 {expected_prefix}<resource>:<action> 格式，降低与平台或其他插件权限冲突的风险',
+                    msg_key='plugin.suggestion.permissionPrefix',
+                    msg_params={'prefix': expected_prefix},
+                ),
                 ok=True,
             )
             for permission in sorted(declared_permissions)
@@ -434,7 +466,10 @@ class PluginManifestChecker:
                 message=I18nMessage(
                     '插件声明了前端菜单，但没有声明任何权限标识', msg_key='plugin.runtime.validation.permissionsMissing'
                 ),
-                suggestion='建议至少为页面菜单声明 perms 并在顶层 permissions 中同步声明，便于角色授权和菜单可见性统一管理',
+                suggestion=I18nMessage(
+                    '建议至少为页面菜单声明 perms 并在顶层 permissions 中同步声明，便于角色授权和菜单可见性统一管理',
+                    msg_key='plugin.suggestion.pagePermissions',
+                ),
                 ok=True,
             )
         ]
@@ -462,7 +497,10 @@ class PluginManifestChecker:
                         msg_key='plugin.runtime.validation.buttonPermissionMissing',
                         msg_params={'name': str(menu.name)},
                     ),
-                    suggestion='建议为按钮菜单声明 perms，并在顶层 permissions 中同步声明，便于前端权限指令和后端权限校验统一控制',
+                    suggestion=I18nMessage(
+                        '建议为按钮菜单声明 perms，并在顶层 permissions 中同步声明，便于前端权限指令和后端权限校验统一控制',
+                        msg_key='plugin.suggestion.buttonPermissions',
+                    ),
                     ok=True,
                 )
             )
@@ -493,7 +531,10 @@ class PluginManifestChecker:
                             msg_key='plugin.runtime.validation.buttonComponent',
                             msg_params={'name': str(menu.name)},
                         ),
-                        suggestion='按钮菜单只用于权限动作，不参与路由渲染；建议将 component 留空',
+                        suggestion=I18nMessage(
+                            '按钮菜单只用于权限动作，不参与路由渲染；建议将 component 留空',
+                            msg_key='plugin.suggestion.buttonComponent',
+                        ),
                         ok=True,
                     )
                 )
@@ -509,7 +550,10 @@ class PluginManifestChecker:
                             msg_key='plugin.runtime.validation.buttonChildren',
                             msg_params={'name': str(menu.name)},
                         ),
-                        suggestion='按钮菜单不应承载子菜单；建议将子菜单移动到目录或页面菜单下',
+                        suggestion=I18nMessage(
+                            '按钮菜单不应承载子菜单；建议将子菜单移动到目录或页面菜单下',
+                            msg_key='plugin.suggestion.buttonChildren',
+                        ),
                         ok=True,
                     )
                 )
@@ -543,7 +587,10 @@ class PluginManifestChecker:
                     msg_key='plugin.runtime.validation.permissionMenuMissing',
                     msg_params={'permission': str(permission)},
                 ),
-                suggestion='如该权限需要分配给角色，建议声明页面/目录菜单，或显式声明按钮菜单承载该权限',
+                suggestion=I18nMessage(
+                    '如该权限需要分配给角色，建议声明页面/目录菜单，或显式声明按钮菜单承载该权限',
+                    msg_key='plugin.suggestion.permissionMenu',
+                ),
                 ok=True,
             )
             for permission in auto_button_permissions
@@ -576,7 +623,10 @@ class PluginManifestChecker:
                         msg_key='plugin.runtime.validation.fileOrder',
                         msg_params={'field_name': str(field_name)},
                     ),
-                    suggestion='插件 migration 和 seed 会按 manifest 列表顺序执行；建议按文件名升序声明，降低执行顺序出错风险',
+                    suggestion=I18nMessage(
+                        '插件 migration 和 seed 会按 manifest 列表顺序执行；建议按文件名升序声明，降低执行顺序出错风险',
+                        msg_key='plugin.suggestion.scriptOrder',
+                    ),
                     ok=True,
                 )
             )
@@ -605,7 +655,10 @@ class PluginManifestChecker:
                     '插件声明了默认启用的定时任务，但未声明健康检查 callable',
                     msg_key='plugin.runtime.validation.jobHealthMissing',
                 ),
-                suggestion='建议为包含默认启用任务的插件声明 backend.health.checker，便于运维侧确认任务依赖状态',
+                suggestion=I18nMessage(
+                    '建议为包含默认启用任务的插件声明 backend.health.checker，便于运维侧确认任务依赖状态',
+                    msg_key='plugin.suggestion.healthChecker',
+                ),
                 ok=True,
             )
         ]
@@ -635,7 +688,10 @@ class PluginManifestChecker:
                     msg_key='plugin.runtime.validation.hookMissing',
                     msg_params={'declared_hook': str(declared_hook), 'missing_hook': str(missing_hook)},
                 ),
-                suggestion='建议启动和关闭钩子成对声明，确保运行时资源可以完整初始化和释放',
+                suggestion=I18nMessage(
+                    '建议启动和关闭钩子成对声明，确保运行时资源可以完整初始化和释放',
+                    msg_key='plugin.suggestion.pairedHooks',
+                ),
                 ok=True,
             )
         ]
@@ -675,7 +731,9 @@ class PluginManifestChecker:
                             msg_key='plugin.runtime.validation.versionUnavailable',
                             msg_params={'target_name': str(target_name)},
                         ),
-                        suggestion='确认运行环境可读取版本信息后重新执行插件检查',
+                        suggestion=I18nMessage(
+                            '确认运行环境可读取版本信息后重新执行插件检查', msg_key='plugin.suggestion.versionReadable'
+                        ),
                         ok=True,
                     )
                 )
@@ -697,7 +755,9 @@ class PluginManifestChecker:
                             'constraint': str(constraint),
                         },
                     ),
-                    suggestion='升级平台运行环境或调整插件 compatibility 声明',
+                    suggestion=I18nMessage(
+                        '升级平台运行环境或调整插件 compatibility 声明', msg_key='plugin.suggestion.upgradeRuntime'
+                    ),
                     ok=False,
                 )
             )
@@ -721,7 +781,10 @@ class PluginManifestChecker:
                             },
                         )
                     ),
-                    suggestion='切换到插件支持的数据库，或调整插件 compatibility.databases 声明',
+                    suggestion=I18nMessage(
+                        '切换到插件支持的数据库，或调整插件 compatibility.databases 声明',
+                        msg_key='plugin.suggestion.supportedDatabase',
+                    ),
                     ok=False,
                 )
             )

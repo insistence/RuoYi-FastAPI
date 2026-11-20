@@ -1,5 +1,22 @@
 import { createInstance } from 'i18next'
 
+// 菜单和字典原字段由后端数据协议固定为简体中文。
+export const DATA_SOURCE_LOCALE = 'zh-CN'
+
+function normalizeRevision(value) {
+  return typeof value === 'string' &&
+    /^(0|[1-9]\d{0,18})$/.test(value) &&
+    (value.length < 19 || value <= '9223372036854775807')
+    ? value
+    : null
+}
+
+function compareRevision(left, right) {
+  if (left === right) return 0
+  if (right === null) return 1
+  return left.length !== right.length ? left.length - right.length : left > right ? 1 : -1
+}
+
 /**
  * 规范化语言标识，兼容使用下划线的设备语言。
  *
@@ -47,9 +64,14 @@ export function createLocaleRegistry(meta, resources) {
       aliases.set(code, entry.code)
     }
   }
+  const languageFallbacks = meta.languageFallbacks || {}
+  for (const [language, target] of Object.entries(languageFallbacks)) {
+    if (!/^[a-z]{2,8}$/.test(language) || !byCode.has(target))
+      throw new Error(`Invalid language fallback: ${language}`)
+  }
   function match(value) {
     const code = normalizeLocale(value)
-    return byCode.has(code) ? code : aliases.get(code)
+    return byCode.has(code) ? code : aliases.get(code) || languageFallbacks[code?.split('-')[0]]
   }
   return {
     entries,
@@ -61,7 +83,14 @@ export function createLocaleRegistry(meta, resources) {
       }
       return meta.defaultLocale
     },
-    chain(code) {
+    /**
+     * 按目标语言、配置的回退语言和指定的原文语言生成查找顺序。
+     *
+     * @param {string} code 目标语言标识
+     * @param {string} [sourceLocale] 原文语言，默认取当前应用的词库基准
+     * @returns {string[]} 去重后的语言标识列表
+     */
+    chain(code, sourceLocale = meta.sourceLocale) {
       const result = []
       const append = (value) => {
         if (result.includes(value)) return
@@ -69,7 +98,7 @@ export function createLocaleRegistry(meta, resources) {
         for (const fallback of byCode.get(value)?.fallback || []) append(fallback)
       }
       append(code)
-      append(meta.sourceLocale)
+      append(sourceLocale)
       return result
     },
     get: (code) => byCode.get(code),
@@ -80,6 +109,7 @@ export function createLocaleRegistry(meta, resources) {
  * 创建当前应用独立的国际化实例，隔离账号和访客的语言偏好。
  *
  * @param {Object} options 当前应用的语言、存储和设备适配配置
+ * @param {string} [options.appVersion] 记录缺词诊断时使用的应用版本
  * @returns {Object} 翻译、语言切换与偏好管理接口
  */
 export function createLocaleRuntime({
@@ -87,17 +117,39 @@ export function createLocaleRuntime({
   resources,
   storage,
   scope,
+  appVersion,
   deviceLocales = () => [],
   onChange = () => {},
 }) {
   const registry = createLocaleRegistry(meta, resources)
   const engine = createInstance()
   let account = null
+  let revision = null
   let generation = 0
   let preference = meta.defaultLocale
   let queue = Promise.resolve()
-  const storageKey = () => `${scope}:locale:v1:${account === null ? 'guest' : `user:${account}`}`
+  const accountKey = `${scope}:locale:account`
+  const guestKey = `${scope}:locale:v1:guest`
+  const snapshotKey = () => `${scope}:locale:v2:user:${account}`
   const validPreference = (value) => (value === 'auto' ? value : normalizeLocale(value))
+  function parseSnapshot(value) {
+    const locale = validPreference(value?.locale)
+    const version = normalizeRevision(value?.revision)
+    return locale && version !== null ? { locale, revision: version } : null
+  }
+  function readSnapshot(raw) {
+    try {
+      return parseSnapshot(JSON.parse(raw))
+    } catch {
+      return null
+    }
+  }
+  function requireSnapshot(value) {
+    const snapshot = parseSnapshot(value)
+    if (!snapshot) throw new Error('Invalid locale snapshot')
+    return snapshot
+  }
+  const reportedMissingKeys = new Set()
   engine.init({
     resources,
     lng: meta.defaultLocale,
@@ -110,18 +162,46 @@ export function createLocaleRuntime({
     interpolation: { escapeValue: false },
     returnNull: false,
     returnEmptyString: false,
+    appendNamespaceToMissingKey: true,
+    parseMissingKeyHandler(qualifiedKey, defaultValue, options) {
+      const locale = options.lng || engine.language
+      const warningKey = `${locale}:${qualifiedKey}`
+      if (!reportedMissingKeys.has(warningKey)) {
+        reportedMissingKeys.add(warningKey)
+        const [namespace, key] = qualifiedKey.split(':')
+        // 插值参数可能包含业务数据，诊断只记录词条位置和版本。
+        console.warn('Missing translation', { namespace, key, locale, version: appVersion })
+      }
+      return (
+        defaultValue ??
+        engine.t('common:translationUnavailable', { lng: locale, defaultValue: '—' })
+      )
+    },
   })
-  function commit(value, persist = true) {
+  function applyPreference(value) {
     preference = value
     const code = registry.resolve(value, deviceLocales())
-    // 各端均同步打包当前语言及回退词库，切换时可直接取词。
     engine.changeLanguage(code)
-    if (persist) storage.set(storageKey(), value)
     onChange(code, registry.get(code))
     engine.emit('preferenceChanged', value)
   }
   function restore() {
-    commit(validPreference(storage.get(storageKey())) || meta.defaultLocale, false)
+    const snapshot = account === null ? null : readSnapshot(storage.get(snapshotKey()))
+    revision = snapshot?.revision ?? null
+    const value = account === null ? validPreference(storage.get(guestKey)) : snapshot?.locale
+    applyPreference(value || meta.defaultLocale)
+  }
+  function acceptSnapshot(snapshot, persist = true) {
+    // 先读取其他标签页可能已提交的更新，再比较本次回包的 revision。
+    const stored = readSnapshot(storage.get(snapshotKey()))
+    if (stored && compareRevision(stored.revision, revision) > 0) {
+      revision = stored.revision
+      applyPreference(stored.locale)
+    }
+    if (compareRevision(snapshot.revision, revision) <= 0) return
+    revision = snapshot.revision
+    if (persist) storage.set(snapshotKey(), JSON.stringify(snapshot))
+    applyPreference(snapshot.locale)
   }
   const runtime = {
     engine,
@@ -136,11 +216,15 @@ export function createLocaleRuntime({
     get accountId() {
       return account
     },
+    get preferenceRevision() {
+      return revision
+    },
     get headers() {
-      return { 'Accept-Language': engine.language, 'X-I18n-Version': '1' }
+      return { 'Accept-Language': engine.language }
     },
     initialize(hasSession = false) {
-      const previous = hasSession ? storage.get(`${scope}:locale:account`) : null
+      generation++
+      const previous = hasSession ? storage.get(accountKey) : null
       account =
         previous === null || previous === undefined || previous === '' ? null : String(previous)
       restore()
@@ -149,14 +233,22 @@ export function createLocaleRuntime({
      * 切换账号并使旧账号尚未完成的语言切换失效。
      *
      * @param {string|number|null} id 当前账号标识，null 表示访客
-     * @param {string} value 服务端返回的语言偏好
+     * @param {string} [value] 账号快照中的语言偏好
+     * @param {string} [serverRevision] 账号快照的十进制版本号
      */
-    setAccount(id, value = meta.defaultLocale) {
-      generation++
-      account = id === null || id === undefined ? null : String(id)
-      storage.set(`${scope}:locale:account`, account || '')
-      if (account === null) restore()
-      else commit(validPreference(value) || meta.defaultLocale)
+    setAccount(id, value, serverRevision) {
+      if (id === undefined || id === '') throw new Error('Missing locale account')
+      const next = id === null ? null : String(id)
+      const snapshot =
+        next === null ? null : requireSnapshot({ locale: value, revision: serverRevision })
+      if (next !== account) {
+        generation++
+        revision = null
+      }
+      account = next
+      storage.set(accountKey, account || '')
+      if (snapshot) acceptSnapshot(snapshot)
+      else restore()
     },
     /**
      * 串行保存语言偏好，确认保存成功后再更新界面。
@@ -169,37 +261,66 @@ export function createLocaleRuntime({
       const canonical = validPreference(value)
       if (!canonical) return Promise.reject(new Error('Invalid locale preference'))
       const epoch = generation
-      const expectedAccount = account
       const run = async () => {
         if (generation !== epoch) throw new Error('Locale account changed')
         // 保存账号偏好前，先确认有效语言的资源已经加载。
         const code = registry.resolve(canonical, deviceLocales())
         if (!engine.hasResourceBundle(code, 'common')) throw new Error('Missing locale resources')
-        if (expectedAccount !== null) {
-          if (!save) throw new Error('A preference save callback is required')
-          try {
-            await save(canonical)
-          } catch (error) {
-            if (!readBack || (await readBack()) !== canonical) throw error
-          }
+        if (account === null) {
+          storage.set(guestKey, canonical)
+          applyPreference(canonical)
+          return
+        }
+        if (!save) throw new Error('A preference save callback is required')
+        let saved
+        let saveError
+        try {
+          saved = await save(canonical)
+        } catch (error) {
+          if (generation !== epoch || !readBack) throw error
+          saveError = error
+          saved = await readBack()
         }
         if (generation !== epoch) throw new Error('Locale account changed')
-        commit(canonical)
+        const snapshot = requireSnapshot(saved)
+        acceptSnapshot(snapshot)
+        if (saveError && snapshot.locale !== canonical) throw saveError
       }
       const result = queue.then(run)
       queue = result.catch(() => {})
       return result
     },
     refreshDeviceLocale() {
-      if (preference === 'auto') commit(preference, false)
+      if (preference === 'auto') applyPreference(preference)
     },
     acceptStorageEvent(key, value) {
-      const canonical = validPreference(value)
-      if (key === storageKey() && canonical) commit(canonical, false)
+      if (account === null) {
+        if (key === guestKey) {
+          const locale = validPreference(value)
+          if (locale) applyPreference(locale)
+        }
+        return
+      }
+      if (key !== snapshotKey()) return
+      const snapshot = readSnapshot(value)
+      if (!snapshot) return
+      acceptSnapshot(snapshot, false)
+      // 跨标签的并发写入可能乱序，离线快照始终保留已知的最新版本。
+      const stored = readSnapshot(storage.get(snapshotKey()))
+      if (!stored || compareRevision(revision, stored.revision) > 0) {
+        storage.set(snapshotKey(), JSON.stringify({ locale: preference, revision }))
+      }
     },
+    /**
+     * 根据当前语言选择菜单或字典译名，回退到数据库原字段。
+     *
+     * @param {string} original 数据库原名
+     * @param {Object<string, string>} [translations] 按语言标识保存的译名
+     * @returns {string} 当前界面使用的名称
+     */
     resolveText(original, translations = {}) {
-      for (const code of registry.chain(engine.language)) {
-        if (code === meta.sourceLocale) return original
+      for (const code of registry.chain(engine.language, DATA_SOURCE_LOCALE)) {
+        if (code === DATA_SOURCE_LOCALE) return original
         if (typeof translations?.[code] === 'string' && translations[code])
           return translations[code]
       }

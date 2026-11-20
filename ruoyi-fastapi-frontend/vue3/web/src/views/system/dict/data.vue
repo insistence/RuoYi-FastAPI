@@ -586,7 +586,7 @@ function handleExport() {
     {
       ...queryParams.value,
     },
-    `dict_data_${new Date().getTime()}.xlsx`
+    `${t('common:exportFiles.dictData')}_${new Date().getTime()}.xlsx`
   )
 }
 

@@ -63,11 +63,7 @@ class ServerService:
         days = int(difference // (24 * 60 * 60))  # 每天的秒数
         hours = int((difference % (24 * 60 * 60)) // (60 * 60))  # 每小时的秒数
         minutes = int((difference % (60 * 60)) // 60)  # 每分钟的秒数
-        run_time = I18nUtil.message_fields(
-            f'{days}天{hours}小时{minutes}分钟',
-            msg_key='monitor.uptime',
-            msg_params={'days': days, 'hours': hours, 'minutes': minutes},
-        )['msg']
+        run_time = I18nUtil.translate('monitor.uptime', {'days': days, 'hours': hours, 'minutes': minutes})
         # 获取当前Python程序的pid
         pid = os.getpid()
         # 获取该进程的内存信息

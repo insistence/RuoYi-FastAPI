@@ -68,6 +68,8 @@ class SystemPage(BasePageTest):
 
     def field(self, scope: Locator, label: str) -> Locator:
         """两种组件库都按真实表单标签定位，不依赖 Vue3 自动生成的 input id。"""
+        if self.is_react and label in {'菜单名称', '字典名称', '数据标签'}:
+            label = f'{label} · 原文：简体中文'
         label_selector = '.ant-form-item-label' if self.is_react else '.el-form-item__label'
         field_selector = '.ant-form-item' if self.is_react else '.el-form-item'
         labels = self.page.locator(label_selector).filter(has_text=re.compile(rf'^\s*{re.escape(label)}\s*[:：]?\s*$'))
@@ -76,6 +78,15 @@ class SystemPage(BasePageTest):
     def input(self, scope: Locator, label: str) -> Locator:
         """返回字段内的文本、密码或数字输入框。"""
         return self.field(scope, label).locator('input:not([type=radio]):not([type=checkbox]), textarea').first
+
+    def translation_input(self, scope: Locator, source_label: str) -> Locator:
+        """按当前框架的表单标签定位英文译文输入框。"""
+        label = {
+            'react': f'{source_label} · English',
+            'vue2': '翻译（English）',
+            'vue3': 'English译文',
+        }[Config.frontend_framework]
+        return self.input(scope, label)
 
     async def fill(self, scope: Locator, label: str, value: str) -> None:
         """填写真实输入控件，触发框架正常的输入事件。"""

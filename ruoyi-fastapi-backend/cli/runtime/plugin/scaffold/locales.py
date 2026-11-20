@@ -83,22 +83,40 @@ class PluginLocaleScaffoldBuilder:
             )
             imports.append(f"import locale{index} from './locales/{code}.json'")
             bundles.append(f'  [{json.dumps(code)}, locale{index}]')
-        module = "import { i18n } from '@/i18n'\n" + '\n'.join(imports)
+        module = (
+            "import { createPluginI18n } from '@/i18n/adapter'\nimport meta from './locale-meta.json'\n"
+            + '\n'.join(imports)
+        )
         module += f"\n\nconst namespace = 'plugin.{plugin_id}'\nconst bundles = [\n" + ',\n'.join(bundles) + '\n]\n'
         module += """
-export function registerPluginLocales() {
-  for (const [locale, messages] of bundles) {
-    i18n.engine.removeResourceBundle(locale, namespace)
-    i18n.engine.addResourceBundle(locale, namespace, messages)
-  }
-}
-
-export function removePluginLocales() {
-  for (const [locale] of bundles) i18n.engine.removeResourceBundle(locale, namespace)
-}
-
-registerPluginLocales()
+const resources = Object.fromEntries(bundles.map(([code, messages]) => [code, { [namespace]: messages }]))
+export const pluginI18n = createPluginI18n(meta, resources, namespace)
+export const { t, useI18n, registerPluginLocales, removePluginLocales } = pluginI18n
 """
+        files.append((plugin_root / 'locale-meta.json', json.dumps(meta, ensure_ascii=False, indent=2) + '\n'))
+        files.append(
+            (
+                plugin_root / 'x18n.config.mjs',
+                f"""import {{ readFileSync }} from 'node:fs'
+import projectResources from '../../scripts/x18n-project.mjs'
+const meta = JSON.parse(readFileSync(new URL('./locale-meta.json', import.meta.url), 'utf8'))
+export default {{
+  name: 'plugin.{plugin_id}',
+  sourceLocale: meta.sourceLocale,
+  locales: meta.locales.filter(entry => entry.enabled).map(entry => entry.code),
+  presets: ['i18next'],
+  plugins: [projectResources],
+  resources: [{{ pattern: 'locales/{{locale}}.json', namespace: 'plugin.{plugin_id}' }}],
+  namespace: {{ separator: ':', default: 'plugin.{plugin_id}' }},
+  usage: {{
+    include: ['views/**/*.{{vue,jsx,js}}', 'api/**/*.js'],
+    calls: [{{ callee: '$t' }}, {{ callee: 'useI18n', factory: true, returns: ['t'] }}],
+  }},
+  checks: {{ 'missing-translation': 'error', 'empty-translation': 'error' }},
+}}
+""",
+            )
+        )
         files.append((plugin_root / 'i18n.js', module))
         files.append(
             (
@@ -106,17 +124,16 @@ registerPluginLocales()
                 f"""# {plugin_id} 国际化
 
 词库只属于本插件：`locales/<locale>.json`，namespace 为 `plugin.{plugin_id}`。
-页面首次加载会导入 `i18n.js` 并注册词库；源码升级重新加载模块时替换本插件的旧资源。
+页面从 `i18n.js` 导入 `t` 或 `useI18n`，由独立 i18next 实例读取插件资源。
+宿主有效语言变化时，插件按自己的 `locale-meta.json` 匹配语言并回退；API 请求继续使用宿主语言。
 若宿主在同一会话内实现插件卸载，调用 `removePluginLocales()`；再次启用调用 `registerPluginLocales()`。
-这两个操作只处理本插件的 namespace，不修改宿主或其他插件的消息。
+两个操作仅处理本插件的实例，不修改宿主或其他插件的资源。
 
-目标语言从本应用 `src/i18n/locale-meta.json` 读取。新增语言后补充对应文件与 `i18n.js` 导入；
-第三语言的空字符串是待翻译标记，必须补译并通过目标应用的 `pnpm exec x18n check` 后发布。
+初始语言配置参考目标宿主，生成后独立维护本插件 `locale-meta.json`。
+宿主新增语言不会要求插件同时新增；插件新增语言时补充对应文件与 `i18n.js` 导入。
+第三语言的空字符串是待翻译标记，必须补译并通过 `pnpm exec x18n --root plugins/{plugin_id} check` 后发布。
+插件携带独立的 `x18n.config.mjs`，应用根配置会自动发现该项目并按插件声明的语言检查。
 维护词库使用目标应用安装的 x18n CLI（`set`、`apply`、`check`）；不要覆盖人工译文。
-宿主的 `x18n.config.mjs` 增加 finder 规则
-`{{ pattern: 'plugins/{plugin_id}/locales/{{locale}}.json', namespace: 'plugin.{plugin_id}' }}`，
-并把 `plugins/{plugin_id}/**/*.{{js,jsx,vue}}` 加入 `usage.include`，使提取和检查覆盖本插件。
-保持宿主已有的 x18n 项目插件，以正确处理固定 namespace 的新词条路径。
 插件目录可整体迁移到匹配框架的宿主，不依赖其他应用的 locale 目录。
 """,
             )

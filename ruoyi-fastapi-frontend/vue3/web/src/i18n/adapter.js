@@ -1,8 +1,12 @@
+import { createPluginLocaleRuntime } from './plugin.mjs'
 import { setMessageTranslator } from './message.mjs'
 import { reactive, toRef } from 'vue'
 import { i18n } from './index'
 
-export const localeState = reactive({ locale: i18n.locale, preference: i18n.preference })
+export const localeState = reactive({
+  locale: i18n.locale,
+  preference: i18n.preference,
+})
 i18n.engine.on('languageChanged', (locale) => {
   localeState.locale = locale
 })
@@ -33,4 +37,16 @@ export default {
     app.config.globalProperties.$t = t
     app.config.globalProperties.$locale = localeState
   },
+}
+
+export function createPluginI18n(meta, resources, namespace) {
+  const plugin = createPluginLocaleRuntime({ host: i18n, meta, resources, namespace })
+  const translate = plugin.t
+  plugin.t = (key, options) => {
+    // 同步 watcher 可能先于 engine 监听器触发，直接按响应式宿主语言取插件词库。
+    const locale = plugin.registry.resolve(localeState.locale)
+    return translate(key, { lng: locale, ...options })
+  }
+  plugin.useI18n = () => ({ t: plugin.t, state: localeState, i18n: plugin })
+  return plugin
 }

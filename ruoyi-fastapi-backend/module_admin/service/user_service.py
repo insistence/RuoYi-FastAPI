@@ -483,12 +483,16 @@ class UserService:
         """
         preference = LocaleRegistry.normalize_locale(locale, preference=True)
         try:
-            await UserDao.edit_user_dao(query_db, {'user_id': user_id, 'locale': preference, 'update_by': user_name})
+            result = await UserDao.edit_user_dao(
+                query_db, {'user_id': user_id, 'locale': preference, 'update_by': user_name}
+            )
             await query_db.commit()
         except Exception:
             await query_db.rollback()
             raise
-        return CrudResponseModel(is_success=True, message='语言设置已保存', msg_key='profile.localeSaved')
+        return CrudResponseModel(
+            is_success=True, message='语言设置已保存', msg_key='profile.localeSaved', result=result
+        )
 
     @classmethod
     async def update_user_timezone_services(

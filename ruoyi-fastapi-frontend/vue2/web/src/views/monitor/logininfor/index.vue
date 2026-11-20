@@ -359,7 +359,7 @@ export default {
         {
           ...this.queryParams,
         },
-        `logininfor_${new Date().getTime()}.xlsx`
+        `${t('common:exportFiles.loginHistory')}_${new Date().getTime()}.xlsx`
       )
     },
   },

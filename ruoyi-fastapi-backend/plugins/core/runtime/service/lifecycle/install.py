@@ -4,6 +4,7 @@ from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from i18n.catalogs import CatalogRegistry, CatalogSnapshot
 from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.migration import PluginMigrationError, PluginMigrationResult
@@ -46,6 +47,7 @@ class PluginInstallLifecycleContext:
     session: AsyncSession | None = None
     lifecycle_uow: object | None = None
     session_context: object | None = None
+    catalog_snapshot: CatalogSnapshot | None = None
 
 
 class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
@@ -212,6 +214,9 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         :param context: 插件安装上下文
         :return: dry-run 或阻断 payload
         """
+        context.catalog_snapshot = CatalogRegistry.prepare_plugin(
+            context.plugin_id, context.discovered_plugin.backend_path
+        )
         self._refresh_install_actions(await self._build_install_precheck(context), context)
         if context.dry_run:
             payload = PluginLifecyclePayloadBuilder.build_install_dry_run_payload(
@@ -470,6 +475,9 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         :return: None
         """
         await context.lifecycle_uow.commit()
+        CatalogRegistry.commit_plugin(
+            context.plugin_id, context.catalog_snapshot, enabled=getattr(context.plugin, 'enabled', '0') == '0'
+        )
 
         return None
 

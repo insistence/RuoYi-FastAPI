@@ -226,5 +226,25 @@
   "collapseAll": "Collapse all",
   "expandAll": "Expand all",
   "importData": "Import data",
-  "enterName": "Enter name"
+  "enterName": "Enter name",
+  "editor": {
+    "formatLabel": "Format {{label}}",
+    "toggleLabel": "{{action}} {{label}} editor",
+    "linkPrompt": "Enter a link URL:",
+    "save": "Save",
+    "videoPrompt": "Enter a video URL:",
+    "text": "Text",
+    "heading1": "Heading 1",
+    "heading2": "Heading 2",
+    "heading3": "Heading 3",
+    "heading4": "Heading 4",
+    "heading5": "Heading 5",
+    "heading6": "Heading 6",
+    "standardFont": "Standard font",
+    "serifFont": "Serif font",
+    "monospaceFont": "Monospace font",
+    "visitLink": "Visit URL:",
+    "editLink": "Edit",
+    "removeLink": "Remove"
+  }
 }

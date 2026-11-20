@@ -9,8 +9,7 @@ class PluginReactFrontendScaffoldTemplateBuilder:
         """生成与基础 Vue 模板相同的插件信息卡片。"""
         class_name = PluginScaffoldNaming.to_class_name(plugin_id)
         return f"""import {{ Card }} from 'antd';
-import '../i18n';
-import {{ useI18n }} from '@/i18n/adapter';
+import {{ useI18n }} from '../i18n';
 
 export default function {class_name}Plugin() {{
   const {{ t }} = useI18n();
@@ -29,8 +28,7 @@ export default function {class_name}Plugin() {{
         """生成筛选、列表和编辑弹窗，复用宿主请求及消息组件。"""
         class_name = PluginScaffoldNaming.to_class_name(plugin_id)
         return f"""import {{ useEffect, useState }} from 'react';
-import '../i18n';
-import {{ useI18n }} from '@/i18n/adapter';
+import {{ useI18n }} from '../i18n';
 import {{ useLocalizedFormErrors }} from '@/i18n/form';
 import {{ Button, Form, Input, Modal, Radio, Space, Table, Tag }} from 'antd';
 import TableActions, {{ TableAction }} from '@/components/TableActions';

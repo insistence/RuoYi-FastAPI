@@ -207,6 +207,7 @@ function loginSuccess(result) {
     .then((res) => {
       proxy.$tab.reLaunch('/pages/index')
     })
+    .catch(() => {})
 }
 
 onLoad(() => {

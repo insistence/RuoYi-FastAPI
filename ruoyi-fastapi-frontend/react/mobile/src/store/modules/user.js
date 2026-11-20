@@ -8,6 +8,9 @@ import { getToken, setToken, removeToken } from '@/utils/auth'
 import { setBusinessTimezone, setUserTimezone } from '@/utils/time'
 import defaultAvatar from '@/assets/images/profile.jpg'
 
+const sessionChangedError = () =>
+  Object.assign(new Error('User session changed'), { code: 'USER_SESSION_CHANGED' })
+
 export function avatarUrl(value) {
   return value ? (/^https?:\/\//i.test(value) ? value : config.baseUrl + value) : defaultAvatar
 }
@@ -68,9 +71,15 @@ export const useUserStore = create((set, get) => ({
     set({ token: result.token })
   },
   async getInfo() {
-    const result = await getInfo()
+    const requestedToken = getToken()
+    const isCurrentSession = () =>
+      requestedToken && requestedToken === getToken() && requestedToken === get().token
+    const result = await getInfo().catch((error) => {
+      throw isCurrentSession() ? error : sessionChangedError()
+    })
+    if (!isCurrentSession()) throw sessionChangedError()
     const user = result.user
-    i18n.setAccount(user?.userId, user?.locale)
+    i18n.setAccount(user?.userId, user?.locale, user?.localeRevision)
     setBusinessTimezone(result.appTimezone)
     set({ appTimezone: result.appTimezone })
     get().applyTimezone(user.timeZone || 'auto')

@@ -187,5 +187,6 @@
     "department": "Department",
     "secondsAgo": "A few seconds ago",
     "yearsAgo": "{{count}} years ago"
-  }
+  },
+  "loadingPage": "Loading page, please wait…"
 }

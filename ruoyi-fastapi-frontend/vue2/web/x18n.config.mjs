@@ -1,37 +1,15 @@
-// https://x18n.dev/raw/guide/configuration.md
-import { readFileSync } from 'node:fs'
-import projectResources from './scripts/x18n-project.mjs'
+import { existsSync, readdirSync } from 'node:fs'
 
-const meta = JSON.parse(
-  readFileSync(new URL('./src/i18n/locale-meta.json', import.meta.url), 'utf8')
-)
+// 每个项目单独声明语言，新增宿主语言不会要求插件补齐该语言。
+const plugins = new URL('./plugins/', import.meta.url)
 export default {
-  sourceLocale: meta.sourceLocale,
-  locales: [
-    ...new Set([
-      meta.sourceLocale,
-      ...meta.locales.filter((item) => item.enabled).map((item) => item.code),
-    ]),
+  projects: [
+    'src/i18n',
+    ...readdirSync(plugins, { withFileTypes: true })
+      .filter(
+        (entry) =>
+          entry.isDirectory() && existsSync(new URL(`${entry.name}/x18n.config.mjs`, plugins))
+      )
+      .map((entry) => `plugins/${entry.name}`),
   ],
-  presets: ['i18next'],
-  plugins: [projectResources],
-  resources: [
-    { pattern: 'src/i18n/locales/{locale}/{namespace}.json' },
-    { pattern: 'plugins/ai/locales/{locale}.json', namespace: 'plugin.ai' },
-  ],
-  namespace: { separator: ':', default: 'common' },
-  usage: {
-    include: ['src/**/*.{js,jsx,ts,tsx,vue,mjs}', 'plugins/ai/**/*.{js,vue}'],
-    exclude: ['src/vendor/**', 'src/uni_modules/**', 'src/i18n/locales/**'],
-    regex: [
-      { extensions: ['js', 'vue'], patterns: [String.raw`\btitleKey\s*:\s*['"]([^'"]+)['"]`] },
-    ],
-    calls: [{ callee: '$t' }, { callee: 'useI18n', factory: true, returns: ['t'] }],
-  },
-  checks: {
-    'missing-translation': 'error',
-    'empty-translation': 'error',
-    'unused-key': 'warning',
-    'hard-string': 'warning',
-  },
 }

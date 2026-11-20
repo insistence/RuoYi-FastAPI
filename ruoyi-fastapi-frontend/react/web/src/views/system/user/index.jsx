@@ -352,6 +352,7 @@ export default function User() {
               label={t('common:createdTime')}
             >
               <DatePicker.RangePicker
+                allowEmpty={[true, true]}
                 style={{ width: 308 }}
                 placeholder={[t('common:startDate'), t('common:endDate')]}
                 aria-label={t('monitor:dateRangeValue', { arg0: getDisplayTimezone() })}
@@ -431,9 +432,11 @@ export default function User() {
               className="ruoyi-plain-button ruoyi-plain-button--warning"
               type="default"
               onClick={() =>
-                download('/system/user/export', queryParams, `user_${Date.now()}.xlsx`).catch(
-                  () => {}
-                )
+                download(
+                  '/system/user/export',
+                  queryParams,
+                  `${t('common:exportFiles.users')}_${Date.now()}.xlsx`
+                ).catch(() => {})
               }
             >
               {t('common:export')}
@@ -684,7 +687,7 @@ export default function User() {
           onClose={() => setImportOpen(false)}
           action="/system/user/importData"
           templateAction="/system/user/importTemplate"
-          templateFileName="user_template"
+          templateFileName={t('common:exportFiles.userTemplate')}
           updateSupportLabel={t('system:updateExistingUsers')}
           onSuccess={getList}
         />

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
-import config from '../../x18n.config.mjs'
+import config from '../../src/i18n/x18n.config.mjs'
 const require = createRequire(import.meta.url)
 const cli = join(dirname(require.resolve('@x18n/cli/package.json')), 'bin.mjs')
 test('the pinned x18n CLI scans framework calls and fails on broken catalogs', async () => {
@@ -34,6 +34,7 @@ test('the pinned x18n CLI scans framework calls and fails on broken catalogs', a
       `import projectResources from ${JSON.stringify(new URL('../../scripts/x18n-project.mjs', import.meta.url).href)}; export default { ...${JSON.stringify(
         {
           ...config,
+          root: '.',
           plugins: [],
           locales: ['zh-CN', 'en-US', 'ja-JP'],
           sourceLocale: 'zh-CN',

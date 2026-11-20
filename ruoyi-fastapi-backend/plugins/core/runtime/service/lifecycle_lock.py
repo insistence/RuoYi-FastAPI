@@ -135,7 +135,7 @@ class RedisPluginLifecycleLock:
                     message=I18nMessage(
                         f'插件生命周期操作锁不可用：{exc}',
                         msg_key='plugin.runtime.lifecycle.lockUnavailable',
-                        msg_params={'error': str(exc)},
+                        msg_params={},
                     ),
                 )
                 return

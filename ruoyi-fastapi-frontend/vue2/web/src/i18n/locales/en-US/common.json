@@ -1,4 +1,20 @@
 {
+  "exportFiles": {
+    "users": "Users",
+    "roles": "Roles",
+    "posts": "Posts",
+    "pluginOperations": "Plugin operations",
+    "oauthAudit": "OAuth audit",
+    "loginHistory": "Login history",
+    "operations": "Operation logs",
+    "jobLogs": "Job logs",
+    "jobs": "Scheduled jobs",
+    "dictTypes": "Dictionary types",
+    "dictData": "Dictionary entries",
+    "settings": "Settings",
+    "userTemplate": "User import template"
+  },
+  "translationUnavailable": "Text unavailable",
   "language": "Language",
   "followDevice": "Follow device",
   "save": "Save",

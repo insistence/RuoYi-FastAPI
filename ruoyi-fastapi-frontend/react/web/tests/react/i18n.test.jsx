@@ -1,3 +1,4 @@
+import { useI18n as usePluginI18n } from '../../plugins/ai/i18n'
 import React from 'react'
 import { transformWithOxc } from 'vite'
 import { Form, Input, Row, Col, Button, Space } from 'antd'
@@ -7,14 +8,40 @@ import { getDicts } from '@/api/system/dict/data'
 import { makeUpJs } from '@/utils/generator/js'
 import { fieldRules } from '@/utils/generator/model'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, expect, test, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, expect, test, vi } from 'vitest'
 import { I18nextProvider } from 'react-i18next'
 import { i18n } from '@/i18n'
 import { useI18n } from '@/i18n/adapter'
+import LanguageSelect from '@/components/LanguageSelect'
+import { saveLocale } from '@/i18n/preference'
 
 vi.mock('@/api/system/dict/data', () => ({ getDicts: vi.fn() }))
+vi.mock('@/i18n/preference', () => ({ saveLocale: vi.fn() }))
 
+beforeAll(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  )
+})
 afterEach(cleanup)
+afterAll(() => vi.unstubAllGlobals())
+
+test('signed-in users can select a language and save their preference', async () => {
+  i18n.setAccount(7, 'en-US', '0')
+  render(<LanguageSelect />)
+  const select = screen.getByRole('combobox', { name: 'Language' })
+  expect(select.disabled).toBe(false)
+  fireEvent.mouseDown(select)
+  fireEvent.click(await screen.findByText('简体中文'))
+  expect(saveLocale).toHaveBeenCalledWith('zh-CN')
+  await act(async () => i18n.setAccount(null))
+})
+
 function Editor() {
   const { t } = useI18n()
   return (
@@ -175,4 +202,27 @@ test('exported designer forms translate at runtime and preserve user labels, val
     target: { value: 'invalid' },
   })
   expect(await screen.findByText('保留用户提示')).toBeTruthy()
+})
+
+function PluginEditor() {
+  const { t } = usePluginI18n()
+  return (
+    <label>
+      {t('plugin.ai:modelCode')}
+      <input aria-label="plugin draft" />
+    </label>
+  )
+}
+
+test('a source plugin subscribes to its own engine and preserves a draft when the host switches language', async () => {
+  i18n.setAccount(null)
+  await act(async () => i18n.setPreference('zh-CN'))
+  render(<PluginEditor />)
+  const input = screen.getByRole('textbox', { name: 'plugin draft' })
+  fireEvent.change(input, { target: { value: 'unsaved plugin input' } })
+  await act(async () => i18n.setPreference('en-US'))
+  expect(screen.getByText('Model code')).toBeTruthy()
+  expect(screen.getByRole('textbox', { name: 'plugin draft' })).toBe(input)
+  expect(input.value).toBe('unsaved plugin input')
+  expect(i18n.engine.hasResourceBundle('en-US', 'plugin.ai')).toBe(false)
 })

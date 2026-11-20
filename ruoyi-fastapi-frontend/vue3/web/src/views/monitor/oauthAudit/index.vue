@@ -808,7 +808,11 @@ function showDetail(row) {
 }
 /** 导出当前筛选条件下的安全日志 */
 function exportRows() {
-  proxy.download('monitor/oauth/audit/export', params(), `oauth_audit_${Date.now()}.xlsx`)
+  proxy.download(
+    'monitor/oauth/audit/export',
+    params(),
+    `${t('common:exportFiles.oauthAudit')}_${Date.now()}.xlsx`
+  )
 }
 
 getList()

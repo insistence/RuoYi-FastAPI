@@ -10,11 +10,8 @@ export default function LanguageSelect() {
     { value: 'auto', label: t('common:followDevice') },
     ...i18n.registry.entries.map((item) => ({ value: item.code, label: item.nativeName })),
   ]
-  const index = Math.max(
-    0,
-    options.findIndex((item) => item.value === preference)
-  )
-  async function choose(value) {
+
+  async function handleLanguageChange(value) {
     if (busy) return
     setBusy(true)
     try {
@@ -25,13 +22,14 @@ export default function LanguageSelect() {
       setBusy(false)
     }
   }
+
   return (
     <Select
       aria-label={t('common:language')}
       value={preference}
       options={options}
       disabled={busy}
-      onChange={choose}
+      onChange={handleLanguageChange}
       style={{ minWidth: 150 }}
     />
   )

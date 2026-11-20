@@ -1412,7 +1412,7 @@ class FileReconcileService:
                 raise ServiceException(
                     message=f'文件存储异常处理失败：{exc}',
                     msg_key='file.reconciliation.resolveFailed',
-                    msg_params={'error': str(exc)},
+                    msg_params={},
                 ) from exc
             raise
 

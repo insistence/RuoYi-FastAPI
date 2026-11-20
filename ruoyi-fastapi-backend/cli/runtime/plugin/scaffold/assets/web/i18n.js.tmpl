@@ -48,9 +48,14 @@ export function createLocaleRegistry(meta, resources) {
       aliases.set(code, entry.code)
     }
   }
+  const languageFallbacks = meta.languageFallbacks || {}
+  for (const [language, target] of Object.entries(languageFallbacks)) {
+    if (!/^[a-z]{2,8}$/.test(language) || !byCode.has(target))
+      throw new Error(`Invalid language fallback: ${language}`)
+  }
   function match(value) {
     const code = normalizeLocale(value)
-    return byCode.has(code) ? code : aliases.get(code)
+    return byCode.has(code) ? code : aliases.get(code) || languageFallbacks[code?.split('-')[0]]
   }
   return {
     entries,

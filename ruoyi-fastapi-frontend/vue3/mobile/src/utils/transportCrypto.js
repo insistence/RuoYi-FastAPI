@@ -1,3 +1,4 @@
+import { localeRequestHeaders } from './transportLocale.mjs'
 import { translateMessage } from '../i18n/message.mjs'
 import config from '@/config'
 import forge, { primeForgeRandomBytes } from '@/utils/transportForge'
@@ -18,7 +19,6 @@ const DEFAULT_TRANSPORT_ENVELOPE_VERSION = '1'
 const KEY_REFRESH_BUFFER_MIN_SECONDS = 30
 const KEY_REFRESH_BUFFER_MAX_SECONDS = 300
 const TRANSPORT_KEY_META_CACHE_KEY = 'transportCryptoKeyMeta'
-const TRANSPORT_RETRYABLE_ERROR_MESSAGES = new Set(['Decryption failed', '密钥版本不存在'])
 const AES_GCM_TAG_LENGTH_BYTES = 16
 const FORGE_RANDOM_POOL_BYTES = 4096
 
@@ -823,11 +823,12 @@ function isUsableKeyMeta(keyMeta, nowTimestamp = getNowTimestamp()) {
  * @param {string} publicKeyUrl 公钥接口地址
  * @returns {Promise<Object>} Uni 请求响应
  */
-function requestPublicKey(publicKeyUrl) {
+function requestPublicKey(publicKeyUrl, requestHeaders) {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${TRANSPORT_BASE_URL}${publicKeyUrl}`,
       method: 'GET',
+      header: localeRequestHeaders(requestHeaders),
       timeout: 10000,
       success: resolve,
       fail: reject,
@@ -841,8 +842,8 @@ function requestPublicKey(publicKeyUrl) {
  * @param {boolean} forceRefresh 是否强制刷新
  * @returns {Promise<Object>} 公钥元信息
  */
-async function getTransportKeyMeta(forceRefresh = false) {
-  const transportPolicy = await ensureTransportCryptoPolicyLoaded()
+async function getTransportKeyMeta(forceRefresh = false, requestHeaders = {}) {
+  const transportPolicy = await ensureTransportCryptoPolicyLoaded(false, requestHeaders)
   const nowTimestamp = getNowTimestamp()
   if (!forceRefresh && !cachedKeyMeta) {
     const persistedKeyMeta = uni.getStorageSync(TRANSPORT_KEY_META_CACHE_KEY)
@@ -867,7 +868,8 @@ async function getTransportKeyMeta(forceRefresh = false) {
     return inflightKeyMetaPromise
   }
   inflightKeyMetaPromise = requestPublicKey(
-    transportPolicy.publicKeyUrl || '/transport/crypto/public-key'
+    transportPolicy.publicKeyUrl || '/transport/crypto/public-key',
+    requestHeaders
   )
     .then((response) => {
       const responsePayload = response.data || {}
@@ -919,8 +921,8 @@ async function rsaEncryptAesKey(publicKeyPem, aesKeyBytes) {
  *
  * @returns {Promise<Object>} 请求级传输上下文
  */
-async function buildTransportContext() {
-  const keyMeta = await getTransportKeyMeta()
+async function buildTransportContext(requestHeaders) {
+  const keyMeta = await getTransportKeyMeta(false, requestHeaders)
   const aesKey = await getRandomBytes(32)
   const encryptedAesKey = await rsaEncryptAesKey(keyMeta.publicKeyPem, aesKey)
   return {
@@ -1006,7 +1008,7 @@ function getOrCreateTransportContext(requestConfig) {
   if (requestConfig.__transportCryptoContextPromise) {
     return requestConfig.__transportCryptoContextPromise
   }
-  requestConfig.__transportCryptoContextPromise = buildTransportContext()
+  requestConfig.__transportCryptoContextPromise = buildTransportContext(requestConfig.header)
   return requestConfig.__transportCryptoContextPromise
 }
 
@@ -1017,7 +1019,7 @@ function getOrCreateTransportContext(requestConfig) {
  * @returns {Promise<Object>} 加密后的请求配置
  */
 export async function encryptTransportRequest(requestConfig) {
-  const transportPolicy = await ensureTransportCryptoPolicyLoaded()
+  const transportPolicy = await ensureTransportCryptoPolicyLoaded(false, requestConfig.header)
   if (!shouldEncryptRequest(requestConfig, transportPolicy)) {
     requestConfig.__transportCryptoEnabledForRequest = false
     return requestConfig
@@ -1114,15 +1116,8 @@ export function resetTransportRequestConfig(requestConfig) {
  * @returns {boolean} 是否可刷新密钥重试
  */
 export function shouldRetryTransportWithFreshKey(responseOrError) {
-  const responseMsg = responseOrError?.data?.msg || responseOrError?.response?.data?.msg
-  const errorMessage = responseOrError?.message
-  return (
-    ['transport.decryptFailed', 'transport.keyExpired'].includes(
-      responseOrError?.data?.msgKey || responseOrError?.response?.data?.msgKey
-    ) ||
-    TRANSPORT_RETRYABLE_ERROR_MESSAGES.has(responseMsg) ||
-    TRANSPORT_RETRYABLE_ERROR_MESSAGES.has(errorMessage)
-  )
+  const msgKey = responseOrError?.data?.msgKey ?? responseOrError?.response?.data?.msgKey
+  return msgKey === 'transport.decryptFailed' || msgKey === 'transport.keyExpired'
 }
 
 /**

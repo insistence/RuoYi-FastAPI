@@ -1,5 +1,5 @@
 import { t } from '@/i18n'
-export default {
+const errorCode = {
   get 401() {
     return t('common:network.unauthorized')
   },
@@ -12,4 +12,11 @@ export default {
   get default() {
     return t('common:network.unknown')
   },
+}
+
+export default errorCode
+
+export function getResponseMessage({ msg, code }) {
+  if (typeof msg === 'string' && msg.trim()) return msg
+  return Object.prototype.hasOwnProperty.call(errorCode, code) ? errorCode[code] : errorCode.default
 }

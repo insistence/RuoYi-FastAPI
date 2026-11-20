@@ -1,4 +1,6 @@
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -10,7 +12,7 @@ from cli.runtime.plugin.scaffold.locales import PluginLocaleScaffoldBuilder
 @pytest.mark.parametrize('framework', ['vue2', 'vue3', 'react'])
 def test_source_plugin_views_use_local_namespace_and_reactive_host_adapter(framework: str) -> None:
     view = PluginFrontendScaffoldTemplateBuilder.build_crud_view('demo', framework)
-    assert "import '../i18n'" in view
+    assert "from '../i18n'" in view
     assert 'plugin.demo:nameRequired' in view
     assert 'plugin.demo:deleteConfirm' in view
     assert 'plugin.demo:editTitle' in view
@@ -41,7 +43,10 @@ def test_plugin_locale_scaffold_keeps_future_languages_pending_in_its_own_direct
     assert zh.keys() == en.keys() == ja.keys()
     assert all(value == '' for value in ja.values())
     assert "const namespace = 'plugin.demo'" in generated[root / 'i18n.js']
-    assert 'removeResourceBundle(locale, namespace)' in generated[root / 'i18n.js']
+    assert 'createPluginI18n(meta, resources, namespace)' in generated[root / 'i18n.js']
+    assert json.loads(generated[root / 'locale-meta.json']) == meta
+    assert "new URL('./locale-meta.json', import.meta.url)" in generated[root / 'x18n.config.mjs']
+    assert 'src/i18n/locale-meta.json' not in generated[root / 'i18n.js']
     bundle = dict(PluginLocaleScaffoldBuilder.build_bundle_files(tmp_path / 'bundle', frontend))
     assert json.loads(bundle[tmp_path / 'bundle' / 'src' / 'locale-meta.json']) == meta
     assert all(value == '' for value in json.loads(bundle[tmp_path / 'bundle' / 'locales' / 'ja-JP.json']).values())
@@ -57,3 +62,34 @@ def test_plugin_locale_scaffold_rejects_locale_paths_outside_plugin(tmp_path: Pa
         PluginLocaleScaffoldBuilder.build_files('demo', tmp_path / 'plugins' / 'demo', tmp_path)
     with pytest.raises(ValueError, match='路径分隔符'):
         PluginLocaleScaffoldBuilder.build_bundle_files(tmp_path / 'bundle', tmp_path)
+
+
+def test_bundle_registry_honors_its_own_declared_language_families() -> None:
+    node = shutil.which('node')
+    if not node:
+        pytest.skip('Node is required for the generated bundle runtime check')
+    template = Path(__file__).resolve().parents[4] / 'cli/runtime/plugin/scaffold/assets/web/i18n.js.tmpl'
+    script = r"""
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+const source = readFileSync(0, 'utf8').replace(/^import .*\r?\n/gm, '').split('const namespace =')[0]
+const { createLocaleRegistry } = await import('data:text/javascript,' + encodeURIComponent(source))
+const meta = { sourceLocale: 'zh-CN', defaultLocale: 'en-US', languageFallbacks: { en: 'en-US' },
+  locales: ['zh-CN', 'en-US'].map(code => ({ code, enabled: true, aliases: [], fallback: [] })) }
+const resources = { 'zh-CN': { plugin: {} }, 'en-US': { plugin: {} } }
+const registry = createLocaleRegistry(meta, resources)
+assert.equal(registry.resolve('en-GB'), 'en-US')
+assert.equal(registry.resolve('zh-Hant'), 'en-US')
+assert.deepEqual(registry.chain('en-US'), ['en-US', 'zh-CN'])
+assert.throws(() => createLocaleRegistry({ ...meta, languageFallbacks: { en: 'ja-JP' } }, resources), /Invalid language fallback/)
+"""
+    result = subprocess.run(
+        [node, '--input-type=module', '-e', script],
+        input=template.read_text(encoding='utf-8'),
+        capture_output=True,
+        text=True,
+        encoding='utf-8',
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

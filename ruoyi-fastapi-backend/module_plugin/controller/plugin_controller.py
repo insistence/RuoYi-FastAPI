@@ -257,9 +257,7 @@ async def retain_system_plugin_operation_log(
     await query_db.commit()
     logger.info('插件操作审计日志保留策略执行完成')
 
-    return ResponseUtil.success(
-        data=retention_result, msg='插件操作审计日志保留策略执行完成', msg_key='plugin.audit.retentionApplied'
-    )
+    return ResponseUtil.success(data=retention_result, msg_key='plugin.audit.retentionApplied')
 
 
 @plugin_controller.get(
@@ -277,7 +275,7 @@ async def query_detail_system_plugin_operation_log(
     operation_log_detail_result = await PluginService.plugin_operation_log_detail_services(query_db, operation_id)
     if not operation_log_detail_result:
         logger.warning(f'插件批量操作审计日志不存在：{operation_id}')
-        return ResponseUtil.failure(msg='插件批量操作审计日志不存在', msg_key='plugin.audit.batchNotFound')
+        return ResponseUtil.failure(msg_key='plugin.audit.batchNotFound')
     logger.info(f'获取operation_id为{operation_id}的插件批量操作审计日志成功')
 
     return ResponseUtil.success(data=operation_log_detail_result)
@@ -371,7 +369,7 @@ async def query_detail_system_plugin(
     plugin_detail_result = await PluginService.plugin_detail_services(query_db, plugin_id)
     if not plugin_detail_result:
         logger.warning(f'插件不存在：{plugin_id}')
-        return ResponseUtil.failure(msg='插件不存在', msg_key='plugin.notFound')
+        return ResponseUtil.failure(msg_key='plugin.notFound')
     logger.info(f'获取plugin_id为{plugin_id}的信息成功')
 
     return ResponseUtil.success(data=plugin_detail_result)
@@ -481,7 +479,8 @@ async def diagnose_system_plugin(
     if all(key in diagnose_plugin_result for key in ('info', 'check', 'config', 'menuPlan', 'audit')):
         # 完整诊断包中的 ok=false 表示检查发现问题，仍需让页面读取其运行观测证据。
         return ResponseUtil.success(
-            msg=str(diagnose_plugin_result.get('message') or '插件诊断包生成完成'),
+            msg=diagnose_plugin_result.get('message')
+            or I18nMessage('插件诊断包生成完成', msg_key='plugin.runtime.diagnostics.completed'),
             data=_public_plugin_payload(diagnose_plugin_result),
         )
     return _plugin_operation_response(
@@ -658,9 +657,7 @@ async def export_system_plugin_config(
     reveal_secret: Annotated[bool, Query(alias='revealSecret', description='是否导出敏感配置明文')] = False,
 ) -> Response:
     if reveal_secret:
-        return ResponseUtil.failure(
-            msg='Web 端不允许导出敏感配置明文，请使用 CLI 通道', msg_key='plugin.config.plaintextExportForbidden'
-        )
+        return ResponseUtil.failure(msg_key='plugin.config.plaintextExportForbidden')
     plugin_config_result = await get_plugin_runtime_service().export_plugin_config(
         plugin_id,
         reveal_secret=False,

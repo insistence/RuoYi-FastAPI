@@ -14,7 +14,9 @@ from babel.messages.pofile import read_po, write_po
 from jinja2 import StrictUndefined
 from test_generated_time_contract import column, make_table
 
+from common.context import LocaleContext
 from exceptions.exception import ServiceException, ServiceWarning
+from i18n.translator import I18nUtil
 from module_generator.entity.vo.gen_vo import GenTableModel, GenTableParamsModel
 from module_generator.service.gen_service import GenTableService
 from utils.gen_i18n_util import GenI18nUtil
@@ -82,9 +84,10 @@ const fs = require('node:fs');
 const {createRequire} = require('node:module');
 const load = createRequire(process.argv[1] + '/package.json');
 const files = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+(async () => {
 for (const [name, source] of Object.entries(files)) {
   if (name.endsWith('.jsx')) {
-    load('@babel/parser').parse(source, {sourceType:'module', plugins:['jsx']});
+    await load('vite').transformWithOxc(source, name, {lang:'jsx'});
   } else if (process.argv[3] === 'vue2') {
     const compiler = load('vue-template-compiler');
     const parsed = compiler.parseComponent(source);
@@ -100,6 +103,7 @@ for (const [name, source] of Object.entries(files)) {
     if (result.errors.length) throw Error(JSON.stringify(result.errors));
   }
 }
+})().catch(error => { console.error(error); process.exitCode = 1; });
 """
     result = subprocess.run(
         ['node', '-e', script, str(app), str(target), framework], capture_output=True, text=True, check=False
@@ -126,6 +130,60 @@ def test_generator_uses_configured_locales_and_reports_unknown_translations() ->
     assert 'generated.test.item:title' not in pending['en-US']['frontend']
     assert 'generated.test.item:title' in pending['fr-FR']['frontend']
     assert 'i18n:check' in files['i18n/generated.test.item.README.md']
+
+
+@pytest.mark.parametrize('explicit', [False, True])
+def test_backend_only_generation_needs_no_frontend_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, explicit: bool
+) -> None:
+    monkeypatch.setattr(GenI18nUtil, 'PROJECT_ROOT', tmp_path)
+    table = make_table('mysql', 'crud', 'element-plus')
+    if explicit:
+        table.options = json.dumps({'i18nLocales': ['en-US', 'fr-FR']})
+    info, files = render_files(table)
+    expected = ['zh-CN', 'en-US', 'fr-FR'] if explicit else ['zh-CN', 'en-US']
+    assert info[2]['generatedI18n'].locales == expected
+    for locale in expected:
+        assert f'frontend/src/i18n/locales/{locale}/generated.test.item.json' in files
+        assert f'backend/i18n/catalogs/{locale}/LC_MESSAGES/core.po' in files
+
+
+def test_explicit_languages_do_not_require_reading_target_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(GenI18nUtil, 'PROJECT_ROOT', tmp_path)
+    meta = tmp_path / 'ruoyi-fastapi-frontend/vue3/web/src/i18n/locale-meta.json'
+    meta.parent.mkdir(parents=True)
+    meta.write_text('not valid JSON', encoding='utf-8')
+    table = make_table('mysql', 'crud', 'element-plus')
+    table.options = json.dumps({'i18nLocales': ['fr-FR']})
+    assert GenI18nUtil(table).locales == ['zh-CN', 'fr-FR']
+    table.options = '{}'
+    with pytest.raises(ServiceWarning):
+        GenI18nUtil(table)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('locale', ['zh-CN', 'en-US'])
+async def test_generation_failure_keeps_internal_paths_out_of_messages(locale: str) -> None:
+    table = make_table('mysql', 'crud', 'element-ui')
+    secret = 'C:/private/application/secrets.py'
+    with (
+        patch.object(
+            GenTableService, '_GenTableService__get_gen_render_info', AsyncMock(return_value=render_info(table))
+        ),
+        patch.object(GenTableService, '_GenTableService__get_output_root', side_effect=PermissionError(secret)),
+        pytest.raises(ServiceException) as error,
+    ):
+        await GenTableService.generate_code_services(object(), table.table_name)
+    fields = I18nUtil.message_fields(
+        error.value.message,
+        msg_key=error.value.msg_key,
+        msg_params=error.value.msg_params,
+        context=LocaleContext(locale),
+    )
+    assert secret not in json.dumps(fields)
+    assert fields['msgParams'] == {'table_name': table.table_name}
 
 
 @pytest.mark.parametrize(
@@ -176,7 +234,7 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
     ):
         await GenTableService.generate_code_services(object(), table.table_name)
         path = tmp_path / 'frontend/src/i18n/locales/en-US/generated.test.item.json'
-        english = json.loads(path.read_text())
+        english = json.loads(path.read_text(encoding='utf-8'))
         english['fields']['itemName']['label'] = 'Handwritten name'
         english['custom'] = {'kept': 'Manual text'}
         path.write_text(json.dumps(english), encoding='utf-8')
@@ -184,17 +242,17 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
         po_path.write_text(
             GenI18nUtil.merge_po(
                 GenI18nUtil.po_content({'generated.test.item.fields.itemName.label': 'Manual export heading'}, 'en-US'),
-                po_path.read_text(),
+                po_path.read_text(encoding='utf-8'),
             ),
             encoding='utf-8',
         )
         table.columns.append(column('new_label', 'varchar(64)', 'str'))
         await GenTableService.generate_code_services(object(), table.table_name)
-        english = json.loads(path.read_text())
+        english = json.loads(path.read_text(encoding='utf-8'))
         assert english['fields']['itemName']['label'] == 'Handwritten name'
         assert english['custom']['kept'] == 'Manual text'
         assert english['fields']['newLabel']['label'] == ''
-        pending = json.loads((tmp_path / 'i18n/generated.test.item.pending.json').read_text())
+        pending = json.loads((tmp_path / 'i18n/generated.test.item.pending.json').read_text(encoding='utf-8'))
         assert 'generated.test.item:fields.itemName.label' not in pending['en-US']['frontend']
         with po_path.with_suffix('.mo').open('rb') as compiled:
             translations = gettext.GNUTranslations(compiled)
@@ -243,8 +301,8 @@ async def test_invalid_existing_catalog_stops_before_overwriting_generated_sourc
     ):
         await GenTableService.generate_code_services(object(), table.table_name)
     assert caught.value.msg_key == 'generator.i18nCatalogInvalid'
-    assert source.read_text() == 'Keep the existing source'
-    assert catalog.read_text() == '{invalid'
+    assert source.read_text(encoding='utf-8') == 'Keep the existing source'
+    assert catalog.read_text(encoding='utf-8') == '{invalid'
 
 
 @pytest.mark.asyncio
@@ -262,7 +320,7 @@ async def test_catalog_compilation_finishes_before_any_generated_file_is_written
         pytest.raises(ServiceException),
     ):
         await GenTableService.generate_code_services(object(), table.table_name)
-    assert source.read_text() == 'Keep the existing source'
+    assert source.read_text(encoding='utf-8') == 'Keep the existing source'
     assert not (tmp_path / 'backend').exists()
 
 
@@ -340,7 +398,7 @@ def test_pinned_x18n_rejects_pending_translations_and_accepts_reviewed_generated
         "calls:[{callee:'t'},{callee:'$t'}]}, checks:{'empty-translation':'error','missing-key':'error'}}",
         encoding='utf-8',
     )
-    command = [str(app / 'node_modules/.bin/x18n'), '--root', str(tmp_path)]
+    command = ['node', str(app / 'node_modules/@x18n/cli/bin.mjs'), '--root', str(tmp_path)]
     check = ['check', '--only', 'missing-key,empty-translation,placeholder-mismatch', '--json']
     result = subprocess.run([*command, *check], capture_output=True, text=True, check=False)
     report = json.loads(result.stdout)

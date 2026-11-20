@@ -20,7 +20,7 @@ PyMySQL==1.2.3
 redis==8.1.0
 ruff==0.17.1
 SQLAlchemy[asyncio]==2.0.55
-sqlglot[rs]==30.23.0
+sqlglot==30.23.0
 textual==8.2.8
 tzdata==2026.5
 user-agents==2.2.0

@@ -379,7 +379,7 @@ function handleExport() {
     {
       ...queryParams.value,
     },
-    `config_${new Date().getTime()}.xlsx`
+    `${t('common:exportFiles.operations')}_${new Date().getTime()}.xlsx`
   )
 }
 

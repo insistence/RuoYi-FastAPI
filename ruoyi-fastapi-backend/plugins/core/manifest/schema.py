@@ -22,7 +22,7 @@ JOB_CALLABLE_PATTERN = re.compile(r'^[A-Za-z_][\w.]*\.[A-Za-z_]\w*$')
 PLUGIN_DEPENDENCY_PATTERN = re.compile(
     rf'^\s*({PLUGIN_ID_PATTERN_TEXT})\s*([<>=!~^]{{1,2}})?\s*([A-Za-z0-9_.+\-!*]+)?\s*$'
 )
-VERSION_CONSTRAINT_PATTERN = re.compile(r'^([<>=!~^]{1,2})?[A-Za-z0-9_.+\-!*]+$')
+VERSION_CONSTRAINT_PATTERN = re.compile(r'^([<>=!~^]{1,2})?([A-Za-z0-9_.+\-!*]+)$')
 ROUTE_PATH_PATTERN = re.compile(r'^[a-z][a-z0-9_-]*(/[a-z][a-z0-9_-]*)*$')
 EXTERNAL_URL_PATTERN = re.compile(r'^https?://\S+$')
 FRONTEND_RELATIVE_PATH_PATTERN = re.compile(r'^[a-z][a-z0-9_-]*(/[a-z][a-z0-9_-]*)*$')
@@ -1080,20 +1080,6 @@ class PluginManifest(BaseModel):
         if duplicated_permissions:
             raise ValueError(f'插件权限不能重复：{"、".join(sorted(duplicated_permissions))}')
         return value
-
-    @model_validator(mode='after')
-    def validate_translation_compatibility(self) -> 'PluginManifest':
-        """
-        含名称译文的插件必须显式声明支持该结构的后端版本
-
-        :return: 校验后的插件清单
-        """
-        translated = any(menu.name_i18n for menu in PluginMenuTree.flatten(self.frontend.menus)) or any(
-            permission.name_i18n for permission in self.permissions
-        )
-        if translated and not self.compatibility.backend_version:
-            raise ValueError('使用 nameI18n 时必须声明 compatibility.backendVersion')
-        return self
 
     @property
     def permission_codes(self) -> list[str]:

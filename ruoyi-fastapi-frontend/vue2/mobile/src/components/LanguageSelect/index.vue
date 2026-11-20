@@ -15,7 +15,7 @@ import { saveLocale } from '@/i18n/preference'
 
 export default {
   name: 'LanguageSelect',
-  data: () => ({ busy: false, error: '', languages: i18n.registry.entries }),
+  data: () => ({ busy: false, languages: i18n.registry.entries }),
   computed: {
     currentLabel() {
       return (
@@ -43,7 +43,10 @@ export default {
       try {
         await saveLocale(value)
       } catch {
-        uni.showToast({ title: this.$t('common:languageFailed'), icon: 'none' })
+        uni.showToast({
+          title: this.$t('common:languageFailed'),
+          icon: 'none',
+        })
       } finally {
         this.busy = false
       }

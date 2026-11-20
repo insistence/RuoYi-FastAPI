@@ -16,11 +16,10 @@ export function serializeVisitedViews(views) {
   }
 }
 
-/** 兼容旧版数组格式，从当前路由恢复元数据，忽略已经移除或无权访问的路由。 */
+/** 从当前路由恢复标签，忽略已经移除或无权访问的路由。 */
 export function restoreVisitedViews(snapshot, resolveRoute) {
-  const views = Array.isArray(snapshot) ? snapshot : snapshot?.version === 1 ? snapshot.views : []
-  if (!Array.isArray(views)) return []
-  return views.flatMap((view) => {
+  if (snapshot?.version !== 1 || !Array.isArray(snapshot.views)) return []
+  return snapshot.views.flatMap((view) => {
     if (!view || typeof view.path !== 'string') return []
     try {
       const route = resolveRoute(
@@ -32,9 +31,7 @@ export function restoreVisitedViews(snapshot, resolveRoute) {
         {
           ...route,
           meta: { ...route.meta },
-          customTitle:
-            view.customTitle ??
-            (view.title && view.title !== view.meta?.title ? view.title : undefined),
+          customTitle: view.customTitle,
         },
       ]
     } catch {

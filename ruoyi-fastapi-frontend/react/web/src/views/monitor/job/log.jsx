@@ -232,9 +232,11 @@ export default function JobLog({ params }) {
             className="ruoyi-plain-button ruoyi-plain-button--warning"
             type="default"
             onClick={() =>
-              download('/monitor/jobLog/export', query, `job_log_${Date.now()}.xlsx`).catch(
-                () => {}
-              )
+              download(
+                '/monitor/jobLog/export',
+                query,
+                `${t('common:exportFiles.jobLogs')}_${Date.now()}.xlsx`
+              ).catch(() => {})
             }
           >
             {t('common:export')}

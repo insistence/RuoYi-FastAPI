@@ -513,7 +513,7 @@ function handleExport() {
     {
       ...queryParams.value,
     },
-    `dict_${new Date().getTime()}.xlsx`
+    `${t('common:exportFiles.dictTypes')}_${new Date().getTime()}.xlsx`
   )
 }
 /** 刷新缓存按钮操作 */

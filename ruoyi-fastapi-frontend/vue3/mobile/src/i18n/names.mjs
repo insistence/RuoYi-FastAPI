@@ -6,10 +6,10 @@ export function updateTranslationPatch(patch, original, locale, value) {
   return next
 }
 
-/** 兼容旧缓存并保留业务键值，译文只影响显示标签。 */
+/** 保留字典业务键值，译文只影响显示标签。 */
 export function localizeDictionary(items, resolveText) {
   return items.map((item) => ({
     ...item,
-    label: resolveText(item.originalLabel ?? item.label, item.labelI18n),
+    label: resolveText(item.originalLabel, item.labelI18n),
   }))
 }

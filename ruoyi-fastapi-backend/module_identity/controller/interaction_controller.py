@@ -12,6 +12,7 @@ from common.router import APIRouterPro
 from common.vo import DataResponseModel
 from config.env import OidcConfig
 from exceptions.exception import OidcInteractionException
+from i18n.message import I18nMessage
 from module_identity.dependencies import require_oidc_protocol_ready
 from module_identity.entity.vo.interaction_vo import (
     CaptchaResponseModel,
@@ -64,7 +65,7 @@ def _not_found() -> Response:
     :return: 认证中心未启用的 404 响应
     """
 
-    return _failure_response('认证服务未启用', 404)
+    return _failure_response(I18nMessage('认证服务未启用', msg_key='identity.interaction.disabled'), 404)
 
 
 def _invalid_body() -> Response:
@@ -74,7 +75,7 @@ def _invalid_body() -> Response:
     :return: 请求无效的 400 响应
     """
 
-    return _failure_response('认证交互请求无效', 400)
+    return _failure_response(I18nMessage('认证交互请求无效', msg_key='identity.interaction.invalidRequest'), 400)
 
 
 def _failure_response(msg: str, status_code: int, headers: dict[str, str] | None = None) -> Response:
@@ -185,12 +186,14 @@ async def captcha(request: Request, interaction_id: str) -> Response:
     outcome = await InteractionFlowService.captcha(_redis(request), interaction_id, ClientIPUtil.get_client_ip(request))
     if outcome.rate_limited:
         return _failure_response(
-            '请求过于频繁，请稍后再试',
+            I18nMessage('请求过于频繁，请稍后再试', msg_key='identity.interaction.rateLimited'),
             429,
             {**_NO_STORE, 'Retry-After': str(outcome.retry_after)},
         )
     if outcome.unavailable:
-        return _failure_response('认证服务暂不可用', 503)
+        return _failure_response(
+            I18nMessage('认证服务暂不可用', msg_key='identity.interaction.serviceUnavailable'), 503
+        )
     return ResponseUtil.success(data=outcome.result, headers=_NO_STORE)
 
 

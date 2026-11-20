@@ -1,8 +1,6 @@
 import LocalePlugin from '@/i18n/adapter'
 import NavigationPlugin from '@/i18n/navigation'
 import LanguageSelect from '@/components/LanguageSelect/index.vue'
-import { i18n } from '@/i18n'
-import { getToken } from '@/utils/auth'
 // @ts-nocheck
 import Vue from 'vue'
 import App from './App.vue'
@@ -16,7 +14,6 @@ Vue.use(plugins)
 Vue.use(LocalePlugin)
 Vue.use(NavigationPlugin)
 Vue.component('LanguageSelect', LanguageSelect)
-i18n.initialize(Boolean(getToken()))
 Vue.config.productionTip = false
 Vue.prototype.$store = store
 Vue.prototype.getDicts = getDicts

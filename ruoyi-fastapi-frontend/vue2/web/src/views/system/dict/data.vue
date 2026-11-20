@@ -584,7 +584,7 @@ export default {
         {
           ...this.queryParams,
         },
-        `data_${new Date().getTime()}.xlsx`
+        `${t('common:exportFiles.dictData')}_${new Date().getTime()}.xlsx`
       )
     },
   },

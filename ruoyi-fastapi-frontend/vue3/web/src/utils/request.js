@@ -3,7 +3,7 @@ import axios from 'axios'
 import { ElNotification, ElMessageBox, ElMessage, ElLoading } from 'element-plus'
 import { getToken } from '@/utils/auth'
 import { getDisplayTimezone } from '@/utils/time'
-import errorCode from '@/utils/errorCode'
+import { getResponseMessage } from '@/utils/errorCode'
 import { tansParams, blobValidate } from '@/utils/ruoyi'
 import cache from '@/plugins/cache'
 import { saveAs } from 'file-saver'
@@ -115,7 +115,7 @@ service.interceptors.response.use(
     // 未设置状态码则默认成功状态
     const code = res.data.code || 200
     // 获取错误信息
-    const msg = res.data.msg || errorCode[code] || errorCode['default']
+    const msg = getResponseMessage(res.data)
     // 二进制数据则直接返回
     if (res.request.responseType === 'blob' || res.request.responseType === 'arraybuffer') {
       return res.data
@@ -213,7 +213,7 @@ service.interceptors.response.use(
     } else if (message.includes('timeout')) {
       message = t('common:network.timeout')
     } else if (message.includes('Request failed with status code')) {
-      message = '系统接口' + message.slice(-3) + '异常'
+      message = t('utility:request.httpError', { status: message.slice(-3) })
     }
     ElMessage({ message: message, type: 'error', duration: 5 * 1000 })
     return Promise.reject(error)
@@ -258,7 +258,7 @@ export function download(url, params, filename, config) {
       } else {
         const resText = await data.text()
         const rspObj = JSON.parse(resText)
-        const errMsg = errorCode[rspObj.code] || rspObj.msg || errorCode['default']
+        const errMsg = getResponseMessage(rspObj)
         ElMessage.error(errMsg)
       }
       downloadLoadingInstance.close()

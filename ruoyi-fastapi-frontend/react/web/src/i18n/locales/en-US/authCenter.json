@@ -58,7 +58,7 @@
   "decliningThesePermissionsPreventsAccessToTheApp": "Declining these permissions prevents access to the app",
   "yourChoice": "Your choice",
   "youCanUseTheAppWithoutSelectingThese": "You can use the app without selecting these",
-  "selectedValueValue": "Selected {{length}}/{{length}}",
+  "selectedValueValue": "Selected {{selected}} / {{total}}",
   "valueItems": "{{length}} items",
   "systemPermissionCodeValue": "System permission code: {{scope}}",
   "viewPermissionCodes": "View permission codes",

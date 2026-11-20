@@ -118,7 +118,7 @@ import { t } from '@/i18n/adapter'
 
 import { getTimezoneOptions, updateUserTimezone } from '@/api/system/user'
 import {
-  formatBusinessTime,
+  formatDisplayTime,
   getBusinessTimezone,
   getDeviceTimezone,
   getDisplayTimezone,
@@ -146,7 +146,7 @@ export default {
       return this.followDevice ? this.deviceZone || getBusinessTimezone() : this.selectedZone
     },
     previewTime() {
-      return formatBusinessTime(this.now, 'YYYY-MM-DD HH:mm:ss', this.previewZone)
+      return formatDisplayTime(this.now, this.$locale.locale, this.previewZone)
     },
     filteredTimezones() {
       return this.timezones.filter((zone) =>

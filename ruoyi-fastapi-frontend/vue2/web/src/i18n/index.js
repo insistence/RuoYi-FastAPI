@@ -1,3 +1,4 @@
+import appManifest from '../../package.json'
 import { createLocaleRuntime } from './runtime.mjs'
 import { meta, resources } from './registry'
 import dayjs from 'dayjs'
@@ -5,6 +6,7 @@ import 'dayjs/locale/zh-cn'
 import 'dayjs/locale/en'
 
 export const i18n = createLocaleRuntime({
+  appVersion: appManifest.version,
   meta,
   resources,
   storage: {

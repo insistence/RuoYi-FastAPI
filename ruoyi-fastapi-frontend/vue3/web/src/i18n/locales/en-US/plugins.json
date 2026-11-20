@@ -1,4 +1,6 @@
 {
+  "maxValue": "Must not exceed {{limit}}",
+  "minValue": "Must be at least {{limit}}",
   "positionalArgumentsMustBeAJSONArrayEGTest": "Positional arguments must be a JSON array, e.g. [\"test\", 1]",
   "keywordArgumentsMustBeAJSONObjectEGEnabled": "Keyword arguments must be a JSON object, e.g. {\"enabled\": true}",
   "aParameterNumberIsOutsideTheSupportedRange": "A parameter number is outside the supported range",

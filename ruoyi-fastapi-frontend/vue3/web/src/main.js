@@ -93,6 +93,11 @@ app.use(LocalePlugin)
 setPluginBridgeTranslator(t)
 app.component('LanguageSelect', LanguageSelect)
 i18n.initialize(Boolean(getToken()))
+const loadingText = document.getElementById('bootstrap-loading-text')
+if (loadingText) {
+  loadingText.textContent = i18n.t('common:loading')
+}
+
 app.use(plugins)
 app.use(elementIcons)
 app.component('svg-icon', SvgIcon)

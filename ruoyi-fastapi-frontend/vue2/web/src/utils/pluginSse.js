@@ -83,10 +83,13 @@ export function createPluginSseTransport({
   shouldEncryptRequest,
   serializeParams,
   getTimezone,
+  getLocale,
   fetchImpl = globalThis.fetch,
   origin = globalThis.location?.origin,
 }) {
   return async function* ({ url, params, lastEventId, csrfToken, signal }) {
+    const locale = getLocale()
+    const timezone = getTimezone()
     const endpoint = new URL(url, origin)
     if (
       endpoint.origin !== origin ||
@@ -108,7 +111,8 @@ export function createPluginSseTransport({
       headers: {
         Accept: 'text/event-stream',
         'X-Plugin-CSRF': csrfToken,
-        'X-Timezone': getTimezone(),
+        'Accept-Language': locale,
+        'X-Timezone': timezone,
         ...(lastEventId ? { 'Last-Event-ID': lastEventId } : {}),
       },
       signal,

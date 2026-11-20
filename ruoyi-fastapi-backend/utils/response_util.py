@@ -29,8 +29,6 @@ class ResponseUtil:
         :return: 可供JSON响应使用的数据
         """
         context = RequestContext.get_current_locale()
-        if context.version != 'v1':
-            result = {key: value for key, value in result.items() if key not in ('msgKey', 'msgParams')}
         return jsonable_encoder(
             result,
             custom_encoder={
@@ -40,7 +38,7 @@ class ResponseUtil:
         )
 
     @classmethod
-    def success(
+    def success(  # noqa: PLR0913 - 保留已有位置参数，扩展语义仅允许关键字传入。
         cls,
         msg: str | None = None,
         data: Any | None = None,
@@ -53,6 +51,9 @@ class ResponseUtil:
         *,
         msg_key: str | None = None,
         msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
     ) -> Response:
         """
         成功响应方法
@@ -67,14 +68,21 @@ class ResponseUtil:
         :param background: 可选，响应返回后执行的后台任务
         :param msg_key: 可选，优先使用的语义消息标识
         :param msg_params: 可选，可公开的基础类型插值参数
+        :param domain: 可选，已注册的词库域；默认使用消息元数据或 core
+        :param count: 可选，必须与 plural_key 成对传入的非负整数
+        :param plural_key: 可选，PO 中的复数语义标识
         :return: 成功响应结果
         """
-        result = {
-            'code': HttpStatusConstant.SUCCESS,
-            **I18nUtil.message_fields(
-                msg, msg_key=msg_key, msg_params=msg_params, default_key='common.success', legacy_default='操作成功'
-            ),
-        }
+        fields = I18nUtil.message_fields(
+            msg,
+            msg_key=msg_key,
+            msg_params=msg_params,
+            domain=domain,
+            count=count,
+            plural_key=plural_key,
+            default_key='common.success',
+        )
+        result = {'code': HttpStatusConstant.SUCCESS, **fields}
 
         if data is not None:
             result['data'] = data
@@ -86,7 +94,7 @@ class ResponseUtil:
             result.update(model_content.model_dump(by_alias=True))
 
         if msg_key is not None:
-            result.update(I18nUtil.message_fields(msg, msg_key=msg_key, msg_params=msg_params))
+            result.update(fields)
 
         result.update({'success': True, 'time': TimezoneUtil.utc_now()})
 
@@ -99,7 +107,7 @@ class ResponseUtil:
         )
 
     @classmethod
-    def failure(
+    def failure(  # noqa: PLR0913 - 保留已有位置参数，扩展语义仅允许关键字传入。
         cls,
         msg: str | None = None,
         data: Any | None = None,
@@ -112,6 +120,9 @@ class ResponseUtil:
         *,
         msg_key: str | None = None,
         msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
     ) -> Response:
         """
         失败响应方法
@@ -126,14 +137,21 @@ class ResponseUtil:
         :param background: 可选，响应返回后执行的后台任务
         :param msg_key: 可选，优先使用的语义消息标识
         :param msg_params: 可选，可公开的基础类型插值参数
+        :param domain: 可选，已注册的词库域；默认使用消息元数据或 core
+        :param count: 可选，必须与 plural_key 成对传入的非负整数
+        :param plural_key: 可选，PO 中的复数语义标识
         :return: 失败响应结果
         """
-        result = {
-            'code': HttpStatusConstant.WARN,
-            **I18nUtil.message_fields(
-                msg, msg_key=msg_key, msg_params=msg_params, default_key='common.failure', legacy_default='操作失败'
-            ),
-        }
+        fields = I18nUtil.message_fields(
+            msg,
+            msg_key=msg_key,
+            msg_params=msg_params,
+            domain=domain,
+            count=count,
+            plural_key=plural_key,
+            default_key='common.failure',
+        )
+        result = {'code': HttpStatusConstant.WARN, **fields}
 
         if data is not None:
             result['data'] = data
@@ -145,7 +163,7 @@ class ResponseUtil:
             result.update(model_content.model_dump(by_alias=True))
 
         if msg_key is not None:
-            result.update(I18nUtil.message_fields(msg, msg_key=msg_key, msg_params=msg_params))
+            result.update(fields)
 
         result.update({'success': False, 'time': TimezoneUtil.utc_now()})
 
@@ -158,7 +176,7 @@ class ResponseUtil:
         )
 
     @classmethod
-    def unauthorized(
+    def unauthorized(  # noqa: PLR0913 - 保留已有位置参数，扩展语义仅允许关键字传入。
         cls,
         msg: str | None = None,
         data: Any | None = None,
@@ -171,6 +189,9 @@ class ResponseUtil:
         *,
         msg_key: str | None = None,
         msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
     ) -> Response:
         """
         未认证响应方法
@@ -185,18 +206,21 @@ class ResponseUtil:
         :param background: 可选，响应返回后执行的后台任务
         :param msg_key: 可选，优先使用的语义消息标识
         :param msg_params: 可选，可公开的基础类型插值参数
+        :param domain: 可选，已注册的词库域；默认使用消息元数据或 core
+        :param count: 可选，必须与 plural_key 成对传入的非负整数
+        :param plural_key: 可选，PO 中的复数语义标识
         :return: 未认证响应结果
         """
-        result = {
-            'code': HttpStatusConstant.UNAUTHORIZED,
-            **I18nUtil.message_fields(
-                msg,
-                msg_key=msg_key,
-                msg_params=msg_params,
-                default_key='common.unauthorized',
-                legacy_default='登录信息已过期，访问系统资源失败',
-            ),
-        }
+        fields = I18nUtil.message_fields(
+            msg,
+            msg_key=msg_key,
+            msg_params=msg_params,
+            domain=domain,
+            count=count,
+            plural_key=plural_key,
+            default_key='common.unauthorized',
+        )
+        result = {'code': HttpStatusConstant.UNAUTHORIZED, **fields}
 
         if data is not None:
             result['data'] = data
@@ -208,7 +232,7 @@ class ResponseUtil:
             result.update(model_content.model_dump(by_alias=True))
 
         if msg_key is not None:
-            result.update(I18nUtil.message_fields(msg, msg_key=msg_key, msg_params=msg_params))
+            result.update(fields)
 
         result.update({'success': False, 'time': TimezoneUtil.utc_now()})
 
@@ -221,7 +245,7 @@ class ResponseUtil:
         )
 
     @classmethod
-    def forbidden(
+    def forbidden(  # noqa: PLR0913 - 保留已有位置参数，扩展语义仅允许关键字传入。
         cls,
         msg: str | None = None,
         data: Any | None = None,
@@ -234,6 +258,9 @@ class ResponseUtil:
         *,
         msg_key: str | None = None,
         msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
     ) -> Response:
         """
         未授权响应方法
@@ -248,18 +275,21 @@ class ResponseUtil:
         :param background: 可选，响应返回后执行的后台任务
         :param msg_key: 可选，优先使用的语义消息标识
         :param msg_params: 可选，可公开的基础类型插值参数
+        :param domain: 可选，已注册的词库域；默认使用消息元数据或 core
+        :param count: 可选，必须与 plural_key 成对传入的非负整数
+        :param plural_key: 可选，PO 中的复数语义标识
         :return: 未授权响应结果
         """
-        result = {
-            'code': HttpStatusConstant.FORBIDDEN,
-            **I18nUtil.message_fields(
-                msg,
-                msg_key=msg_key,
-                msg_params=msg_params,
-                default_key='common.forbidden',
-                legacy_default='该用户无此接口权限',
-            ),
-        }
+        fields = I18nUtil.message_fields(
+            msg,
+            msg_key=msg_key,
+            msg_params=msg_params,
+            domain=domain,
+            count=count,
+            plural_key=plural_key,
+            default_key='common.forbidden',
+        )
+        result = {'code': HttpStatusConstant.FORBIDDEN, **fields}
 
         if data is not None:
             result['data'] = data
@@ -271,7 +301,7 @@ class ResponseUtil:
             result.update(model_content.model_dump(by_alias=True))
 
         if msg_key is not None:
-            result.update(I18nUtil.message_fields(msg, msg_key=msg_key, msg_params=msg_params))
+            result.update(fields)
 
         result.update({'success': False, 'time': TimezoneUtil.utc_now()})
 
@@ -284,7 +314,7 @@ class ResponseUtil:
         )
 
     @classmethod
-    def error(
+    def error(  # noqa: PLR0913 - 保留已有位置参数，扩展语义仅允许关键字传入。
         cls,
         msg: str | None = None,
         data: Any | None = None,
@@ -297,6 +327,9 @@ class ResponseUtil:
         *,
         msg_key: str | None = None,
         msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
     ) -> Response:
         """
         错误响应方法
@@ -311,14 +344,21 @@ class ResponseUtil:
         :param background: 可选，响应返回后执行的后台任务
         :param msg_key: 可选，优先使用的语义消息标识
         :param msg_params: 可选，可公开的基础类型插值参数
+        :param domain: 可选，已注册的词库域；默认使用消息元数据或 core
+        :param count: 可选，必须与 plural_key 成对传入的非负整数
+        :param plural_key: 可选，PO 中的复数语义标识
         :return: 错误响应结果
         """
-        result = {
-            'code': HttpStatusConstant.ERROR,
-            **I18nUtil.message_fields(
-                msg, msg_key=msg_key, msg_params=msg_params, default_key='common.error', legacy_default='接口异常'
-            ),
-        }
+        fields = I18nUtil.message_fields(
+            msg,
+            msg_key=msg_key,
+            msg_params=msg_params,
+            domain=domain,
+            count=count,
+            plural_key=plural_key,
+            default_key='common.error',
+        )
+        result = {'code': HttpStatusConstant.ERROR, **fields}
 
         if data is not None:
             result['data'] = data
@@ -330,7 +370,7 @@ class ResponseUtil:
             result.update(model_content.model_dump(by_alias=True))
 
         if msg_key is not None:
-            result.update(I18nUtil.message_fields(msg, msg_key=msg_key, msg_params=msg_params))
+            result.update(fields)
 
         result.update({'success': False, 'time': TimezoneUtil.utc_now()})
 
@@ -343,7 +383,7 @@ class ResponseUtil:
         )
 
     @classmethod
-    def too_many_requests(
+    def too_many_requests(  # noqa: PLR0913 - 保留已有位置参数，扩展语义仅允许关键字传入。
         cls,
         msg: str | None = None,
         data: Any | None = None,
@@ -356,6 +396,9 @@ class ResponseUtil:
         *,
         msg_key: str | None = None,
         msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
     ) -> Response:
         """
         接口限流响应方法
@@ -370,18 +413,21 @@ class ResponseUtil:
         :param background: 可选，响应返回后执行的后台任务
         :param msg_key: 可选，优先使用的语义消息标识
         :param msg_params: 可选，可公开的基础类型插值参数
+        :param domain: 可选，已注册的词库域；默认使用消息元数据或 core
+        :param count: 可选，必须与 plural_key 成对传入的非负整数
+        :param plural_key: 可选，PO 中的复数语义标识
         :return: 限流响应结果
         """
-        result = {
-            'code': HttpStatusConstant.TOO_MANY_REQUESTS,
-            **I18nUtil.message_fields(
-                msg,
-                msg_key=msg_key,
-                msg_params=msg_params,
-                default_key='common.rateLimited',
-                legacy_default='请求过于频繁，请稍后再试',
-            ),
-        }
+        fields = I18nUtil.message_fields(
+            msg,
+            msg_key=msg_key,
+            msg_params=msg_params,
+            domain=domain,
+            count=count,
+            plural_key=plural_key,
+            default_key='common.rateLimited',
+        )
+        result = {'code': HttpStatusConstant.TOO_MANY_REQUESTS, **fields}
 
         if data is not None:
             result['data'] = data
@@ -393,7 +439,7 @@ class ResponseUtil:
             result.update(model_content.model_dump(by_alias=True))
 
         if msg_key is not None:
-            result.update(I18nUtil.message_fields(msg, msg_key=msg_key, msg_params=msg_params))
+            result.update(fields)
 
         result.update({'success': False, 'time': TimezoneUtil.utc_now()})
 

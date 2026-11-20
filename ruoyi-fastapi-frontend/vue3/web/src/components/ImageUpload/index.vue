@@ -48,7 +48,7 @@
 
 <script setup>
 import { t } from '@/i18n/adapter'
-import { getToken } from '@/utils/auth'
+import { getUploadHeaders } from '@/utils/uploadHeaders'
 import { isExternal } from '@/utils/validate'
 import Sortable from 'sortablejs'
 
@@ -103,7 +103,7 @@ const dialogImageUrl = ref('')
 const dialogVisible = ref(false)
 const baseUrl = import.meta.env.VITE_APP_BASE_API
 const uploadImgUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action) // 上传的图片服务器地址
-const headers = ref({ Authorization: 'Bearer ' + getToken() })
+const headers = computed(getUploadHeaders)
 const fileList = ref([])
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 

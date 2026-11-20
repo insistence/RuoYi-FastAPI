@@ -82,7 +82,7 @@ class PluginAuditPayloadBuilder:
             message=I18nMessage(
                 f'最近审计快照读取失败：{error}',
                 msg_key='plugin.runtime.audit.snapshotFailed',
-                msg_params={'error': str(error)},
+                msg_params={},
             ),
             items=[],
         ).to_payload()

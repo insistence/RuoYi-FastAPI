@@ -22,6 +22,7 @@
 
 <script>
 import { meta } from '@/i18n/registry'
+import { DATA_SOURCE_LOCALE } from '@/i18n/runtime.mjs'
 
 export default {
   name: 'LocaleTextFields',
@@ -32,12 +33,12 @@ export default {
   computed: {
     sourceLanguage() {
       return (
-        meta.locales.find((locale) => locale.code === meta.sourceLocale)?.nativeName ||
-        meta.sourceLocale
+        meta.locales.find((locale) => locale.code === DATA_SOURCE_LOCALE)?.nativeName ||
+        DATA_SOURCE_LOCALE
       )
     },
     locales() {
-      return meta.locales.filter((locale) => locale.enabled && locale.code !== meta.sourceLocale)
+      return meta.locales.filter((locale) => locale.enabled && locale.code !== DATA_SOURCE_LOCALE)
     },
   },
   methods: {

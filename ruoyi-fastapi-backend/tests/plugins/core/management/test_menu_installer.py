@@ -352,6 +352,7 @@ async def test_plugin_menu_installer_removes_menus_deleted_from_manifest(monkeyp
 
 
 def test_plugin_translation_maps_keep_menu_identity_and_support_future_locales() -> None:
+    """验证插件菜单保留原有身份字段，并允许声明未来语言的译名。"""
     menu = PluginMenuManifest(
         name='新增', nameI18n={'en-US': 'Add', 'ja-JP': '追加'}, path='add', component='', perms='demo:add', type='F'
     )
@@ -364,17 +365,29 @@ def test_plugin_translation_maps_keep_menu_identity_and_support_future_locales()
     assert button.name_i18n == {'en-US': 'Edit'}
 
 
-def test_translated_plugin_manifest_requires_declared_backend_compatibility() -> None:
+def test_manifest_serializes_optional_menu_and_permission_translations() -> None:
+    """验证菜单、子菜单和权限均可直接声明译名，未填译名时使用空映射。"""
     payload = {
         'id': 'demo',
         'name': '演示',
         'version': '1.0.0',
         'backend': {'module': 'plugins.demo'},
-        'frontend': {'menus': [{'name': '演示', 'nameI18n': {'en-US': 'Demo'}, 'path': 'demo'}]},
+        'frontend': {
+            'menus': [
+                {
+                    'name': '演示',
+                    'nameI18n': {'en-US': 'Demo'},
+                    'path': 'demo',
+                    'children': [{'name': '列表', 'path': 'list', 'nameI18n': {}}],
+                }
+            ]
+        },
+        'permissions': [{'name': '查询', 'code': 'demo:list'}],
     }
-    with pytest.raises(ValueError, match=r'compatibility\.backendVersion'):
-        PluginManifest.model_validate(payload)
-    payload['compatibility'] = {'backendVersion': '>=2.0.0'}
     manifest = PluginManifest.model_validate(payload)
-    assert manifest.frontend.menus[0].name == '演示'
-    assert manifest.frontend.menus[0].name_i18n == {'en-US': 'Demo'}
+    serialized = manifest.model_dump(by_alias=True)
+    menu = serialized['frontend']['menus'][0]
+    assert menu['nameI18n'] == {'en-US': 'Demo'}
+    assert menu['children'][0]['nameI18n'] == {}
+    assert serialized['permissions'][0]['nameI18n'] == {}
+    assert PluginManifest.model_validate(serialized) == manifest

@@ -55,7 +55,8 @@
     "processing": "数据正在处理，请勿重复提交",
     "pluginFailure": "插件请求失败，请重试",
     "parameter": "参数",
-    "checkParameters": "请检查输入参数"
+    "checkParameters": "请检查输入参数",
+    "httpError": "系统接口 {{status}} 异常"
   },
   "relative": {
     "format": "{m}月{d}日{h}时{i}分",

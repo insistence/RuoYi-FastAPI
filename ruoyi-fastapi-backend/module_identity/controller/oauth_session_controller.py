@@ -91,7 +91,7 @@ async def revoke_user_oauth_sessions(
         query_db, request.app.state.redis, user_id, _actor(current_user), payload.reason
     )
 
-    return ResponseUtil.success(msg='单点登录会话已撤销', msg_key='identity.session.revoked', data={'count': count})
+    return ResponseUtil.success(msg_key='identity.session.revoked', data={'count': count})
 
 
 @oauth_session_controller.get(
@@ -134,7 +134,7 @@ async def revoke_oauth_sessions(
         query_db, request.app.state.redis, batch_ids, _actor(current_user), payload.reason
     )
 
-    return ResponseUtil.success(msg='单点登录会话已撤销', msg_key='identity.session.revoked', data={'count': count})
+    return ResponseUtil.success(msg_key='identity.session.revoked', data={'count': count})
 
 
 @oauth_grant_controller.get(
@@ -206,7 +206,7 @@ async def revoke_oauth_grants(
         raise ServiceException(message=str(exc)) from exc
     count = await OAuthSessionManagementService.revoke_grants(query_db, batch_ids, _actor(current_user), payload.reason)
 
-    return ResponseUtil.success(msg='OAuth 授权已撤销', msg_key='identity.grant.revoked', data={'count': count})
+    return ResponseUtil.success(msg_key='identity.grant.revoked', data={'count': count})
 
 
 @oauth_grant_controller.put(

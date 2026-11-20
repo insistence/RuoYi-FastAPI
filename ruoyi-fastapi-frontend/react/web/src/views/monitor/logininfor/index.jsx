@@ -228,9 +228,11 @@ export default function Logininfor() {
             className="ruoyi-plain-button ruoyi-plain-button--warning"
             type="default"
             onClick={() =>
-              download('/monitor/logininfor/export', query, `logininfor_${Date.now()}.xlsx`).catch(
-                () => {}
-              )
+              download(
+                '/monitor/logininfor/export',
+                query,
+                `${t('common:exportFiles.loginHistory')}_${Date.now()}.xlsx`
+              ).catch(() => {})
             }
           >
             {t('common:export')}

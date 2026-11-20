@@ -295,7 +295,7 @@ class PythonDependencyInspector:
                 message=I18nMessage(
                     f'Python 依赖声明无效：{requirement}，{exc}',
                     msg_key='plugin.runtime.dependencies.invalidRequirement',
-                    msg_params={'requirement': str(requirement), 'error': str(exc)},
+                    msg_params={'requirement': str(requirement)},
                 ),
             )
         if not parsed.is_marker_applicable():

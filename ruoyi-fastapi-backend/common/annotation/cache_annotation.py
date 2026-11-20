@@ -14,6 +14,7 @@ from common.constant import HttpStatusConstant
 from common.context import RequestContext
 from common.enums import HttpMethod, RedisInitKeyConfig
 from exceptions.exception import LoginException
+from i18n.catalogs import CatalogRegistry
 from utils.api_annotation_util import ApiAnnotationUtil
 from utils.api_response_header_util import ApiResponseHeaderUtil
 from utils.log_util import logger
@@ -245,13 +246,16 @@ class ApiCache(_ApiCacheSupport):
             if not self._is_request_method_allowed(request):
                 return await func(*args, **kwargs)
 
-            cache_key = await self._build_cache_key(request)
+            catalog_fingerprint = CatalogRegistry.fingerprint()
+            cache_key = await self._build_cache_key(request, catalog_fingerprint=catalog_fingerprint)
             cached_response = await redis.get(cache_key)
-            if cached_response:
+            if cached_response and CatalogRegistry.fingerprint() == catalog_fingerprint:
                 return self._build_cached_response(cached_response)  # type: ignore[return-value]
 
             result = await func(*args, **kwargs)
-            await self._cache_response(redis, cache_key, result)
+            # 业务 await 期间可能发布新词库；不能把新版译文写入旧发布仍在使用的缓存键。
+            if CatalogRegistry.fingerprint() == catalog_fingerprint:
+                await self._cache_response(redis, cache_key, result)
             ApiResponseHeaderUtil.merge_headers(request, {'X-Api-Cache': 'MISS'})
 
             return result
@@ -267,11 +271,12 @@ class ApiCache(_ApiCacheSupport):
         """
         return request.method.upper() in self.methods
 
-    async def _build_cache_key(self, request: Request) -> str:
+    async def _build_cache_key(self, request: Request, *, catalog_fingerprint: str | None = None) -> str:
         """
         根据当前请求生成稳定缓存键
 
         :param request: 当前请求对象
+        :param catalog_fingerprint: 本次请求使用的词库版本指纹，未提供时读取当前指纹
         :return: 接口缓存键
         """
         request_body = await request.body()
@@ -286,8 +291,7 @@ class ApiCache(_ApiCacheSupport):
             'user_scope': user_scope,
             'timezone': TimezoneUtil.get_request_timezone(),
             'locale': locale_context.locale,
-            'i18n_version': locale_context.version,
-            'response_version': 'i18n-1',
+            'response_version': catalog_fingerprint or CatalogRegistry.fingerprint(),
         }
         key_digest = hashlib.sha256(
             json.dumps(

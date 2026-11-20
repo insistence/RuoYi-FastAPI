@@ -217,7 +217,7 @@ async def start_system_file_reconcile(
     background_tasks.add_task(FileReconcileService.execute_reconcile_run_services, reconcile_run.run_id)
     logger.info(f'文件存储对账任务{reconcile_run.run_id}已启动')
 
-    return ResponseUtil.success(data=reconcile_run, msg='文件存储对账任务已启动', msg_key='file.reconciliation.started')
+    return ResponseUtil.success(data=reconcile_run, msg_key='file.reconciliation.started')
 
 
 @file_controller.put(

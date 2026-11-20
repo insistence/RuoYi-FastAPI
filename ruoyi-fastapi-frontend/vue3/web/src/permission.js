@@ -66,6 +66,11 @@ router.beforeEach(async (to, from) => {
         // 重新导航到目标路由，确保动态路由已注册
         return { ...to, replace: true }
       } catch (err) {
+        if (err?.code === 'USER_SESSION_CHANGED') {
+          isRelogin.show = false
+          NProgress.done()
+          return false
+        }
         await useUserStore().logOut()
         ElMessage.error(err)
         return { path: '/' }

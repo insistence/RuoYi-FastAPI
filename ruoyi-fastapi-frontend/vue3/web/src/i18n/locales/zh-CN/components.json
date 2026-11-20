@@ -225,5 +225,25 @@
   "collapseAll": "收起全部",
   "expandAll": "展开全部",
   "importData": "数据导入",
-  "enterName": "请输入名称"
+  "enterName": "请输入名称",
+  "editor": {
+    "formatLabel": "格式化{{label}}",
+    "toggleLabel": "{{action}}{{label}}编辑器",
+    "linkPrompt": "请输入链接地址:",
+    "save": "保存",
+    "videoPrompt": "请输入视频地址:",
+    "text": "文本",
+    "heading1": "标题1",
+    "heading2": "标题2",
+    "heading3": "标题3",
+    "heading4": "标题4",
+    "heading5": "标题5",
+    "heading6": "标题6",
+    "standardFont": "标准字体",
+    "serifFont": "衬线字体",
+    "monospaceFont": "等宽字体",
+    "visitLink": "访问链接:",
+    "editLink": "编辑",
+    "removeLink": "移除"
+  }
 }

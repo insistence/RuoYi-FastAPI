@@ -323,6 +323,7 @@
   "interface": {
     "dayAllowedWildcardsLW": "日，允许的通配符[, - * ? / L W]",
     "repeatEvery": {
+      "day": "日开始，每",
       "hour": "小时开始，每",
       "min": "分钟开始，每",
       "month": "月开始，每",

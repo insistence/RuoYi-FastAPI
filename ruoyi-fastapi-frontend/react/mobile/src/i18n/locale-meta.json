@@ -20,5 +20,8 @@
       "fallback": ["zh-CN"],
       "dayjs": "en"
     }
-  ]
+  ],
+  "languageFallbacks": {
+    "en": "en-US"
+  }
 }

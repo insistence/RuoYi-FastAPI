@@ -147,8 +147,8 @@ export function normalizePluginOperationLogDetail(detail) {
   }
 }
 
-function buildOperationValidationItems(result) {
-  const firstCheck = Array.isArray(result.checks) ? result.checks[0] : {}
+export function buildOperationValidationItems(result) {
+  const firstCheck = result.checks?.[0] || {}
   const validationGroups = [
     [
       translateMessage('components:dependencies', '依赖'),
@@ -161,6 +161,7 @@ function buildOperationValidationItems(result) {
     [
       translateMessage('plugins:manifestWarning', 'Manifest 警告'),
       result.manifestWarnings || firstCheck.manifestWarnings,
+      'warning',
     ],
     [
       translateMessage('components:pluginDependencies', '插件依赖'),
@@ -176,13 +177,11 @@ function buildOperationValidationItems(result) {
     ],
   ]
 
-  return validationGroups.flatMap(([category, items]) =>
+  return validationGroups.flatMap(([category, items, defaultLevel = 'error']) =>
     Array.isArray(items)
       ? items.map((item) => ({
           category,
-          level:
-            item.level ||
-            (category.includes(translateMessage('system:warning', '警告')) ? 'warning' : 'error'),
+          level: item.level || defaultLevel,
           kind: item.kind || item.name || item.status || '-',
           value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
           message: item.message || item.suggestion || item.reason || '',

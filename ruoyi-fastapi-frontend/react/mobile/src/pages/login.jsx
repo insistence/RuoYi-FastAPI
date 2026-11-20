@@ -42,7 +42,9 @@ export default function Login() {
       })
       setForm((old) => ({ ...old, uuid: result.uuid || '', code: '' }))
     } catch (failure) {
-      setError(failure.message || (() => t('mobile:failedToLoadTheVerificationCodePleaseTryAgain')))
+      setError(
+        failure.message || ((t) => t('mobile:failedToLoadTheVerificationCodePleaseTryAgain'))
+      )
     }
   }
   useLoad(() => {
@@ -54,10 +56,10 @@ export default function Login() {
     if (!form.username.trim() || !form.password || (captcha.enabled && !form.code)) {
       setError(
         !form.username.trim()
-          ? () => t('common:login.usernameRequired')
+          ? (t) => t('common:login.usernameRequired')
           : !form.password
-            ? () => t('common:login.passwordRequired')
-            : () => t('common:login.codeRequired')
+            ? (t) => t('common:login.passwordRequired')
+            : (t) => t('common:login.codeRequired')
       )
       return
     }
@@ -69,7 +71,8 @@ export default function Login() {
       await useUserStore.getState().getInfo()
       await Taro.switchTab({ url: '/pages/index' })
     } catch (failure) {
-      setError(failure.message || (() => t('mobile:signInFailedPleaseTryAgain')))
+      if (failure?.code === 'USER_SESSION_CHANGED') return
+      setError(failure.message || ((t) => t('mobile:signInFailedPleaseTryAgain')))
       if (captcha.enabled) await refreshCode()
     } finally {
       lock.current = false

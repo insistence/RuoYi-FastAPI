@@ -220,13 +220,13 @@ class DictDataDao:
         return dict_data_list
 
     @classmethod
-    async def query_dict_data_list(cls, db: AsyncSession, dict_type: str) -> Sequence[SysDictData]:
+    async def query_dict_data_list(cls, db: AsyncSession, dict_type: str) -> Sequence[SysDictData | None]:
         """
-        根据查询参数获取字典数据列表信息
+        查询启用字典类型及其启用的数据项
 
         :param db: orm对象
         :param dict_type: 字典类型
-        :return: 字典数据列表信息对象
+        :return: 按排序值排列的数据项，启用类型无数据项时返回 [None]，未匹配类型时返回空列表
         """
         dict_data_list = (
             (

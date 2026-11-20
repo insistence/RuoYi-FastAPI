@@ -1,5 +1,8 @@
 import { useLocalizedFormErrors } from '@/i18n/form'
-import TranslationFields, { SourceLocaleLabel } from '@/components/TranslationFields'
+import TranslationFields, {
+  SourceLocaleField,
+  SourceLocaleLabel,
+} from '@/components/TranslationFields'
 import { translationPatch, localizeOptions } from '@/i18n/entities.mjs'
 import { useI18n } from '@/i18n/adapter'
 import { i18n, t } from '@/i18n'
@@ -469,13 +472,13 @@ export default function Menu() {
               xs={24}
               sm={12}
             >
-              <Form.Item
+              <SourceLocaleField
                 name="menuName"
-                label={<SourceLocaleLabel>{t('system:menu.name')}</SourceLocaleLabel>}
+                label={t('system:menu.name')}
                 rules={[{ required: true }]}
               >
                 <Input placeholder={t('system:menu.placeholder')} />
-              </Form.Item>
+              </SourceLocaleField>
             </Col>
             <Col span={24}>
               <TranslationFields

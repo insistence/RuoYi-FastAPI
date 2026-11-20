@@ -8,10 +8,10 @@ import Button from '@/components/ActionButton'
 import { getUserProfile } from '@/api/system/user'
 import { useUserStore } from '@/store'
 import { getToken } from '@/utils/auth'
-import { formatBusinessTime } from '@/utils/time'
+import { formatDisplayTime } from '@/utils/time'
 import { usePageAuth } from '@/permission'
 export default function UserInfo() {
-  usePageLocale()
+  const locale = usePageLocale()
 
   const allowed = usePageAuth()
   const [data, setData] = useState({ data: {} })
@@ -40,7 +40,7 @@ export default function UserInfo() {
     [t('mobile:role'), data.roleGroup, 'badge-account', 'bg-purple-50 text-purple-500'],
     [
       t('mobile:createdOn'),
-      formatBusinessTime(data.data.createTime),
+      formatDisplayTime(data.data.createTime, locale),
       'calendar',
       'bg-pink-50 text-pink-500',
     ],

@@ -1,5 +1,4 @@
-import { useI18n } from '@/i18n/adapter'
-import { t } from '@/i18n'
+import { useI18n, t } from '../../../i18n'
 import { useId, useState } from 'react'
 import { RightOutlined } from '@ant-design/icons'
 import MarkdownRender from 'markstream-react'

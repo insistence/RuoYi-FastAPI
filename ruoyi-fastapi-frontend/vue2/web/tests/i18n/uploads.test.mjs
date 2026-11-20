@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 
 const require = createRequire(import.meta.url)
 const Vue = require('vue')
 const { i18n, t } = require('./test-runtime.cjs')
+const { loadModule } = require('../support/load-module.cjs')
 
 function component(name) {
   const source = readFileSync(
@@ -51,4 +53,29 @@ test('editor tooltips and picker text react without recreating editor content', 
   assert.equal(vm.content, '<p>User content</p>')
   vm.$destroy()
   await i18n.setPreference('zh-CN')
+})
+
+test('import feedback is a text node and preserves literal markup and newlines', () => {
+  const vm = new Vue()
+  const text = 'Row 1: <b>example</b>\nRow 2'
+  let message
+  vm.$alert = (node) => {
+    message = node
+  }
+  component('ExcelImportDialog').methods.handleSuccess.call(vm, { msg: text })
+  assert.equal(message.children.length, 1)
+  assert.equal(message.children[0].tag, undefined)
+  assert.equal(message.children[0].text, text)
+  vm.$destroy()
+})
+
+test('download errors retain server detail and have a translated string fallback', () => {
+  const { getResponseMessage } = loadModule(
+    fileURLToPath(new URL('../../src/utils/errorCode.js', import.meta.url))
+  )
+  assert.equal(getResponseMessage({ code: 403, msg: 'Specific message' }), 'Specific message')
+  assert.equal(typeof getResponseMessage({ code: 403 }), 'string')
+  const fallback = getResponseMessage({ code: 999, msg: '  ' })
+  assert.equal(typeof fallback, 'string')
+  assert.ok(fallback.trim())
 })

@@ -94,14 +94,16 @@
             $t('common:createdDate')
           }}</text>
         </view>
-        <text class="text-sm text-gray-500">{{ formatBusinessTime(user.createTime) || '-' }}</text>
+        <text class="text-sm text-gray-500">{{
+          formatDisplayTime(user.createTime, $locale.locale) || '-'
+        }}</text>
       </view>
     </view>
   </view>
 </template>
 
 <script>
-import { formatBusinessTime } from '@/utils/time'
+import { formatDisplayTime } from '@/utils/time'
 import { getUserProfile } from '@/api/system/user'
 
 export default {
@@ -116,7 +118,7 @@ export default {
     this.getUser()
   },
   methods: {
-    formatBusinessTime,
+    formatDisplayTime,
     async getUser() {
       try {
         const [, response] = await Promise.all([this.$store.dispatch('GetInfo'), getUserProfile()])

@@ -7,6 +7,7 @@ const source = readFileSync(new URL('../../src/i18n/navigation.js', import.meta.
 test('native titles and tab labels follow the active page and language', () => {
   let locale = 'zh-CN'
   let route = 'pages/mine/setting/index'
+  let options = {}
   const calls = []
   const events = {}
   const uni = {
@@ -36,7 +37,7 @@ test('native titles and tab labels follow the active page and language', () => {
       },
     },
     uni,
-    () => [{ route }]
+    () => [{ route, options }]
   )
   module.plugin.install({ nextTick: (fn) => fn(), mixin() {} })
   module.refreshNavigation()
@@ -53,5 +54,18 @@ test('native titles and tab labels follow the active page and language', () => {
   assert.ok(
     calls.every((item) => item[0] === 'tab'),
     'custom content titles are preserved'
+  )
+  route = 'pages/common/webview/index'
+  options = { title: 'External report' }
+  calls.length = 0
+  module.refreshNavigation()
+  assert.ok(
+    calls.every((item) => item[0] === 'tab'),
+    'external titles survive onShow'
+  )
+  events.languageChanged()
+  assert.ok(
+    calls.every((item) => item[0] === 'tab'),
+    'external titles survive language changes'
   )
 })

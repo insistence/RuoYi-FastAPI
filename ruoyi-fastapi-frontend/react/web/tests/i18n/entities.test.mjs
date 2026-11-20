@@ -37,14 +37,14 @@ test('dictionary and tree labels follow the locale without changing values or so
       label: '原名',
       labelI18n: { 'en-US': 'Translated name' },
       value: 'business-code',
-      children: [{ label: '旧缓存名称', value: 0 }],
+      children: [{ label: '子菜单', value: 0 }],
     },
   ]
   await runtime.setPreference('en-US')
   const translated = localizeOptions(options, runtime.resolveText)
   assert.equal(translated[0].label, 'Translated name')
   assert.equal(translated[0].value, 'business-code')
-  assert.equal(translated[0].children[0].label, '旧缓存名称')
+  assert.equal(translated[0].children[0].label, '子菜单')
   assert.equal(translated[0].children[0].value, 0)
   await runtime.setPreference('zh-CN')
   assert.equal(localizeOptions(options, runtime.resolveText)[0].label, '原名')

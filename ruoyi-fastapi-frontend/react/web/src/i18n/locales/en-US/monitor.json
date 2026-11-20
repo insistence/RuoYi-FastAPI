@@ -425,7 +425,7 @@
   "plaintextValueEncryptedValue": "Plaintext {{arg0}} / Encrypted {{arg1}}",
   "failedValueEnforcedRejectionsValue": "Failed {{arg0}} / Enforced rejections {{arg1}}",
   "plaintextValueEncryptedErrorsValue": "Plaintext {{arg0}} / Encrypted errors {{arg1}}",
-  "valueCountValuePercentageValue": "{{reason}}\nCount: {{count}}\nPercentage: {{arg2}}%",
+  "valueCountValuePercentageValue": "{{reason}}\nCount: {{count}}\nPercentage: {{arg2}}",
   "peak": "Peak",
   "memoryUsage": "Memory usage",
   "theMemoryStoreRebuildsSchedulesAfterARestartDatabaseAnd": "The memory store rebuilds schedules after a restart. Database and Redis stores retain the next scheduled run.",

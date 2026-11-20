@@ -11,6 +11,22 @@ const fixtures = JSON.parse(readFileSync(new URL('./fixtures.json', import.meta.
  * @returns {void}
  */
 export function testTimeContract(time) {
+  test('display dates follow the interface language and the selected timezone', () => {
+    const instant = '2026-01-01T00:30:00Z'
+    for (const zone of ['America/New_York', 'Asia/Shanghai']) {
+      time.setUserTimezone(zone)
+      for (const locale of ['en-US', 'zh-CN']) {
+        const expected = new Intl.DateTimeFormat(locale, {
+          dateStyle: 'medium',
+          timeStyle: 'medium',
+          timeZone: zone,
+        }).format(new Date(instant))
+        assert.equal(time.formatDisplayTime(instant, locale), expected)
+      }
+    }
+    assert.equal(time.formatDisplayTime('2026-01-01', 'en-US'), null)
+  })
+
   test('RFC 3339, invalid values, dates and explicit epoch units share one contract', () => {
     for (const { value, zone, display } of fixtures.instants) {
       time.setUserTimezone(zone)

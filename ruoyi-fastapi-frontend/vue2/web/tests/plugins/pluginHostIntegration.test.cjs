@@ -260,7 +260,9 @@ module.exports = (async () => {
   }
   const load = createLoader({
     '@/i18n': {
-      i18n: { headers: { 'Accept-Language': 'zh-CN', 'X-I18n-Version': '1' } },
+      i18n: {
+        headers: { 'Accept-Language': 'zh-CN' },
+      },
       t: require('../i18n/test-runtime.cjs').t,
     },
     axios,
@@ -278,7 +280,6 @@ module.exports = (async () => {
     '@/store': { dispatch: async () => {} },
     '@/utils/auth': { getToken: () => 'test-main-session' },
     '@/utils/time': { getDisplayTimezone: () => 'UTC' },
-    '@/utils/errorCode': {},
     '@/utils/ruoyi': { tansParams: () => '', blobValidate: () => true },
     '@/plugins/cache': {},
     'file-saver': { saveAs() {} },

@@ -1,6 +1,5 @@
 import { useLocalizedFormErrors } from '@/i18n/form'
-import { useI18n } from '@/i18n/adapter'
-import { t } from '@/i18n'
+import { useI18n, t } from '../../i18n'
 import TableActions, { TableAction } from '@/components/TableActions'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import {

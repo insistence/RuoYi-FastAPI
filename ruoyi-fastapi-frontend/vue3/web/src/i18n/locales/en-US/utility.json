@@ -55,7 +55,8 @@
     "processing": "Processing data. Do not submit again",
     "pluginFailure": "Plugin request failed. Try again",
     "parameter": "Parameter",
-    "checkParameters": "Check the input parameters"
+    "checkParameters": "Check the input parameters",
+    "httpError": "The server returned an error ({{status}})"
   },
   "relative": {
     "format": "{m}/{d} {h}:{i}",

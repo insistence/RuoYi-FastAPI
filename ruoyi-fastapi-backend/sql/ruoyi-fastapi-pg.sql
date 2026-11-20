@@ -66,7 +66,8 @@ create table sys_user (
     phonenumber varchar(11) default '',
     sex char(1) default '0',
     avatar varchar(100) default '',
-  locale            varchar(63) not null default 'zh-CN',
+    locale varchar(63) not null default 'zh-CN',
+    locale_revision bigint not null default 0,
     time_zone varchar(64) not null default 'auto',
     password varchar(100) default '',
     status char(1) default '0',
@@ -91,6 +92,7 @@ comment on column sys_user.email is '用户邮箱';
 comment on column sys_user.phonenumber is '手机号码';
 comment on column sys_user.sex is '用户性别（0男 1女 2未知）';
 comment on column sys_user.avatar is '头像地址';
+comment on column sys_user.locale_revision is '语言偏好版本';
 comment on column sys_user.time_zone is '显示时区（auto跟随设备或IANA名称）';
 comment on column sys_user.password is '密码';
 comment on column sys_user.status is '帐号状态（0正常 1停用）';
@@ -108,8 +110,8 @@ comment on table sys_user is '用户信息表';
 -- ----------------------------
 -- 初始化-用户信息表数据
 -- ----------------------------
-insert into sys_user values(1,  103, 'admin',   '超级管理员', '00', 'niangao@163.com', '15888888888', '1', '', 'auto', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', current_timestamp, current_timestamp, 'admin', current_timestamp, '', null, '管理员');
-insert into sys_user values(2,  105, 'niangao', '年糕', 			'00', 'niangao@qq.com',  '15666666666', '1', '', 'auto', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', current_timestamp, current_timestamp, 'admin', current_timestamp, '', null, '测试员');
+insert into sys_user (user_id, dept_id, user_name, nick_name, user_type, email, phonenumber, sex, avatar, time_zone, password, status, del_flag, login_ip, login_date, pwd_update_date, create_by, create_time, update_by, update_time, remark) values(1,  103, 'admin',   '超级管理员', '00', 'niangao@163.com', '15888888888', '1', '', 'auto', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', current_timestamp, current_timestamp, 'admin', current_timestamp, '', null, '管理员');
+insert into sys_user (user_id, dept_id, user_name, nick_name, user_type, email, phonenumber, sex, avatar, time_zone, password, status, del_flag, login_ip, login_date, pwd_update_date, create_by, create_time, update_by, update_time, remark) values(2,  105, 'niangao', '年糕', 			'00', 'niangao@qq.com',  '15666666666', '1', '', 'auto', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', current_timestamp, current_timestamp, 'admin', current_timestamp, '', null, '测试员');
 
 -- ----------------------------
 -- 3、岗位信息表
@@ -200,7 +202,7 @@ drop table if exists sys_menu;
 create table sys_menu (
     menu_id bigserial not null,
     menu_name varchar(50) not null,
-  menu_name_i18n JSON NULL,
+  menu_name_i18n JSONB NULL,
     parent_id bigint default 0,
     order_num int4 default 0,
     path varchar(200) default '',
@@ -621,7 +623,7 @@ drop table if exists sys_dict_type;
 create table sys_dict_type (
     dict_id bigserial not null,
     dict_name varchar(100) default '',
-  dict_name_i18n JSON NULL,
+  dict_name_i18n JSONB NULL,
     dict_type varchar(100) unique default '',
     status char(1) default '0',
     create_by varchar(64) default '',
@@ -668,7 +670,7 @@ create table sys_dict_data (
     dict_code bigserial not null,
     dict_sort int4 default 0,
     dict_label varchar(100) default '',
-  dict_label_i18n JSON NULL,
+  dict_label_i18n JSONB NULL,
     dict_value varchar(100) default '',
     dict_type varchar(100) default '',
     css_class varchar(100) default null,

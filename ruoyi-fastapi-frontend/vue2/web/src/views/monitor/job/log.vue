@@ -409,7 +409,7 @@ export default {
           },
           this.dateRange
         ),
-        `job_log_${new Date().getTime()}.xlsx`
+        `${t('common:exportFiles.jobLogs')}_${new Date().getTime()}.xlsx`
       )
     },
   },

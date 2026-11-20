@@ -4,6 +4,7 @@ from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from i18n.catalogs import CatalogRegistry, CatalogSnapshot
 from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.migration import PluginMigrationError, PluginMigrationResult
@@ -49,6 +50,7 @@ class PluginUpgradeLifecycleContext:
     session: AsyncSession | None = None
     lifecycle_uow: object | None = None
     session_context: object | None = None
+    catalog_snapshot: CatalogSnapshot | None = None
 
 
 class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
@@ -224,6 +226,9 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         :param context: 插件升级上下文
         :return: dry-run payload 或 None
         """
+        context.catalog_snapshot = CatalogRegistry.prepare_plugin(
+            context.plugin_id, context.discovered_plugin.backend_path
+        )
         precheck = await self._build_upgrade_precheck(context)
         self._refresh_upgrade_actions(precheck, context)
         if not context.dry_run:
@@ -482,6 +487,9 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         :return: None
         """
         await context.lifecycle_uow.commit()
+        CatalogRegistry.commit_plugin(
+            context.plugin_id, context.catalog_snapshot, enabled=getattr(context.plugin, 'enabled', '0') == '0'
+        )
 
         return None
 

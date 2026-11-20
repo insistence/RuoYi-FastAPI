@@ -42,7 +42,7 @@ export default function CodePreview({ preview, onClose }) {
         onChange={setActiveFile}
         items={files.map((path) => ({
           key: path,
-          label: fileName(path),
+          label: fileName(path).endsWith('.json') ? path.replace(/\.jinja2$/, '') : fileName(path),
           children: (
             <>
               <Button

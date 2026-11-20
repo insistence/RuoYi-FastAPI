@@ -5,6 +5,8 @@ from sqlalchemy import ColumnElement, and_, delete, desc, func, or_, select, upd
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
+from exceptions.exception import ServiceException
+from i18n.registry import LocaleRegistry
 from module_admin.entity.do.dept_do import SysDept
 from module_admin.entity.do.menu_do import SysMenu
 from module_admin.entity.do.post_do import SysPost
@@ -342,25 +344,40 @@ class UserDao:
         :param user: 用户对象
         :return: 新增校验结果
         """
-        db_user = SysUser(**user.model_dump(exclude={'admin', 'create_time', 'update_time'}))
+        db_user = SysUser(**user.model_dump(exclude={'admin', 'create_time', 'update_time', 'locale_revision'}))
         db.add(db_user)
         await db.flush()
 
         return db_user
 
     @classmethod
-    async def edit_user_dao(cls, db: AsyncSession, user: dict) -> None:
+    async def edit_user_dao(cls, db: AsyncSession, user: dict) -> dict[str, str] | None:
         """
         编辑用户数据库操作
 
         :param db: orm对象
         :param user: 需要更新的用户字典
-        :return: 编辑校验结果
+        :return: 写入语言偏好时返回该事务的偏好和版本，其他修改返回 None
         """
+        values = {
+            key: value for key, value in user.items() if key not in {'create_time', 'update_time', 'locale_revision'}
+        }
+        if 'locale' in values:
+            user_id = values.pop('user_id')
+            values['locale'] = LocaleRegistry.normalize_locale(values['locale'], preference=True)
+            # 所有语言写入共用这一入口。锁与更新由上层事务一并提交，客户端不能指定版本。
+            existing = await db.scalar(select(SysUser.user_id).where(SysUser.user_id == user_id).with_for_update())
+            if existing is None:
+                raise ServiceException(message='用户不存在', msg_key='user.notFound')
+            values['locale_revision'] = SysUser.locale_revision + 1
+            await db.execute(update(SysUser).where(SysUser.user_id == user_id).values(**values))
+            revision = await db.scalar(select(SysUser.locale_revision).where(SysUser.user_id == user_id))
+            return {'locale': values['locale'], 'revision': str(revision)}
         await db.execute(
             update(SysUser),
-            [{key: value for key, value in user.items() if key not in {'create_time', 'update_time'}}],
+            [values],
         )
+        return None
 
     @classmethod
     async def delete_user_dao(cls, db: AsyncSession, user: UserModel) -> None:

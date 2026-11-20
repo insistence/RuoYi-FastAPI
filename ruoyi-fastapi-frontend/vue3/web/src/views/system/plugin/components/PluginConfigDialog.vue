@@ -161,6 +161,7 @@
 
 <script setup name="PluginConfigDialog">
 import { t } from '@/i18n/adapter'
+import { useLocaleForm } from '@/composables/useLocaleForm'
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import PluginConfigStatus from './PluginConfigStatus.vue'
@@ -196,6 +197,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'submit'])
 const configRef = ref(null)
+useLocaleForm(configRef)
 const configForm = reactive({
   values: {},
 })
@@ -320,11 +322,11 @@ function buildNumberConfigValidator(item) {
       return
     }
     if (item.min !== undefined && item.min !== null && numberValue < Number(item.min)) {
-      callback(new Error('不能小于 ' + item.min))
+      callback(new Error(t('plugins:minValue', { limit: item.min })))
       return
     }
     if (item.max !== undefined && item.max !== null && numberValue > Number(item.max)) {
-      callback(new Error('不能大于 ' + item.max))
+      callback(new Error(t('plugins:maxValue', { limit: item.max })))
       return
     }
     callback()

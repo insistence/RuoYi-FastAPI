@@ -1,8 +1,8 @@
+import json
 from pathlib import Path
 
 import pytest
 
-from exceptions.exception import ServiceException
 from plugins.ai.dao.ai_chat_dao import AiChatConfigDao
 from plugins.ai.dao.ai_model_dao import AiModelDao
 from plugins.ai.entity.vo.ai_chat_vo import AiChatConfigModel, AiChatRequestModel
@@ -162,7 +162,7 @@ async def test_ai_chat_config_detail_returns_vo_when_config_missing(monkeypatch:
 
 @pytest.mark.asyncio
 async def test_ai_chat_services_rejects_missing_model(monkeypatch: pytest.MonkeyPatch) -> None:
-    """校验 AI 对话在模型不存在时直接返回明确业务异常。"""
+    """校验 AI 对话在模型不存在时返回带消息标识的错误事件。"""
 
     async def fake_get_ai_model_detail_by_id(*_args: object, **_kwargs: object) -> None:
         """返回测试用 AI 模型配置。"""
@@ -175,9 +175,9 @@ async def test_ai_chat_services_rejects_missing_model(monkeypatch: pytest.Monkey
         user_id=1,
     )
 
-    with pytest.raises(ServiceException) as exc_info:
-        await anext(stream)
-    assert exc_info.value.message == '模型不存在'
+    assert [json.loads(event) async for event in stream] == [
+        {'error': '模型不存在', 'type': 'error', 'msgKey': 'ai.model.notFound', 'msgParams': {}}
+    ]
 
 
 @pytest.mark.asyncio
@@ -205,9 +205,9 @@ async def test_ai_chat_services_rejects_disabled_model(monkeypatch: pytest.Monke
         user_id=1,
     )
 
-    with pytest.raises(ServiceException) as exc_info:
-        await anext(stream)
-    assert exc_info.value.message == '模型已停用'
+    assert [json.loads(event) async for event in stream] == [
+        {'error': '模型已停用', 'type': 'error', 'msgKey': 'ai.model.disabled', 'msgParams': {}}
+    ]
 
 
 def test_ai_model_factory_rejects_unknown_provider(monkeypatch: pytest.MonkeyPatch) -> None:

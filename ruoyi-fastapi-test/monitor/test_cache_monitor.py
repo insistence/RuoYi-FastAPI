@@ -33,7 +33,7 @@ async def test_cache_monitor_page(browser_harness: BrowserHarness) -> None:
         '端口': info['tcp_port'],
         '客户端数': info['connected_clients'],
         '运行时间(天)': info['uptime_in_days'],
-        '使用内存': info['used_memory_human'],
+        '已用内存' if Config.frontend_framework == 'vue2' else '使用内存': info['used_memory_human'],
         '内存配置': info['maxmemory_human'],
         'RDB是否成功': info['rdb_last_bgsave_status'],
         'Key数量': data['dbSize'],

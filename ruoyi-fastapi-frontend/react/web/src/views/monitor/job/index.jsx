@@ -447,7 +447,11 @@ export default function Job() {
             className="ruoyi-plain-button ruoyi-plain-button--warning"
             type="default"
             onClick={() =>
-              download('/monitor/job/export', query, `job_${Date.now()}.xlsx`).catch(() => {})
+              download(
+                '/monitor/job/export',
+                query,
+                `${t('common:exportFiles.jobs')}_${Date.now()}.xlsx`
+              ).catch(() => {})
             }
           >
             {t('common:export')}

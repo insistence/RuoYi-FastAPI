@@ -1,3 +1,4 @@
+import useDictStore from '@/store/modules/dict'
 import { i18n, t } from '@/i18n'
 import router from '@/router'
 import cache from '@/plugins/cache'
@@ -8,6 +9,9 @@ import { setBusinessTimezone, setUserTimezone } from '@/utils/time'
 import { isHttp, isEmpty } from '@/utils/validate'
 import useLockStore from '@/store/modules/lock'
 import defAva from '@/assets/images/profile.jpg'
+
+const sessionChangedError = () =>
+  Object.assign(new Error('User session changed'), { code: 'USER_SESSION_CHANGED' })
 
 const useUserStore = defineStore('user', {
   state: () => ({
@@ -48,11 +52,15 @@ const useUserStore = defineStore('user', {
     },
     // 获取用户信息
     getInfo() {
+      const requestedToken = getToken()
+      const isCurrentSession = () =>
+        requestedToken && requestedToken === getToken() && requestedToken === this.token
       return new Promise((resolve, reject) => {
         getInfo()
           .then((res) => {
+            if (!isCurrentSession()) throw sessionChangedError()
             const user = res.user
-            i18n.setAccount(user?.userId, user?.locale)
+            i18n.setAccount(user?.userId, user?.locale, user?.localeRevision)
             this.appTimezone = res.appTimezone
             setBusinessTimezone(res.appTimezone)
             this.applyTimezone(user.timeZone)
@@ -107,7 +115,7 @@ const useUserStore = defineStore('user', {
             resolve(res)
           })
           .catch((error) => {
-            reject(error)
+            reject(isCurrentSession() ? error : sessionChangedError())
           })
       })
     },
@@ -123,6 +131,7 @@ const useUserStore = defineStore('user', {
         this.roles = []
         this.permissions = []
         removeToken()
+        useDictStore().cleanDict()
         i18n.setAccount(null)
       }
     },

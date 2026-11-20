@@ -189,6 +189,7 @@
 
 <script setup name="PluginDiagnosticDialog">
 import { t } from '@/i18n/adapter'
+import { buildOperationValidationItems } from '@/utils/pluginPlanFormatter'
 
 import { computed } from 'vue'
 
@@ -242,29 +243,7 @@ const diagnoseConfigTotal = computed(() => {
   return total === null || total === undefined ? '-' : total
 })
 
-const validationItems = computed(() => {
-  const check = diagnose.value?.check || {}
-  const groups = [
-    [t('pluginAdmin:dependencies'), check.dependencies],
-    [t('system:messages.manifestErrors'), check.manifestIssues],
-    [t('system:messages.manifestWarnings'), check.manifestWarnings],
-    [t('pluginAdmin:dependencyTitle'), check.pluginDependencyErrors],
-    [t('common:structure'), check.structureErrors],
-    [t('pluginAdmin:menuConflict'), check.menuConflicts],
-  ]
-
-  return groups.flatMap(([category, items]) =>
-    Array.isArray(items)
-      ? items.map((item) => ({
-          category,
-          level: item.level || (category.includes(t('common:warning')) ? 'warning' : 'error'),
-          kind: item.kind || item.name || item.status || '-',
-          value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
-          message: item.message || item.suggestion || item.reason || '',
-        }))
-      : []
-  )
-})
+const validationItems = computed(() => buildOperationValidationItems(diagnose.value?.check || {}))
 
 function formatDuration(value) {
   return value === null || value === undefined ? '-' : value

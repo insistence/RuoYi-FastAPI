@@ -121,11 +121,11 @@ importers:
         specifier: 3.5.44
         version: 3.5.44
       '@x18n/builtins':
-        specifier: 0.1.3
-        version: 0.1.3
+        specifier: 0.1.14
+        version: 0.1.14
       '@x18n/cli':
-        specifier: 0.1.3
-        version: 0.1.3(@devframes/agentic@1.2.5(crossws@0.4.17(srvx@1.0.8))(devframe@1.2.6))(crossws@0.4.17(srvx@1.0.8))(srvx@1.0.8)
+        specifier: 0.1.14
+        version: 0.1.14(@devframes/agentic@1.2.5(crossws@0.4.17(srvx@1.0.8))(devframe@1.2.6))(crossws@0.4.17(srvx@1.0.8))(srvx@1.0.8)
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
@@ -1323,23 +1323,23 @@ packages:
     peerDependencies:
       vue: ^3.5.0
 
-  '@x18n/builtins@0.1.3':
-    resolution: {integrity: sha512-/T2q1xQ513oZ19VjGLmXVZjxAdzDahDZ4Ssh0IbAVlcOpSSfgZkRgo5uh8JAdQSPxtWBTKHslOYxSptWJq9j7w==}
+  '@x18n/builtins@0.1.14':
+    resolution: {integrity: sha512-ezxyuOAK+YsAL4PbVPyZTOpwsZp1Qoo2vIr8MJQivcQyC80GAaxbpQvmRExikhnThH/OyienjaGRceUsDBYQ6g==}
 
-  '@x18n/cli@0.1.3':
-    resolution: {integrity: sha512-aOG1FJ1tJsnnjU3O13CktETY1GLW6FRmsw9KC5Mv35vEhah54O2+JAs0HBrqcmwADZAe7xwm6ZNY4DcaaV+BAQ==}
+  '@x18n/cli@0.1.14':
+    resolution: {integrity: sha512-b38DwR0ZUWujNNIsVE/tRQ4tud5wACIyui4dN578T85r8iH5VvfxNjBj7m8LYOwxNwVGOOheenskVItRvVQEQw==}
     engines: {node: '>=22'}
     hasBin: true
 
-  '@x18n/core@0.1.3':
-    resolution: {integrity: sha512-u4lYzCPwuEctDenT6ZlvElj3LJvR23PJ+XCgWfqhNfgDSrPmippljekba9Hfcl2jBhaWx0SiE63A/wWVVoY4wQ==}
+  '@x18n/core@0.1.14':
+    resolution: {integrity: sha512-gQWKzyX2B9Ppl3AG6Fcls+bshqUJMhfbgtzbFeKlDKNE6IS/w7VSHkm/NLEnLEfxTenwFFQAAPL5NO7i/Ke0Fw==}
 
-  '@x18n/node@0.1.3':
-    resolution: {integrity: sha512-ALZVZ8jMblM552yC/ERZXLcmXxNjha1l4OqYUhkcZXibRhKwNqw5k2PvgdN1hcHVoC9DnS02zhyc7Cqbtm/O3w==}
+  '@x18n/node@0.1.14':
+    resolution: {integrity: sha512-Q5W9mjap2fL3CeDmbPrgH11KuKLju3LplAtHvmH6iPttNKgy1JkwOyuKjAr2dpgErRYJOEHhpY4ySZ3j0JNyag==}
     engines: {node: '>=22'}
 
-  '@x18n/ui@0.1.3':
-    resolution: {integrity: sha512-X7c1MZd9Q5p0hflDYTkvEpZsD9twjvzBfauEDEF8kiz2qcig2uM8jEiieMboEA/yd5ikNc4uS9b2Q7MGcFyaGg==}
+  '@x18n/ui@0.1.14':
+    resolution: {integrity: sha512-5JH91Lli5V66oYk26ebaaEUN6vdhAibWSAX30wxFZLdy952jvKkwzOwQMJlO9b7ftHU/lZneYNH/8+0fH2ZCaQ==}
     engines: {node: '>=22'}
 
   abbrev@2.0.0:
@@ -5289,10 +5289,10 @@ snapshots:
     dependencies:
       vue: 3.5.44
 
-  '@x18n/builtins@0.1.3':
+  '@x18n/builtins@0.1.14':
     dependencies:
       '@vue/compiler-sfc': 3.5.44
-      '@x18n/core': 0.1.3
+      '@x18n/core': 0.1.14
       json5: 2.2.3
       jsonc-parser: 3.3.1
       oxc-parser: 0.155.0
@@ -5302,12 +5302,12 @@ snapshots:
       - '@typescript-eslint/types'
       - typescript
 
-  '@x18n/cli@0.1.3(@devframes/agentic@1.2.5(crossws@0.4.17(srvx@1.0.8))(devframe@1.2.6))(crossws@0.4.17(srvx@1.0.8))(srvx@1.0.8)':
+  '@x18n/cli@0.1.14(@devframes/agentic@1.2.5(crossws@0.4.17(srvx@1.0.8))(devframe@1.2.6))(crossws@0.4.17(srvx@1.0.8))(srvx@1.0.8)':
     dependencies:
-      '@x18n/builtins': 0.1.3
-      '@x18n/core': 0.1.3
-      '@x18n/node': 0.1.3
-      '@x18n/ui': 0.1.3(cac@7.1.0)(crossws@0.4.17(srvx@1.0.8))(srvx@1.0.8)
+      '@x18n/builtins': 0.1.14
+      '@x18n/core': 0.1.14
+      '@x18n/node': 0.1.14
+      '@x18n/ui': 0.1.14(cac@7.1.0)(crossws@0.4.17(srvx@1.0.8))(srvx@1.0.8)
       cac: 7.1.0
       devframe: 1.2.6(@devframes/agentic@1.2.5(crossws@0.4.17(srvx@1.0.8))(devframe@1.2.6))(cac@7.1.0)(srvx@1.0.8)
       nostics: 1.3.0
@@ -5320,17 +5320,17 @@ snapshots:
       - srvx
       - typescript
 
-  '@x18n/core@0.1.3':
+  '@x18n/core@0.1.14':
     dependencies:
       nostics: 1.3.0
       valibot: 1.5.0
     transitivePeerDependencies:
       - typescript
 
-  '@x18n/node@0.1.3':
+  '@x18n/node@0.1.14':
     dependencies:
-      '@x18n/builtins': 0.1.3
-      '@x18n/core': 0.1.3
+      '@x18n/builtins': 0.1.14
+      '@x18n/core': 0.1.14
       chokidar: 6.0.0
       ignore: 7.0.14
       jiti: 2.7.0
@@ -5341,12 +5341,12 @@ snapshots:
       - '@typescript-eslint/types'
       - typescript
 
-  '@x18n/ui@0.1.3(cac@7.1.0)(crossws@0.4.17(srvx@1.0.8))(srvx@1.0.8)':
+  '@x18n/ui@0.1.14(cac@7.1.0)(crossws@0.4.17(srvx@1.0.8))(srvx@1.0.8)':
     dependencies:
       '@devframes/agentic': 1.2.5(crossws@0.4.17(srvx@1.0.8))(devframe@1.2.6)
       '@valibot/to-json-schema': 1.8.0(valibot@1.5.0)
-      '@x18n/builtins': 0.1.3
-      '@x18n/core': 0.1.3
+      '@x18n/builtins': 0.1.14
+      '@x18n/core': 0.1.14
       devframe: 1.2.6(@devframes/agentic@1.2.5(crossws@0.4.17(srvx@1.0.8))(devframe@1.2.6))(cac@7.1.0)(srvx@1.0.8)
       valibot: 1.5.0
     transitivePeerDependencies:

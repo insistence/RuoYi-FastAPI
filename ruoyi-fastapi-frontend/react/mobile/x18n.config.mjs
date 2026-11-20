@@ -18,7 +18,11 @@ export default {
   usage: {
     include: ['src/**/*.{js,jsx,ts,tsx,vue,mjs}'],
     exclude: ['src/vendor/**', 'src/uni_modules/**', 'src/i18n/locales/**'],
-    calls: [{ callee: '$t' }, { callee: 'useI18n', factory: true, returns: ['t'] }],
+    calls: [
+      { callee: 'translateMessage' },
+      { callee: '$t' },
+      { callee: 'useI18n', factory: true, returns: ['t'] },
+    ],
   },
   checks: {
     'missing-translation': 'error',

@@ -86,6 +86,12 @@ ruoyi --help
 
 ### 2.3 第一个命令
 
+在后端目录首次从源码启动或更新词库后，先编译 gettext 资源：
+
+```bash
+python scripts/compile_i18n.py
+```
+
 开发环境启动应用：
 
 ```bash
@@ -214,6 +220,7 @@ ruoyi gen export sys_user --env=dev --mode=local --dry-run
 
 ```bash
 cd ruoyi-fastapi-backend
+python scripts/compile_i18n.py
 ruoyi app doctor --env=dev
 ruoyi app run --env=dev
 ```

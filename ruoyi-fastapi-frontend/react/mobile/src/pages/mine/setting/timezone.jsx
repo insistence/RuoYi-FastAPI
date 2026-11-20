@@ -10,14 +10,14 @@ import { useUserStore } from '@/store'
 import { usePageAuth } from '@/permission'
 import { getToken } from '@/utils/auth'
 import {
-  formatBusinessTime,
+  formatDisplayTime,
   getBusinessTimezone,
   getDeviceTimezone,
   getDisplayTimezone,
   getSupportedTimezones,
 } from '@/utils/time'
 export default function Timezone() {
-  usePageLocale()
+  const locale = usePageLocale()
 
   const allowed = usePageAuth()
   const [follow, setFollow] = useState(useUserStore.getState().timeZone === 'auto')
@@ -171,7 +171,7 @@ export default function Timezone() {
         </Text>
         <Text className="block">
           {t('mobile:timePreviewMineSettingTimezone')}
-          {formatBusinessTime(now, 'YYYY-MM-DD HH:mm:ss', previewZone)}
+          {formatDisplayTime(now, locale, previewZone)}
         </Text>
         {follow && !device && (
           <Text className="mobile-muted">

@@ -85,7 +85,10 @@ export async function createMobileHarness(
   })
   const mocks = {
     '@/i18n': {
-      i18n: { headers: { 'Accept-Language': 'zh-CN', 'X-I18n-Version': '1' }, setAccount() {} },
+      i18n: {
+        headers: { 'Accept-Language': 'zh-CN' },
+        setAccount() {},
+      },
       t: key => ({ 'common:network.error': '后端接口连接异常', 'common:network.timeout': '系统接口请求超时' })[key] || key,
     },
     '@/config': { default: { baseUrl: 'https://api.example.test' } },
@@ -103,6 +106,8 @@ export async function createMobileHarness(
         appTimezone: 'Asia/Shanghai',
         user: {
           userId: 7,
+          locale: 'en-US',
+          localeRevision: '0',
           userName: 'tester',
           avatar: '',
           timeZone: 'America/New_York',

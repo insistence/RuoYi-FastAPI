@@ -114,13 +114,13 @@
 </template>
 
 <script setup>
-import { t } from '@/i18n/adapter'
+import { localeState, t } from '@/i18n/adapter'
 import { useUserStore } from '@/store'
 import { computed, getCurrentInstance, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getTimezoneOptions, updateUserTimezone } from '@/api/system/user'
 import {
-  formatBusinessTime,
+  formatDisplayTime,
   getBusinessTimezone,
   getDeviceTimezone,
   getDisplayTimezone,
@@ -144,7 +144,7 @@ const previewZone = computed(() =>
   followDevice.value ? deviceZone.value || getBusinessTimezone() : selectedZone.value
 )
 const previewTime = computed(() =>
-  formatBusinessTime(now.value, 'YYYY-MM-DD HH:mm:ss', previewZone.value)
+  formatDisplayTime(now.value, localeState.locale, previewZone.value)
 )
 const filteredTimezones = computed(() =>
   timezones.value.filter((zone) =>

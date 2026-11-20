@@ -689,7 +689,7 @@ export default {
       if (!queryData) {
         return;
       }
-      this.download('{{ moduleName }}/{{ businessName }}/export', queryData, `{{ businessName }}_${new Date().getTime()}.xlsx`);
+      this.download('{{ moduleName }}/{{ businessName }}/export', queryData, `${t('{{ i18nKey("title") }}')}_${new Date().getTime()}.xlsx`);
     },
     /** 是否渲染字段 */
     renderField(insert, edit) {

@@ -272,9 +272,11 @@ export default function Config() {
             className="ruoyi-plain-button ruoyi-plain-button--warning"
             type="default"
             onClick={() =>
-              download('/system/config/export', queryParams, `config_${Date.now()}.xlsx`).catch(
-                () => {}
-              )
+              download(
+                '/system/config/export',
+                queryParams,
+                `${t('common:exportFiles.settings')}_${Date.now()}.xlsx`
+              ).catch(() => {})
             }
           >
             {t('common:export')}

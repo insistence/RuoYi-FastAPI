@@ -45,11 +45,7 @@ export default function ExcelImportDialog({
         data,
         headers: { 'Content-Type': 'multipart/form-data', repeatSubmit: false },
       })
-      setResult(
-        String(response.msg || t('common:importCompleted'))
-          .replace(/<br\s*\/?\s*>/gi, '\n')
-          .replace(/<[^>]*>/g, '')
-      )
+      setResult(String(response.msg || t('common:importCompleted')))
       onSuccess?.()
     } catch {
     } finally {

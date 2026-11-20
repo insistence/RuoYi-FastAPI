@@ -408,7 +408,7 @@ export default {
         {
           ...this.queryParams,
         },
-        `operlog_${new Date().getTime()}.xlsx`
+        `${t('common:exportFiles.operations')}_${new Date().getTime()}.xlsx`
       )
     },
   },

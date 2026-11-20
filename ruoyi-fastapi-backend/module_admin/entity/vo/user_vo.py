@@ -1,7 +1,7 @@
 import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 from pydantic_validation_decorator import Network, NotBlank, Size, Xss
 
@@ -41,6 +41,7 @@ class UserModel(BaseModel):
     sex: Literal['0', '1', '2'] | None = Field(default=None, description='用户性别（0男 1女 2未知）')
     avatar: str | None = Field(default=None, description='头像地址')
     locale: str = Field(default='zh-CN', max_length=63, description='语言偏好')
+    locale_revision: int = Field(default=0, ge=0, le=2**63 - 1, description='语言偏好版本，输出十进制字符串')
     time_zone: str = Field(default='auto', max_length=64, description='显示时区（auto跟随设备或IANA名称）')
     password: str | None = Field(default=None, description='密码')
     status: Literal['0', '1'] | None = Field(default=None, description='帐号状态（0正常 1停用）')
@@ -54,6 +55,16 @@ class UserModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
     remark: str | None = Field(default=None, description='备注')
     admin: bool | None = Field(default=False, description='是否为admin')
+
+    @field_serializer('locale_revision')
+    def serialize_locale_revision(self, value: int) -> str:
+        """
+        将语言偏好版本输出为字符串，保留 BIGINT 精度
+
+        :param value: 账号语言偏好版本
+        :return: 十进制版本字符串
+        """
+        return str(value)
 
     @field_validator('locale')
     @classmethod

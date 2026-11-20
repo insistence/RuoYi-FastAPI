@@ -23,6 +23,7 @@
 import { computed } from 'vue'
 import { updateTranslationPatch } from '@/i18n/names.mjs'
 import { meta } from '@/i18n/registry'
+import { DATA_SOURCE_LOCALE } from '@/i18n/runtime.mjs'
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
@@ -30,9 +31,9 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue'])
 const sourceLanguage =
-  meta.locales.find((entry) => entry.code === meta.sourceLocale)?.nativeName || meta.sourceLocale
+  meta.locales.find((entry) => entry.code === DATA_SOURCE_LOCALE)?.nativeName || DATA_SOURCE_LOCALE
 const translationLocales = computed(() =>
-  meta.locales.filter((entry) => entry.enabled && entry.code !== meta.sourceLocale)
+  meta.locales.filter((entry) => entry.enabled && entry.code !== DATA_SOURCE_LOCALE)
 )
 
 function valueFor(code) {

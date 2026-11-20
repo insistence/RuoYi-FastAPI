@@ -94,7 +94,7 @@
     "@iconify-json/svg-spinners": "1.2.4",
     "@types/node": "22.20.5",
     "@vue/runtime-core": "3.4.21",
-    "@x18n/cli": "0.1.3",
+    "@x18n/cli": "0.1.14",
     "autoprefixer": "10.6.1",
     "postcss": "8.5.30",
     "prettier": "3.9.10",

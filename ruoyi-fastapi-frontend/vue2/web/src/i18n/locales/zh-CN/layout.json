@@ -186,5 +186,6 @@
     "department": "部门",
     "secondsAgo": "几秒前",
     "yearsAgo": "{{count}} 年前"
-  }
+  },
+  "loadingPage": "正在加载页面，请稍候！"
 }

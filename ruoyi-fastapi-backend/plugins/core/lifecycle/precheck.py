@@ -99,7 +99,9 @@ class PluginLifecycleScriptPrechecker:
                             msg_key='plugin.runtime.migration.stillRunning',
                             msg_params={'migration_path': str(migration_path)},
                         ),
-                        suggestion='请确认数据库结构状态后手动处理迁移历史',
+                        suggestion=I18nMessage(
+                            '请确认数据库结构状态后手动处理迁移历史', msg_key='plugin.suggestion.reviewDatabaseState'
+                        ),
                     )
                 )
                 continue
@@ -115,7 +117,9 @@ class PluginLifecycleScriptPrechecker:
                             msg_key='plugin.runtime.migration.unsupportedState',
                             msg_params={'migration_path': str(migration_path), 'status': str(existing_record.status)},
                         ),
-                        suggestion='请确认数据库结构状态后手动处理迁移历史',
+                        suggestion=I18nMessage(
+                            '请确认数据库结构状态后手动处理迁移历史', msg_key='plugin.suggestion.reviewDatabaseState'
+                        ),
                     )
                 )
                 continue
@@ -134,7 +138,10 @@ class PluginLifecycleScriptPrechecker:
                             msg_key='plugin.runtime.migration.contentChanged',
                             msg_params={'migration_path': str(migration_path)},
                         ),
-                        suggestion='请新增 migration 文件，不要修改已执行的历史 migration',
+                        suggestion=I18nMessage(
+                            '请新增 migration 文件，不要修改已执行的历史 migration',
+                            msg_key='plugin.suggestion.newMigration',
+                        ),
                     )
                 )
                 continue
@@ -203,7 +210,9 @@ class PluginLifecycleScriptPrechecker:
                     msg_key='plugin.runtime.seed.pending',
                     msg_params={'seed_path': str(seed_path)},
                 ),
-                suggestion='请确保 seed 脚本可重复执行，避免重复初始化数据',
+                suggestion=I18nMessage(
+                    '请确保 seed 脚本可重复执行，避免重复初始化数据', msg_key='plugin.suggestion.repeatableSeed'
+                ),
             )
             for seed_path in seed_paths
         ]

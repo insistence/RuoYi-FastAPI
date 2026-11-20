@@ -99,4 +99,9 @@ async def test_build_page(browser_harness: BrowserHarness) -> None:
     """验证表单构建器主体，而非仅匹配菜单标题。"""
     page = await browser_harness.new_page(authenticated=True)
     await page.goto('/tool/build')
-    await expect(page.locator('.app-main')).to_contain_text('Form Generator')
+    main = page.locator('.app-main')
+    react = Config.frontend_framework == 'react'
+    await expect(main).to_contain_text('表单设计器')
+    await expect(main.locator('.builder-palette' if react else '.components-list')).to_be_visible()
+    await expect(main.locator('.builder-canvas' if react else '.drawing-board')).to_be_visible()
+    await expect(main.locator('.builder-properties' if react else '.right-board')).to_be_visible()

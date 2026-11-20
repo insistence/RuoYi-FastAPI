@@ -425,7 +425,7 @@
   "plaintextValueEncryptedValue": "明文 {{arg0}} / 加密 {{arg1}}",
   "failedValueEnforcedRejectionsValue": "失败 {{arg0}} / 强制拒绝 {{arg1}}",
   "plaintextValueEncryptedErrorsValue": "明文 {{arg0}} / 错误加密 {{arg1}}",
-  "valueCountValuePercentageValue": "{{reason}}\n次数：{{count}}\n占比：{{arg2}}%",
+  "valueCountValuePercentageValue": "{{reason}}\n次数：{{count}}\n占比：{{arg2}}",
   "peak": "峰值",
   "memoryUsage": "内存消耗",
   "theMemoryStoreRebuildsSchedulesAfterARestartDatabaseAnd": "内存存储重启后重建计划；数据库和Redis可保留下次调度进度。",

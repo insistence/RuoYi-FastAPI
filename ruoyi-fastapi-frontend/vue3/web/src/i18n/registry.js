@@ -36,15 +36,11 @@ import enFiles from './locales/en-US/files.json'
 import zhPlugins from './locales/zh-CN/plugins.json'
 import enPlugins from './locales/en-US/plugins.json'
 
-import zhAi from '../../plugins/ai/locales/zh-CN.json'
-import enAi from '../../plugins/ai/locales/en-US.json'
-
 export { meta }
 export const resources = {
   'zh-CN': {
     utility: zhUtility,
     common: zh,
-    'plugin.ai': zhAi,
     auth: zhAuth,
     layout: zhLayout,
     system: zhSystem,
@@ -60,7 +56,6 @@ export const resources = {
   'en-US': {
     utility: enUtility,
     common: en,
-    'plugin.ai': enAi,
     auth: enAuth,
     layout: enLayout,
     system: enSystem,

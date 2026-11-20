@@ -205,7 +205,7 @@ export default {
         const isLt = file.size / 1024 / 1024 < this.fileSize
         if (!isLt) {
           this.$message.error(
-            t('file:interface.filesMustNotExceedValueMB', { value0: this.fileSize })
+            t('file:interface.filesMustNotExceedValueMB.index', { value0: this.fileSize })
           )
           return false
         }

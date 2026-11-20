@@ -23,6 +23,7 @@ from tests.module_admin.service.test_current_user_resolution import (
     USER_ID,
     resolution_env,  # noqa: F401
 )
+from tests.redis_helpers import absolute_expiry_ms
 from tests.utils.test_current_user_cache_util import cache_redis, redis_socket  # noqa: F401
 from utils.cache_util import CurrentUserCacheUtil
 
@@ -97,7 +98,7 @@ async def test_cached_request_rejects_session_changed_after_snapshot_read(
             await LoginService.logout_services(request, token_key.removeprefix('access_token:'), token)
         elif change == 'new_login':
             await cache_env.redis.set(token_key, 'new-login-token', ex=60)
-            replacement_deadline = await cache_env.redis.pexpiretime(token_key)
+            replacement_deadline = await absolute_expiry_ms(cache_env.redis, token_key)
         else:
             await cache_env.redis.pexpireat(token_key, 1)
         resume.set()
@@ -114,7 +115,7 @@ async def test_cached_request_rejects_session_changed_after_snapshot_read(
     assert cache_env.renew_count() == (1 if for_plugin else 2)
     if change == 'new_login':
         assert await cache_env.redis.get(token_key) == 'new-login-token'
-        assert await cache_env.redis.pexpiretime(token_key) == replacement_deadline
+        assert await absolute_expiry_ms(cache_env.redis, token_key) == replacement_deadline
     else:
         assert await cache_env.redis.get(token_key) is None
 
@@ -132,7 +133,7 @@ async def test_cached_final_session_check_failure_never_sets_authenticated_conte
 ) -> None:
     request, token, token_key = await _prepare_cached_session(cache_env, monkeypatch, same_time_login)
     await cache_env.redis.pexpire(token_key, 1000)
-    previous_deadline = await cache_env.redis.pexpiretime(token_key)
+    previous_deadline = await absolute_expiry_ms(cache_env.redis, token_key)
     checked, resume = asyncio.Event(), asyncio.Event()
     original_eval, original_get = cache_env.redis.eval, cache_env.redis.get
     session_reads = 0
@@ -182,7 +183,7 @@ async def test_cached_final_session_check_failure_never_sets_authenticated_conte
     set_user.assert_not_called()
     assert len(cache_env.statements) == REGULAR_QUERY_COUNT
     assert await original_get(token_key) == token
-    deadline = await cache_env.redis.pexpiretime(token_key)
+    deadline = await absolute_expiry_ms(cache_env.redis, token_key)
     if for_plugin:
         assert cache_env.renew_count() == 1
         assert deadline == previous_deadline
@@ -209,13 +210,13 @@ async def test_browser_cookie_uses_cached_permissions_without_renewal_and_reject
             'headers': [*request.scope['headers'], (b'cookie', f'{COOKIE_NAME_PREFIX}cache_test={cookie}'.encode())],
         }
     )
-    deadline = await cache_env.redis.pexpiretime(token_key)
+    deadline = await absolute_expiry_ms(cache_env.redis, token_key)
     async with cache_env.sessions() as db:
         user = await authenticate_browser_session(request, plugin_id='cache_test', version='1.0.0', query_db=db)
     assert user.permissions == ['demo:read']
     assert len(cache_env.statements) == REGULAR_QUERY_COUNT
     assert cache_env.renew_count() == 1
-    assert await cache_env.redis.pexpiretime(token_key) == deadline
+    assert await absolute_expiry_ms(cache_env.redis, token_key) == deadline
 
     await LoginService.logout_services(request, token_key.removeprefix('access_token:'), token)
     set_user = Mock()

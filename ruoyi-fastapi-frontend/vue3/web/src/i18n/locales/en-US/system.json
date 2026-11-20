@@ -241,6 +241,7 @@
   "departmentLabelText": "Department:",
   "selectDepartment": "Select department",
   "password": {
+    "label": "Password",
     "prompt": "Enter a new password for “{{name}}”",
     "updated": "Password updated. New password: {{password}}"
   },

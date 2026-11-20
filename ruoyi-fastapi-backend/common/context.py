@@ -13,11 +13,10 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class LocaleContext:
     """
-    当前请求的有效语言和国际化能力版本
+    当前请求的有效语言
     """
 
     locale: str = I18nConfig.i18n_default_locale
-    version: str = 'legacy'
 
 
 # 定义上下文变量
@@ -28,7 +27,7 @@ current_exclude_patterns: ContextVar[
 # 存储当前用户信息
 current_user: ContextVar['CurrentUserModel | None'] = ContextVar('current_user', default=None)
 current_timezone: ContextVar[str | None] = ContextVar('current_timezone', default=None)
-# 存储当前请求的有效语言和国际化能力版本
+# 存储当前请求的有效语言
 current_locale: ContextVar[LocaleContext | None] = ContextVar('request_locale', default=None)
 
 
@@ -144,7 +143,7 @@ class RequestContext:
         """
         保存中间件已协商的请求语言上下文
 
-        :param context: 当前请求的有效语言和国际化能力版本
+        :param context: 当前请求的有效语言
         :return: 用于恢复上下文的令牌
         """
         return current_locale.set(context)
@@ -152,7 +151,7 @@ class RequestContext:
     @staticmethod
     def get_current_locale() -> LocaleContext:
         """
-        获取当前请求的语言上下文，未设置时使用默认语言和旧协议
+        获取当前请求的语言上下文，未设置时使用默认语言
 
         :return: 当前请求的语言上下文
         """

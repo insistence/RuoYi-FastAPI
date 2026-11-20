@@ -442,7 +442,7 @@ function handleExport() {
     {
       ...queryParams.value,
     },
-    `post_${new Date().getTime()}.xlsx`
+    `${t('common:exportFiles.posts')}_${new Date().getTime()}.xlsx`
   )
 }
 

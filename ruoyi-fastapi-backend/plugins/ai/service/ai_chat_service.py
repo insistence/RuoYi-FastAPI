@@ -287,8 +287,8 @@ class AiChatService:
         :return: 序列化的错误事件
         """
         fields = I18nUtil.message_fields(
-            getattr(error, 'message', None) or str(error),
-            msg_key='ai.stream.failed' if not getattr(error, 'msg_key', None) else error.msg_key,
+            getattr(error, 'message', None),
+            msg_key=getattr(error, 'msg_key', None) or 'ai.stream.failed',
             msg_params=getattr(error, 'msg_params', None),
             context=context,
         )
@@ -317,8 +317,6 @@ class AiChatService:
             async for chunk in cls._chat_services(query_db, chat_req, user_id, snapshot):
                 yield chunk
         except Exception as error:
-            if snapshot.version != 'v1':
-                raise
             yield cls._stream_error(error, snapshot)
 
     @classmethod

@@ -273,8 +273,8 @@
       <el-tabs v-model="preview.activeName">
         <el-tab-pane
           v-for="(value, key) in preview.data"
-          :label="key.substring(key.lastIndexOf('/') + 1, key.indexOf('.jinja2'))"
-          :name="key.substring(key.lastIndexOf('/') + 1, key.indexOf('.jinja2'))"
+          :label="previewFileLabel(key)"
+          :name="key"
           :key="key"
         >
           <el-link
@@ -304,6 +304,7 @@
 
 <script>
 import { t } from '@/i18n/adapter'
+import { highlightPreviewCode, initialPreviewFile, previewFileLabel } from '@/utils/codePreview.mjs'
 
 import {
   listDataSources,
@@ -322,6 +323,7 @@ hljs.registerLanguage('html', require('highlight.js/lib/languages/xml'))
 hljs.registerLanguage('vue', require('highlight.js/lib/languages/xml'))
 hljs.registerLanguage('javascript', require('highlight.js/lib/languages/javascript'))
 hljs.registerLanguage('sql', require('highlight.js/lib/languages/sql'))
+hljs.registerLanguage('json', require('highlight.js/lib/languages/json'))
 
 export default {
   name: 'Gen',
@@ -367,7 +369,7 @@ export default {
           return t('tool:messages.codePreview')
         },
         data: {},
-        activeName: 'do.py',
+        activeName: '',
       },
     }
   },
@@ -384,6 +386,7 @@ export default {
     }
   },
   methods: {
+    previewFileLabel,
     /** 查询表集合 */
     getList() {
       this.loading = true
@@ -471,15 +474,12 @@ export default {
       previewTable(row.tableId).then((response) => {
         this.preview.data = response.data
         this.preview.open = true
-        this.preview.activeName = 'do.py'
+        this.preview.activeName = initialPreviewFile(response.data)
       })
     },
     /** 高亮显示 */
     highlightedCode(code, key) {
-      const vmName = key.substring(key.lastIndexOf('/') + 1, key.indexOf('.jinja2'))
-      var language = vmName.substring(vmName.indexOf('.') + 1, vmName.length)
-      const result = hljs.highlight(code || '', { language, ignoreIllegals: true })
-      return result.value || '&nbsp;'
+      return highlightPreviewCode(code, key, hljs)
     },
     /** 复制代码成功 */
     clipboardSuccess() {

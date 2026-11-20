@@ -164,9 +164,7 @@ class GenTableService:
             return CrudResponseModel(is_success=True, message='导入成功', msg_key='common.imported')
         except Exception as e:
             await query_db.rollback()
-            raise ServiceException(
-                message=f'导入失败, {e}', msg_key='generator.importFailed', msg_params={'error': str(e)}
-            ) from e
+            raise ServiceException(message=f'导入失败, {e}', msg_key='generator.importFailed', msg_params={}) from e
 
     @classmethod
     async def edit_gen_table_services(cls, query_db: AsyncSession, page_object: EditGenTableModel) -> CrudResponseModel:
@@ -295,7 +293,7 @@ class GenTableService:
                 raise ServiceException(
                     message=f'创建表结构异常，详细错误信息：{e}',
                     msg_key='generator.tableCreateFailed',
-                    msg_params={'error': str(e)},
+                    msg_params={},
                 ) from e
         else:
             raise ServiceException(message='建表语句不合法', msg_key='generator.invalidCreateStatement')
@@ -402,7 +400,7 @@ class GenTableService:
             raise ServiceException(
                 message=f'渲染模板失败，表名：{render_info[3].table_name}，详细错误信息：{e}',
                 msg_key='generator.renderFailed',
-                msg_params={'table_name': str(render_info[3].table_name), 'error': str(e)},
+                msg_params={'table_name': str(render_info[3].table_name)},
             ) from e
 
         return CrudResponseModel(is_success=True, message='生成代码成功', msg_key='generator.generated')

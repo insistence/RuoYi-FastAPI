@@ -137,7 +137,6 @@ dependencies:
   plugins: []
 
 compatibility:
-  backendVersion: ">=2.0.0"
   databases:
     - mysql
     - postgresql

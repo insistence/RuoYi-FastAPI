@@ -46,7 +46,7 @@
 </template>
 
 <script setup name="PluginFrame">
-import { t } from '@/i18n/adapter'
+import { localeState, t } from '@/i18n/adapter'
 
 import {
   computed,
@@ -107,7 +107,7 @@ function preferences() {
           : 'light',
       primary: settingsStore.theme,
     },
-    language: document.documentElement.lang || 'zh-CN',
+    language: localeState.locale,
     timeZone: getDisplayTimezone(),
   }
 }
@@ -232,6 +232,7 @@ async function loadSession(ticket, renew = false) {
           shouldEncryptRequest,
           serializeParams: tansParams,
           getTimezone: getDisplayTimezone,
+          getLocale: () => localeState.locale,
         }),
         getContext: () => ({ ...preferences(), route: currentPluginRoute() }),
         onReady: () => {
@@ -297,21 +298,21 @@ watch(
   () => bridge?.updateRoute(currentPluginRoute())
 )
 
-// Vue 2 宿主主题和语言还可能由 DOM 切换，同步这些非响应式偏好。
-let languageObserver
+// 主题状态保存在根元素的属性中，变更时通知插件。
+let themeObserver
 function activate() {
   if (active) return
   active = true
-  languageObserver = new MutationObserver(() => bridge?.updatePreferences())
-  languageObserver.observe(document.documentElement, {
+  themeObserver = new MutationObserver(() => bridge?.updatePreferences())
+  themeObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['lang', 'class', 'data-theme'],
+    attributeFilter: ['class', 'data-theme'],
   })
   openPlugin()
 }
 function deactivate() {
   active = false
-  languageObserver?.disconnect()
+  themeObserver?.disconnect()
   cleanup()
 }
 onMounted(activate)

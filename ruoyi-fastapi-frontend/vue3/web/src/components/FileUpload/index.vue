@@ -65,7 +65,7 @@
 
 <script setup>
 import { t } from '@/i18n/adapter'
-import { getToken } from '@/utils/auth'
+import { getUploadHeaders } from '@/utils/uploadHeaders'
 import Sortable from 'sortablejs'
 
 const props = defineProps({
@@ -124,7 +124,7 @@ const baseUrl = import.meta.env.VITE_APP_BASE_API
 const uploadAction =
   props.isPrivate && props.action === '/common/upload' ? '/common/files/upload' : props.action
 const uploadFileUrl = ref(import.meta.env.VITE_APP_BASE_API + uploadAction) // 上传文件服务器地址
-const headers = ref({ Authorization: 'Bearer ' + getToken() })
+const headers = computed(getUploadHeaders)
 const fileList = ref([])
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 

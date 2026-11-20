@@ -182,7 +182,9 @@ class PluginRuntimeContextService:
             operation=operation,
             plugin_id=plugin_id,
             message=message,
-            suggestion='请使用 plugin release 命令，并在执行前停止全部宿主worker。',
+            suggestion=I18nMessage(
+                '请使用 plugin release 命令，并在执行前停止全部宿主worker。', msg_key='plugin.suggestion.releaseWorkers'
+            ),
             capability={
                 'pluginId': plugin_id,
                 'backendRuntimeManageable': False,
@@ -320,7 +322,10 @@ class PluginRuntimeContextService:
             operation=operation,
             plugin_id=discovered_plugin.manifest.id,
             message=I18nMessage('当前环境不允许执行该插件操作', msg_key='plugin.runtime.operationForbidden'),
-            suggestion='请在开发模式或维护窗口中执行插件变更，并重启后端或重新构建前端。',
+            suggestion=I18nMessage(
+                '请在开发模式或维护窗口中执行插件变更，并重启后端或重新构建前端。',
+                msg_key='plugin.suggestion.maintenanceWindow',
+            ),
             capability=capability.to_payload(),
             dry_run=dry_run,
             exit_code=1,
@@ -452,9 +457,9 @@ class PluginRuntimeContextService:
             message=I18nMessage(
                 f'插件生命周期脚本预检失败：{exc}',
                 msg_key='plugin.runtime.precheck.scriptFailed',
-                msg_params={'error': str(exc)},
+                msg_params={},
             ),
-            suggestion='请检查 migration/seed 声明和脚本文件',
+            suggestion=I18nMessage('请检查 migration/seed 声明和脚本文件', msg_key='plugin.suggestion.checkScripts'),
         )
 
     def discover_plugins(self, backend_root: Path) -> list[DiscoveredPlugin]:

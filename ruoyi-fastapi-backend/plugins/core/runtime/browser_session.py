@@ -11,6 +11,7 @@ from starlette.requests import Request
 from common.enums import RedisInitKeyConfig
 from config.env import AppConfig
 from exceptions.exception import AuthException
+from i18n.message import I18nMessage
 from module_admin.service.login_service import LoginService
 from utils.jwt_util import JwtUtil
 
@@ -82,11 +83,11 @@ def _parse_record(raw: str | bytes | None) -> PluginBrowserSession:
     :return: 验证后的插件浏览器会话记录
     """
     if not raw:
-        raise LookupError('插件会话已过期')
+        raise LookupError(I18nMessage('插件会话已过期', msg_key='plugin.session.expired'))
     try:
         return PluginBrowserSession.model_validate_json(raw)
     except ValidationError as exc:
-        raise LookupError('插件会话无效') from exc
+        raise LookupError(I18nMessage('插件会话无效', msg_key='plugin.session.invalid')) from exc
 
 
 async def issue_browser_session(
@@ -107,24 +108,24 @@ async def issue_browser_session(
     """
     origin = request_origin(request)
     if request.headers.get('origin') not in (None, origin):
-        raise PermissionError('插件会话只能从同源宿主签发')
+        raise PermissionError(I18nMessage('插件会话只能从同源宿主签发', msg_key='plugin.session.sameOrigin'))
     payload = JwtUtil.decode(main_token)
     if int(payload.get('user_id', 0)) != user_id:
-        raise PermissionError('插件会话用户身份不匹配')
+        raise PermissionError(I18nMessage('插件会话用户身份不匹配', msg_key='plugin.session.identityMismatch'))
     subject = payload.get('session_id') if AppConfig.app_same_time_login else str(user_id)
     if not subject:
-        raise LookupError('主登录缺少会话标识')
+        raise LookupError(I18nMessage('主登录缺少会话标识', msg_key='plugin.session.missingSessionId'))
     main_key = f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{subject}'
     redis = request.app.state.redis
     current = await redis.get(main_key)
     if isinstance(current, bytes):
         current = current.decode('utf-8')
     if not isinstance(current, str) or not secrets.compare_digest(current, main_token):
-        raise LookupError('主登录会话已失效')
+        raise LookupError(I18nMessage('主登录会话已失效', msg_key='plugin.session.loginInvalid'))
     remaining = int(float(payload.get('exp', 0)) - time.time())
     seconds = min(SESSION_SECONDS, remaining)
     if seconds <= 0:
-        raise LookupError('主登录会话已过期')
+        raise LookupError(I18nMessage('主登录会话已过期', msg_key='plugin.session.loginExpired'))
     main_digest = _digest(main_token)
     identity = json.dumps([main_digest, plugin_id, version, origin], separators=(',', ':'))
     scope_key = _digest(identity)
@@ -141,7 +142,7 @@ async def issue_browser_session(
                 or record.user_id != user_id
                 or record.origin != origin
             ):
-                raise LookupError('插件会话绑定无效')
+                raise LookupError(I18nMessage('插件会话绑定无效', msg_key='plugin.session.bindingInvalid'))
             # GET 后旧记录可能到期并被其他标签的 NX 重建；不能把旧 nonce
             # 随较晚的响应写回 Cookie。重新读取确认续期的仍是当前记录。
             if await redis.expire(key, seconds) and await redis.get(key) == raw:
@@ -159,7 +160,7 @@ async def issue_browser_session(
             )
             if await redis.set(key, record.model_dump_json(), ex=seconds, nx=True):
                 return f'{scope_key}.{record.nonce}', record.csrf, seconds
-    raise LookupError('插件会话正在更新，请重试')
+    raise LookupError(I18nMessage('插件会话正在更新，请重试', msg_key='plugin.session.updating'))
 
 
 async def authenticate_browser_session(

@@ -10,6 +10,8 @@ from starlette.types import Scope
 
 from config.database import Base, DataSourceRegistry
 from exceptions.exception import AuthException
+from i18n.catalogs import CatalogRegistry
+from i18n.message import I18nMessage
 from module_admin.service.login_service import LoginService
 from plugins.core.discovery.registry import PluginRegistry, RegisteredPlugin
 from plugins.core.discovery.scanner import is_artifact_plugin
@@ -223,6 +225,7 @@ class ExplicitPluginRuntime:
             startup_write_enabled=startup_write_enabled and not is_artifact_plugin(discovered),
         )
         existing_tables = set(Base.metadata.tables)
+        CatalogRegistry.register_plugin(plugin.plugin_id, discovered.backend_path)
         try:
             definition = PluginEntrypointLoader(discovered).load(host)
             if definition.register_models:
@@ -231,6 +234,9 @@ class ExplicitPluginRuntime:
                     if inspect.iscoroutine(result):
                         result.close()
                     raise TypeError('register_models 必须同步注册元数据，不能执行异步数据库操作')
+        except BaseException:
+            CatalogRegistry.unregister_plugin(plugin.plugin_id)
+            raise
         finally:
             if is_artifact_plugin(discovered):
                 for key in set(Base.metadata.tables) - existing_tables:
@@ -457,7 +463,7 @@ class ExplicitPluginRuntime:
         permissions = frozenset(user.permissions)
         declared = set(loaded.plugin.discovered_plugin.manifest.permission_codes)
         if declared and '*:*:*' not in permissions and not declared.intersection(permissions):
-            raise PermissionError('缺少插件访问权限')
+            raise PermissionError(I18nMessage('缺少插件访问权限', msg_key='plugin.session.forbidden'))
         return PluginRequestContext(loaded.host, user, permissions, request_id=current_plugin_request_id())
 
     async def shutdown(self) -> None:
@@ -490,6 +496,7 @@ class ExplicitPluginRuntime:
                     await loaded.lifespan.shutdown()
                 except Exception:
                     logger.exception(f'插件 ASGI 关闭失败：{loaded.plugin.plugin_id}')
+            CatalogRegistry.unregister_plugin(loaded.plugin.plugin_id)
         try:
             await self.metrics_reporter.stop()
         except Exception:

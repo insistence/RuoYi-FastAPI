@@ -8,7 +8,7 @@
         <el-card class="box-card">
           <template v-slot:header>
             <div class="clearfix">
-              <span>{{ $t('system:profile') }}</span>
+              <span>{{ $t('layout:routes.profile') }}</span>
             </div>
           </template>
           <div>

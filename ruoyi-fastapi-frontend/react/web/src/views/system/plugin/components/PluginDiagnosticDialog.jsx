@@ -4,7 +4,11 @@ import PluginSummary from './PluginSummary'
 import './style.css'
 import { Alert, Button, Descriptions, Input, Modal, Tabs } from 'antd'
 import Table from '@/components/Table'
-import { getValidationLevelLabel, getValidationLevelTagType } from '@/utils/pluginPlanFormatter'
+import {
+  buildOperationValidationItems,
+  getValidationLevelLabel,
+  getValidationLevelTagType,
+} from '@/utils/pluginPlanFormatter'
 import { formatBoolean, formatJson } from '../formatter'
 import PluginTag from './PluginTag'
 
@@ -20,24 +24,7 @@ export default function PluginDiagnosticDialog({
   const health = result.health,
     diagnose = result.info || result.check ? result : null,
     check = diagnose?.check || {}
-  const validation = [
-    [t('pluginAdmin:dependencies'), check.dependencies],
-    [t('common:manifestError'), check.manifestIssues],
-    [t('common:manifestWarning'), check.manifestWarnings],
-    [t('pluginAdmin:dependencyTitle'), check.pluginDependencyErrors],
-    [t('common:structure'), check.structureErrors],
-    [t('pluginAdmin:menuConflict'), check.menuConflicts],
-  ].flatMap(([category, rows]) =>
-    Array.isArray(rows)
-      ? rows.map((item) => ({
-          category,
-          level: item.level || (category.includes(t('common:warning')) ? 'warning' : 'error'),
-          kind: item.kind || item.name || item.status || '-',
-          value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
-          message: item.message || item.suggestion || item.reason || '',
-        }))
-      : []
-  )
+  const validation = buildOperationValidationItems(check)
   return (
     <Modal
       className="plugin-dialog plugin-result-dialog"

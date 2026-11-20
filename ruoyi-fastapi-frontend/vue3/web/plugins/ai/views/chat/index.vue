@@ -12,7 +12,7 @@
             class="new-chat-btn"
             icon="Plus"
             @click="clearChat"
-            >{{ $t('plugin.ai:newConversation') }}</el-button
+            >{{ t('plugin.ai:newConversation') }}</el-button
           >
         </div>
         <div
@@ -30,10 +30,10 @@
             </div>
             <div class="session-info">
               <div class="session-title">
-                {{ session.sessionTitle || $t('plugin.ai:newConversation') }}
+                {{ session.sessionTitle || t('plugin.ai:newConversation') }}
               </div>
               <div class="session-time">
-                {{ formatTime(session.createdAt) }}
+                {{ parseTime(session.createdAt) }}
               </div>
             </div>
             <el-button
@@ -48,7 +48,7 @@
             v-if="sessionList.length === 0 && !sessionLoading"
             class="empty-session"
           >
-            {{ $t('plugin.ai:noConversationHistory') }}
+            {{ t('plugin.ai:noConversationHistory') }}
           </div>
         </div>
       </el-aside>
@@ -57,11 +57,11 @@
       <el-main class="chat-main">
         <div class="chat-header">
           <div class="header-left">
-            <span class="header-title">{{ $t('plugin.ai:aIAssistant') }}</span>
+            <span class="header-title">{{ t('plugin.ai:aIAssistant') }}</span>
           </div>
           <div class="header-right">
             <el-tooltip
-              :content="$t('plugin.ai:globalSettings')"
+              :content="t('plugin.ai:globalSettings')"
               placement="bottom"
             >
               <el-button
@@ -73,7 +73,7 @@
             </el-tooltip>
             <el-select
               v-model="currentModelId"
-              :placeholder="$t('plugin.ai:chooseAModel')"
+              :placeholder="t('plugin.ai:chooseAModel')"
               size="large"
               style="width: 210px"
             >
@@ -104,8 +104,8 @@
               <div class="welcome-icon">
                 <el-icon size="60"><Service /></el-icon>
               </div>
-              <h2>{{ $t('plugin.ai:helloIAmYourAIAssistant') }}</h2>
-              <p>{{ $t('plugin.ai:enterAQuestionBelowToStartAConversation') }}</p>
+              <h2>{{ t('plugin.ai:helloIAmYourAIAssistant') }}</h2>
+              <p>{{ t('plugin.ai:enterAQuestionBelowToStartAConversation') }}</p>
             </div>
 
             <div
@@ -122,11 +122,11 @@
               </div>
               <div class="message-content-wrapper">
                 <div class="message-sender">
-                  {{ msg.role === 'user' ? $t('plugin.ai:me') : $t('plugin.ai:aIAssistant') }}
+                  {{ msg.role === 'user' ? t('plugin.ai:me') : t('plugin.ai:aIAssistant') }}
                   <span
                     class="message-time"
                     v-if="msg.createdAt"
-                    >{{ formatTime(msg.createdAt) }}</span
+                    >{{ parseTime(msg.createdAt) }}</span
                   >
                 </div>
                 <div class="message-bubble">
@@ -156,7 +156,7 @@
                 <div class="message-footer">
                   <div class="footer-actions">
                     <el-tooltip
-                      :content="$t('plugin.ai:copy')"
+                      :content="t('plugin.ai:copy')"
                       placement="top"
                     >
                       <el-button
@@ -173,35 +173,36 @@
                     >
                       <span
                         v-if="msg.metrics?.duration !== null && msg.metrics?.duration !== undefined"
-                        >{{ $t('plugin.ai:duration') }}{{ msg.metrics.duration.toFixed(3) }} s</span
+                        >{{ t('plugin.ai:duration')
+                        }}{{ formatNumber(msg.metrics.duration, 3) }} s</span
                       >
                       <span
                         v-if="
                           msg.metrics?.inputTokens !== null &&
                           msg.metrics?.inputTokens !== undefined
                         "
-                        >{{ $t('plugin.ai:input') }}{{ msg.metrics.inputTokens }} tokens</span
+                        >{{ t('plugin.ai:input') }}{{ msg.metrics.inputTokens }} tokens</span
                       >
                       <span
                         v-if="
                           msg.metrics?.outputTokens !== null &&
                           msg.metrics?.outputTokens !== undefined
                         "
-                        >{{ $t('plugin.ai:output') }}{{ msg.metrics.outputTokens }} tokens</span
+                        >{{ t('plugin.ai:output') }}{{ msg.metrics.outputTokens }} tokens</span
                       >
                       <span
                         v-if="
                           msg.metrics?.totalTokens !== null &&
                           msg.metrics?.totalTokens !== undefined
                         "
-                        >{{ $t('plugin.ai:total') }}{{ msg.metrics.totalTokens }} tokens</span
+                        >{{ t('plugin.ai:total') }}{{ msg.metrics.totalTokens }} tokens</span
                       >
                       <span
                         v-if="
                           msg.metrics?.reasoningTokens !== null &&
                           msg.metrics?.reasoningTokens !== undefined
                         "
-                        >{{ $t('plugin.ai:reasoning')
+                        >{{ t('plugin.ai:reasoning')
                         }}{{ msg.metrics.reasoningTokens }} tokens</span
                       >
                     </div>
@@ -242,7 +243,7 @@
               type="textarea"
               :rows="3"
               resize="none"
-              :placeholder="$t('plugin.ai:enterYourQuestionEnterToSendShiftEnterForA')"
+              :placeholder="t('plugin.ai:enterYourQuestionEnterToSendShiftEnterForA')"
               @keydown.enter.exact.prevent="handleSend"
               :disabled="loading"
             />
@@ -267,7 +268,7 @@
                     currentModelInfo.supportImages === 'Y' &&
                     userConfig.visionEnabled == '0'
                   "
-                  :content="$t('plugin.ai:uploadImages')"
+                  :content="t('plugin.ai:uploadImages')"
                   placement="top"
                 >
                   <el-button
@@ -288,7 +289,7 @@
                   <template #icon>
                     <svg-icon icon-class="deepthink" />
                   </template>
-                  {{ $t('plugin.ai:deepReasoning') }}</el-button
+                  {{ t('plugin.ai:deepReasoning') }}</el-button
                 >
               </div>
               <el-button
@@ -297,7 +298,7 @@
                 @click="handleMainAction"
                 :disabled="!loading && !inputMessage.trim() && !inputImages.length"
               >
-                {{ loading ? $t('plugin.ai:stop') : $t('plugin.ai:send') }}
+                {{ loading ? t('plugin.ai:stop') : t('plugin.ai:send') }}
               </el-button>
             </div>
           </div>
@@ -308,7 +309,7 @@
     <!-- 全局配置弹窗 -->
     <el-dialog
       v-model="showConfigDialog"
-      :title="$t('plugin.ai:globalUserSettings')"
+      :title="t('plugin.ai:globalUserSettings')"
       width="700px"
       append-to-body
       class="chat-config-dialog"
@@ -319,20 +320,20 @@
       >
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item :label="$t('plugin.ai:defaultTemperature')">
+            <el-form-item :label="t('plugin.ai:defaultTemperature')">
               <el-input-number
                 v-model="editingUserConfig.temperature"
                 :min="0"
                 :max="2"
                 :step="0.1"
                 :precision="1"
-                :placeholder="$t('plugin.ai:defaultTemperature')"
+                :placeholder="t('plugin.ai:defaultTemperature')"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item :label="$t('plugin.ai:includeConversationHistory')">
+            <el-form-item :label="t('plugin.ai:includeConversationHistory')">
               <el-switch
                 active-value="0"
                 inactive-value="1"
@@ -342,20 +343,20 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:historyRounds')"
+              :label="t('plugin.ai:historyRounds')"
               v-if="editingUserConfig.addHistoryToContext == '0'"
             >
               <el-input-number
                 v-model="editingUserConfig.numHistoryRuns"
                 :min="1"
                 :max="20"
-                :placeholder="$t('plugin.ai:historyRounds')"
+                :placeholder="t('plugin.ai:historyRounds')"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item :label="$t('plugin.ai:showMetricsByDefault')">
+            <el-form-item :label="t('plugin.ai:showMetricsByDefault')">
               <el-switch
                 active-value="0"
                 inactive-value="1"
@@ -364,7 +365,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item :label="$t('plugin.ai:enableVision')">
+            <el-form-item :label="t('plugin.ai:enableVision')">
               <el-switch
                 active-value="0"
                 inactive-value="1"
@@ -374,14 +375,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item
-              :label="$t('plugin.ai:maximumImageSize')"
+              :label="t('plugin.ai:maximumImageSize')"
               v-if="editingUserConfig.visionEnabled"
             >
               <el-input-number
                 v-model="editingUserConfig.imageMaxSizeMb"
                 :min="1"
                 :max="50"
-                :placeholder="$t('plugin.ai:imageSize')"
+                :placeholder="t('plugin.ai:imageSize')"
                 style="width: 100%"
               >
                 <template #suffix>
@@ -391,12 +392,12 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item :label="$t('plugin.ai:systemPrompt')">
+            <el-form-item :label="t('plugin.ai:systemPrompt')">
               <el-input
                 v-model="editingUserConfig.systemPrompt"
                 type="textarea"
                 :rows="4"
-                :placeholder="$t('plugin.ai:setTheGlobalSystemPrompt')"
+                :placeholder="t('plugin.ai:setTheGlobalSystemPrompt')"
               />
             </el-form-item>
           </el-col>
@@ -404,11 +405,11 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="showConfigDialog = false">{{ $t('plugin.ai:cancel') }}</el-button>
+          <el-button @click="showConfigDialog = false">{{ t('plugin.ai:cancel') }}</el-button>
           <el-button
             type="primary"
             @click="handleSaveConfig"
-            >{{ $t('plugin.ai:save') }}</el-button
+            >{{ t('plugin.ai:save') }}</el-button
           >
         </span>
       </template>
@@ -427,7 +428,9 @@
 
 <script setup name="AiChat">
 import { i18n } from '@/i18n'
-import { t } from '@/i18n/adapter'
+import { parseTime } from '@/utils/ruoyi'
+import { formatNumber } from '@/i18n/numbers'
+import { t } from '../../i18n'
 import { listModelAll } from '../../api/model'
 import {
   listChatSession,
@@ -551,16 +554,6 @@ function getImageUrl(url) {
     return url
   }
   return import.meta.env.VITE_APP_BASE_API + url
-}
-
-function formatTime(timeStr) {
-  if (!timeStr) return ''
-  try {
-    const date = new Date(timeStr)
-    return date.toLocaleString()
-  } catch (e) {
-    return timeStr
-  }
 }
 
 function getModels() {

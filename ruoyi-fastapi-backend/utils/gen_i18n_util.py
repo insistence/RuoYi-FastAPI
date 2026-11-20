@@ -32,9 +32,29 @@ class GenI18nUtil:
         """
         self.framework = self.FRAMEWORKS.get(table.tpl_web_type, 'vue2')
         self.app_root = self.PROJECT_ROOT / 'ruoyi-fastapi-frontend' / self.framework / 'web'
-        meta = json.loads((self.app_root / 'src/i18n/locale-meta.json').read_text(encoding='utf-8'))
-        options = json.loads(table.options or '{}')
-        self.source_locale = meta['sourceLocale']
+        try:
+            options = json.loads(table.options or '{}')
+        except (TypeError, ValueError):
+            self.invalid_configuration()
+        if not isinstance(options, dict):
+            self.invalid_configuration()
+        selected = options.get('i18nLocales')
+        if selected is not None and (not isinstance(selected, list) or not selected):
+            self.invalid_configuration()
+        # 显式语言参数适用于独立部署的后端；没有参数时才尝试读取同仓库目标应用。
+        # Docker 等仅部署后端的场景使用后端已注册语言作为生成默认值，不要求挂载前端源码。
+        self.source_locale = I18nConfig.SOURCE_LOCALE
+        enabled = LocaleRegistry.enabled_locales()
+        meta_path = self.app_root / 'src/i18n/locale-meta.json'
+        if selected is None and meta_path.is_file():
+            try:
+                meta = json.loads(meta_path.read_text(encoding='utf-8'))
+                self.source_locale = meta['sourceLocale']
+                enabled = [item['code'] for item in meta['locales'] if item.get('enabled')]
+                if not enabled or self.source_locale not in enabled:
+                    self.invalid_configuration()
+            except (OSError, KeyError, TypeError, ValueError):
+                self.invalid_configuration()
         requested_source = options.get('i18nSourceLocale') or self.source_locale
         if requested_source != self.source_locale or self.source_locale != I18nConfig.SOURCE_LOCALE:
             raise ServiceWarning(
@@ -42,10 +62,6 @@ class GenI18nUtil:
                 msg_key='generator.i18nSourceLocaleMismatch',
                 msg_params={'locale': self.source_locale},
             )
-        enabled = [item['code'] for item in meta['locales'] if item.get('enabled')]
-        selected = options.get('i18nLocales')
-        if selected is not None and (not isinstance(selected, list) or not selected):
-            self.invalid_configuration()
         try:
             self.locales = list(
                 dict.fromkeys(
@@ -348,7 +364,8 @@ class GenI18nUtil:
             f'目标应用：{self.framework}/web；基准语言：{self.source_locale}；生成语言：{", ".join(self.locales)}。\n\n'
             '本目录是独立生成包。将 frontend/src 下的代码与语言资源合并到目标应用 src，'
             '不要复制到其他端或建立跨端资源引用。已有 generated.* 命名空间由目标应用构建期注册，'
-            '新语言还须先配置目标应用 locale-meta.json；语言列表来自该配置或 i18nLocales 参数。\n\n'
+            '新语言还须先配置目标应用 locale-meta.json；语言列表优先使用 i18nLocales 参数，否则读取目标应用配置；'
+            '独立后端没有前端源码时默认使用后端已注册语言。\n\n'
             '字段和表注释是基准文案。未知译文保留空字符串，pending.json 列出待补译键，'
             '不能将空译文当成正式完成；使用目标应用固定版本 x18n apply/set 补译后运行 i18n:check。'
             'i18nTranslations 可按语言提供稳定模块内路径的译文；后端词条使用 backend. 前缀。\n\n'

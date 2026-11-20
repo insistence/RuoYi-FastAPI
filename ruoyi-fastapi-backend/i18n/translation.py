@@ -2,7 +2,7 @@ from typing import Any
 
 from common.context import RequestContext
 from config.env import I18nConfig
-from i18n.registry import LOCALES, LocaleRegistry
+from i18n.registry import LocaleRegistry
 
 
 class TranslationUtil:
@@ -59,18 +59,15 @@ class TranslationUtil:
     @staticmethod
     def resolve(original: str, translations: dict[str, str] | None, *, locale: str | None = None) -> str:
         """
-        按当前请求语言解析数据库译文，旧客户端保留原名称
+        按当前请求语言和回退链解析数据库译文
 
         :param original: 基准语言名称
         :param translations: 数据库译文
         :param locale: 显式指定语言，省略时使用当前请求语言
         :return: 译文或基准语言名称
         """
-        context = RequestContext.get_current_locale()
-        if locale is None and context.version != 'v1':
-            return original
-        code = locale or context.locale
-        if code not in LOCALES:
+        code = locale or RequestContext.get_current_locale().locale
+        if code not in LocaleRegistry.enabled_locales():
             code = I18nConfig.i18n_default_locale
         for fallback in LocaleRegistry.fallback_chain(code):
             if fallback == I18nConfig.SOURCE_LOCALE:

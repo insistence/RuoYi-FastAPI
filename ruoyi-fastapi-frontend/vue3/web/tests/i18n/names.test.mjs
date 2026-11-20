@@ -28,22 +28,22 @@ test('cached dictionaries switch through a third language without changing busin
     storage: { get() {}, set() {} },
   })
   const cache = [
-    { label: '正常', value: '0', labelI18n: { 'en-US': 'Enabled', 'ja-JP': '有効' } },
-    { label: '旧缓存', value: 'legacy' },
+    { originalLabel: '正常', value: '0', labelI18n: { 'en-US': 'Enabled', 'ja-JP': '有効' } },
+    { originalLabel: '普通', value: 'basic' },
   ]
   await locale.setPreference('en-US')
   assert.deepEqual(
     localizeDictionary(cache, locale.resolveText).map((item) => item.label),
-    ['Enabled', '旧缓存']
+    ['Enabled', '普通']
   )
   await locale.setPreference('ja-JP')
   assert.deepEqual(
     localizeDictionary(cache, locale.resolveText).map((item) => item.label),
-    ['有効', '旧缓存']
+    ['有効', '普通']
   )
-  assert.equal(cache[0].label, '正常')
+  assert.equal(cache[0].originalLabel, '正常')
   assert.deepEqual(
     localizeDictionary(cache, locale.resolveText).map((item) => item.value),
-    ['0', 'legacy']
+    ['0', 'basic']
   )
 })

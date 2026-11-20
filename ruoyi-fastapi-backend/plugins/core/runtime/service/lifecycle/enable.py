@@ -4,6 +4,7 @@ from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from i18n.catalogs import CatalogRegistry, CatalogSnapshot
 from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.support import (
@@ -42,6 +43,7 @@ class PluginEnabledLifecycleContext:
     session: AsyncSession | None = None
     plugin_service: object | None = None
     session_context: object | None = None
+    catalog_snapshot: CatalogSnapshot | None = None
 
 
 @dataclass(slots=True)
@@ -304,6 +306,9 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         :param context: 插件启停上下文
         :return: dry-run 或阻断 payload
         """
+        context.catalog_snapshot = CatalogRegistry.prepare_plugin(
+            context.plugin_id, context.discovered_plugin.backend_path
+        )
         context.precheck = await self._build_precheck_context(
             cast('Path', context.backend_root),
             cast('DiscoveredPlugin', context.discovered_plugin),
@@ -394,6 +399,8 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
                 enabled=context.enabled,
                 message=context.response.message,
             )
+
+        CatalogRegistry.commit_plugin(context.plugin_id, context.catalog_snapshot, enabled=context.enabled)
 
         return None
 
@@ -616,6 +623,7 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
             context.plugin_id,
         )
         if context.response.is_success:
+            CatalogRegistry.unregister_plugin(context.plugin_id)
             return None
 
         return PluginEnablePayloadBuilder.build_update_failure_payload(

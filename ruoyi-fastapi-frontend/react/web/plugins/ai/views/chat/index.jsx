@@ -1,6 +1,6 @@
 import { useLocalizedFormErrors } from '@/i18n/form'
-import { useI18n } from '@/i18n/adapter'
-import { i18n, t } from '@/i18n'
+import { useI18n, t } from '../../i18n'
+import { i18n } from '@/i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert,
@@ -41,6 +41,7 @@ import {
 import request from '@/utils/request'
 import { getToken } from '@/utils/auth'
 import { getDisplayTimezone } from '@/utils/time'
+import { formatNumber } from '@/i18n/numbers'
 import { parseTime } from '@/utils/ruoyi'
 import { confirm, message } from '@/plugins/modal'
 import AiMessage from './components/AiMessage'
@@ -583,7 +584,7 @@ export default function AiChat() {
                                 <span key={key}>
                                   {label}{' '}
                                   {key === 'duration'
-                                    ? `${Number(item.metrics[key]).toFixed(3)} s`
+                                    ? `${formatNumber(item.metrics[key], 3)} s`
                                     : `${item.metrics[key]} tokens`}
                                 </span>
                               ))}

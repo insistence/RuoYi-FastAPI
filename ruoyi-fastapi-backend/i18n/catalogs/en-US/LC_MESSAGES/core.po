@@ -726,7 +726,7 @@ msgid "file.reconciliation.registrationUnsupported"
 msgstr "Only orphaned files in public or protected storage can be registered"
 
 msgid "file.reconciliation.resolveFailed"
-msgstr "Unable to resolve the file storage issue: %(error)s"
+msgstr "Unable to resolve the file storage issue. Check the service logs"
 
 msgid "file.reconciliation.resolved"
 msgstr "File storage issue resolved"
@@ -857,7 +857,7 @@ msgid "generator.i18nSourceLocaleMismatch"
 msgstr "The generation source locale must match the target app and backend: %(locale)s"
 
 msgid "generator.importFailed"
-msgstr "Import failed: %(error)s"
+msgstr "Import failed. Check the service logs"
 
 msgid "generator.invalidCreateStatement"
 msgstr "Invalid table creation statement"
@@ -876,10 +876,10 @@ msgstr ""
 "import the generation configuration again."
 
 msgid "generator.renderFailed"
-msgstr "Unable to render the template for table %(table_name)s: %(error)s"
+msgstr "Unable to render the template for table %(table_name)s. Check the service logs"
 
 msgid "generator.tableCreateFailed"
-msgstr "Unable to create the table structure: %(error)s"
+msgstr "Unable to create the table structure. Check the service logs"
 
 msgid "generator.tableCreated"
 msgstr "Table structure created successfully"
@@ -943,6 +943,9 @@ msgstr "OAuth grant revoked"
 msgid "identity.interaction.consentRequired"
 msgstr "Your authorization is required"
 
+msgid "identity.interaction.disabled"
+msgstr "The authentication service is not enabled"
+
 msgid "identity.interaction.invalidOrExpired"
 msgstr "This authentication interaction is invalid or has expired"
 
@@ -952,8 +955,20 @@ msgstr "Invalid authentication interaction request"
 msgid "identity.interaction.invalidScope"
 msgstr "Invalid requested permissions"
 
+msgid "identity.interaction.loginFailed"
+msgstr "Sign-in failed"
+
 msgid "identity.interaction.loginRequired"
 msgstr "Sign in to continue"
+
+msgid "identity.interaction.passwordChangeFailed"
+msgstr "Unable to change the password"
+
+msgid "identity.interaction.passwordReused"
+msgstr "The new password must differ from the old password"
+
+msgid "identity.interaction.rateLimited"
+msgstr "Too many requests. Please try again later"
 
 msgid "identity.interaction.serviceUnavailable"
 msgstr "The authentication service is temporarily unavailable"
@@ -1025,7 +1040,7 @@ msgid "job.idRequired"
 msgstr "Scheduled job ID is required"
 
 msgid "job.invalidConfiguration"
-msgstr "Invalid job configuration: %(error)s"
+msgstr "Invalid job configuration"
 
 msgid "job.invalidId"
 msgstr "Job ID must be a positive integer"
@@ -1120,6 +1135,42 @@ msgstr "Unable to read the plugin configuration status"
 msgid "plugin.dependenciesRecovered"
 msgstr "Plugin startup dependencies recovered. Status: %(target_status)s"
 
+msgid "plugin.session.pageMissing"
+msgstr "The plugin page does not exist"
+
+msgid "plugin.session.notReady"
+msgstr "The plugin page is not ready yet"
+
+msgid "plugin.session.forbidden"
+msgstr "You do not have permission to access this plugin"
+
+msgid "plugin.session.expired"
+msgstr "The plugin session has expired"
+
+msgid "plugin.session.invalid"
+msgstr "The plugin session is invalid"
+
+msgid "plugin.session.sameOrigin"
+msgstr "Only the host application can start a plugin session from the same origin"
+
+msgid "plugin.session.identityMismatch"
+msgstr "The plugin session belongs to a different user"
+
+msgid "plugin.session.missingSessionId"
+msgstr "The host login is missing its session ID"
+
+msgid "plugin.session.loginInvalid"
+msgstr "Your login session is no longer valid"
+
+msgid "plugin.session.loginExpired"
+msgstr "Your login session has expired"
+
+msgid "plugin.session.bindingInvalid"
+msgstr "The plugin session binding is invalid"
+
+msgid "plugin.session.updating"
+msgstr "The plugin session is being updated. Please try again"
+
 msgid "plugin.disabled"
 msgstr "This plugin is disabled and its API is unavailable"
 
@@ -1142,7 +1193,7 @@ msgid "plugin.release.statusReadFailed"
 msgstr "Unable to read the plugin artifact release status"
 
 msgid "plugin.runtime.audit.snapshotFailed"
-msgstr "Unable to read the latest audit snapshot: %(error)s"
+msgstr "Unable to read the latest audit snapshot"
 
 msgid "plugin.runtime.batch.blocked"
 msgstr "The batch operation plan contains blocking issues. No changes were written."
@@ -1223,7 +1274,7 @@ msgid "plugin.runtime.dependencies.installFailed"
 msgstr "Unable to install plugin dependencies"
 
 msgid "plugin.runtime.dependencies.invalidRequirement"
-msgstr "Invalid Python dependency requirement: %(requirement)s, %(error)s"
+msgstr "Invalid Python dependency requirement: %(requirement)s"
 
 msgid "plugin.runtime.dependencies.markerSkipped"
 msgstr "The Python dependency marker does not apply to this environment. Skipped: %(name)s"
@@ -1315,7 +1366,7 @@ msgid "plugin.runtime.lifecycle.busy"
 msgstr "A plugin lifecycle operation is running. Try again later."
 
 msgid "plugin.runtime.lifecycle.lockUnavailable"
-msgstr "The plugin lifecycle lock is unavailable: %(error)s"
+msgstr "The plugin lifecycle lock is unavailable"
 
 msgid "plugin.runtime.listFailed"
 msgstr "Unable to read the plugin list"
@@ -1381,7 +1432,7 @@ msgid "plugin.runtime.precheck.passed"
 msgstr "Plugin operation precheck passed"
 
 msgid "plugin.runtime.precheck.scriptFailed"
-msgstr "Plugin lifecycle script precheck failed: %(error)s"
+msgstr "Plugin lifecycle script precheck failed"
 
 msgid "plugin.runtime.precheck.writeBlocked"
 msgstr "Plugin operation precheck found issues. No changes were written."
@@ -1475,7 +1526,7 @@ msgid "plugin.runtime.validation.componentPath"
 msgstr "Invalid plugin component path: %(component)s"
 
 msgid "plugin.runtime.validation.controllerSyntax"
-msgstr "The controller file has a syntax error. Unable to check its route prefix: %(error)s"
+msgstr "The controller file has a syntax error. Unable to check its route prefix"
 
 msgid "plugin.runtime.validation.databaseMismatch"
 msgstr "Database type does not meet the compatibility requirement: current=%(current_database)s required=%(value)s"
@@ -1493,7 +1544,7 @@ msgid "plugin.runtime.validation.hookMissing"
 msgstr "The plugin declares %(declared_hook)s but not %(missing_hook)s"
 
 msgid "plugin.runtime.validation.hookSyntax"
-msgstr "The lifecycle hook cannot be statically parsed: %(error)s"
+msgstr "The lifecycle hook cannot be statically parsed"
 
 msgid "plugin.runtime.validation.installedMenuConflict"
 msgstr "Permission %(perms)s in plugin %(id)s conflicts with existing menu %(menu_id)s (%(conflict_label)s)"
@@ -1502,7 +1553,7 @@ msgid "plugin.runtime.validation.jobHealthMissing"
 msgstr "The plugin declares enabled jobs but no health check callable"
 
 msgid "plugin.runtime.validation.jobSyntax"
-msgstr "The job callable cannot be statically parsed: %(error)s"
+msgstr "The job callable cannot be statically parsed"
 
 msgid "plugin.runtime.validation.numericConstraintsIgnored"
 msgstr "Configuration %(key)s is not a number, so min/max constraints have no effect"
@@ -1553,6 +1604,132 @@ msgstr "%(target_name)s does not meet the compatibility requirement: current=%(c
 
 msgid "plugin.runtime.validation.versionUnavailable"
 msgstr "Unable to read the current %(target_name)s version. Compatibility checking was skipped."
+
+msgid "plugin.suggestion.batchDependencies"
+msgstr "Run ruoyi plugin plan %(operation)s %(plugin_id)s to inspect blocking dependencies"
+
+msgid "plugin.suggestion.batchDryRun"
+msgstr "Run ruoyi plugin %(operation)s %(plugin_id)s --dry-run separately to investigate the failure"
+
+msgid "plugin.suggestion.batchError"
+msgstr "Review and fix the error, then run the batch command again"
+
+msgid "plugin.suggestion.batchMenus"
+msgstr "Run ruoyi plugin check %(plugin_id)s to inspect menu or permission conflicts"
+
+msgid "plugin.suggestion.batchStructure"
+msgstr "Run ruoyi plugin check %(plugin_id)s to fix plugin directory issues"
+
+msgid "plugin.suggestion.buttonChildren"
+msgstr "Move child menus from button menus to a directory or page menu"
+
+msgid "plugin.suggestion.buttonComponent"
+msgstr "Button menus represent permission actions, not routes; leave component empty"
+
+msgid "plugin.suggestion.buttonPermissions"
+msgstr ""
+"Declare perms for button menus and list them in top-level permissions for consistent frontend and backend permission "
+"checks"
+
+msgid "plugin.suggestion.checkScripts"
+msgstr "Check the migration/seed declarations and script files"
+
+msgid "plugin.suggestion.dependencyVersion"
+msgstr "Declare a minimum version or compatible version range for plugin dependencies"
+
+msgid "plugin.suggestion.fixMigration"
+msgstr ""
+"Fix migration idempotency or schema issues before retrying. If necessary, verify the result manually before marking "
+"it successful."
+
+msgid "plugin.suggestion.healthChecker"
+msgstr "Declare backend.health.checker for plugins with enabled tasks so operators can verify task dependencies"
+
+msgid "plugin.suggestion.maintenanceWindow"
+msgstr "Apply plugin changes in development mode or during maintenance, then restart the backend or rebuild the frontend."
+
+msgid "plugin.suggestion.newMigration"
+msgstr "Add a new migration file; keep previously applied migrations unchanged"
+
+msgid "plugin.suggestion.numberBounds"
+msgstr "Only number settings support min/max; remove the constraint or change the type to number"
+
+msgid "plugin.suggestion.pagePermissions"
+msgstr "Declare perms for page menus and list them in top-level permissions for consistent role grants and menu visibility"
+
+msgid "plugin.suggestion.pairedHooks"
+msgstr "Declare startup and shutdown hooks together so runtime resources are initialized and released"
+
+msgid "plugin.suggestion.passwordSecret"
+msgstr "Declare secret=true for password settings to protect sensitive values in displays and exports"
+
+msgid "plugin.suggestion.patternType"
+msgstr "Only string, textarea, and password settings support pattern; remove it or change the setting type"
+
+msgid "plugin.suggestion.permissionMenu"
+msgstr "Declare a page, directory, or button menu for permissions that must be assigned to roles"
+
+msgid "plugin.suggestion.permissionPrefix"
+msgstr "Use %(prefix)s<resource>:<action> to avoid conflicts with platform or plugin permissions"
+
+msgid "plugin.suggestion.pluginVersion"
+msgstr "Declare a minimum version or compatible version range for the required plugin"
+
+msgid "plugin.suggestion.purgeHook"
+msgstr "Implement backend.hooks.onPurge if resources must be physically removed with the plugin"
+
+msgid "plugin.suggestion.recoverMigration"
+msgstr ""
+"Check whether the database changes were applied. Run mark-success if complete; otherwise run mark-failed, fix the "
+"issue, and retry."
+
+msgid "plugin.suggestion.relativePath"
+msgstr "Use a relative path inside the plugin directory"
+
+msgid "plugin.suggestion.releaseWorkers"
+msgstr "Use the plugin release command after stopping all host workers."
+
+msgid "plugin.suggestion.repeatableSeed"
+msgstr "Make the seed script repeatable without duplicating initial data"
+
+msgid "plugin.suggestion.requiredConfig"
+msgstr "Provide a safe default or document the required post-installation setting in the plugin README"
+
+msgid "plugin.suggestion.restoreMigration"
+msgstr "Restore the original migration file or add a later migration for the changes."
+
+msgid "plugin.suggestion.reviewDatabaseState"
+msgstr "Verify the database schema before manually updating the migration history"
+
+msgid "plugin.suggestion.reviewMigrationState"
+msgstr "Review the migration history and use the recovery command to mark it as success or failed."
+
+msgid "plugin.suggestion.routePrefix"
+msgstr "Use /%(plugin_id)s or /plugin/%(plugin_id)s as the route prefix root"
+
+msgid "plugin.suggestion.scriptOrder"
+msgstr "Migrations and seeds run in manifest order; list filenames in ascending order to avoid ordering mistakes"
+
+msgid "plugin.suggestion.secretDefault"
+msgstr "Remove the default value and enter it in the plugin settings after installation"
+
+msgid "plugin.suggestion.secretPasswordType"
+msgstr "Use the password type for sensitive settings so inputs, exports, and audits consistently mask them"
+
+msgid "plugin.suggestion.selectOptions"
+msgstr "Only select settings support options; remove them or change the type to select"
+
+msgid "plugin.suggestion.supportedDatabase"
+msgstr "Use a supported database or adjust the plugin compatibility.databases declaration"
+
+msgid "plugin.suggestion.timestampType"
+msgstr "Use TIMESTAMP(3) WITH TIME ZONE for PostgreSQL and UTC DATETIME(3) for MySQL"
+
+msgid "plugin.suggestion.upgradeRuntime"
+msgstr "Upgrade the platform runtime or adjust the plugin compatibility declaration"
+
+msgid "plugin.suggestion.versionReadable"
+msgstr "Ensure runtime version information is available, then run the plugin check again"
 
 msgid "plugin.uninstalled"
 msgstr "Plugin uninstalled"
@@ -1689,6 +1866,9 @@ msgstr "Base URL must not exceed 255 characters"
 msgid "validation.baseUrlRequired"
 msgstr "Base URL is required"
 
+msgid "validation.boolean"
+msgstr "Enter a boolean value"
+
 msgid "validation.businessNameRequired"
 msgstr "Generation business name is required"
 
@@ -1727,6 +1907,12 @@ msgstr "Cron expression is required"
 
 msgid "validation.cssClassLength"
 msgstr "CSS class must not exceed 100 characters"
+
+msgid "validation.date"
+msgstr "Enter a valid date"
+
+msgid "validation.datetime"
+msgstr "Enter a valid date and time"
 
 msgid "validation.deptNameLength"
 msgstr "Department name must not exceed 30 characters"
@@ -1770,8 +1956,23 @@ msgstr "Invalid email address format"
 msgid "validation.emailLength"
 msgstr "Email address must not exceed 50 characters"
 
+msgid "validation.expected"
+msgstr "Allowed values: %(expected)s"
+
+msgid "validation.finiteNumber"
+msgstr "Enter a finite number"
+
 msgid "validation.functionNameRequired"
 msgstr "Generation feature name is required"
+
+msgid "validation.greaterThan"
+msgstr "The value must be greater than %(gt)s"
+
+msgid "validation.greaterThanEqual"
+msgstr "The value must be greater than or equal to %(ge)s"
+
+msgid "validation.integer"
+msgstr "Enter an integer"
 
 msgid "validation.invalid"
 msgstr "Invalid input"
@@ -1781,6 +1982,18 @@ msgstr "Invocation target must not exceed 500 characters"
 
 msgid "validation.invokeTargetRequired"
 msgstr "Invocation target is required"
+
+msgid "validation.json"
+msgstr "Enter valid JSON"
+
+msgid "validation.lessThan"
+msgstr "The value must be less than %(lt)s"
+
+msgid "validation.lessThanEqual"
+msgstr "The value must be less than or equal to %(le)s"
+
+msgid "validation.list"
+msgstr "Enter a list"
 
 msgid "validation.locale"
 msgstr "Invalid language tag"
@@ -1806,6 +2019,9 @@ msgstr "Model code is required"
 msgid "validation.moduleNameRequired"
 msgstr "Generation module name is required"
 
+msgid "validation.multipleOf"
+msgstr "The value must be a multiple of %(multiple_of)s"
+
 msgid "validation.namedInvalid"
 msgstr "Invalid %(field_name)s format"
 
@@ -1827,11 +2043,20 @@ msgstr "Notice title is required"
 msgid "validation.noticeTitleScript"
 msgstr "Notice title must not contain script characters"
 
+msgid "validation.number"
+msgstr "Enter a number"
+
+msgid "validation.object"
+msgstr "Enter an object"
+
 msgid "validation.orderRequired"
 msgstr "Display order is required"
 
 msgid "validation.packageNameRequired"
 msgstr "Generation package path is required"
+
+msgid "validation.pattern"
+msgstr "The input format is invalid"
 
 msgid "validation.permissionLength"
 msgstr "Permission identifier must not exceed 100 characters"
@@ -1869,11 +2094,23 @@ msgstr "Role name is required"
 msgid "validation.routePathLength"
 msgstr "Route path must not exceed 200 characters"
 
+msgid "validation.string"
+msgstr "Enter a text value"
+
+msgid "validation.stringTooLong"
+msgstr "Use at most %(max_length)s characters"
+
+msgid "validation.stringTooShort"
+msgstr "Use at least %(min_length)s characters"
+
 msgid "validation.tableCommentRequired"
 msgstr "Table description is required"
 
 msgid "validation.tableNameRequired"
 msgstr "Table name is required"
+
+msgid "validation.time"
+msgstr "Enter a valid time"
 
 msgid "validation.userNameLength"
 msgstr "User account must not exceed 30 characters"
@@ -1883,3 +2120,6 @@ msgstr "User account is required"
 
 msgid "validation.userNameScript"
 msgstr "User account must not contain script characters"
+
+msgid "validation.uuid"
+msgstr "Enter a valid UUID"

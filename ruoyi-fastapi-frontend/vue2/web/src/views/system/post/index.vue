@@ -443,7 +443,7 @@ export default {
         {
           ...this.queryParams,
         },
-        `post_${new Date().getTime()}.xlsx`
+        `${t('common:exportFiles.posts')}_${new Date().getTime()}.xlsx`
       )
     },
   },

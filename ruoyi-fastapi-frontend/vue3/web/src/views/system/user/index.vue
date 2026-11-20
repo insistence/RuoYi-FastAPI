@@ -396,7 +396,7 @@
           <el-col :span="12">
             <el-form-item
               v-if="form.userId == undefined"
-              :label="$t('system:password')"
+              :label="$t('system:password.label')"
               prop="password"
               :rules="pwdValidator"
             >
@@ -507,7 +507,7 @@
       :title="$t('system:importUsers')"
       action="/system/user/importData"
       template-action="/system/user/importTemplate"
-      template-file-name="user_template"
+      :template-file-name="$t('common:exportFiles.userTemplate')"
       :update-support-label="$t('system:updateExistingUsers')"
       @success="getList"
     />
@@ -728,7 +728,7 @@ function handleExport() {
     {
       ...queryParams.value,
     },
-    `user_${new Date().getTime()}.xlsx`
+    `${t('common:exportFiles.users')}_${new Date().getTime()}.xlsx`
   )
 }
 /** 用户状态修改  */

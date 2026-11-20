@@ -246,9 +246,11 @@ export default function Post() {
             type="default"
             icon={<DownloadOutlined />}
             onClick={() =>
-              download('/system/post/export', queryParams, `post_${Date.now()}.xlsx`).catch(
-                () => {}
-              )
+              download(
+                '/system/post/export',
+                queryParams,
+                `${t('common:exportFiles.posts')}_${Date.now()}.xlsx`
+              ).catch(() => {})
             }
           >
             {t('common:export')}

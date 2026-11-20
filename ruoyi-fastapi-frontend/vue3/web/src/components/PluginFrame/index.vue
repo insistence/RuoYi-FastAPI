@@ -46,7 +46,7 @@
 </template>
 
 <script setup name="PluginFrame">
-import { t } from '@/i18n/adapter'
+import { localeState, t } from '@/i18n/adapter'
 import {
   computed,
   nextTick,
@@ -98,7 +98,7 @@ let sessionRequest = null
 function preferences() {
   return {
     theme: { mode: settingsStore.isDark ? 'dark' : 'light', primary: settingsStore.theme },
-    language: document.documentElement.lang || 'zh-CN',
+    language: localeState.locale,
     timeZone: getDisplayTimezone(),
   }
 }
@@ -188,6 +188,7 @@ async function loadSession(ticket, renew = false) {
           shouldEncryptRequest,
           serializeParams: tansParams,
           getTimezone: getDisplayTimezone,
+          getLocale: () => localeState.locale,
         }),
         getContext: () => ({ ...preferences(), route: currentPluginRoute() }),
         onReady: () => {
@@ -243,21 +244,13 @@ watch(
   () => bridge?.updateRoute(currentPluginRoute())
 )
 
-// 宿主可能直接修改页面语言，通过 DOM 监听同步这类偏好变化。
-let languageObserver
 function activate() {
   if (active) return
   active = true
-  languageObserver = new MutationObserver(() => bridge?.updatePreferences())
-  languageObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['lang'],
-  })
   openPlugin()
 }
 function deactivate() {
   active = false
-  languageObserver?.disconnect()
   cleanup()
 }
 onMounted(activate)

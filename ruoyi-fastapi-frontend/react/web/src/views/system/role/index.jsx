@@ -460,9 +460,11 @@ export default function Role() {
             className="ruoyi-plain-button ruoyi-plain-button--warning"
             type="default"
             onClick={() =>
-              download('/system/role/export', queryParams, `role_${Date.now()}.xlsx`).catch(
-                () => {}
-              )
+              download(
+                '/system/role/export',
+                queryParams,
+                `${t('common:exportFiles.roles')}_${Date.now()}.xlsx`
+              ).catch(() => {})
             }
           >
             {t('common:export')}

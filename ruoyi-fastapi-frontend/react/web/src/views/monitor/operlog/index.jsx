@@ -240,9 +240,11 @@ export default function Operlog() {
             className="ruoyi-plain-button ruoyi-plain-button--warning"
             type="default"
             onClick={() =>
-              download('/monitor/operlog/export', query, `operlog_${Date.now()}.xlsx`).catch(
-                () => {}
-              )
+              download(
+                '/monitor/operlog/export',
+                query,
+                `${t('common:exportFiles.operations')}_${Date.now()}.xlsx`
+              ).catch(() => {})
             }
           >
             {t('common:export')}

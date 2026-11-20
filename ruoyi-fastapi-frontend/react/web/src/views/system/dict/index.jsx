@@ -1,5 +1,8 @@
 import { useLocalizedFormErrors } from '@/i18n/form'
-import TranslationFields, { SourceLocaleLabel } from '@/components/TranslationFields'
+import TranslationFields, {
+  SourceLocaleField,
+  SourceLocaleLabel,
+} from '@/components/TranslationFields'
 import { translationPatch, localizeOptions } from '@/i18n/entities.mjs'
 import { useI18n } from '@/i18n/adapter'
 import { i18n, t } from '@/i18n'
@@ -310,9 +313,11 @@ export default function Dict() {
             className="ruoyi-plain-button ruoyi-plain-button--warning"
             type="default"
             onClick={() =>
-              download('/system/dict/type/export', queryParams, `dict_${Date.now()}.xlsx`).catch(
-                () => {}
-              )
+              download(
+                '/system/dict/type/export',
+                queryParams,
+                `${t('common:exportFiles.dictTypes')}_${Date.now()}.xlsx`
+              ).catch(() => {})
             }
           >
             {t('common:export')}
@@ -375,13 +380,13 @@ export default function Dict() {
           form={dictRef}
           layout="horizontal"
         >
-          <Form.Item
-            label={<SourceLocaleLabel>{t('system:dict.name')}</SourceLocaleLabel>}
+          <SourceLocaleField
+            label={t('system:dict.name')}
             name="dictName"
             rules={[{ required: true, message: t('system:dict.nameRequired') }]}
           >
             <Input placeholder={t('system:dict.namePlaceholder')} />
-          </Form.Item>
+          </SourceLocaleField>
           <TranslationFields
             name="dictNameI18n"
             label={t('system:dict.name')}

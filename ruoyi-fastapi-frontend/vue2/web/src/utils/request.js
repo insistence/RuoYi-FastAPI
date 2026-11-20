@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Notification, MessageBox, Message, Loading } from 'element-ui'
 import store from '@/store'
 import { getToken } from '@/utils/auth'
-import errorCode from '@/utils/errorCode'
+import { getResponseMessage } from '@/utils/errorCode'
 import { tansParams, blobValidate } from '@/utils/ruoyi'
 import cache from '@/plugins/cache'
 import { saveAs } from 'file-saver'
@@ -115,7 +115,7 @@ service.interceptors.response.use(
     // 未设置状态码则默认成功状态
     const code = res.data.code || 200
     // 获取错误信息
-    const msg = res.data.msg || errorCode[code] || errorCode['default']
+    const msg = getResponseMessage(res.data)
     // 二进制数据则直接返回
     if (res.request.responseType === 'blob' || res.request.responseType === 'arraybuffer') {
       return res.data
@@ -256,7 +256,7 @@ export function download(url, params, filename, config) {
       } else {
         const resText = await data.text()
         const rspObj = JSON.parse(resText)
-        const errMsg = errorCode[rspObj.code] || rspObj.msg || errorCode['default']
+        const errMsg = getResponseMessage(rspObj)
         Message.error(errMsg)
       }
       downloadLoadingInstance.close()

@@ -24,7 +24,9 @@ export function refreshNavigation() {
   const pages = getCurrentPages()
   const current = pages[pages.length - 1]
   const title = current && pageTitles[current.route]
-  if (title) uni.setNavigationBarTitle({ title: title() })
+  if (title && !current.options?.title && !current.$page?.options?.title) {
+    uni.setNavigationBarTitle({ title: title() })
+  }
   const labels = [t('mobile:nav.home'), t('mobile:nav.work'), t('mobile:nav.mine')]
   labels.forEach((text, index) => {
     uni.setTabBarItem({ index, text, fail() {} })

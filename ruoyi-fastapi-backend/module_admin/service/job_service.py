@@ -55,7 +55,7 @@ class JobService:
             SchedulerManager._prepare_scheduler_job_add(job)
         except Exception as exc:
             raise ServiceException(
-                message=f'任务配置无效：{exc}', msg_key='job.invalidConfiguration', msg_params={'error': str(exc)}
+                message=f'任务配置无效：{exc}', msg_key='job.invalidConfiguration', msg_params={}
             ) from exc
         return job
 

@@ -1,5 +1,6 @@
 import json
 from collections.abc import Sequence
+from functools import partial
 from typing import Any
 
 from fastapi import Request
@@ -89,7 +90,7 @@ class DictTypeService:
         try:
             await DictTypeDao.add_dict_type_dao(query_db, page_object)
             await query_db.commit()
-            await request.app.state.redis.set(f'{RedisInitKeyConfig.SYS_DICT.key}:{page_object.dict_type}', '')
+            await DictDataService.publish_dict_cache(query_db, request.app.state.redis, page_object.dict_type)
             result = {'is_success': True, 'message': '新增成功', 'msg_key': 'common.added'}
         except Exception as e:
             await query_db.rollback()
@@ -119,12 +120,12 @@ class DictTypeService:
                     msg_params={'dict_name': str(page_object.dict_name)},
                 )
             try:
-                query_dict_data = DictDataPageQueryModel(dictType=dict_type_info.dict_type)
-                dict_data_list = await DictDataDao.get_dict_data_list(query_db, query_dict_data, is_page=False)
                 if dict_type_info.dict_type != page_object.dict_type:
+                    query_dict_data = DictDataPageQueryModel(dictType=dict_type_info.dict_type)
+                    dict_data_list = await DictDataDao.get_dict_data_list(query_db, query_dict_data, is_page=False)
                     for dict_data in dict_data_list:
                         edit_dict_data = DictDataModel(
-                            dictCode=dict_data.get('dict_code'),
+                            dictCode=dict_data['dictCode'],
                             dictType=page_object.dict_type,
                             updateBy=page_object.update_by,
                             updateTime=page_object.update_time,
@@ -132,12 +133,9 @@ class DictTypeService:
                         await DictDataDao.edit_dict_data_dao(query_db, edit_dict_data)
                 await DictTypeDao.edit_dict_type_dao(query_db, edit_dict_type)
                 await query_db.commit()
-                if dict_type_info.dict_type != page_object.dict_type:
-                    dict_data = [CamelCaseUtil.transform_result(row) for row in dict_data_list if row]
-                    await request.app.state.redis.set(
-                        f'{RedisInitKeyConfig.SYS_DICT.key}:{page_object.dict_type}',
-                        json.dumps(dict_data, ensure_ascii=False, default=str),
-                    )
+                await DictDataService.publish_dict_cache(
+                    query_db, request.app.state.redis, dict_type_info.dict_type, page_object.dict_type
+                )
                 return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
             except Exception as e:
                 await query_db.rollback()
@@ -170,10 +168,9 @@ class DictTypeService:
                             msg_params={'dict_name': str(dict_type_into.dict_name)},
                         )
                     await DictTypeDao.delete_dict_type_dao(query_db, DictTypeModel(dictId=int(dict_id)))
-                    delete_dict_type_list.append(f'{RedisInitKeyConfig.SYS_DICT.key}:{dict_type_into.dict_type}')
+                    delete_dict_type_list.append(dict_type_into.dict_type)
                 await query_db.commit()
-                if delete_dict_type_list:
-                    await request.app.state.redis.delete(*delete_dict_type_list)
+                await DictDataService.publish_dict_cache(query_db, request.app.state.redis, *delete_dict_type_list)
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
@@ -267,13 +264,15 @@ class DictDataService:
         return dict_data_list_result
 
     @classmethod
-    async def query_dict_data_list_services(cls, query_db: AsyncSession, dict_type: str) -> Sequence[SysDictData]:
+    async def query_dict_data_list_services(
+        cls, query_db: AsyncSession, dict_type: str
+    ) -> Sequence[SysDictData | None]:
         """
         获取字典数据列表信息service
 
         :param query_db: orm对象
         :param dict_type: 字典类型
-        :return: 字典数据列表信息对象
+        :return: 启用的字典数据项，类型已启用但无数据时包含 None
         """
         dict_data_list_result = await DictDataDao.query_dict_data_list(query_db, dict_type)
 
@@ -288,20 +287,40 @@ class DictDataService:
         :param redis: redis对象
         :return:
         """
-        # 获取以sys_dict:开头的键列表
-        keys = await redis.keys(f'{RedisInitKeyConfig.SYS_DICT.key}:*')
-        # 删除匹配的键
-        if keys:
-            await redis.delete(*keys)
-        dict_type_all = await DictTypeDao.get_all_dict_type(query_db)
-        for dict_type_obj in [item for item in dict_type_all if item.status == '0']:
-            dict_type = dict_type_obj.dict_type
-            dict_data_list = await DictDataDao.query_dict_data_list(query_db, dict_type)
-            dict_data = [CamelCaseUtil.transform_result(row) for row in dict_data_list if row]
-            await redis.set(
-                f'{RedisInitKeyConfig.SYS_DICT.key}:{dict_type}',
-                json.dumps(dict_data, ensure_ascii=False, default=str),
-            )
+        prefix = f'{RedisInitKeyConfig.SYS_DICT.key}:'
+        keys = await redis.keys(f'{prefix}*')
+        dict_types = {(key.decode() if isinstance(key, bytes) else key)[len(prefix) :] for key in keys}
+        async with AsyncSession(bind=query_db.bind) as snapshot_db:
+            dict_types.update(row.dict_type for row in await DictTypeDao.get_all_dict_type(snapshot_db))
+        await cls.publish_dict_cache(query_db, redis, *sorted(dict_types))
+
+    @staticmethod
+    async def publish_dict_cache(query_db: AsyncSession, redis: aioredis.Redis, *dict_types: str) -> None:
+        """
+        将指定字典类型的最新数据写入缓存
+
+        :param query_db: orm对象
+        :param redis: redis对象
+        :param dict_types: 待刷新缓存的字典类型
+        :return:
+        """
+
+        async def publish_snapshot(pipe: aioredis.client.Pipeline, *, dict_type: str, cache_key: str) -> None:
+            # WATCH 冲突后 Redis 会再次调用此函数，每次都要打开新会话读取最新已提交的数据。
+            async with AsyncSession(bind=query_db.bind) as snapshot_db:
+                rows = await DictDataDao.query_dict_data_list(snapshot_db, dict_type)
+                payload = [CamelCaseUtil.transform_result(row) for row in rows if row is not None]
+                for item in payload:
+                    item['dictLabelI18n'] = item['dictLabelI18n'] or {}
+            pipe.multi()
+            pipe.set(cache_key, json.dumps(payload, ensure_ascii=False, default=str))
+            if not rows:
+                # 空字典的外连接返回 [None]。已停用或删除的字典返回 []，先写再删能触发对缺失键的 WATCH。
+                pipe.delete(cache_key)
+
+        for dict_type in dict.fromkeys(dict_types):
+            cache_key = f'{RedisInitKeyConfig.SYS_DICT.key}:{dict_type}'
+            await redis.transaction(partial(publish_snapshot, dict_type=dict_type, cache_key=cache_key), cache_key)
 
     @classmethod
     async def query_dict_data_list_from_cache_services(
@@ -314,15 +333,8 @@ class DictDataService:
         :param dict_type: 字典类型
         :return: 字典数据列表信息对象
         """
-        result = []
         dict_data_list_result = await redis.get(f'{RedisInitKeyConfig.SYS_DICT.key}:{dict_type}')
-        if dict_data_list_result:
-            result = json.loads(dict_data_list_result)
-
-        rows = CamelCaseUtil.transform_result(result)
-        for row in rows:
-            row['dictLabelI18n'] = row.get('dictLabelI18n') or {}
-        return rows
+        return json.loads(dict_data_list_result) if dict_data_list_result else []
 
     @classmethod
     async def check_dict_data_unique_services(cls, query_db: AsyncSession, page_object: DictDataModel) -> bool:
@@ -360,11 +372,7 @@ class DictDataService:
         try:
             await DictDataDao.add_dict_data_dao(query_db, page_object)
             await query_db.commit()
-            dict_data_list = await cls.query_dict_data_list_services(query_db, page_object.dict_type)
-            await request.app.state.redis.set(
-                f'{RedisInitKeyConfig.SYS_DICT.key}:{page_object.dict_type}',
-                json.dumps(CamelCaseUtil.transform_result(dict_data_list), ensure_ascii=False, default=str),
-            )
+            await cls.publish_dict_cache(query_db, request.app.state.redis, page_object.dict_type)
             return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
@@ -394,10 +402,8 @@ class DictDataService:
             try:
                 await DictDataDao.edit_dict_data_dao(query_db, edit_data_type)
                 await query_db.commit()
-                dict_data_list = await cls.query_dict_data_list_services(query_db, page_object.dict_type)
-                await request.app.state.redis.set(
-                    f'{RedisInitKeyConfig.SYS_DICT.key}:{page_object.dict_type}',
-                    json.dumps(CamelCaseUtil.transform_result(dict_data_list), ensure_ascii=False, default=str),
+                await cls.publish_dict_cache(
+                    query_db, request.app.state.redis, dict_data_info.dict_type, page_object.dict_type
                 )
                 return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
             except Exception as e:
@@ -427,12 +433,7 @@ class DictDataService:
                     await DictDataDao.delete_dict_data_dao(query_db, DictDataModel(dictCode=dict_code))
                     delete_dict_type_list.append(dict_data.dict_type)
                 await query_db.commit()
-                for dict_type in list(set(delete_dict_type_list)):
-                    dict_data_list = await cls.query_dict_data_list_services(query_db, dict_type)
-                    await request.app.state.redis.set(
-                        f'{RedisInitKeyConfig.SYS_DICT.key}:{dict_type}',
-                        json.dumps(CamelCaseUtil.transform_result(dict_data_list), ensure_ascii=False, default=str),
-                    )
+                await cls.publish_dict_cache(query_db, request.app.state.redis, *delete_dict_type_list)
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
@@ -465,9 +466,9 @@ class DictDataService:
         # 创建一个映射字典，将英文键映射到中文键
         mapping_dict = {
             'dictCode': I18nMessage('字典编码', msg_key='export.dictCode'),
-            'dictSort': I18nMessage('字典标签', msg_key='export.dictLabel'),
-            'dictLabel': I18nMessage('字典键值', msg_key='export.dictValue'),
-            'dictValue': I18nMessage('字典排序', msg_key='export.dictSort'),
+            'dictSort': I18nMessage('字典排序', msg_key='export.dictSort'),
+            'dictLabel': I18nMessage('字典标签', msg_key='export.dictLabel'),
+            'dictValue': I18nMessage('字典键值', msg_key='export.dictValue'),
             'dictType': I18nMessage('字典类型', msg_key='export.dictType'),
             'cssClass': I18nMessage('样式属性', msg_key='export.cssClass'),
             'listClass': I18nMessage('表格回显样式', msg_key='export.listClass'),

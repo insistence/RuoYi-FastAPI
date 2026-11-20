@@ -2,7 +2,10 @@ import { setMessageTranslator } from './message.mjs'
 import { reactive, toRef } from 'vue'
 import { i18n } from './index'
 
-export const localeState = reactive({ locale: i18n.locale, preference: i18n.preference })
+export const localeState = reactive({
+  locale: i18n.locale,
+  preference: i18n.preference,
+})
 i18n.engine.on('languageChanged', (locale) => {
   localeState.locale = locale
 })

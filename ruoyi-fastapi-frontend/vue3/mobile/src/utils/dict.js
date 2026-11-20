@@ -11,14 +11,10 @@ import { resolveText } from '@/i18n/adapter'
 export function useDict(...types) {
   const result = {}
   types.forEach((type) => {
-    const raw = ref(useDictStore().getDict(type) || [])
     const cached = useDictStore().getDict(type)
+    const raw = ref(cached || [])
     result[type] = computed(() => localizeDictionary(raw.value, resolveText))
-    // 兼容旧缓存：先展示已有标签，再补取完整的语言映射。
-    if (
-      !cached ||
-      cached.some((item) => !Object.prototype.hasOwnProperty.call(item, 'labelI18n'))
-    ) {
+    if (!cached) {
       const token = getToken()
       getDicts(type).then((response) => {
         if (getToken() !== token) return

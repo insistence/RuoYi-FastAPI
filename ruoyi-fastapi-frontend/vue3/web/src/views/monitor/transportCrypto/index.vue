@@ -71,7 +71,7 @@
                     : 'danger'
               "
             >
-              {{ decryptSuccessRate.toFixed(1) }}%
+              {{ formatPercentage(decryptSuccessRate) }}
             </el-tag>
           </div>
           <div class="summary-value">{{ formatCount(monitorData.decryptSuccessTotal) }}</div>
@@ -243,7 +243,7 @@
           <div class="health-item">
             <div class="health-label">
               <span>{{ $t('monitor:decryptionSuccessRate') }}</span>
-              <span>{{ decryptSuccessRate.toFixed(1) }}%</span>
+              <span>{{ formatPercentage(decryptSuccessRate) }}</span>
             </div>
             <el-progress
               :percentage="Number(decryptSuccessRate.toFixed(1))"
@@ -254,7 +254,7 @@
           <div class="health-item">
             <div class="health-label">
               <span>{{ $t('monitor:encryptedRequestShare') }}</span>
-              <span>{{ encryptedRequestRate.toFixed(1) }}%</span>
+              <span>{{ formatPercentage(encryptedRequestRate) }}</span>
             </div>
             <el-progress
               :percentage="Number(encryptedRequestRate.toFixed(1))"
@@ -265,7 +265,7 @@
           <div class="health-item">
             <div class="health-label">
               <span>{{ $t('monitor:encryptedResponseShare') }}</span>
-              <span>{{ encryptedResponseRate.toFixed(1) }}%</span>
+              <span>{{ formatPercentage(encryptedResponseRate) }}</span>
             </div>
             <el-progress :percentage="Number(encryptedResponseRate.toFixed(1))" />
           </div>
@@ -534,6 +534,7 @@
 </template>
 
 <script setup name="TransportCryptoMonitor">
+import { formatNumber, formatPercentage } from '@/i18n/numbers'
 import { t, useI18n } from '@/i18n/adapter'
 import { getTransportCryptoMonitor } from '@/api/monitor/transportCrypto'
 import { parseTime } from '@/utils/ruoyi'
@@ -784,18 +785,15 @@ function resetRefreshTimer() {
 }
 
 function formatCount(value) {
-  return Number(value || 0)
+  return formatNumber(value || 0)
 }
 
 function formatPercent(value, total) {
-  if (!total) {
-    return '0.0%'
-  }
-  return `${((Number(value || 0) / total) * 100).toFixed(1)}%`
+  return formatPercentage(getRate(value, total))
 }
 
 function formatRate(success, total) {
-  return `${getRate(success, total).toFixed(1)}%`
+  return formatPercentage(getRate(success, total))
 }
 
 function getRate(numerator, denominator) {

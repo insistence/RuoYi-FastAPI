@@ -58,7 +58,7 @@
   "decliningThesePermissionsPreventsAccessToTheApp": "拒绝这些权限将无法继续进入应用",
   "yourChoice": "由你选择",
   "youCanUseTheAppWithoutSelectingThese": "不勾选也可以继续使用应用",
-  "selectedValueValue": "已选 {{length}}/{{length}}",
+  "selectedValueValue": "已选 {{selected}} / {{total}} 项",
   "valueItems": "{{length}} 项",
   "systemPermissionCodeValue": "系统权限代码：{{scope}}",
   "viewPermissionCodes": "查看系统权限代码",

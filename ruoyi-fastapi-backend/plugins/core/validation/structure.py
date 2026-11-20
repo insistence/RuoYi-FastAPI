@@ -250,7 +250,7 @@ class PluginStructureChecker:
                     message=I18nMessage(
                         f'controller 文件语法错误，无法检查路由前缀：{exc}',
                         msg_key='plugin.runtime.validation.controllerSyntax',
-                        msg_params={'error': str(exc)},
+                        msg_params={},
                     ),
                 )
             ]
@@ -273,7 +273,11 @@ class PluginStructureChecker:
                         if ok
                         else f'controller 路由前缀必须位于插件 {plugin_id} 命名空间内：{prefix or "<未声明>"}'
                     ),
-                    suggestion=f'请使用 /{plugin_id} 或 /plugin/{plugin_id} 作为路由前缀根路径',
+                    suggestion=I18nMessage(
+                        f'请使用 /{plugin_id} 或 /plugin/{plugin_id} 作为路由前缀根路径',
+                        msg_key='plugin.suggestion.routePrefix',
+                        msg_params={'plugin_id': plugin_id},
+                    ),
                 )
             )
 
@@ -376,7 +380,7 @@ class PluginStructureChecker:
                 message=I18nMessage(
                     f'生命周期钩子不可静态解析：{exc}',
                     msg_key='plugin.runtime.validation.hookSyntax',
-                    msg_params={'error': str(exc)},
+                    msg_params={},
                 ),
             )
 
@@ -501,7 +505,7 @@ class PluginStructureChecker:
                 message=I18nMessage(
                     f'任务 callable 不可静态解析：{exc}',
                     msg_key='plugin.runtime.validation.jobSyntax',
-                    msg_params={'error': str(exc)},
+                    msg_params={},
                 ),
             )
 
@@ -639,7 +643,10 @@ class PluginStructureChecker:
                 if ok
                 else f'migration包含无时区或非毫秒时间类型：{migration_path}'
             ),
-            suggestion='PostgreSQL使用TIMESTAMP(3) WITH TIME ZONE，MySQL使用UTC语义DATETIME(3)',
+            suggestion=I18nMessage(
+                'PostgreSQL使用TIMESTAMP(3) WITH TIME ZONE，MySQL使用UTC语义DATETIME(3)',
+                msg_key='plugin.suggestion.timestampType',
+            ),
         )
 
     @staticmethod
@@ -812,7 +819,7 @@ class PluginStructureChecker:
                     msg_key='plugin.runtime.validation.pathEscapesRoot',
                     msg_params={'relative_path': str(relative_path)},
                 ),
-                suggestion='请使用插件目录内的相对路径',
+                suggestion=I18nMessage('请使用插件目录内的相对路径', msg_key='plugin.suggestion.relativePath'),
             )
 
         return cls._check_file(kind, file_path)

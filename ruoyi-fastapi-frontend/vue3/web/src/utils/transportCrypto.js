@@ -27,7 +27,6 @@ let inflightKeyMetaPromise = null
 const KEY_REFRESH_BUFFER_MIN_SECONDS = 30
 const KEY_REFRESH_BUFFER_MAX_SECONDS = 300
 const TRANSPORT_KEY_META_CACHE_KEY = 'transportCryptoKeyMeta'
-const TRANSPORT_RETRYABLE_ERROR_MESSAGES = new Set(['Decryption failed', '密钥版本不存在'])
 
 /**
  * 获取当前浏览器的 Web Crypto 实例。
@@ -704,12 +703,8 @@ export function resetTransportRequestConfig(config) {
  * @returns {boolean} 是否可刷新密钥重试
  */
 export function shouldRetryTransportWithFreshKey(error) {
-  const responseMsg = error?.response?.data?.msg
-  const errorMessage = error?.message
-  return (
-    TRANSPORT_RETRYABLE_ERROR_MESSAGES.has(responseMsg) ||
-    TRANSPORT_RETRYABLE_ERROR_MESSAGES.has(errorMessage)
-  )
+  const msgKey = error?.response?.data?.msgKey
+  return msgKey === 'transport.decryptFailed' || msgKey === 'transport.keyExpired'
 }
 
 /**

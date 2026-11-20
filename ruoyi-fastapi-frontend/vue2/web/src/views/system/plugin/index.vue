@@ -2236,7 +2236,7 @@ function handleOperationLogExport() {
         ...buildOperationLogQueryParams(),
         exportLimit: 5000,
       },
-      `plugin_operation_log_${new Date().getTime()}.xlsx`
+      `${t('common:exportFiles.pluginOperations')}_${new Date().getTime()}.xlsx`
     )
     .finally(() => {
       operationLogExportLoading.value = false

@@ -12,7 +12,7 @@ class PluginPayloadModel(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
-    @field_validator('message', mode='wrap', check_fields=False)
+    @field_validator('message', 'suggestion', mode='wrap', check_fields=False)
     @classmethod
     def preserve_message_metadata(cls, value: Any, handler: ValidatorFunctionWrapHandler) -> Any:
         """

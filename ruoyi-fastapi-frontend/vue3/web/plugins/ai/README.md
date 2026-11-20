@@ -84,3 +84,14 @@ pnpm run build:prod
 ```
 
 若只修改文档，不需要执行前端构建。
+
+## 国际化
+
+本插件通过 `i18n.js` 导出的 `t` / `useI18n` 读取独立 i18next 实例。
+`locale-meta.json` 声明本插件的语言集合、默认语言和回退链，词库位于 `locales/`。
+宿主切换语言时插件重新匹配；宿主新增语言不要求本插件同步新增，网络请求仍使用宿主语言。
+
+应用的 `pnpm run i18n:check` 会发现本插件的 `x18n.config.mjs`，按插件声明的语言检查词库。
+也可以在应用目录运行 `pnpm exec x18n --root plugins/ai check` 单独检查插件。
+新增插件语言时同步更新本插件元数据、词库和 `i18n.js` 中的导入。
+会话内卸载时调用 `removePluginLocales()`，重新启用时调用 `registerPluginLocales()`；两者不修改宿主或其他插件资源。

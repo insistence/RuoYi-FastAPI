@@ -1,5 +1,5 @@
 import { useLocalizedFormErrors } from '@/i18n/form'
-import TranslationFields, { SourceLocaleLabel } from '@/components/TranslationFields'
+import TranslationFields, { SourceLocaleField } from '@/components/TranslationFields'
 import { translationPatch, localizeOptions } from '@/i18n/entities.mjs'
 import { useI18n } from '@/i18n/adapter'
 import { i18n, t } from '@/i18n'
@@ -350,7 +350,7 @@ export default function DictData({ params }) {
               download(
                 '/system/dict/data/export',
                 queryParams,
-                `dict_data_${Date.now()}.xlsx`
+                `${t('common:exportFiles.dictData')}_${Date.now()}.xlsx`
               ).catch(() => {})
             }
           >
@@ -411,13 +411,13 @@ export default function DictData({ params }) {
           >
             <Input disabled />
           </Form.Item>
-          <Form.Item
+          <SourceLocaleField
             name="dictLabel"
-            label={<SourceLocaleLabel>{t('system:dict.label')}</SourceLocaleLabel>}
+            label={t('system:dict.label')}
             rules={[{ required: true }]}
           >
             <Input placeholder={t('system:dict.labelPlaceholder')} />
-          </Form.Item>
+          </SourceLocaleField>
           <TranslationFields
             name="dictLabelI18n"
             label={t('system:dict.label')}

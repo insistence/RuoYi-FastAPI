@@ -55,8 +55,9 @@
 </template>
 
 <script setup>
+import { h } from 'vue'
 import { t } from '@/i18n/adapter'
-import { getToken } from '@/utils/auth'
+import { getUploadHeaders } from '@/utils/uploadHeaders'
 
 const { proxy } = getCurrentInstance()
 
@@ -100,7 +101,7 @@ const visible = ref(false)
 const selectedFile = ref(null)
 const isUploading = ref(false)
 const updateSupport = ref(false)
-const headers = { Authorization: 'Bearer ' + getToken() }
+const headers = computed(getUploadHeaders)
 
 const uploadUrl = computed(() => {
   return (
@@ -151,18 +152,19 @@ const handleFileRemove = (file, fileList) => {
   selectedFile.value = null
 }
 
-// 上传成功
+/**
+ * 以纯文本展示导入结果，保留消息中的换行和单元格原文。
+ *
+ * @param {Object} response 上传接口响应
+ */
 function handleSuccess(response) {
   visible.value = false
   isUploading.value = false
   selectedFile.value = null
   uploadRef.value?.clearFiles()
   proxy.$alert(
-    "<div style='overflow:auto;overflow-x:hidden;max-height:70vh;padding:10px 20px 0;'>" +
-      response.msg +
-      '</div>',
-    t('components:importResults'),
-    { dangerouslyUseHTMLString: true }
+    h('div', { class: 'excel-import-result' }, String(response.msg || '')),
+    t('components:importResults')
   )
   emit('success')
 }
@@ -183,3 +185,12 @@ function handleSubmit() {
 
 defineExpose({ open })
 </script>
+
+<style>
+.excel-import-result {
+  max-height: 70vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+</style>

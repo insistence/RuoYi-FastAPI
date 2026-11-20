@@ -4,7 +4,9 @@ import { createRequire } from 'node:module'
 import { test } from 'node:test'
 import { withLocalePatch } from '../../src/utils/localePayload.mjs'
 import { restoreVisitedViews, serializeVisitedViews } from '../../src/utils/tagsView.js'
+import { createPluginLocaleRuntime } from '../../src/i18n/plugin.mjs'
 import { createLocaleRuntime } from '../../src/i18n/runtime.mjs'
+import LocaleForms from '../../src/i18n/forms.js'
 
 const require = createRequire(import.meta.url)
 const Vue = require('vue')
@@ -25,12 +27,14 @@ const source = readFileSync(new URL('../../src/i18n/adapter.js', import.meta.url
 const adapter = new Function(
   'Vue',
   'i18n',
+  'createPluginLocaleRuntime',
   source
-    .replace(/^import .*\n/gm, '')
+    .replace(/^import .*\r?\n/gm, '')
     .replace(/export const /g, 'const ')
+    .replace(/export function /g, 'function ')
     .replace('export default', 'const plugin =') +
-    '\nreturn { t, resolveRouteTitle, resolveText, localeState, plugin }'
-)(Vue, i18n)
+    '\nreturn { t, resolveRouteTitle, resolveText, localeState, plugin, createPluginI18n }'
+)(Vue, i18n, createPluginLocaleRuntime)
 Vue.use(adapter.plugin)
 
 function router() {
@@ -62,7 +66,7 @@ test('route and dictionary labels react without changing the route, input or val
   )
   const DictData = new Function(
     'resolveText',
-    dataSource.replace(/^import .*\n/gm, '').replace('export default class', 'return class')
+    dataSource.replace(/^import .*\r?\n/gm, '').replace('export default class', 'return class')
   )(adapter.resolveText)
   const option = new DictData('正常', '0', { dictLabelI18n: { 'en-US': 'Active' } })
   const vm = new Vue({
@@ -103,13 +107,6 @@ test('persisted tabs restore current metadata and explicit custom titles', () =>
   assert.equal(restored[0].customTitle, 'User title')
   assert.equal(restored[0].params.id, '7')
   assert.equal(restored[0].hash, '#details')
-  const legacy = restoreVisitedViews(
-    [{ path: '/menu/1', title: '旧名称', meta: { title: '旧名称' } }, { path: '/removed' }, null],
-    (location) => instance.resolve(location).route
-  )
-  assert.equal(legacy.length, 1)
-  assert.equal(legacy[0].meta.titleI18n['en-US'], '<b>Menu</b>')
-  assert.equal(legacy[0].customTitle, undefined)
 })
 
 test('locale patches preserve omitted languages and distinguish updates from deletion', () => {
@@ -128,10 +125,8 @@ test('locale patches preserve omitted languages and distinguish updates from del
 })
 
 test('a locale change revalidates only fields already displaying errors', () => {
-  const formSource = readFileSync(new URL('../../src/i18n/forms.js', import.meta.url), 'utf8')
-  const plugin = new Function(formSource.replace('export default', 'return'))()
   let mixin
-  plugin.install({
+  LocaleForms.install({
     mixin(value) {
       mixin = value
     },
@@ -148,4 +143,28 @@ test('a locale change revalidates only fields already displaying errors', () => 
   }
   mixin.watch['$locale.locale'].call(form)
   assert.deepEqual(calls, [''])
+})
+
+test('a plugin translator tracks Vue computed text without replacing its draft', async () => {
+  const plugin = adapter.createPluginI18n(
+    meta,
+    {
+      'zh-CN': { 'plugin.test': { title: '插件标题' } },
+      'en-US': { 'plugin.test': { title: 'Plugin title' } },
+    },
+    'plugin.test'
+  )
+  const vm = new Vue({
+    data: () => ({ draft: 'unsaved' }),
+    computed: { title: () => plugin.t('title') },
+  })
+  await i18n.setPreference('zh-CN')
+  await Vue.nextTick()
+  assert.equal(vm.title, '插件标题')
+  await i18n.setPreference('en-US')
+  await Vue.nextTick()
+  assert.equal(vm.title, 'Plugin title')
+  assert.equal(vm.draft, 'unsaved')
+  plugin.removePluginLocales()
+  vm.$destroy()
 })

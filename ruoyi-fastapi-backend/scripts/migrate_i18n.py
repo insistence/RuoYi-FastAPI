@@ -3,12 +3,13 @@ import json
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import JSON, MetaData, Table, inspect, select, text, update
+from sqlalchemy import JSON, VARCHAR, BigInteger, MetaData, Table, inspect, select, text, update
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import Connection
 
 from config.database import create_sync_db_engine
 from config.env import I18nConfig
-from i18n.registry import LOCALES, MAX_LOCALE_LENGTH
+from i18n.registry import MAX_LOCALE_LENGTH, LocaleRegistry
 from scripts.verify_timezone_database import load_source
 
 SEED_PATH = Path(__file__).resolve().parent.parent / 'sql' / 'i18n-seeds.json'
@@ -22,14 +23,32 @@ def plan_migration(connection: Connection) -> list[str]:
     :return: 待执行的升级语句，字段已兼容时返回空列表
     """
     inspector = inspect(connection)
+    postgresql = connection.dialect.name == 'postgresql'
     columns = {column['name']: column for column in inspector.get_columns('sys_user')}
     statements = []
     if 'locale' in columns:
         column = columns['locale']
-        if getattr(column['type'], 'length', None) != MAX_LOCALE_LENGTH or column['nullable']:
+        column_type = column['type']
+        defaults = {"'zh-CN'"}
+        if postgresql:
+            # PostgreSQL 反射字符串默认值时可能保留显式类型转换。
+            defaults.update({"'zh-CN'::character varying", "'zh-CN'::character varying(63)", "'zh-CN'::text"})
+        if (
+            not isinstance(column_type, VARCHAR)
+            or column_type.length != MAX_LOCALE_LENGTH
+            or column['nullable']
+            or column.get('default') not in defaults
+        ):
             raise ValueError('Existing sys_user.locale is incompatible; review the schema before migrating')
     else:
         statements.append("ALTER TABLE sys_user ADD COLUMN locale VARCHAR(63) NOT NULL DEFAULT 'zh-CN'")
+    if 'locale_revision' in columns:
+        column = columns['locale_revision']
+        default = str(column.get('default')).split('::', 1)[0].strip('() "\'')
+        if not isinstance(column['type'], BigInteger) or column['nullable'] or default != '0':
+            raise ValueError('Existing sys_user.locale_revision is incompatible; review the schema before migrating')
+    else:
+        statements.append('ALTER TABLE sys_user ADD COLUMN locale_revision BIGINT NOT NULL DEFAULT 0')
     for table, name in (
         ('sys_menu', 'menu_name_i18n'),
         ('sys_dict_type', 'dict_name_i18n'),
@@ -40,8 +59,11 @@ def plan_migration(connection: Connection) -> list[str]:
             column = columns[name]
             if not isinstance(column['type'], JSON) or not column['nullable']:
                 raise ValueError(f'Existing {table}.{name} is incompatible; review the schema before migrating')
+            if postgresql and not isinstance(column['type'], JSONB):
+                statements.append(f'ALTER TABLE {table} ALTER COLUMN {name} TYPE JSONB USING {name}::jsonb')
         else:
-            statements.append(f'ALTER TABLE {table} ADD COLUMN {name} JSON NULL')
+            json_type = 'JSONB' if postgresql else 'JSON'
+            statements.append(f'ALTER TABLE {table} ADD COLUMN {name} {json_type} NULL')
     return statements
 
 
@@ -96,7 +118,7 @@ def apply_seed_translations(connection: Connection, plan: list[dict[str, Any]]) 
 
 def plan_manual_translations(connection: Connection, seeds: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    列出种子不能自动补齐的自定义名称与已注册语言，保留现有内容供人工维护。
+    列出启用的目标语言中，应用种子后仍需人工补译的菜单和字典名称
 
     :param connection: 数据库连接
     :param seeds: 本次拟补齐的内置译文
@@ -119,7 +141,7 @@ def plan_manual_translations(connection: Connection, seeds: list[dict[str, Any]]
             combined = {**planned.get(row[identity], {}), **current}
             missing = [
                 code
-                for code in LOCALES
+                for code in LocaleRegistry.enabled_locales()
                 if code != I18nConfig.SOURCE_LOCALE
                 and (not isinstance(combined.get(code), str) or not combined[code].strip())
             ]

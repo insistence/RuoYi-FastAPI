@@ -1,5 +1,3 @@
-import zhAi from '../../plugins/ai/locales/zh-CN.json' with { type: 'json' }
-import enAi from '../../plugins/ai/locales/en-US.json' with { type: 'json' }
 import meta from './locale-meta.json' with { type: 'json' }
 import locale0Auth from './locales/zh-CN/auth.json' with { type: 'json' }
 import locale0AuthCenter from './locales/zh-CN/authCenter.json' with { type: 'json' }
@@ -23,7 +21,6 @@ import locale1Tool from './locales/en-US/tool.json' with { type: 'json' }
 export { meta }
 export const resources = {
   'zh-CN': {
-    'plugin.ai': zhAi,
     auth: locale0Auth,
     authCenter: locale0AuthCenter,
     common: locale0Common,
@@ -35,7 +32,6 @@ export const resources = {
     tool: locale0Tool,
   },
   'en-US': {
-    'plugin.ai': enAi,
     auth: locale1Auth,
     authCenter: locale1AuthCenter,
     common: locale1Common,

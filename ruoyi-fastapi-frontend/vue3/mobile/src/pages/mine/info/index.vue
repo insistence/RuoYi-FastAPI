@@ -98,7 +98,9 @@
             $t('mobile:profile.createdAt')
           }}</text>
         </view>
-        <text class="text-sm text-gray-500">{{ formatBusinessTime(user.createTime) || '-' }}</text>
+        <text class="text-sm text-gray-500">{{
+          formatDisplayTime(user.createTime, $locale.locale) || '-'
+        }}</text>
       </view>
     </view>
   </view>
@@ -107,7 +109,7 @@
 <script setup>
 import { getUserProfile } from '@/api/system/user'
 import { ref } from 'vue'
-import { formatBusinessTime } from '@/utils/time'
+import { formatDisplayTime } from '@/utils/time'
 import { useUserStore } from '@/store/modules/user'
 
 const user = ref({})

@@ -149,8 +149,7 @@ export default function BusinessFileUpload({
       )}
       {isShowTip && !disabled && (
         <small>
-          {t('file:upload')}
-          {fileSize > 0 && t('file:upToValueMb', { fileSize })}
+          {t('common:upload')} {fileSize > 0 && t('file:upToValueMb', { fileSize })}
           {fileType.length > 0 && t('file:inValueFormat', { arg0: fileType.join('/') })}
           {t('file:filesUpTo')} {limit} {t('file:items')}
         </small>

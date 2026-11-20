@@ -7,6 +7,9 @@ import { setBusinessTimezone, setUserTimezone } from '@/utils/time'
 import cache from '@/plugins/cache'
 import defAva from '@/assets/images/profile.jpg'
 
+const sessionChangedError = () =>
+  Object.assign(new Error('User session changed'), { code: 'USER_SESSION_CHANGED' })
+
 const useUserStore = create((set, get) => ({
   token: getToken(),
   id: '',
@@ -32,9 +35,15 @@ const useUserStore = create((set, get) => ({
   },
   // 获取用户资料、角色权限及密码状态，同时应用服务端业务时区。
   async getInfo() {
-    const result = await getInfo()
+    const requestedToken = getToken()
+    const isCurrentSession = () =>
+      requestedToken && requestedToken === getToken() && requestedToken === get().token
+    const result = await getInfo().catch((error) => {
+      throw isCurrentSession() ? error : sessionChangedError()
+    })
+    if (!isCurrentSession()) throw sessionChangedError()
     const user = result.user
-    i18n.setAccount(user?.userId, user?.locale)
+    i18n.setAccount(user?.userId, user?.locale, user?.localeRevision)
     setBusinessTimezone(result.appTimezone)
     get().applyTimezone(user.timeZone)
     cache.session.set('pwrChrtype', result.pwdChrtype)

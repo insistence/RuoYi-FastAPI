@@ -12,7 +12,7 @@ from exceptions.exception import ServiceException
 from i18n.message import I18nMessage
 from module_admin.dao.user_dao import UserDao
 from module_admin.service.config_service import ConfigService
-from module_admin.service.dict_service import DictTypeService
+from module_admin.service.dict_service import DictDataService, DictTypeService
 from module_admin.service.user_service import UserService
 from module_identity.service.identity_service import IdentitySubjectService
 from utils.excel_util import ExcelUtil
@@ -24,7 +24,7 @@ from utils.user_import_util import UserImportUtil
 async def test_published_user_templates_round_trip_independently_of_interface_language(
     locale: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    token = RequestContext.set_current_locale(LocaleContext(locale, 'v1'))
+    token = RequestContext.set_current_locale(LocaleContext(locale))
     try:
         workbook = load_workbook(io.BytesIO(await UserService.get_user_import_template_services()))
     finally:
@@ -85,11 +85,11 @@ def test_import_rejects_duplicate_aliases_missing_columns_and_unknown_enums() ->
     assert invalid.value.msg_key == 'import.invalidValue'
 
 
-def test_export_uses_snapshot_and_keeps_business_content_and_legacy_headers() -> None:
+def test_export_uses_snapshot_for_headers_and_preserves_business_content() -> None:
     mapping = {'value': I18nMessage('用户名称', msg_key='export.userName')}
     for context, expected in [
-        (LocaleContext('en-US', 'v1'), 'Username'),
-        (LocaleContext('en-US', 'legacy'), '用户名称'),
+        (LocaleContext('en-US'), 'Username'),
+        (LocaleContext('zh-CN'), '用户名称'),
     ]:
         binary = ExcelUtil.export_list2excel([{'value': '用户提供的内容'}], mapping, locale_context=context)
         sheet = load_workbook(io.BytesIO(binary)).active
@@ -98,8 +98,31 @@ def test_export_uses_snapshot_and_keeps_business_content_and_legacy_headers() ->
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ('locale', 'headers', 'label'),
+    [
+        ('en-US', ['Dictionary order', 'Dictionary label', 'Dictionary value'], 'Active'),
+        ('zh-CN', ['字典排序', '字典标签', '字典键值'], '正常'),
+    ],
+)
+async def test_dictionary_data_export_matches_each_header_to_its_value(
+    locale: str, headers: list[str], label: str
+) -> None:
+    token = RequestContext.set_current_locale(LocaleContext(locale))
+    try:
+        exported = await DictDataService.export_dict_data_list_services(
+            [{'dictSort': 12, 'dictLabel': '正常', 'dictLabelI18n': {'en-US': 'Active'}, 'dictValue': '0'}]
+        )
+    finally:
+        RequestContext.reset_current_locale(token)
+    sheet = load_workbook(io.BytesIO(exported)).active
+    assert [cell.value for cell in sheet[1][1:4]] == headers
+    assert [cell.value for cell in sheet[2][1:4]] == [12, label, '0']
+
+
+@pytest.mark.asyncio
 async def test_dictionary_export_localizes_name_and_status_without_changing_type() -> None:
-    token = RequestContext.set_current_locale(LocaleContext('en-US', 'v1'))
+    token = RequestContext.set_current_locale(LocaleContext('en-US'))
     try:
         data = await DictTypeService.export_dict_type_list_services(
             [

@@ -65,6 +65,7 @@ export default function Layout() {
         .getInfo()
         .then(() => permission.generateRoutes())
         .catch((error) => {
+          if (error?.code === 'USER_SESSION_CHANGED') return
           if (active) setError(error.message)
         })
     return () => {

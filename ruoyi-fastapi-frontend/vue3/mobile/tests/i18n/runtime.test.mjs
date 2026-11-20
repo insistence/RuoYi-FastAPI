@@ -63,7 +63,7 @@ test('third language is configured, not a two-language branch', async () => {
 })
 test('save failure leaves active language and preference intact', async () => {
   const runtime = setup()
-  runtime.setAccount(1, 'zh-CN')
+  runtime.setAccount(1, 'zh-CN', '0')
   await assert.rejects(
     runtime.setPreference('en-US', {
       save: async () => {
@@ -76,7 +76,7 @@ test('save failure leaves active language and preference intact', async () => {
 })
 test('an old save cannot overwrite a new account', async () => {
   const runtime = setup()
-  runtime.setAccount(1, 'zh-CN')
+  runtime.setAccount(1, 'zh-CN', '0')
   let done
   const pending = runtime.setPreference('en-US', {
     save: () =>
@@ -85,7 +85,7 @@ test('an old save cannot overwrite a new account', async () => {
       }),
   })
   await Promise.resolve()
-  runtime.setAccount(2, 'zh-CN')
+  runtime.setAccount(2, 'zh-CN', '0')
   done()
   await assert.rejects(pending)
   assert.equal(runtime.accountId, '2')
@@ -94,7 +94,7 @@ test('an old save cannot overwrite a new account', async () => {
 test('guest preference returns after logout; unsupported account preference is retained', async () => {
   const runtime = setup()
   await runtime.setPreference('en-US')
-  runtime.setAccount(1, 'fr-CA')
+  runtime.setAccount(1, 'fr-CA', '0')
   assert.equal(runtime.preference, 'fr-CA')
   assert.equal(runtime.locale, 'zh-CN')
   runtime.setAccount(null)
@@ -113,10 +113,11 @@ test('auto follows changed device locale without changing the preference', async
 })
 test('preference switches are serialized and recover after failed requests', async () => {
   const runtime = setup()
-  runtime.setAccount(1)
+  runtime.setAccount(1, 'zh-CN', '0')
   const seen = []
   const save = async (value) => {
     seen.push(value)
+    return { locale: value, revision: String(seen.length) }
   }
   await Promise.all([
     runtime.setPreference('en-US', { save }),

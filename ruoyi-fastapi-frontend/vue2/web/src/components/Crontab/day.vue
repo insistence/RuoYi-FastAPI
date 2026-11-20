@@ -53,7 +53,7 @@
           :min="1"
           :max="30"
         />
-        {{ $t('tool:interface.repeatEvery') }}
+        {{ $t('tool:interface.repeatEvery.day') }}
         <el-input-number
           v-model="average02"
           :min="1"

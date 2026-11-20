@@ -303,7 +303,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                       await download(
                         'system/plugin/operation-log/export',
                         { ...query, exportLimit: 5000 },
-                        `plugin_operation_log_${Date.now()}.xlsx`
+                        `${t('common:exportFiles.pluginOperations')}_${Date.now()}.xlsx`
                       )
                     } finally {
                       setExporting(false)

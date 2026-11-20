@@ -12,6 +12,11 @@ class LocaleMiddleware:
     """
 
     def __init__(self, app: ASGIApp) -> None:
+        """
+        初始化请求语言中间件
+
+        :param app: 由本中间件包装的 ASGI 应用
+        """
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -44,6 +49,6 @@ def add_locale_middleware(app: FastAPI) -> None:
     """
     添加请求语言中间件
 
-    :param app: FastAPI对象
+    :param app: FastAPI 应用
     """
     app.add_middleware(LocaleMiddleware)

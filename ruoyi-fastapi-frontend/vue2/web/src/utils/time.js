@@ -14,6 +14,7 @@ const MILLISECONDS_PER_MINUTE = 60 * MILLISECONDS_PER_SECOND
 const MILLISECONDS_PER_HOUR = 60 * MILLISECONDS_PER_MINUTE
 const ORIGINAL_TIME_FIELDS = Symbol('originalTimeFields')
 const timezoneFormatters = new Map()
+const displayFormatters = new Map()
 
 // Vue 2 共享响应状态，账号时区变更后页面无需刷新。
 const timezoneState = Vue.observable({
@@ -288,6 +289,34 @@ function formatEpoch(epoch, pattern, timezoneName) {
     .replaceAll('{s}', 'ss')
     .replaceAll('{a}', `[${WEEKDAYS[value.day()]}]`)
   return value.format(format)
+}
+
+/**
+ * 按指定语言和时区生成日期时间的展示文本。
+ *
+ * @param {string|Date} value RFC 3339 字符串或 Date 对象
+ * @param {string} locale 展示语言
+ * @param {string} timezoneName 目标时区，默认使用当前用户展示时区
+ * @returns {string|null} 日期时间文本，非法输入返回 null
+ */
+export function formatDisplayTime(value, locale, timezoneName = getDisplayTimezone()) {
+  const epoch = parseInstantMilliseconds(value)
+  if (epoch === null) {
+    return null
+  }
+
+  const cacheKey = `${locale}:${timezoneName}`
+  if (!displayFormatters.has(cacheKey)) {
+    displayFormatters.set(
+      cacheKey,
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: 'medium',
+        timeStyle: 'medium',
+        timeZone: timezoneName,
+      })
+    )
+  }
+  return displayFormatters.get(cacheKey).format(epoch)
 }
 
 /**

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -22,7 +22,15 @@ test('Python translation entry points are scanned with the project config', asyn
 
   try {
     await cp(new URL('x18n.config.yml', backend), join(root, 'x18n.config.yml'))
+    await mkdir(join(root, '.x18n'), { recursive: true })
+    for (const name of ['python-domain.mjs', 'scan_python_domains.py'])
+      await cp(new URL(`.x18n/${name}`, backend), join(root, '.x18n', name))
     await cp(new URL('i18n/catalogs/', backend), join(root, 'i18n/catalogs'), { recursive: true })
+    const scaffold = join(root, 'cli/runtime/plugin/scaffold')
+    await mkdir(scaffold, { recursive: true })
+    for (const name of ['frontend.py', 'frontend_vue2.py', 'frontend_react.py']) {
+      await cp(new URL(`cli/runtime/plugin/scaffold/${name}`, backend), join(scaffold, name))
+    }
     await writeFile(
       join(root, 'messages.py'),
       `from i18n import t
@@ -65,6 +73,7 @@ t(f'missing.{suffix}')
       join(root, 'missing.py'),
       `t('missing.shortEntry')\nI18nUtil.translate("missing.classEntry")\n`
     )
+    await writeFile(join(scaffold, 'backend.py'), `ResponseUtil.failure(msg_key='missing.scaffoldBackend')\n`)
     result = check()
     assert.equal(result.status, 1)
     assert.deepEqual(
@@ -73,7 +82,7 @@ t(f'missing.{suffix}')
           .filter((item) => item.code === 'missing-key')
           .map((item) => item.key)
       ),
-      new Set(['missing.shortEntry', 'missing.classEntry'])
+      new Set(['missing.shortEntry', 'missing.classEntry', 'missing.scaffoldBackend'])
     )
   } finally {
     await rm(root, { recursive: true, force: true })

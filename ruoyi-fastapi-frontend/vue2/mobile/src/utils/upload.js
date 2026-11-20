@@ -62,7 +62,7 @@ const upload = (config) => {
         } else if (message.includes('timeout')) {
           message = t('common:network.timeout')
         } else if (message.includes('Request failed with status code')) {
-          message = '系统接口' + message.substr(message.length - 3) + '异常'
+          message = t('utility:httpStatus', { status: message.substr(message.length - 3) })
         }
         toast(message)
         const uploadError = error instanceof Error ? error : new Error(message)

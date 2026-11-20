@@ -91,6 +91,7 @@ const stream = createPluginSseTransport({
   shouldEncryptRequest: (_, policy) => policy.active,
   serializeParams: (params) => new URLSearchParams(params).toString(),
   getTimezone: () => 'Asia/Shanghai',
+  getLocale: () => 'zh-CN',
   origin: 'https://test',
   fetchImpl: async (...args) => {
     fetched.push(args)
@@ -110,6 +111,7 @@ assert.deepEqual(fetched[0][1].headers, {
   Accept: 'text/event-stream',
   'X-Plugin-CSRF': 'host-only',
   'X-Timezone': 'Asia/Shanghai',
+  'Accept-Language': 'zh-CN',
   'Last-Event-ID': '4',
 })
 assert.equal(fetched[0][1].credentials, 'same-origin')
@@ -173,7 +175,7 @@ let releasePolicy
 const pendingPolicy = new Promise((resolve) => {
   releasePolicy = resolve
 })
-const currentHeaders = { 'Accept-Language': 'en-US', 'X-I18n-Version': '1' }
+let currentLocale = 'en-US'
 let currentTimezone = 'UTC'
 const snapshots = []
 const localizedStream = createPluginSseTransport({
@@ -181,7 +183,7 @@ const localizedStream = createPluginSseTransport({
   shouldEncryptRequest: () => false,
   serializeParams: () => '',
   getTimezone: () => currentTimezone,
-  getLocaleHeaders: () => currentHeaders,
+  getLocale: () => currentLocale,
   origin: 'https://test',
   fetchImpl: async (_, options) => {
     snapshots.push(options.headers)
@@ -189,13 +191,12 @@ const localizedStream = createPluginSseTransport({
   },
 })
 const firstConnection = collect(localizedStream(config))
-currentHeaders['Accept-Language'] = 'zh-CN'
+currentLocale = 'zh-CN'
 currentTimezone = 'Asia/Shanghai'
 releasePolicy({})
 await firstConnection
 await collect(localizedStream(config))
 assert.equal(snapshots[0]['Accept-Language'], 'en-US')
-assert.equal(snapshots[0]['X-I18n-Version'], '1')
 assert.equal(snapshots[0]['X-Timezone'], 'UTC')
 assert.equal(snapshots[1]['Accept-Language'], 'zh-CN')
 assert.equal(snapshots[1]['X-Timezone'], 'Asia/Shanghai')

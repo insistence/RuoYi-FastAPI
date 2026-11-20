@@ -223,7 +223,7 @@ class {{ BusinessName }}Service:
                     item.get('dictLabel'),
                     item.get('dictLabelI18n'),
                     locale=locale_context.locale,
-                ) if locale_context.version == 'v1' else item.get('dictLabel'),
+                ),
                 'value': item.get('dictValue'),
             }
             for item in {{ dict_type[1:-1] }}_list

@@ -22,7 +22,6 @@ from module_admin.entity.do.dict_do import SysDictData, SysDictType
 from module_admin.entity.do.menu_do import SysMenu
 from module_admin.entity.vo.dict_vo import DictDataModel, DictDataPageQueryModel, DictTypeModel, DictTypePageQueryModel
 from module_admin.entity.vo.menu_vo import MenuModel, MenuQueryModel
-from module_admin.service.dict_service import DictDataService
 from module_admin.service.login_service import LoginService
 from module_admin.service.menu_service import MenuService
 from plugins.core.management.dao.dao import PluginDao
@@ -35,6 +34,7 @@ from plugins.core.management.dao.dao import PluginDao
 def test_translation_patch_accepts_future_locales_and_normalizes_null(
     model: type[BaseModel], field: str, limit: int
 ) -> None:
+    """验证译文补丁允许未来语言，并区分空映射与删除单项。"""
     assert model(**{field: None}).model_dump(by_alias=True)[field] == {}
     assert model(**{field: {'ja_jp': '日本語', 'fr-FR': None}}).model_dump(by_alias=True)[field] == {
         'ja-JP': '日本語',
@@ -48,6 +48,7 @@ def test_translation_patch_accepts_future_locales_and_normalizes_null(
 
 
 def test_query_models_do_not_expose_translation_objects_as_query_parameters() -> None:
+    """验证菜单和字典列表查询不接受译文映射作为查询参数。"""
     for model, field in [
         (MenuQueryModel, 'menu_name_i18n'),
         (DictTypePageQueryModel, 'dict_name_i18n'),
@@ -73,6 +74,7 @@ async def test_updates_merge_languages_and_preserve_maps_from_old_clients(
     field: str,
     attributes: dict[str, str],
 ) -> None:
+    """验证增量补丁只更新提交的语言，部分字段更新时保留已有译文。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     try:
@@ -99,6 +101,7 @@ async def test_updates_merge_languages_and_preserve_maps_from_old_clients(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('dialect', [mysql.dialect(), postgresql.dialect()])
 async def test_translation_update_locks_latest_database_value(dialect: Dialect) -> None:
+    """验证合并译文前会读取并锁定数据库中的最新记录。"""
     db = SimpleNamespace(scalar=AsyncMock(return_value={'ja-JP': '日本語'}), execute=AsyncMock())
     await MenuDao.edit_menu_dao(db, {'menu_id': 1, 'menu_name_i18n': {'en-US': 'Users'}})
     statement = db.scalar.call_args.args[0]
@@ -108,6 +111,7 @@ async def test_translation_update_locks_latest_database_value(dialect: Dialect) 
 
 @pytest.mark.parametrize('kind', ['directory', 'page', 'root_page', 'inner_link'])
 def test_router_and_permission_tree_keep_raw_titles_and_translation_maps(kind: str) -> None:
+    """验证路由与授权菜单树同时保留原始标题和译文。"""
     menu = SysMenu(
         menu_id=1,
         menu_name='用户管理',
@@ -129,15 +133,9 @@ def test_router_and_permission_tree_keep_raw_titles_and_translation_maps(kind: s
     assert tree['labelI18n'] == {'en-US': 'Users', 'ja-JP': '利用者'}
 
 
-@pytest.mark.asyncio
-async def test_dictionary_cache_normalizes_missing_maps_without_localizing_raw_label() -> None:
-    redis = SimpleNamespace(get=AsyncMock(return_value='[{"dictLabel":"正常","dictValue":"0","dictLabelI18n":null}]'))
-    rows = await DictDataService.query_dict_data_list_from_cache_services(redis, 'sys_normal_disable')
-    assert rows == [{'dictLabel': '正常', 'dictValue': '0', 'dictLabelI18n': {}}]
-
-
-def test_translation_resolution_respects_request_capability_and_source_fallback() -> None:
-    for context, expected in [(LocaleContext('en-US', 'legacy'), '用户管理'), (LocaleContext('en-US', 'v1'), 'Users')]:
+def test_translation_resolution_uses_request_locale_and_source_fallback() -> None:
+    """验证动态名称遵循请求语言和基准语言回退规则。"""
+    for context, expected in [(LocaleContext('zh-CN'), '用户管理'), (LocaleContext('en-US'), 'Users')]:
         token = RequestContext.set_current_locale(context)
         try:
             assert TranslationUtil.resolve('用户管理', {'en-US': 'Users'}) == expected
@@ -148,10 +146,10 @@ def test_translation_resolution_respects_request_capability_and_source_fallback(
 
 @pytest.mark.parametrize(
     ('context', 'expected'),
-    [(LocaleContext('en-US', 'legacy'), '菜单名称不能为空'), (LocaleContext('en-US', 'v1'), 'Menu name is required')],
+    [(LocaleContext('zh-CN'), '菜单名称不能为空'), (LocaleContext('en-US'), 'Menu name is required')],
 )
 def test_declarative_validation_translates_at_response_time(context: LocaleContext, expected: str) -> None:
-
+    """验证声明式校验在生成响应时使用当前语言。"""
     with pytest.raises(FieldValidationError) as exc_info:
         MenuModel().get_menu_name()
     message = exc_info.value.message
@@ -160,32 +158,31 @@ def test_declarative_validation_translates_at_response_time(context: LocaleConte
     try:
         fields = I18nUtil.message_fields(message)
         assert fields['msg'] == expected
-        if context.version == 'v1':
-            assert fields['msgKey'] == 'validation.menuNameRequired'
-        else:
-            assert 'msgKey' not in fields
+        assert fields['msgKey'] == 'validation.menuNameRequired'
     finally:
         RequestContext.reset_current_locale(token)
 
 
-def test_business_message_params_and_legacy_text_are_preserved() -> None:
-
+def test_business_messages_interpolate_public_parameters() -> None:
+    """验证业务消息在两种语言中均保留公开插值参数。"""
     original = '新增菜单自定义菜单失败，菜单名称已存在'
-    for version, expected in [
-        ('legacy', original),
-        ('v1', 'Unable to add menu 自定义菜单: the menu name already exists'),
+    for locale, expected in [
+        ('zh-CN', original),
+        ('en-US', 'Unable to add menu 自定义菜单: the menu name already exists'),
     ]:
-        token = RequestContext.set_current_locale(LocaleContext('en-US', version))
+        token = RequestContext.set_current_locale(LocaleContext(locale))
         try:
             fields = I18nUtil.message_fields(
                 original, msg_key='menu.addDuplicateName', msg_params={'menu_name': '自定义菜单'}
             )
             assert fields['msg'] == expected
+            assert fields['msgParams'] == {'menu_name': '自定义菜单'}
         finally:
             RequestContext.reset_current_locale(token)
 
 
 def test_message_copy_preserves_deferred_translation_metadata() -> None:
+    """验证复制消息时保留响应阶段所需的翻译信息。"""
     message = I18nMessage('已有原文', msg_key='common.success', msg_params={'count': 1})
     cloned = deepcopy(message)
     assert cloned == message

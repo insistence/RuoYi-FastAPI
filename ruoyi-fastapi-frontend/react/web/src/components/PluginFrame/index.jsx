@@ -159,17 +159,8 @@ export default function PluginFrame({ route }) {
       setLoading(true)
       loadSession(current.generation)
     }
-    const observer = new MutationObserver(() => {
-      context.current.preferences.language = document.documentElement.lang || 'zh-CN'
-      current.bridge?.updatePreferences()
-    })
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['lang'],
-    })
     return () => {
       current.active = false
-      observer.disconnect()
       cleanup(!useUserStore.getState().token)
     }
   }, [pluginId, token, revision])
@@ -188,7 +179,7 @@ export default function PluginFrame({ route }) {
         shouldEncryptRequest,
         serializeParams: tansParams,
         getTimezone: getDisplayTimezone,
-        getLocaleHeaders: () => i18n.headers,
+        getLocale: () => i18n.locale,
       }),
       getContext: () => ({
         ...context.current.preferences,

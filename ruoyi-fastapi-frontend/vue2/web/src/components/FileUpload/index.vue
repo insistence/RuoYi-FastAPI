@@ -225,7 +225,9 @@ export default {
     },
     // 文件个数超出
     handleExceed() {
-      this.$modal.msgError(t('file:interface.youCanUploadAtMostValueFiles', { value0: this.limit }))
+      this.$modal.msgError(
+        t('file:interface.youCanUploadAtMostValueFiles.index', { value0: this.limit })
+      )
     },
     // 上传失败
     handleUploadError(err) {

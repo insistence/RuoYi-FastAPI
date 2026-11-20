@@ -29,8 +29,7 @@ class PluginVue3FrontendScaffoldTemplateBuilder(PluginFrontendApiScaffoldTemplat
 </template>
 
 <script setup>
-import '../i18n'
-import {{ t }} from '@/i18n/adapter'
+import {{ t }} from '../i18n'
 </script>
 """
 
@@ -99,8 +98,8 @@ import {{ t }} from '@/i18n/adapter'
 </template>
 
 <script setup name=\"{class_name}Plugin\">
-import '../i18n'
-import {{ t, localeState }} from '@/i18n/adapter'
+import {{ t }} from '../i18n'
+import {{ localeState }} from '@/i18n/adapter'
 import {{
   add{class_name}Item,
   del{class_name}Item,

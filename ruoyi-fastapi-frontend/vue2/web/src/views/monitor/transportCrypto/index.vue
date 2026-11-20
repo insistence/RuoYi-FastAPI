@@ -68,7 +68,7 @@
         >
           <div class="summary-header">
             <span class="summary-title">{{ $t('monitor:messages.decryptionSuccessRate') }}</span>
-            <el-tag :type="decryptRateTagType"> {{ decryptSuccessRate.toFixed(1) }}% </el-tag>
+            <el-tag :type="decryptRateTagType"> {{ formatPercentage(decryptSuccessRate) }} </el-tag>
           </div>
           <div class="summary-value">{{ formatCount(monitorData.decryptSuccessTotal) }}</div>
           <div class="summary-desc">
@@ -250,7 +250,7 @@
           <div class="health-item">
             <div class="health-label">
               <span>{{ $t('monitor:messages.decryptionSuccessRate') }}</span>
-              <span>{{ decryptSuccessRate.toFixed(1) }}%</span>
+              <span>{{ formatPercentage(decryptSuccessRate) }}</span>
             </div>
             <el-progress
               :percentage="Number(decryptSuccessRate.toFixed(1))"
@@ -261,7 +261,7 @@
           <div class="health-item">
             <div class="health-label">
               <span>{{ $t('monitor:messages.encryptedRequestShare') }}</span>
-              <span>{{ encryptedRequestRate.toFixed(1) }}%</span>
+              <span>{{ formatPercentage(encryptedRequestRate) }}</span>
             </div>
             <el-progress
               :percentage="Number(encryptedRequestRate.toFixed(1))"
@@ -272,7 +272,7 @@
           <div class="health-item">
             <div class="health-label">
               <span>{{ $t('monitor:messages.encryptedResponseShare') }}</span>
-              <span>{{ encryptedResponseRate.toFixed(1) }}%</span>
+              <span>{{ formatPercentage(encryptedResponseRate) }}</span>
             </div>
             <el-progress :percentage="Number(encryptedResponseRate.toFixed(1))" />
           </div>
@@ -546,6 +546,7 @@
 </template>
 
 <script>
+import { formatNumber, formatPercentage } from '@/i18n/numbers'
 import { t } from '@/i18n/adapter'
 
 import { getTransportCryptoMonitor } from '@/api/monitor/transportCrypto'
@@ -789,6 +790,7 @@ export default {
     this.destroyCharts()
   },
   methods: {
+    formatPercentage,
     formatMonitorTime(value, pattern = '{y}-{m}-{d} {h}:{i}:{s}') {
       return parseTime(value, pattern)
     },
@@ -826,16 +828,13 @@ export default {
       }
     },
     formatCount(value) {
-      return Number(value || 0)
+      return formatNumber(value || 0)
     },
     formatPercent(value, total) {
-      if (!total) {
-        return '0.0%'
-      }
-      return ((Number(value || 0) / total) * 100).toFixed(1) + '%'
+      return formatPercentage(this.getRate(value, total))
     },
     formatRate(success, total) {
-      return this.getRate(success, total).toFixed(1) + '%'
+      return formatPercentage(this.getRate(success, total))
     },
     getRate(numerator, denominator) {
       if (!denominator) {

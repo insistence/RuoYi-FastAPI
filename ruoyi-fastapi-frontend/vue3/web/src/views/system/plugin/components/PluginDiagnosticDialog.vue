@@ -188,6 +188,7 @@
 
 <script setup name="PluginDiagnosticDialog">
 import { t } from '@/i18n/adapter'
+import { buildOperationValidationItems } from '@/utils/pluginPlanFormatter'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -230,29 +231,7 @@ const emit = defineEmits(['update:modelValue'])
 const health = computed(() => props.result.health || null)
 const diagnose = computed(() => (props.result.info || props.result.check ? props.result : null))
 
-const validationItems = computed(() => {
-  const check = diagnose.value?.check || {}
-  const groups = [
-    [t('components:dependencies'), check.dependencies],
-    [t('plugins:manifestError'), check.manifestIssues],
-    [t('plugins:manifestWarning'), check.manifestWarnings],
-    [t('components:pluginDependencies'), check.pluginDependencyErrors],
-    [t('components:structure'), check.structureErrors],
-    [t('components:menuConflicts'), check.menuConflicts],
-  ]
-
-  return groups.flatMap(([category, items]) =>
-    Array.isArray(items)
-      ? items.map((item) => ({
-          category,
-          level: item.level || (category.includes(t('system:warning')) ? 'warning' : 'error'),
-          kind: item.kind || item.name || item.status || '-',
-          value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
-          message: item.message || item.suggestion || item.reason || '',
-        }))
-      : []
-  )
-})
+const validationItems = computed(() => buildOperationValidationItems(diagnose.value?.check || {}))
 </script>
 
 <style scoped>

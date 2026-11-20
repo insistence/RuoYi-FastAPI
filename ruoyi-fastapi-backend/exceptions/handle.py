@@ -1,7 +1,6 @@
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request, Response, status
-from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse as FastAPIJSONResponse
 from fastapi.responses import RedirectResponse
@@ -20,9 +19,10 @@ from exceptions.exception import (
     ServiceException,
     ServiceWarning,
 )
-from i18n import t
 from i18n.locale import LocaleUtil
 from i18n.message import I18nMessage
+from i18n.translator import I18nUtil
+from i18n.validation import ValidationMessageUtil
 from utils.exception_util import ExceptionUtil
 from utils.log_util import logger
 from utils.oidc_util import OidcUtil
@@ -124,21 +124,17 @@ def handle_exception(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError) -> Response:
         """
-        按客户端能力本地化参数校验消息，保留字段位置和错误类型
+        按请求语言本地化参数校验消息，保留字段位置和错误类型
         """
-        if RequestContext.get_current_locale().version != 'v1':
-            return await request_validation_exception_handler(request, exc)
-        details = []
-        for error in exc.errors():
-            key = 'validation.required' if error['type'] == 'missing' else 'validation.invalid'
-            details.append({'loc': error['loc'], 'type': error['type'], 'msg': t(key), 'msgKey': key})
+        details = [ValidationMessageUtil.localize(error) for error in exc.errors()]
         return JSONResponse(status_code=422, content={'detail': details})
 
     # 处理其他http请求异常
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> Response:
+        fields = I18nUtil.message_fields(exc.detail) if isinstance(exc.detail, I18nMessage) else {'msg': exc.detail}
         return JSONResponse(
-            content=jsonable_encoder({'code': exc.status_code, 'msg': exc.detail}),
+            content=jsonable_encoder({'code': exc.status_code, **fields}),
             status_code=exc.status_code,
             headers=exc.headers,
         )

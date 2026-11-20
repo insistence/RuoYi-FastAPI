@@ -9,6 +9,9 @@ import { getToken, setToken, removeToken } from '@/utils/auth'
 import { isHttp, isEmpty } from '@/utils/validate'
 import defAva from '@/assets/images/profile.jpg'
 
+const sessionChangedError = () =>
+  Object.assign(new Error('User session changed'), { code: 'USER_SESSION_CHANGED' })
+
 const user = {
   state: {
     token: getToken(),
@@ -80,11 +83,15 @@ const user = {
 
     // 获取用户信息
     GetInfo({ commit, state }) {
+      const requestedToken = getToken()
+      const isCurrentSession = () =>
+        requestedToken && requestedToken === getToken() && requestedToken === state.token
       return new Promise((resolve, reject) => {
         getInfo()
           .then((res) => {
+            if (!isCurrentSession()) throw sessionChangedError()
             const user = res.user
-            i18n.setAccount(user?.userId, user?.locale)
+            i18n.setAccount(user?.userId, user?.locale, user?.localeRevision)
             commit('SET_APP_TIMEZONE', res.appTimezone)
             commit('SET_TIMEZONE', user.timeZone)
             let avatar = user.avatar || ''
@@ -138,7 +145,7 @@ const user = {
             resolve(res)
           })
           .catch((error) => {
-            reject(error)
+            reject(isCurrentSession() ? error : sessionChangedError())
           })
       })
     },
@@ -155,6 +162,7 @@ const user = {
         commit('SET_ROLES', [])
         commit('SET_PERMISSIONS', [])
         removeToken()
+        commit('dict/CLEAN_DICT', null, { root: true })
         i18n.setAccount(null)
       }
     },
@@ -165,6 +173,7 @@ const user = {
         commit('SET_TOKEN', '')
         commit('SET_TIMEZONE', 'auto')
         removeToken()
+        commit('dict/CLEAN_DICT', null, { root: true })
         i18n.setAccount(null)
         resolve()
       })

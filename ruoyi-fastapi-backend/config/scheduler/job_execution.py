@@ -1,11 +1,13 @@
 import logging
 import threading
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import func, select, update
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from config.database import DataSourceRegistry, quiet_sql_engine
@@ -13,6 +15,8 @@ from config.env import DataBaseConfig
 from module_admin.entity.do.job_do import SysJob
 from module_admin.entity.do.job_runtime_do import SysJobExecution, SysJobSync
 from utils.time_util import TimezoneUtil
+
+MYSQL_DEADLOCK = 1213
 
 
 @dataclass(frozen=True)
@@ -34,6 +38,7 @@ class JobExecutionStore:
 
     LEASE_SECONDS = 30
     HEARTBEAT_SECONDS = 5
+    FINISH_ATTEMPTS = 3
 
     @staticmethod
     def session() -> Session:
@@ -181,23 +186,46 @@ class JobExecutionStore:
         :param run_duration_ms: 实际执行耗时（毫秒）
         :return: None
         """
-        with cls.session() as db, db.begin():
-            db.execute(
-                update(SysJobExecution)
-                .where(
-                    SysJobExecution.execution_id == execution_id,
-                    SysJobExecution.owner_token == token,
-                    SysJobExecution.status.in_(['running', 'unknown']),
-                )
-                .values(
-                    status='failed' if failed else 'success',
-                    message=(message or '执行成功')[:2000],
-                    start_time=start_time,
-                    end_time=end_time,
-                    run_duration_ms=run_duration_ms,
-                    lease_until=None,
-                )
-            )
+        for attempt in range(cls.FINISH_ATTEMPTS):
+            try:
+                # 终态更新可能与过期恢复扫描死锁，仅重试保存结果的事务，不重放业务调用。
+                with cls.session() as db, db.begin():
+                    db.execute(
+                        update(SysJobExecution)
+                        .where(
+                            SysJobExecution.execution_id == execution_id,
+                            SysJobExecution.owner_token == token,
+                            SysJobExecution.status.in_(['running', 'unknown']),
+                        )
+                        .values(
+                            status='failed' if failed else 'success',
+                            message=(message or '执行成功')[:2000],
+                            start_time=start_time,
+                            end_time=end_time,
+                            run_duration_ms=run_duration_ms,
+                            lease_until=None,
+                        )
+                    )
+                return
+            except DBAPIError as exc:  # noqa: PERF203 - 每次重试必须覆盖独立事务的完整生命周期。
+                if attempt + 1 >= cls.FINISH_ATTEMPTS or not cls._retryable_finish_error(exc):
+                    raise
+                # 旧事务回滚且会话关闭后，再等待并开启新事务。
+                time.sleep(0.05 * (2**attempt))
+
+    @staticmethod
+    def _retryable_finish_error(error: DBAPIError) -> bool:
+        """
+        只重试数据库明确回滚的死锁或序列化冲突，连接中断等不明结果继续向上报告
+
+        :param error: SQLAlchemy 包装的数据库异常
+        :return: 是否可以重试终态更新事务
+        """
+        if error.connection_invalidated:
+            return False
+        original = error.orig
+        sqlstate = getattr(original, 'sqlstate', None) or getattr(original, 'pgcode', None)
+        return sqlstate in {'40001', '40P01'} or bool(original.args and original.args[0] == MYSQL_DEADLOCK)
 
     @classmethod
     def record_unstarted(

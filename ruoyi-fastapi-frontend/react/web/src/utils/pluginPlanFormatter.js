@@ -144,12 +144,16 @@ export function normalizePluginOperationLogDetail(detail) {
   }
 }
 
-function buildOperationValidationItems(result) {
-  const firstCheck = Array.isArray(result.checks) ? result.checks[0] : {}
+export function buildOperationValidationItems(result) {
+  const firstCheck = result.checks?.[0] || {}
   const validationGroups = [
     [t('pluginAdmin:dependencies'), result.dependencies || firstCheck.dependencies],
     [t('common:manifestError'), result.manifestIssues || firstCheck.manifestIssues],
-    [t('common:manifestWarning'), result.manifestWarnings || firstCheck.manifestWarnings],
+    [
+      t('common:manifestWarning'),
+      result.manifestWarnings || firstCheck.manifestWarnings,
+      'warning',
+    ],
     [
       t('pluginAdmin:dependencyTitle'),
       result.pluginDependencyErrors || firstCheck.pluginDependencyErrors,
@@ -158,11 +162,11 @@ function buildOperationValidationItems(result) {
     [t('pluginAdmin:menuConflict'), result.menuConflicts || firstCheck.menuConflicts],
   ]
 
-  return validationGroups.flatMap(([category, items]) =>
+  return validationGroups.flatMap(([category, items, defaultLevel = 'error']) =>
     Array.isArray(items)
       ? items.map((item) => ({
           category,
-          level: item.level || (category.includes(t('common:warning')) ? 'warning' : 'error'),
+          level: item.level || defaultLevel,
           kind: item.kind || item.name || item.status || '-',
           value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
           message: item.message || item.suggestion || item.reason || '',

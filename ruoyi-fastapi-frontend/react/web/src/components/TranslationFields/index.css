@@ -1,0 +1,20 @@
+.ruoyi-dialog-form .locale-text-field > .ant-form-item-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.ruoyi-dialog-form .locale-text-field > .ant-form-item-row > .ant-form-item-label {
+  flex: none;
+  min-width: 0;
+  padding-inline-end: 0;
+  padding-block-end: 6px;
+  text-align: start;
+  white-space: normal;
+}
+
+.ruoyi-dialog-form .locale-text-field .ant-form-item-label > label {
+  height: auto;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

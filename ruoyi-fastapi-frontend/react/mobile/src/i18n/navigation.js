@@ -38,8 +38,14 @@ export function refreshNavigation() {
   })
 }
 
+/**
+ * 在页面显示或语言变化时更新导航文案。
+ *
+ * @returns {string} 当前页面使用的语言标识
+ */
 export function usePageLocale() {
   const { locale } = useI18n()
   useDidShow(refreshNavigation)
   useEffect(refreshNavigation, [locale])
+  return locale
 }

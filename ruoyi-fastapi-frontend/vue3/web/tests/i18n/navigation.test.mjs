@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, rm, writeFile, readdir, readFile } from 'node:fs/promis
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { join } from 'node:path'
 import { build } from 'esbuild'
-import { computed, effectScope, nextTick, reactive, shallowRef } from 'vue'
+import { computed, effectScope, nextTick, reactive, shallowRef, watch } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { restoreVisitedViews, serializeVisitedViews } from '../../src/utils/tagsView.js'
 
@@ -21,6 +21,7 @@ await build({
   stdin: {
     contents: `
       export { t, useI18n, resolveRouteTitle } from './src/i18n/adapter.js'
+      export { pluginI18n } from './plugins/ai/i18n.js'
       export { useLocaleForm } from './src/composables/useLocaleForm.js'
       export { usePasswordRule } from './src/utils/passwordRule.js'
     `,
@@ -38,7 +39,7 @@ await build({
 
 const previousStorage = globalThis.sessionStorage
 globalThis.sessionStorage = { getItem: () => null }
-const { t, useI18n, resolveRouteTitle, useLocaleForm, usePasswordRule } = await import(
+const { t, useI18n, resolveRouteTitle, useLocaleForm, usePasswordRule, pluginI18n } = await import(
   pathToFileURL(output)
 )
 if (previousStorage === undefined) delete globalThis.sessionStorage
@@ -127,21 +128,9 @@ test('persisted tabs retain route parameters and explicit titles, not translated
   assert.equal(restored[1].customTitle, 'layout:routes.home')
 })
 
-test('legacy tabs use fresh metadata and discard removed or malformed routes', () => {
+test('malformed saved tabs are ignored', () => {
   const router = createTestRouter()
-  const legacy = [
-    { path: '/user/42', fullPath: '/user/42?tab=old', title: '旧名称', meta: { title: '旧名称' } },
-    { path: '/custom', title: '自定义标题', meta: { title: '原始名称' } },
-    { path: '/removed', title: '已移除的菜单' },
-    null,
-    { path: 123 },
-  ]
-  const restored = restoreVisitedViews(legacy, (view) => router.resolve(view))
-  assert.equal(restored.length, 2)
-  assert.equal(restored[0].meta.titleKey, 'layout:routes.profile')
-  assert.equal(restored[0].customTitle, undefined)
-  assert.equal(restored[1].customTitle, '自定义标题')
-  assert.deepEqual(restoreVisitedViews({ version: 99, views: legacy }, router.resolve), [])
+  assert.deepEqual(restoreVisitedViews({ version: 99, views: [] }, router.resolve), [])
   assert.deepEqual(restoreVisitedViews({ version: 1, views: 'invalid' }, router.resolve), [])
 })
 
@@ -206,7 +195,7 @@ test('registered namespaces provide English plurals and complete interpolated me
   assert.equal(t('layout:search.results', { count: 1 }), '找到 1 个结果')
 })
 
-test('every checked application and plugin namespace is registered in the actual runtime', async () => {
+test('application and plugin namespaces are registered in their own runtime', async () => {
   for (const entry of i18n.registry.entries) {
     const files = await readdir(join(root, 'src/i18n/locales', entry.code))
     for (const file of files.filter((name) => name.endsWith('.json'))) {
@@ -216,6 +205,23 @@ test('every checked application and plugin namespace is registered in the actual
         entry.code + ':' + file
       )
     }
-    assert.equal(i18n.engine.hasResourceBundle(entry.code, 'plugin.ai'), true)
+    assert.equal(i18n.engine.hasResourceBundle(entry.code, 'plugin.ai'), false)
   }
+})
+
+test('the actual plugin translator follows reactive locale changes without replacing draft state', async () => {
+  for (const entry of pluginI18n.registry.entries)
+    assert.equal(pluginI18n.engine.hasResourceBundle(entry.code, 'plugin.ai'), true)
+  const draft = reactive({ value: 'unsaved' })
+  const label = computed(() => pluginI18n.t('plugin.ai:modelCode'))
+  await i18n.setPreference('zh-CN')
+  const chinese = label.value
+  const observed = []
+  const stop = watch(label, (value) => observed.push(value), { flush: 'sync' })
+  await i18n.setPreference('en-US')
+  assert.notEqual(label.value, chinese)
+  assert.equal(label.value, 'Model code')
+  assert.deepEqual(observed, ['Model code'])
+  stop()
+  assert.equal(draft.value, 'unsaved')
 })

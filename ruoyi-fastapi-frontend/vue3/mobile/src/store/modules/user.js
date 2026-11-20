@@ -12,6 +12,9 @@ import defAva from '@/static/images/profile.jpg'
 
 const baseUrl = config.baseUrl
 
+const sessionChangedError = () =>
+  Object.assign(new Error('User session changed'), { code: 'USER_SESSION_CHANGED' })
+
 export const useUserStore = defineStore('user', () => {
   const token = ref(getToken())
   const id = ref(storage.get(constant.id))
@@ -87,11 +90,15 @@ export const useUserStore = defineStore('user', () => {
 
   // 获取用户信息
   const getInfoAction = () => {
+    const requestedToken = getToken()
+    const isCurrentSession = () =>
+      requestedToken && requestedToken === getToken() && requestedToken === token.value
     return new Promise((resolve, reject) => {
       getInfo()
         .then((res) => {
+          if (!isCurrentSession()) throw sessionChangedError()
           const user = res.user
-          i18n.setAccount(user?.userId, user?.locale)
+          i18n.setAccount(user?.userId, user?.locale, user?.localeRevision)
           appTimezone.value = res.appTimezone
           setBusinessTimezone(res.appTimezone)
           applyTimezone(user.timeZone)
@@ -113,7 +120,7 @@ export const useUserStore = defineStore('user', () => {
           resolve(res)
         })
         .catch((error) => {
-          reject(error)
+          reject(isCurrentSession() ? error : sessionChangedError())
         })
     })
   }

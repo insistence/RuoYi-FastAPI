@@ -1,4 +1,5 @@
-import { formatBusinessTime, normalizeRangeBoundary } from '@/utils/time'
+import { localeState } from '@/i18n/adapter'
+import { formatBusinessTime, formatDisplayTime, normalizeRangeBoundary } from '@/utils/time'
 
 /**
  * 通用js方法封装处理
@@ -7,7 +8,9 @@ import { formatBusinessTime, normalizeRangeBoundary } from '@/utils/time'
 
 // 日期格式化
 export function parseTime(time, pattern) {
-  return formatBusinessTime(time, pattern)
+  return pattern === undefined
+    ? formatDisplayTime(time, localeState.locale)
+    : formatBusinessTime(time, pattern)
 }
 
 // 表单重置

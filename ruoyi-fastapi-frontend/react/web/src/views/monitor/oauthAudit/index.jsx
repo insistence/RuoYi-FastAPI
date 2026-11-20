@@ -87,7 +87,7 @@ export default function OAuthAudit() {
     await download(
       '/monitor/oauth/audit/export',
       { ...query, ...params },
-      `oauth_audit_${Date.now()}.xlsx`
+      `${t('common:exportFiles.oauthAudit')}_${Date.now()}.xlsx`
     ).catch(() => {})
   }
   const columns = [

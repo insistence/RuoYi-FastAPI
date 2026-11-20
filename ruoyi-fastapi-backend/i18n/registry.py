@@ -8,11 +8,11 @@ _SCRIPT_SUBTAG_LENGTH = 4
 _REGION_SUBTAG_LENGTH = 2
 CATALOG_ROOT = Path(__file__).parent / 'catalogs'
 LOCALES = {
-    'zh-CN': {'aliases': ('zh', 'zh-Hans'), 'fallback': ()},
-    'en-US': {'aliases': ('en',), 'fallback': ('zh-CN',)},
+    'zh-CN': {'enabled': True, 'aliases': ('zh', 'zh-Hans'), 'fallback': ()},
+    'en-US': {'enabled': True, 'aliases': ('en',), 'fallback': ('zh-CN',)},
 }
-if I18nConfig.i18n_default_locale not in LOCALES:
-    raise ValueError('I18N_DEFAULT_LOCALE must be registered')
+# 仅为明确允许共享译文的语言族配置回退；不把不同中文文字变体无条件归并。
+LANGUAGE_FALLBACKS = {'en': 'en-US'}
 
 # 匹配包含文字、地区、变体、扩展及私有用途子标签的 BCP 47 语言标识。
 _TAG = re.compile(
@@ -28,6 +28,21 @@ class LocaleRegistry:
     """
     语言注册与规范化工具类
     """
+
+    @staticmethod
+    def enabled_locales() -> tuple[str, ...]:
+        """
+        获取协商和编译时使用的已启用语言
+
+        :return: 按注册顺序排列的语言标签
+        :raises ValueError: 默认语言或基准语言未注册或已停用
+        """
+        enabled = tuple(code for code, entry in LOCALES.items() if entry.get('enabled', True))
+        if I18nConfig.i18n_default_locale not in enabled:
+            raise ValueError('I18N_DEFAULT_LOCALE must be registered and enabled')
+        if I18nConfig.SOURCE_LOCALE not in enabled:
+            raise ValueError('SOURCE_LOCALE must be registered and enabled')
+        return enabled
 
     @staticmethod
     def normalize_locale(value: str, *, preference: bool = False) -> str:
@@ -78,9 +93,14 @@ class LocaleRegistry:
             code = cls.normalize_locale(value)
         except ValueError:
             return None
-        if code in LOCALES:
+        enabled = cls.enabled_locales()
+        if code in enabled:
             return code
-        return next((key for key, entry in LOCALES.items() if code in entry['aliases']), None)
+        alias = next((key for key in enabled if code in LOCALES[key]['aliases']), None)
+        if alias is not None:
+            return alias
+        target = LANGUAGE_FALLBACKS.get(code.split('-', 1)[0])
+        return target if target in enabled else None
 
     @staticmethod
     def fallback_chain(code: str) -> tuple[str, ...]:
@@ -95,7 +115,7 @@ class LocaleRegistry:
         def visit(item: str, stack: tuple[str, ...] = ()) -> None:
             if item in stack or item not in LOCALES:
                 raise ValueError('Invalid locale fallback configuration')
-            if item not in result:
+            if item not in result and LOCALES[item].get('enabled', True):
                 result.append(item)
                 for fallback in LOCALES[item]['fallback']:
                     visit(fallback, (*stack, item))
@@ -105,5 +125,8 @@ class LocaleRegistry:
         return tuple(result)
 
 
-for _code in LOCALES:
+for _code in LocaleRegistry.enabled_locales():
     LocaleRegistry.fallback_chain(_code)
+for _language, _target in LANGUAGE_FALLBACKS.items():
+    if LocaleRegistry.normalize_locale(_language) != _language or '-' in _language or _target not in LOCALES:
+        raise ValueError('Invalid locale language fallback configuration')

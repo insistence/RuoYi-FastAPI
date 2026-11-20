@@ -4,8 +4,11 @@ import en from './locales/en-US/common.json'
 import zhMobile from './locales/zh-CN/mobile.json'
 import enMobile from './locales/en-US/mobile.json'
 
+import zhUtility from './locales/zh-CN/utility.json'
+import enUtility from './locales/en-US/utility.json'
+
 export { meta }
 export const resources = {
-  'zh-CN': { common: zh, mobile: zhMobile },
-  'en-US': { common: en, mobile: enMobile },
+  'zh-CN': { common: zh, mobile: zhMobile, utility: zhUtility },
+  'en-US': { common: en, mobile: enMobile, utility: enUtility },
 }

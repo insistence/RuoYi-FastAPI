@@ -505,7 +505,7 @@
       :title="$t('system:importUsers')"
       action="/system/user/importData"
       template-action="/system/user/importTemplate"
-      template-file-name="user_template"
+      :template-file-name="$t('common:exportFiles.userTemplate')"
       :update-support-label="$t('system:updateExistingUsers')"
       @success="getList"
     />
@@ -866,7 +866,7 @@ export default {
         {
           ...this.queryParams,
         },
-        `user_${new Date().getTime()}.xlsx`
+        `${t('common:exportFiles.users')}_${new Date().getTime()}.xlsx`
       )
     },
     /** 详情按钮操作 */

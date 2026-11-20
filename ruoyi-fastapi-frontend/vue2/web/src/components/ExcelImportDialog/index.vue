@@ -154,7 +154,11 @@ export default {
     handleProgress() {
       this.isUploading = true
     },
-    // 上传成功
+    /**
+     * 以纯文本展示导入结果，保留消息中的换行和单元格原文。
+     *
+     * @param {Object} response 上传接口响应
+     */
     handleSuccess(response) {
       this.visible = false
       this.isUploading = false
@@ -162,11 +166,8 @@ export default {
         this.$refs.uploadRef.clearFiles()
       }
       this.$alert(
-        "<div style='overflow:auto;overflow-x:hidden;max-height:70vh;padding:10px 20px 0;'>" +
-          response.msg +
-          '</div>',
-        t('common:importResults'),
-        { dangerouslyUseHTMLString: true }
+        this.$createElement('div', { class: 'excel-import-result' }, String(response.msg || '')),
+        t('common:importResults')
       )
       this.$emit('success')
     },
@@ -187,3 +188,12 @@ export default {
   },
 }
 </script>
+
+<style>
+.excel-import-result {
+  max-height: 70vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+</style>

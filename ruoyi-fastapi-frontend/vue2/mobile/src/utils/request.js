@@ -121,7 +121,7 @@ const request = async (config) => {
     } else if (message && message.includes('timeout')) {
       message = t('common:network.timeout')
     } else if (message && message.includes('Request failed with status code')) {
-      message = '系统接口' + message.substr(message.length - 3) + '异常'
+      message = t('utility:httpStatus', { status: message.substr(message.length - 3) })
     }
     if (message) {
       toast(message)

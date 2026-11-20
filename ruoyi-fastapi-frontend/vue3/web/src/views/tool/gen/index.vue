@@ -285,9 +285,9 @@
       <el-tabs v-model="preview.activeName">
         <el-tab-pane
           v-for="(value, key) in preview.data"
-          :label="key.substring(key.lastIndexOf('/') + 1, key.indexOf('.jinja2'))"
-          :name="key.substring(key.lastIndexOf('/') + 1, key.indexOf('.jinja2'))"
-          :key="value"
+          :label="previewFileLabel(key)"
+          :name="key"
+          :key="key"
         >
           <el-link
             underline="never"
@@ -327,6 +327,7 @@ import {
 import router from '@/router'
 import importTable from './importTable'
 import createTable from './createTable'
+import { initialPreviewFile, previewFileLabel } from './preview'
 
 const route = useRoute()
 const { proxy } = getCurrentInstance()
@@ -358,7 +359,7 @@ const data = reactive({
       return t('tools:codePreview')
     },
     data: {},
-    activeName: 'do.py',
+    activeName: '',
   },
 })
 
@@ -465,7 +466,7 @@ function handlePreview(row) {
   previewTable(row.tableId).then((response) => {
     preview.value.data = response.data
     preview.value.open = true
-    preview.value.activeName = 'do.py'
+    preview.value.activeName = initialPreviewFile(response.data)
   })
 }
 

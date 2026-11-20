@@ -212,7 +212,7 @@ async def delete_system_user(
         if current_user.user.user_id in list(map(int, user_id_list)):
             logger.warning('当前登录用户不能删除')
 
-            return ResponseUtil.failure(msg='当前登录用户不能删除', msg_key='user.deleteCurrentUser')
+            return ResponseUtil.failure(msg_key='user.deleteCurrentUser')
         for user_id in user_id_list:
             await UserService.check_user_allowed_services(UserModel(userId=int(user_id)))
             if not current_user.user.admin:
@@ -388,7 +388,7 @@ async def change_system_user_profile_avatar(
             msg_key=edit_user_result.msg_key,
             msg_params=edit_user_result.msg_params,
         )
-    return ResponseUtil.failure(msg='上传图片异常，请联系管理员', msg_key='user.avatar.uploadFailed')
+    return ResponseUtil.failure(msg_key='user.avatar.uploadFailed')
 
 
 @user_controller.put(
@@ -451,7 +451,7 @@ async def change_system_user_locale(
     result = await UserService.update_user_locale_services(
         query_db, current_user.user.user_id, current_user.user.user_name, preference.locale
     )
-    return ResponseUtil.success(msg=result.message, msg_key=result.msg_key, data={'locale': preference.locale})
+    return ResponseUtil.success(msg=result.message, msg_key=result.msg_key, data=result.result)
 
 
 @user_controller.put(
