@@ -114,7 +114,14 @@ def prepare_network_host(fixture: SimpleNamespace) -> None:
     async def info() -> dict[str, Any]:
         return {
             'code': 200,
-            'user': {'userId': 7, 'userName': 'network-smoke', 'nickName': '验收账号', 'timeZone': 'Asia/Shanghai'},
+            'user': {
+                'userId': 7,
+                'userName': 'network-smoke',
+                'nickName': '验收账号',
+                'timeZone': 'Asia/Shanghai',
+                'locale': 'zh-CN',
+                'localeRevision': '0',
+            },
             'roles': ['tester'],
             'permissions': ['browser_test:view'],
             'appTimezone': 'Asia/Shanghai',
