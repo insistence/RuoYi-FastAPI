@@ -8,13 +8,13 @@
   <body>
     <main id="workspace" aria-busy="true">
       <header>
-        <div><p class="eyebrow">插件应用</p><h1>__PLUGIN_ID__</h1></div>
-        <button id="refresh" type="button" disabled>刷新状态</button>
+        <div><p class="eyebrow" id="application"></p><h1>__PLUGIN_ID__</h1></div>
+        <button id="refresh" type="button" disabled ></button>
       </header>
-      <p id="notice" role="status" aria-live="polite">正在连接管理平台…</p>
+      <p id="notice" role="status" aria-live="polite"></p>
       <dl>
-        <div><dt>插件标识</dt><dd id="plugin-id">等待连接</dd></div>
-        <div><dt>服务端时间</dt><dd id="server-time">等待连接</dd></div>
+        <div><dt id="plugin-label"></dt><dd id="plugin-id"></dd></div>
+        <div><dt id="time-label"></dt><dd id="server-time"></dd></div>
       </dl>
     </main>
     <script type="module" src="/src/main.js"></script>

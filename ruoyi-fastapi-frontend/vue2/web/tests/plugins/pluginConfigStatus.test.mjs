@@ -1,3 +1,4 @@
+import locale from '../i18n/test-runtime.cjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { compileScript, parse } from 'vue/compiler-sfc'
@@ -14,6 +15,7 @@ const script = compiled.scriptSetupAst
   .map((statement) => descriptor.scriptSetup.content.slice(statement.start, statement.end))
   .join('\n')
 const setup = new Function(
+  't',
   'computed',
   'ref',
   'watch',
@@ -28,6 +30,7 @@ let unmount
 const scope = effectScope()
 const state = scope.run(() =>
   setup(
+    locale.t,
     computed,
     ref,
     watch,

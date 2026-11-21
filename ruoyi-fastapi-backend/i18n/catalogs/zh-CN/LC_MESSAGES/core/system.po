@@ -1,0 +1,254 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "config.addDuplicateKey"
+msgstr "新增参数%(config_name)s失败，参数键名已存在"
+
+msgid "config.builtInProtected"
+msgstr "内置参数%(config_key)s不能删除"
+
+msgid "config.editDuplicateKey"
+msgstr "修改参数%(config_name)s失败，参数键名已存在"
+
+msgid "config.idRequired"
+msgstr "传入参数配置id为空"
+
+msgid "config.notFound"
+msgstr "参数配置不存在"
+
+msgid "dept.activeChildren"
+msgstr "修改部门%(dept_name)s失败，该部门包含未停用的子部门"
+
+msgid "dept.addDuplicate"
+msgstr "新增部门%(dept_name)s失败，部门名称已存在"
+
+msgid "dept.childrenPreventDelete"
+msgstr "存在下级部门,不允许删除"
+
+msgid "dept.descendantParent"
+msgstr "上级部门不能是当前部门的子部门"
+
+msgid "dept.editDuplicate"
+msgstr "修改部门%(dept_name)s失败，部门名称已存在"
+
+msgid "dept.forbidden"
+msgstr "没有权限访问部门数据"
+
+msgid "dept.idRequired"
+msgstr "传入部门id为空"
+
+msgid "dept.invalidSort"
+msgstr "部门排序参数不正确"
+
+msgid "dept.notFound"
+msgstr "部门不存在"
+
+msgid "dept.parentDisabled"
+msgstr "部门%(dept_name)s停用，不允许新增"
+
+msgid "dept.parentNotFound"
+msgstr "上级部门不存在"
+
+msgid "dept.selfParent"
+msgstr "修改部门%(dept_name)s失败，上级部门不能是自己"
+
+msgid "dept.usersPreventDelete"
+msgstr "部门存在用户,不允许删除"
+
+msgid "dict.addDuplicateType"
+msgstr "新增字典%(dict_name)s失败，字典类型已存在"
+
+msgid "dict.assigned"
+msgstr "%(dict_name)s已分配，不能删除"
+
+msgid "dict.dataIdRequired"
+msgstr "传入字典数据id为空"
+
+msgid "dict.dataNotFound"
+msgstr "字典数据不存在"
+
+msgid "dict.duplicateLabel"
+msgstr "新增字典数据%(dict_label)s失败，%(dict_type)s下已存在该字典数据"
+
+msgid "dict.editDuplicateType"
+msgstr "修改字典%(dict_name)s失败，字典类型已存在"
+
+msgid "dict.typeIdRequired"
+msgstr "传入字典类型id为空"
+
+msgid "dict.typeNotFound"
+msgstr "字典类型不存在"
+
+msgid "menu.addDuplicateName"
+msgstr "新增菜单%(menu_name)s失败，菜单名称已存在"
+
+msgid "menu.addDuplicateRoute"
+msgstr "新增菜单%(menu_name)s失败，路由名称或地址已存在"
+
+msgid "menu.addInvalidUrl"
+msgstr "新增菜单%(menu_name)s失败，地址必须以http(s)://开头"
+
+msgid "menu.assigned"
+msgstr "菜单已分配,不允许删除"
+
+msgid "menu.childrenPreventDelete"
+msgstr "存在子菜单,不允许删除"
+
+msgid "menu.editDuplicateName"
+msgstr "修改菜单%(menu_name)s失败，菜单名称已存在"
+
+msgid "menu.editDuplicateRoute"
+msgstr "修改菜单%(menu_name)s失败，路由名称或地址已存在"
+
+msgid "menu.editInvalidUrl"
+msgstr "修改菜单%(menu_name)s失败，地址必须以http(s)://开头"
+
+msgid "menu.idRequired"
+msgstr "传入菜单id为空"
+
+msgid "menu.invalidSort"
+msgstr "菜单排序参数不正确"
+
+msgid "menu.notFound"
+msgstr "菜单不存在"
+
+msgid "menu.parentCycle"
+msgstr "上级菜单存在循环关系"
+
+msgid "menu.parentNotFound"
+msgstr "上级菜单不存在"
+
+msgid "menu.selfParent"
+msgstr "修改菜单%(menu_name)s失败，上级菜单不能选择自己"
+
+msgid "notice.addDuplicate"
+msgstr "新增通知公告%(notice_title)s失败，通知公告已存在"
+
+msgid "notice.editDuplicate"
+msgstr "修改通知公告%(notice_title)s失败，通知公告已存在"
+
+msgid "notice.idRequired"
+msgstr "传入通知公告id为空"
+
+msgid "notice.invalidId"
+msgstr "公告ID格式不正确"
+
+msgid "notice.notFound"
+msgstr "通知公告不存在"
+
+msgid "post.addDuplicateCode"
+msgstr "新增岗位%(post_name)s失败，岗位编码已存在"
+
+msgid "post.addDuplicateName"
+msgstr "新增岗位%(post_name)s失败，岗位名称已存在"
+
+msgid "post.assigned"
+msgstr "%(post_name)s已分配，不能删除"
+
+msgid "post.editDuplicateCode"
+msgstr "修改岗位%(post_name)s失败，岗位编码已存在"
+
+msgid "post.editDuplicateName"
+msgstr "修改岗位%(post_name)s失败，岗位名称已存在"
+
+msgid "post.idRequired"
+msgstr "传入岗位id为空"
+
+msgid "post.notFound"
+msgstr "岗位不存在"
+
+msgid "profile.localeSaved"
+msgstr "语言设置已保存"
+
+msgid "profile.timezoneSaved"
+msgstr "时区设置已保存"
+
+msgid "role.addDuplicateName"
+msgstr "新增角色%(role_name)s失败，角色名称已存在"
+
+msgid "role.addDuplicatePermission"
+msgstr "新增角色%(role_name)s失败，角色权限已存在"
+
+msgid "role.assigned"
+msgstr "角色%(role_name)s已分配,不能删除"
+
+msgid "role.editDuplicateName"
+msgstr "修改角色%(role_name)s失败，角色名称已存在"
+
+msgid "role.editDuplicatePermission"
+msgstr "修改角色%(role_name)s失败，角色权限已存在"
+
+msgid "role.forbidden"
+msgstr "没有权限访问角色数据"
+
+msgid "role.idRequired"
+msgstr "传入角色id为空"
+
+msgid "role.notFound"
+msgstr "角色不存在"
+
+msgid "role.superAdminProtected"
+msgstr "不允许操作超级管理员角色"
+
+msgid "user.addConditionsNotMet"
+msgstr "不满足新增条件"
+
+msgid "user.addDuplicateEmail"
+msgstr "新增用户%(user_name)s失败，邮箱账号已存在"
+
+msgid "user.addDuplicateName"
+msgstr "新增用户%(user_name)s失败，登录账号已存在"
+
+msgid "user.addDuplicatePhone"
+msgstr "新增用户%(user_name)s失败，手机号码已存在"
+
+msgid "user.avatar.uploadFailed"
+msgstr "上传图片异常，请联系管理员"
+
+msgid "user.deleteConditionsNotMet"
+msgstr "不满足删除条件"
+
+msgid "user.deleteCurrentUser"
+msgstr "当前登录用户不能删除"
+
+msgid "user.editDuplicateEmail"
+msgstr "修改用户%(user_name)s失败，邮箱账号已存在"
+
+msgid "user.editDuplicateName"
+msgstr "修改用户%(user_name)s失败，登录账号已存在"
+
+msgid "user.editDuplicatePhone"
+msgstr "修改用户%(user_name)s失败，手机号码已存在"
+
+msgid "user.forbidden"
+msgstr "没有权限访问用户数据"
+
+msgid "user.idRequired"
+msgstr "传入用户id为空"
+
+msgid "user.notFound"
+msgstr "用户不存在"
+
+msgid "user.oldPasswordIncorrect"
+msgstr "修改密码失败，旧密码错误"
+
+msgid "user.passwordUnchanged"
+msgstr "新密码不能与旧密码相同"
+
+msgid "user.rolesRequired"
+msgstr "传入用户角色关联信息为空"
+
+msgid "user.superAdminProtected"
+msgstr "不允许操作超级管理员用户"

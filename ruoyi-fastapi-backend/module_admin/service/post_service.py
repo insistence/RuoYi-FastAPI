@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from common.constant import CommonConstant
 from common.vo import CrudResponseModel, PageModel
 from exceptions.exception import ServiceException
+from i18n.message import I18nMessage
 from module_admin.dao.post_dao import PostDao
 from module_admin.entity.vo.post_vo import DeletePostModel, PostModel, PostPageQueryModel
 from utils.common_util import CamelCaseUtil
@@ -72,13 +73,21 @@ class PostService:
         :return: 新增岗位校验结果
         """
         if not await cls.check_post_name_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增岗位{page_object.post_name}失败，岗位名称已存在')
+            raise ServiceException(
+                message=f'新增岗位{page_object.post_name}失败，岗位名称已存在',
+                msg_key='post.addDuplicateName',
+                msg_params={'post_name': str(page_object.post_name)},
+            )
         if not await cls.check_post_code_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增岗位{page_object.post_name}失败，岗位编码已存在')
+            raise ServiceException(
+                message=f'新增岗位{page_object.post_name}失败，岗位编码已存在',
+                msg_key='post.addDuplicateCode',
+                msg_params={'post_name': str(page_object.post_name)},
+            )
         try:
             await PostDao.add_post_dao(query_db, page_object)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -96,18 +105,26 @@ class PostService:
         post_info = await cls.post_detail_services(query_db, page_object.post_id)
         if post_info.post_id:
             if not await cls.check_post_name_unique_services(query_db, page_object):
-                raise ServiceException(message=f'修改岗位{page_object.post_name}失败，岗位名称已存在')
+                raise ServiceException(
+                    message=f'修改岗位{page_object.post_name}失败，岗位名称已存在',
+                    msg_key='post.editDuplicateName',
+                    msg_params={'post_name': str(page_object.post_name)},
+                )
             if not await cls.check_post_code_unique_services(query_db, page_object):
-                raise ServiceException(message=f'修改岗位{page_object.post_name}失败，岗位编码已存在')
+                raise ServiceException(
+                    message=f'修改岗位{page_object.post_name}失败，岗位编码已存在',
+                    msg_key='post.editDuplicateCode',
+                    msg_params={'post_name': str(page_object.post_name)},
+                )
             try:
                 await PostDao.edit_post_dao(query_db, edit_post)
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='更新成功')
+                return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='岗位不存在')
+            raise ServiceException(message='岗位不存在', msg_key='post.notFound')
 
     @classmethod
     async def delete_post_services(cls, query_db: AsyncSession, page_object: DeletePostModel) -> CrudResponseModel:
@@ -124,15 +141,19 @@ class PostService:
                 for post_id in post_id_list:
                     post = await cls.post_detail_services(query_db, int(post_id))
                     if (await PostDao.count_user_post_dao(query_db, int(post_id))) > 0:
-                        raise ServiceException(message=f'{post.post_name}已分配，不能删除')
+                        raise ServiceException(
+                            message=f'{post.post_name}已分配，不能删除',
+                            msg_key='post.assigned',
+                            msg_params={'post_name': str(post.post_name)},
+                        )
                     await PostDao.delete_post_dao(query_db, PostModel(postId=post_id))
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入岗位id为空')
+            raise ServiceException(message='传入岗位id为空', msg_key='post.idRequired')
 
     @classmethod
     async def post_detail_services(cls, query_db: AsyncSession, post_id: int) -> PostModel:
@@ -158,23 +179,23 @@ class PostService:
         """
         # 创建一个映射字典，将英文键映射到中文键
         mapping_dict = {
-            'postId': '岗位编号',
-            'postCode': '岗位编码',
-            'postName': '岗位名称',
-            'postSort': '显示顺序',
-            'status': '状态',
-            'createBy': '创建者',
-            'createTime': '创建时间',
-            'updateBy': '更新者',
-            'updateTime': '更新时间',
-            'remark': '备注',
+            'postId': I18nMessage('岗位编号', msg_key='export.postId'),
+            'postCode': I18nMessage('岗位编码', msg_key='export.postCode'),
+            'postName': I18nMessage('岗位名称', msg_key='export.postName'),
+            'postSort': I18nMessage('显示顺序', msg_key='export.displayOrder'),
+            'status': I18nMessage('状态', msg_key='export.status'),
+            'createBy': I18nMessage('创建者', msg_key='export.createdBy'),
+            'createTime': I18nMessage('创建时间', msg_key='export.createdAt'),
+            'updateBy': I18nMessage('更新者', msg_key='export.updatedBy'),
+            'updateTime': I18nMessage('更新时间', msg_key='export.updatedAt'),
+            'remark': I18nMessage('备注', msg_key='export.remark'),
         }
 
         for item in post_list:
             if item.get('status') == '0':
-                item['status'] = '正常'
+                item['status'] = I18nMessage('正常', msg_key='export.active')
             else:
-                item['status'] = '停用'
+                item['status'] = I18nMessage('停用', msg_key='export.disabled')
         binary_data = ExcelUtil.export_list2excel(post_list, mapping_dict)
 
         return binary_data

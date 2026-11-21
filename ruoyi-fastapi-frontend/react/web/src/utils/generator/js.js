@@ -1,33 +1,17 @@
 import { describeControl, resolveGeneratorIconName } from './controls.js'
-import { flattenFields, fieldRules } from './model.js'
+import { flattenFields } from './model.js'
 // 将配置值写成 JS 字面量，并转义尖括号，避免配置文本干扰生成的 JSX。
 const json = (value) =>
   value === undefined
     ? 'undefined'
     : JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')
 /**
- * 生成字段的表单校验规则，正则表达式保留为可执行的 RegExp 构造代码。
+ * 生成运行时校验规则调用，保留用户配置并响应语言切换。
  * @param {Object} field 字段配置
  * @returns {string} 规则数组的 JS 源码
  */
 function rulesCode(field) {
-  return (
-    '[' +
-    fieldRules(field)
-      .map(
-        (rule) =>
-          '{' +
-          Object.entries(rule)
-            .map(
-              ([key, value]) =>
-                `${key}: ${value instanceof RegExp ? `new RegExp(${json(value.source)},${json(value.flags)})` : json(value)}`
-            )
-            .join(',') +
-          '}'
-      )
-      .join(',') +
-    ']'
-  )
+  return `fieldRules(${json(field)})`
 }
 /**
  * 将字段配置转换为控件 JSX，包含图标、上传约束和输入框前后缀。
@@ -45,7 +29,7 @@ function controlCode(field) {
       if (field[key])
         attrs += ` ${prop}={<SvgIcon iconClass={${json(resolveGeneratorIconName(field[key]))}} />}`
   if (component === 'Button')
-    return `<Button${attrs}${field.icon ? ` icon={<SvgIcon iconClass={${json(resolveGeneratorIconName(field.icon))}} />}` : ''}>{${json(field.default || '按钮')}}</Button>`
+    return `<Button${attrs}${field.icon ? ` icon={<SvgIcon iconClass={${json(resolveGeneratorIconName(field.icon))}} />}` : ''}>{${field.default ? json(field.default) : "t('system:menu.button')"}}</Button>`
   if (component === 'Upload') {
     // 将配置的文件大小单位换算为字节；手动上传时阻止自动提交。
     const bytes =
@@ -54,8 +38,8 @@ function controlCode(field) {
     attrs += ` beforeUpload={file => ${!field['auto-upload'] ? 'false' : bytes ? `file.size <= ${bytes} ? true : Upload.LIST_IGNORE` : 'true'}}`
     const trigger =
       field['list-type'] === 'picture-card'
-        ? '<PlusOutlined aria-label="添加文件" />'
-        : `<Button type="primary" icon={<UploadOutlined />}>{${json(field.buttonText || '点击上传')}}</Button>`
+        ? '<PlusOutlined aria-label={t("common:addFile")} />'
+        : `<Button type="primary" icon={<UploadOutlined />}>{${field.buttonText ? json(field.buttonText) : "t('file:upload.click')"}}</Button>`
     return `<Upload${attrs}>${trigger}</Upload>`
   }
   const control = `<${component}${attrs} />`
@@ -99,6 +83,6 @@ export function makeUpJs(fields, config, type = 'file') {
       .filter((f) => f.vModel && f.defaultValue !== undefined)
       .map((f) => [f.vModel, f.defaultValue])
   )
-  const content = `<Form form={form} name={${json(config.formRef || 'generatedForm')}} initialValues={${json(initialValues)}} layout="${config.labelPosition === 'top' ? 'vertical' : 'horizontal'}" labelAlign="${config.labelPosition === 'left' ? 'left' : 'right'}" labelCol={{style:{width:${Number(config.labelWidth) || 100}}}} disabled={${!!config.disabled}} size="${config.size === 'default' ? 'middle' : config.size}" onFinish={onSubmit}><Row gutter={${Number(config.gutter) || 0}}>${fieldsCode(fields)}</Row>${config.formBtns ? '<Space><Button type="primary" htmlType="submit">提交</Button><Button onClick={() => form.resetFields()}>重置</Button></Space>' : ''}</Form>`
-  return `import { PlusOutlined, UploadOutlined } from "@ant-design/icons";\nimport { GeneratorNumber, GeneratorSwitch, GeneratorRate, GeneratorChoice, GeneratorCascader, GeneratorColor } from "@/components/GeneratorControls";\nimport { Button, Cascader, Checkbox, Col, ColorPicker, Form, Input, InputNumber, Modal, Radio, Rate, Row, Select, Slider, Space, Switch, Upload } from 'antd';\nimport DateStringPicker from '@/components/DateStringPicker';\nimport SvgIcon from '@/components/SvgIcon';\n\nexport default function GeneratedForm({ onSubmit = () => {}, open = true, onClose = () => {} }) {\n  const [form] = Form.useForm();\n  return (${type === 'dialog' ? `<Modal title="表单" open={open} onCancel={onClose} onOk={() => form.submit()} forceRender>${content}</Modal>` : content});\n}\n`
+  const content = `<Form form={form} name={${json(config.formRef || 'generatedForm')}} initialValues={${json(initialValues)}} layout="${config.labelPosition === 'top' ? 'vertical' : 'horizontal'}" labelAlign="${config.labelPosition === 'left' ? 'left' : 'right'}" labelCol={{style:{width:${Number(config.labelWidth) || 100}}}} disabled={${!!config.disabled}} size="${config.size === 'default' ? 'middle' : config.size}" onFinish={onSubmit}><Row gutter={${Number(config.gutter) || 0}}>${fieldsCode(fields)}</Row>${config.formBtns ? '<Space><Button type="primary" htmlType="submit">{t("common:submit")}</Button><Button onClick={() => form.resetFields()}>{t("common:reset")}</Button></Space>' : ''}</Form>`
+  return `import { PlusOutlined, UploadOutlined } from "@ant-design/icons";\nimport { GeneratorNumber, GeneratorSwitch, GeneratorRate, GeneratorChoice, GeneratorCascader, GeneratorColor } from "@/components/GeneratorControls";\nimport { Button, Cascader, Checkbox, Col, ColorPicker, Form, Input, InputNumber, Modal, Radio, Rate, Row, Select, Slider, Space, Switch, Upload } from 'antd';\nimport DateStringPicker from '@/components/DateStringPicker';\nimport SvgIcon from '@/components/SvgIcon';\nimport { useI18n } from '@/i18n/adapter';\nimport { useLocalizedFormErrors } from '@/i18n/form';\nimport { fieldRules } from '@/utils/generator/model';\n\nexport default function GeneratedForm({ onSubmit = () => {}, open = true, onClose = () => {} }) {\n  const { t } = useI18n();\n  const [form] = Form.useForm();\n  useLocalizedFormErrors(form);\n  return (${type === 'dialog' ? `<Modal title={t("tool:generatedForm.title")} open={open} onCancel={onClose} onOk={() => form.submit()} forceRender>${content}</Modal>` : content});\n}\n`
 }

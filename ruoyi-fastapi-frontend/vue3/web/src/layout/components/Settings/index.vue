@@ -4,14 +4,14 @@
     :withHeader="false"
     :lock-scroll="false"
     direction="rtl"
-    size="300px"
+    size="min(360px, 100vw)"
   >
     <div class="setting-drawer-title">
-      <h3 class="drawer-title">菜单导航设置</h3>
+      <h3 class="drawer-title">{{ $t('layout:settings.navigation') }}</h3>
     </div>
     <div class="nav-wrap">
       <el-tooltip
-        content="左侧菜单"
+        :content="$t('layout:settings.sidebar')"
         placement="bottom"
       >
         <div
@@ -24,7 +24,7 @@
       </el-tooltip>
 
       <el-tooltip
-        content="混合菜单"
+        :content="$t('layout:settings.mixed')"
         placement="bottom"
       >
         <div
@@ -36,7 +36,7 @@
         </div>
       </el-tooltip>
       <el-tooltip
-        content="顶部菜单"
+        :content="$t('layout:settings.top')"
         placement="bottom"
       >
         <div
@@ -49,7 +49,7 @@
       </el-tooltip>
     </div>
     <div class="setting-drawer-title">
-      <h3 class="drawer-title">主题风格设置</h3>
+      <h3 class="drawer-title">{{ $t('layout:settings.theme') }}</h3>
     </div>
     <div class="setting-drawer-block-checbox">
       <div
@@ -58,7 +58,7 @@
       >
         <img
           src="@/assets/images/dark.svg"
-          alt="dark"
+          :alt="$t('layout:settings.dark')"
         />
         <div
           v-if="sideTheme === 'theme-dark'"
@@ -66,7 +66,7 @@
           style="display: block"
         >
           <i
-            aria-label="图标: check"
+            :aria-label="$t('layout:settings.selected')"
             class="anticon anticon-check"
           >
             <svg
@@ -92,7 +92,7 @@
       >
         <img
           src="@/assets/images/light.svg"
-          alt="light"
+          :alt="$t('layout:settings.light')"
         />
         <div
           v-if="sideTheme === 'theme-light'"
@@ -100,7 +100,7 @@
           style="display: block"
         >
           <i
-            aria-label="图标: check"
+            :aria-label="$t('layout:settings.selected')"
             class="anticon anticon-check"
           >
             <svg
@@ -122,7 +122,7 @@
       </div>
     </div>
     <div class="drawer-item">
-      <span>主题颜色</span>
+      <span>{{ $t('layout:settings.color') }}</span>
       <span class="comp-style">
         <el-color-picker
           v-model="theme"
@@ -133,10 +133,10 @@
     </div>
     <el-divider />
 
-    <h3 class="drawer-title">系统布局配置</h3>
+    <h3 class="drawer-title">{{ $t('layout:settings.layout') }}</h3>
 
     <div class="drawer-item">
-      <span>开启页签</span>
+      <span>{{ $t('layout:settings.tabs') }}</span>
       <span class="comp-style">
         <el-switch
           v-model="settingsStore.tagsView"
@@ -146,7 +146,7 @@
     </div>
 
     <div class="drawer-item">
-      <span>持久化标签页</span>
+      <span>{{ $t('layout:settings.persistTabs') }}</span>
       <span class="comp-style">
         <el-switch
           v-model="settingsStore.tagsViewPersist"
@@ -158,7 +158,7 @@
     </div>
 
     <div class="drawer-item">
-      <span>显示页签图标</span>
+      <span>{{ $t('layout:settings.tabIcons') }}</span>
       <span class="comp-style">
         <el-switch
           v-model="settingsStore.tagsIcon"
@@ -169,21 +169,21 @@
     </div>
 
     <div class="drawer-item">
-      <span>标签页样式</span>
+      <span>{{ $t('layout:settings.tabStyle') }}</span>
       <span class="comp-style">
         <el-radio-group
           v-model="settingsStore.tagsViewStyle"
           :disabled="!settingsStore.tagsView"
           size="small"
         >
-          <el-radio-button label="card">卡片</el-radio-button>
-          <el-radio-button label="chrome">谷歌</el-radio-button>
+          <el-radio-button label="card">{{ $t('layout:settings.card') }}</el-radio-button>
+          <el-radio-button label="chrome">{{ $t('layout:settings.chrome') }}</el-radio-button>
         </el-radio-group>
       </span>
     </div>
 
     <div class="drawer-item">
-      <span>固定 Header</span>
+      <span>{{ $t('layout:settings.fixedHeader') }}</span>
       <span class="comp-style">
         <el-switch
           v-model="settingsStore.fixedHeader"
@@ -193,7 +193,7 @@
     </div>
 
     <div class="drawer-item">
-      <span>显示 Logo</span>
+      <span>{{ $t('layout:settings.logo') }}</span>
       <span class="comp-style">
         <el-switch
           v-model="settingsStore.sidebarLogo"
@@ -203,18 +203,17 @@
     </div>
 
     <div class="drawer-item">
-      <span>动态标题</span>
+      <span>{{ $t('layout:settings.dynamicTitle') }}</span>
       <span class="comp-style">
         <el-switch
           v-model="settingsStore.dynamicTitle"
-          @change="dynamicTitleChange"
           class="drawer-switch"
         />
       </span>
     </div>
 
     <div class="drawer-item">
-      <span>底部版权</span>
+      <span>{{ $t('layout:settings.footer') }}</span>
       <span class="comp-style">
         <el-switch
           v-model="settingsStore.footerVisible"
@@ -230,18 +229,19 @@
       plain
       icon="DocumentAdd"
       @click="saveSetting"
-      >保存配置</el-button
+      >{{ $t('layout:settings.save') }}</el-button
     >
     <el-button
       plain
       icon="Refresh"
       @click="resetSetting"
-      >重置配置</el-button
+      >{{ $t('layout:settings.reset') }}</el-button
     >
   </el-drawer>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
@@ -267,11 +267,6 @@ const predefineColors = ref([
   '#1e90ff',
   '#c71585',
 ])
-
-/** 是否需要dynamicTitle */
-function dynamicTitleChange() {
-  useSettingsStore().setTitle(useSettingsStore().title)
-}
 
 function tagsViewPersistChange(val) {
   settingsStore.tagsViewPersist = val
@@ -316,7 +311,7 @@ watch(
 )
 
 function saveSetting() {
-  proxy.$modal.loading('正在保存到本地，请稍候...')
+  proxy.$modal.loading(t('layout:settings.saving'))
   if (!tagsViewPersist.value) {
     proxy.$cache.local.remove('tags-view-visited')
   }
@@ -339,7 +334,7 @@ function saveSetting() {
 
 function resetSetting() {
   proxy.$cache.local.remove('tags-view-visited')
-  proxy.$modal.loading('正在清除设置缓存并刷新，请稍候...')
+  proxy.$modal.loading(t('layout:settings.resetting'))
   localStorage.removeItem('layout-setting')
   setTimeout('window.location.reload()', 1000)
 }
@@ -399,13 +394,16 @@ defineExpose({
 }
 
 .drawer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   color: var(--el-text-color-regular, rgba(0, 0, 0, 0.65));
   padding: 12px 0;
   font-size: 14px;
 
   .comp-style {
-    float: right;
-    margin: -3px 8px 0px 0px;
+    flex-shrink: 0;
   }
 }
 

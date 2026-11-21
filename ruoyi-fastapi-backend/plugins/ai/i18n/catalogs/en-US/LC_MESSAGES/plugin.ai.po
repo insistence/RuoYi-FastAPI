@@ -1,0 +1,48 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "ai.conversation.deleteFailed"
+msgstr "Unable to delete the conversation"
+
+msgid "ai.conversation.forbidden"
+msgstr "You do not have permission to access this conversation"
+
+msgid "ai.model.disabled"
+msgstr "This model is disabled"
+
+msgid "ai.model.forbidden"
+msgstr "You do not have permission to access AI model data"
+
+msgid "ai.model.idRequired"
+msgstr "AI model ID is required"
+
+msgid "ai.model.missing"
+msgstr "AI model not found"
+
+msgid "ai.model.notFound"
+msgstr "Model not found"
+
+msgid "ai.run.cancelFailed"
+msgstr "Unable to cancel the run"
+
+msgid "ai.run.cancelForbidden"
+msgstr "You do not have permission to cancel this run"
+
+msgid "ai.settings.otherUser"
+msgstr "You can only change your own settings"
+
+msgid "ai.stream.failed"
+msgstr "Unable to generate a response. Please try again later."

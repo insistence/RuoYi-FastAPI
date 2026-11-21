@@ -33,6 +33,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 {% if vo_field_required.has_required or sub_vo_field_required.has_required %}
 from pydantic_validation_decorator import NotBlank
+
+from i18n.message import I18nMessage
 {% endif %}
 
 {% if vo_field_daterange.has_daterange %}
@@ -54,14 +56,20 @@ class {{ BusinessName }}BaseModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
     {% for column in columns %}
-    {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description='{{ column.column_comment }}')
+    {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description={{ column.column_comment | tojson }})
     {% endfor %}
 
     {% for column in columns %}
     {% if column.required %}
     {% set parentheseIndex = column.column_comment.find("（") %}
     {% set comment = column.column_comment[:parentheseIndex] if parentheseIndex != -1 else column.column_comment %}
-    @NotBlank(field_name='{{ column.column_name }}', message='{{ comment }}不能为空')
+    @NotBlank(
+        field_name='{{ column.column_name }}',
+        message=I18nMessage(
+            {{ (comment ~ '不能为空') | tojson }},
+            msg_key={{ i18nBackendFieldKey(column, 'required') | tojson }},
+        ),
+    )
     def get_{{ column.column_name }}(self) -> {{ column.vo_type }} | None:
         return self.{{ column.column_name }}
     {% if not loop.last %}{{ "\n" }}{% endif %}
@@ -87,7 +95,7 @@ class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% el
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
     {% for column in columns %}
-    {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description='{{ column.column_comment }}')
+    {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description={{ column.column_comment | tojson }})
     {% endfor %}
     {% endif %}
     {% if table.sub %}
@@ -99,7 +107,13 @@ class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% el
     {% if column.required %}
     {% set parentheseIndex = column.column_comment.find("（") %}
     {% set comment = column.column_comment[:parentheseIndex] if parentheseIndex != -1 else column.column_comment %}
-    @NotBlank(field_name='{{ column.column_name }}', message='{{ comment }}不能为空')
+    @NotBlank(
+        field_name='{{ column.column_name }}',
+        message=I18nMessage(
+            {{ (comment ~ '不能为空') | tojson }},
+            msg_key={{ i18nBackendFieldKey(column, 'required') | tojson }},
+        ),
+    )
     def get_{{ column.column_name }}(self) -> {{ column.vo_type }} | None:
         return self.{{ column.column_name }}
     {% if not loop.last %}{{ "\n" }}{% endif %}
@@ -133,7 +147,13 @@ class {{ subTable.business_name | capitalize }}Model(BaseModel):
     {% if sub_column.required %}
     {% set parentheseIndex = sub_column.column_comment.find("（") %}
     {% set comment = sub_column.column_comment[:parentheseIndex] if parentheseIndex != -1 else sub_column.column_comment %}
-    @NotBlank(field_name='{{ sub_column.column_name }}', message='{{ comment }}不能为空')
+    @NotBlank(
+        field_name='{{ sub_column.column_name }}',
+        message=I18nMessage(
+            {{ (comment ~ '不能为空') | tojson }},
+            msg_key={{ i18nBackendFieldKey(sub_column, 'required') | tojson }},
+        ),
+    )
     def get_{{ sub_column.column_name }}(self) -> {{ sub_column.vo_type }} | None:
         return self.{{ sub_column.column_name }}
     {% if not loop.last %}{{ "\n" }}{% endif %}

@@ -1,3 +1,6 @@
+import { resolveRouteTitle } from '@/i18n'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { ConfigProvider, Menu } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
@@ -18,23 +21,25 @@ export function menuItems(routes) {
         key: route.path,
         icon: route.meta?.icon ? <SvgIcon iconClass={route.meta.icon} /> : undefined,
         label: children?.length ? (
-          route.meta?.title
+          resolveRouteTitle(route)
         ) : /^https?:/.test(route.path) ? (
           <a
             href={route.path}
             target="_blank"
             rel="noreferrer"
           >
-            {route.meta?.title}
+            {resolveRouteTitle(route)}
           </a>
         ) : (
-          <Link to={routeLocation(route)}>{route.meta?.title || route.name}</Link>
+          <Link to={routeLocation(route)}>{resolveRouteTitle(route) || route.name}</Link>
         ),
         children: children?.length ? menuItems(children) : undefined,
       }
     })
 }
 export default function Sidebar({ routes: suppliedRoutes, activeMenu }) {
+  const { locale } = useI18n()
+
   const allRoutes = usePermissionStore((state) => state.sidebarRouters)
   const theme = useSettingsStore((state) => state.sideTheme)
   const colorPrimary = useSettingsStore((state) => state.colorPrimary)
@@ -50,13 +55,13 @@ export default function Sidebar({ routes: suppliedRoutes, activeMenu }) {
             {
               key: '/index',
               icon: <SvgIcon iconClass="dashboard" />,
-              label: <Link to="/index">首页</Link>,
+              label: <Link to="/index">{t('layout:route.home')}</Link>,
             },
           ]
         : []),
       ...menuItems(routes),
     ],
-    [routes, suppliedRoutes]
+    [routes, suppliedRoutes, locale]
   )
   const [openKeys, setOpenKeys] = useState([])
   useEffect(() => {

@@ -1,11 +1,14 @@
 <template>
-  <el-form size="small">
+  <el-form
+    :validate-on-rule-change="false"
+    size="small"
+  >
     <el-form-item>
       <el-radio
         v-model="radioValue"
         :label="1"
       >
-        秒，允许的通配符[, - * /]
+        {{ $t('components:cron.secondAllowedWildcards') }}
       </el-radio>
     </el-form-item>
 
@@ -14,7 +17,7 @@
         v-model="radioValue"
         :label="2"
       >
-        周期从
+        {{ $t('components:cron.rangeFrom') }}
         <el-input-number
           v-model="cycle01"
           :min="0"
@@ -26,7 +29,7 @@
           :min="cycle01 ? cycle01 + 1 : 1"
           :max="59"
         />
-        秒
+        {{ $t('common:seconds') }}
       </el-radio>
     </el-form-item>
 
@@ -35,19 +38,19 @@
         v-model="radioValue"
         :label="3"
       >
-        从
+        {{ $t('components:cron.from') }}
         <el-input-number
           v-model="average01"
           :min="0"
           :max="58"
         />
-        秒开始，每
+        {{ $t('components:cron.repeatEvery.second') }}
         <el-input-number
           v-model="average02"
           :min="1"
           :max="59 - average01 || 0"
         />
-        秒执行一次
+        {{ $t('components:cron.unit.seconds') }}
       </el-radio>
     </el-form-item>
 
@@ -56,11 +59,11 @@
         v-model="radioValue"
         :label="4"
       >
-        指定
+        {{ $t('common:specified') }}
         <el-select
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('common:multipleSelect')"
           multiple
           style="width: 100%"
         >

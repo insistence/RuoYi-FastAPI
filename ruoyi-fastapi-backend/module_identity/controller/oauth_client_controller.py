@@ -163,7 +163,7 @@ async def delete_system_oauth_clients(
         after_commit=OidcRuntimeService.cors_snapshot_callback(request.app),
     )
 
-    return ResponseUtil.success(msg='OAuth 客户端已停用')
+    return ResponseUtil.success(msg_key='identity.client.disabled')
 
 
 @oauth_client_controller.put(
@@ -219,7 +219,7 @@ async def rotate_system_oauth_client_secret(
         after_commit=OidcRuntimeService.cors_snapshot_callback(request.app),
     )
 
-    return ResponseUtil.success(msg='客户端密钥生成成功，请立即保存', data=result)
+    return ResponseUtil.success(msg_key='identity.client.secretCreated', data=result)
 
 
 @oauth_client_controller.delete(
@@ -248,7 +248,7 @@ async def revoke_system_oauth_client_secret(
         after_commit=OidcRuntimeService.cors_snapshot_callback(request.app),
     )
 
-    return ResponseUtil.success(data=result, msg='客户端密钥已撤销')
+    return ResponseUtil.success(data=result, msg_key='identity.client.secretRevoked')
 
 
 @oauth_client_controller.post(
@@ -275,7 +275,7 @@ async def add_system_oauth_client_uri(
         after_commit=OidcRuntimeService.cors_snapshot_callback(request.app),
     )
 
-    return ResponseUtil.success(data=result, msg='客户端 URI 已增加')
+    return ResponseUtil.success(data=result, msg_key='identity.client.uriAdded')
 
 
 @oauth_client_controller.delete(
@@ -302,4 +302,4 @@ async def delete_system_oauth_client_uri(
         after_commit=OidcRuntimeService.cors_snapshot_callback(request.app),
     )
 
-    return ResponseUtil.success(data=result, msg='客户端 URI 已停用')
+    return ResponseUtil.success(data=result, msg_key='identity.client.uriDisabled')

@@ -20,6 +20,8 @@ from common.aspect.db_session import get_db_session_provider
 from common.enums import RedisInitKeyConfig
 from config.env import AppConfig, TransportCryptoConfig
 from exceptions.exception import AuthException
+from exceptions.handle import handle_exception
+from middlewares.locale_middleware import add_locale_middleware
 from middlewares.transport_crypto_middleware import TransportCryptoMiddleware
 from module_admin.dao.user_dao import UserDao
 from module_admin.entity.do.user_do import SysUser
@@ -137,6 +139,8 @@ async def browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
         return {'authenticated': bool(token_value)}
 
     app.add_middleware(TransportCryptoMiddleware)
+    add_locale_middleware(app)
+    handle_exception(app)
     runtime.prepare(RegisteredPlugin(plugin, None, True, 'installed'), app, startup_write_enabled=False)
     await runtime.activate('browser_test', app)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='https://test') as client:
@@ -167,6 +171,46 @@ async def issue(browser: SimpleNamespace) -> httpx.Response:
             'Authorization': f'Bearer {browser.token}',
             'Origin': 'https://test',
         },
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('locale', ['en-US', 'zh-CN'])
+async def test_plugin_session_error_status_and_language(browser: SimpleNamespace, locale: str) -> None:
+    """验证插件会话失败时保持原状态码，并按请求语言返回消息。"""
+    headers = {'Authorization': f'Bearer {browser.token}', 'Accept-Language': locale}
+    cases = [
+        (
+            'absent',
+            'https://test',
+            404,
+            'plugin.session.pageMissing',
+            '插件页面不存在',
+            'The plugin page does not exist',
+        ),
+        (
+            'browser_test',
+            'https://other.test',
+            403,
+            'plugin.session.sameOrigin',
+            '插件会话只能从同源宿主签发',
+            'Only the host application can start a plugin session from the same origin',
+        ),
+    ]
+    for plugin, origin, code, key, original, english in cases:
+        response = await browser.client.post(f'/plugin/runtime/{plugin}/session', headers={**headers, 'Origin': origin})
+        assert response.status_code == code
+        assert response.json() == {
+            'code': code,
+            'msg': english if locale == 'en-US' else original,
+            'msgKey': key,
+            'msgParams': {},
+        }
+    await browser.redis.set(browser.main_key, 'expired', ex=120)
+    response = await browser.client.post('/plugin/runtime/browser_test/session', headers=headers)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()['msg'] == (
+        'Your login session is no longer valid' if locale == 'en-US' else '主登录会话已失效'
     )
 
 

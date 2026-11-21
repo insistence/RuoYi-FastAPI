@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from cli.runtime.plugin.service import CliPluginRuntimeService
+from plugins.core.discovery.scanner import PluginScanner
 from plugins.core.environment import PluginRuntimeEnvironmentService
 
 from .conftest import FakeRuntimeEnvironment, build_runtime
@@ -278,6 +279,9 @@ def test_plugin_runtime_create_plugin_generates_checkable_template(tmp_path: Pat
     assert check_payload['checks'][0]['structureErrors'] == []
     assert check_payload['checks'][0]['manifestWarnings'] == []
     assert (backend_root / 'plugins' / 'demo' / 'plugin.yaml').is_file()
+    manifest = PluginScanner(backend_root / 'plugins').load_manifest(backend_root / 'plugins/demo/plugin.yaml').manifest
+    serialized = manifest.model_dump_json(by_alias=True)
+    assert type(manifest).model_validate_json(serialized) == manifest
     assert (backend_root / 'plugins' / 'demo' / 'controller' / 'demo_controller.py').is_file()
     assert (backend_root / 'plugins' / 'demo' / 'hooks.py').is_file()
     assert (backend_root / 'plugins' / 'demo' / 'jobs.py').is_file()

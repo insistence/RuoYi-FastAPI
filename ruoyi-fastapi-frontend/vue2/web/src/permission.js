@@ -32,7 +32,6 @@ router.beforeEach(async (to, from, next) => {
     return next(authCenterRedirect)
   }
   if (getToken()) {
-    to.meta.title && store.dispatch('settings/setTitle', to.meta.title)
     const isLock = store.getters.isLock
     /* has token*/
     if (to.path === '/login') {
@@ -61,6 +60,11 @@ router.beforeEach(async (to, from, next) => {
             })
           })
           .catch((err) => {
+            if (err?.code === 'USER_SESSION_CHANGED') {
+              isRelogin.show = false
+              NProgress.done()
+              return next(false)
+            }
             store.dispatch('LogOut').then(() => {
               Message.error(err)
               next({ path: '/' })

@@ -14,6 +14,7 @@ const MILLISECONDS_PER_MINUTE = 60 * MILLISECONDS_PER_SECOND
 const MILLISECONDS_PER_HOUR = 60 * MILLISECONDS_PER_MINUTE
 const ORIGINAL_TIME_FIELDS = Symbol('originalTimeFields')
 const timezoneFormatters = new Map()
+const displayFormatters = new Map()
 
 // Vue 2 共享响应状态，账号时区变更后页面无需刷新。
 const timezoneState = Vue.observable({
@@ -291,6 +292,34 @@ function formatEpoch(epoch, pattern, timezoneName) {
 }
 
 /**
+ * 按指定语言和时区生成日期时间的展示文本。
+ *
+ * @param {string|Date} value RFC 3339 字符串或 Date 对象
+ * @param {string} locale 展示语言
+ * @param {string} timezoneName 目标时区，默认使用当前用户展示时区
+ * @returns {string|null} 日期时间文本，非法输入返回 null
+ */
+export function formatDisplayTime(value, locale, timezoneName = getDisplayTimezone()) {
+  const epoch = parseInstantMilliseconds(value)
+  if (epoch === null) {
+    return null
+  }
+
+  const cacheKey = `${locale}:${timezoneName}`
+  if (!displayFormatters.has(cacheKey)) {
+    displayFormatters.set(
+      cacheKey,
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: 'medium',
+        timeStyle: 'medium',
+        timeZone: timezoneName,
+      })
+    )
+  }
+  return displayFormatters.get(cacheKey).format(epoch)
+}
+
+/**
  * 将真实时刻格式化为业务时间。
  *
  * @param {string|Date} value RFC 3339 字符串或 Date 对象
@@ -562,16 +591,17 @@ refreshDeviceTimezone()
  * @returns {Promise<string>} 用户选定的 UTC 偏移
  */
 async function chooseTimeOffset(error) {
+  const { t } = await import('@/i18n')
   const offsets = error.candidates.map((candidate) => candidate.offset)
   const { default: ElementUI } = await import('element-ui')
   const { value } = await ElementUI.MessageBox.prompt(
-    `${error.message}。第一次：${offsets[0]}；第二次：${offsets[1]}。`,
-    '选择重复时间',
+    t('common:timeOffset.prompt', { first: offsets[0], second: offsets[1] }),
+    t('common:chooseARepeatedTime'),
     {
-      inputPlaceholder: `请输入 ${offsets.join(' 或 ')}`,
-      inputValidator: (value) => offsets.includes(value) || '请输入上述 UTC 偏移之一',
-      confirmButtonText: '使用所选时间',
-      cancelButtonText: '返回修改',
+      inputPlaceholder: t('common:timeOffset.placeholder', { offsets: offsets.join(' / ') }),
+      inputValidator: (value) => offsets.includes(value) || t('common:timeOffset.invalid'),
+      confirmButtonText: t('common:useSelectedTime'),
+      cancelButtonText: t('common:goBackAndEdit'),
     }
   )
   return value
@@ -590,7 +620,14 @@ export async function serializeTimeFieldsForSubmit(record, fields) {
   } catch (error) {
     if (error instanceof Error) {
       const { default: ElementUI } = await import('element-ui')
-      ElementUI.Message.error(error.message)
+      const { t } = await import('@/i18n')
+      const messages = {
+        DST_GAP: () => t('common:timeOffset.gap'),
+        DST_FOLD: () => t('common:timeOffset.fold'),
+        INVALID_TIME: () => t('common:timeOffset.invalidTime'),
+        INVALID_DATE: () => t('common:timeOffset.invalidDate'),
+      }
+      ElementUI.Message.error(messages[error.code]?.() || error.message)
     }
     return null
   }

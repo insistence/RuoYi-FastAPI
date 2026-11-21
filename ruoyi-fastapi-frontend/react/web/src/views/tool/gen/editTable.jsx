@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import useTagsViewStore from '@/store/modules/tagsView'
 import { useEffect, useRef, useState } from 'react'
@@ -21,21 +24,24 @@ const pythonTypes = [
   'dict',
   'list',
 ]
-const htmlTypes = [
-  ['input', '文本框'],
-  ['textarea', '文本域'],
-  ['select', '下拉框'],
-  ['radio', '单选框'],
-  ['checkbox', '复选框'],
-  ['date', '日期（不含时间）'],
-  ['time', '时间（一天内）'],
-  ['datetime', '日期时间（真实时刻）'],
-  ['imageUpload', '图片上传'],
-  ['fileUpload', '文件上传'],
-  ['editor', '富文本控件'],
+const htmlTypes = () => [
+  ['input', t('tool:textInput')],
+  ['textarea', t('tool:textArea')],
+  ['select', t('tool:dropdown')],
+  ['radio', t('tool:radioButtons')],
+  ['checkbox', t('tool:checkboxes')],
+  ['date', t('tool:dateNoTime')],
+  ['time', t('tool:timeOfDay')],
+  ['datetime', t('tool:dateAndTimeInstant')],
+  ['imageUpload', t('tool:imageUpload')],
+  ['fileUpload', t('tool:fileUpload')],
+  ['editor', t('tool:richTextEditor')],
 ]
 export default function EditTable({ params }) {
+  useI18n()
+
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [search] = useSearchParams()
@@ -104,7 +110,7 @@ export default function EditTable({ params }) {
         },
       }
       await updateGenTable(payload)
-      message.success('修改成功')
+      message.success(t('common:updateSuccess'))
       close()
     } catch (e) {
       if (e.errorFields) {
@@ -116,7 +122,7 @@ export default function EditTable({ params }) {
             ? 'basic'
             : 'genInfo'
         )
-        message.warning('表单校验未通过，请检查提交内容')
+        message.warning(t('tool:formValidationFailedCheckTheSubmittedContent'))
       }
     } finally {
       setSaving(false)
@@ -124,14 +130,14 @@ export default function EditTable({ params }) {
   }
   const fields = [
     {
-      title: '序号',
+      title: t('common:index'),
       width: '4%',
       render: (_, row, i) => (
         <span
           className="gen-drag-handle"
           draggable
           tabIndex={0}
-          aria-label={`移动字段 ${row.columnName}，按上下方向键排序`}
+          aria-label={t('tool:moveFieldValueUseTheUpAndDownArrow', { columnName: row.columnName })}
           onDragStart={() => {
             dragIndex.current = i
           }}
@@ -150,7 +156,7 @@ export default function EditTable({ params }) {
       ),
     },
     {
-      title: '字段列名',
+      title: t('tool:columnName'),
       dataIndex: 'columnName',
       width: '8%',
       ellipsis: true,
@@ -166,7 +172,7 @@ export default function EditTable({ params }) {
       }),
     },
     {
-      title: '字段描述',
+      title: t('tool:columnDescription'),
       width: '8%',
       render: (_, row, i) => (
         <Input
@@ -175,9 +181,9 @@ export default function EditTable({ params }) {
         />
       ),
     },
-    { title: '物理类型', dataIndex: 'columnType', width: '8%' },
+    { title: t('tool:databaseType'), dataIndex: 'columnType', width: '8%' },
     {
-      title: 'Python类型',
+      title: t('tool:pythonType'),
       width: '8%',
       render: (_, row, i) => (
         <Select
@@ -189,7 +195,7 @@ export default function EditTable({ params }) {
       ),
     },
     {
-      title: 'Python属性',
+      title: t('tool:pythonAttribute'),
       width: '8%',
       render: (_, row, i) => (
         <Input
@@ -199,18 +205,18 @@ export default function EditTable({ params }) {
       ),
     },
     ...['isInsert', 'isEdit', 'isList', 'isQuery'].map((key, i) => ({
-      title: ['插入', '编辑', '列表', '查询'][i],
+      title: [t('tool:insert'), t('common:editAction'), t('system:list'), t('monitor:search')][i],
       width: '4%',
       render: (_, row, index) => (
         <Checkbox
-          aria-label={`${row.columnName} ${['插入', '编辑', '列表', '查询'][i]}`}
+          aria-label={`${row.columnName} ${[t('tool:insert'), t('common:editAction'), t('system:list'), t('monitor:search')][i]}`}
           checked={row[key] === '1'}
           onChange={(e) => patch(index, key, e.target.checked ? '1' : '0')}
         />
       ),
     })),
     {
-      title: '查询方式',
+      title: t('tool:queryMethod'),
       width: '8%',
       render: (_, row, i) => (
         <Select
@@ -225,30 +231,30 @@ export default function EditTable({ params }) {
       ),
     },
     ...['isRequired', 'isUnique'].map((key, i) => ({
-      title: ['必填', '唯一'][i],
+      title: [t('system:components.required'), t('tool:unique')][i],
       width: '4%',
       render: (_, row, index) => (
         <Checkbox
-          aria-label={`${row.columnName} ${['必填', '唯一'][i]}`}
+          aria-label={`${row.columnName} ${[t('system:components.required'), t('tool:unique')][i]}`}
           checked={row[key] === '1'}
           onChange={(event) => patch(index, key, event.target.checked ? '1' : '0')}
         />
       ),
     })),
     {
-      title: '显示类型',
+      title: t('tool:displayType'),
       width: '10%',
       render: (_, row, i) => (
         <Select
           style={{ width: '100%' }}
           value={row.htmlType}
-          options={htmlTypes.map(([value, label]) => ({ value, label }))}
+          options={htmlTypes().map(([value, label]) => ({ value, label }))}
           onChange={(v) => patch(i, 'htmlType', v)}
         />
       ),
     },
     {
-      title: '字典类型',
+      title: t('system:dict.type'),
       width: '10%',
       render: (_, row, i) => (
         <Select
@@ -257,7 +263,7 @@ export default function EditTable({ params }) {
           optionFilterProp="label"
           style={{ width: '100%' }}
           value={row.dictType || undefined}
-          placeholder="请选择"
+          placeholder={t('common:selectPlaceholder')}
           options={dicts.map((d) => ({
             value: d.dictType,
             label: `${d.dictName} (${d.dictType})`,
@@ -286,13 +292,13 @@ export default function EditTable({ params }) {
           items={[
             {
               key: 'basic',
-              label: '基本信息',
+              label: t('common:basicInfo'),
               forceRender: true,
               children: <BasicInfoForm />,
             },
             {
               key: 'columnInfo',
-              label: '字段信息',
+              label: t('tool:columnInformation'),
               forceRender: true,
               children: (
                 <Table
@@ -315,7 +321,7 @@ export default function EditTable({ params }) {
             },
             {
               key: 'genInfo',
-              label: '生成信息',
+              label: t('tool:generationSettings'),
               forceRender: true,
               children: (
                 <GenInfoForm
@@ -333,9 +339,9 @@ export default function EditTable({ params }) {
             loading={saving}
             onClick={submit}
           >
-            提交
+            {t('common:submit')}
           </Button>
-          <Button onClick={close}>返回</Button>
+          <Button onClick={close}>{t('layout:error.back')}</Button>
         </Space>
       </Form>
     </Card>

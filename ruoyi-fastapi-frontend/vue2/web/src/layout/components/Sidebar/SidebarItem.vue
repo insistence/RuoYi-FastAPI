@@ -17,7 +17,7 @@
         >
           <item
             :icon="onlyOneChild.meta.icon || (item.meta && item.meta.icon)"
-            :title="onlyOneChild.meta.title"
+            :title="$routeTitle(onlyOneChild)"
           />
         </el-menu-item>
       </app-link>
@@ -33,7 +33,7 @@
         <item
           v-if="item.meta"
           :icon="item.meta && item.meta.icon"
-          :title="item.meta.title"
+          :title="$routeTitle(item)"
         />
       </template>
       <sidebar-item

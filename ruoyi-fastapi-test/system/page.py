@@ -68,14 +68,30 @@ class SystemPage(BasePageTest):
 
     def field(self, scope: Locator, label: str) -> Locator:
         """两种组件库都按真实表单标签定位，不依赖 Vue3 自动生成的 input id。"""
+        suffix = r'(?: · 原文：简体中文)?' if self.is_react and label in {'菜单名称', '字典名称', '数据标签'} else ''
         label_selector = '.ant-form-item-label' if self.is_react else '.el-form-item__label'
         field_selector = '.ant-form-item' if self.is_react else '.el-form-item'
-        labels = self.page.locator(label_selector).filter(has_text=re.compile(rf'^\s*{re.escape(label)}\s*[:：]?\s*$'))
+        labels = self.page.locator(label_selector).filter(
+            has_text=re.compile(rf'^\s*{re.escape(label)}{suffix}\s*[:：]?\s*$')
+        )
         return scope.locator(f'{field_selector}:visible').filter(has=labels)
 
     def input(self, scope: Locator, label: str) -> Locator:
         """返回字段内的文本、密码或数字输入框。"""
         return self.field(scope, label).locator('input:not([type=radio]):not([type=checkbox]), textarea').first
+
+    async def open_translation_input(self, scope: Locator, source_label: str) -> Locator:
+        """展开当前表单的译名区域，按可访问名称定位英文输入框。"""
+        fields = scope.locator('.translation-fields')
+        toggle = fields.locator('button[aria-expanded]')
+        if await toggle.get_attribute('aria-expanded') == 'false':
+            await toggle.click()
+        label = {
+            'react': f'{source_label} · English',
+            'vue2': '翻译（English）',
+            'vue3': 'English译文',
+        }[Config.frontend_framework]
+        return fields.get_by_role('textbox', name=label, exact=True)
 
     async def fill(self, scope: Locator, label: str, value: str) -> None:
         """填写真实输入控件，触发框架正常的输入事件。"""

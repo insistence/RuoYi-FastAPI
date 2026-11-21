@@ -1,0 +1,427 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "plugin.runtime.audit.snapshotFailed"
+msgstr "Unable to read the latest audit snapshot"
+
+msgid "plugin.runtime.batch.blocked"
+msgstr "The batch operation plan contains blocking issues. No changes were written."
+
+msgid "plugin.runtime.batch.completed"
+msgstr "Plugin batch operation completed"
+
+msgid "plugin.runtime.batch.failed"
+msgstr "Plugin batch operation failed"
+
+msgid "plugin.runtime.batch.partial"
+msgstr "Plugin batch operation completed with failures"
+
+msgid "plugin.runtime.batch.planCompleted"
+msgstr "Plugin batch operation plan generated"
+
+msgid "plugin.runtime.batch.planFailed"
+msgstr "Unable to generate the plugin batch operation plan"
+
+msgid "plugin.runtime.batch.previewCompleted"
+msgstr "Plugin batch operation preview completed. No changes were written."
+
+msgid "plugin.runtime.batch.stopped"
+msgstr "Plugin batch operation stopped"
+
+msgid "plugin.runtime.batch.unsupportedOperation"
+msgstr "Unsupported plugin batch operation: %(operation)s"
+
+msgid "plugin.runtime.batch.unsupportedPlan"
+msgstr "Unsupported plugin plan operation: %(operation)s"
+
+msgid "plugin.runtime.checkCompleted"
+msgstr "Plugin check completed"
+
+msgid "plugin.runtime.checkFailed"
+msgstr "Plugin check failed"
+
+msgid "plugin.runtime.completed"
+msgstr "Plugin operation completed"
+
+msgid "plugin.runtime.config.exported"
+msgstr "Plugin configuration exported"
+
+msgid "plugin.runtime.config.imported"
+msgstr "Plugin configuration imported"
+
+msgid "plugin.runtime.config.loaded"
+msgstr "Plugin configuration loaded"
+
+msgid "plugin.runtime.config.readFailed"
+msgstr "Unable to read plugin configuration"
+
+msgid "plugin.runtime.config.updateFailed"
+msgstr "Unable to update plugin configuration"
+
+msgid "plugin.runtime.config.updated"
+msgstr "Plugin configuration updated"
+
+msgid "plugin.runtime.dependencies.builtFrontend"
+msgstr "This frontend is already built. Install frontend dependencies before building it."
+
+msgid "plugin.runtime.dependencies.checkFailed"
+msgstr "Unable to check plugin dependencies"
+
+msgid "plugin.runtime.dependencies.checked"
+msgstr "Plugin dependency check completed"
+
+msgid "plugin.runtime.dependencies.cycle"
+msgstr "Plugin dependency cycle: %(cycle_text)s"
+
+msgid "plugin.runtime.dependencies.enabledDependent"
+msgstr "An enabled plugin depends on this plugin: %(dependent_id)s -> %(plugin_id)s"
+
+msgid "plugin.runtime.dependencies.installBlocked"
+msgstr "Plugin dependency installation was blocked by policy"
+
+msgid "plugin.runtime.dependencies.installFailed"
+msgstr "Unable to install plugin dependencies"
+
+msgid "plugin.runtime.dependencies.invalidRequirement"
+msgstr "Invalid Python dependency requirement: %(requirement)s"
+
+msgid "plugin.runtime.dependencies.markerSkipped"
+msgstr "The Python dependency marker does not apply to this environment. Skipped: %(name)s"
+
+msgid "plugin.runtime.dependencies.missing"
+msgstr "Dependency plugin not found: %(plugin_id)s"
+
+msgid "plugin.runtime.dependencies.previewCompleted"
+msgstr "Plugin dependency installation preview completed. No dependencies were installed."
+
+msgid "plugin.runtime.dependencies.previewReady"
+msgstr "Plugin dependency installation preview completed"
+
+msgid "plugin.runtime.dependencies.satisfied"
+msgstr "Plugin dependencies are already satisfied. No installation is needed."
+
+msgid "plugin.runtime.detailFailed"
+msgstr "Unable to read plugin details"
+
+msgid "plugin.runtime.diagnostics.completed"
+msgstr "Plugin diagnostic bundle generated"
+
+msgid "plugin.runtime.diagnostics.failed"
+msgstr "Unable to generate the plugin diagnostic bundle"
+
+msgid "plugin.runtime.diagnostics.manifestMissing"
+msgstr ""
+"The diagnostic process could not find the artifact manifest. Check the release and runtime snapshots for its actual "
+"state."
+
+msgid "plugin.runtime.disable.completed"
+msgstr "Plugin disabled"
+
+msgid "plugin.runtime.docs.failed"
+msgstr "Unable to generate plugin documentation"
+
+msgid "plugin.runtime.docs.generated"
+msgstr "Plugin documentation generated"
+
+msgid "plugin.runtime.enable.completed"
+msgstr "Plugin enabled"
+
+msgid "plugin.runtime.enable.previewCompleted"
+msgstr "Plugin enablement preview completed. No changes were written."
+
+msgid "plugin.runtime.enable.updateFailed"
+msgstr "Unable to update plugin enablement"
+
+msgid "plugin.runtime.failed"
+msgstr "Plugin operation failed"
+
+msgid "plugin.runtime.health.completed"
+msgstr "Plugin health check completed"
+
+msgid "plugin.runtime.health.executionFailed"
+msgstr "Plugin health check execution failed"
+
+msgid "plugin.runtime.health.failed"
+msgstr "Plugin health check failed"
+
+msgid "plugin.runtime.health.passed"
+msgstr "Plugin health check passed"
+
+msgid "plugin.runtime.health.timeout"
+msgstr "Plugin health check timed out"
+
+msgid "plugin.runtime.health.undeclared"
+msgstr "This plugin does not declare a health check"
+
+msgid "plugin.runtime.install.completed"
+msgstr "Plugin installation completed"
+
+msgid "plugin.runtime.install.dependencyCheckFailed"
+msgstr "Installation stopped because plugin dependency checks failed"
+
+msgid "plugin.runtime.install.failed"
+msgstr "Plugin installation failed"
+
+msgid "plugin.runtime.install.menuConflict"
+msgstr "Installation stopped because plugin menus conflict with installed menus"
+
+msgid "plugin.runtime.install.missingDependencies"
+msgstr "Installation stopped because plugin dependencies are missing. Install the dependencies explicitly first."
+
+msgid "plugin.runtime.install.previewCompleted"
+msgstr "Plugin installation preview completed. No changes were written."
+
+msgid "plugin.runtime.lifecycle.busy"
+msgstr "A plugin lifecycle operation is running. Try again later."
+
+msgid "plugin.runtime.lifecycle.lockUnavailable"
+msgstr "The plugin lifecycle lock is unavailable"
+
+msgid "plugin.runtime.listFailed"
+msgstr "Unable to read the plugin list"
+
+msgid "plugin.runtime.migration.contentChanged"
+msgstr "This plugin migration has already run, but its contents have changed: %(migration_path)s"
+
+msgid "plugin.runtime.migration.failedStatus"
+msgstr "failed"
+
+msgid "plugin.runtime.migration.historyFailed"
+msgstr "Unable to read plugin migration history"
+
+msgid "plugin.runtime.migration.historyLoaded"
+msgstr "Plugin migration history loaded"
+
+msgid "plugin.runtime.migration.markFailed"
+msgstr "Unable to mark the plugin migration status"
+
+msgid "plugin.runtime.migration.marked"
+msgstr "Plugin migration manually marked as %(label)s"
+
+msgid "plugin.runtime.migration.markedFailure"
+msgstr "Plugin migration manually marked as failed"
+
+msgid "plugin.runtime.migration.markedSuccess"
+msgstr "Plugin migration manually marked as successful"
+
+msgid "plugin.runtime.migration.notFound"
+msgstr "Plugin migration history not found"
+
+msgid "plugin.runtime.migration.stillRunning"
+msgstr "The previous execution of this plugin migration is still marked as running: %(migration_path)s"
+
+msgid "plugin.runtime.migration.successStatus"
+msgstr "successful"
+
+msgid "plugin.runtime.migration.transitionBlocked"
+msgstr "Plugin migration is currently %(current_status)s and cannot be manually marked as %(label)s"
+
+msgid "plugin.runtime.migration.unsupportedState"
+msgstr "Plugin migration cannot run automatically: %(migration_path)s, status: %(status)s"
+
+msgid "plugin.runtime.notFoundNamed"
+msgstr "Plugin not found: %(plugin_id)s"
+
+msgid "plugin.runtime.operationForbidden"
+msgstr "This plugin operation is not allowed in the current environment"
+
+msgid "plugin.runtime.precheck.blocked"
+msgstr "Plugin operation precheck found issues"
+
+msgid "plugin.runtime.precheck.completed"
+msgstr "Plugin operation precheck completed"
+
+msgid "plugin.runtime.precheck.failed"
+msgstr "Plugin operation precheck failed"
+
+msgid "plugin.runtime.precheck.invalidOperation"
+msgstr "Plugin precheck only supports install, enable, upgrade, uninstall, or purge"
+
+msgid "plugin.runtime.precheck.passed"
+msgstr "Plugin operation precheck passed"
+
+msgid "plugin.runtime.precheck.scriptFailed"
+msgstr "Plugin lifecycle script precheck failed"
+
+msgid "plugin.runtime.precheck.writeBlocked"
+msgstr "Plugin operation precheck found issues. No changes were written."
+
+msgid "plugin.runtime.purge.completed"
+msgstr "Plugin physical cleanup completed"
+
+msgid "plugin.runtime.purge.enabledDependent"
+msgstr "Physical cleanup stopped because enabled plugins still depend on this plugin"
+
+msgid "plugin.runtime.purge.failed"
+msgstr "Plugin physical cleanup failed"
+
+msgid "plugin.runtime.purge.orphanBlocked"
+msgstr "Orphan metadata cleanup stopped because enabled plugins still depend on this plugin"
+
+msgid "plugin.runtime.purge.previewCompleted"
+msgstr "Plugin cleanup preview completed. No files were deleted."
+
+msgid "plugin.runtime.release.alreadyPrepared"
+msgstr "Maintenance preparation for this artifact is complete."
+
+msgid "plugin.runtime.release.containerVerified"
+msgstr ""
+"Container signature and digest checks passed. Platform and directory checks will run in a temporary directory during "
+"import."
+
+msgid "plugin.runtime.release.imported"
+msgstr "Artifact imported and verified. No release target has been selected."
+
+msgid "plugin.runtime.release.prepared"
+msgstr "Maintenance preparation completed. Select the target artifact before starting workers."
+
+msgid "plugin.runtime.release.previousSelected"
+msgstr "The previous code artifact is selected. The database version is unchanged. Restart all workers."
+
+msgid "plugin.runtime.release.sameVersionBlocked"
+msgstr ""
+"This same-version artifact has no matching maintenance preparation record. Release a new version to identify the "
+"installed contents reliably."
+
+msgid "plugin.runtime.release.stateSaved"
+msgstr "Maintenance enablement settings saved. Start all workers."
+
+msgid "plugin.runtime.release.targetSelected"
+msgstr "Release target updated. Restart all workers and wait for them to report their actual versions."
+
+msgid "plugin.runtime.seed.pending"
+msgstr "The plugin seed will run during the actual operation: %(seed_path)s"
+
+msgid "plugin.runtime.uninstall.completed"
+msgstr "Plugin uninstall completed"
+
+msgid "plugin.runtime.uninstall.failed"
+msgstr "Plugin uninstall failed"
+
+msgid "plugin.runtime.uninstall.previewCompleted"
+msgstr "Plugin uninstall preview completed. No changes were written."
+
+msgid "plugin.runtime.upgrade.completed"
+msgstr "Plugin upgrade completed"
+
+msgid "plugin.runtime.upgrade.current"
+msgstr "The plugin is up to date. No upgrade is needed."
+
+msgid "plugin.runtime.upgrade.failed"
+msgstr "Plugin upgrade failed"
+
+msgid "plugin.runtime.upgrade.invalidManifest"
+msgstr "Upgrade stopped because plugin manifest validation failed"
+
+msgid "plugin.runtime.upgrade.menuConflict"
+msgstr "Upgrade stopped because plugin menus conflict with installed menus"
+
+msgid "plugin.runtime.upgrade.notInstalled"
+msgstr "Upgrade stopped because the plugin is not installed"
+
+msgid "plugin.runtime.upgrade.previewCompleted"
+msgstr "Plugin upgrade preview completed. No changes were written."
+
+msgid "plugin.runtime.validation.buttonChildren"
+msgstr "Button menu %(name)s declares child menus"
+
+msgid "plugin.runtime.validation.buttonComponent"
+msgstr "Button menu %(name)s declares a component"
+
+msgid "plugin.runtime.validation.buttonPermissionMissing"
+msgstr "Button menu %(name)s has no permission"
+
+msgid "plugin.runtime.validation.componentPath"
+msgstr "Invalid plugin component path: %(component)s"
+
+msgid "plugin.runtime.validation.controllerSyntax"
+msgstr "The controller file has a syntax error. Unable to check its route prefix"
+
+msgid "plugin.runtime.validation.databaseMismatch"
+msgstr "Database type does not meet the compatibility requirement: current=%(current_database)s required=%(value)s"
+
+msgid "plugin.runtime.validation.dependencyVersionMissing"
+msgstr "%(dependency_kind)s dependency %(name)s has no version constraint"
+
+msgid "plugin.runtime.validation.duplicateMenuKey"
+msgstr "Plugin %(plugin_id)s has a duplicate menu key: %(menu_key)s"
+
+msgid "plugin.runtime.validation.fileOrder"
+msgstr "backend.%(field_name)s is not declared in filename order"
+
+msgid "plugin.runtime.validation.hookMissing"
+msgstr "The plugin declares %(declared_hook)s but not %(missing_hook)s"
+
+msgid "plugin.runtime.validation.hookSyntax"
+msgstr "The lifecycle hook cannot be statically parsed"
+
+msgid "plugin.runtime.validation.installedMenuConflict"
+msgstr "Permission %(perms)s in plugin %(id)s conflicts with existing menu %(menu_id)s (%(conflict_label)s)"
+
+msgid "plugin.runtime.validation.jobHealthMissing"
+msgstr "The plugin declares enabled jobs but no health check callable"
+
+msgid "plugin.runtime.validation.jobSyntax"
+msgstr "The job callable cannot be statically parsed"
+
+msgid "plugin.runtime.validation.numericConstraintsIgnored"
+msgstr "Configuration %(key)s is not a number, so min/max constraints have no effect"
+
+msgid "plugin.runtime.validation.optionsIgnored"
+msgstr "Configuration %(key)s is not a select field, so its options have no effect"
+
+msgid "plugin.runtime.validation.passwordNotSecret"
+msgstr "Password configuration %(key)s does not declare secret=true"
+
+msgid "plugin.runtime.validation.pathEscapesRoot"
+msgstr "The file path must remain inside the plugin root: %(relative_path)s"
+
+msgid "plugin.runtime.validation.patternIgnored"
+msgstr "Configuration %(key)s is not text, so the pattern constraint has no effect"
+
+msgid "plugin.runtime.validation.permissionConflict"
+msgstr "Permission %(perms)s in plugin %(plugin_id)s conflicts with plugin %(conflict_plugin_id)s"
+
+msgid "plugin.runtime.validation.permissionMenuMissing"
+msgstr ""
+"Permission %(permission)s has no menu and the plugin has no page or directory where a permission button can be "
+"attached"
+
+msgid "plugin.runtime.validation.permissionPrefix"
+msgstr "Permission %(permission)s does not use the plugin ID prefix"
+
+msgid "plugin.runtime.validation.permissionsMissing"
+msgstr "The plugin declares frontend menus but no permissions"
+
+msgid "plugin.runtime.validation.pluginVersionMissing"
+msgstr "Plugin dependency %(id)s has no version constraint"
+
+msgid "plugin.runtime.validation.purgeHookMissing"
+msgstr "The plugin declares resources but no onPurge cleanup hook"
+
+msgid "plugin.runtime.validation.requiredDefaultMissing"
+msgstr "Required configuration %(key)s has no default value"
+
+msgid "plugin.runtime.validation.secretDefault"
+msgstr "Sensitive configuration %(key)s has a non-empty default value"
+
+msgid "plugin.runtime.validation.secretNotPassword"
+msgstr "Sensitive configuration %(key)s is not of type password"
+
+msgid "plugin.runtime.validation.versionMismatch"
+msgstr "%(target_name)s does not meet the compatibility requirement: current=%(current_version)s required=%(constraint)s"
+
+msgid "plugin.runtime.validation.versionUnavailable"
+msgstr "Unable to read the current %(target_name)s version. Compatibility checking was skipped."

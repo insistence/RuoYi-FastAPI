@@ -1,20 +1,23 @@
 <template>
   <!-- 创建表 -->
   <el-dialog
-    title="创建表"
+    :title="$t('tool:messages.createTable')"
     :visible.sync="visible"
     width="800px"
     top="5vh"
     append-to-body
   >
-    <el-form label-width="80px">
+    <el-form
+      :validate-on-rule-change="false"
+      label-width="80px"
+    >
       <el-form-item
-        label="数据源"
+        :label="$t('tool:datasource.title')"
         required
       >
         <el-select
           v-model="dataSourceName"
-          placeholder="请选择数据源"
+          :placeholder="$t('tool:datasource.select')"
           filterable
           style="width: 260px"
         >
@@ -27,11 +30,11 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <span>创建表语句(支持多个建表语句)：</span>
+    <span>{{ $t('tool:messages.cREATETABLEStatementsMultipleStatementsSupported') }}</span>
     <el-input
       type="textarea"
       :rows="10"
-      placeholder="请输入文本"
+      :placeholder="$t('tool:messages.enterText')"
       v-model="content"
     ></el-input>
     <div
@@ -41,14 +44,16 @@
       <el-button
         type="primary"
         @click="handleCreateTable"
-        >确 定</el-button
+        >{{ $t('common:confirm') }}</el-button
       >
-      <el-button @click="visible = false">取 消</el-button>
+      <el-button @click="visible = false">{{ $t('common:cancel') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { createTable } from '@/api/tool/gen'
 export default {
   props: {
@@ -78,11 +83,11 @@ export default {
     /** 创建按钮操作 */
     handleCreateTable() {
       if (this.content === '') {
-        this.$modal.msgError('请输入建表语句')
+        this.$modal.msgError(t('tool:messages.enterCREATETABLEStatements'))
         return
       }
       if (!this.dataSourceName) {
-        this.$modal.msgError('请选择数据源')
+        this.$modal.msgError(t('tool:datasource.select'))
         return
       }
       createTable({ sql: this.content, dataSourceName: this.dataSourceName }).then((res) => {

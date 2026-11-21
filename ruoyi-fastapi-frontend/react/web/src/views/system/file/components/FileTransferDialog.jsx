@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import './style.css'
 import { useEffect, useRef, useState } from 'react'
@@ -6,12 +9,15 @@ import { getFileAclDeptTree, searchFileAclSubjects, transferFile } from '@/api/s
 import { message } from '@/plugins/modal'
 
 export default function FileTransferDialog({ files, onClose, onSuccess }) {
+  useI18n()
+
   const [form] = Form.useForm(),
     [users, setUsers] = useState([]),
     [depts, setDepts] = useState([]),
     [searching, setSearching] = useState(false),
     [saving, setSaving] = useState(false),
     sequence = useRef(0)
+  useLocalizedFormErrors(form)
   const retainUploaderAccess = Form.useWatch('retainUploaderAccess', form)
   async function search(keyword) {
     const version = ++sequence.current
@@ -44,7 +50,7 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
         files.map((row) => row.fileId),
         values
       )
-      message.success('文件转移成功')
+      message.success(t('file:transfer.filesTransferredSuccessfully'))
       onClose()
       onSuccess()
     } catch {
@@ -57,7 +63,12 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
       footer={renderDialogFooter}
       width="620px"
       className="file-dialog "
-      title={`转移文件 - ${files?.length === 1 ? files[0].originalName : `${files?.length || 0} 个文件`}`}
+      title={t('file:transferFilesValue', {
+        arg0:
+          files?.length === 1
+            ? files[0].originalName
+            : t('file:transfer.valueFiles', { arg0: files?.length || 0 }),
+      })}
       open={!!files}
       onCancel={onClose}
       onOk={save}
@@ -75,12 +86,12 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
       >
         <Form.Item
           name="ownerUserId"
-          label="新所有者"
-          rules={[{ required: true, message: '请选择新所有者' }]}
+          label={t('file:shared.newOwner')}
+          rules={[{ required: true, message: t('file:transfer.selectANewOwner') }]}
         >
           <Select
             allowClear
-            placeholder="输入用户名称搜索"
+            placeholder={t('file:transfer.searchByUsername')}
             showSearch
             filterOption={false}
             loading={searching}
@@ -97,43 +108,49 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
         </Form.Item>
         <Form.Item
           name="deptId"
-          label="所属部门"
-          rules={[{ required: true, message: '请选择所属部门' }]}
+          label={t('system:user.department')}
+          rules={[{ required: true, message: t('file:shared.selectADepartment') }]}
         >
           <TreeSelect
             allowClear
-            placeholder="请选择所属部门"
+            placeholder={t('file:shared.selectADepartment')}
             showSearch
             treeNodeFilterProp="label"
             treeData={depts}
             fieldNames={{ label: 'label', value: 'id', children: 'children' }}
           />
         </Form.Item>
-        <Form.Item label="上传人权限">
+        <Form.Item label={t('file:shared.uploaderPermissions')}>
           <div className="file-transfer-permission">
-            <span className={!retainUploaderAccess ? 'is-active' : ''}>移除</span>
+            <span className={!retainUploaderAccess ? 'is-active' : ''}>
+              {t('file:transfer.remove')}
+            </span>
             <Form.Item
               name="retainUploaderAccess"
               valuePropName="checked"
               noStyle
             >
-              <Switch aria-label="保留上传人权限" />
+              <Switch aria-label={t('file:retainUploaderPermissions')} />
             </Form.Item>
-            <span className={retainUploaderAccess ? 'is-active' : ''}>保留</span>
+            <span className={retainUploaderAccess ? 'is-active' : ''}>
+              {t('file:transfer.retain')}
+            </span>
           </div>
           <div className="file-form-tip">
             {retainUploaderAccess
-              ? '原上传人继续拥有内置下载权限，匹配的显式拒绝仍可覆盖。'
-              : '原上传人不再因上传身份获得下载权限，上传记录仍会保留。'}
+              ? t('file:theOriginalUploaderRetainsBuiltInDownloadAccessA')
+              : t('file:theOriginalUploaderNoLongerReceivesDownloadAccessThrough')}
           </div>
         </Form.Item>
         <Form.Item
           name="reason"
-          label="转移原因"
-          rules={[{ required: true, whitespace: true, message: '请输入转移原因' }]}
+          label={t('file:transfer.transferReason')}
+          rules={[
+            { required: true, whitespace: true, message: t('file:transfer.enterATransferReason') },
+          ]}
         >
           <Input.TextArea
-            placeholder="请输入转移原因"
+            placeholder={t('file:transfer.enterATransferReason')}
             rows={3}
             maxLength={500}
             showCount

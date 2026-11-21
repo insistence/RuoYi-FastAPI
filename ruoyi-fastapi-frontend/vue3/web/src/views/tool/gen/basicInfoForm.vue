@@ -8,51 +8,51 @@
     <el-row>
       <el-col :span="12">
         <el-form-item
-          label="表名称"
+          :label="$t('tools:tableName')"
           prop="tableName"
         >
           <el-input
-            placeholder="请输入仓库名称"
+            :placeholder="$t('tools:enterRepositoryName')"
             v-model="info.tableName"
           />
         </el-form-item>
       </el-col>
       <el-col :span="12">
         <el-form-item
-          label="表描述"
+          :label="$t('tools:tableDescription')"
           prop="tableComment"
         >
           <el-input
-            placeholder="请输入"
+            :placeholder="$t('tools:enterAValue')"
             v-model="info.tableComment"
           />
         </el-form-item>
       </el-col>
       <el-col :span="12">
         <el-form-item
-          label="实体类名称"
+          :label="$t('tools:entityClassName')"
           prop="className"
         >
           <el-input
-            placeholder="请输入"
+            :placeholder="$t('tools:enterAValue')"
             v-model="info.className"
           />
         </el-form-item>
       </el-col>
       <el-col :span="12">
         <el-form-item
-          label="作者"
+          :label="$t('tools:author')"
           prop="functionAuthor"
         >
           <el-input
-            placeholder="请输入"
+            :placeholder="$t('tools:enterAValue')"
             v-model="info.functionAuthor"
           />
         </el-form-item>
       </el-col>
       <el-col :span="24">
         <el-form-item
-          label="备注"
+          :label="$t('system:remarks')"
           prop="remark"
         >
           <el-input
@@ -67,6 +67,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 defineProps({
   info: {
     type: Object,
@@ -76,9 +77,41 @@ defineProps({
 
 // 表单校验
 const rules = ref({
-  tableName: [{ required: true, message: '请输入表名称', trigger: 'blur' }],
-  tableComment: [{ required: true, message: '请输入表描述', trigger: 'blur' }],
-  className: [{ required: true, message: '请输入实体类名称', trigger: 'blur' }],
-  functionAuthor: [{ required: true, message: '请输入作者', trigger: 'blur' }],
+  tableName: [
+    {
+      required: true,
+      get message() {
+        return t('tools:enterTableName')
+      },
+      trigger: 'blur',
+    },
+  ],
+  tableComment: [
+    {
+      required: true,
+      get message() {
+        return t('tools:enterTableDescription')
+      },
+      trigger: 'blur',
+    },
+  ],
+  className: [
+    {
+      required: true,
+      get message() {
+        return t('tools:enterEntityClassName')
+      },
+      trigger: 'blur',
+    },
+  ],
+  functionAuthor: [
+    {
+      required: true,
+      get message() {
+        return t('tools:enterAuthor')
+      },
+      trigger: 'blur',
+    },
+  ],
 })
 </script>

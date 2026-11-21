@@ -1,0 +1,338 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "export.accessId"
+msgstr "Access ID"
+
+msgid "export.accountStatus"
+msgstr "Account status"
+
+msgid "export.active"
+msgstr "Active"
+
+msgid "export.args"
+msgstr "Positional arguments"
+
+msgid "export.browser"
+msgstr "Browser"
+
+msgid "export.builtIn"
+msgstr "Built-in"
+
+msgid "export.coalesce"
+msgstr "Backlog handling"
+
+msgid "export.configId"
+msgstr "Configuration ID"
+
+msgid "export.configKey"
+msgstr "Configuration key"
+
+msgid "export.configName"
+msgstr "Configuration name"
+
+msgid "export.configValue"
+msgstr "Configuration value"
+
+msgid "export.createdAt"
+msgstr "Created at"
+
+msgid "export.createdBy"
+msgstr "Created by"
+
+msgid "export.cron"
+msgstr "Cron expression"
+
+msgid "export.cronTimezone"
+msgstr "Cron time zone"
+
+msgid "export.cssClass"
+msgstr "CSS class"
+
+msgid "export.department"
+msgstr "Department"
+
+msgid "export.deptId"
+msgstr "Department ID"
+
+msgid "export.deptName"
+msgstr "Department name"
+
+msgid "export.dictCode"
+msgstr "Dictionary entry ID"
+
+msgid "export.dictId"
+msgstr "Dictionary ID"
+
+msgid "export.dictLabel"
+msgstr "Dictionary label"
+
+msgid "export.dictName"
+msgstr "Dictionary name"
+
+msgid "export.dictSort"
+msgstr "Dictionary order"
+
+msgid "export.dictType"
+msgstr "Dictionary type"
+
+msgid "export.dictValue"
+msgstr "Dictionary value"
+
+msgid "export.disabled"
+msgstr "Disabled"
+
+msgid "export.displayOrder"
+msgstr "Display order"
+
+msgid "export.duration"
+msgstr "Duration (ms)"
+
+msgid "export.email"
+msgstr "Email address"
+
+msgid "export.errorMessage"
+msgstr "Error message"
+
+msgid "export.exception"
+msgstr "Exception details"
+
+msgid "export.executionDuration"
+msgstr "Execution duration (ms)"
+
+msgid "export.executionId"
+msgstr "Execution ID"
+
+msgid "export.executionStatus"
+msgstr "Execution status"
+
+msgid "export.executor"
+msgstr "Executor"
+
+msgid "export.failure"
+msgstr "Failure"
+
+msgid "export.female"
+msgstr "Female"
+
+msgid "export.finishedAt"
+msgstr "Finished at"
+
+msgid "export.gender"
+msgstr "Gender"
+
+msgid "export.invokeTarget"
+msgstr "Invocation target"
+
+msgid "export.isDefault"
+msgstr "Default"
+
+msgid "export.jobCode"
+msgstr "Job code"
+
+msgid "export.jobGroup"
+msgstr "Job group"
+
+msgid "export.jobId"
+msgstr "Job ID"
+
+msgid "export.jobLogId"
+msgstr "Job log ID"
+
+msgid "export.jobName"
+msgstr "Job name"
+
+msgid "export.jobStore"
+msgstr "Job store"
+
+msgid "export.jobTimezone"
+msgstr "Job time zone"
+
+msgid "export.kwargs"
+msgstr "Keyword arguments"
+
+msgid "export.latestOnly"
+msgstr "Run the latest only"
+
+msgid "export.listClass"
+msgstr "Table display style"
+
+msgid "export.logId"
+msgstr "Log ID"
+
+msgid "export.logMessage"
+msgstr "Log message"
+
+msgid "export.loginName"
+msgstr "Login name"
+
+msgid "export.male"
+msgstr "Male"
+
+msgid "export.maxInstances"
+msgstr "Maximum concurrent runs"
+
+msgid "export.method"
+msgstr "Method name"
+
+msgid "export.misfireGraceTime"
+msgstr "Allowed delay (seconds)"
+
+msgid "export.module"
+msgstr "System module"
+
+msgid "export.nickName"
+msgstr "Display name"
+
+msgid "export.no"
+msgstr "No"
+
+msgid "export.operatingSystem"
+msgstr "Operating system"
+
+msgid "export.operationDate"
+msgstr "Operation date"
+
+msgid "export.operationIp"
+msgstr "Operation IP address"
+
+msgid "export.operationLocation"
+msgstr "Operation location"
+
+msgid "export.operationMessage"
+msgstr "Operation message"
+
+msgid "export.operationStatus"
+msgstr "Operation status"
+
+msgid "export.operationType"
+msgstr "Operation type"
+
+msgid "export.operator"
+msgstr "Operator"
+
+msgid "export.paused"
+msgstr "Paused"
+
+msgid "export.phone"
+msgstr "Phone number"
+
+msgid "export.postCode"
+msgstr "Position code"
+
+msgid "export.postId"
+msgstr "Position ID"
+
+msgid "export.postName"
+msgstr "Position name"
+
+msgid "export.remark"
+msgstr "Remarks"
+
+msgid "export.requestMethod"
+msgstr "Request method"
+
+msgid "export.requestParams"
+msgstr "Request parameters"
+
+msgid "export.requestUrl"
+msgstr "Request URL"
+
+msgid "export.responseParams"
+msgstr "Response parameters"
+
+msgid "export.roleId"
+msgstr "Role ID"
+
+msgid "export.roleKey"
+msgstr "Permission key"
+
+msgid "export.roleName"
+msgstr "Role name"
+
+msgid "export.runEach"
+msgstr "Run each"
+
+msgid "export.scheduledAt"
+msgstr "Scheduled execution time"
+
+msgid "export.signInDate"
+msgstr "Sign-in date"
+
+msgid "export.signInIp"
+msgstr "Sign-in IP address"
+
+msgid "export.signInLocation"
+msgstr "Sign-in location"
+
+msgid "export.signInStatus"
+msgstr "Sign-in status"
+
+msgid "export.startedAt"
+msgstr "Started at"
+
+msgid "export.status"
+msgstr "Status"
+
+msgid "export.success"
+msgstr "Success"
+
+msgid "export.trigger"
+msgstr "Trigger"
+
+msgid "export.unknown"
+msgstr "Unknown"
+
+msgid "export.unlimited"
+msgstr "Unlimited"
+
+msgid "export.updatedAt"
+msgstr "Updated at"
+
+msgid "export.updatedBy"
+msgstr "Updated by"
+
+msgid "export.userEmail"
+msgstr "User email"
+
+msgid "export.userGender"
+msgstr "User gender"
+
+msgid "export.userId"
+msgstr "User ID"
+
+msgid "export.userName"
+msgstr "Username"
+
+msgid "export.yes"
+msgstr "Yes"
+
+msgid "import.duplicateColumn"
+msgstr "The import file contains a duplicate column: %(column)s"
+
+msgid "import.empty"
+msgstr "The import file is empty"
+
+msgid "import.invalidValue"
+msgstr "Invalid value for import field %(field)s: %(value)s"
+
+msgid "import.missingColumns"
+msgstr "The import file is missing required columns: %(columns)s"
+
+msgid "import.user.duplicates"
+msgstr "Existing accounts skipped: %(accounts)s"
+
+msgid "import.user.nickName"
+msgstr "Display name"

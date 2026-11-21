@@ -1,7 +1,6 @@
-from datetime import datetime
+import re
 from http import HTTPStatus
 from urllib.parse import urlparse
-from zoneinfo import ZoneInfo
 
 import pytest
 from playwright.async_api import expect
@@ -26,11 +25,6 @@ async def test_authenticated_profile_uses_user_timezone_and_cron_keeps_its_zone(
     assert created.endswith('Z')
     preference = info['user']['timeZone']
     display_timezone = host_timezone if preference == 'auto' else preference
-    expected = (
-        datetime.fromisoformat(created.replace('Z', '+00:00'))
-        .astimezone(ZoneInfo(display_timezone))
-        .strftime('%Y-%m-%d %H:%M:%S')
-    )
     context = await browser_harness.new_context(token=token, timezone_id=host_timezone)
     page = await context.new_page()
     errors = []
@@ -45,9 +39,19 @@ async def test_authenticated_profile_uses_user_timezone_and_cron_keeps_its_zone(
         ),
     )
     await page.goto(Config.frontend_url + '/user/profile')
-    created_at = page.get_by_role('listitem').filter(has_text='创建日期').locator('.pull-right, .profile-info-value')
+    created_at = (
+        page.get_by_role('listitem')
+        .filter(has_text=re.compile('创建日期|Created', re.IGNORECASE))
+        .locator('.pull-right, .profile-info-value')
+    )
+    await expect(created_at).to_be_visible(timeout=30000)
+    expected = await page.evaluate(
+        """([instant, zone]) => new Intl.DateTimeFormat(document.documentElement.lang, {
+            dateStyle: 'medium', timeStyle: 'medium', timeZone: zone
+        }).format(new Date(instant))""",
+        [created, display_timezone],
+    )
     await expect(created_at).to_have_text(expected, timeout=30000)
-    await expect(created_at).to_be_visible()
     assert not errors
     assert display_timezone in request_timezones
 

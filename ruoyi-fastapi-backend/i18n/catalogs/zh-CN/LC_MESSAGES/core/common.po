@@ -1,0 +1,95 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "common.added"
+msgstr "新增成功"
+
+msgid "common.assigned"
+msgstr "分配成功"
+
+msgid "common.cancelled"
+msgstr "取消成功"
+
+msgid "common.cleared"
+msgstr "清除成功"
+
+msgid "common.deleted"
+msgstr "删除成功"
+
+msgid "common.demoReadOnly"
+msgstr "演示模式，不允许操作！"
+
+msgid "common.error"
+msgstr "接口异常"
+
+msgid "common.failure"
+msgstr "操作失败"
+
+msgid "common.forbidden"
+msgstr "该用户无此接口权限"
+
+msgid "common.imported"
+msgstr "导入成功"
+
+msgid "common.marked"
+msgstr "标记成功"
+
+msgid "common.modified"
+msgstr "修改成功"
+
+msgid "common.rateLimited"
+msgstr "请求过于频繁，请稍后再试"
+
+msgid "common.refreshed"
+msgstr "刷新成功"
+
+msgid "common.reset"
+msgstr "重置成功"
+
+msgid "common.saved"
+msgstr "保存成功"
+
+msgid "common.sortFailed"
+msgstr "保存排序异常，请联系管理员"
+
+msgid "common.success"
+msgstr "操作成功"
+
+msgid "common.synced"
+msgstr "同步成功"
+
+msgid "common.unauthorized"
+msgstr "登录信息已过期，访问系统资源失败"
+
+msgid "common.unavailable"
+msgstr "服务暂时不可用，请稍后重试"
+
+msgid "common.updated"
+msgstr "更新成功"
+
+msgid "common.validated"
+msgstr "校验通过"
+
+msgid "transport.decryptFailed"
+msgstr "加密请求解析失败"
+
+msgid "transport.invalidRequest"
+msgstr "加密请求解析失败"
+
+msgid "transport.keyExpired"
+msgstr "密钥版本不存在"
+
+msgid "transport.required"
+msgstr "当前接口要求使用加密传输"

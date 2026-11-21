@@ -1,12 +1,12 @@
 <template>
   <el-drawer
-    title="文件保留策略"
+    :title="$t('files:fileRetentionPolicies')"
     v-model="visible"
     size="900px"
     append-to-body
   >
     <el-alert
-      title="策略仅应用于后续新建或重建的业务引用；未配置或已停用的业务类型永久保留，既有引用不会被追溯修改。"
+      :title="$t('files:policiesApplyOnlyToNewOrRecreatedBusinessReferencesBusiness')"
       type="info"
       :closable="false"
       show-icon
@@ -23,8 +23,8 @@
           icon="Plus"
           @click="handleAdd"
         >
-          新增
-        </el-button>
+          {{ $t('system:add') }}</el-button
+        >
       </el-col>
     </el-row>
     <el-table
@@ -32,32 +32,32 @@
       :data="policyList"
     >
       <el-table-column
-        label="业务类型"
+        :label="$t('monitor:businessType')"
         align="center"
         prop="businessType"
         min-width="140"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="保留天数"
+        :label="$t('files:retentionDays')"
         align="center"
         prop="retentionDays"
         width="100"
       />
       <el-table-column
-        label="状态"
+        :label="$t('system:status')"
         align="center"
         prop="status"
         width="90"
       >
         <template #default="scope">
           <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">
-            {{ scope.row.status === '0' ? '启用' : '停用' }}
+            {{ scope.row.status === '0' ? $t('system:enable') : $t('system:disabled') }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column
-        label="备注"
+        :label="$t('system:remarks')"
         align="left"
         prop="remark"
         min-width="160"
@@ -66,7 +66,7 @@
         <template #default="scope">{{ scope.row.remark || '-' }}</template>
       </el-table-column>
       <el-table-column
-        label="更新时间"
+        :label="$t('monitor:updatedAt')"
         align="center"
         prop="updateTime"
         width="180"
@@ -76,14 +76,14 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         align="center"
         width="90"
         fixed="right"
       >
         <template #default="scope">
           <el-tooltip
-            content="修改"
+            :content="$t('system:edit')"
             placement="top"
           >
             <el-button
@@ -94,7 +94,7 @@
             />
           </el-tooltip>
           <el-tooltip
-            content="删除"
+            :content="$t('system:delete')"
             placement="top"
           >
             <el-button
@@ -119,21 +119,22 @@
       ref="formRef"
       :model="form"
       :rules="rules"
+      :validate-on-rule-change="false"
       label-width="90px"
     >
       <el-form-item
-        label="业务类型"
+        :label="$t('monitor:businessType')"
         prop="businessType"
       >
         <el-input
           v-model="form.businessType"
           :disabled="editing"
           maxlength="50"
-          placeholder="请输入业务类型"
+          :placeholder="$t('files:enterABusinessType')"
         />
       </el-form-item>
       <el-form-item
-        label="保留天数"
+        :label="$t('files:retentionDays')"
         prop="retentionDays"
       >
         <el-input-number
@@ -146,16 +147,16 @@
         />
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('system:status')"
         prop="status"
       >
         <el-radio-group v-model="form.status">
-          <el-radio value="0">启用</el-radio>
-          <el-radio value="1">停用</el-radio>
+          <el-radio value="0">{{ $t('system:enable') }}</el-radio>
+          <el-radio value="1">{{ $t('system:disabled') }}</el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item
-        label="备注"
+        :label="$t('system:remarks')"
         prop="remark"
       >
         <el-input
@@ -164,7 +165,7 @@
           :rows="3"
           maxlength="500"
           show-word-limit
-          placeholder="请输入备注"
+          :placeholder="$t('components:enterARemark')"
         />
       </el-form-item>
     </el-form>
@@ -175,15 +176,17 @@
           :loading="saving"
           @click="submit"
         >
-          确 定
-        </el-button>
-        <el-button @click="formOpen = false">取 消</el-button>
+          {{ $t('system:confirm') }}</el-button
+        >
+        <el-button @click="formOpen = false">{{ $t('system:cancel') }}</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
+import { useLocaleForm } from '@/composables/useLocaleForm'
+import { t } from '@/i18n/adapter'
 import {
   addFileRetentionPolicy,
   delFileRetentionPolicy,
@@ -192,6 +195,7 @@ import {
 } from '@/api/system/file'
 
 const { proxy } = getCurrentInstance()
+useLocaleForm(computed(() => proxy.$refs.formRef))
 const visible = ref(false)
 const loading = ref(false)
 const policyList = ref([])
@@ -199,7 +203,9 @@ const formOpen = ref(false)
 const editing = ref(false)
 const saving = ref(false)
 const formRef = ref()
-const formTitle = computed(() => (editing.value ? '修改文件保留策略' : '新增文件保留策略'))
+const formTitle = computed(() =>
+  editing.value ? t('files:editFileRetentionPolicy') : t('files:addFileRetentionPolicy')
+)
 const form = reactive({
   businessType: undefined,
   retentionDays: 30,
@@ -207,8 +213,24 @@ const form = reactive({
   remark: undefined,
 })
 const rules = {
-  businessType: [{ required: true, message: '请输入业务类型', trigger: 'blur' }],
-  retentionDays: [{ required: true, message: '请输入保留天数', trigger: 'blur' }],
+  businessType: [
+    {
+      required: true,
+      get message() {
+        return t('files:enterABusinessType')
+      },
+      trigger: 'blur',
+    },
+  ],
+  retentionDays: [
+    {
+      required: true,
+      get message() {
+        return t('files:enterRetentionDays')
+      },
+      trigger: 'blur',
+    },
+  ],
 }
 
 function open() {
@@ -264,7 +286,9 @@ function submit() {
       : addFileRetentionPolicy(form)
     submitRequest
       .then(() => {
-        proxy.$modal.msgSuccess(editing.value ? '修改成功' : '新增成功')
+        proxy.$modal.msgSuccess(
+          editing.value ? t('system:updatedSuccessfully') : t('system:addedSuccessfully')
+        )
         formOpen.value = false
         getList()
       })
@@ -276,10 +300,12 @@ function submit() {
 
 function handleDelete(row) {
   proxy.$modal
-    .confirm(`是否确认删除业务类型“${row.businessType}”的保留策略?`)
+    .confirm(
+      t('files:deleteTheRetentionPolicyForBusinessTypeValue', { businessType: row.businessType })
+    )
     .then(() => delFileRetentionPolicy(row.businessType))
     .then(() => {
-      proxy.$modal.msgSuccess('删除成功')
+      proxy.$modal.msgSuccess(t('system:deletedSuccessfully'))
       getList()
     })
     .catch(() => {})

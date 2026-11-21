@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { SearchOutlined, ReloadOutlined, PlusOutlined } from '@ant-design/icons'
 import { Empty } from 'antd'
 import { TableAction } from '@/components/TableActions'
@@ -13,10 +16,22 @@ import HasPermi from '@/directive/permission/hasPermi'
 import Pagination from '@/components/Pagination'
 
 const policyOptions = [
-  { value: 'blocked', label: '禁止访问' },
-  { value: 'allowed', label: '允许访问' },
+  {
+    value: 'blocked',
+    get label() {
+      return t('oauth:grant.blockAccess')
+    },
+  },
+  {
+    value: 'allowed',
+    get label() {
+      return t('oauth:grant.allowAccess')
+    },
+  },
 ]
 export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
+  useI18n()
+
   const [queryForm] = Form.useForm(),
     [form] = Form.useForm(),
     [query, setQuery] = useState({ pageNum: 1, pageSize: 10 }),
@@ -26,6 +41,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
     [target, setTarget] = useState(null),
     [blocked, setBlocked] = useState(true),
     [saving, setSaving] = useState(false)
+  useLocalizedFormErrors(queryForm, form)
   const getList = useCallback(async () => {
     if (!open) return
     setLoading(true)
@@ -60,7 +76,11 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         blocked,
         reason: values.reason.trim(),
       })
-      message.success(blocked ? '已禁止用户访问应用' : '已解除访问禁止')
+      message.success(
+        blocked
+          ? t('oauth:grant.theUserHasBeenBlockedFromThisApplication')
+          : t('oauth:grant.accessRestrictionRemoved')
+      )
       setTarget(null)
       onChanged?.()
       await getList()
@@ -73,7 +93,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
     <Drawer
       rootClassName="oauth-dialog oauth-access-policy-drawer"
       closable={{ placement: 'end' }}
-      title="应用访问策略"
+      title={t('oauth:grant.applicationAccessPolicies')}
       size="min(960px, 96vw)"
       open={open}
       onClose={onClose}
@@ -82,7 +102,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         className="oauth-policy-note"
         type="info"
         showIcon
-        title="可在用户首次授权前禁止访问应用。未配置策略时默认允许；解除禁止后，已撤销的授权不会恢复。"
+        title={t('oauth:grant.blockAccessBeforeAUserFirstGrantsConsentAccess')}
       />
       <Form
         form={queryForm}
@@ -92,17 +112,17 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         onFinish={(values) => setQuery({ ...values, pageNum: 1, pageSize: query.pageSize })}
       >
         <Form.Item
-          label="用户"
+          label={t('system:user.user')}
           name="userId"
         >
           <Input
             style={{ width: 200 }}
-            placeholder="用户编号"
+            placeholder={t('system:user.id')}
             allowClear
           />
         </Form.Item>
         <Form.Item
-          label="应用"
+          label={t('common:apply')}
           name="clientId"
         >
           <Input
@@ -112,12 +132,12 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
           />
         </Form.Item>
         <Form.Item
-          label="策略"
+          label={t('system:policies')}
           name="accessStatus"
         >
           <Select
             style={{ width: 200 }}
-            placeholder="全部策略"
+            placeholder={t('oauth:grant.allPolicies')}
             allowClear
             options={policyOptions}
           />
@@ -129,7 +149,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
               type="primary"
               htmlType="submit"
             >
-              查找
+              {t('common:find')}
             </Button>
             <Button
               icon={<ReloadOutlined />}
@@ -138,25 +158,27 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
                 setQuery({ pageNum: 1, pageSize: 10 })
               }}
             >
-              清空
+              {t('common:clear')}
             </Button>
           </Space>
         </Form.Item>
       </Form>
       <div className="oauth-policy-toolbar">
-        <span>已配置 {total} 条策略</span>
+        <span>
+          {t('oauth:grant.configured')} {total} {t('oauth:grant.policies')}
+        </span>
         <HasPermi value={['system:oauthGrant:revoke']}>
           <Button
             icon={<PlusOutlined />}
             type="primary"
             onClick={() => edit()}
           >
-            新增禁止策略
+            {t('oauth:grant.addAccessRestriction')}
           </Button>
         </HasPermi>
       </div>
       <Table
-        locale={{ emptyText: <Empty description="没有符合条件的访问策略" /> }}
+        locale={{ emptyText: <Empty description={t('oauth:grant.noMatchingAccessPolicies')} /> }}
         rowKey={(row) => `${row.userId}:${row.clientId}`}
         dataSource={rows}
         loading={loading}
@@ -165,7 +187,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         columns={[
           {
             width: 140,
-            title: '用户',
+            title: t('system:user.user'),
             render: (_, row) => (
               <div className="oauth-policy-target">
                 <strong>{row.userName}</strong>
@@ -175,7 +197,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
           },
           {
             width: 160,
-            title: '应用',
+            title: t('common:apply'),
             render: (_, row) => (
               <div className="oauth-policy-target">
                 <strong>{row.clientName}</strong>
@@ -185,18 +207,18 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
           },
           {
             width: 110,
-            title: '策略',
+            title: t('system:policies'),
             dataIndex: 'accessStatus',
             render: (value) => (
               <OAuthTag type={value === 'blocked' ? 'danger' : 'success'}>
-                {value === 'blocked' ? '禁止访问' : '允许访问'}
+                {value === 'blocked' ? t('oauth:grant.blockAccess') : t('oauth:grant.allowAccess')}
               </OAuthTag>
             ),
           },
-          { width: 180, title: '操作原因', dataIndex: 'reason', ellipsis: true },
-          { width: 110, title: '操作人', dataIndex: 'updateBy' },
+          { width: 180, title: t('common:operationReason'), dataIndex: 'reason', ellipsis: true },
+          { width: 110, title: t('oauth:grant.operator'), dataIndex: 'updateBy' },
           {
-            title: '最近操作',
+            title: t('oauth:grant.lastOperation'),
             dataIndex: 'updateTime',
             width: 170,
             render: (value) => parseTime(value) || '—',
@@ -204,7 +226,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
           {
             className: 'ruoyi-actions-cell',
             align: 'center',
-            title: '操作',
+            title: t('common:actions'),
             width: 110,
             fixed: 'right',
             render: (_, row) => (
@@ -213,7 +235,9 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
                   tone={row.accessStatus === 'blocked' ? 'primary' : 'danger'}
                   onClick={() => edit(row)}
                 >
-                  {row.accessStatus === 'blocked' ? '解除禁止' : '禁止访问'}
+                  {row.accessStatus === 'blocked'
+                    ? t('oauth:grant.removeRestriction')
+                    : t('oauth:grant.blockAccess')}
                 </TableAction>
               </HasPermi>
             ),
@@ -229,7 +253,11 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
       <Modal
         width="min(540px, calc(100vw - 32px))"
         className="oauth-dialog oauth-access-policy-editor"
-        title={blocked ? '禁止用户访问应用' : '解除应用访问禁止'}
+        title={
+          blocked
+            ? t('oauth:grant.blockUserAccessToApplication')
+            : t('oauth:grant.removeApplicationAccessRestriction')
+        }
         open={!!target}
         onCancel={() => setTarget(null)}
         onOk={save}
@@ -239,8 +267,8 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         closable={!saving}
         cancelButtonProps={{ disabled: saving }}
         okButtonProps={{ danger: blocked }}
-        okText={blocked ? '确认禁止' : '确认解除'}
-        cancelText="取消"
+        okText={blocked ? t('oauth:grant.confirmRestriction') : t('oauth:grant.confirmRemoval')}
+        cancelText={t('common:cancel')}
         forceRender
       >
         <Alert
@@ -249,8 +277,8 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
           showIcon
           title={
             blocked
-              ? '将撤销该用户对应用的全部现有授权，并阻止后续授权。'
-              : '解除后允许重新授权，已有授权和令牌不会恢复。'
+              ? t('oauth:grant.revokeWarning')
+              : t('oauth:grant.usersMayGrantConsentAgainAfterTheRestrictionIs')
           }
         />
         <Form
@@ -260,17 +288,17 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         >
           <Form.Item
             name="userId"
-            label="用户编号"
+            label={t('system:user.id')}
             rules={[
               {
                 required: true,
                 pattern: /^[1-9]\d{0,18}$/,
-                message: '请输入有效的用户编号',
+                message: t('oauth:grant.enterAValidUserId'),
               },
             ]}
           >
             <Input
-              placeholder="输入用户管理中的用户编号"
+              placeholder={t('oauth:grant.enterTheUserIdFromUserManagement')}
               disabled={!!target?.userId || saving}
               maxLength={19}
               inputMode="numeric"
@@ -278,22 +306,28 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
           </Form.Item>
           <Form.Item
             name="clientId"
-            label="Client ID"
-            rules={[{ required: true, whitespace: true, message: '请输入 Client ID' }]}
+            label={t('authCenter:appId')}
+            rules={[{ required: true, whitespace: true, message: t('oauth:grant.enterAClientId') }]}
           >
             <Input
-              placeholder="输入客户端管理中的 Client ID"
+              placeholder={t('oauth:grant.enterTheClientIdFromClientManagement')}
               disabled={!!target?.clientId || saving}
               maxLength={128}
             />
           </Form.Item>
           <Form.Item
             name="reason"
-            label="操作原因"
-            rules={[{ required: true, whitespace: true, message: '请填写操作原因' }]}
+            label={t('common:operationReason')}
+            rules={[
+              {
+                required: true,
+                whitespace: true,
+                message: t('oauth:grant.enterAReasonForThisOperation'),
+              },
+            ]}
           >
             <Input.TextArea
-              placeholder="填写原因，便于后续审计"
+              placeholder={t('oauth:grant.provideAReasonForTheAuditTrail')}
               rows={3}
               disabled={saving}
               maxLength={200}

@@ -10,8 +10,12 @@
       <el-alert
         :title="
           batchMode
-            ? '批量操作仅覆盖所选文件的显式授权；内置权限仍按各文件规则生效。'
-            : '内置权限只读展示；管理员和所有者不可被拒绝，启用的上传人权限可被匹配的显式拒绝覆盖。'
+            ? $t(
+                'file:expression.batchOperationsReplaceOnlyExplicitPermissionsOnSelectedFilesBuiltInPermissions'
+              )
+            : $t(
+                'file:expression.builtInPermissionsAreReadOnlyAdministratorsAndOwnersCannotBeDenied'
+              )
         "
         type="info"
         :closable="false"
@@ -22,14 +26,14 @@
         v-if="!batchMode"
         class="permission-section"
       >
-        <div class="permission-section__title">内置权限</div>
+        <div class="permission-section__title">{{ $t('file:messages.builtInPermissions') }}</div>
         <el-table
           v-loading="loading"
           :data="builtinPermissions"
           border
         >
           <el-table-column
-            label="权限来源"
+            :label="$t('file:messages.permissionSource')"
             align="center"
             width="110"
           >
@@ -42,7 +46,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="权限主体"
+            :label="$t('file:messages.permissionPrincipal')"
             align="center"
             min-width="180"
           >
@@ -51,7 +55,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="规则"
+            :label="$t('file:messages.rule')"
             align="center"
             width="110"
           >
@@ -59,12 +63,16 @@
               <el-tag
                 :type="scope.row.enabled ? 'success' : 'info'"
                 effect="plain"
-                >{{ scope.row.enabled ? '允许下载' : '已移除' }}</el-tag
+                >{{
+                  scope.row.enabled
+                    ? $t('file:messages.allowDownload')
+                    : $t('file:expression.removed')
+                }}</el-tag
               >
             </template>
           </el-table-column>
           <el-table-column
-            label="拒绝覆盖"
+            :label="$t('file:messages.denyTakesPrecedence')"
             align="center"
             width="135"
           >
@@ -73,14 +81,18 @@
                 v-if="scope.row.enabled"
                 :type="scope.row.denyOverridable ? 'warning' : 'info'"
                 effect="plain"
-                >{{ scope.row.denyOverridable ? '可以覆盖' : '不可覆盖' }}</el-tag
+                >{{
+                  scope.row.denyOverridable
+                    ? $t('file:expression.canBeOverridden')
+                    : $t('file:expression.cannotBeOverridden')
+                }}</el-tag
               >
               <span v-else>-</span>
             </template>
           </el-table-column>
           <el-table-column
             prop="description"
-            label="权限说明"
+            :label="$t('file:messages.permissionDetails')"
             align="left"
             min-width="320"
             show-overflow-tooltip
@@ -88,14 +100,14 @@
         </el-table>
       </div>
       <div class="permission-section__header">
-        <span class="permission-section__title">显式授权</span>
+        <span class="permission-section__title">{{ $t('file:messages.explicitPermissions') }}</span>
         <el-button
           type="primary"
           plain
           size="mini"
           icon="el-icon-plus"
           @click="addEntry"
-          >添加授权</el-button
+          >{{ $t('file:messages.addPermission') }}</el-button
         >
       </div>
       <el-table
@@ -103,7 +115,7 @@
         :data="entries"
       >
         <el-table-column
-          label="主体类型"
+          :label="$t('file:messages.principalType')"
           align="center"
           width="125"
         >
@@ -113,22 +125,22 @@
               @change="handleSubjectTypeChange(scope.row)"
             >
               <el-option
-                label="用户"
+                :label="$t('system:user.user')"
                 value="user"
               />
               <el-option
-                label="角色"
+                :label="$t('system:user.role')"
                 value="role"
               />
               <el-option
-                label="部门"
+                :label="$t('system:dept.nameShort')"
                 value="dept"
               />
             </el-select>
           </template>
         </el-table-column>
         <el-table-column
-          label="授权主体"
+          :label="$t('file:messages.principal')"
           align="center"
           min-width="230"
         >
@@ -140,7 +152,7 @@
               :normalizer="normalizer"
               :append-to-body="true"
               :z-index="3000"
-              placeholder="请选择部门"
+              :placeholder="$t('file:messages.selectADepartment')"
               :clearable="true"
               :searchable="true"
               style="width: 100%"
@@ -153,7 +165,7 @@
               clearable
               :loading="scope.row.subjectLoading"
               :remote-method="getSubjectRemoteMethod(scope.row)"
-              placeholder="输入名称搜索"
+              :placeholder="$t('file:messages.searchByName')"
               style="width: 100%"
               @visible-change="handleSubjectVisible(scope.row, $event)"
             >
@@ -167,25 +179,25 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="规则"
+          :label="$t('file:messages.rule')"
           align="center"
           width="120"
         >
           <template slot-scope="scope">
             <el-select v-model="scope.row.effect">
               <el-option
-                label="允许下载"
+                :label="$t('file:messages.allowDownload')"
                 value="allow"
               />
               <el-option
-                label="拒绝下载"
+                :label="$t('file:messages.denyDownload')"
                 value="deny"
               />
             </el-select>
           </template>
         </el-table-column>
         <el-table-column
-          label="包含下级部门"
+          :label="$t('file:messages.includeSubdepartments')"
           align="center"
           width="125"
         >
@@ -198,25 +210,25 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="有效期至"
+          :label="$t('file:messages.validUntil')"
           align="center"
           width="310"
         >
           <template slot-scope="scope">
             <BusinessDateTimePicker
               v-model="scope.row.expireTime"
-              label="有效期至，留空为永久有效"
+              :label="$t('file:messages.validUntilLeaveEmptyForNoExpiry')"
             />
           </template>
         </el-table-column>
         <el-table-column
-          label="操作"
+          :label="$t('common:actions')"
           align="center"
           width="70"
         >
           <template slot-scope="scope">
             <el-tooltip
-              content="删除"
+              :content="$t('common:delete')"
               placement="top"
             >
               <el-button
@@ -235,15 +247,17 @@
           :loading="saving"
           @click="submit"
         >
-          保 存
+          {{ $t('file:messages.save') }}
         </el-button>
-        <el-button @click="visible = false">取 消</el-button>
+        <el-button @click="visible = false">{{ $t('common:cancel') }}</el-button>
       </div>
     </div>
   </el-drawer>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { prepareTimeFields, serializeTimeFieldsForSubmit } from '@/utils/time'
 import BusinessDateTimePicker from '@/components/BusinessDateTimePicker'
 import Treeselect from '@riophae/vue-treeselect'
@@ -277,7 +291,9 @@ export default {
   },
   computed: {
     drawerTitle() {
-      return this.batchMode ? `批量授权 - ${this.batchCount}个文件` : `访问权限 - ${this.fileName}`
+      return this.batchMode
+        ? t('file:messages.batchPermissionsFiles', { batchCount: this.batchCount })
+        : t('file:messages.accessPermissions', { fileName: this.fileName })
     },
   },
   methods: {
@@ -291,7 +307,7 @@ export default {
     open(row, selectedIds, selectedPrivateIds) {
       this.batchMode = !(row && row.fileId)
       if (this.batchMode && !selectedPrivateIds.length) {
-        this.$modal.msgWarning('请选择正常状态的受保护文件')
+        this.$modal.msgWarning(t('file:messages.selectActiveProtectedFiles'))
         return
       }
       this.fileId = row && row.fileId ? row.fileId : ''
@@ -300,7 +316,9 @@ export default {
       this.fileName = row && row.originalName ? row.originalName : ''
       if (this.batchMode && selectedPrivateIds.length < selectedIds.length) {
         this.$modal.msgWarning(
-          `已忽略${selectedIds.length - selectedPrivateIds.length}个公开或非正常状态的文件`
+          t('file:messages.skippedPublicOrInactiveFiles', {
+            arg0: selectedIds.length - selectedPrivateIds.length,
+          })
         )
       }
       this.visible = true
@@ -350,9 +368,9 @@ export default {
     builtinSourceLabel(source) {
       return (
         {
-          admin: '平台管理员',
-          owner: '文件所有者',
-          uploader: '文件上传人',
+          admin: t('file:messages.platformAdministrator'),
+          owner: t('file:messages.fileOwner'),
+          uploader: t('file:messages.fileUploader'),
         }[source] || source
       )
     },
@@ -408,7 +426,7 @@ export default {
     },
     async submit() {
       if (this.entries.some((item) => !item.subjectId)) {
-        this.$modal.msgError('请选择完整的授权主体')
+        this.$modal.msgError(t('file:messages.selectACompletePermissionPrincipal'))
         return
       }
       const convertedEntries = []
@@ -437,7 +455,11 @@ export default {
             })
         saveRequest
           .then(() => {
-            this.$modal.msgSuccess(this.batchMode ? '文件权限批量保存成功' : '文件权限保存成功')
+            this.$modal.msgSuccess(
+              this.batchMode
+                ? t('file:messages.filePermissionsSavedForAllSelectedFiles')
+                : t('file:messages.filePermissionsSaved')
+            )
             this.visible = false
             this.$emit('refresh')
           })
@@ -447,7 +469,11 @@ export default {
       }
       if (this.batchMode) {
         this.$modal
-          .confirm(`将覆盖所选${this.batchCount}个文件的全部授权，是否继续?`)
+          .confirm(
+            t('file:messages.replaceAllPermissionsForTheSelectedFiles', {
+              batchCount: this.batchCount,
+            })
+          )
           .then(saveAcl)
           .catch(() => {})
       } else {

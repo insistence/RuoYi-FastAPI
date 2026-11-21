@@ -29,6 +29,8 @@ USER = {
     'email': 'mobile-ci@example.test',
     'createTime': '2026-01-01T00:00:00Z',
     'timeZone': 'America/New_York',
+    'locale': 'en-US',
+    'localeRevision': '0',
 }
 
 
@@ -50,7 +52,12 @@ def create_api_handler(errors: list[str], observed: list[dict[str, Any]]) -> Cal
         """
         request = route.request
         path = urlparse(request.url).path.removeprefix('/dev-api')
-        headers = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*'}
+        headers = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Expose-Headers': 'Content-Language',
+            'Content-Language': request.headers.get('accept-language', 'zh-CN'),
+        }
         if request.method == 'OPTIONS':
             await route.fulfill(status=204, headers=headers)
             return
@@ -60,6 +67,7 @@ def create_api_handler(errors: list[str], observed: list[dict[str, Any]]) -> Cal
                 'method': request.method,
                 'authorization': request.headers.get('authorization'),
                 'timezone': request.headers.get('x-timezone'),
+                'locale': request.headers.get('accept-language'),
             }
         )
         payload: dict[str, Any]
@@ -135,6 +143,21 @@ async def check_login_styles(framework: str, page: Page, login_button: Locator) 
     return styles
 
 
+def check_profile_requests(observed: list[dict[str, Any]]) -> None:
+    """
+    验证账号恢复后的认证、时区、语言与初始化请求头。
+
+    :param observed: 实际发出的 API 请求记录
+    :return: None
+    """
+    profile_requests = [request for request in observed if request['path'] == '/system/user/profile']
+    assert profile_requests, '个人资料页未发送真实 API 请求'
+    assert all(request['authorization'] == f'Bearer {TOKEN}' for request in profile_requests)
+    assert all(request['timezone'] == 'America/New_York' for request in profile_requests)
+    assert all(request['locale'] == 'en-US' for request in profile_requests)
+    assert all(request['locale'] in {'zh-CN', 'en-US'} for request in observed)
+
+
 async def run_smoke(framework: str, base_url: str, output: Path) -> None:
     """
     使用真实 H5 构建验证登录、持久化身份和个人资料页。
@@ -165,7 +188,7 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
         try:
             await page.goto(f'{base_url}/#/pages/login')
             await expect(page.locator('input[type="text"]')).to_be_visible(timeout=30000)
-            await expect(page.locator('input')).to_have_count(2, timeout=15000)
+            await expect(page.locator('input:visible')).to_have_count(2, timeout=15000)
             button = page.get_by_role('button') if framework == 'react' else page.locator('uni-button')
             login_button = button.filter(has_text=re.compile(r'登\s*录'))
             login_styles = await check_login_styles(framework, page, login_button)
@@ -176,11 +199,15 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
             await expect(page).to_have_url(re.compile(r'/pages/index'), timeout=30000)
             await page.goto(f'{base_url}/#/pages/mine/info/index')
             await expect(page.get_by_text(USER['nickName'], exact=True)).to_be_visible(timeout=30000)
-            await expect(page.get_by_text('2025-12-31 19:00:00', exact=True)).to_be_visible(timeout=15000)
-            profile_requests = [request for request in observed if request['path'] == '/system/user/profile']
-            assert profile_requests, '个人资料页未发送真实 API 请求'
-            assert all(request['authorization'] == f'Bearer {TOKEN}' for request in profile_requests)
-            assert all(request['timezone'] == 'America/New_York' for request in profile_requests)
+            await expect(page.get_by_text('Nickname', exact=True)).to_be_visible(timeout=15000)
+            created_at = await page.evaluate(
+                """({locale, timeZone, createTime}) => new Intl.DateTimeFormat(locale, {
+                    dateStyle: 'medium', timeStyle: 'medium', timeZone
+                }).format(new Date(createTime))""",
+                {key: USER[key] for key in ('locale', 'timeZone', 'createTime')},
+            )
+            await expect(page.get_by_text(created_at, exact=True)).to_be_visible(timeout=15000)
+            check_profile_requests(observed)
             assert not errors, errors
             (output / 'result.json').write_text(
                 json.dumps(
@@ -190,7 +217,7 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
                 ),
                 encoding='utf-8',
             )
-            print(f'{framework}: H5 login, persisted session and timezone profile PASS')
+            print(f'{framework}: H5 login, account locale, language headers and timezone profile PASS')
         except BaseException:
             failed = True
             await page.screenshot(path=str(output / 'failure.png'), full_page=True)

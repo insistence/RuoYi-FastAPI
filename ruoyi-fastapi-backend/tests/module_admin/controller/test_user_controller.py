@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from common.enums import PasswordCharacterType
+from common.vo import CrudResponseModel
 from module_admin.controller.user_controller import (
     change_system_user_profile_info,
     edit_system_user,
@@ -30,7 +31,7 @@ async def test_admin_reset_password_uses_front_end_default_rule() -> None:
         patch.object(
             UserService,
             'edit_user_services',
-            new=AsyncMock(return_value=SimpleNamespace(message='重置成功')),
+            new=AsyncMock(return_value=CrudResponseModel(is_success=True, message='重置成功')),
         ),
         patch.object(PwdUtil, 'get_password_hash', return_value='hashed-password'),
         patch(
@@ -90,7 +91,7 @@ async def test_update_user_profile_only_forwards_editable_fields() -> None:
         patch.object(
             UserService,
             'edit_user_services',
-            new=AsyncMock(return_value=SimpleNamespace(message='更新成功')),
+            new=AsyncMock(return_value=CrudResponseModel(is_success=True, message='更新成功')),
         ) as edit_user_services,
         patch(
             'module_admin.controller.user_controller.ResponseUtil.success',
@@ -141,7 +142,9 @@ async def test_edit_user_does_not_accept_password_or_internal_operation_type(ope
     )
     current_user = SimpleNamespace(user=SimpleNamespace(admin=True, user_name='admin'))
     with patch.object(
-        UserService, 'edit_user_services', AsyncMock(return_value=SimpleNamespace(message='更新成功'))
+        UserService,
+        'edit_user_services',
+        AsyncMock(return_value=CrudResponseModel(is_success=True, message='更新成功')),
     ) as edit_user:
         await inspect.unwrap(edit_system_user)(object(), payload, object(), current_user, object(), object(), object())
 

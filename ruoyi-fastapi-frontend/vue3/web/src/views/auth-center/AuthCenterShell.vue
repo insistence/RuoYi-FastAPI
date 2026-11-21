@@ -3,7 +3,7 @@
     <section
       class="auth-shell"
       :class="{ 'is-compact': !showProgress }"
-      aria-label="统一认证中心"
+      :aria-label="$t('authCenter:shell.authenticationCenter')"
     >
       <aside class="trust-panel">
         <div>
@@ -13,25 +13,32 @@
             ></span>
             <div>
               <strong>{{ productTitle }}</strong
-              ><small>统一认证中心</small>
+              ><small>{{ $t('authCenter:shell.authenticationCenter') }}</small>
             </div>
+            <LanguageSelect />
           </div>
 
           <div class="trust-copy">
-            <p class="trust-kicker">安全连接</p>
-            <h1>确认身份后，安全返回应用</h1>
-            <p>认证过程在这里完成。你的密码、验证码和登录会话不会交给接入应用。</p>
+            <p class="trust-kicker">{{ $t('authCenter:shell.secureConnection') }}</p>
+            <h1>{{ $t('authCenter:shell.verifyYourIdentityAndReturnSecurelyToTheApp') }}</h1>
+            <p>
+              {{
+                $t(
+                  'authCenter:shell.authenticationTakesPlaceHereYourPasswordVerificationCodeAndSign'
+                )
+              }}
+            </p>
           </div>
 
           <div
             v-if="applicationName || applicationId"
             class="application-card"
           >
-            <small>正在请求访问的应用</small>
+            <small>{{ $t('authCenter:shell.appRequestingAccess') }}</small>
             <div class="application-identity">
               <span>{{ applicationInitial }}</span>
               <div>
-                <strong>{{ applicationName || '外部应用' }}</strong
+                <strong>{{ applicationName || $t('authCenter:shell.externalApplication') }}</strong
                 ><code v-if="applicationId">{{ applicationId }}</code>
               </div>
             </div>
@@ -39,10 +46,14 @@
 
           <ul class="trust-points">
             <li>
-              <el-icon><CircleCheck /></el-icon><span>只会分享你明确确认的信息</span>
+              <el-icon><CircleCheck /></el-icon
+              ><span>{{
+                $t('authCenter:shell.onlyInformationYouExplicitlyApproveWillBeShared')
+              }}</span>
             </li>
             <li>
-              <el-icon><CircleCheck /></el-icon><span>你可以取消，并返回发起登录的应用</span>
+              <el-icon><CircleCheck /></el-icon
+              ><span>{{ $t('authCenter:shell.youCanCancelAndReturnToTheAppThatRequested') }}</span>
             </li>
           </ul>
         </div>
@@ -52,8 +63,10 @@
             class="status-dot"
             aria-hidden="true"
           />
-          <span v-if="hasExpiry">本次请求将在 {{ formatTime(remainingSeconds) }} 后失效</span>
-          <span v-else>受保护的认证连接</span>
+          <span v-if="hasExpiry">{{
+            $t('authCenter:shell.requestExpires', { time: formatTime(remainingSeconds) })
+          }}</span>
+          <span v-else>{{ $t('authCenter:shell.protectedAuthenticationConnection') }}</span>
         </div>
       </aside>
 
@@ -61,16 +74,16 @@
         <div
           v-if="showProgress"
           class="progress-wrap"
-          aria-label="认证进度"
+          :aria-label="$t('authCenter:shell.authenticationProgress')"
         >
-          <span>认证进度</span>
+          <span>{{ $t('authCenter:shell.authenticationProgress') }}</span>
           <el-steps
             :active="currentStep"
             finish-status="success"
             align-center
           >
             <el-step
-              v-for="step in steps"
+              v-for="step in displaySteps"
               :key="step"
               :title="step"
             />
@@ -79,7 +92,10 @@
         <div class="auth-content"><slot /></div>
         <footer class="mobile-security-note">
           <el-icon><Lock /></el-icon>
-          <span>{{ productTitle }} 不会向应用提供密码或验证码</span>
+          <span
+            >{{ productTitle }}
+            {{ $t('authCenter:shell.yourPasswordAndVerificationCodeWillNotBeSharedWith') }}</span
+          >
         </footer>
       </div>
     </section>
@@ -87,14 +103,25 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
+import LanguageSelect from '@/components/LanguageSelect/index.vue'
 const props = defineProps({
   currentStep: { type: Number, default: 0 },
-  steps: { type: Array, default: () => ['验证身份', '确认权限'] },
+  steps: {
+    type: Array,
+    default: () => [],
+  },
   expiresIn: { type: Number, default: 0 },
   applicationName: { type: String, default: '' },
   applicationId: { type: String, default: '' },
   showProgress: { type: Boolean, default: true },
 })
+
+const displaySteps = computed(() =>
+  props.steps.length
+    ? props.steps
+    : [t('authCenter:shared.verifyIdentity'), t('authCenter:shared.confirmPermissions')]
+)
 
 const productTitle = import.meta.env.VITE_APP_TITLE
 const remainingSeconds = ref(0)
@@ -102,7 +129,7 @@ const hasExpiry = ref(false)
 let countdownTimer
 
 const applicationInitial = computed(() => {
-  const name = String(props.applicationName || props.applicationId || '应用').trim()
+  const name = String(props.applicationName || props.applicationId || t('components:apply')).trim()
   return name.slice(0, 1).toUpperCase()
 })
 

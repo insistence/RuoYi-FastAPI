@@ -1,3 +1,5 @@
+import useDictStore from '@/store/modules/dict'
+import { i18n, t } from '@/i18n'
 import router from '@/router'
 import cache from '@/plugins/cache'
 import { ElMessageBox } from 'element-plus'
@@ -7,6 +9,9 @@ import { setBusinessTimezone, setUserTimezone } from '@/utils/time'
 import { isHttp, isEmpty } from '@/utils/validate'
 import useLockStore from '@/store/modules/lock'
 import defAva from '@/assets/images/profile.jpg'
+
+const sessionChangedError = () =>
+  Object.assign(new Error('User session changed'), { code: 'USER_SESSION_CHANGED' })
 
 const useUserStore = defineStore('user', {
   state: () => ({
@@ -47,10 +52,15 @@ const useUserStore = defineStore('user', {
     },
     // 获取用户信息
     getInfo() {
+      const requestedToken = getToken()
+      const isCurrentSession = () =>
+        requestedToken && requestedToken === getToken() && requestedToken === this.token
       return new Promise((resolve, reject) => {
         getInfo()
           .then((res) => {
+            if (!isCurrentSession()) throw sessionChangedError()
             const user = res.user
+            i18n.setAccount(user?.userId, user?.locale, user?.localeRevision)
             this.appTimezone = res.appTimezone
             setBusinessTimezone(res.appTimezone)
             this.applyTimezone(user.timeZone)
@@ -72,11 +82,15 @@ const useUserStore = defineStore('user', {
             cache.session.set('pwrChrtype', res.pwdChrtype)
             /* 初始密码提示 */
             if (res.isDefaultModifyPwd) {
-              ElMessageBox.confirm('您的密码还是初始密码，请修改密码！', '安全提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning',
-              })
+              ElMessageBox.confirm(
+                t('auth:password.defaultWarning'),
+                t('auth:password.securityTitle'),
+                {
+                  confirmButtonText: t('common:confirm'),
+                  cancelButtonText: t('common:cancel'),
+                  type: 'warning',
+                }
+              )
                 .then(() => {
                   router.push({ name: 'Profile', params: { activeTab: 'resetPwd' } })
                 })
@@ -84,11 +98,15 @@ const useUserStore = defineStore('user', {
             }
             /* 过期密码提示 */
             if (!res.isDefaultModifyPwd && res.isPasswordExpired) {
-              ElMessageBox.confirm('您的密码已过期，请尽快修改密码！', '安全提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning',
-              })
+              ElMessageBox.confirm(
+                t('auth:password.expiredWarning'),
+                t('auth:password.securityTitle'),
+                {
+                  confirmButtonText: t('common:confirm'),
+                  cancelButtonText: t('common:cancel'),
+                  type: 'warning',
+                }
+              )
                 .then(() => {
                   router.push({ name: 'Profile', params: { activeTab: 'resetPwd' } })
                 })
@@ -97,7 +115,7 @@ const useUserStore = defineStore('user', {
             resolve(res)
           })
           .catch((error) => {
-            reject(error)
+            reject(isCurrentSession() ? error : sessionChangedError())
           })
       })
     },
@@ -113,6 +131,8 @@ const useUserStore = defineStore('user', {
         this.roles = []
         this.permissions = []
         removeToken()
+        useDictStore().cleanDict()
+        i18n.setAccount(null)
       }
     },
   },

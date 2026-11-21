@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Protocol, TypeAlias, cast
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.purge import PluginPurgePlan, PluginPurgePlanItem
 from plugins.core.manifest.menu_tree import PluginMenuTree
@@ -291,7 +292,9 @@ class PluginPlanPayloadMixin:
         """
         return PluginPlanResponsePayload(
             ok=plan.ok,
-            message='插件批量操作计划生成完成' if plan.ok else '插件批量操作计划存在阻塞项',
+            message=I18nMessage('插件批量操作计划生成完成', msg_key='plugin.runtime.batch.planCompleted')
+            if plan.ok
+            else '插件批量操作计划存在阻塞项',
             operation=plan.operation,
             database_available=database_error is None,
             database_error=database_error,
@@ -572,7 +575,9 @@ class PluginPlanPayloadMixin:
         return UpgradeDryRunPayload.model_validate(
             {
                 'ok': True,
-                'message': '插件升级演练完成，未执行实际写入',
+                'message': I18nMessage(
+                    '插件升级演练完成，未执行实际写入', msg_key='plugin.runtime.upgrade.previewCompleted'
+                ),
                 'pluginId': plugin_id,
                 'dryRun': True,
                 **version_state,

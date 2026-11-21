@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { message as fallbackMessage, Modal } from 'antd'
 // 应用上下文绑定前使用静态反馈 API，绑定后使用可继承主题和语言的实例。
 let feedback = { message: fallbackMessage, modal: Modal }
@@ -22,13 +23,13 @@ export const message = {
  * @param {string} [title="系统提示"] 弹窗标题
  * @returns {Promise<boolean>} 确认时返回 true，取消时以 cancel 错误拒绝
  */
-export function confirm(content, title = '系统提示') {
+export function confirm(content, title = t('common:plugins.notice')) {
   return new Promise((resolve, reject) =>
     feedback.modal.confirm({
       title,
       content,
-      okText: '确定',
-      cancelText: '取消',
+      okText: t('common:confirm'),
+      cancelText: t('common:cancel'),
       onOk: () => resolve(true),
       onCancel: () => reject(new Error('cancel')),
     })
@@ -43,12 +44,12 @@ export function chooseOffset(error) {
   return new Promise((resolve, reject) => {
     let offset = error.candidates[0].offset
     feedback.modal.confirm({
-      title: '选择重复时间',
+      title: t('common:chooseARepeatedTime'),
       content: (
         <div>
           <p>{error.message}</p>
           <select
-            aria-label="UTC 偏移"
+            aria-label={t('common:utcOffset')}
             defaultValue={offset}
             onChange={(event) => {
               offset = event.target.value
@@ -65,8 +66,8 @@ export function chooseOffset(error) {
           </select>
         </div>
       ),
-      okText: '使用所选时间',
-      cancelText: '返回修改',
+      okText: t('common:useSelectedTime'),
+      cancelText: t('common:goBackAndEdit'),
       onOk: () => resolve(offset),
       onCancel: () => reject(new Error('cancel')),
     })

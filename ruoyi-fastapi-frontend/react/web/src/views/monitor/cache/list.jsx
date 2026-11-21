@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './list.css'
 import { DatabaseOutlined, KeyOutlined, FileTextOutlined } from '@ant-design/icons'
 import { TableAction } from '@/components/TableActions'
@@ -16,6 +18,8 @@ import {
 import { confirm, message } from '@/plugins/modal'
 
 export default function CacheList() {
+  useI18n()
+
   const [names, setNames] = useState([]),
     [keys, setKeys] = useState([]),
     [current, setCurrent] = useState(''),
@@ -58,24 +62,24 @@ export default function CacheList() {
   }
   async function clearName(name) {
     try {
-      await confirm(`确认清理缓存“${name}”？`)
+      await confirm(t('monitor:clearCacheValue', { name }))
       await clearCacheName(name)
-      message.success('清理成功')
+      message.success(t('monitor:clearedSuccessfully'))
       if (current === name) await loadKeys(name)
     } catch {}
   }
   async function clearKey(key) {
     try {
       await clearCacheKey(key)
-      message.success('清理成功')
+      message.success(t('monitor:clearedSuccessfully'))
       await loadKeys()
     } catch {}
   }
   async function clearAll() {
     try {
-      await confirm('是否确认清理全部缓存？')
+      await confirm(t('monitor:clearAllCaches'))
       await clearCacheAll()
-      message.success('清理全部缓存成功')
+      message.success(t('monitor:allCachesCleared'))
       setValue({})
       await loadKeys()
       await loadNames()
@@ -94,12 +98,12 @@ export default function CacheList() {
           <Card
             title={
               <>
-                <DatabaseOutlined /> 缓存列表
+                <DatabaseOutlined /> {t('monitor:cacheList')}
               </>
             }
             extra={
               <Button
-                aria-label="刷新缓存列表"
+                aria-label={t('monitor:refreshCacheList')}
                 type="link"
                 icon={<ReloadOutlined />}
                 onClick={loadNames}
@@ -114,18 +118,18 @@ export default function CacheList() {
               scroll={{ y: 'calc(100vh - 240px)' }}
               onRow={(row) => ({ onClick: () => loadKeys(row.cacheName) })}
               columns={[
-                { title: '序号', width: 60, render: (_, row, index) => index + 1 },
+                { title: t('common:index'), width: 60, render: (_, row, index) => index + 1 },
                 {
                   align: 'center',
-                  title: '缓存名称',
+                  title: t('monitor:cacheName'),
                   dataIndex: 'cacheName',
                   render: (name) => name.replace(':', ''),
                 },
-                { align: 'center', title: '备注', dataIndex: 'remark' },
+                { align: 'center', title: t('common:remark'), dataIndex: 'remark' },
                 {
                   className: 'ruoyi-actions-cell',
                   align: 'center',
-                  title: '操作',
+                  title: t('common:actions'),
                   width: 60,
                   render: (_, row) => (
                     <TableAction
@@ -136,7 +140,7 @@ export default function CacheList() {
                         void clearName(row.cacheName)
                       }}
                     >
-                      清理
+                      {t('monitor:deletePermanently')}
                     </TableAction>
                   ),
                 },
@@ -151,12 +155,12 @@ export default function CacheList() {
           <Card
             title={
               <>
-                <KeyOutlined /> 键名列表
+                <KeyOutlined /> {t('monitor:keyList')}
               </>
             }
             extra={
               <Button
-                aria-label="刷新键名列表"
+                aria-label={t('monitor:refreshKeyList')}
                 icon={<ReloadOutlined />}
                 type="link"
                 disabled={!current}
@@ -172,10 +176,10 @@ export default function CacheList() {
               scroll={{ y: 'calc(100vh - 240px)' }}
               onRow={(row) => ({ onClick: () => loadValue(row.key) })}
               columns={[
-                { title: '序号', width: 60, render: (_, row, index) => index + 1 },
+                { title: t('common:index'), width: 60, render: (_, row, index) => index + 1 },
                 {
                   align: 'center',
-                  title: '缓存键名',
+                  title: t('monitor:cacheKey'),
                   dataIndex: 'key',
                   ellipsis: true,
                   render: (key) => (key.startsWith(current) ? key.slice(current.length) : key),
@@ -183,7 +187,7 @@ export default function CacheList() {
                 {
                   className: 'ruoyi-actions-cell',
                   align: 'center',
-                  title: '操作',
+                  title: t('common:actions'),
                   width: 60,
                   render: (_, row) => (
                     <TableAction
@@ -194,7 +198,7 @@ export default function CacheList() {
                         void clearKey(row.key)
                       }}
                     >
-                      清理
+                      {t('monitor:deletePermanently')}
                     </TableAction>
                   ),
                 },
@@ -209,7 +213,7 @@ export default function CacheList() {
           <Card
             title={
               <>
-                <FileTextOutlined /> 缓存内容
+                <FileTextOutlined /> {t('monitor:cacheContent')}
               </>
             }
             extra={
@@ -219,7 +223,7 @@ export default function CacheList() {
                 type="link"
                 onClick={clearAll}
               >
-                清理全部
+                {t('monitor:clearAll')}
               </Button>
             }
           >
@@ -228,19 +232,19 @@ export default function CacheList() {
               colon={false}
               style={{ width: '91.6667%', margin: '0 auto' }}
             >
-              <Form.Item label="缓存名称:">
+              <Form.Item label={t('monitor:cache.cacheName')}>
                 <Input
                   readOnly
                   value={value.cacheName || ''}
                 />
               </Form.Item>
-              <Form.Item label="缓存键名:">
+              <Form.Item label={t('monitor:cache.cacheKey')}>
                 <Input
                   readOnly
                   value={value.cacheKey || ''}
                 />
               </Form.Item>
-              <Form.Item label="缓存内容:">
+              <Form.Item label={t('monitor:cache.cacheContent')}>
                 <Input.TextArea
                   readOnly
                   rows={8}

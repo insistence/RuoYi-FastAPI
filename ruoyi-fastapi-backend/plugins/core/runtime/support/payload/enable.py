@@ -3,6 +3,7 @@ from typing import TypeAlias
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
 from plugins.core.validation.plugin_deps import PluginDependencyCheckResult
 
 from . import PluginPayloadBuilder
@@ -177,7 +178,7 @@ class PluginEnablePayloadBuilder:
             enabled=enabled,
             dry_run=True,
             ok=True,
-            message='插件启停演练完成，未执行实际写入',
+            message=I18nMessage('插件启停演练完成，未执行实际写入', msg_key='plugin.runtime.enable.previewCompleted'),
             dependency_payload=dependency_payload,
         )
 
@@ -249,7 +250,11 @@ class PluginEnablePayloadBuilder:
         uninstall_payload.update(
             {
                 'operation': 'uninstall',
-                'message': '插件卸载演练完成，未执行实际写入' if dry_run else result.get('message', '插件卸载完成'),
+                'message': I18nMessage(
+                    '插件卸载演练完成，未执行实际写入', msg_key='plugin.runtime.uninstall.previewCompleted'
+                )
+                if dry_run
+                else result.get('message', '插件卸载完成'),
                 'safeMode': True,
                 'removesSource': False,
                 'removesMenus': True,

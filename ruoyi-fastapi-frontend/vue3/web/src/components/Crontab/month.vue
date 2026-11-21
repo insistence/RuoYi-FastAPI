@@ -5,8 +5,8 @@
         v-model="radioValue"
         :value="1"
       >
-        月，允许的通配符[, - * /]
-      </el-radio>
+        {{ $t('components:monthAllowedWildcards') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -14,19 +14,19 @@
         v-model="radioValue"
         :value="2"
       >
-        周期从
-        <el-input-number
-          v-model="cycle01"
-          :min="1"
-          :max="11"
-        />
-        -
-        <el-input-number
-          v-model="cycle02"
-          :min="cycle01 + 1"
-          :max="12"
-        />
-        月
+        <LocalizedMessage
+          :message="$t('components:cron.range.months', { start: '{start}', end: '{end}' })"
+          ><template #start
+            ><el-input-number
+              v-model="cycle01"
+              :min="1"
+              :max="11" /></template
+          ><template #end
+            ><el-input-number
+              v-model="cycle02"
+              :min="cycle01 + 1"
+              :max="12" /></template
+        ></LocalizedMessage>
       </el-radio>
     </el-form-item>
 
@@ -35,19 +35,19 @@
         v-model="radioValue"
         :value="3"
       >
-        从
-        <el-input-number
-          v-model="average01"
-          :min="1"
-          :max="11"
-        />
-        月开始，每
-        <el-input-number
-          v-model="average02"
-          :min="1"
-          :max="12 - average01"
-        />
-        月月执行一次
+        <LocalizedMessage
+          :message="$t('components:cron.every.months', { start: '{start}', step: '{step}' })"
+          ><template #start
+            ><el-input-number
+              v-model="average01"
+              :min="1"
+              :max="11" /></template
+          ><template #step
+            ><el-input-number
+              v-model="average02"
+              :min="1"
+              :max="12 - average01" /></template
+        ></LocalizedMessage>
       </el-radio>
     </el-form-item>
 
@@ -56,11 +56,11 @@
         v-model="radioValue"
         :value="4"
       >
-        指定
-        <el-select
+        {{ $t('components:specify')
+        }}<el-select
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('components:multipleSelectionsAllowed')"
           multiple
           :multiple-limit="8"
         >
@@ -77,6 +77,8 @@
 </template>
 
 <script setup>
+import LocalizedMessage from '@/components/LocalizedMessage/index.vue'
+import { t } from '@/i18n/adapter'
 const emit = defineEmits(['update'])
 const props = defineProps({
   cron: {
@@ -103,19 +105,79 @@ const average01 = ref(1)
 const average02 = ref(1)
 const checkboxList = ref([])
 const checkCopy = ref([1])
-const monthList = ref([
-  { key: 1, value: '一月' },
-  { key: 2, value: '二月' },
-  { key: 3, value: '三月' },
-  { key: 4, value: '四月' },
-  { key: 5, value: '五月' },
-  { key: 6, value: '六月' },
-  { key: 7, value: '七月' },
-  { key: 8, value: '八月' },
-  { key: 9, value: '九月' },
-  { key: 10, value: '十月' },
-  { key: 11, value: '十一月' },
-  { key: 12, value: '十二月' },
+const monthList = computed(() => [
+  {
+    key: 1,
+    get value() {
+      return t('components:january')
+    },
+  },
+  {
+    key: 2,
+    get value() {
+      return t('components:february')
+    },
+  },
+  {
+    key: 3,
+    get value() {
+      return t('components:march')
+    },
+  },
+  {
+    key: 4,
+    get value() {
+      return t('components:april')
+    },
+  },
+  {
+    key: 5,
+    get value() {
+      return t('components:may')
+    },
+  },
+  {
+    key: 6,
+    get value() {
+      return t('components:june')
+    },
+  },
+  {
+    key: 7,
+    get value() {
+      return t('components:july')
+    },
+  },
+  {
+    key: 8,
+    get value() {
+      return t('components:august')
+    },
+  },
+  {
+    key: 9,
+    get value() {
+      return t('components:september')
+    },
+  },
+  {
+    key: 10,
+    get value() {
+      return t('components:october')
+    },
+  },
+  {
+    key: 11,
+    get value() {
+      return t('components:november')
+    },
+  },
+  {
+    key: 12,
+    get value() {
+      return t('components:december')
+    },
+  },
 ])
 const cycleTotal = computed(() => {
   cycle01.value = props.check(cycle01.value, 1, 11)

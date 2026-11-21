@@ -1,0 +1,257 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "file.access.batchRequiresProtected"
+msgstr "批量授权仅支持受保护文件"
+
+msgid "file.access.batchSaved"
+msgstr "文件权限批量保存成功"
+
+msgid "file.access.concurrentChange"
+msgstr "文件权限已被其他用户修改，请刷新后重试"
+
+msgid "file.access.duplicateSubject"
+msgstr "同一授权主体不能重复配置"
+
+msgid "file.access.expiryInPast"
+msgstr "授权过期时间必须晚于当前时间"
+
+msgid "file.access.fileUnavailable"
+msgstr "文件信息不存在、已删除或超出数据权限"
+
+msgid "file.access.publicFile"
+msgstr "公开文件不支持配置访问权限"
+
+msgid "file.access.saved"
+msgstr "文件权限保存成功"
+
+msgid "file.access.subjectUnavailable"
+msgstr "部分授权主体不存在、已停用或超出数据权限"
+
+msgid "file.business.batchSizeRange"
+msgstr "单批处理数量必须在1到%(max_batch_size)s之间"
+
+msgid "file.business.invalidFileId"
+msgstr "文件ID格式错误"
+
+msgid "file.business.invalidType"
+msgstr "业务类型格式错误"
+
+msgid "file.business.policyExists"
+msgstr "业务类型%(business_type)s的保留策略已存在"
+
+msgid "file.business.policyNotFound"
+msgstr "文件业务保留策略不存在"
+
+msgid "file.business.protectedRequired"
+msgstr "配置保留策略的业务只能引用受保护文件"
+
+msgid "file.business.referenceLimit"
+msgstr "单个业务对象最多引用%(max_reference_files)s个文件"
+
+msgid "file.business.referenceUnavailable"
+msgstr "部分引用文件不存在或已失效"
+
+msgid "file.idRequired"
+msgstr "文件ID不能为空"
+
+msgid "file.invalidAccessType"
+msgstr "文件访问类型不合法"
+
+msgid "file.invalidId"
+msgstr "文件ID格式不正确"
+
+msgid "file.invalidNameOrMissing"
+msgstr "文件名称不合法或文件不存在"
+
+msgid "file.invalidPathOrMissing"
+msgstr "资源路径不合法或文件不存在"
+
+msgid "file.invalidResourceName"
+msgstr "资源文件名称不合法"
+
+msgid "file.invalidResourcePath"
+msgstr "资源路径不合法"
+
+msgid "file.invalidType"
+msgstr "文件类型不合法"
+
+msgid "file.nameConflict"
+msgstr "文件名生成冲突，请重新上传"
+
+msgid "file.notFoundOrForbidden"
+msgstr "文件信息不存在或超出数据权限"
+
+msgid "file.notFoundOrUnauthorized"
+msgstr "文件不存在或无权访问"
+
+msgid "file.purge.batchSizeRange"
+msgstr "单批处理数量必须在1到%(max_purge_batch_size)s之间"
+
+msgid "file.purge.physicalDeleteFailed"
+msgstr "永久清理物理文件失败，文件已保留为清理中状态，可重试"
+
+msgid "file.purge.verificationFailed"
+msgstr "回收区文件校验失败，未执行永久清理"
+
+msgid "file.purged"
+msgstr "文件已永久清理"
+
+msgid "file.reconciliation.actionUnavailable"
+msgstr "当前异常状态不支持该处理动作"
+
+msgid "file.reconciliation.adminRequired"
+msgstr "仅系统管理员可以使用文件存储对账功能"
+
+msgid "file.reconciliation.alreadyRegistered"
+msgstr "该物理文件已登记到文件信息表"
+
+msgid "file.reconciliation.alreadyRunning"
+msgstr "已有文件存储对账任务正在运行"
+
+msgid "file.reconciliation.extensionForbidden"
+msgstr "孤立文件扩展名不在允许范围内"
+
+msgid "file.reconciliation.extensionMismatch"
+msgstr "原始文件名扩展名必须与物理文件一致"
+
+msgid "file.reconciliation.fileRecordMissing"
+msgstr "异常关联的文件信息不存在"
+
+msgid "file.reconciliation.invalidStorageArea"
+msgstr "异常记录的存储区域不合法"
+
+msgid "file.reconciliation.invalidTrigger"
+msgstr "对账任务触发类型不正确"
+
+msgid "file.reconciliation.issueNotFound"
+msgstr "文件存储对账异常不存在"
+
+msgid "file.reconciliation.locationMissing"
+msgstr "异常记录缺少可处理的存储位置"
+
+msgid "file.reconciliation.noFileReference"
+msgstr "异常未关联文件信息"
+
+msgid "file.reconciliation.quarantineMissing"
+msgstr "隔离区文件路径不存在"
+
+msgid "file.reconciliation.registrationUnsupported"
+msgstr "仅公开或受保护存储区的孤立文件可以登记"
+
+msgid "file.reconciliation.resolveFailed"
+msgstr "文件存储异常处理失败，请查看服务日志"
+
+msgid "file.reconciliation.resolved"
+msgstr "文件存储异常处理成功"
+
+msgid "file.reconciliation.scanInProgress"
+msgstr "文件存储对账任务运行中，请等待扫描完成后再处理异常"
+
+msgid "file.reconciliation.started"
+msgstr "文件存储对账任务已启动"
+
+msgid "file.recycle.failed"
+msgstr "文件移入回收区失败"
+
+msgid "file.recycle.retentionRange"
+msgstr "回收站保留天数必须在1到%(max_purge_retention_days)s之间"
+
+msgid "file.recycle.selectionUnavailable"
+msgstr "部分文件不存在、未进入回收站或超出数据权限"
+
+msgid "file.recycled"
+msgstr "文件已移入回收站"
+
+msgid "file.references.autoPurgeBlocked"
+msgstr "自动清理候选文件仍存在业务引用"
+
+msgid "file.references.preventDelete"
+msgstr "文件%(referenced_name_text)s仍被业务引用，请先解除引用后再删除"
+
+msgid "file.references.preventPurge"
+msgstr "部分文件仍被业务引用，不能永久清理"
+
+msgid "file.reminder.daysRange"
+msgstr "提前提醒天数必须在1到%(max_remind_days)s之间"
+
+msgid "file.reminder.invalidId"
+msgstr "提醒ID格式不正确"
+
+msgid "file.reminder.markedRead"
+msgstr "提醒已标记为已读"
+
+msgid "file.reminder.selectionUnavailable"
+msgstr "部分提醒不存在、已失效或超出数据权限"
+
+msgid "file.reminder.unavailable"
+msgstr "提醒不存在、已失效或超出数据权限"
+
+msgid "file.restore.failed"
+msgstr "文件从回收区恢复失败"
+
+msgid "file.restore.selectionUnavailable"
+msgstr "部分文件不存在、未删除或超出数据权限"
+
+msgid "file.restored"
+msgstr "文件恢复成功"
+
+msgid "file.retention.activeReference"
+msgstr "文件存在永久或尚未到期的业务引用，不能执行到期处置"
+
+msgid "file.retention.expiredRecycled"
+msgstr "到期文件已移入回收站"
+
+msgid "file.retention.extended"
+msgstr "文件保留期限已延长"
+
+msgid "file.retention.invalidExtension"
+msgstr "新的到期时间必须晚于当前时间和原到期时间"
+
+msgid "file.retention.noTimedReference"
+msgstr "文件不存在可延期的限时业务引用，请先重新关联业务"
+
+msgid "file.retention.notConfigured"
+msgstr "文件未配置保留期限"
+
+msgid "file.retention.notExpired"
+msgstr "文件尚未到期，不能执行到期处置"
+
+msgid "file.retention.permanentReference"
+msgstr "文件存在永久业务引用，不能通过到期提醒延期"
+
+msgid "file.retention.recycleFailed"
+msgstr "到期文件移入回收区失败"
+
+msgid "file.retention.referenceMismatch"
+msgstr "文件到期时间与业务引用不一致，请先检查业务引用"
+
+msgid "file.selection.unavailable"
+msgstr "部分文件不存在、已删除或超出数据权限"
+
+msgid "file.sizeLimit"
+msgstr "文件大小不能超过%(value)sMB"
+
+msgid "file.transfer.departmentMismatch"
+msgstr "目标用户不属于所选部门"
+
+msgid "file.transfer.targetUnavailable"
+msgstr "目标用户或部门不存在、已停用或超出数据权限"
+
+msgid "file.transferred"
+msgstr "文件转移成功"
+
+msgid "file.uploaded"
+msgstr "上传成功"

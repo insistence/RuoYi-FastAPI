@@ -16,13 +16,19 @@
             >
               <thead>
                 <tr>
-                  <th class="el-table__cell is-leaf"><div class="cell">属性</div></th>
-                  <th class="el-table__cell is-leaf"><div class="cell">值</div></th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.property') }}</div>
+                  </th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.value') }}</div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">核心数</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.cPUCores') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -33,7 +39,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">用户使用率</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.userCPUUsage') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -44,7 +52,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">系统使用率</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.systemCPUUsage') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -55,7 +65,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">当前空闲率</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.idleCPU') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -77,7 +89,7 @@
       >
         <el-card>
           <div slot="header">
-            <span><i class="el-icon-tickets"></i> 内存</span>
+            <span><i class="el-icon-tickets"></i> {{ $t('monitor:messages.memory') }}</span>
           </div>
           <div class="el-table el-table--enable-row-hover el-table--medium">
             <table
@@ -86,14 +98,20 @@
             >
               <thead>
                 <tr>
-                  <th class="el-table__cell is-leaf"><div class="cell">属性</div></th>
-                  <th class="el-table__cell is-leaf"><div class="cell">内存</div></th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.property') }}</div>
+                  </th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.memory') }}</div>
+                  </th>
                   <th class="el-table__cell is-leaf"><div class="cell">Python</div></th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">总内存</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.totalMemory') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -112,7 +130,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">已用内存</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.usedMemory') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -131,7 +151,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">剩余内存</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.availableMemory') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -150,7 +172,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">使用率</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.usage') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -182,7 +206,9 @@
       >
         <el-card>
           <div slot="header">
-            <span><i class="el-icon-monitor"></i> 服务器信息</span>
+            <span
+              ><i class="el-icon-monitor"></i> {{ $t('monitor:messages.serverInformation') }}</span
+            >
           </div>
           <div class="el-table el-table--enable-row-hover el-table--medium">
             <table
@@ -191,7 +217,9 @@
             >
               <tbody>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">服务器名称</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.serverName') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -200,7 +228,9 @@
                       {{ server.sys.computerName }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">操作系统</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:server.os') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -211,7 +241,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">服务器IP</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.serverIP') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -220,7 +252,9 @@
                       {{ server.sys.computerIp }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">系统架构</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.systemArchitecture') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -242,7 +276,10 @@
       >
         <el-card>
           <div slot="header">
-            <span><i class="el-icon-coffee-cup"></i> Python解释器信息</span>
+            <span
+              ><i class="el-icon-coffee-cup"></i>
+              {{ $t('monitor:messages.pythonInterpreter') }}</span
+            >
           </div>
           <div class="el-table el-table--enable-row-hover el-table--medium">
             <table
@@ -251,7 +288,9 @@
             >
               <tbody>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">Python名称</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.pythonName') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -260,7 +299,9 @@
                       {{ server.py.name }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">Python版本</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.pythonVersion') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -271,7 +312,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">启动时间</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.startedAt') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -280,7 +323,9 @@
                       {{ parseTime(server.py.startTime) }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">运行时长</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.uptime') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -295,7 +340,7 @@
                     colspan="1"
                     class="el-table__cell is-leaf"
                   >
-                    <div class="cell">安装路径</div>
+                    <div class="cell">{{ $t('monitor:messages.installationPath') }}</div>
                   </td>
                   <td
                     colspan="3"
@@ -314,7 +359,7 @@
                     colspan="1"
                     class="el-table__cell is-leaf"
                   >
-                    <div class="cell">项目路径</div>
+                    <div class="cell">{{ $t('monitor:messages.projectPath') }}</div>
                   </td>
                   <td
                     colspan="3"
@@ -340,7 +385,7 @@
       >
         <el-card>
           <div slot="header">
-            <span><i class="el-icon-receiving"></i> 磁盘状态</span>
+            <span><i class="el-icon-receiving"></i> {{ $t('monitor:messages.diskStatus') }}</span>
           </div>
           <div class="el-table el-table--enable-row-hover el-table--medium">
             <table
@@ -350,14 +395,26 @@
               <thead>
                 <tr>
                   <th class="el-table__cell el-table__cell is-leaf">
-                    <div class="cell">盘符路径</div>
+                    <div class="cell">{{ $t('monitor:messages.mountPath') }}</div>
                   </th>
-                  <th class="el-table__cell is-leaf"><div class="cell">文件系统</div></th>
-                  <th class="el-table__cell is-leaf"><div class="cell">盘符名称</div></th>
-                  <th class="el-table__cell is-leaf"><div class="cell">总大小</div></th>
-                  <th class="el-table__cell is-leaf"><div class="cell">可用大小</div></th>
-                  <th class="el-table__cell is-leaf"><div class="cell">已用大小</div></th>
-                  <th class="el-table__cell is-leaf"><div class="cell">已用百分比</div></th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.fileSystem') }}</div>
+                  </th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.volumeName') }}</div>
+                  </th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.totalSize') }}</div>
+                  </th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.availableSpace') }}</div>
+                  </th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.usedSpace') }}</div>
+                  </th>
+                  <th class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.usedPercentage') }}</div>
+                  </th>
                 </tr>
               </thead>
               <tbody v-if="server.sysFiles">
@@ -402,6 +459,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getServer } from '@/api/monitor/server'
 
 export default {
@@ -426,7 +485,7 @@ export default {
     },
     // 打开加载层
     openLoading() {
-      this.$modal.loading('正在加载服务监控数据，请稍候！')
+      this.$modal.loading(t('monitor:messages.loadingServerMonitoringDataPleaseWait'))
     },
   },
 }

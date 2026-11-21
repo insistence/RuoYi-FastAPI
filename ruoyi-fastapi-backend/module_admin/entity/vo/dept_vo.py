@@ -6,6 +6,7 @@ from pydantic_validation_decorator import Network, NotBlank, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from i18n.message import I18nMessage
 
 
 class DeptModel(BaseModel):
@@ -30,21 +31,40 @@ class DeptModel(BaseModel):
     update_by: str | None = Field(default=None, description='更新者')
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
 
-    @NotBlank(field_name='dept_name', message='部门名称不能为空')
-    @Size(field_name='dept_name', min_length=0, max_length=30, message='部门名称长度不能超过30个字符')
+    @NotBlank(field_name='dept_name', message=I18nMessage('部门名称不能为空', msg_key='validation.deptNameRequired'))
+    @Size(
+        field_name='dept_name',
+        min_length=0,
+        max_length=30,
+        message=I18nMessage('部门名称长度不能超过30个字符', msg_key='validation.deptNameLength'),
+    )
     def get_dept_name(self) -> str | None:
         return self.dept_name
 
-    @NotBlank(field_name='order_num', message='显示顺序不能为空')
+    @NotBlank(field_name='order_num', message=I18nMessage('显示顺序不能为空', msg_key='validation.orderRequired'))
     def get_order_num(self) -> int | None:
         return self.order_num
 
-    @Size(field_name='phone', min_length=0, max_length=11, message='联系电话长度不能超过11个字符')
+    @Size(
+        field_name='phone',
+        min_length=0,
+        max_length=11,
+        message=I18nMessage('联系电话长度不能超过11个字符', msg_key='validation.contactPhoneLength'),
+    )
     def get_phone(self) -> str | None:
         return self.phone
 
-    @Network(field_name='email', field_type='EmailStr', message='邮箱格式不正确')
-    @Size(field_name='email', min_length=0, max_length=50, message='邮箱长度不能超过50个字符')
+    @Network(
+        field_name='email',
+        field_type='EmailStr',
+        message=I18nMessage('邮箱格式不正确', msg_key='validation.emailFormat'),
+    )
+    @Size(
+        field_name='email',
+        min_length=0,
+        max_length=50,
+        message=I18nMessage('邮箱长度不能超过50个字符', msg_key='validation.emailLength'),
+    )
     def get_email(self) -> str | None:
         return self.email
 

@@ -1,13 +1,13 @@
 <template>
   <el-drawer
-    title="文件存储对账"
+    :title="$t('files:fileStorageReconciliation')"
     v-model="visible"
     size="88%"
     append-to-body
     @closed="handleClosed"
   >
     <el-alert
-      title="对账会双向检查文件信息表与公开、受保护、回收站存储区；隔离区不对外提供静态访问。修复操作仅使用异常中已校验的相对路径。"
+      :title="$t('files:reconciliationChecksFileMetadataAgainstPublicProtectedAndRecycledStorage')"
       type="info"
       :closable="false"
       show-icon
@@ -16,42 +16,48 @@
 
     <div class="reconcile-summary">
       <div class="summary-card summary-card--danger">
-        <div class="summary-card__label">待处理</div>
+        <div class="summary-card__label">{{ $t('components:pending') }}</div>
         <div class="summary-card__value">{{ stats.openCount }}</div>
-        <div class="summary-card__hint">需要确认或修复的异常</div>
+        <div class="summary-card__hint">{{ $t('files:issuesRequiringReviewOrRepair') }}</div>
       </div>
       <div class="summary-card summary-card--critical">
-        <div class="summary-card__label">严重异常</div>
+        <div class="summary-card__label">{{ $t('files:criticalIssues') }}</div>
         <div class="summary-card__value">{{ stats.criticalCount }}</div>
-        <div class="summary-card__hint">文件缺失、错位或内容不一致</div>
+        <div class="summary-card__hint">{{ $t('files:missingMisplacedOrInconsistentFiles') }}</div>
       </div>
       <div class="summary-card summary-card--warning">
-        <div class="summary-card__label">警告异常</div>
+        <div class="summary-card__label">{{ $t('files:warnings') }}</div>
         <div class="summary-card__value">{{ stats.warningCount }}</div>
-        <div class="summary-card__hint">孤立文件或回收状态异常</div>
+        <div class="summary-card__hint">
+          {{ $t('files:orphanedFilesOrInconsistentRecycleStatus') }}
+        </div>
       </div>
       <div class="summary-card summary-card--quarantine">
-        <div class="summary-card__label">隔离文件</div>
+        <div class="summary-card__label">{{ $t('files:quarantineFile') }}</div>
         <div class="summary-card__value">{{ stats.quarantinedCount }}</div>
-        <div class="summary-card__hint">仅管理员可恢复或永久删除</div>
+        <div class="summary-card__hint">
+          {{ $t('files:onlyAdministratorsCanRestoreOrPermanentlyDelete') }}
+        </div>
       </div>
       <div class="summary-card summary-card--run">
-        <div class="summary-card__label">最近任务</div>
+        <div class="summary-card__label">{{ $t('files:latestTask') }}</div>
         <div class="summary-card__status">
           <el-tag :type="runStatusType(stats.latestRun?.status)">
             {{ runStatusLabel(stats.latestRun?.status) }}
           </el-tag>
         </div>
         <div class="summary-card__hint">
-          {{ stats.latestRun ? parseTime(stats.latestRun.startedTime) : '尚未执行' }}
+          {{ stats.latestRun ? parseTime(stats.latestRun.startedTime) : $t('files:notRunYet') }}
         </div>
       </div>
     </div>
 
     <div class="reconcile-toolbar">
-      <div class="reconcile-toolbar__tip">完整摘要校验会读取全部文件内容，建议在低峰期启用。</div>
+      <div class="reconcile-toolbar__tip">
+        {{ $t('files:fullDigestVerificationReadsAllFileContentsEnableItDuring') }}
+      </div>
       <div class="reconcile-toolbar__actions">
-        <span class="mr8">校验 SHA-256</span>
+        <span class="mr8">{{ $t('files:verifySHA256') }}</span>
         <el-switch
           v-model="checkHash"
           class="mr12"
@@ -64,8 +70,8 @@
           :disabled="stats.latestRun?.status === 'running'"
           @click="handleStart"
         >
-          开始对账
-        </el-button>
+          {{ $t('files:startReconciliation') }}</el-button
+        >
       </div>
     </div>
 
@@ -74,7 +80,7 @@
       @tab-change="handleTabChange"
     >
       <el-tab-pane
-        label="异常明细"
+        :label="$t('files:issueDetails')"
         name="issues"
       >
         <el-form
@@ -84,24 +90,24 @@
           label-width="68px"
         >
           <el-form-item
-            label="关键字"
+            :label="$t('files:keyword')"
             prop="keyword"
           >
             <el-input
               v-model="issueQuery.keyword"
-              placeholder="文件名、ID或相对路径"
+              :placeholder="$t('files:fileNameIDOrRelativePath')"
               clearable
               style="width: 200px"
               @keyup.enter="handleIssueQuery"
             />
           </el-form-item>
           <el-form-item
-            label="异常类型"
+            :label="$t('files:issueType')"
             prop="issueType"
           >
             <el-select
               v-model="issueQuery.issueType"
-              placeholder="全部类型"
+              :placeholder="$t('files:allTypes')"
               clearable
               style="width: 200px"
             >
@@ -114,53 +120,53 @@
             </el-select>
           </el-form-item>
           <el-form-item
-            label="严重级别"
+            :label="$t('files:severity')"
             prop="severity"
           >
             <el-select
               v-model="issueQuery.severity"
-              placeholder="全部级别"
+              :placeholder="$t('files:allSeverities')"
               clearable
               style="width: 200px"
             >
               <el-option
-                label="严重"
+                :label="$t('monitor:critical')"
                 value="critical"
               />
               <el-option
-                label="警告"
+                :label="$t('system:warning')"
                 value="warning"
               />
               <el-option
-                label="提示"
+                :label="$t('common:notice')"
                 value="info"
               />
             </el-select>
           </el-form-item>
           <el-form-item
-            label="处理状态"
+            :label="$t('files:processingStatus')"
             prop="status"
           >
             <el-select
               v-model="issueQuery.status"
-              placeholder="全部状态"
+              :placeholder="$t('components:allStatuses')"
               clearable
               style="width: 200px"
             >
               <el-option
-                label="待处理"
+                :label="$t('components:pending')"
                 value="open"
               />
               <el-option
-                label="已忽略"
+                :label="$t('files:ignored')"
                 value="ignored"
               />
               <el-option
-                label="已隔离"
+                :label="$t('files:quarantined')"
                 value="quarantined"
               />
               <el-option
-                label="已解决"
+                :label="$t('files:resolved')"
                 value="resolved"
               />
             </el-select>
@@ -171,12 +177,12 @@
               icon="Search"
               @click="handleIssueQuery"
             >
-              搜索
-            </el-button>
+              {{ $t('system:search') }}</el-button
+            >
             <el-button
               icon="Refresh"
               @click="resetIssueQuery"
-              >重置</el-button
+              >{{ $t('system:reset') }}</el-button
             >
           </el-form-item>
         </el-form>
@@ -186,7 +192,7 @@
           :data="issueList"
         >
           <el-table-column
-            label="级别"
+            :label="$t('files:level')"
             align="center"
             width="80"
           >
@@ -197,7 +203,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="异常类型"
+            :label="$t('files:issueType')"
             align="center"
             prop="issueType"
             width="130"
@@ -207,46 +213,50 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="文件"
+            :label="$t('components:file')"
             align="left"
             prop="originalName"
             min-width="170"
             :show-overflow-tooltip="true"
           >
             <template #default="scope">
-              <div>{{ scope.row.originalName || '未登记文件' }}</div>
+              <div>{{ scope.row.originalName || $t('files:unregisteredFile') }}</div>
               <div class="cell-secondary">{{ scope.row.fileId || '-' }}</div>
             </template>
           </el-table-column>
           <el-table-column
-            label="存储位置"
+            :label="$t('files:storageLocation')"
             align="left"
             min-width="230"
           >
             <template #default="scope">
               <div :title="formatLocation(scope.row.expectedRoot, scope.row.expectedKey)">
-                预期：{{ formatLocation(scope.row.expectedRoot, scope.row.expectedKey) }}
+                {{ $t('files:expected')
+                }}{{ formatLocation(scope.row.expectedRoot, scope.row.expectedKey) }}
               </div>
               <div
                 class="cell-secondary"
                 :title="formatLocation(scope.row.actualRoot, scope.row.actualKey)"
               >
-                实际：{{ formatLocation(scope.row.actualRoot, scope.row.actualKey) }}
+                {{ $t('files:actual')
+                }}{{ formatLocation(scope.row.actualRoot, scope.row.actualKey) }}
               </div>
             </template>
           </el-table-column>
           <el-table-column
-            label="大小"
+            :label="$t('files:size')"
             align="right"
             width="130"
           >
             <template #default="scope">
-              <div>预期：{{ formatOptionalSize(scope.row.expectedSize) }}</div>
-              <div class="cell-secondary">实际：{{ formatOptionalSize(scope.row.actualSize) }}</div>
+              <div>{{ $t('files:expected') }}{{ formatOptionalSize(scope.row.expectedSize) }}</div>
+              <div class="cell-secondary">
+                {{ $t('files:actual') }}{{ formatOptionalSize(scope.row.actualSize) }}
+              </div>
             </template>
           </el-table-column>
           <el-table-column
-            label="状态"
+            :label="$t('system:status')"
             align="center"
             width="90"
           >
@@ -257,14 +267,14 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="异常说明"
+            :label="$t('files:issueDescription')"
             align="left"
             prop="detail"
             min-width="180"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="最近发现"
+            :label="$t('files:lastDetected')"
             align="center"
             width="170"
           >
@@ -273,7 +283,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="操作"
+            :label="$t('system:actions')"
             align="center"
             width="70"
             fixed="right"
@@ -283,8 +293,8 @@
                 v-if="scope.row.availableActions?.length"
                 :content="
                   stats.latestRun?.status === 'running'
-                    ? '对账任务运行中，请等待扫描完成'
-                    : '处理异常'
+                    ? $t('files:reconciliationIsRunningWaitForTheScanToFinish')
+                    : $t('files:handleAnomaly')
                 "
                 placement="top"
               >
@@ -328,7 +338,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        label="任务记录"
+        :label="$t('files:taskHistory')"
         name="runs"
       >
         <el-table
@@ -336,7 +346,7 @@
           :data="runList"
         >
           <el-table-column
-            label="任务状态"
+            :label="$t('monitor:taskStatus')"
             align="center"
             width="100"
           >
@@ -347,67 +357,73 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="触发方式"
+            :label="$t('files:trigger')"
             align="center"
             width="100"
           >
             <template #default="scope">
-              {{ scope.row.triggerType === 'scheduled' ? '定时任务' : '手动' }}
+              {{
+                scope.row.triggerType === 'scheduled'
+                  ? $t('plugins:scheduledTasks')
+                  : $t('monitor:manual')
+              }}
             </template>
           </el-table-column>
           <el-table-column
-            label="摘要校验"
+            :label="$t('files:digestVerification')"
             align="center"
             width="90"
           >
-            <template #default="scope">{{ scope.row.checkHash ? '是' : '否' }}</template>
+            <template #default="scope">{{
+              scope.row.checkHash ? $t('system:yes') : $t('system:no')
+            }}</template>
           </el-table-column>
           <el-table-column
-            label="文件记录"
+            :label="$t('files:fileRecords')"
             align="right"
             prop="scannedFileCount"
             width="100"
           />
           <el-table-column
-            label="物理文件"
+            :label="$t('files:physicalFiles')"
             align="right"
             prop="scannedStorageCount"
             width="100"
           />
           <el-table-column
-            label="发现异常"
+            :label="$t('files:issuesFound')"
             align="right"
             prop="issueCount"
             width="100"
           />
           <el-table-column
-            label="新增异常"
+            :label="$t('files:newIssues')"
             align="right"
             prop="newIssueCount"
             width="100"
           />
           <el-table-column
-            label="自动恢复"
+            :label="$t('files:automaticallyRecovered')"
             align="right"
             prop="resolvedIssueCount"
             width="100"
           />
           <el-table-column
-            label="发起人"
+            :label="$t('files:initiatedBy')"
             align="center"
             prop="startedBy"
             width="110"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="开始时间"
+            :label="$t('monitor:startTime')"
             align="center"
             width="170"
           >
             <template #default="scope">{{ parseTime(scope.row.startedTime) }}</template>
           </el-table-column>
           <el-table-column
-            label="完成时间"
+            :label="$t('files:completedAt')"
             align="center"
             width="170"
           >
@@ -416,7 +432,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="失败原因"
+            :label="$t('monitor:failureReason')"
             align="left"
             prop="errorMessage"
             min-width="180"
@@ -456,17 +472,17 @@
     >
       <el-form-item
         v-if="handleForm.action === 'register_orphan'"
-        label="原始文件名"
+        :label="$t('components:originalFileName')"
         prop="originalName"
       >
         <el-input
           v-model="handleForm.originalName"
-          placeholder="需与物理文件扩展名一致"
+          :placeholder="$t('files:mustMatchThePhysicalFileExtension')"
           maxlength="255"
         />
       </el-form-item>
       <el-form-item
-        label="处理原因"
+        :label="$t('files:processingReason')"
         prop="reason"
       >
         <el-input
@@ -475,26 +491,27 @@
           :rows="4"
           maxlength="500"
           show-word-limit
-          placeholder="请填写处理依据，内容会保留在对账记录中"
+          :placeholder="$t('files:enterTheReasonItWillBeRetainedInTheReconciliation')"
         />
       </el-form-item>
     </el-form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleOpen = false">取 消</el-button>
+        <el-button @click="handleOpen = false">{{ $t('system:cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="handling"
           @click="submitHandle"
         >
-          确 定
-        </el-button>
+          {{ $t('system:confirm') }}</el-button
+        >
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import {
   getFileReconcileStats,
   handleFileReconcileIssue,
@@ -549,12 +566,20 @@ const handleForm = reactive({
   originalName: '',
 })
 const handleRules = {
-  reason: [{ required: true, message: '处理原因不能为空', trigger: 'blur' }],
+  reason: [
+    {
+      required: true,
+      get message() {
+        return t('files:enterAReasonForProcessing')
+      },
+      trigger: 'blur',
+    },
+  ],
   originalName: [
     {
       validator: (_rule, value, callback) => {
         if (handleForm.action === 'register_orphan' && !value) {
-          callback(new Error('登记孤立文件时必须填写原始文件名'))
+          callback(new Error(t('files:enterTheOriginalFileNameWhenRegisteringAnOrphanedFile')))
           return
         }
         callback()
@@ -564,29 +589,99 @@ const handleRules = {
   ],
 }
 const issueTypeOptions = [
-  { label: '元数据不合法', value: 'invalid_metadata' },
-  { label: '物理文件缺失', value: 'missing_file' },
-  { label: '有效文件位于回收站', value: 'unexpected_trash' },
-  { label: '回收文件位于正式区', value: 'unexpected_source' },
-  { label: '重复物理文件', value: 'duplicate_file' },
-  { label: '存储区域错误', value: 'wrong_storage_root' },
-  { label: '文件大小不一致', value: 'size_mismatch' },
-  { label: '文件摘要不一致', value: 'hash_mismatch' },
-  { label: '孤立物理文件', value: 'orphan_file' },
-  { label: '不安全目录项', value: 'unsafe_entry' },
+  {
+    get label() {
+      return t('files:invalidMetadata')
+    },
+    value: 'invalid_metadata',
+  },
+  {
+    get label() {
+      return t('files:physicalFileMissing')
+    },
+    value: 'missing_file',
+  },
+  {
+    get label() {
+      return t('files:activeFileInRecycleBin')
+    },
+    value: 'unexpected_trash',
+  },
+  {
+    get label() {
+      return t('files:recycledFileInActiveStorage')
+    },
+    value: 'unexpected_source',
+  },
+  {
+    get label() {
+      return t('files:duplicatePhysicalFile')
+    },
+    value: 'duplicate_file',
+  },
+  {
+    get label() {
+      return t('files:wrongStorageArea')
+    },
+    value: 'wrong_storage_root',
+  },
+  {
+    get label() {
+      return t('files:fileSizeMismatch')
+    },
+    value: 'size_mismatch',
+  },
+  {
+    get label() {
+      return t('files:fileDigestMismatch')
+    },
+    value: 'hash_mismatch',
+  },
+  {
+    get label() {
+      return t('files:orphanedPhysicalFile')
+    },
+    value: 'orphan_file',
+  },
+  {
+    get label() {
+      return t('files:unsafeDirectoryEntry')
+    },
+    value: 'unsafe_entry',
+  },
 ]
 const dangerousActions = ['delete_quarantine', 'accept_current', 'register_orphan']
 const actionDescriptions = {
-  ignore: '保留异常但不再计入待处理数量，后续可重新打开。',
-  reopen: '将已忽略异常重新置为待处理。',
-  restore_source: '把回收区中的物理文件恢复到登记的正式存储位置。',
-  move_to_trash: '把正式存储区中的回收文件移入登记的回收区位置。',
-  move_to_expected_root: '把物理文件移动到文件信息表登记的存储区域。',
-  quarantine_file: '把异常副本或孤立文件移入不可公开访问的隔离区。',
-  restore_quarantine: '把隔离文件恢复到隔离前的位置，异常会重新打开。',
-  delete_quarantine: '永久删除隔离文件，此操作不可恢复。',
-  accept_current: '以当前物理文件重新计算大小和摘要并更新文件信息表。',
-  register_orphan: '把孤立物理文件登记为当前管理员所有的有效文件。',
+  get ignore() {
+    return t('files:keepThisIssueWithoutCountingItAsPendingItCan')
+  },
+  get reopen() {
+    return t('files:returnAnIgnoredIssueToPendingStatus')
+  },
+  get restore_source() {
+    return t('files:restoreThePhysicalFileFromTheRecycleBinToIts')
+  },
+  get move_to_trash() {
+    return t('files:moveTheRecycledFileFromActiveStorageToItsRegistered')
+  },
+  get move_to_expected_root() {
+    return t('files:moveThePhysicalFileToTheStorageAreaRegisteredIn')
+  },
+  get quarantine_file() {
+    return t('files:moveTheAbnormalCopyOrOrphanedFileToQuarantineWhere')
+  },
+  get restore_quarantine() {
+    return t('files:restoreTheQuarantinedFileToItsPreviousLocationAndReopen')
+  },
+  get delete_quarantine() {
+    return t('files:permanentlyDeleteTheQuarantinedFileThisCannotBeUndone')
+  },
+  get accept_current() {
+    return t('files:recalculateTheCurrentPhysicalFileSizeAndDigestAndUpdate')
+  },
+  get register_orphan() {
+    return t('files:registerTheOrphanedPhysicalFileAsAnActiveFileOwned')
+  },
 }
 
 function open() {
@@ -636,7 +731,7 @@ function handleStart() {
   scanning.value = true
   startFileReconcile({ checkHash: checkHash.value })
     .then(() => {
-      proxy.$modal.msgSuccess('文件存储对账任务已启动')
+      proxy.$modal.msgSuccess(t('files:storageReconciliationStarted'))
       refreshAll()
     })
     .finally(() => {
@@ -683,7 +778,7 @@ function submitHandle() {
       originalName: handleForm.action === 'register_orphan' ? handleForm.originalName : undefined,
     })
       .then(() => {
-        proxy.$modal.msgSuccess('文件存储异常处理成功')
+        proxy.$modal.msgSuccess(t('files:storageIssueProcessedSuccessfully'))
         handleOpen.value = false
         refreshAll()
         emit('refresh')
@@ -721,7 +816,19 @@ function issueTypeLabel(type) {
 }
 
 function severityLabel(severity) {
-  return { critical: '严重', warning: '警告', info: '提示' }[severity] || severity
+  return (
+    {
+      get critical() {
+        return t('monitor:critical')
+      },
+      get warning() {
+        return t('system:warning')
+      },
+      get info() {
+        return t('common:notice')
+      },
+    }[severity] || severity
+  )
 }
 
 function severityTagType(severity) {
@@ -731,10 +838,18 @@ function severityTagType(severity) {
 function issueStatusLabel(status) {
   return (
     {
-      open: '待处理',
-      ignored: '已忽略',
-      quarantined: '已隔离',
-      resolved: '已解决',
+      get open() {
+        return t('components:pending')
+      },
+      get ignored() {
+        return t('files:ignored')
+      },
+      get quarantined() {
+        return t('files:quarantined')
+      },
+      get resolved() {
+        return t('files:resolved')
+      },
     }[status] || status
   )
 }
@@ -753,10 +868,16 @@ function issueStatusType(status) {
 function runStatusLabel(status) {
   return (
     {
-      running: '运行中',
-      completed: '已完成',
-      failed: '失败',
-    }[status] || '尚未执行'
+      get running() {
+        return t('files:running')
+      },
+      get completed() {
+        return t('monitor:completed')
+      },
+      get failed() {
+        return t('monitor:failed')
+      },
+    }[status] || t('files:notRunYet')
   )
 }
 
@@ -773,16 +894,36 @@ function runStatusType(status) {
 function actionLabel(action) {
   return (
     {
-      ignore: '忽略异常',
-      reopen: '重新打开',
-      restore_source: '恢复到正式区',
-      move_to_trash: '移入回收区',
-      move_to_expected_root: '移到预期区域',
-      quarantine_file: '隔离文件',
-      restore_quarantine: '恢复隔离文件',
-      delete_quarantine: '永久删除隔离文件',
-      accept_current: '接受当前文件',
-      register_orphan: '登记孤立文件',
+      get ignore() {
+        return t('files:ignoreIssue')
+      },
+      get reopen() {
+        return t('files:reopen')
+      },
+      get restore_source() {
+        return t('files:restoreToActiveStorage')
+      },
+      get move_to_trash() {
+        return t('files:moveToRecycledStorage')
+      },
+      get move_to_expected_root() {
+        return t('files:moveToExpectedArea')
+      },
+      get quarantine_file() {
+        return t('files:quarantineFile')
+      },
+      get restore_quarantine() {
+        return t('files:restoreQuarantinedFile')
+      },
+      get delete_quarantine() {
+        return t('files:permanentlyDeleteQuarantinedFile')
+      },
+      get accept_current() {
+        return t('files:acceptCurrentFile')
+      },
+      get register_orphan() {
+        return t('files:registerOrphanedFile')
+      },
     }[action] || action
   )
 }

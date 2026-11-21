@@ -19,7 +19,7 @@
         >
           <el-col :span="24">
             <el-form-item
-              label="生成类型"
+              :label="$t('tool:builder.generationType')"
               prop="type"
             >
               <el-radio-group v-model="formData.type">
@@ -35,12 +35,12 @@
             </el-form-item>
             <el-form-item
               v-if="showFileName"
-              label="文件名"
+              :label="$t('tool:builder.fileName')"
               prop="fileName"
             >
               <el-input
                 v-model="formData.fileName"
-                placeholder="请输入文件名"
+                :placeholder="$t('tool:builder.enterFileName')"
                 clearable
               />
             </el-form-item>
@@ -49,18 +49,20 @@
       </el-row>
 
       <div slot="footer">
-        <el-button @click="close"> 取消 </el-button>
+        <el-button @click="close"> {{ $t('tool:builder.cancel') }} </el-button>
         <el-button
           type="primary"
           @click="handleConfirm"
         >
-          确定
+          {{ $t('tool:builder.confirm') }}
         </el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 <script>
+import { t } from '@/i18n/adapter'
+
 export default {
   inheritAttrs: false,
   props: ['showFileName'],
@@ -74,25 +76,29 @@ export default {
         fileName: [
           {
             required: true,
-            message: '请输入文件名',
+            message: () => t('tool:builder.enterFileName'),
             trigger: 'blur',
           },
         ],
         type: [
           {
             required: true,
-            message: '生成类型不能为空',
+            message: () => t('tool:builder.typeRequired'),
             trigger: 'change',
           },
         ],
       },
       typeOptions: [
         {
-          label: '页面',
+          get label() {
+            return t('tool:builder.page')
+          },
           value: 'file',
         },
         {
-          label: '弹窗',
+          get label() {
+            return t('tool:builder.dialog')
+          },
           value: 'dialog',
         },
       ],

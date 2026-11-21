@@ -1,3 +1,6 @@
+import { useLocalizedText } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { Alert, Button, Checkbox, Space, Spin, Tag, Tooltip } from 'antd'
 import { getInteraction, submitInteractionConsent } from '@/api/authCenter'
@@ -5,18 +8,20 @@ import { QuestionCircleFilled } from '@ant-design/icons'
 import AuthCenterShell from './AuthCenterShell'
 import { useInteractionContext } from './useInteraction'
 export default function AuthCenterConsent() {
+  useI18n()
+
   const context = useInteractionContext()
   const [interaction, setInteraction] = useState({})
   const [selected, setSelected] = useState([])
   const [remember, setRemember] = useState(false)
   const [initializing, setInitializing] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useLocalizedText('')
   useEffect(() => {
     let active = true
     ;(async () => {
       if (!context.interactionId || !context.csrfToken())
-        return context.fatal('认证请求不完整，请返回应用重新登录')
+        return context.fatal(t('authCenter:theAuthenticationRequestIsIncompleteReturnToTheApp'))
       try {
         const response = await getInteraction(context.interactionId, context.csrfToken())
         if (!active) return
@@ -25,7 +30,7 @@ export default function AuthCenterConsent() {
         if (data.nextAction !== 'consent') await context.goToAction(data.nextAction)
         else setSelected((data.requestedScopes || []).filter((s) => s.required).map((s) => s.scope))
       } catch (e) {
-        if (active) context.fatal(e.message || '授权请求已失效')
+        if (active) context.fatal(e.message || t('authCenter:theAuthorizationRequestHasExpired'))
       } finally {
         if (active) setInitializing(false)
       }
@@ -54,7 +59,7 @@ export default function AuthCenterConsent() {
       })
       await context.followServerRedirect(response.data?.redirectUrl)
     } catch (e) {
-      setError(e.message || '未能保存本次权限选择，请重试')
+      setError((t) => e.message || t('authCenter:couldNotSaveYourPermissionChoicesTryAgain'))
     } finally {
       setSubmitting(false)
     }
@@ -68,11 +73,11 @@ export default function AuthCenterConsent() {
     >
       <Spin spinning={initializing}>
         <div className="auth-consent-flow">
-          <p className="panel-kicker">确认权限</p>
-          <h2>确认要分享的信息</h2>
+          <p className="panel-kicker">{t('authCenter:confirmPermissions')}</p>
+          <h2>{t('authCenter:confirmWhatToShare')}</h2>
           <p className="panel-lead">
-            <strong>{interaction.client?.clientName || '发起登录的应用'}</strong>{' '}
-            正在请求以下信息。必需信息用于完成本次访问，可选信息由你决定。
+            <strong>{interaction.client?.clientName || t('authCenter:appRequestingSignIn')}</strong>{' '}
+            {t('authCenter:isRequestingTheInformationBelowRequiredInformationIsNeeded')}
           </p>
           {error && (
             <Alert
@@ -89,8 +94,16 @@ export default function AuthCenterConsent() {
             style={{ width: '100%', display: 'block' }}
           >
             {[
-              [required, '完成访问所需', '拒绝这些权限将无法继续进入应用'],
-              [optional, '由你选择', '不勾选也可以继续使用应用'],
+              [
+                required,
+                t('authCenter:requiredForAccess'),
+                t('authCenter:decliningThesePermissionsPreventsAccessToTheApp'),
+              ],
+              [
+                optional,
+                t('authCenter:yourChoice'),
+                t('authCenter:youCanUseTheAppWithoutSelectingThese'),
+              ],
             ].map(
               ([scopes, title, hint]) =>
                 scopes.length > 0 && (
@@ -104,9 +117,13 @@ export default function AuthCenterConsent() {
                         <p>{hint}</p>
                       </div>
                       <span>
-                        {title === '由你选择'
-                          ? `已选 ${optional.filter((scope) => selected.includes(scope.scope)).length}/${optional.length}`
-                          : `${scopes.length} 项`}
+                        {scopes === optional
+                          ? t('authCenter:selectedValueValue', {
+                              selected: optional.filter((scope) => selected.includes(scope.scope))
+                                .length,
+                              total: optional.length,
+                            })
+                          : t('authCenter:valueItems', { length: scopes.length })}
                       </span>
                     </div>
                     <div className="scope-list">
@@ -124,11 +141,15 @@ export default function AuthCenterConsent() {
                             <span className="scope-title">
                               <strong>{scope.name || scope.scope}</strong>
                               {scope.name && scope.name !== scope.scope && (
-                                <Tooltip title={`系统权限代码：${scope.scope}`}>
+                                <Tooltip
+                                  title={t('authCenter:systemPermissionCodeValue', {
+                                    scope: scope.scope,
+                                  })}
+                                >
                                   <QuestionCircleFilled
                                     className="scope-help"
                                     tabIndex={0}
-                                    aria-label="查看系统权限代码"
+                                    aria-label={t('authCenter:viewPermissionCodes')}
                                   />
                                 </Tooltip>
                               )}
@@ -136,14 +157,16 @@ export default function AuthCenterConsent() {
                             <small>
                               {scope.description ||
                                 (scope.required
-                                  ? '用于完成登录或提供应用的核心功能'
-                                  : '允许应用使用这项信息或能力')}
+                                  ? t('authCenter:usedToCompleteSignInOrProvideTheApplication')
+                                  : t(
+                                      'authCenter:allowTheApplicationToUseThisInformationOrCapability'
+                                    ))}
                             </small>
                           </span>
                           {scope.required ? (
-                            <Tag>必需</Tag>
+                            <Tag>{t('authCenter:required')}</Tag>
                           ) : scope.sensitive ? (
-                            <Tag color="warning">敏感信息</Tag>
+                            <Tag color="warning">{t('authCenter:sensitiveInformation')}</Tag>
                           ) : null}
                         </label>
                       ))}
@@ -157,13 +180,17 @@ export default function AuthCenterConsent() {
               checked={remember}
               disabled={submitting}
               onChange={(e) => setRemember(e.target.checked)}
-              aria-label="记住本次选择"
+              aria-label={t('authCenter:rememberMyChoices')}
             />
             <span>
-              <strong>记住本次选择</strong>
-              <small>记住后可在已同意的范围内免于重复确认；不勾选也会保存可撤销的授权记录。</small>
+              <strong>{t('authCenter:rememberMyChoices')}</strong>
+              <small>
+                {t(
+                  'authCenter:rememberingYourChoicesAvoidsRepeatedConfirmationForApprovedPermissions'
+                )}
+              </small>
               {selected.includes('offline_access') && (
-                <small>持续访问允许应用在你不在线时续期，与是否记住本次选择无关。</small>
+                <small>{t('authCenter:offlineAccessAllowsTheAppToRenewAccessWhen')}</small>
               )}
             </span>
           </label>
@@ -173,7 +200,7 @@ export default function AuthCenterConsent() {
               disabled={submitting || initializing}
               onClick={() => submit(false)}
             >
-              不允许并返回
+              {t('authCenter:declineAndReturn')}
             </Button>
             <Button
               type="primary"
@@ -182,7 +209,7 @@ export default function AuthCenterConsent() {
               loading={submitting}
               onClick={() => submit(true)}
             >
-              允许 {selected.length} 项并继续
+              {t('authCenter:allow')} {selected.length} {t('authCenter:andContinue')}
             </Button>
           </div>
           {policyUri && (
@@ -192,7 +219,7 @@ export default function AuthCenterConsent() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                查看该应用的隐私说明
+                {t('authCenter:viewThisAppSPrivacyPolicy')}
               </a>
             </p>
           )}

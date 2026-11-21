@@ -10,20 +10,17 @@
       :on-success="handleUploadSuccess"
       :on-error="handleUploadError"
     >
-      <el-button type="primary">选择文件</el-button>
+      <el-button type="primary">{{ $t('components:chooseFile') }}</el-button>
     </el-upload>
     <div
       v-if="showTip && !disabled"
       class="el-upload__tip"
     >
-      请上传
-      <template v-if="fileSize">
-        大小不超过 <b class="upload-tip-emphasis">{{ fileSize }}MB</b>
-      </template>
-      <template v-if="fileType.length">
-        格式为 <b class="upload-tip-emphasis">{{ fileType.join('/') }}</b>
-      </template>
-      的文件，最多上传 {{ limit }} 个
+      <span v-if="fileSize">{{ $t('components:uploadHint.size', { size: fileSize }) }}</span>
+      <span v-if="fileType">{{
+        $t('components:uploadHint.formats', { formats: fileType.join('/') })
+      }}</span>
+      <span>{{ $t('components:uploadHint.count', { count: limit }) }}</span>
     </div>
 
     <ul
@@ -45,7 +42,7 @@
           <el-tag
             size="small"
             type="success"
-            >已上传</el-tag
+            >{{ $t('components:uploaded') }}</el-tag
           >
         </div>
         <div class="business-file-actions">
@@ -54,16 +51,16 @@
             type="primary"
             @click="handleDownload(file)"
           >
-            下载
-          </el-link>
+            {{ $t('components:download') }}</el-link
+          >
           <el-link
             v-if="!disabled"
             :underline="false"
             type="danger"
             @click="handleDelete(file.fileId)"
           >
-            删除
-          </el-link>
+            {{ $t('system:delete') }}</el-link
+          >
         </div>
       </li>
     </ul>
@@ -86,7 +83,7 @@
           <el-tag
             v-if="file.status === 'uploading'"
             size="small"
-            >上传中</el-tag
+            >{{ $t('components:uploading') }}</el-tag
           >
           <el-tooltip
             v-else
@@ -96,7 +93,7 @@
             <el-tag
               size="small"
               type="danger"
-              >上传失败</el-tag
+              >{{ $t('components:uploadFailed') }}</el-tag
             >
           </el-tooltip>
         </div>
@@ -110,16 +107,16 @@
             type="primary"
             @click="handleRetry(file)"
           >
-            重试
-          </el-link>
+            {{ $t('common:retry') }}</el-link
+          >
           <el-link
             v-if="!disabled"
             :underline="false"
             type="danger"
             @click="handleRemoveFailed(file.uid)"
           >
-            删除
-          </el-link>
+            {{ $t('system:delete') }}</el-link
+          >
         </div>
       </li>
     </ul>
@@ -127,6 +124,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import request from '@/utils/request'
 import Sortable from 'sortablejs'
 
@@ -204,21 +202,25 @@ watch(
  */
 function handleBeforeUpload(file) {
   if (fileList.value.length + uploadingCount() >= props.limit) {
-    proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个`)
+    proxy.$modal.msgError(t('components:youCanUploadUpToValueFiles', { limit: props.limit }))
     return false
   }
   const extension = getFileExtension(file.name)
   const allowedTypes = props.fileType.map((type) => String(type).toLowerCase())
   if (allowedTypes.length && !allowedTypes.includes(extension)) {
-    proxy.$modal.msgError(`文件格式不正确，请上传 ${props.fileType.join('/')} 格式文件`)
+    proxy.$modal.msgError(
+      t('components:invalidFileFormatUploadFilesInValueFormat', { arg0: props.fileType.join('/') })
+    )
     return false
   }
   if (file.name.includes(',')) {
-    proxy.$modal.msgError('文件名称不能包含英文逗号')
+    proxy.$modal.msgError(t('components:fileNamesCannotContainCommas'))
     return false
   }
   if (props.fileSize && file.size / 1024 / 1024 > props.fileSize) {
-    proxy.$modal.msgError(`上传文件大小不能超过 ${props.fileSize} MB`)
+    proxy.$modal.msgError(
+      t('components:eachFileMustNotExceedValueMB', { fileSize: props.fileSize })
+    )
     return false
   }
   pendingFileList.value.push({
@@ -268,7 +270,7 @@ async function uploadFile(file, onProgress) {
     },
   })
   if (!response.fileId || !response.downloadUrl) {
-    throw new Error('上传响应缺少文件ID或下载地址')
+    throw new Error(t('components:theUploadResponseIsMissingAFileIDOrDownload'))
   }
   return response
 }
@@ -507,7 +509,7 @@ function getFileName(value) {
  * @returns {string} 错误信息
  */
 function getErrorMessage(error) {
-  return error?.message || '上传失败，请重试'
+  return error?.message || t('components:uploadFailedPleaseTryAgain')
 }
 
 onMounted(() => nextTick(initSortable))

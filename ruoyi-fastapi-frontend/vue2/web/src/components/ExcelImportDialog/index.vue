@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    :title="title"
+    :title="title || $t('file:interface.importData')"
     :visible.sync="visible"
     :width="width"
     append-to-body
@@ -19,7 +19,9 @@
       drag
     >
       <i class="el-icon-upload"></i>
-      <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+      <div class="el-upload__text">
+        {{ $t('file:upload.drop') }}<em>{{ $t('file:upload.click') }}</em>
+      </div>
       <div
         class="el-upload__tip text-center"
         slot="tip"
@@ -28,16 +30,18 @@
           class="el-upload__tip"
           slot="tip"
         >
-          <el-checkbox v-model="updateSupport"> {{ updateSupportLabel }} </el-checkbox>
+          <el-checkbox v-model="updateSupport">
+            {{ updateSupportLabel || $t('common:updateExistingRecords') }}
+          </el-checkbox>
         </div>
-        <span>仅允许导入xls、xlsx格式文件。</span>
+        <span>{{ $t('file:interface.onlyXlsAndXlsxFilesCanBeImported') }}</span>
         <el-link
           v-if="templateUrl"
           type="primary"
           :underline="false"
           style="font-size: 12px; vertical-align: baseline"
           @click="handleDownloadTemplate"
-          >下载模板</el-link
+          >{{ $t('common:downloadTemplate') }}</el-link
         >
       </div>
     </el-upload>
@@ -48,14 +52,17 @@
       <el-button
         type="primary"
         @click="handleSubmit"
-        >确 定</el-button
+        >{{ $t('common:confirm') }}</el-button
       >
-      <el-button @click="visible = false">取 消</el-button>
+      <el-button @click="visible = false">{{ $t('common:cancel') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+import { i18n } from '@/i18n'
+
 import { getToken } from '@/utils/auth'
 
 export default {
@@ -63,7 +70,7 @@ export default {
     // 对话框标题
     title: {
       type: String,
-      default: '数据导入',
+      default: '',
     },
     // 对话框宽度
     width: {
@@ -88,7 +95,7 @@ export default {
     // 覆盖更新勾选框的说明文字
     updateSupportLabel: {
       type: String,
-      default: '是否更新已经存在的数据',
+      default: '',
     },
   },
   data() {
@@ -96,10 +103,14 @@ export default {
       visible: false,
       isUploading: false,
       updateSupport: false,
-      headers: { Authorization: 'Bearer ' + getToken() },
     }
   },
   computed: {
+    headers() {
+      void this.$locale.locale
+      return { Authorization: 'Bearer ' + getToken(), ...i18n.headers }
+    },
+
     uploadUrl() {
       return (
         process.env.VUE_APP_BASE_API +
@@ -143,7 +154,11 @@ export default {
     handleProgress() {
       this.isUploading = true
     },
-    // 上传成功
+    /**
+     * 以纯文本展示导入结果，保留消息中的换行和单元格原文。
+     *
+     * @param {Object} response 上传接口响应
+     */
     handleSuccess(response) {
       this.visible = false
       this.isUploading = false
@@ -151,11 +166,8 @@ export default {
         this.$refs.uploadRef.clearFiles()
       }
       this.$alert(
-        "<div style='overflow:auto;overflow-x:hidden;max-height:70vh;padding:10px 20px 0;'>" +
-          response.msg +
-          '</div>',
-        '导入结果',
-        { dangerouslyUseHTMLString: true }
+        this.$createElement('div', { class: 'excel-import-result' }, String(response.msg || '')),
+        t('common:importResults')
       )
       this.$emit('success')
     },
@@ -163,12 +175,12 @@ export default {
     handleSubmit() {
       const files = this.$refs.uploadRef.uploadFiles
       if (!files || files.length === 0) {
-        this.$modal.msgError('请选择要上传的文件。')
+        this.$modal.msgError(t('file:interface.selectAFileToUpload'))
         return
       }
       const name = files[0].name.toLowerCase()
       if (!name.endsWith('.xls') && !name.endsWith('.xlsx')) {
-        this.$modal.msgError('请选择后缀为 "xls" 或 "xlsx" 的文件。')
+        this.$modal.msgError(t('file:interface.selectAnXlsOrXlsxFile'))
         return
       }
       this.$refs.uploadRef.submit()
@@ -176,3 +188,12 @@ export default {
   },
 }
 </script>
+
+<style>
+.excel-import-result {
+  max-height: 70vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+</style>

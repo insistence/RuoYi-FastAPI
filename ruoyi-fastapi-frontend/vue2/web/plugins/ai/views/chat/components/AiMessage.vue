@@ -9,11 +9,11 @@
         @click="toggleReasoning"
       >
         <i :class="['el-icon-arrow-right', { 'is-expanded': isReasoningExpanded }]"></i>
-        <span>深度思考过程</span>
+        <span>{{ t('plugin.ai:messages.reasoningProcess') }}</span>
         <span
           class="reasoning-status"
           v-if="!isThinkingComplete"
-          >思考中...</span
+          >{{ t('plugin.ai:messages.thinking') }}</span
         >
       </div>
       <div
@@ -48,6 +48,7 @@
 </template>
 
 <script>
+import { t } from '../../../i18n'
 import { defineComponent, ref, computed } from 'vue'
 
 export default defineComponent({
@@ -82,6 +83,7 @@ export default defineComponent({
     }
 
     return {
+      t,
       isReasoningExpanded,
       isThinkingComplete,
       toggleReasoning,

@@ -11,12 +11,12 @@
         <span
           v-if="item.redirect === 'noRedirect' || index == levelList.length - 1"
           class="no-redirect"
-          >{{ item.meta.title }}</span
+          >{{ $routeTitle(item) }}</span
         >
         <a
           v-else
           @click.prevent="handleLink(item)"
-          >{{ item.meta.title }}</a
+          >{{ $routeTitle(item) }}</a
         >
       </el-breadcrumb-item>
     </transition-group>
@@ -24,6 +24,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 export default {
   data() {
     return {
@@ -61,7 +63,12 @@ export default {
       }
       // 判断是否为首页
       if (!this.isDashboard(matched[0])) {
-        matched = [{ path: '/index', meta: { title: '首页' } }].concat(matched)
+        matched = [
+          {
+            path: '/index',
+            meta: { title: t('layout:routes.home'), titleKey: 'layout:route.home' },
+          },
+        ].concat(matched)
       }
       this.levelList = matched.filter(
         (item) => item.meta && item.meta.title && item.meta.breadcrumb !== false

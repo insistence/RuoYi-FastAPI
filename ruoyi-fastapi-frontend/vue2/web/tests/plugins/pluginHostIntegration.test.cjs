@@ -259,6 +259,12 @@ module.exports = (async () => {
     isCancel: () => false,
   }
   const load = createLoader({
+    '@/i18n': {
+      i18n: {
+        headers: { 'Accept-Language': 'zh-CN' },
+      },
+      t: require('../i18n/test-runtime.cjs').t,
+    },
     axios,
     'element-ui': {
       Notification: { error() {} },
@@ -274,7 +280,6 @@ module.exports = (async () => {
     '@/store': { dispatch: async () => {} },
     '@/utils/auth': { getToken: () => 'test-main-session' },
     '@/utils/time': { getDisplayTimezone: () => 'UTC' },
-    '@/utils/errorCode': {},
     '@/utils/ruoyi': { tansParams: () => '', blobValidate: () => true },
     '@/plugins/cache': {},
     'file-saver': { saveAs() {} },

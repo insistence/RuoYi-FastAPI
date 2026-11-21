@@ -2,6 +2,7 @@ from typing import TypeAlias
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
 from plugins.core.lifecycle.purge import PluginPurgePlan
 
 from . import PluginPayloadBuilder
@@ -47,7 +48,9 @@ class PluginPurgePayloadBuilder:
             plugin_id=plugin_id,
             plan=plan,
             dry_run=True,
-            message='插件物理清理演练完成，未执行实际删除',
+            message=I18nMessage(
+                '插件物理清理演练完成，未执行实际删除', msg_key='plugin.runtime.purge.previewCompleted'
+            ),
         )
 
     @staticmethod
@@ -68,7 +71,7 @@ class PluginPurgePayloadBuilder:
             plugin_id=plugin_id,
             plan=plan,
             dry_run=False,
-            message='插件物理清理完成',
+            message=I18nMessage('插件物理清理完成', msg_key='plugin.runtime.purge.completed'),
             hook_result=hook_result,
         )
 

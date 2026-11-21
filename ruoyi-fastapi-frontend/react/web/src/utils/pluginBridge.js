@@ -2,6 +2,17 @@
  * 插件通信桥 v1，不依赖 Vue 或 axios，可复制到独立打包的插件中使用。
  * 同源 iframe 中运行的是受信任代码，不提供安全沙箱隔离。
  */
+let messageTranslator
+
+// 独立插件可按需注入翻译器，SDK 本身不依赖宿主或界面框架。
+export function setPluginMessageTranslator(value) {
+  messageTranslator = value
+}
+
+function translateMessage(key, fallback, options) {
+  return messageTranslator ? messageTranslator(key, options) : fallback
+}
+
 export const PLUGIN_BRIDGE_NAMESPACE = 'ruoyi.plugin'
 // SDK 源码交付版本独立于消息协议版本，不写入桥消息。
 export const PLUGIN_BRIDGE_SDK_VERSION = '1.0.0'
@@ -24,7 +35,9 @@ const isRecord = (value) =>
 
 function assertKeys(value, keys) {
   if (!isRecord(value) || Object.keys(value).some((key) => !keys.includes(key))) {
-    throw new Error('插件消息格式无效')
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.invalidPluginMessageFormat', '插件消息格式无效')
+    )
   }
 }
 
@@ -32,39 +45,61 @@ function jsonCopy(value, limit = PLUGIN_BRIDGE_MAX_BYTES) {
   let nodes = 0
   const visit = (item, depth) => {
     nodes += 1
-    if (nodes > 8192) throw new Error('插件消息过大')
-    if (depth > 20) throw new Error('插件消息嵌套过深')
-    if (typeof item === 'string' && item.length > limit) throw new Error('插件消息过大')
+    if (nodes > 8192)
+      throw new Error(
+        translateMessage('pluginAdmin:bridge.thePluginMessageIsTooLarge', '插件消息过大')
+      )
+    if (depth > 20)
+      throw new Error(
+        translateMessage('pluginAdmin:bridge.pluginMessageNestingIsTooDeep', '插件消息嵌套过深')
+      )
+    if (typeof item === 'string' && item.length > limit)
+      throw new Error(
+        translateMessage('pluginAdmin:bridge.thePluginMessageIsTooLarge', '插件消息过大')
+      )
     if (item === null || typeof item === 'boolean' || typeof item === 'string') return
     if (typeof item === 'number' && Number.isFinite(item)) return
     if (Array.isArray(item)) return item.forEach((child) => visit(child, depth + 1))
-    if (!isRecord(item)) throw new Error('插件消息必须为 JSON')
+    if (!isRecord(item))
+      throw new Error(
+        translateMessage('pluginAdmin:bridge.pluginMessageMustBeJson', '插件消息必须为 JSON')
+      )
     for (const [key, child] of Object.entries(item)) {
       if (['__proto__', 'prototype', 'constructor'].includes(key)) {
-        throw new Error('插件消息字段无效')
+        throw new Error(
+          translateMessage('pluginAdmin:bridge.invalidPluginMessageField', '插件消息字段无效')
+        )
       }
       visit(child, depth + 1)
     }
   }
   visit(value, 0)
   const text = JSON.stringify(value)
-  if (new TextEncoder().encode(text).length > limit) throw new Error('插件消息过大')
+  if (new TextEncoder().encode(text).length > limit)
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.thePluginMessageIsTooLarge', '插件消息过大')
+    )
   return JSON.parse(text)
 }
 
 export function validatePluginId(pluginId) {
   if (typeof pluginId !== 'string' || !ID_PATTERN.test(pluginId)) {
-    throw new Error('插件标识无效')
+    throw new Error(translateMessage('pluginAdmin:bridge.invalidPluginId', '插件标识无效'))
   }
   return pluginId
 }
 
 export function normalizePluginBase(base = '') {
-  if (typeof base !== 'string') throw new Error('插件部署路径无效')
+  if (typeof base !== 'string')
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.invalidPluginDeploymentPath', '插件部署路径无效')
+    )
   if (base === '' || base === '/') return ''
   const normalized = base.replace(/\/$/, '')
   if (!/^\/[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(normalized)) {
-    throw new Error('插件部署路径无效')
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.invalidPluginDeploymentPath', '插件部署路径无效')
+    )
   }
   return normalized
 }
@@ -93,7 +128,7 @@ export function validatePluginSession(value, pluginId, base = '', now = Date.now
     value.expiresIn < 1 ||
     value.expiresIn > 3600
   ) {
-    throw new Error('插件会话信息无效')
+    throw new Error(translateMessage('pluginAdmin:bridge.invalidPluginSession', '插件会话信息无效'))
   }
   return { ...value, expiresAt: now + value.expiresIn * 1000 }
 }
@@ -105,13 +140,14 @@ export function validatePluginSession(value, pluginId, base = '', now = Date.now
  * @returns {string} 校验后的路径
  */
 export function validatePluginApiPath(path) {
-  if (typeof path !== 'string' || path.length > 1024) throw new Error('插件接口路径无效')
+  if (typeof path !== 'string' || path.length > 1024)
+    throw new Error(translateMessage('pluginAdmin:bridge.invalidPluginApiPath', '插件接口路径无效'))
   if (path === '') return path
   if (
     !/^[a-zA-Z0-9_.~-]+(?:\/[a-zA-Z0-9_.~-]+)*\/?$/.test(path) ||
     path.split('/').some((segment) => segment === '.' || segment === '..')
   ) {
-    throw new Error('插件接口路径无效')
+    throw new Error(translateMessage('pluginAdmin:bridge.invalidPluginApiPath', '插件接口路径无效'))
   }
   return path
 }
@@ -123,7 +159,9 @@ export function validatePluginRoute(route) {
     !/^\/(?:[a-zA-Z0-9_.~-]+\/?)*$/.test(route) ||
     route.split('/').some((segment) => segment === '.' || segment === '..')
   ) {
-    throw new Error('插件页面路径无效')
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.invalidPluginPagePath', '插件页面路径无效')
+    )
   }
   return route
 }
@@ -163,13 +201,23 @@ function validEnvelope(event, origin, source, pluginId) {
 
 function validateRequest(payload) {
   assertKeys(payload, ['method', 'path', 'params', 'data'])
-  if (!METHODS.has(payload.method)) throw new Error('插件请求方法无效')
+  if (!METHODS.has(payload.method))
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.invalidPluginRequestMethod', '插件请求方法无效')
+    )
   validatePluginApiPath(payload.path)
   if (payload.params !== undefined && !isRecord(payload.params)) {
-    throw new Error('插件查询参数无效')
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.invalidPluginQueryParameters', '插件查询参数无效')
+    )
   }
   if (['GET', 'HEAD'].includes(payload.method) && payload.data !== undefined) {
-    throw new Error('该请求方法不能携带请求体')
+    throw new Error(
+      translateMessage(
+        'pluginAdmin:bridge.thisRequestMethodDoesNotSupportABody',
+        '该请求方法不能携带请求体'
+      )
+    )
   }
   return jsonCopy(payload)
 }
@@ -184,11 +232,20 @@ function validateTransfer(type, payload) {
     path: safe.path,
     ...(safe.params === undefined ? {} : { params: safe.params }),
   })
-  if (!['POST', 'PUT', 'PATCH'].includes(safe.method)) throw new Error('文件上传方法无效')
+  if (!['POST', 'PUT', 'PATCH'].includes(safe.method))
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.invalidFileUploadMethod', '文件上传方法无效')
+    )
   if (!(file instanceof Blob) || file.size > PLUGIN_BRIDGE_MAX_FILE_BYTES) {
-    throw new Error('文件必须是 Blob 或 File，且不能超过 10 MiB')
+    throw new Error(
+      translateMessage(
+        'pluginAdmin:bridge.theFileMustBeABlobOrFileAndMust',
+        '文件必须是 Blob 或 File，且不能超过 10 MiB'
+      )
+    )
   }
-  if (!/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(safe.fieldName)) throw new Error('文件字段名无效')
+  if (!/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(safe.fieldName))
+    throw new Error(translateMessage('pluginAdmin:bridge.invalidFileFieldName', '文件字段名无效'))
   if (
     typeof safe.filename !== 'string' ||
     !safe.filename.trim() ||
@@ -196,7 +253,7 @@ function validateTransfer(type, payload) {
     /[\\/\x00-\x1f\x7f]/.test(safe.filename) ||
     ['.', '..'].includes(safe.filename)
   )
-    throw new Error('上传文件名无效')
+    throw new Error(translateMessage('pluginAdmin:bridge.invalidUploadFileName', '上传文件名无效'))
   if (
     !isRecord(safe.fields) ||
     Object.entries(safe.fields).some(
@@ -206,7 +263,9 @@ function validateTransfer(type, payload) {
         typeof value !== 'string'
     )
   )
-    throw new Error('上传表单字段无效')
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.invalidUploadFormField', '上传表单字段无效')
+    )
   return { ...safe, file }
 }
 
@@ -223,14 +282,16 @@ function validateStream(payload) {
       payload.lastEventId.length > 1024 ||
       /[^\x20-\x7e]/.test(payload.lastEventId))
   )
-    throw new Error('事件游标无效')
+    throw new Error(translateMessage('pluginAdmin:bridge.invalidEventCursor', '事件游标无效'))
   return jsonCopy(payload)
 }
 
 function validateStreamEvent(value) {
   assertKeys(value, ['event', 'data', 'id'])
   if (['event', 'data', 'id'].some((key) => typeof value[key] !== 'string'))
-    throw new Error('插件事件格式无效')
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.invalidPluginEventFormat', '插件事件格式无效')
+    )
   return jsonCopy(value)
 }
 
@@ -242,7 +303,12 @@ const streamDuration = (value) =>
 
 async function validateDownload(data) {
   if (!(data instanceof Blob) || data.size > PLUGIN_BRIDGE_MAX_FILE_BYTES) {
-    throw new Error('下载文件无效或超过 10 MiB')
+    throw new Error(
+      translateMessage(
+        'pluginAdmin:bridge.theDownloadIsInvalidOrExceeds10Mib',
+        '下载文件无效或超过 10 MiB'
+      )
+    )
   }
   // 错误响应不能作为文件交付；合法的 JSON 文件仍可下载。
   if (
@@ -256,7 +322,7 @@ async function validateDownload(data) {
       /* 非 JSON 内容按文件返回。 */
     }
     if (isRecord(value) && typeof value.code === 'number' && value.code !== 200) {
-      throw new Error('插件下载失败')
+      throw new Error(translateMessage('pluginAdmin:bridge.pluginDownloadFailed', '插件下载失败'))
     }
   }
   return data
@@ -288,7 +354,10 @@ export function createPluginHostBridge({
 }) {
   validatePluginId(pluginId)
   const target = getTarget()
-  if (!target || !origin || origin === 'null') throw new Error('插件页面尚未就绪')
+  if (!target || !origin || origin === 'null')
+    throw new Error(
+      translateMessage('pluginAdmin:bridge.thePluginPageIsNotReady', '插件页面尚未就绪')
+    )
   let currentSession = session
   let instance = nonce()
   let clientId = null
@@ -328,7 +397,12 @@ export function createPluginHostBridge({
           destroyed = true
           cancelPending()
           eventTarget.removeEventListener('message', listener)
-          onDisconnect('插件页面重载次数过多，请重新加载')
+          onDisconnect(
+            translateMessage(
+              'pluginAdmin:bridge.thePluginPageReloadedTooManyTimesReloadItManually',
+              '插件页面重载次数过多，请重新加载'
+            )
+          )
           return
         }
         retiredClients.add(clientId)
@@ -397,16 +471,34 @@ export function createPluginHostBridge({
     )
       return
     if (pending.size >= PLUGIN_BRIDGE_MAX_PENDING) {
-      resultError(message.id, '插件请求过多，请稍后重试')
+      resultError(
+        message.id,
+        translateMessage(
+          'pluginAdmin:bridge.tooManyPluginRequestsPleaseTryAgainLater',
+          '插件请求过多，请稍后重试'
+        )
+      )
       return
     }
     if (message.type === 'stream') {
       if (typeof stream !== 'function') {
-        resultError(message.id, '当前宿主不支持实时事件流，请升级宿主')
+        resultError(
+          message.id,
+          translateMessage(
+            'pluginAdmin:bridge.thisHostDoesNotSupportEventStreamsUpgradeTheHost',
+            '当前宿主不支持实时事件流，请升级宿主'
+          )
+        )
         return
       }
       if (streamCount(pending) >= PLUGIN_BRIDGE_MAX_STREAMS) {
-        resultError(message.id, '实时连接过多，请先关闭已有连接')
+        resultError(
+          message.id,
+          translateMessage(
+            'pluginAdmin:bridge.tooManyLiveConnectionsCloseAnExistingConnectionFirst',
+            '实时连接过多，请先关闭已有连接'
+          )
+        )
         return
       }
     }
@@ -434,7 +526,13 @@ export function createPluginHostBridge({
       if (pending.get(message.id) !== entry) return
       pending.delete(message.id)
       controller.abort()
-      resultError(message.id, '插件请求超时，请重试')
+      resultError(
+        message.id,
+        translateMessage(
+          'pluginAdmin:bridge.thePluginRequestTimedOutTryAgain',
+          '插件请求超时，请重试'
+        )
+      )
     }, duration)
     pending.set(message.id, entry)
     const progressState = new Map()
@@ -446,7 +544,10 @@ export function createPluginHostBridge({
         pending.delete(message.id)
         clearTimeout(entry.timer)
         controller.abort()
-        resultError(message.id, '下载文件超过 10 MiB')
+        resultError(
+          message.id,
+          translateMessage('pluginAdmin:bridge.theDownloadExceeds10Mib', '下载文件超过 10 MiB')
+        )
         return
       }
       const total = Number.isSafeInteger(event.total) && event.total >= loaded ? event.total : null
@@ -474,7 +575,13 @@ export function createPluginHostBridge({
             if (!live() || pending.get(message.id) !== entry) break
             const safeEvent = validateStreamEvent(event)
             totalBytes += new TextEncoder().encode(JSON.stringify(safeEvent)).byteLength
-            if (totalBytes > PLUGIN_BRIDGE_MAX_STREAM_BYTES) throw new Error('事件流超过容量限制')
+            if (totalBytes > PLUGIN_BRIDGE_MAX_STREAM_BYTES)
+              throw new Error(
+                translateMessage(
+                  'pluginAdmin:bridge.theEventStreamExceedsTheSizeLimit',
+                  '事件流超过容量限制'
+                )
+              )
             entry.sequence += 1
             // 每条事件等待插件处理完成，防止慢回调造成 postMessage 队列无限增长。
             await new Promise((resolve, reject) => {
@@ -485,7 +592,14 @@ export function createPluginHostBridge({
               }
               const cancel = () => {
                 cleanup()
-                reject(new Error('事件处理已取消'))
+                reject(
+                  new Error(
+                    translateMessage(
+                      'pluginAdmin:bridge.eventProcessingWasCancelled',
+                      '事件处理已取消'
+                    )
+                  )
+                )
               }
               const timer = setTimeout(cancel, Math.min(REQUEST_TIMEOUT, duration))
               entry.ack = () => {
@@ -544,8 +658,14 @@ export function createPluginHostBridge({
           resultError(
             message.id,
             message.type === 'stream' && error?.name === 'PluginStreamClosedError'
-              ? '实时连接已由宿主关闭，请重试'
-              : '插件请求失败，请重试'
+              ? translateMessage(
+                  'pluginAdmin:bridge.theHostClosedTheLiveConnectionTryAgain',
+                  '实时连接已由宿主关闭，请重试'
+                )
+              : translateMessage(
+                  'pluginAdmin:bridge.thePluginRequestFailedTryAgain',
+                  '插件请求失败，请重试'
+                )
           )
       })
       .finally(() => {
@@ -562,7 +682,9 @@ export function createPluginHostBridge({
         nextSession.apiBase !== currentSession.apiBase ||
         nextSession.uiBase !== currentSession.uiBase
       )
-        throw new Error('插件会话路径发生变化')
+        throw new Error(
+          translateMessage('pluginAdmin:bridge.thePluginSessionPathChanged', '插件会话路径发生变化')
+        )
       currentSession = nextSession
     },
     updatePreferences() {
@@ -608,7 +730,12 @@ export function createPluginClient({
 }) {
   validatePluginId(pluginId)
   if (!parentWindow || parentWindow === eventTarget || !origin || origin === 'null') {
-    throw new Error('请从管理平台打开插件页面')
+    throw new Error(
+      translateMessage(
+        'pluginAdmin:bridge.openThePluginPageFromTheManagementConsole',
+        '请从管理平台打开插件页面'
+      )
+    )
   }
   const clientId = nonce()
   let instance = ''
@@ -628,11 +755,16 @@ export function createPluginClient({
   ready.catch(() => {})
   const waitForReady = (signal) => {
     if (!signal) return ready
-    if (signal.aborted) return Promise.reject(new Error('插件请求已取消'))
+    if (signal.aborted)
+      return Promise.reject(
+        new Error(translateMessage('pluginAdmin:bridge.pluginRequestCancelled', '插件请求已取消'))
+      )
     return new Promise((resolve, reject) => {
       const cancel = () => {
         signal.removeEventListener('abort', cancel)
-        reject(new Error('插件请求已取消'))
+        reject(
+          new Error(translateMessage('pluginAdmin:bridge.pluginRequestCancelled', '插件请求已取消'))
+        )
       }
       signal.addEventListener('abort', cancel, { once: true })
       ready.then(
@@ -660,7 +792,9 @@ export function createPluginClient({
       }
     }
   }
-  const destroy = (message = '插件连接已关闭') => {
+  const destroy = (
+    message = translateMessage('pluginAdmin:bridge.thePluginConnectionIsClosed', '插件连接已关闭')
+  ) => {
     if (destroyed) return
     for (const [id, entry] of pending) {
       send('cancel', undefined, id)
@@ -715,7 +849,14 @@ export function createPluginClient({
           entry.delivering = false
           send('stream-ack', { sequence: entry.sequence }, message.id)
         })
-        .catch(() => entry.fail('插件事件处理失败，连接已关闭'))
+        .catch(() =>
+          entry.fail(
+            translateMessage(
+              'pluginAdmin:bridge.pluginEventProcessingFailedAndTheConnectionWasClosed',
+              '插件事件处理失败，连接已关闭'
+            )
+          )
+        )
       return
     }
     if (message.type === 'progress') {
@@ -754,11 +895,19 @@ export function createPluginClient({
         try {
           const data = message.payload.data
           if (entry.type === 'stream') {
-            if (data !== null) throw new Error('事件流结束消息无效')
+            if (data !== null)
+              throw new Error(
+                translateMessage(
+                  'pluginAdmin:bridge.invalidEndOfStreamMessage',
+                  '事件流结束消息无效'
+                )
+              )
             entry.resolve()
           } else if (entry.type === 'download') {
             if (!(data instanceof Blob) || data.size > PLUGIN_BRIDGE_MAX_FILE_BYTES)
-              throw new Error('下载文件无效')
+              throw new Error(
+                translateMessage('pluginAdmin:bridge.invalidDownload', '下载文件无效')
+              )
             entry.resolve(data)
           } else entry.resolve(jsonCopy(data))
         } catch (error) {
@@ -769,7 +918,7 @@ export function createPluginClient({
           new Error(
             typeof message.payload.message === 'string'
               ? message.payload.message.slice(0, 200)
-              : '插件请求失败'
+              : translateMessage('pluginAdmin:bridge.pluginRequestFailed', '插件请求失败')
           )
         )
       return
@@ -782,22 +931,50 @@ export function createPluginClient({
           route: validatePluginRoute(message.payload?.route),
         }
       notify(message.type, message.payload)
-      if (message.type === 'logout') destroy('登录状态已失效')
+      if (message.type === 'logout')
+        destroy(translateMessage('pluginAdmin:bridge.yourSessionHasExpired', '登录状态已失效'))
     }
   }
   eventTarget.addEventListener('message', listener)
-  const readyTimer = setTimeout(() => destroy('插件初始化超时，请重试'), timeoutMs)
+  const readyTimer = setTimeout(
+    () =>
+      destroy(
+        translateMessage(
+          'pluginAdmin:bridge.pluginInitializationTimedOutTryAgain',
+          '插件初始化超时，请重试'
+        )
+      ),
+    timeoutMs
+  )
   send('ready', { clientId })
   const execute = async (type, safePayload, { signal, onProgress, onEvent } = {}) => {
     if (onProgress !== undefined && typeof onProgress !== 'function')
-      throw new Error('进度回调无效')
-    if (type === 'stream' && typeof onEvent !== 'function') throw new Error('事件处理回调无效')
-    if (destroyed || signal?.aborted) throw new Error('插件请求已取消')
+      throw new Error(
+        translateMessage('pluginAdmin:bridge.invalidProgressCallback', '进度回调无效')
+      )
+    if (type === 'stream' && typeof onEvent !== 'function')
+      throw new Error(
+        translateMessage('pluginAdmin:bridge.invalidEventCallback', '事件处理回调无效')
+      )
+    if (destroyed || signal?.aborted)
+      throw new Error(
+        translateMessage('pluginAdmin:bridge.pluginRequestCancelled', '插件请求已取消')
+      )
     if (pending.size + waitingForReady >= PLUGIN_BRIDGE_MAX_PENDING) {
-      throw new Error('插件请求过多，请稍后重试')
+      throw new Error(
+        translateMessage(
+          'pluginAdmin:bridge.tooManyPluginRequestsPleaseTryAgainLater',
+          '插件请求过多，请稍后重试'
+        )
+      )
     }
     if (type === 'stream' && streamCount(pending) + waitingStreams >= PLUGIN_BRIDGE_MAX_STREAMS)
-      throw new Error('实时连接过多，请先关闭已有连接')
+      throw new Error(
+        translateMessage(
+          'pluginAdmin:bridge.tooManyLiveConnectionsCloseAnExistingConnectionFirst',
+          '实时连接过多，请先关闭已有连接'
+        )
+      )
     waitingForReady += 1
     if (type === 'stream') waitingStreams += 1
     try {
@@ -806,15 +983,39 @@ export function createPluginClient({
       waitingForReady -= 1
       if (type === 'stream') waitingStreams -= 1
     }
-    if (destroyed || signal?.aborted) throw new Error('插件请求已取消')
+    if (destroyed || signal?.aborted)
+      throw new Error(
+        translateMessage('pluginAdmin:bridge.pluginRequestCancelled', '插件请求已取消')
+      )
     if (['upload', 'download'].includes(type) && context.capabilities?.files?.version !== 1) {
-      throw new Error('当前宿主不支持文件传输，请升级宿主')
+      throw new Error(
+        translateMessage(
+          'pluginAdmin:bridge.thisHostDoesNotSupportFileTransfersUpgradeTheHost',
+          '当前宿主不支持文件传输，请升级宿主'
+        )
+      )
     }
     if (type === 'stream' && context.capabilities?.streams?.version !== 1)
-      throw new Error('当前宿主不支持实时事件流，请升级宿主')
+      throw new Error(
+        translateMessage(
+          'pluginAdmin:bridge.thisHostDoesNotSupportEventStreamsUpgradeTheHost',
+          '当前宿主不支持实时事件流，请升级宿主'
+        )
+      )
     if (type === 'stream' && streamCount(pending) >= PLUGIN_BRIDGE_MAX_STREAMS)
-      throw new Error('实时连接过多，请先关闭已有连接')
-    if (pending.size >= PLUGIN_BRIDGE_MAX_PENDING) throw new Error('插件请求过多，请稍后重试')
+      throw new Error(
+        translateMessage(
+          'pluginAdmin:bridge.tooManyLiveConnectionsCloseAnExistingConnectionFirst',
+          '实时连接过多，请先关闭已有连接'
+        )
+      )
+    if (pending.size >= PLUGIN_BRIDGE_MAX_PENDING)
+      throw new Error(
+        translateMessage(
+          'pluginAdmin:bridge.tooManyPluginRequestsPleaseTryAgainLater',
+          '插件请求过多，请稍后重试'
+        )
+      )
     const id = nonce()
     return new Promise((resolve, reject) => {
       const fail = (message) => {
@@ -826,7 +1027,13 @@ export function createPluginClient({
         send('cancel', undefined, id)
         reject(new Error(message))
       }
-      const cancel = () => fail('插件请求已取消或超时')
+      const cancel = () =>
+        fail(
+          translateMessage(
+            'pluginAdmin:bridge.thePluginRequestWasCancelledOrTimedOut',
+            '插件请求已取消或超时'
+          )
+        )
       const timer = setTimeout(
         cancel,
         type === 'stream'
@@ -880,11 +1087,17 @@ export function createPluginClient({
       return execute('stream', validateStream(payload), options)
     },
     navigate(route) {
-      if (!instance || destroyed) throw new Error('插件尚未连接')
+      if (!instance || destroyed)
+        throw new Error(
+          translateMessage('pluginAdmin:bridge.thePluginIsNotConnected', '插件尚未连接')
+        )
       send('route', { route: validatePluginRoute(route) })
     },
     subscribe(handler) {
-      if (typeof handler !== 'function') throw new Error('事件订阅无效')
+      if (typeof handler !== 'function')
+        throw new Error(
+          translateMessage('pluginAdmin:bridge.invalidEventSubscription', '事件订阅无效')
+        )
       subscribers.add(handler)
       return () => subscribers.delete(handler)
     },

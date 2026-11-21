@@ -88,6 +88,8 @@ def test_v2_templates_create_independent_projects_without_importing_or_installin
     assert plugin.manifest.integration_kind == 'asgi'
     assert plugin.manifest.frontend.delivery.type == ('bundle' if bundle else 'none')
     assert plugin.manifest.id == PLUGIN_ID
+    serialized = plugin.manifest.model_dump_json(by_alias=True)
+    assert type(plugin.manifest).model_validate_json(serialized) == plugin.manifest
     assert plugin.manifest.backend.asgi.mount_path == f'/apps/{PLUGIN_ID}'
     assert payload['sourceDir'] == source.as_posix()
     assert payload['frontendFramework'] is None

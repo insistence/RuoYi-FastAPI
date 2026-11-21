@@ -16,3 +16,14 @@
 后端 AI 清单已声明 dependencies.frontend.react，插件结构检查支持 React 的 .jsx 页面。后端启动或执行插件命令前设置 RUOYI_PLUGIN_FRONTEND_FRAMEWORK=react，即可使用现有 check、install-deps、lock-deps 流程；安装和启用共用同一后端，不需要为 React 再安装一份。具体命令见[后端 AI 插件说明](../../../../../ruoyi-fastapi-backend/plugins/ai/README.md#react-宿主)。
 
 后端 CLI 已提供 React 基础页及 CRUD 源码模板，可使用 `ruoyi plugin create demo --template=crud-page --frontend-framework=react` 生成独立的新插件。AI 插件继续使用现有实现，无需重新生成。独立 iframe 插件通过宿主 PluginFrame 与桥接 SDK 运行。
+
+## 国际化
+
+本插件通过 `i18n.js` 导出的 `t` / `useI18n` 读取独立 i18next 实例。
+`locale-meta.json` 声明本插件的语言集合、默认语言和回退链，词库位于 `locales/`。
+宿主切换语言时插件重新匹配；宿主新增语言不要求本插件同步新增，网络请求仍使用宿主语言。
+
+应用的 `pnpm run i18n:check` 会发现本插件的 `x18n.config.mjs`，按插件声明的语言检查词库。
+也可以在应用目录运行 `pnpm exec x18n --root plugins/ai check` 单独检查插件。
+新增插件语言时同步更新本插件元数据、词库和 `i18n.js` 中的导入。
+会话内卸载时调用 `removePluginLocales()`，重新启用时调用 `registerPluginLocales()`；两者不修改宿主或其他插件资源。

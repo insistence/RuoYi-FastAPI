@@ -1,36 +1,37 @@
 <template>
   <!-- 授权用户 -->
   <el-dialog
-    title="选择用户"
+    :title="$t('system:selectUsers')"
     :visible.sync="visible"
     width="800px"
     top="5vh"
     append-to-body
   >
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
       :inline="true"
     >
       <el-form-item
-        label="用户名称"
+        :label="$t('system:user.username')"
         prop="userName"
       >
         <el-input
           v-model="queryParams.userName"
-          placeholder="请输入用户名称"
+          :placeholder="$t('system:user.usernamePlaceholder')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="手机号码"
+        :label="$t('system:user.phone')"
         prop="phonenumber"
       >
         <el-input
           v-model="queryParams.phonenumber"
-          placeholder="请输入手机号码"
+          :placeholder="$t('system:user.phonePlaceholder')"
           clearable
           @keyup.enter.native="handleQuery"
         />
@@ -41,13 +42,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -64,27 +65,27 @@
           width="55"
         ></el-table-column>
         <el-table-column
-          label="用户名称"
+          :label="$t('system:user.username')"
           prop="userName"
           :show-overflow-tooltip="true"
         />
         <el-table-column
-          label="用户昵称"
+          :label="$t('system:user.nickname')"
           prop="nickName"
           :show-overflow-tooltip="true"
         />
         <el-table-column
-          label="邮箱"
+          :label="$t('system:user.email')"
           prop="email"
           :show-overflow-tooltip="true"
         />
         <el-table-column
-          label="手机"
+          :label="$t('system:phone')"
           prop="phonenumber"
           :show-overflow-tooltip="true"
         />
         <el-table-column
-          label="状态"
+          :label="$t('common:status')"
           align="center"
           prop="status"
         >
@@ -96,7 +97,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="创建时间"
+          :label="$t('common:createdTime')"
           align="center"
           prop="createTime"
           width="180"
@@ -121,14 +122,16 @@
       <el-button
         type="primary"
         @click="handleSelectUser"
-        >确 定</el-button
+        >{{ $t('common:confirm') }}</el-button
       >
-      <el-button @click="visible = false">取 消</el-button>
+      <el-button @click="visible = false">{{ $t('common:cancel') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { unallocatedUserList, authUserSelectAll } from '@/api/system/role'
 export default {
   dicts: ['sys_normal_disable'],
@@ -194,7 +197,7 @@ export default {
       const roleId = this.queryParams.roleId
       const userIds = this.userIds.join(',')
       if (userIds == '') {
-        this.$modal.msgError('请选择要分配的用户')
+        this.$modal.msgError(t('system:selectUsersToAssign'))
         return
       }
       authUserSelectAll({ roleId: roleId, userIds: userIds }).then((res) => {

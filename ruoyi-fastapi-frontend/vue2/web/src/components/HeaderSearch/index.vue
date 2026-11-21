@@ -19,7 +19,7 @@
         size="large"
         @input="querySearch"
         prefix-icon="el-icon-search"
-        placeholder="菜单搜索，支持标题、URL模糊查询"
+        :placeholder="$t('layout:search.placeholder')"
         clearable
         @keyup.enter.native="selectActiveResult"
         @keydown.up.native="navigateResult('up')"
@@ -31,7 +31,7 @@
         class="result-count"
         v-if="search && options.length > 0"
       >
-        找到 <strong>{{ options.length }}</strong> 个结果
+        {{ $t('layout:search.results', { count: options.length }) }}
       </div>
 
       <el-scrollbar wrap-class="right-scrollbar-wrapper">
@@ -56,14 +56,22 @@
                 class="search-info"
                 @click="change(item)"
               >
-                <div
-                  class="menu-title"
-                  v-html="highlightText(item.title.join(' / '))"
-                ></div>
-                <div
-                  class="menu-path"
-                  v-html="highlightText(item.path)"
-                ></div>
+                <div class="menu-title">
+                  <span
+                    v-for="(part, partIndex) in highlightParts(item.title.join(' / '))"
+                    :key="partIndex"
+                    :class="{ highlight: part.highlight }"
+                    >{{ part.text }}</span
+                  >
+                </div>
+                <div class="menu-path">
+                  <span
+                    v-for="(part, partIndex) in highlightParts(item.path)"
+                    :key="partIndex"
+                    :class="{ highlight: part.highlight }"
+                    >{{ part.text }}</span
+                  >
+                </div>
               </div>
               <svg-icon
                 icon-class="enter"
@@ -78,18 +86,19 @@
           >
             <i class="el-icon-search empty-icon"></i>
             <p class="empty-text">
-              未找到 "<strong>{{ search }}</strong
-              >" 相关菜单
+              {{ $t('layout:search.noResults', { query: search }) }}
             </p>
-            <p class="empty-tip">试试其他关键词或路径</p>
+            <p class="empty-tip">{{ $t('layout:search.tryAgain') }}</p>
           </div>
         </div>
       </el-scrollbar>
 
       <div class="search-footer">
-        <span class="shortcut-item"> <kbd>↑</kbd><kbd>↓</kbd> 切换 </span>
-        <span class="shortcut-item"> <kbd>↵</kbd> 选择 </span>
-        <span class="shortcut-item"> <kbd>Esc</kbd> 关闭 </span>
+        <span class="shortcut-item">
+          <kbd>↑</kbd><kbd>↓</kbd> {{ $t('layout:search.navigate') }}
+        </span>
+        <span class="shortcut-item"> <kbd>↵</kbd> {{ $t('layout:search.select') }} </span>
+        <span class="shortcut-item"> <kbd>Esc</kbd> {{ $t('layout:search.close') }} </span>
       </div>
     </el-dialog>
   </div>
@@ -121,11 +130,17 @@ export default {
     },
   },
   watch: {
+    '$locale.locale'() {
+      this.searchPool = this.generateRoutes(this.routes)
+      this.initFuse(this.searchPool)
+      this.querySearch(this.search)
+    },
     routes() {
       this.searchPool = this.generateRoutes(this.routes)
     },
     searchPool(list) {
       this.initFuse(list)
+      this.querySearch(this.search)
     },
   },
   mounted() {
@@ -199,7 +214,7 @@ export default {
           icon: '',
         }
         if (router.meta && router.meta.title) {
-          data.title = [...data.title, router.meta.title]
+          data.title = [...data.title, this.$routeTitle(router)]
           data.icon = router.meta.icon
           if (router.redirect !== 'noRedirect') {
             res.push(data)
@@ -253,12 +268,11 @@ export default {
         this.change(this.options[this.activeIndex])
       }
     },
-    highlightText(text) {
-      if (!text) return ''
-      if (!this.search) return text
-      const keyword = this.escapeRegExp(this.search)
-      const reg = new RegExp(`(${keyword})`, 'gi')
-      return text.replace(reg, '<span class="highlight">$1</span>')
+    highlightParts(text) {
+      const value = String(text || '')
+      if (!this.search) return [{ text: value, highlight: false }]
+      const pattern = new RegExp('(' + this.escapeRegExp(this.search) + ')', 'gi')
+      return value.split(pattern).map((part, index) => ({ text: part, highlight: index % 2 === 1 }))
     },
     escapeRegExp(str) {
       return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

@@ -13,6 +13,8 @@ from common.vo import CrudResponseModel, PageModel
 from config.database import DataSourceRegistry
 from config.env import LogConfig
 from exceptions.exception import ServiceException
+from i18n.message import I18nMessage
+from i18n.translation import TranslationUtil
 from middlewares.trace_middleware.ctx import TraceCtx
 from module_admin.dao.file_access_dao import FileAccessLogDao
 from module_admin.dao.log_dao import LoginLogDao, OperationLogDao
@@ -64,7 +66,7 @@ class OperationLogService:
         try:
             await OperationLogDao.add_operation_log_dao(query_db, page_object)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -86,12 +88,12 @@ class OperationLogService:
                 for oper_id in oper_id_list:
                     await OperationLogDao.delete_operation_log_dao(query_db, OperLogModel(operId=oper_id))
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入操作日志id为空')
+            raise ServiceException(message='传入操作日志id为空', msg_key='log.operationIdRequired')
 
     @classmethod
     async def clear_operation_log_services(cls, query_db: AsyncSession) -> CrudResponseModel:
@@ -104,7 +106,7 @@ class OperationLogService:
         try:
             await OperationLogDao.clear_operation_log_dao(query_db)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='清除成功')
+            return CrudResponseModel(is_success=True, message='清除成功', msg_key='common.cleared')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -120,37 +122,41 @@ class OperationLogService:
         """
         # 创建一个映射字典，将英文键映射到中文键
         mapping_dict = {
-            'operId': '日志编号',
-            'title': '系统模块',
-            'businessType': '操作类型',
-            'method': '方法名称',
-            'requestMethod': '请求方式',
-            'operName': '操作人员',
-            'deptName': '部门名称',
-            'operUrl': '请求URL',
-            'operIp': '操作地址',
-            'operLocation': '操作地点',
-            'operParam': '请求参数',
-            'jsonResult': '返回参数',
-            'status': '操作状态',
-            'error_msg': '错误消息',
-            'operTime': '操作日期',
-            'costTime': '消耗时间（毫秒）',
+            'operId': I18nMessage('日志编号', msg_key='export.logId'),
+            'title': I18nMessage('系统模块', msg_key='export.module'),
+            'businessType': I18nMessage('操作类型', msg_key='export.operationType'),
+            'method': I18nMessage('方法名称', msg_key='export.method'),
+            'requestMethod': I18nMessage('请求方式', msg_key='export.requestMethod'),
+            'operName': I18nMessage('操作人员', msg_key='export.operator'),
+            'deptName': I18nMessage('部门名称', msg_key='export.deptName'),
+            'operUrl': I18nMessage('请求URL', msg_key='export.requestUrl'),
+            'operIp': I18nMessage('操作地址', msg_key='export.operationIp'),
+            'operLocation': I18nMessage('操作地点', msg_key='export.operationLocation'),
+            'operParam': I18nMessage('请求参数', msg_key='export.requestParams'),
+            'jsonResult': I18nMessage('返回参数', msg_key='export.responseParams'),
+            'status': I18nMessage('操作状态', msg_key='export.operationStatus'),
+            'error_msg': I18nMessage('错误消息', msg_key='export.errorMessage'),
+            'operTime': I18nMessage('操作日期', msg_key='export.operationDate'),
+            'costTime': I18nMessage('消耗时间（毫秒）', msg_key='export.duration'),
         }
 
         operation_type_list = await DictDataService.query_dict_data_list_from_cache_services(
             request.app.state.redis, dict_type='sys_oper_type'
         )
         operation_type_option = [
-            {'label': item.get('dictLabel'), 'value': item.get('dictValue')} for item in operation_type_list
+            {
+                'label': TranslationUtil.resolve(item.get('dictLabel'), item.get('dictLabelI18n')),
+                'value': item.get('dictValue'),
+            }
+            for item in operation_type_list
         ]
         operation_type_option_dict = {item.get('value'): item for item in operation_type_option}
 
         for item in operation_log_list:
             if item.get('status') == 0:
-                item['status'] = '成功'
+                item['status'] = I18nMessage('成功', msg_key='export.success')
             else:
-                item['status'] = '失败'
+                item['status'] = I18nMessage('失败', msg_key='export.failure')
             if str(item.get('businessType')) in operation_type_option_dict:
                 item['businessType'] = operation_type_option_dict.get(str(item.get('businessType'))).get('label')
         binary_data = ExcelUtil.export_list2excel(operation_log_list, mapping_dict)
@@ -191,7 +197,7 @@ class LoginLogService:
         try:
             await LoginLogDao.add_login_log_dao(query_db, page_object)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -213,12 +219,12 @@ class LoginLogService:
                 for info_id in info_id_list:
                     await LoginLogDao.delete_login_log_dao(query_db, LogininforModel(infoId=info_id))
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入登录日志id为空')
+            raise ServiceException(message='传入登录日志id为空', msg_key='log.signInIdRequired')
 
     @classmethod
     async def clear_login_log_services(cls, query_db: AsyncSession) -> CrudResponseModel:
@@ -231,7 +237,7 @@ class LoginLogService:
         try:
             await LoginLogDao.clear_login_log_dao(query_db)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='清除成功')
+            return CrudResponseModel(is_success=True, message='清除成功', msg_key='common.cleared')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -241,8 +247,8 @@ class LoginLogService:
         locked_user = await request.app.state.redis.get(f'account_lock:{unlock_user.user_name}')
         if locked_user:
             await request.app.state.redis.delete(f'account_lock:{unlock_user.user_name}')
-            return CrudResponseModel(is_success=True, message='解锁成功')
-        raise ServiceException(message='该用户未锁定')
+            return CrudResponseModel(is_success=True, message='解锁成功', msg_key='auth.unlocked')
+        raise ServiceException(message='该用户未锁定', msg_key='log.userNotLocked')
 
     @staticmethod
     async def export_login_log_list_services(login_log_list: list) -> bytes:
@@ -254,22 +260,22 @@ class LoginLogService:
         """
         # 创建一个映射字典，将英文键映射到中文键
         mapping_dict = {
-            'infoId': '访问编号',
-            'userName': '用户名称',
-            'ipaddr': '登录地址',
-            'loginLocation': '登录地点',
-            'browser': '浏览器',
-            'os': '操作系统',
-            'status': '登录状态',
-            'msg': '操作信息',
-            'loginTime': '登录日期',
+            'infoId': I18nMessage('访问编号', msg_key='export.accessId'),
+            'userName': I18nMessage('用户名称', msg_key='export.userName'),
+            'ipaddr': I18nMessage('登录地址', msg_key='export.signInIp'),
+            'loginLocation': I18nMessage('登录地点', msg_key='export.signInLocation'),
+            'browser': I18nMessage('浏览器', msg_key='export.browser'),
+            'os': I18nMessage('操作系统', msg_key='export.operatingSystem'),
+            'status': I18nMessage('登录状态', msg_key='export.signInStatus'),
+            'msg': I18nMessage('操作信息', msg_key='export.operationMessage'),
+            'loginTime': I18nMessage('登录日期', msg_key='export.signInDate'),
         }
 
         for item in login_log_list:
             if item.get('status') == '0':
-                item['status'] = '成功'
+                item['status'] = I18nMessage('成功', msg_key='export.success')
             else:
-                item['status'] = '失败'
+                item['status'] = I18nMessage('失败', msg_key='export.failure')
         binary_data = ExcelUtil.export_list2excel(login_log_list, mapping_dict)
 
         return binary_data

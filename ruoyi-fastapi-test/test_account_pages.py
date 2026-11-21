@@ -9,6 +9,7 @@ from uuid import uuid4
 import pytest
 from playwright.async_api import expect
 
+from common.config import Config
 from common.ui import button_name
 
 if TYPE_CHECKING:
@@ -84,7 +85,8 @@ async def test_screen_lock_rejects_wrong_password_and_restores_previous_page(bro
     await page.wait_for_url('**/lock')
     password = page.get_by_placeholder('请输入登录密码', exact=True)
     await password.press('Enter')
-    await expect(page.locator('.error-msg')).to_have_text('请输入密码')
+    empty_password_message = '请输入您的密码' if Config.frontend_framework == 'vue3' else '请输入密码'
+    await expect(page.locator('.error-msg')).to_have_text(empty_password_message)
     await password.fill('E2E-incorrect-password')
     async with page.expect_response(
         lambda response: urlsplit(response.url).path.endswith('/unlockscreen') and response.request.method == 'POST'
@@ -127,6 +129,8 @@ async def test_error_pages_return_to_working_dashboard(
     page = await browser_harness.new_page(authenticated=True)
     await page.goto(route)
     await expect(page.get_by_text(message, exact=True)).to_be_visible()
+    if route == '/401' and Config.frontend_framework == 'vue3':
+        home_link = '返回首页'
     await page.get_by_role('link', name=home_link, exact=True).click()
     await page.wait_for_url('**/index')
     await expect(page.locator('.app-main')).to_be_visible()

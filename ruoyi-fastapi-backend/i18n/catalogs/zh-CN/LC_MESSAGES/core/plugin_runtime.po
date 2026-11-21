@@ -1,0 +1,419 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "plugin.runtime.audit.snapshotFailed"
+msgstr "最近审计快照读取失败"
+
+msgid "plugin.runtime.batch.blocked"
+msgstr "插件批量操作计划存在阻塞项，未执行任何写操作"
+
+msgid "plugin.runtime.batch.completed"
+msgstr "插件批量操作完成"
+
+msgid "plugin.runtime.batch.failed"
+msgstr "插件批量操作失败"
+
+msgid "plugin.runtime.batch.partial"
+msgstr "插件批量操作完成，存在失败项"
+
+msgid "plugin.runtime.batch.planCompleted"
+msgstr "插件批量操作计划生成完成"
+
+msgid "plugin.runtime.batch.planFailed"
+msgstr "生成插件批量操作计划失败"
+
+msgid "plugin.runtime.batch.previewCompleted"
+msgstr "插件批量操作演练完成，未执行实际写入"
+
+msgid "plugin.runtime.batch.stopped"
+msgstr "插件批量操作中止"
+
+msgid "plugin.runtime.batch.unsupportedOperation"
+msgstr "插件批量操作不支持：%(operation)s"
+
+msgid "plugin.runtime.batch.unsupportedPlan"
+msgstr "插件计划操作不支持：%(operation)s"
+
+msgid "plugin.runtime.checkCompleted"
+msgstr "插件检查完成"
+
+msgid "plugin.runtime.checkFailed"
+msgstr "插件检查失败"
+
+msgid "plugin.runtime.completed"
+msgstr "插件操作完成"
+
+msgid "plugin.runtime.config.exported"
+msgstr "插件配置导出完成"
+
+msgid "plugin.runtime.config.imported"
+msgstr "插件配置导入完成"
+
+msgid "plugin.runtime.config.loaded"
+msgstr "插件配置读取完成"
+
+msgid "plugin.runtime.config.readFailed"
+msgstr "读取插件配置失败"
+
+msgid "plugin.runtime.config.updateFailed"
+msgstr "更新插件配置失败"
+
+msgid "plugin.runtime.config.updated"
+msgstr "插件配置已更新"
+
+msgid "plugin.runtime.dependencies.builtFrontend"
+msgstr "当前为已构建前端环境，前端依赖需在构建前安装。"
+
+msgid "plugin.runtime.dependencies.checkFailed"
+msgstr "检查插件依赖失败"
+
+msgid "plugin.runtime.dependencies.checked"
+msgstr "插件依赖检查完成"
+
+msgid "plugin.runtime.dependencies.cycle"
+msgstr "插件依赖存在循环：%(cycle_text)s"
+
+msgid "plugin.runtime.dependencies.enabledDependent"
+msgstr "插件正在被已启用插件依赖：%(dependent_id)s -> %(plugin_id)s"
+
+msgid "plugin.runtime.dependencies.installBlocked"
+msgstr "插件依赖安装被策略阻断"
+
+msgid "plugin.runtime.dependencies.installFailed"
+msgstr "安装插件依赖失败"
+
+msgid "plugin.runtime.dependencies.invalidRequirement"
+msgstr "Python 依赖声明无效：%(requirement)s"
+
+msgid "plugin.runtime.dependencies.markerSkipped"
+msgstr "Python 依赖 marker 不适用当前环境，已跳过：%(name)s"
+
+msgid "plugin.runtime.dependencies.missing"
+msgstr "依赖插件不存在：%(plugin_id)s"
+
+msgid "plugin.runtime.dependencies.previewCompleted"
+msgstr "插件依赖安装演练完成，未执行实际安装"
+
+msgid "plugin.runtime.dependencies.previewReady"
+msgstr "插件依赖安装演练完成"
+
+msgid "plugin.runtime.dependencies.satisfied"
+msgstr "插件依赖已满足，无需安装"
+
+msgid "plugin.runtime.detailFailed"
+msgstr "读取插件详情失败"
+
+msgid "plugin.runtime.diagnostics.completed"
+msgstr "插件诊断包生成完成"
+
+msgid "plugin.runtime.diagnostics.failed"
+msgstr "插件诊断包生成失败"
+
+msgid "plugin.runtime.diagnostics.manifestMissing"
+msgstr "当前诊断进程未发现制品 manifest，请结合发布与运行快照查看实际状态"
+
+msgid "plugin.runtime.disable.completed"
+msgstr "插件停用完成"
+
+msgid "plugin.runtime.docs.failed"
+msgstr "插件文档生成失败"
+
+msgid "plugin.runtime.docs.generated"
+msgstr "插件文档生成完成"
+
+msgid "plugin.runtime.enable.completed"
+msgstr "插件启用完成"
+
+msgid "plugin.runtime.enable.previewCompleted"
+msgstr "插件启停演练完成，未执行实际写入"
+
+msgid "plugin.runtime.enable.updateFailed"
+msgstr "更新插件启停状态失败"
+
+msgid "plugin.runtime.failed"
+msgstr "插件操作失败"
+
+msgid "plugin.runtime.health.completed"
+msgstr "插件健康检查完成"
+
+msgid "plugin.runtime.health.executionFailed"
+msgstr "插件健康检查执行失败"
+
+msgid "plugin.runtime.health.failed"
+msgstr "插件健康检查失败"
+
+msgid "plugin.runtime.health.passed"
+msgstr "插件健康检查通过"
+
+msgid "plugin.runtime.health.timeout"
+msgstr "插件健康检查执行超时"
+
+msgid "plugin.runtime.health.undeclared"
+msgstr "插件未声明健康检查"
+
+msgid "plugin.runtime.install.completed"
+msgstr "插件安装完成"
+
+msgid "plugin.runtime.install.dependencyCheckFailed"
+msgstr "插件依赖检查失败，安装已中止"
+
+msgid "plugin.runtime.install.failed"
+msgstr "插件安装失败"
+
+msgid "plugin.runtime.install.menuConflict"
+msgstr "插件菜单与已安装菜单存在冲突，安装已中止"
+
+msgid "plugin.runtime.install.missingDependencies"
+msgstr "插件依赖缺失，安装已中止，请先显式安装依赖"
+
+msgid "plugin.runtime.install.previewCompleted"
+msgstr "插件安装演练完成，未执行实际写入"
+
+msgid "plugin.runtime.lifecycle.busy"
+msgstr "插件生命周期操作正在执行中，请稍后重试"
+
+msgid "plugin.runtime.lifecycle.lockUnavailable"
+msgstr "插件生命周期操作锁不可用"
+
+msgid "plugin.runtime.listFailed"
+msgstr "读取插件列表失败"
+
+msgid "plugin.runtime.migration.contentChanged"
+msgstr "插件 migration 已执行但内容已变化：%(migration_path)s"
+
+msgid "plugin.runtime.migration.failedStatus"
+msgstr "失败"
+
+msgid "plugin.runtime.migration.historyFailed"
+msgstr "查询插件 migration 历史失败"
+
+msgid "plugin.runtime.migration.historyLoaded"
+msgstr "插件 migration 历史查询完成"
+
+msgid "plugin.runtime.migration.markFailed"
+msgstr "人工标记插件 migration 状态失败"
+
+msgid "plugin.runtime.migration.marked"
+msgstr "插件 migration 已人工标记为%(label)s"
+
+msgid "plugin.runtime.migration.markedFailure"
+msgstr "插件 migration 已人工标记为失败"
+
+msgid "plugin.runtime.migration.markedSuccess"
+msgstr "插件 migration 已人工标记为成功"
+
+msgid "plugin.runtime.migration.notFound"
+msgstr "插件 migration 历史不存在"
+
+msgid "plugin.runtime.migration.stillRunning"
+msgstr "插件 migration 上次执行仍处于 running 状态：%(migration_path)s"
+
+msgid "plugin.runtime.migration.successStatus"
+msgstr "成功"
+
+msgid "plugin.runtime.migration.transitionBlocked"
+msgstr "插件 migration 当前状态为 %(current_status)s，不能人工标记为%(label)s"
+
+msgid "plugin.runtime.migration.unsupportedState"
+msgstr "插件 migration 历史状态不支持自动执行：%(migration_path)s，状态：%(status)s"
+
+msgid "plugin.runtime.notFoundNamed"
+msgstr "插件不存在：%(plugin_id)s"
+
+msgid "plugin.runtime.operationForbidden"
+msgstr "当前环境不允许执行该插件操作"
+
+msgid "plugin.runtime.precheck.blocked"
+msgstr "插件操作预检存在问题"
+
+msgid "plugin.runtime.precheck.completed"
+msgstr "插件操作预检完成"
+
+msgid "plugin.runtime.precheck.failed"
+msgstr "插件操作预检失败"
+
+msgid "plugin.runtime.precheck.invalidOperation"
+msgstr "插件预检操作只支持 install、enable、upgrade、uninstall 或 purge"
+
+msgid "plugin.runtime.precheck.passed"
+msgstr "插件操作预检通过"
+
+msgid "plugin.runtime.precheck.scriptFailed"
+msgstr "插件生命周期脚本预检失败"
+
+msgid "plugin.runtime.precheck.writeBlocked"
+msgstr "插件操作预检存在问题，未执行实际写入"
+
+msgid "plugin.runtime.purge.completed"
+msgstr "插件物理清理完成"
+
+msgid "plugin.runtime.purge.enabledDependent"
+msgstr "插件仍被已启用插件依赖，物理清理已中止"
+
+msgid "plugin.runtime.purge.failed"
+msgstr "插件物理清理失败"
+
+msgid "plugin.runtime.purge.orphanBlocked"
+msgstr "插件仍被已启用插件依赖，孤儿元数据清理已中止"
+
+msgid "plugin.runtime.purge.previewCompleted"
+msgstr "插件物理清理演练完成，未执行实际删除"
+
+msgid "plugin.runtime.release.alreadyPrepared"
+msgstr "该制品已完成维护准备"
+
+msgid "plugin.runtime.release.containerVerified"
+msgstr "容器验签和摘要检查通过；平台及目录结构将在正式导入的临时目录中检查"
+
+msgid "plugin.runtime.release.imported"
+msgstr "已导入并验证制品，尚未选择发布目标"
+
+msgid "plugin.runtime.release.prepared"
+msgstr "维护准备完成；选择目标制品后再启动 worker"
+
+msgid "plugin.runtime.release.previousSelected"
+msgstr "已选择上一代码制品，数据库版本保持不变；请重启全部 worker"
+
+msgid "plugin.runtime.release.sameVersionBlocked"
+msgstr "同版本制品缺少匹配的维护准备证据；请提升版本后发布，不能猜测已安装内容"
+
+msgid "plugin.runtime.release.stateSaved"
+msgstr "维护启停状态已保存，请启动全部 worker"
+
+msgid "plugin.runtime.release.targetSelected"
+msgstr "发布目标已更新，等待全部 worker 重启并报告实际版本"
+
+msgid "plugin.runtime.seed.pending"
+msgstr "插件 seed 将在实际操作时执行：%(seed_path)s"
+
+msgid "plugin.runtime.uninstall.completed"
+msgstr "插件卸载完成"
+
+msgid "plugin.runtime.uninstall.failed"
+msgstr "插件卸载失败"
+
+msgid "plugin.runtime.uninstall.previewCompleted"
+msgstr "插件卸载演练完成，未执行实际写入"
+
+msgid "plugin.runtime.upgrade.completed"
+msgstr "插件升级完成"
+
+msgid "plugin.runtime.upgrade.current"
+msgstr "插件已是最新版本，无需升级"
+
+msgid "plugin.runtime.upgrade.failed"
+msgstr "插件升级失败"
+
+msgid "plugin.runtime.upgrade.invalidManifest"
+msgstr "插件 manifest 检查失败，升级已中止"
+
+msgid "plugin.runtime.upgrade.menuConflict"
+msgstr "插件菜单与已安装菜单存在冲突，升级已中止"
+
+msgid "plugin.runtime.upgrade.notInstalled"
+msgstr "插件尚未安装，升级已中止"
+
+msgid "plugin.runtime.upgrade.previewCompleted"
+msgstr "插件升级演练完成，未执行实际写入"
+
+msgid "plugin.runtime.validation.buttonChildren"
+msgstr "按钮菜单 %(name)s 声明了子菜单"
+
+msgid "plugin.runtime.validation.buttonComponent"
+msgstr "按钮菜单 %(name)s 声明了 component"
+
+msgid "plugin.runtime.validation.buttonPermissionMissing"
+msgstr "按钮菜单 %(name)s 未声明权限标识"
+
+msgid "plugin.runtime.validation.componentPath"
+msgstr "插件组件路径格式错误：%(component)s"
+
+msgid "plugin.runtime.validation.controllerSyntax"
+msgstr "controller 文件语法错误，无法检查路由前缀"
+
+msgid "plugin.runtime.validation.databaseMismatch"
+msgstr "database 类型不满足插件兼容性声明：current=%(current_database)s required=%(value)s"
+
+msgid "plugin.runtime.validation.dependencyVersionMissing"
+msgstr "%(dependency_kind)s 依赖 %(name)s 未声明版本约束"
+
+msgid "plugin.runtime.validation.duplicateMenuKey"
+msgstr "插件 %(plugin_id)s 存在重复菜单自然键：%(menu_key)s"
+
+msgid "plugin.runtime.validation.fileOrder"
+msgstr "backend.%(field_name)s 未按文件名顺序声明"
+
+msgid "plugin.runtime.validation.hookMissing"
+msgstr "插件声明了 %(declared_hook)s，但未声明 %(missing_hook)s"
+
+msgid "plugin.runtime.validation.hookSyntax"
+msgstr "生命周期钩子不可静态解析"
+
+msgid "plugin.runtime.validation.installedMenuConflict"
+msgstr "插件 %(id)s 权限 %(perms)s 与已存在菜单 %(menu_id)s（%(conflict_label)s）冲突"
+
+msgid "plugin.runtime.validation.jobHealthMissing"
+msgstr "插件声明了默认启用的定时任务，但未声明健康检查 callable"
+
+msgid "plugin.runtime.validation.jobSyntax"
+msgstr "任务 callable 不可静态解析"
+
+msgid "plugin.runtime.validation.numericConstraintsIgnored"
+msgstr "配置 %(key)s 不是 number 类型，min/max 约束不会生效"
+
+msgid "plugin.runtime.validation.optionsIgnored"
+msgstr "配置 %(key)s 不是 select 类型，options 声明不会生效"
+
+msgid "plugin.runtime.validation.passwordNotSecret"
+msgstr "密码配置 %(key)s 未声明 secret=true"
+
+msgid "plugin.runtime.validation.pathEscapesRoot"
+msgstr "文件路径不能越过插件根目录：%(relative_path)s"
+
+msgid "plugin.runtime.validation.patternIgnored"
+msgstr "配置 %(key)s 不是文本类型，pattern 约束不会生效"
+
+msgid "plugin.runtime.validation.permissionConflict"
+msgstr "插件 %(plugin_id)s 权限 %(perms)s 与插件 %(conflict_plugin_id)s 冲突"
+
+msgid "plugin.runtime.validation.permissionMenuMissing"
+msgstr "权限标识 %(permission)s 未声明菜单承载，且插件没有可挂载按钮的页面或目录菜单"
+
+msgid "plugin.runtime.validation.permissionPrefix"
+msgstr "权限标识 %(permission)s 未使用插件 ID 前缀"
+
+msgid "plugin.runtime.validation.permissionsMissing"
+msgstr "插件声明了前端菜单，但没有声明任何权限标识"
+
+msgid "plugin.runtime.validation.pluginVersionMissing"
+msgstr "插件依赖 %(id)s 未声明版本约束"
+
+msgid "plugin.runtime.validation.purgeHookMissing"
+msgstr "插件声明了资源清单，但未声明 onPurge 清理钩子"
+
+msgid "plugin.runtime.validation.requiredDefaultMissing"
+msgstr "必填配置 %(key)s 未声明默认值"
+
+msgid "plugin.runtime.validation.secretDefault"
+msgstr "敏感配置 %(key)s 声明了非空默认值"
+
+msgid "plugin.runtime.validation.secretNotPassword"
+msgstr "敏感配置 %(key)s 的类型不是 password"
+
+msgid "plugin.runtime.validation.versionMismatch"
+msgstr "%(target_name)s 版本不满足插件兼容性声明：current=%(current_version)s required=%(constraint)s"
+
+msgid "plugin.runtime.validation.versionUnavailable"
+msgstr "无法读取当前 %(target_name)s 版本，跳过兼容性判断"

@@ -859,4 +859,4 @@ class OidcKeyManagementService:
             raise ServiceException(message=message) from exc
         except Exception as exc:
             await db.rollback()
-            raise ServiceException(message='OIDC 签名密钥操作失败') from exc
+            raise ServiceException(message='OIDC 签名密钥操作失败', msg_key='identity.key.operationFailed') from exc

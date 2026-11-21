@@ -35,6 +35,7 @@ from module_admin.entity.vo.user_vo import (
     ResetUserModel,
     UpdateUserProfileModel,
     UserDetailModel,
+    UserLocaleModel,
     UserModel,
     UserPageQueryModel,
     UserProfileModel,
@@ -207,7 +208,7 @@ async def delete_system_user(
         if current_user.user.user_id in list(map(int, user_id_list)):
             logger.warning('当前登录用户不能删除')
 
-            return ResponseUtil.failure(msg='当前登录用户不能删除')
+            return ResponseUtil.failure(msg_key='user.deleteCurrentUser')
         for user_id in user_id_list:
             await UserService.check_user_allowed_services(UserModel(userId=int(user_id)))
             if not current_user.user.admin:
@@ -372,7 +373,7 @@ async def change_system_user_profile_avatar(
         logger.info(edit_user_result.message)
 
         return ResponseUtil.success(model_content=AvatarModel(imgUrl=edit_user.avatar), msg=edit_user_result.message)
-    return ResponseUtil.failure(msg='上传图片异常，请联系管理员')
+    return ResponseUtil.failure(msg_key='user.avatar.uploadFailed')
 
 
 @user_controller.put(
@@ -419,6 +420,21 @@ async def change_system_user_profile_info(
 )
 async def get_system_user_timezones(request: Request) -> Response:
     return ResponseUtil.success(data=sorted(available_timezones() - {'localtime'}))
+
+
+@user_controller.put('/profile/locale', summary='修改当前用户语言偏好', response_model=ResponseBaseModel)
+@ApiCacheEvict(namespaces=ApiGroup.USER_INFO_MUTATION)
+@Log(title='语言设置', business_type=BusinessType.UPDATE)
+async def change_system_user_locale(
+    request: Request,
+    preference: UserLocaleModel,
+    query_db: Annotated[AsyncSession, DBSessionDependency()],
+    current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
+) -> Response:
+    result = await UserService.update_user_locale_services(
+        query_db, current_user.user.user_id, current_user.user.user_name, preference.locale
+    )
+    return ResponseUtil.success(msg=result.message, data=result.result)
 
 
 @user_controller.put(

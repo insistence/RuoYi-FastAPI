@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    title="操作日志详细"
+    :title="$t('monitor:operationLogDetails')"
     v-model="dialogVisible"
     width="780px"
     append-to-body
@@ -10,18 +10,18 @@
       <!-- 基本信息 -->
       <div class="detail-card">
         <div class="detail-card-title">
-          <el-icon><InfoFilled /></el-icon> 基本信息
+          <el-icon><InfoFilled /></el-icon> {{ $t('system:basicInformation') }}
         </div>
         <el-row class="detail-row">
           <el-col :span="12">
             <div class="detail-item">
-              <span class="detail-label">操作模块</span
+              <span class="detail-label">{{ $t('monitor:module') }}</span
               ><span class="detail-value">{{ form.title }}</span>
             </div>
           </el-col>
           <el-col :span="12">
             <div class="detail-item">
-              <span class="detail-label">业务类型</span
+              <span class="detail-label">{{ $t('monitor:businessType') }}</span
               ><span class="detail-value">{{ typeLabel }}</span>
             </div>
           </el-col>
@@ -29,24 +29,24 @@
         <el-row class="detail-row">
           <el-col :span="12">
             <div class="detail-item">
-              <span class="detail-label">操作时间</span
+              <span class="detail-label">{{ $t('monitor:operationTime') }}</span
               ><span class="detail-value">{{ parseTime(form.operTime) || '-' }}</span>
             </div>
           </el-col>
           <el-col :span="12">
             <div class="detail-item">
-              <span class="detail-label">执行状态</span>
+              <span class="detail-label">{{ $t('monitor:executionStatus') }}</span>
               <el-tag
                 v-if="form.status === 0"
                 type="success"
                 size="small"
-                >正常</el-tag
+                >{{ $t('layout:notices.active') }}</el-tag
               >
               <el-tag
                 v-else
                 type="danger"
                 size="small"
-                >异常</el-tag
+                >{{ $t('monitor:error') }}</el-tag
               >
             </div>
           </el-col>
@@ -56,12 +56,12 @@
       <!-- 操作人员 -->
       <div class="detail-card">
         <div class="detail-card-title">
-          <el-icon><User /></el-icon> 操作人员
+          <el-icon><User /></el-icon> {{ $t('system:operator') }}
         </div>
         <el-row class="detail-row">
           <el-col :span="12">
             <div class="detail-item">
-              <span class="detail-label">操作人员</span
+              <span class="detail-label">{{ $t('system:operator') }}</span
               ><span class="detail-value">{{ form.operName }}</span>
             </div>
           </el-col>
@@ -70,7 +70,7 @@
             v-if="form.deptName"
           >
             <div class="detail-item">
-              <span class="detail-label">所属部门</span
+              <span class="detail-label">{{ $t('system:department') }}</span
               ><span class="detail-value">{{ form.deptName }}</span>
             </div>
           </el-col>
@@ -78,7 +78,7 @@
         <el-row class="detail-row">
           <el-col :span="24">
             <div class="detail-item">
-              <span class="detail-label">操作地址</span>
+              <span class="detail-label">{{ $t('monitor:operationAddress') }}</span>
               <span class="detail-value"
                 >{{ form.operIp }}&nbsp;&nbsp;<span class="detail-location">{{
                   form.operLocation
@@ -92,12 +92,12 @@
       <!-- 请求信息 -->
       <div class="detail-card">
         <div class="detail-card-title">
-          <el-icon><Sort /></el-icon> 请求信息
+          <el-icon><Sort /></el-icon> {{ $t('monitor:requestInformation') }}
         </div>
         <el-row class="detail-row">
           <el-col :span="24">
             <div class="detail-item">
-              <span class="detail-label">请求地址</span>
+              <span class="detail-label">{{ $t('monitor:requestURL') }}</span>
               <span class="detail-value">
                 <span :class="'method-tag method-' + form.requestMethod">{{
                   form.requestMethod
@@ -110,7 +110,7 @@
         <el-row class="detail-row">
           <el-col :span="24">
             <div class="detail-item">
-              <span class="detail-label">操作方法</span
+              <span class="detail-label">{{ $t('monitor:operationMethod') }}</span
               ><span class="detail-value mono">{{ form.method }}</span>
             </div>
           </el-col>
@@ -118,8 +118,10 @@
         <el-row class="detail-row">
           <el-col :span="12">
             <div class="detail-item">
-              <span class="detail-label">消耗时间</span
-              ><span class="detail-value">{{ form.costTime }} 毫秒</span>
+              <span class="detail-label">{{ $t('monitor:durationLabel') }}</span
+              ><span class="detail-value"
+                >{{ form.costTime }} {{ $t('monitor:milliseconds') }}</span
+              >
             </div>
           </el-col>
         </el-row>
@@ -128,7 +130,7 @@
       <!-- 请求参数 -->
       <div class="detail-card">
         <div class="detail-card-title">
-          <el-icon><Upload /></el-icon> 请求参数
+          <el-icon><Upload /></el-icon> {{ $t('monitor:requestParameters') }}
         </div>
         <div class="code-body">
           <div class="code-wrap">
@@ -137,7 +139,7 @@
                 size="small"
                 :icon="CopyDocument"
                 @click="copyText(form.operParam)"
-                >复制</el-button
+                >{{ $t('monitor:copy') }}</el-button
               >
             </div>
             <pre class="code-pre">{{ formatJson(form.operParam) }}</pre>
@@ -148,7 +150,7 @@
       <!-- 返回参数 -->
       <div class="detail-card">
         <div class="detail-card-title">
-          <el-icon><Download /></el-icon> 返回参数
+          <el-icon><Download /></el-icon> {{ $t('monitor:responseData') }}
         </div>
         <div class="code-body">
           <div class="code-wrap">
@@ -157,7 +159,7 @@
                 size="small"
                 :icon="CopyDocument"
                 @click="copyText(form.jsonResult)"
-                >复制</el-button
+                >{{ $t('monitor:copy') }}</el-button
               >
             </div>
             <pre class="code-pre">{{ formatJson(form.jsonResult) }}</pre>
@@ -171,7 +173,7 @@
         v-if="form.status !== 0"
       >
         <div class="detail-card-title error-title">
-          <el-icon><Warning /></el-icon> 异常信息
+          <el-icon><Warning /></el-icon> {{ $t('monitor:exceptionDetails') }}
         </div>
         <div class="error-body">
           <div class="error-msg">{{ form.errorMsg }}</div>
@@ -182,6 +184,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 const { proxy } = getCurrentInstance()
 
 const props = defineProps({
@@ -204,7 +207,7 @@ const typeLabel = computed(
 )
 
 function formatJson(str) {
-  if (!str) return '（无数据）'
+  if (!str) return t('monitor:noData')
   try {
     return JSON.stringify(JSON.parse(str), null, 2)
   } catch {
@@ -215,9 +218,15 @@ function formatJson(str) {
 function copyText(str) {
   const text = formatJson(str)
   if (navigator.clipboard) {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => ElMessage({ message: '已复制', type: 'success', duration: 1500 }))
+    navigator.clipboard.writeText(text).then(() =>
+      ElMessage({
+        get message() {
+          return t('monitor:copied')
+        },
+        type: 'success',
+        duration: 1500,
+      })
+    )
   } else {
     const ta = document.createElement('textarea')
     ta.value = text
@@ -225,7 +234,13 @@ function copyText(str) {
     ta.select()
     document.execCommand('copy')
     document.body.removeChild(ta)
-    ElMessage({ message: '已复制', type: 'success', duration: 1500 })
+    ElMessage({
+      get message() {
+        return t('monitor:copied')
+      },
+      type: 'success',
+      duration: 1500,
+    })
   }
 }
 </script>

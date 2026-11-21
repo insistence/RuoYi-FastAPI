@@ -1,3 +1,6 @@
+import { resolveRouteTitle } from '@/i18n'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useState } from 'react'
 import { Alert, Button, Layout as AntLayout, Result } from 'antd'
@@ -22,6 +25,8 @@ import Logo from './components/Sidebar/Logo'
 import SystemLoading, { PageReady } from '@/components/SystemLoading'
 
 export default function Layout() {
+  useI18n()
+
   const locked = useLockStore((state) => state.isLock)
   const user = useUserStore(),
     permission = usePermissionStore(),
@@ -31,7 +36,7 @@ export default function Layout() {
     [settingsOpen, setSettingsOpen] = useState(false)
   const location = useLocation()
   const route = findRoute(location.pathname, permission.routes)
-  const title = route?.meta?.title
+  const title = resolveRouteTitle(route)
   const activeRoot = permission.sidebarRouters.find(
     (item) => location.pathname === item.path || location.pathname.startsWith(item.path + '/')
   )
@@ -42,12 +47,11 @@ export default function Layout() {
     if (route && title)
       useTagsViewStore.getState().addView({
         key: location.pathname,
-        fullPath: location.pathname + location.search,
-        label: title,
+        fullPath: location.pathname + location.search + location.hash,
         closable: !route.meta?.affix,
         icon: route.meta?.icon,
       })
-  }, [location.pathname, location.search, route, title])
+  }, [location.pathname, location.search, location.hash, route, title])
   useEffect(() => {
     document.title =
       settings.dynamicTitle && title
@@ -61,6 +65,7 @@ export default function Layout() {
         .getInfo()
         .then(() => permission.generateRoutes())
         .catch((error) => {
+          if (error?.code === 'USER_SESSION_CHANGED') return
           if (active) setError(error.message)
         })
     return () => {
@@ -93,9 +98,9 @@ export default function Layout() {
       <PageReady>
         <Result
           status="error"
-          title="加载用户信息失败"
+          title={t('layout:failedToLoadUserInformation')}
           subTitle={error}
-          extra={<Button onClick={() => window.location.reload()}>重新加载</Button>}
+          extra={<Button onClick={() => window.location.reload()}>{t('common:reload')}</Button>}
         />
       </PageReady>
     )
@@ -121,7 +126,7 @@ export default function Layout() {
       {showSidebar && app.sidebarOpened && (
         <button
           className="layout-sidebar-mask"
-          aria-label="关闭侧边导航"
+          aria-label={t('layout:closeSidebarNavigation')}
           onClick={app.toggleSidebar}
         />
       )}
@@ -162,8 +167,14 @@ export default function Layout() {
             <Alert
               closable
               type="warning"
-              title={user.passwordWarning}
-              action={<Link to="/user/profile/resetPwd">修改密码</Link>}
+              title={
+                user.passwordWarning === 'initial-password'
+                  ? t('auth:password.defaultWarning')
+                  : user.passwordWarning === 'expired-password'
+                    ? t('auth:password.expiredWarning')
+                    : user.passwordWarning
+              }
+              action={<Link to="/user/profile/resetPwd">{t('layout:changePassword')}</Link>}
               style={{ marginBottom: 16 }}
             />
           )}

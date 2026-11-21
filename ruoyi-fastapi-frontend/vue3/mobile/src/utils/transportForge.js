@@ -1,3 +1,4 @@
+import { translateMessage } from '../i18n/message.mjs'
 import forge from 'node-forge/lib/forge'
 import 'node-forge/lib/util'
 import 'node-forge/lib/asn1'
@@ -178,7 +179,12 @@ function consumeRandomBytes(length) {
     refillRandomBytePool(length)
   }
   if (randomBytePool.length < length) {
-    throw new Error('传输加密随机数池不足，且当前运行环境无法同步补充安全随机数')
+    throw new Error(
+      translateMessage(
+        'utility:crypto.randomPool',
+        '传输加密随机数池不足，且当前运行环境无法同步补充安全随机数'
+      )
+    )
   }
   const bytes = randomBytePool.slice(0, length)
   randomBytePool = randomBytePool.slice(length)

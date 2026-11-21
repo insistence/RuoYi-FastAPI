@@ -1,0 +1,194 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "auth.accountLocked"
+msgstr "账号已锁定，请稍后再试"
+
+msgid "auth.apiForbidden"
+msgstr "该用户无此接口权限"
+
+msgid "auth.captchaExpired"
+msgstr "验证码已失效"
+
+msgid "auth.captchaIncorrect"
+msgstr "验证码错误"
+
+msgid "auth.captchaMissing"
+msgstr "验证码已失效或不存在"
+
+msgid "auth.currentUserMissing"
+msgstr "当前用户信息为空，请检查是否已登录"
+
+msgid "auth.currentUserUnavailable"
+msgstr "无法获取当前用户信息"
+
+msgid "auth.incorrectPassword"
+msgstr "密码错误，请重新输入"
+
+msgid "auth.invalidCredentials"
+msgstr "账号或密码错误"
+
+msgid "auth.invalidToken"
+msgstr "用户token不合法"
+
+msgid "auth.ipBlocked"
+msgstr "当前IP禁止登录"
+
+msgid "auth.passwordCharacters"
+msgstr "密码不能包含非法字符：< > \" ' \\ |"
+
+msgid "auth.passwordIncorrect"
+msgstr "密码错误"
+
+msgid "auth.passwordLength"
+msgstr "密码长度必须介于 6 和 20 之间"
+
+msgid "auth.passwordLockout"
+msgstr "10分钟内密码已输错超过5次，账号已锁定，请10分钟后再试"
+
+msgid "auth.passwordMismatch"
+msgstr "两次输入的密码不一致"
+
+msgid "auth.passwordRequired"
+msgstr "密码不能为空"
+
+msgid "auth.registrationDisabled"
+msgstr "注册程序已关闭，禁止注册"
+
+msgid "auth.serverTimeout"
+msgstr "服务器超时，请重新登录"
+
+msgid "auth.signInRequired"
+msgstr "用户未登录，请先完成登录"
+
+msgid "auth.signedIn"
+msgstr "登录成功"
+
+msgid "auth.signedOut"
+msgstr "退出成功"
+
+msgid "auth.tokenExpired"
+msgstr "用户token已失效，请重新登录"
+
+msgid "auth.tokenGenerationFailed"
+msgstr "用户token生成失败"
+
+msgid "auth.unlocked"
+msgstr "解锁成功"
+
+msgid "auth.userDisabled"
+msgstr "用户已停用"
+
+msgid "identity.access.subjectNotFound"
+msgstr "用户或应用不存在"
+
+msgid "identity.access.updateFailed"
+msgstr "更新用户应用访问策略失败"
+
+msgid "identity.client.disabled"
+msgstr "OAuth 客户端已停用"
+
+msgid "identity.client.secretCreated"
+msgstr "客户端密钥生成成功，请立即保存"
+
+msgid "identity.client.secretRevoked"
+msgstr "客户端密钥已撤销"
+
+msgid "identity.client.uriAdded"
+msgstr "客户端 URI 已增加"
+
+msgid "identity.client.uriDisabled"
+msgstr "客户端 URI 已停用"
+
+msgid "identity.grant.batchRevokeFailed"
+msgstr "批量撤销授权失败"
+
+msgid "identity.grant.notFound"
+msgstr "授权记录不存在"
+
+msgid "identity.grant.revoked"
+msgstr "OAuth 授权已撤销"
+
+msgid "identity.interaction.consentRequired"
+msgstr "需要授权确认"
+
+msgid "identity.interaction.disabled"
+msgstr "认证服务未启用"
+
+msgid "identity.interaction.invalidOrExpired"
+msgstr "认证交互无效或已过期"
+
+msgid "identity.interaction.invalidRequest"
+msgstr "认证交互请求无效"
+
+msgid "identity.interaction.invalidScope"
+msgstr "请求权限无效"
+
+msgid "identity.interaction.loginFailed"
+msgstr "登录失败"
+
+msgid "identity.interaction.loginRequired"
+msgstr "需要登录"
+
+msgid "identity.interaction.passwordChangeFailed"
+msgstr "改密失败"
+
+msgid "identity.interaction.passwordReused"
+msgstr "新密码不能与旧密码相同"
+
+msgid "identity.interaction.rateLimited"
+msgstr "请求过于频繁，请稍后再试"
+
+msgid "identity.interaction.serviceUnavailable"
+msgstr "认证服务暂不可用"
+
+msgid "identity.interaction.unavailable"
+msgstr "认证交互已过期或不可用"
+
+msgid "identity.key.activated"
+msgstr "OIDC 签名密钥已激活"
+
+msgid "identity.key.created"
+msgstr "OIDC 签名密钥创建成功"
+
+msgid "identity.key.deleted"
+msgstr "OIDC 签名密钥已删除"
+
+msgid "identity.key.operationFailed"
+msgstr "OIDC 签名密钥操作失败"
+
+msgid "identity.key.retired"
+msgstr "OIDC 签名密钥已退役"
+
+msgid "identity.resource.disabled"
+msgstr "OAuth 资源已停用"
+
+msgid "identity.scope.disabled"
+msgstr "OAuth 权限范围已停用"
+
+msgid "identity.session.batchRevokeFailed"
+msgstr "批量撤销会话失败"
+
+msgid "identity.session.notFound"
+msgstr "会话不存在"
+
+msgid "identity.session.revoked"
+msgstr "单点登录会话已撤销"
+
+msgid "session.forcedOut"
+msgstr "强退成功"
+
+msgid "session.idRequired"
+msgstr "传入session_id为空"

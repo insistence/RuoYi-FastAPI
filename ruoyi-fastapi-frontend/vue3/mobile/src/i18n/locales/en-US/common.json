@@ -1,0 +1,22 @@
+{
+  "translationUnavailable": "Text unavailable",
+  "language": "Language",
+  "followDevice": "Follow device",
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "loading": "Loading…",
+  "retry": "Retry",
+  "languageSaved": "Language preference saved",
+  "languageFailed": "Could not save the language preference. Please try again.",
+  "network": {
+    "error": "Unable to connect to the server",
+    "timeout": "The request timed out"
+  },
+  "session": {
+    "expired": "Your session has expired. Please sign in again.",
+    "signIn": "Sign in again",
+    "stay": "Stay on this page"
+  },
+  "notice": "Notice"
+}

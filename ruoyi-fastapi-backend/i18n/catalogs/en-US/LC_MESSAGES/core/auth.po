@@ -1,0 +1,194 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "auth.accountLocked"
+msgstr "This account is locked. Please try again later."
+
+msgid "auth.apiForbidden"
+msgstr "You do not have permission to access this API"
+
+msgid "auth.captchaExpired"
+msgstr "The verification code has expired"
+
+msgid "auth.captchaIncorrect"
+msgstr "Incorrect verification code"
+
+msgid "auth.captchaMissing"
+msgstr "The verification code has expired or does not exist"
+
+msgid "auth.currentUserMissing"
+msgstr "Current user information is unavailable. Please check that you are signed in."
+
+msgid "auth.currentUserUnavailable"
+msgstr "Unable to retrieve current user information"
+
+msgid "auth.incorrectPassword"
+msgstr "Incorrect password. Please try again."
+
+msgid "auth.invalidCredentials"
+msgstr "Incorrect account or password"
+
+msgid "auth.invalidToken"
+msgstr "Invalid access token"
+
+msgid "auth.ipBlocked"
+msgstr "Sign-in is blocked for this IP address"
+
+msgid "auth.passwordCharacters"
+msgstr "Password cannot contain these characters: < > \" ' \\ |"
+
+msgid "auth.passwordIncorrect"
+msgstr "Incorrect password"
+
+msgid "auth.passwordLength"
+msgstr "Password length must be between 6 and 20 characters"
+
+msgid "auth.passwordLockout"
+msgstr "More than 5 incorrect passwords were entered within 10 minutes. This account is locked. Try again in 10 minutes."
+
+msgid "auth.passwordMismatch"
+msgstr "The passwords do not match"
+
+msgid "auth.passwordRequired"
+msgstr "Password is required"
+
+msgid "auth.registrationDisabled"
+msgstr "Registration is disabled"
+
+msgid "auth.serverTimeout"
+msgstr "The server timed out. Please sign in again."
+
+msgid "auth.signInRequired"
+msgstr "Sign in to continue"
+
+msgid "auth.signedIn"
+msgstr "Signed in successfully"
+
+msgid "auth.signedOut"
+msgstr "Signed out successfully"
+
+msgid "auth.tokenExpired"
+msgstr "Your session has expired. Please sign in again."
+
+msgid "auth.tokenGenerationFailed"
+msgstr "Unable to generate the access token"
+
+msgid "auth.unlocked"
+msgstr "Unlocked successfully"
+
+msgid "auth.userDisabled"
+msgstr "This user account is disabled"
+
+msgid "identity.access.subjectNotFound"
+msgstr "User or application not found"
+
+msgid "identity.access.updateFailed"
+msgstr "Unable to update the user's application access policy"
+
+msgid "identity.client.disabled"
+msgstr "OAuth client disabled"
+
+msgid "identity.client.secretCreated"
+msgstr "Client secret created. Save it now."
+
+msgid "identity.client.secretRevoked"
+msgstr "Client secret revoked"
+
+msgid "identity.client.uriAdded"
+msgstr "Client URI added"
+
+msgid "identity.client.uriDisabled"
+msgstr "Client URI disabled"
+
+msgid "identity.grant.batchRevokeFailed"
+msgstr "Unable to revoke grants in bulk"
+
+msgid "identity.grant.notFound"
+msgstr "Grant record not found"
+
+msgid "identity.grant.revoked"
+msgstr "OAuth grant revoked"
+
+msgid "identity.interaction.consentRequired"
+msgstr "Your authorization is required"
+
+msgid "identity.interaction.disabled"
+msgstr "The authentication service is not enabled"
+
+msgid "identity.interaction.invalidOrExpired"
+msgstr "This authentication interaction is invalid or has expired"
+
+msgid "identity.interaction.invalidRequest"
+msgstr "Invalid authentication interaction request"
+
+msgid "identity.interaction.invalidScope"
+msgstr "Invalid requested permissions"
+
+msgid "identity.interaction.loginFailed"
+msgstr "Sign-in failed"
+
+msgid "identity.interaction.loginRequired"
+msgstr "Sign in to continue"
+
+msgid "identity.interaction.passwordChangeFailed"
+msgstr "Unable to change the password"
+
+msgid "identity.interaction.passwordReused"
+msgstr "The new password must differ from the old password"
+
+msgid "identity.interaction.rateLimited"
+msgstr "Too many requests. Please try again later"
+
+msgid "identity.interaction.serviceUnavailable"
+msgstr "The authentication service is temporarily unavailable"
+
+msgid "identity.interaction.unavailable"
+msgstr "This authentication interaction has expired or is unavailable"
+
+msgid "identity.key.activated"
+msgstr "OIDC signing key activated"
+
+msgid "identity.key.created"
+msgstr "OIDC signing key created"
+
+msgid "identity.key.deleted"
+msgstr "OIDC signing key deleted"
+
+msgid "identity.key.operationFailed"
+msgstr "The OIDC signing key operation failed"
+
+msgid "identity.key.retired"
+msgstr "OIDC signing key retired"
+
+msgid "identity.resource.disabled"
+msgstr "OAuth resource disabled"
+
+msgid "identity.scope.disabled"
+msgstr "OAuth scope disabled"
+
+msgid "identity.session.batchRevokeFailed"
+msgstr "Unable to revoke sessions in bulk"
+
+msgid "identity.session.notFound"
+msgstr "Session not found"
+
+msgid "identity.session.revoked"
+msgstr "Single sign-on session revoked"
+
+msgid "session.forcedOut"
+msgstr "Forced sign-out successful"
+
+msgid "session.idRequired"
+msgstr "Session ID is required"

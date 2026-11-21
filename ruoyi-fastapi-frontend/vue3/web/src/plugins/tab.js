@@ -68,12 +68,14 @@ export default {
   },
   // 打开tab页签
   openPage(title, url, params) {
-    const obj = { path: url, meta: { title: title } }
+    const obj = { ...router.resolve({ path: url, query: params }), customTitle: title }
     useTagsViewStore().addView(obj)
     return router.push({ path: url, query: params })
   },
   // 修改tab页签
   updatePage(obj) {
-    return useTagsViewStore().updateVisitedView(obj)
+    return useTagsViewStore().updateVisitedView(
+      Object.hasOwn(obj, 'title') ? { ...obj, customTitle: obj.title } : obj
+    )
   },
 }

@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Protocol, cast
 
+from i18n.message import I18nMessage
 from plugins.core.capability import PluginRuntimeCapability
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.support import (
@@ -186,7 +187,9 @@ class PluginBatchUseCase:
             database_plugins, database_error = self._load_database_plugin_states_sync_with_error()
             return self._build_plan_plugins_payload(operation, plugin_ids, database_plugins, database_error)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('生成插件批量操作计划失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('生成插件批量操作计划失败', msg_key='plugin.runtime.batch.planFailed'), exc
+            )
 
     async def plan_plugins_async(
         self,
@@ -204,7 +207,9 @@ class PluginBatchUseCase:
             database_plugins, database_error = await self._load_database_plugin_states_with_error()
             return self._build_plan_plugins_payload(operation, plugin_ids, database_plugins, database_error)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('生成插件批量操作计划失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('生成插件批量操作计划失败', msg_key='plugin.runtime.batch.planFailed'), exc
+            )
 
     def _build_plan_plugins_payload(
         self,
@@ -227,7 +232,11 @@ class PluginBatchUseCase:
                 return PluginRuntimePayloadBuilder.build_invalid_operation_payload(
                     None,
                     operation,
-                    message=f'插件计划操作不支持：{operation}',
+                    message=I18nMessage(
+                        f'插件计划操作不支持：{operation}',
+                        msg_key='plugin.runtime.batch.unsupportedPlan',
+                        msg_params={'operation': str(operation)},
+                    ),
                 )
 
             backend_root = Path(self.dependencies.runtime_environment.get_backend_dir())
@@ -248,7 +257,9 @@ class PluginBatchUseCase:
                 payload['capabilityBlockers'] = capability_blockers
             return cast('PluginPlanResponse', payload)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('生成插件批量操作计划失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('生成插件批量操作计划失败', msg_key='plugin.runtime.batch.planFailed'), exc
+            )
 
     def _collect_capability_blockers(
         self,
@@ -356,7 +367,9 @@ class PluginBatchUseCase:
 
             return cast('PluginBatchResponse', payload)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('插件批量操作失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('插件批量操作失败', msg_key='plugin.runtime.batch.failed'), exc
+            )
 
     async def execute_batch_plugin_item(
         self,

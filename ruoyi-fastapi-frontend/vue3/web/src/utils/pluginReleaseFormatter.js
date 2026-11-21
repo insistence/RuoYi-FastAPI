@@ -1,21 +1,62 @@
+import { translateMessage } from '../i18n/message.mjs'
 const RELEASE_STATUSES = {
-  active: { label: '已生效', tagType: 'success' },
-  disabled: { label: '已停用', tagType: 'info' },
-  partial: { label: '部分生效', tagType: 'warning' },
-  pending_restart: { label: '等待重启', tagType: 'warning' },
-  failed: { label: '发布异常', tagType: 'danger' },
-  no_target: { label: '未选择目标', tagType: 'info' },
+  active: {
+    get label() {
+      return translateMessage('plugins:active', '已生效')
+    },
+    tagType: 'success',
+  },
+  disabled: {
+    get label() {
+      return translateMessage('components:disabled', '已停用')
+    },
+    tagType: 'info',
+  },
+  partial: {
+    get label() {
+      return translateMessage('plugins:partiallyActive', '部分生效')
+    },
+    tagType: 'warning',
+  },
+  pending_restart: {
+    get label() {
+      return translateMessage('plugins:waitingForRestart', '等待重启')
+    },
+    tagType: 'warning',
+  },
+  failed: {
+    get label() {
+      return translateMessage('plugins:releaseError', '发布异常')
+    },
+    tagType: 'danger',
+  },
+  no_target: {
+    get label() {
+      return translateMessage('plugins:noTargetSelected', '未选择目标')
+    },
+    tagType: 'info',
+  },
 }
 
 const PREPARATION_LABELS = {
-  idle: '尚未准备',
-  preparing: '准备中',
-  prepared: '准备完成',
-  failed: '准备失败',
+  get idle() {
+    return translateMessage('plugins:notPrepared', '尚未准备')
+  },
+  get preparing() {
+    return translateMessage('plugins:preparing', '准备中')
+  },
+  get prepared() {
+    return translateMessage('plugins:prepared', '准备完成')
+  },
+  get failed() {
+    return translateMessage('plugins:preparationFailed', '准备失败')
+  },
 }
 
 function workerCount(value) {
-  return Number.isInteger(value) && value >= 0 ? String(value) : '未知'
+  return Number.isInteger(value) && value >= 0
+    ? String(value)
+    : translateMessage('components:unknown', '未知')
 }
 
 /**
@@ -26,16 +67,38 @@ function workerCount(value) {
  */
 export function getPluginReleaseView(plugin = {}) {
   const release = plugin.release || {}
-  const status = RELEASE_STATUSES[release.status] || { label: '状态未知', tagType: 'info' }
+  const status = RELEASE_STATUSES[release.status] || {
+    get label() {
+      return translateMessage('plugins:unknownStatus', '状态未知')
+    },
+    tagType: 'info',
+  }
   const error = release.verificationError || release.lastError || ''
   return {
     ...status,
-    label: release.verificationError ? '验证失败' : status.label,
+    label: release.verificationError
+      ? translateMessage('plugins:validationFailed', '验证失败')
+      : status.label,
     tagType: release.verificationError ? 'danger' : status.tagType,
-    preparationLabel: PREPARATION_LABELS[release.prepareStatus] || '未知',
-    workerSummary: `${plugin.enabled === '1' ? '已停用' : '已就绪'} ${workerCount(
-      plugin.enabled === '1' ? release.disabledWorkers : release.healthyWorkers
-    )} · 在线 ${workerCount(release.liveWorkers)} / 预期 ${workerCount(release.expectedWorkers)}`,
+    preparationLabel:
+      PREPARATION_LABELS[release.prepareStatus] || translateMessage('components:unknown', '未知'),
+    workerSummary: translateMessage(
+      'plugins:release.workerSummary',
+      `${plugin.enabled === '1' ? translateMessage('components:disabled', '已停用') : translateMessage('plugins:ready', '已就绪')} ${workerCount(
+        plugin.enabled === '1' ? release.disabledWorkers : release.healthyWorkers
+      )} · 在线 ${workerCount(release.liveWorkers)} / 预期 ${workerCount(release.expectedWorkers)}`,
+      {
+        status:
+          plugin.enabled === '1'
+            ? translateMessage('components:disabled', '已停用')
+            : translateMessage('plugins:ready', '已就绪'),
+        ready: workerCount(
+          plugin.enabled === '1' ? release.disabledWorkers : release.healthyWorkers
+        ),
+        live: workerCount(release.liveWorkers),
+        expected: workerCount(release.expectedWorkers),
+      }
+    ),
     counts: {
       healthy: workerCount(release.healthyWorkers),
       disabled: workerCount(release.disabledWorkers),

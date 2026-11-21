@@ -61,7 +61,7 @@ export default {
   async openPage(title, path, query) {
     const router = await currentRouter()
     const fullPath = destination({ path, query })
-    useTagsViewStore.getState().addView({ key: path, fullPath, label: title, closable: true })
+    useTagsViewStore.getState().addView({ key: path, fullPath, customTitle: title, closable: true })
     await router.navigate(fullPath)
   },
   // 更新已打开标签的标题、地址等信息，不新增不存在的标签。
@@ -73,7 +73,7 @@ export default {
         ...prior,
         ...view,
         key,
-        label: view.label || view.meta?.title || prior.label,
+        customTitle: view.customTitle ?? view.label ?? prior.customTitle,
         fullPath: view.fullPath || prior.fullPath,
       })
   },

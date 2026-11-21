@@ -64,7 +64,7 @@ class CheckPluginEnabled:
         :return: 是否通过
         """
         if not await self.state_gateway.is_plugin_enabled(db, self.plugin_id):
-            raise PermissionException(data='', message='插件未启用，接口不可访问')
+            raise PermissionException(data='', message='插件未启用，接口不可访问', msg_key='plugin.disabled')
         return True
 
 

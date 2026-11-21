@@ -82,8 +82,8 @@ class DeptService:
         """
         depts = await DeptDao.get_dept_list(query_db, DeptModel(deptId=dept_id), data_scope_sql)
         if depts:
-            return CrudResponseModel(is_success=True, message='校验通过')
-        raise ServiceException(message='没有权限访问部门数据')
+            return CrudResponseModel(is_success=True, message='校验通过', msg_key='common.validated')
+        raise ServiceException(message='没有权限访问部门数据', msg_key='dept.forbidden')
 
     @classmethod
     async def check_dept_name_unique_services(cls, query_db: AsyncSession, page_object: DeptModel) -> bool:
@@ -112,17 +112,25 @@ class DeptService:
         :return: 新增部门校验结果
         """
         if not await cls.check_dept_name_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增部门{page_object.dept_name}失败，部门名称已存在')
+            raise ServiceException(
+                message=f'新增部门{page_object.dept_name}失败，部门名称已存在',
+                msg_key='dept.addDuplicate',
+                msg_params={'dept_name': str(page_object.dept_name)},
+            )
         parent_info = await DeptDao.get_dept_detail_by_id(query_db, page_object.parent_id)
         if not parent_info:
-            raise ServiceException(message='上级部门不存在')
+            raise ServiceException(message='上级部门不存在', msg_key='dept.parentNotFound')
         if parent_info.status != CommonConstant.DEPT_NORMAL:
-            raise ServiceException(message=f'部门{parent_info.dept_name}停用，不允许新增')
+            raise ServiceException(
+                message=f'部门{parent_info.dept_name}停用，不允许新增',
+                msg_key='dept.parentDisabled',
+                msg_params={'dept_name': str(parent_info.dept_name)},
+            )
         page_object.ancestors = f'{parent_info.ancestors},{page_object.parent_id}'
         try:
             await DeptDao.add_dept_dao(query_db, page_object)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -138,26 +146,38 @@ class DeptService:
         """
         old_dept = await DeptDao.get_dept_detail_by_id(query_db, page_object.dept_id)
         if not old_dept:
-            raise ServiceException(message='部门不存在')
+            raise ServiceException(message='部门不存在', msg_key='dept.notFound')
         if page_object.parent_id is None:
             page_object.parent_id = old_dept.parent_id
         if not await cls.check_dept_name_unique_services(query_db, page_object):
-            raise ServiceException(message=f'修改部门{page_object.dept_name}失败，部门名称已存在')
+            raise ServiceException(
+                message=f'修改部门{page_object.dept_name}失败，部门名称已存在',
+                msg_key='dept.editDuplicate',
+                msg_params={'dept_name': str(page_object.dept_name)},
+            )
         if page_object.dept_id == page_object.parent_id:
-            raise ServiceException(message=f'修改部门{page_object.dept_name}失败，上级部门不能是自己')
+            raise ServiceException(
+                message=f'修改部门{page_object.dept_name}失败，上级部门不能是自己',
+                msg_key='dept.selfParent',
+                msg_params={'dept_name': str(page_object.dept_name)},
+            )
         if (
             page_object.status == CommonConstant.DEPT_DISABLE
             and (await DeptDao.count_normal_children_dept_dao(query_db, page_object.dept_id)) > 0
         ):
-            raise ServiceException(message=f'修改部门{page_object.dept_name}失败，该部门包含未停用的子部门')
+            raise ServiceException(
+                message=f'修改部门{page_object.dept_name}失败，该部门包含未停用的子部门',
+                msg_key='dept.activeChildren',
+                msg_params={'dept_name': str(page_object.dept_name)},
+            )
         # 根部门使用虚拟父节点 0，其他父部门必须存在且不能是当前部门的后代。
         new_ancestors = '0'
         if page_object.parent_id != 0:
             new_parent_dept = await DeptDao.get_dept_detail_by_id(query_db, page_object.parent_id)
             if not new_parent_dept:
-                raise ServiceException(message='上级部门不存在')
+                raise ServiceException(message='上级部门不存在', msg_key='dept.parentNotFound')
             if str(page_object.dept_id) in (new_parent_dept.ancestors or '').split(','):
-                raise ServiceException(message='上级部门不能是当前部门的子部门')
+                raise ServiceException(message='上级部门不能是当前部门的子部门', msg_key='dept.descendantParent')
             new_ancestors = f'{new_parent_dept.ancestors},{new_parent_dept.dept_id}'
         # 祖级列表只根据服务端部门关系生成，不接受客户端直接修改。
         page_object.ancestors = new_ancestors
@@ -173,7 +193,7 @@ class DeptService:
             ):
                 await cls.update_parent_dept_status_normal(query_db, page_object)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='更新成功')
+            return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -200,13 +220,13 @@ class DeptService:
                     await cls.check_dept_data_scope_services(query_db, item['dept_id'], data_scope_sql)
             await DeptDao.update_dept_sort_dao(query_db, dept_sort_list)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='保存成功')
+            return CrudResponseModel(is_success=True, message='保存成功', msg_key='common.saved')
         except ServiceException:
             await query_db.rollback()
             raise
         except Exception as exc:
             await query_db.rollback()
-            raise ServiceException(message='保存排序异常，请联系管理员') from exc
+            raise ServiceException(message='保存排序异常，请联系管理员', msg_key='common.sortFailed') from exc
 
     @classmethod
     def parse_dept_sort_items(cls, page_object: DeptSortModel) -> list[dict[str, int]]:
@@ -219,16 +239,16 @@ class DeptService:
         dept_id_values = [value.strip() for value in page_object.dept_ids.split(',') if value.strip()]
         order_num_values = [value.strip() for value in page_object.order_nums.split(',') if value.strip()]
         if not dept_id_values or len(dept_id_values) != len(order_num_values):
-            raise ServiceException(message='部门排序参数不正确')
+            raise ServiceException(message='部门排序参数不正确', msg_key='dept.invalidSort')
         try:
             dept_ids = [int(value) for value in dept_id_values]
             order_nums = [int(value) for value in order_num_values]
         except ValueError as exc:
-            raise ServiceException(message='部门排序参数不正确') from exc
+            raise ServiceException(message='部门排序参数不正确', msg_key='dept.invalidSort') from exc
         if any(dept_id <= 0 for dept_id in dept_ids) or any(order_num < 0 for order_num in order_nums):
-            raise ServiceException(message='部门排序参数不正确')
+            raise ServiceException(message='部门排序参数不正确', msg_key='dept.invalidSort')
         if len(set(dept_ids)) != len(dept_ids):
-            raise ServiceException(message='部门排序参数不正确')
+            raise ServiceException(message='部门排序参数不正确', msg_key='dept.invalidSort')
 
         return [
             {'dept_id': dept_id, 'order_num': order_num}
@@ -249,18 +269,18 @@ class DeptService:
             try:
                 for dept_id in dept_id_list:
                     if (await DeptDao.count_children_dept_dao(query_db, int(dept_id))) > 0:
-                        raise ServiceWarning(message='存在下级部门,不允许删除')
+                        raise ServiceWarning(message='存在下级部门,不允许删除', msg_key='dept.childrenPreventDelete')
                     if (await DeptDao.count_dept_user_dao(query_db, int(dept_id))) > 0:
-                        raise ServiceWarning(message='部门存在用户,不允许删除')
+                        raise ServiceWarning(message='部门存在用户,不允许删除', msg_key='dept.usersPreventDelete')
 
                     await DeptDao.delete_dept_dao(query_db, DeptModel(deptId=dept_id))
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入部门id为空')
+            raise ServiceException(message='传入部门id为空', msg_key='dept.idRequired')
 
     @classmethod
     async def dept_detail_services(cls, query_db: AsyncSession, dept_id: int) -> DeptModel:

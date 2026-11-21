@@ -215,6 +215,7 @@ class PluginMenuInstaller:
         action = permission.code.rsplit(':', maxsplit=1)[-1]
         return PluginMenuManifest(
             name=permission.name or PERMISSION_BUTTON_LABELS.get(action, action),
+            nameI18n=permission.name_i18n,
             path=action,
             component='',
             perms=permission.code,
@@ -334,6 +335,7 @@ class PluginMenuInstaller:
         return MenuModel(
             menuId=menu_id,
             menuName=menu.name,
+            menuNameI18n=menu.name_i18n,
             parentId=parent_id,
             orderNum=menu.order_num,
             path=menu.path,

@@ -1,57 +1,65 @@
 import { createPluginClient } from '../vendor/pluginBridge.js'
+import { applyLanguage, engine, t } from './i18n.js'
 import './style.css'
 
-// 统一按 ID 获取模板页面中的固定元素。
+// 只替换模板标签，插件标识与接口业务内容保持原样。
 const element = (id) => document.getElementById(id)
 let client
 let context = {}
 let connected = false
 let ended = false
-/**
- * 更新连接提示，并区分错误状态。
- */
-const showNotice = (text, error = false) => {
-  element('notice').textContent = text
-  element('notice').classList.toggle('error', error)
+let pluginId = null
+let serverTime = null
+let notice = null
+
+function render() {
+  element('application').textContent = t('plugin.__PLUGIN_ID__:application')
+  element('refresh').textContent = t('plugin.__PLUGIN_ID__:refresh')
+  element('plugin-label').textContent = t('plugin.__PLUGIN_ID__:pluginId')
+  element('time-label').textContent = t('plugin.__PLUGIN_ID__:serverTime')
+  element('plugin-id').textContent = ended
+    ? t('plugin.__PLUGIN_ID__:ended')
+    : pluginId || t('plugin.__PLUGIN_ID__:waiting')
+  element('server-time').textContent = serverTime
+    ? new Intl.DateTimeFormat(engine.language, {
+        timeZone: context.timeZone || 'UTC', dateStyle: 'short', timeStyle: 'medium',
+      }).format(new Date(serverTime))
+    : ended ? '—' : t('plugin.__PLUGIN_ID__:waiting')
+  element('notice').textContent = notice ? t(notice.key, notice.params) : t('plugin.__PLUGIN_ID__:connecting')
+  element('notice').classList.toggle('error', notice?.error || false)
 }
-/**
- * 同步请求忙碌状态；退出登录后保持刷新按钮禁用。
- */
+
+const showNotice = (key, params = {}, error = false) => {
+  notice = { key, params, error }
+  render()
+}
 const setBusy = (busy) => {
   element('workspace').setAttribute('aria-busy', String(busy))
   element('refresh').disabled = busy || ended
 }
-/**
- * 保存宿主上下文，并应用当前主题和语言。
- */
 const applyContext = (next) => {
   context = { ...context, ...next }
   document.documentElement.dataset.theme = context.theme?.mode || 'light'
-  document.documentElement.lang = context.language || 'zh-CN'
+  applyLanguage(context.language)
+  render()
 }
-/**
- * 通过宿主桥接会话查询插件状态，忽略退出登录后的响应。
- */
+
+// 偏好通知只重新渲染界面，不刷新 iframe 或重新请求业务数据。
 async function refresh() {
   if (!connected || ended) return
   setBusy(true)
   try {
     const result = await client.request({ method: 'GET', path: 'info' })
     if (ended) return
-    element('plugin-id').textContent = result.pluginId
-    element('server-time').textContent = new Intl.DateTimeFormat(context.language || 'zh-CN', {
-      timeZone: context.timeZone || 'UTC', dateStyle: 'short', timeStyle: 'medium',
-    }).format(new Date(result.serverTime))
-    showNotice('连接正常，已获取最新状态。')
-  } catch (error) {
-    if (!ended) showNotice(`${error.message}，可点击“刷新状态”重试。`, true)
+    pluginId = result.pluginId
+    serverTime = result.serverTime
+    showNotice('plugin.__PLUGIN_ID__:ready')
+  } catch {
+    if (!ended) showNotice('plugin.__PLUGIN_ID__:retry', {}, true)
   } finally {
     setBusy(false)
   }
 }
-/**
- * 建立或重建宿主会话，并订阅偏好、刷新和退出登录事件。
- */
 async function connect() {
   setBusy(true)
   try {
@@ -64,23 +72,22 @@ async function connect() {
       if (type === 'logout') {
         ended = true
         connected = false
+        serverTime = null
         client.destroy()
-        element('plugin-id').textContent = '会话已结束'
-        element('server-time').textContent = '—'
-        showNotice('登录已结束，请重新登录管理平台。')
+        showNotice('plugin.__PLUGIN_ID__:loggedOut')
         setBusy(false)
       }
     })
     applyContext(await client.ready)
     connected = true
     await refresh()
-  } catch (error) {
+  } catch {
     connected = false
-    showNotice(error.message || '请从管理平台打开插件页面。', true)
+    showNotice('plugin.__PLUGIN_ID__:openFromHost', {}, true)
     setBusy(false)
   }
 }
 element('refresh').addEventListener('click', () => connected ? refresh() : connect())
-// 页面离开时释放桥接层的事件监听和待处理请求。
 window.addEventListener('pagehide', () => client?.destroy(), { once: true })
+applyContext({})
 connect()

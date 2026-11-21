@@ -13,6 +13,7 @@ from common.aspect.db_session import DBSessionDependency
 from common.aspect.interface_auth import UserInterfaceAuthDependency
 from common.aspect.pre_auth import CurrentUserDependency, PreAuthDependency
 from common.constant import ApiGroup, ApiNamespace
+from common.context import RequestContext
 from common.enums import BusinessType
 from common.router import APIRouterPro
 from common.vo import DataResponseModel, ResponseBaseModel
@@ -62,7 +63,9 @@ async def send_chat_message(
     user_id = current_user.user.user_id if current_user and current_user.user else 1
     if not current_user.user.admin:
         await AiModelService.check_ai_model_data_scope_services(query_db, chat_req.model_id, data_scope_sql)
-    chat_stream = AiChatService.chat_services(query_db, chat_req, user_id)
+    chat_stream = AiChatService.chat_services(
+        query_db, chat_req, user_id, locale_context=RequestContext.get_current_locale()
+    )
     logger.info(f'用户{user_id}发送对话消息成功')
 
     return StreamingResponse(content=chat_stream, media_type='text/event-stream')

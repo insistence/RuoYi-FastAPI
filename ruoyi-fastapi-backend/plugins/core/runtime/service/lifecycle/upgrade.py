@@ -4,6 +4,8 @@ from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from i18n.catalogs import CatalogRegistry, CatalogSnapshot
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.migration import PluginMigrationError, PluginMigrationResult
 from plugins.core.lifecycle.seed import PluginSeedResult, PluginSeedRunner
@@ -48,6 +50,7 @@ class PluginUpgradeLifecycleContext:
     session: AsyncSession | None = None
     lifecycle_uow: object | None = None
     session_context: object | None = None
+    catalog_snapshot: CatalogSnapshot | None = None
 
 
 class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
@@ -137,7 +140,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         except PluginLifecycleStepFailed as exc:
             await self._close_upgrade_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '插件升级失败',
+                I18nMessage('插件升级失败', msg_key='plugin.runtime.upgrade.failed'),
                 exc.original_error,
                 plugin_id=plugin_id,
                 failed_step=exc.step_name,
@@ -146,7 +149,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         except Exception as exc:
             await self._close_upgrade_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '插件升级失败',
+                I18nMessage('插件升级失败', msg_key='plugin.runtime.upgrade.failed'),
                 exc,
                 plugin_id=plugin_id,
                 failed_step='prepare_upgrade',
@@ -223,6 +226,9 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         :param context: 插件升级上下文
         :return: dry-run payload 或 None
         """
+        context.catalog_snapshot = CatalogRegistry.prepare_plugin(
+            context.plugin_id, context.discovered_plugin.backend_path
+        )
         precheck = await self._build_upgrade_precheck(context)
         self._refresh_upgrade_actions(precheck, context)
         if not context.dry_run:
@@ -328,7 +334,9 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
 
         return PluginLifecyclePayloadBuilder.build_installed_menu_conflict_payload(
             context.plugin_id,
-            message='插件菜单与已安装菜单存在冲突，升级已中止',
+            message=I18nMessage(
+                '插件菜单与已安装菜单存在冲突，升级已中止', msg_key='plugin.runtime.upgrade.menuConflict'
+            ),
             actions=context.actions or [],
             precheck=cast('PluginPrecheckContext', context.precheck),
             installed_menu_conflicts=installed_menu_conflicts,
@@ -479,6 +487,9 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         :return: None
         """
         await context.lifecycle_uow.commit()
+        CatalogRegistry.commit_plugin(
+            context.plugin_id, context.catalog_snapshot, enabled=getattr(context.plugin, 'enabled', '0') == '0'
+        )
 
         return None
 
@@ -571,7 +582,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         """
         return PluginLifecyclePayloadBuilder.build_success_payload(
             context.plugin_id,
-            message='插件升级完成',
+            message=I18nMessage('插件升级完成', msg_key='plugin.runtime.upgrade.completed'),
             actions=context.actions or [],
             precheck=cast('PluginPrecheckContext', context.precheck),
             plugin=context.plugin,

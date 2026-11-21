@@ -89,7 +89,7 @@ class NoticeService:
         try:
             await NoticeDao.add_notice_reads(query_db, user_id, notice_ids)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='标记成功')
+            return CrudResponseModel(is_success=True, message='标记成功', msg_key='common.marked')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -107,7 +107,7 @@ class NoticeService:
                 dict.fromkeys(int(notice_id.strip()) for notice_id in notice_ids.split(',') if notice_id.strip())
             )
         except ValueError as exc:
-            raise ServiceException(message='公告ID格式不正确') from exc
+            raise ServiceException(message='公告ID格式不正确', msg_key='notice.invalidId') from exc
 
     @classmethod
     async def check_notice_unique_services(cls, query_db: AsyncSession, page_object: NoticeModel) -> bool:
@@ -134,11 +134,15 @@ class NoticeService:
         :return: 新增通知公告校验结果
         """
         if not await cls.check_notice_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增通知公告{page_object.notice_title}失败，通知公告已存在')
+            raise ServiceException(
+                message=f'新增通知公告{page_object.notice_title}失败，通知公告已存在',
+                msg_key='notice.addDuplicate',
+                msg_params={'notice_title': str(page_object.notice_title)},
+            )
         try:
             await NoticeDao.add_notice_dao(query_db, page_object)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -156,16 +160,20 @@ class NoticeService:
         notice_info = await cls.notice_detail_services(query_db, page_object.notice_id)
         if notice_info.notice_id:
             if not await cls.check_notice_unique_services(query_db, page_object):
-                raise ServiceException(message=f'修改通知公告{page_object.notice_title}失败，通知公告已存在')
+                raise ServiceException(
+                    message=f'修改通知公告{page_object.notice_title}失败，通知公告已存在',
+                    msg_key='notice.editDuplicate',
+                    msg_params={'notice_title': str(page_object.notice_title)},
+                )
             try:
                 await NoticeDao.edit_notice_dao(query_db, edit_notice)
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='更新成功')
+                return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='通知公告不存在')
+            raise ServiceException(message='通知公告不存在', msg_key='notice.notFound')
 
     @classmethod
     async def delete_notice_services(cls, query_db: AsyncSession, page_object: DeleteNoticeModel) -> CrudResponseModel:
@@ -183,12 +191,12 @@ class NoticeService:
                 for notice_id in notice_id_list:
                     await NoticeDao.delete_notice_dao(query_db, NoticeModel(noticeId=notice_id))
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入通知公告id为空')
+            raise ServiceException(message='传入通知公告id为空', msg_key='notice.idRequired')
 
     @classmethod
     async def notice_detail_services(cls, query_db: AsyncSession, notice_id: int) -> NoticeModel:

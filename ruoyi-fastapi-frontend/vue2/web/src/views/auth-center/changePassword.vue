@@ -1,7 +1,10 @@
 <template>
   <AuthCenterShell
     :current-step="0"
-    :steps="['保护账户', '确认权限']"
+    :steps="[
+      $t('authCenter:password.protectAccount'),
+      $t('authCenter:password.confirmPermissions'),
+    ]"
     :expires-in="interaction.expiresIn"
     :application-name="interaction.client?.clientName"
     :application-id="interaction.client?.clientId"
@@ -10,10 +13,11 @@
       v-loading="initializing"
       class="auth-flow"
     >
-      <p class="panel-kicker">账户保护</p>
-      <h2>先设置新的登录密码</h2>
+      <p class="panel-kicker">{{ $t('authCenter:password.accountProtection') }}</p>
+      <h2>{{ $t('authCenter:password.setANewPasswordToContinue') }}</h2>
       <p class="panel-lead">
-        检测到当前密码已过期或仍是初始密码。更新后才能继续访问 <strong>{{ applicationName }}</strong
+        {{ $t('authCenter:password.yourPasswordHasExpiredOrIsStillTheInitialPasswordUpdateIt') }}
+        <strong>{{ applicationName }}</strong
         >。
       </p>
 
@@ -23,8 +27,10 @@
           aria-hidden="true"
         ></i>
         <span
-          ><strong>更新后会保护整个账户</strong
-          ><small>其他外部应用中的旧登录会话会退出，需要使用新密码重新登录。</small></span
+          ><strong>{{ $t('authCenter:password.protectYourEntireAccount') }}</strong
+          ><small>{{
+            $t('authCenter:password.existingSessionsInOtherExternalAppsWillBeSignedOutSignIn')
+          }}</small></span
         >
       </div>
       <el-alert
@@ -36,6 +42,7 @@
       />
 
       <el-form
+        :validate-on-rule-change="false"
         ref="passwordRef"
         :model="form"
         :rules="rules"
@@ -43,7 +50,7 @@
         @submit.native.prevent="submit"
       >
         <el-form-item
-          label="当前密码"
+          :label="$t('authCenter:password.currentPassword')"
           prop="oldPassword"
         >
           <el-input
@@ -52,7 +59,7 @@
             show-password
             size="medium"
             autocomplete="current-password"
-            placeholder="用于确认是你本人"
+            :placeholder="$t('authCenter:password.toVerifyYourIdentity')"
           >
             <template #prefix
               ><i
@@ -63,7 +70,7 @@
           </el-input>
         </el-form-item>
         <el-form-item
-          label="新密码"
+          :label="$t('auth:password.new')"
           prop="newPassword"
         >
           <el-input
@@ -72,7 +79,7 @@
             show-password
             size="medium"
             autocomplete="new-password"
-            placeholder="输入新的登录密码"
+            :placeholder="$t('authCenter:password.enterANewPassword')"
           >
             <template #prefix
               ><i
@@ -86,7 +93,7 @@
             aria-live="polite"
           >
             <div class="meter-heading">
-              <span>安全强度</span
+              <span>{{ $t('authCenter:password.passwordStrength') }}</span
               ><strong :class="`is-${strengthLevel}`">{{ strengthLabel }}</strong>
             </div>
             <div
@@ -103,7 +110,7 @@
           </div>
         </el-form-item>
         <el-form-item
-          label="再次输入新密码"
+          :label="$t('authCenter:password.repeatNewPassword')"
           prop="confirmPassword"
         >
           <el-input
@@ -112,7 +119,7 @@
             show-password
             size="medium"
             autocomplete="new-password"
-            placeholder="再次输入，避免输错"
+            :placeholder="$t('authCenter:password.enterItAgainToAvoidMistakes')"
           >
             <template #prefix
               ><i
@@ -129,7 +136,7 @@
           native-type="submit"
           :loading="submitting"
         >
-          更新密码并继续
+          {{ $t('authCenter:password.updatePasswordAndContinue') }}
         </el-button>
       </el-form>
     </div>
@@ -137,6 +144,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 export default { name: 'AuthCenterChangePassword' }
 </script>
 
@@ -161,16 +170,18 @@ const form = reactive({
   confirmPassword: '',
 })
 
-const applicationName = computed(() => interaction.value.client?.clientName || '发起登录的应用')
+const applicationName = computed(
+  () => interaction.value.client?.clientName || t('authCenter:shared.appRequestingSignIn')
+)
 const policyDescription = computed(
   () =>
     ({
-      0: "需要 6–20 个字符，不能包含 < > “ ” ' \\ |",
-      1: '需要 6–20 位数字',
-      2: '需要 6–20 个英文字母',
-      3: '需要 6–20 个字符，并同时包含字母和数字',
-      4: '需要 6–20 个字符，并同时包含字母、数字和特殊字符',
-    })[pwdChrType.value] || '需要 6–20 个字符'
+      0: t('authCenter:password.forbiddenCharacters'),
+      1: t('authCenter:password.use620Digits'),
+      2: t('authCenter:password.use620LatinLetters'),
+      3: t('authCenter:password.use620CharactersIncludingBothLettersAndNumbers'),
+      4: t('authCenter:password.use620CharactersIncludingLettersNumbersAndSymbols'),
+    })[pwdChrType.value] || t('auth:interface.use620Characters')
 )
 
 const strengthLevel = computed(() => {
@@ -190,25 +201,41 @@ const strengthLevel = computed(() => {
   }
   return Math.min(3, level)
 })
-const strengthLabel = computed(() => ['尚未达到要求', '基础', '良好', '较强'][strengthLevel.value])
+const strengthLabel = computed(
+  () =>
+    [
+      t('authCenter:password.requirementsNotMet'),
+      t('authCenter:password.basic'),
+      t('common:good'),
+      t('authCenter:password.strong'),
+    ][strengthLevel.value]
+)
 
 const validateNewPassword = (_rule, value, callback) => {
   if (value && value === form.oldPassword) {
-    return callback(new Error('新密码不能与当前密码相同'))
+    return callback(
+      new Error(t('authCenter:password.theNewPasswordMustDifferFromTheCurrentPassword'))
+    )
   }
   callback()
 }
 const validateConfirmation = (_rule, value, callback) => {
   if (!value) {
-    return callback(new Error('请再次输入新密码'))
+    return callback(new Error(t('authCenter:password.enterTheNewPasswordAgain')))
   }
   if (value !== form.newPassword) {
-    return callback(new Error('两次输入的新密码不一致'))
+    return callback(new Error(t('authCenter:password.theNewPasswordsDoNotMatch')))
   }
   callback()
 }
 const rules = computed(() => ({
-  oldPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  oldPassword: [
+    {
+      required: true,
+      message: () => t('authCenter:password.enterYourCurrentPassword'),
+      trigger: 'blur',
+    },
+  ],
   newPassword: [...infoPwdValidator.value, { validator: validateNewPassword, trigger: 'blur' }],
   confirmPassword: [{ validator: validateConfirmation, trigger: 'blur' }],
 }))
@@ -216,7 +243,7 @@ const rules = computed(() => ({
 /** 读取认证交互状态并检查是否需要修改密码 */
 async function initialize() {
   if (!interactionId.value || !csrfToken()) {
-    return fatal('认证请求不完整，请返回应用重新登录')
+    return fatal(t('authCenter:shared.theAuthenticationRequestIsIncompleteReturnToTheAppAndSignIn'))
   }
   try {
     const response = await getInteraction(interactionId.value, csrfToken())
@@ -225,7 +252,10 @@ async function initialize() {
       await goToAction(interaction.value.nextAction)
     }
   } catch (error) {
-    fatal(error?.message || '认证请求已失效，请返回应用重新登录')
+    fatal(
+      error?.message ||
+        t('authCenter:shared.theAuthenticationRequestHasExpiredReturnToTheAppAndSignIn')
+    )
   } finally {
     initializing.value = false
   }
@@ -234,7 +264,7 @@ async function initialize() {
 /** 校验并提交密码修改 */
 async function submit() {
   if (!interactionId.value || !csrfToken()) {
-    return fatal('认证请求不完整，请返回应用重新登录')
+    return fatal(t('authCenter:shared.theAuthenticationRequestIsIncompleteReturnToTheAppAndSignIn'))
   }
   if (!(await passwordRef.value?.validate().catch(() => false))) {
     return
@@ -256,7 +286,8 @@ async function submit() {
     await goToAction(response.data?.nextAction)
   } catch (error) {
     form.oldPassword = ''
-    errorMessage.value = error?.message || '密码更新失败，请根据页面提示检查后重试'
+    errorMessage.value =
+      error?.message || t('auth:interface.passwordUpdateFailedCheckTheFormAndTryAgain')
   } finally {
     submitting.value = false
   }

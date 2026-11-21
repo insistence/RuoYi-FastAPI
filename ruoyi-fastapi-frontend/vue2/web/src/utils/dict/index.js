@@ -18,6 +18,20 @@ export default function (Vue, options) {
         dict,
       }
     },
+    watch: {
+      '$store.state.dict.revision'() {
+        if (!(this.dict instanceof Dict)) return
+        for (const meta of this.dict._dictMetas || []) {
+          if (!meta.lazy) this.dict.reloadDict(meta.type).catch(() => {})
+        }
+      },
+      '$locale.locale'() {
+        if (!(this.dict instanceof Dict)) return
+        Object.entries(this.dict.type).forEach(([type, rows]) => {
+          rows.forEach((row) => Vue.set(this.dict.label[type], row.value, row.label))
+        })
+      },
+    },
     created() {
       if (!(this.dict instanceof Dict)) {
         return

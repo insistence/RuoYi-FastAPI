@@ -1,8 +1,9 @@
-﻿import axios from 'axios'
+import { t } from '@/i18n'
+import axios from 'axios'
 import { Loading, Message } from 'element-ui'
 import { saveAs } from 'file-saver'
 import { getToken } from '@/utils/auth'
-import errorCode from '@/utils/errorCode'
+import { getResponseMessage } from '@/utils/errorCode'
 import { blobValidate } from '@/utils/ruoyi'
 
 const baseURL = process.env.VUE_APP_BASE_API
@@ -13,7 +14,7 @@ let downloadLoadingInstance
 function parseContentRange(contentRange) {
   const rangeMatch = /^bytes (\d+)-(\d+)\/(\d+)$/i.exec(contentRange || '')
   if (!rangeMatch) {
-    throw new Error('分段下载响应缺少有效的Content-Range')
+    throw new Error(t('components:thePartialDownloadResponseIsMissingAValidContentRange'))
   }
   return {
     start: Number(rangeMatch[1]),
@@ -94,7 +95,7 @@ async function downloadByRange(url) {
       contentRange.total <= contentRange.end ||
       response.data.size !== contentRange.end - contentRange.start + 1
     ) {
-      throw new Error('分段下载响应范围不一致')
+      throw new Error(t('components:thePartialDownloadResponseHasAnInconsistentRange'))
     }
     chunks.push(response.data)
     if (contentRange.end + 1 === contentRange.total) {
@@ -137,7 +138,7 @@ export default {
       this.saveAs(result.blob, decodeURIComponent(result.filename))
     } catch (error) {
       console.error(error)
-      Message.error('下载文件出现错误，请联系管理员！')
+      Message.error(t('file:download.failed'))
     }
   },
   async file(resource) {
@@ -155,13 +156,13 @@ export default {
       )
     } catch (error) {
       console.error(error)
-      Message.error('下载文件出现错误，请联系管理员！')
+      Message.error(t('file:download.failed'))
     }
   },
   zip(url, name) {
     var url = baseURL + url
     downloadLoadingInstance = Loading.service({
-      text: '正在下载数据，请稍候',
+      text: t('components:downloadingDataPleaseWait'),
       spinner: 'el-icon-loading',
       background: 'rgba(0, 0, 0, 0.7)',
     })
@@ -183,7 +184,7 @@ export default {
       })
       .catch((r) => {
         console.error(r)
-        Message.error('下载文件出现错误，请联系管理员！')
+        Message.error(t('file:download.failed'))
         downloadLoadingInstance.close()
       })
   },
@@ -193,7 +194,7 @@ export default {
   async printErrMsg(data) {
     const resText = await data.text()
     const rspObj = JSON.parse(resText)
-    const errMsg = errorCode[rspObj.code] || rspObj.msg || errorCode['default']
+    const errMsg = getResponseMessage(rspObj)
     Message.error(errMsg)
   },
 }

@@ -19,8 +19,8 @@
           <template #title
             ><span
               class="menu-title"
-              :title="hasTitle(onlyOneChild.meta.title)"
-              >{{ onlyOneChild.meta.title }}</span
+              :title="hasTitle(resolveRouteTitle(onlyOneChild))"
+              >{{ resolveRouteTitle(onlyOneChild) }}</span
             ></template
           >
         </el-menu-item>
@@ -40,8 +40,8 @@
         <svg-icon :icon-class="item.meta && item.meta.icon" />
         <span
           class="menu-title"
-          :title="hasTitle(item.meta.title)"
-          >{{ item.meta.title }}</span
+          :title="hasTitle(resolveRouteTitle(item))"
+          >{{ resolveRouteTitle(item) }}</span
         >
       </template>
 
@@ -58,6 +58,7 @@
 </template>
 
 <script setup>
+import { resolveRouteTitle } from '@/i18n/adapter'
 import { isExternal } from '@/utils/validate'
 import AppLink from './Link'
 import { getNormalPath } from '@/utils/ruoyi'

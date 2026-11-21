@@ -119,11 +119,11 @@ def test_generated_frontend_contains_business_files_and_reuses_project_time_modu
     assert '' not in files
     assert len(files) == len(rendered)
     assert {path for path in files if path.startswith('frontend/')} == {
-        'frontend/api/test/item.js',
-        'frontend/views/test/item/index.vue',
-        'frontend/views/test/item/view.vue',
+        'frontend/src/api/test/item.js',
+        'frontend/src/views/test/item/index.vue',
+        'frontend/src/views/test/item/view.vue',
     }
-    page = files['frontend/views/test/item/index.vue']
+    page = files['frontend/src/views/test/item/index.vue']
     assert 'from "@/components/BusinessDateTimePicker"' in page
     assert 'serializeTimeFieldsForSubmit } from "@/utils/time"' in page
     assert 'initializeBusinessTimezone' not in page

@@ -1,18 +1,19 @@
 <template>
   <el-dialog
-    :title="`转移文件 - ${fileName}`"
+    :title="$t('file:dialog.transferFile', { name: fileName })"
     :visible.sync="visible"
     width="620px"
     append-to-body
   >
     <el-form
+      :validate-on-rule-change="false"
       ref="form"
       :model="form"
       :rules="rules"
       label-width="100px"
     >
       <el-form-item
-        label="新所有者"
+        :label="$t('file:messages.newOwner')"
         prop="ownerUserId"
       >
         <el-select
@@ -22,7 +23,7 @@
           clearable
           :loading="userLoading"
           :remote-method="searchUsers"
-          placeholder="输入用户名称搜索"
+          :placeholder="$t('file:messages.searchByUsername')"
           style="width: 100%"
           @visible-change="handleUserVisible"
           @change="handleUserChange"
@@ -36,34 +37,38 @@
         </el-select>
       </el-form-item>
       <el-form-item
-        label="所属部门"
+        :label="$t('system:user.department')"
         prop="deptId"
       >
         <treeselect
           v-model="form.deptId"
           :options="deptOptions"
           :normalizer="normalizer"
-          placeholder="请选择所属部门"
+          :placeholder="$t('file:messages.selectADepartment')"
           :clearable="true"
           :searchable="true"
         />
       </el-form-item>
-      <el-form-item label="上传人权限">
+      <el-form-item :label="$t('file:messages.uploaderPermissions')">
         <el-switch
           v-model="form.retainUploaderAccess"
-          active-text="保留"
-          inactive-text="移除"
+          :active-text="$t('file:messages.retain')"
+          :inactive-text="$t('file:messages.remove')"
         />
         <div class="form-tip">
           {{
             form.retainUploaderAccess
-              ? '原上传人继续拥有内置下载权限，匹配的显式拒绝仍可覆盖。'
-              : '原上传人不再因上传身份获得下载权限，上传记录仍会保留。'
+              ? $t(
+                  'file:expression.theOriginalUploaderRetainsBuiltInDownloadAccessAMatchingExplicitDeny'
+                )
+              : $t(
+                  'file:expression.theOriginalUploaderNoLongerReceivesDownloadAccessThroughUploaderStatusThe'
+                )
           }}
         </div>
       </el-form-item>
       <el-form-item
-        label="转移原因"
+        :label="$t('file:messages.transferReason')"
         prop="reason"
       >
         <el-input
@@ -72,7 +77,7 @@
           :rows="3"
           maxlength="500"
           show-word-limit
-          placeholder="请输入转移原因"
+          :placeholder="$t('file:messages.enterATransferReason')"
         />
       </el-form-item>
     </el-form>
@@ -85,14 +90,16 @@
         :loading="saving"
         @click="submit"
       >
-        确 定
+        {{ $t('common:confirm') }}
       </el-button>
-      <el-button @click="visible = false">取 消</el-button>
+      <el-button @click="visible = false">{{ $t('common:cancel') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import { getFileAclDeptTree, searchFileAclSubjects, transferFile } from '@/api/system/file'
@@ -116,9 +123,23 @@ export default {
         reason: undefined,
       },
       rules: {
-        ownerUserId: [{ required: true, message: '请选择新所有者', trigger: 'change' }],
-        deptId: [{ required: true, message: '请选择所属部门', trigger: 'change' }],
-        reason: [{ required: true, message: '请输入转移原因', trigger: 'blur' }],
+        ownerUserId: [
+          { required: true, message: () => t('file:messages.selectANewOwner'), trigger: 'change' },
+        ],
+        deptId: [
+          {
+            required: true,
+            message: () => t('file:messages.selectADepartment'),
+            trigger: 'change',
+          },
+        ],
+        reason: [
+          {
+            required: true,
+            message: () => t('file:messages.enterATransferReason'),
+            trigger: 'blur',
+          },
+        ],
       },
     }
   },
@@ -133,7 +154,9 @@ export default {
     open(row, selectedIds) {
       const isSingle = row && row.fileId
       this.fileIds = isSingle ? row.fileId : selectedIds.join(',')
-      this.fileName = isSingle ? row.originalName : `${selectedIds.length}个文件`
+      this.fileName = isSingle
+        ? row.originalName
+        : t('file:messages.files', { length: selectedIds.length })
       Object.assign(this.form, {
         ownerUserId: undefined,
         deptId: undefined,
@@ -179,7 +202,7 @@ export default {
           .then(() => {
             this.visible = false
             this.$emit('refresh')
-            this.$modal.msgSuccess('文件转移成功')
+            this.$modal.msgSuccess(t('file:messages.filesTransferredSuccessfully'))
           })
           .finally(() => {
             this.saving = false

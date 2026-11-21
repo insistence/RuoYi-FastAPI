@@ -21,14 +21,16 @@
         class="tree-title"
         v-show="!collapsed"
       >
-        <i :class="titleIconClass"></i> {{ title }}
+        <i :class="titleIconClass"></i> {{ title || $t('system:interface.treeStructure') }}
       </span>
       <div
         class="tree-actions"
         v-show="!collapsed"
       >
         <el-tooltip
-          :content="isExpandedAll ? '收起全部' : '展开全部'"
+          :content="
+            isExpandedAll ? $t('common:expression.collapseAll') : $t('common:expression.expandAll')
+          "
           placement="right"
         >
           <i
@@ -38,7 +40,7 @@
           />
         </el-tooltip>
         <el-tooltip
-          content="刷新"
+          :content="$t('layout:tags.refresh')"
           placement="right"
         >
           <i
@@ -53,7 +55,7 @@
     <!-- 侧边栏展开/收起按钮 -->
     <div class="collapse-button-container">
       <el-tooltip
-        :content="collapsed ? '展开' : '收起'"
+        :content="collapsed ? $t('common:expression.expand') : $t('common:expression.collapse')"
         placement="right"
       >
         <i
@@ -71,7 +73,7 @@
     >
       <el-input
         v-model="searchKeyword"
-        :placeholder="searchPlaceholder"
+        :placeholder="searchPlaceholder || $t('system:interface.enterAName')"
         clearable
         size="small"
         prefix-icon="el-icon-search"
@@ -125,6 +127,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 export default {
   name: 'TreeSidebar',
   props: {
@@ -136,7 +140,7 @@ export default {
     // 标题
     title: {
       type: String,
-      default: '树形结构',
+      default: '',
     },
     // 标题图标类名
     titleIconClass: {
@@ -151,7 +155,7 @@ export default {
     // 搜索框占位符
     searchPlaceholder: {
       type: String,
-      default: '请输入名称',
+      default: '',
     },
     // 是否默认收起侧边栏
     defaultCollapsed: {

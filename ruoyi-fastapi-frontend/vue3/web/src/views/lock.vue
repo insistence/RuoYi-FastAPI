@@ -20,8 +20,11 @@
         />
         <div class="lock-icon">🔒</div>
       </div>
-      <div class="lock-username">{{ userStore.nickName }}</div>
-      <div class="lock-hint">系统已锁定，请输入密码解锁</div>
+      <div class="lock-username">
+        {{ userStore.nickName }}
+        <LanguageSelect />
+      </div>
+      <div class="lock-hint">{{ $t('auth:lock.hint') }}</div>
 
       <div
         class="input-wrap"
@@ -31,13 +34,14 @@
           ref="passwordInput"
           v-model="password"
           type="password"
-          placeholder="请输入登录密码"
+          :placeholder="$t('auth:lock.password')"
           class="lock-input"
           @keydown.enter="handleUnlock"
           autocomplete="off"
         />
         <button
           class="unlock-btn"
+          :aria-label="$t('auth:lock.unlock')"
           @click="handleUnlock"
           :disabled="loading"
         >
@@ -51,17 +55,17 @@
       </div>
 
       <div
-        v-if="errorMsg"
+        v-if="errorMsg || passwordRequired"
         class="error-msg"
       >
-        {{ errorMsg }}
+        {{ passwordRequired ? $t('auth:login.passwordRequired') : errorMsg }}
       </div>
 
       <div class="lock-footer">
         <a
           href="javascript:;"
           @click="goLogin"
-          >退出重新登录</a
+          >{{ $t('auth:lock.signIn') }}</a
         >
       </div>
     </div>
@@ -73,19 +77,30 @@ import { useRouter } from 'vue-router'
 import useUserStore from '@/store/modules/user'
 import useLockStore from '@/store/modules/lock'
 import { unlockScreen } from '@/api/login'
-import { formatBusinessTime } from '@/utils/time'
+import { formatBusinessTime, getBusinessTimezone } from '@/utils/time'
+import { useI18n } from '@/i18n/adapter'
 import defAva from '@/assets/images/profile.jpg'
 
 const router = useRouter()
 const userStore = useUserStore()
 const lockStore = useLockStore()
+const { locale } = useI18n()
 
 const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
+const passwordRequired = ref(false)
 const isShaking = ref(false)
-const currentTime = ref('')
-const currentDate = ref('')
+const now = ref(new Date())
+const currentTime = computed(() => formatBusinessTime(now.value, 'HH:mm:ss'))
+const dateFormatter = computed(
+  () =>
+    new Intl.DateTimeFormat(locale.value, {
+      timeZone: getBusinessTimezone(),
+      dateStyle: 'full',
+    })
+)
+const currentDate = computed(() => dateFormatter.value.format(now.value))
 const passwordInput = ref(null)
 const particleCanvas = ref(null)
 
@@ -99,9 +114,7 @@ const onAvatarError = (e) => {
 
 const startClock = () => {
   const update = () => {
-    const now = new Date()
-    currentTime.value = formatBusinessTime(now, 'HH:mm:ss')
-    currentDate.value = formatBusinessTime(now, 'YYYY年M月D日 星期{a}')
+    now.value = new Date()
   }
   update()
   timer = setInterval(update, 1000)
@@ -109,10 +122,12 @@ const startClock = () => {
 
 const handleUnlock = async () => {
   if (!password.value) {
-    showError('请输入密码')
+    passwordRequired.value = true
+    showError('')
     return
   }
   loading.value = true
+  passwordRequired.value = false
   errorMsg.value = ''
   try {
     await unlockScreen(password.value)
@@ -296,6 +311,10 @@ onBeforeUnmount(() => {
 }
 
 .lock-username {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   color: #fff;
   font-size: 18px;
   font-weight: 600;

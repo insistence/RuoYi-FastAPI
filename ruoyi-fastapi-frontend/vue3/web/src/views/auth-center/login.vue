@@ -9,12 +9,12 @@
       v-loading="initializing"
       class="auth-flow"
     >
-      <p class="panel-kicker">验证身份</p>
-      <h2>使用你的账户继续</h2>
+      <p class="panel-kicker">{{ $t('authCenter:shared.verifyIdentity') }}</p>
+      <h2>{{ $t('authCenter:login.continueWithYourAccount') }}</h2>
       <p class="panel-lead">
-        登录成功后，你将返回
-        <strong>{{ applicationName }}</strong>
-        完成访问。本次登录不会改变管理后台的登录状态。
+        {{ $t('authCenter:login.afterSigningInYouWillReturnTo')
+        }}<strong>{{ applicationName }}</strong>
+        {{ $t('authCenter:login.toContinueThisSignInDoesNotChangeYourSession') }}
       </p>
 
       <el-alert
@@ -32,14 +32,14 @@
         @submit.prevent="submitLogin"
       >
         <el-form-item
-          label="账号"
+          :label="$t('auth:login.username')"
           prop="userName"
         >
           <el-input
             v-model="form.userName"
             size="large"
             autocomplete="username"
-            placeholder="请输入你的账号"
+            :placeholder="$t('authCenter:login.enterYourUsernameLabel')"
             autofocus
           >
             <template #prefix
@@ -48,7 +48,7 @@
           </el-input>
         </el-form-item>
         <el-form-item
-          label="密码"
+          :label="$t('auth:login.password')"
           prop="password"
         >
           <el-input
@@ -57,7 +57,7 @@
             type="password"
             show-password
             autocomplete="current-password"
-            placeholder="请输入登录密码"
+            :placeholder="$t('auth:lock.password')"
             @keyup.enter="submitLogin"
           >
             <template #prefix
@@ -67,7 +67,7 @@
         </el-form-item>
         <el-form-item
           v-if="captcha.captchaEnabled"
-          label="安全验证码"
+          :label="$t('authCenter:login.verificationCode')"
           prop="code"
         >
           <div class="captcha-row">
@@ -75,29 +75,31 @@
               v-model="form.code"
               size="large"
               autocomplete="off"
-              placeholder="输入图中字符"
+              :placeholder="$t('authCenter:login.enterTheCharactersInTheImage')"
               @keyup.enter="submitLogin"
             />
             <el-button
               class="captcha-image"
               text
-              aria-label="看不清，换一张验证码"
-              title="看不清，换一张"
+              :aria-label="$t('authCenter:login.getADifferentVerificationImage')"
+              :title="$t('authCenter:login.canTReadItTryAnotherImage')"
               @click="loadCaptcha"
             >
               <img
                 v-if="captcha.img"
                 :src="`data:image/gif;base64,${captcha.img}`"
-                alt="安全验证码"
+                :alt="$t('authCenter:login.verificationCode')"
               />
-              <span v-else>换一张</span>
+              <span v-else>{{ $t('authCenter:login.newImage') }}</span>
             </el-button>
           </div>
         </el-form-item>
 
         <div class="preference-row">
-          <el-checkbox v-model="form.rememberMe">在这台设备上保持登录</el-checkbox>
-          <small>仅在你信任的个人设备上勾选</small>
+          <el-checkbox v-model="form.rememberMe">{{
+            $t('authCenter:login.staySignedInOnThisDevice')
+          }}</el-checkbox>
+          <small>{{ $t('authCenter:login.useThisOnlyOnAPersonalDeviceYouTrust') }}</small>
         </div>
         <el-button
           class="primary-action"
@@ -106,21 +108,22 @@
           native-type="submit"
           :loading="submitting"
         >
-          登录并继续
-        </el-button>
+          {{ $t('authCenter:login.signInAndContinue') }}</el-button
+        >
       </el-form>
       <el-button
         class="cancel-action"
         link
         :disabled="submitting"
         @click="cancel"
-        >取消并返回应用</el-button
+        >{{ $t('authCenter:login.cancelAndReturnToTheApp') }}</el-button
       >
     </div>
   </AuthCenterShell>
 </template>
 
 <script setup name="AuthCenterLogin">
+import { t } from '@/i18n/adapter'
 import {
   cancelInteraction,
   getInteraction,
@@ -145,15 +148,33 @@ const form = reactive({
   uuid: '',
   rememberMe: false,
 })
-const applicationName = computed(() => interaction.value.client?.clientName || '发起登录的应用')
+const applicationName = computed(
+  () => interaction.value.client?.clientName || t('authCenter:shared.appRequestingSignIn')
+)
 const rules = {
-  userName: [{ required: true, message: '请输入账号', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  userName: [
+    {
+      required: true,
+      get message() {
+        return t('authCenter:login.enterYourUsername')
+      },
+      trigger: 'blur',
+    },
+  ],
+  password: [
+    {
+      required: true,
+      get message() {
+        return t('authCenter:login.enterYourPassword')
+      },
+      trigger: 'blur',
+    },
+  ],
   code: [
     {
       validator: (_rule, value, callback) =>
         captcha.value.captchaEnabled && !value
-          ? callback(new Error('请输入安全验证码'))
+          ? callback(new Error(t('authCenter:login.enterTheVerificationCode')))
           : callback(),
       trigger: 'blur',
     },
@@ -163,7 +184,7 @@ const rules = {
 /** 读取认证请求并初始化登录状态 */
 async function initialize() {
   if (!interactionId.value || !csrfToken()) {
-    return showFatal('认证请求不完整，请返回应用重新登录')
+    return showFatal(t('authCenter:shared.theAuthenticationRequestIsIncompleteReturnToTheAppAnd'))
   }
   try {
     const response = await getInteraction(interactionId.value, csrfToken())
@@ -175,7 +196,9 @@ async function initialize() {
       await loadCaptcha()
     }
   } catch (error) {
-    showFatal(error?.message || '认证请求已失效，请返回应用重新登录')
+    showFatal(
+      error?.message || t('authCenter:shared.theAuthenticationRequestHasExpiredReturnToTheAppAnd')
+    )
   } finally {
     initializing.value = false
   }
@@ -206,7 +229,9 @@ async function submitLogin() {
     await goToAction(result.nextAction)
   } catch (error) {
     form.password = ''
-    errorMessage.value = error?.message || '身份验证失败，请检查账号和密码后重试'
+    errorMessage.value =
+      error?.message ||
+      t('authCenter:login.authenticationFailedCheckYourAccountAndPasswordThenTryAgain')
     if (captcha.value.captchaEnabled) {
       await loadCaptcha().catch(() => {})
     }
@@ -223,7 +248,8 @@ async function cancel() {
       return followServerRedirect(response.data.redirectUrl)
     }
   } catch (error) {
-    errorMessage.value = error?.message || '暂时无法取消认证请求'
+    errorMessage.value =
+      error?.message || t('authCenter:login.theAuthenticationRequestCouldNotBeCancelled')
   }
 }
 

@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useCallback, useLayoutEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { completeInteraction } from '@/api/authCenter'
@@ -18,6 +20,8 @@ const ACTION_ROUTES = {
  * @returns {Object} 当前交互标识、CSRF 凭据访问器、步骤跳转和错误处理方法
  */
 export function useInteractionContext() {
+  const { locale } = useI18n()
+
   const location = useLocation()
   const navigate = useNavigate()
   const interactionId = new URLSearchParams(location.search).get('interaction') || ''
@@ -55,10 +59,11 @@ export function useInteractionContext() {
   const followServerRedirect = useCallback(
     async (url) => {
       if (!trustedCompletionUrl(url, window.location.origin, interactionId))
-        throw new Error('认证流程返回了不受信任的跳转地址')
+        throw new Error(t('authCenter:theAuthenticationFlowReturnedAnUntrustedRedirectUrl'))
       const response = await completeInteraction(interactionId, csrfToken())
       const redirectUrl = response.data?.redirectUrl
-      if (typeof redirectUrl !== 'string') throw new Error('认证流程返回了无效跳转地址')
+      if (typeof redirectUrl !== 'string')
+        throw new Error(t('authCenter:theAuthenticationFlowReturnedAnInvalidRedirectUrl'))
       // 完成请求和响应校验成功后再清理凭据，失败时保留供用户重试。
       clearInteraction()
       window.location.assign(redirectUrl)
@@ -78,7 +83,7 @@ export function useInteractionContext() {
           `/auth/interaction/${encodeURIComponent(interactionId)}/complete`
         )
       const path = ACTION_ROUTES[action]
-      if (!path) throw new Error('认证流程返回了无效步骤')
+      if (!path) throw new Error(t('authCenter:theAuthenticationFlowReturnedAnInvalidStep'))
       navigate(interactionRouteLocation(path, interactionId), {
         replace: true,
       })
@@ -102,6 +107,6 @@ export function useInteractionContext() {
       followServerRedirect,
       fatal,
     }),
-    [interactionId, csrfToken, clearInteraction, goToAction, followServerRedirect, fatal]
+    [interactionId, csrfToken, clearInteraction, goToAction, followServerRedirect, fatal, locale]
   )
 }

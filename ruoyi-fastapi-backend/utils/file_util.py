@@ -182,15 +182,15 @@ class FileUtil:
         :return: 文件ID列表
         """
         if not file_ids:
-            raise ServiceException(message='文件ID不能为空')
+            raise ServiceException(message='文件ID不能为空', msg_key='file.idRequired')
         try:
             parsed_file_ids = list(
                 dict.fromkeys(str(uuid.UUID(item.strip())) for item in file_ids.split(',') if item.strip())
             )
         except ValueError as exc:
-            raise ServiceException(message='文件ID格式不正确') from exc
+            raise ServiceException(message='文件ID格式不正确', msg_key='file.invalidId') from exc
         if not parsed_file_ids:
-            raise ServiceException(message='文件ID不能为空')
+            raise ServiceException(message='文件ID不能为空', msg_key='file.idRequired')
         return parsed_file_ids
 
     @classmethod

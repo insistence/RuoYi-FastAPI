@@ -1,3 +1,5 @@
+import router from '@/router'
+import { serializeVisitedViews, restoreVisitedViews } from '@/utils/tagsView'
 import store from '@/store'
 import cache from '@/plugins/cache'
 
@@ -9,21 +11,14 @@ function isPersistEnabled() {
 
 function saveVisitedViews(views) {
   if (!isPersistEnabled()) return
-  const toSave = views
-    .filter((v) => !(v.meta && v.meta.affix))
-    .map((v) => ({
-      path: v.path,
-      fullPath: v.fullPath,
-      name: v.name,
-      title: v.title,
-      query: v.query,
-      meta: v.meta,
-    }))
-  cache.local.setJSON(PERSIST_KEY, toSave)
+  cache.local.setJSON(PERSIST_KEY, serializeVisitedViews(views))
 }
 
 function loadVisitedViews() {
-  return cache.local.getJSON(PERSIST_KEY) || []
+  return restoreVisitedViews(
+    cache.local.getJSON(PERSIST_KEY),
+    (location) => router.resolve(location).route
+  )
 }
 
 function clearVisitedViews() {

@@ -8,6 +8,8 @@ const compiler = require('vue/compiler-sfc')
 
 // 编译真实 Vue 2.7 组件，只隔离 API 和浏览器资源。
 function createLoader(mocks = {}, globals = {}) {
+  const locale = require('../i18n/test-runtime.cjs')
+  mocks = { '@/i18n': locale, '@/i18n/adapter': locale, ...mocks }
   const cache = new Map()
   function loadModule(filename) {
     filename = path.resolve(filename)

@@ -1,4 +1,7 @@
+import runpy
 import subprocess
+from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 from pytest import MonkeyPatch
@@ -7,6 +10,7 @@ from cli import bootstrap
 from cli.bootstrap import AppBootstrapService
 from cli.runtime.base import RuntimeEnvironmentService
 
+APP_ENTRY = Path(__file__).resolve().parents[3] / 'app.py'
 CHILD_EXIT_CODE = 7
 INTERRUPT_EXIT_CODE = 130
 
@@ -19,6 +23,33 @@ class FakeRuntimeEnvironment(RuntimeEnvironmentService):
     @staticmethod
     def get_python_executable() -> str:
         return 'C:\\Python\\python.exe'
+
+
+@pytest.mark.parametrize('module_name,expected', [('__main__', 'server:create_app'), ('app', 'create_app')])
+def test_app_entry_compiles_catalogs_before_startup(module_name: str, expected: str, monkeypatch: MonkeyPatch) -> None:
+    calls = []
+    monkeypatch.setattr(
+        'scripts.compile_i18n.compile_catalogs', lambda *, isolate_plugin_errors: calls.append(isolate_plugin_errors)
+    )
+    monkeypatch.setattr('uvicorn.run', lambda **options: calls.append(options['app']))
+    monkeypatch.setattr('server.create_app', lambda: calls.append('create_app'))
+
+    runpy.run_path(str(APP_ENTRY), run_name=module_name)
+
+    assert calls == [True, expected]
+
+
+@pytest.mark.parametrize('module_name', ['__main__', 'app'])
+def test_app_entry_stops_on_catalog_error(module_name: str, monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setattr('scripts.compile_i18n.compile_catalogs', Mock(side_effect=ValueError('invalid catalog')))
+    start = Mock()
+    monkeypatch.setattr('uvicorn.run', start)
+    monkeypatch.setattr('server.create_app', start)
+
+    with pytest.raises(ValueError, match='invalid catalog'):
+        runpy.run_path(str(APP_ENTRY), run_name=module_name)
+
+    start.assert_not_called()
 
 
 def test_exec_app_run_command_waits_for_child_process_on_windows(monkeypatch: MonkeyPatch) -> None:

@@ -4,7 +4,7 @@
       v-model="iconName"
       class="icon-search"
       clearable
-      placeholder="请输入图标名称"
+      :placeholder="$t('components:enterAnIconName')"
       @clear="filterIcons"
       @input="filterIcons"
     >

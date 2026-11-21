@@ -1,29 +1,24 @@
+import { localizeDictionary } from '@/i18n/names.mjs'
 import useDictStore from '@/store/modules/dict'
-import { getDicts } from '@/api/system/dict/data'
+import { computed, watch } from 'vue'
+import { resolveText } from '@/i18n/adapter'
 
 /**
- * 获取字典数据
+ * 保持现有组件对原始缓存的订阅，并在字典失效后重新获取数据。
  */
-export function useDict(...args) {
-  const res = ref({})
-  return (() => {
-    args.forEach((dictType, index) => {
-      res.value[dictType] = []
-      const dicts = useDictStore().getDict(dictType)
-      if (dicts) {
-        res.value[dictType] = dicts
-      } else {
-        getDicts(dictType).then((resp) => {
-          res.value[dictType] = resp.data.map((p) => ({
-            label: p.dictLabel,
-            value: p.dictValue,
-            elTagType: p.listClass,
-            elTagClass: p.cssClass,
-          }))
-          useDictStore().setDict(dictType, res.value[dictType])
-        })
-      }
-    })
-    return toRefs(res.value)
-  })()
+export function useDict(...types) {
+  const store = useDictStore()
+  const result = {}
+  types.forEach((type) => {
+    result[type] = computed(() => localizeDictionary(store.getDict(type) || [], resolveText))
+    watch(
+      () => store.revision,
+      () => {
+        // 请求层已统一提示网络错误。
+        store.loadDict(type).catch(() => {})
+      },
+      { immediate: true }
+    )
+  })
+  return result
 }

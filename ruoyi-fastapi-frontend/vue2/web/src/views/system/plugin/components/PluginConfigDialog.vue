@@ -12,6 +12,7 @@
       :refresh-key="refreshKey"
     />
     <el-form
+      :validate-on-rule-change="false"
       ref="configRef"
       class="plugin-config-form"
       :model="configForm"
@@ -19,7 +20,7 @@
     >
       <el-empty
         v-if="!items.length"
-        description="暂无插件配置"
+        :description="$t('pluginAdmin:messages.noPluginConfiguration')"
       />
       <div
         v-for="group in configGroups"
@@ -81,7 +82,7 @@
                 type="text"
                 icon="el-icon-magic-stick"
                 @click="formatConfigJsonValue(item)"
-                >格式化 JSON</el-button
+                >{{ $t('pluginAdmin:messages.formatJSON') }}</el-button
               >
             </div>
           </template>
@@ -114,21 +115,21 @@
                 size="small"
                 type="warning"
                 effect="plain"
-                >必填</el-tag
+                >{{ $t('pluginAdmin:messages.required') }}</el-tag
               >
               <el-tag
                 v-if="item.secret"
                 size="small"
                 type="warning"
                 effect="plain"
-                >敏感</el-tag
+                >{{ $t('pluginAdmin:messages.sensitive') }}</el-tag
               >
               <el-tag
                 v-if="formatConfigDefaultValue(item) !== '-'"
                 size="small"
                 type="info"
                 effect="plain"
-                >默认 {{ formatConfigDefaultValue(item) }}</el-tag
+                >{{ $t('layout:size.default') }} {{ formatConfigDefaultValue(item) }}</el-tag
               >
               <el-tag
                 v-if="formatConfigConstraint(item) !== '-'"
@@ -152,14 +153,16 @@
         :loading="loading"
         @click="submit"
         v-hasPermi="['system:plugin:edit']"
-        >保 存</el-button
+        >{{ $t('file:messages.save') }}</el-button
       >
-      <el-button @click="emit('update:visible', false)">关 闭</el-button>
+      <el-button @click="emit('update:visible', false)">{{ $t('common:close') }}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script setup name="PluginConfigDialog">
+import { t } from '@/i18n/adapter'
+
 import { computed, reactive, ref, watch } from 'vue'
 import { Message } from 'element-ui'
 import PluginConfigStatus from './PluginConfigStatus.vue'
@@ -173,7 +176,9 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: '插件配置',
+    get default() {
+      return t('pluginAdmin:messages.pluginConfiguration')
+    },
   },
   items: {
     type: Array,
@@ -245,7 +250,7 @@ function submit() {
     try {
       values = buildConfigSubmitValues()
     } catch (error) {
-      Message.error(error.message || '配置格式不正确')
+      Message.error(error.message || t('pluginAdmin:messages.invalidConfigurationFormat'))
       return
     }
     emit('submit', values)
@@ -272,7 +277,9 @@ function buildConfigSubmitValues() {
       try {
         values[item.key] = JSON.parse(value)
       } catch {
-        throw new Error((item.label || item.key) + ' 不是合法 JSON')
+        throw new Error(
+          t('pluginAdmin:confirmation.valueIsNotValidJSON', { value0: item.label || item.key })
+        )
       }
       return values
     }
@@ -286,7 +293,7 @@ function getConfigItemRules(item) {
   if (item.required) {
     rules.push({
       required: true,
-      message: '不能为空',
+      message: () => t('pluginAdmin:messages.required'),
       trigger: item.type === 'select' ? 'change' : 'blur',
     })
   }
@@ -314,15 +321,15 @@ function buildNumberConfigValidator(item) {
     }
     const numberValue = Number(value)
     if (Number.isNaN(numberValue)) {
-      callback(new Error('请输入数字'))
+      callback(new Error(t('pluginAdmin:messages.enterANumber')))
       return
     }
     if (item.min !== undefined && item.min !== null && numberValue < Number(item.min)) {
-      callback(new Error('不能小于 ' + item.min))
+      callback(new Error(t('pluginAdmin:confirmation.mustBeAtLeastValue', { value0: item.min })))
       return
     }
     if (item.max !== undefined && item.max !== null && numberValue > Number(item.max)) {
-      callback(new Error('不能大于 ' + item.max))
+      callback(new Error(t('pluginAdmin:confirmation.mustNotExceedValue', { value0: item.max })))
       return
     }
     callback()
@@ -337,11 +344,11 @@ function buildPatternConfigValidator(item) {
     }
     try {
       if (!new RegExp(item.pattern).test(String(value))) {
-        callback(new Error('格式不符合要求'))
+        callback(new Error(t('pluginAdmin:messages.invalidFormat')))
         return
       }
     } catch {
-      callback(new Error('配置正则表达式无效'))
+      callback(new Error(t('pluginAdmin:messages.invalidConfigurationRegularExpression')))
       return
     }
     callback()
@@ -357,7 +364,7 @@ function validateJsonConfig(_rule, value, callback) {
     JSON.parse(value)
     callback()
   } catch {
-    callback(new Error('请输入合法 JSON'))
+    callback(new Error(t('pluginAdmin:messages.enterValidJSON')))
   }
 }
 
@@ -373,7 +380,9 @@ function formatConfigJsonValue(item) {
       2
     )
   } catch {
-    Message.error((item.label || item.key) + ' 不是合法 JSON')
+    Message.error(
+      t('pluginAdmin:confirmation.valueIsNotValidJSON', { value0: item.label || item.key })
+    )
   }
 }
 
@@ -397,10 +406,10 @@ function hasConfigMeta(item) {
 
 function formatConfigGroupLabel(groupName) {
   const groupMap = {
-    default: '基础配置',
-    model: '模型配置',
-    security: '安全配置',
-    advanced: '高级配置',
+    default: t('pluginAdmin:messages.basicConfiguration'),
+    model: t('pluginAdmin:messages.modelConfiguration'),
+    security: t('pluginAdmin:messages.securityConfiguration'),
+    advanced: t('pluginAdmin:messages.advancedConfiguration'),
   }
   return groupMap[groupName] || groupName
 }

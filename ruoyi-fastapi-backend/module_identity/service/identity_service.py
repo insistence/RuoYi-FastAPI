@@ -12,6 +12,7 @@ from common.constant import CommonConstant, OidcAuditEvent
 from common.enums import RedisInitKeyConfig
 from config.env import OidcConfig
 from exceptions.exception import OAuthProtocolException
+from i18n.message import I18nMessage
 from module_admin.dao.login_dao import login_by_account
 from module_admin.entity.do.dept_do import SysDept
 from module_admin.entity.do.user_do import SysUser
@@ -143,18 +144,22 @@ class CredentialAuthenticationService:
         lock_key = f'{RedisInitKeyConfig.ACCOUNT_LOCK.key}:{user_name}'
         account_lock = await redis.get(lock_key)
         if user_name == account_lock:
-            raise CredentialAuthenticationError('account_locked', '账号已锁定，请稍后再试')
+            raise CredentialAuthenticationError(
+                'account_locked', I18nMessage('账号已锁定，请稍后再试', msg_key='auth.accountLocked')
+            )
 
         if login_user.captcha_enabled and not skip_captcha:
             await cls._check_legacy_captcha(redis, login_user)
 
         user = await login_by_account(query_db, user_name)
         if not user:
-            raise CredentialAuthenticationError('invalid_credentials', '用户不存在')
+            raise CredentialAuthenticationError(
+                'invalid_credentials', I18nMessage('用户不存在', msg_key='user.notFound')
+            )
         if not cls._verify(login_user.password, user[0].password):
             await cls._record_legacy_password_error(redis, user_name)
         if user[0].status == '1':
-            raise CredentialAuthenticationError('user_disabled', '用户已停用')
+            raise CredentialAuthenticationError('user_disabled', I18nMessage('用户已停用', msg_key='auth.userDisabled'))
         await redis.delete(f'{RedisInitKeyConfig.PASSWORD_ERROR_COUNT.key}:{user_name}')
 
         return user
@@ -197,7 +202,9 @@ class CredentialAuthenticationService:
         failure_key = OidcRedisKey.login_user_rate_limit(username_digest)
         lock_key = f'{failure_key}:lock'
         if await redis.get(lock_key):
-            raise CredentialAuthenticationError('account_locked', '账号已锁定，请稍后再试')
+            raise CredentialAuthenticationError(
+                'account_locked', I18nMessage('账号已锁定，请稍后再试', msg_key='auth.accountLocked')
+            )
         if captcha_enabled:
             await cls._check_oidc_captcha(redis, code, uuid)
 
@@ -206,9 +213,11 @@ class CredentialAuthenticationService:
         password_valid = cls._verify(password, stored_hash)
         if user_row is None or not password_valid:
             await cls._record_oidc_password_error(redis, failure_key, lock_key)
-            raise CredentialAuthenticationError('invalid_credentials', '账号或密码错误')
+            raise CredentialAuthenticationError(
+                'invalid_credentials', I18nMessage('账号或密码错误', msg_key='auth.invalidCredentials')
+            )
         if user_row[0].status == '1':
-            raise CredentialAuthenticationError('user_disabled', '用户已停用')
+            raise CredentialAuthenticationError('user_disabled', I18nMessage('用户已停用', msg_key='auth.userDisabled'))
 
         await redis.delete(failure_key)
         await redis.delete(lock_key)
@@ -252,7 +261,7 @@ class CredentialAuthenticationService:
 
         value = await redis.get(f'{RedisInitKeyConfig.SYS_CONFIG.key}:sys.login.blackIPList')
         if client_ip in (value.split(',') if value else []):
-            raise CredentialAuthenticationError('ip_blocked', '当前IP禁止登录')
+            raise CredentialAuthenticationError('ip_blocked', I18nMessage('当前IP禁止登录', msg_key='auth.ipBlocked'))
 
     @classmethod
     async def _check_legacy_captcha(cls, redis: Redis, login_user: UserLogin) -> None:
@@ -266,9 +275,13 @@ class CredentialAuthenticationService:
 
         value = await redis.get(f'{RedisInitKeyConfig.CAPTCHA_CODES.key}:{login_user.uuid}')
         if not value:
-            raise CredentialAuthenticationError('captcha_missing', '验证码已失效')
+            raise CredentialAuthenticationError(
+                'captcha_missing', I18nMessage('验证码已失效', msg_key='auth.captchaExpired')
+            )
         if login_user.code != str(value):
-            raise CredentialAuthenticationError('captcha_invalid', '验证码错误')
+            raise CredentialAuthenticationError(
+                'captcha_invalid', I18nMessage('验证码错误', msg_key='auth.captchaIncorrect')
+            )
 
     @classmethod
     async def _check_oidc_captcha(cls, redis: Redis, code: str | None, uuid: str | None) -> None:
@@ -282,14 +295,20 @@ class CredentialAuthenticationService:
         """
 
         if not uuid:
-            raise CredentialAuthenticationError('captcha_missing', '验证码已失效或不存在')
+            raise CredentialAuthenticationError(
+                'captcha_missing', I18nMessage('验证码已失效或不存在', msg_key='auth.captchaMissing')
+            )
         key = f'{RedisInitKeyConfig.CAPTCHA_CODES.key}:{uuid}'
         value = await redis.eval(_CAPTCHA_CONSUME_SCRIPT, 1, key)
         if not value:
-            raise CredentialAuthenticationError('captcha_missing', '验证码已失效或不存在')
+            raise CredentialAuthenticationError(
+                'captcha_missing', I18nMessage('验证码已失效或不存在', msg_key='auth.captchaMissing')
+            )
         expected = value.decode('utf-8') if isinstance(value, bytes) else str(value)
         if code != expected:
-            raise CredentialAuthenticationError('captcha_invalid', '验证码错误')
+            raise CredentialAuthenticationError(
+                'captcha_invalid', I18nMessage('验证码错误', msg_key='auth.captchaIncorrect')
+            )
 
     @classmethod
     async def _record_legacy_password_error(cls, redis: Redis, user_name: str) -> None:
@@ -309,9 +328,12 @@ class CredentialAuthenticationService:
             await redis.delete(key)
             await redis.set(f'{RedisInitKeyConfig.ACCOUNT_LOCK.key}:{user_name}', user_name, ex=_LOGIN_FAILURE_TTL)
             raise CredentialAuthenticationError(
-                'account_locked', '10分钟内密码已输错超过5次，账号已锁定，请10分钟后再试'
+                'account_locked',
+                I18nMessage('10分钟内密码已输错超过5次，账号已锁定，请10分钟后再试', msg_key='auth.passwordLockout'),
             )
-        raise CredentialAuthenticationError('invalid_credentials', '密码错误')
+        raise CredentialAuthenticationError(
+            'invalid_credentials', I18nMessage('密码错误', msg_key='auth.passwordIncorrect')
+        )
 
     @classmethod
     async def _record_oidc_password_error(cls, redis: Redis, failure_key: str, lock_key: str) -> None:
@@ -333,7 +355,9 @@ class CredentialAuthenticationService:
             str(int(_LOGIN_FAILURE_TTL.total_seconds())),
         )
         if int(result or 0) < 0:
-            raise CredentialAuthenticationError('account_locked', '账号已锁定，请稍后再试')
+            raise CredentialAuthenticationError(
+                'account_locked', I18nMessage('账号已锁定，请稍后再试', msg_key='auth.accountLocked')
+            )
 
     @classmethod
     async def _password_policy(cls, redis: Redis, user: SysUser) -> tuple[bool, str | None]:

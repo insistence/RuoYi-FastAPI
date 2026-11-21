@@ -206,6 +206,18 @@ select {
 .ruoyi-dialog-form .ant-form-item-label {
   padding-inline-end: 12px;
 }
+@media (min-width: 576px) {
+  .ruoyi-dialog-form-auto-label {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+  .ruoyi-dialog-form-auto-label > .ant-form-item,
+  .ruoyi-dialog-form-auto-label > .ant-form-item > .ant-form-item-row {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+  }
+}
 .ant-modal:not(.ant-modal-confirm) {
   top: 6vh;
   margin-block: 0;
@@ -282,6 +294,25 @@ select {
     Arial,
     sans-serif;
   margin: 0 0 30px;
+}
+.login-heading {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: start;
+  column-gap: 8px;
+  margin-bottom: 24px;
+}
+.login-heading h1 {
+  grid-column: 2;
+  align-self: center;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.login-heading .ant-btn {
+  justify-self: end;
+  color: var(--ant-color-text-secondary);
+  font-size: 18px;
 }
 .login-card .ant-form {
   font-family: inherit;

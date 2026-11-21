@@ -6,6 +6,7 @@ from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
+from i18n.translation import TranslationUtil
 from module_admin.entity.do.menu_do import SysMenu
 from module_admin.entity.do.role_do import SysRoleMenu
 from module_admin.entity.vo.menu_vo import MenuModel
@@ -948,6 +949,11 @@ class PluginDao:
         :param menu: 菜单更新字典
         :return: None
         """
+        if 'menu_name_i18n' in menu:
+            current = await db.scalar(
+                select(SysMenu.menu_name_i18n).where(SysMenu.menu_id == menu['menu_id']).with_for_update()
+            )
+            menu = {**menu, 'menu_name_i18n': TranslationUtil.merge(current, menu['menu_name_i18n'])}
         await db.execute(
             update(SysMenu),
             [{key: value for key, value in menu.items() if key not in {'create_time', 'update_time'}}],

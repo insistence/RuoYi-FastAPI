@@ -1,0 +1,17 @@
+.locale-name-input .ant-space-addon {
+  white-space: nowrap;
+}
+
+.translation-fields > .ant-btn {
+  height: 28px;
+  padding-inline: 0;
+}
+
+.translation-inputs:not([hidden]) {
+  display: grid;
+  gap: 6px;
+}
+
+.translation-fields .ant-typography {
+  font-size: 12px;
+}

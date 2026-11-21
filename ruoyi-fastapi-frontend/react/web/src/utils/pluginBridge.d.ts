@@ -9,6 +9,11 @@ export const PLUGIN_BRIDGE_MAX_STREAMS: number
 export const PLUGIN_BRIDGE_MAX_STREAM_BYTES: number
 export const PLUGIN_BRIDGE_STREAM_TIMEOUT: number
 
+/** 为独立 SDK 注入可选翻译器；省略时恢复默认提示。 */
+export function setPluginMessageTranslator(
+  translator?: (key: string, options?: Record<string, unknown>) => string
+): void
+
 export type JsonValue =
   null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 export type PluginMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'

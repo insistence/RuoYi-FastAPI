@@ -13,21 +13,18 @@
       <el-button
         size="mini"
         type="primary"
-        >选择文件</el-button
+        >{{ $t('file:interface.chooseFile') }}</el-button
       >
     </el-upload>
     <div
       v-if="showTip && !disabled"
       class="el-upload__tip"
     >
-      请上传
-      <template v-if="fileSize">
-        大小不超过 <b class="upload-tip-emphasis">{{ fileSize }}MB</b>
-      </template>
-      <template v-if="fileType.length">
-        格式为 <b class="upload-tip-emphasis">{{ fileType.join('/') }}</b>
-      </template>
-      的文件，最多上传 {{ limit }} 个
+      <span v-if="fileSize">{{ $t('file:upload.maxSize', { size: fileSize }) }}</span>
+      <span v-if="fileType && fileType.length">{{
+        $t('file:upload.acceptedFormats', { formats: fileType.join('/') })
+      }}</span>
+      <span>{{ $t('file:upload.maxCount', { limit }) }}</span>
     </div>
 
     <ul
@@ -49,7 +46,7 @@
           <el-tag
             size="mini"
             type="success"
-            >已上传</el-tag
+            >{{ $t('file:interface.uploaded') }}</el-tag
           >
         </div>
         <div class="business-file-actions">
@@ -58,7 +55,7 @@
             type="primary"
             @click="handleDownload(file)"
           >
-            下载
+            {{ $t('common:download') }}
           </el-link>
           <el-link
             v-if="!disabled"
@@ -66,7 +63,7 @@
             type="danger"
             @click="handleDelete(file.fileId)"
           >
-            删除
+            {{ $t('common:delete') }}
           </el-link>
         </div>
       </li>
@@ -90,7 +87,7 @@
           <el-tag
             v-if="file.status === 'uploading'"
             size="mini"
-            >上传中</el-tag
+            >{{ $t('file:interface.uploading') }}</el-tag
           >
           <el-tooltip
             v-else
@@ -100,7 +97,7 @@
             <el-tag
               size="mini"
               type="danger"
-              >上传失败</el-tag
+              >{{ $t('file:upload.failed') }}</el-tag
             >
           </el-tooltip>
         </div>
@@ -114,7 +111,7 @@
             type="primary"
             @click="handleRetry(file)"
           >
-            重试
+            {{ $t('common:retry') }}
           </el-link>
           <el-link
             v-if="!disabled"
@@ -122,7 +119,7 @@
             type="danger"
             @click="handleRemoveFailed(file.uid)"
           >
-            删除
+            {{ $t('common:delete') }}
           </el-link>
         </div>
       </li>
@@ -131,6 +128,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import request from '@/utils/request'
 import Sortable from 'sortablejs'
 
@@ -218,21 +217,25 @@ export default {
      */
     handleBeforeUpload(file) {
       if (this.fileList.length + this.uploadingCount() >= this.limit) {
-        this.$modal.msgError(`上传文件数量不能超过 ${this.limit} 个`)
+        this.$modal.msgError(t('file:interface.youCanUploadUpToValueFiles', { value0: this.limit }))
         return false
       }
       const extension = this.getFileExtension(file.name)
       const allowedTypes = this.fileType.map((type) => String(type).toLowerCase())
       if (allowedTypes.length && !allowedTypes.includes(extension)) {
-        this.$modal.msgError(`文件格式不正确，请上传 ${this.fileType.join('/')} 格式文件`)
+        this.$modal.msgError(
+          t('file:interface.invalidFileFormatUploadAValueFile', { value0: this.fileType.join('/') })
+        )
         return false
       }
       if (file.name.includes(',')) {
-        this.$modal.msgError('文件名称不能包含英文逗号')
+        this.$modal.msgError(t('file:upload.nameComma'))
         return false
       }
       if (this.fileSize && file.size / 1024 / 1024 > this.fileSize) {
-        this.$modal.msgError(`上传文件大小不能超过 ${this.fileSize} MB`)
+        this.$modal.msgError(
+          t('file:interface.uploadedFilesCannotExceedValueMB', { value0: this.fileSize })
+        )
         return false
       }
       this.pendingFileList.push({
@@ -282,7 +285,7 @@ export default {
         },
       })
       if (!response.fileId || !response.downloadUrl) {
-        throw new Error('上传响应缺少文件ID或下载地址')
+        throw new Error(t('file:interface.theUploadResponseIsMissingAFileIDOrDownload'))
       }
       return response
     },
@@ -514,7 +517,7 @@ export default {
      * @returns {string} 错误信息
      */
     getErrorMessage(error) {
-      return (error && error.message) || '上传失败，请重试'
+      return (error && error.message) || t('file:interface.uploadFailedPleaseTryAgain')
     },
   },
 }

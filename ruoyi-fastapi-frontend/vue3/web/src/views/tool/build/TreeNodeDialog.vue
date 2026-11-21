@@ -1,7 +1,7 @@
 <template>
   <div>
     <el-dialog
-      title="添加选项"
+      :title="$t('tools:addOption')"
       v-model="open"
       width="800px"
       :close-on-click-modal="false"
@@ -17,24 +17,24 @@
       >
         <el-col :span="24">
           <el-form-item
-            label="选项名"
+            :label="$t('tools:optionLabel')"
             prop="label"
           >
             <el-input
               v-model="formData.label"
-              placeholder="请输入选项名"
+              :placeholder="$t('tools:enterOptionLabel')"
               clearable
             />
           </el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item
-            label="选项值"
+            :label="$t('tools:optionValue')"
             prop="value"
           >
             <el-input
               v-model="formData.value"
-              placeholder="请输入选项值"
+              :placeholder="$t('tools:enterOptionValue')"
               clearable
             >
               <template #append>
@@ -60,15 +60,16 @@
           <el-button
             type="primary"
             @click="handelConfirm"
-            >确 定</el-button
+            >{{ $t('system:confirm') }}</el-button
           >
-          <el-button @click="onClose">取 消</el-button>
+          <el-button @click="onClose">{{ $t('system:cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
   </div>
 </template>
 <script setup>
+import { t } from '@/i18n/adapter'
 const open = defineModel()
 const emit = defineEmits(['confirm'])
 const formData = ref({
@@ -79,14 +80,18 @@ const rules = {
   label: [
     {
       required: true,
-      message: '请输入选项名',
+      get message() {
+        return t('tools:enterOptionLabel')
+      },
       trigger: 'blur',
     },
   ],
   value: [
     {
       required: true,
-      message: '请输入选项值',
+      get message() {
+        return t('tools:enterOptionValue')
+      },
       trigger: 'blur',
     },
   ],
@@ -94,11 +99,15 @@ const rules = {
 const dataType = ref('string')
 const dataTypeOptions = ref([
   {
-    label: '字符串',
+    get label() {
+      return t('tools:builder.string')
+    },
     value: 'string',
   },
   {
-    label: '数字',
+    get label() {
+      return t('tools:builder.number')
+    },
     value: 'number',
   },
 ])

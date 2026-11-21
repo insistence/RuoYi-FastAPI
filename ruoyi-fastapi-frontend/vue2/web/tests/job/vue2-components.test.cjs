@@ -18,6 +18,8 @@ const normalize = (value) => JSON.parse(JSON.stringify(value))
 
 // Exercise real Vue 2 instances; API and browser resources are isolated per test.
 function createLoader(mocks = {}, globals = {}) {
+  const locale = require('../i18n/test-runtime.cjs')
+  mocks = { '@/i18n': locale, '@/i18n/adapter': locale, ...mocks }
   const cache = new Map()
   function load(filename) {
     filename = path.resolve(filename)

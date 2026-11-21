@@ -1,3 +1,7 @@
+import { useLocalizedText } from '@/i18n/form'
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { Alert, Button, Form, Input, Spin } from 'antd'
 import { getInteraction, submitInteractionPasswordChange } from '@/api/authCenter'
@@ -11,13 +15,16 @@ import {
 import AuthCenterShell from './AuthCenterShell'
 import { useInteractionContext } from './useInteraction'
 export default function ChangePassword() {
+  useI18n()
+
   const context = useInteractionContext()
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   const { pwdChrType, infoPwdValidator } = usePasswordRule()
   const [interaction, setInteraction] = useState({})
   const [initializing, setInitializing] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useLocalizedText('')
   const password = Form.useWatch('newPassword', form) || ''
   const strength =
     password.length < 6
@@ -32,7 +39,7 @@ export default function ChangePassword() {
     let active = true
     ;(async () => {
       if (!context.interactionId || !context.csrfToken())
-        return context.fatal('认证请求不完整，请返回应用重新登录')
+        return context.fatal(t('authCenter:theAuthenticationRequestIsIncompleteReturnToTheApp'))
       try {
         const response = await getInteraction(context.interactionId, context.csrfToken())
         if (!active) return
@@ -40,7 +47,7 @@ export default function ChangePassword() {
         if (response.data?.nextAction !== 'changePassword')
           await context.goToAction(response.data?.nextAction)
       } catch (e) {
-        if (active) context.fatal(e.message || '认证请求已失效')
+        if (active) context.fatal(e.message || t('authCenter:theAuthenticationRequestHasExpired'))
       } finally {
         if (active) setInitializing(false)
       }
@@ -64,38 +71,39 @@ export default function ChangePassword() {
       else await context.goToAction(response.data?.nextAction)
     } catch (e) {
       form.setFieldValue('oldPassword', '')
-      setError(e.message || '密码更新失败')
+      setError((t) => e.message || t('authCenter:failedToUpdatePassword'))
     } finally {
       setSubmitting(false)
     }
   }
   const policy = {
-    0: '需要 6–20 个字符，不能包含 < > “ ” 单引号、反斜杠或竖线',
-    1: '需要 6–20 位数字',
-    2: '需要 6–20 个英文字母',
-    3: '需要 6–20 个字符，并同时包含字母和数字',
-    4: '需要 6–20 个字符，并同时包含字母、数字和特殊字符',
+    0: t('authCenter:use620CharactersExcludingQuotationMarksBackslashesAnd'),
+    1: t('authCenter:use620Digits'),
+    2: t('authCenter:use620LatinLetters'),
+    3: t('authCenter:use620CharactersIncludingBothLettersAndNumbers'),
+    4: t('authCenter:use620CharactersIncludingLettersNumbersAndSymbols'),
   }[pwdChrType]
   return (
     <AuthCenterShell
-      steps={['保护账户', '确认权限']}
+      steps={[t('authCenter:protectYourAccount'), t('authCenter:confirmPermissions')]}
       expiresIn={interaction.expiresIn}
       applicationName={interaction.client?.clientName}
       applicationId={interaction.client?.clientId}
     >
       <Spin spinning={initializing}>
         <div className="auth-password-flow">
-          <p className="panel-kicker">账户保护</p>
-          <h2>先设置新的登录密码</h2>
+          <p className="panel-kicker">{t('authCenter:accountProtection')}</p>
+          <h2>{t('authCenter:setANewPasswordToContinue')}</h2>
           <p className="panel-lead">
-            检测到当前密码已过期或仍是初始密码。更新后才能继续访问{' '}
-            <strong>{interaction.client?.clientName || '发起登录的应用'}</strong>。
+            {t('authCenter:yourPasswordHasExpiredOrIsStillTheInitial')}{' '}
+            <strong>{interaction.client?.clientName || t('authCenter:appRequestingSignIn')}</strong>
+            。
           </p>
           <div className="security-impact">
             <ExclamationCircleOutlined />
             <span>
-              <strong>更新后会保护整个账户</strong>
-              <small>其他外部应用中的旧登录会话会退出，需要使用新密码重新登录。</small>
+              <strong>{t('authCenter:protectYourEntireAccount')}</strong>
+              <small>{t('authCenter:existingSessionsInOtherExternalAppsWillBeSigned')}</small>
             </span>
           </div>
           {error && (
@@ -112,19 +120,19 @@ export default function ChangePassword() {
             disabled={initializing || submitting}
           >
             <Form.Item
-              label="当前密码"
+              label={t('authCenter:currentPassword')}
               name="oldPassword"
-              rules={[{ required: true, message: '请输入当前密码' }]}
+              rules={[{ required: true, message: t('authCenter:enterYourCurrentPassword') }]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="用于确认是你本人"
+                placeholder={t('authCenter:toVerifyYourIdentity')}
                 size="large"
                 autoComplete="current-password"
               />
             </Form.Item>
             <Form.Item
-              label="新密码"
+              label={t('auth:password.new')}
               name="newPassword"
               dependencies={['oldPassword']}
               rules={[
@@ -132,14 +140,16 @@ export default function ChangePassword() {
                 ({ getFieldValue }) => ({
                   validator: (_, value) =>
                     value && value === getFieldValue('oldPassword')
-                      ? Promise.reject(new Error('新密码不能与当前密码相同'))
+                      ? Promise.reject(
+                          new Error(t('authCenter:theNewPasswordMustDifferFromTheCurrentPassword'))
+                        )
                       : Promise.resolve(),
                 }),
               ]}
             >
               <Input.Password
                 prefix={<KeyOutlined />}
-                placeholder="输入新的登录密码"
+                placeholder={t('authCenter:enterANewPassword')}
                 size="large"
                 autoComplete="new-password"
               />
@@ -149,9 +159,16 @@ export default function ChangePassword() {
               aria-live="polite"
             >
               <div className="meter-heading">
-                <span>安全强度</span>
+                <span>{t('authCenter:passwordStrength')}</span>
                 <strong className={`is-${strength}`}>
-                  {['尚未达到要求', '基础', '良好', '较强'][strength]}
+                  {
+                    [
+                      t('authCenter:requirementsNotMet'),
+                      t('authCenter:basic'),
+                      t('authCenter:good'),
+                      t('authCenter:strong'),
+                    ][strength]
+                  }
                 </strong>
               </div>
               <div
@@ -168,22 +185,22 @@ export default function ChangePassword() {
               <small>{policy}</small>
             </div>
             <Form.Item
-              label="再次输入新密码"
+              label={t('authCenter:repeatNewPassword')}
               name="confirmPassword"
               dependencies={['newPassword']}
               rules={[
-                { required: true, message: '请再次输入新密码' },
+                { required: true, message: t('authCenter:enterTheNewPasswordAgain') },
                 ({ getFieldValue }) => ({
                   validator: (_, value) =>
                     !value || value === getFieldValue('newPassword')
                       ? Promise.resolve()
-                      : Promise.reject(new Error('两次输入的新密码不一致')),
+                      : Promise.reject(new Error(t('authCenter:theNewPasswordsDoNotMatch'))),
                 }),
               ]}
             >
               <Input.Password
                 prefix={<CheckCircleOutlined />}
-                placeholder="再次输入，避免输错"
+                placeholder={t('authCenter:enterItAgainToAvoidMistakes')}
                 size="large"
                 autoComplete="new-password"
               />
@@ -196,7 +213,7 @@ export default function ChangePassword() {
               loading={submitting}
               block
             >
-              更新密码并继续
+              {t('authCenter:updatePasswordAndContinue')}
             </Button>
           </Form>
         </div>

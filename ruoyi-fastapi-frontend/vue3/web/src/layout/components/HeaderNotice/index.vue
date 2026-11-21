@@ -10,25 +10,25 @@
     >
       <!-- 弹出内容 -->
       <div class="notice-header">
-        <span class="notice-title">通知公告</span>
+        <span class="notice-title">{{ $t('layout:notices.title') }}</span>
         <span
           class="notice-mark-all"
           @click="markAllRead"
-          >全部已读</span
+          >{{ $t('layout:notices.readAll') }}</span
         >
       </div>
       <div
         v-if="noticeLoading"
         class="notice-loading"
       >
-        <el-icon class="is-loading"><Loading /></el-icon> 加载中...
+        <el-icon class="is-loading"><Loading /></el-icon> {{ $t('common:loading') }}
       </div>
       <div
         v-else-if="noticeList.length === 0"
         class="notice-empty"
       >
         <el-icon style="font-size: 24px; display: block; margin-bottom: 6px"><Postcard /></el-icon>
-        暂无公告
+        {{ $t('layout:notices.empty') }}
       </div>
       <div v-else>
         <div
@@ -43,7 +43,11 @@
             :type="item.noticeType === '1' ? 'warning' : 'success'"
             class="notice-tag"
           >
-            {{ item.noticeType === '1' ? '通知' : '公告' }}
+            {{
+              item.noticeType === '1'
+                ? $t('layout:notices.notification')
+                : $t('layout:notices.announcement')
+            }}
           </el-tag>
           <span class="notice-item-title">{{ item.noticeTitle }}</span>
           <span class="notice-item-date">{{ parseTime(item.createTime) || '-' }}</span>
@@ -138,7 +142,7 @@ function previewNotice(item) {
   proxy.$refs['noticeViewRef'].open(item.noticeId)
 }
 
-// 全部已读
+// {{ $t('layout:notices.readAll') }}
 function markAllRead() {
   const ids = noticeList.value.map((n) => n.noticeId).join(',')
   if (!ids) return

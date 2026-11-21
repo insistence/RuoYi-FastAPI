@@ -1,0 +1,37 @@
+{
+  "translationUnavailable": "Text unavailable",
+  "language": "Language",
+  "followDevice": "Follow device",
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "loading": "Loading…",
+  "retry": "Retry",
+  "languageSaved": "Language preference saved",
+  "languageFailed": "Could not save the language preference. Please try again.",
+  "network": {
+    "error": "Unable to connect to the server",
+    "timeout": "The request timed out",
+    "unauthorized": "Authentication failed. Unable to access system resources.",
+    "forbidden": "You do not have permission for this action",
+    "notFound": "The requested resource was not found",
+    "unknown": "Unknown system error. Contact your administrator.",
+    "httpStatus": "API request failed with status {{statusCode}}"
+  },
+  "session": {
+    "expired": "Your session has expired. Please sign in again.",
+    "signIn": "Sign in again",
+    "stay": "Stay on this page"
+  },
+  "notice": "Notice",
+  "updateSuccess": "Updated successfully",
+  "submit": "Submit",
+  "updateFailed": "Update failed",
+  "reload": "Reload",
+  "saveFailed": "Save failed. Please try again.",
+  "systemNotice": "Notice",
+  "upload": {
+    "invalidResponse": "The upload API returned invalid data",
+    "failed": "Upload failed"
+  }
+}

@@ -50,7 +50,7 @@
         <view>
           <view class="mb-4 flex items-center space-x-2">
             <view class="h-4 w-1 rounded-full bg-indigo-500"></view>
-            <text class="text-base font-bold text-gray-800">AI 生产力</text>
+            <text class="text-base font-bold text-gray-800">{{ $t('mobile:work.ai') }}</text>
           </view>
           <view class="grid grid-cols-2 gap-4">
             <view
@@ -66,8 +66,8 @@
                 >
                   <view class="i-mdi-chat text-xl"></view>
                 </view>
-                <text class="font-bold text-gray-800">智能对话</text>
-                <text class="mt-1 text-xs text-gray-500">智能助手</text>
+                <text class="font-bold text-gray-800">{{ $t('mobile:work.chat') }}</text>
+                <text class="mt-1 text-xs text-gray-500">{{ $t('mobile:work.assistant') }}</text>
               </view>
             </view>
             <view
@@ -83,8 +83,8 @@
                 >
                   <view class="i-mdi-image-multiple text-xl"></view>
                 </view>
-                <text class="font-bold text-gray-800">图像生成</text>
-                <text class="mt-1 text-xs text-gray-500">创意工坊</text>
+                <text class="font-bold text-gray-800">{{ $t('mobile:work.image') }}</text>
+                <text class="mt-1 text-xs text-gray-500">{{ $t('mobile:work.studio') }}</text>
               </view>
             </view>
           </view>
@@ -94,7 +94,7 @@
         <view>
           <view class="mb-4 flex items-center space-x-2">
             <view class="h-4 w-1 rounded-full bg-blue-500"></view>
-            <text class="text-base font-bold text-gray-800">系统管理</text>
+            <text class="text-base font-bold text-gray-800">{{ $t('mobile:work.system') }}</text>
           </view>
           <view class="rounded-2xl bg-white p-5 shadow-xs">
             <view class="flex flex-wrap justify-between gap-y-4">
@@ -107,7 +107,9 @@
                 >
                   <view class="i-mdi-account text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600">用户管理</text>
+                <text class="text-[11px] font-medium text-gray-600">{{
+                  $t('mobile:work.users')
+                }}</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -118,7 +120,9 @@
                 >
                   <view class="i-mdi-badge-account text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600">角色管理</text>
+                <text class="text-[11px] font-medium text-gray-600">{{
+                  $t('mobile:work.roles')
+                }}</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -129,7 +133,9 @@
                 >
                   <view class="i-mdi-office-building text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600">部门管理</text>
+                <text class="text-[11px] font-medium text-gray-600">{{
+                  $t('mobile:work.departments')
+                }}</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -140,7 +146,9 @@
                 >
                   <view class="i-mdi-cog text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600">配置管理</text>
+                <text class="text-[11px] font-medium text-gray-600">{{
+                  $t('mobile:work.config')
+                }}</text>
               </view>
 
               <view
@@ -152,7 +160,9 @@
                 >
                   <view class="i-mdi-book-open-page-variant text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600">字典管理</text>
+                <text class="text-[11px] font-medium text-gray-600">{{
+                  $t('mobile:work.dictionaries')
+                }}</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -163,7 +173,9 @@
                 >
                   <view class="i-mdi-bullhorn text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600">通知公告</text>
+                <text class="text-[11px] font-medium text-gray-600">{{
+                  $t('mobile:work.notices')
+                }}</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -174,7 +186,9 @@
                 >
                   <view class="i-mdi-file-document-outline text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600">日志管理</text>
+                <text class="text-[11px] font-medium text-gray-600">{{
+                  $t('mobile:work.logs')
+                }}</text>
               </view>
               <view
                 class="w-[22%] flex flex-col items-center space-y-1.5 active:opacity-60"
@@ -185,7 +199,9 @@
                 >
                   <view class="i-mdi-dots-horizontal text-xl"></view>
                 </view>
-                <text class="text-[11px] font-medium text-gray-600">更多</text>
+                <text class="text-[11px] font-medium text-gray-600">{{
+                  $t('mobile:work.more')
+                }}</text>
               </view>
             </view>
           </view>
@@ -196,6 +212,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import { ref, getCurrentInstance } from 'vue'
 
 const { proxy } = getCurrentInstance()
@@ -224,6 +241,6 @@ function handleToUserList() {
 }
 
 function handleBuilding() {
-  proxy.$modal.msg('模块建设中~')
+  proxy.$modal.msg(t('mobile:app.comingSoon'))
 }
 </script>

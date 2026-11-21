@@ -40,6 +40,9 @@ export default {
     }
   },
   watch: {
+    '$locale.locale'() {
+      if (this.chart) this.setOptions(this.chartData)
+    },
     chartData: {
       deep: true,
       handler(val) {
@@ -67,7 +70,15 @@ export default {
     setOptions({ expectedData, actualData } = {}) {
       this.chart.setOption({
         xAxis: {
-          data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          data: [
+            this.$t('layout:dashboard.monday'),
+            this.$t('layout:dashboard.tuesday'),
+            this.$t('layout:dashboard.wednesday'),
+            this.$t('layout:dashboard.thursday'),
+            this.$t('layout:dashboard.friday'),
+            this.$t('layout:dashboard.saturday'),
+            this.$t('layout:dashboard.sunday'),
+          ],
           boundaryGap: false,
           axisTick: {
             show: false,
@@ -93,11 +104,11 @@ export default {
           },
         },
         legend: {
-          data: ['expected', 'actual'],
+          data: [this.$t('layout:dashboard.expected'), this.$t('layout:dashboard.actual')],
         },
         series: [
           {
-            name: 'expected',
+            name: this.$t('layout:dashboard.expected'),
             itemStyle: {
               normal: {
                 color: '#FF005A',
@@ -114,7 +125,7 @@ export default {
             animationEasing: 'cubicInOut',
           },
           {
-            name: 'actual',
+            name: this.$t('layout:dashboard.actual'),
             smooth: true,
             type: 'line',
             itemStyle: {

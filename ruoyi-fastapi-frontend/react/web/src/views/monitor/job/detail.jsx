@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { Alert, Button, Modal, Tag } from 'antd'
 import {
@@ -17,11 +19,13 @@ import { DetailCard, DetailFields, DetailCode, DetailError } from '@/components/
 
 const displayArgs = (value) =>
   value == null || value === ''
-    ? '（无）'
+    ? t('monitor:none')
     : typeof value === 'string'
       ? value
       : JSON.stringify(value)
 export default function JobDetail({ open, row = {}, type = 'job', onClose }) {
+  useI18n()
+
   const { sys_job_executor, sys_job_store } = useDict('sys_job_executor', 'sys_job_store')
   const log = type === 'log'
   const field = (label, value, full = false, mono = false) => ({ label, value, full, mono })
@@ -39,53 +43,66 @@ export default function JobDetail({ open, row = {}, type = 'job', onClose }) {
   )
   const status = (
     <Tag color={String(row.status) === '0' ? 'success' : log ? 'error' : 'default'}>
-      {String(row.status) === '0' ? '正常' : log ? '失败' : '暂停'}
+      {String(row.status) === '0'
+        ? t('layout:notices.active')
+        : log
+          ? t('common:failed')
+          : t('monitor:pause')}
     </Tag>
   )
   return (
     <Modal
       className="job-dialog job-detail"
       open={open}
-      title={log ? '调度日志详细' : '任务详细'}
+      title={log ? t('monitor:schedulerLogDetails') : t('monitor:taskDetails')}
       width={780}
       style={{ maxWidth: 'calc(100vw - 32px)' }}
       onCancel={onClose}
-      footer={<Button onClick={onClose}>关 闭</Button>}
+      footer={<Button onClick={onClose}>{t('common:close')}</Button>}
     >
       <div className="detail-wrap">
         {log ? (
           <>
             <DetailCard
-              title="基本信息"
+              title={t('common:basicInfo')}
               icon={<InfoCircleOutlined />}
             >
               <DetailFields
                 items={[
-                  field('日志编号', row.jobLogId),
-                  field('执行状态', status),
-                  field('计划时间', parseTime(row.scheduledTime) || '-'),
-                  field('任务时区', row.timeZone || '-'),
-                  field('开始时间', parseTime(row.startTime) || '-'),
-                  field('结束时间', parseTime(row.endTime) || '-'),
-                  field('记录时间', parseTime(row.createTime) || '-'),
-                  row.runDurationMs != null && field('执行耗时', `${row.runDurationMs} 毫秒`),
+                  field(t('monitor:log.id'), row.jobLogId),
+                  field(t('monitor:job.executionStatus'), status),
+                  field(t('monitor:scheduledTime'), parseTime(row.scheduledTime) || '-'),
+                  field(t('monitor:taskTimeZone'), row.timeZone || '-'),
+                  field(t('common:startTime'), parseTime(row.startTime) || '-'),
+                  field(t('common:endTime'), parseTime(row.endTime) || '-'),
+                  field(t('monitor:recordedAt'), parseTime(row.createTime) || '-'),
+                  row.runDurationMs != null &&
+                    field(
+                      t('monitor:executionDuration'),
+                      t('monitor:valueMs', { runDurationMs: row.runDurationMs })
+                    ),
                 ]}
               />
             </DetailCard>
             <DetailCard
-              title="任务信息"
+              title={t('monitor:taskInformation')}
               icon={<ClockCircleOutlined />}
             >
               <DetailFields
                 items={[
-                  field('任务编号', row.jobId ?? '历史未关联'),
-                  field('调度存储', store),
-                  field('执行编号', row.executionId || '历史未关联', true, true),
-                  field('任务名称', row.jobName),
-                  field('任务分组', row.jobGroup),
-                  field('任务执行器', executor),
-                  field('任务触发器', row.jobTrigger || '-'),
-                  field('日志信息', row.jobMessage, true),
+                  field(t('monitor:job.id'), row.jobId ?? t('monitor:noLinkedHistory')),
+                  field(t('monitor:job.store'), store),
+                  field(
+                    t('monitor:executionId'),
+                    row.executionId || t('monitor:noLinkedHistory'),
+                    true,
+                    true
+                  ),
+                  field(t('monitor:job.name'), row.jobName),
+                  field(t('monitor:job.group'), row.jobGroup),
+                  field(t('monitor:job.executor'), executor),
+                  field(t('monitor:taskTrigger'), row.jobTrigger || '-'),
+                  field(t('monitor:logInformation'), row.jobMessage, true),
                 ]}
               />
             </DetailCard>
@@ -93,27 +110,27 @@ export default function JobDetail({ open, row = {}, type = 'job', onClose }) {
         ) : (
           <>
             <DetailCard
-              title="任务配置"
+              title={t('monitor:taskConfiguration')}
               icon={<SettingOutlined />}
             >
               <DetailFields
                 items={[
-                  field('任务编号', row.jobId),
-                  field('任务名称', row.jobName),
-                  field('任务分组', row.jobGroup),
-                  field('执行状态', status),
-                  field('任务执行器', executor, true),
+                  field(t('monitor:job.id'), row.jobId),
+                  field(t('monitor:job.name'), row.jobName),
+                  field(t('monitor:job.group'), row.jobGroup),
+                  field(t('monitor:job.executionStatus'), status),
+                  field(t('monitor:job.executor'), executor, true),
                 ]}
               />
             </DetailCard>
             <DetailCard
-              title="调度信息"
+              title={t('monitor:schedulingInformation')}
               icon={<CalendarOutlined />}
             >
               <DetailFields
                 items={[
                   field(
-                    '调度同步',
+                    t('monitor:schedulerSynchronization'),
                     <Tag
                       color={
                         { success: 'success', danger: 'error', warning: 'warning' }[
@@ -121,12 +138,15 @@ export default function JobDetail({ open, row = {}, type = 'job', onClose }) {
                         ] || 'warning'
                       }
                     >
-                      {syncStates[row.syncStatus]?.label || '待同步'}
+                      {syncStates[row.syncStatus]?.label || t('common:pendingSynchronization')}
                     </Tag>
                   ),
                   field(
-                    '配置版本',
-                    `已应用 ${row.appliedVersion ?? 0} / 最新 ${row.configVersion ?? '—'}`
+                    t('monitor:configurationVersion'),
+                    t('monitor:appliedValueLatestValue', {
+                      arg0: row.appliedVersion ?? 0,
+                      arg1: row.configVersion ?? '—',
+                    })
                   ),
                 ]}
               />
@@ -139,52 +159,71 @@ export default function JobDetail({ open, row = {}, type = 'job', onClose }) {
               )}
               <DetailFields
                 items={[
-                  field('cron 表达式', row.cronExpression, false, true),
-                  field('Cron 时区', row.timeZone),
+                  field(t('monitor:cronExpression'), row.cronExpression, false, true),
+                  field(t('monitor:cronTimeZone'), row.timeZone),
                   field(
-                    '实际下次调度',
-                    row.status === '1' ? '已停用' : parseTime(row.nextRunTime) || '暂无有效调度观测'
+                    t('monitor:actualNextRun'),
+                    row.status === '1'
+                      ? t('common:disabled')
+                      : parseTime(row.nextRunTime) || t('monitor:noValidSchedulingObservations')
                   ),
-                  field('Cron理论预览', parseTime(row.cronNextTime) || '无未来时刻'),
                   field(
-                    '调度观测时间',
-                    `${parseTime(row.scheduleObservedTime) || '-'}；理论预览仅按Cron规则计算，不代表已安排执行。`,
+                    t('monitor:cronSchedulePreview'),
+                    parseTime(row.cronNextTime) || t('monitor:noFutureOccurrence')
+                  ),
+                  field(
+                    t('monitor:schedulerObservedAt'),
+                    t('monitor:valueTheTheoreticalPreviewFollowsCronRulesAndDoes', {
+                      arg0: parseTime(row.scheduleObservedTime) || '-',
+                    }),
                     true
                   ),
                   field(
-                    '允许延迟',
+                    t('monitor:allowedDelay'),
                     row.misfireGraceTime === null
-                      ? '不限'
-                      : `${row.misfireGraceTime ?? '-'} 秒，超时跳过`
+                      ? t('monitor:unlimited')
+                      : t('monitor:valueSecondsSkipAfterTimeout', {
+                          arg0: row.misfireGraceTime ?? '-',
+                        })
                   ),
-                  field('最大并发数', `${row.maxInstances ?? '-'}（定时与手动共用）`),
-                  field('积压处理', row.coalesce ? '只执行最近一次' : '逐次执行'),
-                  field('调度存储', store),
+                  field(
+                    t('monitor:maximumConcurrency'),
+                    t('monitor:valueSharedByScheduledAndManualRuns', {
+                      arg0: row.maxInstances ?? '-',
+                    })
+                  ),
+                  field(
+                    t('monitor:missedRuns'),
+                    row.coalesce
+                      ? t('monitor:runOnlyTheLatestOccurrence')
+                      : t('monitor:runEachOccurrence')
+                  ),
+                  field(t('monitor:job.store'), store),
                 ]}
               />
             </DetailCard>
           </>
         )}
         <DetailCard
-          title={log ? '调用目标' : '执行方法'}
+          title={log ? t('monitor:job.target') : t('monitor:executionMethod')}
           icon={<ThunderboltOutlined />}
         >
-          <DetailCode value={row.invokeTarget || '（无）'} />
+          <DetailCode value={row.invokeTarget || t('monitor:none')} />
         </DetailCard>
         <DetailCard
-          title="调用参数"
+          title={t('monitor:callArguments')}
           icon={<FileTextOutlined />}
         >
           <DetailFields
             items={[
-              field('位置参数', displayArgs(row.jobArgs), true, true),
-              field('关键字参数', displayArgs(row.jobKwargs), true, true),
+              field(t('monitor:job.args'), displayArgs(row.jobArgs), true, true),
+              field(t('monitor:job.kwargs'), displayArgs(row.jobKwargs), true, true),
             ]}
           />
         </DetailCard>
         {log && String(row.status) === '1' && (
           <DetailCard
-            title="异常信息"
+            title={t('monitor:exceptionDetails')}
             icon={<WarningOutlined />}
             error
           >
@@ -193,16 +232,16 @@ export default function JobDetail({ open, row = {}, type = 'job', onClose }) {
         )}
         {!log && (
           <DetailCard
-            title="元信息"
+            title={t('monitor:metadata')}
             icon={<FileTextOutlined />}
           >
             <DetailFields
               items={[
-                field('创建人', row.createBy || '-'),
-                field('创建时间', parseTime(row.createTime) || '-'),
-                field('更新人', row.updateBy || '-'),
-                field('更新时间', parseTime(row.updateTime) || '-'),
-                row.remark && field('备注', row.remark, true),
+                field(t('monitor:createdBy'), row.createBy || '-'),
+                field(t('common:createdTime'), parseTime(row.createTime) || '-'),
+                field(t('monitor:updatedBy'), row.updateBy || '-'),
+                field(t('common:updatedTime'), parseTime(row.updateTime) || '-'),
+                row.remark && field(t('common:remark'), row.remark, true),
               ]}
             />
           </DetailCard>

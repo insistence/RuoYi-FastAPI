@@ -7,7 +7,7 @@
       >
         <el-card>
           <div slot="header">
-            <span><i class="el-icon-monitor"></i> 基本信息</span>
+            <span><i class="el-icon-monitor"></i> {{ $t('common:basicInfo') }}</span>
           </div>
           <div class="el-table el-table--enable-row-hover el-table--medium">
             <table
@@ -16,7 +16,9 @@
             >
               <tbody>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">Redis版本</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.redisVersion') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -25,16 +27,24 @@
                       {{ cache.info.redis_version }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">运行模式</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.runMode') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
                       v-if="cache.info"
                     >
-                      {{ cache.info.redis_mode == 'standalone' ? '单机' : '集群' }}
+                      {{
+                        cache.info.redis_mode == 'standalone'
+                          ? $t('monitor:expression.standalone')
+                          : $t('monitor:expression.cluster')
+                      }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">端口</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.port') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -43,7 +53,9 @@
                       {{ cache.info.tcp_port }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">客户端数</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.clients') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -54,7 +66,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">运行时间(天)</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.uptimeDays') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -63,7 +77,9 @@
                       {{ cache.info.uptime_in_days }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">使用内存</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.usedMemory') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -72,7 +88,9 @@
                       {{ cache.info.used_memory_human }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">使用CPU</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.cPUUsage') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -81,7 +99,9 @@
                       {{ parseFloat(cache.info.used_cpu_user_children).toFixed(2) }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">内存配置</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.memoryConfiguration') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -92,16 +112,20 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="el-table__cell is-leaf"><div class="cell">AOF是否开启</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.aOFEnabled') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
                       v-if="cache.info"
                     >
-                      {{ cache.info.aof_enabled == '0' ? '否' : '是' }}
+                      {{ cache.info.aof_enabled == '0' ? $t('common:no') : $t('common:yes') }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">RDB是否成功</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.rDBSuccessful') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -110,7 +134,9 @@
                       {{ cache.info.rdb_last_bgsave_status }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">Key数量</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.keyCount') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -119,7 +145,9 @@
                       {{ cache.dbSize }}
                     </div>
                   </td>
-                  <td class="el-table__cell is-leaf"><div class="cell">网络入口/出口</div></td>
+                  <td class="el-table__cell is-leaf">
+                    <div class="cell">{{ $t('monitor:messages.networkInOut') }}</div>
+                  </td>
                   <td class="el-table__cell is-leaf">
                     <div
                       class="cell"
@@ -143,7 +171,10 @@
       >
         <el-card>
           <div slot="header">
-            <span><i class="el-icon-pie-chart"></i> 命令统计</span>
+            <span
+              ><i class="el-icon-pie-chart"></i>
+              {{ $t('monitor:messages.commandStatistics') }}</span
+            >
           </div>
           <div class="el-table el-table--enable-row-hover el-table--medium">
             <div
@@ -160,7 +191,9 @@
       >
         <el-card>
           <div slot="header">
-            <span><i class="el-icon-odometer"></i> 内存信息</span>
+            <span
+              ><i class="el-icon-odometer"></i> {{ $t('monitor:messages.memoryInformation') }}</span
+            >
           </div>
           <div class="el-table el-table--enable-row-hover el-table--medium">
             <div
@@ -175,6 +208,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getCache } from '@/api/monitor/cache'
 import * as echarts from 'echarts'
 
@@ -209,7 +244,7 @@ export default {
           },
           series: [
             {
-              name: '命令',
+              name: t('monitor:messages.command'),
               type: 'pie',
               roseType: 'radius',
               radius: [15, 95],
@@ -227,7 +262,7 @@ export default {
           },
           series: [
             {
-              name: '峰值',
+              name: t('monitor:messages.peak'),
               type: 'gauge',
               min: 0,
               max: 1000,
@@ -237,7 +272,7 @@ export default {
               data: [
                 {
                   value: parseFloat(this.cache.info.used_memory_human),
-                  name: '内存消耗',
+                  name: t('monitor:messages.memoryUsage'),
                 },
               ],
             },
@@ -251,7 +286,7 @@ export default {
     },
     // 打开加载层
     openLoading() {
-      this.$modal.loading('正在加载缓存监控数据，请稍候！')
+      this.$modal.loading(t('monitor:messages.loadingCacheMonitoringDataPleaseWait'))
     },
   },
 }

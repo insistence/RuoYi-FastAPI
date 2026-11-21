@@ -86,7 +86,7 @@ ruoyi --help
 
 ### 2.3 第一个命令
 
-开发环境启动应用：
+在后端目录运行以下命令启动开发服务。启动时会自动校验并编译 gettext 词库。
 
 ```bash
 ruoyi app run --env=dev

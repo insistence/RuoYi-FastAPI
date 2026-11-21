@@ -4,6 +4,7 @@ from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.hooks import PluginHookResult, PluginHookRunner
 from plugins.core.runtime.support import (
@@ -143,7 +144,7 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         except PluginLifecycleStepFailed as exc:
             await self._close_purge_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '插件物理清理失败',
+                I18nMessage('插件物理清理失败', msg_key='plugin.runtime.purge.failed'),
                 exc.original_error,
                 plugin_id=plugin_id,
                 failed_step=exc.step_name,
@@ -151,7 +152,7 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         except Exception as exc:
             await self._close_purge_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '插件物理清理失败',
+                I18nMessage('插件物理清理失败', msg_key='plugin.runtime.purge.failed'),
                 exc,
                 plugin_id=plugin_id,
                 failed_step='prepare_purge',
@@ -204,7 +205,9 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
                     operation='purge',
                     enabled=False,
                     dependency_payload=dependency_payload,
-                    message='插件仍被已启用插件依赖，孤儿元数据清理已中止',
+                    message=I18nMessage(
+                        '插件仍被已启用插件依赖，孤儿元数据清理已中止', msg_key='plugin.runtime.purge.orphanBlocked'
+                    ),
                 )
 
             await lifecycle_uow.purge_plugin_metadata_by_id(plugin_id)
@@ -350,7 +353,9 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
             payload = PluginLifecyclePayloadBuilder.build_operation_dry_run_payload(
                 context.plugin_id,
                 operation='purge',
-                message='插件物理清理演练完成，未执行实际删除',
+                message=I18nMessage(
+                    '插件物理清理演练完成，未执行实际删除', msg_key='plugin.runtime.purge.previewCompleted'
+                ),
                 actions=context.actions or [],
                 precheck=cast('PluginPrecheckContext', context.precheck),
                 extra_payload={
@@ -370,7 +375,9 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
             operation='purge',
             enabled=False,
             dependency_payload=context.dependency_payload or {},
-            message='插件仍被已启用插件依赖，物理清理已中止',
+            message=I18nMessage(
+                '插件仍被已启用插件依赖，物理清理已中止', msg_key='plugin.runtime.purge.enabledDependent'
+            ),
         )
         return self._with_plugin_capability(payload, context.discovered_plugin)
 

@@ -1,16 +1,20 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { Steps, theme } from 'antd'
 import { LockOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import './style.css'
 export default function AuthCenterShell({
   currentStep = 0,
-  steps = ['验证身份', '确认权限'],
+  steps = [t('authCenter:verifyIdentity'), t('authCenter:confirmPermissions')],
   expiresIn = 0,
   applicationName = '',
   applicationId = '',
   showProgress = true,
   children,
 }) {
+  useI18n()
+
   const { token } = theme.useToken()
   const [remaining, setRemaining] = useState(0)
   useEffect(() => {
@@ -33,7 +37,7 @@ export default function AuthCenterShell({
     >
       <section
         className={`auth-shell${showProgress ? '' : ' is-compact'}`}
-        aria-label="统一认证中心"
+        aria-label={t('authCenter:authenticationCenter')}
       >
         <aside className="trust-panel">
           <div>
@@ -43,26 +47,26 @@ export default function AuthCenterShell({
               </span>
               <div>
                 <strong>{title}</strong>
-                <small>统一认证中心</small>
+                <small>{t('authCenter:authenticationCenter')}</small>
               </div>
             </div>
             <div className="trust-copy">
-              <p className="trust-kicker">安全连接</p>
-              <h1>确认身份后，安全返回应用</h1>
-              <p>认证过程在这里完成。你的密码、验证码和登录会话不会交给接入应用。</p>
+              <p className="trust-kicker">{t('authCenter:secureConnection')}</p>
+              <h1>{t('authCenter:verifyYourIdentityAndReturnSecurelyToTheApp')}</h1>
+              <p>{t('authCenter:authenticationTakesPlaceHereYourPasswordVerificationCodeAnd')}</p>
             </div>
             {(applicationName || applicationId) && (
               <div className="application-card">
-                <small>正在请求访问的应用</small>
+                <small>{t('authCenter:appRequestingAccess')}</small>
                 <div className="application-identity">
                   <span>
-                    {String(applicationName || applicationId || '应用')
+                    {String(applicationName || applicationId || t('common:apply'))
                       .trim()
                       .slice(0, 1)
                       .toUpperCase()}
                   </span>
                   <div>
-                    <strong>{applicationName || '外部应用'}</strong>
+                    <strong>{applicationName || t('authCenter:externalApplication')}</strong>
                     {applicationId && <code>{applicationId}</code>}
                   </div>
                 </div>
@@ -71,11 +75,11 @@ export default function AuthCenterShell({
             <ul className="trust-points">
               <li>
                 <CheckCircleOutlined />
-                <span>只会分享你明确确认的信息</span>
+                <span>{t('authCenter:onlyInformationYouExplicitlyApproveWillBeShared')}</span>
               </li>
               <li>
                 <CheckCircleOutlined />
-                <span>你可以取消，并返回发起登录的应用</span>
+                <span>{t('authCenter:youCanCancelAndReturnToTheAppThat')}</span>
               </li>
             </ul>
           </div>
@@ -86,8 +90,11 @@ export default function AuthCenterShell({
             />
             <span>
               {expiresIn > 0
-                ? `本次请求将在 ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')} 后失效`
-                : '受保护的认证连接'}
+                ? t('authCenter:thisRequestExpiresInValueValue', {
+                    arg0: Math.floor(remaining / 60),
+                    arg1: String(remaining % 60).padStart(2, '0'),
+                  })
+                : t('authCenter:protectedAuthenticationConnection')}
             </span>
           </div>
         </aside>
@@ -95,9 +102,9 @@ export default function AuthCenterShell({
           {showProgress && (
             <div
               className="progress-wrap"
-              aria-label="认证进度"
+              aria-label={t('authCenter:authenticationProgress')}
             >
-              <span>认证进度</span>
+              <span>{t('authCenter:authenticationProgress')}</span>
               <Steps
                 titlePlacement="vertical"
                 size="small"
@@ -108,7 +115,8 @@ export default function AuthCenterShell({
           )}
           <div className="auth-content">{children}</div>
           <footer className="mobile-security-note">
-            <LockOutlined /> {title} 不会向应用提供密码或验证码
+            <LockOutlined /> {title}{' '}
+            {t('authCenter:yourPasswordAndVerificationCodeWillNotBeShared')}
           </footer>
         </div>
       </section>

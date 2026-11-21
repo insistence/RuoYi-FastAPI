@@ -1,25 +1,29 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Button } from 'antd'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CloseOutlined } from '@ant-design/icons'
 import AuthCenterShell from './AuthCenterShell'
 export default function AuthCenterError() {
+  useI18n()
+
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const reason = params.get('reason')
   const unavailable = ['disabled', 'unavailable'].includes(reason)
   const title =
     reason === 'disabled'
-      ? '统一认证服务未启用'
+      ? t('authCenter:authenticationServiceIsDisabled')
       : reason === 'unavailable'
-        ? '统一认证服务暂不可用'
-        : '这次访问无法继续'
+        ? t('authCenter:authenticationServiceIsUnavailable')
+        : t('authCenter:unableToContinue')
   const message =
     reason === 'disabled'
-      ? '当前未开放统一认证服务，请返回原应用或联系管理员。'
+      ? t('authCenter:authenticationIsNotEnabledReturnToTheAppOr')
       : reason === 'unavailable'
-        ? '暂时无法连接认证服务，请稍后从原应用重试。'
+        ? t('authCenter:theAuthenticationServiceCannotBeReachedTryAgainLater')
         : (params.get('message') || '').slice(0, 240) ||
-          '认证请求可能已经过期、内容不完整，或应用的接入配置已经变更。'
+          t('authCenter:theAuthenticationRequestMayHaveExpiredBeIncompleteOr')
   return (
     <AuthCenterShell showProgress={false}>
       <div className="error-flow">
@@ -29,7 +33,9 @@ export default function AuthCenterError() {
         >
           <CloseOutlined />
         </span>
-        <p className="panel-kicker">{unavailable ? '服务不可用' : '认证未完成'}</p>
+        <p className="panel-kicker">
+          {unavailable ? t('authCenter:serviceUnavailable') : t('layout:route.authError')}
+        </p>
         <h2>{title}</h2>
         <p
           className="panel-lead"
@@ -38,15 +44,17 @@ export default function AuthCenterError() {
           {message}
         </p>
         <div className="next-steps">
-          <strong>你可以这样处理</strong>
+          <strong>{t('authCenter:whatYouCanDo')}</strong>
           <ol>
             <li>
-              {unavailable ? '返回刚才的应用，或关闭当前页面。' : '返回刚才的应用，重新发起登录。'}
+              {unavailable
+                ? t('authCenter:returnToTheAppOrCloseThisPage')
+                : t('authCenter:returnToTheAppAndStartSignInAgain')}
             </li>
             <li>
               {unavailable
-                ? '联系管理员确认服务状态。'
-                : '如果仍然失败，把出现问题的时间和应用名称告诉管理员。'}
+                ? t('authCenter:askYourAdministratorToCheckTheServiceStatus')
+                : t('authCenter:ifItStillFailsTellYourAdministratorTheApp')}
             </li>
           </ol>
         </div>
@@ -58,13 +66,13 @@ export default function AuthCenterError() {
             block
             onClick={() => navigate(-1)}
           >
-            返回上一页
+            {t('authCenter:goBack')}
           </Button>
         ) : (
           <p className="close-help">
             {unavailable
-              ? '可以安全关闭此页面，返回原应用。'
-              : '可以安全关闭此页面，再回到应用重新登录。'}
+              ? t('authCenter:youCanSafelyCloseThisPageAndReturnTo')
+              : t('authCenter:youCanSafelyCloseThisPageAndRestartSign')}
           </p>
         )}
       </div>

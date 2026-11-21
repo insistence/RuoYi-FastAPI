@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Modal, Upload } from 'antd'
@@ -34,6 +36,8 @@ export default function FileUpload({
   drag = true,
   image = false,
 }) {
+  useI18n()
+
   const [files, setFiles] = useState(() => normalize(value))
   const current = useRef(files)
   const emitted = useRef(value)
@@ -71,7 +75,7 @@ export default function FileUpload({
       .then((result) => {
         const source = result.data || result
         const url = source.fileName || source.url || source.downloadUrl
-        if (!url) throw new Error('上传响应缺少文件地址')
+        if (!url) throw new Error(t('file:theUploadResponseIsMissingAFileUrl'))
         onSuccess({ ...source, url })
       })
       .catch(onError)
@@ -89,7 +93,7 @@ export default function FileUpload({
           }
         : item
     )
-    if (file.status === 'error') message.error(`${file.name} 上传失败`)
+    if (file.status === 'error') message.error(t('file:failedToUploadValue', { name: file.name }))
     update(next)
   }
   return (
@@ -114,19 +118,19 @@ export default function FileUpload({
         beforeUpload={(file, batch) => {
           const ext = file.name.split('.').pop().toLowerCase()
           if (fileType?.length && !fileType.includes(ext)) {
-            message.error(`请上传 ${fileType.join('/')} 格式的文件`)
+            message.error(t('file:uploadAFileInValueFormat', { arg0: fileType.join('/') }))
             return Upload.LIST_IGNORE
           }
           if (fileSize && file.size > fileSize * 1024 * 1024) {
-            message.error(`文件大小不能超过 ${fileSize} MB`)
+            message.error(t('file:fileSizeCannotExceedValueMb', { fileSize }))
             return Upload.LIST_IGNORE
           }
           if (current.current.length + batch.indexOf(file) >= limit) {
-            message.warning(`最多上传 ${limit} 个文件`)
+            message.warning(t('file:uploadUpToValueFiles', { limit }))
             return Upload.LIST_IGNORE
           }
           if (file.name.includes(',')) {
-            message.error('文件名不能包含英文逗号')
+            message.error(t('file:fileNamesMustNotContainCommas'))
             return Upload.LIST_IGNORE
           }
           return true
@@ -156,16 +160,22 @@ export default function FileUpload({
       >
         {!disabled &&
           files.length < limit &&
-          (image ? <PlusOutlined /> : <Button icon={<UploadOutlined />}>选取文件</Button>)}
+          (image ? (
+            <PlusOutlined />
+          ) : (
+            <Button icon={<UploadOutlined />}>{t('file:upload.select')}</Button>
+          ))}
       </Upload>
       {isShowTip && !disabled && (
         <small>
-          请上传大小不超过 {fileSize} MB、格式为 {fileType?.join('/')} 的{image ? '图片' : '文件'}
+          {t('file:uploadFilesNoLargerThan')} {fileSize} {t('file:mbIn')} {fileType?.join('/')}{' '}
+          {t('file:format')}
+          {image ? t('file:image') : t('file:file')}
         </small>
       )}
       {image && (
         <Modal
-          title="预览"
+          title={t('common:preview')}
           width={800}
           open={!!preview}
           onCancel={() => setPreview('')}
@@ -173,7 +183,7 @@ export default function FileUpload({
         >
           <img
             src={preview}
-            alt="图片预览"
+            alt={t('file:imagePreview')}
             style={{ display: 'block', maxWidth: '100%', margin: '0 auto' }}
           />
         </Modal>

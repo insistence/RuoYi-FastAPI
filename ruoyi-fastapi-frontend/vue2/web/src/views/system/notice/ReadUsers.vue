@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    :title="`「${noticeTitle}」已读用户`"
+    :title="$t('system:notice.readUsersTitle', { title: noticeTitle })"
     :visible.sync="visible"
     width="760px"
     top="6vh"
@@ -8,6 +8,7 @@
     @close="handleClose"
   >
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -17,7 +18,7 @@
       <el-form-item prop="searchValue">
         <el-input
           v-model="queryParams.searchValue"
-          placeholder="登录名称 / 用户名称"
+          :placeholder="$t('system:loginNameUserName')"
           clearable
           prefix-icon="el-icon-search"
           style="width: 220px"
@@ -31,18 +32,18 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
       <el-form-item style="float: right; margin-right: 0">
         <span class="read-stat">
-          共 <strong>{{ total }}</strong> 人已读
+          {{ $t('system:notice.total') }} <strong>{{ total }}</strong> {{ $t('system:readers') }}
         </span>
       </el-form-item>
     </el-form>
@@ -55,36 +56,36 @@
     >
       <el-table-column
         type="index"
-        label="序号"
+        :label="$t('common:index')"
         width="55"
         align="center"
       />
       <el-table-column
-        label="登录名称"
+        :label="$t('system:loginName')"
         prop="userName"
         align="center"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="用户名称"
+        :label="$t('system:user.username')"
         prop="nickName"
         align="center"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="所属部门"
+        :label="$t('system:user.department')"
         prop="deptName"
         align="center"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="手机号码"
+        :label="$t('system:user.phone')"
         prop="phonenumber"
         align="center"
         width="120"
       />
       <el-table-column
-        label="阅读时间"
+        :label="$t('system:readAt')"
         prop="readTime"
         align="center"
         width="160"

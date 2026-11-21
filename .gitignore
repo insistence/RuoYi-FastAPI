@@ -153,3 +153,6 @@ cython_debug/
 .opencode/
 .qoder/
 .trae/
+
+# Backend development-only translation tool dependencies
+/ruoyi-fastapi-backend/.x18n/tooling/node_modules/

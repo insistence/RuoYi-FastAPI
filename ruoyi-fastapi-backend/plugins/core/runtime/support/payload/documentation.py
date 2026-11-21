@@ -2,6 +2,7 @@ from typing import Literal, TypeAlias
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.manifest.menu_tree import PluginMenuTree
 
@@ -54,7 +55,7 @@ class PluginDocumentationBuilder:
         """
         return PluginDocumentationPayload(
             ok=True,
-            message='插件文档生成完成',
+            message=I18nMessage('插件文档生成完成', msg_key='plugin.runtime.docs.generated'),
             plugin_id=plugin_id,
             format='markdown',
             markdown=markdown,

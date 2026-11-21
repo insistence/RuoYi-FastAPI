@@ -1,3 +1,7 @@
+import { useLocalizedError } from '@/i18n/error'
+import { usePageLocale } from '@/i18n/navigation'
+import { useI18n } from '@/i18n/adapter'
+import LanguageSelect from '@/components/LanguageSelect/index.jsx'
 import React, { useRef, useState } from 'react'
 import Taro, { useLoad } from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
@@ -8,6 +12,8 @@ import { useUserStore } from '@/store'
 import FormField from '@/components/FormField'
 import logo from '@/assets/logo.png'
 export default function Login() {
+  usePageLocale()
+  const { t } = useI18n()
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -22,7 +28,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
   const captchaVersion = useRef(0)
-  const [error, setError] = useState('')
+  const [error, setError] = useLocalizedError()
   const update = (key, value) => setForm((old) => ({ ...old, [key]: value }))
   async function refreshCode() {
     const version = ++captchaVersion.current
@@ -36,7 +42,7 @@ export default function Login() {
       })
       setForm((old) => ({ ...old, uuid: result.uuid || '', code: '' }))
     } catch (failure) {
-      setError(failure.message || '验证码加载失败，请重试')
+      setError(failure.message || ((t) => t('auth:login.captchaFailed')))
     }
   }
   useLoad(() => {
@@ -47,7 +53,11 @@ export default function Login() {
     if (lock.current) return
     if (!form.username.trim() || !form.password || (captcha.enabled && !form.code)) {
       setError(
-        !form.username.trim() ? '请输入账号' : !form.password ? '请输入密码' : '请输入验证码'
+        !form.username.trim()
+          ? (t) => t('auth:login.usernameRequired')
+          : !form.password
+            ? (t) => t('auth:login.passwordRequired')
+            : (t) => t('auth:login.codeRequired')
       )
       return
     }
@@ -59,7 +69,8 @@ export default function Login() {
       await useUserStore.getState().getInfo()
       await Taro.switchTab({ url: '/pages/index' })
     } catch (failure) {
-      setError(failure.message || '登录失败，请重试')
+      if (failure?.code === 'USER_SESSION_CHANGED') return
+      setError(failure.message || ((t) => t('auth:login.failed')))
       if (captcha.enabled) await refreshCode()
     } finally {
       lock.current = false
@@ -68,7 +79,10 @@ export default function Login() {
   }
   return (
     <View className="auth-screen">
-      <View className="flex flex-col items-center">
+      <View className="flex w-full justify-end pt-2">
+        <LanguageSelect />
+      </View>
+      <View className="mt-auto flex flex-col items-center pt-2">
         <View className="auth-logo">
           <Image
             src={logo}
@@ -76,21 +90,21 @@ export default function Login() {
             mode="widthFix"
           />
         </View>
-        <Text className="auth-title">RuoYi-FastAPI移动端登录</Text>
+        <Text className="auth-title">{t('auth:login.title')}</Text>
       </View>
-      <View className="auth-panel">
+      <View className="auth-panel mb-auto">
         <FormField
-          label="账号"
+          label={t('auth:login.username')}
           icon="account"
-          placeholder="请输入账号"
+          placeholder={t('auth:login.usernameRequired')}
           maxlength={30}
           value={form.username}
           onChange={(value) => update('username', value)}
         />
         <FormField
-          label="密码"
+          label={t('auth:login.password')}
           icon="lock"
-          placeholder="请输入密码"
+          placeholder={t('auth:login.passwordRequired')}
           password
           maxlength={20}
           value={form.password}
@@ -101,11 +115,11 @@ export default function Login() {
           <View className="auth-captcha mb-8 flex items-center gap-3">
             <View className="flex-1">
               <FormField
-                label="验证码"
+                label={t('auth:login.code')}
                 compact
                 icon="security"
                 type="number"
-                placeholder="验证码"
+                placeholder={t('auth:login.code')}
                 maxlength={4}
                 value={form.code}
                 onChange={(value) => update('code', value)}
@@ -122,7 +136,7 @@ export default function Login() {
                   src={captcha.image}
                 />
               ) : (
-                <Text className="text-sm text-blue-600">重新获取验证码</Text>
+                <Text className="text-sm text-blue-600">{t('auth:login.refreshCaptcha')}</Text>
               )}
             </View>
           </View>
@@ -134,33 +148,33 @@ export default function Login() {
           disabled={busy}
           onClick={submit}
         >
-          登 录
+          {t('auth:login.submit')}
         </Button>
         {captcha.register && (
           <View className="auth-footer auth-register-link">
-            没有账号？
+            {t('auth:login.noAccount')}
             <Text
               className="auth-link"
               onClick={() => Taro.navigateTo({ url: '/pages/register' })}
             >
-              立即注册
+              {t('auth:login.registerLink')}
             </Text>
           </View>
         )}
         <View className="auth-footer">
-          <Text>登录即代表同意</Text>
+          <Text>{t('auth:login.acceptTerms')}</Text>
           <Text
             className="auth-link"
             onClick={() => Taro.navigateTo({ url: '/pages/common/agreement/index' })}
           >
-            《用户协议》
+            {t('auth:login.agreementLink')}
           </Text>
-          <Text>和</Text>
+          <Text>{t('auth:login.and')}</Text>
           <Text
             className="auth-link"
             onClick={() => Taro.navigateTo({ url: '/pages/common/privacy/index' })}
           >
-            《隐私协议》
+            {t('auth:login.privacyLink')}
           </Text>
         </View>
       </View>

@@ -17,7 +17,7 @@
       class="el-submenu__hide-arrow"
       v-if="moreRoutes.length > 0"
     >
-      <template slot="title">更多菜单</template>
+      <template slot="title">{{ $t('layout:menu.more') }}</template>
       <sidebar-item
         :key="route.path + index"
         v-for="(route, index) in moreRoutes"

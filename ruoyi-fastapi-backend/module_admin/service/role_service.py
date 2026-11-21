@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from common.constant import CommonConstant
 from common.vo import CrudResponseModel, PageModel
 from exceptions.exception import ServiceException
+from i18n.message import I18nMessage
 from module_admin.dao.role_dao import RoleDao
 from module_admin.dao.user_dao import UserDao
 from module_admin.entity.vo.role_vo import (
@@ -86,8 +87,8 @@ class RoleService:
         :return: 校验结果
         """
         if check_role.admin:
-            raise ServiceException(message='不允许操作超级管理员角色')
-        return CrudResponseModel(is_success=True, message='校验通过')
+            raise ServiceException(message='不允许操作超级管理员角色', msg_key='role.superAdminProtected')
+        return CrudResponseModel(is_success=True, message='校验通过', msg_key='common.validated')
 
     @classmethod
     async def check_role_data_scope_services(
@@ -109,7 +110,7 @@ class RoleService:
                 )
                 if roles:
                     continue
-                raise ServiceException(message='没有权限访问角色数据')
+                raise ServiceException(message='没有权限访问角色数据', msg_key='role.forbidden')
 
     @classmethod
     async def check_role_name_unique_services(cls, query_db: AsyncSession, page_object: RoleModel) -> bool:
@@ -152,9 +153,17 @@ class RoleService:
         """
         add_role = RoleModel(**page_object.model_dump(by_alias=True, exclude={'create_time', 'update_time'}))
         if not await cls.check_role_name_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增角色{page_object.role_name}失败，角色名称已存在')
+            raise ServiceException(
+                message=f'新增角色{page_object.role_name}失败，角色名称已存在',
+                msg_key='role.addDuplicateName',
+                msg_params={'role_name': str(page_object.role_name)},
+            )
         if not await cls.check_role_key_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增角色{page_object.role_name}失败，角色权限已存在')
+            raise ServiceException(
+                message=f'新增角色{page_object.role_name}失败，角色权限已存在',
+                msg_key='role.addDuplicatePermission',
+                msg_params={'role_name': str(page_object.role_name)},
+            )
         try:
             add_result = await RoleDao.add_role_dao(query_db, add_role)
             role_id = add_result.role_id
@@ -162,7 +171,7 @@ class RoleService:
                 for menu in page_object.menu_ids:
                     await RoleDao.add_role_menu_dao(query_db, RoleMenuModel(roleId=role_id, menuId=menu))
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -242,9 +251,17 @@ class RoleService:
         if role_info:
             if page_object.type != 'status':
                 if not await cls.check_role_name_unique_services(query_db, page_object):
-                    raise ServiceException(message=f'修改角色{page_object.role_name}失败，角色名称已存在')
+                    raise ServiceException(
+                        message=f'修改角色{page_object.role_name}失败，角色名称已存在',
+                        msg_key='role.editDuplicateName',
+                        msg_params={'role_name': str(page_object.role_name)},
+                    )
                 if not await cls.check_role_key_unique_services(query_db, page_object):
-                    raise ServiceException(message=f'修改角色{page_object.role_name}失败，角色权限已存在')
+                    raise ServiceException(
+                        message=f'修改角色{page_object.role_name}失败，角色权限已存在',
+                        msg_key='role.editDuplicatePermission',
+                        msg_params={'role_name': str(page_object.role_name)},
+                    )
             try:
                 await cls._handle_edit_identity_event(query_db, page_object, role_info)
                 await RoleDao.edit_role_dao(query_db, edit_role)
@@ -256,12 +273,12 @@ class RoleService:
                                 query_db, RoleMenuModel(roleId=page_object.role_id, menuId=menu)
                             )
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='更新成功')
+                return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='角色不存在')
+            raise ServiceException(message='角色不存在', msg_key='role.notFound')
 
     @classmethod
     async def role_datascope_services(cls, query_db: AsyncSession, page_object: AddRoleModel) -> CrudResponseModel:
@@ -287,12 +304,12 @@ class RoleService:
                             query_db, RoleDeptModel(roleId=page_object.role_id, deptId=dept)
                         )
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='分配成功')
+                return CrudResponseModel(is_success=True, message='分配成功', msg_key='common.assigned')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='角色不存在')
+            raise ServiceException(message='角色不存在', msg_key='role.notFound')
 
     @classmethod
     async def delete_role_services(cls, query_db: AsyncSession, page_object: DeleteRoleModel) -> CrudResponseModel:
@@ -309,7 +326,11 @@ class RoleService:
                 for role_id in role_id_list:
                     role = await cls.role_detail_services(query_db, int(role_id))
                     if (await RoleDao.count_user_role_dao(query_db, int(role_id))) > 0:
-                        raise ServiceException(message=f'角色{role.role_name}已分配,不能删除')
+                        raise ServiceException(
+                            message=f'角色{role.role_name}已分配,不能删除',
+                            msg_key='role.assigned',
+                            msg_params={'role_name': str(role.role_name)},
+                        )
                     await IdentitySecurityEventService.handle_role_event(
                         query_db,
                         int(role_id),
@@ -325,12 +346,12 @@ class RoleService:
                     await RoleDao.delete_role_dept_dao(query_db, RoleDeptModel(**role_id_dict))
                     await RoleDao.delete_role_dao(query_db, RoleModel(**role_id_dict))
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入角色id为空')
+            raise ServiceException(message='传入角色id为空', msg_key='role.idRequired')
 
     @classmethod
     async def role_detail_services(cls, query_db: AsyncSession, role_id: int) -> RoleModel:
@@ -356,23 +377,23 @@ class RoleService:
         """
         # 创建一个映射字典，将英文键映射到中文键
         mapping_dict = {
-            'roleId': '角色编号',
-            'roleName': '角色名称',
-            'roleKey': '权限字符',
-            'roleSort': '显示顺序',
-            'status': '状态',
-            'createBy': '创建者',
-            'createTime': '创建时间',
-            'updateBy': '更新者',
-            'updateTime': '更新时间',
-            'remark': '备注',
+            'roleId': I18nMessage('角色编号', msg_key='export.roleId'),
+            'roleName': I18nMessage('角色名称', msg_key='export.roleName'),
+            'roleKey': I18nMessage('权限字符', msg_key='export.roleKey'),
+            'roleSort': I18nMessage('显示顺序', msg_key='export.displayOrder'),
+            'status': I18nMessage('状态', msg_key='export.status'),
+            'createBy': I18nMessage('创建者', msg_key='export.createdBy'),
+            'createTime': I18nMessage('创建时间', msg_key='export.createdAt'),
+            'updateBy': I18nMessage('更新者', msg_key='export.updatedBy'),
+            'updateTime': I18nMessage('更新时间', msg_key='export.updatedAt'),
+            'remark': I18nMessage('备注', msg_key='export.remark'),
         }
 
         for item in role_list:
             if item.get('status') == '0':
-                item['status'] = '正常'
+                item['status'] = I18nMessage('正常', msg_key='export.active')
             else:
-                item['status'] = '停用'
+                item['status'] = I18nMessage('停用', msg_key='export.disabled')
         binary_data = ExcelUtil.export_list2excel(role_list, mapping_dict)
 
         return binary_data

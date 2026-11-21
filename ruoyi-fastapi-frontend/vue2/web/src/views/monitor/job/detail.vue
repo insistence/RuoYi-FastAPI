@@ -1,6 +1,10 @@
 <template>
   <el-dialog
-    :title="type === 'log' ? '调度日志详细' : '任务详细'"
+    :title="
+      type === 'log'
+        ? $t('monitor:expression.schedulerLogDetails')
+        : $t('monitor:expression.taskDetails')
+    "
     :visible.sync="dialogVisible"
     width="780px"
     append-to-body
@@ -9,28 +13,30 @@
       <template v-if="type === 'log'">
         <!-- 基本信息 -->
         <div class="detail-card">
-          <div class="detail-card-title"><i class="el-icon-info"></i> 基本信息</div>
+          <div class="detail-card-title">
+            <i class="el-icon-info"></i> {{ $t('common:basicInfo') }}
+          </div>
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">日志编号</span>
+                <span class="detail-label">{{ $t('monitor:log.id') }}</span>
                 <span class="detail-value">{{ form.jobLogId }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">执行状态</span>
+                <span class="detail-label">{{ $t('monitor:job.executionStatus') }}</span>
                 <el-tag
                   v-if="form.status == 0"
                   type="success"
                   size="small"
-                  >正常</el-tag
+                  >{{ $t('layout:notices.active') }}</el-tag
                 >
                 <el-tag
                   v-else
                   type="danger"
                   size="small"
-                  >失败</el-tag
+                  >{{ $t('common:failed') }}</el-tag
                 >
               </div>
             </el-col>
@@ -38,13 +44,13 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">开始时间</span>
+                <span class="detail-label">{{ $t('common:startTime') }}</span>
                 <span class="detail-value">{{ formatTime(form.startTime) }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">结束时间</span>
+                <span class="detail-label">{{ $t('common:endTime') }}</span>
                 <span class="detail-value">{{ formatTime(form.endTime) }}</span>
               </div>
             </el-col>
@@ -52,7 +58,7 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">记录时间</span>
+                <span class="detail-label">{{ $t('monitor:messages.recordedAt') }}</span>
                 <span class="detail-value">{{ formatTime(form.createTime) }}</span>
               </div>
             </el-col>
@@ -61,21 +67,23 @@
               :span="12"
             >
               <div class="detail-item">
-                <span class="detail-label">执行耗时</span>
-                <span class="detail-value">{{ form.runDurationMs }} 毫秒</span>
+                <span class="detail-label">{{ $t('monitor:messages.executionDuration') }}</span>
+                <span class="detail-value"
+                  >{{ form.runDurationMs }} {{ $t('common:milliseconds') }}</span
+                >
               </div>
             </el-col>
           </el-row>
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">任务编号</span>
+                <span class="detail-label">{{ $t('monitor:job.id') }}</span>
                 <span class="detail-value">{{ form.jobId || '-' }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">计划时间</span>
+                <span class="detail-label">{{ $t('monitor:messages.scheduledTime') }}</span>
                 <span class="detail-value">{{ formatTime(form.scheduledTime) }}</span>
               </div>
             </el-col>
@@ -83,7 +91,7 @@
           <el-row class="detail-row">
             <el-col :span="24">
               <div class="detail-item">
-                <span class="detail-label">执行编号</span>
+                <span class="detail-label">{{ $t('monitor:messages.executionID') }}</span>
                 <span class="detail-value">{{ form.executionId || '-' }}</span>
               </div>
             </el-col>
@@ -92,17 +100,19 @@
 
         <!-- 任务信息 -->
         <div class="detail-card">
-          <div class="detail-card-title"><i class="el-icon-time"></i> 任务信息</div>
+          <div class="detail-card-title">
+            <i class="el-icon-time"></i> {{ $t('monitor:messages.taskInformation') }}
+          </div>
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">任务名称</span>
+                <span class="detail-label">{{ $t('monitor:job.name') }}</span>
                 <span class="detail-value">{{ form.jobName }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">任务分组</span>
+                <span class="detail-label">{{ $t('monitor:job.group') }}</span>
                 <span class="detail-value">{{ form.jobGroup || '-' }}</span>
               </div>
             </el-col>
@@ -110,7 +120,7 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">任务执行器</span>
+                <span class="detail-label">{{ $t('monitor:job.executor') }}</span>
                 <dict-tag
                   :options="dict.type.sys_job_executor"
                   :value="form.jobExecutor"
@@ -119,7 +129,7 @@
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">任务触发器</span>
+                <span class="detail-label">{{ $t('monitor:messages.taskTrigger') }}</span>
                 <span class="detail-value">{{ form.jobTrigger || '-' }}</span>
               </div>
             </el-col>
@@ -127,7 +137,7 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">调度存储</span>
+                <span class="detail-label">{{ $t('monitor:job.store') }}</span>
                 <dict-tag
                   :options="dict.type.sys_job_store"
                   :value="form.jobStore"
@@ -136,7 +146,7 @@
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">cron时区</span>
+                <span class="detail-label">{{ $t('monitor:job.timezone') }}</span>
                 <span class="detail-value">{{ form.timeZone || '-' }}</span>
               </div>
             </el-col>
@@ -144,7 +154,7 @@
           <el-row class="detail-row">
             <el-col :span="24">
               <div class="detail-item">
-                <span class="detail-label">日志信息</span>
+                <span class="detail-label">{{ $t('monitor:messages.logInformation') }}</span>
                 <span class="detail-value">{{ form.jobMessage }}</span>
               </div>
             </el-col>
@@ -153,22 +163,24 @@
 
         <!-- 调用信息 -->
         <div class="detail-card">
-          <div class="detail-card-title"><i class="el-icon-s-operation"></i> 调用信息</div>
+          <div class="detail-card-title">
+            <i class="el-icon-s-operation"></i> {{ $t('monitor:interface.callDetails') }}
+          </div>
           <div class="code-body">
             <div class="code-field">
-              <div class="code-field-label">调用目标</div>
+              <div class="code-field-label">{{ $t('monitor:job.target') }}</div>
               <div class="code-wrap">
-                <pre class="code-pre">{{ form.invokeTarget || '（无）' }}</pre>
+                <pre class="code-pre">{{ form.invokeTarget || $t('monitor:expression.none') }}</pre>
               </div>
             </div>
             <div class="code-field">
-              <div class="code-field-label">位置参数</div>
+              <div class="code-field-label">{{ $t('monitor:job.args') }}</div>
               <div class="code-wrap">
                 <pre class="code-pre">{{ formatParameter(form.jobArgs) }}</pre>
               </div>
             </div>
             <div class="code-field">
-              <div class="code-field-label">关键字参数</div>
+              <div class="code-field-label">{{ $t('monitor:job.kwargs') }}</div>
               <div class="code-wrap">
                 <pre class="code-pre">{{ formatParameter(form.jobKwargs) }}</pre>
               </div>
@@ -181,7 +193,9 @@
           v-if="form.status == 1"
           class="detail-card"
         >
-          <div class="detail-card-title error-title"><i class="el-icon-warning"></i> 异常信息</div>
+          <div class="detail-card-title error-title">
+            <i class="el-icon-warning"></i> {{ $t('monitor:messages.exceptionDetails') }}
+          </div>
           <div class="error-body">
             <div class="error-msg">{{ form.exceptionInfo }}</div>
           </div>
@@ -191,17 +205,19 @@
       <template v-else>
         <!-- 任务配置 -->
         <div class="detail-card">
-          <div class="detail-card-title"><i class="el-icon-setting"></i> 任务配置</div>
+          <div class="detail-card-title">
+            <i class="el-icon-setting"></i> {{ $t('monitor:messages.taskConfiguration') }}
+          </div>
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">任务编号</span>
+                <span class="detail-label">{{ $t('monitor:job.id') }}</span>
                 <span class="detail-value">{{ form.jobId }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">任务名称</span>
+                <span class="detail-label">{{ $t('monitor:job.name') }}</span>
                 <span class="detail-value">{{ form.jobName }}</span>
               </div>
             </el-col>
@@ -209,24 +225,24 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">任务分组</span>
+                <span class="detail-label">{{ $t('monitor:job.group') }}</span>
                 <span class="detail-value">{{ form.jobGroup || '-' }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">执行状态</span>
+                <span class="detail-label">{{ $t('monitor:job.executionStatus') }}</span>
                 <el-tag
                   v-if="form.status == 0"
                   type="success"
                   size="small"
-                  >正常</el-tag
+                  >{{ $t('layout:notices.active') }}</el-tag
                 >
                 <el-tag
                   v-else
                   type="info"
                   size="small"
-                  >暂停</el-tag
+                  >{{ $t('monitor:messages.pause') }}</el-tag
                 >
               </div>
             </el-col>
@@ -234,7 +250,7 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">任务执行器</span>
+                <span class="detail-label">{{ $t('monitor:job.executor') }}</span>
                 <dict-tag
                   :options="dict.type.sys_job_executor"
                   :value="form.jobExecutor"
@@ -243,7 +259,7 @@
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">调度存储</span>
+                <span class="detail-label">{{ $t('monitor:job.store') }}</span>
                 <dict-tag
                   :options="dict.type.sys_job_store"
                   :value="form.jobStore"
@@ -255,17 +271,19 @@
 
         <!-- 调度信息 -->
         <div class="detail-card">
-          <div class="detail-card-title"><i class="el-icon-date"></i> 调度信息</div>
+          <div class="detail-card-title">
+            <i class="el-icon-date"></i> {{ $t('monitor:messages.schedulingInformation') }}
+          </div>
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">cron 表达式</span>
+                <span class="detail-label">{{ $t('monitor:messages.cronExpression') }}</span>
                 <span class="detail-value">{{ form.cronExpression }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">cron时区</span>
+                <span class="detail-label">{{ $t('monitor:job.timezone') }}</span>
                 <span class="detail-value">{{ form.timeZone || '-' }}</span>
               </div>
             </el-col>
@@ -273,13 +291,15 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">预期执行时间</span>
+                <span class="detail-label">{{
+                  $t('monitor:interface.expectedExecutionTime')
+                }}</span>
                 <span class="detail-value">{{ formatTime(form.cronNextTime) }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">调度下次时间</span>
+                <span class="detail-label">{{ $t('monitor:interface.nextScheduledTime') }}</span>
                 <span class="detail-value">{{ formatTime(form.nextRunTime) }}</span>
               </div>
             </el-col>
@@ -287,15 +307,17 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">调度观测时间</span>
+                <span class="detail-label">{{ $t('monitor:messages.schedulerObservedAt') }}</span>
                 <span class="detail-value">{{ formatTime(form.scheduleObservedTime) }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">允许延迟</span>
+                <span class="detail-label">{{ $t('monitor:messages.allowedDelay') }}</span>
                 <span class="detail-value">{{
-                  form.misfireGraceTime === null ? '不限延迟' : form.misfireGraceTime + ' 秒'
+                  form.misfireGraceTime === null
+                    ? $t('monitor:messages.unlimitedDelay')
+                    : $t('common:time.seconds', { value: form.misfireGraceTime })
                 }}</span>
               </div>
             </el-col>
@@ -303,13 +325,17 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">积压处理</span>
-                <span class="detail-value">{{ form.coalesce ? '仅最近一次' : '逐次执行' }}</span>
+                <span class="detail-label">{{ $t('monitor:messages.missedRuns') }}</span>
+                <span class="detail-value">{{
+                  form.coalesce
+                    ? $t('monitor:expression.latestOnly')
+                    : $t('monitor:messages.runEachOccurrence')
+                }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">最大并发数</span>
+                <span class="detail-label">{{ $t('monitor:messages.maximumConcurrency') }}</span>
                 <span class="detail-value">{{ form.maxInstances }}</span>
               </div>
             </el-col>
@@ -318,11 +344,13 @@
 
         <!-- 调度同步状态 -->
         <div class="detail-card">
-          <div class="detail-card-title"><i class="el-icon-refresh"></i> 同步状态</div>
+          <div class="detail-card-title">
+            <i class="el-icon-refresh"></i> {{ $t('common:syncStatus') }}
+          </div>
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">同步状态</span>
+                <span class="detail-label">{{ $t('common:syncStatus') }}</span>
                 <el-tag
                   size="small"
                   :type="syncState.type"
@@ -332,7 +360,7 @@
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">最近生效时间</span>
+                <span class="detail-label">{{ $t('monitor:messages.lastAppliedAt') }}</span>
                 <span class="detail-value">{{ formatTime(form.appliedTime) }}</span>
               </div>
             </el-col>
@@ -340,7 +368,7 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">配置版本</span>
+                <span class="detail-label">{{ $t('monitor:messages.configurationVersion') }}</span>
                 <span class="detail-value">{{
                   form.configVersion == null ? '-' : form.configVersion
                 }}</span>
@@ -348,7 +376,7 @@
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">已应用版本</span>
+                <span class="detail-label">{{ $t('monitor:messages.appliedVersion') }}</span>
                 <span class="detail-value">{{
                   form.appliedVersion == null ? '-' : form.appliedVersion
                 }}</span>
@@ -365,22 +393,24 @@
 
         <!-- 执行方法 -->
         <div class="detail-card">
-          <div class="detail-card-title"><i class="el-icon-s-operation"></i> 执行方法</div>
+          <div class="detail-card-title">
+            <i class="el-icon-s-operation"></i> {{ $t('monitor:messages.executionMethod') }}
+          </div>
           <div class="code-body">
             <div class="code-field">
-              <div class="code-field-label">调用目标</div>
+              <div class="code-field-label">{{ $t('monitor:job.target') }}</div>
               <div class="code-wrap">
-                <pre class="code-pre">{{ form.invokeTarget || '（无）' }}</pre>
+                <pre class="code-pre">{{ form.invokeTarget || $t('monitor:expression.none') }}</pre>
               </div>
             </div>
             <div class="code-field">
-              <div class="code-field-label">位置参数</div>
+              <div class="code-field-label">{{ $t('monitor:job.args') }}</div>
               <div class="code-wrap">
                 <pre class="code-pre">{{ formatParameter(form.jobArgs) }}</pre>
               </div>
             </div>
             <div class="code-field">
-              <div class="code-field-label">关键字参数</div>
+              <div class="code-field-label">{{ $t('monitor:job.kwargs') }}</div>
               <div class="code-wrap">
                 <pre class="code-pre">{{ formatParameter(form.jobKwargs) }}</pre>
               </div>
@@ -390,17 +420,19 @@
 
         <!-- 元信息 -->
         <div class="detail-card">
-          <div class="detail-card-title"><i class="el-icon-document"></i> 元信息</div>
+          <div class="detail-card-title">
+            <i class="el-icon-document"></i> {{ $t('monitor:messages.metadata') }}
+          </div>
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">创建人</span>
+                <span class="detail-label">{{ $t('monitor:messages.createdBy') }}</span>
                 <span class="detail-value">{{ form.createBy || '-' }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">创建时间</span>
+                <span class="detail-label">{{ $t('common:createdTime') }}</span>
                 <span class="detail-value">{{ formatTime(form.createTime) }}</span>
               </div>
             </el-col>
@@ -408,13 +440,13 @@
           <el-row class="detail-row">
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">更新人</span>
+                <span class="detail-label">{{ $t('monitor:messages.updatedBy') }}</span>
                 <span class="detail-value">{{ form.updateBy || '-' }}</span>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="detail-item">
-                <span class="detail-label">更新时间</span>
+                <span class="detail-label">{{ $t('common:updatedTime') }}</span>
                 <span class="detail-value">{{ formatTime(form.updateTime) }}</span>
               </div>
             </el-col>
@@ -425,7 +457,7 @@
           >
             <el-col :span="24">
               <div class="detail-item">
-                <span class="detail-label">备注</span>
+                <span class="detail-label">{{ $t('common:remark') }}</span>
                 <span class="detail-value">{{ form.remark }}</span>
               </div>
             </el-col>
@@ -437,7 +469,9 @@
 </template>
 
 <script>
-import { syncStates } from '@/utils/job'
+import { t } from '@/i18n/adapter'
+
+import { syncStates } from '@/utils/jobDisplay'
 
 export default {
   name: 'JobDetail',
@@ -466,7 +500,7 @@ export default {
   },
   methods: {
     formatParameter(value) {
-      if (value === null || value === undefined || value === '') return '（无）'
+      if (value === null || value === undefined || value === '') return t('monitor:expression.none')
       return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
     },
     formatTime(value) {

@@ -3,6 +3,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.environment import PluginRuntimeEnvironmentService
 from plugins.core.manifest.menu_tree import PluginMenuTree
@@ -246,7 +247,11 @@ class PluginStructureChecker:
                     kind='controller_route_prefix',
                     path=str(controller_file),
                     ok=False,
-                    message=f'controller 文件语法错误，无法检查路由前缀：{exc}',
+                    message=I18nMessage(
+                        f'controller 文件语法错误，无法检查路由前缀：{exc}',
+                        msg_key='plugin.runtime.validation.controllerSyntax',
+                        msg_params={},
+                    ),
                 )
             ]
 
@@ -268,7 +273,11 @@ class PluginStructureChecker:
                         if ok
                         else f'controller 路由前缀必须位于插件 {plugin_id} 命名空间内：{prefix or "<未声明>"}'
                     ),
-                    suggestion=f'请使用 /{plugin_id} 或 /plugin/{plugin_id} 作为路由前缀根路径',
+                    suggestion=I18nMessage(
+                        f'请使用 /{plugin_id} 或 /plugin/{plugin_id} 作为路由前缀根路径',
+                        msg_key='plugin.suggestion.routePrefix',
+                        msg_params={'plugin_id': plugin_id},
+                    ),
                 )
             )
 
@@ -368,7 +377,11 @@ class PluginStructureChecker:
                 kind='hook_callable',
                 path=f'{hook_name}:{hook_path}',
                 ok=False,
-                message=f'生命周期钩子不可静态解析：{exc}',
+                message=I18nMessage(
+                    f'生命周期钩子不可静态解析：{exc}',
+                    msg_key='plugin.runtime.validation.hookSyntax',
+                    msg_params={},
+                ),
             )
 
         return PluginStructureCheckItem(
@@ -489,7 +502,11 @@ class PluginStructureChecker:
                 kind='job_callable',
                 path=job.callable,
                 ok=False,
-                message=f'任务 callable 不可静态解析：{exc}',
+                message=I18nMessage(
+                    f'任务 callable 不可静态解析：{exc}',
+                    msg_key='plugin.runtime.validation.jobSyntax',
+                    msg_params={},
+                ),
             )
 
         return PluginStructureCheckItem(
@@ -626,7 +643,10 @@ class PluginStructureChecker:
                 if ok
                 else f'migration包含无时区或非毫秒时间类型：{migration_path}'
             ),
-            suggestion='PostgreSQL使用TIMESTAMP(3) WITH TIME ZONE，MySQL使用UTC语义DATETIME(3)',
+            suggestion=I18nMessage(
+                'PostgreSQL使用TIMESTAMP(3) WITH TIME ZONE，MySQL使用UTC语义DATETIME(3)',
+                msg_key='plugin.suggestion.timestampType',
+            ),
         )
 
     @staticmethod
@@ -736,7 +756,11 @@ class PluginStructureChecker:
                 kind='frontend_view',
                 path=menu.component,
                 ok=False,
-                message=f'插件组件路径格式错误：{menu.component}',
+                message=I18nMessage(
+                    f'插件组件路径格式错误：{menu.component}',
+                    msg_key='plugin.runtime.validation.componentPath',
+                    msg_params={'component': str(menu.component)},
+                ),
             )
 
         return self._check_file('frontend_view', frontend_plugin_root / view_path)
@@ -790,8 +814,12 @@ class PluginStructureChecker:
                 kind=kind,
                 path=relative_path,
                 ok=False,
-                message=f'文件路径不能越过插件根目录：{relative_path}',
-                suggestion='请使用插件目录内的相对路径',
+                message=I18nMessage(
+                    f'文件路径不能越过插件根目录：{relative_path}',
+                    msg_key='plugin.runtime.validation.pathEscapesRoot',
+                    msg_params={'relative_path': str(relative_path)},
+                ),
+                suggestion=I18nMessage('请使用插件目录内的相对路径', msg_key='plugin.suggestion.relativePath'),
             )
 
         return cls._check_file(kind, file_path)

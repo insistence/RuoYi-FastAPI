@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from http import HTTPStatus
 from pathlib import Path
@@ -126,6 +127,31 @@ class GenTableTest(SystemPage):
         dialog = self.page.get_by_role('dialog', name='代码预览', exact=True)
         await expect(dialog.locator('pre:visible').first).to_contain_text('class')
         await expect(dialog.locator('pre:visible').first).to_contain_text(self.table_comment)
+        locale_files = {
+            name: source for name, source in code.items() if '/i18n/locales/' in name and name.endswith('.json')
+        }
+        assert any('/zh-CN/' in name for name in locale_files), code.keys()
+        assert any('/en-US/' in name for name in locale_files), code.keys()
+        for name, source in locale_files.items():
+            tab = dialog.get_by_role('tab', name=name, exact=True)
+            more = dialog.locator('.ant-tabs-nav-more')
+            if self.is_react and await more.is_visible():
+                # 通过溢出菜单选择被裁切的标签，避免自动滚动与 Tabs 的焦点滚动相互干扰。
+                await more.hover()
+                menu = self.page.locator('.ant-tabs-dropdown:visible').get_by_role('listbox')
+                await expect(menu).to_be_visible()
+                option = menu.get_by_role('option', name=name, exact=True)
+                if await option.count():
+                    await option.click()
+                else:
+                    await tab.click()
+            else:
+                await tab.click()
+            await expect(tab).to_have_attribute('aria-selected', 'true')
+            preview = dialog.locator('pre:visible').first
+            await expect(preview).to_have_text(source)
+            rendered = await preview.inner_text()
+            assert json.loads(rendered) == json.loads(source)
         await dialog.locator('.el-dialog__headerbtn, .ant-modal-close').click()
         async with self.page.expect_download() as pending:
             await self.table_row().locator('td').last.get_by_role('button').nth(4).click()

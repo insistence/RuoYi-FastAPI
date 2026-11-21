@@ -5,8 +5,8 @@
         :value="1"
         v-model="radioValue"
       >
-        不填，允许的通配符[, - * /]
-      </el-radio>
+        {{ $t('components:unspecifiedAllowedWildcards') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -14,8 +14,8 @@
         :value="2"
         v-model="radioValue"
       >
-        每年
-      </el-radio>
+        {{ $t('components:everyYear') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -23,18 +23,19 @@
         :value="3"
         v-model="radioValue"
       >
-        周期从
-        <el-input-number
-          v-model="cycle01"
-          :min="fullYear"
-          :max="2098"
-        />
-        -
-        <el-input-number
-          v-model="cycle02"
-          :min="cycle01 ? cycle01 + 1 : fullYear + 1"
-          :max="2099"
-        />
+        <LocalizedMessage
+          :message="$t('components:cron.range.years', { start: '{start}', end: '{end}' })"
+          ><template #start
+            ><el-input-number
+              v-model="cycle01"
+              :min="fullYear"
+              :max="2098" /></template
+          ><template #end
+            ><el-input-number
+              v-model="cycle02"
+              :min="cycle01 ? cycle01 + 1 : fullYear + 1"
+              :max="2099" /></template
+        ></LocalizedMessage>
       </el-radio>
     </el-form-item>
 
@@ -43,19 +44,19 @@
         :value="4"
         v-model="radioValue"
       >
-        从
-        <el-input-number
-          v-model="average01"
-          :min="fullYear"
-          :max="2098"
-        />
-        年开始，每
-        <el-input-number
-          v-model="average02"
-          :min="1"
-          :max="2099 - average01 || fullYear"
-        />
-        年执行一次
+        <LocalizedMessage
+          :message="$t('components:cron.every.years', { start: '{start}', step: '{step}' })"
+          ><template #start
+            ><el-input-number
+              v-model="average01"
+              :min="fullYear"
+              :max="2098" /></template
+          ><template #step
+            ><el-input-number
+              v-model="average02"
+              :min="1"
+              :max="2099 - average01 || fullYear" /></template
+        ></LocalizedMessage>
       </el-radio>
     </el-form-item>
 
@@ -64,11 +65,11 @@
         :value="5"
         v-model="radioValue"
       >
-        指定
-        <el-select
+        {{ $t('components:specify')
+        }}<el-select
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('components:multipleSelectionsAllowed')"
           multiple
           :multiple-limit="8"
         >
@@ -85,6 +86,7 @@
 </template>
 
 <script setup>
+import LocalizedMessage from '@/components/LocalizedMessage/index.vue'
 const emit = defineEmits(['update'])
 const props = defineProps({
   cron: {

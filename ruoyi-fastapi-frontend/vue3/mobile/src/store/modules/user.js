@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import config from '@/config'
@@ -10,6 +11,9 @@ import { setBusinessTimezone, setUserTimezone } from '@/utils/time'
 import defAva from '@/static/images/profile.jpg'
 
 const baseUrl = config.baseUrl
+
+const sessionChangedError = () =>
+  Object.assign(new Error('User session changed'), { code: 'USER_SESSION_CHANGED' })
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(getToken())
@@ -86,10 +90,15 @@ export const useUserStore = defineStore('user', () => {
 
   // 获取用户信息
   const getInfoAction = () => {
+    const requestedToken = getToken()
+    const isCurrentSession = () =>
+      requestedToken && requestedToken === getToken() && requestedToken === token.value
     return new Promise((resolve, reject) => {
       getInfo()
         .then((res) => {
+          if (!isCurrentSession()) throw sessionChangedError()
           const user = res.user
+          i18n.setAccount(user?.userId, user?.locale, user?.localeRevision)
           appTimezone.value = res.appTimezone
           setBusinessTimezone(res.appTimezone)
           applyTimezone(user.timeZone)
@@ -111,7 +120,7 @@ export const useUserStore = defineStore('user', () => {
           resolve(res)
         })
         .catch((error) => {
-          reject(error)
+          reject(isCurrentSession() ? error : sessionChangedError())
         })
     })
   }
@@ -131,6 +140,7 @@ export const useUserStore = defineStore('user', () => {
       SET_ROLES([])
       SET_PERMISSIONS([])
       removeToken()
+      i18n.setAccount(null)
       storage.clean()
     }
   }

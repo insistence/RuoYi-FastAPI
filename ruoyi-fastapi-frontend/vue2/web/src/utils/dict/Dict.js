@@ -18,6 +18,7 @@ export default class Dict {
     this.owner = null
     this.label = {}
     this.type = {}
+    this._loads = new Map()
   }
 
   init(options) {
@@ -62,8 +63,11 @@ export default class Dict {
  * @returns {Promise}
  */
 function loadDict(dict, dictMeta) {
+  const generation = (dict._loads.get(dictMeta.type) || 0) + 1
+  dict._loads.set(dictMeta.type, generation)
   return dictMeta.request(dictMeta).then((response) => {
     const type = dictMeta.type
+    if (response === null || dict._loads.get(type) !== generation) return dict.type[type]
     let dicts = dictMeta.responseConverter(response, dictMeta)
     if (!(dicts instanceof Array)) {
       console.error('the return of responseConverter must be Array.<DictData>')
@@ -73,6 +77,7 @@ function loadDict(dict, dictMeta) {
       dicts = []
     }
     dict.type[type].splice(0, Number.MAX_SAFE_INTEGER, ...dicts)
+    Object.keys(dict.label[type]).forEach((key) => Vue.delete(dict.label[type], key))
     dicts.forEach((d) => {
       Vue.set(dict.label[type], d.value, d.label)
     })

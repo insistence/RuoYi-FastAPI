@@ -32,8 +32,15 @@
         class="system-loading-spinner"
         aria-hidden="true"
       ></div>
-      <p class="system-loading-title">正在加载系统资源，请耐心等待</p>
+      <p
+        id="bootstrap-loading-text"
+        class="system-loading-title"
+        data-storage-key="ruoyi-react-web:%VITE_APP_BASE_API%:bootstrap-loading"
+      >
+        正在加载系统资源，请耐心等待
+      </p>
     </div>
+    <script src="%BASE_URL%bootstrap-loading.js"></script>
     <script
       type="module"
       src="/src/main.jsx"

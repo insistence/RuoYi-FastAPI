@@ -1,11 +1,14 @@
 <template>
-  <el-form size="small">
+  <el-form
+    :validate-on-rule-change="false"
+    size="small"
+  >
     <el-form-item>
       <el-radio
         v-model="radioValue"
         :label="1"
       >
-        日，允许的通配符[, - * ? / L W]
+        {{ $t('components:cron.dayAllowedWildcardsLW') }}
       </el-radio>
     </el-form-item>
 
@@ -14,7 +17,7 @@
         v-model="radioValue"
         :label="2"
       >
-        不指定
+        {{ $t('components:cron.notSpecified') }}
       </el-radio>
     </el-form-item>
 
@@ -23,7 +26,7 @@
         v-model="radioValue"
         :label="3"
       >
-        周期从
+        {{ $t('components:cron.rangeFrom') }}
         <el-input-number
           v-model="cycle01"
           :min="1"
@@ -35,7 +38,7 @@
           :min="cycle01 ? cycle01 + 1 : 2"
           :max="31"
         />
-        日
+        {{ $t('components:cron.day') }}
       </el-radio>
     </el-form-item>
 
@@ -44,19 +47,19 @@
         v-model="radioValue"
         :label="4"
       >
-        从
+        {{ $t('components:cron.from') }}
         <el-input-number
           v-model="average01"
           :min="1"
           :max="30"
         />
-        号开始，每
+        {{ $t('components:cron.repeatEvery.day') }}
         <el-input-number
           v-model="average02"
           :min="1"
           :max="31 - average01 || 1"
         />
-        日执行一次
+        {{ $t('components:cron.unit.days') }}
       </el-radio>
     </el-form-item>
 
@@ -65,13 +68,13 @@
         v-model="radioValue"
         :label="5"
       >
-        每月
+        {{ $t('components:cron.everyMonth') }}
         <el-input-number
           v-model="workday"
           :min="1"
           :max="31"
         />
-        号最近的那个工作日
+        {{ $t('components:cron.nearestWeekday') }}
       </el-radio>
     </el-form-item>
 
@@ -80,7 +83,7 @@
         v-model="radioValue"
         :label="6"
       >
-        本月最后一天
+        {{ $t('components:cron.lastDayOfTheMonth') }}
       </el-radio>
     </el-form-item>
 
@@ -89,11 +92,11 @@
         v-model="radioValue"
         :label="7"
       >
-        指定
+        {{ $t('common:specified') }}
         <el-select
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('common:multipleSelect')"
           multiple
           style="width: 100%"
         >

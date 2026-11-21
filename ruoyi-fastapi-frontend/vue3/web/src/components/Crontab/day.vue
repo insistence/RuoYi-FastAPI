@@ -5,8 +5,8 @@
         v-model="radioValue"
         :value="1"
       >
-        日，允许的通配符[, - * ? / L W]
-      </el-radio>
+        {{ $t('components:dayAllowedWildcardsLW') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -14,8 +14,8 @@
         v-model="radioValue"
         :value="2"
       >
-        不指定
-      </el-radio>
+        {{ $t('components:notSpecified') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -23,19 +23,19 @@
         v-model="radioValue"
         :value="3"
       >
-        周期从
-        <el-input-number
-          v-model="cycle01"
-          :min="1"
-          :max="30"
-        />
-        -
-        <el-input-number
-          v-model="cycle02"
-          :min="cycle01 + 1"
-          :max="31"
-        />
-        日
+        <LocalizedMessage
+          :message="$t('components:cron.range.days', { start: '{start}', end: '{end}' })"
+          ><template #start
+            ><el-input-number
+              v-model="cycle01"
+              :min="1"
+              :max="30" /></template
+          ><template #end
+            ><el-input-number
+              v-model="cycle02"
+              :min="cycle01 + 1"
+              :max="31" /></template
+        ></LocalizedMessage>
       </el-radio>
     </el-form-item>
 
@@ -44,19 +44,19 @@
         v-model="radioValue"
         :value="4"
       >
-        从
-        <el-input-number
-          v-model="average01"
-          :min="1"
-          :max="30"
-        />
-        号开始，每
-        <el-input-number
-          v-model="average02"
-          :min="1"
-          :max="31 - average01"
-        />
-        日执行一次
+        <LocalizedMessage
+          :message="$t('components:cron.every.days', { start: '{start}', step: '{step}' })"
+          ><template #start
+            ><el-input-number
+              v-model="average01"
+              :min="1"
+              :max="30" /></template
+          ><template #step
+            ><el-input-number
+              v-model="average02"
+              :min="1"
+              :max="31 - average01" /></template
+        ></LocalizedMessage>
       </el-radio>
     </el-form-item>
 
@@ -65,14 +65,14 @@
         v-model="radioValue"
         :value="5"
       >
-        每月
-        <el-input-number
+        {{ $t('components:everyMonth')
+        }}<el-input-number
           v-model="workday"
           :min="1"
           :max="31"
         />
-        号最近的那个工作日
-      </el-radio>
+        {{ $t('components:nearestWeekday') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -80,8 +80,8 @@
         v-model="radioValue"
         :value="6"
       >
-        本月最后一天
-      </el-radio>
+        {{ $t('components:lastDayOfTheMonth') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -89,11 +89,11 @@
         v-model="radioValue"
         :value="7"
       >
-        指定
-        <el-select
+        {{ $t('components:specify')
+        }}<el-select
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('components:multipleSelectionsAllowed')"
           multiple
           :multiple-limit="10"
         >
@@ -109,6 +109,7 @@
   </el-form>
 </template>
 <script setup>
+import LocalizedMessage from '@/components/LocalizedMessage/index.vue'
 const emit = defineEmits(['update'])
 const props = defineProps({
   cron: {

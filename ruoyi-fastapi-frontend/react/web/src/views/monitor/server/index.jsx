@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { Col, Row, Spin } from 'antd'
 import {
@@ -12,6 +14,8 @@ import { parseTime } from '@/utils/ruoyi'
 import MonitorPanel, { MetricTable, usage } from '@/components/MonitorPanel'
 
 export default function Server() {
+  useI18n()
+
   const [server, setServer] = useState({}),
     [loading, setLoading] = useState(true)
   useEffect(() => {
@@ -42,12 +46,12 @@ export default function Server() {
               icon={<ControlOutlined />}
             >
               <MetricTable
-                headers={['属性', '值']}
+                headers={[t('monitor:property'), t('monitor:value')]}
                 rows={[
-                  ['核心数', cpu.cpuNum],
-                  ['用户使用率', `${cpu.used ?? 0}%`],
-                  ['系统使用率', `${cpu.sys ?? 0}%`],
-                  ['当前空闲率', `${cpu.free ?? 0}%`],
+                  [t('monitor:cpuCores'), cpu.cpuNum],
+                  [t('monitor:userCpuUsage'), `${cpu.used ?? 0}%`],
+                  [t('monitor:systemCpuUsage'), `${cpu.sys ?? 0}%`],
+                  [t('monitor:idleCpu'), `${cpu.free ?? 0}%`],
                 ]}
               />
             </MonitorPanel>
@@ -57,16 +61,16 @@ export default function Server() {
             md={12}
           >
             <MonitorPanel
-              title="内存"
+              title={t('monitor:memory')}
               icon={<DatabaseOutlined />}
             >
               <MetricTable
-                headers={['属性', '内存', 'Python']}
+                headers={[t('monitor:property'), t('monitor:memory'), 'Python']}
                 rows={[
-                  ['total', '总内存'],
-                  ['used', '已用内存'],
-                  ['free', '剩余内存'],
-                  ['usage', '使用率'],
+                  ['total', t('monitor:totalMemory')],
+                  ['used', t('monitor:server.usedMemory')],
+                  ['free', t('monitor:availableMemory')],
+                  ['usage', t('monitor:usage')],
                 ].map(([key, label]) => [
                   label,
                   key === 'usage' ? usage(mem[key]) : mem[key],
@@ -77,46 +81,56 @@ export default function Server() {
           </Col>
           <Col span={24}>
             <MonitorPanel
-              title="服务器信息"
+              title={t('monitor:serverInformation')}
               icon={<DesktopOutlined />}
             >
               <MetricTable
                 rows={[
-                  ['服务器名称', sys.computerName, '操作系统', sys.osName],
-                  ['服务器IP', sys.computerIp, '系统架构', sys.osArch],
+                  [t('monitor:serverName'), sys.computerName, t('monitor:server.os'), sys.osName],
+                  [
+                    t('monitor:serverIp'),
+                    sys.computerIp,
+                    t('monitor:systemArchitecture'),
+                    sys.osArch,
+                  ],
                 ]}
               />
             </MonitorPanel>
           </Col>
           <Col span={24}>
             <MonitorPanel
-              title="Python解释器信息"
+              title={t('monitor:pythonInterpreter')}
               icon={<CoffeeOutlined />}
             >
               <MetricTable
                 rows={[
-                  ['Python名称', py.name, 'Python版本', py.version],
-                  ['启动时间', parseTime(py.startTime), '运行时长', py.runTime],
-                  ['安装路径', { span: 3, value: py.home }],
-                  ['项目路径', { span: 3, value: sys.userDir }],
+                  [t('monitor:pythonName'), py.name, t('monitor:pythonVersion'), py.version],
+                  [
+                    t('monitor:startedAt'),
+                    parseTime(py.startTime),
+                    t('monitor:uptime'),
+                    py.runTime,
+                  ],
+                  [t('monitor:installationPath'), { span: 3, value: py.home }],
+                  [t('monitor:projectPath'), { span: 3, value: sys.userDir }],
                 ]}
               />
             </MonitorPanel>
           </Col>
           <Col span={24}>
             <MonitorPanel
-              title="磁盘状态"
+              title={t('monitor:diskStatus')}
               icon={<HddOutlined />}
             >
               <MetricTable
                 headers={[
-                  '盘符路径',
-                  '文件系统',
-                  '盘符名称',
-                  '总大小',
-                  '可用大小',
-                  '已用大小',
-                  '已用百分比',
+                  t('monitor:mountPath'),
+                  t('monitor:fileSystem'),
+                  t('monitor:volumeName'),
+                  t('monitor:totalSize'),
+                  t('monitor:availableSpace'),
+                  t('monitor:usedSpace'),
+                  t('monitor:usedPercentage'),
                 ]}
                 rows={sysFiles.map((file) => [
                   file.dirName,

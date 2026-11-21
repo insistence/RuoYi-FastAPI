@@ -1,18 +1,22 @@
 <template>
   <div class="login">
     <el-form
+      :validate-on-rule-change="false"
       ref="loginForm"
       :model="loginForm"
       :rules="loginRules"
       class="login-form"
     >
-      <h3 class="title">{{ title }}</h3>
+      <div class="auth-heading">
+        <h3 class="title">{{ title }}</h3>
+        <LanguageSelect />
+      </div>
       <el-form-item prop="username">
         <el-input
           v-model="loginForm.username"
           type="text"
           auto-complete="off"
-          placeholder="账号"
+          :placeholder="$t('auth:login.username')"
         >
           <svg-icon
             slot="prefix"
@@ -26,7 +30,7 @@
           v-model="loginForm.password"
           type="password"
           auto-complete="off"
-          placeholder="密码"
+          :placeholder="$t('auth:login.password')"
           @keyup.enter.native="handleLogin"
         >
           <svg-icon
@@ -43,7 +47,7 @@
         <el-input
           v-model="loginForm.code"
           auto-complete="off"
-          placeholder="验证码"
+          :placeholder="$t('auth:login.code')"
           style="width: 63%"
           @keyup.enter.native="handleLogin"
         >
@@ -64,7 +68,7 @@
       <el-checkbox
         v-model="loginForm.rememberMe"
         style="margin: 0px 0px 25px 0px"
-        >记住密码</el-checkbox
+        >{{ $t('auth:login.remember') }}</el-checkbox
       >
       <el-form-item style="width: 100%">
         <el-button
@@ -74,8 +78,8 @@
           style="width: 100%"
           @click.native.prevent="handleLogin"
         >
-          <span v-if="!loading">登 录</span>
-          <span v-else>登 录 中...</span>
+          <span v-if="!loading">{{ $t('auth:login.submit') }}</span>
+          <span v-else>{{ $t('auth:login.signingIn') }}</span>
         </el-button>
         <div
           style="float: right"
@@ -84,7 +88,7 @@
           <router-link
             class="link-type"
             :to="'/register'"
-            >立即注册</router-link
+            >{{ $t('auth:register.link') }}</router-link
           >
         </div>
       </el-form-item>
@@ -97,6 +101,7 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
 import { getCodeImg } from '@/api/login'
 import Cookies from 'js-cookie'
 import { encrypt, decrypt } from '@/utils/jsencrypt'
@@ -117,9 +122,33 @@ export default {
         uuid: '',
       },
       loginRules: {
-        username: [{ required: true, trigger: 'blur', message: '请输入您的账号' }],
-        password: [{ required: true, trigger: 'blur', message: '请输入您的密码' }],
-        code: [{ required: true, trigger: 'change', message: '请输入验证码' }],
+        username: [
+          {
+            required: true,
+            trigger: 'blur',
+            get message() {
+              return t('auth:login.usernameRequired')
+            },
+          },
+        ],
+        password: [
+          {
+            required: true,
+            trigger: 'blur',
+            get message() {
+              return t('auth:login.passwordRequired')
+            },
+          },
+        ],
+        code: [
+          {
+            required: true,
+            trigger: 'change',
+            get message() {
+              return t('auth:login.codeRequired')
+            },
+          },
+        ],
       },
       loading: false,
       // 验证码开关
@@ -202,16 +231,28 @@ export default {
   background-image: url('../assets/images/login-background.jpg');
   background-size: cover;
 }
-.title {
-  margin: 0px auto 30px auto;
-  text-align: center;
+.auth-heading {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  align-items: start;
+  column-gap: 8px;
+  margin-bottom: 24px;
   color: #707070;
+}
+.title {
+  grid-column: 2;
+  align-self: center;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .login-form {
   border-radius: 6px;
   background: #ffffff;
   width: 400px;
+  max-width: calc(100% - 32px);
   padding: 25px 25px 5px 25px;
   z-index: 1;
   .el-input {

@@ -1,7 +1,7 @@
 <template>
   <div>
     <el-drawer
-      :title="`文件审计 - ${fileName}`"
+      :title="$t('file:dialog.auditFile', { name: fileName })"
       :visible.sync="visible"
       size="80%"
       append-to-body
@@ -9,6 +9,7 @@
     >
       <div class="drawer-content">
         <el-form
+          :validate-on-rule-change="false"
           ref="queryForm"
           :model="queryParams"
           size="small"
@@ -16,105 +17,105 @@
           label-width="68px"
         >
           <el-form-item
-            label="操作类型"
+            :label="$t('monitor:log.operationType')"
             prop="action"
           >
             <el-select
               v-model="queryParams.action"
-              placeholder="全部操作"
+              :placeholder="$t('monitor:messages.allOperations')"
               clearable
               style="width: 200px"
             >
               <el-option
-                label="上传"
+                :label="$t('common:upload')"
                 value="upload"
               />
               <el-option
-                label="下载"
+                :label="$t('common:download')"
                 value="download"
               />
               <el-option
-                label="授权变更"
+                :label="$t('file:messages.permissionChange')"
                 value="acl_update"
               />
               <el-option
-                label="归属转移"
+                :label="$t('file:messages.ownershipTransfer')"
                 value="transfer"
               />
               <el-option
-                label="移入回收站"
+                :label="$t('file:messages.moveToRecycleBin')"
                 value="delete"
               />
               <el-option
-                label="恢复"
+                :label="$t('common:restore')"
                 value="restore"
               />
               <el-option
-                label="永久清理"
+                :label="$t('file:messages.permanentlyDelete')"
                 value="purge"
               />
               <el-option
-                label="存储对账"
+                :label="$t('file:messages.storageReconciliation')"
                 value="reconcile"
               />
               <el-option
-                label="保留延期"
+                :label="$t('file:messages.retentionExtension')"
                 value="retention_extend"
               />
               <el-option
-                label="到期处置"
+                :label="$t('file:messages.expiryDisposal')"
                 value="retention_dispose"
               />
             </el-select>
           </el-form-item>
           <el-form-item
-            label="操作结果"
+            :label="$t('file:messages.operationResult')"
             prop="result"
           >
             <el-select
               v-model="queryParams.result"
-              placeholder="全部结果"
+              :placeholder="$t('monitor:messages.allResults')"
               clearable
               style="width: 200px"
             >
               <el-option
-                label="已授权"
+                :label="$t('file:messages.allowed')"
                 value="allowed"
               />
               <el-option
-                label="已拒绝"
+                :label="$t('file:messages.denied')"
                 value="denied"
               />
               <el-option
-                label="已完成"
+                :label="$t('common:completed')"
                 value="completed"
               />
               <el-option
-                label="失败"
+                :label="$t('common:failed')"
                 value="failed"
               />
             </el-select>
           </el-form-item>
           <el-form-item
-            label="操作用户"
+            :label="$t('file:messages.actingUser')"
             prop="actorName"
           >
             <el-input
               v-model="queryParams.actorName"
-              placeholder="请输入用户名"
+              :placeholder="$t('file:messages.enterAUsername')"
               clearable
               style="width: 200px"
               @keyup.enter.native="handleQuery"
             />
           </el-form-item>
-          <el-form-item label="操作时间">
+          <el-form-item :label="$t('monitor:log.operationTime')">
             <el-date-picker
               v-model="dateRange"
               value-format="yyyy-MM-dd HH:mm:ss"
               type="datetimerange"
               range-separator="-"
-              start-placeholder="开始时间"
-              end-placeholder="结束时间"
+              :start-placeholder="$t('common:startTime')"
+              :end-placeholder="$t('common:endTime')"
               style="width: 200px"
             />
           </el-form-item>
@@ -124,13 +125,13 @@
               icon="el-icon-search"
               size="mini"
               @click="handleQuery"
-              >搜索</el-button
+              >{{ $t('common:search') }}</el-button
             >
             <el-button
               icon="el-icon-refresh"
               size="mini"
               @click="resetQuery"
-              >重置</el-button
+              >{{ $t('common:reset') }}</el-button
             >
           </el-form-item>
         </el-form>
@@ -139,7 +140,7 @@
           :data="auditList"
         >
           <el-table-column
-            label="操作"
+            :label="$t('common:actions')"
             align="center"
             prop="action"
             width="105"
@@ -149,7 +150,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="结果"
+            :label="$t('file:messages.result')"
             align="center"
             prop="result"
             width="100"
@@ -161,21 +162,21 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="操作用户"
+            :label="$t('file:messages.actingUser')"
             align="center"
             prop="actorName"
             width="120"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="客户端地址"
+            :label="$t('file:messages.clientAddress')"
             align="center"
             prop="ipAddress"
             width="140"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="传输字节"
+            :label="$t('file:messages.bytesTransferred')"
             align="right"
             prop="bytesSent"
             width="110"
@@ -185,14 +186,14 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="失败原因"
+            :label="$t('common:failureReason')"
             align="left"
             prop="errorMessage"
             min-width="140"
             :show-overflow-tooltip="true"
           />
           <el-table-column
-            label="访问时间"
+            :label="$t('file:messages.accessedAt')"
             align="center"
             prop="accessTime"
             width="180"
@@ -202,13 +203,13 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="详情"
+            :label="$t('common:details')"
             align="center"
             width="70"
           >
             <template slot-scope="scope">
               <el-tooltip
-                content="查看审计详情"
+                :content="$t('file:messages.viewAuditDetails')"
                 placement="top"
               >
                 <el-button
@@ -228,13 +229,13 @@
           @pagination="getList"
         />
         <div class="drawer-footer">
-          <el-button @click="visible = false">关 闭</el-button>
+          <el-button @click="visible = false">{{ $t('common:close') }}</el-button>
         </div>
       </div>
     </el-drawer>
 
     <el-dialog
-      title="审计详情"
+      :title="$t('file:messages.auditDetails')"
       :visible.sync="detailOpen"
       width="720px"
       append-to-body
@@ -243,38 +244,38 @@
         :column="2"
         border
       >
-        <el-descriptions-item label="操作类型">
+        <el-descriptions-item :label="$t('monitor:log.operationType')">
           {{ actionLabel(detail.action) }}
         </el-descriptions-item>
-        <el-descriptions-item label="操作结果">
+        <el-descriptions-item :label="$t('file:messages.operationResult')">
           {{ resultLabel(detail.result) }}
         </el-descriptions-item>
-        <el-descriptions-item label="操作用户">
+        <el-descriptions-item :label="$t('file:messages.actingUser')">
           {{ detail.actorName || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="客户端地址">
+        <el-descriptions-item :label="$t('file:messages.clientAddress')">
           {{ detail.ipAddress || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="请求ID">
+        <el-descriptions-item :label="$t('file:messages.requestID')">
           {{ detail.requestId || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="链路ID">
+        <el-descriptions-item :label="$t('file:messages.traceID')">
           {{ detail.traceId || '-' }}
         </el-descriptions-item>
         <el-descriptions-item
-          label="操作时间"
+          :label="$t('monitor:log.operationTime')"
           :span="2"
         >
           {{ parseTime(detail.accessTime) }}
         </el-descriptions-item>
         <el-descriptions-item
-          label="用户代理"
+          :label="$t('file:messages.userAgent')"
           :span="2"
         >
           {{ detail.userAgent || '-' }}
         </el-descriptions-item>
         <el-descriptions-item
-          label="失败原因"
+          :label="$t('common:failureReason')"
           :span="2"
         >
           {{ detail.errorMessage || '-' }}
@@ -287,26 +288,26 @@
         class="mt20"
       >
         <el-table-column
-          label="详情项"
+          :label="$t('file:messages.detailItem')"
           prop="label"
           width="180"
         />
         <el-table-column
-          label="内容"
+          :label="$t('system:file.content')"
           prop="value"
           :show-overflow-tooltip="true"
         />
       </el-table>
       <el-empty
         v-else
-        description="无操作详情"
+        :description="$t('file:messages.noOperationDetails')"
         :image-size="60"
       />
       <div
         slot="footer"
         class="dialog-footer"
       >
-        <el-button @click="detailOpen = false">关 闭</el-button>
+        <el-button @click="detailOpen = false">{{ $t('common:close') }}</el-button>
       </div>
     </el-dialog>
   </div>

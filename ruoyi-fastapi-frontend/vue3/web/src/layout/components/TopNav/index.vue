@@ -16,7 +16,7 @@
           v-if="item.meta && item.meta.icon && item.meta.icon !== '#'"
           :icon-class="item.meta.icon"
         />
-        {{ item.meta.title }}
+        {{ resolveRouteTitle(item) }}
       </el-menu-item>
     </template>
 
@@ -26,7 +26,7 @@
       index="more"
       v-if="topMenus.length > visibleNumber"
     >
-      <template #title>更多菜单</template>
+      <template #title>{{ $t('layout:menu.more') }}</template>
       <template v-for="(item, index) in topMenus">
         <el-menu-item
           :index="item.path"
@@ -37,7 +37,7 @@
             v-if="item.meta && item.meta.icon && item.meta.icon !== '#'"
             :icon-class="item.meta.icon"
           />
-          {{ item.meta.title }}
+          {{ resolveRouteTitle(item) }}
         </el-menu-item>
       </template>
     </el-sub-menu>
@@ -45,6 +45,7 @@
 </template>
 
 <script setup>
+import { resolveRouteTitle } from '@/i18n/adapter'
 import { constantRoutes } from '@/router'
 import { isHttp } from '@/utils/validate'
 import useAppStore from '@/store/modules/app'

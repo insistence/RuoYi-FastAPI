@@ -1,0 +1,215 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "plugin.audit.batchNotFound"
+msgstr "Plugin batch operation audit log not found"
+
+msgid "plugin.audit.retentionApplied"
+msgstr "Plugin operation audit log retention policy applied"
+
+msgid "plugin.config.plaintextExportForbidden"
+msgstr "Use the CLI to export sensitive configuration as plain text. This operation is unavailable on the web."
+
+msgid "plugin.config.statusReadFailed"
+msgstr "Unable to read the plugin configuration status"
+
+msgid "plugin.dependenciesRecovered"
+msgstr "Plugin startup dependencies recovered. Status: %(target_status)s"
+
+msgid "plugin.session.pageMissing"
+msgstr "The plugin page does not exist"
+
+msgid "plugin.session.notReady"
+msgstr "The plugin page is not ready yet"
+
+msgid "plugin.session.forbidden"
+msgstr "You do not have permission to access this plugin"
+
+msgid "plugin.session.expired"
+msgstr "The plugin session has expired"
+
+msgid "plugin.session.invalid"
+msgstr "The plugin session is invalid"
+
+msgid "plugin.session.sameOrigin"
+msgstr "Only the host application can start a plugin session from the same origin"
+
+msgid "plugin.session.identityMismatch"
+msgstr "The plugin session belongs to a different user"
+
+msgid "plugin.session.missingSessionId"
+msgstr "The host login is missing its session ID"
+
+msgid "plugin.session.loginInvalid"
+msgstr "Your login session is no longer valid"
+
+msgid "plugin.session.loginExpired"
+msgstr "Your login session has expired"
+
+msgid "plugin.session.bindingInvalid"
+msgstr "The plugin session binding is invalid"
+
+msgid "plugin.session.updating"
+msgstr "The plugin session is being updated. Please try again"
+
+msgid "plugin.disabled"
+msgstr "This plugin is disabled and its API is unavailable"
+
+msgid "plugin.invalidState"
+msgstr "The plugin's current status does not allow this operation"
+
+msgid "plugin.markedAbnormal"
+msgstr "Plugin marked as abnormal"
+
+msgid "plugin.noDependencyFailure"
+msgstr "This plugin is not in a startup dependency failure state"
+
+msgid "plugin.notFound"
+msgstr "Plugin not found"
+
+msgid "plugin.notInstalled"
+msgstr "Install the plugin before enabling it"
+
+msgid "plugin.release.statusReadFailed"
+msgstr "Unable to read the plugin artifact release status"
+
+msgid "plugin.suggestion.batchDependencies"
+msgstr "Run ruoyi plugin plan %(operation)s %(plugin_id)s to inspect blocking dependencies"
+
+msgid "plugin.suggestion.batchDryRun"
+msgstr "Run ruoyi plugin %(operation)s %(plugin_id)s --dry-run separately to investigate the failure"
+
+msgid "plugin.suggestion.batchError"
+msgstr "Review and fix the error, then run the batch command again"
+
+msgid "plugin.suggestion.batchMenus"
+msgstr "Run ruoyi plugin check %(plugin_id)s to inspect menu or permission conflicts"
+
+msgid "plugin.suggestion.batchStructure"
+msgstr "Run ruoyi plugin check %(plugin_id)s to fix plugin directory issues"
+
+msgid "plugin.suggestion.buttonChildren"
+msgstr "Move child menus from button menus to a directory or page menu"
+
+msgid "plugin.suggestion.buttonComponent"
+msgstr "Button menus represent permission actions, not routes; leave component empty"
+
+msgid "plugin.suggestion.buttonPermissions"
+msgstr ""
+"Declare perms for button menus and list them in top-level permissions for consistent frontend and backend permission "
+"checks"
+
+msgid "plugin.suggestion.checkScripts"
+msgstr "Check the migration/seed declarations and script files"
+
+msgid "plugin.suggestion.dependencyVersion"
+msgstr "Declare a minimum version or compatible version range for plugin dependencies"
+
+msgid "plugin.suggestion.fixMigration"
+msgstr ""
+"Fix migration idempotency or schema issues before retrying. If necessary, verify the result manually before marking "
+"it successful."
+
+msgid "plugin.suggestion.healthChecker"
+msgstr "Declare backend.health.checker for plugins with enabled tasks so operators can verify task dependencies"
+
+msgid "plugin.suggestion.maintenanceWindow"
+msgstr "Apply plugin changes in development mode or during maintenance, then restart the backend or rebuild the frontend."
+
+msgid "plugin.suggestion.newMigration"
+msgstr "Add a new migration file; keep previously applied migrations unchanged"
+
+msgid "plugin.suggestion.numberBounds"
+msgstr "Only number settings support min/max; remove the constraint or change the type to number"
+
+msgid "plugin.suggestion.pagePermissions"
+msgstr "Declare perms for page menus and list them in top-level permissions for consistent role grants and menu visibility"
+
+msgid "plugin.suggestion.pairedHooks"
+msgstr "Declare startup and shutdown hooks together so runtime resources are initialized and released"
+
+msgid "plugin.suggestion.passwordSecret"
+msgstr "Declare secret=true for password settings to protect sensitive values in displays and exports"
+
+msgid "plugin.suggestion.patternType"
+msgstr "Only string, textarea, and password settings support pattern; remove it or change the setting type"
+
+msgid "plugin.suggestion.permissionMenu"
+msgstr "Declare a page, directory, or button menu for permissions that must be assigned to roles"
+
+msgid "plugin.suggestion.permissionPrefix"
+msgstr "Use %(prefix)s<resource>:<action> to avoid conflicts with platform or plugin permissions"
+
+msgid "plugin.suggestion.pluginVersion"
+msgstr "Declare a minimum version or compatible version range for the required plugin"
+
+msgid "plugin.suggestion.purgeHook"
+msgstr "Implement backend.hooks.onPurge if resources must be physically removed with the plugin"
+
+msgid "plugin.suggestion.recoverMigration"
+msgstr ""
+"Check whether the database changes were applied. Run mark-success if complete; otherwise run mark-failed, fix the "
+"issue, and retry."
+
+msgid "plugin.suggestion.relativePath"
+msgstr "Use a relative path inside the plugin directory"
+
+msgid "plugin.suggestion.releaseWorkers"
+msgstr "Use the plugin release command after stopping all host workers."
+
+msgid "plugin.suggestion.repeatableSeed"
+msgstr "Make the seed script repeatable without duplicating initial data"
+
+msgid "plugin.suggestion.requiredConfig"
+msgstr "Provide a safe default or document the required post-installation setting in the plugin README"
+
+msgid "plugin.suggestion.restoreMigration"
+msgstr "Restore the original migration file or add a later migration for the changes."
+
+msgid "plugin.suggestion.reviewDatabaseState"
+msgstr "Verify the database schema before manually updating the migration history"
+
+msgid "plugin.suggestion.reviewMigrationState"
+msgstr "Review the migration history and use the recovery command to mark it as success or failed."
+
+msgid "plugin.suggestion.routePrefix"
+msgstr "Use /%(plugin_id)s or /plugin/%(plugin_id)s as the route prefix root"
+
+msgid "plugin.suggestion.scriptOrder"
+msgstr "Migrations and seeds run in manifest order; list filenames in ascending order to avoid ordering mistakes"
+
+msgid "plugin.suggestion.secretDefault"
+msgstr "Remove the default value and enter it in the plugin settings after installation"
+
+msgid "plugin.suggestion.secretPasswordType"
+msgstr "Use the password type for sensitive settings so inputs, exports, and audits consistently mask them"
+
+msgid "plugin.suggestion.selectOptions"
+msgstr "Only select settings support options; remove them or change the type to select"
+
+msgid "plugin.suggestion.supportedDatabase"
+msgstr "Use a supported database or adjust the plugin compatibility.databases declaration"
+
+msgid "plugin.suggestion.timestampType"
+msgstr "Use TIMESTAMP(3) WITH TIME ZONE for PostgreSQL and UTC DATETIME(3) for MySQL"
+
+msgid "plugin.suggestion.upgradeRuntime"
+msgstr "Upgrade the platform runtime or adjust the plugin compatibility declaration"
+
+msgid "plugin.suggestion.versionReadable"
+msgstr "Ensure runtime version information is available, then run the plugin check again"
+
+msgid "plugin.uninstalled"
+msgstr "Plugin uninstalled"

@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 /**
  * 复制文本内容。
  * Copyright (c) 2022 ruoyi
@@ -20,7 +21,7 @@ export async function copyText(value) {
   document.body.appendChild(field)
   field.select()
   try {
-    if (!document.execCommand('copy')) throw new Error('复制失败，请手动复制')
+    if (!document.execCommand('copy')) throw new Error(t('common:copyFailedPleaseCopyManually'))
   } finally {
     field.remove()
     // 移除临时节点后，将焦点交还给原先的元素。

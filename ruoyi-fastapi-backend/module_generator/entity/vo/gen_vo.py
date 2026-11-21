@@ -7,6 +7,7 @@ from pydantic_validation_decorator import NotBlank
 from common.constant import GenConstant
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from i18n.message import I18nMessage
 from utils.string_util import StringUtil
 
 
@@ -41,35 +42,49 @@ class GenTableBaseModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
     remark: str | None = Field(default=None, description='备注')
 
-    @NotBlank(field_name='table_name', message='表名称不能为空')
+    @NotBlank(field_name='table_name', message=I18nMessage('表名称不能为空', msg_key='validation.tableNameRequired'))
     def get_table_name(self) -> str | None:
         return self.table_name
 
-    @NotBlank(field_name='table_comment', message='表描述不能为空')
+    @NotBlank(
+        field_name='table_comment', message=I18nMessage('表描述不能为空', msg_key='validation.tableCommentRequired')
+    )
     def get_table_comment(self) -> str | None:
         return self.table_comment
 
-    @NotBlank(field_name='class_name', message='实体类名称不能为空')
+    @NotBlank(
+        field_name='class_name', message=I18nMessage('实体类名称不能为空', msg_key='validation.classNameRequired')
+    )
     def get_class_name(self) -> str | None:
         return self.class_name
 
-    @NotBlank(field_name='package_name', message='生成包路径不能为空')
+    @NotBlank(
+        field_name='package_name', message=I18nMessage('生成包路径不能为空', msg_key='validation.packageNameRequired')
+    )
     def get_package_name(self) -> str | None:
         return self.package_name
 
-    @NotBlank(field_name='module_name', message='生成模块名不能为空')
+    @NotBlank(
+        field_name='module_name', message=I18nMessage('生成模块名不能为空', msg_key='validation.moduleNameRequired')
+    )
     def get_module_name(self) -> str | None:
         return self.module_name
 
-    @NotBlank(field_name='business_name', message='生成业务名不能为空')
+    @NotBlank(
+        field_name='business_name', message=I18nMessage('生成业务名不能为空', msg_key='validation.businessNameRequired')
+    )
     def get_business_name(self) -> str | None:
         return self.business_name
 
-    @NotBlank(field_name='function_name', message='生成功能名不能为空')
+    @NotBlank(
+        field_name='function_name', message=I18nMessage('生成功能名不能为空', msg_key='validation.functionNameRequired')
+    )
     def get_function_name(self) -> str | None:
         return self.function_name
 
-    @NotBlank(field_name='function_author', message='生成功能作者不能为空')
+    @NotBlank(
+        field_name='function_author', message=I18nMessage('生成功能作者不能为空', msg_key='validation.authorRequired')
+    )
     def get_function_author(self) -> str | None:
         return self.function_author
 
@@ -163,6 +178,13 @@ class GenTableParamsModel(BaseModel):
     tree_name: str | None = Field(default=None, description='树名称字段')
     parent_menu_id: int | None = Field(default=None, description='上级菜单ID字段')
     gen_view: bool = Field(default=False, description='是否生成详情页')
+    i18n_source_locale: str | None = Field(
+        default=None, alias='i18nSourceLocale', description='与目标应用一致的基准语言'
+    )
+    i18n_locales: list[str] | None = Field(default=None, alias='i18nLocales', description='本次生成的目标语言列表')
+    i18n_translations: dict[str, dict[str, str]] | None = Field(
+        default=None, alias='i18nTranslations', description='按稳定模块路径提供的译文'
+    )
 
 
 class GenTableQueryModel(DateRangeQueryMixin, GenTableBaseModel):
@@ -238,7 +260,9 @@ class GenTableColumnBaseModel(BaseModel):
     update_by: str | None = Field(default=None, description='更新者')
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
 
-    @NotBlank(field_name='python_field', message='Python属性不能为空')
+    @NotBlank(
+        field_name='python_field', message=I18nMessage('Python属性不能为空', msg_key='validation.pythonFieldRequired')
+    )
     def get_python_field(self) -> str | None:
         return self.python_field
 

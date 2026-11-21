@@ -35,6 +35,7 @@ const names = [
   'email',
   'shield-account',
   'earth',
+  'translate',
   'refresh',
   'delete',
   'chevron-right',

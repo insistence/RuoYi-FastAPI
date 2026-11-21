@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from sqlalchemy import select, update
 
+from i18n.message import I18nMessage
 from plugins.core.deployment.service import PluginDeploymentService
 from plugins.core.management.dao.release_dao import PluginReleaseConflictError
 from plugins.core.management.entity.do.models import SysPlugin
@@ -99,7 +100,9 @@ class PluginArtifactEnablementService(PluginDeploymentService):
                     'digest': artifact.digest,
                     'generation': generation,
                     'restartRequired': True,
-                    'message': '维护启停状态已保存，请启动全部 worker',
+                    'message': I18nMessage(
+                        '维护启停状态已保存，请启动全部 worker', msg_key='plugin.runtime.release.stateSaved'
+                    ),
                 }
                 await self._audit(db, payload, actor)
                 await db.commit()

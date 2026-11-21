@@ -15,7 +15,7 @@
         text
         type="danger"
         icon="Delete"
-        :aria-label="`删除第 ${index + 1} 项`"
+        :aria-label="$t('components:removeItemValue', { value0: index + 1 })"
         @click="remove(index)"
       />
     </div>
@@ -32,10 +32,11 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
   placeholder: { type: String, default: '' },
-  addText: { type: String, default: '添加一项' },
+  addText: { type: String, default: () => t('components:addItem') },
 })
 const emit = defineEmits(['update:modelValue'])
 const localItems = ref([])

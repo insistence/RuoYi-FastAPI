@@ -6,6 +6,7 @@ from pydantic_validation_decorator import NotBlank, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from i18n.message import I18nMessage
 
 
 class RoleModel(BaseModel):
@@ -55,17 +56,27 @@ class RoleModel(BaseModel):
             self.admin = False
         return self
 
-    @NotBlank(field_name='role_name', message='角色名称不能为空')
-    @Size(field_name='role_name', min_length=0, max_length=30, message='角色名称长度不能超过30个字符')
+    @NotBlank(field_name='role_name', message=I18nMessage('角色名称不能为空', msg_key='validation.roleNameRequired'))
+    @Size(
+        field_name='role_name',
+        min_length=0,
+        max_length=30,
+        message=I18nMessage('角色名称长度不能超过30个字符', msg_key='validation.roleNameLength'),
+    )
     def get_role_name(self) -> str | None:
         return self.role_name
 
-    @NotBlank(field_name='role_key', message='权限字符不能为空')
-    @Size(field_name='role_key', min_length=0, max_length=100, message='权限字符长度不能超过100个字符')
+    @NotBlank(field_name='role_key', message=I18nMessage('权限字符不能为空', msg_key='validation.roleKeyRequired'))
+    @Size(
+        field_name='role_key',
+        min_length=0,
+        max_length=100,
+        message=I18nMessage('权限字符长度不能超过100个字符', msg_key='validation.roleKeyLength'),
+    )
     def get_role_key(self) -> str | None:
         return self.role_key
 
-    @NotBlank(field_name='role_sort', message='显示顺序不能为空')
+    @NotBlank(field_name='role_sort', message=I18nMessage('显示顺序不能为空', msg_key='validation.orderRequired'))
     def get_role_sort(self) -> int | None:
         return self.role_sort
 

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import anyio
 import psutil
 
+from i18n.translator import I18nUtil
 from module_admin.entity.vo.server_vo import CpuInfo, MemoryInfo, PyInfo, ServerMonitorModel, SysFiles, SysInfo
 from utils.common_util import bytes2human
 
@@ -62,7 +63,7 @@ class ServerService:
         days = int(difference // (24 * 60 * 60))  # 每天的秒数
         hours = int((difference % (24 * 60 * 60)) // (60 * 60))  # 每小时的秒数
         minutes = int((difference % (60 * 60)) // 60)  # 每分钟的秒数
-        run_time = f'{days}天{hours}小时{minutes}分钟'
+        run_time = I18nUtil.translate('monitor.uptime', {'days': days, 'hours': hours, 'minutes': minutes})
         # 获取当前Python程序的pid
         pid = os.getpid()
         # 获取该进程的内存信息

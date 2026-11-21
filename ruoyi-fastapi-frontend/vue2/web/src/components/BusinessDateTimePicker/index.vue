@@ -4,7 +4,7 @@
       <el-input
         v-model="dateInput"
         type="date"
-        :aria-label="label + '日期'"
+        :aria-label="$t('common:dateLabel', { label: label || $t('common:dateAndTime') })"
         :disabled="disabled"
         :clearable="clearable"
       />
@@ -12,7 +12,7 @@
         v-model="timeInput"
         type="time"
         step="1"
-        :aria-label="label + '时间'"
+        :aria-label="$t('common:timeLabel', { label: label || $t('common:dateAndTime') })"
         :disabled="disabled"
       />
     </div>
@@ -28,6 +28,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { formatBusinessTime, getDisplayTimezone, getWallTimeCandidates } from '@/utils/time'
 
 // 日期和时间分别保存为字符串，避免 Date 控件先按宿主机时区修正不存在的时间。
@@ -40,7 +42,7 @@ export default {
     },
     label: {
       type: String,
-      default: '日期时间',
+      default: '',
     },
     timezone: {
       type: String,
@@ -85,9 +87,9 @@ export default {
       try {
         return getWallTimeCandidates(this.wallValue, this.timezoneName).length
           ? ''
-          : '该时间在此时区不存在，请重新选择'
+          : t('common:thisTimeDoesNotExistInTheSelectedTimeZone')
       } catch {
-        return '请选择完整有效的日期和时间'
+        return t('common:selectACompleteValidDateAndTime')
       }
     },
   },

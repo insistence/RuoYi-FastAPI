@@ -1,12 +1,16 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Col, Form, Input, Row } from 'antd'
 export default function BasicInfoForm() {
+  useI18n()
+
   return (
     <Row>
       {[
-        ['tableName', '表名称', '请输入仓库名称'],
-        ['tableComment', '表描述', '请输入'],
-        ['className', '实体类名称', '请输入'],
-        ['functionAuthor', '作者', '请输入'],
+        ['tableName', t('tool:gen.tableName'), t('tool:enterRepositoryName')],
+        ['tableComment', t('tool:gen.tableComment'), t('tool:enterAValue')],
+        ['className', t('tool:entityClassName'), t('tool:enterAValue')],
+        ['functionAuthor', t('system:author'), t('tool:enterAValue')],
       ].map(([name, label, placeholder]) => (
         <Col
           xs={24}
@@ -16,7 +20,7 @@ export default function BasicInfoForm() {
           <Form.Item
             name={name}
             label={label}
-            rules={[{ required: true, message: `请输入${label}` }]}
+            rules={[{ required: true, message: t('monitor:enterValue', { label }) }]}
           >
             <Input placeholder={placeholder} />
           </Form.Item>
@@ -25,11 +29,11 @@ export default function BasicInfoForm() {
       <Col span={24}>
         <Form.Item
           name="remark"
-          label="备注"
+          label={t('common:remark')}
         >
           <Input.TextArea
             rows={3}
-            placeholder="请输入内容"
+            placeholder={t('common:contentPlaceholder')}
           />
         </Form.Item>
       </Col>

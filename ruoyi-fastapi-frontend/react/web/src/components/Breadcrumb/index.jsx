@@ -1,3 +1,6 @@
+import { resolveRouteTitle } from '@/i18n'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { Breadcrumb as AntBreadcrumb } from 'antd'
 import { Link, matchPath, useLocation } from 'react-router-dom'
@@ -15,7 +18,10 @@ function findAncestors(routes, path) {
 }
 
 function getBreadcrumbs(pathname, routes, sidebarRouters) {
-  const home = { path: '/index', meta: { title: '首页' } }
+  const home = {
+    path: '/index',
+    meta: { title: t('layout:route.home'), titleKey: 'layout:route.home' },
+  }
   if (pathname === home.path) return [home]
   const current = findRoute(pathname, routes)
   // Permission routes preserve the menu hierarchy, including absolute child paths.
@@ -30,7 +36,8 @@ function getBreadcrumbs(pathname, routes, sidebarRouters) {
     ...(current ? [current] : []),
   ]
   const visible = matched.filter(
-    (route) => route.path !== home.path && route.meta?.title && route.meta.breadcrumb !== false
+    (route) =>
+      route.path !== home.path && resolveRouteTitle(route) && route.meta.breadcrumb !== false
   )
   return [home, ...new Map(visible.map((route) => [route.path, route])).values()].map((route) => ({
     ...route,
@@ -42,6 +49,8 @@ function getBreadcrumbs(pathname, routes, sidebarRouters) {
 }
 
 export default function Breadcrumb() {
+  useI18n()
+
   const { pathname } = useLocation()
   const routes = usePermissionStore((state) => state.routes)
   const sidebarRouters = usePermissionStore((state) => state.sidebarRouters)
@@ -58,7 +67,7 @@ export default function Breadcrumb() {
   return (
     <AntBreadcrumb
       className="app-breadcrumb"
-      aria-label="面包屑"
+      aria-label={t('layout:breadcrumbs')}
       separator="/"
       items={breadcrumbs.map((route, index) => {
         const last = index === breadcrumbs.length - 1
@@ -70,10 +79,10 @@ export default function Breadcrumb() {
                 className="no-redirect"
                 aria-current={last ? 'page' : undefined}
               >
-                {route.meta.title}
+                {resolveRouteTitle(route)}
               </span>
             ) : (
-              <Link to={route.target}>{route.meta.title}</Link>
+              <Link to={route.target}>{resolveRouteTitle(route)}</Link>
             ),
         }
       })}

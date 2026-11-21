@@ -7,7 +7,7 @@
       <el-tooltip
         class="item"
         effect="dark"
-        :content="showSearch ? '隐藏搜索' : '显示搜索'"
+        :content="showSearch ? $t('components:hideSearch') : $t('components:showSearch')"
         placement="top"
         v-if="search"
       >
@@ -20,7 +20,7 @@
       <el-tooltip
         class="item"
         effect="dark"
-        content="刷新"
+        :content="$t('layout:tags.refresh')"
         placement="top"
       >
         <el-button
@@ -32,7 +32,7 @@
       <el-tooltip
         class="item"
         effect="dark"
-        content="显隐列"
+        :content="$t('components:columnVisibility')"
         placement="top"
         v-if="Object.keys(columns).length > 0"
       >
@@ -61,8 +61,8 @@
                   v-model="isChecked"
                   @change="toggleCheckAll"
                 >
-                  列展示
-                </el-checkbox>
+                  {{ $t('components:columns') }}</el-checkbox
+                >
               </el-dropdown-item>
               <div class="check-line"></div>
               <template
@@ -88,7 +88,7 @@
       append-to-body
     >
       <el-transfer
-        :titles="['显示', '隐藏']"
+        :titles="[$t('components:show'), $t('components:hide')]"
         v-model="value"
         :data="transferData"
         @change="dataChange"
@@ -98,6 +98,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import cache from '@/plugins/cache'
 
 const props = defineProps({
@@ -138,7 +139,7 @@ const emits = defineEmits(['update:showSearch', 'queryTable'])
 // 显隐数据
 const value = ref([])
 // 弹出层标题
-const title = ref('显示/隐藏')
+const title = ref(t('components:showHide'))
 // 是否显示弹出层
 const open = ref(false)
 

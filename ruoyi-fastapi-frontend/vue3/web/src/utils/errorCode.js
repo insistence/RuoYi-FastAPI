@@ -1,6 +1,22 @@
-export default {
-  401: '认证失败，无法访问系统资源',
-  403: '当前操作没有权限',
-  404: '访问资源不存在',
-  default: '系统未知错误，请反馈给管理员',
+import { t } from '@/i18n/adapter'
+const errorCode = {
+  get 401() {
+    return t('components:authenticationFailedUnableToAccessSystemResources')
+  },
+  get 403() {
+    return t('components:youDoNotHavePermissionToPerformThisAction')
+  },
+  get 404() {
+    return t('components:theRequestedResourceDoesNotExist')
+  },
+  get default() {
+    return t('components:anUnknownErrorOccurredPleaseContactTheAdministrator')
+  },
+}
+
+export default errorCode
+
+export function getResponseMessage({ msg, code }) {
+  if (typeof msg === 'string' && msg.trim()) return msg
+  return Object.prototype.hasOwnProperty.call(errorCode, code) ? errorCode[code] : errorCode.default
 }

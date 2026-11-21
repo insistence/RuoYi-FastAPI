@@ -1,3 +1,4 @@
+import { t } from '../../../../i18n/index.js'
 import { parseTime } from '@/utils/ruoyi'
 
 export function formatFileSize(size) {
@@ -9,24 +10,24 @@ export function formatFileSize(size) {
 }
 
 export function accessTypeLabel(accessType) {
-  return accessType === 'public' ? '公开文件' : '受保护文件'
+  return accessType === 'public' ? t('file:shared.publicFiles') : t('file:shared.protectedFiles')
 }
 
 export function statusLabel(status) {
   return (
     {
-      active: '正常',
-      deleted: '已删除',
-      purging: '清理中',
+      active: t('layout:notices.active'),
+      deleted: t('file:shared.deleted'),
+      purging: t('file:shared.deleting'),
     }[status] || status
   )
 }
 
 export function expirationLabel(expireTime) {
-  if (!expireTime) return '永久有效'
+  if (!expireTime) return t('file:shared.noExpiry')
   const remainingTime = new Date(expireTime).getTime() - Date.now()
-  if (remainingTime <= 0) return '已过期'
-  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return '即将过期'
+  if (remainingTime <= 0) return t('common:expired')
+  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return t('file:shared.expiringSoonLabel')
   return parseTime(expireTime, '{y}-{m}-{d}')
 }
 
@@ -46,11 +47,11 @@ export function isAclExpiring(expireTime) {
 export function storageStatusLabel(storageStatus) {
   return (
     {
-      normal: '正常',
-      missing: '文件缺失',
-      quarantined: '已隔离',
-      invalid: '异常',
-    }[storageStatus] || '未知'
+      normal: t('layout:notices.active'),
+      missing: t('file:shared.fileMissing'),
+      quarantined: t('file:shared.quarantined'),
+      invalid: t('common:exception'),
+    }[storageStatus] || t('common:unknown')
   )
 }
 
@@ -68,16 +69,16 @@ export function storageStatusTagType(storageStatus) {
 export function actionLabel(action) {
   return (
     {
-      upload: '上传',
-      download: '下载',
-      acl_update: '授权变更',
-      transfer: '归属转移',
-      delete: '移入回收站',
-      restore: '恢复',
-      purge: '永久清理',
-      reconcile: '存储对账',
-      retention_extend: '保留延期',
-      retention_dispose: '到期处置',
+      upload: t('common:upload'),
+      download: t('common:download'),
+      acl_update: t('file:shared.permissionChange'),
+      transfer: t('file:shared.ownershipTransfer'),
+      delete: t('file:shared.moveToRecycleBin'),
+      restore: t('common:restore'),
+      purge: t('file:shared.permanentlyDelete'),
+      reconcile: t('file:shared.storageReconciliation'),
+      retention_extend: t('file:shared.retentionExtension'),
+      retention_dispose: t('file:shared.expiryDisposal'),
     }[action] || action
   )
 }
@@ -85,10 +86,10 @@ export function actionLabel(action) {
 export function resultLabel(result) {
   return (
     {
-      allowed: '已授权',
-      denied: '已拒绝',
-      completed: '已完成',
-      failed: '失败',
+      allowed: t('file:shared.allowed'),
+      denied: t('file:shared.denied'),
+      completed: t('common:completed'),
+      failed: t('common:failed'),
     }[result] || result
   )
 }
@@ -113,48 +114,48 @@ export function parseOperationDetail(operationDetail) {
       value: typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '-'),
     }))
   } catch {
-    return [{ label: '操作详情', value: operationDetail }]
+    return [{ label: t('file:shared.operationDetails'), value: operationDetail }]
   }
 }
 
 function auditDetailKeyLabel(key) {
   return (
     {
-      previousAclVersion: '原权限版本',
-      newAclVersion: '新权限版本',
-      entryCount: '授权项数量',
-      allowCount: '允许项数量',
-      denyCount: '拒绝项数量',
-      subjectTypeCounts: '主体类型统计',
-      previousOwnerUserId: '原所有者ID',
-      previousDeptId: '原所属部门ID',
-      newOwnerUserId: '新所有者ID',
-      newOwnerName: '新所有者',
-      newDeptId: '新所属部门ID',
-      reason: '操作原因',
-      originalName: '原始文件名',
-      accessType: '访问类型',
-      referenceCount: '业务引用数量',
-      previousStatus: '原状态',
-      newStatus: '新状态',
-      truncated: '详情已截断',
-      preview: '详情预览',
-      issueId: '对账异常ID',
-      issueType: '异常类型',
-      action: '处理动作',
-      actualRoot: '实际存储区域',
-      actualKey: '实际相对路径',
-      expectedRoot: '预期存储区域',
-      expectedKey: '预期相对路径',
-      previousExpireTime: '原到期时间',
-      newExpireTime: '新到期时间',
-      expireTime: '到期时间',
-      range: '请求范围',
-      rangeStart: '分段起始字节',
-      rangeEnd: '分段结束字节',
-      fileSize: '文件总大小',
-      releasedReferenceCount: '解除引用数量',
-      releasedReferences: '解除引用明细',
+      previousAclVersion: t('file:shared.previousPermissionsVersion'),
+      newAclVersion: t('file:shared.newPermissionsVersion'),
+      entryCount: t('file:shared.permissionCount'),
+      allowCount: t('file:shared.allowCount'),
+      denyCount: t('file:shared.denyCount'),
+      subjectTypeCounts: t('file:shared.principalTypeStatistics'),
+      previousOwnerUserId: t('file:shared.previousOwnerId'),
+      previousDeptId: t('file:shared.previousDepartmentId'),
+      newOwnerUserId: t('file:shared.newOwnerId'),
+      newOwnerName: t('file:shared.newOwner'),
+      newDeptId: t('file:shared.newDepartmentId'),
+      reason: t('common:operationReason'),
+      originalName: t('file:originalName'),
+      accessType: t('file:accessType'),
+      referenceCount: t('file:shared.businessReferenceCount'),
+      previousStatus: t('file:shared.previousStatus'),
+      newStatus: t('file:shared.newStatus'),
+      truncated: t('file:shared.detailsTruncated'),
+      preview: t('file:shared.detailsPreview'),
+      issueId: t('file:shared.reconciliationIssueId'),
+      issueType: t('file:shared.issueType'),
+      action: t('file:shared.processingAction'),
+      actualRoot: t('file:shared.actualStorageArea'),
+      actualKey: t('file:shared.actualRelativePath'),
+      expectedRoot: t('file:shared.expectedStorageArea'),
+      expectedKey: t('file:shared.expectedRelativePath'),
+      previousExpireTime: t('file:shared.previousExpiryTime'),
+      newExpireTime: t('file:shared.newExpiryTime'),
+      expireTime: t('file:shared.expiryTime'),
+      range: t('file:shared.requestedRange'),
+      rangeStart: t('file:shared.rangeStartByte'),
+      rangeEnd: t('file:shared.rangeEndByte'),
+      fileSize: t('file:shared.totalFileSize'),
+      releasedReferenceCount: t('file:shared.removedReferenceCount'),
+      releasedReferences: t('file:shared.removedReferenceDetails'),
     }[key] || key
   )
 }

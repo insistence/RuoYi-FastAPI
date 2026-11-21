@@ -1,39 +1,30 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import PluginSummary from './PluginSummary'
 import './style.css'
 import { Alert, Button, Descriptions, Input, Modal, Tabs } from 'antd'
 import Table from '@/components/Table'
-import { getValidationLevelLabel, getValidationLevelTagType } from '@/utils/pluginPlanFormatter'
+import {
+  buildOperationValidationItems,
+  getValidationLevelLabel,
+  getValidationLevelTagType,
+} from '@/utils/pluginPlanFormatter'
 import { formatBoolean, formatJson } from '../formatter'
 import PluginTag from './PluginTag'
 
 export default function PluginDiagnosticDialog({
   open,
-  title = '插件诊断',
+  title = t('pluginAdmin:diagnostics.pluginDiagnostics'),
   result = {},
   loading,
   onClose,
 }) {
+  useI18n()
+
   const health = result.health,
     diagnose = result.info || result.check ? result : null,
     check = diagnose?.check || {}
-  const validation = [
-    ['依赖', check.dependencies],
-    ['Manifest 错误', check.manifestIssues],
-    ['Manifest 警告', check.manifestWarnings],
-    ['插件依赖', check.pluginDependencyErrors],
-    ['结构', check.structureErrors],
-    ['菜单冲突', check.menuConflicts],
-  ].flatMap(([category, rows]) =>
-    Array.isArray(rows)
-      ? rows.map((item) => ({
-          category,
-          level: item.level || (category.includes('警告') ? 'warning' : 'error'),
-          kind: item.kind || item.name || item.status || '-',
-          value: item.value || item.requirement || item.path || item.pluginId || item.perms || '-',
-          message: item.message || item.suggestion || item.reason || '',
-        }))
-      : []
-  )
+  const validation = buildOperationValidationItems(check)
   return (
     <Modal
       className="plugin-dialog plugin-result-dialog"
@@ -42,7 +33,7 @@ export default function PluginDiagnosticDialog({
       onCancel={onClose}
       width="min(920px, calc(100vw - 32px))"
       loading={loading}
-      footer={<Button onClick={onClose}>关闭</Button>}
+      footer={<Button onClick={onClose}>{t('layout:search.close')}</Button>}
     >
       {result.message && (
         <Alert
@@ -55,17 +46,17 @@ export default function PluginDiagnosticDialog({
       <PluginSummary
         autoFit
         items={[
-          ['插件ID', result.pluginId || '-'],
+          [t('pluginAdmin:id'), result.pluginId || '-'],
           [
-            '结果',
+            t('system:result'),
             <PluginTag type={result.ok ? 'success' : 'danger'}>
-              {result.ok ? '正常' : '异常'}
+              {result.ok ? t('layout:notices.active') : t('common:exception')}
             </PluginTag>,
           ],
           ...(health
             ? [
-                ['状态', health.status || '-'],
-                ['耗时', `${health.durationMs ?? '-'}ms`],
+                [t('common:status'), health.status || '-'],
+                [t('monitor:job.duration'), `${health.durationMs ?? '-'}ms`],
               ]
             : []),
         ].map(([label, children]) => ({ key: label, label, children }))}
@@ -76,21 +67,23 @@ export default function PluginDiagnosticDialog({
             ? [
                 {
                   key: 'health',
-                  label: '健康状态',
+                  label: t('pluginAdmin:diagnostics.healthStatus'),
                   children: (
                     <>
                       <Descriptions
                         bordered
                         column={2}
                         items={[
-                          ['检查器', health.checker],
-                          ['状态', health.status],
-                          ['说明', health.message],
-                          ['错误', health.error],
+                          [t('pluginAdmin:diagnostics.checker'), health.checker],
+                          [t('common:status'), health.status],
+                          [t('common:description'), health.message],
+                          [t('common:error'), health.error],
                         ].map(([label, children]) => ({
                           key: label,
                           label,
-                          span: ['说明', '错误'].includes(label) ? 2 : 1,
+                          span: [t('common:description'), t('common:error')].includes(label)
+                            ? 2
+                            : 1,
                           children: children || '-',
                         }))}
                       />
@@ -109,19 +102,25 @@ export default function PluginDiagnosticDialog({
             ? [
                 {
                   key: 'check',
-                  label: '检查摘要',
+                  label: t('pluginAdmin:diagnostics.checkSummary'),
                   children: (
                     <>
                       <Descriptions
                         bordered
                         column={3}
                         items={[
-                          ['依赖', formatBoolean(check.dependencyOk)],
+                          [t('pluginAdmin:dependencies'), formatBoolean(check.dependencyOk)],
                           ['Manifest', formatBoolean(check.manifestOk)],
-                          ['结构', formatBoolean(check.structureOk)],
-                          ['插件依赖', formatBoolean(check.pluginDependencyOk)],
-                          ['菜单冲突', formatBoolean(check.menuConflictOk)],
-                          ['配置项', diagnose.config?.summary?.total ?? '-'],
+                          [t('common:structure'), formatBoolean(check.structureOk)],
+                          [
+                            t('pluginAdmin:dependencyTitle'),
+                            formatBoolean(check.pluginDependencyOk),
+                          ],
+                          [t('pluginAdmin:menuConflict'), formatBoolean(check.menuConflictOk)],
+                          [
+                            t('pluginAdmin:diagnostics.configurationItem'),
+                            diagnose.config?.summary?.total ?? '-',
+                          ],
                         ].map(([label, children]) => ({
                           key: label,
                           label,
@@ -133,16 +132,21 @@ export default function PluginDiagnosticDialog({
                         size="small"
                         bordered
                         scroll={{ x: 820 }}
-                        locale={{ emptyText: '暂无诊断问题' }}
+                        locale={{ emptyText: t('pluginAdmin:diagnostics.noDiagnosticIssues') }}
                         rowKey={(_, index) => index}
                         pagination={false}
                         dataSource={validation}
                         columns={[
-                          { width: 120, align: 'center', title: '分类', dataIndex: 'category' },
+                          {
+                            width: 120,
+                            align: 'center',
+                            title: t('pluginAdmin:shared.category'),
+                            dataIndex: 'category',
+                          },
                           {
                             width: 90,
                             align: 'center',
-                            title: '等级',
+                            title: t('common:level'),
                             dataIndex: 'level',
                             render: (value) => (
                               <PluginTag type={getValidationLevelTagType(value)}>
@@ -150,9 +154,9 @@ export default function PluginDiagnosticDialog({
                               </PluginTag>
                             ),
                           },
-                          { width: 170, title: '类型', dataIndex: 'kind' },
-                          { width: 180, title: '对象', dataIndex: 'value' },
-                          { width: 260, title: '说明', dataIndex: 'message' },
+                          { width: 170, title: t('common:type'), dataIndex: 'kind' },
+                          { width: 180, title: t('pluginAdmin:shared.object'), dataIndex: 'value' },
+                          { width: 260, title: t('common:description'), dataIndex: 'message' },
                         ]}
                       />
                     </>
@@ -160,7 +164,7 @@ export default function PluginDiagnosticDialog({
                 },
                 {
                   key: 'menus',
-                  label: '菜单计划',
+                  label: t('pluginAdmin:diagnostics.menuPlan'),
                   children: (
                     <Input.TextArea
                       value={formatJson(diagnose.menuPlan)}
@@ -173,7 +177,7 @@ export default function PluginDiagnosticDialog({
             : []),
           {
             key: 'raw',
-            label: '原始数据',
+            label: t('pluginAdmin:diagnostics.rawData'),
             children: (
               <Input.TextArea
                 value={formatJson(result)}

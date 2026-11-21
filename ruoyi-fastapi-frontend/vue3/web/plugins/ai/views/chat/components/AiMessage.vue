@@ -9,11 +9,11 @@
         @click="toggleReasoning"
       >
         <el-icon :class="{ 'is-expanded': isReasoningExpanded }"><ArrowRight /></el-icon>
-        <span>深度思考过程</span>
+        <span>{{ t('plugin.ai:reasoningProcess') }}</span>
         <span
           class="reasoning-status"
           v-if="!isThinkingComplete"
-          >思考中...</span
+          >{{ t('plugin.ai:thinking') }}</span
         >
       </div>
       <div
@@ -48,6 +48,7 @@
 </template>
 
 <script setup>
+import { t } from '../../../i18n'
 import { computed, ref } from 'vue'
 import { MarkdownRender } from 'markstream-vue'
 import { useDark } from '@vueuse/core'

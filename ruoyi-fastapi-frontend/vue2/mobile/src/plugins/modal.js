@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 export default {
   // 消息提示
   msg(content) {
@@ -27,19 +28,20 @@ export default {
   // 弹出提示
   alert(content, title) {
     uni.showModal({
-      title: title || '系统提示',
+      title: title || t('common:notice'),
       content: content,
       showCancel: false,
+      confirmText: t('common:confirm'),
     })
   },
   // 确认窗体
   confirm(content, title) {
     return new Promise((resolve, reject) => {
       uni.showModal({
-        title: title || '系统提示',
+        title: title || t('common:notice'),
         content: content,
-        cancelText: '取消',
-        confirmText: '确定',
+        cancelText: t('common:cancel'),
+        confirmText: t('common:confirm'),
         success: function (res) {
           if (res.confirm) {
             resolve(res.confirm)

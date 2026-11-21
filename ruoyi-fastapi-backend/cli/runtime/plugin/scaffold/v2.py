@@ -8,6 +8,7 @@ import yaml
 
 from cli.runtime.plugin.sdk import PluginBridgeSdk
 
+from .locales import PluginLocaleScaffoldBuilder
 from .payload import PluginScaffoldPlanPayload
 
 
@@ -115,9 +116,13 @@ class PluginV2ScaffoldBuilder:
                     'pnpm-workspace.yaml',
                     'vite.config.js',
                     'src/main.js',
+                    'src/i18n.js',
+                    'x18n.config.mjs',
                     'src/style.css',
                 )
             )
+
+            entries.extend(PluginLocaleScaffoldBuilder.build_bundle_files(root / 'web', self.frontend_root))
 
         payload = PluginScaffoldPlanPayload(
             template=template,
@@ -229,8 +234,13 @@ class PluginV2ScaffoldBuilder:
             '提交生成的 pnpm-lock.yaml；后续可用 `pnpm install --frozen-lockfile` 重现前端依赖。构建器只复制已构建的 '
             '`web/dist`，不会自动执行 pnpm。桥接 SDK 和溯源清单已从生成时的宿主复制到 `web/vendor`，'
             '检查及更新方式见下文。\n\n'
+            '独立词库在 `web/locales/<locale>.json`，注册表在 `web/src/locale-meta.json`。'
+            '宿主 preferences 通知会更新语言、已有状态文本及时间格式，不重建 iframe 或丢弃业务内容。'
+            '新增语言需登记注册表并补齐对应词库；目标宿主已有第三语言时自动生成空译文待办，'
+            '发布前通过 `pnpm --dir ' + root + '/web run i18n:check`。'
+            '词库维护使用本工程的 x18n CLI，不读取其他应用资源。\n\n'
             f'本地调试可运行 `pnpm --dir {root}/web run dev`，打开 `/dev.html`。'
-            '模拟宿主支持主题、延迟、失败、重载及退出，使用模拟 `/api/info` 响应；业务接口需自行扩展 `web/dev.js`。'
+            '模拟宿主支持语言、主题、延迟、失败、重载及退出，使用模拟 `/api/info` 响应；业务接口需自行扩展 `web/dev.js`。'
             '模拟页不进入生产构建，也不能替代真实权限、会话和传输加密验证。'
             '同目录的 `pluginBridge.d.ts` 提供 JSON、文件及可协商 SSE 能力的类型；'
             '实时事件示例与协议限制见宿主开发手册。\n\n'

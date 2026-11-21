@@ -1,5 +1,6 @@
 <script>
 import draggable from 'vuedraggable'
+import { t } from '@/i18n/adapter'
 import render from '@/utils/generator/render'
 
 const components = {
@@ -8,7 +9,7 @@ const components = {
     return [
       <span
         class="drawing-item-copy"
-        title="复制"
+        title={t('common:action.copy')}
         onClick={(event) => {
           copyItem(element, parent)
           event.stopPropagation()
@@ -18,7 +19,7 @@ const components = {
       </span>,
       <span
         class="drawing-item-delete"
-        title="删除"
+        title={t('common:action.delete')}
         onClick={(event) => {
           deleteItem(index, parent)
           event.stopPropagation()

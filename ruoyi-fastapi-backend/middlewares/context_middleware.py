@@ -25,11 +25,14 @@ class ContextCleanupMiddleware(BaseHTTPMiddleware):
                 content={'code': 422, 'msg': 'X-Timezone必须是有效的IANA时区', 'success': False},
             )
         token = RequestContext.set_current_timezone(timezone_name)
+        # 通用清理后恢复外层语言上下文，最终重置由语言中间件负责。
+        locale_token = RequestContext.set_current_locale(RequestContext.get_current_locale())
         try:
             return await call_next(request)
         finally:
             RequestContext.clear_all()
             RequestContext.reset_current_timezone(token)
+            RequestContext.reset_current_locale(locale_token)
 
 
 def add_context_cleanup_middleware(app: FastAPI) -> None:

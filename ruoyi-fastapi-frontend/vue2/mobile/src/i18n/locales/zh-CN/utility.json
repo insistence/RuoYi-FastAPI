@@ -1,0 +1,21 @@
+{
+  "crypto": {
+    "randomFormat": "平台随机数返回结果格式不受支持: tag={{arg0}}, keys={{arg1}}",
+    "randomUnavailable": "当前运行环境缺少安全随机数能力",
+    "publicKeyFailed": "获取传输层公钥失败",
+    "keyProtocol": "传输层公钥协议版本不受支持",
+    "keyAlgorithm": "传输层公钥算法不受支持",
+    "responseProtocol": "传输层响应协议版本不受支持",
+    "responseAlgorithm": "传输层响应算法不受支持",
+    "keyVersion": "传输层响应密钥版本不匹配",
+    "headerVersion": "传输层响应头与响应体密钥版本不一致",
+    "aad": "传输层响应AAD不合法",
+    "requestMismatch": "传输层响应的method/path与当前请求不匹配",
+    "direction": "传输层响应方向标识不合法",
+    "queryLength": "当前GET/DELETE请求参数加密后长度超限，请改用POST请求或精简查询条件",
+    "missingContext": "缺少响应解密上下文",
+    "envelope": "传输层响应信封格式不合法",
+    "randomPool": "传输加密随机数池不足，且当前运行环境无法同步补充安全随机数"
+  },
+  "httpStatus": "系统接口{{status}}异常"
+}

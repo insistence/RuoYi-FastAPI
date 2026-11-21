@@ -6,7 +6,7 @@
     >
       <img
         v-bind:src="options.img"
-        title="点击上传头像"
+        :title="$t('system:clickToUploadAvatar')"
         class="img-circle img-lg"
       />
     </div>
@@ -64,7 +64,7 @@
             :before-upload="beforeUpload"
           >
             <el-button size="small">
-              选择
+              {{ $t('layout:search.select') }}
               <i class="el-icon-upload el-icon--right"></i>
             </el-button>
           </el-upload>
@@ -122,7 +122,7 @@
             type="primary"
             size="small"
             @click="uploadImg()"
-            >提 交</el-button
+            >{{ $t('common:submit') }}</el-button
           >
         </el-col>
       </el-row>
@@ -131,6 +131,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import store from '@/store'
 import { VueCropper } from 'vue-cropper'
 import { uploadAvatar } from '@/api/system/user'
@@ -145,7 +147,9 @@ export default {
       // 是否显示cropper
       visible: false,
       // 弹出层标题
-      title: '修改头像',
+      get title() {
+        return t('system:changeAvatar')
+      },
       options: {
         img: store.getters.avatar, //裁剪图片的地址
         autoCrop: true, // 是否默认生成截图框
@@ -196,7 +200,7 @@ export default {
     // 上传预处理
     beforeUpload(file) {
       if (file.type.indexOf('image/') == -1) {
-        this.$modal.msgError('文件格式错误，请上传图片类型,如：JPG，PNG后缀的文件。')
+        this.$modal.msgError(t('system:invalidFileFormatUploadAnImageSuchAsJPGOr'))
       } else {
         const reader = new FileReader()
         reader.readAsDataURL(file)
@@ -215,7 +219,7 @@ export default {
           this.open = false
           this.options.img = process.env.VUE_APP_BASE_API + response.imgUrl
           store.commit('SET_AVATAR', this.options.img)
-          this.$modal.msgSuccess('修改成功')
+          this.$modal.msgSuccess(t('common:updateSuccess'))
           this.visible = false
         })
       })

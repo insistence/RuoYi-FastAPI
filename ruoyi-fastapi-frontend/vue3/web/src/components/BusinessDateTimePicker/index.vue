@@ -28,6 +28,7 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
 import { formatBusinessTime, getDisplayTimezone, getWallTimeCandidates } from '@/utils/time'
 
 // 日期和时间分别保存为字符串，避免 Date 控件先按宿主机时区修正不存在的时间。
@@ -45,7 +46,7 @@ export default {
     },
     label: {
       type: String,
-      default: '日期时间',
+      default: () => t('components:dateAndTime'),
     },
     timezone: {
       type: String,
@@ -91,9 +92,9 @@ export default {
       try {
         return getWallTimeCandidates(this.wallValue, this.timezoneName).length
           ? ''
-          : '该时间在此时区不存在，请重新选择'
+          : t('components:thisTimeDoesNotExistInTheSelectedTimeZone')
       } catch {
-        return '请选择完整有效的日期和时间'
+        return t('components:selectACompleteValidDateAndTime')
       }
     },
   },

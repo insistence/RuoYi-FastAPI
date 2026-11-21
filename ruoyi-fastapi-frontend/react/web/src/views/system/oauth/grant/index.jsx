@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { UserOutlined, ExclamationCircleFilled } from '@ant-design/icons'
 import { Fragment } from 'react'
 import TagSummary from '@/components/OAuthWorkspace/TagSummary'
@@ -30,20 +33,47 @@ import RightToolbar from '@/components/RightToolbar'
 import AccessPolicyDrawer from './AccessPolicyDrawer'
 
 const statuses = [
-    { value: 'active', label: '仍然有效' },
-    { value: 'revoked', label: '已撤销' },
-    { value: 'expired', label: '已过期' },
+    {
+      value: 'active',
+      get label() {
+        return t('oauth:grant.stillValid')
+      },
+    },
+    {
+      value: 'revoked',
+      get label() {
+        return t('oauth:grant.revoked')
+      },
+    },
+    {
+      value: 'expired',
+      get label() {
+        return t('common:expired')
+      },
+    },
   ],
   accessOptions = [
-    { value: 'allowed', label: '允许授权' },
-    { value: 'blocked', label: '禁止访问' },
+    {
+      value: 'allowed',
+      get label() {
+        return t('oauth:grant.consentAllowed')
+      },
+    },
+    {
+      value: 'blocked',
+      get label() {
+        return t('oauth:grant.blockAccess')
+      },
+    },
   ]
 const statusTag = (value) => (
   <OAuthTag type={{ active: 'success', revoked: 'danger', expired: 'info' }[value] || 'info'}>
-    {statuses.find((item) => item.value === value)?.label || '未知状态'}
+    {statuses.find((item) => item.value === value)?.label || t('oauth:shared.unknownStatus')}
   </OAuthTag>
 )
 export default function OAuthGrant() {
+  useI18n()
+
   const [queryForm] = Form.useForm(),
     [revokeForm] = Form.useForm(),
     [accessForm] = Form.useForm(),
@@ -59,6 +89,7 @@ export default function OAuthGrant() {
     [accessTarget, setAccessTarget] = useState(null),
     [savingAccess, setSavingAccess] = useState(false),
     [policyOpen, setPolicyOpen] = useState(false)
+  useLocalizedFormErrors(queryForm, revokeForm, accessForm)
   const revokeReason = Form.useWatch('reason', revokeForm)
   const accessReason = Form.useWatch('reason', accessForm)
   const getList = useCallback(async () => {
@@ -88,7 +119,7 @@ export default function OAuthGrant() {
         revokeTargets.map((row) => row.grantId),
         { reason: values.reason.trim() }
       )
-      message.success('授权已撤销')
+      message.success(t('oauth:grant.grantRevoked'))
       setRevokeTargets(null)
       await getList()
     } catch {
@@ -109,7 +140,11 @@ export default function OAuthGrant() {
         blocked,
         reason: values.reason.trim(),
       })
-      message.success(blocked ? '已禁止访问该应用' : '已解除禁止，请重新授权')
+      message.success(
+        blocked
+          ? t('oauth:grant.accessToThisApplicationHasBeenBlocked')
+          : t('oauth:grant.restrictionRemovedGrantConsentAgain')
+      )
       setAccessTarget(null)
       await getList()
     } catch {
@@ -124,18 +159,18 @@ export default function OAuthGrant() {
   }
   const columns = [
     {
-      title: '用户',
+      title: t('system:user.user'),
       width: 180,
       render: (_, row) => (
         <EntityCell
-          name={row.userName || '用户 ' + row.userId}
+          name={row.userName || t('oauth:shared.userIdentifier', { id: row.userId })}
           detail={row.userId || row.subjectId?.slice(0, 12)}
           kind="person"
         />
       ),
     },
     {
-      title: '授权给应用',
+      title: t('oauth:grant.grantedToApplication'),
       width: 210,
       render: (_, row) => (
         <div className="oauth-stacked-cell">
@@ -146,7 +181,7 @@ export default function OAuthGrant() {
     },
     {
       width: 260,
-      title: '允许的权限',
+      title: t('oauth:grant.allowedPermissions'),
       dataIndex: 'grantedScopes',
       render: (values) => (
         <TagSummary
@@ -157,21 +192,27 @@ export default function OAuthGrant() {
     },
     {
       width: 170,
-      title: '可访问服务',
+      title: t('oauth:shared.accessibleServices'),
       dataIndex: 'grantedResources',
       ellipsis: true,
-      render: (values) => values?.join('、') || '仅身份信息',
+      render: (values) => values?.join('、') || t('common:identityInformationOnly'),
     },
     {
-      title: '最后使用',
+      title: t('oauth:grant.lastUsed'),
       dataIndex: 'lastUsedAt',
       width: 170,
-      render: (value) => parseTime(value) || '尚未使用',
+      render: (value) => parseTime(value) || t('oauth:grant.notUsedYet'),
     },
-    { align: 'center', title: '状态', dataIndex: 'status', width: 105, render: statusTag },
     {
       align: 'center',
-      title: '应用访问',
+      title: t('common:status'),
+      dataIndex: 'status',
+      width: 105,
+      render: statusTag,
+    },
+    {
+      align: 'center',
+      title: t('oauth:grant.applicationAccess'),
       dataIndex: 'accessStatus',
       width: 110,
       render: (value) => (
@@ -179,14 +220,14 @@ export default function OAuthGrant() {
           effect="plain"
           type={value === 'blocked' ? 'danger' : 'info'}
         >
-          {value === 'blocked' ? '禁止访问' : '允许授权'}
+          {value === 'blocked' ? t('oauth:grant.blockAccess') : t('oauth:grant.consentAllowed')}
         </OAuthTag>
       ),
     },
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 260,
       fixed: 'right',
       render: (_, row) => (
@@ -195,7 +236,7 @@ export default function OAuthGrant() {
             symbol="View"
             onClick={() => showDetail(row)}
           >
-            查看
+            {t('common:view')}
           </TableAction>
           <HasPermi value={['system:oauthGrant:revoke']}>
             {row.status === 'active' && (
@@ -204,7 +245,7 @@ export default function OAuthGrant() {
                 symbol="CircleClose"
                 onClick={() => openRevoke([row])}
               >
-                撤销
+                {t('oauth:grant.revoke')}
               </TableAction>
             )}
             <TableAction
@@ -212,7 +253,9 @@ export default function OAuthGrant() {
               icon={row.accessStatus === 'blocked' ? <UnlockOutlined /> : <LockOutlined />}
               onClick={() => openAccess(row)}
             >
-              {row.accessStatus === 'blocked' ? '解除禁止' : '禁止访问'}
+              {row.accessStatus === 'blocked'
+                ? t('oauth:grant.removeRestriction')
+                : t('oauth:grant.blockAccess')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -222,10 +265,10 @@ export default function OAuthGrant() {
   return (
     <PageFrame
       className="oauth-grant-page"
-      title="用户授权"
-      description="管理用户对应用的访问授权，撤销当前访问或禁止后续授权。"
-      section="访问控制"
-      filterHint="授权状态与应用访问策略分别管理；解除禁止后仍需重新授权"
+      title={t('oauth:grant.userGrants')}
+      description={t('oauth:grant.manageUserAccessGrantsToApplicationsRevokeCurrentAccess')}
+      section={t('oauth:shared.accessControl')}
+      filterHint={t('oauth:grant.grantStatusAndApplicationAccessPoliciesAreManagedSeparately')}
       actions={
         <>
           <Button
@@ -233,7 +276,7 @@ export default function OAuthGrant() {
             icon={<LockOutlined />}
             onClick={() => setPolicyOpen(true)}
           >
-            访问策略
+            {t('oauth:grant.accessPolicies')}
           </Button>
           <HasPermi value={['system:oauthGrant:revoke']}>
             <Button
@@ -242,7 +285,8 @@ export default function OAuthGrant() {
               disabled={!selected.length}
               onClick={() => openRevoke(selected)}
             >
-              撤销选中{selected.length ? `（${selected.length}）` : ''}
+              {t('oauth:grant.revokeSelected')}
+              {selected.length ? `（${selected.length}）` : ''}
             </Button>
           </HasPermi>
         </>
@@ -257,42 +301,42 @@ export default function OAuthGrant() {
           >
             <Form.Item
               name="userId"
-              label="用户"
+              label={t('system:user.user')}
             >
               <Input
-                placeholder="用户编号"
+                placeholder={t('system:user.id')}
                 allowClear
                 style={{ width: 200 }}
               />
             </Form.Item>
             <Form.Item
               name="clientId"
-              label="应用"
+              label={t('common:apply')}
             >
               <Input
                 style={{ width: 200 }}
-                placeholder="应用编号"
+                placeholder={t('authCenter:appId')}
                 allowClear
               />
             </Form.Item>
             <Form.Item
               name="status"
-              label="状态"
+              label={t('common:status')}
             >
               <Select
                 style={{ width: 200 }}
-                placeholder="全部状态"
+                placeholder={t('common:allStatuses')}
                 allowClear
                 options={statuses}
               />
             </Form.Item>
             <Form.Item
               name="accessStatus"
-              label="应用访问"
+              label={t('oauth:grant.applicationAccess')}
             >
               <Select
                 style={{ width: 200 }}
-                placeholder="全部策略"
+                placeholder={t('oauth:grant.allPolicies')}
                 allowClear
                 options={accessOptions}
               />
@@ -304,7 +348,7 @@ export default function OAuthGrant() {
                   htmlType="submit"
                   type="primary"
                 >
-                  查找
+                  {t('common:find')}
                 </Button>
                 <Button
                   icon={<QueryResetIcon />}
@@ -313,7 +357,7 @@ export default function OAuthGrant() {
                     setQuery({ pageNum: 1, pageSize: 10 })
                   }}
                 >
-                  清空
+                  {t('common:clear')}
                 </Button>
               </Space>
             </Form.Item>
@@ -323,7 +367,7 @@ export default function OAuthGrant() {
       toolbar={
         <>
           <span className="result-count">
-            找到 <strong>{total}</strong> 条授权
+            {t('layout:found')} <strong>{total}</strong> {t('oauth:grant.grants')}
           </span>
           <RightToolbar
             showSearch={showSearch}
@@ -334,7 +378,7 @@ export default function OAuthGrant() {
       }
     >
       <Table
-        locale={{ emptyText: <Empty description="没有符合条件的用户授权" /> }}
+        locale={{ emptyText: <Empty description={t('oauth:grant.noMatchingUserGrants')} /> }}
         rowKey="grantId"
         loading={loading}
         dataSource={rows}
@@ -357,8 +401,8 @@ export default function OAuthGrant() {
       <Modal
         width="min(540px, calc(100vw - 32px))"
         className="oauth-dialog oauth-impact-dialog"
-        title="撤销用户授权"
-        okText="确认撤销"
+        title={t('oauth:grant.revokeUserGrants')}
+        okText={t('oauth:grant.confirmRevocation')}
         open={!!revokeTargets}
         onCancel={() => setRevokeTargets(null)}
         onOk={revoke}
@@ -370,10 +414,13 @@ export default function OAuthGrant() {
         <div className="impact-summary">
           <ExclamationCircleFilled />
           <div>
-            <strong>{`将撤销 ${new Set((revokeTargets || []).map((row) => `${row.userId}:${row.clientId}`)).size} 组用户与应用的现有授权`}</strong>
-            <p>
-              包括一次性授权、已记住的授权和持续访问权限。在线校验的资源将在下次检查时拒绝旧凭据；仅本地验签或缓存校验结果的资源可能延迟生效。用户重新同意后可以再次访问。
-            </p>
+            <strong>
+              {t('oauth:grant.revokeExistingGrantsForValueUserAndApplicationPairs', {
+                size: new Set((revokeTargets || []).map((row) => `${row.userId}:${row.clientId}`))
+                  .size,
+              })}
+            </strong>
+            <p>{t('oauth:grant.thisIncludesOneTimeRememberedAndOfflineAccessGrants')}</p>
           </div>
         </div>
         <Form
@@ -383,11 +430,17 @@ export default function OAuthGrant() {
         >
           <Form.Item
             name="reason"
-            label="撤销原因"
-            rules={[{ required: true, whitespace: true, message: '请填写撤销原因' }]}
+            label={t('oauth:grant.revocationReason')}
+            rules={[
+              {
+                required: true,
+                whitespace: true,
+                message: t('oauth:grant.enterARevocationReason'),
+              },
+            ]}
           >
             <Input.TextArea
-              placeholder="说明为什么要撤销，便于后续审计"
+              placeholder={t('oauth:grant.explainTheRevocationForTheAuditTrail')}
               rows={3}
               maxLength={200}
               showCount
@@ -398,13 +451,21 @@ export default function OAuthGrant() {
       <Modal
         width="min(540px, calc(100vw - 32px))"
         className="oauth-dialog oauth-impact-dialog"
-        title={accessTarget?.accessStatus === 'blocked' ? '解除应用访问禁止' : '禁止用户访问应用'}
+        title={
+          accessTarget?.accessStatus === 'blocked'
+            ? t('oauth:grant.removeApplicationAccessRestriction')
+            : t('oauth:grant.blockUserAccessToApplication')
+        }
         open={!!accessTarget}
         onCancel={() => setAccessTarget(null)}
         onOk={saveAccess}
         confirmLoading={savingAccess}
         mask={{ closable: false }}
-        okText={accessTarget?.accessStatus === 'blocked' ? '确认解除' : '确认禁止'}
+        okText={
+          accessTarget?.accessStatus === 'blocked'
+            ? t('oauth:grant.confirmRemoval')
+            : t('oauth:grant.confirmRestriction')
+        }
         okButtonProps={{
           danger: accessTarget?.accessStatus !== 'blocked',
           disabled: !accessReason?.trim(),
@@ -415,13 +476,13 @@ export default function OAuthGrant() {
           <ExclamationCircleFilled />
           <div>
             <strong>
-              {accessTarget?.userName || `用户 ${accessTarget?.userId}`} ·{' '}
-              {accessTarget?.clientName || accessTarget?.clientId}
+              {accessTarget?.userName || t('oauth:grant.userValue', { arg0: accessTarget?.userId })}{' '}
+              · {accessTarget?.clientName || accessTarget?.clientId}
             </strong>
             <p>
               {accessTarget?.accessStatus === 'blocked'
-                ? '解除后用户可以重新授权。已撤销的授权和旧凭据保持失效。'
-                : '将撤销该用户对应用的全部现有授权，并禁止再次授权。只有管理员解除禁止后，用户才能重新授权；其他应用不受影响。'}
+                ? t('oauth:grant.theUserMayGrantConsentAgainAfterTheRestriction')
+                : t('oauth:grant.restrictionWarning')}
             </p>
           </div>
         </div>
@@ -432,11 +493,17 @@ export default function OAuthGrant() {
         >
           <Form.Item
             name="reason"
-            label="操作原因"
-            rules={[{ required: true, whitespace: true, message: '请填写操作原因' }]}
+            label={t('common:operationReason')}
+            rules={[
+              {
+                required: true,
+                whitespace: true,
+                message: t('oauth:grant.enterAReasonForThisOperation'),
+              },
+            ]}
           >
             <Input.TextArea
-              placeholder="说明操作原因，便于后续审计"
+              placeholder={t('oauth:grant.explainTheOperationForTheAuditTrail')}
               rows={3}
               maxLength={200}
               showCount
@@ -446,7 +513,7 @@ export default function OAuthGrant() {
       </Modal>
       <Drawer
         rootClassName="oauth-dialog oauth-detail-drawer"
-        title="用户授权详情"
+        title={t('oauth:grant.userGrantDetails')}
         open={!!detail}
         onClose={() => setDetail(null)}
         size="min(640px, 92vw)"
@@ -458,13 +525,15 @@ export default function OAuthGrant() {
                 <UserOutlined />
               </span>
               <div>
-                <strong>{detail.userName || detail.userId || '用户'}</strong>
-                <p>已授权给 {detail.clientName || detail.clientId}</p>
+                <strong>{detail.userName || detail.userId || t('system:user.user')}</strong>
+                <p>
+                  {t('oauth:grant.grantedTo')} {detail.clientName || detail.clientId}
+                </p>
               </div>
               {statusTag(detail.status)}
             </div>
             <section className="detail-section">
-              <h4>允许的权限</h4>
+              <h4>{t('oauth:grant.allowedPermissions')}</h4>
               <div className="detail-tags">
                 {(detail.grantedScopes || []).map((value) => (
                   <OAuthTag
@@ -477,23 +546,35 @@ export default function OAuthGrant() {
               </div>
             </section>
             <section className="detail-section">
-              <h4>可访问服务</h4>
-              <p>{detail.grantedResources?.join('、') || '仅用于获取登录身份信息'}</p>
+              <h4>{t('oauth:shared.accessibleServices')}</h4>
+              <p>
+                {detail.grantedResources?.join('、') ||
+                  t('oauth:grant.usedOnlyToObtainSignInIdentityInformation')}
+              </p>
             </section>
             <Descriptions
               className="detail-descriptions"
               bordered
               column={1}
               items={[
-                ['授权时间', parseTime(detail.consentedAt) || '—'],
-                ['最后使用', parseTime(detail.lastUsedAt) || '尚未使用'],
-                ['后续免确认', detail.rememberedScopes?.join('、') || '未记住，下次仍需按策略确认'],
+                [t('oauth:grant.grantedAt'), parseTime(detail.consentedAt) || '—'],
                 [
-                  '应用访问',
-                  detail.accessStatus === 'blocked' ? '禁止访问，需管理员解除' : '允许重新授权',
+                  t('oauth:grant.lastUsed'),
+                  parseTime(detail.lastUsedAt) || t('oauth:grant.notUsedYet'),
                 ],
-                ['访问策略原因', detail.accessReason || '—'],
-                ['撤销原因', detail.revokeReason || '—'],
+                [
+                  t('oauth:grant.skipFutureConfirmation'),
+                  detail.rememberedScopes?.join('、') ||
+                    t('oauth:grant.notRememberedFutureConfirmationFollowsThePolicy'),
+                ],
+                [
+                  t('oauth:grant.applicationAccess'),
+                  detail.accessStatus === 'blocked'
+                    ? t('oauth:grant.accessBlockedAnAdministratorMustRemoveTheRestriction')
+                    : t('oauth:grant.newConsentAllowed'),
+                ],
+                [t('oauth:grant.accessPolicyReason'), detail.accessReason || '—'],
+                [t('oauth:grant.revocationReason'), detail.revokeReason || '—'],
               ].map(([label, children]) => ({ key: label, label, children }))}
             />
             <Collapse
@@ -503,13 +584,13 @@ export default function OAuthGrant() {
               items={[
                 {
                   key: 'diagnostics',
-                  label: '查看技术标识',
+                  label: t('oauth:shared.showTechnicalIdentifiers'),
                   children: (
                     <dl>
                       {[
-                        ['grantId', '授权 ID'],
-                        ['subjectId', '用户主体'],
-                        ['clientPolicyVersion', '策略版本'],
+                        ['grantId', t('monitor:authorizationId')],
+                        ['subjectId', t('authCenter:userPrincipal')],
+                        ['clientPolicyVersion', t('oauth:grant.policyVersion')],
                       ].map(([key, label]) => (
                         <Fragment key={key}>
                           <dt>{label}</dt>

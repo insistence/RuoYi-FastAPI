@@ -3,6 +3,8 @@ from dataclasses import dataclass
 
 from typing_extensions import Self
 
+from i18n.message import I18nMessage
+
 
 @dataclass(frozen=True)
 class PluginOperationResult:
@@ -19,7 +21,7 @@ class PluginOperationResult:
         cls,
         payload: Mapping[str, object],
         *,
-        default_message: str = '插件操作完成',
+        default_message: str = I18nMessage('插件操作完成', msg_key='plugin.runtime.completed'),
     ) -> Self:
         """
         从插件运行时 payload 构建结果视图。
@@ -28,8 +30,9 @@ class PluginOperationResult:
         :param default_message: 默认消息
         :return: 插件操作结果视图
         """
+        message = payload.get('message') or default_message
         return cls(
             payload=payload,
             ok=bool(payload.get('ok', False)),
-            message=str(payload.get('message') or default_message),
+            message=message if isinstance(message, str) else str(message),
         )

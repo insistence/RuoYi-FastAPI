@@ -6,7 +6,7 @@ import useSettingsStore from '@/store/modules/settings'
  */
 export function useDynamicTitle() {
   const settingsStore = useSettingsStore()
-  if (settingsStore.dynamicTitle) {
+  if (settingsStore.dynamicTitle && settingsStore.title) {
     document.title = settingsStore.title + ' - ' + defaultSettings.title
   } else {
     document.title = defaultSettings.title

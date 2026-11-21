@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { TableAction } from '@/components/TableActions'
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState } from 'react'
@@ -10,7 +13,10 @@ import HasPermi from '@/directive/permission/hasPermi'
 import Pagination from '@/components/Pagination'
 
 export default function Online() {
+  useI18n()
+
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   const [query, setQuery] = useState({}),
     [rows, setRows] = useState([]),
     [loading, setLoading] = useState(false)
@@ -34,31 +40,31 @@ export default function Online() {
   }
   async function logout(row) {
     try {
-      await confirm(`是否确认强退名称为“${row.userName}”的用户？`)
+      await confirm(t('monitor:forceUserValueToSignOut', { userName: row.userName }))
       await forceLogout(row.tokenId)
-      message.success('强退成功')
+      message.success(t('monitor:userSignedOut'))
       await getList()
     } catch {}
   }
   const columns = [
     {
       align: 'center',
-      title: '序号',
+      title: t('common:index'),
       width: 50,
       render: (_, row, index) => (page.pageNum - 1) * page.pageSize + index + 1,
     },
     ...[
-      ['tokenId', '会话编号'],
-      ['userName', '登录名称'],
-      ['deptName', '所属部门'],
-      ['ipaddr', '主机'],
-      ['loginLocation', '登录地点'],
-      ['os', '操作系统'],
-      ['browser', '浏览器'],
+      ['tokenId', t('monitor:online.sessionId')],
+      ['userName', t('system:loginName')],
+      ['deptName', t('system:user.department')],
+      ['ipaddr', t('monitor:host')],
+      ['loginLocation', t('monitor:signInLocation')],
+      ['os', t('monitor:server.os')],
+      ['browser', t('monitor:browser')],
     ].map(([dataIndex, title]) => ({ align: 'center', title, dataIndex, ellipsis: true })),
     {
       align: 'center',
-      title: '登录时间',
+      title: t('monitor:login.time'),
       dataIndex: 'loginTime',
       width: 180,
       render: (value) => parseTime(value),
@@ -66,7 +72,7 @@ export default function Online() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 80,
       render: (_, row) => (
         <HasPermi value={['monitor:online:forceLogout']}>
@@ -74,7 +80,7 @@ export default function Online() {
             symbol="Delete"
             onClick={() => logout(row)}
           >
-            强退
+            {t('monitor:forceSignOut')}
           </TableAction>
         </HasPermi>
       ),
@@ -89,22 +95,22 @@ export default function Online() {
         onFinish={search}
       >
         <Form.Item
-          label="登录地址"
+          label={t('monitor:login.location')}
           name="ipaddr"
         >
           <Input
             style={{ width: 200 }}
-            placeholder="请输入登录地址"
+            placeholder={t('monitor:enterSignInAddress')}
             allowClear
           />
         </Form.Item>
         <Form.Item
-          label="用户名称"
+          label={t('system:user.username')}
           name="userName"
         >
           <Input
             style={{ width: 200 }}
-            placeholder="请输入用户名称"
+            placeholder={t('system:user.usernamePlaceholder')}
             allowClear
           />
         </Form.Item>
@@ -115,7 +121,7 @@ export default function Online() {
               type="primary"
               htmlType="submit"
             >
-              搜索
+              {t('common:search')}
             </Button>
             <Button
               icon={<ReloadOutlined />}
@@ -124,9 +130,9 @@ export default function Online() {
                 search({})
               }}
             >
-              重置
+              {t('common:reset')}
             </Button>
-            <Button onClick={getList}>刷新</Button>
+            <Button onClick={getList}>{t('layout:tags.refresh')}</Button>
           </Space>
         </Form.Item>
       </Form>

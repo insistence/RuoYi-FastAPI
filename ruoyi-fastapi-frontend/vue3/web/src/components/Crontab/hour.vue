@@ -5,8 +5,8 @@
         v-model="radioValue"
         :value="1"
       >
-        小时，允许的通配符[, - * /]
-      </el-radio>
+        {{ $t('components:hourAllowedWildcards') }}</el-radio
+      >
     </el-form-item>
 
     <el-form-item>
@@ -14,19 +14,19 @@
         v-model="radioValue"
         :value="2"
       >
-        周期从
-        <el-input-number
-          v-model="cycle01"
-          :min="0"
-          :max="22"
-        />
-        -
-        <el-input-number
-          v-model="cycle02"
-          :min="cycle01 + 1"
-          :max="23"
-        />
-        时
+        <LocalizedMessage
+          :message="$t('components:cron.range.hours', { start: '{start}', end: '{end}' })"
+          ><template #start
+            ><el-input-number
+              v-model="cycle01"
+              :min="0"
+              :max="22" /></template
+          ><template #end
+            ><el-input-number
+              v-model="cycle02"
+              :min="cycle01 + 1"
+              :max="23" /></template
+        ></LocalizedMessage>
       </el-radio>
     </el-form-item>
 
@@ -35,19 +35,19 @@
         v-model="radioValue"
         :value="3"
       >
-        从
-        <el-input-number
-          v-model="average01"
-          :min="0"
-          :max="22"
-        />
-        时开始，每
-        <el-input-number
-          v-model="average02"
-          :min="1"
-          :max="23 - average01"
-        />
-        小时执行一次
+        <LocalizedMessage
+          :message="$t('components:cron.every.hours', { start: '{start}', step: '{step}' })"
+          ><template #start
+            ><el-input-number
+              v-model="average01"
+              :min="0"
+              :max="22" /></template
+          ><template #step
+            ><el-input-number
+              v-model="average02"
+              :min="1"
+              :max="23 - average01" /></template
+        ></LocalizedMessage>
       </el-radio>
     </el-form-item>
 
@@ -56,11 +56,11 @@
         v-model="radioValue"
         :value="4"
       >
-        指定
-        <el-select
+        {{ $t('components:specify')
+        }}<el-select
           clearable
           v-model="checkboxList"
-          placeholder="可多选"
+          :placeholder="$t('components:multipleSelectionsAllowed')"
           multiple
           :multiple-limit="10"
         >
@@ -77,6 +77,7 @@
 </template>
 
 <script setup>
+import LocalizedMessage from '@/components/LocalizedMessage/index.vue'
 const emit = defineEmits(['update'])
 const props = defineProps({
   cron: {

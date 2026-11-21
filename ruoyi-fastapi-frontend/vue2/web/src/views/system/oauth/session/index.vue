@@ -1,10 +1,12 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      section="访问控制"
-      title="登录会话"
-      description="查看正在使用统一登录的用户、来源位置和关联应用，并强制结束异常会话。"
-      filter-hint="默认只显示仍然在线的会话"
+      :section="$t('oauth:shared.accessControl')"
+      :title="$t('oauth:session.signInSessions')"
+      :description="
+        $t('oauth:session.viewUsersOfUnifiedSignInTheirSourceLocationsAndAssociatedApplications')
+      "
+      :filter-hint="$t('oauth:session.onlyActiveSessionsAreShownByDefault')"
     >
       <template #actions>
         <el-button
@@ -15,58 +17,60 @@
           v-hasPermi="['system:oauthSession:revoke']"
           @click="openRevoke()"
         >
-          强制下线{{ selected.length ? `（${selected.length}）` : '' }}
+          {{ $t('oauth:session.forceSignOut')
+          }}{{ selected.length ? `（${selected.length}）` : '' }}
         </el-button>
       </template>
       <template #filters>
         <el-form
+          :validate-on-rule-change="false"
           v-show="showSearch"
           ref="queryRef"
           :model="queryParams"
           :inline="true"
         >
           <el-form-item
-            label="用户"
+            :label="$t('system:user.user')"
             prop="userId"
           >
             <el-input
               v-model="queryParams.userId"
               clearable
-              placeholder="用户编号"
+              :placeholder="$t('system:user.id')"
               style="width: 200px"
             />
           </el-form-item>
           <el-form-item
-            label="来源地址"
+            :label="$t('monitor:messages.sourceAddress')"
             prop="ipAddress"
           >
             <el-input
               v-model="queryParams.ipAddress"
               clearable
-              placeholder="IP 地址"
+              :placeholder="$t('oauth:session.iPAddress')"
               style="width: 200px"
             />
           </el-form-item>
           <el-form-item
-            label="状态"
+            :label="$t('common:status')"
             prop="status"
           >
             <el-select
               v-model="queryParams.status"
               clearable
-              placeholder="全部状态"
+              :placeholder="$t('common:allStatuses')"
               style="width: 200px"
             >
               <el-option
-                label="在线"
+                :label="$t('oauth:session.online')"
                 value="active"
               />
               <el-option
-                label="已下线"
+                :label="$t('oauth:session.signedOut')"
                 value="revoked"
               />
               <el-option
-                label="已过期"
+                :label="$t('common:expired')"
                 value="expired"
               />
             </el-select>
@@ -76,19 +80,20 @@
               type="primary"
               icon="el-icon-search"
               @click="handleQuery"
-              >查找
+              >{{ $t('common:find') }}
             </el-button>
             <el-button
               icon="el-icon-refresh"
               @click="resetQuery"
-              >清空</el-button
+              >{{ $t('common:clear') }}</el-button
             >
           </el-form-item>
         </el-form>
       </template>
       <template #toolbar>
         <span class="result-count"
-          >找到 <strong>{{ total }}</strong> 个会话
+          >{{ $t('layout:interface.found') }} <strong>{{ total }}</strong>
+          {{ $t('oauth:session.sessions') }}
         </span>
         <right-toolbar
           :showSearch.sync="showSearch"
@@ -108,7 +113,7 @@
           :selectable="(row) => row.status !== 'revoked'"
         />
         <el-table-column
-          label="用户"
+          :label="$t('system:user.user')"
           min-width="190"
         >
           <template #default="scope">
@@ -120,25 +125,27 @@
                 ></i>
               </span>
               <span>
-                <strong>{{ scope.row.userName || `用户 ${scope.row.userId}` }}</strong>
+                <strong>{{
+                  scope.row.userName || $t('oauth:shared.fallbackName', { id: scope.row.userId })
+                }}</strong>
                 <small>{{ scope.row.userId || shortId(scope.row.subjectId) }}</small>
               </span>
             </div>
           </template>
         </el-table-column>
         <el-table-column
-          label="来源"
+          :label="$t('common:source')"
           min-width="160"
         >
           <template #default="scope">
             <div class="stacked-cell">
-              <strong>{{ scope.row.ipAddress || '未知地址' }}</strong>
+              <strong>{{ scope.row.ipAddress || $t('oauth:session.unknownAddress') }}</strong>
               <small>{{ authMethodText(scope.row.amr) }}</small>
             </div>
           </template>
         </el-table-column>
         <el-table-column
-          label="关联应用"
+          :label="$t('oauth:session.associatedApplications')"
           min-width="210"
         >
           <template #default="scope">
@@ -153,7 +160,7 @@
               <span
                 v-if="!(scope.row.clientIds || []).length"
                 class="muted-value"
-                >尚无关联应用</span
+                >{{ $t('oauth:session.noAssociatedApplications') }}</span
               >
               <span
                 v-else-if="scope.row.clientIds.length > 2"
@@ -164,7 +171,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="最近活动"
+          :label="$t('oauth:session.lastActivity')"
           width="170"
         >
           <template #default="scope">
@@ -172,7 +179,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="最晚结束时间"
+          :label="$t('oauth:session.latestEndTime')"
           width="170"
         >
           <template #default="scope">
@@ -180,7 +187,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="状态"
+          :label="$t('common:status')"
           width="105"
           align="center"
         >
@@ -191,7 +198,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="操作"
+          :label="$t('common:actions')"
           width="160"
           fixed="right"
           align="center"
@@ -202,7 +209,7 @@
                 type="text"
                 icon="el-icon-view"
                 @click="showDetail(scope.row)"
-                >查看</el-button
+                >{{ $t('common:view') }}</el-button
               >
               <el-button
                 class="oauth-button-danger"
@@ -211,13 +218,13 @@
                 icon="el-icon-switch-button"
                 v-hasPermi="['system:oauthSession:revoke']"
                 @click="openRevoke(scope.row)"
-                >下线</el-button
+                >{{ $t('oauth:session.signOut') }}</el-button
               >
             </div>
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="没有符合条件的登录会话" />
+          <el-empty :description="$t('oauth:session.noMatchingSignInSessions')" />
         </template>
       </el-table>
       <pagination
@@ -232,7 +239,7 @@
     <el-dialog
       custom-class="oauth-overlay"
       :visible.sync="revokeOpen"
-      title="强制结束登录会话"
+      :title="$t('oauth:session.forceSignInSessionsToEnd')"
       width="min(540px, calc(100vw - 32px))"
       append-to-body
       :close-on-click-modal="false"
@@ -243,16 +250,20 @@
           aria-hidden="true"
         ></i>
         <div>
-          <strong>将结束 {{ revokeIds.length }} 个外部登录会话</strong>
+          <strong>{{ $t('oauth:session.endCount', { count: revokeIds.length }) }}</strong>
           <p>
-            将终止这些会话的登录状态及离线访问凭据。资源服务通过在线校验感知失效；应用本地登录状态由应用负责清理。
+            {{
+              $t(
+                'oauth:session.thisEndsTheseSessionsAndTheirOfflineAccessCredentialsResourceServicesDetect'
+              )
+            }}
           </p>
         </div>
       </div>
       <label
         class="reason-label"
         for="session-revoke-reason"
-        >下线原因</label
+        >{{ $t('oauth:session.signOutReason') }}</label
       >
       <el-input
         id="session-revoke-reason"
@@ -261,16 +272,16 @@
         :rows="3"
         maxlength="200"
         show-word-limit
-        placeholder="说明为什么要强制下线，便于后续审计"
+        :placeholder="$t('oauth:session.explainTheForcedSignOutForTheAuditTrail')"
       />
       <template #footer>
-        <el-button @click="revokeOpen = false">取消</el-button>
+        <el-button @click="revokeOpen = false">{{ $t('common:cancel') }}</el-button>
         <el-button
           type="danger"
           :disabled="!reason.trim()"
           :loading="revoking"
           @click="revoke"
-          >确认下线</el-button
+          >{{ $t('oauth:session.confirmSignOut') }}</el-button
         >
       </template>
     </el-dialog>
@@ -278,7 +289,7 @@
     <el-drawer
       custom-class="oauth-overlay"
       :visible.sync="detailOpen"
-      title="登录会话详情"
+      :title="$t('oauth:session.signInSessionDetails')"
       size="min(640px, 92vw)"
     >
       <div class="detail-hero">
@@ -289,16 +300,16 @@
           ></i>
         </span>
         <div>
-          <strong>{{ detail.userName || detail.userId || '用户' }}</strong>
+          <strong>{{ detail.userName || detail.userId || $t('system:user.user') }}</strong>
           <p>
-            {{ detail.ipAddress || '未知来源地址' }} ·
+            {{ detail.ipAddress || $t('oauth:session.unknownSourceAddress') }} ·
             {{ authMethodText(detail.amr) }}
           </p>
         </div>
         <el-tag :type="statusType(detail.status)">{{ statusText(detail.status) }}</el-tag>
       </div>
       <section class="detail-section">
-        <h4>关联应用</h4>
+        <h4>{{ $t('oauth:session.associatedApplications') }}</h4>
         <div class="tag-summary">
           <el-tag
             v-for="item in detail.clientIds || []"
@@ -308,7 +319,7 @@
           ><span
             v-if="!(detail.clientIds || []).length"
             class="muted-value"
-            >尚无关联应用</span
+            >{{ $t('oauth:session.noAssociatedApplications') }}</span
           >
         </div>
       </section>
@@ -317,34 +328,34 @@
         border
         class="detail-descriptions"
       >
-        <el-descriptions-item label="登录时间">{{
+        <el-descriptions-item :label="$t('monitor:login.time')">{{
           parseTime(detail.authTime) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item label="最近活动">{{
+        <el-descriptions-item :label="$t('oauth:session.lastActivity')">{{
           parseTime(detail.lastSeenAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item label="闲置后过期">{{
+        <el-descriptions-item :label="$t('oauth:session.expiresAfterInactivity')">{{
           parseTime(detail.idleExpiresAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item label="最晚结束时间">{{
+        <el-descriptions-item :label="$t('oauth:session.latestEndTime')">{{
           parseTime(detail.absoluteExpiresAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item label="下线原因">{{
+        <el-descriptions-item :label="$t('oauth:session.signOutReason')">{{
           detail.revokeReason || '—'
         }}</el-descriptions-item>
       </el-descriptions>
       <el-collapse class="technical-details"
         ><el-collapse-item
-          title="查看技术标识"
+          :title="$t('oauth:shared.showTechnicalIdentifiers')"
           name="technical"
           ><dl>
-            <dt>会话 ID</dt>
+            <dt>{{ $t('monitor:messages.sessionID') }}</dt>
             <dd>{{ detail.sid }}</dd>
-            <dt>用户主体</dt>
+            <dt>{{ $t('oauth:shared.userPrincipal') }}</dt>
             <dd>{{ detail.subjectId }}</dd>
-            <dt>身份版本</dt>
+            <dt>{{ $t('oauth:session.identityVersion') }}</dt>
             <dd>{{ detail.authVersion || '—' }}</dd>
-            <dt>认证级别</dt>
+            <dt>{{ $t('oauth:session.authenticationLevel') }}</dt>
             <dd>{{ detail.acr || '—' }}</dd>
           </dl></el-collapse-item
         ></el-collapse
@@ -354,6 +365,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 export default { name: 'OAuthSession' }
 </script>
 
@@ -392,7 +405,13 @@ function shortId(value, size = 12) {
 
 /** 获取会话状态名称 */
 function statusText(value) {
-  return { active: '在线', revoked: '已下线', expired: '已过期' }[value] || '未知状态'
+  return (
+    {
+      active: t('oauth:session.online'),
+      revoked: t('oauth:session.signedOut'),
+      expired: t('common:expired'),
+    }[value] || t('oauth:shared.unknownStatus')
+  )
 }
 
 /** 获取会话状态标签类型 */
@@ -403,13 +422,15 @@ function statusType(value) {
 /** 获取认证方式的展示名称 */
 function authMethodText(methods = []) {
   const labels = {
-    pwd: '密码登录',
-    password: '密码登录',
-    otp: '动态验证码',
-    mfa: '多重验证',
-    sms: '短信验证',
+    pwd: t('oauth:session.passwordSignIn'),
+    password: t('oauth:session.passwordSignIn'),
+    otp: t('oauth:session.oneTimeCode'),
+    mfa: t('oauth:session.multiFactorAuthentication'),
+    sms: t('oauth:session.sMSVerification'),
   }
-  return methods.length ? methods.map((item) => labels[item] || item).join(' + ') : '登录方式未知'
+  return methods.length
+    ? methods.map((item) => labels[item] || item).join(' + ')
+    : t('oauth:session.unknownSignInMethod')
 }
 
 /** 查询认证会话列表 */
@@ -451,7 +472,7 @@ async function revoke() {
     await revokeOAuthSessions(revokeIds.value.join(','), {
       reason: reason.value.trim(),
     })
-    proxy.$modal.msgSuccess('会话已撤销')
+    proxy.$modal.msgSuccess(t('oauth:session.sessionRevoked'))
     revokeOpen.value = false
     await getList()
   } finally {

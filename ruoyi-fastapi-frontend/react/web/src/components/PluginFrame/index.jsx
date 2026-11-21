@@ -1,3 +1,6 @@
+import { useLocalizedText } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { i18n, resolveRouteTitle, t } from '@/i18n'
 import '@/assets/styles/components.css'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button, Result, Spin } from 'antd'
@@ -21,6 +24,8 @@ import {
 } from '@/utils/pluginBridge'
 
 export default function PluginFrame({ route }) {
+  const { locale } = useI18n()
+
   const token = useUserStore((state) => state.token),
     timeZone = useUserStore((state) => state.timeZone),
     settings = useSettingsStore(),
@@ -28,7 +33,7 @@ export default function PluginFrame({ route }) {
     navigate = useNavigate()
   const [frame, setFrame] = useState(),
     [loading, setLoading] = useState(false),
-    [error, setError] = useState(''),
+    [error, setError] = useLocalizedText(''),
     [revision, setRevision] = useState(0),
     iframe = useRef(),
     runtime = useRef({
@@ -40,7 +45,7 @@ export default function PluginFrame({ route }) {
       timers: [],
     }),
     context = useRef()
-  const title = String(route.meta?.title || '插件应用'),
+  const title = String(resolveRouteTitle(route) || t('components:pluginFrame.pluginApplication')),
     pluginId = route.meta?.pluginId
   function currentRoute() {
     try {
@@ -59,7 +64,7 @@ export default function PluginFrame({ route }) {
         mode: settings.dark ? 'dark' : 'light',
         primary: settings.colorPrimary,
       },
-      language: document.documentElement.lang || 'zh-CN',
+      language: locale,
       timeZone: getDisplayTimezone(),
     },
   }
@@ -87,7 +92,8 @@ export default function PluginFrame({ route }) {
     current.timers = [
       setTimeout(
         () => {
-          if (ticket === current.generation) fail('插件会话已过期，请重新加载')
+          if (ticket === current.generation)
+            fail((t) => t('components:pluginFrame.thePluginSessionHasExpiredReloadThePage'))
         },
         Math.max(0, remaining)
       ),
@@ -134,7 +140,11 @@ export default function PluginFrame({ route }) {
       schedule(ticket)
     } catch {
       if (ticket === current.generation && !controller.signal.aborted)
-        fail(renew ? '插件会话续期失败，请重新加载' : '无法建立插件会话，请确认权限后重试')
+        fail((t) =>
+          renew
+            ? t('components:pluginFrame.failedToRenewThePluginSessionReloadThePage')
+            : t('components:pluginFrame.unableToCreateAPluginSessionCheckYourPermissions')
+        )
     } finally {
       if (current.controller === controller) current.controller = null
     }
@@ -144,22 +154,13 @@ export default function PluginFrame({ route }) {
     current.active = true
     cleanup(!token)
     setError('')
-    if (!token) setError('登录状态已失效，请重新登录')
+    if (!token) setError((t) => t('components:pluginFrame.yourSessionHasExpiredSignInAgain'))
     else {
       setLoading(true)
       loadSession(current.generation)
     }
-    const observer = new MutationObserver(() => {
-      context.current.preferences.language = document.documentElement.lang || 'zh-CN'
-      current.bridge?.updatePreferences()
-    })
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['lang'],
-    })
     return () => {
       current.active = false
-      observer.disconnect()
       cleanup(!useUserStore.getState().token)
     }
   }, [pluginId, token, revision])
@@ -178,6 +179,7 @@ export default function PluginFrame({ route }) {
         shouldEncryptRequest,
         serializeParams: tansParams,
         getTimezone: getDisplayTimezone,
+        getLocale: () => i18n.locale,
       }),
       getContext: () => ({
         ...context.current.preferences,
@@ -188,7 +190,7 @@ export default function PluginFrame({ route }) {
         clearTimeout(handshake)
         setLoading(false)
       },
-      onDisconnect: fail,
+      onDisconnect: () => fail((t) => t('components:pluginFrame.thePluginIsCurrentlyUnavailable')),
       onRoute: (pluginRoute) => {
         if (ticket !== current.generation || pluginRoute === currentRoute()) return
         const query = new URLSearchParams(context.current.location.search)
@@ -203,7 +205,8 @@ export default function PluginFrame({ route }) {
       },
     })
     const handshake = setTimeout(() => {
-      if (ticket === current.generation) fail('插件连接超时，请重新加载')
+      if (ticket === current.generation)
+        fail((t) => t('components:pluginFrame.pluginConnectionTimedOutReloadThePage'))
     }, 15000)
     return () => {
       clearTimeout(handshake)
@@ -213,7 +216,7 @@ export default function PluginFrame({ route }) {
   }, [frame])
   useEffect(() => {
     runtime.current.bridge?.updatePreferences()
-  }, [settings.dark, settings.colorPrimary, timeZone])
+  }, [settings.dark, settings.colorPrimary, timeZone, locale])
   useEffect(() => {
     runtime.current.bridge?.updateRoute(currentRoute())
   }, [location.search])
@@ -225,7 +228,7 @@ export default function PluginFrame({ route }) {
       {error ? (
         <Result
           status="warning"
-          title="插件暂时无法打开"
+          title={t('components:pluginFrame.thePluginIsCurrentlyUnavailable')}
           subTitle={error}
           extra={
             <Button
@@ -233,14 +236,14 @@ export default function PluginFrame({ route }) {
               disabled={!token}
               onClick={() => setRevision((value) => value + 1)}
             >
-              重新加载
+              {t('common:reload')}
             </Button>
           }
         />
       ) : (
         <Spin
           spinning={loading}
-          description="正在加载插件，请稍候…"
+          description={t('components:pluginFrame.loadingPlugin')}
         >
           <div className="plugin-frame-content">
             <div className="plugin-frame-toolbar">
@@ -250,7 +253,7 @@ export default function PluginFrame({ route }) {
                 disabled={loading || !frame}
                 onClick={() => runtime.current.bridge?.refresh()}
               >
-                刷新插件
+                {t('components:pluginFrame.refreshPlugin')}
               </Button>
             </div>
             {frame && (
@@ -260,7 +263,9 @@ export default function PluginFrame({ route }) {
                 src={frame.src}
                 title={title}
                 referrerPolicy="same-origin"
-                onError={() => fail('插件页面加载失败，请重试')}
+                onError={() =>
+                  fail((t) => t('components:pluginFrame.failedToLoadThePluginPagePleaseTryAgain'))
+                }
               />
             )}
           </div>

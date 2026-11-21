@@ -85,16 +85,17 @@ async def login(
             access_token,
             ex=timedelta(minutes=JwtConfig.jwt_redis_expire_minutes),
         )
-    await UserService.edit_user_services(
-        query_db, EditUserModel(userId=result[0].user_id, loginDate=TimezoneUtil.utc_now(), type='status')
-    )
+    login_update = EditUserModel(userId=result[0].user_id, loginDate=TimezoneUtil.utc_now(), type='status')
+    if form_data.locale is not None:
+        login_update.locale = form_data.locale
+    await UserService.edit_user_services(query_db, login_update)
     logger.info('登录成功')
     # 判断请求是否来自于api文档，如果是返回指定格式的结果，用于修复api文档认证成功后token显示undefined的bug
     request_from_swagger = request.headers.get('referer').endswith('docs') if request.headers.get('referer') else False
     request_from_redoc = request.headers.get('referer').endswith('redoc') if request.headers.get('referer') else False
     if request_from_swagger or request_from_redoc:
         return {'access_token': access_token, 'token_type': 'Bearer'}
-    return ResponseUtil.success(msg='登录成功', dict_content={'token': access_token})
+    return ResponseUtil.success(msg_key='auth.signedIn', dict_content={'token': access_token})
 
 
 @login_controller.get(
@@ -145,7 +146,7 @@ async def unlock_screen(
     await LoginService.unlock_screen_services(query_db, current_user, unlock_screen_data.password)
     logger.info('解锁成功')
 
-    return ResponseUtil.success(msg='解锁成功')
+    return ResponseUtil.success(msg_key='auth.unlocked')
 
 
 @login_controller.post(
@@ -213,4 +214,4 @@ async def logout(request: Request, token: Annotated[str | None, Depends(oauth2_s
     await LoginService.logout_services(request, token_id, token)
     logger.info('退出成功')
 
-    return ResponseUtil.success(msg='退出成功')
+    return ResponseUtil.success(msg_key='auth.signedOut')

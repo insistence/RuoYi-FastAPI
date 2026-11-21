@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useMemo, useRef, useState } from 'react'
 import { Button, Input, Tree, Tooltip } from 'antd'
 import {
@@ -16,8 +18,8 @@ export default function TreePanel({
   data = [],
   selectedKeys,
   onSelect,
-  title = '组织机构',
-  searchPlaceholder = '请输入部门名称',
+  title = t('common:organization'),
+  searchPlaceholder = t('common:enterADepartmentName'),
   onRefresh,
   actions,
   defaultWidth = 220,
@@ -26,6 +28,8 @@ export default function TreePanel({
   collapsedWidth = 20,
   storageKey = 'react-tree-sidebar-width',
 }) {
+  const { locale } = useI18n()
+
   const [search, setSearch] = useState(''),
     [collapsed, setCollapsed] = useState(false),
     [resizing, setResizing] = useState(false)
@@ -50,7 +54,7 @@ export default function TreePanel({
       })
     visit(data)
     return keys
-  }, [data])
+  }, [data, locale])
   function filter(nodes) {
     return nodes.flatMap((node) => {
       if (String(node.label).includes(search)) return [node]
@@ -84,11 +88,21 @@ export default function TreePanel({
           {title}
         </span>
         <div className="tree-panel-actions">
-          <Tooltip title={expanded?.length === 0 ? '展开全部' : '收起全部'}>
+          <Tooltip
+            title={
+              expanded?.length === 0
+                ? t('components:treePanel.expandAll')
+                : t('components:treePanel.collapseAll')
+            }
+          >
             <Button
               type="text"
               size="small"
-              aria-label={expanded?.length === 0 ? '展开全部' : '收起全部'}
+              aria-label={
+                expanded?.length === 0
+                  ? t('components:treePanel.expandAll')
+                  : t('components:treePanel.collapseAll')
+              }
               icon={expanded?.length === 0 ? <UpOutlined /> : <DownOutlined />}
               onClick={() => setExpanded(expanded?.length === 0 ? allKeys : [])}
             />
@@ -97,7 +111,7 @@ export default function TreePanel({
             <Button
               type="text"
               size="small"
-              aria-label="刷新部门"
+              aria-label={t('components:treePanel.refreshDepartments')}
               icon={<ReloadOutlined />}
               onClick={onRefresh}
             />
@@ -108,7 +122,11 @@ export default function TreePanel({
       <Button
         className="tree-panel-collapse"
         type="text"
-        aria-label={collapsed ? '展开部门面板' : '收起部门面板'}
+        aria-label={
+          collapsed
+            ? t('components:treePanel.expandDepartmentPanel')
+            : t('components:treePanel.collapseDepartmentPanel')
+        }
         aria-expanded={!collapsed}
         icon={collapsed ? <DoubleRightOutlined /> : <DoubleLeftOutlined />}
         onClick={() => setCollapsed(!collapsed)}
@@ -120,7 +138,7 @@ export default function TreePanel({
         <Input
           type="search"
           prefix={<SearchOutlined />}
-          aria-label="搜索部门"
+          aria-label={t('components:treePanel.searchDepartments')}
           placeholder={searchPlaceholder}
           allowClear
           value={search}
@@ -151,7 +169,7 @@ export default function TreePanel({
         <div
           className="tree-panel-resizer"
           role="separator"
-          aria-label="调整部门面板宽度"
+          aria-label={t('components:treePanel.resizeDepartmentPanel')}
           aria-orientation="vertical"
           aria-valuemin={minWidth}
           aria-valuemax={maxWidth}

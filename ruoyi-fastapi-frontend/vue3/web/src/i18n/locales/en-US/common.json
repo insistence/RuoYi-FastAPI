@@ -1,0 +1,42 @@
+{
+  "items": "items",
+  "allow": "Allow",
+  "exportFiles": {
+    "users": "Users",
+    "roles": "Roles",
+    "posts": "Posts",
+    "pluginOperations": "Plugin operations",
+    "oauthAudit": "OAuth audit",
+    "loginHistory": "Login history",
+    "operations": "Operation logs",
+    "jobLogs": "Job logs",
+    "jobs": "Scheduled jobs",
+    "dictTypes": "Dictionary types",
+    "dictData": "Dictionary entries",
+    "settings": "Settings",
+    "userTemplate": "User import template"
+  },
+  "translationUnavailable": "Text unavailable",
+  "language": "Language",
+  "followDevice": "Follow device",
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "loading": "Loading…",
+  "loadingSystemResourcesPleaseWait": "Loading system resources. Please wait.",
+  "retry": "Retry",
+  "languageSaved": "Language preference saved",
+  "languageFailed": "Could not save the language preference. Please try again.",
+  "network": {
+    "error": "Unable to connect to the server",
+    "timeout": "The request timed out"
+  },
+  "session": {
+    "expired": "Your session has expired. Please sign in again.",
+    "signIn": "Sign in again",
+    "stay": "Stay on this page"
+  },
+  "notice": "Notice",
+  "edit": "Edit",
+  "notActivated": "Not activated"
+}

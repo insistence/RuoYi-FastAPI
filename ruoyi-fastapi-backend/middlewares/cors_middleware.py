@@ -9,6 +9,7 @@ def add_cors_middleware(app: FastAPI) -> None:
     :param app: FastAPI对象
     """
     expose_headers = [
+        'content-language',
         'x-body-encrypted',
         'x-key-id',
         'x-encrypt-alg',

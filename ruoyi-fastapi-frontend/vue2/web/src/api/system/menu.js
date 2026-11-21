@@ -1,3 +1,4 @@
+import { withLocalePatch } from '@/utils/localePayload.mjs'
 import request from '@/utils/request'
 
 // 查询菜单列表
@@ -38,7 +39,7 @@ export function addMenu(data) {
   return request({
     url: '/system/menu',
     method: 'post',
-    data: data,
+    data: withLocalePatch(data),
   })
 }
 
@@ -47,7 +48,7 @@ export function updateMenu(data) {
   return request({
     url: '/system/menu',
     method: 'put',
-    data: data,
+    data: withLocalePatch(data),
   })
 }
 

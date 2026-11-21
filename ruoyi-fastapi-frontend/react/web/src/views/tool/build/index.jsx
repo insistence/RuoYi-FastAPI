@@ -1,3 +1,6 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
+import { useLocalizedFormErrors } from '@/i18n/form'
 import { CopyOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Col, Form, Input, Modal, Row, Space, Typography } from 'antd'
@@ -33,14 +36,25 @@ const initialField = {
   ...inputComponents[0],
   formId: 100,
   vModel: 'mobile',
-  label: '手机号',
-  placeholder: '请输入手机号',
+  get label() {
+    return t('tool:mobileNumber')
+  },
+  get placeholder() {
+    return t('tool:enterAMobileNumber')
+  },
   maxlength: 11,
   defaultValue: '',
   labelWidth: undefined,
   'prefix-icon': 'phone',
   'show-word-limit': true,
-  regList: [{ pattern: '/^1[3-9]\\d{9}$/', message: '手机号格式错误' }],
+  regList: [
+    {
+      pattern: '/^1[3-9]\\d{9}$/',
+      get message() {
+        return t('tool:invalidMobileNumberFormat')
+      },
+    },
+  ],
 }
 function loadSaved() {
   try {
@@ -50,6 +64,8 @@ function loadSaved() {
   return { fields: [initialField], config: defaults }
 }
 function PreviewFields({ fields }) {
+  useI18n()
+
   return fields.map((field) =>
     field.layout === 'rowFormItem' ? (
       <Col
@@ -86,6 +102,8 @@ function PreviewFields({ fields }) {
   )
 }
 export default function Build() {
+  useI18n()
+
   const [saved] = useState(loadSaved)
   const [fields, setFields] = useState(saved.fields)
   const [config, setConfig] = useState(saved.config)
@@ -95,6 +113,7 @@ export default function Build() {
   const [preview, setPreview] = useState(false)
   const [result, setResult] = useState(null)
   const [previewForm] = Form.useForm()
+  useLocalizedFormErrors(previewForm)
   const nextId = useRef(
     Math.max(100, ...flattenFields(saved.fields).map((f) => Number(f.formId) || 0))
   )
@@ -133,15 +152,15 @@ export default function Build() {
     const names = flattenFields(fields)
       .map((f) => f.vModel)
       .filter(Boolean)
-    if (new Set(names).size !== names.length) return message.error('字段名不能重复')
+    if (new Set(names).size !== names.length) return message.error(t('tool:fieldNamesMustBeUnique'))
     if (flattenFields(fields).some((f) => f.layout !== 'rowFormItem' && !f.vModel))
-      return message.error('请填写组件字段名')
+      return message.error(t('tool:enterComponentFieldNames'))
     if (
       flattenFields(fields).some((field) =>
         (field.regList || []).some((rule) => rule.pattern && !parsePattern(rule.pattern))
       )
     )
-      return message.error('请修正无效的正则表达式')
+      return message.error(t('tool:fixTheInvalidRegularExpressions'))
     const text = makeUpJs(fields, config, values.type)
     setCode(text)
     setOperation('')
@@ -150,9 +169,9 @@ export default function Build() {
     else if (operation === 'copy') {
       try {
         await navigator.clipboard.writeText(text)
-        message.success('代码已复制')
+        message.success(t('tool:codeCopied'))
       } catch {
-        message.warning('无法访问剪贴板，请从代码预览复制')
+        message.warning(t('tool:clipboardAccessIsUnavailableCopyFromTheCodePreview'))
       }
     }
   }
@@ -164,13 +183,13 @@ export default function Build() {
             src={logo}
             alt=""
           />
-          Form Generator
+          {t('tool:formGenerator')}
         </h3>
         <div className="builder-palette-content">
           {[
-            [inputComponents, '输入型组件'],
-            [selectComponents, '选择型组件'],
-            [layoutComponents, '布局型组件'],
+            [inputComponents, t('tool:inputComponents')],
+            [selectComponents, t('tool:selectionComponents')],
+            [layoutComponents, t('tool:layoutComponents')],
           ].map(([items, title]) => (
             <section key={title}>
               <h4>
@@ -206,14 +225,14 @@ export default function Build() {
             icon={<DownloadOutlined />}
             onClick={() => setOperation('download')}
           >
-            导出 React 文件
+            {t('tool:exportReactFile')}
           </Button>
           <Button
             type="link"
             icon={<CopyOutlined />}
             onClick={() => setOperation('copy')}
           >
-            复制代码
+            {t('tool:copyCode')}
           </Button>
           <Button
             type="link"
@@ -224,7 +243,7 @@ export default function Build() {
               setPreview(true)
             }}
           >
-            预览
+            {t('common:preview')}
           </Button>
           <Button
             type="text"
@@ -232,13 +251,13 @@ export default function Build() {
             danger
             onClick={async () => {
               try {
-                await confirm('确定要清空所有组件吗？')
+                await confirm(t('tool:clearAllComponents'))
                 setFields([])
                 setActive(null)
               } catch {}
             }}
           >
-            清空
+            {t('common:clear')}
           </Button>
         </Space>
         <div
@@ -287,7 +306,9 @@ export default function Build() {
             </Row>
           </Form>
           {!fields.length && (
-            <div className="builder-canvas-empty">从左侧拖入或点选组件进行表单设计</div>
+            <div className="builder-canvas-empty">
+              {t('tool:dragOrSelectComponentsFromTheLeftToDesign')}
+            </div>
           )}
         </div>
       </section>
@@ -317,13 +338,13 @@ export default function Build() {
         onConfirm={generate}
       />
       <Modal
-        title="React 代码预览"
+        title={t('tool:reactCodePreview')}
         open={!!code}
         onCancel={() => setCode('')}
         footer={null}
         width="85%"
       >
-        <Typography.Paragraph copyable={{ text: code }}>复制代码</Typography.Paragraph>
+        <Typography.Paragraph copyable={{ text: code }}>{t('tool:copyCode')}</Typography.Paragraph>
         <Input.TextArea
           value={code}
           readOnly
@@ -332,7 +353,7 @@ export default function Build() {
         />
       </Modal>
       <Modal
-        title="表单预览"
+        title={t('tool:formPreview')}
         open={preview}
         onCancel={() => setPreview(false)}
         footer={null}
@@ -364,9 +385,9 @@ export default function Build() {
                 type="primary"
                 htmlType="submit"
               >
-                提交
+                {t('common:submit')}
               </Button>
-              <Button onClick={() => previewForm.resetFields()}>重置</Button>
+              <Button onClick={() => previewForm.resetFields()}>{t('common:reset')}</Button>
             </Space>
           )}
         </Form>

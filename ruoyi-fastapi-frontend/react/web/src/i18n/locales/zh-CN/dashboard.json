@@ -1,0 +1,38 @@
+{
+  "overview": {
+    "justNow": "几秒前",
+    "reference": "引用",
+    "team": "团队",
+    "6YearsAgo": "6 年前",
+    "reputation": "口碑",
+    "output": "产量",
+    "contribution": "贡献",
+    "popularity": "热度",
+    "actionValue": "操作{{number}}",
+    "addShortcut": "添加便捷导航",
+    "enterAnApplicationPathOrAnHttpSUrl": "请输入站内路径或 HTTP(S) 地址",
+    "interactionDesignerAntFinancialBusinessGroupPlatformDivisionTechnology": "交互专家 |蚂蚁金服－某某某事业群－某某平台部－某某技术部－UED",
+    "projects": "项目数",
+    "teamRanking": "团队内排名",
+    "projectVisits": "项目访问",
+    "allProjects": "全部项目",
+    "projectsInProgress": "进行中的项目",
+    "quickStartShortcuts": "快速开始 / 便捷导航",
+    "performanceIndex": "XX 指数",
+    "exampleRadarChartComparingIndividualsTeamsAndDepartmentsAcross": "个人、团队和部门在引用、口碑、产量、贡献、热度五个维度的示例雷达图"
+  },
+  "activity": {
+    "inText": "在",
+    "createdAProjectText": "新建项目",
+    "markedText": "将",
+    "asPublishedText": "更新至已发布状态",
+    "publishedText": "发布了",
+    "created": "<user/> 在 <group/> 新建项目 <project/>",
+    "published": "<user/> 在 <group/> 发布了 <project/>",
+    "updated": "<user/> 将 <group/> 更新至已发布状态",
+    "title": "动态"
+  },
+  "add": "添加",
+  "individual": "个人",
+  "greeting": "早安，{{name}}，祝你开心每一天！"
+}

@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 from time import monotonic
 
+from i18n.message import I18nMessage
 from plugins.core.capability import STATE_CHANGE_OPERATIONS, PluginRuntimeCapability, PluginRuntimeCapabilityResolver
 from plugins.core.discovery.registry import PluginRegistry
 from plugins.core.discovery.scanner import (
@@ -181,7 +182,9 @@ class PluginRuntimeContextService:
             operation=operation,
             plugin_id=plugin_id,
             message=message,
-            suggestion='请使用 plugin release 命令，并在执行前停止全部宿主worker。',
+            suggestion=I18nMessage(
+                '请使用 plugin release 命令，并在执行前停止全部宿主worker。', msg_key='plugin.suggestion.releaseWorkers'
+            ),
             capability={
                 'pluginId': plugin_id,
                 'backendRuntimeManageable': False,
@@ -318,8 +321,11 @@ class PluginRuntimeContextService:
             status='blocked',
             operation=operation,
             plugin_id=discovered_plugin.manifest.id,
-            message='当前环境不允许执行该插件操作',
-            suggestion='请在开发模式或维护窗口中执行插件变更，并重启后端或重新构建前端。',
+            message=I18nMessage('当前环境不允许执行该插件操作', msg_key='plugin.runtime.operationForbidden'),
+            suggestion=I18nMessage(
+                '请在开发模式或维护窗口中执行插件变更，并重启后端或重新构建前端。',
+                msg_key='plugin.suggestion.maintenanceWindow',
+            ),
             capability=capability.to_payload(),
             dry_run=dry_run,
             exit_code=1,
@@ -448,8 +454,12 @@ class PluginRuntimeContextService:
             category='lifecycle',
             kind='lifecycle_script_precheck_failed',
             path='backend',
-            message=f'插件生命周期脚本预检失败：{exc}',
-            suggestion='请检查 migration/seed 声明和脚本文件',
+            message=I18nMessage(
+                f'插件生命周期脚本预检失败：{exc}',
+                msg_key='plugin.runtime.precheck.scriptFailed',
+                msg_params={},
+            ),
+            suggestion=I18nMessage('请检查 migration/seed 声明和脚本文件', msg_key='plugin.suggestion.checkScripts'),
         )
 
     def discover_plugins(self, backend_root: Path) -> list[DiscoveredPlugin]:

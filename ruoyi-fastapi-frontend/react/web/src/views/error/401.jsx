@@ -1,9 +1,13 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { Button, Row, Col } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import image from '@/assets/401_images/401.gif'
 import './style.css'
 export default function Forbidden() {
+  useI18n()
+
   const navigate = useNavigate(),
     [query] = useSearchParams()
   return (
@@ -13,16 +17,16 @@ export default function Forbidden() {
         icon={<ArrowLeftOutlined />}
         onClick={() => (query.has('noGoBack') ? navigate('/') : navigate(-1))}
       >
-        返回
+        {t('layout:error.back')}
       </Button>
       <Row>
         <Col span={12}>
-          <h1 className="text-jumbo">401错误!</h1>
-          <h2>您没有访问权限！</h2>
-          <h6>对不起，您没有访问权限，请不要进行非法操作！您可以返回主页面</h6>
+          <h1 className="text-jumbo">{t('auth:401Error')}</h1>
+          <h2>{t('layout:error.forbidden')}</h2>
+          <h6>{t('layout:error.forbiddenHint')}</h6>
           <ul className="list-unstyled">
             <li>
-              <Link to="/">回首页</Link>
+              <Link to="/">{t('auth:backToHome')}</Link>
             </li>
           </ul>
         </Col>
@@ -31,7 +35,7 @@ export default function Forbidden() {
             src={image}
             width="313"
             height="428"
-            alt="Girl has dropped her ice cream."
+            alt={t('auth:forbidden.illustration')}
           />
         </Col>
       </Row>

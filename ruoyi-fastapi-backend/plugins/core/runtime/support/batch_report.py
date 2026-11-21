@@ -5,6 +5,7 @@ from typing import TypeAlias
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
 from plugins.core.runtime.support.payload.base import PluginPayloadModel
 from plugins.core.validation.plugin_deps import PluginBatchOperation
 
@@ -144,13 +145,14 @@ class PluginBatchReportBuilder:
         :return: 单项报告
         """
         ok = bool(result.get('ok', False))
+        message = result.get('message', '-')
 
         return PluginBatchItemReport(
             plugin_id=plugin_id,
             operation=operation,
             ok=ok,
             status='success' if ok else 'failed',
-            message=str(result.get('message', '-')),
+            message=message if isinstance(message, str) else str(message),
             duration_ms=duration_ms,
             suggestion='' if ok else cls.build_failure_suggestion(operation, plugin_id, result),
         )
@@ -223,7 +225,9 @@ class PluginBatchReportBuilder:
                 'executed': [],
                 'failed': None,
                 'summary': cls.build_summary([], total),
-                'message': '插件批量操作计划存在阻塞项，未执行任何写操作',
+                'message': I18nMessage(
+                    '插件批量操作计划存在阻塞项，未执行任何写操作', msg_key='plugin.runtime.batch.blocked'
+                ),
             }
         ).to_payload()
 
@@ -245,7 +249,9 @@ class PluginBatchReportBuilder:
         return PluginBatchRunPayload.model_validate(
             {
                 **plan_payload,
-                'message': '插件批量操作演练完成，未执行实际写入',
+                'message': I18nMessage(
+                    '插件批量操作演练完成，未执行实际写入', msg_key='plugin.runtime.batch.previewCompleted'
+                ),
                 'dryRun': True,
                 'continueOnError': continue_on_error,
                 'executed': [],
@@ -313,11 +319,11 @@ class PluginBatchReportBuilder:
         :return: 批量执行结果消息
         """
         if ok:
-            return '插件批量操作完成'
+            return I18nMessage('插件批量操作完成', msg_key='plugin.runtime.batch.completed')
         if continue_on_error:
-            return '插件批量操作完成，存在失败项'
+            return I18nMessage('插件批量操作完成，存在失败项', msg_key='plugin.runtime.batch.partial')
 
-        return '插件批量操作中止'
+        return I18nMessage('插件批量操作中止', msg_key='plugin.runtime.batch.stopped')
 
     @staticmethod
     def dump_item_report(report: PluginBatchItemReport) -> BatchItemReportPayload:
@@ -352,15 +358,31 @@ class PluginBatchReportBuilder:
         :return: 失败建议
         """
         if result.get('pluginDependencyErrors'):
-            return f'先执行 ruoyi plugin plan {operation} {plugin_id} 查看插件依赖阻塞项'
+            return I18nMessage(
+                f'先执行 ruoyi plugin plan {operation} {plugin_id} 查看插件依赖阻塞项',
+                msg_key='plugin.suggestion.batchDependencies',
+                msg_params={'operation': operation, 'plugin_id': plugin_id},
+            )
         if result.get('structureErrors'):
-            return f'先执行 ruoyi plugin check {plugin_id} 修复插件目录结构问题'
+            return I18nMessage(
+                f'先执行 ruoyi plugin check {plugin_id} 修复插件目录结构问题',
+                msg_key='plugin.suggestion.batchStructure',
+                msg_params={'plugin_id': plugin_id},
+            )
         if result.get('menuConflicts'):
-            return f'先执行 ruoyi plugin check {plugin_id} 查看菜单或权限冲突'
+            return I18nMessage(
+                f'先执行 ruoyi plugin check {plugin_id} 查看菜单或权限冲突',
+                msg_key='plugin.suggestion.batchMenus',
+                msg_params={'plugin_id': plugin_id},
+            )
         if result.get('error'):
-            return '查看错误详情并修复后重新执行批量命令'
+            return I18nMessage('查看错误详情并修复后重新执行批量命令', msg_key='plugin.suggestion.batchError')
 
-        return f'先单独执行 ruoyi plugin {operation} {plugin_id} --dry-run 定位失败原因'
+        return I18nMessage(
+            f'先单独执行 ruoyi plugin {operation} {plugin_id} --dry-run 定位失败原因',
+            msg_key='plugin.suggestion.batchDryRun',
+            msg_params={'operation': operation, 'plugin_id': plugin_id},
+        )
 
     @staticmethod
     def _count_planned_items(plan_payload: BatchPlanPayload) -> int:

@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -8,23 +9,23 @@
       v-show="showSearch"
     >
       <el-form-item
-        label="部门名称"
+        :label="$t('system:dept.name')"
         prop="deptName"
       >
         <el-input
           v-model="queryParams.deptName"
-          placeholder="请输入部门名称"
+          :placeholder="$t('system:dept.enterADepartmentName')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="状态"
+        :label="$t('common:status')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="部门状态"
+          :placeholder="$t('system:dept.status')"
           clearable
         >
           <el-option
@@ -41,13 +42,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -64,7 +65,7 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['system:dept:add']"
-          >新增</el-button
+          >{{ $t('common:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -75,7 +76,7 @@
           size="mini"
           @click="handleSaveSort"
           v-hasPermi="['system:dept:edit']"
-          >保存排序</el-button
+          >{{ $t('system:dept.saveSortOrder') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -85,7 +86,7 @@
           icon="el-icon-sort"
           size="mini"
           @click="toggleExpandAll"
-          >展开/折叠</el-button
+          >{{ $t('common:expandCollapse') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -104,12 +105,12 @@
     >
       <el-table-column
         prop="deptName"
-        label="部门名称"
+        :label="$t('system:dept.name')"
         width="260"
       ></el-table-column>
       <el-table-column
         prop="orderNum"
-        label="排序"
+        :label="$t('common:sort')"
         width="200"
       >
         <template slot-scope="scope">
@@ -124,7 +125,7 @@
       </el-table-column>
       <el-table-column
         prop="status"
-        label="状态"
+        :label="$t('common:status')"
         width="100"
       >
         <template slot-scope="scope">
@@ -135,7 +136,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="创建时间"
+        :label="$t('common:createdTime')"
         align="center"
         prop="createTime"
         width="200"
@@ -145,7 +146,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -156,7 +157,7 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:dept:edit']"
-            >修改</el-button
+            >{{ $t('common:edit') }}</el-button
           >
           <el-button
             size="mini"
@@ -164,7 +165,7 @@
             icon="el-icon-plus"
             @click="handleAdd(scope.row)"
             v-hasPermi="['system:dept:add']"
-            >新增</el-button
+            >{{ $t('common:add') }}</el-button
           >
           <el-button
             v-if="scope.row.parentId != 0"
@@ -173,7 +174,7 @@
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:dept:remove']"
-            >删除</el-button
+            >{{ $t('common:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -181,12 +182,13 @@
 
     <!-- 添加或修改部门对话框 -->
     <el-dialog
-      :title="title"
+      :title="$t(titleKey)"
       :visible.sync="open"
       width="600px"
       append-to-body
     >
       <el-form
+        :validate-on-rule-change="false"
         ref="form"
         :model="form"
         :rules="rules"
@@ -198,14 +200,14 @@
             v-if="form.parentId !== 0"
           >
             <el-form-item
-              label="上级部门"
+              :label="$t('system:dept.parent')"
               prop="parentId"
             >
               <treeselect
                 v-model="form.parentId"
                 :options="deptOptions"
                 :normalizer="normalizer"
-                placeholder="选择上级部门"
+                :placeholder="$t('system:selectParentDepartment')"
               />
             </el-form-item>
           </el-col>
@@ -213,18 +215,18 @@
         <el-row>
           <el-col :span="12">
             <el-form-item
-              label="部门名称"
+              :label="$t('system:dept.name')"
               prop="deptName"
             >
               <el-input
                 v-model="form.deptName"
-                placeholder="请输入部门名称"
+                :placeholder="$t('system:dept.enterADepartmentName')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="显示排序"
+              :label="$t('system:dept.order')"
               prop="orderNum"
             >
               <el-input-number
@@ -238,24 +240,24 @@
         <el-row>
           <el-col :span="12">
             <el-form-item
-              label="负责人"
+              :label="$t('system:dept.leader')"
               prop="leader"
             >
               <el-input
                 v-model="form.leader"
-                placeholder="请输入负责人"
+                :placeholder="$t('system:enterManagerName')"
                 maxlength="20"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="联系电话"
+              :label="$t('system:dept.phone')"
               prop="phone"
             >
               <el-input
                 v-model="form.phone"
-                placeholder="请输入联系电话"
+                :placeholder="$t('system:enterContactNumber')"
                 maxlength="11"
               />
             </el-form-item>
@@ -264,18 +266,18 @@
         <el-row>
           <el-col :span="12">
             <el-form-item
-              label="邮箱"
+              :label="$t('system:user.email')"
               prop="email"
             >
               <el-input
                 v-model="form.email"
-                placeholder="请输入邮箱"
+                :placeholder="$t('system:user.emailPlaceholder')"
                 maxlength="50"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="部门状态">
+            <el-form-item :label="$t('system:dept.status')">
               <el-radio-group v-model="form.status">
                 <el-radio
                   v-for="dict in dict.type.sys_normal_disable"
@@ -295,15 +297,17 @@
         <el-button
           type="primary"
           @click="submitForm"
-          >确 定</el-button
+          >{{ $t('common:confirm') }}</el-button
         >
-        <el-button @click="cancel">取 消</el-button>
+        <el-button @click="cancel">{{ $t('common:cancel') }}</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import {
   listDept,
   getDept,
@@ -331,7 +335,7 @@ export default {
       // 部门树选项
       deptOptions: [],
       // 弹出层标题
-      title: '',
+      titleKey: '',
       // 是否显示弹出层
       open: false,
       // 是否展开，默认全部展开
@@ -349,20 +353,30 @@ export default {
       form: {},
       // 表单校验
       rules: {
-        parentId: [{ required: true, message: '上级部门不能为空', trigger: 'blur' }],
-        deptName: [{ required: true, message: '部门名称不能为空', trigger: 'blur' }],
-        orderNum: [{ required: true, message: '显示排序不能为空', trigger: 'blur' }],
+        parentId: [
+          {
+            required: true,
+            message: () => t('system:parentDepartmentIsRequired'),
+            trigger: 'blur',
+          },
+        ],
+        deptName: [
+          { required: true, message: () => t('system:departmentNameIsRequired'), trigger: 'blur' },
+        ],
+        orderNum: [
+          { required: true, message: () => t('system:displayOrderIsRequired'), trigger: 'blur' },
+        ],
         email: [
           {
             type: 'email',
-            message: '请输入正确的邮箱地址',
+            message: () => t('system:dept.enterAValidEmailAddress'),
             trigger: ['blur', 'change'],
           },
         ],
         phone: [
           {
             pattern: /^1[3|4|5|6|7|8|9][0-9]\d{8}$/,
-            message: '请输入正确的手机号码',
+            message: () => t('system:user.phoneInvalid'),
             trigger: 'blur',
           },
         ],
@@ -429,7 +443,7 @@ export default {
         this.form.parentId = row.deptId
       }
       this.open = true
-      this.title = '添加部门'
+      this.titleKey = 'system:addDepartment'
       listDept().then((response) => {
         this.deptOptions = this.handleTree(response.data, 'deptId')
       })
@@ -448,7 +462,7 @@ export default {
       getDept(row.deptId).then((response) => {
         this.form = response.data
         this.open = true
-        this.title = '修改部门'
+        this.titleKey = 'system:editDepartment'
         listDeptExcludeChild(row.deptId).then((response) => {
           this.deptOptions = this.handleTree(response.data, 'deptId')
           if (this.deptOptions.length == 0) {
@@ -468,13 +482,13 @@ export default {
         if (valid) {
           if (this.form.deptId != undefined) {
             updateDept(this.form).then(() => {
-              this.$modal.msgSuccess('修改成功')
+              this.$modal.msgSuccess(t('common:updateSuccess'))
               this.open = false
               this.getList()
             })
           } else {
             addDept(this.form).then(() => {
-              this.$modal.msgSuccess('新增成功')
+              this.$modal.msgSuccess(t('common:addSuccess'))
               this.open = false
               this.getList()
             })
@@ -508,27 +522,27 @@ export default {
       }
       collectChanged(this.deptList)
       if (changedDeptIds.length === 0) {
-        this.$modal.msgWarning('未检测到排序修改')
+        this.$modal.msgWarning(t('system:dept.noSortOrderChangesDetected'))
         return
       }
       updateDeptSort({
         deptIds: changedDeptIds.join(','),
         orderNums: changedOrderNums.join(','),
       }).then(() => {
-        this.$modal.msgSuccess('排序保存成功')
+        this.$modal.msgSuccess(t('system:dept.sortOrderSaved'))
         this.recordOriginalOrders(this.deptList)
       })
     },
     /** 删除按钮操作 */
     handleDelete(row) {
       this.$modal
-        .confirm('是否确认删除名称为"' + row.deptName + '"的数据项？')
+        .confirm(t('system:confirmation.deleteValue', { value0: row.deptName }))
         .then(function () {
           return delDept(row.deptId)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
         })
         .catch(() => {})
     },

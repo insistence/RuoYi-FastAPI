@@ -1,0 +1,254 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "config.addDuplicateKey"
+msgstr "Unable to add configuration %(config_name)s: the configuration key already exists"
+
+msgid "config.builtInProtected"
+msgstr "Built-in configuration %(config_key)s cannot be deleted"
+
+msgid "config.editDuplicateKey"
+msgstr "Unable to update configuration %(config_name)s: the configuration key already exists"
+
+msgid "config.idRequired"
+msgstr "Configuration ID is required"
+
+msgid "config.notFound"
+msgstr "Configuration not found"
+
+msgid "dept.activeChildren"
+msgstr "Unable to update department %(dept_name)s: it has child departments that are still enabled"
+
+msgid "dept.addDuplicate"
+msgstr "Unable to add department %(dept_name)s: the department name already exists"
+
+msgid "dept.childrenPreventDelete"
+msgstr "This department has child departments and cannot be deleted"
+
+msgid "dept.descendantParent"
+msgstr "The parent department cannot be a child of the current department"
+
+msgid "dept.editDuplicate"
+msgstr "Unable to update department %(dept_name)s: the department name already exists"
+
+msgid "dept.forbidden"
+msgstr "You do not have permission to access department data"
+
+msgid "dept.idRequired"
+msgstr "Department ID is required"
+
+msgid "dept.invalidSort"
+msgstr "Invalid department sort parameters"
+
+msgid "dept.notFound"
+msgstr "Department not found"
+
+msgid "dept.parentDisabled"
+msgstr "Department %(dept_name)s is disabled. A child department cannot be added."
+
+msgid "dept.parentNotFound"
+msgstr "Parent department not found"
+
+msgid "dept.selfParent"
+msgstr "Unable to update department %(dept_name)s: a department cannot be its own parent"
+
+msgid "dept.usersPreventDelete"
+msgstr "This department has users and cannot be deleted"
+
+msgid "dict.addDuplicateType"
+msgstr "Unable to add dictionary %(dict_name)s: the dictionary type already exists"
+
+msgid "dict.assigned"
+msgstr "Dictionary %(dict_name)s is assigned and cannot be deleted"
+
+msgid "dict.dataIdRequired"
+msgstr "Dictionary entry ID is required"
+
+msgid "dict.dataNotFound"
+msgstr "Dictionary entry not found"
+
+msgid "dict.duplicateLabel"
+msgstr "Unable to add dictionary entry %(dict_label)s: it already exists in %(dict_type)s"
+
+msgid "dict.editDuplicateType"
+msgstr "Unable to update dictionary %(dict_name)s: the dictionary type already exists"
+
+msgid "dict.typeIdRequired"
+msgstr "Dictionary type ID is required"
+
+msgid "dict.typeNotFound"
+msgstr "Dictionary type not found"
+
+msgid "menu.addDuplicateName"
+msgstr "Unable to add menu %(menu_name)s: the menu name already exists"
+
+msgid "menu.addDuplicateRoute"
+msgstr "Unable to add menu %(menu_name)s: the route name or path already exists"
+
+msgid "menu.addInvalidUrl"
+msgstr "Unable to add menu %(menu_name)s: the URL must start with http:// or https://"
+
+msgid "menu.assigned"
+msgstr "This menu is assigned and cannot be deleted"
+
+msgid "menu.childrenPreventDelete"
+msgstr "This menu has child menus and cannot be deleted"
+
+msgid "menu.editDuplicateName"
+msgstr "Unable to update menu %(menu_name)s: the menu name already exists"
+
+msgid "menu.editDuplicateRoute"
+msgstr "Unable to update menu %(menu_name)s: the route name or path already exists"
+
+msgid "menu.editInvalidUrl"
+msgstr "Unable to update menu %(menu_name)s: the URL must start with http:// or https://"
+
+msgid "menu.idRequired"
+msgstr "Menu ID is required"
+
+msgid "menu.invalidSort"
+msgstr "Invalid menu sort parameters"
+
+msgid "menu.notFound"
+msgstr "Menu not found"
+
+msgid "menu.parentCycle"
+msgstr "The parent menu relationship contains a cycle"
+
+msgid "menu.parentNotFound"
+msgstr "Parent menu not found"
+
+msgid "menu.selfParent"
+msgstr "Unable to update menu %(menu_name)s: a menu cannot be its own parent"
+
+msgid "notice.addDuplicate"
+msgstr "Unable to add notice %(notice_title)s: the notice already exists"
+
+msgid "notice.editDuplicate"
+msgstr "Unable to update notice %(notice_title)s: the notice already exists"
+
+msgid "notice.idRequired"
+msgstr "Notice ID is required"
+
+msgid "notice.invalidId"
+msgstr "Invalid notice ID"
+
+msgid "notice.notFound"
+msgstr "Notice not found"
+
+msgid "post.addDuplicateCode"
+msgstr "Unable to add position %(post_name)s: the position code already exists"
+
+msgid "post.addDuplicateName"
+msgstr "Unable to add position %(post_name)s: the position name already exists"
+
+msgid "post.assigned"
+msgstr "Position %(post_name)s is assigned and cannot be deleted"
+
+msgid "post.editDuplicateCode"
+msgstr "Unable to update position %(post_name)s: the position code already exists"
+
+msgid "post.editDuplicateName"
+msgstr "Unable to update position %(post_name)s: the position name already exists"
+
+msgid "post.idRequired"
+msgstr "Position ID is required"
+
+msgid "post.notFound"
+msgstr "Position not found"
+
+msgid "profile.localeSaved"
+msgstr "Language preference saved"
+
+msgid "profile.timezoneSaved"
+msgstr "Time zone settings saved"
+
+msgid "role.addDuplicateName"
+msgstr "Unable to add role %(role_name)s: the role name already exists"
+
+msgid "role.addDuplicatePermission"
+msgstr "Unable to add role %(role_name)s: the role permission key already exists"
+
+msgid "role.assigned"
+msgstr "Role %(role_name)s is assigned and cannot be deleted"
+
+msgid "role.editDuplicateName"
+msgstr "Unable to update role %(role_name)s: the role name already exists"
+
+msgid "role.editDuplicatePermission"
+msgstr "Unable to update role %(role_name)s: the role permission key already exists"
+
+msgid "role.forbidden"
+msgstr "You do not have permission to access role data"
+
+msgid "role.idRequired"
+msgstr "Role ID is required"
+
+msgid "role.notFound"
+msgstr "Role not found"
+
+msgid "role.superAdminProtected"
+msgstr "The super administrator role cannot be changed"
+
+msgid "user.addConditionsNotMet"
+msgstr "The requirements for adding a user are not met"
+
+msgid "user.addDuplicateEmail"
+msgstr "Unable to add user %(user_name)s: the email address already exists"
+
+msgid "user.addDuplicateName"
+msgstr "Unable to add user %(user_name)s: the login account already exists"
+
+msgid "user.addDuplicatePhone"
+msgstr "Unable to add user %(user_name)s: the phone number already exists"
+
+msgid "user.avatar.uploadFailed"
+msgstr "Unable to upload the image. Please contact an administrator."
+
+msgid "user.deleteConditionsNotMet"
+msgstr "The requirements for deleting a user are not met"
+
+msgid "user.deleteCurrentUser"
+msgstr "You cannot delete the currently signed-in user"
+
+msgid "user.editDuplicateEmail"
+msgstr "Unable to update user %(user_name)s: the email address already exists"
+
+msgid "user.editDuplicateName"
+msgstr "Unable to update user %(user_name)s: the login account already exists"
+
+msgid "user.editDuplicatePhone"
+msgstr "Unable to update user %(user_name)s: the phone number already exists"
+
+msgid "user.forbidden"
+msgstr "You do not have permission to access user data"
+
+msgid "user.idRequired"
+msgstr "User ID is required"
+
+msgid "user.notFound"
+msgstr "User not found"
+
+msgid "user.oldPasswordIncorrect"
+msgstr "Unable to change the password: the old password is incorrect"
+
+msgid "user.passwordUnchanged"
+msgstr "The new password must differ from the old password"
+
+msgid "user.rolesRequired"
+msgstr "User-role association information is required"
+
+msgid "user.superAdminProtected"
+msgstr "The super administrator account cannot be changed"

@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <el-form
+      :validate-on-rule-change="false"
       :model="queryParams"
       ref="queryForm"
       size="small"
@@ -9,34 +10,34 @@
       label-width="68px"
     >
       <el-form-item
-        label="公告标题"
+        :label="$t('system:notice.titleLabel')"
         prop="noticeTitle"
       >
         <el-input
           v-model="queryParams.noticeTitle"
-          placeholder="请输入公告标题"
+          :placeholder="$t('system:enterAnnouncementTitle')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="操作人员"
+        :label="$t('monitor:log.operator')"
         prop="createBy"
       >
         <el-input
           v-model="queryParams.createBy"
-          placeholder="请输入操作人员"
+          :placeholder="$t('system:enterOperatorName')"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="类型"
+        :label="$t('common:type')"
         prop="noticeType"
       >
         <el-select
           v-model="queryParams.noticeType"
-          placeholder="公告类型"
+          :placeholder="$t('system:notice.type')"
           clearable
         >
           <el-option
@@ -53,13 +54,13 @@
           icon="el-icon-search"
           size="mini"
           @click="handleQuery"
-          >搜索</el-button
+          >{{ $t('common:search') }}</el-button
         >
         <el-button
           icon="el-icon-refresh"
           size="mini"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('common:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -76,7 +77,7 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['system:notice:add']"
-          >新增</el-button
+          >{{ $t('common:add') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -88,7 +89,7 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['system:notice:edit']"
-          >修改</el-button
+          >{{ $t('common:edit') }}</el-button
         >
       </el-col>
       <el-col :span="1.5">
@@ -100,7 +101,7 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['system:notice:remove']"
-          >删除</el-button
+          >{{ $t('common:delete') }}</el-button
         >
       </el-col>
       <right-toolbar
@@ -120,13 +121,13 @@
         align="center"
       />
       <el-table-column
-        label="序号"
+        :label="$t('common:index')"
         align="center"
         prop="noticeId"
         width="100"
       />
       <el-table-column
-        label="公告标题"
+        :label="$t('system:notice.titleLabel')"
         align="center"
         :show-overflow-tooltip="true"
       >
@@ -140,7 +141,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="公告类型"
+        :label="$t('system:notice.type')"
         align="center"
         prop="noticeType"
         width="100"
@@ -153,7 +154,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="状态"
+        :label="$t('common:status')"
         align="center"
         prop="status"
         width="100"
@@ -166,13 +167,13 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="创建者"
+        :label="$t('system:createdBy')"
         align="center"
         prop="createBy"
         width="100"
       />
       <el-table-column
-        label="创建时间"
+        :label="$t('common:createdTime')"
         align="center"
         prop="createTime"
         width="100"
@@ -182,7 +183,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('common:actions')"
         align="center"
         class-name="small-padding fixed-width"
       >
@@ -193,7 +194,7 @@
             icon="el-icon-user"
             @click="handleReadUsers(scope.row)"
             v-hasPermi="['system:notice:list']"
-            >阅读用户</el-button
+            >{{ $t('system:readersLabel') }}</el-button
           >
           <el-button
             size="mini"
@@ -201,7 +202,7 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:notice:edit']"
-            >修改</el-button
+            >{{ $t('common:edit') }}</el-button
           >
           <el-button
             size="mini"
@@ -209,7 +210,7 @@
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:notice:remove']"
-            >删除</el-button
+            >{{ $t('common:delete') }}</el-button
           >
         </template>
       </el-table-column>
@@ -225,12 +226,13 @@
 
     <!-- 添加或修改公告对话框 -->
     <el-dialog
-      :title="title"
+      :title="$t(titleKey)"
       :visible.sync="open"
       width="780px"
       append-to-body
     >
       <el-form
+        :validate-on-rule-change="false"
         ref="form"
         :model="form"
         :rules="rules"
@@ -239,23 +241,23 @@
         <el-row>
           <el-col :span="12">
             <el-form-item
-              label="公告标题"
+              :label="$t('system:notice.titleLabel')"
               prop="noticeTitle"
             >
               <el-input
                 v-model="form.noticeTitle"
-                placeholder="请输入公告标题"
+                :placeholder="$t('system:enterAnnouncementTitle')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item
-              label="公告类型"
+              :label="$t('system:notice.type')"
               prop="noticeType"
             >
               <el-select
                 v-model="form.noticeType"
-                placeholder="请选择公告类型"
+                :placeholder="$t('system:interface.selectAnAnnouncementType')"
               >
                 <el-option
                   v-for="dict in dict.type.sys_notice_type"
@@ -267,7 +269,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="状态">
+            <el-form-item :label="$t('common:status')">
               <el-radio-group v-model="form.status">
                 <el-radio
                   v-for="dict in dict.type.sys_notice_status"
@@ -279,7 +281,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="内容">
+            <el-form-item :label="$t('system:file.content')">
               <editor
                 v-model="form.noticeContent"
                 :min-height="192"
@@ -295,9 +297,9 @@
         <el-button
           type="primary"
           @click="submitForm"
-          >确 定</el-button
+          >{{ $t('common:confirm') }}</el-button
         >
-        <el-button @click="cancel">取 消</el-button>
+        <el-button @click="cancel">{{ $t('common:cancel') }}</el-button>
       </div>
     </el-dialog>
 
@@ -307,6 +309,8 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import NoticeDetailView from '@/layout/components/HeaderNotice/DetailView'
 import ReadUsersDialog from './ReadUsers'
 import { listNotice, getNotice, delNotice, addNotice, updateNotice } from '@/api/system/notice'
@@ -332,7 +336,7 @@ export default {
       // 公告表格数据
       noticeList: [],
       // 弹出层标题
-      title: '',
+      titleKey: '',
       // 是否显示弹出层
       open: false,
       // 查询参数
@@ -347,8 +351,20 @@ export default {
       form: {},
       // 表单校验
       rules: {
-        noticeTitle: [{ required: true, message: '公告标题不能为空', trigger: 'blur' }],
-        noticeType: [{ required: true, message: '公告类型不能为空', trigger: 'change' }],
+        noticeTitle: [
+          {
+            required: true,
+            message: () => t('system:announcementTitleIsRequired'),
+            trigger: 'blur',
+          },
+        ],
+        noticeType: [
+          {
+            required: true,
+            message: () => t('system:announcementTypeIsRequired'),
+            trigger: 'change',
+          },
+        ],
       },
     }
   },
@@ -401,7 +417,7 @@ export default {
     handleAdd() {
       this.reset()
       this.open = true
-      this.title = '添加公告'
+      this.titleKey = 'system:addAnnouncement'
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
@@ -410,7 +426,7 @@ export default {
       getNotice(noticeId).then((response) => {
         this.form = response.data
         this.open = true
-        this.title = '修改公告'
+        this.titleKey = 'system:editAnnouncement'
       })
     },
     /** 提交按钮 */
@@ -419,13 +435,13 @@ export default {
         if (valid) {
           if (this.form.noticeId != undefined) {
             updateNotice(this.form).then(() => {
-              this.$modal.msgSuccess('修改成功')
+              this.$modal.msgSuccess(t('common:updateSuccess'))
               this.open = false
               this.getList()
             })
           } else {
             addNotice(this.form).then(() => {
-              this.$modal.msgSuccess('新增成功')
+              this.$modal.msgSuccess(t('common:addSuccess'))
               this.open = false
               this.getList()
             })
@@ -445,13 +461,13 @@ export default {
     handleDelete(row) {
       const noticeIds = row.noticeId || this.ids
       this.$modal
-        .confirm('是否确认删除公告编号为"' + noticeIds + '"的数据项？')
+        .confirm(t('system:confirmation.deleteAnnouncementsWithIDsValue', { value0: noticeIds }))
         .then(function () {
           return delNotice(noticeIds)
         })
         .then(() => {
           this.getList()
-          this.$modal.msgSuccess('删除成功')
+          this.$modal.msgSuccess(t('common:deleteSuccess'))
         })
         .catch(() => {})
     },

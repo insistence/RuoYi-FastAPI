@@ -1,6 +1,6 @@
 <template>
   <el-drawer
-    title="公告详情"
+    :title="$t('layout:notices.details')"
     :visible.sync="visible"
     direction="rtl"
     size="50%"
@@ -17,7 +17,7 @@
         class="notice-empty"
       >
         <i class="el-icon-document"></i>
-        <span>暂无数据</span>
+        <span>{{ $t('layout:notices.noData') }}</span>
       </div>
       <div
         v-else
@@ -28,19 +28,19 @@
             v-if="detail.noticeType === '1'"
             class="notice-type-tag type-notify"
           >
-            <i class="el-icon-bell"></i> 通知
+            <i class="el-icon-bell"></i> {{ $t('layout:notices.notification') }}
           </span>
           <span
             v-else-if="detail.noticeType === '2'"
             class="notice-type-tag type-announce"
           >
-            <i class="el-icon-message"></i> 公告
+            <i class="el-icon-message"></i> {{ $t('layout:notices.announcement') }}
           </span>
           <span
             v-else
             class="notice-type-tag type-notify"
           >
-            <i class="el-icon-document"></i> 消息
+            <i class="el-icon-document"></i> {{ $t('layout:notices.message') }}
           </span>
         </div>
 
@@ -57,7 +57,9 @@
           </span>
           <span class="meta-item">
             <span :class="['status-dot', isStatusNormal ? 'status-ok' : 'status-off']"></span>
-            <span>{{ isStatusNormal ? '正常' : '已关闭' }}</span>
+            <span>{{
+              isStatusNormal ? $t('layout:notices.active') : $t('layout:notices.closed')
+            }}</span>
           </span>
         </div>
 
@@ -77,7 +79,7 @@
             v-else
             class="notice-empty notice-empty--inner"
           >
-            <i class="el-icon-document"></i> 暂无内容
+            <i class="el-icon-document"></i> {{ $t('layout:notices.noContent') }}
           </div>
         </div>
       </div>

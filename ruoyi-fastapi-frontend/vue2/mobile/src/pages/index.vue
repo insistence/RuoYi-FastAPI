@@ -4,7 +4,7 @@
     <view class="bg-white pb-6 rounded-b-3xl shadow-xs z-50">
       <!-- Title -->
       <view class="pt-12 pb-4 px-4 flex justify-center items-center">
-        <text class="text-lg font-bold text-gray-800">RuoYi-FastAPI移动端</text>
+        <text class="text-lg font-bold text-gray-800">{{ $t('mobile:brand') }}</text>
       </view>
 
       <!-- Search & Notification -->
@@ -17,7 +17,7 @@
             </view>
             <input
               type="text"
-              placeholder="搜索..."
+              :placeholder="$t('mobile:search')"
               placeholder-class="text-gray-400"
               class="w-full h-10 rounded-full bg-gray-100 pl-10 pr-4 text-sm text-gray-800"
             />
@@ -54,15 +54,15 @@
 
           <view class="relative z-10">
             <view class="mb-4 flex items-center justify-between">
-              <view class="rounded-lg bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-xs"
-                >系统运行正常</view
-              >
-              <view class="text-xs opacity-80">刚刚更新</view>
+              <view class="rounded-lg bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-xs">{{
+                $t('mobile:dashboard.healthy')
+              }}</view>
+              <view class="text-xs opacity-80">{{ $t('mobile:dashboard.justUpdated') }}</view>
             </view>
             <view class="flex items-end justify-between">
               <view>
                 <view class="text-3xl font-bold">85%</view>
-                <view class="text-sm opacity-90">工作效率</view>
+                <view class="text-sm opacity-90">{{ $t('mobile:dashboard.efficiency') }}</view>
               </view>
               <view class="h-10 w-24 overflow-hidden rounded-lg bg-white/10 p-1">
                 <view class="h-full w-full flex items-end justify-between px-1">
@@ -83,7 +83,9 @@
             class="rounded-2xl bg-white p-4 shadow-xs border border-gray-100 flex items-center justify-between"
           >
             <view>
-              <view class="text-xs text-gray-500 mb-1">新通知</view>
+              <view class="text-xs text-gray-500 mb-1">{{
+                $t('mobile:dashboard.notifications')
+              }}</view>
               <view class="text-2xl font-bold text-gray-800">12</view>
             </view>
             <view
@@ -96,7 +98,7 @@
             class="rounded-2xl bg-white p-4 shadow-xs border border-gray-100 flex items-center justify-between"
           >
             <view>
-              <view class="text-xs text-gray-500 mb-1">待办任务</view>
+              <view class="text-xs text-gray-500 mb-1">{{ $t('mobile:dashboard.tasks') }}</view>
               <view class="text-2xl font-bold text-gray-800">5</view>
             </view>
             <view
@@ -110,7 +112,9 @@
         <!-- Quick Functions -->
         <view>
           <view class="mb-4 flex items-center justify-between">
-            <view class="text-base font-bold text-gray-800">快捷入口</view>
+            <view class="text-base font-bold text-gray-800">{{
+              $t('mobile:dashboard.quickLinks')
+            }}</view>
           </view>
           <view class="grid grid-cols-4 gap-2 rounded-2xl bg-white p-4 shadow-xs">
             <view class="flex flex-col items-center space-y-2">
@@ -119,7 +123,9 @@
               >
                 <view class="i-mdi-file-document-edit text-xl"></view>
               </view>
-              <view class="text-xs font-medium text-gray-600">申请</view>
+              <view class="text-xs font-medium text-gray-600">{{
+                $t('mobile:dashboard.apply')
+              }}</view>
             </view>
             <view class="flex flex-col items-center space-y-2">
               <view
@@ -127,7 +133,9 @@
               >
                 <view class="i-mdi-newspaper text-xl"></view>
               </view>
-              <view class="text-xs font-medium text-gray-600">新闻</view>
+              <view class="text-xs font-medium text-gray-600">{{
+                $t('mobile:dashboard.news')
+              }}</view>
             </view>
             <view class="flex flex-col items-center space-y-2">
               <view
@@ -135,7 +143,9 @@
               >
                 <view class="i-mdi-chart-bar text-xl"></view>
               </view>
-              <view class="text-xs font-medium text-gray-600">统计</view>
+              <view class="text-xs font-medium text-gray-600">{{
+                $t('mobile:dashboard.statistics')
+              }}</view>
             </view>
             <view class="flex flex-col items-center space-y-2">
               <view
@@ -143,7 +153,9 @@
               >
                 <view class="i-mdi-calendar text-xl"></view>
               </view>
-              <view class="text-xs font-medium text-gray-600">计划</view>
+              <view class="text-xs font-medium text-gray-600">{{
+                $t('mobile:dashboard.plans')
+              }}</view>
             </view>
           </view>
         </view>
@@ -151,8 +163,10 @@
         <!-- Recent Apps -->
         <view>
           <view class="mb-4 flex items-center justify-between">
-            <view class="text-base font-bold text-gray-800">最近更新</view>
-            <view class="text-xs text-blue-500">查看全部</view>
+            <view class="text-base font-bold text-gray-800">{{
+              $t('mobile:dashboard.recent')
+            }}</view>
+            <view class="text-xs text-blue-500">{{ $t('mobile:dashboard.viewAll') }}</view>
           </view>
           <view class="space-y-3">
             <view
@@ -164,11 +178,16 @@
                 <view class="i-mdi-clipboard-text-outline text-xl"></view>
               </view>
               <view class="ml-4 flex-1">
-                <view class="font-bold text-gray-800">请假申请</view>
-                <view class="text-xs text-gray-500">等待经理审批</view>
+                <view class="font-bold text-gray-800">{{
+                  $t('mobile:dashboard.leaveRequest')
+                }}</view>
+                <view class="text-xs text-gray-500">{{
+                  $t('mobile:dashboard.awaitingApproval')
+                }}</view>
               </view>
-              <view class="rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-600"
-                >待处理</view
+              <view
+                class="rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-600"
+                >{{ $t('mobile:dashboard.pending') }}</view
               >
             </view>
             <view
@@ -180,12 +199,14 @@
                 <view class="i-mdi-newspaper text-xl"></view>
               </view>
               <view class="ml-4 flex-1">
-                <view class="font-bold text-gray-800">周报</view>
-                <view class="text-xs text-gray-500">提交成功</view>
+                <view class="font-bold text-gray-800">{{
+                  $t('mobile:dashboard.weeklyReport')
+                }}</view>
+                <view class="text-xs text-gray-500">{{ $t('common:submitSuccess') }}</view>
               </view>
-              <view class="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-600"
-                >已完成</view
-              >
+              <view class="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-600">{{
+                $t('mobile:dashboard.completed')
+              }}</view>
             </view>
           </view>
         </view>

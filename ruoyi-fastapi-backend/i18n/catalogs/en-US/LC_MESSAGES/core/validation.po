@@ -1,0 +1,281 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "validation.authorRequired"
+msgstr "Generation author is required"
+
+msgid "validation.baseUrlLength"
+msgstr "Base URL must not exceed 255 characters"
+
+msgid "validation.baseUrlRequired"
+msgstr "Base URL is required"
+
+msgid "validation.boolean"
+msgstr "Enter a boolean value"
+
+msgid "validation.businessNameRequired"
+msgstr "Generation business name is required"
+
+msgid "validation.classNameRequired"
+msgstr "Entity class name is required"
+
+msgid "validation.componentPathLength"
+msgstr "Component path must not exceed 255 characters"
+
+msgid "validation.configKeyLength"
+msgstr "Configuration key must not exceed 100 characters"
+
+msgid "validation.configKeyRequired"
+msgstr "Configuration key is required"
+
+msgid "validation.configNameLength"
+msgstr "Configuration name must not exceed 100 characters"
+
+msgid "validation.configNameRequired"
+msgstr "Configuration name is required"
+
+msgid "validation.configValueLength"
+msgstr "Configuration value must not exceed 500 characters"
+
+msgid "validation.configValueRequired"
+msgstr "Configuration value is required"
+
+msgid "validation.contactPhoneLength"
+msgstr "Contact phone number must not exceed 11 characters"
+
+msgid "validation.cronLength"
+msgstr "Cron expression must not exceed 255 characters"
+
+msgid "validation.cronRequired"
+msgstr "Cron expression is required"
+
+msgid "validation.cssClassLength"
+msgstr "CSS class must not exceed 100 characters"
+
+msgid "validation.date"
+msgstr "Enter a valid date"
+
+msgid "validation.datetime"
+msgstr "Enter a valid date and time"
+
+msgid "validation.deptNameLength"
+msgstr "Department name must not exceed 30 characters"
+
+msgid "validation.deptNameRequired"
+msgstr "Department name is required"
+
+msgid "validation.dictLabelLength"
+msgstr "Dictionary label must not exceed 100 characters"
+
+msgid "validation.dictLabelRequired"
+msgstr "Dictionary label is required"
+
+msgid "validation.dictNameLength"
+msgstr "Dictionary name must not exceed 100 characters"
+
+msgid "validation.dictNameRequired"
+msgstr "Dictionary name is required"
+
+msgid "validation.dictTypeFormat"
+msgstr "Dictionary type must start with a lowercase letter and contain only lowercase letters, numbers, and underscores"
+
+msgid "validation.dictTypeLength"
+msgstr "Dictionary type must not exceed 100 characters"
+
+msgid "validation.dictTypeNameLength"
+msgstr "Dictionary type must not exceed 100 characters"
+
+msgid "validation.dictTypeRequired"
+msgstr "Dictionary type is required"
+
+msgid "validation.dictValueLength"
+msgstr "Dictionary value must not exceed 100 characters"
+
+msgid "validation.dictValueRequired"
+msgstr "Dictionary value is required"
+
+msgid "validation.emailFormat"
+msgstr "Invalid email address format"
+
+msgid "validation.emailLength"
+msgstr "Email address must not exceed 50 characters"
+
+msgid "validation.expected"
+msgstr "Allowed values: %(expected)s"
+
+msgid "validation.finiteNumber"
+msgstr "Enter a finite number"
+
+msgid "validation.functionNameRequired"
+msgstr "Generation feature name is required"
+
+msgid "validation.greaterThan"
+msgstr "The value must be greater than %(gt)s"
+
+msgid "validation.greaterThanEqual"
+msgstr "The value must be greater than or equal to %(ge)s"
+
+msgid "validation.integer"
+msgstr "Enter an integer"
+
+msgid "validation.invalid"
+msgstr "Invalid input"
+
+msgid "validation.invokeTargetLength"
+msgstr "Invocation target must not exceed 500 characters"
+
+msgid "validation.invokeTargetRequired"
+msgstr "Invocation target is required"
+
+msgid "validation.json"
+msgstr "Enter valid JSON"
+
+msgid "validation.lessThan"
+msgstr "The value must be less than %(lt)s"
+
+msgid "validation.lessThanEqual"
+msgstr "The value must be less than or equal to %(le)s"
+
+msgid "validation.list"
+msgstr "Enter a list"
+
+msgid "validation.locale"
+msgstr "Invalid language tag"
+
+msgid "validation.menuNameLength"
+msgstr "Menu name must not exceed 50 characters"
+
+msgid "validation.menuNameRequired"
+msgstr "Menu name is required"
+
+msgid "validation.menuTypeRequired"
+msgstr "Menu type is required"
+
+msgid "validation.mobileLength"
+msgstr "Mobile number must not exceed 11 characters"
+
+msgid "validation.modelCodeLength"
+msgstr "Model code must not exceed 100 characters"
+
+msgid "validation.modelCodeRequired"
+msgstr "Model code is required"
+
+msgid "validation.moduleNameRequired"
+msgstr "Generation module name is required"
+
+msgid "validation.multipleOf"
+msgstr "The value must be a multiple of %(multiple_of)s"
+
+msgid "validation.namedInvalid"
+msgstr "Invalid %(field_name)s format"
+
+msgid "validation.namedRequired"
+msgstr "%(field_name)s is required"
+
+msgid "validation.nickNameLength"
+msgstr "Display name must not exceed 30 characters"
+
+msgid "validation.nickNameScript"
+msgstr "Display name must not contain script characters"
+
+msgid "validation.noticeTitleLength"
+msgstr "Notice title must not exceed 50 characters"
+
+msgid "validation.noticeTitleRequired"
+msgstr "Notice title is required"
+
+msgid "validation.noticeTitleScript"
+msgstr "Notice title must not contain script characters"
+
+msgid "validation.number"
+msgstr "Enter a number"
+
+msgid "validation.object"
+msgstr "Enter an object"
+
+msgid "validation.orderRequired"
+msgstr "Display order is required"
+
+msgid "validation.packageNameRequired"
+msgstr "Generation package path is required"
+
+msgid "validation.pattern"
+msgstr "The input format is invalid"
+
+msgid "validation.permissionLength"
+msgstr "Permission identifier must not exceed 100 characters"
+
+msgid "validation.postCodeLength"
+msgstr "Position code must not exceed 64 characters"
+
+msgid "validation.postCodeRequired"
+msgstr "Position code is required"
+
+msgid "validation.postNameLength"
+msgstr "Position name must not exceed 50 characters"
+
+msgid "validation.postNameRequired"
+msgstr "Position name is required"
+
+msgid "validation.pythonFieldRequired"
+msgstr "Python attribute is required"
+
+msgid "validation.required"
+msgstr "This field is required"
+
+msgid "validation.roleKeyLength"
+msgstr "Role permission key must not exceed 100 characters"
+
+msgid "validation.roleKeyRequired"
+msgstr "Role permission key is required"
+
+msgid "validation.roleNameLength"
+msgstr "Role name must not exceed 30 characters"
+
+msgid "validation.roleNameRequired"
+msgstr "Role name is required"
+
+msgid "validation.routePathLength"
+msgstr "Route path must not exceed 200 characters"
+
+msgid "validation.string"
+msgstr "Enter a text value"
+
+msgid "validation.stringTooLong"
+msgstr "Use at most %(max_length)s characters"
+
+msgid "validation.stringTooShort"
+msgstr "Use at least %(min_length)s characters"
+
+msgid "validation.tableCommentRequired"
+msgstr "Table description is required"
+
+msgid "validation.tableNameRequired"
+msgstr "Table name is required"
+
+msgid "validation.time"
+msgstr "Enter a valid time"
+
+msgid "validation.userNameLength"
+msgstr "User account must not exceed 30 characters"
+
+msgid "validation.userNameRequired"
+msgstr "User account is required"
+
+msgid "validation.userNameScript"
+msgstr "User account must not contain script characters"
+
+msgid "validation.uuid"
+msgstr "Enter a valid UUID"

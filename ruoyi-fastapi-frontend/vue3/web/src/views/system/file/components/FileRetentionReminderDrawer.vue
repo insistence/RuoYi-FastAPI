@@ -1,12 +1,12 @@
 <template>
   <el-drawer
-    title="文件保留期限提醒"
+    :title="$t('files:fileRetentionReminders')"
     v-model="visible"
     size="70%"
     append-to-body
   >
     <el-alert
-      title="到期前可延长保留期限；到期后仅在全部业务引用均已到期时才可移入回收站，处置会解除这些业务引用。"
+      :title="$t('files:retentionCanBeExtendedBeforeExpiryAfterExpiryAFile')"
       type="info"
       :closable="false"
       show-icon
@@ -19,53 +19,53 @@
       label-width="68px"
     >
       <el-form-item
-        label="文件名称"
+        :label="$t('components:fileName')"
         prop="originalName"
       >
         <el-input
           v-model="queryParams.originalName"
-          placeholder="请输入原始文件名"
+          :placeholder="$t('files:enterTheOriginalFileName')"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
       <el-form-item
-        label="提醒类型"
+        :label="$t('files:reminderType')"
         prop="noticeType"
       >
         <el-select
           v-model="queryParams.noticeType"
-          placeholder="请选择提醒类型"
+          :placeholder="$t('files:selectAReminderType')"
           clearable
           style="width: 200px"
         >
           <el-option
-            label="即将到期"
+            :label="$t('files:expiringSoon')"
             value="expiring"
           />
           <el-option
-            label="已到期"
+            :label="$t('files:expired')"
             value="expired"
           />
         </el-select>
       </el-form-item>
       <el-form-item
-        label="提醒状态"
+        :label="$t('files:reminderStatus')"
         prop="status"
       >
         <el-select
           v-model="queryParams.status"
-          placeholder="请选择提醒状态"
+          :placeholder="$t('files:selectAReminderStatus')"
           clearable
           style="width: 200px"
         >
           <el-option
-            label="未读"
+            :label="$t('files:unread')"
             value="0"
           />
           <el-option
-            label="已读"
+            :label="$t('files:read')"
             value="1"
           />
         </el-select>
@@ -76,12 +76,12 @@
           icon="Search"
           @click="handleQuery"
         >
-          搜索
-        </el-button>
+          {{ $t('system:search') }}</el-button
+        >
         <el-button
           icon="Refresh"
           @click="resetQuery"
-          >重置</el-button
+          >{{ $t('system:reset') }}</el-button
         >
       </el-form-item>
     </el-form>
@@ -98,8 +98,8 @@
           @click="handleScan"
           v-hasPermi="['system:file:edit']"
         >
-          扫描
-        </el-button>
+          {{ $t('files:scan') }}</el-button
+        >
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -109,8 +109,8 @@
           :disabled="!ids.length"
           @click="handleRead"
         >
-          已读
-        </el-button>
+          {{ $t('files:read') }}</el-button
+        >
       </el-col>
     </el-row>
     <el-table
@@ -125,14 +125,14 @@
         :selectable="(row) => row.status === '0'"
       />
       <el-table-column
-        label="文件名称"
+        :label="$t('components:fileName')"
         align="left"
         prop="originalName"
         min-width="180"
         :show-overflow-tooltip="true"
       />
       <el-table-column
-        label="所有者"
+        :label="$t('components:owner')"
         align="center"
         prop="ownerName"
         width="120"
@@ -141,7 +141,7 @@
         <template #default="scope">{{ scope.row.ownerName || '-' }}</template>
       </el-table-column>
       <el-table-column
-        label="所属部门"
+        :label="$t('system:department')"
         align="center"
         prop="deptName"
         width="140"
@@ -150,19 +150,21 @@
         <template #default="scope">{{ scope.row.deptName || '-' }}</template>
       </el-table-column>
       <el-table-column
-        label="提醒类型"
+        :label="$t('files:reminderType')"
         align="center"
         prop="noticeType"
         width="110"
       >
         <template #default="scope">
           <el-tag :type="scope.row.noticeType === 'expired' ? 'danger' : 'warning'">
-            {{ scope.row.noticeType === 'expired' ? '已到期' : '即将到期' }}
+            {{
+              scope.row.noticeType === 'expired' ? $t('files:expired') : $t('files:expiringSoon')
+            }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column
-        label="到期时间"
+        :label="$t('files:expiryTime')"
         align="center"
         prop="expireTime"
         width="180"
@@ -170,25 +172,25 @@
         <template #default="scope">{{ parseTime(scope.row.expireTime) }}</template>
       </el-table-column>
       <el-table-column
-        label="状态"
+        :label="$t('system:status')"
         align="center"
         prop="status"
         width="90"
       >
         <template #default="scope">
           <el-tag :type="scope.row.status === '0' ? 'warning' : 'success'">
-            {{ scope.row.status === '0' ? '未读' : '已读' }}
+            {{ scope.row.status === '0' ? $t('files:unread') : $t('files:read') }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column
-        label="业务引用"
+        :label="$t('files:businessReferences')"
         align="center"
         prop="referenceCount"
         width="90"
       />
       <el-table-column
-        label="提醒时间"
+        :label="$t('files:reminderTime')"
         align="center"
         prop="createTime"
         width="180"
@@ -196,7 +198,7 @@
         <template #default="scope">{{ parseTime(scope.row.createTime) }}</template>
       </el-table-column>
       <el-table-column
-        label="读取人"
+        :label="$t('files:readBy')"
         align="center"
         prop="readBy"
         width="110"
@@ -205,14 +207,14 @@
         <template #default="scope">{{ scope.row.readBy || '-' }}</template>
       </el-table-column>
       <el-table-column
-        label="操作"
+        :label="$t('system:actions')"
         align="center"
         width="100"
         fixed="right"
       >
         <template #default="scope">
           <el-tooltip
-            content="延长保留期限"
+            :content="$t('files:extendRetention')"
             placement="top"
           >
             <el-button
@@ -226,7 +228,9 @@
           <el-tooltip
             v-if="isExpired(scope.row)"
             :content="
-              scope.row.canDispose ? '移入回收站' : '存在永久或尚未到期的业务引用，暂不可处置'
+              scope.row.canDispose
+                ? $t('files:moveToRecycleBin')
+                : $t('files:aPermanentOrUnexpiredBusinessReferencePreventsDisposal')
             "
             placement="top"
           >
@@ -254,7 +258,7 @@
   </el-drawer>
 
   <el-dialog
-    title="延长文件保留期限"
+    :title="$t('files:extendFileRetention')"
     v-model="extendOpen"
     width="520px"
     append-to-body
@@ -265,24 +269,24 @@
       :rules="extendRules"
       label-width="92px"
     >
-      <el-form-item label="文件名称">
+      <el-form-item :label="$t('components:fileName')">
         <span>{{ currentRow.originalName }}</span>
       </el-form-item>
-      <el-form-item label="原到期时间">
+      <el-form-item :label="$t('files:previousExpiryTime')">
         <span>{{ parseTime(currentRow.expireTime) }}</span>
       </el-form-item>
       <el-form-item
-        label="新到期时间"
+        :label="$t('files:newExpiryTime')"
         prop="expireTime"
       >
         <BusinessDateTimePicker
           v-model="extendForm.expireTime"
-          label="新到期时间"
+          :label="$t('files:newExpiryTime')"
           style="width: 100%"
         />
       </el-form-item>
       <el-form-item
-        label="延期原因"
+        :label="$t('files:extensionReason')"
         prop="reason"
       >
         <el-input
@@ -291,7 +295,7 @@
           :rows="3"
           maxlength="500"
           show-word-limit
-          placeholder="请输入延期原因"
+          :placeholder="$t('files:enterAnExtensionReason')"
         />
       </el-form-item>
     </el-form>
@@ -302,15 +306,16 @@
           :loading="submitting"
           @click="submitExtend"
         >
-          确 定
-        </el-button>
-        <el-button @click="extendOpen = false">取 消</el-button>
+          {{ $t('system:confirm') }}</el-button
+        >
+        <el-button @click="extendOpen = false">{{ $t('system:cancel') }}</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import {
   disposeExpiredFile,
   extendFileRetention,
@@ -339,8 +344,24 @@ const extendForm = reactive({
   reason: undefined,
 })
 const extendRules = {
-  expireTime: [{ required: true, message: '新的到期时间不能为空', trigger: 'change' }],
-  reason: [{ required: true, message: '延期原因不能为空', trigger: 'blur' }],
+  expireTime: [
+    {
+      required: true,
+      get message() {
+        return t('files:enterANewExpiryTime')
+      },
+      trigger: 'change',
+    },
+  ],
+  reason: [
+    {
+      required: true,
+      get message() {
+        return t('files:enterAReasonForTheExtension')
+      },
+      trigger: 'blur',
+    },
+  ],
 }
 const queryParams = reactive({
   pageNum: 1,
@@ -385,7 +406,10 @@ function handleScan() {
     .then((response) => {
       const { expiringCount, expiredCount } = response.data
       proxy.$modal.msgSuccess(
-        `扫描完成，新增即将到期${expiringCount}条、已到期${expiredCount}条提醒`
+        t('files:scanCompleteValueNewUpcomingExpiryRemindersAndValueNew', {
+          expiringCount,
+          expiredCount,
+        })
       )
       getList()
       emit('refresh')
@@ -401,7 +425,7 @@ function handleSelectionChange(selection) {
 
 function handleRead() {
   readFileRetentionReminder(ids.value.join(',')).then(() => {
-    proxy.$modal.msgSuccess('提醒已标记为已读')
+    proxy.$modal.msgSuccess(t('files:reminderMarkedAsRead'))
     getList()
   })
 }
@@ -428,7 +452,7 @@ function submitExtend() {
     submitting.value = true
     extendFileRetention(currentRow.value.noticeId, submitData)
       .then(() => {
-        proxy.$modal.msgSuccess('文件保留期限已延长')
+        proxy.$modal.msgSuccess(t('files:fileRetentionExtended'))
         extendOpen.value = false
         getList()
         emit('refresh')
@@ -442,25 +466,34 @@ function submitExtend() {
 function handleDispose(row) {
   proxy
     .$prompt(
-      `处置后“${row.originalName}”将移入回收站，并解除${row.referenceCount || 0}条已到期业务引用。请输入处置原因：`,
-      '到期文件处置',
+      t('files:disposalWillMoveValueToTheRecycleBinAndRemove', {
+        originalName: row.originalName,
+        arg1: row.referenceCount || 0,
+      }),
+      t('files:disposeOfExpiredFile'),
       {
-        confirmButtonText: '确定处置',
-        cancelButtonText: '取消',
+        get confirmButtonText() {
+          return t('files:confirmDisposal')
+        },
+        get cancelButtonText() {
+          return t('common:cancel')
+        },
         closeOnClickModal: false,
         inputType: 'textarea',
-        inputPlaceholder: '请输入处置原因',
+        get inputPlaceholder() {
+          return t('files:enterADisposalReason')
+        },
         inputValidator: (value) => {
           const reason = value?.trim()
-          if (!reason) return '处置原因不能为空'
-          if (reason.length > 500) return '处置原因不能超过500个字符'
+          if (!reason) return t('files:enterADisposalReasonLabel')
+          if (reason.length > 500) return t('files:theDisposalReasonMustNotExceed500Characters')
           return true
         },
       }
     )
     .then(({ value }) => {
       disposeExpiredFile(row.noticeId, { reason: value.trim() }).then(() => {
-        proxy.$modal.msgSuccess('到期文件已移入回收站')
+        proxy.$modal.msgSuccess(t('files:expiredFileMovedToRecycleBin'))
         getList()
         emit('refresh')
       })

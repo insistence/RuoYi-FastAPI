@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 export function normalizeFiles(value) {
   return (Array.isArray(value) ? value : [])
     .filter((file) => file && typeof file === 'object' && file.fileId)
@@ -12,12 +13,13 @@ export function normalizeFiles(value) {
     .filter((file) => file.url)
 }
 export function validateFile(file, { count, limit, fileSize, fileType }) {
-  if (count >= limit) return `上传文件数量不能超过 ${limit} 个`
+  if (count >= limit) return t('file:youCanUploadUpToValueFiles', { limit })
   const extension = file.name.split('.').pop().toLowerCase()
   if (fileType.length && !fileType.map((type) => type.toLowerCase()).includes(extension))
-    return `文件格式不正确，请上传 ${fileType.join('/')} 格式文件`
-  if (file.name.includes(',')) return '文件名称不能包含英文逗号'
-  if (fileSize && file.size > fileSize * 1024 * 1024) return `上传文件大小不能超过 ${fileSize} MB`
+    return t('file:invalidFileFormatUploadAValueFile', { arg0: fileType.join('/') })
+  if (file.name.includes(',')) return t('file:upload.nameComma')
+  if (fileSize && file.size > fileSize * 1024 * 1024)
+    return t('file:uploadedFilesCannotExceedValueMb', { fileSize })
   return ''
 }
 export function appendUploadData(body, data) {
@@ -28,7 +30,8 @@ export function appendUploadData(body, data) {
 }
 export function uploadedFile(response, filename) {
   const source = response.data || response
-  if (!source.fileId || !source.downloadUrl) throw new Error('上传响应缺少文件ID或下载地址')
+  if (!source.fileId || !source.downloadUrl)
+    throw new Error(t('file:theUploadResponseIsMissingAFileIdOr'))
   return {
     fileId: source.fileId,
     name: source.originalFilename || filename,

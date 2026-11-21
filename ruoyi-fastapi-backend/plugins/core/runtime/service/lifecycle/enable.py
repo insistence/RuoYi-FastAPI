@@ -4,6 +4,8 @@ from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from i18n.catalogs import CatalogRegistry, CatalogSnapshot
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.support import (
     PluginEnablePayloadBuilder,
@@ -41,6 +43,7 @@ class PluginEnabledLifecycleContext:
     session: AsyncSession | None = None
     plugin_service: object | None = None
     session_context: object | None = None
+    catalog_snapshot: CatalogSnapshot | None = None
 
 
 @dataclass(slots=True)
@@ -134,7 +137,7 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         except PluginLifecycleStepFailed as exc:
             await self._close_enabled_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '更新插件启停状态失败',
+                I18nMessage('更新插件启停状态失败', msg_key='plugin.runtime.enable.updateFailed'),
                 exc.original_error,
                 plugin_id=plugin_id,
                 failed_step=exc.step_name,
@@ -142,7 +145,7 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         except Exception as exc:
             await self._close_enabled_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '更新插件启停状态失败',
+                I18nMessage('更新插件启停状态失败', msg_key='plugin.runtime.enable.updateFailed'),
                 exc,
                 plugin_id=plugin_id,
                 failed_step='check_enabled_dependents',
@@ -229,7 +232,7 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         except PluginLifecycleStepFailed as exc:
             await self._close_enabled_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '更新插件启停状态失败',
+                I18nMessage('更新插件启停状态失败', msg_key='plugin.runtime.enable.updateFailed'),
                 exc.original_error,
                 plugin_id=plugin_id,
                 failed_step=exc.step_name,
@@ -237,7 +240,7 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         except Exception as exc:
             await self._close_enabled_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '更新插件启停状态失败',
+                I18nMessage('更新插件启停状态失败', msg_key='plugin.runtime.enable.updateFailed'),
                 exc,
                 plugin_id=plugin_id,
                 failed_step=f'prepare_{operation}',
@@ -303,6 +306,9 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         :param context: 插件启停上下文
         :return: dry-run 或阻断 payload
         """
+        context.catalog_snapshot = CatalogRegistry.prepare_plugin(
+            context.plugin_id, context.discovered_plugin.backend_path
+        )
         context.precheck = await self._build_precheck_context(
             cast('Path', context.backend_root),
             cast('DiscoveredPlugin', context.discovered_plugin),
@@ -328,7 +334,7 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         payload = PluginLifecyclePayloadBuilder.build_operation_dry_run_payload(
             context.plugin_id,
             operation=context.operation,
-            message='插件启停演练完成，未执行实际写入',
+            message=I18nMessage('插件启停演练完成，未执行实际写入', msg_key='plugin.runtime.enable.previewCompleted'),
             actions=context.actions,
             precheck=context.precheck,
             extra_payload={
@@ -393,6 +399,8 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
                 enabled=context.enabled,
                 message=context.response.message,
             )
+
+        CatalogRegistry.commit_plugin(context.plugin_id, context.catalog_snapshot, enabled=context.enabled)
 
         return None
 
@@ -478,7 +486,7 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         except PluginLifecycleStepFailed as exc:
             await self._close_uninstall_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '插件卸载失败',
+                I18nMessage('插件卸载失败', msg_key='plugin.runtime.uninstall.failed'),
                 exc.original_error,
                 plugin_id=plugin_id,
                 failed_step=exc.step_name,
@@ -486,7 +494,7 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         except Exception as exc:
             await self._close_uninstall_session(context)
             return PluginRuntimePayloadBuilder.build_exception_payload(
-                '插件卸载失败',
+                I18nMessage('插件卸载失败', msg_key='plugin.runtime.uninstall.failed'),
                 exc,
                 plugin_id=plugin_id,
                 failed_step='prepare_uninstall',
@@ -588,7 +596,9 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         payload = PluginLifecyclePayloadBuilder.build_operation_dry_run_payload(
             context.plugin_id,
             operation='uninstall',
-            message='插件卸载演练完成，未执行实际写入',
+            message=I18nMessage(
+                '插件卸载演练完成，未执行实际写入', msg_key='plugin.runtime.uninstall.previewCompleted'
+            ),
             actions=context.actions,
             precheck=context.precheck,
             extra_payload={
@@ -613,6 +623,7 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
             context.plugin_id,
         )
         if context.response.is_success:
+            CatalogRegistry.unregister_plugin(context.plugin_id)
             return None
 
         return PluginEnablePayloadBuilder.build_update_failure_payload(

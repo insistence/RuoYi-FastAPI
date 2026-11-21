@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from common.vo import CrudResponseModel
 from exceptions.exception import ServiceException
 from module_admin.controller.dept_controller import add_system_dept, edit_system_dept
 from module_admin.entity.vo.dept_vo import DeptModel
@@ -43,7 +44,9 @@ async def test_edit_dept_checks_changed_parent_scope(parent_id: int, parent_chan
         ) as check_scope,
         patch.object(DeptService, 'dept_detail_services', AsyncMock(return_value=DeptModel(deptId=101, parentId=100))),
         patch.object(
-            DeptService, 'edit_dept_services', AsyncMock(return_value=SimpleNamespace(message='更新成功'))
+            DeptService,
+            'edit_dept_services',
+            AsyncMock(return_value=CrudResponseModel(is_success=True, message='更新成功')),
         ) as edit_dept,
     ):
         args = (object(), DeptModel(deptId=101, parentId=parent_id), query_db, current_user, scope)
@@ -64,7 +67,9 @@ async def test_admin_add_dept_does_not_require_parent_data_scope() -> None:
     with (
         patch.object(DeptService, 'check_dept_data_scope_services', AsyncMock()) as check_scope,
         patch.object(
-            DeptService, 'add_dept_services', AsyncMock(return_value=SimpleNamespace(message='新增成功'))
+            DeptService,
+            'add_dept_services',
+            AsyncMock(return_value=CrudResponseModel(is_success=True, message='新增成功')),
         ) as add_dept,
     ):
         await inspect.unwrap(add_system_dept)(

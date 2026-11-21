@@ -1,3 +1,4 @@
+import { t } from '../../i18n/index.js'
 // Older saved forms still use the original icon name.
 export function resolveGeneratorIconName(name) {
   return name === 'Search' ? 'search' : name
@@ -114,8 +115,8 @@ export function describeControl(field) {
       })
       if (props.range)
         props.placeholder = [
-          field['start-placeholder'] || '开始',
-          field['end-placeholder'] || '结束',
+          field['start-placeholder'] || t('common:start'),
+          field['end-placeholder'] || t('common:end'),
         ]
       break
     case 'Rate':

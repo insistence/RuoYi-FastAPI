@@ -1,3 +1,6 @@
+import { useLocalizedError } from '@/i18n/error'
+import { usePageLocale } from '@/i18n/navigation'
+import { t } from '@/i18n'
 import React, { useRef, useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
@@ -6,6 +9,8 @@ import { updateUserPwd } from '@/api/system/user'
 import { usePageAuth } from '@/permission'
 import FormField from '@/components/FormField'
 export default function Password() {
+  usePageLocale()
+
   const allowed = usePageAuth()
   const [user, setUser] = useState({
     oldPassword: '',
@@ -14,19 +19,19 @@ export default function Password() {
   })
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useLocalizedError()
   async function submit() {
     if (lock.current) return
     const message = !user.oldPassword
-      ? '旧密码不能为空'
+      ? () => t('auth:password.oldRequired')
       : !user.newPassword
-        ? '新密码不能为空'
+        ? () => t('auth:password.newRequired')
         : user.newPassword.length < 6 || user.newPassword.length > 20
-          ? '长度在 6 到 20 个字符'
+          ? () => t('auth:password.length')
           : !user.confirmPassword
-            ? '确认密码不能为空'
+            ? () => t('auth:password.confirmRequired')
             : user.newPassword !== user.confirmPassword
-              ? '两次输入的密码不一致'
+              ? () => t('auth:password.mismatch')
               : ''
     if (message) {
       setError(message)
@@ -38,10 +43,10 @@ export default function Password() {
     try {
       await updateUserPwd(user.oldPassword, user.newPassword)
       setUser({ oldPassword: '', newPassword: '', confirmPassword: '' })
-      await Taro.showToast({ title: '修改成功', icon: 'success' })
+      await Taro.showToast({ title: t('common:updateSuccess'), icon: 'success' })
       Taro.navigateBack()
     } catch (failure) {
-      setError(failure.message || '修改失败')
+      setError(failure.message || (() => t('common:updateFailed')))
     } finally {
       lock.current = false
       setBusy(false)
@@ -51,14 +56,14 @@ export default function Password() {
   return (
     <View className="mobile-page bg-white">
       {[
-        ['oldPassword', '旧密码'],
-        ['newPassword', '新密码'],
-        ['confirmPassword', '确认密码'],
+        ['oldPassword', t('auth:password.old')],
+        ['newPassword', t('auth:password.new')],
+        ['confirmPassword', t('auth:password.confirm')],
       ].map(([key, label]) => (
         <FormField
           key={key}
           label={label}
-          placeholder={`请输入${label}`}
+          placeholder={t('auth:password.placeholder', { label })}
           password
           maxlength={20}
           value={user[key]}
@@ -72,7 +77,7 @@ export default function Password() {
         loading={busy}
         onClick={submit}
       >
-        提 交
+        {t('common:submit')}
       </Button>
     </View>
   )

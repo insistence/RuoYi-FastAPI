@@ -33,6 +33,33 @@ jobs:
             ruoyi-fastapi-backend/plugins/ai/plugin.yaml
       - name: Install MySQL, PostgreSQL and test dependencies
         run: python -m pip install -r requirements.txt -r requirements-pg.txt -r requirements-test.txt
+      - name: Compile and validate gettext catalogs
+        run: python scripts/compile_i18n.py
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v5
+        with:
+          package_json_file: ruoyi-fastapi-frontend/vue2/web/package.json
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        working-directory: ruoyi-fastapi-frontend/vue2/web
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-generator-web-node22-${{ hashFiles('ruoyi-fastapi-frontend/*/web/pnpm-lock.yaml', 'ruoyi-fastapi-frontend/*/web/pnpm-workspace.yaml', 'ruoyi-fastapi-frontend/*/web/package.json') }}
+      - name: Install Web dependencies for generator tests
+        working-directory: ruoyi-fastapi-frontend
+        run: |
+          for framework in vue2 vue3 react; do
+            pnpm --dir "$framework/web" install --frozen-lockfile
+          done
+      - name: Install locked backend translation tooling and run read-only checks
+        run: |
+          npm ci --prefix .x18n/tooling --ignore-scripts
+          node .x18n/tooling/check-domains.mjs
+          npm test --prefix .x18n/tooling
       - name: Install AI plugin dependencies from its manifest
         run: python ../.github/scripts/install_ai_test_dependencies.py
       - name: Check dependency consistency
@@ -63,6 +90,7 @@ jobs:
           cache: pip
           cache-dependency-path: ruoyi-fastapi-backend/requirements*.txt
       - run: python -m pip install -r requirements.txt -r requirements-test.txt
+      - run: python scripts/compile_i18n.py
       - name: Verify CLI, paths, artifacts and portable runtime contracts
         run: >-
           python -m pytest tests/cli
@@ -96,6 +124,7 @@ jobs:
           cache: pip
           cache-dependency-path: ruoyi-fastapi-backend/requirements*.txt
       - run: python -m pip install -r requirements.txt -r requirements-test.txt
+      - run: python scripts/compile_i18n.py
       - name: Verify UTC, Shanghai and New York in separate processes
         shell: bash
         run: |

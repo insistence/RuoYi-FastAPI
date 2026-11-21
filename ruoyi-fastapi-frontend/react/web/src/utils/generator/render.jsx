@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import {
   GeneratorNumber,
   GeneratorSwitch,
@@ -53,6 +55,8 @@ export function fieldItemProps(field) {
  * @returns {import("react").ReactElement} 字段控件
  */
 export default function FieldControl({ field, design = false, ...valueProps }) {
+  useI18n()
+
   const { component, props } = describeControl(field)
   const registry = {
     GeneratorNumber,
@@ -105,13 +109,13 @@ export default function FieldControl({ field, design = false, ...valueProps }) {
         }}
       >
         {field['list-type'] === 'picture-card' ? (
-          <PlusOutlined aria-label="添加文件" />
+          <PlusOutlined aria-label={t('common:addFile')} />
         ) : (
           <Button
             type="primary"
             icon={<UploadOutlined />}
           >
-            {field.buttonText || '点击上传'}
+            {field.buttonText || t('file:upload.click')}
           </Button>
         )}
       </Upload>
@@ -122,7 +126,7 @@ export default function FieldControl({ field, design = false, ...valueProps }) {
         {...props}
         icon={field.icon ? <SvgIcon iconClass={resolveGeneratorIconName(field.icon)} /> : null}
       >
-        {field.default || '按钮'}
+        {field.default || t('system:menu.button')}
       </Button>
     )
   const control = (

@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 
 from config.database import DataSourceRegistry
+from i18n.message import I18nMessage
 from plugins.core.artifacts import StoredArtifact
 from plugins.core.deployment.catalog import PluginArtifactCatalog, artifact_payload
 from plugins.core.deployment.config import PluginDeploymentConfig
@@ -296,7 +297,10 @@ class PluginDeploymentService:
             'maintenanceRequired': True,
             'preparationMatches': preparation_matches,
             'message': (
-                '同版本制品缺少匹配的维护准备证据；请提升版本后发布，不能猜测已安装内容'
+                I18nMessage(
+                    '同版本制品缺少匹配的维护准备证据；请提升版本后发布，不能猜测已安装内容',
+                    msg_key='plugin.runtime.release.sameVersionBlocked',
+                )
                 if not same_version_ready
                 else str(precheck.get('message') or '')
             ),
@@ -341,7 +345,13 @@ class PluginDeploymentService:
             installed = getattr(plugin, 'installed_version', None)
             if installed == artifact.version:
                 if self._has_prepared_evidence(release, digest, installed):
-                    return {'ok': True, 'message': '该制品已完成维护准备', **artifact_payload(artifact)}
+                    return {
+                        'ok': True,
+                        'message': I18nMessage(
+                            '该制品已完成维护准备', msg_key='plugin.runtime.release.alreadyPrepared'
+                        ),
+                        **artifact_payload(artifact),
+                    }
                 raise ValueError('同版本制品缺少匹配的维护准备证据；请提升版本后发布，不能猜测已安装内容')
             if installed and PluginVersionComparator.compare(artifact.version, installed) != 1:
                 raise ValueError('维护准备只允许升级；代码回滚请使用显式 rollback 命令')
@@ -375,7 +385,9 @@ class PluginDeploymentService:
                     await db.commit()
                 return {
                     'ok': True,
-                    'message': '维护准备完成；选择目标制品后再启动 worker',
+                    'message': I18nMessage(
+                        '维护准备完成；选择目标制品后再启动 worker', msg_key='plugin.runtime.release.prepared'
+                    ),
                     'generation': generation,
                     'restartRequired': True,
                     **artifact_payload(artifact),
@@ -436,7 +448,10 @@ class PluginDeploymentService:
                 payload = {
                     'ok': True,
                     'operation': 'release_select',
-                    'message': '发布目标已更新，等待全部 worker 重启并报告实际版本',
+                    'message': I18nMessage(
+                        '发布目标已更新，等待全部 worker 重启并报告实际版本',
+                        msg_key='plugin.runtime.release.targetSelected',
+                    ),
                     'generation': release.generation,
                     'restartRequired': True,
                     'expectedWorkers': expected_workers,
@@ -513,7 +528,10 @@ class PluginDeploymentService:
                 payload = {
                     'ok': True,
                     'operation': 'release_rollback',
-                    'message': '已选择上一代码制品，数据库版本保持不变；请重启全部 worker',
+                    'message': I18nMessage(
+                        '已选择上一代码制品，数据库版本保持不变；请重启全部 worker',
+                        msg_key='plugin.runtime.release.previousSelected',
+                    ),
                     'installedVersion': plugin.installed_version,
                     'generation': selected.generation,
                     'restartRequired': True,

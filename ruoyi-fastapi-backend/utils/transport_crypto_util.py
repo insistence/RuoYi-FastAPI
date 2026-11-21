@@ -41,6 +41,20 @@ def _urlsafe_b64decode(data: str) -> bytes:
     return base64.urlsafe_b64decode(f'{data}{"=" * padding_length}'.encode())
 
 
+class TransportKeyError(ValueError):
+    """可通过刷新公钥重试的传输层密钥错误。"""
+
+    def __init__(self, message: str, *, msg_key: str) -> None:
+        """
+        保存诊断原文和客户端用于判断重试的消息标识
+
+        :param message: 内部诊断使用的错误原文
+        :param msg_key: 对外响应使用的语义标识
+        """
+        super().__init__(message)
+        self.msg_key = msg_key
+
+
 @dataclass(frozen=True)
 class TransportKeyPair:
     """
@@ -184,7 +198,7 @@ class TransportKeyProvider:
                     cls._key_pairs = cls._build_key_pairs()
         key_pair = cls._key_pairs.get(target_kid)
         if key_pair is None:
-            raise ValueError('密钥版本不存在')
+            raise TransportKeyError('密钥版本不存在', msg_key='transport.keyExpired')
         return key_pair
 
     @classmethod
@@ -442,10 +456,13 @@ class TransportCryptoUtil:
         private_key_pem = TransportKeyProvider.get_private_key_pem(kid)
         private_key = serialization.load_pem_private_key(private_key_pem.encode('utf-8'), password=None)
         encrypted_key = _urlsafe_b64decode(str(envelope['ek']))
-        return private_key.decrypt(
-            encrypted_key,
-            padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None),
-        )
+        try:
+            return private_key.decrypt(
+                encrypted_key,
+                padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None),
+            )
+        except ValueError as exc:
+            raise TransportKeyError('请求密钥解密失败', msg_key='transport.decryptFailed') from exc
 
     @classmethod
     def encrypt_response_body(

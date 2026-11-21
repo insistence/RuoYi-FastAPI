@@ -80,7 +80,9 @@ class MenuService:
             query_db, page_object, current_user.user.user_id, current_user.user.role
         )
 
-        return CamelCaseUtil.transform_result(menu_list_result)
+        return [
+            MenuModel(**CamelCaseUtil.transform_result(menu)).model_dump(by_alias=True) for menu in menu_list_result
+        ]
 
     @classmethod
     async def check_menu_name_unique_services(cls, query_db: AsyncSession, page_object: MenuModel) -> bool:
@@ -144,15 +146,27 @@ class MenuService:
         :return: 新增菜单校验结果
         """
         if not await cls.check_menu_name_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增菜单{page_object.menu_name}失败，菜单名称已存在')
+            raise ServiceException(
+                message=f'新增菜单{page_object.menu_name}失败，菜单名称已存在',
+                msg_key='menu.addDuplicateName',
+                msg_params={'menu_name': str(page_object.menu_name)},
+            )
         if page_object.is_frame == MenuConstant.YES_FRAME and not StringUtil.is_http(page_object.path):
-            raise ServiceException(message=f'新增菜单{page_object.menu_name}失败，地址必须以http(s)://开头')
+            raise ServiceException(
+                message=f'新增菜单{page_object.menu_name}失败，地址必须以http(s)://开头',
+                msg_key='menu.addInvalidUrl',
+                msg_params={'menu_name': str(page_object.menu_name)},
+            )
         if not await cls.check_route_config_unique_services(query_db, page_object):
-            raise ServiceException(message=f'新增菜单{page_object.menu_name}失败，路由名称或地址已存在')
+            raise ServiceException(
+                message=f'新增菜单{page_object.menu_name}失败，路由名称或地址已存在',
+                msg_key='menu.addDuplicateRoute',
+                msg_params={'menu_name': str(page_object.menu_name)},
+            )
         try:
             await MenuDao.add_menu_dao(query_db, page_object)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='新增成功')
+            return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             await query_db.rollback()
             raise e
@@ -171,34 +185,50 @@ class MenuService:
             if page_object.parent_id is None:
                 page_object.parent_id = menu_info.parent_id
             if not await cls.check_menu_name_unique_services(query_db, page_object):
-                raise ServiceException(message=f'修改菜单{page_object.menu_name}失败，菜单名称已存在')
+                raise ServiceException(
+                    message=f'修改菜单{page_object.menu_name}失败，菜单名称已存在',
+                    msg_key='menu.editDuplicateName',
+                    msg_params={'menu_name': str(page_object.menu_name)},
+                )
             if page_object.is_frame == MenuConstant.YES_FRAME and not StringUtil.is_http(page_object.path):
-                raise ServiceException(message=f'修改菜单{page_object.menu_name}失败，地址必须以http(s)://开头')
+                raise ServiceException(
+                    message=f'修改菜单{page_object.menu_name}失败，地址必须以http(s)://开头',
+                    msg_key='menu.editInvalidUrl',
+                    msg_params={'menu_name': str(page_object.menu_name)},
+                )
             if page_object.menu_id == page_object.parent_id:
-                raise ServiceException(message=f'修改菜单{page_object.menu_name}失败，上级菜单不能选择自己')
+                raise ServiceException(
+                    message=f'修改菜单{page_object.menu_name}失败，上级菜单不能选择自己',
+                    msg_key='menu.selfParent',
+                    msg_params={'menu_name': str(page_object.menu_name)},
+                )
             # 沿父级链校验，防止选择子菜单或接入已有的循环关系。
             parent_id = page_object.parent_id
             visited_ids = {page_object.menu_id}
             while parent_id != MenuConstant.ROOT_ID:
                 if parent_id in visited_ids:
-                    raise ServiceException(message='上级菜单存在循环关系')
+                    raise ServiceException(message='上级菜单存在循环关系', msg_key='menu.parentCycle')
                 visited_ids.add(parent_id)
                 parent_menu = await MenuDao.get_menu_detail_by_id(query_db, parent_id)
                 if not parent_menu:
-                    raise ServiceException(message='上级菜单不存在')
+                    raise ServiceException(message='上级菜单不存在', msg_key='menu.parentNotFound')
                 parent_id = parent_menu.parent_id
             if not await cls.check_route_config_unique_services(query_db, page_object):
-                raise ServiceException(message=f'修改菜单{page_object.menu_name}失败，路由名称或地址已存在')
+                raise ServiceException(
+                    message=f'修改菜单{page_object.menu_name}失败，路由名称或地址已存在',
+                    msg_key='menu.editDuplicateRoute',
+                    msg_params={'menu_name': str(page_object.menu_name)},
+                )
             edit_menu = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
             try:
                 await MenuDao.edit_menu_dao(query_db, edit_menu)
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='更新成功')
+                return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='菜单不存在')
+            raise ServiceException(message='菜单不存在', msg_key='menu.notFound')
 
     @classmethod
     async def update_menu_sort_services(
@@ -217,10 +247,10 @@ class MenuService:
         try:
             await MenuDao.update_menu_sort_dao(query_db, menu_sort_list)
             await query_db.commit()
-            return CrudResponseModel(is_success=True, message='保存成功')
+            return CrudResponseModel(is_success=True, message='保存成功', msg_key='common.saved')
         except Exception as exc:
             await query_db.rollback()
-            raise ServiceException(message='保存排序异常，请联系管理员') from exc
+            raise ServiceException(message='保存排序异常，请联系管理员', msg_key='common.sortFailed') from exc
 
     @classmethod
     def parse_menu_sort_items(cls, page_object: MenuSortModel) -> list[dict[str, int]]:
@@ -233,16 +263,16 @@ class MenuService:
         menu_id_values = [value.strip() for value in page_object.menu_ids.split(',') if value.strip()]
         order_num_values = [value.strip() for value in page_object.order_nums.split(',') if value.strip()]
         if not menu_id_values or len(menu_id_values) != len(order_num_values):
-            raise ServiceException(message='菜单排序参数不正确')
+            raise ServiceException(message='菜单排序参数不正确', msg_key='menu.invalidSort')
         try:
             menu_ids = [int(value) for value in menu_id_values]
             order_nums = [int(value) for value in order_num_values]
         except ValueError as exc:
-            raise ServiceException(message='菜单排序参数不正确') from exc
+            raise ServiceException(message='菜单排序参数不正确', msg_key='menu.invalidSort') from exc
         if any(menu_id <= 0 for menu_id in menu_ids) or any(order_num < 0 for order_num in order_nums):
-            raise ServiceException(message='菜单排序参数不正确')
+            raise ServiceException(message='菜单排序参数不正确', msg_key='menu.invalidSort')
         if len(set(menu_ids)) != len(menu_ids):
-            raise ServiceException(message='菜单排序参数不正确')
+            raise ServiceException(message='菜单排序参数不正确', msg_key='menu.invalidSort')
 
         return [
             {'menu_id': menu_id, 'order_num': order_num}
@@ -263,17 +293,17 @@ class MenuService:
             try:
                 for menu_id in menu_id_list:
                     if (await MenuDao.has_child_by_menu_id_dao(query_db, int(menu_id))) > 0:
-                        raise ServiceWarning(message='存在子菜单,不允许删除')
+                        raise ServiceWarning(message='存在子菜单,不允许删除', msg_key='menu.childrenPreventDelete')
                     if (await MenuDao.check_menu_exist_role_dao(query_db, int(menu_id))) > 0:
-                        raise ServiceWarning(message='菜单已分配,不允许删除')
+                        raise ServiceWarning(message='菜单已分配,不允许删除', msg_key='menu.assigned')
                     await MenuDao.delete_menu_dao(query_db, MenuModel(menuId=menu_id))
                 await query_db.commit()
-                return CrudResponseModel(is_success=True, message='删除成功')
+                return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入菜单id为空')
+            raise ServiceException(message='传入菜单id为空', msg_key='menu.idRequired')
 
     @classmethod
     async def menu_detail_services(cls, query_db: AsyncSession, menu_id: int) -> MenuModel:
@@ -298,7 +328,10 @@ class MenuService:
         :return: 菜单树形嵌套数据
         """
         _permission_list = [
-            MenuTreeModel(id=item.menu_id, label=item.menu_name, parentId=item.parent_id) for item in permission_list
+            MenuTreeModel(
+                id=item.menu_id, label=item.menu_name, labelI18n=item.menu_name_i18n or {}, parentId=item.parent_id
+            )
+            for item in permission_list
         ]
         # 转成id为key的字典
         mapping: dict[int, MenuTreeModel] = dict(zip([i.id for i in _permission_list], _permission_list, strict=False))

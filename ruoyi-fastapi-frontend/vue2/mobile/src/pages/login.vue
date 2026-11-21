@@ -1,9 +1,12 @@
 <template>
   <view
-    class="flex h-full flex-col items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 px-6 pb-20 overflow-hidden"
+    class="flex min-h-full flex-col items-center bg-linear-to-br from-blue-50 to-indigo-100 px-6 pt-2 pb-20"
   >
+    <view class="flex w-full justify-end">
+      <LanguageSelect />
+    </view>
     <!-- Logo Section -->
-    <view class="mb-6 flex flex-col items-center">
+    <view class="mt-auto mb-6 flex flex-col items-center pt-2">
       <view class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg">
         <image
           class="size-10"
@@ -11,11 +14,13 @@
           mode="widthFix"
         />
       </view>
-      <text class="text-xl font-bold tracking-wide text-gray-800">RuoYi-FastAPI移动端登录</text>
+      <text class="text-center text-xl font-bold tracking-wide text-gray-800">{{
+        $t('auth:login.title')
+      }}</text>
     </view>
 
     <!-- Form Section -->
-    <view class="w-full rounded-3xl bg-white/80 p-6 shadow-xl backdrop-blur-md">
+    <view class="mb-auto w-full rounded-3xl bg-white/80 p-6 shadow-xl backdrop-blur-md">
       <!-- Username -->
       <view class="group relative mb-5">
         <view
@@ -27,7 +32,7 @@
           v-model="loginForm.username"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
           type="text"
-          placeholder="请输入账号"
+          :placeholder="$t('auth:login.usernameRequired')"
           maxlength="30"
         />
       </view>
@@ -43,7 +48,7 @@
           v-model="loginForm.password"
           type="password"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-          placeholder="请输入密码"
+          :placeholder="$t('auth:login.passwordRequired')"
           maxlength="20"
         />
       </view>
@@ -63,7 +68,7 @@
             v-model="loginForm.code"
             type="number"
             class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-            placeholder="验证码"
+            :placeholder="$t('auth:login.code')"
             maxlength="4"
           />
         </view>
@@ -83,7 +88,7 @@
         @click="handleLogin"
         class="flex h-12 w-full items-center justify-center rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-transform active:scale-95"
       >
-        登 录
+        {{ $t('auth:login.submit') }}
       </button>
 
       <!-- Footer Links -->
@@ -92,26 +97,26 @@
           class="flex items-center text-sm text-gray-500"
           v-if="register"
         >
-          <text>没有账号？</text>
+          <text>{{ $t('auth:login.noAccount') }}</text>
           <text
             @click="handleUserRegister"
             class="ml-1 font-medium text-blue-600 active:opacity-70"
-            >立即注册</text
+            >{{ $t('auth:register.link') }}</text
           >
         </view>
 
         <view class="flex flex-wrap items-center justify-center text-xs text-gray-400">
-          <text>登录即代表同意</text>
+          <text>{{ $t('auth:login.acceptTerms') }}</text>
           <text
             @click="handleUserAgrement"
             class="mx-1 text-blue-500 active:opacity-70"
-            >《用户协议》</text
+            >{{ $t('auth:login.agreementLink') }}</text
           >
-          <text>和</text>
+          <text>{{ $t('auth:login.and') }}</text>
           <text
             @click="handlePrivacy"
             class="mx-1 text-blue-500 active:opacity-70"
-            >《隐私协议》</text
+            >{{ $t('auth:login.privacyLink') }}</text
           >
         </view>
       </view>
@@ -120,6 +125,7 @@
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
 import { getCodeImg } from '@/api/login'
 import { getToken } from '@/utils/auth'
 
@@ -175,13 +181,13 @@ export default {
     // 登录方法
     async handleLogin() {
       if (this.loginForm.username === '') {
-        this.$modal.msgError('请输入账号')
+        this.$modal.msgError(t('auth:login.usernameRequired'))
       } else if (this.loginForm.password === '') {
-        this.$modal.msgError('请输入密码')
+        this.$modal.msgError(t('auth:login.passwordRequired'))
       } else if (this.loginForm.code === '' && this.captchaEnabled) {
-        this.$modal.msgError('请输入验证码')
+        this.$modal.msgError(t('auth:login.codeRequired'))
       } else {
-        this.$modal.loading('登录中，请耐心等待...')
+        this.$modal.loading(t('auth:login.signingIn'))
         this.pwdLogin()
       }
     },
@@ -202,9 +208,12 @@ export default {
     // 登录成功后，处理函数
     loginSuccess(result) {
       // 设置用户信息
-      this.$store.dispatch('GetInfo').then((res) => {
-        this.$tab.reLaunch('/pages/index')
-      })
+      this.$store
+        .dispatch('GetInfo')
+        .then(() => {
+          this.$tab.reLaunch('/pages/index')
+        })
+        .catch(() => {})
     },
   },
 }

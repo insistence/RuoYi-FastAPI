@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from common.router import auto_register_controller_files
 from config.database import DataSourceRegistry
 from config.env import AppConfig, get_config
+from i18n.catalogs import CatalogRegistry
 from plugins.core.discovery.registry import PluginRegistry, RegisteredPlugin
 from plugins.core.discovery.scanner import is_artifact_plugin
 from plugins.core.lifecycle.migration import (
@@ -289,12 +290,35 @@ class PluginRuntimeStartupManager:
             default_dependency_failed_plugin_ids | dependency_failed_plugin_ids
         )
         self.disable_runtime_plugins(app, dependency_failed_plugin_ids)
+        await self.prepare_enabled_plugin_catalogs(app, startup_write_enabled=startup_write_enabled)
         await self.prepare_explicit_plugins(app, startup_write_enabled=startup_write_enabled)
         import_failed_plugin_ids = await self.import_enabled_plugin_entities(
             app,
             startup_write_enabled=startup_write_enabled,
         )
         self.disable_runtime_plugins(app, import_failed_plugin_ids)
+
+    async def prepare_enabled_plugin_catalogs(self, app: FastAPI, *, startup_write_enabled: bool) -> None:
+        """
+        为当前工作进程加载插件词库，失败时仅隔离相应插件
+
+        :param app: 宿主 FastAPI 应用
+        :param startup_write_enabled: 是否允许执行启动期全局写入
+        :return: None
+        """
+        registry = getattr(app.state, 'plugin_registry', None)
+        if not isinstance(registry, PluginRegistry):
+            return
+        failures = set()
+        for plugin in registry.list_enabled_plugins():
+            try:
+                CatalogRegistry.register_plugin(plugin.plugin_id, plugin.discovered_plugin.backend_path)
+            except (OSError, ValueError, KeyError, TypeError) as exc:  # noqa: PERF203 - 启动时逐插件隔离失败。
+                failures.add(plugin.plugin_id)
+                logger.error(f'插件词库加载失败：{plugin.plugin_id}，{exc}')
+                if startup_write_enabled:
+                    await self.mark_plugin_runtime_error(app, plugin.plugin_id, 'Plugin catalogs could not be loaded')
+        self.disable_runtime_plugins(app, failures)
 
     async def prepare_explicit_plugins(self, app: FastAPI, *, startup_write_enabled: bool) -> None:
         """
@@ -678,7 +702,13 @@ class PluginRuntimeStartupManager:
             if isinstance(runtime, ExplicitPluginRuntime):
                 await runtime.shutdown()
         finally:
-            await self.run_enabled_plugin_hooks(app, 'on_shutdown', startup_write_enabled=startup_write_enabled)
+            try:
+                await self.run_enabled_plugin_hooks(app, 'on_shutdown', startup_write_enabled=startup_write_enabled)
+            finally:
+                registry = getattr(app.state, 'plugin_registry', None)
+                if isinstance(registry, PluginRegistry):
+                    for plugin in registry.list_plugins():
+                        CatalogRegistry.unregister_plugin(plugin.plugin_id)
 
     async def load_registry_from_database(self, app: FastAPI) -> None:
         """
@@ -1255,6 +1285,8 @@ class PluginRuntimeStartupManager:
         """
         if not plugin_ids:
             return
+        for plugin_id in plugin_ids:
+            CatalogRegistry.unregister_plugin(plugin_id)
         plugin_registry = getattr(app.state, 'plugin_registry', None)
         if plugin_registry is None:
             return

@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    :title="title"
+    :title="title || $t('components:importData')"
     v-model="visible"
     :width="width"
     append-to-body
@@ -21,20 +21,22 @@
       drag
     >
       <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-      <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+      <div class="el-upload__text">
+        {{ $t('components:dragFilesHereOr') }}<em>{{ $t('components:clickToUpload') }}</em>
+      </div>
       <template #tip>
         <div class="el-upload__tip text-center">
           <div class="el-upload__tip">
             <el-checkbox v-model="updateSupport"> {{ updateSupportLabel }} </el-checkbox>
           </div>
-          <span>仅允许导入xls、xlsx格式文件。</span>
+          <span>{{ $t('components:onlyXlsAndXlsxFilesCanBeImported') }}</span>
           <el-link
             v-if="templateUrl"
             type="primary"
             underline="never"
             style="font-size: 12px; vertical-align: baseline"
             @click="handleDownloadTemplate"
-            >下载模板</el-link
+            >{{ $t('components:downloadTemplate') }}</el-link
           >
         </div>
       </template>
@@ -44,16 +46,18 @@
         <el-button
           type="primary"
           @click="handleSubmit"
-          >确 定</el-button
+          >{{ $t('system:confirm') }}</el-button
         >
-        <el-button @click="visible = false">取 消</el-button>
+        <el-button @click="visible = false">{{ $t('system:cancel') }}</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { getToken } from '@/utils/auth'
+import { h } from 'vue'
+import { t } from '@/i18n/adapter'
+import { getUploadHeaders } from '@/utils/uploadHeaders'
 
 const { proxy } = getCurrentInstance()
 
@@ -61,7 +65,7 @@ const props = defineProps({
   // 对话框标题
   title: {
     type: String,
-    default: '数据导入',
+    default: '',
   },
   // 对话框宽度
   width: {
@@ -86,7 +90,7 @@ const props = defineProps({
   // 覆盖更新勾选框的说明文字
   updateSupportLabel: {
     type: String,
-    default: '是否更新已经存在的数据',
+    default: () => t('components:updateExistingRecords'),
   },
 })
 
@@ -97,7 +101,7 @@ const visible = ref(false)
 const selectedFile = ref(null)
 const isUploading = ref(false)
 const updateSupport = ref(false)
-const headers = { Authorization: 'Bearer ' + getToken() }
+const headers = computed(getUploadHeaders)
 
 const uploadUrl = computed(() => {
   return (
@@ -148,18 +152,19 @@ const handleFileRemove = (file, fileList) => {
   selectedFile.value = null
 }
 
-// 上传成功
+/**
+ * 以纯文本展示导入结果，保留消息中的换行和单元格原文。
+ *
+ * @param {Object} response 上传接口响应
+ */
 function handleSuccess(response) {
   visible.value = false
   isUploading.value = false
   selectedFile.value = null
   uploadRef.value?.clearFiles()
   proxy.$alert(
-    "<div style='overflow:auto;overflow-x:hidden;max-height:70vh;padding:10px 20px 0;'>" +
-      response.msg +
-      '</div>',
-    '导入结果',
-    { dangerouslyUseHTMLString: true }
+    h('div', { class: 'excel-import-result' }, String(response.msg || '')),
+    t('components:importResults')
   )
   emit('success')
 }
@@ -172,7 +177,7 @@ function handleSubmit() {
     file.length === 0 ||
     (!file.name.toLowerCase().endsWith('.xls') && !file.name.toLowerCase().endsWith('.xlsx'))
   ) {
-    proxy.$modal.msgError('请选择后缀为 “xls”或“xlsx”的文件。')
+    proxy.$modal.msgError(t('components:selectAFileWithAnXlsOrXlsxExtension'))
     return
   }
   uploadRef.value.submit()
@@ -180,3 +185,12 @@ function handleSubmit() {
 
 defineExpose({ open })
 </script>
+
+<style>
+.excel-import-result {
+  max-height: 70vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+</style>

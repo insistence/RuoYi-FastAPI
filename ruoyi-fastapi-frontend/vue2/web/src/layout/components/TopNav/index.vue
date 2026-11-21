@@ -15,7 +15,7 @@
           v-if="item.meta && item.meta.icon && item.meta.icon !== '#'"
           :icon-class="item.meta.icon"
         />
-        {{ item.meta.title }}
+        {{ $routeTitle(item) }}
       </el-menu-item>
     </template>
 
@@ -26,7 +26,7 @@
       :key="visibleNumber"
       v-if="topMenus.length > visibleNumber"
     >
-      <template slot="title">更多菜单</template>
+      <template slot="title">{{ $t('layout:menu.more') }}</template>
       <template v-for="(item, index) in topMenus">
         <el-menu-item
           :index="item.path"
@@ -37,7 +37,7 @@
             v-if="item.meta && item.meta.icon && item.meta.icon !== '#'"
             :icon-class="item.meta.icon"
           />
-          {{ item.meta.title }}
+          {{ $routeTitle(item) }}
         </el-menu-item>
       </template>
     </el-submenu>

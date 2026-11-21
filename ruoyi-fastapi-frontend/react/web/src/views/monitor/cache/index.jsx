@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { Col, Row, Spin } from 'antd'
 import { DesktopOutlined, PieChartOutlined, DashboardOutlined } from '@ant-design/icons'
@@ -6,6 +8,8 @@ import EChart from '@/components/EChart'
 import MonitorPanel, { MetricTable } from '@/components/MonitorPanel'
 
 export default function Cache() {
+  useI18n()
+
   const [cache, setCache] = useState({}),
     [loading, setLoading] = useState(true)
   useEffect(() => {
@@ -25,33 +29,33 @@ export default function Cache() {
   const info = cache.info || {}
   const rows = [
     [
-      'Redis版本',
+      t('monitor:redisVersion'),
       info.redis_version,
-      '运行模式',
-      info.redis_mode === 'standalone' ? '单机' : '集群',
-      '端口',
+      t('monitor:runMode'),
+      info.redis_mode === 'standalone' ? t('monitor:standalone') : t('monitor:cluster'),
+      t('monitor:port'),
       info.tcp_port,
-      '客户端数',
+      t('monitor:clients'),
       info.connected_clients,
     ],
     [
-      '运行时间(天)',
+      t('monitor:uptimeDays'),
       info.uptime_in_days,
-      '使用内存',
+      t('monitor:usedMemory'),
       info.used_memory_human,
-      '使用CPU',
+      t('monitor:cpuUsage'),
       Number(info.used_cpu_user_children || 0).toFixed(2),
-      '内存配置',
+      t('monitor:memoryConfiguration'),
       info.maxmemory_human,
     ],
     [
-      'AOF是否开启',
-      String(info.aof_enabled) === '0' ? '否' : '是',
-      'RDB是否成功',
+      t('monitor:aofEnabled'),
+      String(info.aof_enabled) === '0' ? t('common:no') : t('common:yes'),
+      t('monitor:rdbSuccessful'),
       info.rdb_last_bgsave_status,
-      'Key数量',
+      t('monitor:keyCount'),
       cache.dbSize,
-      '网络入口/出口',
+      t('monitor:networkInOut'),
       `${info.instantaneous_input_kbps || 0}kps/${info.instantaneous_output_kbps || 0}kps`,
     ],
   ]
@@ -61,7 +65,7 @@ export default function Cache() {
         <Row gutter={[10, 10]}>
           <Col span={24}>
             <MonitorPanel
-              title="基本信息"
+              title={t('common:basicInfo')}
               icon={<DesktopOutlined />}
             >
               <MetricTable rows={rows} />
@@ -72,7 +76,7 @@ export default function Cache() {
             md={12}
           >
             <MonitorPanel
-              title="命令统计"
+              title={t('monitor:commandStatistics')}
               icon={<PieChartOutlined />}
             >
               <EChart
@@ -81,7 +85,7 @@ export default function Cache() {
                   tooltip: { trigger: 'item', formatter: '{a} <br/>{b} : {c} ({d}%)' },
                   series: [
                     {
-                      name: '命令',
+                      name: t('system:command'),
                       type: 'pie',
                       roseType: 'radius',
                       radius: [15, 95],
@@ -100,7 +104,7 @@ export default function Cache() {
             md={12}
           >
             <MonitorPanel
-              title="内存信息"
+              title={t('monitor:memoryInformation')}
               icon={<DashboardOutlined />}
             >
               <EChart
@@ -109,12 +113,17 @@ export default function Cache() {
                   tooltip: { formatter: `{b} <br/>{a} : ${info.used_memory_human || '-'}` },
                   series: [
                     {
-                      name: '峰值',
+                      name: t('monitor:peak'),
                       type: 'gauge',
                       min: 0,
                       max: 1000,
                       detail: { formatter: info.used_memory_human || '-' },
-                      data: [{ value: parseFloat(info.used_memory_human) || 0, name: '内存消耗' }],
+                      data: [
+                        {
+                          value: parseFloat(info.used_memory_human) || 0,
+                          name: t('monitor:memoryUsage'),
+                        },
+                      ],
                     },
                   ],
                 }}

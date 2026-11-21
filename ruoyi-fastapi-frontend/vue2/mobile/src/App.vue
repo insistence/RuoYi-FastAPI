@@ -1,14 +1,17 @@
 <script>
+import { i18n, refreshDeviceLocale } from '@/i18n'
 import { refreshDeviceTimezone } from '@/utils/time'
 import config from './config'
 import { getToken } from '@/utils/auth'
 
 export default {
   onLaunch: function () {
+    i18n.initialize(Boolean(getToken()))
     this.initApp()
   },
   onShow() {
     refreshDeviceTimezone()
+    refreshDeviceLocale()
   },
   methods: {
     // 初始化应用

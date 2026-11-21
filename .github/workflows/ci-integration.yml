@@ -59,6 +59,7 @@ jobs:
           cache: pip
           cache-dependency-path: ruoyi-fastapi-backend/requirements*.txt
       - run: python -m pip install -r requirements.txt -r requirements-pg.txt -r requirements-test.txt
+      - run: python scripts/compile_i18n.py
       - name: Configure isolated database verification
         run: |
           mkdir -p target/ci/timezone
@@ -169,6 +170,7 @@ jobs:
           cache: pip
           cache-dependency-path: ruoyi-fastapi-backend/requirements*.txt
       - run: python -m pip install -r requirements.txt -r requirements-pg.txt
+      - run: python scripts/compile_i18n.py
       - name: Verify MySQL and PostgreSQL maintenance releases
         shell: bash
         run: |
@@ -220,6 +222,7 @@ jobs:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: ${{ runner.os }}-network-${{ matrix.framework }}-${{ hashFiles(format('ruoyi-fastapi-frontend/{0}/web/pnpm-lock.yaml', matrix.framework)) }}
       - run: python -m pip install -r requirements.txt -r requirements-test.txt playwright==1.64.0
+      - run: python scripts/compile_i18n.py
       - run: python -m playwright install --with-deps chromium
       - name: Install Web dependencies
         working-directory: ruoyi-fastapi-frontend/${{ matrix.framework }}/web

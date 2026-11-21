@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import Taro from '@tarojs/taro'
 /**
  * 显示消息提示框
@@ -17,10 +18,10 @@ export function toast(content) {
 export function showConfirm(content) {
   return new Promise((resolve, reject) => {
     Taro.showModal({
-      title: '提示',
+      title: t('common:notice'),
       content: content,
-      cancelText: '取消',
-      confirmText: '确定',
+      cancelText: t('common:cancel'),
+      confirmText: t('common:confirm'),
       success: function (res) {
         resolve(res)
       },

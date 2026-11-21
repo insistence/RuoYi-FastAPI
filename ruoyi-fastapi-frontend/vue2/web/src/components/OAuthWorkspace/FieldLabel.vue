@@ -9,7 +9,7 @@
       <i
         class="field-help el-icon-question"
         tabindex="0"
-        :aria-label="`${label}说明`"
+        :aria-label="$t('common:help.aboutLabel', { label })"
         @click.stop
       ></i>
     </el-tooltip>

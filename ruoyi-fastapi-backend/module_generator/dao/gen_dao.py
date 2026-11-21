@@ -305,7 +305,10 @@ class GenTableDao:
             query_params['table_comment'] = query_object.table_comment
         metadata_range = TimezoneUtil.local_date_strings_to_utc(query_object.begin_time, query_object.end_time)
         if metadata_range and source_config.db_type == 'postgresql':
-            raise ServiceWarning(message='PostgreSQL 系统目录不记录建表时间，请清除建表日期筛选')
+            raise ServiceWarning(
+                message='PostgreSQL 系统目录不记录建表时间，请清除建表日期筛选',
+                msg_key='generator.creationDateUnsupported',
+            )
         if query_object.begin_time:
             query_sql += metadata.created_after_filter
             query_params['begin_time'] = metadata_range[0]

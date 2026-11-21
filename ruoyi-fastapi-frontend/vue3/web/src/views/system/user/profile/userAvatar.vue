@@ -5,7 +5,7 @@
   >
     <img
       :src="options.img"
-      title="点击上传头像"
+      :title="$t('system:clickToUploadAvatar')"
       class="img-circle img-lg"
     />
     <el-dialog
@@ -61,8 +61,7 @@
             :before-upload="beforeUpload"
           >
             <el-button>
-              选择
-              <el-icon class="el-icon--right"><Upload /></el-icon>
+              {{ $t('layout:search.select') }}<el-icon class="el-icon--right"><Upload /></el-icon>
             </el-button>
           </el-upload>
         </el-col>
@@ -109,7 +108,7 @@
           <el-button
             type="primary"
             @click="uploadImg()"
-            >提 交</el-button
+            >{{ $t('system:submitLabel') }}</el-button
           >
         </el-col>
       </el-row>
@@ -118,6 +117,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 import 'vue-cropper/dist/index.css'
 import { VueCropper } from 'vue-cropper'
 import { uploadAvatar } from '@/api/system/user'
@@ -128,7 +128,7 @@ const { proxy } = getCurrentInstance()
 
 const open = ref(false)
 const visible = ref(false)
-const title = ref('修改头像')
+const title = computed(() => t('system:changeAvatar'))
 
 //图片裁剪数据
 const options = reactive({
@@ -168,7 +168,7 @@ function changeScale(num) {
 /** 上传预处理 */
 function beforeUpload(file) {
   if (file.type.indexOf('image/') == -1) {
-    proxy.$modal.msgError('文件格式错误，请上传图片类型,如：JPG，PNG后缀的文件。')
+    proxy.$modal.msgError(t('system:invalidFileFormatUploadAnImageSuchAsJPGOr'))
   } else {
     const reader = new FileReader()
     reader.readAsDataURL(file)
@@ -187,7 +187,7 @@ function uploadImg() {
       open.value = false
       options.img = import.meta.env.VITE_APP_BASE_API + response.imgUrl
       userStore.avatar = options.img
-      proxy.$modal.msgSuccess('修改成功')
+      proxy.$modal.msgSuccess(t('system:updatedSuccessfully'))
       visible.value = false
     })
   })

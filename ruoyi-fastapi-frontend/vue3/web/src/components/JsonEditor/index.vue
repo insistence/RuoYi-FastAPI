@@ -5,7 +5,7 @@
   >
     <div class="json-editor__toolbar">
       <span class="json-editor__type">{{
-        valueType === 'array' ? 'JSON 数组 [ ]' : 'JSON 对象 { }'
+        valueType === 'array' ? $t('components:jSONArray') : $t('components:jSONObject')
       }}</span>
       <div class="json-editor__actions">
         <el-button
@@ -13,17 +13,19 @@
           type="primary"
           icon="Operation"
           :disabled="!editorReady || !validation.valid"
-          :aria-label="`格式化${label}`"
+          :aria-label="$t('components:formatValue', { label: label })"
           @click="formatDocument"
-          >格式化</el-button
+          >{{ $t('components:format') }}</el-button
         >
         <el-button
           link
           icon="FullScreen"
-          :aria-label="`${expanded ? '收起' : '展开'}${label}编辑器`"
+          :aria-label="
+            $t('components:valuevalueEditor', { value0: expanded ? '收起' : '展开', label: label })
+          "
           :aria-expanded="expanded"
           @click="expanded = !expanded"
-          >{{ expanded ? '收起' : '展开' }}</el-button
+          >{{ expanded ? $t('components:collapse') : $t('components:expand') }}</el-button
         >
       </div>
     </div>
@@ -41,7 +43,7 @@
         class="json-editor__loading"
         role="status"
       >
-        正在加载编辑器…
+        {{ $t('components:loadingEditor') }}
       </div>
       <el-input
         v-if="loadFailed"
@@ -58,7 +60,7 @@
         v-if="validation.valid"
         class="json-editor__valid"
         role="status"
-        >格式正确</span
+        >{{ $t('components:validFormat') }}</span
       >
       <button
         v-else
@@ -73,7 +75,9 @@
         v-if="validation.valid"
         class="json-editor__hint"
         >{{
-          loadFailed ? '编辑器加载失败，已切换文本输入' : 'Tab 切换焦点 · Alt+Shift+F 格式化'
+          loadFailed
+            ? $t('components:theEditorFailedToLoadUsingATextFieldInstead')
+            : $t('components:tabToMoveFocusAltShiftFToFormat')
         }}</span
       >
     </div>
@@ -81,11 +85,12 @@
 </template>
 
 <script setup name="JsonEditor">
+import { t } from '@/i18n/adapter'
 import { useFormItem } from 'element-plus'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  label: { type: String, default: 'JSON参数' },
+  label: { type: String, default: () => t('components:jSONParameters') },
   valueType: { type: String, default: 'object' },
   validate: { type: Function, default: (value) => JSON.parse(value) },
 })
@@ -106,7 +111,10 @@ const validation = computed(() => {
 })
 const errorLocation = computed(() =>
   firstMarker.value
-    ? `第 ${firstMarker.value.startLineNumber} 行，第 ${firstMarker.value.startColumn} 列：`
+    ? t('components:lineValueColumnValue', {
+        startLineNumber: firstMarker.value.startLineNumber,
+        startColumn: firstMarker.value.startColumn,
+      })
     : ''
 )
 

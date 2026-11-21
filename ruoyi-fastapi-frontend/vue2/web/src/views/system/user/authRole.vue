@@ -1,7 +1,8 @@
 <template>
   <div class="app-container">
-    <h4 class="form-header h4">基本信息</h4>
+    <h4 class="form-header h4">{{ $t('common:basicInfo') }}</h4>
     <el-form
+      :validate-on-rule-change="false"
       ref="form"
       :model="form"
       label-width="80px"
@@ -12,7 +13,7 @@
           :offset="2"
         >
           <el-form-item
-            label="用户昵称"
+            :label="$t('system:user.nickname')"
             prop="nickName"
           >
             <el-input
@@ -26,7 +27,7 @@
           :offset="2"
         >
           <el-form-item
-            label="登录账号"
+            :label="$t('system:loginAccount')"
             prop="userName"
           >
             <el-input
@@ -38,7 +39,7 @@
       </el-row>
     </el-form>
 
-    <h4 class="form-header h4">角色信息</h4>
+    <h4 class="form-header h4">{{ $t('system:roleInformation') }}</h4>
     <el-table
       v-loading="loading"
       :row-key="getRowKey"
@@ -48,7 +49,7 @@
       :data="roles.slice((pageNum - 1) * pageSize, pageNum * pageSize)"
     >
       <el-table-column
-        label="序号"
+        :label="$t('common:index')"
         type="index"
         align="center"
       >
@@ -63,22 +64,22 @@
         width="55"
       ></el-table-column>
       <el-table-column
-        label="角色编号"
+        :label="$t('system:roleID')"
         align="center"
         prop="roleId"
       />
       <el-table-column
-        label="角色名称"
+        :label="$t('system:role.name')"
         align="center"
         prop="roleName"
       />
       <el-table-column
-        label="权限字符"
+        :label="$t('system:permission.code')"
         align="center"
         prop="roleKey"
       />
       <el-table-column
-        label="创建时间"
+        :label="$t('common:createdTime')"
         align="center"
         prop="createTime"
         width="180"
@@ -96,20 +97,25 @@
       :limit.sync="pageSize"
     />
 
-    <el-form label-width="100px">
+    <el-form
+      :validate-on-rule-change="false"
+      label-width="100px"
+    >
       <el-form-item style="text-align: center; margin-left: -120px; margin-top: 30px">
         <el-button
           type="primary"
           @click="submitForm()"
-          >提交</el-button
+          >{{ $t('common:submit') }}</el-button
         >
-        <el-button @click="close()">返回</el-button>
+        <el-button @click="close()">{{ $t('layout:error.back') }}</el-button>
       </el-form-item>
     </el-form>
   </div>
 </template>
 
 <script>
+import { t } from '@/i18n/adapter'
+
 import { getAuthRole, updateAuthRole } from '@/api/system/user'
 
 export default {
@@ -173,7 +179,7 @@ export default {
       const userId = this.form.userId
       const roleIds = this.roleIds.join(',')
       updateAuthRole({ userId: userId, roleIds: roleIds }).then(() => {
-        this.$modal.msgSuccess('授权成功')
+        this.$modal.msgSuccess(t('system:authorizedSuccessfully'))
         this.close()
       })
     },

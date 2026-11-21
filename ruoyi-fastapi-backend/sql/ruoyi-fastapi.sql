@@ -52,6 +52,8 @@ create table sys_user (
   phonenumber       varchar(11)     default ''                 comment '手机号码',
   sex               char(1)         default '0'                comment '用户性别（0男 1女 2未知）',
   avatar            varchar(100)    default ''                 comment '头像地址',
+  locale            varchar(63) not null default 'zh-CN',
+  locale_revision   bigint not null default 0 comment '语言偏好版本',
   time_zone         varchar(64)     not null default 'auto'    comment '显示时区（auto跟随设备或IANA名称）',
   password          varchar(100)    default ''                 comment '密码',
   status            char(1)         default '0'                comment '帐号状态（0正常 1停用）',
@@ -70,8 +72,8 @@ create table sys_user (
 -- ----------------------------
 -- 初始化-用户信息表数据
 -- ----------------------------
-insert into sys_user values(1,  103, 'admin',   '超级管理员', '00', 'niangao@163.com', '15888888888', '1', '', 'auto', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', sysdate(), sysdate(), 'admin', sysdate(), '', null, '管理员');
-insert into sys_user values(2,  105, 'niangao', '年糕', 			'00', 'niangao@qq.com',  '15666666666', '1', '', 'auto', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', sysdate(), sysdate(), 'admin', sysdate(), '', null, '测试员');
+insert into sys_user (user_id, dept_id, user_name, nick_name, user_type, email, phonenumber, sex, avatar, time_zone, password, status, del_flag, login_ip, login_date, pwd_update_date, create_by, create_time, update_by, update_time, remark) values(1,  103, 'admin',   '超级管理员', '00', 'niangao@163.com', '15888888888', '1', '', 'auto', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', sysdate(), sysdate(), 'admin', sysdate(), '', null, '管理员');
+insert into sys_user (user_id, dept_id, user_name, nick_name, user_type, email, phonenumber, sex, avatar, time_zone, password, status, del_flag, login_ip, login_date, pwd_update_date, create_by, create_time, update_by, update_time, remark) values(2,  105, 'niangao', '年糕', 			'00', 'niangao@qq.com',  '15666666666', '1', '', 'auto', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', sysdate(), sysdate(), 'admin', sysdate(), '', null, '测试员');
 
 
 -- ----------------------------
@@ -138,6 +140,7 @@ drop table if exists sys_menu;
 create table sys_menu (
   menu_id           bigint(20)      not null auto_increment    comment '菜单ID',
   menu_name         varchar(50)     not null                   comment '菜单名称',
+  menu_name_i18n JSON NULL comment '多语言译文',
   parent_id         bigint(20)      default 0                  comment '父菜单ID',
   order_num         int(4)          default 0                  comment '显示顺序',
   path              varchar(200)    default ''                 comment '路由地址',
@@ -163,149 +166,149 @@ create table sys_menu (
 -- 初始化-菜单信息表数据
 -- ----------------------------
 -- 一级菜单
-insert into sys_menu values('1',  '系统管理', '0', '1',  'system',           null, '', '', 1, 0, 'M', '0', '0', '', 'system',   'admin', sysdate(), '', null, '系统管理目录');
-insert into sys_menu values('2',  '系统监控', '0', '2',  'monitor',          null, '', '', 1, 0, 'M', '0', '0', '', 'monitor',  'admin', sysdate(), '', null, '系统监控目录');
-insert into sys_menu values('3',  '系统工具', '0', '3',  'tool',             null, '', '', 1, 0, 'M', '0', '0', '', 'tool',     'admin', sysdate(), '', null, '系统工具目录');
-insert into sys_menu values('99', '若依官网', '0', '99', 'http://ruoyi.vip', null, '', '', 0, 0, 'M', '0', '0', '', 'guide',    'admin', sysdate(), '', null, '若依官网地址');
+insert into sys_menu values('1',  '系统管理', '{"en-US": "System administration"}', '0', '1',  'system',           null, '', '', 1, 0, 'M', '0', '0', '', 'system',   'admin', sysdate(), '', null, '系统管理目录');
+insert into sys_menu values('2',  '系统监控', '{"en-US": "System monitoring"}', '0', '2',  'monitor',          null, '', '', 1, 0, 'M', '0', '0', '', 'monitor',  'admin', sysdate(), '', null, '系统监控目录');
+insert into sys_menu values('3',  '系统工具', '{"en-US": "System tools"}', '0', '3',  'tool',             null, '', '', 1, 0, 'M', '0', '0', '', 'tool',     'admin', sysdate(), '', null, '系统工具目录');
+insert into sys_menu values('99', '若依官网', '{"en-US": "RuoYi website"}', '0', '99', 'http://ruoyi.vip', null, '', '', 0, 0, 'M', '0', '0', '', 'guide',    'admin', sysdate(), '', null, '若依官网地址');
 -- 二级菜单
-insert into sys_menu values('100',  '用户管理', '1',   '1', 'user',                'system/user/index',                 '', '', 1, 0, 'C', '0', '0', 'system:user:list',                 'user',          'admin', sysdate(), '', null, '用户管理菜单');
-insert into sys_menu values('101',  '角色管理', '1',   '2', 'role',                'system/role/index',                 '', '', 1, 0, 'C', '0', '0', 'system:role:list',                 'peoples',       'admin', sysdate(), '', null, '角色管理菜单');
-insert into sys_menu values('102',  '菜单管理', '1',   '3', 'menu',                'system/menu/index',                 '', '', 1, 0, 'C', '0', '0', 'system:menu:list',                 'tree-table',    'admin', sysdate(), '', null, '菜单管理菜单');
-insert into sys_menu values('103',  '部门管理', '1',   '4', 'dept',                'system/dept/index',                 '', '', 1, 0, 'C', '0', '0', 'system:dept:list',                 'tree',          'admin', sysdate(), '', null, '部门管理菜单');
-insert into sys_menu values('104',  '岗位管理', '1',   '5', 'post',                'system/post/index',                 '', '', 1, 0, 'C', '0', '0', 'system:post:list',                 'post',          'admin', sysdate(), '', null, '岗位管理菜单');
-insert into sys_menu values('105',  '字典管理', '1',   '6', 'dict',                'system/dict/index',                 '', '', 1, 0, 'C', '0', '0', 'system:dict:list',                 'dict',          'admin', sysdate(), '', null, '字典管理菜单');
-insert into sys_menu values('106',  '参数设置', '1',   '7', 'config',              'system/config/index',               '', '', 1, 0, 'C', '0', '0', 'system:config:list',               'edit',          'admin', sysdate(), '', null, '参数设置菜单');
-insert into sys_menu values('107',  '通知公告', '1',   '8', 'notice',              'system/notice/index',               '', '', 1, 0, 'C', '0', '0', 'system:notice:list',               'message',       'admin', sysdate(), '', null, '通知公告菜单');
-insert into sys_menu values('108',  '日志管理', '1',   '9', 'log',                 '',                                  '', '', 1, 0, 'M', '0', '0', '',                                 'log',           'admin', sysdate(), '', null, '日志管理菜单');
-insert into sys_menu values('119',  '文件管理', '1',  '10', 'file',                'system/file/index',                 '', '', 1, 0, 'C', '0', '0', 'system:file:list',                 'documentation', 'admin', sysdate(), '', null, '文件管理菜单');
-insert into sys_menu values('120',  '插件管理', '1',  '11', 'plugin',              'system/plugin/index',               '', '', 1, 0, 'C', '0', '0', 'system:plugin:list',               'component',     'admin', sysdate(), '', null, '插件管理菜单');
-insert into sys_menu values('121',  '认证中心', '1',  '12', 'oauth',               '',                                  '', '', 1, 0, 'M', '0', '0', '',                                 'oauth',          'admin', sysdate(), '', null, '统一认证中心管理');
-insert into sys_menu values('109',  '在线用户', '2',   '1', 'online',              'monitor/online/index',              '', '', 1, 0, 'C', '0', '0', 'monitor:online:list',              'online',        'admin', sysdate(), '', null, '在线用户菜单');
-insert into sys_menu values('110',  '定时任务', '2',   '2', 'job',                 'monitor/job/index',                 '', '', 1, 0, 'C', '0', '0', 'monitor:job:list',                 'job',           'admin', sysdate(), '', null, '定时任务菜单');
-insert into sys_menu values('111',  '数据监控', '2',   '3', 'druid',               'monitor/druid/index',               '', '', 1, 0, 'C', '0', '0', 'monitor:druid:list',               'druid',         'admin', sysdate(), '', null, '数据监控菜单');
-insert into sys_menu values('112',  '服务监控', '2',   '4', 'server',              'monitor/server/index',              '', '', 1, 0, 'C', '0', '0', 'monitor:server:list',              'server',        'admin', sysdate(), '', null, '服务监控菜单');
-insert into sys_menu values('113',  '缓存监控', '2',   '5', 'cache',               'monitor/cache/index',               '', '', 1, 0, 'C', '0', '0', 'monitor:cache:list',               'redis',         'admin', sysdate(), '', null, '缓存监控菜单');
-insert into sys_menu values('114',  '缓存列表', '2',   '6', 'cacheList',           'monitor/cache/list',                '', '', 1, 0, 'C', '0', '0', 'monitor:cache:list',               'redis-list',    'admin', sysdate(), '', null, '缓存列表菜单');
-insert into sys_menu values('118',  '传输加密', '2',   '7', 'transportCrypto',     'monitor/transportCrypto/index',     '', '', 1, 0, 'C', '0', '0', 'monitor:transportCrypto:list',     'chart',         'admin', sysdate(), '', null, '传输加密监控菜单');
-insert into sys_menu values('122',  'OAuth审计', '2',   '8', 'oauthAudit',          'monitor/oauthAudit/index',            '', '', 1, 0, 'C', '0', '0', 'monitor:oauthAudit:list',            'form',          'admin', sysdate(), '', null, 'OAuth 审计日志');
-insert into sys_menu values('115',  '表单构建', '3',   '1', 'build',               'tool/build/index',                  '', '', 1, 0, 'C', '0', '0', 'tool:build:list',                  'build',         'admin', sysdate(), '', null, '表单构建菜单');
-insert into sys_menu values('116',  '代码生成', '3',   '2', 'gen',                 'tool/gen/index',                    '', '', 1, 0, 'C', '0', '0', 'tool:gen:list',                    'code',          'admin', sysdate(), '', null, '代码生成菜单');
-insert into sys_menu values('117',  '系统接口', '3',   '3', 'swagger',             'tool/swagger/index',                '', '', 1, 0, 'C', '0', '0', 'tool:swagger:list',                'swagger',       'admin', sysdate(), '', null, '系统接口菜单');
+insert into sys_menu values('100',  '用户管理', '{"en-US": "Users"}', '1',   '1', 'user',                'system/user/index',                 '', '', 1, 0, 'C', '0', '0', 'system:user:list',                 'user',          'admin', sysdate(), '', null, '用户管理菜单');
+insert into sys_menu values('101',  '角色管理', '{"en-US": "Roles"}', '1',   '2', 'role',                'system/role/index',                 '', '', 1, 0, 'C', '0', '0', 'system:role:list',                 'peoples',       'admin', sysdate(), '', null, '角色管理菜单');
+insert into sys_menu values('102',  '菜单管理', '{"en-US": "Menus"}', '1',   '3', 'menu',                'system/menu/index',                 '', '', 1, 0, 'C', '0', '0', 'system:menu:list',                 'tree-table',    'admin', sysdate(), '', null, '菜单管理菜单');
+insert into sys_menu values('103',  '部门管理', '{"en-US": "Departments"}', '1',   '4', 'dept',                'system/dept/index',                 '', '', 1, 0, 'C', '0', '0', 'system:dept:list',                 'tree',          'admin', sysdate(), '', null, '部门管理菜单');
+insert into sys_menu values('104',  '岗位管理', '{"en-US": "Positions"}', '1',   '5', 'post',                'system/post/index',                 '', '', 1, 0, 'C', '0', '0', 'system:post:list',                 'post',          'admin', sysdate(), '', null, '岗位管理菜单');
+insert into sys_menu values('105',  '字典管理', '{"en-US": "Dictionaries"}', '1',   '6', 'dict',                'system/dict/index',                 '', '', 1, 0, 'C', '0', '0', 'system:dict:list',                 'dict',          'admin', sysdate(), '', null, '字典管理菜单');
+insert into sys_menu values('106',  '参数设置', '{"en-US": "Configuration"}', '1',   '7', 'config',              'system/config/index',               '', '', 1, 0, 'C', '0', '0', 'system:config:list',               'edit',          'admin', sysdate(), '', null, '参数设置菜单');
+insert into sys_menu values('107',  '通知公告', '{"en-US": "Notices"}', '1',   '8', 'notice',              'system/notice/index',               '', '', 1, 0, 'C', '0', '0', 'system:notice:list',               'message',       'admin', sysdate(), '', null, '通知公告菜单');
+insert into sys_menu values('108',  '日志管理', '{"en-US": "Logs"}', '1',   '9', 'log',                 '',                                  '', '', 1, 0, 'M', '0', '0', '',                                 'log',           'admin', sysdate(), '', null, '日志管理菜单');
+insert into sys_menu values('119',  '文件管理', '{"en-US": "Files"}', '1',  '10', 'file',                'system/file/index',                 '', '', 1, 0, 'C', '0', '0', 'system:file:list',                 'documentation', 'admin', sysdate(), '', null, '文件管理菜单');
+insert into sys_menu values('120',  '插件管理', '{"en-US": "Plugins"}', '1',  '11', 'plugin',              'system/plugin/index',               '', '', 1, 0, 'C', '0', '0', 'system:plugin:list',               'component',     'admin', sysdate(), '', null, '插件管理菜单');
+insert into sys_menu values('121',  '认证中心', '{"en-US": "Authentication center"}', '1',  '12', 'oauth',               '',                                  '', '', 1, 0, 'M', '0', '0', '',                                 'oauth',          'admin', sysdate(), '', null, '统一认证中心管理');
+insert into sys_menu values('109',  '在线用户', '{"en-US": "Online users"}', '2',   '1', 'online',              'monitor/online/index',              '', '', 1, 0, 'C', '0', '0', 'monitor:online:list',              'online',        'admin', sysdate(), '', null, '在线用户菜单');
+insert into sys_menu values('110',  '定时任务', '{"en-US": "Scheduled jobs"}', '2',   '2', 'job',                 'monitor/job/index',                 '', '', 1, 0, 'C', '0', '0', 'monitor:job:list',                 'job',           'admin', sysdate(), '', null, '定时任务菜单');
+insert into sys_menu values('111',  '数据监控', '{"en-US": "Database monitoring"}', '2',   '3', 'druid',               'monitor/druid/index',               '', '', 1, 0, 'C', '0', '0', 'monitor:druid:list',               'druid',         'admin', sysdate(), '', null, '数据监控菜单');
+insert into sys_menu values('112',  '服务监控', '{"en-US": "Server monitoring"}', '2',   '4', 'server',              'monitor/server/index',              '', '', 1, 0, 'C', '0', '0', 'monitor:server:list',              'server',        'admin', sysdate(), '', null, '服务监控菜单');
+insert into sys_menu values('113',  '缓存监控', '{"en-US": "Cache monitoring"}', '2',   '5', 'cache',               'monitor/cache/index',               '', '', 1, 0, 'C', '0', '0', 'monitor:cache:list',               'redis',         'admin', sysdate(), '', null, '缓存监控菜单');
+insert into sys_menu values('114',  '缓存列表', '{"en-US": "Cache entries"}', '2',   '6', 'cacheList',           'monitor/cache/list',                '', '', 1, 0, 'C', '0', '0', 'monitor:cache:list',               'redis-list',    'admin', sysdate(), '', null, '缓存列表菜单');
+insert into sys_menu values('118',  '传输加密', '{"en-US": "Transport encryption"}', '2',   '7', 'transportCrypto',     'monitor/transportCrypto/index',     '', '', 1, 0, 'C', '0', '0', 'monitor:transportCrypto:list',     'chart',         'admin', sysdate(), '', null, '传输加密监控菜单');
+insert into sys_menu values('122',  'OAuth审计', '{"en-US": "OAuth audit"}', '2',   '8', 'oauthAudit',          'monitor/oauthAudit/index',            '', '', 1, 0, 'C', '0', '0', 'monitor:oauthAudit:list',            'form',          'admin', sysdate(), '', null, 'OAuth 审计日志');
+insert into sys_menu values('115',  '表单构建', '{"en-US": "Form builder"}', '3',   '1', 'build',               'tool/build/index',                  '', '', 1, 0, 'C', '0', '0', 'tool:build:list',                  'build',         'admin', sysdate(), '', null, '表单构建菜单');
+insert into sys_menu values('116',  '代码生成', '{"en-US": "Code generation"}', '3',   '2', 'gen',                 'tool/gen/index',                    '', '', 1, 0, 'C', '0', '0', 'tool:gen:list',                    'code',          'admin', sysdate(), '', null, '代码生成菜单');
+insert into sys_menu values('117',  '系统接口', '{"en-US": "API documentation"}', '3',   '3', 'swagger',             'tool/swagger/index',                '', '', 1, 0, 'C', '0', '0', 'tool:swagger:list',                'swagger',       'admin', sysdate(), '', null, '系统接口菜单');
 -- 三级菜单
-insert into sys_menu values('500',  '操作日志', '108', '1', 'operlog',    'monitor/operlog/index',    '', '', 1, 0, 'C', '0', '0', 'monitor:operlog:list',    'form',          'admin', sysdate(), '', null, '操作日志菜单');
-insert into sys_menu values('501',  '登录日志', '108', '2', 'logininfor', 'monitor/logininfor/index', '', '', 1, 0, 'C', '0', '0', 'monitor:logininfor:list', 'logininfor',    'admin', sysdate(), '', null, '登录日志菜单');
-insert into sys_menu values('502',  '客户端管理', '121', '1', 'client',             'system/oauth/client/index',           '', '', 1, 0, 'C', '0', '0', 'system:oauthClient:list',          'client',       'admin', sysdate(), '', null, 'OAuth Client 管理');
-insert into sys_menu values('503',  '资源管理', '121', '2', 'resource',            'system/oauth/resource/index',          '', '', 1, 0, 'C', '0', '0', 'system:oauthResource:list',         'resource',     'admin', sysdate(), '', null, 'OAuth Resource 管理');
-insert into sys_menu values('504',  '范围管理', '121', '3', 'scope',               'system/oauth/scope/index',             '', '', 1, 0, 'C', '0', '0', 'system:oauthScope:list',            'scope',          'admin', sysdate(), '', null, 'OAuth Scope 管理');
-insert into sys_menu values('505',  '外部会话', '121', '4', 'session',             'system/oauth/session/index',           '', '', 1, 0, 'C', '0', '0', 'system:oauthSession:list',          'session',        'admin', sysdate(), '', null, 'OIDC SSO Session 管理');
-insert into sys_menu values('506',  '外部授权', '121', '5', 'grant',               'system/oauth/grant/index',             '', '', 1, 0, 'C', '0', '0', 'system:oauthGrant:list',            'grant',    'admin', sysdate(), '', null, 'OAuth Grant 管理');
-insert into sys_menu values('507',  '签名密钥', '121', '6', 'key',                 'system/oauth/key/index',               '', '', 1, 0, 'C', '0', '0', 'system:oauthKey:list',              'key',           'admin', sysdate(), '', null, 'OIDC Key 管理');
+insert into sys_menu values('500',  '操作日志', '{"en-US": "Operation logs"}', '108', '1', 'operlog',    'monitor/operlog/index',    '', '', 1, 0, 'C', '0', '0', 'monitor:operlog:list',    'form',          'admin', sysdate(), '', null, '操作日志菜单');
+insert into sys_menu values('501',  '登录日志', '{"en-US": "Sign-in logs"}', '108', '2', 'logininfor', 'monitor/logininfor/index', '', '', 1, 0, 'C', '0', '0', 'monitor:logininfor:list', 'logininfor',    'admin', sysdate(), '', null, '登录日志菜单');
+insert into sys_menu values('502',  '客户端管理', '{"en-US": "OAuth clients"}', '121', '1', 'client',             'system/oauth/client/index',           '', '', 1, 0, 'C', '0', '0', 'system:oauthClient:list',          'client',       'admin', sysdate(), '', null, 'OAuth Client 管理');
+insert into sys_menu values('503',  '资源管理', '{"en-US": "OAuth resources"}', '121', '2', 'resource',            'system/oauth/resource/index',          '', '', 1, 0, 'C', '0', '0', 'system:oauthResource:list',         'resource',     'admin', sysdate(), '', null, 'OAuth Resource 管理');
+insert into sys_menu values('504',  '范围管理', '{"en-US": "OAuth scopes"}', '121', '3', 'scope',               'system/oauth/scope/index',             '', '', 1, 0, 'C', '0', '0', 'system:oauthScope:list',            'scope',          'admin', sysdate(), '', null, 'OAuth Scope 管理');
+insert into sys_menu values('505',  '外部会话', '{"en-US": "External sessions"}', '121', '4', 'session',             'system/oauth/session/index',           '', '', 1, 0, 'C', '0', '0', 'system:oauthSession:list',          'session',        'admin', sysdate(), '', null, 'OIDC SSO Session 管理');
+insert into sys_menu values('506',  '外部授权', '{"en-US": "External grants"}', '121', '5', 'grant',               'system/oauth/grant/index',             '', '', 1, 0, 'C', '0', '0', 'system:oauthGrant:list',            'grant',    'admin', sysdate(), '', null, 'OAuth Grant 管理');
+insert into sys_menu values('507',  '签名密钥', '{"en-US": "Signing keys"}', '121', '6', 'key',                 'system/oauth/key/index',               '', '', 1, 0, 'C', '0', '0', 'system:oauthKey:list',              'key',           'admin', sysdate(), '', null, 'OIDC Key 管理');
 -- 用户管理按钮
-insert into sys_menu values('1000', '用户查询', '100', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:query',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1001', '用户新增', '100', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:add',            '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1002', '用户修改', '100', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:edit',           '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1003', '用户删除', '100', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:remove',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1004', '用户导出', '100', '5',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:export',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1005', '用户导入', '100', '6',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:import',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1006', '重置密码', '100', '7',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:resetPwd',       '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1000', '用户查询', '{"en-US": "View users"}', '100', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:query',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1001', '用户新增', '{"en-US": "Add users"}', '100', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:add',            '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1002', '用户修改', '{"en-US": "Edit users"}', '100', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:edit',           '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1003', '用户删除', '{"en-US": "Delete users"}', '100', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:remove',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1004', '用户导出', '{"en-US": "Export users"}', '100', '5',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:export',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1005', '用户导入', '{"en-US": "Import users"}', '100', '6',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:import',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1006', '重置密码', '{"en-US": "Reset passwords"}', '100', '7',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:resetPwd',       '#', 'admin', sysdate(), '', null, '');
 -- 角色管理按钮
-insert into sys_menu values('1007', '角色查询', '101', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:query',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1008', '角色新增', '101', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:add',            '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1009', '角色修改', '101', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:edit',           '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1010', '角色删除', '101', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:remove',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1011', '角色导出', '101', '5',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:export',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1007', '角色查询', '{"en-US": "View roles"}', '101', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:query',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1008', '角色新增', '{"en-US": "Add roles"}', '101', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:add',            '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1009', '角色修改', '{"en-US": "Edit roles"}', '101', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:edit',           '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1010', '角色删除', '{"en-US": "Delete roles"}', '101', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:remove',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1011', '角色导出', '{"en-US": "Export roles"}', '101', '5',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:export',         '#', 'admin', sysdate(), '', null, '');
 -- 菜单管理按钮
-insert into sys_menu values('1012', '菜单查询', '102', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:query',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1013', '菜单新增', '102', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:add',            '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1014', '菜单修改', '102', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:edit',           '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1015', '菜单删除', '102', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:remove',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1012', '菜单查询', '{"en-US": "View menus"}', '102', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:query',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1013', '菜单新增', '{"en-US": "Add menus"}', '102', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:add',            '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1014', '菜单修改', '{"en-US": "Edit menus"}', '102', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:edit',           '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1015', '菜单删除', '{"en-US": "Delete menus"}', '102', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:remove',         '#', 'admin', sysdate(), '', null, '');
 -- 部门管理按钮
-insert into sys_menu values('1016', '部门查询', '103', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:query',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1017', '部门新增', '103', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:add',            '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1018', '部门修改', '103', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:edit',           '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1019', '部门删除', '103', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:remove',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1016', '部门查询', '{"en-US": "View departments"}', '103', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:query',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1017', '部门新增', '{"en-US": "Add departments"}', '103', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:add',            '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1018', '部门修改', '{"en-US": "Edit departments"}', '103', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:edit',           '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1019', '部门删除', '{"en-US": "Delete departments"}', '103', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:remove',         '#', 'admin', sysdate(), '', null, '');
 -- 岗位管理按钮
-insert into sys_menu values('1020', '岗位查询', '104', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:query',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1021', '岗位新增', '104', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:add',            '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1022', '岗位修改', '104', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:edit',           '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1023', '岗位删除', '104', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:remove',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1024', '岗位导出', '104', '5',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:export',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1020', '岗位查询', '{"en-US": "View positions"}', '104', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:query',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1021', '岗位新增', '{"en-US": "Add positions"}', '104', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:add',            '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1022', '岗位修改', '{"en-US": "Edit positions"}', '104', '3',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:edit',           '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1023', '岗位删除', '{"en-US": "Delete positions"}', '104', '4',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:remove',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1024', '岗位导出', '{"en-US": "Export positions"}', '104', '5',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:export',         '#', 'admin', sysdate(), '', null, '');
 -- 字典管理按钮
-insert into sys_menu values('1025', '字典查询', '105', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:query',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1026', '字典新增', '105', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:add',            '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1027', '字典修改', '105', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:edit',           '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1028', '字典删除', '105', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:remove',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1029', '字典导出', '105', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:export',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1025', '字典查询', '{"en-US": "View dictionaries"}', '105', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:query',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1026', '字典新增', '{"en-US": "Add dictionaries"}', '105', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:add',            '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1027', '字典修改', '{"en-US": "Edit dictionaries"}', '105', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:edit',           '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1028', '字典删除', '{"en-US": "Delete dictionaries"}', '105', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:remove',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1029', '字典导出', '{"en-US": "Export dictionaries"}', '105', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:export',         '#', 'admin', sysdate(), '', null, '');
 -- 参数设置按钮
-insert into sys_menu values('1030', '参数查询', '106', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:query',        '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1031', '参数新增', '106', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:add',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1032', '参数修改', '106', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:edit',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1033', '参数删除', '106', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:remove',       '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1034', '参数导出', '106', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:export',       '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1030', '参数查询', '{"en-US": "View configuration"}', '106', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:query',        '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1031', '参数新增', '{"en-US": "Add configuration"}', '106', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:add',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1032', '参数修改', '{"en-US": "Edit configuration"}', '106', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:edit',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1033', '参数删除', '{"en-US": "Delete configuration"}', '106', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:remove',       '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1034', '参数导出', '{"en-US": "Export configuration"}', '106', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:export',       '#', 'admin', sysdate(), '', null, '');
 -- 通知公告按钮
-insert into sys_menu values('1035', '公告查询', '107', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:query',        '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1036', '公告新增', '107', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:add',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1037', '公告修改', '107', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:edit',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1038', '公告删除', '107', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:remove',       '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1035', '公告查询', '{"en-US": "View notices"}', '107', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:query',        '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1036', '公告新增', '{"en-US": "Add notices"}', '107', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:add',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1037', '公告修改', '{"en-US": "Edit notices"}', '107', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:edit',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1038', '公告删除', '{"en-US": "Delete notices"}', '107', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:remove',       '#', 'admin', sysdate(), '', null, '');
 -- 文件管理按钮
-insert into sys_menu values('1061', '文件查询', '119', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:query',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1062', '文件下载', '119', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:download',       '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1063', '文件删除', '119', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:remove',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1064', '文件授权', '119', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:edit',           '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1065', '文件转移', '119', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:transfer',       '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1066', '文件恢复', '119', '6', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:restore',        '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1067', '文件清理', '119', '7', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:purge',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1068', '存储对账', '119', '8', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:reconcile',      '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1061', '文件查询', '{"en-US": "View files"}', '119', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:query',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1062', '文件下载', '{"en-US": "Download files"}', '119', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:download',       '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1063', '文件删除', '{"en-US": "Delete files"}', '119', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:remove',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1064', '文件授权', '{"en-US": "Authorize files"}', '119', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:edit',           '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1065', '文件转移', '{"en-US": "Transfer files"}', '119', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:transfer',       '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1066', '文件恢复', '{"en-US": "Restore files"}', '119', '6', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:restore',        '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1067', '文件清理', '{"en-US": "Purge files"}', '119', '7', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:purge',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1068', '存储对账', '{"en-US": "Storage reconciliation"}', '119', '8', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:file:reconcile',      '#', 'admin', sysdate(), '', null, '');
 -- 插件管理按钮
-insert into sys_menu values('1069', '插件查询', '120', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:plugin:query',        '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1070', '插件修改', '120', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:plugin:edit',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1071', '插件列表', '120', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:plugin:list',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1072', '插件导出', '120', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:plugin:export',       '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1069', '插件查询', '{"en-US": "View plugins"}', '120', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:plugin:query',        '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1070', '插件修改', '{"en-US": "Edit plugins"}', '120', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:plugin:edit',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1071', '插件列表', '{"en-US": "List plugins"}', '120', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:plugin:list',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1072', '插件导出', '{"en-US": "Export plugins"}', '120', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:plugin:export',       '#', 'admin', sysdate(), '', null, '');
 -- 操作日志按钮
-insert into sys_menu values('1039', '操作查询', '500', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:query',      '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1040', '操作删除', '500', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:remove',     '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1041', '日志导出', '500', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:export',     '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1039', '操作查询', '{"en-US": "View operation logs"}', '500', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:query',      '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1040', '操作删除', '{"en-US": "Delete operation logs"}', '500', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:remove',     '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1041', '日志导出', '{"en-US": "Export logs"}', '500', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:export',     '#', 'admin', sysdate(), '', null, '');
 -- 登录日志按钮
-insert into sys_menu values('1042', '登录查询', '501', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:query',   '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1043', '登录删除', '501', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:remove',  '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1044', '日志导出', '501', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:export',  '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1045', '账户解锁', '501', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:unlock',  '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1042', '登录查询', '{"en-US": "View sign-in logs"}', '501', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:query',   '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1043', '登录删除', '{"en-US": "Delete sign-in logs"}', '501', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:remove',  '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1044', '日志导出', '{"en-US": "Export logs"}', '501', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:export',  '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1045', '账户解锁', '{"en-US": "Unlock accounts"}', '501', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:unlock',  '#', 'admin', sysdate(), '', null, '');
 -- 认证中心管理按钮
-insert into sys_menu values('1073', '客户端查询', '502', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:query', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1074', '客户端新增', '502', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:add', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1075', '客户端修改', '502', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:edit', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1076', '客户端删除', '502', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:remove', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1077', '密钥轮换', '502', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:rotateSecret', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1079', '资源新增', '503', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthResource:add', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1080', '资源修改', '503', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthResource:edit', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1081', '资源删除', '503', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthResource:remove', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1083', '范围新增', '504', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthScope:add', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1084', '范围修改', '504', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthScope:edit', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1085', '范围删除', '504', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthScope:remove', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1086', '会话下线', '505', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthSession:revoke', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1087', '授权撤销', '506', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthGrant:revoke', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1088', '密钥轮换', '507', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthKey:rotate', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1089', '密钥启用', '507', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthKey:activate', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1090', '密钥退役', '507', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthKey:retire', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1091', '审计导出', '122', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:oauthAudit:export', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1073', '客户端查询', '{"en-US": "View clients"}', '502', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:query', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1074', '客户端新增', '{"en-US": "Add clients"}', '502', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:add', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1075', '客户端修改', '{"en-US": "Edit clients"}', '502', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:edit', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1076', '客户端删除', '{"en-US": "Delete clients"}', '502', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:remove', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1077', '密钥轮换', '{"en-US": "Rotate keys"}', '502', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthClient:rotateSecret', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1079', '资源新增', '{"en-US": "Add resources"}', '503', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthResource:add', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1080', '资源修改', '{"en-US": "Edit resources"}', '503', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthResource:edit', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1081', '资源删除', '{"en-US": "Delete resources"}', '503', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthResource:remove', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1083', '范围新增', '{"en-US": "Add scopes"}', '504', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthScope:add', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1084', '范围修改', '{"en-US": "Edit scopes"}', '504', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthScope:edit', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1085', '范围删除', '{"en-US": "Delete scopes"}', '504', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthScope:remove', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1086', '会话下线', '{"en-US": "End sessions"}', '505', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthSession:revoke', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1087', '授权撤销', '{"en-US": "Revoke grants"}', '506', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthGrant:revoke', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1088', '密钥轮换', '{"en-US": "Rotate keys"}', '507', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthKey:rotate', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1089', '密钥启用', '{"en-US": "Activate keys"}', '507', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthKey:activate', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1090', '密钥退役', '{"en-US": "Retire keys"}', '507', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'system:oauthKey:retire', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1091', '审计导出', '{"en-US": "Export audit logs"}', '122', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:oauthAudit:export', '#', 'admin', sysdate(), '', null, '');
 -- 在线用户按钮
-insert into sys_menu values('1046', '在线查询', '109', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:query',       '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1047', '批量强退', '109', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:batchLogout', '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1048', '单条强退', '109', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:forceLogout', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1046', '在线查询', '{"en-US": "View online users"}', '109', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:query',       '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1047', '批量强退', '{"en-US": "Force sign-out in bulk"}', '109', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:batchLogout', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1048', '单条强退', '{"en-US": "Force sign-out"}', '109', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:forceLogout', '#', 'admin', sysdate(), '', null, '');
 -- 定时任务按钮
-insert into sys_menu values('1049', '任务查询', '110', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:query',          '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1050', '任务新增', '110', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:add',            '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1051', '任务修改', '110', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:edit',           '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1052', '任务删除', '110', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:remove',         '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1053', '状态修改', '110', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:changeStatus',   '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1054', '任务导出', '110', '6', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:export',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1049', '任务查询', '{"en-US": "View jobs"}', '110', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:query',          '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1050', '任务新增', '{"en-US": "Add jobs"}', '110', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:add',            '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1051', '任务修改', '{"en-US": "Edit jobs"}', '110', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:edit',           '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1052', '任务删除', '{"en-US": "Delete jobs"}', '110', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:remove',         '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1053', '状态修改', '{"en-US": "Change status"}', '110', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:changeStatus',   '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1054', '任务导出', '{"en-US": "Export jobs"}', '110', '6', '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:export',         '#', 'admin', sysdate(), '', null, '');
 -- 代码生成按钮
-insert into sys_menu values('1055', '生成查询', '116', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:query',             '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1056', '生成修改', '116', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:edit',              '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1057', '生成删除', '116', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:remove',            '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1058', '导入代码', '116', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:import',            '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1059', '预览代码', '116', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:preview',           '#', 'admin', sysdate(), '', null, '');
-insert into sys_menu values('1060', '生成代码', '116', '6', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:code',              '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1055', '生成查询', '{"en-US": "View generation definitions"}', '116', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:query',             '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1056', '生成修改', '{"en-US": "Edit generation definitions"}', '116', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:edit',              '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1057', '生成删除', '{"en-US": "Delete generation definitions"}', '116', '3', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:remove',            '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1058', '导入代码', '{"en-US": "Import tables"}', '116', '4', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:import',            '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1059', '预览代码', '{"en-US": "Preview code"}', '116', '5', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:preview',           '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1060', '生成代码', '{"en-US": "Generate code"}', '116', '6', '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:code',              '#', 'admin', sysdate(), '', null, '');
 
 
 -- ----------------------------
@@ -511,6 +514,7 @@ create table sys_dict_type
 (
   dict_id          bigint(20)      not null auto_increment    comment '字典主键',
   dict_name        varchar(100)    default ''                 comment '字典名称',
+  dict_name_i18n JSON NULL comment '多语言译文',
   dict_type        varchar(100)    default ''                 comment '字典类型',
   status           char(1)         default '0'                comment '状态（0正常 1停用）',
   create_by        varchar(64)     default ''                 comment '创建者',
@@ -522,18 +526,18 @@ create table sys_dict_type
   unique (dict_type)
 ) engine=innodb auto_increment=100 comment = '字典类型表';
 
-insert into sys_dict_type values(1,  '用户性别',     'sys_user_sex',        '0', 'admin', sysdate(), '', null, '用户性别列表');
-insert into sys_dict_type values(2,  '菜单状态',     'sys_show_hide',       '0', 'admin', sysdate(), '', null, '菜单状态列表');
-insert into sys_dict_type values(3,  '系统开关',     'sys_normal_disable',  '0', 'admin', sysdate(), '', null, '系统开关列表');
-insert into sys_dict_type values(4,  '任务状态',     'sys_job_status',      '0', 'admin', sysdate(), '', null, '任务状态列表');
-insert into sys_dict_type values(5,  '调度存储',     'sys_job_store',       '0', 'admin', sysdate(), '', null, '调度存储列表');
-insert into sys_dict_type values(6,  '任务执行器',   'sys_job_executor',    '0', 'admin', sysdate(), '', null, '任务执行器列表');
-insert into sys_dict_type values(7,  '系统是否',     'sys_yes_no',          '0', 'admin', sysdate(), '', null, '系统是否列表');
-insert into sys_dict_type values(8,  '通知类型',     'sys_notice_type',     '0', 'admin', sysdate(), '', null, '通知类型列表');
-insert into sys_dict_type values(9,  '通知状态', 	   'sys_notice_status',   '0', 'admin', sysdate(), '', null, '通知状态列表');
-insert into sys_dict_type values(10, '操作类型', 	   'sys_oper_type',       '0', 'admin', sysdate(), '', null, '操作类型列表');
-insert into sys_dict_type values(11, '系统状态',     'sys_common_status',   '0', 'admin', sysdate(), '', null, '登录状态列表');
-insert into sys_dict_type values(12, '插件操作类型', 'plugin_operation_type', '0', 'admin', sysdate(), '', null, '插件操作类型列表');
+insert into sys_dict_type values(1,  '用户性别', '{"en-US": "User gender"}',     'sys_user_sex',        '0', 'admin', sysdate(), '', null, '用户性别列表');
+insert into sys_dict_type values(2,  '菜单状态', '{"en-US": "Menu visibility"}',     'sys_show_hide',       '0', 'admin', sysdate(), '', null, '菜单状态列表');
+insert into sys_dict_type values(3,  '系统开关', '{"en-US": "System enablement"}',     'sys_normal_disable',  '0', 'admin', sysdate(), '', null, '系统开关列表');
+insert into sys_dict_type values(4,  '任务状态', '{"en-US": "Job status"}',     'sys_job_status',      '0', 'admin', sysdate(), '', null, '任务状态列表');
+insert into sys_dict_type values(5,  '调度存储', '{"en-US": "Job store"}',     'sys_job_store',       '0', 'admin', sysdate(), '', null, '调度存储列表');
+insert into sys_dict_type values(6,  '任务执行器', '{"en-US": "Job executor"}',   'sys_job_executor',    '0', 'admin', sysdate(), '', null, '任务执行器列表');
+insert into sys_dict_type values(7,  '系统是否', '{"en-US": "Yes or no"}',     'sys_yes_no',          '0', 'admin', sysdate(), '', null, '系统是否列表');
+insert into sys_dict_type values(8,  '通知类型', '{"en-US": "Notice type"}',     'sys_notice_type',     '0', 'admin', sysdate(), '', null, '通知类型列表');
+insert into sys_dict_type values(9,  '通知状态', '{"en-US": "Notice status"}', 	   'sys_notice_status',   '0', 'admin', sysdate(), '', null, '通知状态列表');
+insert into sys_dict_type values(10, '操作类型', '{"en-US": "Operation type"}', 	   'sys_oper_type',       '0', 'admin', sysdate(), '', null, '操作类型列表');
+insert into sys_dict_type values(11, '系统状态', '{"en-US": "System status"}',     'sys_common_status',   '0', 'admin', sysdate(), '', null, '登录状态列表');
+insert into sys_dict_type values(12, '插件操作类型', '{"en-US": "Plugin operation type"}', 'plugin_operation_type', '0', 'admin', sysdate(), '', null, '插件操作类型列表');
 
 
 -- ----------------------------
@@ -545,6 +549,7 @@ create table sys_dict_data
   dict_code        bigint(20)      not null auto_increment    comment '字典编码',
   dict_sort        int(4)          default 0                  comment '字典排序',
   dict_label       varchar(100)    default ''                 comment '字典标签',
+  dict_label_i18n JSON NULL comment '多语言译文',
   dict_value       varchar(100)    default ''                 comment '字典键值',
   dict_type        varchar(100)    default ''                 comment '字典类型',
   css_class        varchar(100)    default null               comment '样式属性（其他样式扩展）',
@@ -559,53 +564,53 @@ create table sys_dict_data
   primary key (dict_code)
 ) engine=innodb auto_increment=100 comment = '字典数据表';
 
-insert into sys_dict_data values(1,  1,  '男',             '0',                'sys_user_sex',        '',   '',        'Y', '0', 'admin', sysdate(), '', null, '性别男');
-insert into sys_dict_data values(2,  2,  '女',             '1',                'sys_user_sex',        '',   '',        'N', '0', 'admin', sysdate(), '', null, '性别女');
-insert into sys_dict_data values(3,  3,  '未知',            '2',                'sys_user_sex',        '',   '',        'N', '0', 'admin', sysdate(), '', null, '性别未知');
-insert into sys_dict_data values(4,  1,  '显示',            '0',                'sys_show_hide',       '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '显示菜单');
-insert into sys_dict_data values(5,  2,  '隐藏',            '1',                'sys_show_hide',       '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '隐藏菜单');
-insert into sys_dict_data values(6,  1,  '正常',            '0',                'sys_normal_disable',  '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '正常状态');
-insert into sys_dict_data values(7,  2,  '停用',            '1',                'sys_normal_disable',  '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '停用状态');
-insert into sys_dict_data values(8,  1,  '正常',            '0',                'sys_job_status',      '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '正常状态');
-insert into sys_dict_data values(9,  2,  '暂停',            '1',                'sys_job_status',      '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '停用状态');
-insert into sys_dict_data values(10, 1,  '内存',            'default',          'sys_job_store',       '',   '',        'Y', '0', 'admin', sysdate(), '', null, '内存调度存储');
-insert into sys_dict_data values(11, 2,  '数据库',          'sqlalchemy',       'sys_job_store',       '',   '',        'N', '0', 'admin', sysdate(), '', null, '数据库调度存储');
-insert into sys_dict_data values(12, 3,  'Redis',           'redis',            'sys_job_store',       '',   '',        'N', '0', 'admin', sysdate(), '', null, 'Redis调度存储');
-insert into sys_dict_data values(13, 1,  '默认',            'default',  		    'sys_job_executor',    '',   '',        'N', '0', 'admin', sysdate(), '', null, '异步函数在事件循环运行，同步函数在线程池运行');
-insert into sys_dict_data values(14, 2,  '进程池',          'processpool',      'sys_job_executor',    '',   '',        'N', '0', 'admin', sysdate(), '', null, '进程池');
-insert into sys_dict_data values(15, 1,  '是',              'Y',       		      'sys_yes_no',          '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '系统默认是');
-insert into sys_dict_data values(16, 2,  '否',              'N',       		      'sys_yes_no',          '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '系统默认否');
-insert into sys_dict_data values(17, 1,  '通知',            '1',       		      'sys_notice_type',     '',   'warning', 'Y', '0', 'admin', sysdate(), '', null, '通知');
-insert into sys_dict_data values(18, 2,  '公告',            '2',       		      'sys_notice_type',     '',   'success', 'N', '0', 'admin', sysdate(), '', null, '公告');
-insert into sys_dict_data values(19, 1,  '正常',            '0',       		      'sys_notice_status',   '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '正常状态');
-insert into sys_dict_data values(20, 2,  '关闭',            '1',       		      'sys_notice_status',   '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '关闭状态');
-insert into sys_dict_data values(21, 99, '其他',            '0',       		      'sys_oper_type',       '',   'info',    'N', '0', 'admin', sysdate(), '', null, '其他操作');
-insert into sys_dict_data values(22, 1,  '新增',            '1',       		      'sys_oper_type',       '',   'info',    'N', '0', 'admin', sysdate(), '', null, '新增操作');
-insert into sys_dict_data values(23, 2,  '修改',            '2',       		      'sys_oper_type',       '',   'info',    'N', '0', 'admin', sysdate(), '', null, '修改操作');
-insert into sys_dict_data values(24, 3,  '删除',            '3',       		      'sys_oper_type',       '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '删除操作');
-insert into sys_dict_data values(25, 4,  '授权',            '4',       		      'sys_oper_type',       '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '授权操作');
-insert into sys_dict_data values(26, 5,  '导出',            '5',       		      'sys_oper_type',       '',   'warning', 'N', '0', 'admin', sysdate(), '', null, '导出操作');
-insert into sys_dict_data values(27, 6,  '导入',            '6',       		      'sys_oper_type',       '',   'warning', 'N', '0', 'admin', sysdate(), '', null, '导入操作');
-insert into sys_dict_data values(28, 7,  '强退',            '7',       		      'sys_oper_type',       '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '强退操作');
-insert into sys_dict_data values(29, 8,  '生成代码',         '8',       		     'sys_oper_type',       '',   'warning', 'N', '0', 'admin', sysdate(), '', null, '生成操作');
-insert into sys_dict_data values(30, 9,  '清空数据',         '9',       		     'sys_oper_type',       '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '清空操作');
-insert into sys_dict_data values(31, 1,  '成功',            '0',       		       'sys_common_status',   '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '正常状态');
-insert into sys_dict_data values(32, 2,  '失败',            '1',       		       'sys_common_status',   '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '停用状态');
-insert into sys_dict_data values(33, 1,   '安装',            'install',          'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件安装');
-insert into sys_dict_data values(34, 2,   '启用',            'enable',           'plugin_operation_type', '',  'success', 'N', '0', 'admin', sysdate(), '', null, '插件启用');
-insert into sys_dict_data values(35, 3,   '停用',            'disable',          'plugin_operation_type', '',  'warning', 'N', '0', 'admin', sysdate(), '', null, '插件停用');
-insert into sys_dict_data values(36, 4,   '升级',            'upgrade',          'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件升级');
-insert into sys_dict_data values(37, 5,   '卸载',            'uninstall',        'plugin_operation_type', '',  'danger',  'N', '0', 'admin', sysdate(), '', null, '插件卸载');
-insert into sys_dict_data values(38, 6,   '清理',            'purge',            'plugin_operation_type', '',  'danger',  'N', '0', 'admin', sysdate(), '', null, '插件清理');
-insert into sys_dict_data values(39, 7,   '批量',            'batch',            'plugin_operation_type', '',  'info',    'N', '0', 'admin', sysdate(), '', null, '插件批量操作');
-insert into sys_dict_data values(40, 8,   '批量安装',         'batch_install',    'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件批量安装');
-insert into sys_dict_data values(41, 9,   '批量启用',         'batch_enable',     'plugin_operation_type', '',  'success', 'N', '0', 'admin', sysdate(), '', null, '插件批量启用');
-insert into sys_dict_data values(42, 10,  '批量升级',         'batch_upgrade',    'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件批量升级');
-insert into sys_dict_data values(43, 11,  '配置保存',         'config_set',       'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件配置保存');
-insert into sys_dict_data values(44, 12,  '配置更新',         'config_update',    'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件配置更新');
-insert into sys_dict_data values(45, 13,  '配置导入',         'config_import',    'plugin_operation_type', '',  'warning', 'N', '0', 'admin', sysdate(), '', null, '插件配置导入');
-insert into sys_dict_data values(46, 14,  '配置导出',         'config_export',    'plugin_operation_type', '',  'warning', 'N', '0', 'admin', sysdate(), '', null, '插件配置导出');
-insert into sys_dict_data values(47, 99,  '未知操作',         'unknown',          'plugin_operation_type', '',  'info',    'N', '0', 'admin', sysdate(), '', null, '插件未知操作');
+insert into sys_dict_data values(1,  1,  '男', '{"en-US": "Male"}',             '0',                'sys_user_sex',        '',   '',        'Y', '0', 'admin', sysdate(), '', null, '性别男');
+insert into sys_dict_data values(2,  2,  '女', '{"en-US": "Female"}',             '1',                'sys_user_sex',        '',   '',        'N', '0', 'admin', sysdate(), '', null, '性别女');
+insert into sys_dict_data values(3,  3,  '未知', '{"en-US": "Unknown"}',            '2',                'sys_user_sex',        '',   '',        'N', '0', 'admin', sysdate(), '', null, '性别未知');
+insert into sys_dict_data values(4,  1,  '显示', '{"en-US": "Visible"}',            '0',                'sys_show_hide',       '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '显示菜单');
+insert into sys_dict_data values(5,  2,  '隐藏', '{"en-US": "Hidden"}',            '1',                'sys_show_hide',       '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '隐藏菜单');
+insert into sys_dict_data values(6,  1,  '正常', '{"en-US": "Enabled"}',            '0',                'sys_normal_disable',  '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '正常状态');
+insert into sys_dict_data values(7,  2,  '停用', '{"en-US": "Disabled"}',            '1',                'sys_normal_disable',  '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '停用状态');
+insert into sys_dict_data values(8,  1,  '正常', '{"en-US": "Active"}',            '0',                'sys_job_status',      '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '正常状态');
+insert into sys_dict_data values(9,  2,  '暂停', '{"en-US": "Paused"}',            '1',                'sys_job_status',      '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '停用状态');
+insert into sys_dict_data values(10, 1,  '内存', '{"en-US": "Memory"}',            'default',          'sys_job_store',       '',   '',        'Y', '0', 'admin', sysdate(), '', null, '内存调度存储');
+insert into sys_dict_data values(11, 2,  '数据库', '{"en-US": "Database"}',          'sqlalchemy',       'sys_job_store',       '',   '',        'N', '0', 'admin', sysdate(), '', null, '数据库调度存储');
+insert into sys_dict_data values(12, 3,  'Redis', '{"en-US": "Redis"}',           'redis',            'sys_job_store',       '',   '',        'N', '0', 'admin', sysdate(), '', null, 'Redis调度存储');
+insert into sys_dict_data values(13, 1,  '默认', '{"en-US": "Default"}',            'default',  		    'sys_job_executor',    '',   '',        'N', '0', 'admin', sysdate(), '', null, '异步函数在事件循环运行，同步函数在线程池运行');
+insert into sys_dict_data values(14, 2,  '进程池', '{"en-US": "Process pool"}',          'processpool',      'sys_job_executor',    '',   '',        'N', '0', 'admin', sysdate(), '', null, '进程池');
+insert into sys_dict_data values(15, 1,  '是', '{"en-US": "Yes"}',              'Y',       		      'sys_yes_no',          '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '系统默认是');
+insert into sys_dict_data values(16, 2,  '否', '{"en-US": "No"}',              'N',       		      'sys_yes_no',          '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '系统默认否');
+insert into sys_dict_data values(17, 1,  '通知', '{"en-US": "Notice"}',            '1',       		      'sys_notice_type',     '',   'warning', 'Y', '0', 'admin', sysdate(), '', null, '通知');
+insert into sys_dict_data values(18, 2,  '公告', '{"en-US": "Announcement"}',            '2',       		      'sys_notice_type',     '',   'success', 'N', '0', 'admin', sysdate(), '', null, '公告');
+insert into sys_dict_data values(19, 1,  '正常', '{"en-US": "Active"}',            '0',       		      'sys_notice_status',   '',   'primary', 'Y', '0', 'admin', sysdate(), '', null, '正常状态');
+insert into sys_dict_data values(20, 2,  '关闭', '{"en-US": "Closed"}',            '1',       		      'sys_notice_status',   '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '关闭状态');
+insert into sys_dict_data values(21, 99, '其他', '{"en-US": "Other"}',            '0',       		      'sys_oper_type',       '',   'info',    'N', '0', 'admin', sysdate(), '', null, '其他操作');
+insert into sys_dict_data values(22, 1,  '新增', '{"en-US": "Add"}',            '1',       		      'sys_oper_type',       '',   'info',    'N', '0', 'admin', sysdate(), '', null, '新增操作');
+insert into sys_dict_data values(23, 2,  '修改', '{"en-US": "Edit"}',            '2',       		      'sys_oper_type',       '',   'info',    'N', '0', 'admin', sysdate(), '', null, '修改操作');
+insert into sys_dict_data values(24, 3,  '删除', '{"en-US": "Delete"}',            '3',       		      'sys_oper_type',       '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '删除操作');
+insert into sys_dict_data values(25, 4,  '授权', '{"en-US": "Authorize"}',            '4',       		      'sys_oper_type',       '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '授权操作');
+insert into sys_dict_data values(26, 5,  '导出', '{"en-US": "Export"}',            '5',       		      'sys_oper_type',       '',   'warning', 'N', '0', 'admin', sysdate(), '', null, '导出操作');
+insert into sys_dict_data values(27, 6,  '导入', '{"en-US": "Import"}',            '6',       		      'sys_oper_type',       '',   'warning', 'N', '0', 'admin', sysdate(), '', null, '导入操作');
+insert into sys_dict_data values(28, 7,  '强退', '{"en-US": "Force sign-out"}',            '7',       		      'sys_oper_type',       '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '强退操作');
+insert into sys_dict_data values(29, 8,  '生成代码', '{"en-US": "Generate code"}',         '8',       		     'sys_oper_type',       '',   'warning', 'N', '0', 'admin', sysdate(), '', null, '生成操作');
+insert into sys_dict_data values(30, 9,  '清空数据', '{"en-US": "Clear data"}',         '9',       		     'sys_oper_type',       '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '清空操作');
+insert into sys_dict_data values(31, 1,  '成功', '{"en-US": "Success"}',            '0',       		       'sys_common_status',   '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '正常状态');
+insert into sys_dict_data values(32, 2,  '失败', '{"en-US": "Failure"}',            '1',       		       'sys_common_status',   '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '停用状态');
+insert into sys_dict_data values(33, 1,   '安装', '{"en-US": "Install"}',            'install',          'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件安装');
+insert into sys_dict_data values(34, 2,   '启用', '{"en-US": "Enable"}',            'enable',           'plugin_operation_type', '',  'success', 'N', '0', 'admin', sysdate(), '', null, '插件启用');
+insert into sys_dict_data values(35, 3,   '停用', '{"en-US": "Disable"}',            'disable',          'plugin_operation_type', '',  'warning', 'N', '0', 'admin', sysdate(), '', null, '插件停用');
+insert into sys_dict_data values(36, 4,   '升级', '{"en-US": "Upgrade"}',            'upgrade',          'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件升级');
+insert into sys_dict_data values(37, 5,   '卸载', '{"en-US": "Uninstall"}',            'uninstall',        'plugin_operation_type', '',  'danger',  'N', '0', 'admin', sysdate(), '', null, '插件卸载');
+insert into sys_dict_data values(38, 6,   '清理', '{"en-US": "Purge"}',            'purge',            'plugin_operation_type', '',  'danger',  'N', '0', 'admin', sysdate(), '', null, '插件清理');
+insert into sys_dict_data values(39, 7,   '批量', '{"en-US": "Batch"}',            'batch',            'plugin_operation_type', '',  'info',    'N', '0', 'admin', sysdate(), '', null, '插件批量操作');
+insert into sys_dict_data values(40, 8,   '批量安装', '{"en-US": "Batch install"}',         'batch_install',    'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件批量安装');
+insert into sys_dict_data values(41, 9,   '批量启用', '{"en-US": "Batch enable"}',         'batch_enable',     'plugin_operation_type', '',  'success', 'N', '0', 'admin', sysdate(), '', null, '插件批量启用');
+insert into sys_dict_data values(42, 10,  '批量升级', '{"en-US": "Batch upgrade"}',         'batch_upgrade',    'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件批量升级');
+insert into sys_dict_data values(43, 11,  '配置保存', '{"en-US": "Save configuration"}',         'config_set',       'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件配置保存');
+insert into sys_dict_data values(44, 12,  '配置更新', '{"en-US": "Update configuration"}',         'config_update',    'plugin_operation_type', '',  'primary', 'N', '0', 'admin', sysdate(), '', null, '插件配置更新');
+insert into sys_dict_data values(45, 13,  '配置导入', '{"en-US": "Import configuration"}',         'config_import',    'plugin_operation_type', '',  'warning', 'N', '0', 'admin', sysdate(), '', null, '插件配置导入');
+insert into sys_dict_data values(46, 14,  '配置导出', '{"en-US": "Export configuration"}',         'config_export',    'plugin_operation_type', '',  'warning', 'N', '0', 'admin', sysdate(), '', null, '插件配置导出');
+insert into sys_dict_data values(47, 99,  '未知操作', '{"en-US": "Unknown operation"}',         'unknown',          'plugin_operation_type', '',  'info',    'N', '0', 'admin', sysdate(), '', null, '插件未知操作');
 
 
 -- ----------------------------

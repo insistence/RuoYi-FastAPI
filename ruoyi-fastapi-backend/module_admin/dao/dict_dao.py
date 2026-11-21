@@ -5,6 +5,7 @@ from sqlalchemy import and_, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
+from i18n.translation import TranslationUtil
 from module_admin.entity.do.dict_do import SysDictData, SysDictType
 from module_admin.entity.vo.dict_vo import DictDataModel, DictDataPageQueryModel, DictTypeModel, DictTypePageQueryModel
 from utils.page_util import PageUtil
@@ -108,6 +109,7 @@ class DictTypeDao:
         :return:
         """
         db_dict_type = SysDictType(**dict_type.model_dump(exclude={'create_time', 'update_time'}))
+        db_dict_type.dict_name_i18n = TranslationUtil.merge(None, dict_type.dict_name_i18n)
         db.add(db_dict_type)
         await db.flush()
 
@@ -122,6 +124,11 @@ class DictTypeDao:
         :param dict_type: 需要更新的字典类型字典
         :return:
         """
+        if 'dict_name_i18n' in dict_type:
+            current = await db.scalar(
+                select(SysDictType.dict_name_i18n).where(SysDictType.dict_id == dict_type['dict_id']).with_for_update()
+            )
+            dict_type = {**dict_type, 'dict_name_i18n': TranslationUtil.merge(current, dict_type['dict_name_i18n'])}
         await db.execute(
             update(SysDictType),
             [{key: value for key, value in dict_type.items() if key not in {'create_time', 'update_time'}}],
@@ -213,13 +220,13 @@ class DictDataDao:
         return dict_data_list
 
     @classmethod
-    async def query_dict_data_list(cls, db: AsyncSession, dict_type: str) -> Sequence[SysDictData]:
+    async def query_dict_data_list(cls, db: AsyncSession, dict_type: str) -> Sequence[SysDictData | None]:
         """
-        根据查询参数获取字典数据列表信息
+        查询启用字典类型及其启用的数据项
 
         :param db: orm对象
         :param dict_type: 字典类型
-        :return: 字典数据列表信息对象
+        :return: 按排序值排列的数据项，启用类型无数据项时返回 [None]，未匹配类型时返回空列表
         """
         dict_data_list = (
             (
@@ -252,6 +259,7 @@ class DictDataDao:
         :return:
         """
         db_data_type = SysDictData(**dict_data.model_dump(exclude={'create_time', 'update_time'}))
+        db_data_type.dict_label_i18n = TranslationUtil.merge(None, dict_data.dict_label_i18n)
         db.add(db_data_type)
         await db.flush()
 
@@ -266,6 +274,13 @@ class DictDataDao:
         :param dict_data: 需要更新的字典数据字典
         :return:
         """
+        if 'dict_label_i18n' in dict_data:
+            current = await db.scalar(
+                select(SysDictData.dict_label_i18n)
+                .where(SysDictData.dict_code == dict_data['dict_code'])
+                .with_for_update()
+            )
+            dict_data = {**dict_data, 'dict_label_i18n': TranslationUtil.merge(current, dict_data['dict_label_i18n'])}
         await db.execute(
             update(SysDictData),
             [{key: value for key, value in dict_data.items() if key not in {'create_time', 'update_time'}}],

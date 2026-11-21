@@ -15,6 +15,7 @@ from common.constant import OidcAuditEvent
 from common.enums import RedisInitKeyConfig
 from config.env import OidcConfig
 from exceptions.exception import OAuthProtocolException, OidcInteractionException, ServiceException
+from i18n.message import I18nMessage
 from module_admin.service.captcha_service import CaptchaService
 from module_admin.service.user_service import UserService
 from module_identity.dao.identity_user_dao import IdentityUserDao
@@ -922,7 +923,9 @@ class InteractionLoginService:
                 client_id=record.get('clientId'),
                 failure_code='invalid_credentials',
             )
-            return InteractionLoginOutcome(failure_message='登录失败')
+            return InteractionLoginOutcome(
+                failure_message=I18nMessage('登录失败', msg_key='identity.interaction.loginFailed')
+            )
 
         subject = await IdentitySubjectService.require_by_user_id(
             db, result.user.user_id, audit_writer=AuditService.interaction_subject_writer(db)
@@ -1073,7 +1076,9 @@ class InteractionLoginService:
                 user_id=record.get('userId'),
                 failure_code='password_change_failed',
             )
-            return InteractionLoginOutcome(failure_message='改密失败')
+            return InteractionLoginOutcome(
+                failure_message=I18nMessage('改密失败', msg_key='identity.interaction.passwordChangeFailed')
+            )
         if PwdUtil.verify_password(body.new_password, user.password):
             await AuditService.record_interaction_failure(
                 db,
@@ -1082,7 +1087,9 @@ class InteractionLoginService:
                 user_id=record.get('userId'),
                 failure_code='password_reuse',
             )
-            return InteractionLoginOutcome(failure_message='新密码不能与旧密码相同')
+            return InteractionLoginOutcome(
+                failure_message=I18nMessage('新密码不能与旧密码相同', msg_key='identity.interaction.passwordReused')
+            )
 
         try:
             await UserService.validate_password_services(redis, body.new_password)
@@ -1175,7 +1182,9 @@ class InteractionLoginService:
                 user_id=record.get('userId'),
                 failure_code='password_change_failed',
             )
-            return InteractionLoginOutcome(failure_message='改密失败')
+            return InteractionLoginOutcome(
+                failure_message=I18nMessage('改密失败', msg_key='identity.interaction.passwordChangeFailed')
+            )
         model = InteractionResultModel(
             next_action='consent' if target_status == 'awaiting_consent' else 'redirect',
             interaction_id=interaction_id,

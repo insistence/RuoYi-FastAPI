@@ -1,0 +1,6 @@
+{
+  "upload": {
+    "invalidResponse": "上传响应格式不正确",
+    "failed": "上传失败"
+  }
+}

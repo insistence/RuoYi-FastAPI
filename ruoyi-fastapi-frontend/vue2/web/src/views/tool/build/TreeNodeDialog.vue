@@ -18,24 +18,24 @@
         >
           <el-col :span="24">
             <el-form-item
-              label="选项名"
+              :label="$t('tool:builder.optionLabel')"
               prop="label"
             >
               <el-input
                 v-model="formData.label"
-                placeholder="请输入选项名"
+                :placeholder="$t('tool:builder.enterOptionLabel')"
                 clearable
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-              label="选项值"
+              :label="$t('tool:builder.optionValue')"
               prop="value"
             >
               <el-input
                 v-model="formData.value"
-                placeholder="请输入选项值"
+                :placeholder="$t('tool:builder.enterOptionValue')"
                 clearable
               >
                 <el-select
@@ -61,14 +61,16 @@
           type="primary"
           @click="handleConfirm"
         >
-          确定
+          {{ $t('tool:builder.confirm') }}
         </el-button>
-        <el-button @click="close"> 取消 </el-button>
+        <el-button @click="close"> {{ $t('tool:builder.cancel') }} </el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 <script>
+import { t } from '@/i18n/adapter'
+
 import { isNumberStr } from '@/utils/index'
 
 export default {
@@ -86,14 +88,14 @@ export default {
         label: [
           {
             required: true,
-            message: '请输入选项名',
+            message: () => t('tool:builder.optionName'),
             trigger: 'blur',
           },
         ],
         value: [
           {
             required: true,
-            message: '请输入选项值',
+            message: () => t('tool:builder.optionValue'),
             trigger: 'blur',
           },
         ],
@@ -101,11 +103,15 @@ export default {
       dataType: 'string',
       dataTypeOptions: [
         {
-          label: '字符串',
+          get label() {
+            return t('tool:builder.string')
+          },
           value: 'string',
         },
         {
-          label: '数字',
+          get label() {
+            return t('tool:builder.number')
+          },
           value: 'number',
         },
       ],

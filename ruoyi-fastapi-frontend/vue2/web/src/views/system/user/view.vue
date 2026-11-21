@@ -1,6 +1,6 @@
 <template>
   <el-drawer
-    title="用户信息详情"
+    :title="$t('system:userDetails')"
     :visible.sync="visible"
     direction="rtl"
     size="68%"
@@ -13,20 +13,20 @@
       class="drawer-content"
     >
       <!-- 基本信息 -->
-      <h4 class="section-header">基本信息</h4>
+      <h4 class="section-header">{{ $t('common:basicInfo') }}</h4>
       <el-row
         :gutter="20"
         class="mb8"
       >
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">用户名称：</label>
+            <label class="info-label">{{ $t('system:userNameLabel') }}</label>
             <span class="info-value plaintext">{{ info.nickName }}</span>
           </div>
         </el-col>
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">归属部门：</label>
+            <label class="info-label">{{ $t('system:departmentLabelText') }}</label>
             <span class="info-value plaintext">{{ info.dept && info.dept.deptName }}</span>
           </div>
         </el-col>
@@ -37,13 +37,13 @@
       >
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">手机号码：</label>
+            <label class="info-label">{{ $t('system:phoneNumberLabel') }}</label>
             <span class="info-value plaintext">{{ info.phonenumber }}</span>
           </div>
         </el-col>
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">邮箱：</label>
+            <label class="info-label">{{ $t('system:emailLabel') }}</label>
             <span class="info-value plaintext">{{ info.email }}</span>
           </div>
         </el-col>
@@ -54,18 +54,20 @@
       >
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">登录账号：</label>
+            <label class="info-label">{{ $t('system:loginAccountLabel') }}</label>
             <span class="info-value plaintext">{{ info.userName }}</span>
           </div>
         </el-col>
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">用户状态：</label>
+            <label class="info-label">{{ $t('system:userStatusLabel') }}</label>
             <span class="info-value plaintext">
               <el-tag
                 size="small"
                 :type="info.status === '0' ? 'success' : 'danger'"
-                >{{ info.status === '0' ? '正常' : '停用' }}</el-tag
+                >{{
+                  info.status === '0' ? $t('layout:notices.active') : $t('system:oauth.disabled')
+                }}</el-tag
               >
             </span>
           </div>
@@ -77,13 +79,15 @@
       >
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">岗位：</label>
-            <span class="info-value plaintext">{{ postNames || '无岗位' }}</span>
+            <label class="info-label">{{ $t('system:postLabel') }}</label>
+            <span class="info-value plaintext">{{
+              postNames || $t('common:expression.noPosts')
+            }}</span>
           </div>
         </el-col>
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">用户性别：</label>
+            <label class="info-label">{{ $t('system:genderLabelText') }}</label>
             <span class="info-value plaintext">{{ sexLabel }}</span>
           </div>
         </el-col>
@@ -94,26 +98,28 @@
       >
         <el-col :span="24">
           <div class="info-item full-width">
-            <label class="info-label">角色：</label>
-            <span class="info-value plaintext">{{ roleNames || '无角色' }}</span>
+            <label class="info-label">{{ $t('system:roleLabel') }}</label>
+            <span class="info-value plaintext">{{
+              roleNames || $t('common:expression.noRoles')
+            }}</span>
           </div>
         </el-col>
       </el-row>
       <!-- 其他信息 -->
-      <h4 class="section-header">其他信息</h4>
+      <h4 class="section-header">{{ $t('system:otherInformation') }}</h4>
       <el-row
         :gutter="20"
         class="mb8"
       >
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">创建者：</label>
+            <label class="info-label">{{ $t('system:createdByLabel') }}</label>
             <span class="info-value plaintext">{{ info.createBy }}</span>
           </div>
         </el-col>
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">创建时间：</label>
+            <label class="info-label">{{ $t('system:createdAtLabel') }}</label>
             <span class="info-value plaintext">{{ parseTime(info.createTime) }}</span>
           </div>
         </el-col>
@@ -124,13 +130,13 @@
       >
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">更新者：</label>
+            <label class="info-label">{{ $t('system:updatedBy') }}</label>
             <span class="info-value plaintext">{{ info.updateBy }}</span>
           </div>
         </el-col>
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">更新时间：</label>
+            <label class="info-label">{{ $t('system:updatedAt') }}</label>
             <span class="info-value plaintext">{{ parseTime(info.updateTime) }}</span>
           </div>
         </el-col>
@@ -141,13 +147,13 @@
       >
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">最后登录IP：</label>
+            <label class="info-label">{{ $t('system:lastSignInIP') }}</label>
             <span class="info-value plaintext">{{ info.loginIp }}</span>
           </div>
         </el-col>
         <el-col :span="12">
           <div class="info-item">
-            <label class="info-label">最后登录时间：</label>
+            <label class="info-label">{{ $t('system:lastSignInTime') }}</label>
             <span class="info-value plaintext">{{ parseTime(info.loginDate) }}</span>
           </div>
         </el-col>
@@ -158,7 +164,7 @@
       >
         <el-col :span="24">
           <div class="info-item full-width">
-            <label class="info-label">备注：</label>
+            <label class="info-label">{{ $t('system:remarksLabel') }}</label>
             <span class="info-value plaintext">{{ info.remark }}</span>
           </div>
         </el-col>

@@ -1,3 +1,4 @@
+from i18n.message import I18nMessage
 from utils.oidc_util import OidcUtil
 
 
@@ -6,9 +7,41 @@ class LoginException(Exception):
     自定义登录异常LoginException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
+    ) -> None:
+        """
+        保存登录校验失败时的消息原文和翻译参数
+
+        :param data: 随异常返回的业务数据
+        :param message: 异常消息原文
+        :param msg_key: 响应阶段使用的消息标识
+        :param msg_params: 可在响应中公开的插值参数
+        :param domain: 已注册的 gettext 词库域
+        :param count: 与 plural_key 配对的复数数量
+        :param plural_key: 复数形式的消息标识
+        """
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
+        if msg_key is not None and (domain is not None or count is not None or plural_key is not None):
+            self.message = I18nMessage(
+                message or '',
+                msg_key=msg_key,
+                msg_params=msg_params,
+                domain=domain or 'core',
+                count=count,
+                plural_key=plural_key,
+            )
 
 
 class AuthException(Exception):
@@ -16,9 +49,41 @@ class AuthException(Exception):
     自定义令牌异常AuthException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
+    ) -> None:
+        """
+        保存令牌认证失败时的消息原文和翻译参数
+
+        :param data: 随异常返回的业务数据
+        :param message: 异常消息原文
+        :param msg_key: 响应阶段使用的消息标识
+        :param msg_params: 可在响应中公开的插值参数
+        :param domain: 已注册的 gettext 词库域
+        :param count: 与 plural_key 配对的复数数量
+        :param plural_key: 复数形式的消息标识
+        """
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
+        if msg_key is not None and (domain is not None or count is not None or plural_key is not None):
+            self.message = I18nMessage(
+                message or '',
+                msg_key=msg_key,
+                msg_params=msg_params,
+                domain=domain or 'core',
+                count=count,
+                plural_key=plural_key,
+            )
 
 
 class OAuthProtocolException(Exception):
@@ -147,9 +212,41 @@ class PermissionException(Exception):
     自定义权限异常PermissionException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
+    ) -> None:
+        """
+        保存权限校验失败时的消息原文和翻译参数
+
+        :param data: 随异常返回的业务数据
+        :param message: 异常消息原文
+        :param msg_key: 响应阶段使用的消息标识
+        :param msg_params: 可在响应中公开的插值参数
+        :param domain: 已注册的 gettext 词库域
+        :param count: 与 plural_key 配对的复数数量
+        :param plural_key: 复数形式的消息标识
+        """
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
+        if msg_key is not None and (domain is not None or count is not None or plural_key is not None):
+            self.message = I18nMessage(
+                message or '',
+                msg_key=msg_key,
+                msg_params=msg_params,
+                domain=domain or 'core',
+                count=count,
+                plural_key=plural_key,
+            )
 
 
 class ServiceException(Exception):
@@ -157,9 +254,41 @@ class ServiceException(Exception):
     自定义服务异常ServiceException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
+    ) -> None:
+        """
+        保存业务处理失败时的消息原文和翻译参数
+
+        :param data: 随异常返回的业务数据
+        :param message: 异常消息原文
+        :param msg_key: 响应阶段使用的消息标识
+        :param msg_params: 可在响应中公开的插值参数
+        :param domain: 已注册的 gettext 词库域
+        :param count: 与 plural_key 配对的复数数量
+        :param plural_key: 复数形式的消息标识
+        """
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
+        if msg_key is not None and (domain is not None or count is not None or plural_key is not None):
+            self.message = I18nMessage(
+                message or '',
+                msg_key=msg_key,
+                msg_params=msg_params,
+                domain=domain or 'core',
+                count=count,
+                plural_key=plural_key,
+            )
 
 
 class ServiceWarning(Exception):
@@ -167,9 +296,41 @@ class ServiceWarning(Exception):
     自定义服务警告ServiceWarning
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
+    ) -> None:
+        """
+        保存需要提示用户的业务情况时的消息原文和翻译参数
+
+        :param data: 随异常返回的业务数据
+        :param message: 异常消息原文
+        :param msg_key: 响应阶段使用的消息标识
+        :param msg_params: 可在响应中公开的插值参数
+        :param domain: 已注册的 gettext 词库域
+        :param count: 与 plural_key 配对的复数数量
+        :param plural_key: 复数形式的消息标识
+        """
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
+        if msg_key is not None and (domain is not None or count is not None or plural_key is not None):
+            self.message = I18nMessage(
+                message or '',
+                msg_key=msg_key,
+                msg_params=msg_params,
+                domain=domain or 'core',
+                count=count,
+                plural_key=plural_key,
+            )
 
 
 class FileRangeNotSatisfiableException(Exception):
@@ -186,9 +347,41 @@ class ModelValidatorException(Exception):
     自定义模型校验异常ModelValidatorException
     """
 
-    def __init__(self, data: str | None = None, message: str | None = None) -> None:
+    def __init__(
+        self,
+        data: str | None = None,
+        message: str | None = None,
+        *,
+        msg_key: str | None = None,
+        msg_params: dict | None = None,
+        domain: str | None = None,
+        count: int | None = None,
+        plural_key: str | None = None,
+    ) -> None:
+        """
+        保存模型校验失败时的消息原文和翻译参数
+
+        :param data: 随异常返回的业务数据
+        :param message: 异常消息原文
+        :param msg_key: 响应阶段使用的消息标识
+        :param msg_params: 可在响应中公开的插值参数
+        :param domain: 已注册的 gettext 词库域
+        :param count: 与 plural_key 配对的复数数量
+        :param plural_key: 复数形式的消息标识
+        """
         self.data = data
         self.message = message
+        self.msg_key = msg_key
+        self.msg_params = msg_params
+        if msg_key is not None and (domain is not None or count is not None or plural_key is not None):
+            self.message = I18nMessage(
+                message or '',
+                msg_key=msg_key,
+                msg_params=msg_params,
+                domain=domain or 'core',
+                count=count,
+                plural_key=plural_key,
+            )
 
 
 class DataSourceException(ServiceException):

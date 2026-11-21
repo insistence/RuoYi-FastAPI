@@ -1,3 +1,6 @@
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import TableActions, { TableAction } from '@/components/TableActions'
 import {
@@ -32,9 +35,12 @@ import ImportTable from './importTable'
 import CreateTable from './createTable'
 import CodePreview from './CodePreview'
 export default function Gen() {
+  useI18n()
+
   const navigate = useNavigate()
   const [search] = useSearchParams()
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   const [query, setQuery] = useState({
     pageNum: Number(search.get('pageNum')) || 1,
     pageSize: 10,
@@ -70,28 +76,29 @@ export default function Gen() {
   const edit = (row) => navigate(`/tool/gen-edit/index/${row.tableId}?pageNum=${query.pageNum}`)
   async function remove(ids) {
     try {
-      await confirm(`是否确认删除表编号为“${ids}”的生成配置？`)
+      await confirm(t('tool:deleteGenerationConfigurationsForTableIdsValue', { ids }))
       await delTable(ids)
-      message.success('删除成功')
+      message.success(t('common:deleteSuccess'))
       load()
     } catch {}
   }
   async function sync(row) {
     try {
-      await confirm(`确认要强制同步“${row.tableName}”表结构吗？`)
+      await confirm(t('tool:forceSynchronizationOfTableValue', { tableName: row.tableName }))
       await synchDb(row.tableName, row.dataSourceName)
-      message.success('同步成功')
+      message.success(t('tool:synchronizedSuccessfully'))
       load()
     } catch {}
   }
   async function generate(row) {
     const items = row ? [row] : selected
     const sourceNames = [...new Set(items.map((r) => r.dataSourceName).filter(Boolean))]
-    if (sourceNames.length !== 1) return message.error('请选择同一数据源下的生成配置')
+    if (sourceNames.length !== 1)
+      return message.error(t('tool:selectGenerationConfigurationsFromTheSameDataSource'))
     try {
       if (row?.genType === '1') {
         await genCode(row.tableName, sourceNames[0])
-        message.success(`成功生成到自定义路径：${row.genPath}`)
+        message.success(t('tool:generatedSuccessfullyAtCustomPathValue', { genPath: row.genPath }))
       } else {
         await download.zip(
           `/tool/gen/batchGenCode?tables=${encodeURIComponent(items.map((r) => r.tableName).join(','))}&dataSourceName=${encodeURIComponent(sourceNames[0])}`,
@@ -102,16 +109,16 @@ export default function Gen() {
   }
   const columns = [
     {
-      title: '序号',
+      title: t('common:index'),
       width: 50,
       align: 'center',
       render: (_, __, i) => (query.pageNum - 1) * query.pageSize + i + 1,
     },
     ...[
-      ['表名称', 'tableName'],
-      ['表描述', 'tableComment'],
-      ['实体', 'className'],
-      ['数据源', 'dataSourceName'],
+      [t('tool:gen.tableName'), 'tableName'],
+      [t('tool:gen.tableComment'), 'tableComment'],
+      [t('tool:entity'), 'className'],
+      [t('tool:datasource.title'), 'dataSourceName'],
     ].map(([title, dataIndex]) => ({
       title,
       dataIndex,
@@ -120,8 +127,8 @@ export default function Gen() {
       ...(dataIndex === 'dataSourceName' ? { width: 160 } : {}),
     })),
     ...[
-      ['创建时间', 'createTime'],
-      ['更新时间', 'updateTime'],
+      [t('common:createdTime'), 'createTime'],
+      [t('common:updatedTime'), 'updateTime'],
     ].map(([title, dataIndex]) => ({
       title,
       dataIndex,
@@ -132,7 +139,7 @@ export default function Gen() {
     {
       className: 'ruoyi-actions-cell',
       align: 'center',
-      title: '操作',
+      title: t('common:actions'),
       width: 330,
       render: (_, row) => (
         <TableActions>
@@ -146,7 +153,7 @@ export default function Gen() {
                   .catch(() => {})
               }
             >
-              预览
+              {t('common:preview')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['tool:gen:edit']}>
@@ -155,7 +162,7 @@ export default function Gen() {
               symbol="Edit"
               onClick={() => edit(row)}
             >
-              编辑
+              {t('common:editAction')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['tool:gen:remove']}>
@@ -164,7 +171,7 @@ export default function Gen() {
               symbol="Delete"
               onClick={() => remove(row.tableId)}
             >
-              删除
+              {t('common:delete')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['tool:gen:edit']}>
@@ -173,7 +180,7 @@ export default function Gen() {
               symbol="Refresh"
               onClick={() => sync(row)}
             >
-              同步
+              {t('tool:synchronize')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['tool:gen:code']}>
@@ -182,7 +189,7 @@ export default function Gen() {
               symbol="Download"
               onClick={() => generate(row)}
             >
-              生成代码
+              {t('tool:generateCode')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -209,31 +216,31 @@ export default function Gen() {
           }
         >
           <Form.Item
-            label="表名称"
+            label={t('tool:gen.tableName')}
             name="tableName"
           >
             <Input
-              placeholder="请输入表名称"
+              placeholder={t('tool:enterTableName')}
               allowClear
               style={{ width: 200 }}
             />
           </Form.Item>
           <Form.Item
-            label="表描述"
+            label={t('tool:gen.tableComment')}
             name="tableComment"
           >
             <Input
-              placeholder="请输入表描述"
+              placeholder={t('tool:enterTableDescription')}
               allowClear
               style={{ width: 200 }}
             />
           </Form.Item>
           <Form.Item
-            label="数据源"
+            label={t('tool:datasource.title')}
             name="dataSourceName"
           >
             <Select
-              placeholder="请选择数据源"
+              placeholder={t('tool:datasource.select')}
               style={{ width: 220 }}
               allowClear
               showSearch
@@ -245,14 +252,14 @@ export default function Gen() {
             />
           </Form.Item>
           <Form.Item
-            label="创建时间"
+            label={t('common:createdTime')}
             name="dateRange"
             style={{ width: 308 }}
           >
             <DatePicker.RangePicker
               style={{ width: 308 }}
               separator="-"
-              placeholder={['开始日期', '结束日期']}
+              placeholder={[t('common:startDate'), t('common:endDate')]}
             />
           </Form.Item>
           <Form.Item>
@@ -262,7 +269,7 @@ export default function Gen() {
                 type="primary"
                 htmlType="submit"
               >
-                搜索
+                {t('common:search')}
               </Button>
               <Button
                 icon={<ReloadOutlined />}
@@ -271,7 +278,7 @@ export default function Gen() {
                   setQuery({ pageNum: 1, pageSize: 10 })
                 }}
               >
-                重置
+                {t('common:reset')}
               </Button>
             </Space>
           </Form.Item>
@@ -287,7 +294,7 @@ export default function Gen() {
               disabled={!selected.length}
               onClick={() => generate()}
             >
-              生成
+              {t('tool:generate')}
             </Button>
           </HasPermi>
           {checkRole(['admin']) && (
@@ -297,7 +304,7 @@ export default function Gen() {
               type="default"
               onClick={() => setDialog('create')}
             >
-              创建
+              {t('tool:create')}
             </Button>
           )}
           <HasPermi value={['tool:gen:import']}>
@@ -307,7 +314,7 @@ export default function Gen() {
               type="default"
               onClick={() => setDialog('import')}
             >
-              导入
+              {t('common:import')}
             </Button>
           </HasPermi>
           <HasPermi value={['tool:gen:edit']}>
@@ -318,7 +325,7 @@ export default function Gen() {
               disabled={selected.length !== 1}
               onClick={() => edit(selected[0])}
             >
-              修改
+              {t('common:edit')}
             </Button>
           </HasPermi>
           <HasPermi value={['tool:gen:remove']}>
@@ -329,7 +336,7 @@ export default function Gen() {
               disabled={!selected.length}
               onClick={() => remove(selected.map((r) => r.tableId).join(','))}
             >
-              删除
+              {t('common:delete')}
             </Button>
           </HasPermi>
         </Space>

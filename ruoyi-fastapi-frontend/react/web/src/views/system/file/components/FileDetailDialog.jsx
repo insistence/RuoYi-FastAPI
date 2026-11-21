@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import './style.css'
 import { Button, Descriptions, Modal, Typography } from 'antd'
 import { parseTime } from '@/utils/ruoyi'
@@ -5,24 +7,31 @@ import { accessTypeLabel, formatFileSize, statusLabel, storageStatusLabel } from
 import FileTag from './FileTag'
 
 function uploaderPermission(file) {
-  if (file.accessType !== 'private') return '公开文件无需单独授权'
-  if (!file.uploadUserId) return '未记录上传人'
+  if (file.accessType !== 'private')
+    return t('file:detail.publicFilesDoNotRequireIndividualPermissions')
+  if (!file.uploadUserId) return t('file:detail.uploaderNotRecorded')
   const enabled = file.uploaderAccessEnabled === '1' || file.uploaderAccessEnabled === true
   if (file.uploadUserId === file.ownerUserId)
-    return enabled ? '兼容访问已保留；同时为所有者' : '兼容访问已移除；仍通过所有者访问'
-  return enabled ? '已保留，显式拒绝可覆盖' : '已移除，不再因上传身份放行'
+    return enabled
+      ? t('file:detail.legacyAccessRetainedAlsoTheOwner')
+      : t('file:detail.legacyAccessRemovedAccessRemainsThroughOwnership')
+  return enabled
+    ? t('file:detail.retainedAnExplicitDenyTakesPrecedence')
+    : t('file:detail.removedUploadingTheFileNoLongerGrantsAccess')
 }
 export default function FileDetailDialog({ open, detail = {}, onClose, onReference }) {
+  useI18n()
+
   const items = [
-    ['文件ID', detail.fileId],
-    ['原始文件名', detail.originalName],
-    ['存储文件名', detail.storedName],
-    ['访问类型', accessTypeLabel(detail.accessType)],
-    ['文件状态', statusLabel(detail.status)],
-    ['上传用户', detail.createBy || '-'],
-    ['上传用户ID', detail.uploadUserId || '-'],
+    [t('file:detail.fileId'), detail.fileId],
+    [t('file:originalName'), detail.originalName],
+    [t('file:detail.storedFileName'), detail.storedName],
+    [t('file:accessType'), accessTypeLabel(detail.accessType)],
+    [t('file:shared.fileStatus'), statusLabel(detail.status)],
+    [t('file:shared.uploader'), detail.createBy || '-'],
+    [t('file:detail.uploaderId'), detail.uploadUserId || '-'],
     [
-      '上传人权限',
+      t('file:shared.uploaderPermissions'),
       detail.accessType === 'private' && detail.uploadUserId ? (
         <FileTag
           effect="plain"
@@ -40,39 +49,41 @@ export default function FileDetailDialog({ open, detail = {}, onClose, onReferen
         uploaderPermission(detail)
       ),
     ],
-    ['所有者', detail.ownerName || detail.ownerUserId],
-    ['所属部门', detail.deptName || detail.deptId],
-    ['存储状态', storageStatusLabel(detail.storageStatus)],
-    ['ACL数量', detail.aclEntryCount || 0],
+    [t('file:owner'), detail.ownerName || detail.ownerUserId],
+    [t('system:user.department'), detail.deptName || detail.deptId],
+    [t('file:shared.storageStatus'), storageStatusLabel(detail.storageStatus)],
+    [t('file:detail.aclEntries'), detail.aclEntryCount || 0],
     [
-      '业务引用',
+      t('file:shared.businessReferences'),
       detail.referenceCount ? (
         <Button
           className="ruoyi-table-action"
           type="link"
           onClick={() => onReference(detail)}
         >
-          {detail.referenceCount} 项
+          {detail.referenceCount} {t('file:shared.items')}
         </Button>
       ) : (
-        '0 项'
+        t('file:shared.0Items')
       ),
     ],
-    ['权限版本', detail.aclVersion],
-    ['文件大小', formatFileSize(detail.fileSize)],
-    ['内容类型', detail.contentType],
-    ['扩展名', detail.extension],
-    ['上传时间', parseTime(detail.createTime)],
-    ['过期时间', parseTime(detail.expireTime) || '-'],
-    ['移入回收站', parseTime(detail.deletedTime) || '-'],
-    ['存储相对路径', detail.storageKey],
+    [t('file:detail.permissionsVersion'), detail.aclVersion],
+    [t('system:fileSize'), formatFileSize(detail.fileSize)],
+    [t('file:detail.contentType'), detail.contentType],
+    [t('file:shared.extension'), detail.extension],
+    [t('file:shared.uploadedAt'), parseTime(detail.createTime)],
+    [t('file:detail.expiresAt'), parseTime(detail.expireTime) || '-'],
+    [t('file:shared.moveToRecycleBin'), parseTime(detail.deletedTime) || '-'],
+    [t('file:detail.relativeStoragePath'), detail.storageKey],
     [
       'SHA-256',
       <Typography.Text style={{ fontFamily: 'monospace' }}>{detail.fileHash}</Typography.Text>,
     ],
   ].map(([label, children]) => ({
     key: label,
-    span: ['文件ID', '存储相对路径', 'SHA-256'].includes(label) ? 2 : 1,
+    span: [t('file:detail.fileId'), t('file:detail.relativeStoragePath'), 'SHA-256'].includes(label)
+      ? 2
+      : 1,
     label,
     children: children ?? '-',
   }))
@@ -80,10 +91,10 @@ export default function FileDetailDialog({ open, detail = {}, onClose, onReferen
     <Modal
       className="file-dialog "
       open={open}
-      title="文件详细信息"
+      title={t('file:detail.fileDetails')}
       width="820px"
       onCancel={onClose}
-      footer={<Button onClick={onClose}>关闭</Button>}
+      footer={<Button onClick={onClose}>{t('layout:search.close')}</Button>}
     >
       <Descriptions
         styles={{

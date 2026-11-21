@@ -12,6 +12,7 @@ from config.get_redis import RedisUtil
 from config.lifecycle import init_create_table
 from config.scheduler.manager import SchedulerManager
 from exceptions.handle import handle_exception
+from i18n.translator import I18nUtil
 from middlewares.handle import handle_middleware
 from module_admin.service.log_service import LogAggregatorService
 from module_identity.service.runtime_service import OidcRuntimeService
@@ -185,6 +186,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     :param app: FastAPI对象
     :return: None
     """
+    I18nUtil.validate_catalogs()
     app.state.redis = None
     app.state.plugin_application_runtime_started = False
     try:

@@ -1,5 +1,6 @@
 import cache from '@/plugins/cache'
 import useSettingsStore from '@/store/modules/settings'
+import { serializeVisitedViews, restoreVisitedViews } from '@/utils/tagsView'
 
 const PERSIST_KEY = 'tags-view-visited'
 
@@ -9,21 +10,15 @@ function isPersistEnabled() {
 
 function saveVisitedViews(views) {
   if (!isPersistEnabled()) return
-  const toSave = views
-    .filter((v) => !(v.meta && v.meta.affix))
-    .map((v) => ({
-      path: v.path,
-      fullPath: v.fullPath,
-      name: v.name,
-      title: v.title,
-      query: v.query,
-      meta: v.meta,
-    }))
-  cache.local.setJSON(PERSIST_KEY, toSave)
+  cache.local.setJSON(PERSIST_KEY, serializeVisitedViews(views))
 }
 
 function loadVisitedViews() {
-  return cache.local.getJSON(PERSIST_KEY) || []
+  try {
+    return cache.local.getJSON(PERSIST_KEY) || []
+  } catch {
+    return []
+  }
 }
 
 function clearVisitedViews() {
@@ -171,6 +166,7 @@ const useTagsViewStore = defineStore('tags-view', {
           break
         }
       }
+      saveVisitedViews(this.visitedViews)
     },
     delRightTags(view) {
       return new Promise((resolve) => {
@@ -221,11 +217,12 @@ const useTagsViewStore = defineStore('tags-view', {
       })
     },
     // 恢复持久化的 tags
-    loadPersistedViews() {
-      const views = loadVisitedViews()
+    loadPersistedViews(resolveRoute) {
+      const views = restoreVisitedViews(loadVisitedViews(), resolveRoute)
       views.forEach((view) => {
         this.addVisitedView(view)
       })
+      saveVisitedViews(this.visitedViews)
     },
   },
 })

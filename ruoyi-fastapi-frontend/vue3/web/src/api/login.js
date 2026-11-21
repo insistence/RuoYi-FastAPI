@@ -1,14 +1,17 @@
+import { i18n } from '@/i18n'
 import request from '@/utils/request'
 
 // 登录方法
-export function login(username, password, code, uuid) {
+export async function login(username, password, code, uuid) {
+  const locale = i18n.loginPreference
   const data = {
     username,
     password,
     code,
     uuid,
   }
-  return request({
+  if (locale) data.locale = locale
+  const result = await request({
     url: '/login',
     headers: {
       isToken: false,
@@ -18,6 +21,8 @@ export function login(username, password, code, uuid) {
     method: 'post',
     data: data,
   })
+  if (result.token) i18n.confirmLoginPreference(locale)
+  return result
 }
 
 // 注册方法

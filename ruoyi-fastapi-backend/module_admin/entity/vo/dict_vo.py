@@ -1,14 +1,16 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_validation_decorator import NotBlank, Pattern, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from i18n.message import I18nMessage
+from i18n.translation import TranslationUtil
 
 
-class DictTypeModel(BaseModel):
+class DictTypeBaseModel(BaseModel):
     """
     字典类型表对应pydantic模型
     """
@@ -25,17 +27,29 @@ class DictTypeModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
     remark: str | None = Field(default=None, description='备注')
 
-    @NotBlank(field_name='dict_name', message='字典名称不能为空')
-    @Size(field_name='dict_name', min_length=0, max_length=100, message='字典类型名称长度不能超过100个字符')
+    @NotBlank(field_name='dict_name', message=I18nMessage('字典名称不能为空', msg_key='validation.dictNameRequired'))
+    @Size(
+        field_name='dict_name',
+        min_length=0,
+        max_length=100,
+        message=I18nMessage('字典类型名称长度不能超过100个字符', msg_key='validation.dictNameLength'),
+    )
     def get_dict_name(self) -> str | None:
         return self.dict_name
 
-    @NotBlank(field_name='dict_type', message='字典类型不能为空')
-    @Size(field_name='dict_type', min_length=0, max_length=100, message='字典类型类型长度不能超过100个字符')
+    @NotBlank(field_name='dict_type', message=I18nMessage('字典类型不能为空', msg_key='validation.dictTypeRequired'))
+    @Size(
+        field_name='dict_type',
+        min_length=0,
+        max_length=100,
+        message=I18nMessage('字典类型类型长度不能超过100个字符', msg_key='validation.dictTypeNameLength'),
+    )
     @Pattern(
         field_name='dict_type',
         regexp='^[a-z][a-z0-9_]*$',
-        message='字典类型必须以字母开头，且只能为（小写字母，数字，下滑线）',
+        message=I18nMessage(
+            '字典类型必须以字母开头，且只能为（小写字母，数字，下滑线）', msg_key='validation.dictTypeFormat'
+        ),
     )
     def get_dict_type(self) -> str | None:
         return self.dict_type
@@ -45,7 +59,23 @@ class DictTypeModel(BaseModel):
         self.get_dict_type()
 
 
-class DictDataModel(BaseModel):
+class DictTypeModel(DictTypeBaseModel):
+    """
+    包含多语言译文的字典类型模型
+    """
+
+    dict_name_i18n: dict[str, str | None] = Field(default_factory=dict, alias='dictNameI18n', description='多语言译文')
+
+    @field_validator('dict_name_i18n', mode='before')
+    @classmethod
+    def validate_dict_name_i18n(cls, value: object) -> dict[str, str | None]:
+        """
+        校验多语言译文
+        """
+        return TranslationUtil.validate(value, 100)
+
+
+class DictDataBaseModel(BaseModel):
     """
     字典数据表对应pydantic模型
     """
@@ -67,22 +97,42 @@ class DictDataModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
     remark: str | None = Field(default=None, description='备注')
 
-    @NotBlank(field_name='dict_label', message='字典标签不能为空')
-    @Size(field_name='dict_label', min_length=0, max_length=100, message='字典标签长度不能超过100个字符')
+    @NotBlank(field_name='dict_label', message=I18nMessage('字典标签不能为空', msg_key='validation.dictLabelRequired'))
+    @Size(
+        field_name='dict_label',
+        min_length=0,
+        max_length=100,
+        message=I18nMessage('字典标签长度不能超过100个字符', msg_key='validation.dictLabelLength'),
+    )
     def get_dict_label(self) -> str | None:
         return self.dict_label
 
-    @NotBlank(field_name='dict_value', message='字典键值不能为空')
-    @Size(field_name='dict_value', min_length=0, max_length=100, message='字典键值长度不能超过100个字符')
+    @NotBlank(field_name='dict_value', message=I18nMessage('字典键值不能为空', msg_key='validation.dictValueRequired'))
+    @Size(
+        field_name='dict_value',
+        min_length=0,
+        max_length=100,
+        message=I18nMessage('字典键值长度不能超过100个字符', msg_key='validation.dictValueLength'),
+    )
     def get_dict_value(self) -> str | None:
         return self.dict_value
 
-    @NotBlank(field_name='dict_type', message='字典类型不能为空')
-    @Size(field_name='dict_type', min_length=0, max_length=100, message='字典类型长度不能超过100个字符')
+    @NotBlank(field_name='dict_type', message=I18nMessage('字典类型不能为空', msg_key='validation.dictTypeRequired'))
+    @Size(
+        field_name='dict_type',
+        min_length=0,
+        max_length=100,
+        message=I18nMessage('字典类型长度不能超过100个字符', msg_key='validation.dictTypeLength'),
+    )
     def get_dict_type(self) -> str | None:
         return self.dict_type
 
-    @Size(field_name='css_class', min_length=0, max_length=100, message='样式属性长度不能超过100个字符')
+    @Size(
+        field_name='css_class',
+        min_length=0,
+        max_length=100,
+        message=I18nMessage('样式属性长度不能超过100个字符', msg_key='validation.cssClassLength'),
+    )
     def get_css_class(self) -> str | None:
         return self.css_class
 
@@ -93,7 +143,25 @@ class DictDataModel(BaseModel):
         self.get_css_class()
 
 
-class DictTypeQueryModel(DateRangeQueryMixin, DictTypeModel):
+class DictDataModel(DictDataBaseModel):
+    """
+    包含多语言译文的字典数据模型
+    """
+
+    dict_label_i18n: dict[str, str | None] = Field(
+        default_factory=dict, alias='dictLabelI18n', description='多语言译文'
+    )
+
+    @field_validator('dict_label_i18n', mode='before')
+    @classmethod
+    def validate_dict_label_i18n(cls, value: object) -> dict[str, str | None]:
+        """
+        校验多语言译文
+        """
+        return TranslationUtil.validate(value, 100)
+
+
+class DictTypeQueryModel(DateRangeQueryMixin, DictTypeBaseModel):
     """
     字典类型管理不分页查询模型
     """
@@ -121,7 +189,7 @@ class DeleteDictTypeModel(BaseModel):
     dict_ids: str = Field(description='需要删除的字典主键')
 
 
-class DictDataQueryModel(DateRangeQueryMixin, DictDataModel):
+class DictDataQueryModel(DateRangeQueryMixin, DictDataBaseModel):
     """
     字典数据管理不分页查询模型
     """

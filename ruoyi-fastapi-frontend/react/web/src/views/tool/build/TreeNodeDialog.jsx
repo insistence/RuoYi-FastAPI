@@ -1,8 +1,14 @@
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
+import { useLocalizedFormErrors } from '@/i18n/form'
 import { renderDialogFooter } from '@/components/DialogFooter'
 import { useEffect } from 'react'
 import { Form, Input, Modal, Select, Space } from 'antd'
 export default function TreeNodeDialog({ open, onClose, onConfirm }) {
+  useI18n()
+
   const [form] = Form.useForm()
+  useLocalizedFormErrors(form)
   useEffect(() => {
     if (open) form.resetFields()
   }, [open])
@@ -10,7 +16,7 @@ export default function TreeNodeDialog({ open, onClose, onConfirm }) {
     <Modal
       footer={renderDialogFooter}
       width="800px"
-      title="添加选项"
+      title={t('tool:addOption')}
       open={open}
       mask={{ closable: false }}
       onCancel={onClose}
@@ -20,7 +26,7 @@ export default function TreeNodeDialog({ open, onClose, onConfirm }) {
           .then((values) => {
             const value = values.dataType === 'number' ? Number(values.value) : values.value
             if (values.dataType === 'number' && !Number.isFinite(value))
-              return form.setFields([{ name: 'value', errors: ['请输入有效数字'] }])
+              return form.setFields([{ name: 'value', errors: [t('tool:enterAValidNumber')] }])
             onConfirm({ label: values.label, value })
           })
           .catch(() => {})
@@ -39,24 +45,24 @@ export default function TreeNodeDialog({ open, onClose, onConfirm }) {
       >
         <Form.Item
           name="label"
-          label="选项名"
-          rules={[{ required: true, message: '请输入选项名' }]}
+          label={t('tool:optionLabel')}
+          rules={[{ required: true, message: t('tool:enterAnOptionLabel') }]}
         >
-          <Input placeholder="请输入选项名" />
+          <Input placeholder={t('tool:enterAnOptionLabel')} />
         </Form.Item>
         <Form.Item
-          label="选项值"
+          label={t('tool:optionValue')}
           required
         >
           <Space.Compact block>
             <Form.Item
               name="value"
               noStyle
-              rules={[{ required: true, message: '请输入选项值' }]}
+              rules={[{ required: true, message: t('tool:enterAnOptionValue') }]}
             >
               <Input
-                aria-label="选项值"
-                placeholder="请输入选项值"
+                aria-label={t('tool:optionValue')}
+                placeholder={t('tool:enterAnOptionValue')}
               />
             </Form.Item>
             <Form.Item
@@ -64,11 +70,11 @@ export default function TreeNodeDialog({ open, onClose, onConfirm }) {
               noStyle
             >
               <Select
-                aria-label="值类型"
+                aria-label={t('tool:valueType')}
                 style={{ width: 100, flexShrink: 0 }}
                 options={[
-                  { label: '字符串', value: 'string' },
-                  { label: '数字', value: 'number' },
+                  { label: t('tool:string'), value: 'string' },
+                  { label: t('tool:number'), value: 'number' },
                 ]}
               />
             </Form.Item>

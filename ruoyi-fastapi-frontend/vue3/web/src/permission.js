@@ -9,7 +9,6 @@ import { isHttp, isPathMatch } from '@/utils/validate'
 import { isRelogin } from '@/utils/request'
 import useUserStore from '@/store/modules/user'
 import useLockStore from '@/store/modules/lock'
-import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
 
 NProgress.configure({ showSpinner: false })
@@ -35,7 +34,6 @@ router.beforeEach(async (to, from) => {
     return authCenterRedirect
   }
   if (getToken()) {
-    to.meta.title && useSettingsStore().setTitle(to.meta.title)
     const isLock = useLockStore().isLock
     if (to.path === '/login') {
       NProgress.done()
@@ -68,6 +66,11 @@ router.beforeEach(async (to, from) => {
         // 重新导航到目标路由，确保动态路由已注册
         return { ...to, replace: true }
       } catch (err) {
+        if (err?.code === 'USER_SESSION_CHANGED') {
+          isRelogin.show = false
+          NProgress.done()
+          return false
+        }
         await useUserStore().logOut()
         ElMessage.error(err)
         return { path: '/' }

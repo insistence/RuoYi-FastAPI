@@ -52,7 +52,7 @@ class FileAclService:
         """
         file_info = await FileInfoDao.get_file_info_detail_by_id(query_db, file_id, file_data_scope_sql)
         if file_info is None:
-            raise ServiceException(message='文件信息不存在或超出数据权限')
+            raise ServiceException(message='文件信息不存在或超出数据权限', msg_key='file.notFoundOrForbidden')
         file_acl_list = await FileAclDao.get_file_acl_list(query_db, file_id)
         subject_ids = cls._group_acl_subject_ids(file_acl_list)
         if file_info.access_type == 'private' and file_info.owner_user_id:
@@ -232,16 +232,20 @@ class FileAclService:
         """
         file_info = await FileInfoDao.get_file_info_by_id_for_update(query_db, file_id, file_data_scope_sql)
         if file_info is None:
-            raise ServiceException(message='文件信息不存在、已删除或超出数据权限')
+            raise ServiceException(
+                message='文件信息不存在、已删除或超出数据权限', msg_key='file.access.fileUnavailable'
+            )
         if file_info.access_type != 'private':
-            raise ServiceException(message='公开文件不支持配置访问权限')
+            raise ServiceException(message='公开文件不支持配置访问权限', msg_key='file.access.publicFile')
         user = current_user.user
         if user is None or not user.user_name:
-            raise ServiceException(message='无法获取当前用户信息')
+            raise ServiceException(message='无法获取当前用户信息', msg_key='auth.currentUserUnavailable')
         current_acl_version = file_info.acl_version or 0
         if save_file_acl.acl_version != current_acl_version:
             await query_db.rollback()
-            raise ServiceException(message='文件权限已被其他用户修改，请刷新后重试')
+            raise ServiceException(
+                message='文件权限已被其他用户修改，请刷新后重试', msg_key='file.access.concurrentChange'
+            )
 
         current_time = TimezoneUtil.utc_now()
         unique_subjects = set()
@@ -250,7 +254,7 @@ class FileAclService:
         for entry in save_file_acl.entries:
             subject_key = (entry.subject_type, entry.subject_id)
             if subject_key in unique_subjects:
-                raise ServiceException(message='同一授权主体不能重复配置')
+                raise ServiceException(message='同一授权主体不能重复配置', msg_key='file.access.duplicateSubject')
             unique_subjects.add(subject_key)
             subject_ids[entry.subject_type].add(entry.subject_id)
             expire_time = entry.expire_time
@@ -258,7 +262,7 @@ class FileAclService:
                 expire_time = TimezoneUtil.to_utc(expire_time)
             normalized_expire_times.append(expire_time)
             if expire_time and expire_time <= current_time:
-                raise ServiceException(message='授权过期时间必须晚于当前时间')
+                raise ServiceException(message='授权过期时间必须晚于当前时间', msg_key='file.access.expiryInPast')
 
         subject_name_map = await FileAclDao.get_acl_subject_name_map(
             query_db,
@@ -267,7 +271,9 @@ class FileAclService:
             dept_data_scope_sql,
         )
         if len(subject_name_map) != len(unique_subjects):
-            raise ServiceException(message='部分授权主体不存在、已停用或超出数据权限')
+            raise ServiceException(
+                message='部分授权主体不存在、已停用或超出数据权限', msg_key='file.access.subjectUnavailable'
+            )
 
         file_acl_list = [
             SysFileAcl(
@@ -320,7 +326,7 @@ class FileAclService:
                 'subjectTypeCounts': subject_type_counts,
             },
         )
-        return CrudResponseModel(is_success=True, message='文件权限保存成功')
+        return CrudResponseModel(is_success=True, message='文件权限保存成功', msg_key='file.access.saved')
 
     @classmethod
     async def batch_save_file_acl_services(
@@ -348,14 +354,14 @@ class FileAclService:
         file_ids = FileUtil.parse_file_ids(batch_save_file_acl.file_ids)
         user = current_user.user
         if user is None or not user.user_name:
-            raise ServiceException(message='无法获取当前用户信息')
+            raise ServiceException(message='无法获取当前用户信息', msg_key='auth.currentUserUnavailable')
         file_infos = await FileInfoDao.get_file_infos_by_ids_for_update(query_db, file_ids, file_data_scope_sql)
         if len(file_infos) != len(file_ids):
             await query_db.rollback()
-            raise ServiceException(message='部分文件不存在、已删除或超出数据权限')
+            raise ServiceException(message='部分文件不存在、已删除或超出数据权限', msg_key='file.selection.unavailable')
         if any(file_info.access_type != 'private' for file_info in file_infos):
             await query_db.rollback()
-            raise ServiceException(message='批量授权仅支持受保护文件')
+            raise ServiceException(message='批量授权仅支持受保护文件', msg_key='file.access.batchRequiresProtected')
 
         current_time = TimezoneUtil.utc_now()
         unique_subjects = set()
@@ -364,14 +370,14 @@ class FileAclService:
         for entry in batch_save_file_acl.entries:
             subject_key = (entry.subject_type, entry.subject_id)
             if subject_key in unique_subjects:
-                raise ServiceException(message='同一授权主体不能重复配置')
+                raise ServiceException(message='同一授权主体不能重复配置', msg_key='file.access.duplicateSubject')
             unique_subjects.add(subject_key)
             subject_ids[entry.subject_type].add(entry.subject_id)
             expire_time = entry.expire_time
             if expire_time:
                 expire_time = TimezoneUtil.to_utc(expire_time)
             if expire_time and expire_time <= current_time:
-                raise ServiceException(message='授权过期时间必须晚于当前时间')
+                raise ServiceException(message='授权过期时间必须晚于当前时间', msg_key='file.access.expiryInPast')
             normalized_entries.append((entry, expire_time))
 
         subject_name_map = await FileAclDao.get_acl_subject_name_map(
@@ -381,7 +387,9 @@ class FileAclService:
             dept_data_scope_sql,
         )
         if len(subject_name_map) != len(unique_subjects):
-            raise ServiceException(message='部分授权主体不存在、已停用或超出数据权限')
+            raise ServiceException(
+                message='部分授权主体不存在、已停用或超出数据权限', msg_key='file.access.subjectUnavailable'
+            )
 
         acl_versions = {file_info.file_id: file_info.acl_version or 0 for file_info in file_infos}
         file_acl_list = [
@@ -441,7 +449,7 @@ class FileAclService:
                     'subjectTypeCounts': subject_type_counts,
                 },
             )
-        return CrudResponseModel(is_success=True, message='文件权限批量保存成功')
+        return CrudResponseModel(is_success=True, message='文件权限批量保存成功', msg_key='file.access.batchSaved')
 
     @staticmethod
     def _group_acl_subject_ids(file_acl_list: list[SysFileAcl]) -> dict[str, set[int]]:

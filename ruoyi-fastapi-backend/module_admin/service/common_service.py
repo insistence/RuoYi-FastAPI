@@ -51,11 +51,15 @@ class CommonService:
         :return: 上传结果
         """
         if access_type not in {'public', 'private'}:
-            raise ServiceException(message='文件访问类型不合法')
+            raise ServiceException(message='文件访问类型不合法', msg_key='file.invalidAccessType')
         if not UploadUtil.check_file_extension(file):
-            raise ServiceException(message='文件类型不合法')
+            raise ServiceException(message='文件类型不合法', msg_key='file.invalidType')
         if file.size is not None and file.size > UploadConfig.MAX_FILE_SIZE:
-            raise ServiceException(message=f'文件大小不能超过{UploadConfig.MAX_FILE_SIZE // 1024 // 1024}MB')
+            raise ServiceException(
+                message=f'文件大小不能超过{UploadConfig.MAX_FILE_SIZE // 1024 // 1024}MB',
+                msg_key='file.sizeLimit',
+                msg_params={'value': str(UploadConfig.MAX_FILE_SIZE // 1024 // 1024)},
+            )
 
         now = TimezoneUtil.to_business_time(TimezoneUtil.utc_now())
         relative_path = Path('upload', now.strftime('%Y'), now.strftime('%m'), now.strftime('%d'))
@@ -75,14 +79,14 @@ class CommonService:
             except FileExistsError:
                 continue
         else:
-            raise ServiceException(message='文件名生成冲突，请重新上传')
+            raise ServiceException(message='文件名生成冲突，请重新上传', msg_key='file.nameConflict')
 
         relative_path_url = relative_path.as_posix()
         storage_key = f'{relative_path_url}/{filename}'
         user = current_user.user
         if user is None:
             UploadUtil.delete_file(filepath)
-            raise ServiceException(message='无法获取当前用户信息')
+            raise ServiceException(message='无法获取当前用户信息', msg_key='auth.currentUserUnavailable')
 
         try:
             file_info = FileInfoModel(
@@ -148,6 +152,7 @@ class CommonService:
                 downloadUrl=download_path,
             ),
             message='上传成功',
+            msg_key='file.uploaded',
         )
 
     @classmethod
@@ -169,7 +174,9 @@ class CommonService:
                     total_size += len(chunk)
                     if total_size > UploadConfig.MAX_FILE_SIZE:
                         raise ServiceException(
-                            message=f'文件大小不能超过{UploadConfig.MAX_FILE_SIZE // 1024 // 1024}MB'
+                            message=f'文件大小不能超过{UploadConfig.MAX_FILE_SIZE // 1024 // 1024}MB',
+                            msg_key='file.sizeLimit',
+                            msg_params={'value': str(UploadConfig.MAX_FILE_SIZE // 1024 // 1024)},
                         )
                     file_hasher.update(chunk)
                     await target_file.write(chunk)
@@ -213,7 +220,7 @@ class CommonService:
                 result='denied',
                 error_message='文件不存在或无权访问',
             )
-            raise ServiceException(message='文件不存在或无权访问')
+            raise ServiceException(message='文件不存在或无权访问', msg_key='file.notFoundOrUnauthorized')
         if file_info.storage_type != 'local' or file_info.access_type not in {'public', 'private'}:
             await cls._enqueue_file_access_log(
                 request,
@@ -223,7 +230,7 @@ class CommonService:
                 result='failed',
                 error_message='文件存储类型或访问类型异常',
             )
-            raise ServiceException(message='文件不存在或无权访问')
+            raise ServiceException(message='文件不存在或无权访问', msg_key='file.notFoundOrUnauthorized')
 
         current_time = TimezoneUtil.utc_now()
         is_expired = (
@@ -250,7 +257,7 @@ class CommonService:
                 result='denied',
                 error_message='文件不存在或无权访问',
             )
-            raise ServiceException(message='文件不存在或无权访问')
+            raise ServiceException(message='文件不存在或无权访问', msg_key='file.notFoundOrUnauthorized')
 
         storage_root = (
             UploadConfig.UPLOAD_PATH if file_info.access_type == 'public' else UploadConfig.PRIVATE_UPLOAD_PATH
@@ -266,7 +273,7 @@ class CommonService:
                 result='failed',
                 error_message='文件不存在或存储路径异常',
             )
-            raise ServiceException(message='文件不存在或无权访问') from exc
+            raise ServiceException(message='文件不存在或无权访问', msg_key='file.notFoundOrUnauthorized') from exc
         try:
             byte_range = FileUtil.parse_byte_range(range_header, filepath.stat().st_size)
         except FileRangeNotSatisfiableException:
@@ -506,7 +513,7 @@ class CommonService:
         try:
             filepath = FilePathUtil.resolve_file_within_root(UploadConfig.DOWNLOAD_PATH, file_name)
         except (FileNotFoundError, ValueError) as exc:
-            raise ServiceException(message='文件名称不合法或文件不存在') from exc
+            raise ServiceException(message='文件名称不合法或文件不存在', msg_key='file.invalidNameOrMissing') from exc
         accept_ranges = not delete
         byte_range = FileUtil.parse_byte_range(range_header if accept_ranges else None, filepath.stat().st_size)
         if delete:
@@ -537,12 +544,12 @@ class CommonService:
         """
         resource_prefix = f'{UploadConfig.UPLOAD_PREFIX.rstrip("/")}/'
         if not resource.startswith(resource_prefix):
-            raise ServiceException(message='资源路径不合法')
+            raise ServiceException(message='资源路径不合法', msg_key='file.invalidResourcePath')
         relative_resource = resource[len(resource_prefix) :]
         try:
             filepath = FilePathUtil.resolve_file_within_root(UploadConfig.UPLOAD_PATH, relative_resource)
         except (FileNotFoundError, ValueError) as exc:
-            raise ServiceException(message='资源路径不合法或文件不存在') from exc
+            raise ServiceException(message='资源路径不合法或文件不存在', msg_key='file.invalidPathOrMissing') from exc
         filename = filepath.name
         if (
             '..' in filename
@@ -551,7 +558,7 @@ class CommonService:
             or not UploadUtil.check_file_random_code(filename)
             or UploadUtil.get_file_extension(filename) not in UploadConfig.DEFAULT_ALLOWED_EXTENSION
         ):
-            raise ServiceException(message='资源文件名称不合法')
+            raise ServiceException(message='资源文件名称不合法', msg_key='file.invalidResourceName')
         byte_range = FileUtil.parse_byte_range(range_header, filepath.stat().st_size)
         return FileDownloadResult(
             data=UploadUtil.generate_file(

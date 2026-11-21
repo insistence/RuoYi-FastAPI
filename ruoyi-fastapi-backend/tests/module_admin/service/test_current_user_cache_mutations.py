@@ -34,6 +34,7 @@ from utils.time_util import TimezoneUtil
         ({'avatar': '/profile/avatar/reader.png'}, {'avatar': '/profile/avatar/reader.png'}),
         ({'dept_id': None}, {'deptId': None, 'dept': None}),
         ({'login_ip': '127.0.0.2'}, {'loginIp': '127.0.0.2'}),
+        ({'locale': 'en-GB'}, {'locale': 'en-GB', 'localeRevision': '1'}),
     ],
 )
 async def test_user_dao_updates_refresh_profile_without_invalidating_other_users(

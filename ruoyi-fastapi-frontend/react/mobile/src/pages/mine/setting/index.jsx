@@ -1,3 +1,6 @@
+import { usePageLocale } from '@/i18n/navigation'
+import { t } from '@/i18n'
+import LanguageSelect from '@/components/LanguageSelect/index.jsx'
 import React, { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
@@ -6,13 +9,17 @@ import { useUserStore } from '@/store'
 import { usePageAuth } from '@/permission'
 import { toast } from '@/utils/common'
 export default function Settings() {
+  usePageLocale()
+
   const allowed = usePageAuth()
   const [busy, setBusy] = useState(false)
   async function logout() {
     if (busy) return
     const answer = await Taro.showModal({
-      title: '提示',
-      content: '确定注销并退出系统吗？',
+      confirmText: t('common:confirm'),
+      cancelText: t('common:cancel'),
+      title: t('common:notice'),
+      content: t('mobile:settings.signOutConfirm'),
     })
     if (!answer.confirm) return
     setBusy(true)
@@ -28,16 +35,17 @@ export default function Settings() {
   return (
     <View className="list-page">
       <View className="bg-white">
+        <LanguageSelect settings />
         {[
-          ['修改密码', 'lock', '/pages/mine/pwd/index'],
-          ['时区设置', 'earth', '/pages/mine/setting/timezone'],
-          ['检查更新', 'refresh'],
-          ['清理缓存', 'delete'],
+          [t('auth:password.title'), 'lock', '/pages/mine/pwd/index'],
+          [t('mobile:timezone.title'), 'earth', '/pages/mine/setting/timezone'],
+          [t('mobile:settings.checkUpdates'), 'refresh'],
+          [t('mobile:settings.clearCache'), 'delete'],
         ].map(([label, icon, url], index) => (
           <View
             key={label}
             className={`flex items-center justify-between px-5 py-4 ${index < 3 ? 'border-b border-gray-100' : ''}`}
-            onClick={() => (url ? Taro.navigateTo({ url }) : toast('模块建设中~'))}
+            onClick={() => (url ? Taro.navigateTo({ url }) : toast(t('mobile:app.comingSoon')))}
           >
             <View className="flex items-center">
               <View className={`i-mdi-${icon} text-xl text-gray-600 mr-3`} />
@@ -54,7 +62,7 @@ export default function Settings() {
           loading={busy}
           onClick={logout}
         >
-          退出登录
+          {t('mobile:settings.signOut')}
         </Button>
       </View>
     </View>

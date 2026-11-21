@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import locale from '../i18n/test-runtime.cjs'
 import { computed, effectScope, nextTick, reactive, ref, watch } from 'vue'
 import { compileScript, parse } from 'vue/compiler-sfc'
 
@@ -18,6 +19,7 @@ const sessionWatch = compiled.scriptSetupAst.find(
     statement.expression.callee.name === 'watch'
 ).expression
 const installWatcher = new Function(
+  't',
   'watch',
   'route',
   'userStore',
@@ -36,6 +38,7 @@ let reopened = 0
 const scope = effectScope()
 scope.run(() =>
   installWatcher(
+    locale.t,
     watch,
     route,
     userStore,

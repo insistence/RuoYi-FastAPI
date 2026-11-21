@@ -1,3 +1,7 @@
+import { useLocalizedText } from '@/i18n/form'
+import { useLocalizedFormErrors } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { TableAction } from '@/components/TableActions'
 import './style.css'
 import { useEffect, useState } from 'react'
@@ -29,8 +33,14 @@ const colors = {
   primary: 'processing',
 }
 export function StateTag({ value, states }) {
+  useI18n()
+
   const state = states[value]
-  return <Tag color={colors[state?.type]}>{state?.label || value || '待同步'}</Tag>
+  return (
+    <Tag color={colors[state?.type]}>
+      {state?.label || value || t('common:pendingSynchronization')}
+    </Tag>
+  )
 }
 export default function JobRuntime({
   open,
@@ -40,6 +50,8 @@ export default function JobRuntime({
   onClose,
   onSyncUpdated,
 }) {
+  useI18n()
+
   const [form] = Form.useForm(),
     [tab, setTab] = useState(initialTab),
     [query, setQuery] = useState({
@@ -49,10 +61,11 @@ export default function JobRuntime({
       executionId,
     }),
     [revision, setRevision] = useState(0)
+  useLocalizedFormErrors(form)
   const [rows, setRows] = useState([]),
     [total, setTotal] = useState(0),
     [loading, setLoading] = useState(false),
-    [error, setError] = useState(''),
+    [error, setError] = useLocalizedText(''),
     [retrying, setRetrying] = useState(null)
   useEffect(() => {
     if (open) {
@@ -95,7 +108,7 @@ export default function JobRuntime({
         )
       } catch (err) {
         if (disposed || current !== version || err.code === 'ERR_CANCELED') return
-        setError('获取记录失败，请刷新重试。')
+        setError((t) => t('monitor:couldNotLoadRecordsRefreshAndTryAgain'))
         needsRefresh = true
       } finally {
         if (!disposed && current === version) {
@@ -133,16 +146,16 @@ export default function JobRuntime({
     }
   }
   const executionColumns = [
-    { title: '任务编号', dataIndex: 'jobId', width: 95 },
-    { width: 150, title: '任务名称', dataIndex: 'jobName', ellipsis: true },
+    { title: t('monitor:job.id'), dataIndex: 'jobId', width: 95 },
+    { width: 150, title: t('monitor:job.name'), dataIndex: 'jobName', ellipsis: true },
     {
-      title: '来源',
+      title: t('common:source'),
       dataIndex: 'source',
       width: 75,
-      render: (value) => (value === 'manual' ? '手动' : '定时'),
+      render: (value) => (value === 'manual' ? t('monitor:manual') : t('monitor:scheduled')),
     },
     {
-      title: '执行状态',
+      title: t('monitor:job.executionStatus'),
       dataIndex: 'status',
       width: 140,
       render: (value) => (
@@ -153,32 +166,32 @@ export default function JobRuntime({
       ),
     },
     {
-      title: '提交时间',
+      title: t('monitor:submittedAt'),
       dataIndex: 'createTime',
       width: 175,
       render: (value) => parseTime(value),
     },
     {
-      title: '耗时',
+      title: t('monitor:job.duration'),
       dataIndex: 'runDurationMs',
       width: 105,
-      render: (value) => (value == null ? '—' : `${value} 毫秒`),
+      render: (value) => (value == null ? '—' : t('monitor:job.valueMs', { value })),
     },
-    { width: 230, title: '执行结果', dataIndex: 'message', ellipsis: true },
+    { width: 230, title: t('monitor:executionResult'), dataIndex: 'message', ellipsis: true },
   ]
   const syncColumns = [
-    { title: '任务编号', dataIndex: 'jobId', width: 95 },
+    { title: t('monitor:job.id'), dataIndex: 'jobId', width: 95 },
     {
       width: 100,
-      title: '配置类型',
+      title: t('monitor:configurationType'),
       dataIndex: 'deleted',
-      render: (value) => (value ? '删除记录' : '任务配置'),
+      render: (value) => (value ? t('monitor:deleteRecord') : t('monitor:taskConfiguration')),
     },
-    { width: 95, title: '最新版本', dataIndex: 'configVersion' },
-    { width: 105, title: '已应用版本', dataIndex: 'appliedVersion' },
+    { width: 95, title: t('monitor:latestVersion'), dataIndex: 'configVersion' },
+    { width: 105, title: t('monitor:appliedVersion'), dataIndex: 'appliedVersion' },
     {
       width: 115,
-      title: '同步状态',
+      title: t('common:syncStatus'),
       dataIndex: 'syncStatus',
       render: (value) => (
         <StateTag
@@ -188,15 +201,20 @@ export default function JobRuntime({
       ),
     },
     {
-      title: '最近生效时间',
+      title: t('monitor:lastAppliedAt'),
       dataIndex: 'appliedTime',
       width: 175,
       render: (value) => parseTime(value),
     },
-    { width: 240, title: '同步错误', dataIndex: 'syncError', ellipsis: true },
+    {
+      width: 240,
+      title: t('monitor:synchronizationError'),
+      dataIndex: 'syncError',
+      ellipsis: true,
+    },
     {
       className: 'ruoyi-actions-cell',
-      title: '操作',
+      title: t('common:actions'),
       width: 100,
       render: (_, row) =>
         row.syncStatus !== 'applied' && (
@@ -206,7 +224,7 @@ export default function JobRuntime({
               disabled={retrying !== null && retrying !== row.jobId}
               onClick={() => retry(row)}
             >
-              重试同步
+              {t('monitor:retrySynchronization')}
             </TableAction>
           </HasPermi>
         ),
@@ -220,11 +238,11 @@ export default function JobRuntime({
   return (
     <Modal
       className="job-dialog"
-      title="任务运行记录"
+      title={t('monitor:taskExecutionHistory')}
       open={open}
       width="min(1140px, calc(100vw - 32px))"
       onCancel={onClose}
-      footer={<Button onClick={onClose}>关闭</Button>}
+      footer={<Button onClick={onClose}>{t('layout:search.close')}</Button>}
     >
       <Tabs
         activeKey={tab}
@@ -234,8 +252,8 @@ export default function JobRuntime({
           setQuery({ ...query, pageNum: 1 })
         }}
         items={[
-          { key: 'executions', label: '执行记录' },
-          { key: 'sync', label: '同步状态' },
+          { key: 'executions', label: t('monitor:job.history') },
+          { key: 'sync', label: t('common:syncStatus') },
         ]}
       />
       <Form
@@ -245,13 +263,13 @@ export default function JobRuntime({
         onFinish={(values) => setQuery({ ...query, jobId: values.jobId || undefined, pageNum: 1 })}
       >
         <Form.Item
-          label="任务编号"
+          label={t('monitor:job.id')}
           name="jobId"
         >
           <InputNumber
             min={1}
             precision={0}
-            placeholder="全部任务"
+            placeholder={t('monitor:allTasks')}
           />
         </Form.Item>
         <Form.Item>
@@ -260,15 +278,17 @@ export default function JobRuntime({
               htmlType="submit"
               type="primary"
             >
-              查询
+              {t('monitor:search')}
             </Button>
-            <Button onClick={() => setRevision((value) => value + 1)}>刷新</Button>
+            <Button onClick={() => setRevision((value) => value + 1)}>
+              {t('layout:tags.refresh')}
+            </Button>
           </Space>
         </Form.Item>
       </Form>
       {query.executionId && tab === 'executions' && (
         <p>
-          本次执行 ID：
+          {t('monitor:currentExecutionId')}
           <Typography.Text
             code
             copyable
@@ -279,7 +299,7 @@ export default function JobRuntime({
             type="link"
             onClick={() => setQuery({ ...query, pageNum: 1, executionId: undefined })}
           >
-            查看该任务全部记录
+            {t('monitor:viewAllExecutionsOfThisTask')}
           </Button>
         </p>
       )}
@@ -293,7 +313,9 @@ export default function JobRuntime({
         role="status"
         aria-live="polite"
       >
-        {loading ? '正在获取记录…' : `共 ${total} 条记录，当前页 ${processing} 条处理中`}
+        {loading
+          ? t('monitor:loadingRecords')
+          : t('monitor:valueRecordsInTotalValueOnThisPageAre', { total, processing })}
       </p>
       <Table
         loading={loading}
@@ -309,25 +331,25 @@ export default function JobRuntime({
                   <Descriptions
                     column={1}
                     items={[
-                      { key: 'id', label: '执行ID', children: row.executionId },
+                      { key: 'id', label: t('monitor:job.executionId'), children: row.executionId },
                       {
                         key: 'message',
-                        label: '完整结果',
-                        children: row.message || '尚无执行结果',
+                        label: t('monitor:fullResult'),
+                        children: row.message || t('monitor:noExecutionResultsYet'),
                       },
                       {
                         key: 'user',
-                        label: '提交者',
-                        children: row.requestedBy || '系统调度',
+                        label: t('monitor:submittedBy'),
+                        children: row.requestedBy || t('monitor:systemScheduler'),
                       },
                       {
                         key: 'scheduled',
-                        label: '计划时间',
-                        children: parseTime(row.scheduledTime) || '等待派发',
+                        label: t('monitor:scheduledTime'),
+                        children: parseTime(row.scheduledTime) || t('common:waitingForDispatch'),
                       },
                       {
                         key: 'end',
-                        label: '结束时间',
+                        label: t('common:endTime'),
                         children: parseTime(row.endTime) || '—',
                       },
                     ]}

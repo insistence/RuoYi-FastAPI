@@ -1,0 +1,38 @@
+{
+  "user": {
+    "male": "男",
+    "female": "女",
+    "nicknameRequired": "用户昵称不能为空",
+    "phoneRequired": "手机号码不能为空",
+    "phoneInvalid": "请输入正确的手机号码",
+    "emailRequired": "邮箱不能为空",
+    "emailInvalid": "请输入正确的邮箱",
+    "nickname": "用户昵称",
+    "nicknamePlaceholder": "请输入昵称",
+    "phone": "手机号码",
+    "phonePlaceholder": "请输入手机号码",
+    "email": "邮箱",
+    "emailPlaceholder": "请输入邮箱",
+    "sex": "性别",
+    "nicknameShort": "昵称",
+    "post": "岗位",
+    "role": "角色",
+    "title": "用户管理"
+  },
+  "management": "系统管理",
+  "role": {
+    "title": "角色管理"
+  },
+  "dept": {
+    "title": "部门管理"
+  },
+  "config": {
+    "title": "配置管理"
+  },
+  "dict": {
+    "title": "字典管理"
+  },
+  "notice": {
+    "title": "通知公告"
+  }
+}

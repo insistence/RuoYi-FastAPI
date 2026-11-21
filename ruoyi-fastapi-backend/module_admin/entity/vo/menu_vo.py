@@ -1,14 +1,16 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_validation_decorator import NotBlank, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from i18n.message import I18nMessage
+from i18n.translation import TranslationUtil
 
 
-class MenuModel(BaseModel):
+class MenuBaseModel(BaseModel):
     """
     菜单表对应pydantic模型
     """
@@ -36,28 +38,48 @@ class MenuModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
     remark: str | None = Field(default=None, description='备注')
 
-    @NotBlank(field_name='menu_name', message='菜单名称不能为空')
-    @Size(field_name='menu_name', min_length=0, max_length=50, message='菜单名称长度不能超过50个字符')
+    @NotBlank(field_name='menu_name', message=I18nMessage('菜单名称不能为空', msg_key='validation.menuNameRequired'))
+    @Size(
+        field_name='menu_name',
+        min_length=0,
+        max_length=50,
+        message=I18nMessage('菜单名称长度不能超过50个字符', msg_key='validation.menuNameLength'),
+    )
     def get_menu_name(self) -> str | None:
         return self.menu_name
 
-    @NotBlank(field_name='order_num', message='显示顺序不能为空')
+    @NotBlank(field_name='order_num', message=I18nMessage('显示顺序不能为空', msg_key='validation.orderRequired'))
     def get_order_num(self) -> int | None:
         return self.order_num
 
-    @Size(field_name='path', min_length=0, max_length=200, message='路由地址长度不能超过200个字符')
+    @Size(
+        field_name='path',
+        min_length=0,
+        max_length=200,
+        message=I18nMessage('路由地址长度不能超过200个字符', msg_key='validation.routePathLength'),
+    )
     def get_path(self) -> str | None:
         return self.path
 
-    @Size(field_name='component', min_length=0, max_length=255, message='组件路径长度不能超过255个字符')
+    @Size(
+        field_name='component',
+        min_length=0,
+        max_length=255,
+        message=I18nMessage('组件路径长度不能超过255个字符', msg_key='validation.componentPathLength'),
+    )
     def get_component(self) -> str | None:
         return self.component
 
-    @NotBlank(field_name='menu_type', message='菜单类型不能为空')
+    @NotBlank(field_name='menu_type', message=I18nMessage('菜单类型不能为空', msg_key='validation.menuTypeRequired'))
     def get_menu_type(self) -> Literal['M', 'C', 'F'] | None:
         return self.menu_type
 
-    @Size(field_name='perms', min_length=0, max_length=100, message='权限标识长度不能超过100个字符')
+    @Size(
+        field_name='perms',
+        min_length=0,
+        max_length=100,
+        message=I18nMessage('权限标识长度不能超过100个字符', msg_key='validation.permissionLength'),
+    )
     def get_perms(self) -> str | None:
         return self.perms
 
@@ -70,7 +92,23 @@ class MenuModel(BaseModel):
         self.get_perms()
 
 
-class MenuQueryModel(DateRangeQueryMixin, MenuModel):
+class MenuModel(MenuBaseModel):
+    """
+    包含多语言译文的菜单模型
+    """
+
+    menu_name_i18n: dict[str, str | None] = Field(default_factory=dict, alias='menuNameI18n', description='多语言译文')
+
+    @field_validator('menu_name_i18n', mode='before')
+    @classmethod
+    def validate_menu_name_i18n(cls, value: object) -> dict[str, str | None]:
+        """
+        校验多语言译文
+        """
+        return TranslationUtil.validate(value, 50)
+
+
+class MenuQueryModel(DateRangeQueryMixin, MenuBaseModel):
     """
     菜单管理不分页查询模型
     """
@@ -88,6 +126,7 @@ class MenuTreeModel(BaseModel):
 
     id: int = Field(description='菜单id')
     label: str = Field(description='菜单名称')
+    label_i18n: dict[str, str] = Field(default_factory=dict, alias='labelI18n', description='菜单名称译文')
     parent_id: int = Field(description='父菜单id')
     children: list['MenuTreeModel'] | None = Field(default=None, description='子菜单树')
 

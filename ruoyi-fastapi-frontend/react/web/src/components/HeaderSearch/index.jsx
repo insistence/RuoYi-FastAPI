@@ -1,3 +1,6 @@
+import { resolveRouteTitle } from '@/i18n'
+import { useI18n } from '@/i18n/adapter'
+import { t } from '@/i18n'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Empty, Input, Modal } from 'antd'
 import { SearchOutlined, EnterOutlined } from '@ant-design/icons'
@@ -8,6 +11,8 @@ import SvgIcon from '@/components/SvgIcon'
 import './style.css'
 
 export default function HeaderSearch() {
+  useI18n()
+
   const routes = usePermissionStore((state) => state.routes),
     navigate = useNavigate()
   const [open, setOpen] = useState(false),
@@ -18,20 +23,20 @@ export default function HeaderSearch() {
   const options = routes
     .filter(
       (route) =>
-        route.meta?.title &&
+        resolveRouteTitle(route) &&
         !route.children?.length &&
         !route.hidden &&
         !/^https?:/.test(route.path)
     )
     .map((route) => ({
       path: routeLocation(route),
-      title: route.meta.title,
+      title: resolveRouteTitle(route),
       icon: route.meta.icon,
       label: [
         ...routes
-          .filter((parent) => parent.meta?.title && route.path.startsWith(parent.path + '/'))
-          .map((parent) => parent.meta.title),
-        route.meta.title,
+          .filter((parent) => resolveRouteTitle(parent) && route.path.startsWith(parent.path + '/'))
+          .map((parent) => resolveRouteTitle(parent)),
+        resolveRouteTitle(route),
       ].join(' / '),
     }))
     .filter(
@@ -54,7 +59,7 @@ export default function HeaderSearch() {
         type="text"
         className="header-search"
         icon={<SearchOutlined />}
-        aria-label="搜索菜单"
+        aria-label={t('layout:searchMenus')}
         onClick={() => {
           setQuery('')
           setActive(0)
@@ -62,7 +67,7 @@ export default function HeaderSearch() {
         }}
       />
       <Modal
-        title="搜索菜单"
+        title={t('layout:searchMenus')}
         open={open}
         footer={null}
         onCancel={() => setOpen(false)}
@@ -75,8 +80,8 @@ export default function HeaderSearch() {
           prefix={<SearchOutlined />}
           allowClear
           size="large"
-          placeholder="搜索菜单名称或路径"
-          aria-label="菜单名称或路径"
+          placeholder={t('layout:searchByMenuNameOrPath')}
+          aria-label={t('layout:menuNameOrPath')}
           value={query}
           role="combobox"
           aria-expanded={open}
@@ -101,14 +106,14 @@ export default function HeaderSearch() {
           }}
         />
         <div className="result-count">
-          找到 <strong>{options.length}</strong> 个菜单
+          {t('layout:found')} <strong>{options.length}</strong> {t('layout:menus')}
         </div>
         <div
           ref={results}
           className="result-wrap"
           id="menu-search-results"
           role="listbox"
-          aria-label="菜单搜索结果"
+          aria-label={t('layout:menuSearchResults')}
         >
           {options.length ? (
             options.map((item, index) => (
@@ -135,7 +140,9 @@ export default function HeaderSearch() {
           ) : (
             <Empty
               className="search-empty"
-              description={query ? '没有找到匹配菜单，请尝试其他关键词' : '暂无可用菜单'}
+              description={
+                query ? t('layout:noMatchingMenusTryAnotherKeyword') : t('layout:noAvailableMenus')
+              }
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )}
@@ -143,13 +150,13 @@ export default function HeaderSearch() {
         <div className="search-footer">
           <span>
             <kbd>↑</kbd>
-            <kbd>↓</kbd> 切换
+            <kbd>↓</kbd> {t('layout:search.navigate')}
           </span>
           <span>
-            <kbd>Enter</kbd> 选择
+            <kbd>Enter</kbd> {t('layout:search.select')}
           </span>
           <span>
-            <kbd>Esc</kbd> 关闭
+            <kbd>Esc</kbd> {t('layout:search.close')}
           </span>
         </div>
       </Modal>

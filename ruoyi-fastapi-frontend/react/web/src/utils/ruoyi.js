@@ -3,11 +3,14 @@
  * Copyright (c) 2019 ruoyi
  */
 
-import { formatBusinessTime, normalizeRangeBoundary } from '@/utils/time'
+import { i18n } from '@/i18n'
+import { formatBusinessTime, formatDisplayTime, normalizeRangeBoundary } from '@/utils/time'
 
 // 日期格式化
 export function parseTime(time, pattern) {
-  return formatBusinessTime(time, pattern)
+  return pattern === undefined
+    ? formatDisplayTime(time, i18n.locale)
+    : formatBusinessTime(time, pattern)
 }
 
 // 表单重置

@@ -2,6 +2,8 @@ from typing import TypeAlias
 
 from pydantic import Field
 
+from i18n.message import I18nMessage
+
 from .base import PluginPayloadModel
 
 
@@ -45,7 +47,11 @@ class PluginCommonPayloadMixin:
         """
         return PluginNotFoundPayload(
             ok=False,
-            message=f'插件不存在：{plugin_id}',
+            message=I18nMessage(
+                f'插件不存在：{plugin_id}',
+                msg_key='plugin.runtime.notFoundNamed',
+                msg_params={'plugin_id': str(plugin_id)},
+            ),
             plugin_id=plugin_id,
             operation=operation,
             dry_run=dry_run,

@@ -10,7 +10,7 @@
     <template #header>
       <div class="drawer-head">
         <el-icon style="color: #5b9bd5; margin-right: 8px"><List /></el-icon>
-        <span class="drawer-head-name">{{ row.dictName }}</span>
+        <span class="drawer-head-name">{{ resolveText(row.dictName, row.dictNameI18n) }}</span>
         <span class="drawer-head-type">{{ row.dictType }}</span>
       </div>
     </template>
@@ -22,7 +22,7 @@
         class="drawer-loading"
       >
         <el-icon class="is-loading"><Loading /></el-icon>
-        <span>加载中...</span>
+        <span>{{ $t('system:loading') }}</span>
       </div>
 
       <!-- 空数据 -->
@@ -31,7 +31,7 @@
         class="drawer-empty"
       >
         <el-icon style="font-size: 36px"><Document /></el-icon>
-        <div>暂无字典数据</div>
+        <div>{{ $t('system:noDictionaryEntries') }}</div>
       </div>
 
       <template v-else>
@@ -43,13 +43,13 @@
           <el-col :span="disabledCount > 0 ? 8 : 12">
             <div class="stat-card">
               <div class="stat-num">{{ dataList.length }}</div>
-              <div class="stat-label">共计条目</div>
+              <div class="stat-label">{{ $t('system:totalEntries') }}</div>
             </div>
           </el-col>
           <el-col :span="disabledCount > 0 ? 8 : 12">
             <div class="stat-card">
               <div class="stat-num success">{{ normalCount }}</div>
-              <div class="stat-label">正常</div>
+              <div class="stat-label">{{ $t('layout:notices.active') }}</div>
             </div>
           </el-col>
           <el-col
@@ -58,7 +58,7 @@
           >
             <div class="stat-card">
               <div class="stat-num danger">{{ disabledCount }}</div>
-              <div class="stat-label">停用</div>
+              <div class="stat-label">{{ $t('system:disabled') }}</div>
             </div>
           </el-col>
         </el-row>
@@ -70,29 +70,29 @@
           class="dict-item"
         >
           <div class="dict-cell">
-            <div class="dict-cell-key">标签</div>
+            <div class="dict-cell-key">{{ $t('system:label') }}</div>
             <div class="dict-cell-val">
               <el-tag
                 v-if="item.listClass && item.listClass !== 'default'"
                 :type="item.listClass === 'primary' ? undefined : item.listClass"
                 size="small"
-                >{{ item.dictLabel }}</el-tag
+                >{{ resolveText(item.dictLabel, item.dictLabelI18n) }}</el-tag
               >
-              <span v-else>{{ item.dictLabel }}</span>
+              <span v-else>{{ resolveText(item.dictLabel, item.dictLabelI18n) }}</span>
             </div>
           </div>
           <div class="dict-cell">
-            <div class="dict-cell-key">键值</div>
+            <div class="dict-cell-key">{{ $t('system:value') }}</div>
             <div class="dict-cell-val">{{ item.dictValue }}</div>
           </div>
           <div class="dict-cell">
-            <div class="dict-cell-key">状态</div>
+            <div class="dict-cell-key">{{ $t('system:status') }}</div>
             <div class="dict-cell-val">
               <el-tag
                 :type="item.status === '0' ? 'success' : 'danger'"
                 size="small"
               >
-                {{ item.status === '0' ? '正常' : '停用' }}
+                {{ item.status === '0' ? $t('layout:notices.active') : $t('system:disabled') }}
               </el-tag>
             </div>
           </div>
@@ -103,6 +103,7 @@
 </template>
 
 <script setup>
+import { resolveText } from '@/i18n/adapter'
 import { listData } from '@/api/system/dict/data'
 
 const props = defineProps({

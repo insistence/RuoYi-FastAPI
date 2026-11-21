@@ -3,12 +3,12 @@
     v-loading="loading"
     class="plugin-frame"
     :aria-busy="loading"
-    element-loading-text="正在加载插件，请稍候…"
+    :element-loading-text="$t('pluginAdmin:interface.loadingPlugin')"
   >
     <el-result
       v-if="error"
       icon="warning"
-      title="插件暂时无法打开"
+      :title="$t('pluginAdmin:interface.thePluginIsCurrentlyUnavailable')"
       :sub-title="error"
       role="alert"
     >
@@ -17,7 +17,7 @@
           type="primary"
           :disabled="!userStore.token"
           @click="openPlugin"
-          >重新加载</el-button
+          >{{ $t('pluginAdmin:interface.reload') }}</el-button
         >
       </template>
     </el-result>
@@ -28,7 +28,7 @@
           size="small"
           :disabled="loading || !frameSrc"
           @click="refreshPlugin"
-          >刷新插件</el-button
+          >{{ $t('pluginAdmin:interface.refreshPlugin') }}</el-button
         >
       </div>
       <iframe
@@ -39,13 +39,15 @@
         :title="title"
         class="plugin-frame__content"
         referrerpolicy="same-origin"
-        @error="fail('插件页面加载失败，请重试')"
+        @error="fail($t('pluginAdmin:bridge.pageFailed'))"
       />
     </template>
   </section>
 </template>
 
 <script setup name="PluginFrame">
+import { localeState, t } from '@/i18n/adapter'
+
 import {
   computed,
   getCurrentInstance,
@@ -83,7 +85,9 @@ const frameSrc = ref('')
 const frameKey = ref(0)
 const loading = ref(false)
 const error = ref('')
-const title = computed(() => String(route.value.meta.title || '插件应用'))
+const title = computed(() =>
+  String(route.value.meta.title || t('pluginAdmin:interface.pluginApplication'))
+)
 let bridge = null
 let session = null
 let generation = 0
@@ -103,7 +107,7 @@ function preferences() {
           : 'light',
       primary: settingsStore.theme,
     },
-    language: document.documentElement.lang || 'zh-CN',
+    language: localeState.locale,
     timeZone: getDisplayTimezone(),
   }
 }
@@ -130,6 +134,39 @@ function cleanup(logout = false) {
   loading.value = false
 }
 
+function translateBridgeMessage(code, fallback) {
+  switch (code) {
+    case 'notReady':
+      return t('pluginAdmin:bridge.notReady')
+    case 'reloadLimit':
+      return t('pluginAdmin:bridge.reloadLimit')
+    case 'rateLimited':
+      return t('pluginAdmin:bridge.rateLimited')
+    case 'streamsUnsupported':
+      return t('pluginAdmin:bridge.streamsUnsupported')
+    case 'connectionLimit':
+      return t('pluginAdmin:bridge.connectionLimit')
+    case 'timeout':
+      return t('pluginAdmin:bridge.timeout')
+    case 'downloadLimit':
+      return t('pluginAdmin:bridge.downloadLimit')
+    case 'streamLimit':
+      return t('pluginAdmin:bridge.streamLimit')
+    case 'eventCancelled':
+      return t('pluginAdmin:bridge.eventCancelled')
+    case 'streamClosed':
+      return t('pluginAdmin:bridge.streamClosed')
+    case 'requestFailed':
+      return t('pluginAdmin:bridge.requestFailed')
+    case 'sessionChanged':
+      return t('pluginAdmin:bridge.sessionChanged')
+    case 'pageFailed':
+      return t('pluginAdmin:bridge.pageFailed')
+    default:
+      return fallback
+  }
+}
+
 function fail(message) {
   cleanup()
   error.value = message
@@ -142,7 +179,8 @@ function scheduleRenewal(ticket) {
   // 续期请求挂起或标签页休眠时，仍按会话过期时间销毁页面。
   expiryTimer = setTimeout(
     () => {
-      if (ticket === generation) fail('插件会话已过期，请重新加载')
+      if (ticket === generation)
+        fail(t('pluginAdmin:interface.thePluginSessionHasExpiredReloadThePage'))
     },
     Math.max(0, remaining)
   )
@@ -172,7 +210,8 @@ async function loadSession(ticket, renew = false) {
     if (!active || ticket !== generation || !userStore.token || controller.signal.aborted) return
     const nextSession = validatePluginSession(response.data, pluginId, base)
     if (renew) {
-      if (!session || session.expiresAt <= Date.now()) throw new Error('插件会话已过期')
+      if (!session || session.expiresAt <= Date.now())
+        throw new Error(t('system:interface.pluginSessionHasExpired'))
       bridge?.setSession(nextSession)
       session = nextSession
     } else {
@@ -185,6 +224,7 @@ async function loadSession(ticket, renew = false) {
       bridge = createPluginHostBridge({
         pluginId,
         session,
+        translate: translateBridgeMessage,
         getTarget: () => frameRef.value?.contentWindow,
         request,
         stream: createPluginSseTransport({
@@ -192,6 +232,7 @@ async function loadSession(ticket, renew = false) {
           shouldEncryptRequest,
           serializeParams: tansParams,
           getTimezone: getDisplayTimezone,
+          getLocale: () => localeState.locale,
         }),
         getContext: () => ({ ...preferences(), route: currentPluginRoute() }),
         onReady: () => {
@@ -211,13 +252,18 @@ async function loadSession(ticket, renew = false) {
         },
       })
       handshakeTimer = setTimeout(() => {
-        if (ticket === generation) fail('插件连接超时，请重新加载')
+        if (ticket === generation)
+          fail(t('pluginAdmin:interface.pluginConnectionTimedOutReloadThePage'))
       }, 15000)
     }
     scheduleRenewal(ticket)
   } catch {
     if (ticket === generation && !controller.signal.aborted) {
-      fail(renew ? '插件会话续期失败，请重新加载' : '无法建立插件会话，请确认权限后重试')
+      fail(
+        renew
+          ? t('pluginAdmin:interface.failedToRenewThePluginSessionReloadThePage')
+          : t('pluginAdmin:interface.unableToCreateAPluginSessionCheckYourPermissionsAnd')
+      )
     }
   } finally {
     if (sessionRequest === controller) sessionRequest = null
@@ -229,7 +275,7 @@ function openPlugin() {
   error.value = ''
   if (!active) return
   if (!userStore.token) {
-    error.value = '登录状态已失效，请重新登录'
+    error.value = t('pluginAdmin:interface.yourSessionHasExpiredSignInAgain')
     return
   }
   loading.value = true
@@ -243,7 +289,7 @@ function refreshPlugin() {
 watch([() => route.value.meta.pluginId, () => userStore.token], () => {
   if (!userStore.token) {
     cleanup(true)
-    error.value = '登录状态已失效，请重新登录'
+    error.value = t('pluginAdmin:interface.yourSessionHasExpiredSignInAgain')
   } else if (active) openPlugin()
 })
 watch(preferences, () => bridge?.updatePreferences())
@@ -252,21 +298,21 @@ watch(
   () => bridge?.updateRoute(currentPluginRoute())
 )
 
-// Vue 2 宿主主题和语言还可能由 DOM 切换，同步这些非响应式偏好。
-let languageObserver
+// 主题状态保存在根元素的属性中，变更时通知插件。
+let themeObserver
 function activate() {
   if (active) return
   active = true
-  languageObserver = new MutationObserver(() => bridge?.updatePreferences())
-  languageObserver.observe(document.documentElement, {
+  themeObserver = new MutationObserver(() => bridge?.updatePreferences())
+  themeObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['lang', 'class', 'data-theme'],
+    attributeFilter: ['class', 'data-theme'],
   })
   openPlugin()
 }
 function deactivate() {
   active = false
-  languageObserver?.disconnect()
+  themeObserver?.disconnect()
   cleanup()
 }
 onMounted(activate)

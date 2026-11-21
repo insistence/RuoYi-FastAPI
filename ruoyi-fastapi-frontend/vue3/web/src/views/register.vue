@@ -4,16 +4,20 @@
       ref="registerRef"
       :model="registerForm"
       :rules="registerRules"
+      :validate-on-rule-change="false"
       class="register-form"
     >
-      <h3 class="title">{{ title }}</h3>
+      <div class="auth-heading">
+        <h3 class="title">{{ title }}</h3>
+        <LanguageSelect />
+      </div>
       <el-form-item prop="username">
         <el-input
           v-model="registerForm.username"
           type="text"
           size="large"
           auto-complete="off"
-          placeholder="账号"
+          :placeholder="$t('auth:login.username')"
         >
           <template #prefix
             ><svg-icon
@@ -31,7 +35,7 @@
           type="password"
           size="large"
           auto-complete="off"
-          placeholder="密码"
+          :placeholder="$t('auth:login.password')"
           @keyup.enter="handleRegister"
         >
           <template #prefix
@@ -47,7 +51,7 @@
           type="password"
           size="large"
           auto-complete="off"
-          placeholder="确认密码"
+          :placeholder="$t('auth:register.confirmPassword')"
           @keyup.enter="handleRegister"
         >
           <template #prefix
@@ -65,7 +69,7 @@
           size="large"
           v-model="registerForm.code"
           auto-complete="off"
-          placeholder="验证码"
+          :placeholder="$t('auth:login.code')"
           style="width: 63%"
           @keyup.enter="handleRegister"
         >
@@ -78,6 +82,7 @@
         <div class="register-code">
           <img
             :src="codeUrl"
+            :alt="$t('auth:captcha.refresh')"
             @click="getCode"
             class="register-code-img"
           />
@@ -91,14 +96,14 @@
           style="width: 100%"
           @click.prevent="handleRegister"
         >
-          <span v-if="!loading">注 册</span>
-          <span v-else>注 册 中...</span>
+          <span v-if="!loading">{{ $t('auth:register.submit') }}</span>
+          <span v-else>{{ $t('auth:register.submitting') }}</span>
         </el-button>
         <div style="float: right">
           <router-link
             class="link-type"
             :to="'/login'"
-            >使用已有账户登录</router-link
+            >{{ $t('auth:register.signIn') }}</router-link
           >
         </div>
       </el-form-item>
@@ -111,6 +116,8 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
+import { useLocaleForm } from '@/composables/useLocaleForm'
 import { ElMessageBox } from 'element-plus'
 import { getCodeImg, register } from '@/api/login'
 import defaultSettings from '@/settings'
@@ -119,7 +126,8 @@ import { usePasswordRule } from '@/utils/passwordRule'
 const title = import.meta.env.VITE_APP_TITLE
 const footerContent = defaultSettings.footerContent
 const router = useRouter()
-const { proxy } = getCurrentInstance()
+const registerRef = ref(null)
+useLocaleForm(registerRef)
 const { registerPwdValidator } = usePasswordRule()
 
 const registerForm = ref({
@@ -132,43 +140,44 @@ const registerForm = ref({
 
 const equalToPassword = (rule, value, callback) => {
   if (registerForm.value.password !== value) {
-    callback(new Error('两次输入的密码不一致'))
+    callback(new Error(t('auth:register.passwordMismatch')))
   } else {
     callback()
   }
 }
 
-const registerRules = {
+const registerRules = computed(() => ({
   username: [
-    { required: true, trigger: 'blur', message: '请输入您的账号' },
-    { min: 2, max: 20, message: '用户账号长度必须介于 2 和 20 之间', trigger: 'blur' },
+    { required: true, trigger: 'blur', message: t('auth:login.usernameRequired') },
+    {
+      min: 2,
+      max: 20,
+      message: t('auth:register.usernameLength', { min: 2, max: 20 }),
+      trigger: 'blur',
+    },
   ],
   confirmPassword: [
-    { required: true, trigger: 'blur', message: '请再次输入您的密码' },
+    { required: true, trigger: 'blur', message: t('auth:register.confirmRequired') },
     { required: true, validator: equalToPassword, trigger: 'blur' },
   ],
-  code: [{ required: true, trigger: 'change', message: '请输入验证码' }],
-}
+  code: [{ required: true, trigger: 'change', message: t('auth:login.codeRequired') }],
+}))
 
 const codeUrl = ref('')
 const loading = ref(false)
 const captchaEnabled = ref(true)
 
 function handleRegister() {
-  proxy.$refs.registerRef.validate((valid) => {
+  registerRef.value.validate((valid) => {
     if (valid) {
       loading.value = true
       register(registerForm.value)
         .then((res) => {
           const username = registerForm.value.username
-          ElMessageBox.alert(
-            "<font color='red'>恭喜你，您的账号 " + username + ' 注册成功！</font>',
-            '系统提示',
-            {
-              dangerouslyUseHTMLString: true,
-              type: 'success',
-            }
-          )
+          ElMessageBox.alert(t('auth:register.success', { username }), t('common:notice'), {
+            confirmButtonText: t('common:confirm'),
+            type: 'success',
+          })
             .then(() => {
               router.push('/login')
             })
@@ -176,7 +185,7 @@ function handleRegister() {
         })
         .catch(() => {
           loading.value = false
-          if (captchaEnabled) {
+          if (captchaEnabled.value) {
             getCode()
           }
         })
@@ -206,16 +215,28 @@ getCode()
   background-image: url('../assets/images/login-background.jpg');
   background-size: cover;
 }
-.title {
-  margin: 0px auto 30px auto;
-  text-align: center;
+.auth-heading {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  align-items: start;
+  column-gap: 8px;
+  margin-bottom: 24px;
   color: #707070;
+}
+.title {
+  grid-column: 2;
+  align-self: center;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .register-form {
   border-radius: 6px;
   background: #ffffff;
   width: 400px;
+  max-width: calc(100% - 32px);
   padding: 25px 25px 5px 25px;
   .el-input {
     height: 40px;

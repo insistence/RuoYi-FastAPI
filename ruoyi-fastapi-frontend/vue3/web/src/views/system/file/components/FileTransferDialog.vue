@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    :title="`转移文件 - ${fileName}`"
+    :title="$t('files:transferFileValue', { fileName: fileName })"
     v-model="visible"
     width="620px"
     append-to-body
@@ -9,10 +9,11 @@
       ref="formRef"
       :model="form"
       :rules="rules"
+      :validate-on-rule-change="false"
       label-width="100px"
     >
       <el-form-item
-        label="新所有者"
+        :label="$t('files:newOwner')"
         prop="ownerUserId"
       >
         <el-select
@@ -24,7 +25,7 @@
           :remote-method="searchUsers"
           @visible-change="(visible) => visible && searchUsers('')"
           @change="handleUserChange"
-          placeholder="输入用户名称搜索"
+          :placeholder="$t('files:searchByUsername')"
           style="width: 100%"
         >
           <el-option
@@ -36,7 +37,7 @@
         </el-select>
       </el-form-item>
       <el-form-item
-        label="所属部门"
+        :label="$t('system:department')"
         prop="deptId"
       >
         <el-tree-select
@@ -44,7 +45,7 @@
           :data="deptOptions"
           :props="{ value: 'id', label: 'label', children: 'children' }"
           value-key="id"
-          placeholder="请选择所属部门"
+          :placeholder="$t('files:selectADepartmentLabel')"
           filterable
           clearable
           check-strictly
@@ -52,22 +53,22 @@
           style="width: 100%"
         />
       </el-form-item>
-      <el-form-item label="上传人权限">
+      <el-form-item :label="$t('files:uploaderPermissions')">
         <el-switch
           v-model="form.retainUploaderAccess"
-          active-text="保留"
-          inactive-text="移除"
+          :active-text="$t('files:retain')"
+          :inactive-text="$t('files:remove')"
         />
         <div class="form-tip">
           {{
             form.retainUploaderAccess
-              ? '原上传人继续拥有内置下载权限，匹配的显式拒绝仍可覆盖。'
-              : '原上传人不再因上传身份获得下载权限，上传记录仍会保留。'
+              ? $t('files:theOriginalUploaderKeepsBuiltInDownloadPermissionAMatching')
+              : $t('files:theOriginalUploaderLosesDownloadPermissionBasedOnUploaderStatus')
           }}
         </div>
       </el-form-item>
       <el-form-item
-        label="转移原因"
+        :label="$t('files:transferReason')"
         prop="reason"
       >
         <el-input
@@ -76,7 +77,7 @@
           :rows="3"
           maxlength="500"
           show-word-limit
-          placeholder="请输入转移原因"
+          :placeholder="$t('files:enterATransferReason')"
         />
       </el-form-item>
     </el-form>
@@ -87,19 +88,22 @@
           :loading="saving"
           @click="submit"
         >
-          确 定
-        </el-button>
-        <el-button @click="visible = false">取 消</el-button>
+          {{ $t('system:confirm') }}</el-button
+        >
+        <el-button @click="visible = false">{{ $t('system:cancel') }}</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
+import { useLocaleForm } from '@/composables/useLocaleForm'
 import { getFileAclDeptTree, searchFileAclSubjects, transferFile } from '@/api/system/file'
 
 const emit = defineEmits(['refresh'])
 const { proxy } = getCurrentInstance()
+useLocaleForm(computed(() => proxy.$refs.formRef))
 const visible = ref(false)
 const saving = ref(false)
 const userLoading = ref(false)
@@ -115,15 +119,41 @@ const form = reactive({
   reason: undefined,
 })
 const rules = {
-  ownerUserId: [{ required: true, message: '请选择新所有者', trigger: 'change' }],
-  deptId: [{ required: true, message: '请选择所属部门', trigger: 'change' }],
-  reason: [{ required: true, message: '请输入转移原因', trigger: 'blur' }],
+  ownerUserId: [
+    {
+      required: true,
+      get message() {
+        return t('files:selectANewOwner')
+      },
+      trigger: 'change',
+    },
+  ],
+  deptId: [
+    {
+      required: true,
+      get message() {
+        return t('files:selectADepartmentLabel')
+      },
+      trigger: 'change',
+    },
+  ],
+  reason: [
+    {
+      required: true,
+      get message() {
+        return t('files:enterATransferReason')
+      },
+      trigger: 'blur',
+    },
+  ],
 }
 
 function open(row, selectedIds) {
   const isSingle = row?.fileId
   fileIds.value = isSingle ? row.fileId : selectedIds.join(',')
-  fileName.value = isSingle ? row.originalName : `${selectedIds.length}个文件`
+  fileName.value = isSingle
+    ? row.originalName
+    : t('files:valueFiles', { length: selectedIds.length })
   Object.assign(form, {
     ownerUserId: undefined,
     deptId: undefined,
@@ -165,7 +195,7 @@ function submit() {
       .then(() => {
         visible.value = false
         emit('refresh')
-        proxy.$modal.msgSuccess('文件转移成功')
+        proxy.$modal.msgSuccess(t('files:filesTransferredSuccessfully'))
       })
       .finally(() => {
         saving.value = false

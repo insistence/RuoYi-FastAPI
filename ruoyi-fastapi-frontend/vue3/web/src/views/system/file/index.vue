@@ -24,8 +24,8 @@
           @click="handleAcl()"
           v-hasPermi="['system:file:edit']"
         >
-          授权
-        </el-button>
+          {{ $t('files:permissions') }}</el-button
+        >
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -36,8 +36,8 @@
           @click="handleTransfer()"
           v-hasPermi="['system:file:transfer']"
         >
-          转移
-        </el-button>
+          {{ $t('files:transfer') }}</el-button
+        >
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -48,8 +48,8 @@
           @click="handleRestore()"
           v-hasPermi="['system:file:restore']"
         >
-          恢复
-        </el-button>
+          {{ $t('components:restore') }}</el-button
+        >
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -60,13 +60,13 @@
           @click="handlePurge()"
           v-hasPermi="['system:file:purge']"
         >
-          清理
-        </el-button>
+          {{ $t('files:deletePermanently') }}</el-button
+        >
       </el-col>
       <el-col :span="1.5">
         <el-tooltip
           :disabled="!selectedReferencedCount"
-          content="所选文件存在业务引用，请先解除引用"
+          :content="$t('files:selectedFilesAreReferencedRemoveTheirReferencesFirst')"
           placement="top"
         >
           <span>
@@ -78,8 +78,8 @@
               @click="handleDelete()"
               v-hasPermi="['system:file:remove']"
             >
-              删除
-            </el-button>
+              {{ $t('system:delete') }}</el-button
+            >
           </span>
         </el-tooltip>
       </el-col>
@@ -91,8 +91,8 @@
           @click="retentionPolicyDrawerRef?.open()"
           v-hasPermi="['system:file:edit']"
         >
-          策略
-        </el-button>
+          {{ $t('files:policy') }}</el-button
+        >
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -102,8 +102,8 @@
           @click="reconcileDrawerRef?.open()"
           v-hasPermi="['system:file:reconcile']"
         >
-          对账
-        </el-button>
+          {{ $t('files:reconciliation') }}</el-button
+        >
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -113,8 +113,8 @@
           @click="retentionReminderDrawerRef?.open()"
           v-hasPermi="['system:file:list']"
         >
-          提醒
-        </el-button>
+          {{ $t('files:reminders') }}</el-button
+        >
       </el-col>
       <right-toolbar
         v-model:showSearch="showSearch"
@@ -173,6 +173,7 @@
 </template>
 
 <script setup name="File">
+import { t } from '@/i18n/adapter'
 import {
   delFile,
   getFile,
@@ -323,21 +324,23 @@ function handleAudit(row) {
 function handleDelete(row) {
   const isSingle = row?.fileId
   if (isSingle && row.referenceCount > 0) {
-    proxy.$modal.msgWarning('文件仍被业务引用，请先解除引用后再删除')
+    proxy.$modal.msgWarning(t('files:thisFileIsStillReferencedRemoveItsReferencesBeforeDeleting'))
     return
   }
   if (!isSingle && selectedReferencedCount.value > 0) {
-    proxy.$modal.msgWarning('所选文件存在业务引用，请先解除引用后再删除')
+    proxy.$modal.msgWarning(
+      t('files:selectedFilesAreReferencedRemoveTheirReferencesBeforeDeletingThem')
+    )
     return
   }
   const fileIds = isSingle ? row.fileId : ids.value
-  const fileName = isSingle ? row.originalName : `${ids.value.length}个文件`
+  const fileName = isSingle ? row.originalName : t('files:valueFiles', { length: ids.value.length })
   proxy.$modal
-    .confirm(`是否确认将文件“${fileName}”移入回收站?`)
+    .confirm(t('files:moveValueToTheRecycleBin', { fileName }))
     .then(() => delFile(fileIds))
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('文件已移入回收站')
+      proxy.$modal.msgSuccess(t('files:fileMovedToRecycleBin'))
     })
     .catch(() => {})
 }
@@ -346,13 +349,13 @@ function handleDelete(row) {
 function handleRestore(row) {
   const isSingle = row?.fileId
   const fileIds = isSingle ? row.fileId : ids.value
-  const fileName = isSingle ? row.originalName : `${ids.value.length}个文件`
+  const fileName = isSingle ? row.originalName : t('files:valueFiles', { length: ids.value.length })
   proxy.$modal
-    .confirm(`是否确认恢复文件“${fileName}”?`)
+    .confirm(t('files:restoreValue', { fileName }))
     .then(() => restoreFile(fileIds))
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('文件恢复成功')
+      proxy.$modal.msgSuccess(t('files:fileRestoredSuccessfully'))
     })
     .catch(() => {})
 }
@@ -361,13 +364,13 @@ function handleRestore(row) {
 function handlePurge(row) {
   const isSingle = row?.fileId
   const fileIds = isSingle ? row.fileId : ids.value.join(',')
-  const fileName = isSingle ? row.originalName : `${ids.value.length}个文件`
+  const fileName = isSingle ? row.originalName : t('files:valueFiles', { length: ids.value.length })
   proxy.$modal
-    .confirm(`永久清理后无法恢复，是否确认清理文件“${fileName}”?`)
+    .confirm(t('files:permanentlyDeleteValueThisCannotBeUndone', { fileName }))
     .then(() => purgeFile(fileIds))
     .then(() => {
       getList()
-      proxy.$modal.msgSuccess('文件已永久清理')
+      proxy.$modal.msgSuccess(t('files:filePermanentlyDeleted'))
     })
     .catch(() => {})
 }

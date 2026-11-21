@@ -1,3 +1,4 @@
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.support import (
     PluginDocumentationBuilder,
@@ -52,4 +53,6 @@ class PluginToolUseCase:
 
             return PluginDocumentationBuilder.build_payload(plugin_id, discovered_plugin)
         except Exception as exc:
-            return PluginRuntimePayloadBuilder.build_exception_payload('插件文档生成失败', exc)
+            return PluginRuntimePayloadBuilder.build_exception_payload(
+                I18nMessage('插件文档生成失败', msg_key='plugin.runtime.docs.failed'), exc
+            )

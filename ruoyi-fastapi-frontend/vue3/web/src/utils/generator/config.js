@@ -1,3 +1,5 @@
+import { translateMessage } from '../../i18n/message.mjs'
+
 export const formConf = {
   formRef: 'formRef',
   formModel: 'formData',
@@ -13,11 +15,15 @@ export const formConf = {
 
 export const inputComponents = [
   {
-    label: '单行文本',
+    get label() {
+      return translateMessage('tools:builder.fields.singleLine', '单行文本')
+    },
     tag: 'el-input',
     tagIcon: 'input',
     type: 'text',
-    placeholder: '请输入',
+    get placeholder() {
+      return translateMessage('tools:builder.fields.enter', '请输入')
+    },
     defaultValue: undefined,
     span: 24,
     labelWidth: null,
@@ -37,11 +43,15 @@ export const inputComponents = [
     document: 'https://element-plus.org/zh-CN/component/input',
   },
   {
-    label: '多行文本',
+    get label() {
+      return translateMessage('tools:builder.fields.multiLine', '多行文本')
+    },
     tag: 'el-input',
     tagIcon: 'textarea',
     type: 'textarea',
-    placeholder: '请输入',
+    get placeholder() {
+      return translateMessage('tools:builder.fields.enter', '请输入')
+    },
     defaultValue: undefined,
     span: 24,
     labelWidth: null,
@@ -60,11 +70,15 @@ export const inputComponents = [
     document: 'https://element-plus.org/zh-CN/component/input',
   },
   {
-    label: '密码',
+    get label() {
+      return translateMessage('tools:builder.fields.password', '密码')
+    },
     tag: 'el-input',
     tagIcon: 'password',
     type: 'password',
-    placeholder: '请输入',
+    get placeholder() {
+      return translateMessage('tools:builder.fields.enter', '请输入')
+    },
     defaultValue: undefined,
     span: 24,
     'show-password': true,
@@ -85,7 +99,9 @@ export const inputComponents = [
     document: 'https://element-plus.org/zh-CN/component/input',
   },
   {
-    label: '计数器',
+    get label() {
+      return translateMessage('tools:builder.fields.number', '计数器')
+    },
     tag: 'el-input-number',
     tagIcon: 'number',
     placeholder: '',
@@ -108,10 +124,14 @@ export const inputComponents = [
 
 export const selectComponents = [
   {
-    label: '下拉选择',
+    get label() {
+      return translateMessage('tools:builder.fields.select', '下拉选择')
+    },
     tag: 'el-select',
     tagIcon: 'select',
-    placeholder: '请选择',
+    get placeholder() {
+      return translateMessage('tools:builder.fields.choose', '请选择')
+    },
     defaultValue: undefined,
     span: 24,
     labelWidth: null,
@@ -123,11 +143,15 @@ export const selectComponents = [
     multiple: false,
     options: [
       {
-        label: '选项一',
+        get label() {
+          return translateMessage('tools:builder.fields.optionOne', '选项一')
+        },
         value: 1,
       },
       {
-        label: '选项二',
+        get label() {
+          return translateMessage('tools:builder.fields.optionTwo', '选项二')
+        },
         value: 2,
       },
     ],
@@ -136,10 +160,14 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/select',
   },
   {
-    label: '级联选择',
+    get label() {
+      return translateMessage('tools:builder.fields.cascader', '级联选择')
+    },
     tag: 'el-cascader',
     tagIcon: 'cascader',
-    placeholder: '请选择',
+    get placeholder() {
+      return translateMessage('tools:builder.fields.choose', '请选择')
+    },
     defaultValue: [],
     span: 24,
     labelWidth: null,
@@ -158,12 +186,16 @@ export const selectComponents = [
       {
         id: 1,
         value: 1,
-        label: '选项1',
+        get label() {
+          return translateMessage('tools:builder.fields.firstOption', '选项1')
+        },
         children: [
           {
             id: 2,
             value: 2,
-            label: '选项1-1',
+            get label() {
+              return translateMessage('tools:builder.fields.nestedOption', '选项1-1')
+            },
           },
         ],
       },
@@ -178,7 +210,9 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/cascader',
   },
   {
-    label: '单选框组',
+    get label() {
+      return translateMessage('tools:builder.fields.radio', '单选框组')
+    },
     tag: 'el-radio-group',
     tagIcon: 'radio',
     defaultValue: 0,
@@ -192,11 +226,15 @@ export const selectComponents = [
     required: true,
     options: [
       {
-        label: '选项一',
+        get label() {
+          return translateMessage('tools:builder.fields.optionOne', '选项一')
+        },
         value: 1,
       },
       {
-        label: '选项二',
+        get label() {
+          return translateMessage('tools:builder.fields.optionTwo', '选项二')
+        },
         value: 2,
       },
     ],
@@ -205,7 +243,9 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/radio',
   },
   {
-    label: '多选框组',
+    get label() {
+      return translateMessage('tools:builder.fields.checkbox', '多选框组')
+    },
     tag: 'el-checkbox-group',
     tagIcon: 'checkbox',
     defaultValue: [],
@@ -219,11 +259,15 @@ export const selectComponents = [
     required: true,
     options: [
       {
-        label: '选项一',
+        get label() {
+          return translateMessage('tools:builder.fields.optionOne', '选项一')
+        },
         value: 1,
       },
       {
-        label: '选项二',
+        get label() {
+          return translateMessage('tools:builder.fields.optionTwo', '选项二')
+        },
         value: 2,
       },
     ],
@@ -232,7 +276,9 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/checkbox',
   },
   {
-    label: '开关',
+    get label() {
+      return translateMessage('tools:builder.fields.switch', '开关')
+    },
     tag: 'el-switch',
     tagIcon: 'switch',
     defaultValue: false,
@@ -252,7 +298,9 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/switch',
   },
   {
-    label: '滑块',
+    get label() {
+      return translateMessage('tools:builder.fields.slider', '滑块')
+    },
     tag: 'el-slider',
     tagIcon: 'slider',
     defaultValue: null,
@@ -270,10 +318,14 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/slider',
   },
   {
-    label: '时间选择',
+    get label() {
+      return translateMessage('tools:builder.fields.time', '时间选择')
+    },
     tag: 'el-time-picker',
     tagIcon: 'time',
-    placeholder: '请选择',
+    get placeholder() {
+      return translateMessage('tools:builder.fields.choose', '请选择')
+    },
     defaultValue: '',
     span: 24,
     labelWidth: null,
@@ -288,7 +340,9 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/time-picker',
   },
   {
-    label: '时间范围',
+    get label() {
+      return translateMessage('tools:builder.fields.timeRange', '时间范围')
+    },
     tag: 'el-time-picker',
     tagIcon: 'time-range',
     defaultValue: null,
@@ -299,9 +353,15 @@ export const selectComponents = [
     clearable: true,
     required: true,
     'is-range': true,
-    'range-separator': '至',
-    'start-placeholder': '开始时间',
-    'end-placeholder': '结束时间',
+    get 'range-separator'() {
+      return translateMessage('tools:builder.fields.to', '至')
+    },
+    get 'start-placeholder'() {
+      return translateMessage('tools:builder.fields.startTime', '开始时间')
+    },
+    get 'end-placeholder'() {
+      return translateMessage('tools:builder.fields.endTime', '结束时间')
+    },
     format: 'HH:mm:ss',
     'value-format': 'HH:mm:ss',
     regList: [],
@@ -309,10 +369,14 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/time-picker',
   },
   {
-    label: '日期选择',
+    get label() {
+      return translateMessage('tools:builder.fields.date', '日期选择')
+    },
     tag: 'el-date-picker',
     tagIcon: 'date',
-    placeholder: '请选择',
+    get placeholder() {
+      return translateMessage('tools:builder.fields.choose', '请选择')
+    },
     defaultValue: null,
     type: 'date',
     span: 24,
@@ -329,7 +393,9 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/date-picker',
   },
   {
-    label: '日期范围',
+    get label() {
+      return translateMessage('tools:builder.fields.dateRange', '日期范围')
+    },
     tag: 'el-date-picker',
     tagIcon: 'date-range',
     defaultValue: null,
@@ -337,9 +403,15 @@ export const selectComponents = [
     labelWidth: null,
     style: { width: '100%' },
     type: 'daterange',
-    'range-separator': '至',
-    'start-placeholder': '开始日期',
-    'end-placeholder': '结束日期',
+    get 'range-separator'() {
+      return translateMessage('tools:builder.fields.to', '至')
+    },
+    get 'start-placeholder'() {
+      return translateMessage('tools:builder.fields.startDate', '开始日期')
+    },
+    get 'end-placeholder'() {
+      return translateMessage('tools:builder.fields.endDate', '结束日期')
+    },
     disabled: false,
     clearable: true,
     required: true,
@@ -351,7 +423,9 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/date-picker',
   },
   {
-    label: '评分',
+    get label() {
+      return translateMessage('tools:builder.fields.rate', '评分')
+    },
     tag: 'el-rate',
     tagIcon: 'rate',
     defaultValue: 0,
@@ -369,7 +443,9 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/rate',
   },
   {
-    label: '颜色选择',
+    get label() {
+      return translateMessage('tools:builder.fields.color', '颜色选择')
+    },
     tag: 'el-color-picker',
     tagIcon: 'color',
     defaultValue: null,
@@ -384,7 +460,9 @@ export const selectComponents = [
     document: 'https://element-plus.org/zh-CN/component/color-picker',
   },
   {
-    label: '上传',
+    get label() {
+      return translateMessage('tools:builder.fields.upload', '上传')
+    },
     tag: 'el-upload',
     tagIcon: 'upload',
     action: 'https://jsonplaceholder.typicode.com/posts/',
@@ -396,7 +474,9 @@ export const selectComponents = [
     name: 'file',
     'auto-upload': true,
     showTip: false,
-    buttonText: '点击上传',
+    get buttonText() {
+      return translateMessage('tools:builder.fields.uploadAction', '点击上传')
+    },
     fileSize: 2,
     sizeUnit: 'MB',
     'list-type': 'text',
@@ -404,7 +484,9 @@ export const selectComponents = [
     regList: [],
     changeTag: true,
     document: 'https://element-plus.org/zh-CN/component/upload',
-    tip: '只能上传不超过 2MB 的文件',
+    get tip() {
+      return translateMessage('tools:builder.fields.uploadTip', '只能上传不超过 2MB 的文件')
+    },
     style: { width: '100%' },
   },
 ]
@@ -416,20 +498,26 @@ export const layoutComponents = [
     type: 'default',
     justify: 'start',
     align: 'top',
-    label: '行容器',
+    get label() {
+      return translateMessage('tools:builder.fields.row', '行容器')
+    },
     layoutTree: true,
     children: [],
     document: 'https://element-plus.org/zh-CN/component/layout',
   },
   {
     layout: 'colFormItem',
-    label: '按钮',
+    get label() {
+      return translateMessage('tools:builder.fields.button', '按钮')
+    },
     changeTag: true,
     labelWidth: null,
     tag: 'el-button',
     tagIcon: 'button',
     span: 24,
-    default: '主要按钮',
+    get default() {
+      return translateMessage('tools:builder.fields.primaryButton', '主要按钮')
+    },
     type: 'primary',
     icon: 'Search',
     size: 'default',

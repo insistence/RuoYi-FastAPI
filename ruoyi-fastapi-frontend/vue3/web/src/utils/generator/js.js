@@ -1,3 +1,4 @@
+import { translateMessage } from '../../i18n/message.mjs'
 import { titleCase } from '@/utils/index'
 import { trigger } from './config'
 // 文件大小设置
@@ -120,20 +121,23 @@ function buildRules(conf, ruleList) {
     if (conf.required) {
       const type = Array.isArray(conf.defaultValue) ? "type: 'array'," : ''
       let message = Array.isArray(conf.defaultValue)
-        ? `请至少选择一个${conf.vModel}`
+        ? translateMessage('tools:builder.selectRequired', `请至少选择一个${conf.vModel}`, {
+            label: conf.label || conf.vModel,
+          })
         : conf.placeholder
-      if (message === undefined) message = `${conf.label}不能为空`
+      if (message === undefined)
+        message = translateMessage('tools:builder.required', `${conf.label}不能为空`, {
+          label: conf.label,
+        })
       rules.push(
-        `{ required: true, ${type} message: '${message}', trigger: '${trigger[conf.tag]}' }`
+        `{ required: true, ${type} message: ${JSON.stringify(message)}, trigger: '${trigger[conf.tag]}' }`
       )
     }
     if (conf.regList && Array.isArray(conf.regList)) {
       conf.regList.forEach((item) => {
         if (item.pattern) {
           rules.push(
-            `{ pattern: new RegExp(${item.pattern}), message: '${
-              item.message
-            }', trigger: '${trigger[conf.tag]}' }`
+            `{ pattern: new RegExp(${item.pattern}), message: ${JSON.stringify(item.message)}, trigger: '${trigger[conf.tag]}' }`
           )
         }
       })
@@ -203,14 +207,14 @@ function buildBeforeUpload(conf) {
   if (conf.fileSize) {
     rightSizeCode = `let isRightSize = file.size / ${unitNum} < ${conf.fileSize}
     if(!isRightSize){
-      proxy.$modal.msgError('文件大小超过 ${conf.fileSize}${conf.sizeUnit}')
+      proxy.$modal.msgError(${JSON.stringify(translateMessage('tools:builder.fileTooLarge', `文件大小超过 ${conf.fileSize}${conf.sizeUnit}`, { size: conf.fileSize, unit: conf.sizeUnit }))})
     }`
     returnList.push('isRightSize')
   }
   if (conf.accept) {
     acceptCode = `let isAccept = new RegExp('${conf.accept}').test(file.type)
     if(!isAccept){
-      proxy.$modal.msgError('应该选择${conf.accept}类型的文件')
+      proxy.$modal.msgError(${JSON.stringify(translateMessage('tools:builder.fileType', `应该选择${conf.accept}类型的文件`, { type: conf.accept }))})
     }`
     returnList.push('isAccept')
   }

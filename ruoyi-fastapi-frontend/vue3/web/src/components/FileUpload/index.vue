@@ -17,21 +17,17 @@
       v-if="!disabled"
     >
       <!-- 上传按钮 -->
-      <el-button type="primary">选取文件</el-button>
+      <el-button type="primary">{{ $t('components:chooseFiles') }}</el-button>
     </el-upload>
     <!-- 上传提示 -->
     <div
       class="el-upload__tip"
       v-if="showTip && !disabled"
     >
-      请上传
-      <template v-if="fileSize">
-        大小不超过 <b style="color: #f56c6c">{{ fileSize }}MB</b>
-      </template>
-      <template v-if="fileType">
-        格式为 <b style="color: #f56c6c">{{ fileType.join('/') }}</b>
-      </template>
-      的文件
+      <span v-if="fileSize">{{ $t('components:uploadHint.size', { size: fileSize }) }}</span>
+      <span v-if="fileType">{{
+        $t('components:uploadHint.formats', { formats: fileType.join('/') })
+      }}</span>
     </div>
     <!-- 文件列表 -->
     <transition-group
@@ -59,7 +55,7 @@
             @click="handleDelete(index)"
             type="danger"
             v-if="!disabled"
-            >删除</el-link
+            >{{ $t('system:delete') }}</el-link
           >
         </div>
       </li>
@@ -68,7 +64,8 @@
 </template>
 
 <script setup>
-import { getToken } from '@/utils/auth'
+import { t } from '@/i18n/adapter'
+import { getUploadHeaders } from '@/utils/uploadHeaders'
 import Sortable from 'sortablejs'
 
 const props = defineProps({
@@ -127,7 +124,7 @@ const baseUrl = import.meta.env.VITE_APP_BASE_API
 const uploadAction =
   props.isPrivate && props.action === '/common/upload' ? '/common/files/upload' : props.action
 const uploadFileUrl = ref(import.meta.env.VITE_APP_BASE_API + uploadAction) // 上传文件服务器地址
-const headers = ref({ Authorization: 'Bearer ' + getToken() })
+const headers = computed(getUploadHeaders)
 const fileList = ref([])
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 
@@ -162,36 +159,42 @@ function handleBeforeUpload(file) {
     const fileExt = fileName[fileName.length - 1]
     const isTypeOk = props.fileType.indexOf(fileExt) >= 0
     if (!isTypeOk) {
-      proxy.$modal.msgError(`文件格式不正确，请上传${props.fileType.join('/')}格式文件!`)
+      proxy.$modal.msgError(
+        t('components:invalidFileFormatUploadFilesInValueFormatLabel', {
+          arg0: props.fileType.join('/'),
+        })
+      )
       return false
     }
   }
   // 校检文件名是否包含特殊字符
   if (file.name.includes(',')) {
-    proxy.$modal.msgError('文件名不正确，不能包含英文逗号!')
+    proxy.$modal.msgError(t('components:fileNamesCannotContainCommasLabel'))
     return false
   }
   // 校检文件大小
   if (props.fileSize) {
     const isLt = file.size / 1024 / 1024 < props.fileSize
     if (!isLt) {
-      proxy.$modal.msgError(`上传文件大小不能超过 ${props.fileSize} MB!`)
+      proxy.$modal.msgError(
+        t('components:eachFileMustNotExceedValueMBLabel', { fileSize: props.fileSize })
+      )
       return false
     }
   }
-  proxy.$modal.loading('正在上传文件，请稍候...')
+  proxy.$modal.loading(t('components:uploadingFilesPleaseWait'))
   number.value++
   return true
 }
 
 // 文件个数超出
 function handleExceed() {
-  proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个!`)
+  proxy.$modal.msgError(t('components:youCanUploadUpToValueFilesLabel', { limit: props.limit }))
 }
 
 // 上传失败
 function handleUploadError(err) {
-  proxy.$modal.msgError('上传文件失败')
+  proxy.$modal.msgError(t('components:fileUploadFailed'))
   proxy.$modal.closeLoading()
 }
 

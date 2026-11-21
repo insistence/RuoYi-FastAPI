@@ -17,7 +17,7 @@
     <section
       v-if="$slots.context"
       class="workspace-context"
-      aria-label="页面概览"
+      :aria-label="$t('components:pageOverview')"
     >
       <slot name="context" />
     </section>
@@ -25,11 +25,11 @@
     <section
       v-if="$slots.filters"
       class="workspace-filters"
-      aria-label="筛选条件"
+      :aria-label="$t('components:filters')"
     >
       <div class="filter-heading">
         <div>
-          <span class="filter-title">筛选条件</span>
+          <span class="filter-title">{{ $t('components:filters') }}</span>
           <span
             v-if="filterHint"
             class="filter-hint"
@@ -54,8 +54,9 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n/adapter'
 defineProps({
-  section: { type: String, default: '统一认证' },
+  section: { type: String, default: () => t('layout:routes.authLogin') },
   title: { type: String, required: true },
   description: { type: String, required: true },
   filterHint: { type: String, default: '' },

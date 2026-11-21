@@ -10,6 +10,7 @@ from typing import Any
 from sqlalchemy import text
 
 from config.env import DataBaseConfig
+from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.script import PluginLifecycleScriptHelper
 
@@ -259,7 +260,10 @@ class PluginMigrationRunner:
                         f'插件 migration 已执行但内容校验值变化：{migration_path}，请新增 migration 文件而不是修改历史文件',
                         migration_path=migration_path,
                         status='success',
-                        recovery_suggestion='请恢复原 migration 文件内容，或新增一个后续 migration 文件承载变更。',
+                        recovery_suggestion=I18nMessage(
+                            '请恢复原 migration 文件内容，或新增一个后续 migration 文件承载变更。',
+                            msg_key='plugin.suggestion.restoreMigration',
+                        ),
                     )
                 return PluginMigrationResult(
                     migration_path=migration_path,
@@ -275,8 +279,10 @@ class PluginMigrationRunner:
                     migration_path=migration_path,
                     status='running',
                     recovery_suggestion=(
-                        '请检查数据库结构是否已应用；若已成功应用，执行 mark-success；'
-                        '若未完成，执行 mark-failed 后修复并重试。'
+                        I18nMessage(
+                            '请检查数据库结构是否已应用；若已成功应用，执行 mark-success；若未完成，执行 mark-failed 后修复并重试。',
+                            msg_key='plugin.suggestion.recoverMigration',
+                        )
                     ),
                 )
             if existing_record.status != 'failed':
@@ -284,7 +290,10 @@ class PluginMigrationRunner:
                     f'插件 migration 历史状态不支持自动执行：{migration_path}，状态：{existing_record.status}',
                     migration_path=migration_path,
                     status=existing_record.status,
-                    recovery_suggestion='请人工确认 migration 历史状态，并通过恢复命令标记为 success 或 failed。',
+                    recovery_suggestion=I18nMessage(
+                        '请人工确认 migration 历史状态，并通过恢复命令标记为 success 或 failed。',
+                        msg_key='plugin.suggestion.reviewMigrationState',
+                    ),
                 )
 
         started_at = time.perf_counter()
@@ -304,7 +313,10 @@ class PluginMigrationRunner:
                 f'插件 migration 执行失败：{migration_path}，{exc}',
                 migration_path=migration_path,
                 status='failed',
-                recovery_suggestion='请修复 migration 幂等性或数据库结构问题后重试；必要时人工确认后标记成功。',
+                recovery_suggestion=I18nMessage(
+                    '请修复 migration 幂等性或数据库结构问题后重试；必要时人工确认后标记成功。',
+                    msg_key='plugin.suggestion.fixMigration',
+                ),
             ) from exc
 
         duration_ms = max(int((time.perf_counter() - started_at) * 1000), 0)
@@ -326,8 +338,10 @@ class PluginMigrationRunner:
                 migration_path=migration_path,
                 status='running',
                 recovery_suggestion=(
-                    '请检查数据库结构是否已应用；若已成功应用，执行 mark-success；'
-                    '若未完成，执行 mark-failed 后修复并重试。'
+                    I18nMessage(
+                        '请检查数据库结构是否已应用；若已成功应用，执行 mark-success；若未完成，执行 mark-failed 后修复并重试。',
+                        msg_key='plugin.suggestion.recoverMigration',
+                    )
                 ),
             ) from exc
 

@@ -1,0 +1,92 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "generator.childForeignKeyRequired"
+msgstr "Child table foreign key name is required"
+
+msgid "generator.childTableRequired"
+msgstr "Related child table name is required"
+
+msgid "generator.configurationRequired"
+msgstr "Complete the generation configuration first"
+
+msgid "generator.creationDateUnsupported"
+msgstr "PostgreSQL does not record table creation dates. Clear the creation date filter."
+
+msgid "generator.generated"
+msgstr "Code generated successfully"
+
+msgid "generator.i18nCatalogInvalid"
+msgstr "An existing locale resource is invalid. Generation stopped to preserve the original file."
+
+msgid "generator.i18nInvalidConfiguration"
+msgstr "Invalid generation i18n configuration. Check the locale list and translation placeholders."
+
+msgid "generator.i18nSourceLocaleMismatch"
+msgstr "The generation source locale must match the target app and backend: %(locale)s"
+
+msgid "generator.importFailed"
+msgstr "Import failed. Check the service logs"
+
+msgid "generator.invalidCreateStatement"
+msgstr "Invalid table creation statement"
+
+msgid "generator.mysqlTimeAmbiguous"
+msgstr ""
+"MySQL TIME may represent a duration. If this field is a time of day, select the Time of day display type. For "
+"durations, use a numeric column with an explicit unit and import it again."
+
+msgid "generator.outputMustBeBundleRoot"
+msgstr "Choose a separate output directory instead of an application source directory."
+
+msgid "generator.postgresTimestampAmbiguous"
+msgstr ""
+"A PostgreSQL timestamp without a time zone is ambiguous. Convert instant columns to TIMESTAMP(3) WITH TIME ZONE and "
+"import the generation configuration again."
+
+msgid "generator.renderFailed"
+msgstr "Unable to render the template for table %(table_name)s. Check the service logs"
+
+msgid "generator.tableCreateFailed"
+msgstr "Unable to create the table structure. Check the service logs"
+
+msgid "generator.tableCreated"
+msgstr "Table structure created successfully"
+
+msgid "generator.tableIdRequired"
+msgstr "Business table ID is required"
+
+msgid "generator.tableNotFound"
+msgstr "Business table not found"
+
+msgid "generator.tableOutsideSource"
+msgstr "The business table does not exist or does not belong to data source %(source_name)s: %(table_name)s"
+
+msgid "generator.tablesOutsideSource"
+msgstr "These business tables do not exist or do not belong to data source %(source_name)s: %(value)s"
+
+msgid "generator.timeWithZoneUnsupported"
+msgstr ""
+"A time with a time zone cannot be generated as a time of day. Use TIME WITHOUT TIME ZONE for times of day or "
+"TIMESTAMP(3) WITH TIME ZONE for instants."
+
+msgid "generator.treeCodeRequired"
+msgstr "Tree code field is required"
+
+msgid "generator.treeNameRequired"
+msgstr "Tree name field is required"
+
+msgid "generator.treeParentCodeRequired"
+msgstr "Tree parent code field is required"

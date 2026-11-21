@@ -1,12 +1,7 @@
 import asyncio
 import json
-import shutil
-import subprocess
-import tempfile
-import time
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import replace
-from pathlib import Path
 from unittest.mock import AsyncMock
 
 import anyio
@@ -21,6 +16,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
+from tests.redis_helpers import (
+    IsolatedRedisServer,
+    absolute_expiry_ms,
+    isolated_redis_server,
+    redis_server_executable,
+)
 from utils.cache_util import CurrentUserCacheTicket, CurrentUserCacheUtil
 
 USER_ID = 2
@@ -31,49 +32,19 @@ NAMESPACE = 'current-user-cache-test'
 
 
 @pytest.fixture(scope='module')
-def redis_socket() -> Iterator[str]:
-    """启动只监听临时Unix socket的Redis，不访问开发环境Redis数据。"""
-    executable = shutil.which('redis-server')
+def redis_socket() -> Iterator[IsolatedRedisServer]:
+    """启动隔离 Redis；保留 fixture 名称供现有缓存与会话测试复用。"""
+    executable = redis_server_executable()
     if executable is None:
-        pytest.skip('真实缓存脚本测试需要redis-server')
-    with tempfile.TemporaryDirectory(prefix='user-cache-', dir='/tmp') as directory:
-        socket_path = str(Path(directory) / 'redis.sock')
-        process = subprocess.Popen(
-            [
-                executable,
-                '--port',
-                '0',
-                '--unixsocket',
-                socket_path,
-                '--save',
-                '',
-                '--appendonly',
-                'no',
-                '--dir',
-                directory,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        try:
-            for _attempt in range(100):
-                if process.poll() is not None:
-                    pytest.fail('隔离Redis进程启动失败，请检查Unix socket权限')
-                if Path(socket_path).exists():
-                    break
-                time.sleep(0.01)
-            else:
-                pytest.fail('隔离Redis进程未创建Unix socket')
-            yield socket_path
-        finally:
-            process.terminate()
-            process.wait(timeout=5)
+        pytest.skip('真实缓存脚本测试需要 redis-server，可通过 RUOYI_TEST_REDIS_SERVER 指定')
+    with isolated_redis_server(executable) as server:
+        yield server
 
 
 @pytest_asyncio.fixture
-async def cache_redis(redis_socket: str) -> AsyncIterator[Redis]:
+async def cache_redis(redis_socket: IsolatedRedisServer) -> AsyncIterator[Redis]:
     """每项测试使用独立客户端并清空专属测试实例。"""
-    redis = Redis(unix_socket_path=redis_socket, decode_responses=True, socket_timeout=1)
+    redis = Redis(**redis_socket.connection)
     try:
         for _attempt in range(10):
             try:
@@ -83,7 +54,7 @@ async def cache_redis(redis_socket: str) -> AsyncIterator[Redis]:
                 await asyncio.sleep(0.01)
         else:
             pytest.fail('隔离Redis测试实例未能启动')
-        await redis.flushdb()
+        await redis_socket.reset_database(redis)
         yield redis
     finally:
         await redis.aclose()
@@ -214,12 +185,12 @@ async def test_fixed_deadline_is_not_extended_by_slow_fill_or_reads(cache_redis:
     await asyncio.sleep(0.03)
     assert await CurrentUserCacheUtil.write(cache_redis, NAMESPACE, USER_ID, user_model(), ticket)
     snapshot_key = CurrentUserCacheUtil._keys(NAMESPACE, USER_ID)[2]
-    expiry = await cache_redis.pexpiretime(snapshot_key)
+    expiry = await absolute_expiry_ms(cache_redis, snapshot_key)
     assert expiry == ticket.deadline_ms
     assert await cache_redis.pttl(snapshot_key) < TTL_MS
     for _ in range(3):
         assert (await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS))[0] is not None
-    assert await cache_redis.pexpiretime(snapshot_key) == expiry
+    assert await absolute_expiry_ms(cache_redis, snapshot_key) == expiry
 
 
 @pytest.mark.asyncio
@@ -229,11 +200,11 @@ async def test_user_epoch_has_idle_expiry_without_extending_snapshot_deadline(ca
     epoch_ttl_ms = CurrentUserCacheUtil._USER_EPOCH_TTL_SECONDS * 1000
     assert 0 < await cache_redis.pttl(user_key) <= epoch_ttl_ms
     assert await cache_redis.ttl(global_key) == -1
-    deadline = await cache_redis.pexpiretime(snapshot_key)
+    deadline = await absolute_expiry_ms(cache_redis, snapshot_key)
     await cache_redis.pexpire(user_key, TTL_MS)
     assert (await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS))[0] is not None
     assert TTL_MS < await cache_redis.pttl(user_key) <= epoch_ttl_ms
-    assert await cache_redis.pexpiretime(snapshot_key) == deadline
+    assert await absolute_expiry_ms(cache_redis, snapshot_key) == deadline
 
 
 @pytest.mark.asyncio

@@ -1,3 +1,4 @@
+import { translateMessage } from '../i18n/message.mjs'
 import { parseTime } from './ruoyi'
 
 /**
@@ -13,7 +14,10 @@ export function formatDate(cellValue) {
  * @returns {string}
  */
 export function formatTime(time, option) {
-  const formattedTime = parseTime(time, option || '{m}月{d}日{h}时{i}分')
+  const formattedTime = parseTime(
+    time,
+    option || translateMessage('utility:relative.format', '{m}月{d}日{h}时{i}分')
+  )
   if (!formattedTime) return ''
   time = new Date(time).getTime()
   const now = Date.now()
@@ -21,14 +25,18 @@ export function formatTime(time, option) {
   const diff = (now - time) / 1000
 
   if (diff < 30) {
-    return '刚刚'
+    return translateMessage('utility:relative.justNow', '刚刚')
   } else if (diff < 3600) {
     // less 1 hour
-    return Math.ceil(diff / 60) + '分钟前'
+    return translateMessage('utility:relative.minutes', Math.ceil(diff / 60) + '分钟前', {
+      count: Math.ceil(diff / 60),
+    })
   } else if (diff < 3600 * 24) {
-    return Math.ceil(diff / 3600) + '小时前'
+    return translateMessage('utility:relative.hours', Math.ceil(diff / 3600) + '小时前', {
+      count: Math.ceil(diff / 3600),
+    })
   } else if (diff < 3600 * 24 * 2) {
-    return '1天前'
+    return translateMessage('utility:relative.days', '1天前', { count: 1 })
   }
   return formattedTime
 }

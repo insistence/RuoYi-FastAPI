@@ -1,0 +1,48 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "ai.conversation.deleteFailed"
+msgstr "删除会话失败"
+
+msgid "ai.conversation.forbidden"
+msgstr "无权访问该会话"
+
+msgid "ai.model.disabled"
+msgstr "模型已停用"
+
+msgid "ai.model.forbidden"
+msgstr "没有权限访问AI模型数据"
+
+msgid "ai.model.idRequired"
+msgstr "传入AI模型id为空"
+
+msgid "ai.model.missing"
+msgstr "AI模型不存在"
+
+msgid "ai.model.notFound"
+msgstr "模型不存在"
+
+msgid "ai.run.cancelFailed"
+msgstr "取消运行失败"
+
+msgid "ai.run.cancelForbidden"
+msgstr "无权取消该运行"
+
+msgid "ai.settings.otherUser"
+msgstr "只允许修改当前用户的配置"
+
+msgid "ai.stream.failed"
+msgstr "对话生成失败，请稍后重试"

@@ -1,19 +1,24 @@
+import { useLocalizedText } from '@/i18n/form'
+import { useI18n } from '@/i18n/adapter'
+import { i18n, t } from '@/i18n'
 import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { unlockScreen } from '@/api/login'
 import { getToken } from '@/utils/auth'
-import { formatBusinessTime } from '@/utils/time'
+import { formatBusinessTime, getDisplayTimezone } from '@/utils/time'
 import useUserStore from '@/store/modules/user'
 import useLockStore from '@/store/modules/lock'
 import defaultAvatar from '@/assets/images/profile.jpg'
 import './lock.css'
 
 export default function LockScreen() {
+  useI18n()
+
   const user = useUserStore(),
     lock = useLockStore()
   const [password, setPassword] = useState(''),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
+    [error, setError] = useLocalizedText(''),
     [now, setNow] = useState(new Date())
   const canvas = useRef(),
     input = useRef(),
@@ -81,7 +86,7 @@ export default function LockScreen() {
     event.preventDefault()
     if (pending.current) return
     if (!password) {
-      setError('请输入密码')
+      setError((t) => t('authCenter:auth-center.enterYourPassword'))
       input.current?.focus()
       return
     }
@@ -92,7 +97,7 @@ export default function LockScreen() {
       await unlockScreen(password)
       lock.unlockScreen()
     } catch (reason) {
-      setError(reason.message || '解锁失败')
+      setError((t) => reason.message || t('auth:unlockFailed'))
       setPassword('')
       input.current?.focus()
     } finally {
@@ -122,16 +127,24 @@ export default function LockScreen() {
         aria-hidden="true"
       />
       <div className="lock-time">{formatBusinessTime(now, 'HH:mm:ss')}</div>
-      <div className="lock-date">{formatBusinessTime(now, 'YYYY年M月D日 星期{a}')}</div>
+      <div className="lock-date">
+        {new Intl.DateTimeFormat(i18n.locale, {
+          timeZone: getDisplayTimezone(),
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }).format(now)}
+      </div>
       <section
         className="lock-card"
-        aria-label="屏幕已锁定"
+        aria-label={t('auth:screenLocked')}
       >
         <div className="avatar-wrap">
           <img
             src={user.avatar || defaultAvatar}
             className="lock-avatar"
-            alt="用户头像"
+            alt={t('auth:userAvatar')}
             onError={(event) => {
               event.currentTarget.onerror = null
               event.currentTarget.src = defaultAvatar
@@ -145,7 +158,7 @@ export default function LockScreen() {
           </div>
         </div>
         <div className="lock-username">{user.nickName || user.name}</div>
-        <p className="lock-hint">系统已锁定，请输入密码解锁</p>
+        <p className="lock-hint">{t('auth:lock.hint')}</p>
         <form
           className="input-wrap"
           onSubmit={unlock}
@@ -156,9 +169,9 @@ export default function LockScreen() {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            aria-label="登录密码"
+            aria-label={t('auth:signInPassword')}
             aria-invalid={!!error}
-            placeholder="请输入登录密码"
+            placeholder={t('auth:lock.password')}
             className="lock-input"
             autoComplete="current-password"
           />
@@ -166,7 +179,7 @@ export default function LockScreen() {
             className="unlock-btn"
             type="submit"
             disabled={busy}
-            aria-label="解锁"
+            aria-label={t('auth:lock.unlock')}
           >
             {busy ? '···' : '→'}
           </button>
@@ -188,7 +201,7 @@ export default function LockScreen() {
               navigate('/login', { replace: true })
             }}
           >
-            退出重新登录
+            {t('auth:lock.signIn')}
           </button>
         </div>
       </section>

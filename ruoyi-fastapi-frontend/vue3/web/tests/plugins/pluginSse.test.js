@@ -91,6 +91,7 @@ const stream = createPluginSseTransport({
   shouldEncryptRequest: (_, policy) => policy.active,
   serializeParams: (params) => new URLSearchParams(params).toString(),
   getTimezone: () => 'Asia/Shanghai',
+  getLocale: () => 'en-US',
   origin: 'https://test',
   fetchImpl: async (...args) => {
     fetched.push(args)
@@ -110,6 +111,7 @@ assert.deepEqual(fetched[0][1].headers, {
   Accept: 'text/event-stream',
   'X-Plugin-CSRF': 'host-only',
   'X-Timezone': 'Asia/Shanghai',
+  'Accept-Language': 'en-US',
   'Last-Event-ID': '4',
 })
 assert.equal(fetched[0][1].credentials, 'same-origin')

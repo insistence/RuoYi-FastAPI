@@ -8,18 +8,24 @@ export function parseJobParameter(value, field) {
   try {
     result = JSON.parse(value)
   } catch {
-    throw new Error(message)
+    throw Object.assign(new Error(message), {
+      code: isArgs ? 'INVALID_JOB_ARGS' : 'INVALID_JOB_KWARGS',
+    })
   }
   if (
     isArgs
       ? !Array.isArray(result)
       : result === null || Array.isArray(result) || typeof result !== 'object'
   ) {
-    throw new Error(message)
+    throw Object.assign(new Error(message), {
+      code: isArgs ? 'INVALID_JOB_ARGS' : 'INVALID_JOB_KWARGS',
+    })
   }
   JSON.stringify(result, (_key, item) => {
     if (typeof item === 'number' && !Number.isFinite(item)) {
-      throw new Error('参数中的数字超出可表示范围')
+      throw Object.assign(new Error('参数中的数字超出可表示范围'), {
+        code: 'JOB_NUMBER_OUT_OF_RANGE',
+      })
     }
     return item
   })
