@@ -1,8 +1,8 @@
 import React from 'react'
-import { Button, Form, Input } from 'antd'
+import { Button, Form } from 'antd'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
-import TranslationFields, { SourceLocaleField } from '@/components/TranslationFields'
+import TranslationFields from '@/components/TranslationFields'
 import BusinessFileUpload from '@/components/BusinessFileUpload'
 import { i18n } from '@/i18n'
 
@@ -19,23 +19,20 @@ test('source and English labels identify separate editable values in the submitt
       initialValues={{ dictName: '原始名称', dictNameI18n: { 'en-US': 'Original name' } }}
       onFinish={onFinish}
     >
-      <SourceLocaleField
+      <TranslationFields
         name="dictName"
         label="字典名称"
-      >
-        <Input />
-      </SourceLocaleField>
-      <TranslationFields
         original={{ 'en-US': 'Original name' }}
         maxLength={100}
-        name="dictNameI18n"
-        label="字典名称"
+        translationName="dictNameI18n"
       />
       <Button htmlType="submit">Save translations</Button>
     </Form>
   )
-  const source = screen.getByRole('textbox', { name: '字典名称 · 原文：简体中文' })
+  const source = screen.getByRole('textbox', { name: '字典名称' })
   const english = screen.getByRole('textbox', { name: '字典名称 · English' })
+  expect(source.closest('.ant-space-compact').textContent).toContain('简体中文')
+  expect(english.closest('.ant-space-compact').textContent).toContain('English')
   expect(source.value).toBe('原始名称')
   expect(english.value).toBe('Original name')
   fireEvent.change(english, { target: { value: 'Updated English name' } })
@@ -56,13 +53,14 @@ test('a new record only shows translation inputs after Add translation', async (
   render(
     <Form>
       <TranslationFields
-        name="menuNameI18n"
+        name="menuName"
+        translationName="menuNameI18n"
         label="Menu name"
         maxLength={50}
       />
     </Form>
   )
-  expect(screen.queryByRole('textbox')).toBeNull()
+  expect(screen.queryByRole('textbox', { name: 'Menu name · English' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Add translation' }))
   expect(screen.getByRole('textbox', { name: 'Menu name · English' }).maxLength).toBe(50)
 })

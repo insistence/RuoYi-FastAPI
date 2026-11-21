@@ -21,6 +21,7 @@
   "cancel": "Cancel",
   "confirm": "Confirm",
   "loading": "Loading…",
+  "loadingSystemResourcesPleaseWait": "Loading system resources. Please wait.",
   "retry": "Retry",
   "languageSaved": "Language preference saved",
   "languageFailed": "Could not save the language preference. Please try again.",

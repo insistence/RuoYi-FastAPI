@@ -206,6 +206,18 @@ select {
 .ruoyi-dialog-form .ant-form-item-label {
   padding-inline-end: 12px;
 }
+@media (min-width: 576px) {
+  .ruoyi-dialog-form-auto-label {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+  .ruoyi-dialog-form-auto-label > .ant-form-item,
+  .ruoyi-dialog-form-auto-label > .ant-form-item > .ant-form-item-row {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+  }
+}
 .ant-modal:not(.ant-modal-confirm) {
   top: 6vh;
   margin-block: 0;

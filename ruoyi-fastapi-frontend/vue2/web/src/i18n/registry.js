@@ -9,11 +9,3 @@ messages.keys().forEach((path) => {
   if (!resources[locale]) resources[locale] = {}
   resources[locale][namespace] = messages(path)
 })
-
-const pluginMessages = require.context('../../plugins', true, /\/locales\/[^/]+\.json$/)
-pluginMessages.keys().forEach((path) => {
-  const [, plugin, locale] = path.match(/^\.\/([^/]+)\/locales\/([^/]+)\.json$/) || []
-  if (!locale || !plugin) return
-  if (!resources[locale]) resources[locale] = {}
-  resources[locale]['plugin.' + plugin] = pluginMessages(path)
-})

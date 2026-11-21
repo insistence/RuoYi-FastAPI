@@ -7,9 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= webpackConfig.name %></title>
-    <script src="<%= BASE_URL %>mermaid/mermaid.min.js"></script>
-    <script src="<%= BASE_URL %>katex/katex.min.js"></script>
-    <script src="<%= BASE_URL %>katex/contrib/mhchem.min.js"></script>
+    <script defer src="<%= BASE_URL %>mermaid/mermaid.min.js"></script>
+    <script defer src="<%= BASE_URL %>katex/katex.min.js"></script>
+    <script defer src="<%= BASE_URL %>katex/contrib/mhchem.min.js"></script>
     <!--[if lt IE 11]><script>window.location.href='/html/ie.html';</script><![endif]-->
 	  <style>
     html,
@@ -204,8 +204,9 @@
 		    <div id="loader"></div>
 		    <div class="loader-section section-left"></div>
 		    <div class="loader-section section-right"></div>
-		    <div id="bootstrap-loading-text" class="load_title" role="status"></div>
+		    <div id="bootstrap-loading-text" class="load_title" role="status" data-storage-key="ruoyi-vue2-web:<%- VUE_APP_BASE_API %>:bootstrap-loading">正在加载系统资源，请耐心等待</div>
         </div>
 	</div>
+    <script src="<%= BASE_URL %>bootstrap-loading.js"></script>
   </body>
 </html>

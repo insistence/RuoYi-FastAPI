@@ -95,7 +95,7 @@
           }}</text>
         </view>
         <text class="text-sm text-gray-500">{{
-          formatDisplayTime(user.createTime, $locale.locale) || '-'
+          formatDisplayTime(user.createTime, localeState.locale) || '-'
         }}</text>
       </view>
     </view>
@@ -103,12 +103,14 @@
 </template>
 
 <script>
+import { localeState } from '@/i18n/adapter'
 import { formatDisplayTime } from '@/utils/time'
 import { getUserProfile } from '@/api/system/user'
 
 export default {
   data() {
     return {
+      localeState,
       user: {},
       roleGroup: '',
       postGroup: '',

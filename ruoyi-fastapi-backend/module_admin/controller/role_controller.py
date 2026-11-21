@@ -105,9 +105,7 @@ async def add_system_role(
     add_role_result = await RoleService.add_role_services(query_db, add_role)
     logger.info(add_role_result.message)
 
-    return ResponseUtil.success(
-        msg=add_role_result.message, msg_key=add_role_result.msg_key, msg_params=add_role_result.msg_params
-    )
+    return ResponseUtil.success(msg=add_role_result.message)
 
 
 @role_controller.put(
@@ -134,9 +132,7 @@ async def edit_system_role(
     edit_role_result = await RoleService.edit_role_services(query_db, edit_role)
     logger.info(edit_role_result.message)
 
-    return ResponseUtil.success(
-        msg=edit_role_result.message, msg_key=edit_role_result.msg_key, msg_params=edit_role_result.msg_params
-    )
+    return ResponseUtil.success(msg=edit_role_result.message)
 
 
 @role_controller.put(
@@ -168,11 +164,7 @@ async def edit_system_role_datascope(
     role_data_scope_result = await RoleService.role_datascope_services(query_db, edit_role)
     logger.info(role_data_scope_result.message)
 
-    return ResponseUtil.success(
-        msg=role_data_scope_result.message,
-        msg_key=role_data_scope_result.msg_key,
-        msg_params=role_data_scope_result.msg_params,
-    )
+    return ResponseUtil.success(msg=role_data_scope_result.message)
 
 
 @role_controller.delete(
@@ -201,9 +193,7 @@ async def delete_system_role(
     delete_role_result = await RoleService.delete_role_services(query_db, delete_role)
     logger.info(delete_role_result.message)
 
-    return ResponseUtil.success(
-        msg=delete_role_result.message, msg_key=delete_role_result.msg_key, msg_params=delete_role_result.msg_params
-    )
+    return ResponseUtil.success(msg=delete_role_result.message)
 
 
 @role_controller.get(
@@ -290,9 +280,7 @@ async def reset_system_role_status(
     edit_role_result = await RoleService.edit_role_services(query_db, edit_role)
     logger.info(edit_role_result.message)
 
-    return ResponseUtil.success(
-        msg=edit_role_result.message, msg_key=edit_role_result.msg_key, msg_params=edit_role_result.msg_params
-    )
+    return ResponseUtil.success(msg=edit_role_result.message)
 
 
 @role_controller.get(
@@ -363,11 +351,7 @@ async def add_system_role_user(
     )
     logger.info(add_role_user_result.message)
 
-    return ResponseUtil.success(
-        msg=add_role_user_result.message,
-        msg_key=add_role_user_result.msg_key,
-        msg_params=add_role_user_result.msg_params,
-    )
+    return ResponseUtil.success(msg=add_role_user_result.message)
 
 
 @role_controller.put(
@@ -391,11 +375,7 @@ async def cancel_system_role_user(
     )
     logger.info(cancel_user_role_result.message)
 
-    return ResponseUtil.success(
-        msg=cancel_user_role_result.message,
-        msg_key=cancel_user_role_result.msg_key,
-        msg_params=cancel_user_role_result.msg_params,
-    )
+    return ResponseUtil.success(msg=cancel_user_role_result.message)
 
 
 @role_controller.put(
@@ -419,8 +399,4 @@ async def batch_cancel_system_role_user(
     )
     logger.info(batch_cancel_user_role_result.message)
 
-    return ResponseUtil.success(
-        msg=batch_cancel_user_role_result.message,
-        msg_key=batch_cancel_user_role_result.msg_key,
-        msg_params=batch_cancel_user_role_result.msg_params,
-    )
+    return ResponseUtil.success(msg=batch_cancel_user_role_result.message)

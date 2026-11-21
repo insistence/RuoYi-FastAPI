@@ -13,7 +13,7 @@ export default function LanguageSelect() {
   ]
 
   async function handleLanguageChange(value) {
-    if (busy || value === preference) return
+    if (busy || (i18n.accountId !== null && value === preference)) return
     setBusy(true)
     try {
       await saveLocale(value)

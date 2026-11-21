@@ -24,7 +24,7 @@
         v-for="entry in locales"
         :key="entry.code"
         :value="fieldValue(entry.code)"
-        :aria-label="$t('common:translations.locale', { locale: entry.nativeName })"
+        :label="$t('common:translations.locale', { locale: entry.nativeName })"
         :maxlength="maxlength"
         :validate-event="false"
         show-word-limit

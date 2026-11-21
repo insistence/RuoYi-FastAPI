@@ -26,5 +26,4 @@ export const i18n = createLocaleRuntime({
   },
 })
 export const t = i18n.t
-export const resolveRouteTitle = (route) => i18n.resolveRouteTitle(route)
 export const refreshDeviceLocale = () => i18n.refreshDeviceLocale()

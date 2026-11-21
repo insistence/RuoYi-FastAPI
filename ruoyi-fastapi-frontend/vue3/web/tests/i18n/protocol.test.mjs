@@ -121,11 +121,10 @@ test('timeout recovery uses the authoritative snapshot and rejects malformed sna
   assert.equal(runtime.preference, 'en-US')
 })
 
-test('offline account snapshots, guest choices and API instances are isolated', async () => {
+test('offline account snapshots and API instances are isolated', async () => {
   const data = new Map()
   const storage = { get: (k) => data.get(k), set: (k, v) => data.set(k, v) }
   const runtime = setup(storage)
-  await runtime.setPreference('auto')
   runtime.setAccount(7, 'en-US', '1')
   const restored = setup(storage)
   restored.initialize(true)
@@ -135,7 +134,8 @@ test('offline account snapshots, guest choices and API instances are isolated', 
   restored.acceptStorageEvent(key, JSON.stringify({ locale: 'auto', revision: '9' }))
   assert.equal(restored.preference, 'zh-CN')
   restored.setAccount(null)
-  assert.equal(restored.preference, 'auto')
+  assert.equal(restored.preference, 'zh-CN')
+  assert.equal(restored.loginPreference, null)
   const other = setup(storage, { scope: 'other:api' })
   other.initialize(true)
   assert.equal(other.accountId, null)

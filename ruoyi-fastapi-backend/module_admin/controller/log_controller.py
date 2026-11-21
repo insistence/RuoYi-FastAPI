@@ -68,11 +68,7 @@ async def clear_system_operation_log(
     clear_operation_log_result = await OperationLogService.clear_operation_log_services(query_db)
     logger.info(clear_operation_log_result.message)
 
-    return ResponseUtil.success(
-        msg=clear_operation_log_result.message,
-        msg_key=clear_operation_log_result.msg_key,
-        msg_params=clear_operation_log_result.msg_params,
-    )
+    return ResponseUtil.success(msg=clear_operation_log_result.message)
 
 
 @log_controller.delete(
@@ -95,11 +91,7 @@ async def delete_system_operation_log(
     )
     logger.info(delete_operation_log_result.message)
 
-    return ResponseUtil.success(
-        msg=delete_operation_log_result.message,
-        msg_key=delete_operation_log_result.msg_key,
-        msg_params=delete_operation_log_result.msg_params,
-    )
+    return ResponseUtil.success(msg=delete_operation_log_result.message)
 
 
 @log_controller.post(
@@ -172,11 +164,7 @@ async def clear_system_login_log(
     clear_login_log_result = await LoginLogService.clear_login_log_services(query_db)
     logger.info(clear_login_log_result.message)
 
-    return ResponseUtil.success(
-        msg=clear_login_log_result.message,
-        msg_key=clear_login_log_result.msg_key,
-        msg_params=clear_login_log_result.msg_params,
-    )
+    return ResponseUtil.success(msg=clear_login_log_result.message)
 
 
 @log_controller.delete(
@@ -197,11 +185,7 @@ async def delete_system_login_log(
     delete_login_log_result = await LoginLogService.delete_login_log_services(query_db, delete_login_log)
     logger.info(delete_login_log_result.message)
 
-    return ResponseUtil.success(
-        msg=delete_login_log_result.message,
-        msg_key=delete_login_log_result.msg_key,
-        msg_params=delete_login_log_result.msg_params,
-    )
+    return ResponseUtil.success(msg=delete_login_log_result.message)
 
 
 @log_controller.get(
@@ -222,9 +206,7 @@ async def unlock_system_user(
     unlock_user_result = await LoginLogService.unlock_user_services(request, unlock_user)
     logger.info(unlock_user_result.message)
 
-    return ResponseUtil.success(
-        msg=unlock_user_result.message, msg_key=unlock_user_result.msg_key, msg_params=unlock_user_result.msg_params
-    )
+    return ResponseUtil.success(msg=unlock_user_result.message)
 
 
 @log_controller.post(

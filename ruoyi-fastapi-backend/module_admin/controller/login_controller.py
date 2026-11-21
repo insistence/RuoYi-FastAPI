@@ -85,9 +85,10 @@ async def login(
             access_token,
             ex=timedelta(minutes=JwtConfig.jwt_redis_expire_minutes),
         )
-    await UserService.edit_user_services(
-        query_db, EditUserModel(userId=result[0].user_id, loginDate=TimezoneUtil.utc_now(), type='status')
-    )
+    login_update = EditUserModel(userId=result[0].user_id, loginDate=TimezoneUtil.utc_now(), type='status')
+    if form_data.locale is not None:
+        login_update.locale = form_data.locale
+    await UserService.edit_user_services(query_db, login_update)
     logger.info('登录成功')
     # 判断请求是否来自于api文档，如果是返回指定格式的结果，用于修复api文档认证成功后token显示undefined的bug
     request_from_swagger = request.headers.get('referer').endswith('docs') if request.headers.get('referer') else False
@@ -164,12 +165,7 @@ async def register_user(
     user_register_result = await LoginService.register_user_services(request, query_db, user_register)
     logger.info(user_register_result.message)
 
-    return ResponseUtil.success(
-        data=user_register_result,
-        msg=user_register_result.message,
-        msg_key=user_register_result.msg_key,
-        msg_params=user_register_result.msg_params,
-    )
+    return ResponseUtil.success(data=user_register_result, msg=user_register_result.message)
 
 
 # @login_controller.post("/getSmsCode", response_model=SmsCode)

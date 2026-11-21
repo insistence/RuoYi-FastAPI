@@ -112,11 +112,7 @@ async def import_gen_table(
     add_gen_table_result = await GenTableService.import_gen_table_services(query_db, add_gen_table_list, current_user)
     logger.info(add_gen_table_result.message)
 
-    return ResponseUtil.success(
-        msg=add_gen_table_result.message,
-        msg_key=add_gen_table_result.msg_key,
-        msg_params=add_gen_table_result.msg_params,
-    )
+    return ResponseUtil.success(msg=add_gen_table_result.message)
 
 
 @gen_controller.put(
@@ -140,9 +136,7 @@ async def edit_gen_table(
     edit_gen_result = await GenTableService.edit_gen_table_services(query_db, edit_gen_table)
     logger.info(edit_gen_result.message)
 
-    return ResponseUtil.success(
-        msg=edit_gen_result.message, msg_key=edit_gen_result.msg_key, msg_params=edit_gen_result.msg_params
-    )
+    return ResponseUtil.success(msg=edit_gen_result.message)
 
 
 @gen_controller.delete(
@@ -163,11 +157,7 @@ async def delete_gen_table(
     delete_gen_table_result = await GenTableService.delete_gen_table_services(query_db, delete_gen_table)
     logger.info(delete_gen_table_result.message)
 
-    return ResponseUtil.success(
-        msg=delete_gen_table_result.message,
-        msg_key=delete_gen_table_result.msg_key,
-        msg_params=delete_gen_table_result.msg_params,
-    )
+    return ResponseUtil.success(msg=delete_gen_table_result.message)
 
 
 @gen_controller.post(
@@ -194,9 +184,7 @@ async def create_table(
     create_table_result = await GenTableService.create_table_services(query_db, sql, current_user, source_name)
     logger.info(create_table_result.message)
 
-    return ResponseUtil.success(
-        msg=create_table_result.message, msg_key=create_table_result.msg_key, msg_params=create_table_result.msg_params
-    )
+    return ResponseUtil.success(msg=create_table_result.message)
 
 
 @gen_controller.get(
@@ -259,11 +247,7 @@ async def gen_code_local(
     gen_code_local_result = await GenTableService.generate_code_services(query_db, table_name, source_name)
     logger.info(gen_code_local_result.message)
 
-    return ResponseUtil.success(
-        msg=gen_code_local_result.message,
-        msg_key=gen_code_local_result.msg_key,
-        msg_params=gen_code_local_result.msg_params,
-    )
+    return ResponseUtil.success(msg=gen_code_local_result.message)
 
 
 @gen_controller.get(

@@ -21,6 +21,7 @@
   "cancel": "取 消",
   "confirm": "确 定",
   "loading": "加载中...",
+  "loadingSystemResourcesPleaseWait": "正在加载系统资源，请耐心等待",
   "retry": "重试",
   "languageSaved": "语言设置已保存",
   "languageFailed": "语言设置保存失败，请重试",

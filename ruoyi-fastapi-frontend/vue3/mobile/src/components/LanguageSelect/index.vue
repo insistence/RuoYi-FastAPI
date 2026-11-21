@@ -45,6 +45,7 @@
 </template>
 <script>
 import { i18n } from '@/i18n'
+import { localeState } from '@/i18n/adapter'
 import { saveLocale } from '@/i18n/preference'
 
 export default {
@@ -56,8 +57,8 @@ export default {
   computed: {
     currentLabel() {
       return (
-        this.options.find((item) => item.value === this.$locale.preference)?.label ||
-        this.$locale.preference
+        this.options.find((item) => item.value === localeState.preference)?.label ||
+        localeState.preference
       )
     },
     options() {
@@ -69,7 +70,7 @@ export default {
     selected() {
       return Math.max(
         0,
-        this.options.findIndex((item) => item.value === this.$locale.preference)
+        this.options.findIndex((item) => item.value === localeState.preference)
       )
     },
   },

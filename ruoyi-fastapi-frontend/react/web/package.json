@@ -25,7 +25,7 @@
     "preview": "vite preview",
     "test:session": "node --experimental-vm-modules --test tests/security/logout.test.mjs",
     "i18n:check": "node scripts/check-i18n.mjs && x18n --root . check --json",
-    "test:i18n": "node --test tests/i18n/*.test.mjs && pnpm test:components tests/react/i18n.test.jsx"
+    "test:i18n": "node --test tests/i18n/*.test.mjs && pnpm test:components tests/react/i18n.test.jsx tests/react/translationFields.test.jsx"
   },
   "dependencies": {
     "@ant-design/icons": "6.3.4",

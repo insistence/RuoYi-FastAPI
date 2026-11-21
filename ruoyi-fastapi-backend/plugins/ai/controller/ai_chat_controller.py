@@ -108,11 +108,7 @@ async def save_user_chat_config(
     save_ai_chat_config_result = await AiChatService.save_ai_chat_config_services(query_db, user_id, ai_chat_config)
     logger.info(save_ai_chat_config_result.message)
 
-    return ResponseUtil.success(
-        msg=save_ai_chat_config_result.message,
-        msg_key=save_ai_chat_config_result.msg_key,
-        msg_params=save_ai_chat_config_result.msg_params,
-    )
+    return ResponseUtil.success(msg=save_ai_chat_config_result.message)
 
 
 @ai_chat_controller.get(
@@ -150,11 +146,7 @@ async def delete_chat_session(
     )
     logger.info(delete_chat_session_result.message)
 
-    return ResponseUtil.success(
-        msg=delete_chat_session_result.message,
-        msg_key=delete_chat_session_result.msg_key,
-        msg_params=delete_chat_session_result.msg_params,
-    )
+    return ResponseUtil.success(msg=delete_chat_session_result.message)
 
 
 @ai_chat_controller.get(
@@ -192,6 +184,4 @@ async def cancel_chat_run(
     cancel_result = await AiChatService.cancel_run_services(run_id, current_user.user.user_id)
     logger.info(cancel_result.message)
 
-    return ResponseUtil.success(
-        msg=cancel_result.message, msg_key=cancel_result.msg_key, msg_params=cancel_result.msg_params
-    )
+    return ResponseUtil.success(msg=cancel_result.message)

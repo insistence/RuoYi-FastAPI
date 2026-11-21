@@ -16,7 +16,8 @@ async def add_menu_button(view: SystemPage, parent_name: str, expected: dict) ->
     dialog = view.dialog
     await view.radio(dialog, '菜单类型', '按钮')
     await view.fill(dialog, '菜单名称', expected['menuName'])
-    await view.translation_input(dialog, '菜单名称').fill(expected['menuNameI18n']['en-US'])
+    translation = await view.open_translation_input(dialog, '菜单名称')
+    await translation.fill(expected['menuNameI18n']['en-US'])
     await view.fill(dialog, '显示排序', '1')
     await view.fill(dialog, '权限字符', expected['perms'])
     await view.save(resource, 'POST')
@@ -41,7 +42,8 @@ async def test_menu_management_page(browser_harness: BrowserHarness) -> None:
         dialog = await view.add()
         await view.radio(dialog, '菜单类型', '目录')
         await view.fill(dialog, '菜单名称', directory)
-        await view.translation_input(dialog, '菜单名称').fill(directory_english)
+        translation = await view.open_translation_input(dialog, '菜单名称')
+        await translation.fill(directory_english)
         await view.fill(dialog, '显示排序', '10')
         await view.fill(dialog, '路由地址', f'e2e_dir_{suffix}')
         await view.save(resource, 'POST')
@@ -68,7 +70,8 @@ async def test_menu_management_page(browser_harness: BrowserHarness) -> None:
             '权限字符': f'e2e:{suffix}:list',
         }.items():
             await view.fill(dialog, label, value)
-        await view.translation_input(dialog, '菜单名称').fill(menu_english)
+        translation = await view.open_translation_input(dialog, '菜单名称')
+        await translation.fill(menu_english)
         await view.save(resource, 'POST')
         found = await view.search({'菜单名称': menu})
         child = view.record(found, 'menuName', menu)
@@ -79,8 +82,9 @@ async def test_menu_management_page(browser_harness: BrowserHarness) -> None:
         )
         dialog = await view.edit(menu, resource, child['menuId'])
         await expect(view.input(dialog, '菜单名称')).to_have_value(menu)
-        await expect(view.translation_input(dialog, '菜单名称')).to_have_value(menu_english)
-        await view.translation_input(dialog, '菜单名称').fill(updated_menu_english)
+        translation = await view.open_translation_input(dialog, '菜单名称')
+        await expect(translation).to_have_value(menu_english)
+        await translation.fill(updated_menu_english)
         await view.fill(dialog, '路由地址', f'e2e_menu_updated_{suffix}')
         await view.save(resource, 'PUT')
         await view.persisted(

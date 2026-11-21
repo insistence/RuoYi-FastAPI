@@ -119,10 +119,6 @@ Vue.use(LocalePlugin)
 Vue.use(LocaleForms)
 Vue.component('LanguageSelect', LanguageSelect)
 i18n.initialize(Boolean(getToken()))
-const loadingText = document.getElementById('bootstrap-loading-text')
-if (loadingText) {
-  loadingText.textContent = i18n.t('common:loading')
-}
 
 Vue.config.productionTip = false
 

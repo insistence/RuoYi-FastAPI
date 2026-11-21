@@ -128,7 +128,7 @@ def test_response_and_service_metadata_survive_copy_and_rendering(tmp_path: Path
         try:
             responses = [
                 ResponseUtil.success(msg=deferred, data={'nested': deferred}),
-                ResponseUtil.success(msg=model.message, msg_key=model.msg_key, msg_params=model.msg_params),
+                ResponseUtil.success(msg=model.message),
                 ResponseUtil.failure(msg=error.message, msg_key=error.msg_key, msg_params=error.msg_params),
                 ResponseUtil.success(
                     msg=str(message), msg_key='items.one', domain='plugin.counts', count=2, plural_key='items.many'

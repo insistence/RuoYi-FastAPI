@@ -55,7 +55,7 @@ export default {
   },
   methods: {
     async handleLanguageChange(value) {
-      if (this.busy || value === this.$locale.preference) return
+      if (this.busy || (i18n.accountId !== null && value === this.$locale.preference)) return
       this.busy = true
       try {
         await saveLocale(value)

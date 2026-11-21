@@ -28,5 +28,4 @@ export const i18n = createLocaleRuntime({
 })
 setMessageTranslator(i18n.t)
 export const t = i18n.t
-export const resolveRouteTitle = (route) => i18n.resolveRouteTitle(route)
 export const refreshDeviceLocale = () => i18n.refreshDeviceLocale()

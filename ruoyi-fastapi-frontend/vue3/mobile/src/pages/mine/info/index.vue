@@ -99,7 +99,7 @@
           }}</text>
         </view>
         <text class="text-sm text-gray-500">{{
-          formatDisplayTime(user.createTime, $locale.locale) || '-'
+          formatDisplayTime(user.createTime, localeState.locale) || '-'
         }}</text>
       </view>
     </view>
@@ -108,6 +108,7 @@
 
 <script setup>
 import { getUserProfile } from '@/api/system/user'
+import { localeState } from '@/i18n/adapter'
 import { ref } from 'vue'
 import { formatDisplayTime } from '@/utils/time'
 import { useUserStore } from '@/store/modules/user'

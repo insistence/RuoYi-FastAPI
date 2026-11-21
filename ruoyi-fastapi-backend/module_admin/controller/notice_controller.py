@@ -83,9 +83,7 @@ async def mark_system_notice_read(
     mark_read_result = await NoticeService.mark_notice_read_services(query_db, current_user.user.user_id, [notice_id])
     logger.info(mark_read_result.message)
 
-    return ResponseUtil.success(
-        msg=mark_read_result.message, msg_key=mark_read_result.msg_key, msg_params=mark_read_result.msg_params
-    )
+    return ResponseUtil.success(msg=mark_read_result.message)
 
 
 @notice_controller.get(
@@ -124,9 +122,7 @@ async def mark_all_system_notice_read(
     mark_read_result = await NoticeService.mark_notice_read_services(query_db, current_user.user.user_id, notice_ids)
     logger.info(mark_read_result.message)
 
-    return ResponseUtil.success(
-        msg=mark_read_result.message, msg_key=mark_read_result.msg_key, msg_params=mark_read_result.msg_params
-    )
+    return ResponseUtil.success(msg=mark_read_result.message)
 
 
 @notice_controller.post(
@@ -150,9 +146,7 @@ async def add_system_notice(
     add_notice_result = await NoticeService.add_notice_services(query_db, add_notice)
     logger.info(add_notice_result.message)
 
-    return ResponseUtil.success(
-        msg=add_notice_result.message, msg_key=add_notice_result.msg_key, msg_params=add_notice_result.msg_params
-    )
+    return ResponseUtil.success(msg=add_notice_result.message)
 
 
 @notice_controller.put(
@@ -175,9 +169,7 @@ async def edit_system_notice(
     edit_notice_result = await NoticeService.edit_notice_services(query_db, edit_notice)
     logger.info(edit_notice_result.message)
 
-    return ResponseUtil.success(
-        msg=edit_notice_result.message, msg_key=edit_notice_result.msg_key, msg_params=edit_notice_result.msg_params
-    )
+    return ResponseUtil.success(msg=edit_notice_result.message)
 
 
 @notice_controller.delete(
@@ -198,11 +190,7 @@ async def delete_system_notice(
     delete_notice_result = await NoticeService.delete_notice_services(query_db, delete_notice)
     logger.info(delete_notice_result.message)
 
-    return ResponseUtil.success(
-        msg=delete_notice_result.message,
-        msg_key=delete_notice_result.msg_key,
-        msg_params=delete_notice_result.msg_params,
-    )
+    return ResponseUtil.success(msg=delete_notice_result.message)
 
 
 @notice_controller.get(

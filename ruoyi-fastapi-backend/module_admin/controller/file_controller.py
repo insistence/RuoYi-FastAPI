@@ -245,9 +245,7 @@ async def handle_system_file_reconcile_issue(
     )
     logger.info(handle_result.message)
 
-    return ResponseUtil.success(
-        msg=handle_result.message, msg_key=handle_result.msg_key, msg_params=handle_result.msg_params
-    )
+    return ResponseUtil.success(msg=handle_result.message)
 
 
 @file_controller.get(
@@ -292,9 +290,7 @@ async def add_system_file_retention_policy(
     )
     logger.info(policy_result.message)
 
-    return ResponseUtil.success(
-        msg=policy_result.message, msg_key=policy_result.msg_key, msg_params=policy_result.msg_params
-    )
+    return ResponseUtil.success(msg=policy_result.message)
 
 
 @file_controller.put(
@@ -322,9 +318,7 @@ async def edit_system_file_retention_policy(
     )
     logger.info(policy_result.message)
 
-    return ResponseUtil.success(
-        msg=policy_result.message, msg_key=policy_result.msg_key, msg_params=policy_result.msg_params
-    )
+    return ResponseUtil.success(msg=policy_result.message)
 
 
 @file_controller.delete(
@@ -350,9 +344,7 @@ async def delete_system_file_retention_policy(
     )
     logger.info(policy_result.message)
 
-    return ResponseUtil.success(
-        msg=policy_result.message, msg_key=policy_result.msg_key, msg_params=policy_result.msg_params
-    )
+    return ResponseUtil.success(msg=policy_result.message)
 
 
 @file_controller.get(
@@ -442,7 +434,7 @@ async def read_system_file_retention_reminder(
     )
     logger.info(read_result.message)
 
-    return ResponseUtil.success(msg=read_result.message, msg_key=read_result.msg_key, msg_params=read_result.msg_params)
+    return ResponseUtil.success(msg=read_result.message)
 
 
 @file_controller.put(
@@ -478,9 +470,7 @@ async def extend_system_file_retention(
     )
     logger.info(extend_result.message)
 
-    return ResponseUtil.success(
-        msg=extend_result.message, msg_key=extend_result.msg_key, msg_params=extend_result.msg_params
-    )
+    return ResponseUtil.success(msg=extend_result.message)
 
 
 @file_controller.put(
@@ -513,9 +503,7 @@ async def dispose_system_expired_file(
     )
     logger.info(dispose_result.message)
 
-    return ResponseUtil.success(
-        msg=dispose_result.message, msg_key=dispose_result.msg_key, msg_params=dispose_result.msg_params
-    )
+    return ResponseUtil.success(msg=dispose_result.message)
 
 
 @file_controller.get(
@@ -597,11 +585,7 @@ async def batch_save_system_file_acl(
     )
     logger.info(save_file_acl_result.message)
 
-    return ResponseUtil.success(
-        msg=save_file_acl_result.message,
-        msg_key=save_file_acl_result.msg_key,
-        msg_params=save_file_acl_result.msg_params,
-    )
+    return ResponseUtil.success(msg=save_file_acl_result.message)
 
 
 @file_controller.get(
@@ -668,11 +652,7 @@ async def save_system_file_acl(
     )
     logger.info(save_file_acl_result.message)
 
-    return ResponseUtil.success(
-        msg=save_file_acl_result.message,
-        msg_key=save_file_acl_result.msg_key,
-        msg_params=save_file_acl_result.msg_params,
-    )
+    return ResponseUtil.success(msg=save_file_acl_result.message)
 
 
 @file_controller.get(
@@ -817,11 +797,7 @@ async def transfer_system_file(
     )
     logger.info(transfer_file_result.message)
 
-    return ResponseUtil.success(
-        msg=transfer_file_result.message,
-        msg_key=transfer_file_result.msg_key,
-        msg_params=transfer_file_result.msg_params,
-    )
+    return ResponseUtil.success(msg=transfer_file_result.message)
 
 
 @file_controller.delete(
@@ -852,9 +828,7 @@ async def delete_system_file(
     )
     logger.info(delete_file_result.message)
 
-    return ResponseUtil.success(
-        msg=delete_file_result.message, msg_key=delete_file_result.msg_key, msg_params=delete_file_result.msg_params
-    )
+    return ResponseUtil.success(msg=delete_file_result.message)
 
 
 @file_controller.put(
@@ -885,9 +859,7 @@ async def restore_system_file(
     )
     logger.info(restore_file_result.message)
 
-    return ResponseUtil.success(
-        msg=restore_file_result.message, msg_key=restore_file_result.msg_key, msg_params=restore_file_result.msg_params
-    )
+    return ResponseUtil.success(msg=restore_file_result.message)
 
 
 @file_controller.delete(
@@ -918,9 +890,7 @@ async def purge_system_file(
     )
     logger.info(purge_file_result.message)
 
-    return ResponseUtil.success(
-        msg=purge_file_result.message, msg_key=purge_file_result.msg_key, msg_params=purge_file_result.msg_params
-    )
+    return ResponseUtil.success(msg=purge_file_result.message)
 
 
 @file_controller.get(

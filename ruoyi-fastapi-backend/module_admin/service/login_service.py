@@ -1,10 +1,11 @@
 import random
 import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import Depends, Form, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import AfterValidator
 from redis.asyncio import Redis
 from sqlalchemy import Engine, Row
 from sqlalchemy.exc import UnboundExecutionError
@@ -25,7 +26,14 @@ from module_admin.entity.do.post_do import SysPost
 from module_admin.entity.do.role_do import SysRole, SysRoleMenu
 from module_admin.entity.do.user_do import SysUser, SysUserPost, SysUserRole
 from module_admin.entity.vo.login_vo import MenuTreeModel, MetaModel, RouterModel, SmsCode, UserLogin, UserRegister
-from module_admin.entity.vo.user_vo import AddUserModel, CurrentUserModel, ResetUserModel, TokenData, UserInfoModel
+from module_admin.entity.vo.user_vo import (
+    AddUserModel,
+    CurrentUserModel,
+    ResetUserModel,
+    TokenData,
+    UserInfoModel,
+    UserLocaleModel,
+)
 from module_admin.service.user_service import UserService
 from module_identity.service.identity_service import (
     CredentialAuthenticationError,
@@ -86,7 +94,7 @@ return redis.call('del', KEYS[1])
 
 class CustomOAuth2PasswordRequestForm(OAuth2PasswordRequestForm):
     """
-    自定义OAuth2PasswordRequestForm类，增加验证码及会话编号参数
+    自定义OAuth2PasswordRequestForm类，增加验证码、会话编号及语言偏好参数
     """
 
     def __init__(
@@ -100,6 +108,9 @@ class CustomOAuth2PasswordRequestForm(OAuth2PasswordRequestForm):
         code: str | None = Form(default=''),
         uuid: str | None = Form(default=''),
         login_info: dict[str, str] | None = Form(default=None),
+        locale: Annotated[str, AfterValidator(UserLocaleModel.validate_locale)] | None = Form(
+            default=None, max_length=63, description='登录页显式选择的语言偏好'
+        ),
     ) -> None:
         super().__init__(
             grant_type=grant_type,
@@ -112,6 +123,7 @@ class CustomOAuth2PasswordRequestForm(OAuth2PasswordRequestForm):
         self.code = code
         self.uuid = uuid
         self.login_info = login_info
+        self.locale = locale
 
 
 class LoginService:

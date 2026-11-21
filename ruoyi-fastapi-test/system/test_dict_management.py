@@ -21,7 +21,8 @@ async def verify_dictionary_data(view: SystemPage, resource: str, kind: str) -> 
         dialog = await view.add()
         for field, content in {label_field: label, value_field: value, '显示排序': value}.items():
             await view.fill(dialog, field, content)
-        await view.translation_input(dialog, label_field).fill(english_label)
+        translation = await view.open_translation_input(dialog, label_field)
+        await translation.fill(english_label)
         await view.choose(dialog, '回显样式', style.split('(')[0] if view.is_react else style)
         saved = await view.save(resource, 'POST')
         entry = view.record(saved, 'dictLabel', label)
@@ -41,8 +42,9 @@ async def verify_dictionary_data(view: SystemPage, resource: str, kind: str) -> 
         )
     dialog = await view.edit('异常', resource, entries[1]['dictCode'])
     await expect(view.input(dialog, label_field)).to_have_value('异常')
-    await expect(view.translation_input(dialog, label_field)).to_have_value('Abnormal')
-    await view.translation_input(dialog, label_field).fill('Exception')
+    translation = await view.open_translation_input(dialog, label_field)
+    await expect(translation).to_have_value('Abnormal')
+    await translation.fill('Exception')
     await view.fill(dialog, '备注', '字典数据修改备注')
     await view.save(resource, 'PUT')
     await view.persisted(
@@ -68,7 +70,8 @@ async def test_dict_management_page(browser_harness: BrowserHarness) -> None:
     try:
         dialog = await view.add()
         await view.fill(dialog, '字典名称', name)
-        await view.translation_input(dialog, '字典名称').fill(english_name)
+        translation = await view.open_translation_input(dialog, '字典名称')
+        await translation.fill(english_name)
         await view.fill(dialog, '字典类型', kind)
         await view.save(resource, 'POST')
         found = await view.search({'字典名称': name, '字典类型': kind})
@@ -77,8 +80,9 @@ async def test_dict_management_page(browser_harness: BrowserHarness) -> None:
         await view.persisted(resource, record['dictId'], {'dictName': name, 'dictNameI18n': {'en-US': english_name}})
         dialog = await view.edit(name, resource, record['dictId'])
         await expect(view.input(dialog, '字典名称')).to_have_value(name)
-        await expect(view.translation_input(dialog, '字典名称')).to_have_value(english_name)
-        await view.translation_input(dialog, '字典名称').fill(updated_english_name)
+        translation = await view.open_translation_input(dialog, '字典名称')
+        await expect(translation).to_have_value(english_name)
+        await translation.fill(updated_english_name)
         await view.fill(dialog, '备注', '字典类型修改备注')
         await view.save(resource, 'PUT')
         await view.persisted(

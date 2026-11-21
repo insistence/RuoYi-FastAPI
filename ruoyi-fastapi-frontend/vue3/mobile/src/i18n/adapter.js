@@ -30,6 +30,5 @@ export default {
   install(app) {
     setMessageTranslator(t)
     app.config.globalProperties.$t = t
-    app.config.globalProperties.$locale = localeState
   },
 }

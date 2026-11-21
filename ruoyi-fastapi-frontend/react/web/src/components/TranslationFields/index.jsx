@@ -1,20 +1,8 @@
 import { useState } from 'react'
-import { Button, Form, Input, Typography } from 'antd'
+import { Button, Form, Input, Space, Typography } from 'antd'
 import { useI18n } from '@/i18n/adapter'
 import { DATA_SOURCE_LOCALE } from '@/i18n/runtime.mjs'
 import './index.css'
-
-function LocaleFormItem(props) {
-  return (
-    <Form.Item
-      {...props}
-      className="locale-text-field"
-      layout="vertical"
-      labelCol={{}}
-      wrapperCol={{}}
-    />
-  )
-}
 
 export function SourceLocaleLabel({ children }) {
   const { i18n, t } = useI18n()
@@ -26,51 +14,81 @@ export function SourceLocaleLabel({ children }) {
   )
 }
 
-export function SourceLocaleField({ label, ...props }) {
+function LanguageInput({ language, ...props }) {
   return (
-    <LocaleFormItem
-      {...props}
-      label={<SourceLocaleLabel>{label}</SourceLocaleLabel>}
-    />
+    <Space.Compact
+      block
+      className="locale-name-input"
+    >
+      <Space.Addon>{language}</Space.Addon>
+      <Input {...props} />
+    </Space.Compact>
   )
 }
 
-export default function TranslationFields({ name, label, original, maxLength }) {
+export default function TranslationFields({
+  name,
+  label,
+  rules,
+  placeholder,
+  translationName,
+  original,
+  maxLength,
+}) {
   const { i18n, t } = useI18n()
+  const language = i18n.registry.get(DATA_SOURCE_LOCALE)?.nativeName || DATA_SOURCE_LOCALE
   const locales = i18n.registry.entries.filter((entry) => entry.code !== DATA_SOURCE_LOCALE)
-  const values = Form.useWatch(name, Form.useFormInstance())
+  const values = Form.useWatch(translationName, Form.useFormInstance())
   const [expanded, setExpanded] = useState(() => locales.some((entry) => original?.[entry.code]))
-  if (!locales.length) return null
   const hasTranslation = locales.some((entry) => values?.[entry.code])
   return (
-    <div className="translation-fields">
-      <Button
-        type="link"
-        aria-expanded={expanded}
-        onClick={() => setExpanded(!expanded)}
-      >
-        {expanded
-          ? t('common:i18n.hide')
-          : hasTranslation
-            ? t('common:i18n.show')
-            : t('common:i18n.add')}
-      </Button>
-      <div hidden={!expanded}>
-        {locales.map((entry) => (
-          <LocaleFormItem
-            key={entry.code}
-            name={[name, entry.code]}
-            label={`${label} · ${entry.nativeName}`}
-          >
-            <Input
-              allowClear
-              maxLength={maxLength}
-              showCount
-            />
-          </LocaleFormItem>
-        ))}
-        <Typography.Text type="secondary">{t('common:i18n.fallback')}</Typography.Text>
-      </div>
-    </div>
+    <Form.Item
+      name={name}
+      label={label}
+      rules={rules}
+      extra={
+        locales.length > 0 && (
+          <div className="translation-fields">
+            <Button
+              type="link"
+              aria-expanded={expanded}
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded
+                ? t('common:i18n.hide')
+                : hasTranslation
+                  ? t('common:i18n.show')
+                  : t('common:i18n.add')}
+            </Button>
+            <div
+              hidden={!expanded}
+              className="translation-inputs"
+            >
+              {locales.map((entry) => (
+                <Form.Item
+                  key={entry.code}
+                  name={[translationName, entry.code]}
+                  noStyle
+                >
+                  <LanguageInput
+                    language={entry.nativeName}
+                    aria-label={`${label} · ${entry.nativeName}`}
+                    allowClear
+                    maxLength={maxLength}
+                    showCount
+                  />
+                </Form.Item>
+              ))}
+              <Typography.Text type="secondary">{t('common:i18n.fallback')}</Typography.Text>
+            </div>
+          </div>
+        )
+      }
+    >
+      <LanguageInput
+        language={language}
+        placeholder={placeholder}
+      />
+    </Form.Item>
   )
 }

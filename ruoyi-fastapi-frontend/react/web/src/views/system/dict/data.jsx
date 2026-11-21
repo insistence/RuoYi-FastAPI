@@ -1,8 +1,5 @@
 import { useLocalizedFormErrors } from '@/i18n/form'
-import TranslationFields, {
-  SourceLocaleField,
-  SourceLocaleLabel,
-} from '@/components/TranslationFields'
+import TranslationFields, { SourceLocaleLabel } from '@/components/TranslationFields'
 import { translationPatch, localizeOptions } from '@/i18n/entities.mjs'
 import { useI18n } from '@/i18n/adapter'
 import { i18n, t } from '@/i18n'
@@ -401,10 +398,8 @@ export default function DictData({ params }) {
       >
         <Form
           name="src-views-system-dict-data-jsx-editor-5"
-          className="ruoyi-dialog-form"
+          className="ruoyi-dialog-form ruoyi-dialog-form-auto-label"
           colon={false}
-          wrapperCol={{ flex: '1 1 0' }}
-          labelCol={{ flex: '80px' }}
           form={dataRef}
           layout="horizontal"
         >
@@ -414,19 +409,15 @@ export default function DictData({ params }) {
           >
             <Input disabled />
           </Form.Item>
-          <SourceLocaleField
-            name="dictLabel"
-            label={t('system:dict.label')}
-            rules={[{ required: true }]}
-          >
-            <Input placeholder={t('system:dict.labelPlaceholder')} />
-          </SourceLocaleField>
           {open && (
             <TranslationFields
+              name="dictLabel"
+              label={t('system:dict.label')}
+              rules={[{ required: true }]}
+              placeholder={t('system:dict.labelPlaceholder')}
+              translationName="dictLabelI18n"
               original={originalTranslations}
               maxLength={100}
-              name="dictLabelI18n"
-              label={t('system:dict.label')}
             />
           )}
           <Form.Item

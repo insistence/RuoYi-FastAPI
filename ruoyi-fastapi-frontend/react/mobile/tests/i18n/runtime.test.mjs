@@ -91,22 +91,52 @@ test('an old save cannot overwrite a new account', async () => {
   assert.equal(runtime.accountId, '2')
   assert.equal(runtime.locale, 'zh-CN')
 })
-test('guest preference returns after logout; unsupported account preference is retained', async () => {
-  const runtime = setup()
+test('an explicit login choice survives reload and is consumed only by a matching login', async () => {
+  const data = new Map()
+  const storage = { get: (key) => data.get(key), set: (key, value) => data.set(key, value) }
+  const runtime = setup({ storage })
   await runtime.setPreference('en-US')
-  runtime.setAccount(1, 'fr-CA', '0')
-  assert.equal(runtime.preference, 'fr-CA')
-  assert.equal(runtime.locale, 'zh-CN')
-  runtime.setAccount(null)
-  assert.equal(runtime.locale, 'en-US')
+  const submitted = runtime.loginPreference
+  await runtime.setPreference('auto')
+  runtime.confirmLoginPreference(submitted)
+  assert.equal(runtime.loginPreference, 'auto')
+
+  const reloaded = setup({ storage })
+  reloaded.initialize(false)
+  assert.equal(reloaded.preference, 'auto')
+  assert.equal(reloaded.loginPreference, 'auto')
+  reloaded.confirmLoginPreference('auto')
+  reloaded.setAccount(1, 'auto', '1')
+  assert.equal(reloaded.loginPreference, null)
+  await reloaded.setPreference('en-US', { save: async (locale) => ({ locale, revision: '2' }) })
+  reloaded.setAccount(null)
+  assert.equal(reloaded.preference, 'en-US')
+  assert.equal(reloaded.loginPreference, null)
+
+  const next = setup({ storage })
+  next.initialize(false)
+  assert.equal(next.preference, 'en-US')
+  assert.equal(next.loginPreference, null)
+  next.setAccount(2, 'fr-CA', '0')
+  assert.equal(next.preference, 'fr-CA')
+  assert.equal(next.locale, 'zh-CN')
 })
 test('auto follows changed device locale without changing the preference', async () => {
   let device = 'en-US'
   const runtime = setup({ deviceLocales: () => [device] })
+  const languages = []
+  const preferences = []
+  runtime.engine.on('languageChanged', (code) => languages.push(code))
+  runtime.engine.on('preferenceChanged', (value) => preferences.push(value))
   await runtime.setPreference('auto')
   const oldHeaders = runtime.headers
+  device = 'en-GB'
+  runtime.refreshDeviceLocale()
   device = 'zh-CN'
   runtime.refreshDeviceLocale()
+  runtime.refreshDeviceLocale()
+  assert.deepEqual(languages, ['en-US', 'zh-CN'])
+  assert.deepEqual(preferences, ['auto'])
   assert.equal(runtime.preference, 'auto')
   assert.equal(runtime.locale, 'zh-CN')
   assert.equal(oldHeaders['Accept-Language'], 'en-US')

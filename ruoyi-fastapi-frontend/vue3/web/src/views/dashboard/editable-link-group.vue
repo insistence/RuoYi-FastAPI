@@ -29,6 +29,7 @@ export default {
 
 <script setup>
 import { PlusOutlined } from '@ant-design/icons-vue'
+import { t } from '@/i18n/adapter'
 
 const links = [
   {

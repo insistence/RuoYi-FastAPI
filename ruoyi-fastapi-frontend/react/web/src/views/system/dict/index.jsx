@@ -1,8 +1,5 @@
 import { useLocalizedFormErrors } from '@/i18n/form'
-import TranslationFields, {
-  SourceLocaleField,
-  SourceLocaleLabel,
-} from '@/components/TranslationFields'
+import TranslationFields, { SourceLocaleLabel } from '@/components/TranslationFields'
 import { translationPatch, localizeOptions } from '@/i18n/entities.mjs'
 import { useI18n } from '@/i18n/adapter'
 import { i18n, t } from '@/i18n'
@@ -373,26 +370,20 @@ export default function Dict() {
       >
         <Form
           name="src-views-system-dict-index-jsx-editor-6"
-          className="ruoyi-dialog-form"
+          className="ruoyi-dialog-form ruoyi-dialog-form-auto-label"
           colon={false}
-          wrapperCol={{ flex: '1 1 0' }}
-          labelCol={{ flex: '100px' }}
           form={dictRef}
           layout="horizontal"
         >
-          <SourceLocaleField
-            label={t('system:dict.name')}
-            name="dictName"
-            rules={[{ required: true, message: t('system:dict.nameRequired') }]}
-          >
-            <Input placeholder={t('system:dict.namePlaceholder')} />
-          </SourceLocaleField>
           {open && (
             <TranslationFields
+              name="dictName"
+              label={t('system:dict.name')}
+              rules={[{ required: true, message: t('system:dict.nameRequired') }]}
+              placeholder={t('system:dict.namePlaceholder')}
+              translationName="dictNameI18n"
               original={originalTranslations}
               maxLength={100}
-              name="dictNameI18n"
-              label={t('system:dict.name')}
             />
           )}
           <Form.Item

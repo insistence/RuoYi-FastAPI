@@ -5,6 +5,8 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import 'dayjs/locale/en'
 
+const scope = 'ruoyi-vue2-web:' + (process.env.VUE_APP_BASE_API || '')
+
 export const i18n = createLocaleRuntime({
   appVersion: appManifest.version,
   meta,
@@ -23,7 +25,7 @@ export const i18n = createLocaleRuntime({
       } catch {}
     },
   },
-  scope: 'ruoyi-vue2-web:' + (process.env.VUE_APP_BASE_API || ''),
+  scope,
   deviceLocales: () =>
     typeof navigator === 'undefined' ? [] : navigator.languages || [navigator.language],
   onChange(code, entry) {
@@ -31,6 +33,12 @@ export const i18n = createLocaleRuntime({
     if (typeof document !== 'undefined') {
       document.documentElement.lang = code
       document.documentElement.dir = entry.direction
+      const message = i18n.t('common:loadingSystemResourcesPleaseWait')
+      const label = document.getElementById('bootstrap-loading-text')
+      if (label) label.textContent = message
+      try {
+        sessionStorage.setItem(scope + ':bootstrap-loading', message)
+      } catch {}
     }
   },
 })

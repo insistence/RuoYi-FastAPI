@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn.js'
 import 'dayjs/locale/en.js'
 
+const scope = 'ruoyi-react-web:' + (import.meta.env?.VITE_APP_BASE_API || '')
 export const i18n = createLocaleRuntime({
   appVersion: appManifest.version,
   meta,
@@ -25,7 +26,7 @@ export const i18n = createLocaleRuntime({
       } catch {}
     },
   },
-  scope: 'ruoyi-react-web:' + (import.meta.env?.VITE_APP_BASE_API || ''),
+  scope,
   deviceLocales: () =>
     typeof navigator === 'undefined' ? [] : navigator.languages || [navigator.language],
   onChange(code, entry) {
@@ -33,6 +34,12 @@ export const i18n = createLocaleRuntime({
     if (typeof document !== 'undefined') {
       document.documentElement.lang = code
       document.documentElement.dir = entry.direction
+      const text = i18n.t('common:loadingSystemResourcesPleaseWait')
+      const label = document.getElementById('bootstrap-loading-text')
+      if (label) label.textContent = text
+      try {
+        sessionStorage.setItem(`${scope}:bootstrap-loading`, text)
+      } catch {}
     }
   },
 })

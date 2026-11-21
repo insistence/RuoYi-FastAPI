@@ -114,7 +114,7 @@
 </template>
 
 <script>
-import { t } from '@/i18n/adapter'
+import { localeState, t } from '@/i18n/adapter'
 
 import { getTimezoneOptions, updateUserTimezone } from '@/api/system/user'
 import {
@@ -146,7 +146,7 @@ export default {
       return this.followDevice ? this.deviceZone || getBusinessTimezone() : this.selectedZone
     },
     previewTime() {
-      return formatDisplayTime(this.now, this.$locale.locale, this.previewZone)
+      return formatDisplayTime(this.now, localeState.locale, this.previewZone)
     },
     filteredTimezones() {
       return this.timezones.filter((zone) =>

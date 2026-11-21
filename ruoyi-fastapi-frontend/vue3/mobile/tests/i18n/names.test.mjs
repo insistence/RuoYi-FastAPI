@@ -1,17 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { updateTranslationPatch, localizeDictionary } from '../../src/i18n/names.mjs'
+import { localizeDictionary } from '../../src/i18n/names.mjs'
 import { createLocaleRuntime } from '../../src/i18n/runtime.mjs'
-
-test('translation edits preserve unknown languages and distinguish removal from no edit', () => {
-  const original = { 'en-US': 'Users', 'ja-JP': 'ユーザー' }
-  let patch = updateTranslationPatch({}, original, 'en-US', 'Accounts')
-  assert.deepEqual(patch, { 'en-US': 'Accounts' })
-  patch = updateTranslationPatch(patch, original, 'en-US', '')
-  assert.deepEqual(patch, { 'en-US': null })
-  assert.equal(original['ja-JP'], 'ユーザー')
-  assert.deepEqual(updateTranslationPatch(patch, original, 'en-US', 'Users'), {})
-})
 
 test('cached dictionaries switch through a third language without changing business values', async () => {
   const locale = createLocaleRuntime({

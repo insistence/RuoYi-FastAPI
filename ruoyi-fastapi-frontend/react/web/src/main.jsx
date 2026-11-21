@@ -15,11 +15,6 @@ registerGeneratedResources(
 )
 i18n.initialize(Boolean(getToken()))
 
-const loadingText = document.getElementById('bootstrap-loading-text')
-if (loadingText) {
-  loadingText.textContent = i18n.t('common:loadingSystemResourcesPleaseWait')
-}
-
 // 挂载应用；主题、反馈实例与路由上下文由 App 统一配置。
 createRoot(document.getElementById('root')).render(
   <I18nextProvider i18n={i18n.engine}>

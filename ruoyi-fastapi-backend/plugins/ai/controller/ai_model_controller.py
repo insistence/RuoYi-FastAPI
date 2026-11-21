@@ -103,9 +103,7 @@ async def add_ai_model(
     add_ai_model_result = await AiModelService.add_ai_model_services(query_db, add_ai_model)
     logger.info(add_ai_model_result.message)
 
-    return ResponseUtil.success(
-        msg=add_ai_model_result.message, msg_key=add_ai_model_result.msg_key, msg_params=add_ai_model_result.msg_params
-    )
+    return ResponseUtil.success(msg=add_ai_model_result.message)
 
 
 @ai_model_controller.put(
@@ -136,11 +134,7 @@ async def edit_ai_model(
     edit_ai_model_result = await AiModelService.edit_ai_model_services(query_db, edit_ai_model)
     logger.info(edit_ai_model_result.message)
 
-    return ResponseUtil.success(
-        msg=edit_ai_model_result.message,
-        msg_key=edit_ai_model_result.msg_key,
-        msg_params=edit_ai_model_result.msg_params,
-    )
+    return ResponseUtil.success(msg=edit_ai_model_result.message)
 
 
 @ai_model_controller.delete(
@@ -167,11 +161,7 @@ async def delete_ai_model(
     delete_ai_model_result = await AiModelService.delete_ai_model_services(query_db, delete_ai_model)
     logger.info(delete_ai_model_result.message)
 
-    return ResponseUtil.success(
-        msg=delete_ai_model_result.message,
-        msg_key=delete_ai_model_result.msg_key,
-        msg_params=delete_ai_model_result.msg_params,
-    )
+    return ResponseUtil.success(msg=delete_ai_model_result.message)
 
 
 @ai_model_controller.get(

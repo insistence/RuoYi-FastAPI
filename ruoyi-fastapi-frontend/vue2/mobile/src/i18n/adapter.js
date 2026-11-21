@@ -19,6 +19,5 @@ export const useI18n = () => ({ state: localeState, t, i18n })
 export default {
   install(Vue) {
     Vue.prototype.$t = t
-    Vue.prototype.$locale = localeState
   },
 }

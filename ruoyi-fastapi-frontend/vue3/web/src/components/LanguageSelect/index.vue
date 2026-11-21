@@ -44,7 +44,7 @@ const options = computed(() => [
 ])
 
 async function handleLanguageChange(value) {
-  if (busy.value || value === localeState.preference) return
+  if (busy.value || (i18n.accountId !== null && value === localeState.preference)) return
   busy.value = true
   try {
     await saveLocale(value)

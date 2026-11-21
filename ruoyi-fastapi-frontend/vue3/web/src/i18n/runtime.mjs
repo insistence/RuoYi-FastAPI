@@ -106,7 +106,7 @@ export function createLocaleRegistry(meta, resources) {
 }
 
 /**
- * 创建当前应用独立的国际化实例，隔离账号和访客的语言偏好。
+ * 创建当前应用独立的国际化实例，管理登录页和当前账号的语言偏好。
  *
  * @param {Object} options 当前应用的语言、存储和设备适配配置
  * @param {string} [options.appVersion] 记录缺词诊断时使用的应用版本
@@ -129,8 +129,9 @@ export function createLocaleRuntime({
   let preference = meta.defaultLocale
   let queue = Promise.resolve()
   const accountKey = `${scope}:locale:account`
-  const guestKey = `${scope}:locale:v1:guest`
-  const snapshotKey = () => `${scope}:locale:v2:user:${account}`
+  const loginKey = `${scope}:locale:login`
+  const snapshotKey = (id = account) => `${scope}:locale:v2:user:${id}`
+  let loginPreference = null
   const validPreference = (value) => (value === 'auto' ? value : normalizeLocale(value))
   function parseSnapshot(value) {
     const locale = validPreference(value?.locale)
@@ -178,18 +179,21 @@ export function createLocaleRuntime({
       )
     },
   })
-  function applyPreference(value) {
-    preference = value
-    const code = registry.resolve(value, deviceLocales())
+  function applyLanguage(code) {
     engine.changeLanguage(code)
     onChange(code, registry.get(code))
+  }
+  function applyPreference(value) {
+    preference = value
+    applyLanguage(registry.resolve(value, deviceLocales()))
     engine.emit('preferenceChanged', value)
   }
   function restore() {
-    const snapshot = account === null ? null : readSnapshot(storage.get(snapshotKey()))
-    revision = snapshot?.revision ?? null
-    const value = account === null ? validPreference(storage.get(guestKey)) : snapshot?.locale
-    applyPreference(value || meta.defaultLocale)
+    // 登录页默认沿用最近账号的语言，只有用户主动选择才在下次登录时提交。
+    const previous = account ?? storage.get(accountKey)
+    const snapshot = previous ? readSnapshot(storage.get(snapshotKey(previous))) : null
+    revision = account === null ? null : (snapshot?.revision ?? null)
+    applyPreference((account === null && loginPreference) || snapshot?.locale || meta.defaultLocale)
   }
   function acceptSnapshot(snapshot, persist = true) {
     // 先读取其他标签页可能已提交的更新，再比较本次回包的 revision。
@@ -222,8 +226,17 @@ export function createLocaleRuntime({
     get headers() {
       return { 'Accept-Language': engine.language }
     },
+    get loginPreference() {
+      return account === null ? loginPreference : null
+    },
+    confirmLoginPreference(value) {
+      if (!value || loginPreference !== value) return
+      loginPreference = null
+      if (storage.get(loginKey) === value) storage.set(loginKey, '')
+    },
     initialize(hasSession = false) {
       generation++
+      loginPreference = validPreference(storage.get(loginKey))
       const previous = hasSession ? storage.get(accountKey) : null
       account =
         previous === null || previous === undefined || previous === '' ? null : String(previous)
@@ -246,9 +259,12 @@ export function createLocaleRuntime({
         revision = null
       }
       account = next
-      storage.set(accountKey, account || '')
-      if (snapshot) acceptSnapshot(snapshot)
-      else restore()
+      if (snapshot) {
+        storage.set(accountKey, account)
+        acceptSnapshot(snapshot)
+      } else if (loginPreference) {
+        applyPreference(loginPreference)
+      }
     },
     /**
      * 串行保存语言偏好，确认保存成功后再更新界面。
@@ -267,7 +283,8 @@ export function createLocaleRuntime({
         const code = registry.resolve(canonical, deviceLocales())
         if (!engine.hasResourceBundle(code, 'common')) throw new Error('Missing locale resources')
         if (account === null) {
-          storage.set(guestKey, canonical)
+          loginPreference = canonical
+          storage.set(loginKey, canonical)
           applyPreference(canonical)
           return
         }
@@ -291,17 +308,17 @@ export function createLocaleRuntime({
       return result
     },
     refreshDeviceLocale() {
-      if (preference === 'auto') applyPreference(preference)
+      if (preference !== 'auto') return
+      const code = registry.resolve(preference, deviceLocales())
+      if (code !== engine.language) applyLanguage(code)
     },
     acceptStorageEvent(key, value) {
-      if (account === null) {
-        if (key === guestKey) {
-          const locale = validPreference(value)
-          if (locale) applyPreference(locale)
-        }
+      if (key === loginKey) {
+        loginPreference = validPreference(value)
+        if (account === null) restore()
         return
       }
-      if (key !== snapshotKey()) return
+      if (account === null || key !== snapshotKey()) return
       const snapshot = readSnapshot(value)
       if (!snapshot) return
       acceptSnapshot(snapshot, false)

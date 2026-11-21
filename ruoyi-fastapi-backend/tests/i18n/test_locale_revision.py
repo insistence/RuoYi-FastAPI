@@ -1,23 +1,28 @@
 import inspect
 import json
 from collections.abc import AsyncIterator
+from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+import httpx
 import pytest
 import pytest_asyncio
+from fastapi import FastAPI
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from common.aspect.db_session import get_db_session_provider
 from config.env import I18nConfig
 from exceptions.exception import ServiceException
 from i18n.locale import LocaleUtil
 from i18n.registry import LOCALES, LocaleRegistry
-from module_admin.controller.login_controller import get_login_user_info
+from module_admin.controller.login_controller import get_login_user_info, login
 from module_admin.controller.user_controller import change_system_user_locale
 from module_admin.dao.user_dao import UserDao
 from module_admin.entity.do.user_do import SysUser
 from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel, UserLocaleModel, UserModel
+from module_admin.service.login_service import LoginService
 from module_admin.service.user_service import UserService
 from utils.common_util import CamelCaseUtil
 
@@ -39,6 +44,32 @@ async def sessions() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
         yield factory
     finally:
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_login_writes_only_an_explicit_valid_preference(
+    sessions: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = FastAPI()
+    app.post('/login')(inspect.unwrap(login))
+    app.state.redis = AsyncMock()
+    async with sessions() as db:
+        app.dependency_overrides[get_db_session_provider(None)] = lambda: db
+        user = await db.get(SysUser, 1)
+        monkeypatch.setattr(LoginService, 'authenticate_user', AsyncMock(return_value=(user, None)))
+        monkeypatch.setattr(UserService, 'user_detail_services', AsyncMock(return_value=SimpleNamespace(data=user)))
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+            credentials = {'username': 'one', 'password': 'secret'}
+            for fields, status, locale, revision in [
+                ({'locale': 'en_US'}, HTTPStatus.OK, 'en-US', 1),
+                ({'locale': 'invalid/tag'}, HTTPStatus.UNPROCESSABLE_ENTITY, 'en-US', 1),
+                ({}, HTTPStatus.OK, 'en-US', 1),
+                ({'locale': 'auto'}, HTTPStatus.OK, 'auto', 2),
+            ]:
+                response = await client.post('/login', data={**credentials, **fields})
+                assert response.status_code == status
+                await db.refresh(user)
+                assert (user.locale, user.locale_revision) == (locale, revision)
 
 
 @pytest.mark.asyncio
