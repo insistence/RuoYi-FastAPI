@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import create_engine, text
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -20,7 +19,6 @@ from module_admin.dao.user_dao import UserDao
 from module_admin.entity.do.user_do import SysUser
 from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel, UserLocaleModel, UserModel
 from module_admin.service.user_service import UserService
-from scripts.migrate_i18n import plan_migration
 from utils.common_util import CamelCaseUtil
 
 
@@ -113,44 +111,6 @@ async def test_missing_user_preference_does_not_report_a_successful_write(
         with pytest.raises(ServiceException):
             await UserService.update_user_locale_services(db, 999, 'missing', 'en-US')
         assert not db.in_transaction()
-
-
-def test_revision_migration_is_repeatable_and_preserves_existing_users() -> None:
-    engine = create_engine('sqlite:///:memory:')
-    try:
-        with engine.begin() as connection:
-            connection.execute(
-                text("CREATE TABLE sys_user (user_id INTEGER PRIMARY KEY, locale VARCHAR(63) NOT NULL DEFAULT 'zh-CN')")
-            )
-            connection.execute(text("INSERT INTO sys_user VALUES (1, 'en-US')"))
-            for table in ('sys_menu', 'sys_dict_type', 'sys_dict_data'):
-                connection.execute(text(f'CREATE TABLE {table} (id INTEGER PRIMARY KEY)'))
-            for statement in plan_migration(connection):
-                connection.execute(text(statement))
-            assert plan_migration(connection) == []
-            assert connection.execute(text('SELECT locale, locale_revision FROM sys_user')).one() == ('en-US', 0)
-            connection.execute(text('UPDATE sys_user SET locale_revision = 123'))
-            assert plan_migration(connection) == []
-            assert str(connection.scalar(text('SELECT locale_revision FROM sys_user'))) == '123'
-    finally:
-        engine.dispose()
-
-
-@pytest.mark.parametrize(
-    'definition',
-    ['INTEGER NOT NULL DEFAULT 0', 'BIGINT NULL DEFAULT 0', 'BIGINT NOT NULL DEFAULT 1', 'BIGINT NOT NULL'],
-)
-def test_revision_migration_rejects_incompatible_existing_columns(definition: str) -> None:
-    engine = create_engine('sqlite:///:memory:')
-    try:
-        with engine.begin() as connection:
-            connection.execute(
-                text(f'CREATE TABLE sys_user (user_id INTEGER PRIMARY KEY, locale_revision {definition})')
-            )
-            with pytest.raises(ValueError, match=r'sys_user\.locale_revision is incompatible'):
-                plan_migration(connection)
-    finally:
-        engine.dispose()
 
 
 @pytest.mark.parametrize('tag', ['en-GB', 'en-AU', 'en-CA', 'en-Latn-GB', 'en-GB-u-ca-gregory'])

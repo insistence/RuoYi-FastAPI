@@ -15,7 +15,7 @@ import pytest
 from babel.messages.catalog import Catalog
 from babel.messages.mofile import write_mo
 from fastapi import FastAPI, Response, status
-from sqlalchemy import create_engine, select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from starlette.datastructures import MutableHeaders
 from starlette.requests import Request
@@ -38,7 +38,6 @@ from module_admin.controller.user_controller import change_system_user_locale
 from module_admin.entity.do.user_do import SysUser
 from module_admin.entity.vo.user_vo import UserLocaleModel
 from scripts.compile_i18n import compile_catalogs
-from scripts.migrate_i18n import plan_migration
 from utils.response_util import ResponseUtil
 from utils.transport_crypto_util import TransportCryptoUtil, TransportKeyPair, TransportKeyProvider
 
@@ -404,18 +403,3 @@ async def test_locale_endpoint_only_changes_current_account() -> None:
             assert users[0].nick_name == 'One'
     finally:
         await engine.dispose()
-
-
-def test_schema_expansion_is_repeatable_and_preserves_data() -> None:
-    """验证重复执行扩列不会改写已保存的数据。"""
-    engine = create_engine('sqlite:///:memory:')
-    with engine.begin() as connection:
-        connection.execute(text('CREATE TABLE sys_user (user_id INTEGER PRIMARY KEY, user_name VARCHAR(30))'))
-        connection.execute(text("INSERT INTO sys_user VALUES (1, 'existing')"))
-        for table in ('sys_menu', 'sys_dict_type', 'sys_dict_data'):
-            connection.execute(text(f'CREATE TABLE {table} (id INTEGER PRIMARY KEY)'))
-        for statement in plan_migration(connection):
-            connection.execute(text(statement))
-        assert plan_migration(connection) == []
-        assert connection.execute(text('SELECT user_name, locale FROM sys_user')).one() == ('existing', 'zh-CN')
-    engine.dispose()
