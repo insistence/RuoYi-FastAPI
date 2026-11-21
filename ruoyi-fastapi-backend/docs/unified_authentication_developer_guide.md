@@ -111,7 +111,6 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 在数据库结构准备完成后启动后端，再初始化首把签名密钥：
 
 ```shell
-python scripts/compile_i18n.py
 ruoyi app run --env dev
 ```
 

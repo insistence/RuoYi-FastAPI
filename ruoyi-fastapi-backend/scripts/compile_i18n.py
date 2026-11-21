@@ -2,13 +2,15 @@ import argparse
 import io
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 from babel.messages.mofile import write_mo
 from babel.messages.pofile import read_po
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-from i18n.catalogs import CatalogRegistry, CatalogSpec  # noqa: E402
+if __name__ == '__main__':
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from i18n.catalogs import CatalogRegistry, CatalogSpec
 
 
 def compile_catalogs(extra_specs: tuple[CatalogSpec, ...] = ()) -> None:
@@ -40,9 +42,14 @@ def compile_catalogs(extra_specs: tuple[CatalogSpec, ...] = ()) -> None:
             print(f'Compiled {spec.domain}/{code}: {len(catalog)} messages')
     # 全部源资源校验通过后原子替换 MO 文件，避免读取未写完的资源。
     for path, payload in compiled:
-        temporary = path.with_suffix('.mo.tmp')
-        temporary.write_bytes(payload)
-        temporary.replace(path)
+        if path.is_file() and path.read_bytes() == payload:
+            continue
+        temporary = path.with_suffix(f'.{uuid4().hex}.tmp')
+        try:
+            temporary.write_bytes(payload)
+            temporary.replace(path)
+        finally:
+            temporary.unlink(missing_ok=True)
     for spec in specs.values():
         CatalogRegistry.install(CatalogRegistry.load(spec))
 

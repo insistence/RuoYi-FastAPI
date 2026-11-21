@@ -310,8 +310,7 @@ ruoyi plugin install-deps ai
 1.新建数据库ruoyi-fastapi(默认，可修改)
 2.如果使用的是MySQL数据库，使用命令或数据库连接工具运行sql文件夹下的ruoyi-fastapi.sql；如果使用的是PostgreSQL数据库，使用命令或数据库连接工具运行sql文件夹下的ruoyi-fastapi-pg.sql
 
-# 运行后端
-python scripts/compile_i18n.py
+# 启动后端（自动编译语言资源）
 ruoyi app run --env=dev
 ```
 
@@ -348,8 +347,7 @@ pnpm run build:prod
 # 配置环境
 在.env.prod文件中配置生产环境的数据库和redis
 
-# 在后端目录校验并编译本次发布的语言资源
-python scripts/compile_i18n.py
+# 在后端目录启动生产服务
 ruoyi app run --env=prod
 ```
 
