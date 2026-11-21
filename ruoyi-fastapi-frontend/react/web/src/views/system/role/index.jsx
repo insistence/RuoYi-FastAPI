@@ -87,7 +87,7 @@ function PermissionTree({ nodes, value, onChange, linked, onLinkedChange }) {
           checked={linked}
           onChange={(event) => onLinkedChange(event.target.checked)}
         >
-          {t('system:linkParentAndChildSelection')}
+          {t('system:role.linkParentAndChildSelection')}
         </Checkbox>
       </div>
       <Tree
@@ -108,31 +108,31 @@ const dataScopeOptions = [
   {
     value: '1',
     get label() {
-      return t('system:allData')
+      return t('system:role.allData')
     },
   },
   {
     value: '2',
     get label() {
-      return t('system:customDataScope')
+      return t('system:role.customDataScope')
     },
   },
   {
     value: '3',
     get label() {
-      return t('system:thisDepartment')
+      return t('system:role.thisDepartment')
     },
   },
   {
     value: '4',
     get label() {
-      return t('system:thisDepartmentAndItsSubdepartments')
+      return t('system:role.thisDepartmentAndItsSubdepartments')
     },
   },
   {
     value: '5',
     get label() {
-      return t('system:ownDataOnly')
+      return t('system:role.ownDataOnly')
     },
   },
 ]
@@ -222,7 +222,7 @@ export default function Role() {
         menuCheckStrictly: menuLinked,
       }
       await (roleId !== undefined ? updateRole(data) : addRole(data))
-      message.success(t('system:savedSuccessfully'))
+      message.success(t('system:shared.savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -232,7 +232,7 @@ export default function Role() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(t('system:deleteRolesWithIdsValue', { values }))
+      await confirm(t('system:role.deleteRolesWithIdsValue', { values }))
       await delRole(values)
       message.success(t('common:deleteSuccess'))
       await getList()
@@ -241,7 +241,7 @@ export default function Role() {
   async function handleStatusChange(row, checked) {
     try {
       await confirm(
-        t('system:valueRoleValue', {
+        t('system:role.valueRoleValue', {
           arg0: checked ? t('common:enable') : t('common:disable'),
           roleName: row.roleName,
         })
@@ -281,10 +281,10 @@ export default function Role() {
     }
   }
   const columns = [
-    { width: 120, title: t('system:roleID'), dataIndex: 'roleId' },
+    { width: 120, title: t('system:shared.roleID'), dataIndex: 'roleId' },
     { width: 150, title: t('system:role.name'), dataIndex: 'roleName' },
     { width: 150, title: t('system:permission.code'), dataIndex: 'roleKey' },
-    { width: 100, title: t('system:displayOrderLabel'), dataIndex: 'roleSort' },
+    { width: 100, title: t('system:role.displayOrderLabel'), dataIndex: 'roleSort' },
     {
       width: 100,
       align: 'center',
@@ -365,7 +365,7 @@ export default function Role() {
           >
             <Input
               style={{ width: 240 }}
-              placeholder={t('system:enterRoleName')}
+              placeholder={t('system:role.enterRoleName')}
               allowClear
             />
           </Form.Item>
@@ -375,7 +375,7 @@ export default function Role() {
           >
             <Input
               style={{ width: 240 }}
-              placeholder={t('system:enterPermissionString')}
+              placeholder={t('system:role.enterPermissionString')}
               allowClear
             />
           </Form.Item>
@@ -497,7 +497,7 @@ export default function Role() {
       />
       <Modal
         footer={renderDialogFooter}
-        title={roleId !== undefined ? t('system:editRole') : t('system:addRole')}
+        title={roleId !== undefined ? t('system:role.editRole') : t('system:role.addRole')}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
@@ -519,7 +519,7 @@ export default function Role() {
             label={t('system:role.name')}
             rules={[{ required: true }]}
           >
-            <Input placeholder={t('system:enterRoleName')} />
+            <Input placeholder={t('system:role.enterRoleName')} />
           </Form.Item>
           <Form.Item
             name="roleKey"
@@ -527,13 +527,13 @@ export default function Role() {
               <FormLabel
                 label={t('system:permission.code')}
                 help={t(
-                  'system:rolePermissionDefinedInTheControllerEGRoleinterfaceauthdependencyAdmin'
+                  'system:role.rolePermissionDefinedInTheControllerEGRoleinterfaceauthdependencyAdmin'
                 )}
               />
             }
             rules={[{ required: true }]}
           >
-            <Input placeholder={t('system:enterPermissionString')} />
+            <Input placeholder={t('system:role.enterPermissionString')} />
           </Form.Item>
           <Form.Item
             name="roleSort"
@@ -551,7 +551,7 @@ export default function Role() {
           >
             <Radio.Group options={sys_normal_disable} />
           </Form.Item>
-          <Form.Item label={t('system:menuPermissions')}>
+          <Form.Item label={t('system:role.menuPermissions')}>
             <PermissionTree
               key={`${roleId}-${open}`}
               nodes={menuOptions}
@@ -575,7 +575,7 @@ export default function Role() {
       <Modal
         footer={renderDialogFooter}
         width="500px"
-        title={t('system:assignDataScope')}
+        title={t('system:role.assignDataScope')}
         open={!!scopeRole}
         onCancel={() => setScopeRole(null)}
         onOk={submitDataScope}
@@ -605,7 +605,7 @@ export default function Role() {
           </Form.Item>
           <Form.Item
             name="dataScope"
-            label={t('system:permissionScope')}
+            label={t('system:role.permissionScope')}
             rules={[{ required: true }]}
           >
             <Select

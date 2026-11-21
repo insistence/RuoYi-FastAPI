@@ -12,7 +12,7 @@
         />
       </view>
       <text class="text-xl font-bold tracking-wide text-gray-800">{{
-        $t('mobile:auth.registerTitle')
+        $t('auth:register.title')
       }}</text>
     </view>
 
@@ -29,7 +29,7 @@
           v-model="registerForm.username"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
           type="text"
-          :placeholder="$t('common:login.usernameRequired')"
+          :placeholder="$t('auth:login.usernameRequired')"
           maxlength="30"
         />
       </view>
@@ -45,7 +45,7 @@
           v-model="registerForm.password"
           type="password"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-          :placeholder="$t('common:login.passwordRequired')"
+          :placeholder="$t('auth:login.passwordRequired')"
           maxlength="20"
         />
       </view>
@@ -81,7 +81,7 @@
             v-model="registerForm.code"
             type="number"
             class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-            :placeholder="$t('common:login.code')"
+            :placeholder="$t('auth:login.code')"
             maxlength="4"
           />
         </view>
@@ -167,7 +167,7 @@ export default {
       } else if (this.registerForm.password !== this.registerForm.confirmPassword) {
         this.$modal.msgError(t('auth:password.mismatch'))
       } else if (this.registerForm.code === '' && this.captchaEnabled) {
-        this.$modal.msgError(t('common:login.codeRequired'))
+        this.$modal.msgError(t('auth:login.codeRequired'))
       } else {
         this.$modal.loading(t('auth:register.submitting'))
         this.register()

@@ -1,12 +1,15 @@
 {
-  "log": {
-    "id": "日志编号",
-    "businessType": "业务类型",
-    "operationTime": "操作时间",
-    "operator": "操作人员",
-    "operationType": "操作类型"
-  },
   "job": {
+    "positionalArgumentsMustBeAJsonArrayEG": "位置参数必须是JSON数组，例如 [\"test\", 1]",
+    "keywordArgumentsMustBeAJsonObjectEG": "关键字参数必须是JSON对象，例如 {\"enabled\": true}",
+    "aParameterNumberIsOutsideTheSupportedRange": "参数中的数字超出可表示范围",
+    "synchronizationFailed": "同步失败",
+    "dispatched": "已派发",
+    "running": "执行中",
+    "executionFailed": "执行失败",
+    "concurrencyLimitReached": "达到并发上限",
+    "cancelled": "已取消",
+    "resultPendingConfirmation": "结果待确认",
     "executionStatus": "执行状态",
     "id": "任务编号",
     "store": "调度存储",
@@ -24,6 +27,13 @@
     "cronExpressionLabel": "cron表达式",
     "valueMs": "{{value}} 毫秒",
     "executionId": "执行ID"
+  },
+  "log": {
+    "id": "日志编号",
+    "businessType": "业务类型",
+    "operationTime": "操作时间",
+    "operator": "操作人员",
+    "operationType": "操作类型"
   },
   "server": {
     "os": "操作系统",

@@ -1,10 +1,12 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('oauth:integrationManagement')"
+      :section="$t('oauth:shared.integrationManagement')"
       :title="$t('components:apply')"
-      :description="$t('oauth:manageWhichWebsitesMobileApplicationsAndBackendServicesMayUse')"
-      :filter-hint="$t('oauth:findApplicationsByNameTypeOrStatus')"
+      :description="
+        $t('oauth:client.manageWhichWebsitesMobileApplicationsAndBackendServicesMayUse')
+      "
+      :filter-hint="$t('oauth:client.findApplicationsByNameTypeOrStatus')"
     >
       <template #actions>
         <el-button
@@ -13,7 +15,7 @@
           v-hasPermi="['system:oauthClient:add']"
           @click="handleAdd"
         >
-          {{ $t('oauth:registerApplication') }}</el-button
+          {{ $t('oauth:client.registerApplication') }}</el-button
         >
       </template>
 
@@ -25,33 +27,33 @@
           :inline="true"
         >
           <el-form-item
-            :label="$t('oauth:applicationName')"
+            :label="$t('oauth:client.applicationName')"
             prop="clientName"
           >
             <el-input
               v-model="queryParams.clientName"
               clearable
-              :placeholder="$t('oauth:enterApplicationName')"
+              :placeholder="$t('oauth:client.enterApplicationName')"
               style="width: 200px"
               @keyup.enter="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            :label="$t('oauth:applicationType')"
+            :label="$t('oauth:client.applicationType')"
             prop="clientType"
           >
             <el-select
               v-model="queryParams.clientType"
               clearable
-              :placeholder="$t('oauth:allTypes')"
+              :placeholder="$t('oauth:client.allTypes')"
               style="width: 200px"
             >
               <el-option
-                :label="$t('oauth:backendService')"
+                :label="$t('oauth:client.backendService')"
                 value="confidential"
               />
               <el-option
-                :label="$t('oauth:webOrMobileApplication')"
+                :label="$t('oauth:client.webOrMobileApplication')"
                 value="public"
               />
             </el-select>
@@ -67,7 +69,7 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('oauth:inUse')"
+                :label="$t('oauth:shared.inUse')"
                 value="0"
               />
               <el-option
@@ -94,8 +96,8 @@
 
       <template #toolbar>
         <span class="result-count"
-          >{{ $t('oauth:registered') }}<strong>{{ total }}</strong>
-          {{ $t('oauth:applications') }}</span
+          >{{ $t('oauth:shared.registered') }}<strong>{{ total }}</strong>
+          {{ $t('oauth:client.applications') }}</span
         >
         <right-toolbar
           v-model:showSearch="showSearch"
@@ -115,7 +117,7 @@
           <template #default="scope">
             <div class="entity-cell">
               <span class="entity-avatar">{{
-                (scope.row.clientName || $t('oauth:app')).slice(0, 1)
+                (scope.row.clientName || $t('oauth:client.app')).slice(0, 1)
               }}</span>
               <span class="entity-copy">
                 <strong>{{ scope.row.clientName }}</strong>
@@ -125,7 +127,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:applicationType')"
+          :label="$t('oauth:client.applicationType')"
           width="130"
         >
           <template #default="scope">
@@ -135,14 +137,14 @@
             >
               {{
                 scope.row.clientType === 'confidential'
-                  ? $t('oauth:backendService')
-                  : $t('oauth:webMobile')
+                  ? $t('oauth:client.backendService')
+                  : $t('oauth:client.webMobile')
               }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:signInAndAccessMethods')"
+          :label="$t('oauth:client.signInAndAccessMethods')"
           min-width="240"
         >
           <template #default="scope">
@@ -150,7 +152,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:accessibleServices')"
+          :label="$t('oauth:shared.accessibleServices')"
           min-width="200"
         >
           <template #default="scope">
@@ -185,12 +187,12 @@
               :type="scope.row.status === '0' ? 'success' : 'info'"
               effect="light"
             >
-              {{ scope.row.status === '0' ? $t('oauth:inUse') : $t('components:disabled') }}
+              {{ scope.row.status === '0' ? $t('oauth:shared.inUse') : $t('components:disabled') }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:recentUpdates')"
+          :label="$t('oauth:client.recentUpdates')"
           width="170"
         >
           <template #default="scope">{{ parseTime(scope.row.updateTime) || '—' }}</template>
@@ -209,7 +211,7 @@
                 icon="Edit"
                 v-hasPermi="['system:oauthClient:edit']"
                 @click="handleUpdate(scope.row)"
-                >{{ $t('oauth:edit') }}</el-button
+                >{{ $t('common:edit') }}</el-button
               >
               <el-dropdown
                 trigger="click"
@@ -219,7 +221,7 @@
                   link
                   type="primary"
                   icon="ArrowDown"
-                  >{{ $t('oauth:more') }}</el-button
+                  >{{ $t('oauth:shared.more') }}</el-button
                 >
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -229,7 +231,7 @@
                       icon="Key"
                       v-hasPermi="['system:oauthClient:rotateSecret']"
                     >
-                      {{ $t('oauth:rotateApplicationSecret') }}</el-dropdown-item
+                      {{ $t('oauth:client.rotateApplicationSecret') }}</el-dropdown-item
                     >
                     <el-dropdown-item
                       v-if="scope.row.status !== '0'"
@@ -237,7 +239,7 @@
                       icon="CircleCheck"
                       v-hasPermi="['system:oauthClient:edit']"
                     >
-                      {{ $t('oauth:reEnable') }}</el-dropdown-item
+                      {{ $t('oauth:shared.reEnable') }}</el-dropdown-item
                     >
                     <el-dropdown-item
                       v-else
@@ -246,7 +248,7 @@
                       divided
                       v-hasPermi="['system:oauthClient:remove']"
                     >
-                      {{ $t('oauth:disableApplication') }}</el-dropdown-item
+                      {{ $t('oauth:client.disableApplication') }}</el-dropdown-item
                     >
                   </el-dropdown-menu>
                 </template>
@@ -255,12 +257,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('oauth:noMatchingApplications')">
+          <el-empty :description="$t('oauth:client.noMatchingApplications')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthClient:add']"
               @click="handleAdd"
-              >{{ $t('oauth:registerYourFirstApplication') }}</el-button
+              >{{ $t('oauth:client.registerYourFirstApplication') }}</el-button
             >
           </el-empty>
         </template>
@@ -277,7 +279,9 @@
 
     <el-dialog
       v-model="editorOpen"
-      :title="form.clientId ? $t('oauth:editApplication') : $t('oauth:registerApplication')"
+      :title="
+        form.clientId ? $t('oauth:client.editApplication') : $t('oauth:client.registerApplication')
+      "
       width="min(960px, calc(100vw - 48px))"
       append-to-body
       destroy-on-close
@@ -285,7 +289,7 @@
       class="oauth-editor-dialog"
     >
       <div class="editor-map">
-        <span class="editor-map-title">{{ $t('oauth:accessRelationshipPreview') }}</span>
+        <span class="editor-map-title">{{ $t('oauth:client.accessRelationshipPreview') }}</span>
         <AccessMap
           :application="form.clientName"
           :type="form.clientType"
@@ -312,14 +316,16 @@
             name="basic"
           >
             <div class="section-heading">
-              <h3>{{ $t('oauth:applicationIdentity') }}</h3>
-              <p>{{ $t('oauth:theNameIdentifiesTheApplicationInTheConsoleItsType') }}</p>
+              <h3>{{ $t('oauth:client.applicationIdentity') }}</h3>
+              <p>{{ $t('oauth:client.theNameIdentifiesTheApplicationInTheConsoleItsType') }}</p>
             </div>
             <el-form-item prop="clientName">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:applicationName')"
-                  :help="$t('oauth:helpsAdministratorsIdentifyTheAppWithoutAffectingSignIn')"
+                  :label="$t('oauth:client.applicationName')"
+                  :help="
+                    $t('oauth:client.helpsAdministratorsIdentifyTheAppWithoutAffectingSignIn')
+                  "
               /></template>
               <el-input
                 v-model="form.clientName"
@@ -331,8 +337,8 @@
             <el-form-item prop="clientType">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:applicationType')"
-                  :help="$t('oauth:webAndMobileClientsCannotSafelyStoreASecretBackend')"
+                  :label="$t('oauth:client.applicationType')"
+                  :help="$t('oauth:client.webAndMobileClientsCannotSafelyStoreASecretBackend')"
               /></template>
               <el-radio-group
                 v-model="form.clientType"
@@ -344,15 +350,15 @@
                   value="confidential"
                   border
                 >
-                  <span class="choice-title">{{ $t('oauth:backendService') }}</span>
-                  <small>{{ $t('oauth:canSafelyStoreAnApplicationSecret') }}</small>
+                  <span class="choice-title">{{ $t('oauth:client.backendService') }}</span>
+                  <small>{{ $t('oauth:client.canSafelyStoreAnApplicationSecret') }}</small>
                 </el-radio>
                 <el-radio
                   value="public"
                   border
                 >
-                  <span class="choice-title">{{ $t('oauth:webOrMobileApplication') }}</span>
-                  <small>{{ $t('oauth:cannotStoreASecretSecurelyOnTheDevice') }}</small>
+                  <span class="choice-title">{{ $t('oauth:client.webOrMobileApplication') }}</span>
+                  <small>{{ $t('oauth:client.cannotStoreASecretSecurelyOnTheDevice') }}</small>
                 </el-radio>
               </el-radio-group>
             </el-form-item>
@@ -360,7 +366,7 @@
               <template #label
                 ><FieldLabel
                   :label="$t('system:remarks')"
-                  :help="$t('oauth:forAdministratorNotesOnlyNotSentToExternalApps')"
+                  :help="$t('oauth:client.forAdministratorNotesOnlyNotSentToExternalApps')"
               /></template>
               <el-input
                 v-model="form.remark"
@@ -374,84 +380,98 @@
           </el-tab-pane>
 
           <el-tab-pane
-            :label="$t('oauth:signInMethods')"
+            :label="$t('oauth:client.signInMethods')"
             name="login"
           >
             <div class="section-heading">
-              <h3>{{ $t('oauth:howTheApplicationSignsInOrCallsServices') }}</h3>
-              <p>{{ $t('oauth:selectOnlyTheMethodsTheApplicationNeedsToLimitUnnecessary') }}</p>
+              <h3>{{ $t('oauth:client.howTheApplicationSignsInOrCallsServices') }}</h3>
+              <p>
+                {{ $t('oauth:client.selectOnlyTheMethodsTheApplicationNeedsToLimitUnnecessary') }}
+              </p>
             </div>
             <el-form-item prop="grantTypes">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:allowedMethods')"
-                  :help="$t('oauth:webAndMobileClientsTypicallyUseUserSignInBackground')"
+                  :label="$t('oauth:client.allowedMethods')"
+                  :help="$t('oauth:client.webAndMobileClientsTypicallyUseUserSignInBackground')"
               /></template>
               <el-checkbox-group
                 v-model="form.grantTypes"
                 class="option-stack"
               >
-                <el-checkbox value="authorization_code">{{ $t('oauth:userSignIn') }}</el-checkbox>
-                <small>{{ $t('oauth:usersSignInAtTheAuthenticationCenterThenReturnTo') }}</small>
+                <el-checkbox value="authorization_code">{{
+                  $t('oauth:client.userSignIn')
+                }}</el-checkbox>
+                <small>{{
+                  $t('oauth:client.usersSignInAtTheAuthenticationCenterThenReturnTo')
+                }}</small>
                 <el-checkbox
                   value="refresh_token"
                   :disabled="!form.grantTypes.includes('authorization_code')"
-                  >{{ $t('oauth:staySignedIn') }}</el-checkbox
+                  >{{ $t('oauth:client.staySignedIn') }}</el-checkbox
                 >
-                <small>{{ $t('oauth:allowTheApplicationToExtendASessionAfterTheUser') }}</small>
+                <small>{{
+                  $t('oauth:client.allowTheApplicationToExtendASessionAfterTheUser')
+                }}</small>
                 <el-checkbox
                   value="client_credentials"
                   :disabled="form.clientType === 'public'"
-                  >{{ $t('oauth:serviceToServiceCalls') }}</el-checkbox
+                  >{{ $t('oauth:client.serviceToServiceCalls') }}</el-checkbox
                 >
                 <small>{{
-                  $t('oauth:aBackendServiceCallsOtherServicesAsItselfWithoutRepresenting')
+                  $t('oauth:client.aBackendServiceCallsOtherServicesAsItselfWithoutRepresenting')
                 }}</small>
               </el-checkbox-group>
             </el-form-item>
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:signInSecurity')"
-                  :help="$t('oauth:signInSecurityIsEnabledAutomaticallyOtherOptionsControlUser')"
+                  :label="$t('oauth:client.signInSecurity')"
+                  :help="
+                    $t('oauth:client.signInSecurityIsEnabledAutomaticallyOtherOptionsControlUser')
+                  "
               /></template>
               <div class="option-stack">
                 <el-checkbox
                   v-model="form.requirePkce"
                   disabled
-                  >{{ $t('oauth:signInProtectionEnabledAutomatically') }}</el-checkbox
+                  >{{ $t('oauth:client.signInProtectionEnabledAutomatically') }}</el-checkbox
                 >
                 <el-checkbox v-model="form.requireConsent">{{
-                  $t('oauth:askUsersToConfirmPermissionsAtSignIn')
+                  $t('oauth:client.askUsersToConfirmPermissionsAtSignIn')
                 }}</el-checkbox>
                 <el-checkbox v-model="form.trustedClient">{{
-                  $t('oauth:markAsATrustedApplication')
+                  $t('oauth:client.markAsATrustedApplication')
                 }}</el-checkbox>
               </div>
             </el-form-item>
           </el-tab-pane>
 
           <el-tab-pane
-            :label="$t('oauth:permissionsAndServices')"
+            :label="$t('oauth:client.permissionsAndServices')"
             name="access"
           >
             <div class="section-heading">
-              <h3>{{ $t('oauth:whatTheApplicationMayRequest') }}</h3>
+              <h3>{{ $t('oauth:client.whatTheApplicationMayRequest') }}</h3>
               <p>
-                {{ $t('oauth:chooseEnabledPermissionsAndServicesToAvoidSavingUnknownIdentifiers') }}
+                {{
+                  $t(
+                    'oauth:client.chooseEnabledPermissionsAndServicesToAvoidSavingUnknownIdentifiers'
+                  )
+                }}
               </p>
             </div>
             <el-form-item prop="scopeCodes">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:availablePermissions')"
-                  :help="$t('oauth:theAppMayRequestOnlyThesePermissionsWhenSigningIn')"
+                  :label="$t('oauth:client.availablePermissions')"
+                  :help="$t('oauth:client.theAppMayRequestOnlyThesePermissionsWhenSigningIn')"
               /></template>
               <el-select
                 v-model="form.scopeCodes"
                 multiple
                 filterable
-                :placeholder="$t('oauth:selectPermissionsTheApplicationMayRequest')"
+                :placeholder="$t('oauth:client.selectPermissionsTheApplicationMayRequest')"
                 style="width: 100%"
               >
                 <el-option
@@ -471,8 +491,8 @@
             >
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:disclosableRoles')"
-                  :help="$t('oauth:onlyRolesAlreadyHeldByTheUserAndListedHere')"
+                  :label="$t('oauth:client.disclosableRoles')"
+                  :help="$t('oauth:client.onlyRolesAlreadyHeldByTheUserAndListedHere')"
               /></template>
               <el-select
                 v-model="form.allowedRoleKeys"
@@ -480,21 +500,25 @@
                 filterable
                 allow-create
                 default-first-option
-                :placeholder="$t('oauth:enterRoleIdentifiersThatMayBeDisclosedToThisApplication')"
+                :placeholder="
+                  $t('oauth:client.enterRoleIdentifiersThatMayBeDisclosedToThisApplication')
+                "
                 style="width: 100%"
               />
             </el-form-item>
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:skipRepeatedConfirmation')"
-                  :help="$t('oauth:thesePermissionsReduceRepeatedConsentAndMustBeIncludedIn')"
+                  :label="$t('oauth:client.skipRepeatedConfirmation')"
+                  :help="
+                    $t('oauth:client.thesePermissionsReduceRepeatedConsentAndMustBeIncludedIn')
+                  "
               /></template>
               <el-select
                 v-model="form.preAuthorizedScopeCodes"
                 multiple
                 filterable
-                :placeholder="$t('oauth:chooseFromSelectedPermissions')"
+                :placeholder="$t('oauth:client.chooseFromSelectedPermissions')"
                 style="width: 100%"
               >
                 <el-option
@@ -511,14 +535,16 @@
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:accessibleServices')"
-                  :help="$t('oauth:enterAnExistingServiceIdentifierFromServicesAndPermissionsNot')"
+                  :label="$t('oauth:shared.accessibleServices')"
+                  :help="
+                    $t('oauth:client.enterAnExistingServiceIdentifierFromServicesAndPermissionsNot')
+                  "
               /></template>
               <el-select
                 v-model="form.resourceIds"
                 multiple
                 filterable
-                :placeholder="$t('oauth:selectServicesTheApplicationMayAccess')"
+                :placeholder="$t('oauth:client.selectServicesTheApplicationMayAccess')"
                 style="width: 100%"
               >
                 <el-option
@@ -535,70 +561,70 @@
           </el-tab-pane>
 
           <el-tab-pane
-            :label="$t('oauth:callbackURLs')"
+            :label="$t('oauth:client.callbackURLs')"
             name="uri"
           >
             <div class="section-heading">
-              <h3>{{ $t('oauth:whereUsersMayGoAfterSignIn') }}</h3>
-              <p>{{ $t('oauth:enterAndValidateEachURLSeparatelyUseCompleteHTTPSURLs') }}</p>
+              <h3>{{ $t('oauth:client.whereUsersMayGoAfterSignIn') }}</h3>
+              <p>{{ $t('oauth:client.enterAndValidateEachURLSeparatelyUseCompleteHTTPSURLs') }}</p>
             </div>
             <el-form-item prop="redirectUris">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:signInReturnURLs')"
-                  :help="$t('oauth:afterSignInTheSystemRedirectsUsersOnlyToURLs')"
+                  :label="$t('oauth:client.signInReturnURLs')"
+                  :help="$t('oauth:client.afterSignInTheSystemRedirectsUsersOnlyToURLs')"
               /></template>
               <StringListInput
                 v-model="form.redirectUris"
                 placeholder="https://portal.example.com/callback"
-                :add-text="$t('oauth:addSignInReturnURL')"
+                :add-text="$t('oauth:client.addSignInReturnURL')"
               />
             </el-form-item>
             <el-form-item prop="postLogoutRedirectUris">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:signOutReturnURLs')"
-                  :help="$t('oauth:uRLsUsersMayReturnToAfterSigningOut')"
+                  :label="$t('oauth:client.signOutReturnURLs')"
+                  :help="$t('oauth:client.uRLsUsersMayReturnToAfterSigningOut')"
               /></template>
               <StringListInput
                 v-model="form.postLogoutRedirectUris"
                 placeholder="https://portal.example.com/signed-out"
-                :add-text="$t('oauth:addSignOutReturnURL')"
+                :add-text="$t('oauth:client.addSignOutReturnURL')"
               />
             </el-form-item>
             <el-form-item prop="backchannelLogoutUris">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:backChannelSignOutNotifications')"
-                  :help="$t('oauth:enterAURLIfTheApplicationNeedsBackChannelSign')"
+                  :label="$t('oauth:client.backChannelSignOutNotifications')"
+                  :help="$t('oauth:client.enterAURLIfTheApplicationNeedsBackChannelSign')"
               /></template>
               <StringListInput
                 v-model="form.backchannelLogoutUris"
                 placeholder="https://portal.example.com/backchannel-logout"
-                :add-text="$t('oauth:addBackChannelNotificationURL')"
+                :add-text="$t('oauth:client.addBackChannelNotificationURL')"
               />
             </el-form-item>
             <el-form-item prop="corsOrigins">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:allowedWebOrigins')"
-                  :help="$t('oauth:webOriginsAllowedToCallDirectlyFromABrowserEnter')"
+                  :label="$t('oauth:client.allowedWebOrigins')"
+                  :help="$t('oauth:client.webOriginsAllowedToCallDirectlyFromABrowserEnter')"
               /></template>
               <StringListInput
                 v-model="form.corsOrigins"
                 placeholder="https://portal.example.com"
-                :add-text="$t('oauth:addWebOrigin')"
+                :add-text="$t('oauth:client.addWebOrigin')"
               />
             </el-form-item>
           </el-tab-pane>
 
           <el-tab-pane
-            :label="$t('oauth:validityPeriods')"
+            :label="$t('oauth:shared.validityPeriods')"
             name="duration"
           >
             <div class="section-heading">
-              <h3>{{ $t('oauth:howLongSignInCredentialsRemainValid') }}</h3>
-              <p>{{ $t('oauth:leaveBlankToUsePlatformDefaultsExtendLifetimesOnlyWhen') }}</p>
+              <h3>{{ $t('oauth:client.howLongSignInCredentialsRemainValid') }}</h3>
+              <p>{{ $t('oauth:client.leaveBlankToUsePlatformDefaultsExtendLifetimesOnlyWhen') }}</p>
             </div>
             <el-row :gutter="18">
               <el-col
@@ -608,13 +634,15 @@
                 <el-form-item>
                   <template #label
                     ><FieldLabel
-                      :label="$t('oauth:accessCredentials')"
-                      :help="$t('oauth:howLongShortLivedCredentialsRemainValidWhenTheApplication')"
+                      :label="$t('oauth:client.accessCredentials')"
+                      :help="
+                        $t('oauth:client.howLongShortLivedCredentialsRemainValidWhenTheApplication')
+                      "
                   /></template>
                   <el-input-number
                     v-model="form.accessTokenTtlSeconds"
                     :min="1"
-                    :placeholder="$t('oauth:platformDefault')"
+                    :placeholder="$t('oauth:shared.platformDefault')"
                     controls-position="right"
                     style="width: 100%"
                   />
@@ -628,13 +656,15 @@
                 <el-form-item>
                   <template #label
                     ><FieldLabel
-                      :label="$t('oauth:expireAfterInactivity')"
-                      :help="$t('oauth:howLongPersistentSignInCredentialsMayRemainUnusedBefore')"
+                      :label="$t('oauth:client.expireAfterInactivity')"
+                      :help="
+                        $t('oauth:client.howLongPersistentSignInCredentialsMayRemainUnusedBefore')
+                      "
                   /></template>
                   <el-input-number
                     v-model="form.refreshTokenIdleSeconds"
                     :min="1"
-                    :placeholder="$t('oauth:platformDefault')"
+                    :placeholder="$t('oauth:shared.platformDefault')"
                     controls-position="right"
                     style="width: 100%"
                   />
@@ -648,13 +678,15 @@
                 <el-form-item>
                   <template #label
                     ><FieldLabel
-                      :label="$t('oauth:maximumLifetime')"
-                      :help="$t('oauth:maximumLifetimeOfPersistentSignInCredentialsFromIssuance')"
+                      :label="$t('oauth:client.maximumLifetime')"
+                      :help="
+                        $t('oauth:client.maximumLifetimeOfPersistentSignInCredentialsFromIssuance')
+                      "
                   /></template>
                   <el-input-number
                     v-model="form.refreshTokenAbsoluteSeconds"
                     :min="1"
-                    :placeholder="$t('oauth:platformDefault')"
+                    :placeholder="$t('oauth:shared.platformDefault')"
                     controls-position="right"
                     style="width: 100%"
                   />
@@ -671,7 +703,7 @@
           type="primary"
           :loading="submitting"
           @click="submit"
-          >{{ $t('oauth:saveApplication') }}</el-button
+          >{{ $t('oauth:client.saveApplication') }}</el-button
         >
       </template>
     </el-dialog>
@@ -733,7 +765,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:enterAnApplicationName')
+        return t('oauth:client.enterAnApplicationName')
       },
       trigger: 'blur',
     },
@@ -742,7 +774,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:selectAppType')
+        return t('oauth:client.selectAppType')
       },
       trigger: 'change',
     },
@@ -753,7 +785,7 @@ const rules = {
       type: 'array',
       min: 1,
       get message() {
-        return t('oauth:selectAtLeastOneSignInOrServiceAccessMethod')
+        return t('oauth:client.selectAtLeastOneSignInOrServiceAccessMethod')
       },
       trigger: 'change',
     },
@@ -764,7 +796,7 @@ const rules = {
       type: 'array',
       min: 1,
       get message() {
-        return t('oauth:addAtLeastOneAvailablePermission')
+        return t('oauth:client.addAtLeastOneAvailablePermission')
       },
       trigger: 'change',
     },
@@ -947,16 +979,16 @@ async function handleUpdate(row) {
 function grantTypeText(types = []) {
   const labels = {
     get authorization_code() {
-      return t('oauth:userSignIn')
+      return t('oauth:client.userSignIn')
     },
     get refresh_token() {
-      return t('oauth:staySignedIn')
+      return t('oauth:client.staySignedIn')
     },
     get client_credentials() {
-      return t('oauth:serviceToServiceCalls')
+      return t('oauth:client.serviceToServiceCalls')
     },
   }
-  return types.map((item) => labels[item] || item).join(' · ') || t('oauth:notConfigured')
+  return types.map((item) => labels[item] || item).join(' · ') || t('oauth:client.notConfigured')
 }
 
 /** 处理客户端行操作 */
@@ -995,7 +1027,7 @@ async function submit() {
   try {
     const action = form.clientId ? updateOAuthClient : addOAuthClient
     await action(payload())
-    proxy.$modal.msgSuccess(t('oauth:applicationSettingsSaved'))
+    proxy.$modal.msgSuccess(t('oauth:client.applicationSettingsSaved'))
     editorOpen.value = false
     await getList()
   } finally {
@@ -1007,9 +1039,11 @@ async function submit() {
 async function changeStatus(row, status) {
   const verb = status === '0' ? t('system:enable') : t('system:disabled')
   try {
-    await proxy.$modal.confirm(t('oauth:valueAppValue', { verb, clientName: row.clientName }))
+    await proxy.$modal.confirm(
+      t('oauth:client.valueAppValue', { verb, clientName: row.clientName })
+    )
     await changeOAuthClientStatus({ clientId: row.clientId, status })
-    proxy.$modal.msgSuccess(t('oauth:valueSuccessfully', { verb }))
+    proxy.$modal.msgSuccess(t('oauth:client.valueSuccessfully', { verb }))
     await getList()
   } catch {
     // 用户取消或请求失败时刷新事实状态，避免保留乐观 UI
@@ -1020,7 +1054,7 @@ async function changeStatus(row, status) {
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    t('oauth:disablingValueWillAlsoRevokeItsAuthorizationsAndRefreshTokens', {
+    t('oauth:client.disablingValueWillAlsoRevokeItsAuthorizationsAndRefreshTokens', {
       clientName: row.clientName,
     })
   )
@@ -1032,7 +1066,7 @@ async function handleDelete(row) {
 /** 轮换客户端密钥并显示一次性明文 */
 async function rotateSecret(row) {
   await proxy.$modal.confirm(
-    t('oauth:generateANewSecretForValueTheOldSecretWill', { clientName: row.clientName })
+    t('oauth:client.generateANewSecretForValueTheOldSecretWill', { clientName: row.clientName })
   )
   const response = await rotateOAuthClientSecret(row.clientId)
   secret.value = response.data

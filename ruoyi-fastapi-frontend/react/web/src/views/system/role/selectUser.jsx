@@ -50,11 +50,11 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
     }
   }, [open, query, roleId])
   async function submit() {
-    if (!ids.length) return message.warning(t('system:selectUsersToAssign'))
+    if (!ids.length) return message.warning(t('system:role.selectUsersToAssign'))
     setSaving(true)
     try {
       await authUserSelectAll({ roleId, userIds: ids.join(',') })
-      message.success(t('system:authorizedSuccessfully'))
+      message.success(t('system:shared.authorizedSuccessfully'))
       onSuccess()
       onClose()
     } catch {
@@ -65,7 +65,7 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
   return (
     <Modal
       footer={renderDialogFooter}
-      title={t('system:selectUsers')}
+      title={t('system:role.selectUsers')}
       open={open}
       onCancel={onClose}
       onOk={submit}
@@ -143,7 +143,7 @@ export default function SelectUser({ open, roleId, onClose, onSuccess }) {
           { title: t('system:user.username'), dataIndex: 'userName' },
           { title: t('system:user.nickname'), dataIndex: 'nickName' },
           { title: t('system:user.email'), dataIndex: 'email' },
-          { title: t('system:phone'), dataIndex: 'phonenumber' },
+          { title: t('system:role.phone'), dataIndex: 'phonenumber' },
           {
             align: 'center',
             title: t('common:status'),

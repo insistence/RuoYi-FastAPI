@@ -4,21 +4,21 @@ import { t } from './index'
 import { useI18n } from './adapter'
 
 const titles = {
-  'pages/login': () => t('mobile:ruoyiFastapiMobileSignIn'),
-  'pages/register': () => t('mobile:ruoyiFastapiMobileSignUp'),
-  'pages/index': () => t('mobile:navigation.home'),
-  'pages/work/index': () => t('mobile:navigation.work'),
-  'pages/mine/index': () => t('mobile:navigation.me'),
-  'pages/mine/avatar/index': () => t('mobile:chooseAvatar'),
-  'pages/mine/info/index': () => t('mobile:viewProfile'),
-  'pages/mine/info/edit': () => t('mobile:editProfile'),
-  'pages/mine/pwd/index': () => t('mobile:changePassword'),
-  'pages/mine/setting/index': () => t('mobile:appSettings'),
-  'pages/mine/setting/timezone': () => t('mobile:timeZoneSettings'),
-  'pages/mine/help/index': () => t('mobile:frequentlyAskedQuestions'),
-  'pages/mine/about/index': () => t('mobile:aboutUs'),
-  'pages/common/agreement/index': () => t('mobile:userAgreement'),
-  'pages/common/privacy/index': () => t('mobile:privacyPolicy'),
+  'pages/login': () => t('auth:login.title'),
+  'pages/register': () => t('auth:register.title'),
+  'pages/index': () => t('mobile:nav.home'),
+  'pages/work/index': () => t('mobile:nav.work'),
+  'pages/mine/index': () => t('mobile:nav.mine'),
+  'pages/mine/avatar/index': () => t('mobile:avatar.choose'),
+  'pages/mine/info/index': () => t('mobile:profile.view'),
+  'pages/mine/info/edit': () => t('mobile:profile.edit'),
+  'pages/mine/pwd/index': () => t('auth:password.title'),
+  'pages/mine/setting/index': () => t('mobile:settings.title'),
+  'pages/mine/setting/timezone': () => t('mobile:timezone.title'),
+  'pages/mine/help/index': () => t('mobile:help.title'),
+  'pages/mine/about/index': () => t('mobile:about.title'),
+  'pages/common/agreement/index': () => t('mobile:agreement.title'),
+  'pages/common/privacy/index': () => t('mobile:privacy.title'),
 }
 
 export function refreshNavigation() {
@@ -29,7 +29,7 @@ export function refreshNavigation() {
       Promise.resolve(Taro.setNavigationBarTitle({ title: titles[route]() })).catch(() => {})
   } catch {}
   if (typeof Taro.setTabBarItem !== 'function') return
-  const tabs = [t('mobile:navigation.home'), t('mobile:navigation.work'), t('mobile:navigation.me')]
+  const tabs = [t('mobile:nav.home'), t('mobile:nav.work'), t('mobile:nav.mine')]
   tabs.forEach((text, index) => {
     // 登录页或尚未创建原生 TabBar 时，下一次 onShow 会重新同步。
     try {

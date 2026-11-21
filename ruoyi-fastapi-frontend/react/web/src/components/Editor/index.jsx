@@ -54,11 +54,11 @@ export default function Editor({
     quill.on('text-change', changed)
     async function insertImage(file) {
       if (!file || !/^image\/(jpeg|png|gif|webp)$/.test(file.type))
-        return message.error(t('common:uploadAJpgPngGifOrWebpImage'))
+        return message.error(t('components:editor.uploadAJpgPngGifOrWebpImage'))
       if (file.size > fileSize * 1024 * 1024)
         return message.error(t('file:uploadedFilesCannotExceedValueMb', { fileSize }))
       const index = quill.getSelection()?.index ?? quill.getLength() - 1
-      const close = message.loading(t('common:uploadingImage'), 0)
+      const close = message.loading(t('components:editor.uploadingImage'), 0)
       try {
         const data = new FormData()
         data.append('file', file)

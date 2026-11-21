@@ -130,7 +130,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
       })
       setRetention(result.data)
       if (!dryRun) {
-        message.success(t('system:pluginAuditLogsDeleted'))
+        message.success(t('pluginAdmin:operationLog.pluginAuditLogsDeleted'))
         setRevision((value) => value + 1)
       }
     } catch {
@@ -143,7 +143,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
       <Drawer
         rootClassName="plugin-audit-drawer"
         closable={{ placement: 'end' }}
-        title={t('system:pluginOperationAudit')}
+        title={t('pluginAdmin:operationLog.pluginOperationAudit')}
         open={open}
         onClose={onClose}
         size="max(50vw, min(600px, 100vw))"
@@ -172,7 +172,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                 label={t('pluginAdmin:id')}
               >
                 <Input
-                  placeholder={t('system:enterAPluginId')}
+                  placeholder={t('pluginAdmin:shared.enterAPluginId')}
                   allowClear
                 />
               </Form.Item>
@@ -235,9 +235,9 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                 key: 'retention',
                 label: (
                   <Space size={8}>
-                    <strong>{t('system:auditRetentionPolicy')}</strong>
+                    <strong>{t('pluginAdmin:operationLog.auditRetentionPolicy')}</strong>
                     <PluginTag className="plugin-audit-retention-tag">
-                      {t('layout:size.default')} {defaultDays} {t('system:days')}
+                      {t('layout:size.default')} {defaultDays} {t('pluginAdmin:operationLog.days')}
                     </PluginTag>
                   </Space>
                 ),
@@ -264,7 +264,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                         loading={retaining}
                         onClick={() => retain(true)}
                       >
-                        {t('system:previewCleanup')}
+                        {t('pluginAdmin:operationLog.previewCleanup')}
                       </Button>
                       <HasPermi value={['system:plugin:edit']}>
                         <Button
@@ -273,7 +273,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                           loading={retaining}
                           onClick={() => retain(false)}
                         >
-                          {t('system:confirmCleanup')}
+                          {t('pluginAdmin:operationLog.confirmCleanup')}
                         </Button>
                       </HasPermi>
                     </Space>
@@ -328,7 +328,12 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
               pagination={false}
               scroll={{ x: 830 }}
               columns={[
-                { width: 90, align: 'center', title: t('system:logId'), dataIndex: 'operationId' },
+                {
+                  width: 90,
+                  align: 'center',
+                  title: t('pluginAdmin:operationLog.logId'),
+                  dataIndex: 'operationId',
+                },
                 {
                   width: 90,
                   align: 'center',
@@ -349,7 +354,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                 },
                 {
                   width: 180,
-                  title: t('system:components.plugin'),
+                  title: t('pluginAdmin:operationLog.plugin'),
                   ellipsis: true,
                   dataIndex: 'pluginIds',
                   render: formatPlanDependencies,
@@ -424,16 +429,16 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
               column={3}
               className="plugin-audit-description"
               items={[
-                [t('system:logId'), detail.operationId || '-'],
+                [t('pluginAdmin:operationLog.logId'), detail.operationId || '-'],
                 [t('common:actions'), operation(detail.operation)],
                 [t('common:status'), getOperationLogStatusLabel(detail.status)],
-                [t('system:dryRun'), detail.dryRun ? t('common:yes') : t('common:no')],
+                [t('pluginAdmin:shared.dryRun'), detail.dryRun ? t('common:yes') : t('common:no')],
                 [
-                  t('system:continueAfterFailure'),
+                  t('pluginAdmin:shared.continueAfterFailure'),
                   detail.continueOnError ? t('common:yes') : t('common:no'),
                 ],
                 [t('common:createdTime'), formatPluginTime(detail.createTime)],
-                [t('system:components.plugin'), formatPlanDependencies(detail.pluginIds), 3],
+                [t('pluginAdmin:operationLog.plugin'), formatPlanDependencies(detail.pluginIds), 3],
                 [t('common:remark'), detail.remark || '-', 3],
               ].map(([label, children, span]) => ({ key: label, label, children, span }))}
             />
@@ -441,32 +446,35 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
               items={[
                 {
                   key: 'summary',
-                  label: t('system:summary'),
+                  label: t('pluginAdmin:operationLog.summary'),
                   children: (
                     <Descriptions
                       bordered
                       column={3}
                       className="plugin-audit-description"
                       items={[
-                        [t('system:successCount'), detail.summary?.succeeded ?? 0],
-                        [t('system:failureCount'), detail.summary?.failed ?? 0],
-                        [t('system:skippedCount'), detail.summary?.skipped ?? 0],
                         [
-                          t('system:configurationChanges'),
+                          t('pluginAdmin:operationLog.successCount'),
+                          detail.summary?.succeeded ?? 0,
+                        ],
+                        [t('pluginAdmin:operationLog.failureCount'), detail.summary?.failed ?? 0],
+                        [t('pluginAdmin:operationLog.skippedCount'), detail.summary?.skipped ?? 0],
+                        [
+                          t('pluginAdmin:operationLog.configurationChanges'),
                           formatPlanDependencies(detail.summary?.changedKeys),
                           3,
                         ],
                         [
-                          t('system:failureSuggestions'),
-                          detail.failedSuggestion || t('system:none'),
+                          t('pluginAdmin:operationLog.failureSuggestions'),
+                          detail.failedSuggestion || t('pluginAdmin:operationLog.none'),
                           3,
                         ],
                         [
-                          t('system:failedStep'),
+                          t('pluginAdmin:shared.failedStep'),
                           detail.failedStep ||
                             detail.result?.failedStep ||
                             detail.result?.failed?.result?.failedStep ||
-                            t('system:none'),
+                            t('pluginAdmin:operationLog.none'),
                           3,
                         ],
                       ].map(([label, children, span]) => ({
@@ -480,14 +488,14 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                 },
                 {
                   key: 'validation',
-                  label: t('system:checkResults'),
+                  label: t('pluginAdmin:operationLog.checkResults'),
                   children: table(
                     detail.validationItems,
                     [
                       {
                         width: 120,
                         align: 'center',
-                        title: t('system:category'),
+                        title: t('pluginAdmin:shared.category'),
                         dataIndex: 'category',
                       },
                       {
@@ -502,20 +510,25 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                         ),
                       },
                       { width: 180, title: t('common:type'), dataIndex: 'kind', ellipsis: true },
-                      { width: 180, title: t('system:object'), dataIndex: 'value', ellipsis: true },
+                      {
+                        width: 180,
+                        title: t('pluginAdmin:shared.object'),
+                        dataIndex: 'value',
+                        ellipsis: true,
+                      },
                       { title: t('common:description'), dataIndex: 'message', ellipsis: true },
                     ],
-                    t('system:noCheckResults'),
+                    t('pluginAdmin:operationLog.noCheckResults'),
                     790
                   ),
                 },
                 {
                   key: 'actions',
-                  label: t('system:actionPlan'),
+                  label: t('pluginAdmin:shared.actionPlan'),
                   children: table(
                     detail.actionItems,
                     [
-                      { title: t('system:action'), dataIndex: 'label', ellipsis: true },
+                      { title: t('pluginAdmin:shared.action'), dataIndex: 'label', ellipsis: true },
                       {
                         width: 80,
                         align: 'center',
@@ -540,13 +553,13 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                         render: (_, row) => formatActionPlanState(row),
                       },
                     ],
-                    t('system:noActionPlan'),
+                    t('pluginAdmin:operationLog.noActionPlan'),
                     500
                   ),
                 },
                 {
                   key: 'plan',
-                  label: t('system:dependencyPlan'),
+                  label: t('pluginAdmin:operationLog.dependencyPlan'),
                   children: table(
                     detail.planItems,
                     [
@@ -559,13 +572,13 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                       {
                         width: 110,
                         align: 'center',
-                        title: t('system:version'),
+                        title: t('pluginAdmin:shared.version'),
                         dataIndex: 'version',
                       },
                       {
                         width: 90,
                         align: 'center',
-                        title: t('system:ready'),
+                        title: t('pluginAdmin:operationLog.ready'),
                         dataIndex: 'ready',
                         render: (value) => (
                           <PluginTag type={value ? 'success' : 'danger'}>
@@ -580,7 +593,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                         render: formatPlanDependencies,
                       },
                     ],
-                    t('system:noDependencyPlan'),
+                    t('pluginAdmin:operationLog.noDependencyPlan'),
                     550
                   ),
                 },
@@ -622,7 +635,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                       },
                       {
                         width: 150,
-                        title: t('system:failedStep'),
+                        title: t('pluginAdmin:shared.failedStep'),
                         ellipsis: true,
                         render: (_, row) => row.failedStep || row.result?.failedStep || '-',
                       },
@@ -639,19 +652,19 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                         ellipsis: true,
                       },
                     ],
-                    t('system:noExecutionRecords'),
+                    t('pluginAdmin:shared.noExecutionRecords'),
                     1040
                   ),
                 },
                 {
                   key: 'config',
-                  label: t('system:components.configurationChanges'),
+                  label: t('pluginAdmin:operationLog.configurationTab'),
                   children: table(
                     detail.configChanges,
                     [
                       {
                         width: 180,
-                        title: t('system:configurationKey'),
+                        title: t('pluginAdmin:shared.configurationKey'),
                         dataIndex: 'key',
                         ellipsis: true,
                       },
@@ -659,7 +672,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                       {
                         width: 80,
                         align: 'center',
-                        title: t('system:sensitive'),
+                        title: t('pluginAdmin:shared.sensitive'),
                         dataIndex: 'secret',
                         render: (value) => (
                           <PluginTag type={value ? 'warning' : 'info'}>
@@ -668,7 +681,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                         ),
                       },
                       {
-                        title: t('system:before'),
+                        title: t('pluginAdmin:operationLog.before'),
                         ellipsis: true,
                         render: (_, row) =>
                           row.secret
@@ -678,7 +691,7 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                               : row.before,
                       },
                       {
-                        title: t('system:after'),
+                        title: t('pluginAdmin:operationLog.after'),
                         ellipsis: true,
                         render: (_, row) =>
                           row.secret
@@ -688,13 +701,13 @@ export default function PluginOperationLogDrawer({ open, onClose, dictionary = [
                               : row.after,
                       },
                     ],
-                    t('system:noConfigurationChanges'),
+                    t('pluginAdmin:operationLog.noConfigurationChanges'),
                     780
                   ),
                 },
                 {
                   key: 'raw',
-                  label: t('system:rawResult'),
+                  label: t('pluginAdmin:operationLog.rawResult'),
                   children: (
                     <Input.TextArea
                       rows={14}

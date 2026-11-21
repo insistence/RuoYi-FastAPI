@@ -8,7 +8,7 @@
         v-model="radioValue"
         :label="1"
       >
-        {{ $t('tool:interface.monthAllowedWildcards') }}
+        {{ $t('components:cron.monthAllowedWildcards') }}
       </el-radio>
     </el-form-item>
 
@@ -17,7 +17,7 @@
         v-model="radioValue"
         :label="2"
       >
-        {{ $t('tool:cron.rangeFrom') }}
+        {{ $t('components:cron.rangeFrom') }}
         <el-input-number
           v-model="cycle01"
           :min="1"
@@ -29,7 +29,7 @@
           :min="cycle01 ? cycle01 + 1 : 2"
           :max="12"
         />
-        {{ $t('tool:cron.month') }}
+        {{ $t('components:cron.month') }}
       </el-radio>
     </el-form-item>
 
@@ -38,19 +38,19 @@
         v-model="radioValue"
         :label="3"
       >
-        {{ $t('tool:cron.from') }}
+        {{ $t('components:cron.from') }}
         <el-input-number
           v-model="average01"
           :min="1"
           :max="11"
         />
-        {{ $t('tool:interface.repeatEvery.month') }}
+        {{ $t('components:cron.repeatEvery.month') }}
         <el-input-number
           v-model="average02"
           :min="1"
           :max="12 - average01 || 0"
         />
-        {{ $t('tool:interface.months') }}
+        {{ $t('components:cron.unit.months') }}
       </el-radio>
     </el-form-item>
 

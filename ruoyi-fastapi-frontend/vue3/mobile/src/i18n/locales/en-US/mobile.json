@@ -27,26 +27,6 @@
     "greeting": "Hello, {{name}}",
     "welcome": "Welcome back"
   },
-  "auth": {
-    "usernamePlaceholder": "Enter your username",
-    "passwordPlaceholder": "Enter your password",
-    "signingIn": "Signing in, please wait...",
-    "loginTitle": "Sign in to RuoYi-FastAPI Mobile",
-    "login": "Sign in",
-    "noAccount": "No account?",
-    "registerNow": "Register now",
-    "acceptTerms": "By signing in, you agree to the",
-    "agreementLink": "Terms of Service",
-    "and": "and",
-    "privacyLink": "Privacy Policy",
-    "confirmPasswordRequired": "Enter your password again",
-    "registering": "Registering, please wait...",
-    "registerTitle": "Register for RuoYi-FastAPI Mobile",
-    "confirmPasswordPlaceholder": "Enter your password again",
-    "register": "Register",
-    "existingAccount": "Sign in with an existing account",
-    "registerSuccess": "Your account {{username}} has been registered successfully!"
-  },
   "about": {
     "version": "Version",
     "email": "Email",
@@ -113,20 +93,6 @@
     "checkUpdates": "Check for updates",
     "clearCache": "Clear cache",
     "signOut": "Sign out"
-  },
-  "password": {
-    "oldRequired": "Current password is required",
-    "newRequired": "New password is required",
-    "length": "Use 6 to 20 characters",
-    "confirmRequired": "Confirm your password",
-    "mismatch": "The passwords do not match",
-    "old": "Current password",
-    "oldPlaceholder": "Enter your current password",
-    "new": "New password",
-    "newPlaceholder": "Enter your new password",
-    "confirm": "Confirm password",
-    "confirmPlaceholder": "Confirm your new password",
-    "title": "Change password"
   },
   "timezone": {
     "title": "Time zone",

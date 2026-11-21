@@ -1,7 +1,7 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('authCenter:help.securityOperations')"
+      :section="$t('oauth:shared.securityOperations')"
       :title="$t('monitor:messages.securityLogs')"
       :description="
         $t(
@@ -64,7 +64,7 @@
             <el-input
               v-model="queryParams.clientId"
               clearable
-              :placeholder="$t('authCenter:appId')"
+              :placeholder="$t('oauth:shared.appId')"
               style="width: 200px"
             />
           </el-form-item>
@@ -132,7 +132,7 @@
               v-model="dateRange"
               type="datetimerange"
               value-format="yyyy-MM-dd HH:mm:ss"
-              :range-separator="$t('authCenter:help.to')"
+              :range-separator="$t('monitor:oauthAudit.to')"
               :start-placeholder="$t('monitor:messages.start')"
               :end-placeholder="$t('monitor:messages.end')"
               style="width: 200px"
@@ -369,7 +369,7 @@
             <dd>{{ detail.auditId || detail.eventId || '—' }}</dd>
             <dt>{{ $t('monitor:messages.traceID') }}</dt>
             <dd>{{ detail.traceId || '—' }}</dd>
-            <dt>{{ $t('authCenter:userPrincipal') }}</dt>
+            <dt>{{ $t('oauth:shared.userPrincipal') }}</dt>
             <dd>{{ detail.subjectId || '—' }}</dd>
             <dt>{{ $t('monitor:messages.sessionID') }}</dt>
             <dd>{{ detail.sid || '—' }}</dd>

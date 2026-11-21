@@ -17,7 +17,7 @@
     <section
       v-if="$slots.context || $scopedSlots.context"
       class="workspace-context"
-      :aria-label="$t('system:interface.pageOverview')"
+      :aria-label="$t('oauth:workspace.pageOverview')"
     >
       <slot name="context" />
     </section>
@@ -25,11 +25,11 @@
     <section
       v-if="$slots.filters || $scopedSlots.filters"
       class="workspace-filters"
-      :aria-label="$t('authCenter:interface.filters')"
+      :aria-label="$t('oauth:workspace.filters')"
     >
       <div class="filter-heading">
         <div>
-          <span class="filter-title">{{ $t('authCenter:interface.filters') }}</span>
+          <span class="filter-title">{{ $t('oauth:workspace.filters') }}</span>
           <span
             v-if="filterHint"
             class="filter-hint"

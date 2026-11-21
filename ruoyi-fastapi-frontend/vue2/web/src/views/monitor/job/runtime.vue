@@ -203,9 +203,7 @@
         width="100"
       >
         <template slot-scope="scope">{{
-          scope.row.deleted
-            ? $t('authCenter:messages.deleteRecord')
-            : $t('monitor:messages.taskConfiguration')
+          scope.row.deleted ? $t('common:deleteRecord') : $t('monitor:messages.taskConfiguration')
         }}</template>
       </el-table-column>
       <el-table-column

@@ -1,0 +1,47 @@
+{
+  "weekday": {
+    "short": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "sunday": "Sun",
+    "monday": "Mon",
+    "tuesday": "Tue",
+    "wednesday": "Wed",
+    "thursday": "Thu",
+    "friday": "Fri",
+    "saturday": "Sat"
+  },
+  "relative": {
+    "justNow": "Just now",
+    "1DayAgo": "1 day ago"
+  },
+  "timezone": {
+    "invalid": "Invalid IANA time zone: {{timezoneName}}",
+    "invalidDateTime": "Invalid date and time: {{value}}",
+    "nonexistent": "{{value}} does not exist in {{timezoneName}}. Choose a valid time after the daylight saving transition.",
+    "ambiguous": "{{value}} occurs twice in {{timezoneName}}. Select a UTC offset.",
+    "invalidDate": "Invalid date: {{value}}",
+    "invalidField": "Field {{field}} contains an invalid RFC 3339 timestamp"
+  },
+  "crypto": {
+    "unavailable": "This browser does not support the Web Crypto API",
+    "publicKeyFailed": "Could not retrieve the transport public key",
+    "keyProtocol": "Unsupported transport public key protocol version",
+    "keyAlgorithm": "Unsupported transport public key algorithm",
+    "responseProtocol": "Unsupported transport response protocol version",
+    "responseAlgorithm": "Unsupported transport response algorithm",
+    "keyVersion": "Transport response key version mismatch",
+    "headerVersion": "Transport response header and body key versions do not match",
+    "aad": "Invalid transport response AAD",
+    "requestMismatch": "The transport response method/path does not match the request",
+    "direction": "Invalid transport response direction",
+    "queryLength": "Encrypted GET/DELETE parameters are too long. Use POST or reduce the query parameters.",
+    "missingContext": "Missing response decryption context",
+    "envelope": "Invalid transport response envelope"
+  }
+}

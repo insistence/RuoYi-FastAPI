@@ -8,7 +8,7 @@ export default function Field(props) {
     <CronField
       {...props}
       name="min"
-      label={t('common:minutes')}
+      label={t('components:cron.minutes')}
       min={0}
       max={59}
     />

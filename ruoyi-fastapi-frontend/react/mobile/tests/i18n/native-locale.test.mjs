@@ -51,6 +51,9 @@ test('login validation retains the key instead of capturing an old fixed transla
       ['zh-CN', 'en-US'].map((code) => [
         code,
         {
+          auth: JSON.parse(
+            readFileSync(new URL(`../../src/i18n/locales/${code}/auth.json`, import.meta.url))
+          ),
           common: JSON.parse(
             readFileSync(new URL(`../../src/i18n/locales/${code}/common.json`, import.meta.url))
           ),

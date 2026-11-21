@@ -45,7 +45,7 @@ export default function PluginFrame({ route }) {
       timers: [],
     }),
     context = useRef()
-  const title = String(resolveRouteTitle(route) || t('common:pluginApplication')),
+  const title = String(resolveRouteTitle(route) || t('components:pluginFrame.pluginApplication')),
     pluginId = route.meta?.pluginId
   function currentRoute() {
     try {
@@ -93,7 +93,7 @@ export default function PluginFrame({ route }) {
       setTimeout(
         () => {
           if (ticket === current.generation)
-            fail((t) => t('common:thePluginSessionHasExpiredReloadThePage'))
+            fail((t) => t('components:pluginFrame.thePluginSessionHasExpiredReloadThePage'))
         },
         Math.max(0, remaining)
       ),
@@ -142,8 +142,8 @@ export default function PluginFrame({ route }) {
       if (ticket === current.generation && !controller.signal.aborted)
         fail((t) =>
           renew
-            ? t('common:failedToRenewThePluginSessionReloadThePage')
-            : t('common:unableToCreateAPluginSessionCheckYourPermissions')
+            ? t('components:pluginFrame.failedToRenewThePluginSessionReloadThePage')
+            : t('components:pluginFrame.unableToCreateAPluginSessionCheckYourPermissions')
         )
     } finally {
       if (current.controller === controller) current.controller = null
@@ -154,7 +154,7 @@ export default function PluginFrame({ route }) {
     current.active = true
     cleanup(!token)
     setError('')
-    if (!token) setError((t) => t('common:yourSessionHasExpiredSignInAgain'))
+    if (!token) setError((t) => t('components:pluginFrame.yourSessionHasExpiredSignInAgain'))
     else {
       setLoading(true)
       loadSession(current.generation)
@@ -190,7 +190,7 @@ export default function PluginFrame({ route }) {
         clearTimeout(handshake)
         setLoading(false)
       },
-      onDisconnect: () => fail((t) => t('common:thePluginIsCurrentlyUnavailable')),
+      onDisconnect: () => fail((t) => t('components:pluginFrame.thePluginIsCurrentlyUnavailable')),
       onRoute: (pluginRoute) => {
         if (ticket !== current.generation || pluginRoute === currentRoute()) return
         const query = new URLSearchParams(context.current.location.search)
@@ -206,7 +206,7 @@ export default function PluginFrame({ route }) {
     })
     const handshake = setTimeout(() => {
       if (ticket === current.generation)
-        fail((t) => t('common:pluginConnectionTimedOutReloadThePage'))
+        fail((t) => t('components:pluginFrame.pluginConnectionTimedOutReloadThePage'))
     }, 15000)
     return () => {
       clearTimeout(handshake)
@@ -228,7 +228,7 @@ export default function PluginFrame({ route }) {
       {error ? (
         <Result
           status="warning"
-          title={t('common:thePluginIsCurrentlyUnavailable')}
+          title={t('components:pluginFrame.thePluginIsCurrentlyUnavailable')}
           subTitle={error}
           extra={
             <Button
@@ -243,7 +243,7 @@ export default function PluginFrame({ route }) {
       ) : (
         <Spin
           spinning={loading}
-          description={t('common:loadingPlugin')}
+          description={t('components:pluginFrame.loadingPlugin')}
         >
           <div className="plugin-frame-content">
             <div className="plugin-frame-toolbar">
@@ -253,7 +253,7 @@ export default function PluginFrame({ route }) {
                 disabled={loading || !frame}
                 onClick={() => runtime.current.bridge?.refresh()}
               >
-                {t('common:refreshPlugin')}
+                {t('components:pluginFrame.refreshPlugin')}
               </Button>
             </div>
             {frame && (
@@ -263,7 +263,9 @@ export default function PluginFrame({ route }) {
                 src={frame.src}
                 title={title}
                 referrerPolicy="same-origin"
-                onError={() => fail((t) => t('common:failedToLoadThePluginPagePleaseTryAgain'))}
+                onError={() =>
+                  fail((t) => t('components:pluginFrame.failedToLoadThePluginPagePleaseTryAgain'))
+                }
               />
             )}
           </div>

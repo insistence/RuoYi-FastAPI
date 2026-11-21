@@ -87,15 +87,17 @@ export function useInteractionContext() {
    */
   async function followServerRedirect(url) {
     if (!interactionId.value || typeof url !== 'string') {
-      throw new Error(t('authCenter:messages.theAuthenticationFlowReturnedAnInvalidRedirectURL'))
+      throw new Error(t('authCenter:interaction.theAuthenticationFlowReturnedAnInvalidRedirectURL'))
     }
     if (!trustedCompletionUrl(url, window.location.origin, interactionId.value)) {
-      throw new Error(t('authCenter:messages.theAuthenticationFlowReturnedAnUntrustedRedirectURL'))
+      throw new Error(
+        t('authCenter:interaction.theAuthenticationFlowReturnedAnUntrustedRedirectURL')
+      )
     }
     const response = await completeInteraction(interactionId.value, csrfToken())
     const redirectUrl = response.data?.redirectUrl
     if (typeof redirectUrl !== 'string') {
-      throw new Error(t('authCenter:messages.theAuthenticationFlowReturnedAnInvalidRedirectURL'))
+      throw new Error(t('authCenter:interaction.theAuthenticationFlowReturnedAnInvalidRedirectURL'))
     }
     clearInteraction()
     window.location.assign(redirectUrl)

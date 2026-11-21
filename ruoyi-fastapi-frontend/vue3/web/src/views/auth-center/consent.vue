@@ -9,11 +9,11 @@
       v-loading="initializing"
       class="auth-flow"
     >
-      <p class="panel-kicker">{{ $t('authCenter:confirmPermissions') }}</p>
-      <h2>{{ $t('authCenter:confirmWhatToShare') }}</h2>
+      <p class="panel-kicker">{{ $t('authCenter:shared.confirmPermissions') }}</p>
+      <h2>{{ $t('authCenter:consent.confirmWhatToShare') }}</h2>
       <p class="panel-lead">
         <strong>{{ applicationName }}</strong>
-        {{ $t('authCenter:isRequestingTheInformationBelowRequiredInformationIsNeededFor') }}
+        {{ $t('authCenter:consent.isRequestingTheInformationBelowRequiredInformationIsNeededFor') }}
       </p>
       <el-alert
         v-if="errorMessage"
@@ -34,10 +34,12 @@
         >
           <div class="group-heading">
             <div>
-              <h3 id="required-scope-title">{{ $t('authCenter:requiredForAccess') }}</h3>
-              <p>{{ $t('authCenter:decliningThesePermissionsPreventsAccessToTheApp') }}</p>
+              <h3 id="required-scope-title">{{ $t('authCenter:consent.requiredForAccess') }}</h3>
+              <p>{{ $t('authCenter:consent.decliningThesePermissionsPreventsAccessToTheApp') }}</p>
             </div>
-            <span>{{ $t('authCenter:permissionCount', { count: requiredScopes.length }) }}</span>
+            <span>{{
+              $t('authCenter:consent.permissionCount', { count: requiredScopes.length })
+            }}</span>
           </div>
           <div class="scope-list">
             <label
@@ -54,26 +56,27 @@
                   <strong>{{ scope.name || scope.scope }}</strong>
                   <el-tooltip
                     v-if="scope.name && scope.name !== scope.scope"
-                    :content="$t('authCenter:permissionCodeValue', { scope: scope.scope })"
+                    :content="$t('authCenter:consent.permissionCodeValue', { scope: scope.scope })"
                     placement="top"
                   >
                     <el-icon
                       class="scope-help"
                       tabindex="0"
-                      :aria-label="$t('authCenter:viewPermissionCodes')"
+                      :aria-label="$t('authCenter:consent.viewPermissionCodes')"
                       ><QuestionFilled
                     /></el-icon>
                   </el-tooltip>
                 </span>
                 <small>{{
-                  scope.description || $t('authCenter:usedToCompleteSignInOrProvideTheApplicationS')
+                  scope.description ||
+                  $t('authCenter:consent.usedToCompleteSignInOrProvideTheApplicationS')
                 }}</small>
               </span>
               <el-tag
                 size="small"
                 type="info"
                 effect="plain"
-                >{{ $t('authCenter:required') }}</el-tag
+                >{{ $t('authCenter:consent.required') }}</el-tag
               >
             </label>
           </div>
@@ -86,11 +89,11 @@
         >
           <div class="group-heading">
             <div>
-              <h3 id="optional-scope-title">{{ $t('authCenter:yourChoice') }}</h3>
-              <p>{{ $t('authCenter:youCanUseTheAppWithoutSelectingThese') }}</p>
+              <h3 id="optional-scope-title">{{ $t('authCenter:consent.yourChoice') }}</h3>
+              <p>{{ $t('authCenter:consent.youCanUseTheAppWithoutSelectingThese') }}</p>
             </div>
             <span>{{
-              $t('authCenter:selectedCount', {
+              $t('authCenter:consent.selectedCount', {
                 selected: selectedOptionalCount,
                 total: optionalScopes.length,
               })
@@ -108,20 +111,20 @@
                   <strong>{{ scope.name || scope.scope }}</strong>
                   <el-tooltip
                     v-if="scope.name && scope.name !== scope.scope"
-                    :content="$t('authCenter:permissionCodeValue', { scope: scope.scope })"
+                    :content="$t('authCenter:consent.permissionCodeValue', { scope: scope.scope })"
                     placement="top"
                   >
                     <el-icon
                       class="scope-help"
                       tabindex="0"
-                      :aria-label="$t('authCenter:viewPermissionCodes')"
+                      :aria-label="$t('authCenter:consent.viewPermissionCodes')"
                       ><QuestionFilled
                     /></el-icon>
                   </el-tooltip>
                 </span>
                 <small>{{
                   scope.description ||
-                  $t('authCenter:allowTheApplicationToUseThisInformationOrCapability')
+                  $t('authCenter:consent.allowTheApplicationToUseThisInformationOrCapability')
                 }}</small>
               </span>
               <el-tag
@@ -129,7 +132,7 @@
                 size="small"
                 type="warning"
                 effect="plain"
-                >{{ $t('authCenter:sensitiveInformation') }}</el-tag
+                >{{ $t('authCenter:consent.sensitiveInformation') }}</el-tag
               >
             </label>
           </div>
@@ -139,12 +142,14 @@
       <label class="remember-card">
         <el-checkbox v-model="rememberConsent" />
         <span>
-          <strong>{{ $t('authCenter:rememberMyChoices') }}</strong>
+          <strong>{{ $t('authCenter:consent.rememberMyChoices') }}</strong>
           <small>{{
-            $t('authCenter:rememberingYourChoicesAvoidsRepeatedConfirmationForApprovedPermissionsA')
+            $t(
+              'authCenter:consent.rememberingYourChoicesAvoidsRepeatedConfirmationForApprovedPermissionsA'
+            )
           }}</small>
           <small v-if="selectedScopes.includes('offline_access')">{{
-            $t('authCenter:offlineAccessAllowsTheAppToRenewAccessWhenYou')
+            $t('authCenter:consent.offlineAccessAllowsTheAppToRenewAccessWhenYou')
           }}</small>
         </span>
       </label>
@@ -154,14 +159,14 @@
           size="large"
           :disabled="submitting"
           @click="submit(false)"
-          >{{ $t('authCenter:declineAndReturn') }}</el-button
+          >{{ $t('authCenter:consent.declineAndReturn') }}</el-button
         >
         <el-button
           type="primary"
           size="large"
           :loading="submitting"
           @click="submit(true)"
-          >{{ $t('authCenter:allowCount', { count: selectedScopes.length }) }}</el-button
+          >{{ $t('authCenter:consent.allowCount', { count: selectedScopes.length }) }}</el-button
         >
       </div>
       <div
@@ -173,7 +178,7 @@
           target="_blank"
           rel="noopener noreferrer"
           type="primary"
-          >{{ $t('authCenter:viewThisAppSPrivacyPolicy') }}</el-link
+          >{{ $t('authCenter:consent.viewThisAppSPrivacyPolicy') }}</el-link
         >
       </div>
     </div>
@@ -196,7 +201,7 @@ const submitting = ref(false)
 const errorMessage = ref('')
 
 const applicationName = computed(
-  () => interaction.value.client?.clientName || t('authCenter:appRequestingSignIn')
+  () => interaction.value.client?.clientName || t('authCenter:shared.appRequestingSignIn')
 )
 const requiredScopes = computed(() =>
   (interaction.value.requestedScopes || []).filter((item) => item.required)
@@ -225,7 +230,7 @@ function safeExternalUrl(value) {
 /** 读取授权请求并初始化必选权限 */
 async function initialize() {
   if (!interactionId.value || !csrfToken()) {
-    return fatal(t('authCenter:theAuthenticationRequestIsIncompleteReturnToTheAppAnd'))
+    return fatal(t('authCenter:shared.theAuthenticationRequestIsIncompleteReturnToTheAppAnd'))
   }
   try {
     const response = await getInteraction(interactionId.value, csrfToken())
@@ -235,7 +240,7 @@ async function initialize() {
     }
     selectedScopes.value = requiredScopes.value.map((item) => item.scope)
   } catch (error) {
-    fatal(error?.message || t('authCenter:theAuthorizationRequestHasExpired'))
+    fatal(error?.message || t('authCenter:consent.theAuthorizationRequestHasExpired'))
   } finally {
     initializing.value = false
   }
@@ -255,7 +260,8 @@ async function submit(approved) {
     })
     await followServerRedirect(response.data?.redirectUrl)
   } catch (error) {
-    errorMessage.value = error?.message || t('authCenter:couldNotSaveYourPermissionChoicesTryAgain')
+    errorMessage.value =
+      error?.message || t('authCenter:consent.couldNotSaveYourPermissionChoicesTryAgain')
   } finally {
     submitting.value = false
   }

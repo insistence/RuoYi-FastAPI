@@ -161,7 +161,7 @@ export default function User() {
       const values = await userRef.validateFields()
       setSaving(true)
       await (userId !== undefined ? updateUser({ ...values, userId }) : addUser(values))
-      message.success(t('system:savedSuccessfully'))
+      message.success(t('system:shared.savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -171,7 +171,7 @@ export default function User() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(t('system:deleteUsersWithIdsValue', { values }))
+      await confirm(t('system:user.deleteUsersWithIdsValue', { values }))
       await delUser(values)
       message.success(t('common:deleteSuccess'))
       await getList()
@@ -180,7 +180,7 @@ export default function User() {
   async function handleStatusChange(row, checked) {
     try {
       await confirm(
-        t('system:valueUserValue', {
+        t('system:user.valueUserValue', {
           arg0: checked ? t('common:enable') : t('common:disable'),
           userName: row.userName,
         })
@@ -195,7 +195,7 @@ export default function User() {
       const values = await pwdRef.validateFields()
       setSaving(true)
       await resetUserPwd(pwdUser.userId, values.password)
-      message.success(t('system:passwordReset'))
+      message.success(t('system:user.passwordReset'))
       setPwdUser(null)
       pwdRef.resetFields()
     } catch {
@@ -481,7 +481,7 @@ export default function User() {
         />
         <Modal
           footer={renderDialogFooter}
-          title={userId !== undefined ? t('system:editUser') : t('system:addUser')}
+          title={userId !== undefined ? t('system:user.editUser') : t('system:shared.addUser')}
           open={open}
           onCancel={() => setOpen(false)}
           onOk={submitForm}
@@ -506,7 +506,7 @@ export default function User() {
                   rules={[{ required: true }]}
                 >
                   <Input
-                    placeholder={t('system:enterNickname')}
+                    placeholder={t('system:user.enterNickname')}
                     maxLength={30}
                   />
                 </Form.Item>
@@ -517,7 +517,7 @@ export default function User() {
                   label={t('system:department')}
                 >
                   <TreeSelect
-                    placeholder={t('system:selectDepartment')}
+                    placeholder={t('system:user.selectDepartment')}
                     treeData={enabledDepartments(deptOptions)}
                     fieldNames={{
                       value: 'id',
@@ -568,7 +568,7 @@ export default function User() {
                       required: true,
                       min: 2,
                       max: 20,
-                      message: t('system:userNameMustBeBetween2And20Characters'),
+                      message: t('system:user.userNameMustBeBetween2And20Characters'),
                     },
                   ]}
                 >
@@ -587,7 +587,7 @@ export default function User() {
                     rules={pwdValidator}
                   >
                     <Input.Password
-                      placeholder={t('system:enterPassword')}
+                      placeholder={t('system:user.enterPassword')}
                       autoComplete="new-password"
                     />
                   </Form.Item>
@@ -596,7 +596,7 @@ export default function User() {
               <Col span={12}>
                 <Form.Item
                   name="sex"
-                  label={t('system:gender')}
+                  label={t('system:user.gender')}
                 >
                   <Select
                     placeholder={t('common:selectPlaceholder')}
@@ -657,7 +657,7 @@ export default function User() {
           </Form>
         </Modal>
         <Modal
-          title={t('system:resetPasswordForValue', { arg0: pwdUser?.userName || '' })}
+          title={t('system:user.resetPasswordForValue', { arg0: pwdUser?.userName || '' })}
           open={!!pwdUser}
           onCancel={() => setPwdUser(null)}
           onOk={handleResetPwd}
@@ -682,13 +682,13 @@ export default function User() {
           onClose={() => setViewId(null)}
         />
         <ExcelImportDialog
-          title={t('system:importUsers')}
+          title={t('system:user.importUsers')}
           open={importOpen}
           onClose={() => setImportOpen(false)}
           action="/system/user/importData"
           templateAction="/system/user/importTemplate"
           templateFileName={t('common:exportFiles.userTemplate')}
-          updateSupportLabel={t('system:updateExistingUsers')}
+          updateSupportLabel={t('system:user.updateExistingUsers')}
           onSuccess={getList}
         />
       </section>

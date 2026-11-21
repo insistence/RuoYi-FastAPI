@@ -76,8 +76,8 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
       )
       message.success(
         action.type === 'extend'
-          ? t('system:fileRetentionExtended')
-          : t('system:expiredFileMovedToRecycleBin')
+          ? t('file:retentionReminder.fileRetentionExtended')
+          : t('file:retentionReminder.expiredFileMovedToRecycleBin')
       )
       setAction(undefined)
       refresh()
@@ -91,13 +91,13 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
     <>
       <Drawer
         rootClassName="file-drawer"
-        title={t('system:fileRetentionReminders')}
+        title={t('file:retentionReminder.fileRetentionReminders')}
         open={open}
         onClose={onClose}
         size="70%"
       >
         <Alert
-          title={t('system:retentionCanBeExtendedBeforeExpiryAfterExpiryA')}
+          title={t('file:retentionReminder.retentionCanBeExtendedBeforeExpiryAfterExpiryA')}
           type="info"
           showIcon
           style={{ marginBottom: 8 }}
@@ -120,35 +120,35 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
           >
             <Input
               style={{ width: 200 }}
-              placeholder={t('system:enterTheOriginalFileName')}
+              placeholder={t('file:shared.enterTheOriginalFileName')}
               allowClear
             />
           </Form.Item>
           <Form.Item
             name="noticeType"
-            label={t('system:reminderType')}
+            label={t('file:retentionReminder.reminderType')}
           >
             <Select
-              placeholder={t('system:selectAReminderType')}
+              placeholder={t('file:retentionReminder.selectAReminderType')}
               allowClear
               style={{ width: 200 }}
               options={[
-                { label: t('system:expiringSoon'), value: 'expiring' },
-                { label: t('system:expired'), value: 'expired' },
+                { label: t('file:retentionReminder.expiringSoon'), value: 'expiring' },
+                { label: t('file:retentionReminder.expired'), value: 'expired' },
               ]}
             />
           </Form.Item>
           <Form.Item
             name="status"
-            label={t('system:reminderStatus')}
+            label={t('file:retentionReminder.reminderStatus')}
           >
             <Select
-              placeholder={t('system:selectAReminderStatus')}
+              placeholder={t('file:retentionReminder.selectAReminderStatus')}
               allowClear
               style={{ width: 200 }}
               options={[
-                { label: t('system:unread'), value: '0' },
-                { label: t('system:read'), value: '1' },
+                { label: t('file:retentionReminder.unread'), value: '0' },
+                { label: t('file:retentionReminder.read'), value: '1' },
               ]}
             />
           </Form.Item>
@@ -188,10 +188,13 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                 try {
                   const result = await scanFileRetentionReminder()
                   message.success(
-                    t('system:scanCompleteValueNewUpcomingExpiryRemindersAndValue', {
-                      expiringCount: result.data.expiringCount,
-                      expiredCount: result.data.expiredCount,
-                    })
+                    t(
+                      'file:retentionReminder.scanCompleteValueNewUpcomingExpiryRemindersAndValue',
+                      {
+                        expiringCount: result.data.expiringCount,
+                        expiredCount: result.data.expiredCount,
+                      }
+                    )
                   )
                   refresh()
                   onSuccess()
@@ -201,7 +204,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                 }
               }}
             >
-              {t('system:scan')}
+              {t('file:retentionReminder.scan')}
             </Button>
           </HasPermi>
           <Button
@@ -211,12 +214,12 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
             onClick={async () => {
               try {
                 await readFileRetentionReminder(selected.join(','))
-                message.success(t('system:reminderMarkedAsRead'))
+                message.success(t('file:retentionReminder.reminderMarkedAsRead'))
                 refresh()
               } catch {}
             }}
           >
-            {t('system:read')}
+            {t('file:retentionReminder.read')}
           </Button>
         </Space>
         <Table
@@ -251,19 +254,21 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
             },
             {
               align: 'center',
-              title: t('system:reminderType'),
+              title: t('file:retentionReminder.reminderType'),
               width: 110,
               dataIndex: 'noticeType',
               render: (value) => (
                 <FileTag type={value === 'expired' ? 'danger' : 'warning'}>
-                  {value === 'expired' ? t('system:expired') : t('system:expiringSoon')}
+                  {value === 'expired'
+                    ? t('file:retentionReminder.expired')
+                    : t('file:retentionReminder.expiringSoon')}
                 </FileTag>
               ),
             },
             {
               width: 180,
               align: 'center',
-              title: t('system:expiryTime'),
+              title: t('file:shared.expiryTime'),
               dataIndex: 'expireTime',
               render: (value) => parseTime(value),
             },
@@ -274,27 +279,29 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
               dataIndex: 'status',
               render: (value) => (
                 <FileTag type={value === '0' ? 'warning' : 'success'}>
-                  {value === '0' ? t('system:unread') : t('system:read')}
+                  {value === '0'
+                    ? t('file:retentionReminder.unread')
+                    : t('file:retentionReminder.read')}
                 </FileTag>
               ),
             },
             {
               width: 90,
               align: 'center',
-              title: t('system:businessReferences'),
+              title: t('file:shared.businessReferences'),
               dataIndex: 'referenceCount',
             },
             {
               width: 180,
               align: 'center',
-              title: t('system:reminderTime'),
+              title: t('file:retentionReminder.reminderTime'),
               dataIndex: 'createTime',
               render: (value) => parseTime(value),
             },
             {
               width: 110,
               align: 'center',
-              title: t('system:readBy'),
+              title: t('file:retentionReminder.readBy'),
               dataIndex: 'readBy',
               ellipsis: true,
               render: (value) => value || '-',
@@ -313,7 +320,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                       symbol="Clock"
                       onClick={() => openAction('extend', row)}
                     >
-                      {t('system:extendRetention')}
+                      {t('file:retentionReminder.extendRetention')}
                     </TableAction>
                   </HasPermi>
                   {new Date(row.expireTime).getTime() <= Date.now() && (
@@ -326,7 +333,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
                         onClick={() => openAction('dispose', row)}
                       >
                         {row.canDispose
-                          ? t('system:moveToRecycleBin')
+                          ? t('file:shared.moveToRecycleBin')
                           : t('file:permanentOrUnexpiredBusinessReferencesPreventDisposal')}
                       </TableAction>
                     </HasPermi>
@@ -347,14 +354,16 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
         className="file-dialog"
         mask={{ closable: action?.type !== 'dispose' }}
         okText={
-          action?.type === 'dispose' ? t('system:confirmDisposal') : t('system:components.ok')
+          action?.type === 'dispose'
+            ? t('file:retentionReminder.confirmDisposal')
+            : t('file:retentionReminder.ok')
         }
         footer={renderDialogFooter}
         width="520px"
         title={
           action?.type === 'extend'
-            ? t('system:extendFileRetention')
-            : t('system:disposeOfExpiredFile')
+            ? t('file:retentionReminder.extendFileRetention')
+            : t('file:retentionReminder.disposeOfExpiredFile')
         }
         open={!!action}
         onCancel={() => setAction(undefined)}
@@ -384,7 +393,7 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
           {action?.type === 'extend' && (
             <>
               <Form.Item label={t('file:name')}>{action.row.originalName}</Form.Item>
-              <Form.Item label={t('system:previousExpiryTime')}>
+              <Form.Item label={t('file:shared.previousExpiryTime')}>
                 {parseTime(action.row.expireTime)}
               </Form.Item>
             </>
@@ -392,16 +401,18 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
           {action?.type === 'extend' && (
             <Form.Item
               name="expireTime"
-              label={t('system:newExpiryTime')}
+              label={t('file:shared.newExpiryTime')}
               rules={[{ required: true, message: t('file:chooseANewExpirationTime') }]}
             >
-              <BusinessDateTimePicker label={t('system:newExpiryTime')} />
+              <BusinessDateTimePicker label={t('file:shared.newExpiryTime')} />
             </Form.Item>
           )}
           <Form.Item
             name="reason"
             label={
-              action?.type === 'extend' ? t('system:extensionReason') : t('file:dispositionReason')
+              action?.type === 'extend'
+                ? t('file:retentionReminder.extensionReason')
+                : t('file:dispositionReason')
             }
             rules={[
               { required: true, whitespace: true, message: t('file:enterAReasonForTheOperation') },
@@ -410,8 +421,8 @@ export default function FileRetentionReminderDrawer({ open, onClose, onSuccess }
             <Input.TextArea
               placeholder={
                 action?.type === 'extend'
-                  ? t('system:enterAnExtensionReason')
-                  : t('system:enterADisposalReason')
+                  ? t('file:retentionReminder.enterAnExtensionReason')
+                  : t('file:retentionReminder.enterADisposalReason')
               }
               rows={3}
               maxLength={500}

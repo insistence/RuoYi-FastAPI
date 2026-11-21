@@ -51,7 +51,8 @@ export default function TimezoneSettings({ user, onSaved }) {
   }, [user.timeZone])
   async function save() {
     if (saving) return
-    if (mode === 'custom' && !selectedZone) return setFieldError(t('system:selectDisplayTimeZone'))
+    if (mode === 'custom' && !selectedZone)
+      return setFieldError(t('system:user.selectDisplayTimeZone'))
     setSaving(true)
     setError('')
     const preference = mode === 'auto' ? 'auto' : selectedZone
@@ -60,7 +61,7 @@ export default function TimezoneSettings({ user, onSaved }) {
       useUserStore.getState().applyTimezone(preference)
       setNow(new Date())
       onSaved?.(preference)
-      message.success(t('system:timeZoneSaved'))
+      message.success(t('system:user.timeZoneSaved'))
     } catch (error) {
       setError((t) => error.message || t('common:saveFailed'))
     } finally {
@@ -73,27 +74,27 @@ export default function TimezoneSettings({ user, onSaved }) {
       onFinish={save}
       className="timezone-settings"
     >
-      <Form.Item label={t('system:timeDisplayMode')}>
+      <Form.Item label={t('system:user.timeDisplayMode')}>
         <Radio.Group
-          aria-label={t('system:timeDisplayMode')}
+          aria-label={t('system:user.timeDisplayMode')}
           disabled={saving}
           value={mode}
           onChange={(event) => setMode(event.target.value)}
           options={[
-            { value: 'auto', label: t('system:followDeviceAutomatically') },
-            { value: 'custom', label: t('system:chooseManually') },
+            { value: 'auto', label: t('system:user.followDeviceAutomatically') },
+            { value: 'custom', label: t('system:user.chooseManually') },
           ]}
         />
       </Form.Item>
       {mode === 'custom' && (
         <Form.Item
-          label={t('system:displayTimeZone')}
+          label={t('system:user.displayTimeZone')}
           validateStatus={fieldError ? 'error' : undefined}
           help={fieldError || undefined}
         >
           <Select
-            aria-label={t('system:displayTimeZone')}
-            placeholder={t('system:searchTimeZonesEGAsiaShanghai')}
+            aria-label={t('system:user.displayTimeZone')}
+            placeholder={t('system:user.searchTimeZonesEGAsiaShanghai')}
             showSearch
             value={selectedZone}
             loading={loading}
@@ -110,7 +111,7 @@ export default function TimezoneSettings({ user, onSaved }) {
         <Alert
           className="timezone-settings-notice"
           type="warning"
-          title={t('system:failedToLoadTheTimeZoneListYourCurrent')}
+          title={t('system:user.failedToLoadTheTimeZoneListYourCurrent')}
           action={
             <Button
               className="ruoyi-table-action"
@@ -128,21 +129,21 @@ export default function TimezoneSettings({ user, onSaved }) {
         aria-live="polite"
       >
         <div>
-          {t('system:previewTimeZone')}
+          {t('system:user.previewTimeZone')}
           <strong>{previewZone}</strong>
         </div>
         <div>
-          {t('system:timePreview')}
+          {t('system:user.timePreview')}
           {formatBusinessTime(now, 'YYYY-MM-DD HH:mm:ss', previewZone)}
         </div>
         {mode === 'auto' && !deviceZone && (
           <div className="timezone-settings-fallback">
-            {t('system:thisDeviceCannotIdentifyItsTimeZoneTheSystem')}
+            {t('system:user.thisDeviceCannotIdentifyItsTimeZoneTheSystem')}
           </div>
         )}
       </div>
       <p className="timezone-settings-hint">
-        {t('system:usedForTimeDisplayDateFilteringAndExportsScheduled')}
+        {t('system:user.usedForTimeDisplayDateFilteringAndExportsScheduled')}
       </p>
       {error && (
         <p
@@ -157,7 +158,7 @@ export default function TimezoneSettings({ user, onSaved }) {
         htmlType="submit"
         loading={saving}
       >
-        {t('system:saveTimeZone')}
+        {t('system:user.saveTimeZone')}
       </Button>
     </Form>
   )

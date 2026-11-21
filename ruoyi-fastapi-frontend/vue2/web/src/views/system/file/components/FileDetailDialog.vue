@@ -59,7 +59,7 @@
           v-if="detail.referenceCount"
           type="text"
           @click="$emit('reference', detail)"
-          >{{ detail.referenceCount }} {{ $t('authCenter:messages.items') }}</el-button
+          >{{ detail.referenceCount }} {{ $t('common:items') }}</el-button
         >
         <span v-else>{{ $t('file:messages.0Items') }}</span>
       </el-descriptions-item>

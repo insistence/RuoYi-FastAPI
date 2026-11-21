@@ -18,7 +18,10 @@ export default function FieldLabel({ label, help, children }) {
             className="oauth-field-help"
             tabIndex={0}
             role="img"
-            aria-label={t('common:valueDetailsValue', { arg0: label || t('common:field'), help })}
+            aria-label={t('components:oauthWorkspace.valueDetailsValue', {
+              arg0: label || t('components:oauthWorkspace.field'),
+              help,
+            })}
           >
             <QuestionCircleOutlined />
           </span>

@@ -17,7 +17,7 @@
           type="text"
           size="large"
           auto-complete="off"
-          :placeholder="$t('common:login.username')"
+          :placeholder="$t('auth:login.username')"
         >
           <template #prefix
             ><svg-icon
@@ -32,7 +32,7 @@
           type="password"
           size="large"
           auto-complete="off"
-          :placeholder="$t('common:login.password')"
+          :placeholder="$t('auth:login.password')"
           @keyup.enter="handleLogin"
         >
           <template #prefix
@@ -50,7 +50,7 @@
           v-model="loginForm.code"
           size="large"
           auto-complete="off"
-          :placeholder="$t('common:login.code')"
+          :placeholder="$t('auth:login.code')"
           style="width: 63%"
           @keyup.enter="handleLogin"
         >
@@ -72,7 +72,7 @@
       <el-checkbox
         v-model="loginForm.rememberMe"
         style="margin: 0px 0px 25px 0px"
-        >{{ $t('common:login.remember') }}</el-checkbox
+        >{{ $t('auth:login.remember') }}</el-checkbox
       >
       <el-form-item style="width: 100%">
         <el-button
@@ -82,8 +82,8 @@
           style="width: 100%"
           @click.prevent="handleLogin"
         >
-          <span v-if="!loading">{{ $t('common:login.submit') }}</span>
-          <span v-else>{{ $t('common:login.signingIn') }}</span>
+          <span v-if="!loading">{{ $t('auth:login.submit') }}</span>
+          <span v-else>{{ $t('auth:login.signingIn') }}</span>
         </el-button>
         <div
           style="float: right"
@@ -135,7 +135,7 @@ const loginRules = {
       required: true,
       trigger: 'blur',
       get message() {
-        return t('common:login.usernameRequired')
+        return t('auth:login.usernameRequired')
       },
     },
   ],
@@ -144,7 +144,7 @@ const loginRules = {
       required: true,
       trigger: 'blur',
       get message() {
-        return t('common:login.passwordRequired')
+        return t('auth:login.passwordRequired')
       },
     },
   ],
@@ -153,7 +153,7 @@ const loginRules = {
       required: true,
       trigger: 'change',
       get message() {
-        return t('common:login.codeRequired')
+        return t('auth:login.codeRequired')
       },
     },
   ],

@@ -58,8 +58,8 @@ export default function AuthUser({ params }) {
     try {
       await confirm(
         row
-          ? t('system:removeTheRoleAssignmentForUserValue', { userName: row.userName })
-          : t('system:removeRoleAssignmentsForTheSelectedUsers')
+          ? t('system:role.removeTheRoleAssignmentForUserValue', { userName: row.userName })
+          : t('system:role.removeRoleAssignmentsForTheSelectedUsers')
       )
       if (row) await authUserCancel({ userId: row.userId, roleId: params.roleId })
       else
@@ -67,7 +67,7 @@ export default function AuthUser({ params }) {
           roleId: params.roleId,
           userIds: ids.join(','),
         })
-      message.success(t('system:authorizationRevoked'))
+      message.success(t('system:role.authorizationRevoked'))
       await getList()
     } catch {}
   }
@@ -130,7 +130,7 @@ export default function AuthUser({ params }) {
             type="default"
             onClick={() => setSelectOpen(true)}
           >
-            {t('system:addUser')}
+            {t('system:shared.addUser')}
           </Button>
         </HasPermi>
         <HasPermi value={['system:role:remove']}>
@@ -141,7 +141,7 @@ export default function AuthUser({ params }) {
             disabled={!ids.length}
             onClick={() => cancel()}
           >
-            {t('system:revokeSelectedAuthorizations')}
+            {t('system:role.revokeSelectedAuthorizations')}
           </Button>
         </HasPermi>
         <Button
@@ -198,7 +198,7 @@ export default function AuthUser({ params }) {
                   symbol="CircleClose"
                   onClick={() => cancel(row)}
                 >
-                  {t('system:revokeAuthorization')}
+                  {t('system:role.revokeAuthorization')}
                 </TableAction>
               </HasPermi>
             ),

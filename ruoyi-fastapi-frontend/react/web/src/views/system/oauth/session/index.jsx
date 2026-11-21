@@ -29,13 +29,13 @@ const statuses = [
   {
     value: 'active',
     get label() {
-      return t('system:online')
+      return t('oauth:session.online')
     },
   },
   {
     value: 'revoked',
     get label() {
-      return t('system:signedOut')
+      return t('oauth:session.signedOut')
     },
   },
   {
@@ -47,20 +47,20 @@ const statuses = [
 ]
 const statusTag = (value) => (
   <OAuthTag type={{ active: 'success', revoked: 'danger', expired: 'info' }[value] || 'info'}>
-    {statuses.find((item) => item.value === value)?.label || t('system:unknownStatus')}
+    {statuses.find((item) => item.value === value)?.label || t('oauth:shared.unknownStatus')}
   </OAuthTag>
 )
 function authMethod(methods = []) {
   const labels = {
-    pwd: t('system:passwordSignIn'),
-    password: t('system:passwordSignIn'),
-    otp: t('system:oneTimeCode'),
-    mfa: t('system:multiFactorAuthentication'),
-    sms: t('system:smsVerification'),
+    pwd: t('oauth:session.passwordSignIn'),
+    password: t('oauth:session.passwordSignIn'),
+    otp: t('oauth:session.oneTimeCode'),
+    mfa: t('oauth:session.multiFactorAuthentication'),
+    sms: t('oauth:session.smsVerification'),
   }
   return methods.length
     ? methods.map((value) => labels[value] || value).join(' + ')
-    : t('system:unknownSignInMethod')
+    : t('oauth:session.unknownSignInMethod')
 }
 const initial = { pageNum: 1, pageSize: 10, status: 'active' }
 export default function OAuthSession() {
@@ -103,7 +103,7 @@ export default function OAuthSession() {
       const values = await revokeForm.validateFields()
       setRevoking(true)
       await revokeOAuthSessions(revokeIds, { reason: values.reason.trim() })
-      message.success(t('system:sessionRevoked'))
+      message.success(t('oauth:session.sessionRevoked'))
       setRevokeIds(null)
       await getList()
     } catch {
@@ -122,7 +122,7 @@ export default function OAuthSession() {
       width: 190,
       render: (_, row) => (
         <EntityCell
-          name={row.userName || t('authCenter:userIdentifier', { id: row.userId })}
+          name={row.userName || t('oauth:shared.userIdentifier', { id: row.userId })}
           detail={row.userId || row.subjectId?.slice(0, 12)}
           kind="person"
         />
@@ -133,32 +133,32 @@ export default function OAuthSession() {
       width: 160,
       render: (_, row) => (
         <div className="oauth-stacked-cell">
-          <strong>{row.ipAddress || t('system:unknownAddress')}</strong>
+          <strong>{row.ipAddress || t('oauth:session.unknownAddress')}</strong>
           <small>{authMethod(row.amr)}</small>
         </div>
       ),
     },
     {
       width: 210,
-      title: t('system:associatedApplications'),
+      title: t('oauth:session.associatedApplications'),
       dataIndex: 'clientIds',
       render: (values) => (
         <TagSummary
           effect="plain"
           values={values}
           limit={2}
-          empty={t('system:noAssociatedApplications')}
+          empty={t('oauth:session.noAssociatedApplications')}
         />
       ),
     },
     {
-      title: t('system:lastActivity'),
+      title: t('oauth:session.lastActivity'),
       dataIndex: 'lastSeenAt',
       width: 170,
       render: (value) => parseTime(value) || '—',
     },
     {
-      title: t('system:latestEndTime'),
+      title: t('oauth:session.latestEndTime'),
       dataIndex: 'absoluteExpiresAt',
       width: 170,
       render: (value) => parseTime(value) || '—',
@@ -191,7 +191,7 @@ export default function OAuthSession() {
                 symbol="SwitchButton"
                 onClick={() => openRevoke([row.sid])}
               >
-                {t('system:signOut')}
+                {t('oauth:session.signOut')}
               </TableAction>
             </HasPermi>
           )}
@@ -202,10 +202,10 @@ export default function OAuthSession() {
   return (
     <PageFrame
       className="oauth-session-page"
-      title={t('system:signInSessions')}
-      description={t('system:viewUsersOfUnifiedSignInTheirSourceLocations')}
-      section={t('authCenter:accessControl')}
-      filterHint={t('system:onlyActiveSessionsAreShownByDefault')}
+      title={t('oauth:session.signInSessions')}
+      description={t('oauth:session.viewUsersOfUnifiedSignInTheirSourceLocations')}
+      section={t('oauth:shared.accessControl')}
+      filterHint={t('oauth:session.onlyActiveSessionsAreShownByDefault')}
       actions={
         <HasPermi value={['system:oauthSession:revoke']}>
           <Button
@@ -214,7 +214,7 @@ export default function OAuthSession() {
             disabled={!ids.length}
             onClick={() => openRevoke(ids)}
           >
-            {t('system:forceSignOut')}
+            {t('oauth:session.forceSignOut')}
             {ids.length ? `（${ids.length}）` : ''}
           </Button>
         </HasPermi>
@@ -244,7 +244,7 @@ export default function OAuthSession() {
             >
               <Input
                 style={{ width: 200 }}
-                placeholder={t('system:ipAddress')}
+                placeholder={t('oauth:session.ipAddress')}
                 allowClear
               />
             </Form.Item>
@@ -285,7 +285,7 @@ export default function OAuthSession() {
       toolbar={
         <>
           <span className="result-count">
-            {t('layout:found')} <strong>{total}</strong> {t('system:sessions')}
+            {t('layout:found')} <strong>{total}</strong> {t('oauth:session.sessions')}
           </span>
           <RightToolbar
             showSearch={showSearch}
@@ -296,7 +296,7 @@ export default function OAuthSession() {
       }
     >
       <Table
-        locale={{ emptyText: <Empty description={t('system:noMatchingSignInSessions')} /> }}
+        locale={{ emptyText: <Empty description={t('oauth:session.noMatchingSignInSessions')} /> }}
         rowKey="sid"
         dataSource={rows}
         columns={columns}
@@ -319,8 +319,8 @@ export default function OAuthSession() {
       <Modal
         width="min(540px, calc(100vw - 32px))"
         className="oauth-dialog oauth-impact-dialog"
-        title={t('system:forceSignInSessionsToEnd')}
-        okText={t('system:confirmSignOut')}
+        title={t('oauth:session.forceSignInSessionsToEnd')}
+        okText={t('oauth:session.confirmSignOut')}
         open={!!revokeIds}
         onCancel={() => setRevokeIds(null)}
         onOk={revoke}
@@ -333,9 +333,9 @@ export default function OAuthSession() {
           <ExclamationCircleFilled />
           <div>
             <strong>
-              {t('system:endValueExternalSignInSessions', { arg0: revokeIds?.length || 0 })}
+              {t('oauth:session.endValueExternalSignInSessions', { arg0: revokeIds?.length || 0 })}
             </strong>
-            <p>{t('system:thisEndsTheseSessionsAndTheirOfflineAccessCredentials')}</p>
+            <p>{t('oauth:session.thisEndsTheseSessionsAndTheirOfflineAccessCredentials')}</p>
           </div>
         </div>
         <Form
@@ -345,11 +345,13 @@ export default function OAuthSession() {
         >
           <Form.Item
             name="reason"
-            label={t('system:signOutReason')}
-            rules={[{ required: true, whitespace: true, message: t('system:enterASignOutReason') }]}
+            label={t('oauth:session.signOutReason')}
+            rules={[
+              { required: true, whitespace: true, message: t('oauth:session.enterASignOutReason') },
+            ]}
           >
             <Input.TextArea
-              placeholder={t('system:explainTheForcedSignOutForTheAuditTrail')}
+              placeholder={t('oauth:session.explainTheForcedSignOutForTheAuditTrail')}
               maxLength={200}
               showCount
               rows={3}
@@ -359,7 +361,7 @@ export default function OAuthSession() {
       </Modal>
       <Drawer
         rootClassName="oauth-dialog oauth-detail-drawer"
-        title={t('system:signInSessionDetails')}
+        title={t('oauth:session.signInSessionDetails')}
         open={!!detail}
         onClose={() => setDetail(null)}
         size="min(640px, 92vw)"
@@ -373,13 +375,14 @@ export default function OAuthSession() {
               <div>
                 <strong>{detail.userName || detail.userId || t('system:user.user')}</strong>
                 <p>
-                  {detail.ipAddress || t('system:unknownSourceAddress')} · {authMethod(detail.amr)}
+                  {detail.ipAddress || t('oauth:session.unknownSourceAddress')} ·{' '}
+                  {authMethod(detail.amr)}
                 </p>
               </div>
               {statusTag(detail.status)}
             </div>
             <section className="detail-section">
-              <h4>{t('system:associatedApplications')}</h4>
+              <h4>{t('oauth:session.associatedApplications')}</h4>
               <div className="detail-tags">
                 {detail.clientIds?.length ? (
                   detail.clientIds.map((value) => (
@@ -391,7 +394,7 @@ export default function OAuthSession() {
                     </OAuthTag>
                   ))
                 ) : (
-                  <span className="muted-value">{t('system:noAssociatedApplications')}</span>
+                  <span className="muted-value">{t('oauth:session.noAssociatedApplications')}</span>
                 )}
               </div>
             </section>
@@ -405,16 +408,16 @@ export default function OAuthSession() {
                     key,
                     label: [
                       t('monitor:login.time'),
-                      t('system:lastActivity'),
-                      t('system:expiresAfterInactivity'),
-                      t('system:latestEndTime'),
+                      t('oauth:session.lastActivity'),
+                      t('oauth:session.expiresAfterInactivity'),
+                      t('oauth:session.latestEndTime'),
                     ][index],
                     children: parseTime(detail[key]) || '—',
                   })
                 ),
                 {
                   key: 'reason',
-                  label: t('system:signOutReason'),
+                  label: t('oauth:session.signOutReason'),
                   children: detail.revokeReason || '—',
                 },
               ]}
@@ -426,14 +429,14 @@ export default function OAuthSession() {
               items={[
                 {
                   key: 'diagnostics',
-                  label: t('system:showTechnicalIdentifiers'),
+                  label: t('oauth:shared.showTechnicalIdentifiers'),
                   children: (
                     <dl>
                       {[
                         ['sid', t('monitor:sessionId')],
                         ['subjectId', t('authCenter:userPrincipal')],
-                        ['authVersion', t('system:identityVersion')],
-                        ['acr', t('system:authenticationLevel')],
+                        ['authVersion', t('oauth:session.identityVersion')],
+                        ['acr', t('oauth:session.authenticationLevel')],
                       ].map(([key, label]) => (
                         <Fragment key={key}>
                           <dt>{label}</dt>

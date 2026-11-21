@@ -1,0 +1,189 @@
+{
+  "dateTime": {
+    "thisTimeDoesNotExistInTheSelectedTime": "This time does not exist in the selected time zone. Choose another time.",
+    "selectACompleteValidDateAndTime": "Select a complete, valid date and time",
+    "dateAndTime": "Date and time",
+    "valueDate": "{{label}} date",
+    "valueTime": "{{label}} time",
+    "dateAndTimeRange": "Date and time range"
+  },
+  "cron": {
+    "sunday": "Sunday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "january": "January",
+    "february": "February",
+    "march": "March",
+    "april": "April",
+    "may": "May",
+    "june": "June",
+    "july": "July",
+    "august": "August",
+    "september": "September",
+    "october": "October",
+    "november": "November",
+    "december": "December",
+    "decreaseValue": "Decrease {{title}}",
+    "increaseValue": "Increase {{title}}",
+    "leaveBlankSupportedWildcardsValue": "Leave blank; supported wildcards: [{{wildcard}}]",
+    "everyYear": "Every year",
+    "valueSupportedWildcardsValue": "{{label}}; supported wildcards: [{{wildcard}}]",
+    "notSpecified": "Not specified",
+    "rangeFrom": "Range from",
+    "startWeekday": "Start weekday",
+    "startValue": "Start {{label}}",
+    "endWeekday": "End weekday",
+    "endValue": "End {{label}}",
+    "startValueInterval": "Start {{label}} interval",
+    "dayOfMonth": "day",
+    "startingEvery": "starting, every",
+    "valueInterval": "{{label}} interval",
+    "everyMonth": "Every month",
+    "nearestWeekdayDate": "Nearest weekday date",
+    "nearestWeekday": "nearest weekday",
+    "lastDayOfTheMonth": "Last day of the month",
+    "lastWeekdayOfTheMonth": "Last weekday of the month",
+    "number": "Number",
+    "weekNumber": "Week number",
+    "on": "on",
+    "dayOfTheSelectedWeek": "Day of the selected week",
+    "lastInTheMonth": "Last in the month",
+    "lastWeekday": "Last weekday",
+    "specified": "Specific values",
+    "multipleSelect": "Multiple selections allowed",
+    "selectedValueValues": "Selected {{label}} values",
+    "custom": "Custom",
+    "valueExpression": "{{label}} expression",
+    "hours": "Hour",
+    "minutes": "Minute",
+    "month": "Month",
+    "week": "Week",
+    "year": "Year",
+    "timeExpression": "Time expression",
+    "cronExpression": "Cron expression",
+    "unableToRetrieveRunTimes": "Unable to retrieve run times",
+    "next5Runs": "Next 5 runs (",
+    "retrievingRunTimes": "Retrieving run times…",
+    "noFutureRuns": "No future runs"
+  },
+  "detailPanel": {
+    "copied": "Copied"
+  },
+  "editor": {
+    "uploadAJpgPngGifOrWebpImage": "Upload a JPG, PNG, GIF or WebP image",
+    "uploadingImage": "Uploading image"
+  },
+  "excelImport": {
+    "updateExistingRecords": "Update existing records",
+    "chooseAnXlsOrXlsxFile": "Choose an xls or xlsx file",
+    "startImport": "Start import",
+    "importResults": "Import results",
+    "dragAFileHereOrClickToUpload": "Drag a file here or click to upload",
+    "onlyXlsAndXlsxFilesAreSupported": "Only xls and xlsx files are supported",
+    "downloadTemplate": "Download template"
+  },
+  "formLabel": {
+    "aboutValue": "About {{label}}"
+  },
+  "generatorControls": {
+    "veryPoor": "Very poor",
+    "disappointing": "Disappointing",
+    "average": "Average",
+    "satisfied": "Satisfied",
+    "excellent": "Excellent"
+  },
+  "iconSelect": {
+    "searchIcons": "Search icons",
+    "icons": "Icons",
+    "chooseIconValue": "Choose icon {{icon}}",
+    "noMatchingIcons": "No matching icons"
+  },
+  "jsonEditor": {
+    "jsonParameters": "JSON parameters",
+    "jsonArray": "JSON array [ ]",
+    "jsonObject": "JSON object { }",
+    "formatValue": "Format {{name}}",
+    "format": "Format",
+    "valuevalueEditor": "{{arg0}}{{name}} editor",
+    "loadingEditor": "Loading editor…",
+    "validFormat": "Valid format",
+    "lineValueColumnValue": "Line {{startLineNumber}}, column {{startColumn}}:",
+    "failedToLoadTheEditorPlainTextInputIs": "Failed to load the editor. Plain text input is available.",
+    "tabToChangeFocusAltShiftFToFormat": "Tab to change focus · Alt+Shift+F to format",
+    "enterAJsonArray": "Enter a JSON array",
+    "enterAJsonObject": "Enter a JSON object"
+  },
+  "oauthWorkspace": {
+    "unnamed": "Unnamed",
+    "webOrMobileApplication": "Web or mobile application",
+    "backendServiceApplication": "Backend service application",
+    "notSelected": "Not selected",
+    "informationTheApplicationCanRequest": "Information the application can request",
+    "resourcesTheTokenCanAccess": "Resources the token can access",
+    "requests": "Requests",
+    "access": "Access",
+    "app": "App",
+    "valueDetailsValue": "{{arg0}} details: {{help}}",
+    "field": "Field",
+    "filters": "Filters",
+    "addItem": "Add item",
+    "deleteItemValue": "Delete item {{arg0}}"
+  },
+  "pagination": {
+    "rowsPerPage": "Rows per page",
+    "valuePage": "{{value}} / page",
+    "goTo": "Go to",
+    "page": "page"
+  },
+  "pluginFrame": {
+    "pluginApplication": "Plugin application",
+    "thePluginSessionHasExpiredReloadThePage": "The plugin session has expired. Reload the page.",
+    "failedToRenewThePluginSessionReloadThePage": "Failed to renew the plugin session. Reload the page.",
+    "unableToCreateAPluginSessionCheckYourPermissions": "Unable to create a plugin session. Check your permissions and try again.",
+    "yourSessionHasExpiredSignInAgain": "Your session has expired. Sign in again.",
+    "pluginConnectionTimedOutReloadThePage": "Plugin connection timed out. Reload the page.",
+    "thePluginIsCurrentlyUnavailable": "The plugin is currently unavailable",
+    "loadingPlugin": "Loading plugin…",
+    "refreshPlugin": "Refresh plugin",
+    "failedToLoadThePluginPagePleaseTryAgain": "Failed to load the plugin page. Please try again."
+  },
+  "tableToolbar": {
+    "columnVisibility": "Column visibility",
+    "hideSearch": "Hide search",
+    "showSearch": "Show search",
+    "toggleSearch": "Toggle search",
+    "refreshList": "Refresh list",
+    "columns": "Columns",
+    "showHide": "Show / hide",
+    "show": "Show",
+    "hide": "Hide"
+  },
+  "fullScreen": {
+    "fullScreen": "Full screen",
+    "thisBrowserDoesNotSupportFullScreen": "This browser does not support full screen",
+    "unableToChangeFullScreenModeCheckYourBrowser": "Unable to change full-screen mode. Check your browser settings."
+  },
+  "table": {
+    "scrollTableHorizontally": "Scroll table horizontally"
+  },
+  "treePanel": {
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "refreshDepartments": "Refresh departments",
+    "expandDepartmentPanel": "Expand department panel",
+    "collapseDepartmentPanel": "Collapse department panel",
+    "searchDepartments": "Search departments",
+    "resizeDepartmentPanel": "Resize department panel"
+  },
+  "translations": {
+    "sourceLanguage": "Source: {{language}}",
+    "add": "Add translation",
+    "hide": "Hide translations",
+    "show": "Show translations",
+    "fallback": "Clear a translation to use the original text."
+  }
+}

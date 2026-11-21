@@ -7,7 +7,7 @@ export default function StringListInput({
   value = [],
   onChange,
   placeholder = '',
-  addText = t('common:addItem'),
+  addText = t('components:oauthWorkspace.addItem'),
 }) {
   useI18n()
 
@@ -37,7 +37,7 @@ export default function StringListInput({
           <Button
             danger
             type="text"
-            aria-label={t('common:deleteItemValue', { arg0: index + 1 })}
+            aria-label={t('components:oauthWorkspace.deleteItemValue', { arg0: index + 1 })}
             icon={<DeleteOutlined />}
             onClick={() => onChange?.(items.filter((_, i) => i !== index))}
           />

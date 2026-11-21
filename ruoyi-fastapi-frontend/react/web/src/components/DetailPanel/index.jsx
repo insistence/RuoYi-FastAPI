@@ -42,7 +42,7 @@ export function DetailCode({ value, copyable = false }) {
   async function copy() {
     try {
       await navigator.clipboard.writeText(value)
-      message.success(t('common:copied'))
+      message.success(t('components:detailPanel.copied'))
     } catch {
       message.error(t('common:copyFailedPleaseCopyManually'))
     }

@@ -1,0 +1,338 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "export.accessId"
+msgstr "访问编号"
+
+msgid "export.accountStatus"
+msgstr "帐号状态"
+
+msgid "export.active"
+msgstr "正常"
+
+msgid "export.args"
+msgstr "位置参数"
+
+msgid "export.browser"
+msgstr "浏览器"
+
+msgid "export.builtIn"
+msgstr "系统内置"
+
+msgid "export.coalesce"
+msgstr "积压处理"
+
+msgid "export.configId"
+msgstr "参数主键"
+
+msgid "export.configKey"
+msgstr "参数键名"
+
+msgid "export.configName"
+msgstr "参数名称"
+
+msgid "export.configValue"
+msgstr "参数键值"
+
+msgid "export.createdAt"
+msgstr "创建时间"
+
+msgid "export.createdBy"
+msgstr "创建者"
+
+msgid "export.cron"
+msgstr "cron执行表达式"
+
+msgid "export.cronTimezone"
+msgstr "cron时区"
+
+msgid "export.cssClass"
+msgstr "样式属性"
+
+msgid "export.department"
+msgstr "部门"
+
+msgid "export.deptId"
+msgstr "部门编号"
+
+msgid "export.deptName"
+msgstr "部门名称"
+
+msgid "export.dictCode"
+msgstr "字典编码"
+
+msgid "export.dictId"
+msgstr "字典编号"
+
+msgid "export.dictLabel"
+msgstr "字典标签"
+
+msgid "export.dictName"
+msgstr "字典名称"
+
+msgid "export.dictSort"
+msgstr "字典排序"
+
+msgid "export.dictType"
+msgstr "字典类型"
+
+msgid "export.dictValue"
+msgstr "字典键值"
+
+msgid "export.disabled"
+msgstr "停用"
+
+msgid "export.displayOrder"
+msgstr "显示顺序"
+
+msgid "export.duration"
+msgstr "消耗时间（毫秒）"
+
+msgid "export.email"
+msgstr "邮箱地址"
+
+msgid "export.errorMessage"
+msgstr "错误消息"
+
+msgid "export.exception"
+msgstr "异常信息"
+
+msgid "export.executionDuration"
+msgstr "执行耗时（毫秒）"
+
+msgid "export.executionId"
+msgstr "执行ID"
+
+msgid "export.executionStatus"
+msgstr "执行状态"
+
+msgid "export.executor"
+msgstr "任务执行器"
+
+msgid "export.failure"
+msgstr "失败"
+
+msgid "export.female"
+msgstr "女"
+
+msgid "export.finishedAt"
+msgstr "执行结束时间"
+
+msgid "export.gender"
+msgstr "性别"
+
+msgid "export.invokeTarget"
+msgstr "调用目标字符串"
+
+msgid "export.isDefault"
+msgstr "是否默认"
+
+msgid "export.jobCode"
+msgstr "任务编码"
+
+msgid "export.jobGroup"
+msgstr "任务组名"
+
+msgid "export.jobId"
+msgstr "任务ID"
+
+msgid "export.jobLogId"
+msgstr "任务日志编码"
+
+msgid "export.jobName"
+msgstr "任务名称"
+
+msgid "export.jobStore"
+msgstr "调度存储"
+
+msgid "export.jobTimezone"
+msgstr "任务时区"
+
+msgid "export.kwargs"
+msgstr "关键字参数"
+
+msgid "export.latestOnly"
+msgstr "只执行最近一次"
+
+msgid "export.listClass"
+msgstr "表格回显样式"
+
+msgid "export.logId"
+msgstr "日志编号"
+
+msgid "export.logMessage"
+msgstr "日志信息"
+
+msgid "export.loginName"
+msgstr "登录名称"
+
+msgid "export.male"
+msgstr "男"
+
+msgid "export.maxInstances"
+msgstr "最大并发数"
+
+msgid "export.method"
+msgstr "方法名称"
+
+msgid "export.misfireGraceTime"
+msgstr "允许延迟秒数"
+
+msgid "export.module"
+msgstr "系统模块"
+
+msgid "export.nickName"
+msgstr "用户昵称"
+
+msgid "export.no"
+msgstr "否"
+
+msgid "export.operatingSystem"
+msgstr "操作系统"
+
+msgid "export.operationDate"
+msgstr "操作日期"
+
+msgid "export.operationIp"
+msgstr "操作地址"
+
+msgid "export.operationLocation"
+msgstr "操作地点"
+
+msgid "export.operationMessage"
+msgstr "操作信息"
+
+msgid "export.operationStatus"
+msgstr "操作状态"
+
+msgid "export.operationType"
+msgstr "操作类型"
+
+msgid "export.operator"
+msgstr "操作人员"
+
+msgid "export.paused"
+msgstr "暂停"
+
+msgid "export.phone"
+msgstr "手机号码"
+
+msgid "export.postCode"
+msgstr "岗位编码"
+
+msgid "export.postId"
+msgstr "岗位编号"
+
+msgid "export.postName"
+msgstr "岗位名称"
+
+msgid "export.remark"
+msgstr "备注"
+
+msgid "export.requestMethod"
+msgstr "请求方式"
+
+msgid "export.requestParams"
+msgstr "请求参数"
+
+msgid "export.requestUrl"
+msgstr "请求URL"
+
+msgid "export.responseParams"
+msgstr "返回参数"
+
+msgid "export.roleId"
+msgstr "角色编号"
+
+msgid "export.roleKey"
+msgstr "权限字符"
+
+msgid "export.roleName"
+msgstr "角色名称"
+
+msgid "export.runEach"
+msgstr "逐次执行"
+
+msgid "export.scheduledAt"
+msgstr "计划执行时刻"
+
+msgid "export.signInDate"
+msgstr "登录日期"
+
+msgid "export.signInIp"
+msgstr "登录地址"
+
+msgid "export.signInLocation"
+msgstr "登录地点"
+
+msgid "export.signInStatus"
+msgstr "登录状态"
+
+msgid "export.startedAt"
+msgstr "执行开始时间"
+
+msgid "export.status"
+msgstr "状态"
+
+msgid "export.success"
+msgstr "成功"
+
+msgid "export.trigger"
+msgstr "任务触发器"
+
+msgid "export.unknown"
+msgstr "未知"
+
+msgid "export.unlimited"
+msgstr "不限"
+
+msgid "export.updatedAt"
+msgstr "更新时间"
+
+msgid "export.updatedBy"
+msgstr "更新者"
+
+msgid "export.userEmail"
+msgstr "用户邮箱"
+
+msgid "export.userGender"
+msgstr "用户性别"
+
+msgid "export.userId"
+msgstr "用户编号"
+
+msgid "export.userName"
+msgstr "用户名称"
+
+msgid "export.yes"
+msgstr "是"
+
+msgid "import.duplicateColumn"
+msgstr "导入文件存在重复列：%(column)s"
+
+msgid "import.empty"
+msgstr "导入文件为空"
+
+msgid "import.invalidValue"
+msgstr "导入字段%(field)s的值无效：%(value)s"
+
+msgid "import.missingColumns"
+msgstr "导入文件缺少必需列：%(columns)s"
+
+msgid "import.user.duplicates"
+msgstr "已跳过已存在的用户账号：%(accounts)s"
+
+msgid "import.user.nickName"
+msgstr "用户名称"

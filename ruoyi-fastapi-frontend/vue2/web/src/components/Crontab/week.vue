@@ -8,7 +8,7 @@
         v-model="radioValue"
         :label="1"
       >
-        {{ $t('tool:interface.weekAllowedWildcardsL') }}
+        {{ $t('components:cron.weekAllowedWildcardsL') }}
       </el-radio>
     </el-form-item>
 
@@ -17,7 +17,7 @@
         v-model="radioValue"
         :label="2"
       >
-        {{ $t('tool:cron.notSpecified') }}
+        {{ $t('components:cron.notSpecified') }}
       </el-radio>
     </el-form-item>
 
@@ -26,7 +26,7 @@
         v-model="radioValue"
         :label="3"
       >
-        {{ $t('tool:interface.fromWeekday') }}
+        {{ $t('components:cron.fromWeekday') }}
         <el-select
           clearable
           v-model="cycle01"
@@ -62,13 +62,13 @@
         v-model="radioValue"
         :label="4"
       >
-        {{ $t('tool:cron.number') }}
+        {{ $t('components:cron.number') }}
         <el-input-number
           v-model="average01"
           :min="1"
           :max="4"
         />
-        {{ $t('tool:interface.weekOnWeekday') }}
+        {{ $t('components:cron.weekOnWeekday') }}
         <el-select
           clearable
           v-model="average02"
@@ -89,7 +89,7 @@
         v-model="radioValue"
         :label="5"
       >
-        {{ $t('tool:interface.lastWeekdayOfTheMonth') }}
+        {{ $t('components:cron.lastWeekdayOfTheMonth') }}
         <el-select
           clearable
           v-model="weekday"
@@ -147,43 +147,43 @@ export default {
         {
           key: 2,
           get value() {
-            return t('tool:cron.weekday.monday')
+            return t('components:cron.weekday.monday')
           },
         },
         {
           key: 3,
           get value() {
-            return t('tool:cron.weekday.tuesday')
+            return t('components:cron.weekday.tuesday')
           },
         },
         {
           key: 4,
           get value() {
-            return t('tool:cron.weekday.wednesday')
+            return t('components:cron.weekday.wednesday')
           },
         },
         {
           key: 5,
           get value() {
-            return t('tool:cron.weekday.thursday')
+            return t('components:cron.weekday.thursday')
           },
         },
         {
           key: 6,
           get value() {
-            return t('tool:cron.weekday.friday')
+            return t('components:cron.weekday.friday')
           },
         },
         {
           key: 7,
           get value() {
-            return t('tool:cron.weekday.saturday')
+            return t('components:cron.weekday.saturday')
           },
         },
         {
           key: 1,
           get value() {
-            return t('tool:cron.weekday.sunday')
+            return t('components:cron.weekday.sunday')
           },
         },
       ],

@@ -84,22 +84,22 @@ export default function Login() {
         >
           <Form.Item
             name="username"
-            label={t('common:login.username')}
-            rules={[{ required: true, message: t('common:login.usernameRequired') }]}
+            label={t('auth:login.username')}
+            rules={[{ required: true, message: t('auth:login.usernameRequired') }]}
           >
             <Input
-              placeholder={t('common:login.username')}
+              placeholder={t('auth:login.username')}
               prefix={<UserOutlined />}
               autoComplete="username"
             />
           </Form.Item>
           <Form.Item
             name="password"
-            label={t('common:login.password')}
-            rules={[{ required: true, message: t('common:login.passwordRequired') }]}
+            label={t('auth:login.password')}
+            rules={[{ required: true, message: t('auth:login.passwordRequired') }]}
           >
             <Input.Password
-              placeholder={t('common:login.password')}
+              placeholder={t('auth:login.password')}
               prefix={<LockOutlined />}
               autoComplete="current-password"
             />
@@ -108,11 +108,11 @@ export default function Login() {
             <div className="captcha-row">
               <Form.Item
                 name="code"
-                label={t('common:login.code')}
-                rules={[{ required: true, message: t('common:login.codeRequired') }]}
+                label={t('auth:login.code')}
+                rules={[{ required: true, message: t('auth:login.codeRequired') }]}
               >
                 <Input
-                  placeholder={t('common:login.code')}
+                  placeholder={t('auth:login.code')}
                   prefix={<SafetyOutlined />}
                   maxLength={8}
                   autoComplete="off"
@@ -137,7 +137,7 @@ export default function Login() {
             valuePropName="checked"
             className="login-remember"
           >
-            <Checkbox>{t('common:login.remember')}</Checkbox>
+            <Checkbox>{t('auth:login.remember')}</Checkbox>
           </Form.Item>
           <Form.Item className="login-submit">
             <Button
@@ -146,7 +146,7 @@ export default function Login() {
               htmlType="submit"
               loading={loading}
             >
-              {t('common:login.submit')}
+              {t('auth:login.submit')}
             </Button>
             {captcha.registerEnabled && (
               <div className="login-link">

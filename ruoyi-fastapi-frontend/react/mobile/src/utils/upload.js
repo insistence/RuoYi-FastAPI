@@ -23,14 +23,14 @@ export default async function upload(config) {
     try {
       result = typeof response.data === 'string' ? JSON.parse(response.data) : response.data
     } catch {
-      throw new Error(t('mobile:theUploadApiReturnedInvalidData'))
+      throw new Error(t('common:upload.invalidResponse'))
     }
     if (response.statusCode === 401 || result.code === 401) handleSessionExpired()
     if (response.statusCode >= 400 || (result.code ?? 200) !== 200)
-      throw new Error(result.msg || t('mobile:uploadFailed'))
+      throw new Error(result.msg || t('common:upload.failed'))
     return result
   } catch (error) {
-    toast(error.message || error.errMsg || t('mobile:uploadFailed'))
+    toast(error.message || error.errMsg || t('common:upload.failed'))
     throw error
   }
 }

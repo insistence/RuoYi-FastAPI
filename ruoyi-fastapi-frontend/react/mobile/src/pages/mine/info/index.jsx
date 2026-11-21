@@ -25,7 +25,7 @@ export default function UserInfo() {
       const [, result] = await Promise.all([useUserStore.getState().getInfo(), getUserProfile()])
       setData(result)
     } catch (failure) {
-      setError(failure.message || (() => t('mobile:failedToLoadPersonalInformation')))
+      setError(failure.message || (() => t('mobile:profile.loadFailed')))
     } finally {
       setLoading(false)
     }
@@ -33,13 +33,13 @@ export default function UserInfo() {
   useDidShow(load)
   if (!allowed) return null
   const fields = [
-    [t('mobile:nicknameMineInfo'), data.data.nickName, 'account', 'bg-blue-50 text-blue-500'],
-    [t('mobile:mobileNumber'), data.data.phonenumber, 'phone', 'bg-green-50 text-green-500'],
-    [t('mobile:emailMineInfoEdit'), data.data.email, 'email', 'bg-indigo-50 text-indigo-500'],
-    [t('mobile:position'), data.postGroup, 'shield-account', 'bg-orange-50 text-orange-500'],
-    [t('mobile:role'), data.roleGroup, 'badge-account', 'bg-purple-50 text-purple-500'],
+    [t('mobile:profile.shortNickname'), data.data.nickName, 'account', 'bg-blue-50 text-blue-500'],
+    [t('mobile:profile.phone'), data.data.phonenumber, 'phone', 'bg-green-50 text-green-500'],
+    [t('mobile:profile.email'), data.data.email, 'email', 'bg-indigo-50 text-indigo-500'],
+    [t('mobile:profile.post'), data.postGroup, 'shield-account', 'bg-orange-50 text-orange-500'],
+    [t('mobile:profile.role'), data.roleGroup, 'badge-account', 'bg-purple-50 text-purple-500'],
     [
-      t('mobile:createdOn'),
+      t('mobile:profile.createdAt'),
       formatDisplayTime(data.data.createTime, locale),
       'calendar',
       'bg-pink-50 text-pink-500',

@@ -5,7 +5,6 @@ from pathlib import Path
 
 from babel import Locale, UnknownLocaleError
 from babel.messages.catalog import Catalog
-from babel.messages.mofile import write_mo
 from babel.messages.pofile import PoFileError, read_po, write_po
 
 from config.env import I18nConfig
@@ -275,17 +274,9 @@ class GenI18nUtil:
         write_po(output, catalog, width=120, sort_output=True)
         return output.getvalue().decode('utf-8')
 
-    @classmethod
-    def compile_po(cls, content: str) -> bytes:
-        """
-        为合并后的词库生成可加载的编译产物
-
-        :param content: 完整 PO 内容
-        :return: MO 编译产物
-        """
-        output = io.BytesIO()
-        write_mo(output, cls.read_catalog(content))
-        return output.getvalue()
+    def backend_catalog_path(self, locale: str) -> str:
+        """获取当前业务模块在生成包中的后端 PO 路径。"""
+        return f'backend/i18n/catalogs/{locale}/LC_MESSAGES/core/{self.namespace}.po'
 
     @classmethod
     def merge_content(cls, relative_path: str, existing: str, generated: str) -> str:
@@ -322,7 +313,7 @@ class GenI18nUtil:
         pending = {}
         for locale in self.locales:
             frontend = json.loads(artifacts[f'frontend/src/i18n/locales/{locale}/{self.namespace}.json'])
-            backend = read_po(io.StringIO(artifacts[f'backend/i18n/catalogs/{locale}/LC_MESSAGES/core.po']))
+            backend = self.read_catalog(artifacts[self.backend_catalog_path(locale)])
             missing_frontend = []
             for suffix in self.frontend[locale]:
                 value = frontend
@@ -352,8 +343,7 @@ class GenI18nUtil:
             values = self.frontend[locale]
             path = f'frontend/src/i18n/locales/{locale}/{self.namespace}.json'
             result[path] = json.dumps(self.nest(values), ensure_ascii=False, indent=2) + '\n'
-            backend_path = f'backend/i18n/catalogs/{locale}/LC_MESSAGES/core.po'
-            result[backend_path] = self.po_content(self.backend[locale], locale)
+            result[self.backend_catalog_path(locale)] = self.po_content(self.backend[locale], locale)
             pending[locale] = {
                 'frontend': [self.key(key) for key, value in values.items() if not value.strip()],
                 'backend': [key for key, value in self.backend[locale].items() if not value.strip()],
@@ -369,9 +359,9 @@ class GenI18nUtil:
             '字段和表注释是基准文案。未知译文保留空字符串，pending.json 列出待补译键，'
             '不能将空译文当成正式完成；使用目标应用固定版本 x18n apply/set 补译后运行 i18n:check。'
             'i18nTranslations 可按语言提供稳定模块内路径的译文；后端词条使用 backend. 前缀。\n\n'
-            'backend/i18n/catalogs 下的 core.po 是模块增量片段，合入后端现有 core.po 时只补新 msgid，'
-            '不能整文件覆盖现有词库。落盘生成会增量合并输出目录已有 JSON/PO，并重新编译 MO；'
-            'ZIP 与预览提供可审查的片段。完成后端登记语言、词库完整性检查及编译后才可发布。\n\n'
+            f'将 backend/i18n/catalogs/<语言>/LC_MESSAGES/core/{self.namespace}.po 按原目录放入后端。'
+            '落盘生成会增量合并已有 JSON 和模块 PO，保留人工译文。补齐待译词条后，在后端目录运行 '
+            'python scripts/compile_i18n.py，与其他业务模块一起编译为 core.mo。\n\n'
             '重新生成不覆盖已有语言键，也不删除旧文件；页面代码仍按生成器原有规则更新。'
             'genPath 表示独立生成包根目录，不应直接选择应用根目录或 src 目录。\n'
         )

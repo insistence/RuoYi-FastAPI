@@ -56,13 +56,13 @@ import { uriFields, toEditor, clientPayload } from './form'
 
 const grantLabels = {
   get authorization_code() {
-    return t('system:userSignIn')
+    return t('oauth:client.userSignIn')
   },
   get refresh_token() {
-    return t('system:staySignedIn')
+    return t('oauth:client.staySignedIn')
   },
   get client_credentials() {
-    return t('system:serviceToServiceCalls')
+    return t('oauth:client.serviceToServiceCalls')
   },
 }
 export default function OAuthClient() {
@@ -185,7 +185,7 @@ export default function OAuthClient() {
     try {
       const data = clientPayload(form.getFieldsValue(true), clientId)
       const result = await (clientId ? updateOAuthClient : addOAuthClient)(data)
-      message.success(t('system:applicationSettingsSaved'))
+      message.success(t('oauth:client.applicationSettingsSaved'))
       setOpen(false)
       if (result.data?.clientSecret) setSecret(result.data)
       await getList()
@@ -198,22 +198,22 @@ export default function OAuthClient() {
     try {
       await confirm(
         enable
-          ? t('system:enableApplicationValue', { clientName: row.clientName })
-          : t('system:disablingValueAlsoRevokesItsGrantsAndRefreshCredentials', {
+          ? t('oauth:client.enableApplicationValue', { clientName: row.clientName })
+          : t('oauth:client.disablingValueAlsoRevokesItsGrantsAndRefreshCredentials', {
               clientName: row.clientName,
             })
       )
       await (enable
         ? changeOAuthClientStatus({ clientId: row.clientId, status: '0' })
         : deleteOAuthClients(row.clientId))
-      message.success(enable ? t('system:applicationEnabled') : t('monitor:appDisabled'))
+      message.success(enable ? t('oauth:client.applicationEnabled') : t('monitor:appDisabled'))
       await getList()
     } catch {}
   }
   async function rotate(row) {
     try {
       await confirm(
-        t('system:generateANewSecretForValueTheOldSecret', { clientName: row.clientName })
+        t('oauth:client.generateANewSecretForValueTheOldSecret', { clientName: row.clientName })
       )
       const result = await rotateOAuthClientSecret(row.clientId)
       setSecret(result.data)
@@ -249,14 +249,18 @@ export default function OAuthClient() {
             name="clientName"
             label={
               <FieldLabel
-                label={t('system:applicationName')}
+                label={t('oauth:client.applicationName')}
                 help={t(
-                  'authCenter:helpsAdministratorsIdentifyThisApplicationWithoutAffectingTheSignIn'
+                  'oauth:client.helpsAdministratorsIdentifyThisApplicationWithoutAffectingTheSignIn'
                 )}
               />
             }
             rules={[
-              { required: true, whitespace: true, message: t('system:enterAnApplicationName') },
+              {
+                required: true,
+                whitespace: true,
+                message: t('oauth:client.enterAnApplicationName'),
+              },
             ]}
           >
             <Input
@@ -268,9 +272,9 @@ export default function OAuthClient() {
             name="clientType"
             label={
               <FieldLabel
-                label={t('system:applicationType')}
+                label={t('oauth:client.applicationType')}
                 help={t(
-                  'authCenter:webAndMobileApplicationsCannotKeepSecretsSecurelyBackendServices'
+                  'oauth:client.webAndMobileApplicationsCannotKeepSecretsSecurelyBackendServices'
                 )}
               />
             }
@@ -284,8 +288,8 @@ export default function OAuthClient() {
                   value: 'confidential',
                   label: (
                     <>
-                      <strong>{t('system:backendService')}</strong>
-                      <small>{t('system:canSafelyStoreAnApplicationSecret')}</small>
+                      <strong>{t('oauth:client.backendService')}</strong>
+                      <small>{t('oauth:client.canSafelyStoreAnApplicationSecret')}</small>
                     </>
                   ),
                 },
@@ -293,8 +297,8 @@ export default function OAuthClient() {
                   value: 'public',
                   label: (
                     <>
-                      <strong>{t('system:webOrMobileApplication')}</strong>
-                      <small>{t('system:cannotStoreASecretSecurelyOnTheDevice')}</small>
+                      <strong>{t('oauth:client.webOrMobileApplication')}</strong>
+                      <small>{t('oauth:client.cannotStoreASecretSecurelyOnTheDevice')}</small>
                     </>
                   ),
                 },
@@ -306,7 +310,7 @@ export default function OAuthClient() {
             label={
               <FieldLabel
                 label={t('common:remark')}
-                help={t('authCenter:forAdministratorsRecordsOnlyThisIsNotSentToExternal')}
+                help={t('oauth:client.forAdministratorsRecordsOnlyThisIsNotSentToExternal')}
               />
             }
           >
@@ -321,15 +325,15 @@ export default function OAuthClient() {
     },
     {
       key: 'login',
-      label: t('system:signInMethods'),
+      label: t('oauth:client.signInMethods'),
       children: (
         <>
           <Form.Item
             name="grantTypes"
             label={
               <FieldLabel
-                label={t('system:allowedMethods')}
-                help={t('authCenter:webAndMobileApplicationsUsuallyUseUserSignInBackground')}
+                label={t('oauth:client.allowedMethods')}
+                help={t('oauth:client.webAndMobileApplicationsUsuallyUseUserSignInBackground')}
               />
             }
             rules={[
@@ -337,7 +341,7 @@ export default function OAuthClient() {
                 required: true,
                 type: 'array',
                 min: 1,
-                message: t('system:selectAtLeastOneSignInOrServiceAccess'),
+                message: t('oauth:client.selectAtLeastOneSignInOrServiceAccess'),
               },
             ]}
           >
@@ -352,11 +356,13 @@ export default function OAuthClient() {
                       {
                         {
                           authorization_code: t(
-                            'system:usersSignInAtTheAuthenticationCenterThenReturn'
+                            'oauth:client.usersSignInAtTheAuthenticationCenterThenReturn'
                           ),
-                          refresh_token: t('system:allowTheApplicationToExtendASessionAfterThe'),
+                          refresh_token: t(
+                            'oauth:client.allowTheApplicationToExtendASessionAfterThe'
+                          ),
                           client_credentials: t(
-                            'system:aBackendServiceCallsOtherServicesAsItselfWithout'
+                            'oauth:client.aBackendServiceCallsOtherServicesAsItselfWithout'
                           ),
                         }[value]
                       }
@@ -372,9 +378,9 @@ export default function OAuthClient() {
           <Form.Item
             label={
               <FieldLabel
-                label={t('system:signInSecurity')}
+                label={t('oauth:client.signInSecurity')}
                 help={t(
-                  'authCenter:signInSecurityProtectionIsEnabledAutomaticallyTheRemainingOptions'
+                  'oauth:client.signInSecurityProtectionIsEnabledAutomaticallyTheRemainingOptions'
                 )}
               />
             }
@@ -388,21 +394,23 @@ export default function OAuthClient() {
                 name="requirePkce"
                 valuePropName="checked"
               >
-                <Checkbox disabled>{t('system:signInProtectionEnabledAutomatically')}</Checkbox>
+                <Checkbox disabled>
+                  {t('oauth:client.signInProtectionEnabledAutomatically')}
+                </Checkbox>
               </Form.Item>
               <Form.Item
                 noStyle
                 name="requireConsent"
                 valuePropName="checked"
               >
-                <Checkbox>{t('system:askUsersToConfirmPermissionsAtSignIn')}</Checkbox>
+                <Checkbox>{t('oauth:client.askUsersToConfirmPermissionsAtSignIn')}</Checkbox>
               </Form.Item>
               <Form.Item
                 noStyle
                 name="trustedClient"
                 valuePropName="checked"
               >
-                <Checkbox>{t('system:markAsATrustedApplication')}</Checkbox>
+                <Checkbox>{t('oauth:client.markAsATrustedApplication')}</Checkbox>
               </Form.Item>
             </Space>
           </Form.Item>
@@ -411,15 +419,15 @@ export default function OAuthClient() {
     },
     {
       key: 'access',
-      label: t('system:permissionsAndServices'),
+      label: t('oauth:client.permissionsAndServices'),
       children: (
         <>
           <Form.Item
             name="scopeCodes"
             label={
               <FieldLabel
-                label={t('system:availablePermissions')}
-                help={t('authCenter:theApplicationCanRequestOnlyThePermissionsListedHereWhen')}
+                label={t('oauth:client.availablePermissions')}
+                help={t('oauth:client.theApplicationCanRequestOnlyThePermissionsListedHereWhen')}
               />
             }
             rules={[
@@ -427,12 +435,12 @@ export default function OAuthClient() {
                 required: true,
                 type: 'array',
                 min: 1,
-                message: t('system:addAtLeastOneAvailablePermission'),
+                message: t('oauth:client.addAtLeastOneAvailablePermission'),
               },
             ]}
           >
             <Select
-              placeholder={t('system:selectPermissionsTheApplicationMayRequest')}
+              placeholder={t('oauth:client.selectPermissionsTheApplicationMayRequest')}
               mode="multiple"
               optionFilterProp="label"
               options={scopeOptions}
@@ -443,8 +451,8 @@ export default function OAuthClient() {
               name="allowedRoleKeys"
               label={
                 <FieldLabel
-                  label={t('system:disclosableRoles')}
-                  help={t('authCenter:onlyTheRolesTheUserAlreadyHasAndThatAppear')}
+                  label={t('oauth:client.disclosableRoles')}
+                  help={t('oauth:client.onlyTheRolesTheUserAlreadyHasAndThatAppear')}
                 />
               }
               rules={[
@@ -453,7 +461,7 @@ export default function OAuthClient() {
                     values.some((value) => !value || value.length > 100 || /\s|\*/.test(value))
                       ? Promise.reject(
                           new Error(
-                            t('system:roleIdentifiersMustNotContainWildcardsOrWhitespaceAnd')
+                            t('oauth:client.roleIdentifiersMustNotContainWildcardsOrWhitespaceAnd')
                           )
                         )
                       : Promise.resolve(),
@@ -461,7 +469,7 @@ export default function OAuthClient() {
               ]}
             >
               <Select
-                placeholder={t('system:enterRoleIdentifiersThatMayBeDisclosedToThis')}
+                placeholder={t('oauth:client.enterRoleIdentifiersThatMayBeDisclosedToThis')}
                 mode="tags"
                 tokenSeparators={[',']}
               />
@@ -471,15 +479,15 @@ export default function OAuthClient() {
             name="preAuthorizedScopeCodes"
             label={
               <FieldLabel
-                label={t('system:skipRepeatedConfirmation')}
+                label={t('oauth:client.skipRepeatedConfirmation')}
                 help={t(
-                  'authCenter:thesePermissionsReduceRepeatedUserConfirmationsAndMustBeIncluded'
+                  'oauth:client.thesePermissionsReduceRepeatedUserConfirmationsAndMustBeIncluded'
                 )}
               />
             }
           >
             <Select
-              placeholder={t('system:chooseFromSelectedPermissions')}
+              placeholder={t('oauth:client.chooseFromSelectedPermissions')}
               mode="multiple"
               optionFilterProp="label"
               options={scopeOptions.filter((item) => scopeCodes.includes(item.value))}
@@ -489,13 +497,13 @@ export default function OAuthClient() {
             name="resourceIds"
             label={
               <FieldLabel
-                label={t('pluginAdmin:accessibleServices')}
-                help={t('authCenter:enterTheIdentifierOfAServiceCreatedOnTheServices')}
+                label={t('oauth:shared.accessibleServices')}
+                help={t('oauth:client.enterTheIdentifierOfAServiceCreatedOnTheServices')}
               />
             }
           >
             <Select
-              placeholder={t('system:selectServicesTheApplicationMayAccess')}
+              placeholder={t('oauth:client.selectServicesTheApplicationMayAccess')}
               mode="multiple"
               optionFilterProp="label"
               options={resourceOptions}
@@ -506,7 +514,7 @@ export default function OAuthClient() {
     },
     {
       key: 'uri',
-      label: t('system:callbackUrls'),
+      label: t('oauth:client.callbackUrls'),
       children: uriFields().map(([name, label, uriType]) => (
         <Form.Item
           key={name}
@@ -516,10 +524,12 @@ export default function OAuthClient() {
               label={label}
               help={
                 {
-                  redirectUris: t('system:afterSignInTheSystemRedirectsUsersOnlyTo'),
-                  postLogoutRedirectUris: t('system:urlsUsersMayReturnToAfterSigningOut'),
-                  backchannelLogoutUris: t('system:enterAUrlIfTheApplicationNeedsBackChannel'),
-                  corsOrigins: t('system:webOriginsAllowedToCallDirectlyFromABrowser'),
+                  redirectUris: t('oauth:client.afterSignInTheSystemRedirectsUsersOnlyTo'),
+                  postLogoutRedirectUris: t('oauth:client.urlsUsersMayReturnToAfterSigningOut'),
+                  backchannelLogoutUris: t(
+                    'oauth:client.enterAUrlIfTheApplicationNeedsBackChannel'
+                  ),
+                  corsOrigins: t('oauth:client.webOriginsAllowedToCallDirectlyFromABrowser'),
                 }[name]
               }
             />
@@ -553,10 +563,10 @@ export default function OAuthClient() {
             }
             addText={
               {
-                redirectUris: t('system:addSignInReturnUrl'),
-                postLogoutRedirectUris: t('system:addSignOutReturnUrl'),
-                backchannelLogoutUris: t('system:addBackChannelNotificationUrl'),
-                corsOrigins: t('system:addWebOrigin'),
+                redirectUris: t('oauth:client.addSignInReturnUrl'),
+                postLogoutRedirectUris: t('oauth:client.addSignOutReturnUrl'),
+                backchannelLogoutUris: t('oauth:client.addBackChannelNotificationUrl'),
+                corsOrigins: t('oauth:client.addWebOrigin'),
               }[name]
             }
           />
@@ -565,25 +575,25 @@ export default function OAuthClient() {
     },
     {
       key: 'duration',
-      label: t('system:validityPeriods'),
+      label: t('oauth:shared.validityPeriods'),
       children: (
         <>
           <Row gutter={18}>
             {[
               [
                 'accessTokenTtlSeconds',
-                t('system:accessCredentials'),
-                t('system:howLongShortLivedCredentialsRemainValidWhenThe'),
+                t('oauth:client.accessCredentials'),
+                t('oauth:client.howLongShortLivedCredentialsRemainValidWhenThe'),
               ],
               [
                 'refreshTokenIdleSeconds',
-                t('system:expireAfterInactivity'),
-                t('system:howLongPersistentSignInCredentialsMayRemainUnused'),
+                t('oauth:client.expireAfterInactivity'),
+                t('oauth:client.howLongPersistentSignInCredentialsMayRemainUnused'),
               ],
               [
                 'refreshTokenAbsoluteSeconds',
-                t('system:maximumLifetime'),
-                t('system:theMaximumTimePersistentSignInCredentialsMayBe'),
+                t('oauth:client.maximumLifetime'),
+                t('oauth:client.theMaximumTimePersistentSignInCredentialsMayBe'),
               ],
             ].map(([name, label, help]) => (
               <Col
@@ -607,7 +617,7 @@ export default function OAuthClient() {
                       <InputNumber
                         min={1}
                         precision={0}
-                        placeholder={t('pluginAdmin:platformDefault')}
+                        placeholder={t('oauth:shared.platformDefault')}
                       />
                     </Form.Item>
                     <span className="input-unit">{t('common:seconds')}</span>
@@ -628,22 +638,22 @@ export default function OAuthClient() {
           <h3>
             {
               {
-                basic: t('system:applicationIdentity'),
-                login: t('system:howTheApplicationSignsInOrCallsServices'),
-                access: t('system:whatTheApplicationMayRequest'),
-                uri: t('system:whereUsersMayGoAfterSignIn'),
-                duration: t('system:howLongSignInCredentialsRemainValid'),
+                basic: t('oauth:client.applicationIdentity'),
+                login: t('oauth:client.howTheApplicationSignsInOrCallsServices'),
+                access: t('oauth:client.whatTheApplicationMayRequest'),
+                uri: t('oauth:client.whereUsersMayGoAfterSignIn'),
+                duration: t('oauth:client.howLongSignInCredentialsRemainValid'),
               }[item.key]
             }
           </h3>
           <p>
             {
               {
-                basic: t('system:theNameIdentifiesTheApplicationInTheConsoleIts'),
-                login: t('system:selectOnlyTheMethodsTheApplicationNeedsToLimit'),
-                access: t('system:chooseEnabledPermissionsAndServicesToAvoidSavingUnknown'),
-                uri: t('system:enterAndValidateEachUrlSeparatelyUseCompleteHttps'),
-                duration: t('system:leaveBlankToUsePlatformDefaultsExtendLifetimesOnly'),
+                basic: t('oauth:client.theNameIdentifiesTheApplicationInTheConsoleIts'),
+                login: t('oauth:client.selectOnlyTheMethodsTheApplicationNeedsToLimit'),
+                access: t('oauth:client.chooseEnabledPermissionsAndServicesToAvoidSavingUnknown'),
+                uri: t('oauth:client.enterAndValidateEachUrlSeparatelyUseCompleteHttps'),
+                duration: t('oauth:client.leaveBlankToUsePlatformDefaultsExtendLifetimesOnly'),
               }[item.key]
             }
           </p>
@@ -667,28 +677,30 @@ export default function OAuthClient() {
     },
     {
       width: 130,
-      title: t('system:applicationType'),
+      title: t('oauth:client.applicationType'),
       dataIndex: 'clientType',
       render: (value) => (
         <OAuthTag
           effect="plain"
           type={value === 'confidential' ? 'primary' : 'info'}
         >
-          {value === 'confidential' ? t('system:backendService') : t('system:webMobile')}
+          {value === 'confidential'
+            ? t('oauth:client.backendService')
+            : t('oauth:client.webMobile')}
         </OAuthTag>
       ),
     },
     {
       width: 240,
-      title: t('system:signInAndAccessMethods'),
+      title: t('oauth:client.signInAndAccessMethods'),
       dataIndex: 'grantTypes',
       render: (values) =>
         (values || []).map((value) => grantLabels[value] || value).join(' · ') ||
-        t('system:notConfigured'),
+        t('oauth:client.notConfigured'),
     },
     {
       width: 200,
-      title: t('pluginAdmin:accessibleServices'),
+      title: t('oauth:shared.accessibleServices'),
       dataIndex: 'resourceIds',
       render: (values) => (
         <TagSummary
@@ -706,12 +718,12 @@ export default function OAuthClient() {
       dataIndex: 'status',
       render: (value) => (
         <OAuthTag type={value === '0' ? 'success' : 'info'}>
-          {value === '0' ? t('system:inUse') : t('common:disabled')}
+          {value === '0' ? t('oauth:shared.inUse') : t('common:disabled')}
         </OAuthTag>
       ),
     },
     {
-      title: t('system:recentUpdates'),
+      title: t('oauth:client.recentUpdates'),
       dataIndex: 'updateTime',
       width: 170,
       render: (value) => parseTime(value),
@@ -739,19 +751,19 @@ export default function OAuthClient() {
                 row.clientType === 'confidential' &&
                   checkPermi(['system:oauthClient:rotateSecret']) && {
                     key: 'rotate',
-                    label: t('system:rotateApplicationSecret'),
+                    label: t('oauth:client.rotateApplicationSecret'),
                     onClick: () => rotate(row),
                   },
                 row.status !== '0' &&
                   checkPermi(['system:oauthClient:edit']) && {
                     key: 'enable',
-                    label: t('system:reEnable'),
+                    label: t('oauth:shared.reEnable'),
                     onClick: () => change(row, true),
                   },
                 row.status === '0' &&
                   checkPermi(['system:oauthClient:remove']) && {
                     key: 'disable',
-                    label: t('system:disableApplication'),
+                    label: t('oauth:client.disableApplication'),
                     onClick: () => change(row, false),
                   },
               ].filter(Boolean),
@@ -767,9 +779,9 @@ export default function OAuthClient() {
     <PageFrame
       className="oauth-client-page"
       title={t('common:apply')}
-      description={t('system:manageWhichWebsitesMobileApplicationsAndBackendServicesMay')}
-      section={t('authCenter:integrationManagement')}
-      filterHint={t('system:findApplicationsByNameTypeOrStatus')}
+      description={t('oauth:client.manageWhichWebsitesMobileApplicationsAndBackendServicesMay')}
+      section={t('oauth:shared.integrationManagement')}
+      filterHint={t('oauth:client.findApplicationsByNameTypeOrStatus')}
       actions={
         <HasPermi value={['system:oauthClient:add']}>
           <Button
@@ -777,7 +789,7 @@ export default function OAuthClient() {
             type="primary"
             onClick={add}
           >
-            {t('system:registerApplication')}
+            {t('oauth:client.registerApplication')}
           </Button>
         </HasPermi>
       }
@@ -791,25 +803,25 @@ export default function OAuthClient() {
           >
             <Form.Item
               name="clientName"
-              label={t('system:applicationName')}
+              label={t('oauth:client.applicationName')}
             >
               <Input
                 style={{ width: 200 }}
-                placeholder={t('system:enterApplicationName')}
+                placeholder={t('oauth:client.enterApplicationName')}
                 allowClear
               />
             </Form.Item>
             <Form.Item
               name="clientType"
-              label={t('system:applicationType')}
+              label={t('oauth:client.applicationType')}
             >
               <Select
                 style={{ width: 200 }}
-                placeholder={t('system:client.allTypes')}
+                placeholder={t('oauth:client.allTypes')}
                 allowClear
                 options={[
-                  { value: 'confidential', label: t('system:backendService') },
-                  { value: 'public', label: t('system:webOrMobileApplication') },
+                  { value: 'confidential', label: t('oauth:client.backendService') },
+                  { value: 'public', label: t('oauth:client.webOrMobileApplication') },
                 ]}
               />
             </Form.Item>
@@ -822,7 +834,7 @@ export default function OAuthClient() {
                 placeholder={t('common:allStatuses')}
                 allowClear
                 options={[
-                  { value: '0', label: t('system:inUse') },
+                  { value: '0', label: t('oauth:shared.inUse') },
                   { value: '1', label: t('common:disabled') },
                 ]}
               />
@@ -853,7 +865,7 @@ export default function OAuthClient() {
       toolbar={
         <>
           <span className="result-count">
-            {t('system:registered')} <strong>{total}</strong> {t('system:applications')}
+            {t('oauth:shared.registered')} <strong>{total}</strong> {t('oauth:client.applications')}
           </span>
           <RightToolbar
             showSearch={showSearch}
@@ -866,13 +878,13 @@ export default function OAuthClient() {
       <Table
         locale={{
           emptyText: (
-            <Empty description={t('system:noMatchingApplications')}>
+            <Empty description={t('oauth:client.noMatchingApplications')}>
               <HasPermi value={['system:oauthClient:add']}>
                 <Button
                   type="primary"
                   onClick={add}
                 >
-                  {t('system:registerYourFirstApplication')}
+                  {t('oauth:client.registerYourFirstApplication')}
                 </Button>
               </HasPermi>
             </Empty>
@@ -893,18 +905,18 @@ export default function OAuthClient() {
       />
       <Modal
         className="oauth-dialog oauth-client-editor"
-        title={clientId ? t('system:editApplication') : t('system:registerApplication')}
+        title={clientId ? t('oauth:client.editApplication') : t('oauth:client.registerApplication')}
         width="min(960px, calc(100vw - 48px))"
         open={open}
         onCancel={() => setOpen(false)}
         onOk={save}
-        okText={t('system:saveApplication')}
+        okText={t('oauth:client.saveApplication')}
         mask={{ closable: false }}
         confirmLoading={saving}
         forceRender
       >
         <div className="oauth-editor-map">
-          <span>{t('system:accessRelationshipPreview')}</span>
+          <span>{t('oauth:client.accessRelationshipPreview')}</span>
           <AccessMap
             application={clientName}
             type={type}

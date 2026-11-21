@@ -23,36 +23,36 @@ const actions = {
     return t('common:download')
   },
   get acl_update() {
-    return t('system:permissionChange')
+    return t('file:shared.permissionChange')
   },
   get transfer() {
-    return t('system:ownershipTransfer')
+    return t('file:shared.ownershipTransfer')
   },
   get delete() {
-    return t('system:moveToRecycleBin')
+    return t('file:shared.moveToRecycleBin')
   },
   get restore() {
     return t('common:restore')
   },
   get purge() {
-    return t('system:permanentlyDelete')
+    return t('file:shared.permanentlyDelete')
   },
   get reconcile() {
-    return t('system:storageReconciliation')
+    return t('file:shared.storageReconciliation')
   },
   get retention_extend() {
-    return t('system:retentionExtension')
+    return t('file:shared.retentionExtension')
   },
   get retention_dispose() {
-    return t('system:expiryDisposal')
+    return t('file:shared.expiryDisposal')
   },
 }
 const results = {
   get allowed() {
-    return t('system:allowed')
+    return t('file:shared.allowed')
   },
   get denied() {
-    return t('system:denied')
+    return t('file:shared.denied')
   },
   get completed() {
     return t('common:completed')
@@ -110,21 +110,21 @@ export default function FileAuditDrawer({ file, onClose }) {
     {
       width: 120,
       align: 'center',
-      title: t('system:actingUser'),
+      title: t('file:audit.actingUser'),
       dataIndex: 'actorName',
       ellipsis: true,
     },
     {
       width: 140,
       align: 'center',
-      title: t('system:clientAddress'),
+      title: t('file:audit.clientAddress'),
       dataIndex: 'ipAddress',
       ellipsis: true,
     },
     {
       width: 110,
       align: 'right',
-      title: t('system:bytesTransferred'),
+      title: t('file:audit.bytesTransferred'),
       dataIndex: 'bytesSent',
       render: (value) => (value ? formatFileSize(value) : '-'),
     },
@@ -146,7 +146,7 @@ export default function FileAuditDrawer({ file, onClose }) {
           symbol="View"
           onClick={() => setDetail(row)}
         >
-          {t('system:viewAuditDetails')}
+          {t('file:audit.viewAuditDetails')}
         </TableAction>
       ),
     },
@@ -204,7 +204,7 @@ export default function FileAuditDrawer({ file, onClose }) {
           </Form.Item>
           <Form.Item
             name="result"
-            label={t('system:operationResult')}
+            label={t('file:audit.operationResult')}
           >
             <Select
               placeholder={t('monitor:allResults')}
@@ -218,11 +218,11 @@ export default function FileAuditDrawer({ file, onClose }) {
           </Form.Item>
           <Form.Item
             name="actorName"
-            label={t('system:actingUser')}
+            label={t('file:audit.actingUser')}
           >
             <Input
               style={{ width: 200 }}
-              placeholder={t('system:enterAUsername')}
+              placeholder={t('file:audit.enterAUsername')}
               allowClear
             />
           </Form.Item>
@@ -293,25 +293,29 @@ export default function FileAuditDrawer({ file, onClose }) {
                   },
                   {
                     key: 'result',
-                    label: t('system:operationResult'),
+                    label: t('file:audit.operationResult'),
                     children: results[detail.result] || detail.result,
                   },
                   {
                     key: 'actorName',
-                    label: t('system:actingUser'),
+                    label: t('file:audit.actingUser'),
                     children: detail.actorName || '-',
                   },
                   {
                     key: 'ipAddress',
-                    label: t('system:clientAddress'),
+                    label: t('file:audit.clientAddress'),
                     children: detail.ipAddress || '-',
                   },
                   {
                     key: 'requestId',
-                    label: t('system:requestId'),
+                    label: t('file:audit.requestId'),
                     children: detail.requestId || '-',
                   },
-                  { key: 'traceId', label: t('system:traceId'), children: detail.traceId || '-' },
+                  {
+                    key: 'traceId',
+                    label: t('file:audit.traceId'),
+                    children: detail.traceId || '-',
+                  },
                   {
                     key: 'accessTime',
                     label: t('monitor:log.operationTime'),
@@ -320,7 +324,7 @@ export default function FileAuditDrawer({ file, onClose }) {
                   },
                   {
                     key: 'userAgent',
-                    label: t('system:userAgent'),
+                    label: t('file:audit.userAgent'),
                     span: 2,
                     children: detail.userAgent || '-',
                   },
@@ -342,13 +346,13 @@ export default function FileAuditDrawer({ file, onClose }) {
             rowKey="label"
             dataSource={parseOperationDetail(detail.operationDetail)}
             columns={[
-              { title: t('system:detailItem'), dataIndex: 'label', width: 180 },
+              { title: t('file:audit.detailItem'), dataIndex: 'label', width: 180 },
               { title: t('common:content'), dataIndex: 'value', ellipsis: true },
             ]}
           />
         ) : (
           <Empty
-            description={t('system:noOperationDetails')}
+            description={t('file:audit.noOperationDetails')}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         )}

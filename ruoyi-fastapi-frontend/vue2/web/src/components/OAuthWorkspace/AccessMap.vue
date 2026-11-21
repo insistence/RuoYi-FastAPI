@@ -2,14 +2,14 @@
   <div class="access-map">
     <div class="access-node">
       <span class="node-label">{{ $t('common:apply') }}</span>
-      <strong>{{ application || $t('authCenter:expression.unnamed') }}</strong>
+      <strong>{{ application || $t('oauth:workspace.unnamed') }}</strong>
       <small>{{ applicationType }}</small>
     </div>
     <div
       class="access-link"
       aria-hidden="true"
     >
-      <span>{{ $t('authCenter:interface.requests') }}</span>
+      <span>{{ $t('oauth:workspace.requests') }}</span>
       <i
         class="el-icon el-icon-right"
         aria-hidden="true"
@@ -24,7 +24,7 @@
       class="access-link"
       aria-hidden="true"
     >
-      <span>{{ $t('authCenter:interface.access') }}</span>
+      <span>{{ $t('oauth:workspace.access') }}</span>
       <i
         class="el-icon el-icon-right"
         aria-hidden="true"
@@ -51,24 +51,24 @@ const props = defineProps({
 
 const applicationType = computed(() =>
   props.type === 'public'
-    ? t('authCenter:interface.webOrMobileApplication')
-    : t('authCenter:interface.backendServiceApplication')
+    ? t('oauth:workspace.webOrMobileApplication')
+    : t('oauth:workspace.backendServiceApplication')
 )
 const permissionSummary = computed(
-  () => props.permissions.slice(0, 2).join('、') || t('authCenter:interface.notSelected')
+  () => props.permissions.slice(0, 2).join('、') || t('oauth:workspace.notSelected')
 )
 const permissionHint = computed(() =>
   props.permissions.length > 2
-    ? t('system:interface.valueMorePermissions', { value0: props.permissions.length - 2 })
-    : t('authCenter:interface.informationTheApplicationCanRequest')
+    ? t('oauth:workspace.valueMorePermissions', { value0: props.permissions.length - 2 })
+    : t('oauth:workspace.informationTheApplicationCanRequest')
 )
 const resourceSummary = computed(
-  () => props.resources.slice(0, 2).join('、') || t('authCenter:interface.identityInformationOnly')
+  () => props.resources.slice(0, 2).join('、') || t('oauth:shared.identityInformationOnly')
 )
 const resourceHint = computed(() =>
   props.resources.length > 2
-    ? t('system:interface.valueMoreServices', { value0: props.resources.length - 2 })
-    : t('authCenter:interface.resourcesTheTokenCanAccess')
+    ? t('oauth:workspace.valueMoreServices', { value0: props.resources.length - 2 })
+    : t('oauth:workspace.resourcesTheTokenCanAccess')
 )
 </script>
 

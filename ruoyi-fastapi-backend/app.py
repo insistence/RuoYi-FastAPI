@@ -4,7 +4,7 @@ from config.env import AppConfig
 from scripts.compile_i18n import compile_catalogs
 from server import create_app
 
-compile_catalogs()
+compile_catalogs(isolate_plugin_errors=True)
 
 if __name__ != '__main__':
     app = create_app()

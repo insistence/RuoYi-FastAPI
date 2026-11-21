@@ -9,7 +9,7 @@ export function SourceLocaleLabel({ children }) {
   const language = i18n.registry.get(DATA_SOURCE_LOCALE)?.nativeName || DATA_SOURCE_LOCALE
   return (
     <>
-      {children} · {t('common:i18n.sourceLanguage', { language })}
+      {children} · {t('components:translations.sourceLanguage', { language })}
     </>
   )
 }
@@ -55,10 +55,10 @@ export default function TranslationFields({
               onClick={() => setExpanded(!expanded)}
             >
               {expanded
-                ? t('common:i18n.hide')
+                ? t('components:translations.hide')
                 : hasTranslation
-                  ? t('common:i18n.show')
-                  : t('common:i18n.add')}
+                  ? t('components:translations.show')
+                  : t('components:translations.add')}
             </Button>
             <div
               hidden={!expanded}
@@ -79,7 +79,9 @@ export default function TranslationFields({
                   />
                 </Form.Item>
               ))}
-              <Typography.Text type="secondary">{t('common:i18n.fallback')}</Typography.Text>
+              <Typography.Text type="secondary">
+                {t('components:translations.fallback')}
+              </Typography.Text>
             </div>
           </div>
         )

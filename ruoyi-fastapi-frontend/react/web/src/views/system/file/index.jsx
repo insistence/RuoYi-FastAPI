@@ -95,11 +95,9 @@ export default function File() {
     const rows = row ? [row] : selected
     if (!rows.length) return
     if (action === 'delete' && rows.some((item) => item.referenceCount))
-      return message.warning(t('system:thisFileIsStillReferencedRemoveItsReferencesBefore'))
+      return message.warning(t('file:list.thisFileIsStillReferencedRemoveItsReferencesBefore'))
     const label =
-      rows.length === 1
-        ? rows[0].originalName
-        : t('system:file.valueFiles', { length: rows.length })
+      rows.length === 1 ? rows[0].originalName : t('file:list.valueFiles', { length: rows.length })
     try {
       await confirm(
         {
@@ -140,7 +138,7 @@ export default function File() {
               disabled={!privateFiles.length}
               onClick={batchAcl}
             >
-              {t('system:permissions')}
+              {t('file:shared.permissions')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:file:transfer']}>
@@ -150,7 +148,7 @@ export default function File() {
               disabled={!allActive}
               onClick={() => setTransfer(selected)}
             >
-              {t('system:transfer')}
+              {t('file:shared.transfer')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:file:restore']}>
@@ -179,7 +177,9 @@ export default function File() {
           <HasPermi value={['system:file:remove']}>
             <Tooltip
               title={
-                references ? t('system:selectedFilesAreReferencedRemoveTheirReferencesFirst') : ''
+                references
+                  ? t('file:list.selectedFilesAreReferencedRemoveTheirReferencesFirst')
+                  : ''
               }
             >
               <span>
@@ -209,7 +209,7 @@ export default function File() {
               icon={<ApiOutlined />}
               onClick={() => setReconcileOpen(true)}
             >
-              {t('system:reconciliation')}
+              {t('file:list.reconciliation')}
             </Button>
           </HasPermi>
           <HasPermi value={['system:file:list']}>
@@ -218,7 +218,7 @@ export default function File() {
               icon={<BellOutlined />}
               onClick={() => setReminderOpen(true)}
             >
-              {t('system:reminders')}
+              {t('file:list.reminders')}
             </Button>
           </HasPermi>
         </Space>

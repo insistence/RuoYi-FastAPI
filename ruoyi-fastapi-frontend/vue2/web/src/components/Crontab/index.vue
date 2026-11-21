@@ -38,7 +38,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        :label="$t('tool:cron.day')"
+        :label="$t('components:cron.day')"
         v-if="shouldHide('day')"
       >
         <CrontabDay
@@ -50,7 +50,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        :label="$t('tool:cron.month')"
+        :label="$t('components:cron.month')"
         v-if="shouldHide('month')"
       >
         <CrontabMonth
@@ -62,7 +62,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        :label="$t('tool:cron.week')"
+        :label="$t('components:cron.week')"
         v-if="shouldHide('week')"
       >
         <CrontabWeek
@@ -74,7 +74,7 @@
       </el-tab-pane>
 
       <el-tab-pane
-        :label="$t('tool:cron.year')"
+        :label="$t('components:cron.year')"
         v-if="shouldHide('year')"
       >
         <CrontabYear
@@ -88,7 +88,7 @@
 
     <div class="popup-main">
       <div class="popup-result">
-        <p class="title">{{ $t('tool:cron.timeExpression') }}</p>
+        <p class="title">{{ $t('components:cron.timeExpression') }}</p>
         <table>
           <thead>
             <th
@@ -98,7 +98,7 @@
             >
               {{ item }}
             </th>
-            <th>{{ $t('tool:cron.cronExpression') }}</th>
+            <th>{{ $t('components:cron.cronExpression') }}</th>
           </thead>
           <tbody>
             <td>
@@ -381,10 +381,10 @@ export default {
         t('common:seconds'),
         t('common:minutes'),
         t('common:hours'),
-        t('tool:cron.days'),
-        t('tool:cron.months'),
-        t('tool:cron.weeks'),
-        t('tool:cron.years'),
+        t('components:cron.days'),
+        t('components:cron.months'),
+        t('components:cron.weeks'),
+        t('components:cron.years'),
       ]
     },
 

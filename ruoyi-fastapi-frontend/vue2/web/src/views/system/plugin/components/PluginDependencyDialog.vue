@@ -201,7 +201,7 @@
           }}</el-descriptions-item>
           <el-descriptions-item :label="$t('pluginAdmin:messages.executionAllowed')">
             <el-tag :type="policyAllowed ? 'success' : 'danger'">{{
-              policyAllowed ? $t('authCenter:messages.allow') : $t('pluginAdmin:expression.blocked')
+              policyAllowed ? $t('common:allow') : $t('pluginAdmin:expression.blocked')
             }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item :label="$t('pluginAdmin:messages.blockingReason')">{{
@@ -239,9 +239,7 @@
           >
             <template slot-scope="scope">
               <el-tag :type="scope.row.allowed ? 'success' : 'danger'">{{
-                scope.row.allowed
-                  ? $t('authCenter:messages.allow')
-                  : $t('pluginAdmin:expression.blocked')
+                scope.row.allowed ? $t('common:allow') : $t('pluginAdmin:expression.blocked')
               }}</el-tag>
             </template>
           </el-table-column>

@@ -1,16 +1,14 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('authCenter:help.accessControl')"
-      :title="$t('authCenter:messages.userGrants')"
+      :section="$t('oauth:shared.accessControl')"
+      :title="$t('oauth:grant.userGrants')"
       :description="
-        $t(
-          'authCenter:messages.manageUserAccessGrantsToApplicationsRevokeCurrentAccessOrPreventFuture'
-        )
+        $t('oauth:grant.manageUserAccessGrantsToApplicationsRevokeCurrentAccessOrPreventFuture')
       "
       :filter-hint="
         $t(
-          'authCenter:messages.grantStatusAndApplicationAccessPoliciesAreManagedSeparatelyRemovingARestriction'
+          'oauth:grant.grantStatusAndApplicationAccessPoliciesAreManagedSeparatelyRemovingARestriction'
         )
       "
     >
@@ -20,7 +18,7 @@
           plain
           icon="el-icon-lock"
           @click="policyOpen = true"
-          >{{ $t('authCenter:messages.accessPolicies') }}</el-button
+          >{{ $t('oauth:grant.accessPolicies') }}</el-button
         >
         <el-button
           type="danger"
@@ -30,7 +28,7 @@
           v-hasPermi="['system:oauthGrant:revoke']"
           @click="openRevoke()"
         >
-          {{ $t('authCenter:messages.revokeSelected')
+          {{ $t('oauth:grant.revokeSelected')
           }}{{ selected.length ? `（${selected.length}）` : '' }}
         </el-button>
       </template>
@@ -60,7 +58,7 @@
             <el-input
               v-model="queryParams.clientId"
               clearable
-              :placeholder="$t('authCenter:appId')"
+              :placeholder="$t('oauth:shared.appId')"
               style="width: 200px"
             />
           </el-form-item>
@@ -75,11 +73,11 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('authCenter:messages.stillValid')"
+                :label="$t('oauth:grant.stillValid')"
                 value="active"
               />
               <el-option
-                :label="$t('authCenter:messages.revoked')"
+                :label="$t('oauth:grant.revoked')"
                 value="revoked"
               />
               <el-option
@@ -89,21 +87,21 @@
             </el-select>
           </el-form-item>
           <el-form-item
-            :label="$t('authCenter:messages.applicationAccess')"
+            :label="$t('oauth:grant.applicationAccess')"
             prop="accessStatus"
           >
             <el-select
               v-model="queryParams.accessStatus"
               clearable
-              :placeholder="$t('authCenter:messages.allPolicies')"
+              :placeholder="$t('oauth:grant.allPolicies')"
               style="width: 200px"
             >
               <el-option
-                :label="$t('authCenter:messages.consentAllowed')"
+                :label="$t('oauth:grant.consentAllowed')"
                 value="allowed"
               />
               <el-option
-                :label="$t('authCenter:messages.blockAccess')"
+                :label="$t('oauth:grant.blockAccess')"
                 value="blocked"
               />
             </el-select>
@@ -126,7 +124,7 @@
       <template #toolbar>
         <span class="result-count"
           >{{ $t('layout:interface.found') }} <strong>{{ total }}</strong>
-          {{ $t('authCenter:messages.grants') }}</span
+          {{ $t('oauth:grant.grants') }}</span
         >
         <right-toolbar
           :showSearch.sync="showSearch"
@@ -159,7 +157,7 @@
               ></span>
               <span
                 ><strong>{{
-                  scope.row.userName || $t('auth:user.fallbackName', { id: scope.row.userId })
+                  scope.row.userName || $t('oauth:shared.fallbackName', { id: scope.row.userId })
                 }}</strong
                 ><small>{{ scope.row.userId || short(scope.row.subjectId) }}</small></span
               >
@@ -167,7 +165,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.grantedToApplication')"
+          :label="$t('oauth:grant.grantedToApplication')"
           min-width="210"
         >
           <template #default="scope"
@@ -178,7 +176,7 @@
           >
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.allowedPermissions')"
+          :label="$t('oauth:grant.allowedPermissions')"
           min-width="260"
         >
           <template #default="scope">
@@ -199,21 +197,21 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('pluginAdmin:accessibleServices')"
+          :label="$t('oauth:shared.accessibleServices')"
           min-width="170"
           show-overflow-tooltip
         >
           <template #default="scope">{{
             (scope.row.grantedResources || []).join('、') ||
-            $t('authCenter:interface.identityInformationOnly')
+            $t('oauth:shared.identityInformationOnly')
           }}</template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.lastUsed')"
+          :label="$t('oauth:grant.lastUsed')"
           width="170"
         >
           <template #default="scope">{{
-            parseTime(scope.row.lastUsedAt) || $t('authCenter:expression.notUsedYet')
+            parseTime(scope.row.lastUsedAt) || $t('oauth:grant.notUsedYet')
           }}</template>
         </el-table-column>
         <el-table-column
@@ -228,7 +226,7 @@
           >
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.applicationAccess')"
+          :label="$t('oauth:grant.applicationAccess')"
           width="110"
           align="center"
         >
@@ -239,8 +237,8 @@
             >
               {{
                 scope.row.accessStatus === 'blocked'
-                  ? $t('authCenter:messages.blockAccess')
-                  : $t('authCenter:messages.consentAllowed')
+                  ? $t('oauth:grant.blockAccess')
+                  : $t('oauth:grant.consentAllowed')
               }}
             </el-tag>
           </template>
@@ -266,7 +264,7 @@
                 icon="el-icon-circle-close"
                 v-hasPermi="['system:oauthGrant:revoke']"
                 @click="openRevoke(scope.row)"
-                >{{ $t('authCenter:messages.revoke') }}</el-button
+                >{{ $t('oauth:grant.revoke') }}</el-button
               >
               <el-button
                 type="text"
@@ -276,15 +274,15 @@
                 @click="openAccess(scope.row)"
                 >{{
                   scope.row.accessStatus === 'blocked'
-                    ? $t('authCenter:expression.removeRestriction')
-                    : $t('authCenter:messages.blockAccess')
+                    ? $t('oauth:grant.removeRestriction')
+                    : $t('oauth:grant.blockAccess')
                 }}</el-button
               >
             </div>
           </template>
         </el-table-column>
         <template #empty
-          ><el-empty :description="$t('authCenter:messages.noMatchingUserGrants')"
+          ><el-empty :description="$t('oauth:grant.noMatchingUserGrants')"
         /></template>
       </el-table>
       <pagination
@@ -304,7 +302,7 @@
     <el-dialog
       custom-class="oauth-overlay"
       :visible.sync="revokeOpen"
-      :title="$t('authCenter:messages.revokeUserGrants')"
+      :title="$t('oauth:grant.revokeUserGrants')"
       width="min(540px, calc(100vw - 32px))"
       append-to-body
       :close-on-click-modal="false"
@@ -315,11 +313,11 @@
           aria-hidden="true"
         ></i>
         <div>
-          <strong>{{ $t('auth:grant.revokeCount', { count: revokeTargetCount }) }}</strong>
+          <strong>{{ $t('oauth:grant.revokeCount', { count: revokeTargetCount }) }}</strong>
           <p>
             {{
               $t(
-                'authCenter:messages.thisIncludesOneTimeRememberedAndOfflineAccessGrantsResourcesUsingOnline'
+                'oauth:grant.thisIncludesOneTimeRememberedAndOfflineAccessGrantsResourcesUsingOnline'
               )
             }}
           </p>
@@ -328,7 +326,7 @@
       <label
         class="reason-label"
         for="grant-revoke-reason"
-        >{{ $t('authCenter:messages.revocationReason') }}</label
+        >{{ $t('oauth:grant.revocationReason') }}</label
       >
       <el-input
         id="grant-revoke-reason"
@@ -337,7 +335,7 @@
         :rows="3"
         maxlength="200"
         show-word-limit
-        :placeholder="$t('authCenter:messages.explainTheRevocationForTheAuditTrail')"
+        :placeholder="$t('oauth:grant.explainTheRevocationForTheAuditTrail')"
       />
       <template #footer>
         <el-button @click="revokeOpen = false">{{ $t('common:cancel') }}</el-button>
@@ -346,7 +344,7 @@
           :disabled="!reason.trim()"
           :loading="revoking"
           @click="revoke"
-          >{{ $t('authCenter:messages.confirmRevocation') }}</el-button
+          >{{ $t('oauth:grant.confirmRevocation') }}</el-button
         >
       </template>
     </el-dialog>
@@ -356,8 +354,8 @@
       :visible.sync="accessOpen"
       :title="
         accessBlocked
-          ? $t('authCenter:expression.blockUserAccessToApplication')
-          : $t('authCenter:expression.removeApplicationAccessRestriction')
+          ? $t('oauth:grant.blockUserAccessToApplication')
+          : $t('oauth:grant.removeApplicationAccessRestriction')
       "
       width="min(540px, calc(100vw - 32px))"
       append-to-body
@@ -371,23 +369,15 @@
         <div>
           <strong
             >{{
-              accessTarget.userName || $t('auth:user.fallbackName', { id: accessTarget.userId })
+              accessTarget.userName || $t('oauth:shared.fallbackName', { id: accessTarget.userId })
             }}
             · {{ accessTarget.clientName || accessTarget.clientId }}</strong
           >
           <p v-if="accessBlocked">
-            {{
-              $t(
-                'authCenter:messages.thisRevokesAllExistingGrantsForThisUserAndApplicationAndPrevents'
-              )
-            }}
+            {{ $t('oauth:grant.blockAccessDescription') }}
           </p>
           <p v-else>
-            {{
-              $t(
-                'authCenter:messages.theUserMayGrantConsentAgainAfterTheRestrictionIsRemovedRevoked'
-              )
-            }}
+            {{ $t('oauth:grant.theUserMayGrantConsentAgainAfterTheRestrictionIsRemovedRevoked') }}
           </p>
         </div>
       </div>
@@ -403,7 +393,7 @@
         :rows="3"
         maxlength="200"
         show-word-limit
-        :placeholder="$t('authCenter:messages.explainTheOperationForTheAuditTrail')"
+        :placeholder="$t('oauth:grant.explainTheOperationForTheAuditTrail')"
       />
       <template #footer>
         <el-button @click="accessOpen = false">{{ $t('common:cancel') }}</el-button>
@@ -413,9 +403,7 @@
           :loading="savingAccess"
           @click="saveAccess"
           >{{
-            accessBlocked
-              ? $t('authCenter:expression.confirmRestriction')
-              : $t('authCenter:expression.confirmRemoval')
+            accessBlocked ? $t('oauth:grant.confirmRestriction') : $t('oauth:grant.confirmRemoval')
           }}</el-button
         >
       </template>
@@ -424,7 +412,7 @@
     <el-drawer
       custom-class="oauth-overlay"
       :visible.sync="detailOpen"
-      :title="$t('authCenter:messages.userGrantDetails')"
+      :title="$t('oauth:grant.userGrantDetails')"
       size="min(640px, 92vw)"
     >
       <div class="detail-hero">
@@ -436,14 +424,12 @@
         ></span>
         <div>
           <strong>{{ detail.userName || detail.userId || $t('system:user.user') }}</strong>
-          <p>
-            {{ $t('authCenter:messages.grantedTo') }} {{ detail.clientName || detail.clientId }}
-          </p>
+          <p>{{ $t('oauth:grant.grantedTo') }} {{ detail.clientName || detail.clientId }}</p>
         </div>
         <el-tag :type="statusType(detail.status)">{{ statusText(detail.status) }}</el-tag>
       </div>
       <section class="detail-section">
-        <h4>{{ $t('authCenter:messages.allowedPermissions') }}</h4>
+        <h4>{{ $t('oauth:grant.allowedPermissions') }}</h4>
         <div class="tag-summary">
           <el-tag
             v-for="item in detail.grantedScopes || []"
@@ -454,11 +440,11 @@
         </div>
       </section>
       <section class="detail-section">
-        <h4>{{ $t('pluginAdmin:accessibleServices') }}</h4>
+        <h4>{{ $t('oauth:shared.accessibleServices') }}</h4>
         <p>
           {{
             (detail.grantedResources || []).join('、') ||
-            $t('authCenter:expression.usedOnlyToObtainSignInIdentityInformation')
+            $t('oauth:grant.usedOnlyToObtainSignInIdentityInformation')
           }}
         </p>
       </section>
@@ -467,39 +453,39 @@
         border
         class="detail-descriptions"
       >
-        <el-descriptions-item :label="$t('authCenter:messages.grantedAt')">{{
+        <el-descriptions-item :label="$t('oauth:grant.grantedAt')">{{
           parseTime(detail.consentedAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('authCenter:messages.lastUsed')">{{
-          parseTime(detail.lastUsedAt) || $t('authCenter:expression.notUsedYet')
+        <el-descriptions-item :label="$t('oauth:grant.lastUsed')">{{
+          parseTime(detail.lastUsedAt) || $t('oauth:grant.notUsedYet')
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('authCenter:messages.skipFutureConfirmation')">{{
+        <el-descriptions-item :label="$t('oauth:grant.skipFutureConfirmation')">{{
           (detail.rememberedScopes || []).join('、') ||
-          $t('authCenter:expression.notRememberedFutureConfirmationFollowsThePolicy')
+          $t('oauth:grant.notRememberedFutureConfirmationFollowsThePolicy')
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('authCenter:messages.applicationAccess')">{{
+        <el-descriptions-item :label="$t('oauth:grant.applicationAccess')">{{
           detail.accessStatus === 'blocked'
-            ? $t('authCenter:expression.accessBlockedAnAdministratorMustRemoveTheRestriction')
-            : $t('authCenter:expression.newConsentAllowed')
+            ? $t('oauth:grant.accessBlockedAnAdministratorMustRemoveTheRestriction')
+            : $t('oauth:grant.newConsentAllowed')
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('authCenter:messages.accessPolicyReason')">{{
+        <el-descriptions-item :label="$t('oauth:grant.accessPolicyReason')">{{
           detail.accessReason || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('authCenter:messages.revocationReason')">{{
+        <el-descriptions-item :label="$t('oauth:grant.revocationReason')">{{
           detail.revokeReason || '—'
         }}</el-descriptions-item>
       </el-descriptions>
       <el-collapse class="technical-details">
         <el-collapse-item
-          :title="$t('authCenter:messages.showTechnicalIdentifiers')"
+          :title="$t('oauth:shared.showTechnicalIdentifiers')"
           name="technical"
         >
           <dl>
             <dt>{{ $t('monitor:messages.authorizationID') }}</dt>
             <dd>{{ detail.grantId }}</dd>
-            <dt>{{ $t('authCenter:userPrincipal') }}</dt>
+            <dt>{{ $t('oauth:shared.userPrincipal') }}</dt>
             <dd>{{ detail.subjectId }}</dd>
-            <dt>{{ $t('authCenter:messages.policyVersion') }}</dt>
+            <dt>{{ $t('oauth:grant.policyVersion') }}</dt>
             <dd>{{ detail.clientPolicyVersion || '—' }}</dd>
           </dl>
         </el-collapse-item>
@@ -565,10 +551,10 @@ function short(value) {
 function statusText(value) {
   return (
     {
-      active: t('authCenter:messages.stillValid'),
-      revoked: t('authCenter:messages.revoked'),
+      active: t('oauth:grant.stillValid'),
+      revoked: t('oauth:grant.revoked'),
       expired: t('common:expired'),
-    }[value] || t('authCenter:messages.unknownStatus')
+    }[value] || t('oauth:shared.unknownStatus')
   )
 }
 
@@ -618,7 +604,7 @@ async function revoke() {
     await revokeOAuthGrants(revokeIds.value.join(','), {
       reason: reason.value.trim(),
     })
-    proxy.$modal.msgSuccess(t('authCenter:messages.grantRevoked'))
+    proxy.$modal.msgSuccess(t('oauth:grant.grantRevoked'))
     revokeOpen.value = false
     await getList()
   } finally {
@@ -644,8 +630,8 @@ async function saveAccess() {
     })
     proxy.$modal.msgSuccess(
       accessBlocked.value
-        ? t('authCenter:messages.accessToThisApplicationHasBeenBlocked')
-        : t('authCenter:messages.restrictionRemovedGrantConsentAgain')
+        ? t('oauth:grant.accessToThisApplicationHasBeenBlocked')
+        : t('oauth:grant.restrictionRemovedGrantConsentAgain')
     )
     accessOpen.value = false
     await getList()

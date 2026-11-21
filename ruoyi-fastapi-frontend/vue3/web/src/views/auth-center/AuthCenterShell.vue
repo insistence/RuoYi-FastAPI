@@ -3,7 +3,7 @@
     <section
       class="auth-shell"
       :class="{ 'is-compact': !showProgress }"
-      :aria-label="$t('authCenter:authenticationCenter')"
+      :aria-label="$t('authCenter:shell.authenticationCenter')"
     >
       <aside class="trust-panel">
         <div>
@@ -13,16 +13,20 @@
             ></span>
             <div>
               <strong>{{ productTitle }}</strong
-              ><small>{{ $t('authCenter:authenticationCenter') }}</small>
+              ><small>{{ $t('authCenter:shell.authenticationCenter') }}</small>
             </div>
             <LanguageSelect />
           </div>
 
           <div class="trust-copy">
-            <p class="trust-kicker">{{ $t('authCenter:secureConnection') }}</p>
-            <h1>{{ $t('authCenter:verifyYourIdentityAndReturnSecurelyToTheApp') }}</h1>
+            <p class="trust-kicker">{{ $t('authCenter:shell.secureConnection') }}</p>
+            <h1>{{ $t('authCenter:shell.verifyYourIdentityAndReturnSecurelyToTheApp') }}</h1>
             <p>
-              {{ $t('authCenter:authenticationTakesPlaceHereYourPasswordVerificationCodeAndSign') }}
+              {{
+                $t(
+                  'authCenter:shell.authenticationTakesPlaceHereYourPasswordVerificationCodeAndSign'
+                )
+              }}
             </p>
           </div>
 
@@ -30,11 +34,11 @@
             v-if="applicationName || applicationId"
             class="application-card"
           >
-            <small>{{ $t('authCenter:appRequestingAccess') }}</small>
+            <small>{{ $t('authCenter:shell.appRequestingAccess') }}</small>
             <div class="application-identity">
               <span>{{ applicationInitial }}</span>
               <div>
-                <strong>{{ applicationName || $t('authCenter:externalApplication') }}</strong
+                <strong>{{ applicationName || $t('authCenter:shell.externalApplication') }}</strong
                 ><code v-if="applicationId">{{ applicationId }}</code>
               </div>
             </div>
@@ -43,11 +47,13 @@
           <ul class="trust-points">
             <li>
               <el-icon><CircleCheck /></el-icon
-              ><span>{{ $t('authCenter:onlyInformationYouExplicitlyApproveWillBeShared') }}</span>
+              ><span>{{
+                $t('authCenter:shell.onlyInformationYouExplicitlyApproveWillBeShared')
+              }}</span>
             </li>
             <li>
               <el-icon><CircleCheck /></el-icon
-              ><span>{{ $t('authCenter:youCanCancelAndReturnToTheAppThatRequested') }}</span>
+              ><span>{{ $t('authCenter:shell.youCanCancelAndReturnToTheAppThatRequested') }}</span>
             </li>
           </ul>
         </div>
@@ -58,9 +64,9 @@
             aria-hidden="true"
           />
           <span v-if="hasExpiry">{{
-            $t('authCenter:requestExpires', { time: formatTime(remainingSeconds) })
+            $t('authCenter:shell.requestExpires', { time: formatTime(remainingSeconds) })
           }}</span>
-          <span v-else>{{ $t('authCenter:protectedAuthenticationConnection') }}</span>
+          <span v-else>{{ $t('authCenter:shell.protectedAuthenticationConnection') }}</span>
         </div>
       </aside>
 
@@ -68,9 +74,9 @@
         <div
           v-if="showProgress"
           class="progress-wrap"
-          :aria-label="$t('authCenter:authenticationProgress')"
+          :aria-label="$t('authCenter:shell.authenticationProgress')"
         >
-          <span>{{ $t('authCenter:authenticationProgress') }}</span>
+          <span>{{ $t('authCenter:shell.authenticationProgress') }}</span>
           <el-steps
             :active="currentStep"
             finish-status="success"
@@ -88,7 +94,7 @@
           <el-icon><Lock /></el-icon>
           <span
             >{{ productTitle }}
-            {{ $t('authCenter:yourPasswordAndVerificationCodeWillNotBeSharedWith') }}</span
+            {{ $t('authCenter:shell.yourPasswordAndVerificationCodeWillNotBeSharedWith') }}</span
           >
         </footer>
       </div>
@@ -114,7 +120,7 @@ const props = defineProps({
 const displaySteps = computed(() =>
   props.steps.length
     ? props.steps
-    : [t('authCenter:verifyIdentity'), t('authCenter:confirmPermissions')]
+    : [t('authCenter:shared.verifyIdentity'), t('authCenter:shared.confirmPermissions')]
 )
 
 const productTitle = import.meta.env.VITE_APP_TITLE

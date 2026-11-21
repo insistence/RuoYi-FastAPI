@@ -37,7 +37,7 @@ export default function Profile({ params = {} }) {
           md={6}
         >
           <Card
-            title={t('system:profile')}
+            title={t('system:user.profile')}
             className="profile-card"
           >
             <div className="profile-avatar">
@@ -47,13 +47,13 @@ export default function Profile({ params = {} }) {
               {[
                 ['user', t('system:user.username'), user.userName],
                 ['phone', t('system:user.phone'), user.phonenumber],
-                ['email', t('system:userEmail'), user.email],
+                ['email', t('system:user.userEmail'), user.email],
                 [
                   'tree',
                   t('system:user.department'),
                   user.dept ? `${user.dept.deptName} / ${result.postGroup || ''}` : '',
                 ],
-                ['peoples', t('system:roles'), result.roleGroup],
+                ['peoples', t('system:user.roles'), result.roleGroup],
                 ['date', t('common:createdDate'), parseTime(user.createTime) || '-'],
               ].map(([icon, label, value]) => (
                 <li key={label}>
@@ -70,7 +70,7 @@ export default function Profile({ params = {} }) {
           md={18}
         >
           <Card
-            title={t('system:basicProfile')}
+            title={t('system:user.basicProfile')}
             className="profile-card"
           >
             <Tabs
@@ -79,7 +79,7 @@ export default function Profile({ params = {} }) {
               items={[
                 {
                   key: 'userinfo',
-                  label: t('system:basicProfile'),
+                  label: t('system:user.basicProfile'),
                   children: (
                     <UserInfo
                       user={user}
@@ -90,7 +90,7 @@ export default function Profile({ params = {} }) {
                 { key: 'resetPwd', label: t('layout:changePassword'), children: <ResetPwd /> },
                 {
                   key: 'timezone',
-                  label: t('system:timeZoneSettings'),
+                  label: t('system:user.timeZoneSettings'),
                   children: (
                     <TimezoneSettings
                       user={user}

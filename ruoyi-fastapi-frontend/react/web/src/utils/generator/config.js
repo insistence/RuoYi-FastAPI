@@ -68,7 +68,7 @@ export const inputComponents = [
   },
   {
     get label() {
-      return t('common:login.password')
+      return t('auth:login.password')
     },
     tag: 'Input',
     tagIcon: 'password',

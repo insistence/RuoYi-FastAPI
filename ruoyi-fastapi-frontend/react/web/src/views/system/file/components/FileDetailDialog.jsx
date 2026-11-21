@@ -7,30 +7,31 @@ import { accessTypeLabel, formatFileSize, statusLabel, storageStatusLabel } from
 import FileTag from './FileTag'
 
 function uploaderPermission(file) {
-  if (file.accessType !== 'private') return t('system:publicFilesDoNotRequireIndividualPermissions')
-  if (!file.uploadUserId) return t('system:uploaderNotRecorded')
+  if (file.accessType !== 'private')
+    return t('file:detail.publicFilesDoNotRequireIndividualPermissions')
+  if (!file.uploadUserId) return t('file:detail.uploaderNotRecorded')
   const enabled = file.uploaderAccessEnabled === '1' || file.uploaderAccessEnabled === true
   if (file.uploadUserId === file.ownerUserId)
     return enabled
-      ? t('system:legacyAccessRetainedAlsoTheOwner')
-      : t('system:legacyAccessRemovedAccessRemainsThroughOwnership')
+      ? t('file:detail.legacyAccessRetainedAlsoTheOwner')
+      : t('file:detail.legacyAccessRemovedAccessRemainsThroughOwnership')
   return enabled
-    ? t('system:retainedAnExplicitDenyTakesPrecedence')
-    : t('system:removedUploadingTheFileNoLongerGrantsAccess')
+    ? t('file:detail.retainedAnExplicitDenyTakesPrecedence')
+    : t('file:detail.removedUploadingTheFileNoLongerGrantsAccess')
 }
 export default function FileDetailDialog({ open, detail = {}, onClose, onReference }) {
   useI18n()
 
   const items = [
-    [t('system:fileId'), detail.fileId],
+    [t('file:detail.fileId'), detail.fileId],
     [t('file:originalName'), detail.originalName],
-    [t('system:storedFileName'), detail.storedName],
+    [t('file:detail.storedFileName'), detail.storedName],
     [t('file:accessType'), accessTypeLabel(detail.accessType)],
-    [t('system:fileStatus'), statusLabel(detail.status)],
-    [t('system:uploader'), detail.createBy || '-'],
-    [t('system:uploaderId'), detail.uploadUserId || '-'],
+    [t('file:shared.fileStatus'), statusLabel(detail.status)],
+    [t('file:shared.uploader'), detail.createBy || '-'],
+    [t('file:detail.uploaderId'), detail.uploadUserId || '-'],
     [
-      t('system:uploaderPermissions'),
+      t('file:shared.uploaderPermissions'),
       detail.accessType === 'private' && detail.uploadUserId ? (
         <FileTag
           effect="plain"
@@ -50,37 +51,39 @@ export default function FileDetailDialog({ open, detail = {}, onClose, onReferen
     ],
     [t('file:owner'), detail.ownerName || detail.ownerUserId],
     [t('system:user.department'), detail.deptName || detail.deptId],
-    [t('system:storageStatus'), storageStatusLabel(detail.storageStatus)],
-    [t('system:aclEntries'), detail.aclEntryCount || 0],
+    [t('file:shared.storageStatus'), storageStatusLabel(detail.storageStatus)],
+    [t('file:detail.aclEntries'), detail.aclEntryCount || 0],
     [
-      t('system:businessReferences'),
+      t('file:shared.businessReferences'),
       detail.referenceCount ? (
         <Button
           className="ruoyi-table-action"
           type="link"
           onClick={() => onReference(detail)}
         >
-          {detail.referenceCount} {t('system:items')}
+          {detail.referenceCount} {t('file:shared.items')}
         </Button>
       ) : (
-        t('system:0Items')
+        t('file:shared.0Items')
       ),
     ],
-    [t('system:permissionsVersion'), detail.aclVersion],
+    [t('file:detail.permissionsVersion'), detail.aclVersion],
     [t('system:fileSize'), formatFileSize(detail.fileSize)],
-    [t('system:contentType'), detail.contentType],
-    [t('system:extension'), detail.extension],
-    [t('system:uploadedAt'), parseTime(detail.createTime)],
-    [t('system:expiresAt'), parseTime(detail.expireTime) || '-'],
-    [t('system:moveToRecycleBin'), parseTime(detail.deletedTime) || '-'],
-    [t('system:relativeStoragePath'), detail.storageKey],
+    [t('file:detail.contentType'), detail.contentType],
+    [t('file:shared.extension'), detail.extension],
+    [t('file:shared.uploadedAt'), parseTime(detail.createTime)],
+    [t('file:detail.expiresAt'), parseTime(detail.expireTime) || '-'],
+    [t('file:shared.moveToRecycleBin'), parseTime(detail.deletedTime) || '-'],
+    [t('file:detail.relativeStoragePath'), detail.storageKey],
     [
       'SHA-256',
       <Typography.Text style={{ fontFamily: 'monospace' }}>{detail.fileHash}</Typography.Text>,
     ],
   ].map(([label, children]) => ({
     key: label,
-    span: [t('system:fileId'), t('system:relativeStoragePath'), 'SHA-256'].includes(label) ? 2 : 1,
+    span: [t('file:detail.fileId'), t('file:detail.relativeStoragePath'), 'SHA-256'].includes(label)
+      ? 2
+      : 1,
     label,
     children: children ?? '-',
   }))
@@ -88,7 +91,7 @@ export default function FileDetailDialog({ open, detail = {}, onClose, onReferen
     <Modal
       className="file-dialog "
       open={open}
-      title={t('system:fileDetails')}
+      title={t('file:detail.fileDetails')}
       width="820px"
       onCancel={onClose}
       footer={<Button onClick={onClose}>{t('layout:search.close')}</Button>}

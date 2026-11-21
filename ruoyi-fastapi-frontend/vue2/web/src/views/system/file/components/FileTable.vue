@@ -110,13 +110,13 @@
             :type="isAclExpiring(scope.row.aclNearestExpireTime) ? 'warning' : 'info'"
             effect="plain"
           >
-            {{ scope.row.aclEntryCount }} {{ $t('authCenter:messages.items') }}
+            {{ scope.row.aclEntryCount }} {{ $t('common:items') }}
             <span v-if="isAclExpiring(scope.row.aclNearestExpireTime)">{{
               $t('file:messages.expiringSoon')
             }}</span>
           </el-tag>
         </el-tooltip>
-        <span v-else>{{ scope.row.aclEntryCount || 0 }} {{ $t('authCenter:messages.items') }}</span>
+        <span v-else>{{ scope.row.aclEntryCount || 0 }} {{ $t('common:items') }}</span>
       </template>
     </el-table-column>
     <el-table-column
@@ -130,7 +130,7 @@
           v-if="scope.row.referenceCount"
           type="text"
           @click="$emit('reference', scope.row)"
-          >{{ scope.row.referenceCount }} {{ $t('authCenter:messages.items') }}</el-button
+          >{{ scope.row.referenceCount }} {{ $t('common:items') }}</el-button
         >
         <span v-else>{{ $t('file:messages.0Items') }}</span>
       </template>

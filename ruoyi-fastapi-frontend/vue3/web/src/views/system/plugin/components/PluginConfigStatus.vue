@@ -81,7 +81,7 @@
             <p>
               {{
                 !worker.active
-                  ? $t('oauth:notActivated')
+                  ? $t('common:notActivated')
                   : worker.matchesDesired
                     ? $t('plugins:startupSnapshotMatches')
                     : $t('plugins:startupSnapshotNeedsARestartToUpdate')

@@ -1,7 +1,10 @@
 <template>
   <AuthCenterShell
     :current-step="0"
-    :steps="[$t('authCenter:steps.protectAccount'), $t('authCenter:steps.confirmPermissions')]"
+    :steps="[
+      $t('authCenter:password.protectAccount'),
+      $t('authCenter:password.confirmPermissions'),
+    ]"
     :expires-in="interaction.expiresIn"
     :application-name="interaction.client?.clientName"
     :application-id="interaction.client?.clientId"
@@ -10,10 +13,10 @@
       v-loading="initializing"
       class="auth-flow"
     >
-      <p class="panel-kicker">{{ $t('authCenter:messages.accountProtection') }}</p>
-      <h2>{{ $t('authCenter:messages.setANewPasswordToContinue') }}</h2>
+      <p class="panel-kicker">{{ $t('authCenter:password.accountProtection') }}</p>
+      <h2>{{ $t('authCenter:password.setANewPasswordToContinue') }}</h2>
       <p class="panel-lead">
-        {{ $t('authCenter:messages.yourPasswordHasExpiredOrIsStillTheInitialPasswordUpdateIt') }}
+        {{ $t('authCenter:password.yourPasswordHasExpiredOrIsStillTheInitialPasswordUpdateIt') }}
         <strong>{{ applicationName }}</strong
         >。
       </p>
@@ -24,9 +27,9 @@
           aria-hidden="true"
         ></i>
         <span
-          ><strong>{{ $t('authCenter:messages.protectYourEntireAccount') }}</strong
+          ><strong>{{ $t('authCenter:password.protectYourEntireAccount') }}</strong
           ><small>{{
-            $t('authCenter:messages.existingSessionsInOtherExternalAppsWillBeSignedOutSignIn')
+            $t('authCenter:password.existingSessionsInOtherExternalAppsWillBeSignedOutSignIn')
           }}</small></span
         >
       </div>
@@ -47,7 +50,7 @@
         @submit.native.prevent="submit"
       >
         <el-form-item
-          :label="$t('authCenter:messages.currentPassword')"
+          :label="$t('authCenter:password.currentPassword')"
           prop="oldPassword"
         >
           <el-input
@@ -56,7 +59,7 @@
             show-password
             size="medium"
             autocomplete="current-password"
-            :placeholder="$t('authCenter:messages.toVerifyYourIdentity')"
+            :placeholder="$t('authCenter:password.toVerifyYourIdentity')"
           >
             <template #prefix
               ><i
@@ -76,7 +79,7 @@
             show-password
             size="medium"
             autocomplete="new-password"
-            :placeholder="$t('authCenter:messages.enterANewPassword')"
+            :placeholder="$t('authCenter:password.enterANewPassword')"
           >
             <template #prefix
               ><i
@@ -90,7 +93,7 @@
             aria-live="polite"
           >
             <div class="meter-heading">
-              <span>{{ $t('authCenter:messages.passwordStrength') }}</span
+              <span>{{ $t('authCenter:password.passwordStrength') }}</span
               ><strong :class="`is-${strengthLevel}`">{{ strengthLabel }}</strong>
             </div>
             <div
@@ -107,7 +110,7 @@
           </div>
         </el-form-item>
         <el-form-item
-          :label="$t('authCenter:messages.repeatNewPassword')"
+          :label="$t('authCenter:password.repeatNewPassword')"
           prop="confirmPassword"
         >
           <el-input
@@ -116,7 +119,7 @@
             show-password
             size="medium"
             autocomplete="new-password"
-            :placeholder="$t('authCenter:messages.enterItAgainToAvoidMistakes')"
+            :placeholder="$t('authCenter:password.enterItAgainToAvoidMistakes')"
           >
             <template #prefix
               ><i
@@ -133,7 +136,7 @@
           native-type="submit"
           :loading="submitting"
         >
-          {{ $t('authCenter:messages.updatePasswordAndContinue') }}
+          {{ $t('authCenter:password.updatePasswordAndContinue') }}
         </el-button>
       </el-form>
     </div>
@@ -168,16 +171,16 @@ const form = reactive({
 })
 
 const applicationName = computed(
-  () => interaction.value.client?.clientName || t('authCenter:messages.appRequestingSignIn')
+  () => interaction.value.client?.clientName || t('authCenter:shared.appRequestingSignIn')
 )
 const policyDescription = computed(
   () =>
     ({
       0: t('authCenter:password.forbiddenCharacters'),
-      1: t('authCenter:messages.use620Digits'),
-      2: t('authCenter:messages.use620LatinLetters'),
-      3: t('authCenter:messages.use620CharactersIncludingBothLettersAndNumbers'),
-      4: t('authCenter:messages.use620CharactersIncludingLettersNumbersAndSymbols'),
+      1: t('authCenter:password.use620Digits'),
+      2: t('authCenter:password.use620LatinLetters'),
+      3: t('authCenter:password.use620CharactersIncludingBothLettersAndNumbers'),
+      4: t('authCenter:password.use620CharactersIncludingLettersNumbersAndSymbols'),
     })[pwdChrType.value] || t('auth:interface.use620Characters')
 )
 
@@ -201,27 +204,27 @@ const strengthLevel = computed(() => {
 const strengthLabel = computed(
   () =>
     [
-      t('authCenter:messages.requirementsNotMet'),
-      t('authCenter:messages.basic'),
-      t('authCenter:messages.good'),
-      t('authCenter:messages.strong'),
+      t('authCenter:password.requirementsNotMet'),
+      t('authCenter:password.basic'),
+      t('common:good'),
+      t('authCenter:password.strong'),
     ][strengthLevel.value]
 )
 
 const validateNewPassword = (_rule, value, callback) => {
   if (value && value === form.oldPassword) {
     return callback(
-      new Error(t('authCenter:messages.theNewPasswordMustDifferFromTheCurrentPassword'))
+      new Error(t('authCenter:password.theNewPasswordMustDifferFromTheCurrentPassword'))
     )
   }
   callback()
 }
 const validateConfirmation = (_rule, value, callback) => {
   if (!value) {
-    return callback(new Error(t('authCenter:messages.enterTheNewPasswordAgain')))
+    return callback(new Error(t('authCenter:password.enterTheNewPasswordAgain')))
   }
   if (value !== form.newPassword) {
-    return callback(new Error(t('authCenter:messages.theNewPasswordsDoNotMatch')))
+    return callback(new Error(t('authCenter:password.theNewPasswordsDoNotMatch')))
   }
   callback()
 }
@@ -229,7 +232,7 @@ const rules = computed(() => ({
   oldPassword: [
     {
       required: true,
-      message: () => t('authCenter:messages.enterYourCurrentPassword'),
+      message: () => t('authCenter:password.enterYourCurrentPassword'),
       trigger: 'blur',
     },
   ],
@@ -240,9 +243,7 @@ const rules = computed(() => ({
 /** 读取认证交互状态并检查是否需要修改密码 */
 async function initialize() {
   if (!interactionId.value || !csrfToken()) {
-    return fatal(
-      t('authCenter:messages.theAuthenticationRequestIsIncompleteReturnToTheAppAndSignIn')
-    )
+    return fatal(t('authCenter:shared.theAuthenticationRequestIsIncompleteReturnToTheAppAndSignIn'))
   }
   try {
     const response = await getInteraction(interactionId.value, csrfToken())
@@ -253,7 +254,7 @@ async function initialize() {
   } catch (error) {
     fatal(
       error?.message ||
-        t('authCenter:messages.theAuthenticationRequestHasExpiredReturnToTheAppAndSignIn')
+        t('authCenter:shared.theAuthenticationRequestHasExpiredReturnToTheAppAndSignIn')
     )
   } finally {
     initializing.value = false
@@ -263,9 +264,7 @@ async function initialize() {
 /** 校验并提交密码修改 */
 async function submit() {
   if (!interactionId.value || !csrfToken()) {
-    return fatal(
-      t('authCenter:messages.theAuthenticationRequestIsIncompleteReturnToTheAppAndSignIn')
-    )
+    return fatal(t('authCenter:shared.theAuthenticationRequestIsIncompleteReturnToTheAppAndSignIn'))
   }
   if (!(await passwordRef.value?.validate().catch(() => false))) {
     return

@@ -62,7 +62,7 @@ export default async function request(options) {
       const error = new Error(
         result.data?.msg ||
           errorCode(t)[code] ||
-          t('mobile:apiRequestFailedWithStatusValue', { statusCode: result.statusCode })
+          t('common:network.httpStatus', { statusCode: result.statusCode })
       )
       error.response = result
       if (code === 401 || result.statusCode === 401) handleSessionExpired()

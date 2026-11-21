@@ -1,12 +1,15 @@
 {
-  "log": {
-    "id": "Log ID",
-    "businessType": "Business type",
-    "operationTime": "Operation time",
-    "operator": "Operator",
-    "operationType": "Operation type"
-  },
   "job": {
+    "positionalArgumentsMustBeAJsonArrayEG": "Positional arguments must be a JSON array, e.g. [\"test\", 1]",
+    "keywordArgumentsMustBeAJsonObjectEG": "Keyword arguments must be a JSON object, e.g. {\"enabled\": true}",
+    "aParameterNumberIsOutsideTheSupportedRange": "A parameter number is outside the supported range",
+    "synchronizationFailed": "Synchronization failed",
+    "dispatched": "Dispatched",
+    "running": "Running",
+    "executionFailed": "Execution failed",
+    "concurrencyLimitReached": "Concurrency limit reached",
+    "cancelled": "Cancelled",
+    "resultPendingConfirmation": "Result pending confirmation",
     "executionStatus": "Execution status",
     "id": "Task ID",
     "store": "Job store",
@@ -24,6 +27,13 @@
     "cronExpressionLabel": "Cron expression",
     "valueMs": "{{value}} ms",
     "executionId": "Execution ID"
+  },
+  "log": {
+    "id": "Log ID",
+    "businessType": "Business type",
+    "operationTime": "Operation time",
+    "operator": "Operator",
+    "operationType": "Operation type"
   },
   "server": {
     "os": "Operating system",

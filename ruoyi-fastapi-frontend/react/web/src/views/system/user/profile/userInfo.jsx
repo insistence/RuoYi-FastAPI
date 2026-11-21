@@ -58,8 +58,8 @@ export default function UserInfo({ user, onSaved }) {
         name="email"
         label={t('system:user.email')}
         rules={[
-          { required: true, message: t('system:emailAddressIsRequired') },
-          { type: 'email', message: t('system:enterAValidEmailAddress') },
+          { required: true, message: t('system:user.emailAddressIsRequired') },
+          { type: 'email', message: t('system:user.enterAValidEmailAddress') },
         ]}
       >
         <Input maxLength={50} />

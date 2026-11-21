@@ -31,7 +31,7 @@ export default function PageFrame({
         <section className="workspace-filters">
           <div className="filter-heading">
             <div>
-              <strong className="filter-title">{t('common:filters')}</strong>
+              <strong className="filter-title">{t('components:oauthWorkspace.filters')}</strong>
               {filterHint && <span className="filter-hint">{filterHint}</span>}
             </div>
             {filterExtra}

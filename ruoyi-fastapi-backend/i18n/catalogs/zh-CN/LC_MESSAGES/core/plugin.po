@@ -1,0 +1,209 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "plugin.audit.batchNotFound"
+msgstr "插件批量操作审计日志不存在"
+
+msgid "plugin.audit.retentionApplied"
+msgstr "插件操作审计日志保留策略执行完成"
+
+msgid "plugin.config.plaintextExportForbidden"
+msgstr "Web 端不允许导出敏感配置明文，请使用 CLI 通道"
+
+msgid "plugin.config.statusReadFailed"
+msgstr "插件配置状态读取失败"
+
+msgid "plugin.dependenciesRecovered"
+msgstr "插件启动依赖已恢复，状态：%(target_status)s"
+
+msgid "plugin.session.pageMissing"
+msgstr "插件页面不存在"
+
+msgid "plugin.session.notReady"
+msgstr "插件页面尚未就绪"
+
+msgid "plugin.session.forbidden"
+msgstr "缺少插件访问权限"
+
+msgid "plugin.session.expired"
+msgstr "插件会话已过期"
+
+msgid "plugin.session.invalid"
+msgstr "插件会话无效"
+
+msgid "plugin.session.sameOrigin"
+msgstr "插件会话只能从同源宿主签发"
+
+msgid "plugin.session.identityMismatch"
+msgstr "插件会话用户身份不匹配"
+
+msgid "plugin.session.missingSessionId"
+msgstr "主登录缺少会话标识"
+
+msgid "plugin.session.loginInvalid"
+msgstr "主登录会话已失效"
+
+msgid "plugin.session.loginExpired"
+msgstr "主登录会话已过期"
+
+msgid "plugin.session.bindingInvalid"
+msgstr "插件会话绑定无效"
+
+msgid "plugin.session.updating"
+msgstr "插件会话正在更新，请重试"
+
+msgid "plugin.disabled"
+msgstr "插件未启用，接口不可访问"
+
+msgid "plugin.invalidState"
+msgstr "插件状态不允许执行当前启停操作"
+
+msgid "plugin.markedAbnormal"
+msgstr "插件状态已标记为异常"
+
+msgid "plugin.noDependencyFailure"
+msgstr "插件不是启动依赖检查异常状态"
+
+msgid "plugin.notFound"
+msgstr "插件不存在"
+
+msgid "plugin.notInstalled"
+msgstr "插件尚未安装，不能启用"
+
+msgid "plugin.release.statusReadFailed"
+msgstr "读取插件制品发布状态失败"
+
+msgid "plugin.suggestion.batchDependencies"
+msgstr "先执行 ruoyi plugin plan %(operation)s %(plugin_id)s 查看插件依赖阻塞项"
+
+msgid "plugin.suggestion.batchDryRun"
+msgstr "先单独执行 ruoyi plugin %(operation)s %(plugin_id)s --dry-run 定位失败原因"
+
+msgid "plugin.suggestion.batchError"
+msgstr "查看错误详情并修复后重新执行批量命令"
+
+msgid "plugin.suggestion.batchMenus"
+msgstr "先执行 ruoyi plugin check %(plugin_id)s 查看菜单或权限冲突"
+
+msgid "plugin.suggestion.batchStructure"
+msgstr "先执行 ruoyi plugin check %(plugin_id)s 修复插件目录结构问题"
+
+msgid "plugin.suggestion.buttonChildren"
+msgstr "按钮菜单不应承载子菜单；建议将子菜单移动到目录或页面菜单下"
+
+msgid "plugin.suggestion.buttonComponent"
+msgstr "按钮菜单只用于权限动作，不参与路由渲染；建议将 component 留空"
+
+msgid "plugin.suggestion.buttonPermissions"
+msgstr "建议为按钮菜单声明 perms，并在顶层 permissions 中同步声明，便于前端权限指令和后端权限校验统一控制"
+
+msgid "plugin.suggestion.checkScripts"
+msgstr "请检查 migration/seed 声明和脚本文件"
+
+msgid "plugin.suggestion.dependencyVersion"
+msgstr "建议为插件依赖声明最小版本或兼容版本范围，降低环境漂移风险"
+
+msgid "plugin.suggestion.fixMigration"
+msgstr "请修复 migration 幂等性或数据库结构问题后重试；必要时人工确认后标记成功。"
+
+msgid "plugin.suggestion.healthChecker"
+msgstr "建议为包含默认启用任务的插件声明 backend.health.checker，便于运维侧确认任务依赖状态"
+
+msgid "plugin.suggestion.maintenanceWindow"
+msgstr "请在开发模式或维护窗口中执行插件变更，并重启后端或重新构建前端。"
+
+msgid "plugin.suggestion.newMigration"
+msgstr "请新增 migration 文件，不要修改已执行的历史 migration"
+
+msgid "plugin.suggestion.numberBounds"
+msgstr "仅 number 类型配置支持 min/max；请删除该约束或将配置类型改为 number"
+
+msgid "plugin.suggestion.pagePermissions"
+msgstr "建议至少为页面菜单声明 perms 并在顶层 permissions 中同步声明，便于角色授权和菜单可见性统一管理"
+
+msgid "plugin.suggestion.pairedHooks"
+msgstr "建议启动和关闭钩子成对声明，确保运行时资源可以完整初始化和释放"
+
+msgid "plugin.suggestion.passwordSecret"
+msgstr "建议为 password 类型配置显式声明 secret=true，避免配置展示和导出时泄露敏感值"
+
+msgid "plugin.suggestion.patternType"
+msgstr "仅 string、textarea、password 类型配置支持 pattern；请删除该约束或调整配置类型"
+
+msgid "plugin.suggestion.permissionMenu"
+msgstr "如该权限需要分配给角色，建议声明页面/目录菜单，或显式声明按钮菜单承载该权限"
+
+msgid "plugin.suggestion.permissionPrefix"
+msgstr "建议使用 %(prefix)s<resource>:<action> 格式，降低与平台或其他插件权限冲突的风险"
+
+msgid "plugin.suggestion.pluginVersion"
+msgstr "建议声明依赖插件的最小版本或兼容版本范围"
+
+msgid "plugin.suggestion.purgeHook"
+msgstr "如资源需要随插件物理清理，请通过 backend.hooks.onPurge 显式实现清理逻辑"
+
+msgid "plugin.suggestion.recoverMigration"
+msgstr "请检查数据库结构是否已应用；若已成功应用，执行 mark-success；若未完成，执行 mark-failed 后修复并重试。"
+
+msgid "plugin.suggestion.relativePath"
+msgstr "请使用插件目录内的相对路径"
+
+msgid "plugin.suggestion.releaseWorkers"
+msgstr "请使用 plugin release 命令，并在执行前停止全部宿主worker。"
+
+msgid "plugin.suggestion.repeatableSeed"
+msgstr "请确保 seed 脚本可重复执行，避免重复初始化数据"
+
+msgid "plugin.suggestion.requiredConfig"
+msgstr "建议提供安全默认值，或在插件 README 中明确安装后必须配置该项"
+
+msgid "plugin.suggestion.restoreMigration"
+msgstr "请恢复原 migration 文件内容，或新增一个后续 migration 文件承载变更。"
+
+msgid "plugin.suggestion.reviewDatabaseState"
+msgstr "请确认数据库结构状态后手动处理迁移历史"
+
+msgid "plugin.suggestion.reviewMigrationState"
+msgstr "请人工确认 migration 历史状态，并通过恢复命令标记为 success 或 failed。"
+
+msgid "plugin.suggestion.routePrefix"
+msgstr "请使用 /%(plugin_id)s 或 /plugin/%(plugin_id)s 作为路由前缀根路径"
+
+msgid "plugin.suggestion.scriptOrder"
+msgstr "插件 migration 和 seed 会按 manifest 列表顺序执行；建议按文件名升序声明，降低执行顺序出错风险"
+
+msgid "plugin.suggestion.secretDefault"
+msgstr "建议删除默认值，改为安装后在插件配置中录入"
+
+msgid "plugin.suggestion.secretPasswordType"
+msgstr "建议将敏感配置类型设置为 password，便于前端输入控件、导出和审计统一脱敏处理"
+
+msgid "plugin.suggestion.selectOptions"
+msgstr "仅 select 类型配置支持 options；请删除 options 或将配置类型改为 select"
+
+msgid "plugin.suggestion.supportedDatabase"
+msgstr "切换到插件支持的数据库，或调整插件 compatibility.databases 声明"
+
+msgid "plugin.suggestion.timestampType"
+msgstr "PostgreSQL使用TIMESTAMP(3) WITH TIME ZONE，MySQL使用UTC语义DATETIME(3)"
+
+msgid "plugin.suggestion.upgradeRuntime"
+msgstr "升级平台运行环境或调整插件 compatibility 声明"
+
+msgid "plugin.suggestion.versionReadable"
+msgstr "确认运行环境可读取版本信息后重新执行插件检查"
+
+msgid "plugin.uninstalled"
+msgstr "卸载成功"

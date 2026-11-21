@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const backend = new URL('../../../', import.meta.url)
 const checker = fileURLToPath(new URL('../check-domains.mjs', import.meta.url))
+const cli = fileURLToPath(new URL('../node_modules/@x18n/cli/bin.mjs', import.meta.url))
 
 function check(args) {
   const result = spawnSync(process.execPath, [checker, ...args], {
@@ -30,6 +31,9 @@ msgstr "${value}"
 
 msgid "plugin.other"
 msgstr "Other message"
+
+msgid "common.success"
+msgstr "Plugin success"
 `
 }
 
@@ -38,8 +42,8 @@ test('real CLI isolates plugin locales and domains while retaining core calls in
   const plugin = join(root, 'plugins/domain_demo')
   try {
     await mkdir(join(root, '.x18n'), { recursive: true })
-    await cp(new URL('x18n.config.yml', backend), join(root, 'x18n.config.yml'))
-    for (const name of ['python-domain.mjs', 'scan_python_domains.py'])
+    await cp(new URL('x18n.config.mjs', backend), join(root, 'x18n.config.mjs'))
+    for (const name of ['core.mjs', 'python-domain.mjs', 'scan_python_domains.py'])
       await cp(new URL(`.x18n/${name}`, backend), join(root, '.x18n', name))
     await cp(new URL('i18n/catalogs/', backend), join(root, 'i18n/catalogs'), { recursive: true })
     await mkdir(join(plugin, 'i18n'), { recursive: true })
@@ -64,6 +68,7 @@ t(
 )
 I18nMessage('原文', msg_key='plugin.other', domain='plugin.domain_demo')
 ResponseUtil.success(msg_key='common.success')
+ResponseUtil.success(msg_key='common.success', domain=DOMAIN)
 `
     await writeFile(join(plugin, 'messages.py'), source)
     let result = check(['--root', root])
@@ -82,6 +87,38 @@ ResponseUtil.success(msg_key='common.success')
         (item) => item.code === 'unused-key' && item.key === 'plugin.only'
       )
     )
+
+    // 编辑器在同一个 Python 文件中根据调用的域跳到各自的 PO，即使 msgid 相同。
+    for (const [domain, usage, resource] of [
+      ['core', "msg_key='common.success')", 'i18n/catalogs/en-US/LC_MESSAGES/core/common.po'],
+      [
+        'plugin.domain_demo',
+        "msg_key='common.success', domain=DOMAIN)",
+        'plugins/domain_demo/i18n/catalogs/en-US/LC_MESSAGES/plugin.domain_demo.po',
+      ],
+    ]) {
+      const result = spawnSync(
+        process.execPath,
+        [cli, '--root', root, 'get', `${domain}:common.success`, '--json'],
+        {
+          cwd: root,
+          encoding: 'utf8',
+        }
+      )
+      assert.ifError(result.error)
+      assert.equal(result.status, 0, result.stderr || result.stdout)
+      const [key] = JSON.parse(result.stdout).data.projects
+      assert.equal(key.messages.find((item) => item.locale === 'en-US').file, resource)
+      assert.deepEqual(
+        key.usages.map((item) => [item.file, item.line]),
+        [
+          [
+            'plugins/domain_demo/messages.py',
+            source.split('\n').findIndex((line) => line.includes(usage)) + 1,
+          ],
+        ]
+      )
+    }
 
     // 插件中默认使用 core 的调用仍须按核心词库检查。
     await writeFile(

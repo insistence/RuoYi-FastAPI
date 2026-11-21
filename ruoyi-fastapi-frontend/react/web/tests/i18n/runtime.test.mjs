@@ -1,22 +1,28 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { meta, resources } from '../../src/i18n/registry.js'
 import {
   createLocaleRuntime,
   createLocaleRegistry,
   normalizeLocale,
 } from '../../src/i18n/runtime.mjs'
-const meta = JSON.parse(readFileSync(new URL('../../src/i18n/locale-meta.json', import.meta.url)))
-const resources = Object.fromEntries(
-  meta.locales.map(({ code }) => [
-    code,
-    {
-      common: JSON.parse(
-        readFileSync(new URL(`../../src/i18n/locales/${code}/common.json`, import.meta.url))
-      ),
-    },
-  ])
-)
+test('the registry loads every host catalog in each enabled language', () => {
+  for (const { code } of meta.locales.filter((entry) => entry.enabled)) {
+    const directory = new URL(`../../src/i18n/locales/${code}/`, import.meta.url)
+    // 生成器词库由应用入口单独注册。
+    const files = readdirSync(directory).filter(
+      (file) => file.endsWith('.json') && !file.startsWith('generated.')
+    )
+    const catalogs = Object.fromEntries(
+      files.map((file) => [
+        file.slice(0, -5),
+        JSON.parse(readFileSync(new URL(file, directory), 'utf8')),
+      ])
+    )
+    assert.deepEqual(resources[code], catalogs)
+  }
+})
 function setup(extra = {}) {
   const data = new Map()
   return createLocaleRuntime({

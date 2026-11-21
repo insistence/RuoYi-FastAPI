@@ -8,7 +8,7 @@
         v-model="radioValue"
         :label="1"
       >
-        {{ $t('tool:interface.dayAllowedWildcardsLW') }}
+        {{ $t('components:cron.dayAllowedWildcardsLW') }}
       </el-radio>
     </el-form-item>
 
@@ -17,7 +17,7 @@
         v-model="radioValue"
         :label="2"
       >
-        {{ $t('tool:cron.notSpecified') }}
+        {{ $t('components:cron.notSpecified') }}
       </el-radio>
     </el-form-item>
 
@@ -26,7 +26,7 @@
         v-model="radioValue"
         :label="3"
       >
-        {{ $t('tool:cron.rangeFrom') }}
+        {{ $t('components:cron.rangeFrom') }}
         <el-input-number
           v-model="cycle01"
           :min="1"
@@ -38,7 +38,7 @@
           :min="cycle01 ? cycle01 + 1 : 2"
           :max="31"
         />
-        {{ $t('tool:cron.day') }}
+        {{ $t('components:cron.day') }}
       </el-radio>
     </el-form-item>
 
@@ -47,19 +47,19 @@
         v-model="radioValue"
         :label="4"
       >
-        {{ $t('tool:cron.from') }}
+        {{ $t('components:cron.from') }}
         <el-input-number
           v-model="average01"
           :min="1"
           :max="30"
         />
-        {{ $t('tool:interface.repeatEvery.day') }}
+        {{ $t('components:cron.repeatEvery.day') }}
         <el-input-number
           v-model="average02"
           :min="1"
           :max="31 - average01 || 1"
         />
-        {{ $t('tool:interface.days') }}
+        {{ $t('components:cron.unit.days') }}
       </el-radio>
     </el-form-item>
 
@@ -68,13 +68,13 @@
         v-model="radioValue"
         :label="5"
       >
-        {{ $t('tool:cron.everyMonth') }}
+        {{ $t('components:cron.everyMonth') }}
         <el-input-number
           v-model="workday"
           :min="1"
           :max="31"
         />
-        {{ $t('tool:cron.nearestWeekday') }}
+        {{ $t('components:cron.nearestWeekday') }}
       </el-radio>
     </el-form-item>
 
@@ -83,7 +83,7 @@
         v-model="radioValue"
         :label="6"
       >
-        {{ $t('tool:cron.lastDayOfTheMonth') }}
+        {{ $t('components:cron.lastDayOfTheMonth') }}
       </el-radio>
     </el-form-item>
 

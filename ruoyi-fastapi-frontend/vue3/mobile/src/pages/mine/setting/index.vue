@@ -9,7 +9,7 @@
       >
         <view class="flex items-center">
           <view class="i-mdi-lock text-xl text-gray-600 mr-3"></view>
-          <text class="text-base text-gray-800">{{ $t('mobile:password.title') }}</text>
+          <text class="text-base text-gray-800">{{ $t('auth:password.title') }}</text>
         </view>
         <view class="i-mdi-chevron-right text-base text-gray-400"></view>
       </view>

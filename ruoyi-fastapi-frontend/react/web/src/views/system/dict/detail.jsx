@@ -50,7 +50,7 @@ export default function DictDataDrawer({ row, onClose }) {
             <span>{t('system:dict.loading')}</span>
           </div>
         ) : !data.length ? (
-          <Empty description={t('system:noDictionaryEntries')} />
+          <Empty description={t('system:dict.noDictionaryEntries')} />
         ) : (
           <>
             <div
@@ -63,7 +63,7 @@ export default function DictDataDrawer({ row, onClose }) {
             >
               <div className="stat-card">
                 <div className="stat-num">{data.length}</div>
-                <div className="stat-label">{t('system:totalEntries')}</div>
+                <div className="stat-label">{t('system:dict.totalEntries')}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-num success">

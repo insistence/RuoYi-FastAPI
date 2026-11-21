@@ -5,12 +5,12 @@ export function validateJson(value, valueType, validate) {
     else {
       const parsed = JSON.parse(value)
       if (valueType === 'array' && !Array.isArray(parsed))
-        throw new Error(t('common:enterAJsonArray'))
+        throw new Error(t('components:jsonEditor.enterAJsonArray'))
       if (
         valueType === 'object' &&
         (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
       )
-        throw new Error(t('common:enterAJsonObject'))
+        throw new Error(t('components:jsonEditor.enterAJsonObject'))
     }
     return { valid: true }
   } catch (error) {

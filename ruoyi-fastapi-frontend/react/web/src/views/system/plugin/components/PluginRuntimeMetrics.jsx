@@ -33,7 +33,9 @@ export default function PluginRuntimeMetrics({ pluginId }) {
           setUpdatedAt(new Date().toLocaleTimeString())
         }
       })
-      .catch(() => active && setError((t) => t('system:couldNotLoadRuntimeMetricsTryAgain')))
+      .catch(
+        () => active && setError((t) => t('pluginAdmin:metrics.couldNotLoadRuntimeMetricsTryAgain'))
+      )
       .finally(() => active && setLoading(false))
     return () => {
       active = false
@@ -47,7 +49,7 @@ export default function PluginRuntimeMetrics({ pluginId }) {
   return (
     <section
       className="plugin-metrics"
-      aria-label={t('system:pluginRuntimeMonitoring')}
+      aria-label={t('pluginAdmin:metrics.pluginRuntimeMonitoring')}
       aria-busy={loading}
     >
       <div className="metrics-toolbar">
@@ -61,7 +63,7 @@ export default function PluginRuntimeMetrics({ pluginId }) {
           loading={loading}
           onClick={() => setRevision((value) => value + 1)}
         >
-          {t('system:refreshMetrics')}
+          {t('pluginAdmin:metrics.refreshMetrics')}
         </Button>
       </div>
       {error ? (
@@ -84,14 +86,16 @@ export default function PluginRuntimeMetrics({ pluginId }) {
                           })
                         : t('pluginAdmin:showingOnlyTheProcessHandlingThisRequest')
                     }
-                    description={t('system:metricsAccumulateFromProcessStartupAndResetOnRestart')}
+                    description={t(
+                      'pluginAdmin:metrics.metricsAccumulateFromProcessStartupAndResetOnRestart'
+                    )}
                     showIcon
                     type={data.scope === 'reporting_workers' ? 'info' : 'warning'}
                   />
                   <p className="metrics-hint">
-                    {t('system:samplingInterval')} {data.sampleIntervalSeconds || '-'}{' '}
-                    {t('system:secondsValidityPeriod')} {data.sampleTtlSeconds || '-'}{' '}
-                    {t('system:secondsDurationCoversTheCompleteRequestOrTaskP95')}
+                    {t('pluginAdmin:metrics.samplingInterval')} {data.sampleIntervalSeconds || '-'}{' '}
+                    {t('pluginAdmin:metrics.secondsValidityPeriod')} {data.sampleTtlSeconds || '-'}{' '}
+                    {t('pluginAdmin:metrics.secondsDurationCoversTheCompleteRequestOrTaskP95')}
                   </p>
                 </>
               )}
@@ -102,7 +106,7 @@ export default function PluginRuntimeMetrics({ pluginId }) {
                 <Alert
                   showIcon
                   type="warning"
-                  title={t('system:someSamplesWereExcludedFromTheStatistics')}
+                  title={t('pluginAdmin:metrics.someSamplesWereExcludedFromTheStatistics')}
                   description={t(
                     'pluginAdmin:invalidValueExpiredValueOverMetricCapacityValueProcess',
                     {
@@ -141,19 +145,25 @@ export default function PluginRuntimeMetrics({ pluginId }) {
                   </div>
                   <dl className="metrics-values">
                     {[
-                      [t('system:calls'), row.started],
-                      [t('system:inFlight'), row.active],
+                      [t('pluginAdmin:metrics.calls'), row.started],
+                      [t('pluginAdmin:metrics.inFlight'), row.active],
                       [t('common:success'), row.succeeded],
-                      [t('system:rejected'), row.rejected],
+                      [t('pluginAdmin:metrics.rejected'), row.rejected],
                       [
-                        t('system:failuresFailureRate'),
+                        t('pluginAdmin:metrics.failuresFailureRate'),
                         `${row.failed} / ${row.failureRatePercent}%`,
                       ],
                       [t('common:cancel'), row.cancelled],
-                      [t('system:timeoutsIncludedInFailures'), row.timedOut],
-                      [t('system:averageDuration'), `${row.averageDurationMs} ms`],
-                      [t('system:p95EstimatedUpperBound'), `${row.p95UpperBoundMs} ms`],
-                      [t('system:maximumDuration'), `${Number(row.durationMaxMs).toFixed(1)} ms`],
+                      [t('pluginAdmin:metrics.timeoutsIncludedInFailures'), row.timedOut],
+                      [t('pluginAdmin:metrics.averageDuration'), `${row.averageDurationMs} ms`],
+                      [
+                        t('pluginAdmin:metrics.p95EstimatedUpperBound'),
+                        `${row.p95UpperBoundMs} ms`,
+                      ],
+                      [
+                        t('pluginAdmin:metrics.maximumDuration'),
+                        `${Number(row.durationMaxMs).toFixed(1)} ms`,
+                      ],
                     ].map(([title, value]) => (
                       <div key={title}>
                         <dt>{title}</dt>
@@ -162,13 +172,16 @@ export default function PluginRuntimeMetrics({ pluginId }) {
                     ))}
                   </dl>
                   <details>
-                    <summary>{t('system:versionIdentityAndRecentErrors')}</summary>
+                    <summary>{t('pluginAdmin:metrics.versionIdentityAndRecentErrors')}</summary>
                     <dl className="metrics-identities">
                       {[
-                        [t('system:artifactDigest'), row.digest || t('pluginAdmin:sourcePlugin')],
-                        [t('system:releaseGeneration'), row.generation],
-                        [t('system:components.latestError'), row.lastErrorType],
-                        [t('system:components.traceId'), row.lastErrorRequestId],
+                        [
+                          t('pluginAdmin:metrics.artifactDigest'),
+                          row.digest || t('pluginAdmin:sourcePlugin'),
+                        ],
+                        [t('pluginAdmin:shared.releaseGeneration'), row.generation],
+                        [t('pluginAdmin:metrics.latestError'), row.lastErrorType],
+                        [t('pluginAdmin:metrics.traceId'), row.lastErrorRequestId],
                       ].map(([label, children]) => (
                         <Fragment key={label}>
                           <dt>{label}</dt>

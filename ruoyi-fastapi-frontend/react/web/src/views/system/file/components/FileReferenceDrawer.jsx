@@ -37,7 +37,7 @@ export default function FileReferenceDrawer({ file, onClose }) {
       size="55%"
     >
       <Alert
-        title={t('system:referencedFilesCannotBeMovedToTheRecycleBin')}
+        title={t('file:references.referencedFilesCannotBeMovedToTheRecycleBin')}
         type="warning"
         showIcon
         style={{ marginBottom: 8 }}
@@ -55,11 +55,16 @@ export default function FileReferenceDrawer({ file, onClose }) {
             title: t('monitor:log.businessType'),
             dataIndex: 'businessType',
           },
-          { width: 180, title: t('system:businessName'), dataIndex: 'businessName' },
-          { width: 160, align: 'center', title: t('system:businessId'), dataIndex: 'businessId' },
+          { width: 180, title: t('file:references.businessName'), dataIndex: 'businessName' },
+          {
+            width: 160,
+            align: 'center',
+            title: t('file:references.businessId'),
+            dataIndex: 'businessId',
+          },
           {
             align: 'center',
-            title: t('system:retentionExpires'),
+            title: t('file:references.retentionExpires'),
             dataIndex: 'retentionExpireTime',
             width: 180,
             render: (value) => (value ? parseTime(value) : t('file:retainIndefinitely')),
@@ -74,14 +79,19 @@ export default function FileReferenceDrawer({ file, onClose }) {
                 type={value ? 'info' : 'success'}
                 effect="plain"
               >
-                {value ? t('system:legacyField') : t('system:references')}
+                {value ? t('file:references.legacyField') : t('file:references.references')}
               </FileTag>
             ),
           },
-          { width: 110, align: 'center', title: t('system:registeredBy'), dataIndex: 'createBy' },
+          {
+            width: 110,
+            align: 'center',
+            title: t('file:references.registeredBy'),
+            dataIndex: 'createBy',
+          },
           {
             align: 'center',
-            title: t('system:registeredAt'),
+            title: t('file:references.registeredAt'),
             dataIndex: 'createTime',
             width: 180,
             render: (value) => parseTime(value),

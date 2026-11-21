@@ -15,7 +15,7 @@
         />
       </view>
       <text class="text-center text-xl font-bold tracking-wide text-gray-800">{{
-        $t('mobile:auth.loginTitle')
+        $t('auth:login.title')
       }}</text>
     </view>
 
@@ -32,7 +32,7 @@
           v-model="loginForm.username"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
           type="text"
-          :placeholder="$t('common:login.usernameRequired')"
+          :placeholder="$t('auth:login.usernameRequired')"
           maxlength="30"
         />
       </view>
@@ -48,7 +48,7 @@
           v-model="loginForm.password"
           type="password"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-          :placeholder="$t('common:login.passwordRequired')"
+          :placeholder="$t('auth:login.passwordRequired')"
           maxlength="20"
         />
       </view>
@@ -68,7 +68,7 @@
             v-model="loginForm.code"
             type="number"
             class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-            :placeholder="$t('common:login.code')"
+            :placeholder="$t('auth:login.code')"
             maxlength="4"
           />
         </view>
@@ -88,7 +88,7 @@
         @click="handleLogin"
         class="flex h-12 w-full items-center justify-center rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-transform active:scale-95"
       >
-        {{ $t('mobile:auth.login') }}
+        {{ $t('auth:login.submit') }}
       </button>
 
       <!-- Footer Links -->
@@ -97,26 +97,26 @@
           class="flex items-center text-sm text-gray-500"
           v-if="register"
         >
-          <text>{{ $t('mobile:auth.noAccount') }}</text>
+          <text>{{ $t('auth:login.noAccount') }}</text>
           <text
             @click="handleUserRegister"
             class="ml-1 font-medium text-blue-600 active:opacity-70"
-            >{{ $t('mobile:auth.registerNow') }}</text
+            >{{ $t('auth:login.registerLink') }}</text
           >
         </view>
 
         <view class="flex flex-wrap items-center justify-center text-xs text-gray-400">
-          <text>{{ $t('mobile:auth.acceptTerms') }}</text>
+          <text>{{ $t('auth:login.acceptTerms') }}</text>
           <text
             @click="handleUserAgrement"
             class="mx-1 text-blue-500 active:opacity-70"
-            >{{ $t('mobile:auth.agreementLink') }}</text
+            >{{ $t('auth:login.agreementLink') }}</text
           >
-          <text>{{ $t('mobile:auth.and') }}</text>
+          <text>{{ $t('auth:login.and') }}</text>
           <text
             @click="handlePrivacy"
             class="mx-1 text-blue-500 active:opacity-70"
-            >{{ $t('mobile:auth.privacyLink') }}</text
+            >{{ $t('auth:login.privacyLink') }}</text
           >
         </view>
       </view>
@@ -175,13 +175,13 @@ function getCode() {
 // 登录方法
 async function handleLogin() {
   if (loginForm.value.username === '') {
-    proxy.$modal.msgError(t('mobile:auth.usernamePlaceholder'))
+    proxy.$modal.msgError(t('auth:login.usernamePlaceholder'))
   } else if (loginForm.value.password === '') {
-    proxy.$modal.msgError(t('mobile:auth.passwordPlaceholder'))
+    proxy.$modal.msgError(t('auth:login.passwordPlaceholder'))
   } else if (loginForm.value.code === '' && captchaEnabled.value) {
-    proxy.$modal.msgError(t('common:login.codeRequired'))
+    proxy.$modal.msgError(t('auth:login.codeRequired'))
   } else {
-    proxy.$modal.loading(t('mobile:auth.signingIn'))
+    proxy.$modal.loading(t('auth:login.signingIn'))
     pwdLogin()
   }
 }

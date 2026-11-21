@@ -1,4 +1,3 @@
-import gettext
 import io
 import json
 import re
@@ -145,7 +144,7 @@ def test_backend_only_generation_needs_no_frontend_checkout(
     assert info[2]['generatedI18n'].locales == expected
     for locale in expected:
         assert f'frontend/src/i18n/locales/{locale}/generated.test.item.json' in files
-        assert f'backend/i18n/catalogs/{locale}/LC_MESSAGES/core.po' in files
+        assert f'backend/i18n/catalogs/{locale}/LC_MESSAGES/core/generated.test.item.po' in files
 
 
 def test_explicit_languages_do_not_require_reading_target_metadata(
@@ -238,7 +237,7 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
         english['fields']['itemName']['label'] = 'Handwritten name'
         english['custom'] = {'kept': 'Manual text'}
         path.write_text(json.dumps(english), encoding='utf-8')
-        po_path = tmp_path / 'backend/i18n/catalogs/en-US/LC_MESSAGES/core.po'
+        po_path = tmp_path / 'backend/i18n/catalogs/en-US/LC_MESSAGES/core/generated.test.item.po'
         po_path.write_text(
             GenI18nUtil.merge_po(
                 GenI18nUtil.po_content({'generated.test.item.fields.itemName.label': 'Manual export heading'}, 'en-US'),
@@ -254,9 +253,11 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
         assert english['fields']['newLabel']['label'] == ''
         pending = json.loads((tmp_path / 'i18n/generated.test.item.pending.json').read_text(encoding='utf-8'))
         assert 'generated.test.item:fields.itemName.label' not in pending['en-US']['frontend']
-        with po_path.with_suffix('.mo').open('rb') as compiled:
-            translations = gettext.GNUTranslations(compiled)
-        assert translations.gettext('generated.test.item.fields.itemName.label') == 'Manual export heading'
+        with po_path.open('rb') as source:
+            catalog = read_po(source)
+        assert catalog['generated.test.item.fields.itemName.label'].string == 'Manual export heading'
+        assert 'generated.test.item.fields.newLabel.label' in catalog
+        assert not list((tmp_path / 'backend').rglob('*.mo'))
 
         with patch(
             'module_generator.service.gen_service.GenTableDao.get_gen_table_names',
@@ -266,7 +267,8 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
     with zipfile.ZipFile(io.BytesIO(content)) as archive:
         assert 'frontend/src/views/test/item/index.vue' in archive.namelist()
         assert 'frontend/src/i18n/locales/zh-CN/generated.test.item.json' in archive.namelist()
-        assert 'backend/i18n/catalogs/zh-CN/LC_MESSAGES/core.mo' in archive.namelist()
+        assert 'backend/i18n/catalogs/zh-CN/LC_MESSAGES/core/generated.test.item.po' in archive.namelist()
+        assert not any(name.endswith('.mo') for name in archive.namelist())
         assert 'i18n/generated.test.item.pending.json' in archive.namelist()
 
     with (
@@ -281,18 +283,28 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
         preview = await GenTableService.preview_code_services(object(), 1)
     assert 'vue/index.vue.jinja2' in preview
     assert 'frontend/src/i18n/locales/zh-CN/generated.test.item.json' in preview
+    assert 'backend/i18n/catalogs/zh-CN/LC_MESSAGES/core/generated.test.item.po' in preview
 
 
 @pytest.mark.asyncio
-async def test_invalid_existing_catalog_stops_before_overwriting_generated_source(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ('relative_path', 'invalid'),
+    [
+        ('frontend/src/i18n/locales/en-US/generated.test.item.json', '{invalid'),
+        ('backend/i18n/catalogs/en-US/LC_MESSAGES/core/generated.test.item.po', 'msgid "broken"\nmsgstr no-quotes'),
+    ],
+)
+async def test_invalid_existing_catalog_stops_before_overwriting_generated_source(
+    tmp_path: Path, relative_path: str, invalid: str
+) -> None:
     table = make_table('mysql', 'crud', 'element-ui')
     table.gen_path = str(tmp_path)
     source = tmp_path / 'frontend/src/views/test/item/index.vue'
     source.parent.mkdir(parents=True)
     source.write_text('Keep the existing source', encoding='utf-8')
-    catalog = tmp_path / 'frontend/src/i18n/locales/en-US/generated.test.item.json'
+    catalog = tmp_path / relative_path
     catalog.parent.mkdir(parents=True)
-    catalog.write_text('{invalid', encoding='utf-8')
+    catalog.write_text(invalid, encoding='utf-8')
     with (
         patch.object(
             GenTableService, '_GenTableService__get_gen_render_info', new=AsyncMock(return_value=render_info(table))
@@ -302,30 +314,11 @@ async def test_invalid_existing_catalog_stops_before_overwriting_generated_sourc
         await GenTableService.generate_code_services(object(), table.table_name)
     assert caught.value.msg_key == 'generator.i18nCatalogInvalid'
     assert source.read_text(encoding='utf-8') == 'Keep the existing source'
-    assert catalog.read_text(encoding='utf-8') == '{invalid'
-
-
-@pytest.mark.asyncio
-async def test_catalog_compilation_finishes_before_any_generated_file_is_written(tmp_path: Path) -> None:
-    table = make_table('mysql', 'crud', 'element-ui')
-    table.gen_path = str(tmp_path)
-    source = tmp_path / 'frontend/src/views/test/item/index.vue'
-    source.parent.mkdir(parents=True)
-    source.write_text('Keep the existing source', encoding='utf-8')
-    with (
-        patch.object(
-            GenTableService, '_GenTableService__get_gen_render_info', new=AsyncMock(return_value=render_info(table))
-        ),
-        patch.object(GenI18nUtil, 'compile_po', side_effect=[b'compiled source', ValueError('Invalid target catalog')]),
-        pytest.raises(ServiceException),
-    ):
-        await GenTableService.generate_code_services(object(), table.table_name)
-    assert source.read_text(encoding='utf-8') == 'Keep the existing source'
-    assert not (tmp_path / 'backend').exists()
+    assert catalog.read_text(encoding='utf-8') == invalid
 
 
 def test_invalid_po_is_rejected_and_unreviewed_translations_stay_pending() -> None:
-    path = 'backend/i18n/catalogs/en-US/LC_MESSAGES/core.po'
+    path = 'backend/i18n/catalogs/en-US/LC_MESSAGES/core/generated.test.item.po'
     table = make_table('mysql', 'crud', 'element-ui')
     info, files = render_files(table)
     with pytest.raises(ServiceWarning) as caught:
@@ -344,7 +337,7 @@ def test_invalid_po_is_rejected_and_unreviewed_translations_stay_pending() -> No
 
 
 @pytest.mark.asyncio
-async def test_batch_generation_merges_backend_catalogs_without_duplicate_zip_entries() -> None:
+async def test_batch_generation_writes_one_backend_catalog_per_business_module() -> None:
     first = make_table('mysql', 'crud', 'element-ui')
     second = first.model_copy(deep=True)
     second.table_name = 'second_table'
@@ -365,9 +358,13 @@ async def test_batch_generation_merges_backend_catalogs_without_duplicate_zip_en
         content = await GenTableService.batch_gen_code_services(object(), list(tables))
     with zipfile.ZipFile(io.BytesIO(content)) as archive:
         assert len(archive.namelist()) == len(set(archive.namelist()))
-        catalog = read_po(io.BytesIO(archive.read('backend/i18n/catalogs/zh-CN/LC_MESSAGES/core.po')))
-        assert 'generated.test.item.fields.itemName.label' in catalog
-        assert 'generated.test.second.fields.itemName.label' in catalog
+        for locale in ('zh-CN', 'en-US'):
+            for business in ('item', 'second'):
+                namespace = f'generated.test.{business}'
+                path = f'backend/i18n/catalogs/{locale}/LC_MESSAGES/core/{namespace}.po'
+                catalog = read_po(io.BytesIO(archive.read(path)))
+                assert f'{namespace}.fields.itemName.label' in catalog
+                assert all(message.id.startswith(f'{namespace}.') for message in catalog if message.id)
 
 
 def test_generated_output_does_not_write_directly_into_an_existing_application() -> None:

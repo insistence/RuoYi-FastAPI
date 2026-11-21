@@ -17,7 +17,7 @@ export default function Screenfull() {
   return (
     <Button
       className="header-icon-button"
-      aria-label={active ? t('common:exitFullScreen') : t('common:fullScreen')}
+      aria-label={active ? t('common:exitFullScreen') : t('components:fullScreen.fullScreen')}
       type="text"
       icon={active ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
       onClick={async () => {
@@ -25,9 +25,9 @@ export default function Screenfull() {
           if (document.fullscreenElement) await document.exitFullscreen()
           else if (document.documentElement.requestFullscreen)
             await document.documentElement.requestFullscreen()
-          else message.warning(t('common:thisBrowserDoesNotSupportFullScreen'))
+          else message.warning(t('components:fullScreen.thisBrowserDoesNotSupportFullScreen'))
         } catch {
-          message.warning(t('common:unableToChangeFullScreenModeCheckYourBrowser'))
+          message.warning(t('components:fullScreen.unableToChangeFullScreenModeCheckYourBrowser'))
         }
       }}
     />

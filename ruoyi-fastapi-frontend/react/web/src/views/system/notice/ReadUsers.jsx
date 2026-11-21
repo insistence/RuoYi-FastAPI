@@ -44,7 +44,7 @@ export default function ReadUsers({ row, onClose }) {
   return (
     <Modal
       className="notice-read-users"
-      title={t('system:usersWhoReadValue', { arg0: row?.noticeTitle || '' })}
+      title={t('system:notice.usersWhoReadValue', { arg0: row?.noticeTitle || '' })}
       open={!!row}
       onCancel={onClose}
       footer={null}
@@ -60,7 +60,7 @@ export default function ReadUsers({ row, onClose }) {
         <Form.Item name="searchValue">
           <Input
             prefix={<SearchOutlined />}
-            placeholder={t('system:loginNameUserName')}
+            placeholder={t('system:notice.loginNameUserName')}
             allowClear
             style={{ width: 220 }}
             onClear={() => {
@@ -90,7 +90,7 @@ export default function ReadUsers({ row, onClose }) {
           </Space>
         </Form.Item>
         <span className="read-stat">
-          {t('common:total')} <strong>{total}</strong> {t('system:readers')}
+          {t('common:total')} <strong>{total}</strong> {t('system:notice.readers')}
         </span>
       </Form>
       <Table
@@ -123,7 +123,7 @@ export default function ReadUsers({ row, onClose }) {
           {
             width: 160,
             align: 'center',
-            title: t('system:readAt'),
+            title: t('system:notice.readAt'),
             dataIndex: 'readTime',
             render: (value) => parseTime(value),
           },

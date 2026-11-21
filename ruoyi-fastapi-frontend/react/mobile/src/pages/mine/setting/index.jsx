@@ -19,7 +19,7 @@ export default function Settings() {
       confirmText: t('common:confirm'),
       cancelText: t('common:cancel'),
       title: t('common:notice'),
-      content: t('mobile:areYouSureYouWantToSignOut'),
+      content: t('mobile:settings.signOutConfirm'),
     })
     if (!answer.confirm) return
     setBusy(true)
@@ -37,17 +37,15 @@ export default function Settings() {
       <View className="bg-white">
         <LanguageSelect settings />
         {[
-          [t('mobile:changePassword'), 'lock', '/pages/mine/pwd/index'],
-          [t('mobile:timeZoneSettings'), 'earth', '/pages/mine/setting/timezone'],
-          [t('mobile:checkForUpdates'), 'refresh'],
-          [t('mobile:clearCache'), 'delete'],
+          [t('auth:password.title'), 'lock', '/pages/mine/pwd/index'],
+          [t('mobile:timezone.title'), 'earth', '/pages/mine/setting/timezone'],
+          [t('mobile:settings.checkUpdates'), 'refresh'],
+          [t('mobile:settings.clearCache'), 'delete'],
         ].map(([label, icon, url], index) => (
           <View
             key={label}
             className={`flex items-center justify-between px-5 py-4 ${index < 3 ? 'border-b border-gray-100' : ''}`}
-            onClick={() =>
-              url ? Taro.navigateTo({ url }) : toast(t('mobile:thisFeatureIsUnderDevelopment'))
-            }
+            onClick={() => (url ? Taro.navigateTo({ url }) : toast(t('mobile:app.comingSoon')))}
           >
             <View className="flex items-center">
               <View className={`i-mdi-${icon} text-xl text-gray-600 mr-3`} />
@@ -64,7 +62,7 @@ export default function Settings() {
           loading={busy}
           onClick={logout}
         >
-          {t('mobile:signOut')}
+          {t('mobile:settings.signOut')}
         </Button>
       </View>
     </View>

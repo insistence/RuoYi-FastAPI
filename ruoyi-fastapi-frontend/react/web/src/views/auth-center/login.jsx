@@ -118,7 +118,7 @@ export default function AuthCenterLogin() {
             disabled={initializing || submitting}
           >
             <Form.Item
-              label={t('common:login.username')}
+              label={t('auth:login.username')}
               name="userName"
               rules={[{ required: true, message: t('authCenter:enterYourUsername') }]}
             >
@@ -131,7 +131,7 @@ export default function AuthCenterLogin() {
               />
             </Form.Item>
             <Form.Item
-              label={t('common:login.password')}
+              label={t('auth:login.password')}
               name="password"
               rules={[{ required: true, message: t('authCenter:auth-center.enterYourPassword') }]}
             >

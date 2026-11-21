@@ -25,41 +25,41 @@ export function splitRegisteredUris(value) {
  */
 export function validateRegisteredUri(value, uriType) {
   if (!URI_TYPES.has(uriType)) {
-    throw new Error(t('common:invalidUriType'))
+    throw new Error(t('oauth:uri.invalidUriType'))
   }
   if (typeof value !== 'string' || !value || value.length > 1000) {
-    throw new Error(t('common:uriMustContain11000Characters'))
+    throw new Error(t('oauth:uri.uriMustContain11000Characters'))
   }
   if (value.includes('*')) {
-    throw new Error(t('common:wildcardsAreNotAllowedInUris'))
+    throw new Error(t('oauth:uri.wildcardsAreNotAllowedInUris'))
   }
 
   let target
   try {
     target = new URL(value)
   } catch {
-    throw new Error(t('common:uriMustBeACompleteHttpOrHttpsUrl'))
+    throw new Error(t('oauth:uri.uriMustBeACompleteHttpOrHttpsUrl'))
   }
   if (!['http:', 'https:'].includes(target.protocol) || !target.hostname) {
-    throw new Error(t('common:uriMustBeACompleteHttpOrHttpsUrl'))
+    throw new Error(t('oauth:uri.uriMustBeACompleteHttpOrHttpsUrl'))
   }
   if (target.username || target.password) {
-    throw new Error(t('common:uriMustNotContainUserInformation'))
+    throw new Error(t('oauth:uri.uriMustNotContainUserInformation'))
   }
   if (target.hash) {
-    throw new Error(t('common:uriMustNotContainAFragment'))
+    throw new Error(t('oauth:uri.uriMustNotContainAFragment'))
   }
   if (target.protocol === 'http:' && !DEVELOPMENT_HTTP_HOSTS.has(target.hostname.toLowerCase())) {
-    throw new Error(t('common:httpIsAllowedOnlyForLocalDevelopmentAddresses'))
+    throw new Error(t('oauth:uri.httpIsAllowedOnlyForLocalDevelopmentAddresses'))
   }
   if (uriType === 'backchannel_logout' && target.search) {
-    throw new Error(t('common:backChannelUriMustNotContainQueryParameters'))
+    throw new Error(t('oauth:uri.backChannelUriMustNotContainQueryParameters'))
   }
   if (
     uriType === 'cors_origin' &&
     (target.pathname !== '/' || target.search || value.endsWith('/'))
   ) {
-    throw new Error(t('common:corsOriginMayContainOnlyASchemeHostAnd'))
+    throw new Error(t('oauth:uri.corsOriginMayContainOnlyASchemeHostAnd'))
   }
   return value
 }
@@ -76,7 +76,7 @@ export function validateRegisteredUri(value, uriType) {
 export function validateRegisteredUriList(value, uriType, required = false) {
   const uris = splitRegisteredUris(value)
   if (required && uris.length === 0) {
-    throw new Error(t('common:enterAtLeastOneRedirectUri'))
+    throw new Error(t('oauth:uri.enterAtLeastOneRedirectUri'))
   }
   uris.forEach((uri) => validateRegisteredUri(uri, uriType))
   return uris

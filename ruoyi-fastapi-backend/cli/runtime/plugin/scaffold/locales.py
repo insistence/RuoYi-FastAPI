@@ -101,7 +101,6 @@ export const { t, useI18n, registerPluginLocales, removePluginLocales } = plugin
 import projectResources from '../../scripts/x18n-project.mjs'
 const meta = JSON.parse(readFileSync(new URL('./locale-meta.json', import.meta.url), 'utf8'))
 export default {{
-  name: 'plugin.{plugin_id}',
   sourceLocale: meta.sourceLocale,
   locales: meta.locales.filter(entry => entry.enabled).map(entry => entry.code),
   presets: ['i18next'],

@@ -3,7 +3,7 @@
     <section
       class="auth-shell"
       :class="{ 'is-compact': !showProgress }"
-      :aria-label="$t('authCenter:messages.authenticationCenter')"
+      :aria-label="$t('authCenter:shell.authenticationCenter')"
     >
       <aside class="trust-panel">
         <div>
@@ -16,17 +16,17 @@
             ></span>
             <div>
               <strong>{{ productTitle }}</strong
-              ><small>{{ $t('authCenter:messages.authenticationCenter') }}</small>
+              ><small>{{ $t('authCenter:shell.authenticationCenter') }}</small>
             </div>
           </div>
 
           <div class="trust-copy">
-            <p class="trust-kicker">{{ $t('authCenter:messages.secureConnection') }}</p>
-            <h1>{{ $t('authCenter:messages.verifyYourIdentityAndReturnSecurelyToTheApp') }}</h1>
+            <p class="trust-kicker">{{ $t('authCenter:shell.secureConnection') }}</p>
+            <h1>{{ $t('authCenter:shell.verifyYourIdentityAndReturnSecurelyToTheApp') }}</h1>
             <p>
               {{
                 $t(
-                  'authCenter:messages.authenticationTakesPlaceHereYourPasswordVerificationCodeAndSignInSession'
+                  'authCenter:shell.authenticationTakesPlaceHereYourPasswordVerificationCodeAndSignInSession'
                 )
               }}
             </p>
@@ -36,13 +36,11 @@
             v-if="applicationName || applicationId"
             class="application-card"
           >
-            <small>{{ $t('authCenter:messages.appRequestingAccess') }}</small>
+            <small>{{ $t('authCenter:shell.appRequestingAccess') }}</small>
             <div class="application-identity">
               <span>{{ applicationInitial }}</span>
               <div>
-                <strong>{{
-                  applicationName || $t('authCenter:expression.externalApplication')
-                }}</strong
+                <strong>{{ applicationName || $t('authCenter:shell.externalApplication') }}</strong
                 ><code v-if="applicationId">{{ applicationId }}</code>
               </div>
             </div>
@@ -55,7 +53,7 @@
                 aria-hidden="true"
               ></i
               ><span>{{
-                $t('authCenter:messages.onlyInformationYouExplicitlyApproveWillBeShared')
+                $t('authCenter:shell.onlyInformationYouExplicitlyApproveWillBeShared')
               }}</span>
             </li>
             <li>
@@ -64,7 +62,7 @@
                 aria-hidden="true"
               ></i
               ><span>{{
-                $t('authCenter:messages.youCanCancelAndReturnToTheAppThatRequestedSignIn')
+                $t('authCenter:shell.youCanCancelAndReturnToTheAppThatRequestedSignIn')
               }}</span>
             </li>
           </ul>
@@ -76,9 +74,9 @@
             aria-hidden="true"
           />
           <span v-if="hasExpiry">{{
-            $t('authCenter:request.expiresIn', { time: formatTime(remainingSeconds) })
+            $t('authCenter:shell.expiresIn', { time: formatTime(remainingSeconds) })
           }}</span>
-          <span v-else>{{ $t('authCenter:messages.protectedAuthenticationConnection') }}</span>
+          <span v-else>{{ $t('authCenter:shell.protectedAuthenticationConnection') }}</span>
         </div>
       </aside>
 
@@ -86,9 +84,9 @@
         <div
           v-if="showProgress"
           class="progress-wrap"
-          :aria-label="$t('authCenter:messages.authenticationProgress')"
+          :aria-label="$t('authCenter:shell.authenticationProgress')"
         >
-          <span>{{ $t('authCenter:messages.authenticationProgress') }}</span>
+          <span>{{ $t('authCenter:shell.authenticationProgress') }}</span>
           <el-steps
             :active="currentStep"
             finish-status="success"
@@ -110,7 +108,7 @@
           <span
             >{{ productTitle }}
             {{
-              $t('authCenter:messages.yourPasswordAndVerificationCodeWillNotBeSharedWithTheApp')
+              $t('authCenter:shell.yourPasswordAndVerificationCodeWillNotBeSharedWithTheApp')
             }}</span
           >
         </footer>
@@ -128,8 +126,8 @@ const props = defineProps({
   steps: {
     type: Array,
     default: () => [
-      t('authCenter:messages.verifyIdentity'),
-      t('authCenter:messages.confirmPermissions'),
+      t('authCenter:shared.verifyIdentity'),
+      t('authCenter:shared.confirmPermissions'),
     ],
   },
   expiresIn: { type: Number, default: 0 },

@@ -1,0 +1,38 @@
+{
+  "overview": {
+    "justNow": "Just now",
+    "reference": "Reference",
+    "team": "Team",
+    "6YearsAgo": "6 years ago",
+    "reputation": "Reputation",
+    "output": "Output",
+    "contribution": "Contribution",
+    "popularity": "Popularity",
+    "actionValue": "Action {{number}}",
+    "addShortcut": "Add shortcut",
+    "enterAnApplicationPathOrAnHttpSUrl": "Enter an application path or an HTTP(S) URL",
+    "interactionDesignerAntFinancialBusinessGroupPlatformDivisionTechnology": "Interaction designer | Ant Financial · Business group · Platform division · Technology department · UED",
+    "projects": "Projects",
+    "teamRanking": "Team ranking",
+    "projectVisits": "Project visits",
+    "allProjects": "All projects",
+    "projectsInProgress": "Projects in progress",
+    "quickStartShortcuts": "Quick start / Shortcuts",
+    "performanceIndex": "Performance index",
+    "exampleRadarChartComparingIndividualsTeamsAndDepartmentsAcross": "Example radar chart comparing individuals, teams and departments across citations, reputation, output, contribution and popularity"
+  },
+  "activity": {
+    "inText": "in",
+    "createdAProjectText": "created a project",
+    "markedText": "marked",
+    "asPublishedText": "as published",
+    "publishedText": "published",
+    "created": "<user/> created project <project/> in <group/>",
+    "published": "<user/> published <project/> in <group/>",
+    "updated": "<user/> marked <group/> as published",
+    "title": "Activity"
+  },
+  "add": "Add",
+  "individual": "Individual",
+  "greeting": "Good morning, {{name}}. Have a great day!"
+}

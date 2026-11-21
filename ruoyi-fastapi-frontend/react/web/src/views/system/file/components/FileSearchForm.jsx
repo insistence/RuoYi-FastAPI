@@ -33,7 +33,7 @@ export default function FileSearchForm({ show, deptOptions, onQuery }) {
         label={t('file:name')}
       >
         <Input
-          placeholder={t('system:enterTheOriginalFileName')}
+          placeholder={t('file:shared.enterTheOriginalFileName')}
           allowClear
         />
       </Form.Item>
@@ -43,35 +43,35 @@ export default function FileSearchForm({ show, deptOptions, onQuery }) {
       >
         <Select
           style={{ width: 200 }}
-          placeholder={t('system:selectAnAccessType')}
+          placeholder={t('file:search.selectAnAccessType')}
           allowClear
           options={[
-            { value: 'public', label: t('system:publicFiles') },
-            { value: 'private', label: t('system:protectedFiles') },
+            { value: 'public', label: t('file:shared.publicFiles') },
+            { value: 'private', label: t('file:shared.protectedFiles') },
           ]}
         />
       </Form.Item>
       <Form.Item
         name="status"
-        label={t('system:fileStatus')}
+        label={t('file:shared.fileStatus')}
       >
         <Select
           style={{ width: 200 }}
-          placeholder={t('system:selectAFileStatus')}
+          placeholder={t('file:search.selectAFileStatus')}
           allowClear
           options={[
             { value: 'active', label: t('layout:notices.active') },
-            { value: 'deleted', label: t('system:deleted') },
-            { value: 'purging', label: t('system:deleting') },
+            { value: 'deleted', label: t('file:shared.deleted') },
+            { value: 'purging', label: t('file:shared.deleting') },
           ]}
         />
       </Form.Item>
       <Form.Item
         name="createBy"
-        label={t('system:uploader')}
+        label={t('file:shared.uploader')}
       >
         <Input
-          placeholder={t('system:enterAnUploader')}
+          placeholder={t('file:search.enterAnUploader')}
           allowClear
         />
       </Form.Item>
@@ -80,7 +80,7 @@ export default function FileSearchForm({ show, deptOptions, onQuery }) {
         label={t('file:owner')}
       >
         <Input
-          placeholder={t('system:enterAnOwner')}
+          placeholder={t('file:search.enterAnOwner')}
           allowClear
         />
       </Form.Item>
@@ -89,7 +89,7 @@ export default function FileSearchForm({ show, deptOptions, onQuery }) {
         label={t('system:user.department')}
       >
         <TreeSelect
-          placeholder={t('system:components.selectADepartment')}
+          placeholder={t('file:shared.selectADepartment')}
           allowClear
           showSearch
           treeNodeFilterProp="label"
@@ -100,27 +100,27 @@ export default function FileSearchForm({ show, deptOptions, onQuery }) {
       </Form.Item>
       <Form.Item
         name="expirationStatus"
-        label={t('system:expiryStatus')}
+        label={t('file:search.expiryStatus')}
       >
         <Select
           style={{ width: 200 }}
-          placeholder={t('system:selectAnExpiryStatus')}
+          placeholder={t('file:search.selectAnExpiryStatus')}
           allowClear
           options={[
-            ['permanent', t('system:noExpiry')],
-            ['valid', t('system:valid')],
-            ['expiring', t('system:expiresWithin7Days')],
+            ['permanent', t('file:shared.noExpiry')],
+            ['valid', t('file:search.valid')],
+            ['expiring', t('file:search.expiresWithin7Days')],
             ['expired', t('common:expired')],
           ].map(([value, label]) => ({ value, label }))}
         />
       </Form.Item>
       <Form.Item
         name="dateRange"
-        label={t('system:uploadedAt')}
+        label={t('file:shared.uploadedAt')}
       >
         <BusinessDateTimeRangePicker
           separator="-"
-          label={t('system:uploadedAt')}
+          label={t('file:shared.uploadedAt')}
           style={{ width: 200 }}
         />
       </Form.Item>

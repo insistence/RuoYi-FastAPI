@@ -89,7 +89,7 @@ async function expireSession() {
   if (isRelogin.show) return
   isRelogin.show = true
   try {
-    await confirm(t('common:utils.yourSessionHasExpiredSignInAgain'))
+    await confirm(t('common:session.expiredPrompt'))
     removeToken()
     location.assign(`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`)
   } catch {

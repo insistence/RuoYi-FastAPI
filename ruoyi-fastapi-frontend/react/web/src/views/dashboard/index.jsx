@@ -19,8 +19,8 @@ export default function Dashboard() {
   const radarContainer = useRef(null)
   useEffect(() => {
     const names = {
-      personal: t('common:dashboard.individual'),
-      team: t('common:team'),
+      personal: t('dashboard:individual'),
+      team: t('dashboard:overview.team'),
       department: t('system:dept.nameShort'),
     }
     const chart = echarts.init(radarContainer.current)
@@ -89,24 +89,26 @@ export default function Dashboard() {
             src={user.avatar}
           />
           <div>
-            <h1>{t('common:dashboard.greeting', { name: user.name })}</h1>
+            <h1>{t('dashboard:greeting', { name: user.name })}</h1>
             <p>
-              {t('common:interactionDesignerAntFinancialBusinessGroupPlatformDivisionTechnology')}
+              {t(
+                'dashboard:overview.interactionDesignerAntFinancialBusinessGroupPlatformDivisionTechnology'
+              )}
             </p>
           </div>
         </div>
         <div className="dashboard-stats">
           <Statistic
-            title={t('common:projects')}
+            title={t('dashboard:overview.projects')}
             value={56}
           />
           <Statistic
-            title={t('common:teamRanking')}
+            title={t('dashboard:overview.teamRanking')}
             value={8}
             suffix="/ 24"
           />
           <Statistic
-            title={t('common:projectVisits')}
+            title={t('dashboard:overview.projectVisits')}
             value={2223}
           />
         </div>
@@ -119,8 +121,8 @@ export default function Dashboard() {
           >
             <Card
               variant="borderless"
-              extra={<a href="">{t('common:allProjects')}</a>}
-              title={t('common:projectsInProgress')}
+              extra={<a href="">{t('dashboard:overview.allProjects')}</a>}
+              title={t('dashboard:overview.projectsInProgress')}
               className="dashboard-section dashboard-projects"
             >
               {projectNotice.map((item) => (
@@ -154,7 +156,7 @@ export default function Dashboard() {
             </Card>
             <Card
               variant="borderless"
-              title={t('common:activity')}
+              title={t('dashboard:activity.title')}
               className="dashboard-activities"
             >
               <ul>
@@ -189,14 +191,14 @@ export default function Dashboard() {
           >
             <Card
               variant="borderless"
-              title={t('common:quickStartShortcuts')}
+              title={t('dashboard:overview.quickStartShortcuts')}
               className="dashboard-section dashboard-navigation"
             >
               <EditableLinkGroup />
             </Card>
             <Card
               variant="borderless"
-              title={t('common:performanceIndex')}
+              title={t('dashboard:overview.performanceIndex')}
               className="dashboard-section"
             >
               <div
@@ -204,13 +206,13 @@ export default function Dashboard() {
                 className="dashboard-radar"
                 role="img"
                 aria-label={t(
-                  'common:exampleRadarChartComparingIndividualsTeamsAndDepartmentsAcross'
+                  'dashboard:overview.exampleRadarChartComparingIndividualsTeamsAndDepartmentsAcross'
                 )}
               />
             </Card>
             <Card
               variant="borderless"
-              title={t('common:team')}
+              title={t('dashboard:overview.team')}
               className="dashboard-teams"
             >
               <Row gutter={48}>

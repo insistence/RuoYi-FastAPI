@@ -373,26 +373,17 @@ class GenTableService:
             output_root = cls.__get_output_root(render_info[3])
             files = cls.__render_files(env, render_info)
             output_paths = {name: cls.__get_output_path(output_root, name) for name in files}
-            # 全部词库解析、合并及编译成功后才开始写入，避免无效资源造成半份产物。
+            # 全部词库解析、合并成功后才开始写入，避免无效资源造成半份产物。
             for relative_path, content in files.items():
                 output_path = output_paths[relative_path]
                 if output_path.exists():
                     existing = output_path.read_text(encoding='utf-8')
                     files[relative_path] = GenI18nUtil.merge_content(relative_path, existing, content)
             render_info[2]['generatedI18n'].refresh_pending(files)
-            compiled = {
-                relative_path[:-3] + '.mo': GenI18nUtil.compile_po(content)
-                for relative_path, content in files.items()
-                if relative_path.startswith('backend/i18n/catalogs/') and relative_path.endswith('.po')
-            }
-            output_paths.update({name: cls.__get_output_path(output_root, name) for name in compiled})
             for relative_path, content in files.items():
                 output_path = output_paths[relative_path]
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 async with aiofiles.open(output_path, 'w', encoding='utf-8') as output:
-                    await output.write(content)
-            for relative_path, content in compiled.items():
-                async with aiofiles.open(output_paths[relative_path], 'wb') as output:
                     await output.write(content)
         except ServiceWarning:
             raise
@@ -443,8 +434,6 @@ class GenTableService:
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for path, content in files.items():
                 zip_file.writestr(path, content)
-                if path.startswith('backend/i18n/catalogs/') and path.endswith('.po'):
-                    zip_file.writestr(path[:-3] + '.mo', GenI18nUtil.compile_po(content))
 
         zip_data = zip_buffer.getvalue()
         zip_buffer.close()

@@ -1,0 +1,62 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "cache.allCleared"
+msgstr "所有缓存清除成功"
+
+msgid "cache.keyCleared"
+msgstr "%(cache_key)s清除成功"
+
+msgid "cache.namespaceCleared"
+msgstr "%(cache_name)s对应键值清除成功"
+
+msgid "job.addDuplicate"
+msgstr "新增定时任务%(job_name)s失败，定时任务已存在"
+
+msgid "job.editDuplicate"
+msgstr "修改定时任务%(job_name)s失败，定时任务已存在"
+
+msgid "job.executionNotFound"
+msgstr "执行记录不存在"
+
+msgid "job.executionSubmitted"
+msgstr "已提交执行，请查看执行记录"
+
+msgid "job.idRequired"
+msgstr "传入定时任务id为空"
+
+msgid "job.invalidConfiguration"
+msgstr "任务配置无效"
+
+msgid "job.invalidId"
+msgstr "任务ID必须为正整数"
+
+msgid "job.notFound"
+msgstr "定时任务不存在"
+
+msgid "job.syncNotFound"
+msgstr "调度同步记录不存在"
+
+msgid "log.operationIdRequired"
+msgstr "传入操作日志id为空"
+
+msgid "log.signInIdRequired"
+msgstr "传入登录日志id为空"
+
+msgid "log.userNotLocked"
+msgstr "该用户未锁定"
+
+msgid "monitor.uptime"
+msgstr "%(days)s天%(hours)s小时%(minutes)s分钟"

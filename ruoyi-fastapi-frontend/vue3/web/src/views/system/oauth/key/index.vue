@@ -2,8 +2,8 @@
   <div class="oauth-route-page">
     <PageFrame
       :section="$t('monitor:securityOperations')"
-      :title="$t('oauth:signingKeys')"
-      :description="$t('oauth:manageSigningKeysUsedToProveTheAuthenticityOfIdentity')"
+      :title="$t('oauth:key.signingKeys')"
+      :description="$t('oauth:key.manageSigningKeysUsedToProveTheAuthenticityOfIdentity')"
     >
       <template #actions>
         <el-button
@@ -12,7 +12,7 @@
           v-hasPermi="['system:oauthKey:rotate']"
           @click="openRotation"
         >
-          {{ $t('oauth:scheduleKeyRotation') }}</el-button
+          {{ $t('oauth:key.scheduleKeyRotation') }}</el-button
         >
       </template>
 
@@ -26,7 +26,7 @@
               ><el-icon><Lock /></el-icon
             ></span>
             <div>
-              <small>{{ $t('oauth:authenticationService') }}</small>
+              <small>{{ $t('oauth:key.authenticationService') }}</small>
               <strong>{{ serviceStatus.title }}</strong>
               <p>{{ serviceStatus.description }}</p>
             </div>
@@ -42,15 +42,15 @@
               ><el-icon><Key /></el-icon
             ></span>
             <div>
-              <small>{{ $t('oauth:currentSigningKey') }}</small>
-              <strong>{{ activeKey?.kid || $t('oauth:notActivated') }}</strong>
+              <small>{{ $t('oauth:key.currentSigningKey') }}</small>
+              <strong>{{ activeKey?.kid || $t('common:notActivated') }}</strong>
               <p>
                 {{
                   activeKey
-                    ? $t('oauth:issueNewCredentialsFromValue', {
+                    ? $t('oauth:key.issueNewCredentialsFromValue', {
                         value0: parseTime(activeKey.signingStartAt) || '计划时间',
                       })
-                    : $t('oauth:firstActivateAKeyWhosePublicKeyHasBeenPublished')
+                    : $t('oauth:key.firstActivateAKeyWhosePublicKeyHasBeenPublished')
                 }}
               </p>
             </div>
@@ -66,15 +66,15 @@
               ><el-icon><Clock /></el-icon
             ></span>
             <div>
-              <small>{{ $t('oauth:nextRotation') }}</small>
-              <strong>{{ nextKey?.kid || $t('oauth:notScheduled') }}</strong>
+              <small>{{ $t('oauth:key.nextRotation') }}</small>
+              <strong>{{ nextKey?.kid || $t('oauth:key.notScheduled') }}</strong>
               <p>
                 {{
                   nextKey
-                    ? $t('oauth:scheduledToTakeOverSigningAtValue', {
+                    ? $t('oauth:key.scheduledToTakeOverSigningAtValue', {
                         value0: parseTime(nextKey.signingStartAt) || '待确认时间',
                       })
-                    : $t('oauth:scheduleRotationBeforeTheCurrentKeyExpires')
+                    : $t('oauth:key.scheduleRotationBeforeTheCurrentKeyExpires')
                 }}
               </p>
             </div>
@@ -84,7 +84,7 @@
 
       <template #toolbar>
         <span class="result-count"
-          >{{ $t('system:total') }}<strong>{{ total }}</strong> {{ $t('oauth:keys') }}</span
+          >{{ $t('system:total') }}<strong>{{ total }}</strong> {{ $t('oauth:key.keys') }}</span
         >
         <right-toolbar
           :show-search="false"
@@ -98,7 +98,7 @@
         row-key="kid"
       >
         <el-table-column
-          :label="$t('oauth:key')"
+          :label="$t('oauth:key.key')"
           min-width="250"
         >
           <template #default="scope">
@@ -116,7 +116,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:currentPurpose')"
+          :label="$t('oauth:key.currentPurpose')"
           min-width="190"
         >
           <template #default="scope">
@@ -129,7 +129,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:signingMethod')"
+          :label="$t('oauth:key.signingMethod')"
           width="110"
           align="center"
         >
@@ -142,20 +142,20 @@
           >
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:lifecycle')"
+          :label="$t('oauth:key.lifecycle')"
           min-width="280"
         >
           <template #default="scope">
             <div class="timeline-cell">
               <span
-                ><small>{{ $t('oauth:publishedToApplications') }}</small
+                ><small>{{ $t('oauth:key.publishedToApplications') }}</small
                 >{{ parseTime(scope.row.publishAt) || '—' }}</span
               >
               <span
                 ><small>{{
                   scope.row.status === 'pending'
-                    ? $t('oauth:scheduledSigningStart')
-                    : $t('oauth:signingStarts')
+                    ? $t('oauth:key.scheduledSigningStart')
+                    : $t('oauth:key.signingStarts')
                 }}</small
                 >{{ parseTime(scope.row.signingStartAt) || '—' }}</span
               >
@@ -163,7 +163,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:next')"
+          :label="$t('oauth:key.next')"
           min-width="220"
         >
           <template #default="scope">
@@ -194,7 +194,7 @@
                     disabled
                     v-hasPermi="['system:oauthKey:activate']"
                   >
-                    {{ $t('oauth:awaitingPublication') }}</el-button
+                    {{ $t('oauth:key.awaitingPublication') }}</el-button
                   >
                 </span>
               </el-tooltip>
@@ -205,7 +205,7 @@
                 icon="CircleCheck"
                 v-hasPermi="['system:oauthKey:activate']"
                 @click="activate(scope.row)"
-                >{{ $t('oauth:activate') }}</el-button
+                >{{ $t('oauth:key.activate') }}</el-button
               >
               <el-button
                 v-if="scope.row.status === 'active'"
@@ -214,7 +214,7 @@
                 icon="VideoPause"
                 v-hasPermi="['system:oauthKey:retire']"
                 @click="retire(scope.row)"
-                >{{ $t('oauth:stopSigning') }}</el-button
+                >{{ $t('oauth:key.stopSigning') }}</el-button
               >
               <el-button
                 v-if="scope.row.status === 'retired'"
@@ -229,12 +229,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('oauth:noSigningKeyPrepared')">
+          <el-empty :description="$t('oauth:key.noSigningKeyPrepared')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthKey:rotate']"
               @click="openRotation"
-              >{{ $t('oauth:createTheFirstKey') }}</el-button
+              >{{ $t('oauth:key.createTheFirstKey') }}</el-button
             >
           </el-empty>
         </template>
@@ -250,28 +250,28 @@
 
     <el-dialog
       v-model="open"
-      :title="$t('oauth:scheduleSigningKeyRotation')"
+      :title="$t('oauth:key.scheduleSigningKeyRotation')"
       width="min(780px, calc(100vw - 48px))"
       append-to-body
       :close-on-click-modal="false"
     >
       <div
         class="rotation-preview"
-        :aria-label="$t('oauth:keyRotationProcess')"
+        :aria-label="$t('oauth:key.keyRotationProcess')"
       >
         <div>
-          <span>1</span><strong>{{ $t('oauth:publishFirst') }}</strong
-          ><small>{{ $t('oauth:applicationsObtainThePublicKeyInAdvance') }}</small>
+          <span>1</span><strong>{{ $t('oauth:key.publishFirst') }}</strong
+          ><small>{{ $t('oauth:key.applicationsObtainThePublicKeyInAdvance') }}</small>
         </div>
         <i aria-hidden="true" />
         <div>
-          <span>2</span><strong>{{ $t('oauth:thenTakeOverSigning') }}</strong
-          ><small>{{ $t('oauth:newCredentialsUseTheNewKey') }}</small>
+          <span>2</span><strong>{{ $t('oauth:key.thenTakeOverSigning') }}</strong
+          ><small>{{ $t('oauth:key.newCredentialsUseTheNewKey') }}</small>
         </div>
         <i aria-hidden="true" />
         <div>
-          <span>3</span><strong>{{ $t('oauth:retainTheOldPublicKey') }}</strong
-          ><small>{{ $t('oauth:oldCredentialsRemainVerifiableUntilTheyExpire') }}</small>
+          <span>3</span><strong>{{ $t('oauth:key.retainTheOldPublicKey') }}</strong
+          ><small>{{ $t('oauth:key.oldCredentialsRemainVerifiableUntilTheyExpire') }}</small>
         </div>
       </div>
 
@@ -284,63 +284,65 @@
         class="rotation-form"
       >
         <section class="form-section">
-          <h3>{{ $t('oauth:rotationIdentifier') }}</h3>
-          <p>{{ $t('oauth:giveThisRotationAnIdentifiableReferenceToHelpLocateIt') }}</p>
+          <h3>{{ $t('oauth:key.rotationIdentifier') }}</h3>
+          <p>{{ $t('oauth:key.giveThisRotationAnIdentifiableReferenceToHelpLocateIt') }}</p>
           <el-form-item prop="kid">
             <template #label
               ><FieldLabel
-                :label="$t('oauth:keyID')"
-                :help="$t('oauth:uniqueIDInThePublicKeySetIncludeTheYear')"
+                :label="$t('oauth:key.keyID')"
+                :help="$t('oauth:key.uniqueIDInThePublicKeySetIncludeTheYear')"
             /></template>
             <el-input
               v-model="form.kid"
               maxlength="128"
-              :placeholder="$t('oauth:forExample202609Primary')"
+              :placeholder="$t('oauth:key.forExample202609Primary')"
             />
           </el-form-item>
           <el-form-item>
             <template #label
               ><FieldLabel
-                :label="$t('oauth:signingMethod')"
-                :help="$t('oauth:rS256IsAWidelySupportedAsymmetricSigningAlgorithmAppsReceive')"
+                :label="$t('oauth:key.signingMethod')"
+                :help="
+                  $t('oauth:key.rS256IsAWidelySupportedAsymmetricSigningAlgorithmAppsReceive')
+                "
             /></template>
             <div class="algorithm-value">
               <strong>RS256</strong
-              ><span>{{ $t('oauth:privateKeysAreNeverShownOrExportedOnThisPage') }}</span>
+              ><span>{{ $t('oauth:key.privateKeysAreNeverShownOrExportedOnThisPage') }}</span>
             </div>
           </el-form-item>
         </section>
 
         <section class="form-section">
-          <h3>{{ $t('oauth:activationSchedule') }}</h3>
-          <p>{{ $t('oauth:publishThePublicKeyBeforeUsingItToSignSo') }}</p>
+          <h3>{{ $t('oauth:key.activationSchedule') }}</h3>
+          <p>{{ $t('oauth:key.publishThePublicKeyBeforeUsingItToSignSo') }}</p>
           <el-form-item prop="publishAt">
             <template #label
               ><FieldLabel
-                :label="$t('oauth:publicKeyPublicationTime')"
-                :help="$t('oauth:fromThisTimeAppsCanRetrieveTheNewPublicKey')"
+                :label="$t('oauth:key.publicKeyPublicationTime')"
+                :help="$t('oauth:key.fromThisTimeAppsCanRetrieveTheNewPublicKey')"
             /></template>
             <BusinessDateTimePicker
               v-model="form.publishAt"
-              :label="$t('oauth:publicKeyPublicationTime')"
+              :label="$t('oauth:key.publicKeyPublicationTime')"
             />
           </el-form-item>
           <el-form-item prop="activateAt">
             <template #label
               ><FieldLabel
-                :label="$t('oauth:signingStartTime')"
-                :help="$t('oauth:fromThisTimeNewIdentityAndAccessTokensUseThe')"
+                :label="$t('oauth:key.signingStartTime')"
+                :help="$t('oauth:key.fromThisTimeNewIdentityAndAccessTokensUseThe')"
             /></template>
             <BusinessDateTimePicker
               v-model="form.activateAt"
-              :label="$t('oauth:signingStartTime')"
+              :label="$t('oauth:key.signingStartTime')"
             />
           </el-form-item>
           <el-form-item>
             <template #label
               ><FieldLabel
-                :label="$t('oauth:changeDescription')"
-                :help="$t('oauth:recordTheRotationReasonOrRelatedTicketForAuditingThis')"
+                :label="$t('oauth:key.changeDescription')"
+                :help="$t('oauth:key.recordTheRotationReasonOrRelatedTicketForAuditingThis')"
             /></template>
             <el-input
               v-model="form.remark"
@@ -348,7 +350,7 @@
               :rows="3"
               maxlength="500"
               show-word-limit
-              :placeholder="$t('oauth:forExampleRoutineQuarterlyRotationRelatedTicketSEC1024')"
+              :placeholder="$t('oauth:key.forExampleRoutineQuarterlyRotationRelatedTicketSEC1024')"
             />
           </el-form-item>
         </section>
@@ -359,7 +361,7 @@
           type="primary"
           :loading="saving"
           @click="rotate"
-          >{{ $t('oauth:createRotationPlan') }}</el-button
+          >{{ $t('oauth:key.createRotationPlan') }}</el-button
         >
       </template>
     </el-dialog>
@@ -405,31 +407,31 @@ const serviceStatus = computed(() => {
   if (!enabled.value) {
     return {
       get title() {
-        return t('oauth:notEnabled')
+        return t('oauth:key.notEnabled')
       },
       get description() {
-        return t('oauth:youCanPrepareKeysFirstAndStartIssuingCredentialsWhen')
+        return t('oauth:key.youCanPrepareKeysFirstAndStartIssuingCredentialsWhen')
       },
     }
   }
   if (!ready.value) {
     return {
       get title() {
-        return t('oauth:waitingForSigningKeyInitialization')
+        return t('oauth:key.waitingForSigningKeyInitialization')
       },
       get description() {
         return t(
-          'oauth:theAdminConsoleRemainsAvailableAuthenticationEndpointsWillTemporarilyReject'
+          'oauth:key.theAdminConsoleRemainsAvailableAuthenticationEndpointsWillTemporarilyReject'
         )
       },
     }
   }
   return {
     get title() {
-      return t('oauth:enabledAndReadyForAuthentication')
+      return t('oauth:key.enabledAndReadyForAuthentication')
     },
     get description() {
-      return t('oauth:identityCredentialsAreSignedWithTheCurrentSigningKey')
+      return t('oauth:key.identityCredentialsAreSignedWithTheCurrentSigningKey')
     },
   }
 })
@@ -444,7 +446,7 @@ const nextKey = computed(
 
 const validateActivationTime = (_rule, value, callback) => {
   if (!value) {
-    return callback(new Error(t('oauth:chooseASigningStartTime')))
+    return callback(new Error(t('oauth:key.chooseASigningStartTime')))
   }
   callback()
 }
@@ -454,14 +456,14 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:enterAnIdentifiableKeyID')
+        return t('oauth:key.enterAnIdentifiableKeyID')
       },
       trigger: 'blur',
     },
     {
       pattern: /^[A-Za-z0-9._-]+$/,
       get message() {
-        return t('oauth:useOnlyLettersDigitsPeriodsHyphensAndUnderscores')
+        return t('oauth:key.useOnlyLettersDigitsPeriodsHyphensAndUnderscores')
       },
       trigger: 'blur',
     },
@@ -470,7 +472,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:chooseAPublicKeyPublicationTime')
+        return t('oauth:key.chooseAPublicKeyPublicationTime')
       },
       trigger: 'change',
     },
@@ -483,19 +485,19 @@ function statusText(value) {
   return (
     {
       get pending() {
-        return t('oauth:awaitingActivation')
+        return t('oauth:key.awaitingActivation')
       },
       get active() {
-        return t('oauth:signing')
+        return t('oauth:key.signing')
       },
       get retiring() {
-        return t('oauth:verifyingOldCredentials')
+        return t('oauth:key.verifyingOldCredentials')
       },
       get retired() {
-        return t('oauth:retired')
+        return t('oauth:key.retired')
       },
       get compromised() {
-        return t('oauth:possiblyCompromised')
+        return t('oauth:key.possiblyCompromised')
       },
     }[value] || value
   )
@@ -519,30 +521,30 @@ function roleText(value) {
   return (
     {
       get pending() {
-        return t('oauth:publicKeyPublishedNotYetIssuingNewCredentials')
+        return t('oauth:key.publicKeyPublishedNotYetIssuingNewCredentials')
       },
       get active() {
-        return t('oauth:usedToIssueNewIdentityAndAccessCredentials')
+        return t('oauth:key.usedToIssueNewIdentityAndAccessCredentials')
       },
       get retiring() {
-        return t('oauth:noLongerIssuingNewCredentialsOnlyVerifyingUnexpiredOldCredentials')
+        return t('oauth:key.noLongerIssuingNewCredentialsOnlyVerifyingUnexpiredOldCredentials')
       },
       get retired() {
-        return t('oauth:removedFromThePublicKeyList')
+        return t('oauth:key.removedFromThePublicKeyList')
       },
       get compromised() {
-        return t('oauth:markedAsUntrustedCompleteEmergencyRotationAsSoonAsPossible')
+        return t('oauth:key.markedAsUntrustedCompleteEmergencyRotationAsSoonAsPossible')
       },
-    }[value] || t('oauth:unknownStatusInformation')
+    }[value] || t('oauth:key.unknownStatusInformation')
   )
 }
 
 /** 缩略显示RSA公钥模数 */
 function publicFingerprint(jwk) {
   if (!jwk?.n) {
-    return t('oauth:publicFingerprintUnavailable')
+    return t('oauth:key.publicFingerprintUnavailable')
   }
-  return t('oauth:publicFingerprintRSAValue', { arg0: jwk.n.slice(0, 18) })
+  return t('oauth:key.publicFingerprintRSAValue', { arg0: jwk.n.slice(0, 18) })
 }
 
 /** 获取密钥后续处理计划 */
@@ -550,48 +552,50 @@ function nextActionText(row) {
   return (
     {
       get pending() {
-        return t('oauth:waitingToStart')
+        return t('oauth:key.waitingToStart')
       },
       get active() {
-        return t('oauth:stopSigningWhenTheNextKeyTakesOver')
+        return t('oauth:key.stopSigningWhenTheNextKeyTakesOver')
       },
       get retiring() {
-        return t('oauth:waitingForAllOldCredentialsToExpire')
+        return t('oauth:key.waitingForAllOldCredentialsToExpire')
       },
       get retired() {
-        return t('oauth:metadataCanBeRemoved')
+        return t('oauth:key.metadataCanBeRemoved')
       },
       get compromised() {
-        return t('oauth:scheduleEmergencyRotationNow')
+        return t('oauth:key.scheduleEmergencyRotationNow')
       },
-    }[row.status] || t('oauth:noPlan')
+    }[row.status] || t('oauth:key.noPlan')
   )
 }
 
 /** 显示密钥后续操作的时间条件 */
 function nextActionTime(row) {
   if (row.status === 'pending') {
-    return parseTime(row.signingStartAt) || t('oauth:manualActivationRequired')
+    return parseTime(row.signingStartAt) || t('oauth:key.manualActivationRequired')
   }
   if (['retiring', 'retired'].includes(row.status)) {
     return row.removeFromJwksAt
-      ? t('oauth:earliestCleanupValue', { arg0: parseTime(row.removeFromJwksAt) })
-      : t('oauth:waitingForTheSafeVerificationWindowToEnd')
+      ? t('oauth:key.earliestCleanupValue', { arg0: parseTime(row.removeFromJwksAt) })
+      : t('oauth:key.waitingForTheSafeVerificationWindowToEnd')
   }
   if (row.status === 'active') {
-    return t('oauth:noAutomaticStopTimeIsSet')
+    return t('oauth:key.noAutomaticStopTimeIsSet')
   }
-  return t('oauth:checkTheSecurityLogs')
+  return t('oauth:key.checkTheSecurityLogs')
 }
 
 /** 检查密钥是否已到允许启用的公开时间 */
 function activationDisabledReason(row) {
   const publishAt = new Date(row.publishAt).getTime()
   if (!Number.isFinite(publishAt)) {
-    return t('oauth:invalidPublicKeyPublicationTimeRefreshTheListAndTry')
+    return t('oauth:key.invalidPublicKeyPublicationTimeRefreshTheListAndTry')
   }
   if (publishAt > Date.now()) {
-    return t('oauth:thePublicKeyWillBePublishedAtValueItCan', { arg0: parseTime(row.publishAt) })
+    return t('oauth:key.thePublicKeyWillBePublishedAtValueItCan', {
+      arg0: parseTime(row.publishAt),
+    })
   }
   return ''
 }
@@ -631,13 +635,13 @@ async function rotate() {
     return
   }
   if (payload.activateAt && new Date(payload.activateAt) < new Date(payload.publishAt)) {
-    proxy.$modal.msgError(t('oauth:signingCannotStartBeforePublicKeyPublication'))
+    proxy.$modal.msgError(t('oauth:key.signingCannotStartBeforePublicKeyPublication'))
     return
   }
   saving.value = true
   try {
     await rotateOidcKey(payload)
-    proxy.$modal.msgSuccess(t('oauth:rotationScheduledTheNewPublicKeyWillBePublishedFirst'))
+    proxy.$modal.msgSuccess(t('oauth:key.rotationScheduledTheNewPublicKeyWillBePublishedFirst'))
     open.value = false
     await getList()
   } finally {
@@ -655,38 +659,38 @@ async function activate(row) {
   const signingStartAt = new Date(row.signingStartAt).getTime()
   const scheduleNotice =
     Number.isFinite(signingStartAt) && signingStartAt > Date.now()
-      ? t('oauth:thisKeyWasScheduledToBeginSigningAtValueThis', {
+      ? t('oauth:key.thisKeyWasScheduledToBeginSigningAtValueThis', {
           arg0: parseTime(row.signingStartAt),
         })
-      : t('oauth:itWillImmediatelyTakeOverIssuanceOfNewCredentials')
+      : t('oauth:key.itWillImmediatelyTakeOverIssuanceOfNewCredentials')
   await proxy.$modal.confirm(
-    t('oauth:startUsingKeyValueValueTheCurrentSigningKeyWillEnter', {
+    t('oauth:key.startUsingKeyValueValueTheCurrentSigningKeyWillEnter', {
       kid: row.kid,
       scheduleNotice,
     })
   )
   await activateOidcKey(row.kid)
-  proxy.$modal.msgSuccess(t('oauth:theNewSigningKeyIsActive'))
+  proxy.$modal.msgSuccess(t('oauth:key.theNewSigningKeyIsActive'))
   await getList()
 }
 
 /** 停止使用密钥签发新令牌 */
 async function retire(row) {
   await proxy.$modal.confirm(
-    t('oauth:stopIssuingNewCredentialsWithKeyValueItsPublicKey', { kid: row.kid })
+    t('oauth:key.stopIssuingNewCredentialsWithKeyValueItsPublicKey', { kid: row.kid })
   )
   await retireOidcKey(row.kid)
-  proxy.$modal.msgSuccess(t('oauth:theKeyHasStoppedSigningAndIsNowUsedOnly'))
+  proxy.$modal.msgSuccess(t('oauth:key.theKeyHasStoppedSigningAndIsNowUsedOnly'))
   await getList()
 }
 
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    t('oauth:deleteTheRecordForKeyValueMakeSureAllCredentials', { kid: row.kid })
+    t('oauth:key.deleteTheRecordForKeyValueMakeSureAllCredentials', { kid: row.kid })
   )
   await deleteOidcKey(row.kid)
-  proxy.$modal.msgSuccess(t('oauth:keyRecordDeleted'))
+  proxy.$modal.msgSuccess(t('oauth:key.keyRecordDeleted'))
   await getList()
 }
 

@@ -23,15 +23,15 @@ export default function Password() {
   async function submit() {
     if (lock.current) return
     const message = !user.oldPassword
-      ? () => t('mobile:currentPasswordIsRequired')
+      ? () => t('auth:password.oldRequired')
       : !user.newPassword
-        ? () => t('mobile:newPasswordIsRequired')
+        ? () => t('auth:password.newRequired')
         : user.newPassword.length < 6 || user.newPassword.length > 20
-          ? () => t('mobile:useBetween6And20Characters')
+          ? () => t('auth:password.length')
           : !user.confirmPassword
-            ? () => t('mobile:confirmYourPassword')
+            ? () => t('auth:password.confirmRequired')
             : user.newPassword !== user.confirmPassword
-              ? () => t('mobile:thePasswordsDoNotMatch')
+              ? () => t('auth:password.mismatch')
               : ''
     if (message) {
       setError(message)
@@ -43,10 +43,10 @@ export default function Password() {
     try {
       await updateUserPwd(user.oldPassword, user.newPassword)
       setUser({ oldPassword: '', newPassword: '', confirmPassword: '' })
-      await Taro.showToast({ title: t('mobile:updatedSuccessfully'), icon: 'success' })
+      await Taro.showToast({ title: t('common:updateSuccess'), icon: 'success' })
       Taro.navigateBack()
     } catch (failure) {
-      setError(failure.message || (() => t('mobile:updateFailed')))
+      setError(failure.message || (() => t('common:updateFailed')))
     } finally {
       lock.current = false
       setBusy(false)
@@ -56,14 +56,14 @@ export default function Password() {
   return (
     <View className="mobile-page bg-white">
       {[
-        ['oldPassword', t('mobile:currentPassword')],
-        ['newPassword', t('mobile:newPassword')],
-        ['confirmPassword', t('mobile:confirmPassword')],
+        ['oldPassword', t('auth:password.old')],
+        ['newPassword', t('auth:password.new')],
+        ['confirmPassword', t('auth:password.confirm')],
       ].map(([key, label]) => (
         <FormField
           key={key}
           label={label}
-          placeholder={t('mobile:enterValue', { label })}
+          placeholder={t('auth:password.placeholder', { label })}
           password
           maxlength={20}
           value={user[key]}
@@ -77,7 +77,7 @@ export default function Password() {
         loading={busy}
         onClick={submit}
       >
-        {t('mobile:submit')}
+        {t('common:submit')}
       </Button>
     </View>
   )

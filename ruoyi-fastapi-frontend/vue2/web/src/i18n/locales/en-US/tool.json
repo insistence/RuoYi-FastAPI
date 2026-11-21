@@ -7,37 +7,6 @@
     "select": "Select a data source",
     "title": "Data source"
   },
-  "cron": {
-    "notSpecified": "Not specified",
-    "rangeFrom": "Range from",
-    "day": "Day",
-    "from": "From",
-    "everyMonth": "Every month",
-    "nearestWeekday": "nearest weekday",
-    "lastDayOfTheMonth": "Last day of the month",
-    "month": "Month",
-    "week": "Week",
-    "year": "Year",
-    "timeExpression": "Time expression",
-    "cronExpression": "Cron expression",
-    "noFutureRuns": "No future runs",
-    "number": "Number",
-    "everyYear": "Every year",
-    "days": "Days",
-    "months": "Months",
-    "weeks": "Weeks",
-    "years": "Years",
-    "nextRunsInZone": "Next five runs ({{zone}})",
-    "weekday": {
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "sunday": "Sunday"
-    }
-  },
   "messages": {
     "enterTableName": "Enter table name",
     "enterTableDescription": "Enter table description",
@@ -319,35 +288,6 @@
       "select": "Selection components"
     },
     "weekFormat": "yyyy WW"
-  },
-  "interface": {
-    "dayAllowedWildcardsLW": "Day; allowed wildcards: [, - * ? / L W]",
-    "repeatEvery": {
-      "day": "day, every",
-      "hour": ", repeat every",
-      "min": ", repeat every",
-      "month": ", repeat every",
-      "second": ", repeat every",
-      "year": ", repeat every"
-    },
-    "days": "days",
-    "hourAllowedWildcards": "Hour; allowed wildcards: [, - * /]",
-    "hours": "hours",
-    "minuteAllowedWildcards": "Minute; allowed wildcards: [, - * /]",
-    "minutes": "minutes",
-    "monthAllowedWildcards": "Month; allowed wildcards: [, - * /]",
-    "months": "months",
-    "unableToGetScheduledTimesTryAgainLater": "Unable to get scheduled times. Try again later.",
-    "nextFiveRuns": "Next five runs (",
-    "calculating": "Calculating...",
-    "secondAllowedWildcards": "Second; allowed wildcards: [, - * /]",
-    "seconds": "seconds",
-    "weekAllowedWildcardsL": "Week; allowed wildcards: [, - * ? / L #]",
-    "fromWeekday": "From weekday",
-    "weekOnWeekday": "week, on weekday",
-    "lastWeekdayOfTheMonth": "Last weekday of the month",
-    "optionalAllowedWildcards": "Optional; allowed wildcards: [, - * /]",
-    "years": "years"
   },
   "confirmation": {
     "generatedFilesAtValue": "Generated files at: {{value0}}",

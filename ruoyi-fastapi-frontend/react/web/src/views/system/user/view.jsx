@@ -33,12 +33,12 @@ export default function UserView({ userId, onClose }) {
     result?.posts
       ?.filter((item) => (result.postIds || user.postIds || []).includes(item.postId))
       .map((item) => item.postName)
-      .join('、') || t('system:noPosts')
+      .join('、') || t('system:user.noPosts')
   const roles =
     result?.roles
       ?.filter((item) => (result.roleIds || user.roleIds || []).includes(item.roleId))
       .map((item) => item.roleName)
-      .join('、') || t('system:noRoles')
+      .join('、') || t('system:user.noRoles')
   const sections = [
     [
       t('common:basicInfo'),
@@ -58,19 +58,19 @@ export default function UserView({ userId, onClose }) {
           </Tag>,
         ],
         [t('system:user.post'), posts],
-        [t('system:gender'), selectDictLabel(sys_user_sex, user.sex) || '-'],
+        [t('system:user.gender'), selectDictLabel(sys_user_sex, user.sex) || '-'],
         [t('system:user.role'), roles, 24],
       ],
     ],
     [
       t('system:otherInformation'),
       [
-        [t('system:createdBy'), user.createBy],
+        [t('system:shared.createdBy'), user.createBy],
         [t('common:createdTime'), parseTime(user.createTime)],
-        [t('system:updatedBy'), user.updateBy],
+        [t('system:user.updatedBy'), user.updateBy],
         [t('common:updatedTime'), parseTime(user.updateTime)],
-        [t('system:lastSignInIp'), user.loginIp],
-        [t('system:lastSignInTime'), parseTime(user.loginDate)],
+        [t('system:user.lastSignInIp'), user.loginIp],
+        [t('system:user.lastSignInTime'), parseTime(user.loginDate)],
         [t('common:remark'), user.remark, 24],
       ],
     ],
@@ -78,7 +78,7 @@ export default function UserView({ userId, onClose }) {
   return (
     <Drawer
       rootClassName="user-detail-drawer"
-      title={t('system:userDetails')}
+      title={t('system:user.userDetails')}
       open={userId != null}
       onClose={onClose}
       size="68%"

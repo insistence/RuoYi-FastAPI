@@ -75,7 +75,7 @@ export default function Post() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(t('system:deletePositionsWithIdsValue', { values }))
+      await confirm(t('system:post.deletePositionsWithIdsValue', { values }))
       await delPost(values)
       message.success(t('common:deleteSuccess'))
       await getList()
@@ -95,7 +95,7 @@ export default function Post() {
     }
   }
   const columns = [
-    { align: 'center', title: t('system:postID'), dataIndex: 'postId' },
+    { align: 'center', title: t('system:post.postID'), dataIndex: 'postId' },
     { align: 'center', title: t('system:post.code'), dataIndex: 'postCode' },
     { align: 'center', title: t('system:post.name'), dataIndex: 'postName' },
     { align: 'center', title: t('system:post.order'), dataIndex: 'postSort' },
@@ -160,7 +160,7 @@ export default function Post() {
           >
             <Input
               style={{ width: 200 }}
-              placeholder={t('system:enterPostCode')}
+              placeholder={t('system:post.enterPostCode')}
               allowClear
             />
           </Form.Item>
@@ -170,7 +170,7 @@ export default function Post() {
           >
             <Input
               style={{ width: 200 }}
-              placeholder={t('system:enterPostName')}
+              placeholder={t('system:post.enterPostName')}
               allowClear
             />
           </Form.Item>
@@ -281,7 +281,7 @@ export default function Post() {
         footer={renderDialogFooter}
         width="500px"
         open={open}
-        title={postId !== undefined ? t('system:editPost') : t('system:addPost')}
+        title={postId !== undefined ? t('system:post.editPost') : t('system:post.addPost')}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
         confirmLoading={saving}
@@ -299,27 +299,27 @@ export default function Post() {
           <Form.Item
             label={t('system:post.name')}
             name="postName"
-            rules={[{ required: true, message: t('system:postNameIsRequired') }]}
+            rules={[{ required: true, message: t('system:post.postNameIsRequired') }]}
           >
             <Input
-              placeholder={t('system:enterPostName')}
+              placeholder={t('system:post.enterPostName')}
               maxLength={50}
             />
           </Form.Item>
           <Form.Item
             label={t('system:post.code')}
             name="postCode"
-            rules={[{ required: true, message: t('system:postCodeIsRequired') }]}
+            rules={[{ required: true, message: t('system:post.postCodeIsRequired') }]}
           >
             <Input
-              placeholder={t('system:enterCodeName')}
+              placeholder={t('system:post.enterCodeName')}
               maxLength={64}
             />
           </Form.Item>
           <Form.Item
-            label={t('system:postOrderLabel')}
+            label={t('system:post.postOrderLabel')}
             name="postSort"
-            rules={[{ required: true, message: t('system:postOrderIsRequired') }]}
+            rules={[{ required: true, message: t('system:post.postOrderIsRequired') }]}
           >
             <InputNumber
               min={0}

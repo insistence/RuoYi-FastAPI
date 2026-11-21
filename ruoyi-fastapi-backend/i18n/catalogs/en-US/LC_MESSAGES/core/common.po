@@ -1,0 +1,95 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "common.added"
+msgstr "Added successfully"
+
+msgid "common.assigned"
+msgstr "Assigned successfully"
+
+msgid "common.cancelled"
+msgstr "Cancelled successfully"
+
+msgid "common.cleared"
+msgstr "Cleared successfully"
+
+msgid "common.deleted"
+msgstr "Deleted successfully"
+
+msgid "common.demoReadOnly"
+msgstr "Operations are disabled in demo mode"
+
+msgid "common.error"
+msgstr "The request could not be completed"
+
+msgid "common.failure"
+msgstr "Operation failed"
+
+msgid "common.forbidden"
+msgstr "You do not have permission to access this resource"
+
+msgid "common.imported"
+msgstr "Imported successfully"
+
+msgid "common.marked"
+msgstr "Marked successfully"
+
+msgid "common.modified"
+msgstr "Changed successfully"
+
+msgid "common.rateLimited"
+msgstr "Too many requests. Please try again later."
+
+msgid "common.refreshed"
+msgstr "Refreshed successfully"
+
+msgid "common.reset"
+msgstr "Reset successfully"
+
+msgid "common.saved"
+msgstr "Saved successfully"
+
+msgid "common.sortFailed"
+msgstr "Unable to save the order. Please contact an administrator."
+
+msgid "common.success"
+msgstr "Operation successful"
+
+msgid "common.synced"
+msgstr "Synchronized successfully"
+
+msgid "common.unauthorized"
+msgstr "Your session has expired. Please sign in again."
+
+msgid "common.unavailable"
+msgstr "The service is temporarily unavailable. Please try again later."
+
+msgid "common.updated"
+msgstr "Updated successfully"
+
+msgid "common.validated"
+msgstr "Validation passed"
+
+msgid "transport.decryptFailed"
+msgstr "Unable to decrypt the request"
+
+msgid "transport.invalidRequest"
+msgstr "Invalid encrypted request"
+
+msgid "transport.keyExpired"
+msgstr "The encryption key is no longer available"
+
+msgid "transport.required"
+msgstr "Encrypted transport is required"

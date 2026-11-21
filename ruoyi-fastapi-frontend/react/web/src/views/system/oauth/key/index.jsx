@@ -92,12 +92,12 @@ export default function OAuthKey() {
         ])
       if (!payload) return
       if (new Date(payload.activateAt) < new Date(payload.publishAt)) {
-        message.error(t('system:signingCannotStartBeforePublicKeyPublication'))
+        message.error(t('oauth:key.signingCannotStartBeforePublicKeyPublication'))
         return
       }
       setSaving(true)
       await rotateOidcKey(payload)
-      message.success(t('system:rotationScheduledTheNewPublicKeyWillBePublished'))
+      message.success(t('oauth:key.rotationScheduledTheNewPublicKeyWillBePublished'))
       setOpen(false)
       await getList()
     } catch {
@@ -114,33 +114,33 @@ export default function OAuthKey() {
     try {
       const early = new Date(row.signingStartAt).getTime() > Date.now()
       await confirm(
-        t('system:activateKeyValueValuetheCurrentSigningKeyWillEnter', {
+        t('oauth:key.activateKeyValueValuetheCurrentSigningKeyWillEnter', {
           kid: row.kid,
           arg1: early
-            ? t('system:signingWasScheduledToStartAtValueThisAction', {
+            ? t('oauth:key.signingWasScheduledToStartAtValueThisAction', {
                 arg0: parseTime(row.signingStartAt),
               })
-            : t('system:itWillImmediatelyTakeOverIssuanceOfNewCredentials'),
+            : t('oauth:key.itWillImmediatelyTakeOverIssuanceOfNewCredentials'),
         })
       )
       await activateOidcKey(row.kid)
-      message.success(t('system:theNewSigningKeyIsActive'))
+      message.success(t('oauth:key.theNewSigningKeyIsActive'))
       await getList()
     } catch {}
   }
   async function retire(row) {
     try {
-      await confirm(t('system:stopIssuingNewCredentialsWithKeyValueItsPublic', { kid: row.kid }))
+      await confirm(t('oauth:key.stopIssuingNewCredentialsWithKeyValueItsPublic', { kid: row.kid }))
       await retireOidcKey(row.kid)
-      message.success(t('system:theKeyHasStoppedSigningAndIsNowUsed'))
+      message.success(t('oauth:key.theKeyHasStoppedSigningAndIsNowUsed'))
       await getList()
     } catch {}
   }
   async function remove(row) {
     try {
-      await confirm(t('system:deleteTheRecordForKeyValueConfirmThatEvery', { kid: row.kid }))
+      await confirm(t('oauth:key.deleteTheRecordForKeyValueConfirmThatEvery', { kid: row.kid }))
       await deleteOidcKey(row.kid)
-      message.success(t('system:keyRecordDeleted'))
+      message.success(t('oauth:key.keyRecordDeleted'))
       await getList()
     } catch {}
   }
@@ -151,19 +151,19 @@ export default function OAuthKey() {
         String(a.signingStartAt || '').localeCompare(String(b.signingStartAt || ''))
       )[0]
   const service = !enabled
-    ? [t('system:notEnabled'), t('system:youCanPrepareKeysFirstAndStartIssuingCredentials')]
+    ? [t('oauth:key.notEnabled'), t('oauth:key.youCanPrepareKeysFirstAndStartIssuingCredentials')]
     : !ready
       ? [
-          t('system:waitingForSigningKeyInitialization'),
-          t('system:theAdminConsoleRemainsAvailableAuthenticationEndpointsWillTemporarily'),
+          t('oauth:key.waitingForSigningKeyInitialization'),
+          t('oauth:key.theAdminConsoleRemainsAvailableAuthenticationEndpointsWillTemporarily'),
         ]
       : [
-          t('system:enabledAndReadyForAuthentication'),
-          t('system:identityCredentialsAreSignedWithTheCurrentSigningKey'),
+          t('oauth:key.enabledAndReadyForAuthentication'),
+          t('oauth:key.identityCredentialsAreSignedWithTheCurrentSigningKey'),
         ]
   const columns = [
     {
-      title: t('system:key'),
+      title: t('oauth:key.key'),
       width: 250,
       render: (_, row) => (
         <div className="key-cell">
@@ -180,7 +180,7 @@ export default function OAuthKey() {
       ),
     },
     {
-      title: t('system:currentPurpose'),
+      title: t('oauth:key.currentPurpose'),
       width: 190,
       render: (_, row) => (
         <div className="role-cell">
@@ -191,7 +191,7 @@ export default function OAuthKey() {
     },
     {
       align: 'center',
-      title: t('system:signingMethod'),
+      title: t('oauth:key.signingMethod'),
       dataIndex: 'alg',
       width: 110,
       render: (value) => (
@@ -204,19 +204,19 @@ export default function OAuthKey() {
       ),
     },
     {
-      title: t('system:lifecycle'),
+      title: t('oauth:key.lifecycle'),
       width: 280,
       render: (_, row) => (
         <div className="timeline-cell">
           <span>
-            <small>{t('system:publishedToApplications')}</small>
+            <small>{t('oauth:key.publishedToApplications')}</small>
             {parseTime(row.publishAt) || '—'}
           </span>
           <span>
             <small>
               {row.status === 'pending'
-                ? t('system:scheduledSigningStart')
-                : t('system:signingStarts')}
+                ? t('oauth:key.scheduledSigningStart')
+                : t('oauth:key.signingStarts')}
             </small>
             {parseTime(row.signingStartAt) || '—'}
           </span>
@@ -249,8 +249,8 @@ export default function OAuthKey() {
                 onClick={() => activate(row)}
               >
                 {activationDisabledReason(row)
-                  ? t('system:awaitingPublication')
-                  : t('system:activate')}
+                  ? t('oauth:key.awaitingPublication')
+                  : t('oauth:key.activate')}
               </TableAction>
             </Tooltip>
           </HasPermi>
@@ -261,7 +261,7 @@ export default function OAuthKey() {
               symbol="VideoPause"
               onClick={() => retire(row)}
             >
-              {t('system:stopSigning')}
+              {t('oauth:key.stopSigning')}
             </TableAction>
           </HasPermi>
         ) : row.status === 'retired' ? (
@@ -280,8 +280,8 @@ export default function OAuthKey() {
   return (
     <PageFrame
       className="oauth-key-page"
-      title={t('system:signingKeys')}
-      description={t('system:manageSigningKeysUsedToProveTheAuthenticityOf')}
+      title={t('oauth:key.signingKeys')}
+      description={t('oauth:key.manageSigningKeysUsedToProveTheAuthenticityOf')}
       section={t('monitor:securityOperations')}
       actions={
         <>
@@ -291,7 +291,7 @@ export default function OAuthKey() {
               type="primary"
               onClick={start}
             >
-              {t('system:scheduleKeyRotation')}
+              {t('oauth:key.scheduleKeyRotation')}
             </Button>
           </HasPermi>
         </>
@@ -299,7 +299,7 @@ export default function OAuthKey() {
       toolbar={
         <>
           <span className="result-count">
-            {t('common:total')} <strong>{total}</strong> {t('system:keys')}
+            {t('common:total')} <strong>{total}</strong> {t('oauth:key.keys')}
           </span>
           <RightToolbar
             showSearch={false}
@@ -314,7 +314,7 @@ export default function OAuthKey() {
               <LockOutlined />
             </span>
             <div>
-              <small>{t('system:authenticationService')}</small>
+              <small>{t('oauth:key.authenticationService')}</small>
               <strong>{service[0]}</strong>
               <p>{service[1]}</p>
             </div>
@@ -330,14 +330,14 @@ export default function OAuthKey() {
               <KeyOutlined />
             </span>
             <div>
-              <small>{t('system:currentSigningKey')}</small>
+              <small>{t('oauth:key.currentSigningKey')}</small>
               <strong>{active?.kid || t('system:notActivated')}</strong>
               <p>
                 {active
-                  ? t('system:issuingNewCredentialsSinceValue', {
+                  ? t('oauth:key.issuingNewCredentialsSinceValue', {
                       arg0: parseTime(active.signingStartAt) || t('monitor:scheduledTime'),
                     })
-                  : t('system:firstActivateAKeyWhosePublicKeyHasBeen')}
+                  : t('oauth:key.firstActivateAKeyWhosePublicKeyHasBeen')}
               </p>
             </div>
           </div>
@@ -352,14 +352,15 @@ export default function OAuthKey() {
               <ClockCircleOutlined />
             </span>
             <div>
-              <small>{t('system:nextRotation')}</small>
-              <strong>{next?.kid || t('system:notScheduled')}</strong>
+              <small>{t('oauth:key.nextRotation')}</small>
+              <strong>{next?.kid || t('oauth:key.notScheduled')}</strong>
               <p>
                 {next
-                  ? t('system:scheduledToTakeOverSigningAtValue', {
-                      arg0: parseTime(next.signingStartAt) || t('system:timePendingConfirmation'),
+                  ? t('oauth:key.scheduledToTakeOverSigningAtValue', {
+                      arg0:
+                        parseTime(next.signingStartAt) || t('oauth:key.timePendingConfirmation'),
                     })
-                  : t('system:scheduleRotationBeforeTheCurrentKeyExpires')}
+                  : t('oauth:key.scheduleRotationBeforeTheCurrentKeyExpires')}
               </p>
             </div>
           </div>
@@ -369,13 +370,13 @@ export default function OAuthKey() {
       <Table
         locale={{
           emptyText: (
-            <Empty description={t('system:noSigningKeyPrepared')}>
+            <Empty description={t('oauth:key.noSigningKeyPrepared')}>
               <HasPermi value={['system:oauthKey:rotate']}>
                 <Button
                   type="primary"
                   onClick={start}
                 >
-                  {t('system:createTheFirstKey')}
+                  {t('oauth:key.createTheFirstKey')}
                 </Button>
               </HasPermi>
             </Empty>
@@ -396,8 +397,8 @@ export default function OAuthKey() {
       />
       <Modal
         className="oauth-dialog oauth-key-editor"
-        title={t('system:scheduleSigningKeyRotation')}
-        okText={t('system:createRotationPlan')}
+        title={t('oauth:key.scheduleSigningKeyRotation')}
+        okText={t('oauth:key.createRotationPlan')}
         mask={{ closable: false }}
         open={open}
         onCancel={() => setOpen(false)}
@@ -408,24 +409,24 @@ export default function OAuthKey() {
       >
         <div
           className="rotation-preview"
-          aria-label={t('system:keyRotationProcess')}
+          aria-label={t('oauth:key.keyRotationProcess')}
         >
           <div>
             <span>1</span>
-            <strong>{t('system:publishFirst')}</strong>
-            <small>{t('system:applicationsObtainThePublicKeyInAdvance')}</small>
+            <strong>{t('oauth:key.publishFirst')}</strong>
+            <small>{t('oauth:key.applicationsObtainThePublicKeyInAdvance')}</small>
           </div>
           <i aria-hidden />
           <div>
             <span>2</span>
-            <strong>{t('system:thenTakeOverSigning')}</strong>
-            <small>{t('system:newCredentialsUseTheNewKey')}</small>
+            <strong>{t('oauth:key.thenTakeOverSigning')}</strong>
+            <small>{t('oauth:key.newCredentialsUseTheNewKey')}</small>
           </div>
           <i aria-hidden />
           <div>
             <span>3</span>
-            <strong>{t('system:retainTheOldPublicKey')}</strong>
-            <small>{t('system:oldCredentialsRemainVerifiableUntilTheyExpire')}</small>
+            <strong>{t('oauth:key.retainTheOldPublicKey')}</strong>
+            <small>{t('oauth:key.oldCredentialsRemainVerifiableUntilTheyExpire')}</small>
           </div>
         </div>
         <Form
@@ -438,83 +439,83 @@ export default function OAuthKey() {
           layout="horizontal"
         >
           <section className="form-section">
-            <h3>{t('system:rotationIdentifier')}</h3>
-            <p>{t('system:giveThisRotationAnIdentifiableReferenceToHelpLocate')}</p>
+            <h3>{t('oauth:key.rotationIdentifier')}</h3>
+            <p>{t('oauth:key.giveThisRotationAnIdentifiableReferenceToHelpLocate')}</p>
             <Form.Item
               name="kid"
               label={
                 <FieldLabel
-                  label={t('system:keyId')}
-                  help={t('authCenter:aUniqueIdentifierInThePublicKeyListConsiderIncluding')}
+                  label={t('oauth:key.keyId')}
+                  help={t('oauth:key.aUniqueIdentifierInThePublicKeyListConsiderIncluding')}
                 />
               }
               rules={[
-                { required: true, message: t('system:enterAnIdentifiableKeyId') },
+                { required: true, message: t('oauth:key.enterAnIdentifiableKeyId') },
                 {
                   pattern: /^[A-Za-z0-9._-]+$/,
-                  message: t('system:useOnlyLettersDigitsPeriodsHyphensAndUnderscores'),
+                  message: t('oauth:key.useOnlyLettersDigitsPeriodsHyphensAndUnderscores'),
                 },
               ]}
             >
               <Input
-                placeholder={t('system:forExample202609Primary')}
+                placeholder={t('oauth:key.forExample202609Primary')}
                 maxLength={128}
               />
             </Form.Item>
             <Form.Item
               label={
                 <FieldLabel
-                  label={t('system:signingMethod')}
+                  label={t('oauth:key.signingMethod')}
                   help={t(
-                    'authCenter:rs256IsAWidelyCompatibleAsymmetricSigningAlgorithmApplicationsReceive'
+                    'oauth:key.rs256IsAWidelyCompatibleAsymmetricSigningAlgorithmApplicationsReceive'
                   )}
                 />
               }
             >
               <div className="algorithm-value">
                 <strong>RS256</strong>
-                <span>{t('system:privateKeysAreNeverShownOrExportedOnThis')}</span>
+                <span>{t('oauth:key.privateKeysAreNeverShownOrExportedOnThis')}</span>
               </div>
             </Form.Item>
           </section>
           <section className="form-section">
-            <h3>{t('system:activationSchedule')}</h3>
-            <p>{t('system:publishThePublicKeyBeforeUsingItToSign')}</p>
+            <h3>{t('oauth:key.activationSchedule')}</h3>
+            <p>{t('oauth:key.publishThePublicKeyBeforeUsingItToSign')}</p>
             <Form.Item
               name="publishAt"
               label={
                 <FieldLabel
-                  label={t('system:publicKeyPublicationTime')}
-                  help={t('authCenter:fromThisTimeApplicationsCanObtainTheNewPublicKey')}
+                  label={t('oauth:key.publicKeyPublicationTime')}
+                  help={t('oauth:key.fromThisTimeApplicationsCanObtainTheNewPublicKey')}
                 />
               }
-              rules={[{ required: true, message: t('system:chooseAPublicKeyPublicationTime') }]}
+              rules={[{ required: true, message: t('oauth:key.chooseAPublicKeyPublicationTime') }]}
             >
-              <BusinessDateTimePicker label={t('system:publicKeyPublicationTime')} />
+              <BusinessDateTimePicker label={t('oauth:key.publicKeyPublicationTime')} />
             </Form.Item>
             <Form.Item
               name="activateAt"
               label={
                 <FieldLabel
-                  label={t('system:signingStartTime')}
-                  help={t('authCenter:fromThisTimeNewlyIssuedIdentityAndAccessTokensUse')}
+                  label={t('oauth:key.signingStartTime')}
+                  help={t('oauth:key.fromThisTimeNewlyIssuedIdentityAndAccessTokensUse')}
                 />
               }
-              rules={[{ required: true, message: t('system:chooseASigningStartTime') }]}
+              rules={[{ required: true, message: t('oauth:key.chooseASigningStartTime') }]}
             >
-              <BusinessDateTimePicker label={t('system:signingStartTime')} />
+              <BusinessDateTimePicker label={t('oauth:key.signingStartTime')} />
             </Form.Item>
             <Form.Item
               name="remark"
               label={
                 <FieldLabel
-                  label={t('system:changeDescription')}
-                  help={t('authCenter:recordTheReasonForRotationOrARelatedTicketFor')}
+                  label={t('oauth:key.changeDescription')}
+                  help={t('oauth:key.recordTheReasonForRotationOrARelatedTicketFor')}
                 />
               }
             >
               <Input.TextArea
-                placeholder={t('system:forExampleRoutineQuarterlyRotationRelatedTicketSec1024')}
+                placeholder={t('oauth:key.forExampleRoutineQuarterlyRotationRelatedTicketSec1024')}
                 rows={3}
                 showCount
                 maxLength={500}

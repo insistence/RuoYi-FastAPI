@@ -46,7 +46,7 @@ function Editor() {
   const { t } = useI18n()
   return (
     <label>
-      {t('common:login.username')}
+      {t('auth:login.username')}
       <input
         aria-label="draft"
         defaultValue=""

@@ -1,12 +1,12 @@
 <template>
   <el-drawer
     v-model="visible"
-    :title="$t('oauth:applicationAccessPolicies')"
+    :title="$t('oauth:grant.applicationAccessPolicies')"
     size="min(960px, 96vw)"
     @open="handleQuery"
   >
     <el-alert
-      :title="$t('oauth:blockAccessBeforeAUserFirstGrantsConsentAccessIs')"
+      :title="$t('oauth:grant.blockAccessBeforeAUserFirstGrantsConsentAccessIs')"
       type="info"
       :closable="false"
       show-icon
@@ -47,15 +47,15 @@
         <el-select
           v-model="queryParams.accessStatus"
           clearable
-          :placeholder="$t('oauth:allPolicies')"
+          :placeholder="$t('oauth:grant.allPolicies')"
           class="filter-input"
         >
           <el-option
-            :label="$t('oauth:blockAccess')"
+            :label="$t('oauth:grant.blockAccess')"
             value="blocked"
           />
           <el-option
-            :label="$t('oauth:allowAccess')"
+            :label="$t('oauth:grant.allowAccess')"
             value="allowed"
           />
         </el-select>
@@ -75,14 +75,14 @@
       </el-form-item>
     </el-form>
     <div class="policy-toolbar">
-      <span>{{ $t('oauth:configured') }}{{ total }} {{ $t('oauth:policies') }}</span>
+      <span>{{ $t('oauth:grant.configured') }}{{ total }} {{ $t('oauth:grant.policies') }}</span>
       <el-button
         type="primary"
         icon="Plus"
         v-hasPermi="['system:oauthGrant:revoke']"
         @click="openAccess()"
       >
-        {{ $t('oauth:addAccessRestriction') }}</el-button
+        {{ $t('oauth:grant.addAccessRestriction') }}</el-button
       >
     </div>
     <el-table
@@ -119,8 +119,8 @@
           <el-tag :type="scope.row.accessStatus === 'blocked' ? 'danger' : 'success'">
             {{
               scope.row.accessStatus === 'blocked'
-                ? $t('oauth:blockAccess')
-                : $t('oauth:allowAccess')
+                ? $t('oauth:grant.blockAccess')
+                : $t('oauth:grant.allowAccess')
             }}
           </el-tag>
         </template>
@@ -133,11 +133,11 @@
       />
       <el-table-column
         prop="updateBy"
-        :label="$t('oauth:operator')"
+        :label="$t('oauth:grant.operator')"
         width="110"
       />
       <el-table-column
-        :label="$t('oauth:lastOperation')"
+        :label="$t('oauth:grant.lastOperation')"
         width="170"
       >
         <template #default="scope">{{ parseTime(scope.row.updateTime) || '—' }}</template>
@@ -156,13 +156,15 @@
             @click="openAccess(scope.row)"
             >{{
               scope.row.accessStatus === 'blocked'
-                ? $t('oauth:removeRestriction')
-                : $t('oauth:blockAccess')
+                ? $t('oauth:grant.removeRestriction')
+                : $t('oauth:grant.blockAccess')
             }}</el-button
           >
         </template>
       </el-table-column>
-      <template #empty><el-empty :description="$t('oauth:noMatchingAccessPolicies')" /></template>
+      <template #empty
+        ><el-empty :description="$t('oauth:grant.noMatchingAccessPolicies')"
+      /></template>
     </el-table>
     <pagination
       v-show="total > 0"
@@ -175,8 +177,8 @@
       v-model="accessOpen"
       :title="
         accessBlocked
-          ? $t('oauth:blockUserAccessToApplication')
-          : $t('oauth:removeApplicationAccessRestriction')
+          ? $t('oauth:grant.blockUserAccessToApplication')
+          : $t('oauth:grant.removeApplicationAccessRestriction')
       "
       width="min(540px, calc(100vw - 32px))"
       append-to-body
@@ -187,8 +189,8 @@
       <el-alert
         :title="
           accessBlocked
-            ? $t('oauth:thisRevokesAllExistingGrantsForThisUserAndApplicationLabel')
-            : $t('oauth:usersMayGrantConsentAgainAfterTheRestrictionIsRemoved')
+            ? $t('oauth:grant.thisRevokesAllExistingGrantsForThisUserAndApplicationLabel')
+            : $t('oauth:grant.usersMayGrantConsentAgainAfterTheRestrictionIsRemoved')
         "
         :type="accessBlocked ? 'warning' : 'info'"
         :closable="false"
@@ -210,7 +212,7 @@
             :disabled="!creating || saving"
             maxlength="19"
             inputmode="numeric"
-            :placeholder="$t('oauth:enterTheUserIDFromUserManagement')"
+            :placeholder="$t('oauth:grant.enterTheUserIDFromUserManagement')"
           />
         </el-form-item>
         <el-form-item
@@ -221,7 +223,7 @@
             v-model="accessForm.clientId"
             :disabled="!creating || saving"
             maxlength="128"
-            :placeholder="$t('oauth:enterTheClientIDFromClientManagement')"
+            :placeholder="$t('oauth:grant.enterTheClientIDFromClientManagement')"
           />
         </el-form-item>
         <el-form-item
@@ -235,7 +237,7 @@
             :rows="3"
             maxlength="200"
             show-word-limit
-            :placeholder="$t('oauth:provideAReasonForTheAuditTrail')"
+            :placeholder="$t('oauth:grant.provideAReasonForTheAuditTrail')"
           />
         </el-form-item>
       </el-form>
@@ -250,7 +252,9 @@
           :loading="saving"
           @click="saveAccess"
         >
-          {{ accessBlocked ? $t('oauth:confirmRestriction') : $t('oauth:confirmRemoval') }}
+          {{
+            accessBlocked ? $t('oauth:grant.confirmRestriction') : $t('oauth:grant.confirmRemoval')
+          }}
         </el-button>
       </template>
     </el-dialog>
@@ -285,7 +289,7 @@ const accessRules = {
       required: true,
       pattern: /^[1-9]\d{0,18}$/,
       get message() {
-        return t('oauth:enterAValidUserID')
+        return t('oauth:grant.enterAValidUserID')
       },
       trigger: 'blur',
     },
@@ -295,7 +299,7 @@ const accessRules = {
       required: true,
       whitespace: true,
       get message() {
-        return t('oauth:enterAClientID')
+        return t('oauth:grant.enterAClientID')
       },
       trigger: 'blur',
     },
@@ -305,7 +309,7 @@ const accessRules = {
       required: true,
       whitespace: true,
       get message() {
-        return t('oauth:enterAReasonForThisOperation')
+        return t('oauth:grant.enterAReasonForThisOperation')
       },
       trigger: 'blur',
     },
@@ -362,8 +366,8 @@ async function saveAccess() {
     })
     proxy.$modal.msgSuccess(
       accessBlocked.value
-        ? t('oauth:theUserHasBeenBlockedFromThisApplication')
-        : t('oauth:accessRestrictionRemoved')
+        ? t('oauth:grant.theUserHasBeenBlockedFromThisApplication')
+        : t('oauth:grant.accessRestrictionRemoved')
     )
     accessOpen.value = false
     emit('changed')

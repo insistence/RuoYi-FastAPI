@@ -37,6 +37,7 @@ def test_ai_menu_translations_and_frontend_lock_metadata() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures('ai_catalog')
 async def test_stream_error_uses_captured_locale_after_request_context_changes() -> None:
     """验证请求语言改变后，流式错误仍使用创建时的快照。"""
 
@@ -60,6 +61,7 @@ async def test_stream_error_uses_captured_locale_after_request_context_changes()
             'type': 'error',
             'error': 'Unable to generate a response. Please try again later.',
             'msgKey': 'ai.stream.failed',
+            'msgDomain': 'plugin.ai',
             'msgParams': {},
         }
     finally:
@@ -68,6 +70,7 @@ async def test_stream_error_uses_captured_locale_after_request_context_changes()
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures('ai_catalog')
 async def test_stream_setup_failure_is_a_localized_event(monkeypatch: pytest.MonkeyPatch) -> None:
     """验证流初始化失败时返回本地化错误事件。"""
     monkeypatch.setattr(AiModelDao, 'get_ai_model_detail_by_id', AsyncMock(return_value=None))
@@ -75,4 +78,12 @@ async def test_stream_setup_failure_is_a_localized_event(monkeypatch: pytest.Mon
         object(), AiChatRequestModel(modelId=1, message='Hello'), 1, locale_context=LocaleContext('en-US')
     )
     events = [json.loads(frame) async for frame in stream]
-    assert events == [{'error': 'Model not found', 'type': 'error', 'msgKey': 'ai.model.notFound', 'msgParams': {}}]
+    assert events == [
+        {
+            'error': 'Model not found',
+            'type': 'error',
+            'msgKey': 'ai.model.notFound',
+            'msgParams': {},
+            'msgDomain': 'plugin.ai',
+        }
+    ]

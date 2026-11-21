@@ -35,8 +35,8 @@ import RightToolbar from '@/components/RightToolbar'
 
 const claimOptions = () =>
   [
-    ['sub', t('system:uniqueUserIdentifier')],
-    ['name', t('system:name')],
+    ['sub', t('oauth:shared.uniqueUserIdentifier')],
+    ['name', t('oauth:shared.name')],
     ['email', t('system:user.email')],
     ['roles', t('system:user.role')],
     ['preferred_username', t('system:loginAccount')],
@@ -56,13 +56,13 @@ const scopeTypes = [
   {
     value: 'identity',
     get label() {
-      return t('system:signInIdentityInformation')
+      return t('oauth:scope.signInIdentityInformation')
     },
   },
   {
     value: 'resource',
     get label() {
-      return t('system:serviceAccess')
+      return t('oauth:scope.serviceAccess')
     },
   },
 ]
@@ -134,7 +134,7 @@ export default function OAuthScope() {
       if (data.scopeType === 'identity') data.resourceId = null
       setSaving(true)
       await (editing ? updateOAuthScope : addOAuthScope)(data)
-      message.success(t('system:permissionSaved'))
+      message.success(t('oauth:scope.permissionSaved'))
       setOpen(false)
       await getList()
     } catch {
@@ -146,15 +146,17 @@ export default function OAuthScope() {
     try {
       await confirm(
         enable
-          ? t('system:enablePermissionValue', { scopeName: row.scopeName })
-          : t('system:disablingPermissionValuePreventsApplicationsFromRequestingItContinue', {
+          ? t('oauth:scope.enablePermissionValue', { scopeName: row.scopeName })
+          : t('oauth:scope.disablingPermissionValuePreventsApplicationsFromRequestingItContinue', {
               scopeName: row.scopeName,
             })
       )
       await (enable
         ? changeOAuthScopeStatus({ scopeCode: row.scopeCode, status: '0' })
         : deleteOAuthScopes(row.scopeCode))
-      message.success(enable ? t('system:permissionEnabled') : t('system:permissionDisabled'))
+      message.success(
+        enable ? t('oauth:scope.permissionEnabled') : t('oauth:scope.permissionDisabled')
+      )
       await getList()
     } catch {}
   }
@@ -173,7 +175,7 @@ export default function OAuthScope() {
     },
     {
       width: 135,
-      title: t('system:purpose'),
+      title: t('oauth:scope.purpose'),
       dataIndex: 'scopeType',
       render: (value) => (
         <OAuthTag
@@ -186,16 +188,16 @@ export default function OAuthScope() {
     },
     {
       width: 180,
-      title: t('system:service'),
+      title: t('oauth:scope.service'),
       dataIndex: 'resourceId',
       render: (value) =>
         value
           ? resources.find((item) => item.resourceId === value)?.resourceName || value
-          : t('system:unifiedIdentityInformation'),
+          : t('oauth:scope.unifiedIdentityInformation'),
     },
     {
       width: 230,
-      title: t('system:returnedUserInformation'),
+      title: t('oauth:shared.returnedUserInformation'),
       render: (_, row) => (
         <TagSummary
           effect="plain"
@@ -205,13 +207,13 @@ export default function OAuthScope() {
               .find((item) => item.value === value)
               ?.label.split('（')[0] || value
           }
-          empty={t('authCenter:returnNoAdditionalInformation')}
+          empty={t('oauth:shared.returnNoAdditionalInformation')}
         />
       ),
     },
     {
       width: 145,
-      title: t('system:userConfirmation'),
+      title: t('oauth:scope.userConfirmation'),
       dataIndex: 'consentRequired',
       render: (value, row) => (
         <div className="oauth-policy-cell">
@@ -220,11 +222,13 @@ export default function OAuthScope() {
               size="small"
               type="warning"
             >
-              {t('system:sensitivePermission')}
+              {t('oauth:scope.sensitivePermission')}
             </OAuthTag>
           )}
           <span>
-            {value ? t('system:confirmationRequired') : t('system:scope.skipRepeatedConfirmation')}
+            {value
+              ? t('oauth:scope.confirmationRequired')
+              : t('oauth:scope.skipRepeatedConfirmation')}
           </span>
         </div>
       ),
@@ -236,7 +240,7 @@ export default function OAuthScope() {
       dataIndex: 'status',
       render: (value) => (
         <OAuthTag type={value === '0' ? 'success' : 'info'}>
-          {value === '0' ? t('system:inUse') : t('common:disabled')}
+          {value === '0' ? t('oauth:shared.inUse') : t('common:disabled')}
         </OAuthTag>
       ),
     },
@@ -264,13 +268,13 @@ export default function OAuthScope() {
                   row.status !== '0' &&
                     checkPermi(['system:oauthScope:edit']) && {
                       key: 'enable',
-                      label: t('system:reEnable'),
+                      label: t('oauth:shared.reEnable'),
                       onClick: () => change(row, true),
                     },
                   row.status === '0' &&
                     checkPermi(['system:oauthScope:remove']) && {
                       key: 'disable',
-                      label: t('system:disablePermission'),
+                      label: t('oauth:scope.disablePermission'),
                       onClick: () => change(row, false),
                     },
                 ].filter(Boolean),
@@ -287,9 +291,11 @@ export default function OAuthScope() {
     <PageFrame
       className="oauth-scope-page"
       title={t('system:permission.title')}
-      description={t('system:describeTheIdentityInformationAndServiceOperationsApplicationsMay')}
-      section={t('authCenter:integrationManagement')}
-      filterHint={t('system:protocolCodesAppearAsSecondaryInformationSearchByName')}
+      description={t(
+        'oauth:scope.describeTheIdentityInformationAndServiceOperationsApplicationsMay'
+      )}
+      section={t('oauth:shared.integrationManagement')}
+      filterHint={t('oauth:scope.protocolCodesAppearAsSecondaryInformationSearchByName')}
       actions={
         <HasPermi value={['system:oauthScope:add']}>
           <Button
@@ -297,7 +303,7 @@ export default function OAuthScope() {
             type="primary"
             onClick={add}
           >
-            {t('system:scope.addPermission')}
+            {t('oauth:scope.addPermission')}
           </Button>
         </HasPermi>
       }
@@ -311,22 +317,22 @@ export default function OAuthScope() {
             onFinish={(values) => setQuery({ ...values, pageNum: 1, pageSize: query.pageSize })}
           >
             <Form.Item
-              label={t('system:permissionName')}
+              label={t('oauth:scope.permissionName')}
               name="scopeName"
             >
               <Input
                 style={{ width: 200 }}
-                placeholder={t('system:enterPermissionName')}
+                placeholder={t('oauth:scope.enterPermissionName')}
                 allowClear
               />
             </Form.Item>
             <Form.Item
-              label={t('system:purpose')}
+              label={t('oauth:scope.purpose')}
               name="scopeType"
             >
               <Select
                 style={{ width: 200 }}
-                placeholder={t('system:allPurposes')}
+                placeholder={t('oauth:scope.allPurposes')}
                 allowClear
                 options={scopeTypes}
               />
@@ -340,7 +346,7 @@ export default function OAuthScope() {
                 placeholder={t('common:allStatuses')}
                 allowClear
                 options={[
-                  { value: '0', label: t('system:inUse') },
+                  { value: '0', label: t('oauth:shared.inUse') },
                   { value: '1', label: t('common:disabled') },
                 ]}
               />
@@ -371,7 +377,7 @@ export default function OAuthScope() {
       toolbar={
         <>
           <span className="result-count">
-            {t('system:defined')} <strong>{total}</strong> {t('system:scope.permissions')}
+            {t('oauth:scope.defined')} <strong>{total}</strong> {t('oauth:scope.permissions')}
           </span>
           <RightToolbar
             showSearch={showSearch}
@@ -384,13 +390,13 @@ export default function OAuthScope() {
       <Table
         locale={{
           emptyText: (
-            <Empty description={t('system:noMatchingPermissions')}>
+            <Empty description={t('oauth:scope.noMatchingPermissions')}>
               <HasPermi value={['system:oauthScope:add']}>
                 <Button
                   type="primary"
                   onClick={add}
                 >
-                  {t('system:addYourFirstPermission')}
+                  {t('oauth:scope.addYourFirstPermission')}
                 </Button>
               </HasPermi>
             </Empty>
@@ -411,7 +417,7 @@ export default function OAuthScope() {
       />
       <Modal
         className="oauth-dialog oauth-scope-editor"
-        title={editing ? t('system:editPermission') : t('system:scope.addPermission')}
+        title={editing ? t('oauth:scope.editPermission') : t('oauth:scope.addPermission')}
         open={open}
         width="min(780px, calc(100vw - 48px))"
         onCancel={() => setOpen(false)}
@@ -425,7 +431,7 @@ export default function OAuthScope() {
               loading={saving}
               onClick={save}
             >
-              {t('system:savePermission')}
+              {t('oauth:scope.savePermission')}
             </Button>
           </Space>
         }
@@ -440,16 +446,16 @@ export default function OAuthScope() {
           className="permission-form ruoyi-dialog-form"
         >
           <div className="section-heading">
-            <h3>{t('system:permissionMeaning')}</h3>
-            <p>{t('system:chooseWhetherThisPermissionProvidesSignInInformationOr')}</p>
+            <h3>{t('oauth:scope.permissionMeaning')}</h3>
+            <p>{t('oauth:scope.chooseWhetherThisPermissionProvidesSignInInformationOr')}</p>
           </div>
           <Form.Item
             name="scopeType"
             label={
               <FieldLabel
-                label={t('system:permissionPurpose')}
+                label={t('oauth:scope.permissionPurpose')}
                 help={t(
-                  'authCenter:identityPermissionsReturnUserProfileInformationServiceAccessPermissionsAllow'
+                  'oauth:scope.identityPermissionsReturnUserProfileInformationServiceAccessPermissionsAllow'
                 )}
               />
             }
@@ -460,12 +466,12 @@ export default function OAuthScope() {
               disabled={scopeCode === 'openid'}
             >
               <Radio value="identity">
-                <strong>{t('system:signInIdentityInformation')}</strong>
-                <small>{t('system:forExampleNameEmailAndRoles')}</small>
+                <strong>{t('oauth:scope.signInIdentityInformation')}</strong>
+                <small>{t('oauth:scope.forExampleNameEmailAndRoles')}</small>
               </Radio>
               <Radio value="resource">
-                <strong>{t('system:serviceAccess')}</strong>
-                <small>{t('system:forExampleViewingOrdersOrUpdatingInventory')}</small>
+                <strong>{t('oauth:scope.serviceAccess')}</strong>
+                <small>{t('oauth:scope.forExampleViewingOrdersOrUpdatingInventory')}</small>
               </Radio>
             </Radio.Group>
           </Form.Item>
@@ -478,15 +484,15 @@ export default function OAuthScope() {
                 name="scopeName"
                 label={
                   <FieldLabel
-                    label={t('system:displayName')}
-                    help={t('authCenter:theNameShownToUsersDuringConsentAndInAdmin')}
+                    label={t('oauth:scope.displayName')}
+                    help={t('oauth:scope.theNameShownToUsersDuringConsentAndInAdmin')}
                   />
                 }
                 rules={[{ required: true, whitespace: true }]}
               >
                 <Input
                   maxLength={100}
-                  placeholder={t('system:forExampleViewOrders')}
+                  placeholder={t('oauth:scope.forExampleViewOrders')}
                 />
               </Form.Item>
             </Col>
@@ -498,8 +504,8 @@ export default function OAuthScope() {
                 name="scopeCode"
                 label={
                   <FieldLabel
-                    label={t('system:permissionCode')}
-                    help={t('authCenter:theProtocolCodeTheApplicationUsesInSignInRequests')}
+                    label={t('oauth:scope.permissionCode')}
+                    help={t('oauth:scope.theProtocolCodeTheApplicationUsesInSignInRequests')}
                   />
                 }
                 rules={[{ required: true, whitespace: true }]}
@@ -507,7 +513,7 @@ export default function OAuthScope() {
                 <Input
                   disabled={editing}
                   maxLength={100}
-                  placeholder={t('system:forExampleOrdersRead')}
+                  placeholder={t('oauth:scope.forExampleOrdersRead')}
                 />
               </Form.Item>
             </Col>
@@ -517,17 +523,20 @@ export default function OAuthScope() {
               name="resourceId"
               label={
                 <FieldLabel
-                  label={t('system:service')}
-                  help={t('authCenter:chooseTheServiceTheApplicationCanAccessWithThisPermission')}
+                  label={t('oauth:scope.service')}
+                  help={t('oauth:scope.chooseTheServiceTheApplicationCanAccessWithThisPermission')}
                 />
               }
               rules={[
-                { required: true, message: t('system:chooseTheServiceThisPermissionBelongsTo') },
+                {
+                  required: true,
+                  message: t('oauth:scope.chooseTheServiceThisPermissionBelongsTo'),
+                },
               ]}
             >
               <Select
                 showSearch={{ optionFilterProp: 'label' }}
-                placeholder={t('system:chooseAService')}
+                placeholder={t('oauth:scope.chooseAService')}
                 options={resources.map((row) => ({
                   value: row.resourceId,
                   label: row.resourceName,
@@ -545,23 +554,23 @@ export default function OAuthScope() {
             name="claims"
             label={
               <FieldLabel
-                label={t('system:returnUserInformation')}
-                help={t('authCenter:theUserInformationAnApplicationCanReceiveWithThisPermission')}
+                label={t('oauth:scope.returnUserInformation')}
+                help={t('oauth:scope.theUserInformationAnApplicationCanReceiveWithThisPermission')}
               />
             }
           >
             <Select
               mode="tags"
               options={claimOptions()}
-              placeholder={t('system:selectOrEnterUserFields')}
+              placeholder={t('oauth:shared.selectOrEnterUserFields')}
             />
           </Form.Item>
           <Form.Item
             label={
               <FieldLabel
-                label={t('system:userConfirmation')}
+                label={t('oauth:scope.userConfirmation')}
                 help={t(
-                  'authCenter:sensitivePermissionsShouldRequireExplicitUserConfirmationAndBeEmphasized'
+                  'oauth:scope.sensitivePermissionsShouldRequireExplicitUserConfirmationAndBeEmphasized'
                 )}
               />
             }
@@ -572,14 +581,14 @@ export default function OAuthScope() {
                 valuePropName="checked"
                 noStyle
               >
-                <Checkbox>{t('system:askTheUserToConfirmBeforeUse')}</Checkbox>
+                <Checkbox>{t('oauth:scope.askTheUserToConfirmBeforeUse')}</Checkbox>
               </Form.Item>
               <Form.Item
                 name="sensitive"
                 valuePropName="checked"
                 noStyle
               >
-                <Checkbox>{t('system:markAsSensitivePermission')}</Checkbox>
+                <Checkbox>{t('oauth:scope.markAsSensitivePermission')}</Checkbox>
               </Form.Item>
             </div>
           </Form.Item>
@@ -588,7 +597,7 @@ export default function OAuthScope() {
             label={
               <FieldLabel
                 label={t('common:remark')}
-                help={t('authCenter:forAdministratorsRecordsOnlyThisIsNotShownToExternal')}
+                help={t('oauth:scope.forAdministratorsRecordsOnlyThisIsNotShownToExternal')}
               />
             }
           >

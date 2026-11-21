@@ -1,0 +1,281 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "validation.authorRequired"
+msgstr "生成功能作者不能为空"
+
+msgid "validation.baseUrlLength"
+msgstr "Base URL长度不能超过255个字符"
+
+msgid "validation.baseUrlRequired"
+msgstr "Base URL不能为空"
+
+msgid "validation.boolean"
+msgstr "请输入布尔值"
+
+msgid "validation.businessNameRequired"
+msgstr "生成业务名不能为空"
+
+msgid "validation.classNameRequired"
+msgstr "实体类名称不能为空"
+
+msgid "validation.componentPathLength"
+msgstr "组件路径长度不能超过255个字符"
+
+msgid "validation.configKeyLength"
+msgstr "参数键名长度不能超过100个字符"
+
+msgid "validation.configKeyRequired"
+msgstr "参数键名不能为空"
+
+msgid "validation.configNameLength"
+msgstr "参数名称长度不能超过100个字符"
+
+msgid "validation.configNameRequired"
+msgstr "参数名称不能为空"
+
+msgid "validation.configValueLength"
+msgstr "参数键值长度不能超过500个字符"
+
+msgid "validation.configValueRequired"
+msgstr "参数键值不能为空"
+
+msgid "validation.contactPhoneLength"
+msgstr "联系电话长度不能超过11个字符"
+
+msgid "validation.cronLength"
+msgstr "Cron执行表达式不能超过255个字符"
+
+msgid "validation.cronRequired"
+msgstr "Cron执行表达式不能为空"
+
+msgid "validation.cssClassLength"
+msgstr "样式属性长度不能超过100个字符"
+
+msgid "validation.date"
+msgstr "请输入有效日期"
+
+msgid "validation.datetime"
+msgstr "请输入有效日期时间"
+
+msgid "validation.deptNameLength"
+msgstr "部门名称长度不能超过30个字符"
+
+msgid "validation.deptNameRequired"
+msgstr "部门名称不能为空"
+
+msgid "validation.dictLabelLength"
+msgstr "字典标签长度不能超过100个字符"
+
+msgid "validation.dictLabelRequired"
+msgstr "字典标签不能为空"
+
+msgid "validation.dictNameLength"
+msgstr "字典类型名称长度不能超过100个字符"
+
+msgid "validation.dictNameRequired"
+msgstr "字典名称不能为空"
+
+msgid "validation.dictTypeFormat"
+msgstr "字典类型必须以字母开头，且只能为（小写字母，数字，下滑线）"
+
+msgid "validation.dictTypeLength"
+msgstr "字典类型长度不能超过100个字符"
+
+msgid "validation.dictTypeNameLength"
+msgstr "字典类型类型长度不能超过100个字符"
+
+msgid "validation.dictTypeRequired"
+msgstr "字典类型不能为空"
+
+msgid "validation.dictValueLength"
+msgstr "字典键值长度不能超过100个字符"
+
+msgid "validation.dictValueRequired"
+msgstr "字典键值不能为空"
+
+msgid "validation.emailFormat"
+msgstr "邮箱格式不正确"
+
+msgid "validation.emailLength"
+msgstr "邮箱长度不能超过50个字符"
+
+msgid "validation.expected"
+msgstr "允许的值：%(expected)s"
+
+msgid "validation.finiteNumber"
+msgstr "请输入有限数值"
+
+msgid "validation.functionNameRequired"
+msgstr "生成功能名不能为空"
+
+msgid "validation.greaterThan"
+msgstr "数值必须大于 %(gt)s"
+
+msgid "validation.greaterThanEqual"
+msgstr "数值必须大于或等于 %(ge)s"
+
+msgid "validation.integer"
+msgstr "请输入整数"
+
+msgid "validation.invalid"
+msgstr "输入值无效"
+
+msgid "validation.invokeTargetLength"
+msgstr "调用目标字符串长度不能超过500个字符"
+
+msgid "validation.invokeTargetRequired"
+msgstr "调用目标字符串不能为空"
+
+msgid "validation.json"
+msgstr "请输入有效 JSON"
+
+msgid "validation.lessThan"
+msgstr "数值必须小于 %(lt)s"
+
+msgid "validation.lessThanEqual"
+msgstr "数值必须小于或等于 %(le)s"
+
+msgid "validation.list"
+msgstr "请输入列表"
+
+msgid "validation.locale"
+msgstr "语言标识无效"
+
+msgid "validation.menuNameLength"
+msgstr "菜单名称长度不能超过50个字符"
+
+msgid "validation.menuNameRequired"
+msgstr "菜单名称不能为空"
+
+msgid "validation.menuTypeRequired"
+msgstr "菜单类型不能为空"
+
+msgid "validation.mobileLength"
+msgstr "手机号码长度不能超过11个字符"
+
+msgid "validation.modelCodeLength"
+msgstr "模型编码长度不能超过100个字符"
+
+msgid "validation.modelCodeRequired"
+msgstr "模型编码不能为空"
+
+msgid "validation.moduleNameRequired"
+msgstr "生成模块名不能为空"
+
+msgid "validation.multipleOf"
+msgstr "数值必须是 %(multiple_of)s 的倍数"
+
+msgid "validation.namedInvalid"
+msgstr "%(field_name)s格式错误"
+
+msgid "validation.namedRequired"
+msgstr "%(field_name)s不能为空"
+
+msgid "validation.nickNameLength"
+msgstr "用户昵称长度不能超过30个字符"
+
+msgid "validation.nickNameScript"
+msgstr "用户昵称不能包含脚本字符"
+
+msgid "validation.noticeTitleLength"
+msgstr "公告标题不能超过50个字符"
+
+msgid "validation.noticeTitleRequired"
+msgstr "公告标题不能为空"
+
+msgid "validation.noticeTitleScript"
+msgstr "公告标题不能包含脚本字符"
+
+msgid "validation.number"
+msgstr "请输入数字"
+
+msgid "validation.object"
+msgstr "请输入对象"
+
+msgid "validation.orderRequired"
+msgstr "显示顺序不能为空"
+
+msgid "validation.packageNameRequired"
+msgstr "生成包路径不能为空"
+
+msgid "validation.pattern"
+msgstr "输入格式不正确"
+
+msgid "validation.permissionLength"
+msgstr "权限标识长度不能超过100个字符"
+
+msgid "validation.postCodeLength"
+msgstr "岗位编码长度不能超过64个字符"
+
+msgid "validation.postCodeRequired"
+msgstr "岗位编码不能为空"
+
+msgid "validation.postNameLength"
+msgstr "岗位名称长度不能超过50个字符"
+
+msgid "validation.postNameRequired"
+msgstr "岗位名称不能为空"
+
+msgid "validation.pythonFieldRequired"
+msgstr "Python属性不能为空"
+
+msgid "validation.required"
+msgstr "此字段为必填项"
+
+msgid "validation.roleKeyLength"
+msgstr "权限字符长度不能超过100个字符"
+
+msgid "validation.roleKeyRequired"
+msgstr "权限字符不能为空"
+
+msgid "validation.roleNameLength"
+msgstr "角色名称长度不能超过30个字符"
+
+msgid "validation.roleNameRequired"
+msgstr "角色名称不能为空"
+
+msgid "validation.routePathLength"
+msgstr "路由地址长度不能超过200个字符"
+
+msgid "validation.string"
+msgstr "请输入文本"
+
+msgid "validation.stringTooLong"
+msgstr "最多允许 %(max_length)s 个字符"
+
+msgid "validation.stringTooShort"
+msgstr "至少需要 %(min_length)s 个字符"
+
+msgid "validation.tableCommentRequired"
+msgstr "表描述不能为空"
+
+msgid "validation.tableNameRequired"
+msgstr "表名称不能为空"
+
+msgid "validation.time"
+msgstr "请输入有效时间"
+
+msgid "validation.userNameLength"
+msgstr "用户账号长度不能超过30个字符"
+
+msgid "validation.userNameRequired"
+msgstr "用户账号不能为空"
+
+msgid "validation.userNameScript"
+msgstr "用户账号不能包含脚本字符"
+
+msgid "validation.uuid"
+msgstr "请输入有效 UUID"

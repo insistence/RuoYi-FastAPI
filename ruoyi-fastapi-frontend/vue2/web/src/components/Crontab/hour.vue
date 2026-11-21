@@ -8,7 +8,7 @@
         v-model="radioValue"
         :label="1"
       >
-        {{ $t('tool:interface.hourAllowedWildcards') }}
+        {{ $t('components:cron.hourAllowedWildcards') }}
       </el-radio>
     </el-form-item>
 
@@ -17,7 +17,7 @@
         v-model="radioValue"
         :label="2"
       >
-        {{ $t('tool:cron.rangeFrom') }}
+        {{ $t('components:cron.rangeFrom') }}
         <el-input-number
           v-model="cycle01"
           :min="0"
@@ -38,19 +38,19 @@
         v-model="radioValue"
         :label="3"
       >
-        {{ $t('tool:cron.from') }}
+        {{ $t('components:cron.from') }}
         <el-input-number
           v-model="average01"
           :min="0"
           :max="22"
         />
-        {{ $t('tool:interface.repeatEvery.hour') }}
+        {{ $t('components:cron.repeatEvery.hour') }}
         <el-input-number
           v-model="average02"
           :min="1"
           :max="23 - average01 || 0"
         />
-        {{ $t('tool:interface.hours') }}
+        {{ $t('components:cron.unit.hours') }}
       </el-radio>
     </el-form-item>
 

@@ -66,16 +66,16 @@ const actionRequests = {
 }
 const actionLabels = {
   get install() {
-    return t('system:install')
+    return t('pluginAdmin:list.install')
   },
   get upgrade() {
-    return t('system:upgrade')
+    return t('pluginAdmin:list.upgrade')
   },
   get uninstall() {
-    return t('system:uninstall')
+    return t('pluginAdmin:list.uninstall')
   },
   get purge() {
-    return t('system:cleanUpOrphanedMetadata')
+    return t('pluginAdmin:list.cleanUpOrphanedMetadata')
   },
   get enable() {
     return t('common:enable')
@@ -238,7 +238,7 @@ export default function Plugin() {
     try {
       const result = await api.updatePluginConfig(config.pluginId, { values })
       if (current === configRequest.current) {
-        message.success(t('system:pluginConfigurationSaved'))
+        message.success(t('pluginAdmin:list.pluginConfigurationSaved'))
         setConfig((previous) => ({
           ...previous,
           items: result.data?.configs || previous.items,
@@ -288,7 +288,7 @@ export default function Plugin() {
         ...previous,
         result: response.data || {},
       }))
-      if (!dryRun) message.success(t('system:pluginDependenciesInstalled'))
+      if (!dryRun) message.success(t('pluginAdmin:list.pluginDependenciesInstalled'))
     } catch {
     } finally {
       setDependencyLoading(false)
@@ -298,10 +298,10 @@ export default function Plugin() {
     setActionLoading(true)
     try {
       const result = await api.checkPlugin(row.pluginId)
-      showAction(t('system:pluginCheckResults'), result.data)
+      showAction(t('pluginAdmin:list.pluginCheckResults'), result.data)
     } catch (error) {
       showAction(
-        t('system:pluginCheckFailed'),
+        t('pluginAdmin:list.pluginCheckFailed'),
         buildErrorActionResult(error, {
           pluginId: row.pluginId,
           operation: 'check',
@@ -312,7 +312,7 @@ export default function Plugin() {
     }
   }
   async function diagnose(row, health) {
-    const title = `${row.pluginName}${health ? t('system:healthCheck') : t('system:diagnosticBundle')}`
+    const title = `${row.pluginName}${health ? t('pluginAdmin:list.healthCheck') : t('pluginAdmin:list.diagnosticBundle')}`
     setDiagnostic({ title, result: { pluginId: row.pluginId } })
     setDiagnosticLoading(true)
     try {
@@ -413,7 +413,7 @@ export default function Plugin() {
       )
       setBatch(normalizePluginBatchResponse(result.data))
       setPlan(normalizePluginPlanResponse(result.data))
-      message.success(result.data?.message || t('system:batchPluginOperationCompleted'))
+      message.success(result.data?.message || t('pluginAdmin:list.batchPluginOperationCompleted'))
       refresh()
     } catch (error) {
       if (!isUserCancel(error))
@@ -434,20 +434,20 @@ export default function Plugin() {
   }
   function switchTooltip(row) {
     if (row.source === 'artifact')
-      return t('system:forSignedArtifactsChangeTheEnabledStateWithRelease')
+      return t('pluginAdmin:list.forSignedArtifactsChangeTheEnabledStateWithRelease')
     if (row.status === 'error')
       return row.enabled === '0'
-        ? t('system:thePluginIsIsolatedDueToAnErrorTurn')
-        : t('system:thePluginIsInAnErrorStateReinstallOr')
+        ? t('pluginAdmin:list.thePluginIsIsolatedDueToAnErrorTurn')
+        : t('pluginAdmin:list.thePluginIsInAnErrorStateReinstallOr')
     return switchBlocked(row) ? getCapabilityReason(row.capability) : ''
   }
   const columns = [
     { align: 'center', title: t('pluginAdmin:id'), dataIndex: 'pluginId', width: 120 },
     { align: 'center', title: t('pluginAdmin:name'), dataIndex: 'pluginName', width: 140 },
-    { align: 'center', title: t('system:codeVersion'), dataIndex: 'version', width: 100 },
+    { align: 'center', title: t('pluginAdmin:list.codeVersion'), dataIndex: 'version', width: 100 },
     {
       align: 'center',
-      title: t('system:installedVersion'),
+      title: t('pluginAdmin:shared.installedVersion'),
       dataIndex: 'installedVersion',
       width: 110,
       render: (value) => value || '-',
@@ -480,7 +480,7 @@ export default function Plugin() {
     },
     {
       align: 'center',
-      title: t('system:artifactRelease'),
+      title: t('pluginAdmin:shared.artifactRelease'),
       width: 220,
       render: (_, row) => (row.source === 'artifact' ? <PluginReleaseStatus plugin={row} /> : '-'),
     },
@@ -516,7 +516,7 @@ export default function Plugin() {
                   loading={configLoading}
                   onClick={() => showConfig(row)}
                 >
-                  {t('system:configuration')}
+                  {t('pluginAdmin:shared.configuration')}
                 </TableAction>
                 <TableAction
                   iconOnly={true}
@@ -530,21 +530,21 @@ export default function Plugin() {
                   symbol="CircleCheck"
                   onClick={() => check(row)}
                 >
-                  {t('system:check')}
+                  {t('pluginAdmin:list.check')}
                 </TableAction>
                 <TableAction
                   iconOnly={true}
                   symbol="FirstAidKit"
                   onClick={() => diagnose(row, true)}
                 >
-                  {t('system:healthCheck')}
+                  {t('pluginAdmin:list.healthCheck')}
                 </TableAction>
                 <TableAction
                   iconOnly={true}
                   symbol="DocumentChecked"
                   onClick={() => diagnose(row, false)}
                 >
-                  {t('system:diagnosticBundle')}
+                  {t('pluginAdmin:list.diagnosticBundle')}
                 </TableAction>
               </>
             )}
@@ -589,7 +589,7 @@ export default function Plugin() {
                 symbol="Delete"
                 onClick={() => preview(row, 'purge')}
               >
-                {t('system:cleanUpOrphanedMetadata')}
+                {t('pluginAdmin:list.cleanUpOrphanedMetadata')}
               </TableAction>
             </HasPermi>
           )}
@@ -617,7 +617,7 @@ export default function Plugin() {
         >
           <Input
             style={{ width: 220 }}
-            placeholder={t('system:enterAPluginId')}
+            placeholder={t('pluginAdmin:shared.enterAPluginId')}
             allowClear
           />
         </Form.Item>
@@ -627,7 +627,7 @@ export default function Plugin() {
         >
           <Input
             style={{ width: 220 }}
-            placeholder={t('system:enterAPluginName')}
+            placeholder={t('pluginAdmin:list.enterAPluginName')}
             allowClear
           />
         </Form.Item>
@@ -699,14 +699,14 @@ export default function Plugin() {
                 onClick={() => createPlan(type)}
               >
                 {actionLabels[type]}
-                {t('system:plans')}
+                {t('pluginAdmin:list.plans')}
               </Button>
             ))}
             <Button
               icon={<AuditOutlined />}
               onClick={() => setAuditOpen(true)}
             >
-              {t('system:auditRecords')}
+              {t('pluginAdmin:list.auditRecords')}
             </Button>
           </HasPermi>
           <Tooltip title={formatPluginIdsForDisplay(selected)}>
@@ -716,8 +716,8 @@ export default function Plugin() {
               type={selected.length ? 'success' : 'info'}
             >
               {selected.length
-                ? t('system:valuePluginsSelected', { length: selected.length })
-                : t('system:selectAPlugin')}
+                ? t('pluginAdmin:list.valuePluginsSelected', { length: selected.length })
+                : t('pluginAdmin:list.selectAPlugin')}
             </PluginTag>
           </Tooltip>
         </div>

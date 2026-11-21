@@ -38,7 +38,7 @@ const listClassOptions = [
   {
     value: 'primary',
     get label() {
-      return t('system:primary')
+      return t('system:dict.primary')
     },
   },
   {
@@ -50,7 +50,7 @@ const listClassOptions = [
   {
     value: 'info',
     get label() {
-      return t('system:information')
+      return t('system:dict.information')
     },
   },
   {
@@ -62,7 +62,7 @@ const listClassOptions = [
   {
     value: 'danger',
     get label() {
-      return t('system:danger')
+      return t('system:dict.danger')
     },
   },
 ]
@@ -155,7 +155,7 @@ export default function DictData({ params }) {
   }
   async function handleDelete(values) {
     try {
-      await confirm(t('system:deleteDictionaryEntriesWithCodesValue', { values }))
+      await confirm(t('system:dict.deleteDictionaryEntriesWithCodesValue', { values }))
       await delData(values)
       clearDictCache()
       message.success(t('common:deleteSuccess'))
@@ -178,10 +178,10 @@ export default function DictData({ params }) {
     }
   }
   const columns = [
-    { align: 'center', title: t('system:dictionaryCode'), dataIndex: 'dictCode' },
+    { align: 'center', title: t('system:dict.dictionaryCode'), dataIndex: 'dictCode' },
     {
       align: 'center',
-      title: t('system:dictionaryLabel'),
+      title: t('system:dict.dictionaryLabel'),
       dataIndex: 'dictLabel',
       render: (value, row) => (
         <DictTag
@@ -196,8 +196,8 @@ export default function DictData({ params }) {
         />
       ),
     },
-    { align: 'center', title: t('system:dictionaryValue'), dataIndex: 'dictValue' },
-    { align: 'center', title: t('system:dictionarySortOrder'), dataIndex: 'dictSort' },
+    { align: 'center', title: t('system:dict.dictionaryValue'), dataIndex: 'dictValue' },
+    { align: 'center', title: t('system:dict.dictionarySortOrder'), dataIndex: 'dictSort' },
     {
       align: 'center',
       title: t('common:status'),
@@ -266,11 +266,11 @@ export default function DictData({ params }) {
           </Form.Item>
           <Form.Item
             name="dictLabel"
-            label={<SourceLocaleLabel>{t('system:dictionaryLabel')}</SourceLocaleLabel>}
+            label={<SourceLocaleLabel>{t('system:dict.dictionaryLabel')}</SourceLocaleLabel>}
           >
             <Input
               style={{ width: 200 }}
-              placeholder={t('system:enterADictionaryLabel')}
+              placeholder={t('system:dict.enterADictionaryLabel')}
               allowClear
             />
           </Form.Item>
@@ -280,7 +280,7 @@ export default function DictData({ params }) {
           >
             <Select
               style={{ width: 200 }}
-              placeholder={t('system:dataStatus')}
+              placeholder={t('system:dict.dataStatus')}
               allowClear
               options={sys_normal_disable}
             />
@@ -439,9 +439,9 @@ export default function DictData({ params }) {
           </Form.Item>
           <Form.Item
             name="cssClass"
-            label={t('system:cssClass')}
+            label={t('system:dict.cssClass')}
           >
-            <Input placeholder={t('system:enterACssClass')} />
+            <Input placeholder={t('system:dict.enterACssClass')} />
           </Form.Item>
           <Form.Item
             name="listClass"

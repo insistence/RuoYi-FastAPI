@@ -9,11 +9,12 @@
       v-loading="initializing"
       class="auth-flow"
     >
-      <p class="panel-kicker">{{ $t('authCenter:verifyIdentity') }}</p>
-      <h2>{{ $t('authCenter:continueWithYourAccount') }}</h2>
+      <p class="panel-kicker">{{ $t('authCenter:shared.verifyIdentity') }}</p>
+      <h2>{{ $t('authCenter:login.continueWithYourAccount') }}</h2>
       <p class="panel-lead">
-        {{ $t('authCenter:afterSigningInYouWillReturnTo') }}<strong>{{ applicationName }}</strong>
-        {{ $t('authCenter:toContinueThisSignInDoesNotChangeYourSession') }}
+        {{ $t('authCenter:login.afterSigningInYouWillReturnTo')
+        }}<strong>{{ applicationName }}</strong>
+        {{ $t('authCenter:login.toContinueThisSignInDoesNotChangeYourSession') }}
       </p>
 
       <el-alert
@@ -31,14 +32,14 @@
         @submit.prevent="submitLogin"
       >
         <el-form-item
-          :label="$t('common:login.username')"
+          :label="$t('auth:login.username')"
           prop="userName"
         >
           <el-input
             v-model="form.userName"
             size="large"
             autocomplete="username"
-            :placeholder="$t('authCenter:enterYourUsernameLabel')"
+            :placeholder="$t('authCenter:login.enterYourUsernameLabel')"
             autofocus
           >
             <template #prefix
@@ -47,7 +48,7 @@
           </el-input>
         </el-form-item>
         <el-form-item
-          :label="$t('common:login.password')"
+          :label="$t('auth:login.password')"
           prop="password"
         >
           <el-input
@@ -66,7 +67,7 @@
         </el-form-item>
         <el-form-item
           v-if="captcha.captchaEnabled"
-          :label="$t('authCenter:verificationCode')"
+          :label="$t('authCenter:login.verificationCode')"
           prop="code"
         >
           <div class="captcha-row">
@@ -74,31 +75,31 @@
               v-model="form.code"
               size="large"
               autocomplete="off"
-              :placeholder="$t('authCenter:enterTheCharactersInTheImage')"
+              :placeholder="$t('authCenter:login.enterTheCharactersInTheImage')"
               @keyup.enter="submitLogin"
             />
             <el-button
               class="captcha-image"
               text
-              :aria-label="$t('authCenter:getADifferentVerificationImage')"
-              :title="$t('authCenter:canTReadItTryAnotherImage')"
+              :aria-label="$t('authCenter:login.getADifferentVerificationImage')"
+              :title="$t('authCenter:login.canTReadItTryAnotherImage')"
               @click="loadCaptcha"
             >
               <img
                 v-if="captcha.img"
                 :src="`data:image/gif;base64,${captcha.img}`"
-                :alt="$t('authCenter:verificationCode')"
+                :alt="$t('authCenter:login.verificationCode')"
               />
-              <span v-else>{{ $t('authCenter:newImage') }}</span>
+              <span v-else>{{ $t('authCenter:login.newImage') }}</span>
             </el-button>
           </div>
         </el-form-item>
 
         <div class="preference-row">
           <el-checkbox v-model="form.rememberMe">{{
-            $t('authCenter:staySignedInOnThisDevice')
+            $t('authCenter:login.staySignedInOnThisDevice')
           }}</el-checkbox>
-          <small>{{ $t('authCenter:useThisOnlyOnAPersonalDeviceYouTrust') }}</small>
+          <small>{{ $t('authCenter:login.useThisOnlyOnAPersonalDeviceYouTrust') }}</small>
         </div>
         <el-button
           class="primary-action"
@@ -107,7 +108,7 @@
           native-type="submit"
           :loading="submitting"
         >
-          {{ $t('authCenter:signInAndContinue') }}</el-button
+          {{ $t('authCenter:login.signInAndContinue') }}</el-button
         >
       </el-form>
       <el-button
@@ -115,7 +116,7 @@
         link
         :disabled="submitting"
         @click="cancel"
-        >{{ $t('authCenter:cancelAndReturnToTheApp') }}</el-button
+        >{{ $t('authCenter:login.cancelAndReturnToTheApp') }}</el-button
       >
     </div>
   </AuthCenterShell>
@@ -148,14 +149,14 @@ const form = reactive({
   rememberMe: false,
 })
 const applicationName = computed(
-  () => interaction.value.client?.clientName || t('authCenter:appRequestingSignIn')
+  () => interaction.value.client?.clientName || t('authCenter:shared.appRequestingSignIn')
 )
 const rules = {
   userName: [
     {
       required: true,
       get message() {
-        return t('authCenter:enterYourUsername')
+        return t('authCenter:login.enterYourUsername')
       },
       trigger: 'blur',
     },
@@ -164,7 +165,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('authCenter:enterYourPassword')
+        return t('authCenter:login.enterYourPassword')
       },
       trigger: 'blur',
     },
@@ -173,7 +174,7 @@ const rules = {
     {
       validator: (_rule, value, callback) =>
         captcha.value.captchaEnabled && !value
-          ? callback(new Error(t('authCenter:enterTheVerificationCode')))
+          ? callback(new Error(t('authCenter:login.enterTheVerificationCode')))
           : callback(),
       trigger: 'blur',
     },
@@ -183,7 +184,7 @@ const rules = {
 /** 读取认证请求并初始化登录状态 */
 async function initialize() {
   if (!interactionId.value || !csrfToken()) {
-    return showFatal(t('authCenter:theAuthenticationRequestIsIncompleteReturnToTheAppAnd'))
+    return showFatal(t('authCenter:shared.theAuthenticationRequestIsIncompleteReturnToTheAppAnd'))
   }
   try {
     const response = await getInteraction(interactionId.value, csrfToken())
@@ -195,7 +196,9 @@ async function initialize() {
       await loadCaptcha()
     }
   } catch (error) {
-    showFatal(error?.message || t('authCenter:theAuthenticationRequestHasExpiredReturnToTheAppAnd'))
+    showFatal(
+      error?.message || t('authCenter:shared.theAuthenticationRequestHasExpiredReturnToTheAppAnd')
+    )
   } finally {
     initializing.value = false
   }
@@ -227,7 +230,8 @@ async function submitLogin() {
   } catch (error) {
     form.password = ''
     errorMessage.value =
-      error?.message || t('authCenter:authenticationFailedCheckYourAccountAndPasswordThenTryAgain')
+      error?.message ||
+      t('authCenter:login.authenticationFailedCheckYourAccountAndPasswordThenTryAgain')
     if (captcha.value.captchaEnabled) {
       await loadCaptcha().catch(() => {})
     }
@@ -245,7 +249,7 @@ async function cancel() {
     }
   } catch (error) {
     errorMessage.value =
-      error?.message || t('authCenter:theAuthenticationRequestCouldNotBeCancelled')
+      error?.message || t('authCenter:login.theAuthenticationRequestCouldNotBeCancelled')
   }
 }
 

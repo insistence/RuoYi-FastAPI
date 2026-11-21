@@ -32,8 +32,8 @@ test('locale resources have distinct tabs that select and copy the matching file
         'python/do.py.jinja2': 'class Example: pass',
         [`${chinesePath}.jinja2`]: chinese,
         [`${englishPath}.jinja2`]: english,
-        'backend/i18n/catalogs/zh-CN/LC_MESSAGES/core.po': 'msgstr "名称"',
-        'backend/i18n/catalogs/en-US/LC_MESSAGES/core.po': 'msgstr "Name"',
+        'backend/i18n/catalogs/zh-CN/LC_MESSAGES/core/generated.demo.item.po': 'msgstr "名称"',
+        'backend/i18n/catalogs/en-US/LC_MESSAGES/core/generated.demo.item.po': 'msgstr "Name"',
       }}
       onClose={() => {}}
     />
@@ -45,8 +45,12 @@ test('locale resources have distinct tabs that select and copy the matching file
   expect(screen.getByRole('tabpanel').textContent).toContain(english)
   fireEvent.click(screen.getByRole('button', { name: /复制$/ }))
   await waitFor(() => expect(copyText).toHaveBeenCalledWith(english))
-  fireEvent.click(screen.getByRole('tab', { name: 'zh-CN/core.po', exact: true }))
+  fireEvent.click(
+    screen.getByRole('tab', { name: 'zh-CN/core/generated.demo.item.po', exact: true })
+  )
   expect(screen.getByRole('tabpanel').textContent).toContain('msgstr "名称"')
-  fireEvent.click(screen.getByRole('tab', { name: 'en-US/core.po', exact: true }))
+  fireEvent.click(
+    screen.getByRole('tab', { name: 'en-US/core/generated.demo.item.po', exact: true })
+  )
   expect(screen.getByRole('tabpanel').textContent).toContain('msgstr "Name"')
 })

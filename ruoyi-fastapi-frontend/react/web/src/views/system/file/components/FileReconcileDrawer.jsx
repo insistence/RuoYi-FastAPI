@@ -106,7 +106,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
         reason: values.reason,
         ...(action.key === 'register_orphan' ? { originalName: values.originalName } : {}),
       })
-      message.success(t('system:storageIssueProcessedSuccessfully'))
+      message.success(t('file:reconcile.storageIssueProcessedSuccessfully'))
       setAction(undefined)
       load()
       onSuccess()
@@ -118,14 +118,14 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
   const issueColumns = [
     {
       align: 'center',
-      title: t('system:level'),
+      title: t('file:reconcile.level'),
       dataIndex: 'severity',
       width: 80,
       render: (value) => <FileTag type={severityTagType(value)}>{severityLabel(value)}</FileTag>,
     },
     {
       align: 'center',
-      title: t('system:issueType'),
+      title: t('file:shared.issueType'),
       dataIndex: 'issueType',
       width: 130,
       render: issueTypeLabel,
@@ -141,14 +141,14 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
       ),
     },
     {
-      title: t('system:storageLocation'),
+      title: t('file:reconcile.storageLocation'),
       width: 230,
       render: (_, row) => (
         <>
-          {t('system:expected')}
+          {t('file:reconcile.expected')}
           {formatLocation(row.expectedRoot, row.expectedKey)}
           <div className="cell-secondary">
-            {t('system:actual')}
+            {t('file:reconcile.actual')}
             {formatLocation(row.actualRoot, row.actualKey)}
           </div>
         </>
@@ -156,14 +156,14 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
     },
     {
       align: 'right',
-      title: t('system:size'),
+      title: t('file:reconcile.size'),
       width: 130,
       render: (_, row) => (
         <>
-          {t('system:expected')}
+          {t('file:reconcile.expected')}
           {formatOptionalSize(row.expectedSize)}
           <div className="cell-secondary">
-            {t('system:actual')}
+            {t('file:reconcile.actual')}
             {formatOptionalSize(row.actualSize)}
           </div>
         </>
@@ -176,10 +176,10 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
       width: 90,
       render: (value) => <FileTag type={issueStatusType(value)}>{issueStatusLabel(value)}</FileTag>,
     },
-    { title: t('system:issueDescription'), dataIndex: 'detail', width: 180 },
+    { title: t('file:reconcile.issueDescription'), dataIndex: 'detail', width: 180 },
     {
       align: 'center',
-      title: t('system:lastDetected'),
+      title: t('file:reconcile.lastDetected'),
       dataIndex: 'lastSeenTime',
       width: 170,
       render: (value) => parseTime(value),
@@ -227,24 +227,24 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
     {
       width: 100,
       align: 'center',
-      title: t('system:trigger'),
+      title: t('file:reconcile.trigger'),
       dataIndex: 'triggerType',
       render: (value) => (value === 'scheduled' ? t('system:scheduledTasks') : t('monitor:manual')),
     },
     {
       width: 90,
       align: 'center',
-      title: t('system:digestVerification'),
+      title: t('file:reconcile.digestVerification'),
       dataIndex: 'checkHash',
       render: (value) => (value ? t('common:yes') : t('common:no')),
     },
     ...Object.entries({
-      scannedFileCount: t('system:fileRecords'),
-      scannedStorageCount: t('system:physicalFiles'),
-      issueCount: t('system:issuesFound'),
-      newIssueCount: t('system:newIssues'),
-      resolvedIssueCount: t('system:automaticallyRecovered'),
-      startedBy: t('system:initiatedBy'),
+      scannedFileCount: t('file:reconcile.fileRecords'),
+      scannedStorageCount: t('file:reconcile.physicalFiles'),
+      issueCount: t('file:reconcile.issuesFound'),
+      newIssueCount: t('file:reconcile.newIssues'),
+      resolvedIssueCount: t('file:reconcile.automaticallyRecovered'),
+      startedBy: t('file:reconcile.initiatedBy'),
     }).map(([dataIndex, title]) => ({
       dataIndex,
       title,
@@ -260,7 +260,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
     {
       width: 170,
       align: 'center',
-      title: t('system:completedAt'),
+      title: t('file:reconcile.completedAt'),
       dataIndex: 'finishedTime',
       render: (value) => parseTime(value),
     },
@@ -270,37 +270,44 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
     <>
       <Drawer
         rootClassName="file-drawer"
-        title={t('system:fileStorageReconciliation')}
+        title={t('file:reconcile.fileStorageReconciliation')}
         open={open}
         onClose={onClose}
         size="88%"
       >
         <Alert
-          title={t('system:reconciliationChecksFileMetadataAgainstPublicProtectedAndRecycled')}
+          title={t(
+            'file:reconcile.reconciliationChecksFileMetadataAgainstPublicProtectedAndRecycled'
+          )}
           type="info"
           showIcon
           style={{ marginBottom: 0 }}
         />
         <div className="file-reconcile-summary">
           {[
-            [t('system:pending'), 'openCount', 'danger', t('system:issuesRequiringReviewOrRepair')],
             [
-              t('system:criticalIssues'),
+              t('file:reconcile.pending'),
+              'openCount',
+              'danger',
+              t('file:reconcile.issuesRequiringReviewOrRepair'),
+            ],
+            [
+              t('file:reconcile.criticalIssues'),
               'criticalCount',
               'critical',
-              t('system:missingMisplacedOrInconsistentFiles'),
+              t('file:reconcile.missingMisplacedOrInconsistentFiles'),
             ],
             [
-              t('system:warnings'),
+              t('file:reconcile.warnings'),
               'warningCount',
               'warning',
-              t('system:orphanedFilesOrInconsistentRecycleStatus'),
+              t('file:reconcile.orphanedFilesOrInconsistentRecycleStatus'),
             ],
             [
-              t('system:quarantineFile'),
+              t('file:reconcile.quarantineFile'),
               'quarantinedCount',
               'quarantine',
-              t('system:onlyAdministratorsCanRestoreOrPermanentlyDelete'),
+              t('file:reconcile.onlyAdministratorsCanRestoreOrPermanentlyDelete'),
             ],
           ].map(([title, key, tone, hint]) => (
             <div
@@ -313,23 +320,25 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
             </div>
           ))}
           <div className="summary-card summary-card--run">
-            <div className="summary-card__label">{t('system:latestTask')}</div>
+            <div className="summary-card__label">{t('file:reconcile.latestTask')}</div>
             <div className="summary-card__status">
               <FileTag type={runStatusType(stats.latestRun?.status)}>
                 {runStatusLabel(stats.latestRun?.status)}
               </FileTag>
             </div>
             <div className="summary-card__hint">
-              {stats.latestRun ? parseTime(stats.latestRun.startedTime) : t('system:notRunYet')}
+              {stats.latestRun
+                ? parseTime(stats.latestRun.startedTime)
+                : t('file:reconcile.notRunYet')}
             </div>
           </div>
         </div>
         <div className="file-reconcile-toolbar">
           <div className="reconcile-toolbar__tip">
-            {t('system:fullDigestVerificationReadsAllFileContentsEnableIt')}
+            {t('file:reconcile.fullDigestVerificationReadsAllFileContentsEnableIt')}
           </div>
           <Space>
-            <span>{t('system:verifySha256')}</span>
+            <span>{t('file:reconcile.verifySha256')}</span>
             <Switch
               checked={checkHash}
               onChange={setCheckHash}
@@ -343,7 +352,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                 setScanning(true)
                 try {
                   await startFileReconcile({ checkHash })
-                  message.success(t('system:storageReconciliationStarted'))
+                  message.success(t('file:reconcile.storageReconciliationStarted'))
                   load()
                 } catch {
                 } finally {
@@ -351,7 +360,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                 }
               }}
             >
-              {t('system:startReconciliation')}
+              {t('file:reconcile.startReconciliation')}
             </Button>
           </Space>
         </div>
@@ -359,7 +368,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
           items={[
             {
               key: 'issues',
-              label: t('system:issueDetails'),
+              label: t('file:reconcile.issueDetails'),
               children: (
                 <>
                   <Form
@@ -378,21 +387,21 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                     }
                   >
                     <Form.Item
-                      label={t('system:keyword')}
+                      label={t('file:reconcile.keyword')}
                       name="keyword"
                     >
                       <Input
                         style={{ width: 200 }}
                         allowClear
-                        placeholder={t('system:fileNameIdOrRelativePath')}
+                        placeholder={t('file:reconcile.fileNameIdOrRelativePath')}
                       />
                     </Form.Item>
                     <Form.Item
                       name="issueType"
-                      label={t('system:issueType')}
+                      label={t('file:shared.issueType')}
                     >
                       <Select
-                        placeholder={t('system:allTypes')}
+                        placeholder={t('file:reconcile.allTypes')}
                         allowClear
                         style={{ width: 200 }}
                         options={issueTypeOptions}
@@ -400,10 +409,10 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                     </Form.Item>
                     <Form.Item
                       name="severity"
-                      label={t('system:severity')}
+                      label={t('file:reconcile.severity')}
                     >
                       <Select
-                        placeholder={t('system:allSeverities')}
+                        placeholder={t('file:reconcile.allSeverities')}
                         allowClear
                         style={{ width: 200 }}
                         options={['critical', 'warning', 'info'].map((value) => ({
@@ -414,7 +423,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
                     </Form.Item>
                     <Form.Item
                       name="status"
-                      label={t('system:processingStatus')}
+                      label={t('file:reconcile.processingStatus')}
                     >
                       <Select
                         placeholder={t('common:allStatuses')}
@@ -470,7 +479,7 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
             },
             {
               key: 'runs',
-              label: t('system:taskHistory'),
+              label: t('file:reconcile.taskHistory'),
               children: (
                 <>
                   <Table
@@ -525,19 +534,23 @@ export default function FileReconcileDrawer({ open, onClose, onSuccess }) {
             >
               <Input
                 maxLength={255}
-                placeholder={t('system:mustMatchThePhysicalFileExtension')}
+                placeholder={t('file:reconcile.mustMatchThePhysicalFileExtension')}
               />
             </Form.Item>
           )}
           <Form.Item
             name="reason"
-            label={t('system:processingReason')}
+            label={t('file:reconcile.processingReason')}
             rules={[
-              { required: true, whitespace: true, message: t('system:enterAReasonForProcessing') },
+              {
+                required: true,
+                whitespace: true,
+                message: t('file:reconcile.enterAReasonForProcessing'),
+              },
             ]}
           >
             <Input.TextArea
-              placeholder={t('system:enterTheReasonItWillBeRetainedInThe')}
+              placeholder={t('file:reconcile.enterTheReasonItWillBeRetainedInThe')}
               rows={4}
               maxLength={500}
               showCount

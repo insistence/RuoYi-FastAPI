@@ -91,7 +91,7 @@ export default function Config() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(t('system:deleteConfigurationEntriesWithIdsValue', { values }))
+      await confirm(t('system:config.deleteConfigurationEntriesWithIdsValue', { values }))
       await delConfig(values)
       message.success(t('common:deleteSuccess'))
       await getList()
@@ -111,7 +111,7 @@ export default function Config() {
     }
   }
   const columns = [
-    { align: 'center', title: t('system:parameterID'), dataIndex: 'configId' },
+    { align: 'center', title: t('system:config.parameterID'), dataIndex: 'configId' },
     { align: 'center', title: t('system:config.name'), dataIndex: 'configName', ellipsis: true },
     { align: 'center', title: t('system:config.key'), dataIndex: 'configKey', ellipsis: true },
     { align: 'center', title: t('system:config.value'), dataIndex: 'configValue', ellipsis: true },
@@ -176,7 +176,7 @@ export default function Config() {
           >
             <Input
               style={{ width: 240 }}
-              placeholder={t('system:enterParameterName')}
+              placeholder={t('system:config.enterParameterName')}
               allowClear
             />
           </Form.Item>
@@ -186,7 +186,7 @@ export default function Config() {
           >
             <Input
               style={{ width: 240 }}
-              placeholder={t('system:enterParameterKey')}
+              placeholder={t('system:config.enterParameterKey')}
               allowClear
             />
           </Form.Item>
@@ -289,11 +289,11 @@ export default function Config() {
             type="default"
             onClick={() =>
               refreshCache()
-                .then(() => message.success(t('system:cacheRefreshed')))
+                .then(() => message.success(t('system:shared.cacheRefreshed')))
                 .catch(() => {})
             }
           >
-            {t('system:refreshCache')}
+            {t('system:shared.refreshCache')}
           </Button>
         </HasPermi>
         <RightToolbar
@@ -321,7 +321,11 @@ export default function Config() {
         footer={renderDialogFooter}
         width="500px"
         open={open}
-        title={configId !== undefined ? t('system:editParameter') : t('system:addParameter')}
+        title={
+          configId !== undefined
+            ? t('system:config.editParameter')
+            : t('system:config.addParameter')
+        }
         onCancel={() => setOpen(false)}
         onOk={submitForm}
         confirmLoading={saving}
@@ -339,24 +343,24 @@ export default function Config() {
           <Form.Item
             label={t('system:config.name')}
             name="configName"
-            rules={[{ required: true, message: t('system:parameterNameIsRequired') }]}
+            rules={[{ required: true, message: t('system:config.parameterNameIsRequired') }]}
           >
-            <Input placeholder={t('system:enterParameterName')} />
+            <Input placeholder={t('system:config.enterParameterName')} />
           </Form.Item>
           <Form.Item
             label={t('system:config.key')}
             name="configKey"
-            rules={[{ required: true, message: t('system:parameterKeyIsRequired') }]}
+            rules={[{ required: true, message: t('system:config.parameterKeyIsRequired') }]}
           >
-            <Input placeholder={t('system:enterParameterKey')} />
+            <Input placeholder={t('system:config.enterParameterKey')} />
           </Form.Item>
           <Form.Item
             label={t('system:config.value')}
             name="configValue"
-            rules={[{ required: true, message: t('system:parameterValueIsRequired') }]}
+            rules={[{ required: true, message: t('system:config.parameterValueIsRequired') }]}
           >
             <Input.TextArea
-              placeholder={t('system:enterParameterValue')}
+              placeholder={t('system:config.enterParameterValue')}
               rows={2}
             />
           </Form.Item>

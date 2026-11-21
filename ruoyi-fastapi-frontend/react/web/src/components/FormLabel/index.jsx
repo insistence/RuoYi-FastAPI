@@ -17,7 +17,7 @@ export default function FormLabel({ label, help }) {
           <button
             type="button"
             className="ruoyi-form-label-help"
-            aria-label={t('common:aboutValue', { label })}
+            aria-label={t('components:formLabel.aboutValue', { label })}
             onClick={(event) => event.preventDefault()}
           >
             <QuestionCircleFilled />

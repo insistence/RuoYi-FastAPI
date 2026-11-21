@@ -15,7 +15,7 @@
           size="mini"
           icon="el-icon-s-operation"
           :disabled="!editorReady || !validation.valid"
-          :aria-label="$t('common:editor.formatLabel', { label: displayLabel })"
+          :aria-label="$t('components:editor.formatLabel', { label: displayLabel })"
           @click="formatDocument"
           >{{ $t('common:format') }}</el-button
         >
@@ -24,7 +24,7 @@
           size="mini"
           icon="el-icon-full-screen"
           :aria-label="
-            $t('common:editor.toggleLabel', {
+            $t('components:editor.toggleLabel', {
               action: expanded ? $t('common:expression.collapse') : $t('common:expression.expand'),
               label,
             })

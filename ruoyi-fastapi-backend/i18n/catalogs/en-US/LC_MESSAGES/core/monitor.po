@@ -1,0 +1,62 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "cache.allCleared"
+msgstr "All caches cleared"
+
+msgid "cache.keyCleared"
+msgstr "Cache entry %(cache_key)s cleared"
+
+msgid "cache.namespaceCleared"
+msgstr "Cache entries in %(cache_name)s cleared"
+
+msgid "job.addDuplicate"
+msgstr "Unable to add scheduled job %(job_name)s: the job already exists"
+
+msgid "job.editDuplicate"
+msgstr "Unable to update scheduled job %(job_name)s: the job already exists"
+
+msgid "job.executionNotFound"
+msgstr "Execution record not found"
+
+msgid "job.executionSubmitted"
+msgstr "Execution submitted. Check the execution history for progress."
+
+msgid "job.idRequired"
+msgstr "Scheduled job ID is required"
+
+msgid "job.invalidConfiguration"
+msgstr "Invalid job configuration"
+
+msgid "job.invalidId"
+msgstr "Job ID must be a positive integer"
+
+msgid "job.notFound"
+msgstr "Scheduled job not found"
+
+msgid "job.syncNotFound"
+msgstr "Scheduler synchronization record not found"
+
+msgid "log.operationIdRequired"
+msgstr "Operation log ID is required"
+
+msgid "log.signInIdRequired"
+msgstr "Sign-in log ID is required"
+
+msgid "log.userNotLocked"
+msgstr "This user is not locked"
+
+msgid "monitor.uptime"
+msgstr "%(days)sd %(hours)sh %(minutes)sm"

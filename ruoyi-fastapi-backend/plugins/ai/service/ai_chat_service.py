@@ -286,12 +286,15 @@ class AiChatService:
         :param context: 流创建时的语言上下文
         :return: 序列化的错误事件
         """
-        fields = I18nUtil.message_fields(
-            getattr(error, 'message', None),
-            msg_key=getattr(error, 'msg_key', None) or 'ai.stream.failed',
-            msg_params=getattr(error, 'msg_params', None),
-            context=context,
-        )
+        if msg_key := getattr(error, 'msg_key', None):
+            fields = I18nUtil.message_fields(
+                getattr(error, 'message', None),
+                msg_key=msg_key,
+                msg_params=getattr(error, 'msg_params', None),
+                context=context,
+            )
+        else:
+            fields = I18nUtil.message_fields(msg_key='ai.stream.failed', domain='plugin.ai', context=context)
         return json.dumps({'error': fields.pop('msg'), 'type': 'error', **fields}) + '\n'
 
     @classmethod
@@ -334,10 +337,10 @@ class AiChatService:
         """
         ai_model = await AiModelDao.get_ai_model_detail_by_id(query_db, chat_req.model_id)
         if ai_model is None:
-            raise ServiceException(message='模型不存在', msg_key='ai.model.notFound')
+            raise ServiceException(message='模型不存在', msg_key='ai.model.notFound', domain='plugin.ai')
         model_config = AiModelModel(**CamelCaseUtil.transform_result(ai_model))
         if model_config.status != '0':
-            raise ServiceException(message='模型已停用', msg_key='ai.model.disabled')
+            raise ServiceException(message='模型已停用', msg_key='ai.model.disabled', domain='plugin.ai')
 
         user_config = await cls.ai_chat_config_detail_services(query_db, user_id)
 
@@ -407,7 +410,9 @@ class AiChatService:
         try:
             if chat_config:
                 if chat_config.chat_config_id != page_object.chat_config_id:
-                    raise ServiceException(message='只允许修改当前用户的配置', msg_key='ai.settings.otherUser')
+                    raise ServiceException(
+                        message='只允许修改当前用户的配置', msg_key='ai.settings.otherUser', domain='plugin.ai'
+                    )
                 edit_ai_chat_config = page_object.model_dump(
                     exclude_unset=True,
                     exclude={'create_time', 'update_time'},
@@ -472,7 +477,7 @@ class AiChatService:
         if not session:
             raise ServiceException(message='会话不存在', msg_key='identity.session.notFound')
         if str(session.user_id) != str(user_id):
-            raise ServiceException(message='无权访问该会话', msg_key='ai.conversation.forbidden')
+            raise ServiceException(message='无权访问该会话', msg_key='ai.conversation.forbidden', domain='plugin.ai')
 
         return session
 
@@ -489,7 +494,7 @@ class AiChatService:
         await cls._get_owned_session(storage, session_id, user_id)
         delete_result = await storage.delete_session(session_id=session_id)
         if not delete_result:
-            raise ServiceException(message='删除会话失败', msg_key='ai.conversation.deleteFailed')
+            raise ServiceException(message='删除会话失败', msg_key='ai.conversation.deleteFailed', domain='plugin.ai')
         return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
 
     @classmethod
@@ -571,10 +576,10 @@ class AiChatService:
         :return: 取消结果
         """
         if not await cls._user_owns_run(run_id, user_id):
-            raise ServiceException(message='无权取消该运行', msg_key='ai.run.cancelForbidden')
+            raise ServiceException(message='无权取消该运行', msg_key='ai.run.cancelForbidden', domain='plugin.ai')
         cancel_result = await acancel_run(run_id)
         if not cancel_result:
-            raise ServiceException(message='取消运行失败', msg_key='ai.run.cancelFailed')
+            raise ServiceException(message='取消运行失败', msg_key='ai.run.cancelFailed', domain='plugin.ai')
         return CrudResponseModel(is_success=True, message='取消成功', msg_key='common.cancelled')
 
     @classmethod

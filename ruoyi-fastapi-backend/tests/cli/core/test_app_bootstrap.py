@@ -28,13 +28,15 @@ class FakeRuntimeEnvironment(RuntimeEnvironmentService):
 @pytest.mark.parametrize('module_name,expected', [('__main__', 'server:create_app'), ('app', 'create_app')])
 def test_app_entry_compiles_catalogs_before_startup(module_name: str, expected: str, monkeypatch: MonkeyPatch) -> None:
     calls = []
-    monkeypatch.setattr('scripts.compile_i18n.compile_catalogs', lambda: calls.append('compile'))
+    monkeypatch.setattr(
+        'scripts.compile_i18n.compile_catalogs', lambda *, isolate_plugin_errors: calls.append(isolate_plugin_errors)
+    )
     monkeypatch.setattr('uvicorn.run', lambda **options: calls.append(options['app']))
     monkeypatch.setattr('server.create_app', lambda: calls.append('create_app'))
 
     runpy.run_path(str(APP_ENTRY), run_name=module_name)
 
-    assert calls == ['compile', expected]
+    assert calls == [True, expected]
 
 
 @pytest.mark.parametrize('module_name', ['__main__', 'app'])

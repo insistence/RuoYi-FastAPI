@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="$t('oauth:saveTheApplicationSecret')"
+    :title="$t('oauth:client.saveTheApplicationSecret')"
     width="min(680px, calc(100vw - 48px))"
     append-to-body
     :close-on-click-modal="false"
@@ -14,7 +14,7 @@
         <template #label
           ><FieldLabel
             :label="$t('monitor:applicationID')"
-            :help="$t('oauth:systemGeneratedAppIDCopyItToConfigureTheExternal')"
+            :help="$t('oauth:client.systemGeneratedAppIDCopyItToConfigureTheExternal')"
         /></template>
         <el-input
           :model-value="secret.clientId"
@@ -24,8 +24,8 @@
       <el-form-item>
         <template #label
           ><FieldLabel
-            :label="$t('oauth:applicationSecret')"
-            :help="$t('oauth:theAppSecretActsAsItsPasswordAndIsShown')"
+            :label="$t('oauth:client.applicationSecret')"
+            :help="$t('oauth:client.theAppSecretActsAsItsPasswordAndIsShown')"
         /></template>
         <el-input
           :model-value="secret.clientSecret"
@@ -41,13 +41,15 @@
         </el-input>
       </el-form-item>
     </el-form>
-    <el-checkbox v-model="confirmed">{{ $t('oauth:iHaveStoredTheSecretSecurely') }}</el-checkbox>
+    <el-checkbox v-model="confirmed">{{
+      $t('oauth:client.iHaveStoredTheSecretSecurely')
+    }}</el-checkbox>
     <template #footer>
       <el-button
         type="primary"
         :disabled="!confirmed"
         @click="close"
-        >{{ $t('oauth:finish') }}</el-button
+        >{{ $t('oauth:client.finish') }}</el-button
       >
     </template>
   </el-dialog>
@@ -85,9 +87,9 @@ async function copySecret() {
   }
   try {
     await navigator.clipboard.writeText(props.secret.clientSecret)
-    proxy.$modal.msgSuccess(t('oauth:secretCopied'))
+    proxy.$modal.msgSuccess(t('oauth:client.secretCopied'))
   } catch {
-    proxy.$modal.msgError(t('oauth:theBrowserDeniedClipboardAccessCopyTheSecretManually'))
+    proxy.$modal.msgError(t('oauth:client.theBrowserDeniedClipboardAccessCopyTheSecretManually'))
   }
 }
 

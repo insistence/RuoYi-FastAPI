@@ -15,15 +15,15 @@ function wallTimeError(value, zone) {
   try {
     return getWallTimeCandidates(value, zone).length
       ? ''
-      : t('common:thisTimeDoesNotExistInTheSelectedTime')
+      : t('components:dateTime.thisTimeDoesNotExistInTheSelectedTime')
   } catch {
-    return t('common:selectACompleteValidDateAndTime')
+    return t('components:dateTime.selectACompleteValidDateAndTime')
   }
 }
 export default function BusinessDateTimePicker({
   value,
   onChange,
-  label = t('common:dateAndTime'),
+  label = t('components:dateTime.dateAndTime'),
   timezone,
   style,
   ...props
@@ -42,7 +42,7 @@ export default function BusinessDateTimePicker({
       <div className="business-datetime-input__fields">
         <DatePicker
           {...props}
-          aria-label={t('common:valueDate', { label })}
+          aria-label={t('components:dateTime.valueDate', { label })}
           format="YYYY-MM-DD"
           value={calendarValue(value)}
           showNow={false}
@@ -54,7 +54,7 @@ export default function BusinessDateTimePicker({
         <TimePicker
           disabled={props.disabled}
           size={props.size}
-          aria-label={t('common:valueTime', { label })}
+          aria-label={t('components:dateTime.valueTime', { label })}
           format="HH:mm:ss"
           value={calendarValue(value)}
           showNow={false}
@@ -83,7 +83,7 @@ export default function BusinessDateTimePicker({
 export function BusinessDateTimeRangePicker({
   value,
   onChange,
-  label = t('common:dateAndTimeRange'),
+  label = t('components:dateTime.dateAndTimeRange'),
   timezone,
   style,
   separator = t('common:to'),

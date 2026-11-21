@@ -62,7 +62,7 @@ class AiModelService:
         )
         if ai_models:
             return CrudResponseModel(is_success=True, message='校验通过', msg_key='common.validated')
-        raise ServiceException(message='没有权限访问AI模型数据', msg_key='ai.model.forbidden')
+        raise ServiceException(message='没有权限访问AI模型数据', msg_key='ai.model.forbidden', domain='plugin.ai')
 
     @classmethod
     async def add_ai_model_services(cls, query_db: AsyncSession, page_object: AiModelModel) -> CrudResponseModel:
@@ -111,7 +111,7 @@ class AiModelService:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='AI模型不存在', msg_key='ai.model.missing')
+            raise ServiceException(message='AI模型不存在', msg_key='ai.model.missing', domain='plugin.ai')
 
     @classmethod
     async def delete_ai_model_services(
@@ -135,7 +135,7 @@ class AiModelService:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入AI模型id为空', msg_key='ai.model.idRequired')
+            raise ServiceException(message='传入AI模型id为空', msg_key='ai.model.idRequired', domain='plugin.ai')
 
     @classmethod
     async def ai_model_detail_services(cls, query_db: AsyncSession, model_id: int) -> AiModelModel:

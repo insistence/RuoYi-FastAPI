@@ -1,17 +1,15 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('authCenter:help.integrationManagement')"
+      :section="$t('oauth:shared.integrationManagement')"
       :title="$t('system:permission.title')"
       :description="
         $t(
-          'authCenter:messages.describeTheIdentityInformationAndServiceOperationsApplicationsMayRequestInBusiness'
+          'oauth:scope.describeTheIdentityInformationAndServiceOperationsApplicationsMayRequestInBusiness'
         )
       "
       :filter-hint="
-        $t(
-          'authCenter:messages.protocolCodesAppearAsSecondaryInformationSearchByNameForEverydayUse'
-        )
+        $t('oauth:scope.protocolCodesAppearAsSecondaryInformationSearchByNameForEverydayUse')
       "
     >
       <template #actions>
@@ -20,7 +18,7 @@
           icon="el-icon-plus"
           v-hasPermi="['system:oauthScope:add']"
           @click="handleAdd"
-          >{{ $t('authCenter:messages.addPermission') }}</el-button
+          >{{ $t('oauth:scope.addPermission') }}</el-button
         >
       </template>
 
@@ -33,33 +31,33 @@
           :inline="true"
         >
           <el-form-item
-            :label="$t('authCenter:messages.permissionName')"
+            :label="$t('oauth:scope.permissionName')"
             prop="scopeName"
           >
             <el-input
               v-model="queryParams.scopeName"
               clearable
-              :placeholder="$t('authCenter:messages.enterPermissionName')"
+              :placeholder="$t('oauth:scope.enterPermissionName')"
               style="width: 200px"
               @keyup.enter.native="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            :label="$t('authCenter:messages.purpose')"
+            :label="$t('oauth:scope.purpose')"
             prop="scopeType"
           >
             <el-select
               v-model="queryParams.scopeType"
               clearable
-              :placeholder="$t('authCenter:messages.allPurposes')"
+              :placeholder="$t('oauth:scope.allPurposes')"
               style="width: 200px"
             >
               <el-option
-                :label="$t('authCenter:messages.signInIdentityInformation')"
+                :label="$t('oauth:scope.signInIdentityInformation')"
                 value="identity"
               />
               <el-option
-                :label="$t('authCenter:messages.serviceAccess')"
+                :label="$t('oauth:scope.serviceAccess')"
                 value="resource"
               />
             </el-select>
@@ -75,7 +73,7 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('authCenter:messages.inUse')"
+                :label="$t('oauth:shared.inUse')"
                 value="0"
               />
               <el-option
@@ -102,8 +100,8 @@
 
       <template #toolbar>
         <span class="result-count"
-          >{{ $t('authCenter:messages.defined') }} <strong>{{ total }}</strong>
-          {{ $t('authCenter:messages.permissions') }}</span
+          >{{ $t('oauth:scope.defined') }} <strong>{{ total }}</strong>
+          {{ $t('oauth:scope.permissions') }}</span
         >
         <right-toolbar
           :showSearch.sync="showSearch"
@@ -128,7 +126,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.purpose')"
+          :label="$t('oauth:scope.purpose')"
           width="135"
         >
           <template #default="scope">
@@ -138,20 +136,20 @@
             >
               {{
                 scope.row.scopeType === 'identity'
-                  ? $t('authCenter:messages.signInIdentityInformation')
-                  : $t('authCenter:messages.serviceAccess')
+                  ? $t('oauth:scope.signInIdentityInformation')
+                  : $t('oauth:scope.serviceAccess')
               }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.service')"
+          :label="$t('oauth:scope.service')"
           min-width="180"
         >
           <template #default="scope">{{ resourceName(scope.row.resourceId) }}</template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.returnedUserInformation')"
+          :label="$t('oauth:shared.returnedUserInformation')"
           min-width="230"
         >
           <template #default="scope">
@@ -166,7 +164,7 @@
               <span
                 v-if="!(scope.row.claims || []).length"
                 class="muted-value"
-                >{{ $t('auth:interface.noAdditionalInformationReturned') }}</span
+                >{{ $t('oauth:scope.noAdditionalInformationReturned') }}</span
               >
               <span
                 v-else-if="scope.row.claims.length > 3"
@@ -177,7 +175,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.userConfirmation')"
+          :label="$t('oauth:scope.userConfirmation')"
           width="145"
         >
           <template #default="scope">
@@ -186,12 +184,12 @@
                 v-if="scope.row.sensitive"
                 type="warning"
                 size="small"
-                >{{ $t('authCenter:messages.sensitivePermission') }}</el-tag
+                >{{ $t('oauth:scope.sensitivePermission') }}</el-tag
               >
               <span>{{
                 scope.row.consentRequired
-                  ? $t('authCenter:expression.confirmationRequired')
-                  : $t('authCenter:expression.skipRepeatedConfirmation')
+                  ? $t('oauth:scope.confirmationRequired')
+                  : $t('oauth:scope.skipRepeatedConfirmation')
               }}</span>
             </div>
           </template>
@@ -204,7 +202,7 @@
           <template #default="scope">
             <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">{{
               scope.row.status === '0'
-                ? $t('authCenter:messages.inUse')
+                ? $t('oauth:shared.inUse')
                 : $t('pluginAdmin:release.disabled')
             }}</el-tag>
           </template>
@@ -241,14 +239,14 @@
                       command="enable"
                       icon="el-icon-circle-check"
                       v-hasPermi="['system:oauthScope:edit']"
-                      >{{ $t('authCenter:messages.reEnable') }}</el-dropdown-item
+                      >{{ $t('oauth:shared.reEnable') }}</el-dropdown-item
                     >
                     <el-dropdown-item
                       v-else
                       command="disable"
                       icon="el-icon-circle-close"
                       v-hasPermi="['system:oauthScope:remove']"
-                      >{{ $t('authCenter:messages.disablePermission') }}</el-dropdown-item
+                      >{{ $t('oauth:scope.disablePermission') }}</el-dropdown-item
                     >
                   </el-dropdown-menu>
                 </template>
@@ -257,12 +255,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('authCenter:messages.noMatchingPermissions')">
+          <el-empty :description="$t('oauth:scope.noMatchingPermissions')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthScope:add']"
               @click="handleAdd"
-              >{{ $t('authCenter:messages.addYourFirstPermission') }}</el-button
+              >{{ $t('oauth:scope.addYourFirstPermission') }}</el-button
             >
           </el-empty>
         </template>
@@ -279,11 +277,7 @@
     <el-dialog
       custom-class="oauth-overlay"
       :visible.sync="open"
-      :title="
-        form.persisted
-          ? $t('authCenter:expression.editPermission')
-          : $t('authCenter:messages.addPermission')
-      "
+      :title="form.persisted ? $t('oauth:scope.editPermission') : $t('oauth:scope.addPermission')"
       width="min(780px, calc(100vw - 48px))"
       append-to-body
       :close-on-click-modal="false"
@@ -297,11 +291,11 @@
         class="permission-form"
       >
         <div class="section-heading">
-          <h3>{{ $t('authCenter:messages.permissionMeaning') }}</h3>
+          <h3>{{ $t('oauth:scope.permissionMeaning') }}</h3>
           <p>
             {{
               $t(
-                'authCenter:messages.chooseWhetherThisPermissionProvidesSignInInformationOrServiceAccessThen'
+                'oauth:scope.chooseWhetherThisPermissionProvidesSignInInformationOrServiceAccessThen'
               )
             }}
           </p>
@@ -309,10 +303,10 @@
         <el-form-item prop="scopeType">
           <template #label
             ><FieldLabel
-              :label="$t('authCenter:messages.permissionPurpose')"
+              :label="$t('oauth:scope.permissionPurpose')"
               :help="
                 $t(
-                  'authCenter:help.identityPermissionsReturnUserProfileInformationServiceAccessPermissionsAllowApplicationsTo'
+                  'oauth:scope.identityPermissionsReturnUserProfileInformationServiceAccessPermissionsAllowApplicationsTo'
                 )
               "
           /></template>
@@ -325,17 +319,15 @@
               label="identity"
               border
             >
-              <strong>{{ $t('authCenter:messages.signInIdentityInformation') }}</strong>
-              <small>{{ $t('authCenter:messages.forExampleNameEmailAndRoles') }}</small>
+              <strong>{{ $t('oauth:scope.signInIdentityInformation') }}</strong>
+              <small>{{ $t('oauth:scope.forExampleNameEmailAndRoles') }}</small>
             </el-radio>
             <el-radio
               label="resource"
               border
             >
-              <strong>{{ $t('authCenter:messages.serviceAccess') }}</strong>
-              <small>{{
-                $t('authCenter:messages.forExampleViewingOrdersOrUpdatingInventory')
-              }}</small>
+              <strong>{{ $t('oauth:scope.serviceAccess') }}</strong>
+              <small>{{ $t('oauth:scope.forExampleViewingOrdersOrUpdatingInventory') }}</small>
             </el-radio>
           </el-radio-group>
         </el-form-item>
@@ -347,12 +339,12 @@
             <el-form-item prop="scopeName">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.displayName')"
-                  :help="$t('authCenter:help.theNameShownToUsersDuringConsentAndInAdminListsIt')"
+                  :label="$t('oauth:scope.displayName')"
+                  :help="$t('oauth:scope.theNameShownToUsersDuringConsentAndInAdminListsIt')"
               /></template>
               <el-input
                 v-model="form.scopeName"
-                :placeholder="$t('authCenter:messages.forExampleViewOrders')"
+                :placeholder="$t('oauth:scope.forExampleViewOrders')"
                 style="width: 100%"
               />
             </el-form-item>
@@ -364,15 +356,15 @@
             <el-form-item prop="scopeCode">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.permissionCode')"
+                  :label="$t('oauth:scope.permissionCode')"
                   :help="
-                    $t('authCenter:help.theProtocolCodeTheApplicationUsesInSignInRequestsItCannot')
+                    $t('oauth:scope.theProtocolCodeTheApplicationUsesInSignInRequestsItCannot')
                   "
               /></template>
               <el-input
                 v-model="form.scopeCode"
                 :disabled="form.persisted"
-                :placeholder="$t('authCenter:messages.forExampleOrdersRead')"
+                :placeholder="$t('oauth:scope.forExampleOrdersRead')"
                 style="width: 100%"
               />
             </el-form-item>
@@ -384,15 +376,13 @@
         >
           <template #label
             ><FieldLabel
-              :label="$t('authCenter:messages.service')"
-              :help="
-                $t('authCenter:help.chooseTheServiceTheApplicationCanAccessWithThisPermission')
-              "
+              :label="$t('oauth:scope.service')"
+              :help="$t('oauth:scope.chooseTheServiceTheApplicationCanAccessWithThisPermission')"
           /></template>
           <el-select
             v-model="form.resourceId"
             filterable
-            :placeholder="$t('authCenter:messages.chooseAService')"
+            :placeholder="$t('oauth:scope.chooseAService')"
             style="width: 100%"
           >
             <el-option
@@ -409,10 +399,10 @@
         <el-form-item>
           <template #label
             ><FieldLabel
-              :label="$t('authCenter:messages.returnUserInformation')"
+              :label="$t('oauth:scope.returnUserInformation')"
               :help="
                 $t(
-                  'authCenter:help.theUserInformationAnApplicationCanReceiveWithThisPermissionMultipleSelections'
+                  'oauth:scope.theUserInformationAnApplicationCanReceiveWithThisPermissionMultipleSelections'
                 )
               "
           /></template>
@@ -422,7 +412,7 @@
             filterable
             allow-create
             default-first-option
-            :placeholder="$t('authCenter:messages.selectOrEnterUserFields')"
+            :placeholder="$t('oauth:shared.selectOrEnterUserFields')"
             style="width: 100%"
           >
             <el-option
@@ -436,19 +426,19 @@
         <el-form-item>
           <template #label
             ><FieldLabel
-              :label="$t('authCenter:messages.userConfirmation')"
+              :label="$t('oauth:scope.userConfirmation')"
               :help="
                 $t(
-                  'authCenter:help.sensitivePermissionsShouldRequireExplicitUserConfirmationAndBeEmphasizedOnThe'
+                  'oauth:scope.sensitivePermissionsShouldRequireExplicitUserConfirmationAndBeEmphasizedOnThe'
                 )
               "
           /></template>
           <div class="policy-options">
             <el-checkbox v-model="form.consentRequired">{{
-              $t('authCenter:messages.askTheUserToConfirmBeforeUse')
+              $t('oauth:scope.askTheUserToConfirmBeforeUse')
             }}</el-checkbox>
             <el-checkbox v-model="form.sensitive">{{
-              $t('authCenter:messages.markAsSensitivePermission')
+              $t('oauth:scope.markAsSensitivePermission')
             }}</el-checkbox>
           </div>
         </el-form-item>
@@ -457,9 +447,7 @@
             ><FieldLabel
               :label="$t('common:remark')"
               :help="
-                $t(
-                  'authCenter:help.forAdministratorsRecordsOnlyThisIsNotShownToExternalApplications'
-                )
+                $t('oauth:scope.forAdministratorsRecordsOnlyThisIsNotShownToExternalApplications')
               "
           /></template>
           <el-input
@@ -478,7 +466,7 @@
           type="primary"
           :loading="saving"
           @click="submitForm"
-          >{{ $t('authCenter:messages.savePermission') }}</el-button
+          >{{ $t('oauth:scope.savePermission') }}</el-button
         >
       </template>
     </el-dialog>
@@ -525,31 +513,31 @@ const claimOptions = [
   {
     value: 'sub',
     get label() {
-      return t('auth:interface.userIdentifierSub')
+      return t('oauth:shared.userIdentifierSub')
     },
   },
   {
     value: 'name',
     get label() {
-      return t('auth:interface.nameName')
+      return t('oauth:shared.nameName')
     },
   },
   {
     value: 'email',
     get label() {
-      return t('auth:interface.emailEmail')
+      return t('oauth:shared.emailEmail')
     },
   },
   {
     value: 'roles',
     get label() {
-      return t('auth:interface.rolesRoles')
+      return t('oauth:shared.rolesRoles')
     },
   },
   {
     value: 'preferred_username',
     get label() {
-      return t('auth:interface.loginAccountPreferredUsername')
+      return t('oauth:scope.loginAccountPreferredUsername')
     },
   },
 ]
@@ -558,7 +546,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('auth:interface.enterAPermissionCode')
+        return t('oauth:scope.enterAPermissionCode')
       },
       trigger: 'blur',
     },
@@ -567,7 +555,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('auth:interface.enterADisplayName')
+        return t('oauth:scope.enterADisplayName')
       },
       trigger: 'blur',
     },
@@ -576,7 +564,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('auth:interface.selectAPermissionPurpose')
+        return t('oauth:scope.selectAPermissionPurpose')
       },
       trigger: 'change',
     },
@@ -584,7 +572,7 @@ const rules = {
   resourceId: [
     {
       required: true,
-      message: () => t('authCenter:messages.chooseTheServiceThisPermissionBelongsTo'),
+      message: () => t('oauth:scope.chooseTheServiceThisPermissionBelongsTo'),
       trigger: 'change',
     },
   ],
@@ -678,7 +666,7 @@ async function submitForm() {
       data.resourceId = null
     }
     await (persisted ? updateOAuthScope(data) : addOAuthScope(data))
-    proxy.$modal.msgSuccess(t('authCenter:messages.permissionSaved'))
+    proxy.$modal.msgSuccess(t('oauth:scope.permissionSaved'))
     open.value = false
     await getList()
   } finally {
@@ -690,7 +678,7 @@ async function submitForm() {
 async function changeStatus(row, status) {
   try {
     await proxy.$modal.confirm(
-      t('auth:scope.confirmStatus', {
+      t('oauth:scope.confirmStatus', {
         action: status === '0' ? t('system:oauth.enable') : t('system:oauth.disabled'),
         code: row.scopeCode,
       })
@@ -705,12 +693,12 @@ async function changeStatus(row, status) {
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    t('auth:interface.disablingPermissionValuePreventsApplicationsFromRequestingItContinue', {
+    t('oauth:scope.disablingPermissionValuePreventsApplicationsFromRequestingItContinue', {
       value0: row.scopeName,
     })
   )
   await deleteOAuthScopes(row.scopeCode)
-  proxy.$modal.msgSuccess(t('authCenter:messages.permissionDisabled'))
+  proxy.$modal.msgSuccess(t('oauth:scope.permissionDisabled'))
   await getList()
 }
 
@@ -727,7 +715,7 @@ function handleRowCommand(command, row) {
 /** 获取权限关联的资源服务名称 */
 function resourceName(resourceId) {
   if (!resourceId) {
-    return t('authCenter:messages.unifiedIdentityInformation')
+    return t('oauth:scope.unifiedIdentityInformation')
   }
   return (
     resourceOptions.value.find((item) => item.resourceId === resourceId)?.resourceName || resourceId

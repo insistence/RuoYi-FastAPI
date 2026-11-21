@@ -57,7 +57,7 @@ export default function RightToolbar({
   }, [storageKey, columns, onColumnsChange, entries.length])
   const columnButton = (
     <Button
-      aria-label={t('common:columnVisibility')}
+      aria-label={t('components:tableToolbar.columnVisibility')}
       icon={<MenuOutlined />}
       onClick={showColumnsType === 'transfer' ? () => setOpen(true) : undefined}
     />
@@ -69,9 +69,15 @@ export default function RightToolbar({
         style={{ marginRight: gutter / 2 }}
       >
         {search && (
-          <Tooltip title={showSearch ? t('common:hideSearch') : t('common:showSearch')}>
+          <Tooltip
+            title={
+              showSearch
+                ? t('components:tableToolbar.hideSearch')
+                : t('components:tableToolbar.showSearch')
+            }
+          >
             <Button
-              aria-label={t('common:toggleSearch')}
+              aria-label={t('components:tableToolbar.toggleSearch')}
               icon={<SearchOutlined />}
               onClick={() => onShowSearch?.(!showSearch)}
             />
@@ -79,13 +85,13 @@ export default function RightToolbar({
         )}
         <Tooltip title={t('layout:tags.refresh')}>
           <Button
-            aria-label={t('common:refreshList')}
+            aria-label={t('components:tableToolbar.refreshList')}
             icon={<ReloadOutlined />}
             onClick={onQuery}
           />
         </Tooltip>
         {!!entries.length && (
-          <Tooltip title={t('common:columnVisibility')}>
+          <Tooltip title={t('components:tableToolbar.columnVisibility')}>
             {showColumnsType === 'transfer' ? (
               columnButton
             ) : (
@@ -100,7 +106,7 @@ export default function RightToolbar({
                         change(event.target.checked ? [] : entries.map(([key]) => key))
                       }
                     >
-                      {t('common:columns')}
+                      {t('components:tableToolbar.columns')}
                     </Checkbox>
                     <Divider style={{ margin: '8px 0' }} />
                     <Space orientation="vertical">
@@ -131,13 +137,13 @@ export default function RightToolbar({
       </Space>
       <Modal
         width="50%"
-        title={t('common:showHide')}
+        title={t('components:tableToolbar.showHide')}
         open={open}
         onCancel={() => setOpen(false)}
         footer={null}
       >
         <Transfer
-          titles={[t('common:show'), t('common:hide')]}
+          titles={[t('components:tableToolbar.show'), t('components:tableToolbar.hide')]}
           dataSource={entries.map(([key, column]) => ({ key, title: column.label }))}
           targetKeys={hidden}
           render={(item) => item.title}

@@ -9,13 +9,13 @@
       v-loading="initializing"
       class="auth-flow"
     >
-      <p class="panel-kicker">{{ $t('authCenter:messages.confirmPermissions') }}</p>
-      <h2>{{ $t('authCenter:messages.confirmWhatToShare') }}</h2>
+      <p class="panel-kicker">{{ $t('authCenter:shared.confirmPermissions') }}</p>
+      <h2>{{ $t('authCenter:consent.confirmWhatToShare') }}</h2>
       <p class="panel-lead">
         <strong>{{ applicationName }}</strong>
         {{
           $t(
-            'authCenter:messages.isRequestingTheInformationBelowRequiredInformationIsNeededForAccessOptional'
+            'authCenter:consent.isRequestingTheInformationBelowRequiredInformationIsNeededForAccessOptional'
           )
         }}
       </p>
@@ -38,10 +38,10 @@
         >
           <div class="group-heading">
             <div>
-              <h3 id="required-scope-title">{{ $t('authCenter:messages.requiredForAccess') }}</h3>
-              <p>{{ $t('authCenter:messages.decliningThesePermissionsPreventsAccessToTheApp') }}</p>
+              <h3 id="required-scope-title">{{ $t('authCenter:consent.requiredForAccess') }}</h3>
+              <p>{{ $t('authCenter:consent.decliningThesePermissionsPreventsAccessToTheApp') }}</p>
             </div>
-            <span>{{ requiredScopes.length }} {{ $t('authCenter:messages.items') }}</span>
+            <span>{{ requiredScopes.length }} {{ $t('common:items') }}</span>
           </div>
           <div class="scope-list">
             <label
@@ -71,16 +71,14 @@
                 </span>
                 <small>{{
                   scope.description ||
-                  $t(
-                    'authCenter:expression.usedToCompleteSignInOrProvideTheApplicationSCoreFunctions'
-                  )
+                  $t('authCenter:consent.usedToCompleteSignInOrProvideTheApplicationSCoreFunctions')
                 }}</small>
               </span>
               <el-tag
                 size="small"
                 type="info"
                 effect="plain"
-                >{{ $t('authCenter:messages.required') }}</el-tag
+                >{{ $t('authCenter:consent.required') }}</el-tag
               >
             </label>
           </div>
@@ -93,8 +91,8 @@
         >
           <div class="group-heading">
             <div>
-              <h3 id="optional-scope-title">{{ $t('authCenter:messages.yourChoice') }}</h3>
-              <p>{{ $t('authCenter:messages.youCanUseTheAppWithoutSelectingThese') }}</p>
+              <h3 id="optional-scope-title">{{ $t('authCenter:consent.yourChoice') }}</h3>
+              <p>{{ $t('authCenter:consent.youCanUseTheAppWithoutSelectingThese') }}</p>
             </div>
             <span>{{
               $t('authCenter:consent.selectedCount', {
@@ -126,7 +124,7 @@
                 </span>
                 <small>{{
                   scope.description ||
-                  $t('authCenter:expression.allowTheApplicationToUseThisInformationOrCapability')
+                  $t('authCenter:consent.allowTheApplicationToUseThisInformationOrCapability')
                 }}</small>
               </span>
               <el-tag
@@ -134,7 +132,7 @@
                 size="small"
                 type="warning"
                 effect="plain"
-                >{{ $t('authCenter:messages.sensitiveInformation') }}</el-tag
+                >{{ $t('authCenter:consent.sensitiveInformation') }}</el-tag
               >
             </label>
           </div>
@@ -144,14 +142,14 @@
       <label class="remember-card">
         <el-checkbox v-model="rememberConsent" />
         <span>
-          <strong>{{ $t('authCenter:messages.rememberMyChoices') }}</strong>
+          <strong>{{ $t('authCenter:consent.rememberMyChoices') }}</strong>
           <small>{{
             $t(
-              'authCenter:messages.rememberingYourChoicesAvoidsRepeatedConfirmationForApprovedPermissionsARevocableAuthorization'
+              'authCenter:consent.rememberingYourChoicesAvoidsRepeatedConfirmationForApprovedPermissionsARevocableAuthorization'
             )
           }}</small>
           <small v-if="selectedScopes.includes('offline_access')">{{
-            $t('authCenter:messages.offlineAccessAllowsTheAppToRenewAccessWhenYouAreAway')
+            $t('authCenter:consent.offlineAccessAllowsTheAppToRenewAccessWhenYouAreAway')
           }}</small>
         </span>
       </label>
@@ -161,15 +159,15 @@
           size="medium"
           :disabled="submitting"
           @click="submit(false)"
-          >{{ $t('authCenter:messages.declineAndReturn') }}</el-button
+          >{{ $t('authCenter:consent.declineAndReturn') }}</el-button
         >
         <el-button
           type="primary"
           size="medium"
           :loading="submitting"
           @click="submit(true)"
-          >{{ $t('authCenter:messages.allow') }} {{ selectedScopes.length }}
-          {{ $t('authCenter:messages.andContinue') }}</el-button
+          >{{ $t('common:allow') }} {{ selectedScopes.length }}
+          {{ $t('authCenter:consent.andContinue') }}</el-button
         >
       </div>
       <div
@@ -181,7 +179,7 @@
           target="_blank"
           rel="noopener noreferrer"
           type="primary"
-          >{{ $t('authCenter:messages.viewThisAppSPrivacyPolicy') }}</el-link
+          >{{ $t('authCenter:consent.viewThisAppSPrivacyPolicy') }}</el-link
         >
       </div>
     </div>
@@ -210,7 +208,7 @@ const submitting = ref(false)
 const errorMessage = ref('')
 
 const applicationName = computed(
-  () => interaction.value.client?.clientName || t('authCenter:messages.appRequestingSignIn')
+  () => interaction.value.client?.clientName || t('authCenter:shared.appRequestingSignIn')
 )
 const requiredScopes = computed(() =>
   (interaction.value.requestedScopes || []).filter((item) => item.required)
@@ -239,9 +237,7 @@ function safeExternalUrl(value) {
 /** 读取授权请求并初始化必选权限 */
 async function initialize() {
   if (!interactionId.value || !csrfToken()) {
-    return fatal(
-      t('authCenter:messages.theAuthenticationRequestIsIncompleteReturnToTheAppAndSignIn')
-    )
+    return fatal(t('authCenter:shared.theAuthenticationRequestIsIncompleteReturnToTheAppAndSignIn'))
   }
   try {
     const response = await getInteraction(interactionId.value, csrfToken())
@@ -251,7 +247,7 @@ async function initialize() {
     }
     selectedScopes.value = requiredScopes.value.map((item) => item.scope)
   } catch (error) {
-    fatal(error?.message || t('authCenter:messages.theAuthorizationRequestHasExpired'))
+    fatal(error?.message || t('authCenter:consent.theAuthorizationRequestHasExpired'))
   } finally {
     initializing.value = false
   }
@@ -272,7 +268,7 @@ async function submit(approved) {
     await followServerRedirect(response.data?.redirectUrl)
   } catch (error) {
     errorMessage.value =
-      error?.message || t('authCenter:messages.couldNotSaveYourPermissionChoicesTryAgain')
+      error?.message || t('authCenter:consent.couldNotSaveYourPermissionChoicesTryAgain')
   } finally {
     submitting.value = false
   }

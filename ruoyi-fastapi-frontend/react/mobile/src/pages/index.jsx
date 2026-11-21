@@ -12,7 +12,7 @@ export default function Home() {
     <View className="flex h-full flex-col bg-gray-50">
       <View className="bg-white pb-6 rounded-b-3xl shadow-sm z-50">
         <View className="pt-12 pb-4 px-4 flex justify-center items-center">
-          <Text className="text-lg font-bold text-gray-800">{t('mobile:ruoyiFastapiMobile')}</Text>
+          <Text className="text-lg font-bold text-gray-800">{t('mobile:app.title')}</Text>
         </View>
 
         <View className="px-4 pb-2">
@@ -23,7 +23,7 @@ export default function Home() {
               </View>
               <Input
                 type="text"
-                placeholder={t('mobile:search')}
+                placeholder={t('mobile:home.search')}
                 placeholderClassName="text-gray-400"
                 className="w-full h-10 rounded-full bg-gray-100 pl-10 pr-4 text-sm text-gray-800"
               />
@@ -50,14 +50,14 @@ export default function Home() {
             <View className="relative z-10">
               <View className="mb-4 flex items-center justify-between">
                 <View className="rounded-lg bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-                  {t('mobile:theSystemIsRunningNormally')}
+                  {t('mobile:home.healthy')}
                 </View>
-                <View className="text-xs opacity-80">{t('mobile:justUpdated')}</View>
+                <View className="text-xs opacity-80">{t('mobile:home.updated')}</View>
               </View>
               <View className="flex items-end justify-between">
                 <View>
                   <View className="text-3xl font-bold">85%</View>
-                  <View className="text-sm opacity-90">{t('mobile:productivity')}</View>
+                  <View className="text-sm opacity-90">{t('mobile:home.productivity')}</View>
                 </View>
                 <View className="h-10 w-24 overflow-hidden rounded-lg bg-white/10 p-1">
                   <View className="h-full w-full flex items-end justify-between px-1">
@@ -75,7 +75,7 @@ export default function Home() {
           <View className="grid grid-cols-2 gap-4">
             <View className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100 flex items-center justify-between">
               <View>
-                <View className="text-xs text-gray-500 mb-1">{t('mobile:newNotifications')}</View>
+                <View className="text-xs text-gray-500 mb-1">{t('mobile:home.notifications')}</View>
                 <View className="text-2xl font-bold text-gray-800">12</View>
               </View>
               <View className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
@@ -84,7 +84,7 @@ export default function Home() {
             </View>
             <View className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100 flex items-center justify-between">
               <View>
-                <View className="text-xs text-gray-500 mb-1">{t('mobile:pendingTasks')}</View>
+                <View className="text-xs text-gray-500 mb-1">{t('mobile:home.tasks')}</View>
                 <View className="text-2xl font-bold text-gray-800">5</View>
               </View>
               <View className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-50 text-purple-500">
@@ -95,40 +95,46 @@ export default function Home() {
 
           <View>
             <View className="mb-4 flex items-center justify-between">
-              <View className="text-base font-bold text-gray-800">{t('mobile:quickAccess')}</View>
+              <View className="text-base font-bold text-gray-800">
+                {t('mobile:home.shortcuts')}
+              </View>
             </View>
             <View className="grid grid-cols-4 gap-2 rounded-2xl bg-white p-4 shadow-sm">
               <View className="flex flex-col items-center space-y-2">
                 <View className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
                   <View className="i-mdi-file-document-edit text-xl"></View>
                 </View>
-                <View className="text-xs font-medium text-gray-600">{t('mobile:requests')}</View>
+                <View className="text-xs font-medium text-gray-600">
+                  {t('mobile:home.requests')}
+                </View>
               </View>
               <View className="flex flex-col items-center space-y-2">
                 <View className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-green-500">
                   <View className="i-mdi-newspaper text-xl"></View>
                 </View>
-                <View className="text-xs font-medium text-gray-600">{t('mobile:news')}</View>
+                <View className="text-xs font-medium text-gray-600">{t('mobile:home.news')}</View>
               </View>
               <View className="flex flex-col items-center space-y-2">
                 <View className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500">
                   <View className="i-mdi-chart-bar text-xl"></View>
                 </View>
-                <View className="text-xs font-medium text-gray-600">{t('mobile:statistics')}</View>
+                <View className="text-xs font-medium text-gray-600">
+                  {t('mobile:home.statistics')}
+                </View>
               </View>
               <View className="flex flex-col items-center space-y-2">
                 <View className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 text-gray-400">
                   <View className="i-mdi-calendar text-xl"></View>
                 </View>
-                <View className="text-xs font-medium text-gray-600">{t('mobile:plans')}</View>
+                <View className="text-xs font-medium text-gray-600">{t('mobile:home.plans')}</View>
               </View>
             </View>
           </View>
 
           <View>
             <View className="mb-4 flex items-center justify-between">
-              <View className="text-base font-bold text-gray-800">{t('mobile:recentUpdates')}</View>
-              <View className="text-xs text-blue-500">{t('mobile:viewAll')}</View>
+              <View className="text-base font-bold text-gray-800">{t('mobile:home.recent')}</View>
+              <View className="text-xs text-blue-500">{t('mobile:home.viewAll')}</View>
             </View>
             <View className="space-y-3">
               <View className="flex items-center rounded-2xl bg-white p-4 shadow-sm border border-gray-50">
@@ -136,13 +142,11 @@ export default function Home() {
                   <View className="i-mdi-clipboard-text-outline text-xl"></View>
                 </View>
                 <View className="ml-4 flex-1">
-                  <View className="font-bold text-gray-800">{t('mobile:leaveRequest')}</View>
-                  <View className="text-xs text-gray-500">
-                    {t('mobile:awaitingManagerApproval')}
-                  </View>
+                  <View className="font-bold text-gray-800">{t('mobile:home.leaveRequest')}</View>
+                  <View className="text-xs text-gray-500">{t('mobile:home.awaitingApproval')}</View>
                 </View>
                 <View className="rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-600">
-                  {t('mobile:pending')}
+                  {t('mobile:home.pending')}
                 </View>
               </View>
               <View className="flex items-center rounded-2xl bg-white p-4 shadow-sm border border-gray-50">
@@ -150,11 +154,11 @@ export default function Home() {
                   <View className="i-mdi-newspaper text-xl"></View>
                 </View>
                 <View className="ml-4 flex-1">
-                  <View className="font-bold text-gray-800">{t('mobile:weeklyReport')}</View>
-                  <View className="text-xs text-gray-500">{t('mobile:submittedSuccessfully')}</View>
+                  <View className="font-bold text-gray-800">{t('mobile:home.weeklyReport')}</View>
+                  <View className="text-xs text-gray-500">{t('mobile:home.submitted')}</View>
                 </View>
                 <View className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-600">
-                  {t('mobile:completed')}
+                  {t('mobile:home.completed')}
                 </View>
               </View>
             </View>

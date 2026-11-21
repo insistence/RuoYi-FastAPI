@@ -18,14 +18,14 @@ export default function About() {
           className="size-20 rounded-xl shadow-md"
           mode="widthFix"
         />
-        <Text className="mt-4 text-xl font-bold">{t('mobile:ruoyiFastapiMobile')}</Text>
+        <Text className="mt-4 text-xl font-bold">{t('mobile:app.title')}</Text>
       </View>
       <View className="bg-white">
         {[
-          [t('mobile:version'), `v${config.appInfo.version}`],
-          [t('mobile:email'), 'xxx@xxx.com'],
-          [t('mobile:supportHotline'), '400-999-9999'],
-          [t('mobile:website'), config.appInfo.site_url],
+          [t('mobile:about.version'), `v${config.appInfo.version}`],
+          [t('mobile:about.email'), 'xxx@xxx.com'],
+          [t('mobile:about.hotline'), '400-999-9999'],
+          [t('mobile:about.website'), config.appInfo.site_url],
         ].map(([label, value], index) => (
           <View
             className={`flex items-center justify-between gap-3 px-5 py-4 ${index < 3 ? 'border-b border-gray-100' : ''}`}

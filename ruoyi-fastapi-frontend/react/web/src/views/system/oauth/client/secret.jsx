@@ -16,15 +16,15 @@ export default function SecretDialog({ open, secret = {}, onClose }) {
   async function copy() {
     try {
       await navigator.clipboard.writeText(secret.clientSecret)
-      message.success(t('system:secretCopied'))
+      message.success(t('oauth:client.secretCopied'))
     } catch {
-      message.error(t('system:theBrowserDeniedClipboardAccessCopyTheSecretManually'))
+      message.error(t('oauth:client.theBrowserDeniedClipboardAccessCopyTheSecretManually'))
     }
   }
   return (
     <Modal
       className="oauth-dialog oauth-secret-dialog"
-      title={t('system:saveTheApplicationSecret')}
+      title={t('oauth:client.saveTheApplicationSecret')}
       open={open}
       width="min(680px, calc(100vw - 48px))"
       maskClosable={false}
@@ -46,7 +46,7 @@ export default function SecretDialog({ open, secret = {}, onClose }) {
       >
         <Alert
           type="warning"
-          title={t('system:theApplicationSecretIsShownOnlyOnceStoreIt')}
+          title={t('oauth:client.theApplicationSecretIsShownOnlyOnceStoreIt')}
         />
         <Form
           name="src-views-system-oauth-client-secret-jsx-editor-14"
@@ -60,7 +60,7 @@ export default function SecretDialog({ open, secret = {}, onClose }) {
             label={
               <FieldLabel
                 label={t('authCenter:appId')}
-                help={t('authCenter:theSystemGeneratedApplicationIdCopyItToConfigureThe')}
+                help={t('oauth:client.theSystemGeneratedApplicationIdCopyItToConfigureThe')}
               />
             }
           >
@@ -72,8 +72,8 @@ export default function SecretDialog({ open, secret = {}, onClose }) {
           <Form.Item
             label={
               <FieldLabel
-                label={t('system:applicationSecret')}
-                help={t('authCenter:theApplicationSecretActsAsItsPasswordAndIsShown')}
+                label={t('oauth:client.applicationSecret')}
+                help={t('oauth:client.theApplicationSecretActsAsItsPasswordAndIsShown')}
               />
             }
           >
@@ -90,7 +90,7 @@ export default function SecretDialog({ open, secret = {}, onClose }) {
           checked={confirmed}
           onChange={(event) => setConfirmed(event.target.checked)}
         >
-          {t('system:iHaveStoredTheSecretSecurely')}
+          {t('oauth:client.iHaveStoredTheSecretSecurely')}
         </Checkbox>
       </Space>
     </Modal>

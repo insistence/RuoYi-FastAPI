@@ -20,7 +20,7 @@ export default function FileStatistics({ stats = {} }) {
       : '0%'
   const items = [
     [
-      t('system:totalFiles'),
+      t('file:statistics.totalFiles'),
       stats.totalCount || 0,
       t('file:activeValueRecycleBinValue', {
         arg0: stats.activeCount || 0,
@@ -28,29 +28,29 @@ export default function FileStatistics({ stats = {} }) {
       }),
     ],
     [
-      t('system:storageUsed'),
+      t('file:statistics.storageUsed'),
       formatFileSize(stats.totalSize),
-      t('system:totalStorageUsedByAllFiles'),
+      t('file:statistics.totalStorageUsedByAllFiles'),
     ],
     [
-      t('system:publicFileStorage'),
+      t('file:statistics.publicFileStorage'),
       formatFileSize(stats.publicSize),
       t('file:valueOfTotalSpace', { arg0: percent(stats.publicSize) }),
     ],
     [
-      t('system:protectedFileStorage'),
+      t('file:statistics.protectedFileStorage'),
       formatFileSize(stats.privateSize),
       t('file:valueOfTotalSpace', { arg0: percent(stats.privateSize) }),
     ],
     [
-      t('system:expiredFiles'),
+      t('file:statistics.expiredFiles'),
       stats.expiredCount || 0,
       t('file:expiringWithin7DaysValue', { arg0: stats.retentionExpiringCount || 0 }),
     ],
     [
-      t('system:expiringPermissions'),
+      t('file:statistics.expiringPermissions'),
       stats.aclExpiringCount || 0,
-      t('system:aclEntriesExpiringWithin7Days'),
+      t('file:statistics.aclEntriesExpiringWithin7Days'),
     ],
   ]
   const icons = [
@@ -65,13 +65,13 @@ export default function FileStatistics({ stats = {} }) {
   return (
     <section
       className="file-statistics"
-      aria-label={t('system:fileOverview')}
+      aria-label={t('file:statistics.fileOverview')}
     >
       <div className="file-statistics-header">
         <div>
-          <div className="file-statistics-title">{t('system:fileOverview')}</div>
+          <div className="file-statistics-title">{t('file:statistics.fileOverview')}</div>
           <div className="file-statistics-tip">
-            {t('system:statisticsUpdateWithTheCurrentFilters')}
+            {t('file:statistics.statisticsUpdateWithTheCurrentFilters')}
           </div>
         </div>
       </div>

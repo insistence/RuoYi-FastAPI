@@ -10,24 +10,24 @@ export function formatFileSize(size) {
 }
 
 export function accessTypeLabel(accessType) {
-  return accessType === 'public' ? t('system:publicFiles') : t('system:protectedFiles')
+  return accessType === 'public' ? t('file:shared.publicFiles') : t('file:shared.protectedFiles')
 }
 
 export function statusLabel(status) {
   return (
     {
       active: t('layout:notices.active'),
-      deleted: t('system:deleted'),
-      purging: t('system:deleting'),
+      deleted: t('file:shared.deleted'),
+      purging: t('file:shared.deleting'),
     }[status] || status
   )
 }
 
 export function expirationLabel(expireTime) {
-  if (!expireTime) return t('system:noExpiry')
+  if (!expireTime) return t('file:shared.noExpiry')
   const remainingTime = new Date(expireTime).getTime() - Date.now()
   if (remainingTime <= 0) return t('common:expired')
-  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return t('system:components.expiringSoonLabel')
+  if (remainingTime <= 7 * 24 * 60 * 60 * 1000) return t('file:shared.expiringSoonLabel')
   return parseTime(expireTime, '{y}-{m}-{d}')
 }
 
@@ -48,8 +48,8 @@ export function storageStatusLabel(storageStatus) {
   return (
     {
       normal: t('layout:notices.active'),
-      missing: t('system:fileMissing'),
-      quarantined: t('system:quarantined'),
+      missing: t('file:shared.fileMissing'),
+      quarantined: t('file:shared.quarantined'),
       invalid: t('common:exception'),
     }[storageStatus] || t('common:unknown')
   )
@@ -71,14 +71,14 @@ export function actionLabel(action) {
     {
       upload: t('common:upload'),
       download: t('common:download'),
-      acl_update: t('system:permissionChange'),
-      transfer: t('system:ownershipTransfer'),
-      delete: t('system:moveToRecycleBin'),
+      acl_update: t('file:shared.permissionChange'),
+      transfer: t('file:shared.ownershipTransfer'),
+      delete: t('file:shared.moveToRecycleBin'),
       restore: t('common:restore'),
-      purge: t('system:permanentlyDelete'),
-      reconcile: t('system:storageReconciliation'),
-      retention_extend: t('system:retentionExtension'),
-      retention_dispose: t('system:expiryDisposal'),
+      purge: t('file:shared.permanentlyDelete'),
+      reconcile: t('file:shared.storageReconciliation'),
+      retention_extend: t('file:shared.retentionExtension'),
+      retention_dispose: t('file:shared.expiryDisposal'),
     }[action] || action
   )
 }
@@ -86,8 +86,8 @@ export function actionLabel(action) {
 export function resultLabel(result) {
   return (
     {
-      allowed: t('system:allowed'),
-      denied: t('system:denied'),
+      allowed: t('file:shared.allowed'),
+      denied: t('file:shared.denied'),
       completed: t('common:completed'),
       failed: t('common:failed'),
     }[result] || result
@@ -114,48 +114,48 @@ export function parseOperationDetail(operationDetail) {
       value: typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '-'),
     }))
   } catch {
-    return [{ label: t('system:operationDetails'), value: operationDetail }]
+    return [{ label: t('file:shared.operationDetails'), value: operationDetail }]
   }
 }
 
 function auditDetailKeyLabel(key) {
   return (
     {
-      previousAclVersion: t('system:previousPermissionsVersion'),
-      newAclVersion: t('system:newPermissionsVersion'),
-      entryCount: t('system:permissionCount'),
-      allowCount: t('system:allowCount'),
-      denyCount: t('system:denyCount'),
-      subjectTypeCounts: t('system:principalTypeStatistics'),
-      previousOwnerUserId: t('system:previousOwnerId'),
-      previousDeptId: t('system:previousDepartmentId'),
-      newOwnerUserId: t('system:newOwnerId'),
-      newOwnerName: t('system:newOwner'),
-      newDeptId: t('system:newDepartmentId'),
+      previousAclVersion: t('file:shared.previousPermissionsVersion'),
+      newAclVersion: t('file:shared.newPermissionsVersion'),
+      entryCount: t('file:shared.permissionCount'),
+      allowCount: t('file:shared.allowCount'),
+      denyCount: t('file:shared.denyCount'),
+      subjectTypeCounts: t('file:shared.principalTypeStatistics'),
+      previousOwnerUserId: t('file:shared.previousOwnerId'),
+      previousDeptId: t('file:shared.previousDepartmentId'),
+      newOwnerUserId: t('file:shared.newOwnerId'),
+      newOwnerName: t('file:shared.newOwner'),
+      newDeptId: t('file:shared.newDepartmentId'),
       reason: t('common:operationReason'),
       originalName: t('file:originalName'),
       accessType: t('file:accessType'),
-      referenceCount: t('system:businessReferenceCount'),
-      previousStatus: t('system:previousStatus'),
-      newStatus: t('system:newStatus'),
-      truncated: t('system:detailsTruncated'),
-      preview: t('system:detailsPreview'),
-      issueId: t('system:reconciliationIssueId'),
-      issueType: t('system:issueType'),
-      action: t('system:processingAction'),
-      actualRoot: t('system:actualStorageArea'),
-      actualKey: t('system:actualRelativePath'),
-      expectedRoot: t('system:expectedStorageArea'),
-      expectedKey: t('system:expectedRelativePath'),
-      previousExpireTime: t('system:previousExpiryTime'),
-      newExpireTime: t('system:newExpiryTime'),
-      expireTime: t('system:expiryTime'),
-      range: t('system:requestedRange'),
-      rangeStart: t('system:rangeStartByte'),
-      rangeEnd: t('system:rangeEndByte'),
-      fileSize: t('system:totalFileSize'),
-      releasedReferenceCount: t('system:removedReferenceCount'),
-      releasedReferences: t('system:removedReferenceDetails'),
+      referenceCount: t('file:shared.businessReferenceCount'),
+      previousStatus: t('file:shared.previousStatus'),
+      newStatus: t('file:shared.newStatus'),
+      truncated: t('file:shared.detailsTruncated'),
+      preview: t('file:shared.detailsPreview'),
+      issueId: t('file:shared.reconciliationIssueId'),
+      issueType: t('file:shared.issueType'),
+      action: t('file:shared.processingAction'),
+      actualRoot: t('file:shared.actualStorageArea'),
+      actualKey: t('file:shared.actualRelativePath'),
+      expectedRoot: t('file:shared.expectedStorageArea'),
+      expectedKey: t('file:shared.expectedRelativePath'),
+      previousExpireTime: t('file:shared.previousExpiryTime'),
+      newExpireTime: t('file:shared.newExpiryTime'),
+      expireTime: t('file:shared.expiryTime'),
+      range: t('file:shared.requestedRange'),
+      rangeStart: t('file:shared.rangeStartByte'),
+      rangeEnd: t('file:shared.rangeEndByte'),
+      fileSize: t('file:shared.totalFileSize'),
+      releasedReferenceCount: t('file:shared.removedReferenceCount'),
+      releasedReferences: t('file:shared.removedReferenceDetails'),
     }[key] || key
   )
 }

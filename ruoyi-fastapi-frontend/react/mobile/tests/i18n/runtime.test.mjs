@@ -1,12 +1,37 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { createServer } from 'vite'
 import {
   createLocaleRuntime,
   createLocaleRegistry,
   normalizeLocale,
 } from '../../src/i18n/runtime.mjs'
 const meta = JSON.parse(readFileSync(new URL('../../src/i18n/locale-meta.json', import.meta.url)))
+
+test('the bundled registry includes every enabled locale and namespace', async () => {
+  const server = await createServer({
+    root: fileURLToPath(new URL('../../', import.meta.url)),
+    configFile: false,
+    server: { middlewareMode: true, hmr: false },
+    optimizeDeps: { noDiscovery: true },
+  })
+  try {
+    const { resources } = await server.ssrLoadModule('/src/i18n/registry.js')
+    for (const { code } of meta.locales.filter((entry) => entry.enabled)) {
+      const dir = new URL(`../../src/i18n/locales/${code}/`, import.meta.url)
+      const files = readdirSync(dir).filter((name) => name.endsWith('.json'))
+      const expected = Object.fromEntries(
+        files.map((name) => [name.slice(0, -5), JSON.parse(readFileSync(new URL(name, dir)))])
+      )
+      assert.deepEqual(resources[code], expected)
+    }
+  } finally {
+    await server.close()
+  }
+})
+
 const resources = Object.fromEntries(
   meta.locales.map(({ code }) => [
     code,

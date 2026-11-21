@@ -14,7 +14,7 @@ import { FormatPainterOutlined } from '@ant-design/icons'
 export default function PluginConfigDialog({
   open,
   pluginId,
-  title = t('system:pluginConfiguration'),
+  title = t('pluginAdmin:config.pluginConfiguration'),
   items = [],
   loading,
   onClose,
@@ -58,12 +58,13 @@ export default function PluginConfigDialog({
   }, [items, locale])
   function rules(item) {
     return [
-      { required: !!item.required, message: t('system:required') },
+      { required: !!item.required, message: t('pluginAdmin:config.required') },
       {
         validator: async (_, value) => {
           if (value === undefined || value === null || value === '') return
           if (item.type === 'number') {
-            if (!Number.isFinite(Number(value))) throw new Error(t('system:enterANumber'))
+            if (!Number.isFinite(Number(value)))
+              throw new Error(t('pluginAdmin:config.enterANumber'))
             if (item.min != null && value < Number(item.min))
               throw new Error(t('pluginAdmin:mustBeAtLeastValue', { min: item.min }))
             if (item.max != null && value > Number(item.max))
@@ -74,15 +75,15 @@ export default function PluginConfigDialog({
             try {
               regex = new RegExp(item.pattern)
             } catch {
-              throw new Error(t('system:invalidConfigurationRegularExpression'))
+              throw new Error(t('pluginAdmin:config.invalidConfigurationRegularExpression'))
             }
-            if (!regex.test(String(value))) throw new Error(t('system:invalidFormat'))
+            if (!regex.test(String(value))) throw new Error(t('pluginAdmin:config.invalidFormat'))
           }
           if (item.type === 'json') {
             try {
               JSON.parse(value)
             } catch {
-              throw new Error(t('system:enterValidJson'))
+              throw new Error(t('pluginAdmin:config.enterValidJson'))
             }
           }
         },
@@ -187,7 +188,7 @@ export default function PluginConfigDialog({
         form={form}
         layout="horizontal"
       >
-        {!items.length && <Empty description={t('system:noPluginConfiguration')} />}
+        {!items.length && <Empty description={t('pluginAdmin:config.noPluginConfiguration')} />}
         {groups.map(([group, groupItems]) => (
           <div
             key={group}
@@ -196,10 +197,10 @@ export default function PluginConfigDialog({
             {(groups.length > 1 || group !== 'default') && (
               <div className="plugin-config-section-title">
                 {{
-                  default: t('system:basicConfiguration'),
-                  model: t('system:modelConfiguration'),
-                  security: t('system:securityConfiguration'),
-                  advanced: t('system:advancedConfiguration'),
+                  default: t('pluginAdmin:config.basicConfiguration'),
+                  model: t('pluginAdmin:config.modelConfiguration'),
+                  security: t('pluginAdmin:config.securityConfiguration'),
+                  advanced: t('pluginAdmin:config.advancedConfiguration'),
                 }[group] || group}
               </div>
             )}
@@ -232,7 +233,7 @@ export default function PluginConfigDialog({
                             }
                           }}
                         >
-                          {t('system:formatJson')}
+                          {t('pluginAdmin:config.formatJson')}
                         </Button>
                       </div>
                     )}
@@ -256,7 +257,7 @@ export default function PluginConfigDialog({
                           type="warning"
                           effect="plain"
                         >
-                          {t('system:sensitive')}
+                          {t('pluginAdmin:shared.sensitive')}
                         </PluginTag>
                       )}
                       {formatConfigDefaultValue(item) !== '-' && (

@@ -77,7 +77,7 @@ export function usePasswordRule() {
   const registerPwdValidator = computed(() => {
     const rule = PWD_RULES['0']
     return [
-      { required: true, message: () => t('common:login.passwordRequired'), trigger: 'blur' },
+      { required: true, message: () => t('auth:login.passwordRequired'), trigger: 'blur' },
       {
         min: 6,
         max: 20,

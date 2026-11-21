@@ -118,7 +118,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            :label="$t('oauth:edit')"
+            :label="$t('common:edit')"
             min-width="5%"
           >
             <template #default="scope">

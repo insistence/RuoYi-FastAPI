@@ -36,11 +36,7 @@ export default function Avatar() {
       setCrop(initialCrop(size.width, size.height))
       setError('')
     } catch (failure) {
-      setError(
-        failure.errMsg ||
-          failure.message ||
-          t('mobile:failedToLoadTheImagePleaseChooseAnotherAvatar')
-      )
+      setError(failure.errMsg || failure.message || t('mobile:avatar.loadFailed'))
     }
   }
   useReady(() => {
@@ -56,7 +52,7 @@ export default function Avatar() {
       })
       await load(result.tempFilePaths[0])
     } catch (failure) {
-      if (!/cancel/i.test(failure.errMsg || '')) setError((t) => t('mobile:failedToSelectAnImage'))
+      if (!/cancel/i.test(failure.errMsg || '')) setError((t) => t('mobile:avatar.selectFailed'))
     }
   }
   function start(event, mode) {
@@ -96,10 +92,10 @@ export default function Avatar() {
         filePath: croppedPath,
       })
       useUserStore.getState().SET_AVATAR(avatarUrl(response.imgUrl))
-      await Taro.showToast({ title: t('mobile:updatedSuccessfully'), icon: 'success' })
+      await Taro.showToast({ title: t('common:updateSuccess'), icon: 'success' })
       Taro.navigateBack()
     } catch (failure) {
-      setError(failure.message || failure.errMsg || t('mobile:failedToUploadAvatar'))
+      setError(failure.message || failure.errMsg || t('mobile:avatar.uploadFailed'))
     } finally {
       lock.current = false
       setBusy(false)
@@ -109,9 +105,7 @@ export default function Avatar() {
   const outputHeight = crop ? Math.max(1, Math.round((400 * crop.height) / crop.width)) : 400
   return (
     <View className="mobile-page bg-black text-white">
-      <Text className="block text-sm text-center text-gray-300">
-        {t('mobile:dragTheSelectionToMoveItDragItsEdges')}
-      </Text>
+      <Text className="block text-sm text-center text-gray-300">{t('mobile:avatar.cropHint')}</Text>
       {image && crop && (
         <View
           className="crop-stage"
@@ -156,7 +150,7 @@ export default function Avatar() {
           onClick={choose}
           disabled={busy}
         >
-          {t('mobile:chooseAvatar')}
+          {t('mobile:avatar.choose')}
         </Button>
         <Button
           className="mobile-button avatar-button avatar-submit"
@@ -164,7 +158,7 @@ export default function Avatar() {
           disabled={busy || !image}
           loading={busy}
         >
-          {t('mobile:submit')}
+          {t('common:submit')}
         </Button>
       </View>
       <Canvas

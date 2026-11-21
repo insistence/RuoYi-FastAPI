@@ -122,7 +122,7 @@ export default function Menu() {
   }
   async function handleDelete(row) {
     try {
-      await confirm(t('system:deleteTheItemNamedValue', { menuName: displayMenuName(row) }))
+      await confirm(t('system:menu.deleteTheItemNamedValue', { menuName: displayMenuName(row) }))
       await delMenu(row.menuId)
       message.success(t('common:deleteSuccess'))
       await getList()
@@ -134,7 +134,7 @@ export default function Menu() {
       values.menuNameI18n = translationPatch(values.menuNameI18n, originalTranslations)
       setSaving(true)
       await (menuId !== undefined ? updateMenu({ ...values, menuId }) : addMenu(values))
-      message.success(t('system:savedSuccessfully'))
+      message.success(t('system:shared.savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -147,13 +147,13 @@ export default function Menu() {
       (row) =>
         orders[row.menuId] !== undefined && String(orders[row.menuId]) !== String(row.orderNum)
     )
-    if (!changed.length) return message.warning(t('system:noSortOrderChangesDetected'))
+    if (!changed.length) return message.warning(t('system:shared.noSortOrderChangesDetected'))
     try {
       await updateMenuSort({
         menuIds: changed.map((row) => row.menuId).join(','),
         orderNums: changed.map((row) => orders[row.menuId]).join(','),
       })
-      message.success(t('system:sortOrderSaved'))
+      message.success(t('system:shared.sortOrderSaved'))
       await getList()
     } catch {}
   }
@@ -285,7 +285,7 @@ export default function Menu() {
           >
             <Select
               style={{ width: 200 }}
-              placeholder={t('system:menuStatus')}
+              placeholder={t('system:menu.menuStatus')}
               allowClear
               options={sys_normal_disable}
             />
@@ -330,7 +330,7 @@ export default function Menu() {
             type="default"
             onClick={handleSaveSort}
           >
-            {t('system:saveSortOrder')}
+            {t('system:shared.saveSortOrder')}
           </Button>
         </HasPermi>
         <Button
@@ -338,7 +338,7 @@ export default function Menu() {
           type="default"
           onClick={() => setExpanded(expanded.length ? [] : rows.map((row) => row.menuId))}
         >
-          {t('system:expandCollapse')}
+          {t('system:shared.expandCollapse')}
         </Button>
         <RightToolbar
           showSearch={showSearch}
@@ -408,7 +408,7 @@ export default function Menu() {
                 name="parentId"
               >
                 <TreeSelect
-                  placeholder={t('system:chooseAParentMenu')}
+                  placeholder={t('system:menu.chooseAParentMenu')}
                   fieldNames={{
                     value: 'menuId',
                     label: 'label',
@@ -452,7 +452,7 @@ export default function Menu() {
               >
                 <Form.Item
                   name="icon"
-                  label={t('system:menuIcon')}
+                  label={t('system:menu.menuIcon')}
                 >
                   <IconSelect placeholder={t('common:clickToChooseAnIcon')} />
                 </Form.Item>
@@ -495,12 +495,12 @@ export default function Menu() {
                   name="routeName"
                   label={
                     <FormLabel
-                      label={t('system:routeName')}
-                      help={t('system:defaultsToTheRoutePathWithItsFirstLetterCapitalized')}
+                      label={t('system:menu.routeName')}
+                      help={t('system:menu.defaultsToTheRoutePathWithItsFirstLetterCapitalized')}
                     />
                   }
                 >
-                  <Input placeholder={t('system:enterARouteName')} />
+                  <Input placeholder={t('system:menu.enterARouteName')} />
                 </Form.Item>
               </Col>
             )}
@@ -513,8 +513,8 @@ export default function Menu() {
                   name="isFrame"
                   label={
                     <FormLabel
-                      label={t('system:externalLink')}
-                      help={t('system:externalLinkPathsMustStartWithHttpOrHttps')}
+                      label={t('system:menu.externalLink')}
+                      help={t('system:menu.externalLinkPathsMustStartWithHttpOrHttps')}
                     />
                   }
                 >
@@ -536,13 +536,13 @@ export default function Menu() {
                   name="path"
                   label={
                     <FormLabel
-                      label={t('system:routePath')}
-                      help={t('system:routePathEGUserToEmbedAnExternalPage')}
+                      label={t('system:menu.routePath')}
+                      help={t('system:menu.routePathEGUserToEmbedAnExternalPage')}
                     />
                   }
                   rules={[{ required: true }]}
                 >
-                  <Input placeholder={t('system:enterARoutePath')} />
+                  <Input placeholder={t('system:menu.enterARoutePath')} />
                 </Form.Item>
               </Col>
             )}
@@ -556,11 +556,11 @@ export default function Menu() {
                   label={
                     <FormLabel
                       label={t('system:menu.component')}
-                      help={t('system:componentPathRelativeToViewsEGSystemUserIndex')}
+                      help={t('system:menu.componentPathRelativeToViewsEGSystemUserIndex')}
                     />
                   }
                 >
-                  <Input placeholder={t('system:enterAComponentPath')} />
+                  <Input placeholder={t('system:menu.enterAComponentPath')} />
                 </Form.Item>
               </Col>
             )}
@@ -575,13 +575,13 @@ export default function Menu() {
                     <FormLabel
                       label={t('system:permission.code')}
                       help={t(
-                        'system:permissionDefinedInTheControllerEGUserinterfaceauthdependencySystemUser'
+                        'system:menu.permissionDefinedInTheControllerEGUserinterfaceauthdependencySystemUser'
                       )}
                     />
                   }
                 >
                   <Input
-                    placeholder={t('system:enterAPermissionIdentifier')}
+                    placeholder={t('system:menu.enterAPermissionIdentifier')}
                     maxLength={100}
                   />
                 </Form.Item>
@@ -596,13 +596,13 @@ export default function Menu() {
                   name="query"
                   label={
                     <FormLabel
-                      label={t('system:routeParameters')}
-                      help={t('system:defaultParametersForThisRouteEGId1')}
+                      label={t('system:menu.routeParameters')}
+                      help={t('system:menu.defaultParametersForThisRouteEGId1')}
                     />
                   }
                 >
                   <Input
-                    placeholder={t('system:enterRouteParameters')}
+                    placeholder={t('system:menu.enterRouteParameters')}
                     maxLength={255}
                   />
                 </Form.Item>
@@ -617,17 +617,17 @@ export default function Menu() {
                   name="isCache"
                   label={
                     <FormLabel
-                      label={t('system:cacheEnabled')}
+                      label={t('system:menu.cacheEnabled')}
                       help={t(
-                        'system:cachingPreservesPageStateWhenSwitchingPagesDisablingCachingReloads'
+                        'system:menu.cachingPreservesPageStateWhenSwitchingPagesDisablingCachingReloads'
                       )}
                     />
                   }
                 >
                   <Radio.Group
                     options={[
-                      { value: 0, label: t('system:cache') },
-                      { value: 1, label: t('system:doNotCache') },
+                      { value: 0, label: t('system:menu.cache') },
+                      { value: 1, label: t('system:menu.doNotCache') },
                     ]}
                   />
                 </Form.Item>
@@ -642,8 +642,8 @@ export default function Menu() {
                   name="visible"
                   label={
                     <FormLabel
-                      label={t('system:visibility')}
-                      help={t('system:hiddenRoutesRemainAccessibleButDoNotAppearInThe')}
+                      label={t('system:menu.visibility')}
+                      help={t('system:menu.hiddenRoutesRemainAccessibleButDoNotAppearInThe')}
                     />
                   }
                 >
@@ -659,8 +659,8 @@ export default function Menu() {
                 name="status"
                 label={
                   <FormLabel
-                    label={t('system:menuStatus')}
-                    help={t('system:disabledRoutesDoNotAppearInTheSidebarAndCannot')}
+                    label={t('system:menu.menuStatus')}
+                    help={t('system:menu.disabledRoutesDoNotAppearInTheSidebarAndCannot')}
                   />
                 }
               >

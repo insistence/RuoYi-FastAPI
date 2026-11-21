@@ -4,7 +4,6 @@ import projectResources from '../../scripts/x18n-project.mjs'
 
 const meta = JSON.parse(readFileSync(new URL('./locale-meta.json', import.meta.url), 'utf8'))
 export default {
-  name: 'host',
   root: '../..',
   sourceLocale: meta.sourceLocale,
   locales: [

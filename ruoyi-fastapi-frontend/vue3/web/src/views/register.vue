@@ -17,7 +17,7 @@
           type="text"
           size="large"
           auto-complete="off"
-          :placeholder="$t('common:login.username')"
+          :placeholder="$t('auth:login.username')"
         >
           <template #prefix
             ><svg-icon
@@ -35,7 +35,7 @@
           type="password"
           size="large"
           auto-complete="off"
-          :placeholder="$t('common:login.password')"
+          :placeholder="$t('auth:login.password')"
           @keyup.enter="handleRegister"
         >
           <template #prefix
@@ -69,7 +69,7 @@
           size="large"
           v-model="registerForm.code"
           auto-complete="off"
-          :placeholder="$t('common:login.code')"
+          :placeholder="$t('auth:login.code')"
           style="width: 63%"
           @keyup.enter="handleRegister"
         >
@@ -148,7 +148,7 @@ const equalToPassword = (rule, value, callback) => {
 
 const registerRules = computed(() => ({
   username: [
-    { required: true, trigger: 'blur', message: t('common:login.usernameRequired') },
+    { required: true, trigger: 'blur', message: t('auth:login.usernameRequired') },
     {
       min: 2,
       max: 20,
@@ -160,7 +160,7 @@ const registerRules = computed(() => ({
     { required: true, trigger: 'blur', message: t('auth:register.confirmRequired') },
     { required: true, validator: equalToPassword, trigger: 'blur' },
   ],
-  code: [{ required: true, trigger: 'change', message: t('common:login.codeRequired') }],
+  code: [{ required: true, trigger: 'change', message: t('auth:login.codeRequired') }],
 }))
 
 const codeUrl = ref('')

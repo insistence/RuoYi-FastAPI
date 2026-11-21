@@ -14,24 +14,24 @@ export default function AccessMap({
   const nodes = [
     [
       t('common:apply'),
-      application || t('common:unnamed'),
+      application || t('components:oauthWorkspace.unnamed'),
       type === 'public'
-        ? t('common:webOrMobileApplication')
-        : t('common:backendServiceApplication'),
+        ? t('components:oauthWorkspace.webOrMobileApplication')
+        : t('components:oauthWorkspace.backendServiceApplication'),
     ],
     [
       t('system:permission.title'),
-      permissions.slice(0, 2).join('、') || t('common:notSelected'),
+      permissions.slice(0, 2).join('、') || t('components:oauthWorkspace.notSelected'),
       permissions.length > 2
         ? t('authCenter:access.morePermissions', { count: permissions.length - 2 })
-        : t('common:informationTheApplicationCanRequest'),
+        : t('components:oauthWorkspace.informationTheApplicationCanRequest'),
     ],
     [
       t('common:service'),
       resources.slice(0, 2).join('、') || t('common:identityInformationOnly'),
       resources.length > 2
         ? t('authCenter:access.moreServices', { count: resources.length - 2 })
-        : t('common:resourcesTheTokenCanAccess'),
+        : t('components:oauthWorkspace.resourcesTheTokenCanAccess'),
     ],
   ]
   return (
@@ -43,7 +43,11 @@ export default function AccessMap({
               className="oauth-access-link"
               aria-hidden="true"
             >
-              <span>{index === 1 ? t('common:requests') : t('common:access')}</span>
+              <span>
+                {index === 1
+                  ? t('components:oauthWorkspace.requests')
+                  : t('components:oauthWorkspace.access')}
+              </span>
               <ArrowRightOutlined />
             </span>
           )}

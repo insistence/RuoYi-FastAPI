@@ -1,10 +1,10 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('oauth:integrationManagement')"
+      :section="$t('oauth:shared.integrationManagement')"
       :title="$t('components:service')"
-      :description="$t('oauth:registerAPIServicesThatReceiveAccessCredentialsAndLimitThe')"
-      :filter-hint="$t('oauth:findServicesByNameOrStatus')"
+      :description="$t('oauth:resource.registerAPIServicesThatReceiveAccessCredentialsAndLimitThe')"
+      :filter-hint="$t('oauth:resource.findServicesByNameOrStatus')"
     >
       <template #actions>
         <el-button
@@ -12,7 +12,7 @@
           icon="Plus"
           v-hasPermi="['system:oauthResource:add']"
           @click="handleAdd"
-          >{{ $t('oauth:addService') }}</el-button
+          >{{ $t('oauth:resource.addService') }}</el-button
         >
       </template>
 
@@ -24,13 +24,13 @@
           :inline="true"
         >
           <el-form-item
-            :label="$t('oauth:serviceName')"
+            :label="$t('oauth:resource.serviceName')"
             prop="resourceName"
           >
             <el-input
               v-model="queryParams.resourceName"
               clearable
-              :placeholder="$t('oauth:enterServiceName')"
+              :placeholder="$t('oauth:resource.enterServiceName')"
               style="width: 200px"
               @keyup.enter="handleQuery"
             />
@@ -46,7 +46,7 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('oauth:inUse')"
+                :label="$t('oauth:shared.inUse')"
                 value="0"
               />
               <el-option
@@ -73,7 +73,8 @@
 
       <template #toolbar>
         <span class="result-count"
-          >{{ $t('oauth:registered') }}<strong>{{ total }}</strong> {{ $t('oauth:services') }}</span
+          >{{ $t('oauth:shared.registered') }}<strong>{{ total }}</strong>
+          {{ $t('oauth:resource.services') }}</span
         >
         <right-toolbar
           v-model:showSearch="showSearch"
@@ -103,7 +104,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:tokenAudience')"
+          :label="$t('oauth:resource.tokenAudience')"
           prop="audience"
           min-width="250"
           show-overflow-tooltip
@@ -113,7 +114,7 @@
           >
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:returnedUserInformation')"
+          :label="$t('oauth:shared.returnedUserInformation')"
           min-width="240"
         >
           <template #default="scope">
@@ -134,14 +135,14 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:validityPeriods')"
+          :label="$t('oauth:shared.validityPeriods')"
           width="120"
           align="center"
         >
           <template #default="scope">{{
             scope.row.accessTokenTtlSeconds
               ? formatDuration(scope.row.accessTokenTtlSeconds)
-              : $t('oauth:platformDefault')
+              : $t('oauth:shared.platformDefault')
           }}</template>
         </el-table-column>
         <el-table-column
@@ -151,7 +152,7 @@
         >
           <template #default="scope">
             <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">{{
-              scope.row.status === '0' ? $t('oauth:inUse') : $t('components:disabled')
+              scope.row.status === '0' ? $t('oauth:shared.inUse') : $t('components:disabled')
             }}</el-tag>
           </template>
         </el-table-column>
@@ -169,7 +170,7 @@
                 icon="Edit"
                 v-hasPermi="['system:oauthResource:edit']"
                 @click="handleUpdate(scope.row)"
-                >{{ $t('oauth:edit') }}</el-button
+                >{{ $t('common:edit') }}</el-button
               >
               <el-dropdown
                 trigger="click"
@@ -179,7 +180,7 @@
                   link
                   type="primary"
                   icon="ArrowDown"
-                  >{{ $t('oauth:more') }}</el-button
+                  >{{ $t('oauth:shared.more') }}</el-button
                 >
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -188,14 +189,14 @@
                       command="enable"
                       icon="CircleCheck"
                       v-hasPermi="['system:oauthResource:edit']"
-                      >{{ $t('oauth:reEnable') }}</el-dropdown-item
+                      >{{ $t('oauth:shared.reEnable') }}</el-dropdown-item
                     >
                     <el-dropdown-item
                       v-else
                       command="disable"
                       icon="CircleClose"
                       v-hasPermi="['system:oauthResource:remove']"
-                      >{{ $t('oauth:disableService') }}</el-dropdown-item
+                      >{{ $t('oauth:resource.disableService') }}</el-dropdown-item
                     >
                   </el-dropdown-menu>
                 </template>
@@ -204,12 +205,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('oauth:noMatchingServices')">
+          <el-empty :description="$t('oauth:resource.noMatchingServices')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthResource:add']"
               @click="handleAdd"
-              >{{ $t('oauth:addYourFirstService') }}</el-button
+              >{{ $t('oauth:resource.addYourFirstService') }}</el-button
             >
           </el-empty>
         </template>
@@ -225,7 +226,7 @@
 
     <el-dialog
       v-model="open"
-      :title="form.persisted ? $t('oauth:editService') : $t('oauth:addService')"
+      :title="form.persisted ? $t('oauth:resource.editService') : $t('oauth:resource.addService')"
       width="min(820px, calc(100vw - 48px))"
       append-to-body
       :close-on-click-modal="false"
@@ -240,9 +241,13 @@
       >
         <section class="form-section">
           <div class="section-heading">
-            <h3>{{ $t('oauth:serviceIdentity') }}</h3>
+            <h3>{{ $t('oauth:resource.serviceIdentity') }}</h3>
             <p>
-              {{ $t('oauth:applicationsRequestAccessUsingTheServiceIdentifierServicesUseThe') }}
+              {{
+                $t(
+                  'oauth:resource.applicationsRequestAccessUsingTheServiceIdentifierServicesUseThe'
+                )
+              }}
             </p>
           </div>
           <el-row :gutter="18">
@@ -253,14 +258,16 @@
               <el-form-item prop="resourceName">
                 <template #label
                   ><FieldLabel
-                    :label="$t('oauth:serviceName')"
+                    :label="$t('oauth:resource.serviceName')"
                     :help="
-                      $t('oauth:displayNameInTheManagementConsoleToHelpAdministratorsIdentify')
+                      $t(
+                        'oauth:resource.displayNameInTheManagementConsoleToHelpAdministratorsIdentify'
+                      )
                     "
                 /></template>
                 <el-input
                   v-model="form.resourceName"
-                  :placeholder="$t('oauth:forExampleOrderService')"
+                  :placeholder="$t('oauth:resource.forExampleOrderService')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -272,13 +279,13 @@
               <el-form-item prop="resourceId">
                 <template #label
                   ><FieldLabel
-                    :label="$t('oauth:serviceIdentifier')"
-                    :help="$t('oauth:appsUseThisUniqueIdentifierToReferenceTheServiceIt')"
+                    :label="$t('oauth:resource.serviceIdentifier')"
+                    :help="$t('oauth:resource.appsUseThisUniqueIdentifierToReferenceTheServiceIt')"
                 /></template>
                 <el-input
                   v-model="form.resourceId"
                   :disabled="form.persisted"
-                  :placeholder="$t('oauth:forExampleOrdersApi')"
+                  :placeholder="$t('oauth:resource.forExampleOrdersApi')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -287,13 +294,13 @@
           <el-form-item prop="audience">
             <template #label
               ><FieldLabel
-                :label="$t('oauth:tokenAudience')"
-                :help="$t('oauth:uniqueValueUsedByTheServiceToValidateAccessTokens')"
+                :label="$t('oauth:resource.tokenAudience')"
+                :help="$t('oauth:resource.uniqueValueUsedByTheServiceToValidateAccessTokens')"
             /></template>
             <el-input
               v-model="form.audience"
               :disabled="form.persisted"
-              :placeholder="$t('oauth:forExampleHttpsApiExampleCom')"
+              :placeholder="$t('oauth:resource.forExampleHttpsApiExampleCom')"
               style="width: 100%"
             />
           </el-form-item>
@@ -301,9 +308,13 @@
 
         <section class="form-section">
           <div class="section-heading">
-            <h3>{{ $t('oauth:credentialsAndUserInformation') }}</h3>
+            <h3>{{ $t('oauth:resource.credentialsAndUserInformation') }}</h3>
             <p>
-              {{ $t('oauth:controlAccessCredentialLifetimesAndTheMaximumUserInformationThis') }}
+              {{
+                $t(
+                  'oauth:resource.controlAccessCredentialLifetimesAndTheMaximumUserInformationThis'
+                )
+              }}
             </p>
           </div>
           <el-row :gutter="18">
@@ -314,13 +325,15 @@
               <el-form-item>
                 <template #label
                   ><FieldLabel
-                    :label="$t('oauth:validityPeriods')"
-                    :help="$t('oauth:maximumLifetimeOfAccessTokensReceivedByTheServiceLeave')"
+                    :label="$t('oauth:shared.validityPeriods')"
+                    :help="
+                      $t('oauth:resource.maximumLifetimeOfAccessTokensReceivedByTheServiceLeave')
+                    "
                 /></template>
                 <el-input-number
                   v-model="form.accessTokenTtlSeconds"
                   :min="1"
-                  :placeholder="$t('oauth:platformDefault')"
+                  :placeholder="$t('oauth:shared.platformDefault')"
                   controls-position="right"
                   style="width: 100%"
                 />
@@ -334,12 +347,14 @@
               <el-form-item>
                 <template #label
                   ><FieldLabel
-                    :label="$t('oauth:tokenIntrospectionApplication')"
-                    :help="$t('oauth:optionalBackendAppIDUsedToCheckWhetherCredentialsAre')"
+                    :label="$t('oauth:resource.tokenIntrospectionApplication')"
+                    :help="
+                      $t('oauth:resource.optionalBackendAppIDUsedToCheckWhetherCredentialsAre')
+                    "
                 /></template>
                 <el-input
                   v-model="form.introspectionClientId"
-                  :placeholder="$t('oauth:optionalBackendApplicationID')"
+                  :placeholder="$t('oauth:resource.optionalBackendApplicationID')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -348,9 +363,11 @@
           <el-form-item prop="allowedClaims">
             <template #label
               ><FieldLabel
-                :label="$t('oauth:allowedUserInformation')"
+                :label="$t('oauth:resource.allowedUserInformation')"
                 :help="
-                  $t('oauth:limitsTheUserInformationThisServiceCanReceiveIndividualPermissions')
+                  $t(
+                    'oauth:resource.limitsTheUserInformationThisServiceCanReceiveIndividualPermissions'
+                  )
                 "
             /></template>
             <el-select
@@ -359,7 +376,7 @@
               filterable
               allow-create
               default-first-option
-              :placeholder="$t('oauth:selectOrEnterUserFields')"
+              :placeholder="$t('oauth:shared.selectOrEnterUserFields')"
               style="width: 100%"
             >
               <el-option
@@ -374,7 +391,7 @@
             <template #label
               ><FieldLabel
                 :label="$t('system:remarks')"
-                :help="$t('oauth:forAdministratorNotesOnlyNotSentToExternalAppsOr')"
+                :help="$t('oauth:resource.forAdministratorNotesOnlyNotSentToExternalAppsOr')"
             /></template>
             <el-input
               v-model="form.remark"
@@ -393,7 +410,7 @@
           type="primary"
           :loading="saving"
           @click="submitForm"
-          >{{ $t('oauth:saveService') }}</el-button
+          >{{ $t('oauth:resource.saveService') }}</el-button
         >
       </template>
     </el-dialog>
@@ -433,43 +450,43 @@ const claimOptions = [
   {
     value: 'sub',
     get label() {
-      return t('oauth:userIdentifierSub')
+      return t('oauth:shared.userIdentifierSub')
     },
   },
   {
     value: 'name',
     get label() {
-      return t('oauth:nameName')
+      return t('oauth:shared.nameName')
     },
   },
   {
     value: 'email',
     get label() {
-      return t('oauth:emailEmail')
+      return t('oauth:shared.emailEmail')
     },
   },
   {
     value: 'roles',
     get label() {
-      return t('oauth:rolesRoles')
+      return t('oauth:shared.rolesRoles')
     },
   },
   {
     value: 'client_id',
     get label() {
-      return t('oauth:appIDClientId')
+      return t('oauth:resource.appIDClientId')
     },
   },
   {
     value: 'scope',
     get label() {
-      return t('oauth:grantedPermissionsScope')
+      return t('oauth:resource.grantedPermissionsScope')
     },
   },
   {
     value: 'sid',
     get label() {
-      return t('oauth:sessionIDSid')
+      return t('oauth:resource.sessionIDSid')
     },
   },
 ]
@@ -478,7 +495,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:enterServiceIdentifier')
+        return t('oauth:resource.enterServiceIdentifier')
       },
       trigger: 'blur',
     },
@@ -487,7 +504,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:enterServiceNameLabel')
+        return t('oauth:resource.enterServiceNameLabel')
       },
       trigger: 'blur',
     },
@@ -496,7 +513,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:enterTokenAudienceUsuallyTheServiceAddress')
+        return t('oauth:resource.enterTokenAudienceUsuallyTheServiceAddress')
       },
       trigger: 'blur',
     },
@@ -507,7 +524,7 @@ const rules = {
       type: 'array',
       min: 1,
       get message() {
-        return t('oauth:selectAtLeastOneAllowedUserInformationField')
+        return t('oauth:resource.selectAtLeastOneAllowedUserInformationField')
       },
       trigger: 'change',
     },
@@ -589,7 +606,7 @@ async function submitForm() {
       delete data.status
     }
     await (persisted ? updateOAuthResource(data) : addOAuthResource(data))
-    proxy.$modal.msgSuccess(t('oauth:resourceSettingsSaved'))
+    proxy.$modal.msgSuccess(t('oauth:resource.resourceSettingsSaved'))
     open.value = false
     await getList()
   } finally {
@@ -601,7 +618,7 @@ async function submitForm() {
 async function changeStatus(row, status) {
   try {
     await proxy.$modal.confirm(
-      t('oauth:valueResourceValue', {
+      t('oauth:resource.valueResourceValue', {
         arg0: status === '0' ? t('system:enable') : t('system:disabled'),
         resourceName: row.resourceName,
       })
@@ -616,12 +633,12 @@ async function changeStatus(row, status) {
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    t('oauth:disablingValueWillStopIssuingAndRefreshingAccessTokensFor', {
+    t('oauth:resource.disablingValueWillStopIssuingAndRefreshingAccessTokensFor', {
       resourceName: row.resourceName,
     })
   )
   await deleteOAuthResources(row.resourceId)
-  proxy.$modal.msgSuccess(t('oauth:resourceDisabled'))
+  proxy.$modal.msgSuccess(t('oauth:resource.resourceDisabled'))
   await getList()
 }
 
@@ -644,12 +661,12 @@ function claimLabel(value) {
 function formatDuration(value) {
   const seconds = Number(value) || 0
   if (seconds >= 3600 && seconds % 3600 === 0) {
-    return t('oauth:valueHours', { arg0: seconds / 3600 })
+    return t('oauth:resource.valueHours', { arg0: seconds / 3600 })
   }
   if (seconds >= 60 && seconds % 60 === 0) {
-    return t('oauth:valueMinutes', { arg0: seconds / 60 })
+    return t('oauth:resource.valueMinutes', { arg0: seconds / 60 })
   }
-  return t('oauth:valueSeconds', { seconds })
+  return t('oauth:resource.valueSeconds', { seconds })
 }
 
 getList()

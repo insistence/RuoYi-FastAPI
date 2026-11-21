@@ -25,7 +25,7 @@ export default function Browser() {
     <WebView src={params.url} />
   ) : (
     <View className="mobile-page">
-      <Text>{t('mobile:invalidWebAddress')}</Text>
+      <Text>{t('mobile:webview.invalidAddress')}</Text>
     </View>
   )
 }

@@ -4,11 +4,11 @@ import { parseTime } from '@/utils/ruoyi'
 export function statusText(value) {
   return (
     {
-      pending: t('system:awaitingActivation'),
-      active: t('system:signing'),
-      retiring: t('system:verifyingOldCredentials'),
-      retired: t('system:retired'),
-      compromised: t('system:possiblyCompromised'),
+      pending: t('oauth:key.awaitingActivation'),
+      active: t('oauth:key.signing'),
+      retiring: t('oauth:key.verifyingOldCredentials'),
+      retired: t('oauth:key.retired'),
+      compromised: t('oauth:key.possiblyCompromised'),
     }[value] || value
   )
 }
@@ -28,56 +28,56 @@ export function statusType(value) {
 export function roleText(value) {
   return (
     {
-      pending: t('system:publicKeyPublishedNotYetIssuingNewCredentials'),
-      active: t('system:usedToIssueNewIdentityAndAccessCredentials'),
-      retiring: t('system:noLongerIssuingNewCredentialsOnlyVerifyingUnexpiredOld'),
-      retired: t('system:removedFromThePublicKeyList'),
-      compromised: t('system:markedAsUntrustedCompleteEmergencyRotationAsSoonAs'),
-    }[value] || t('system:unknownStatusInformation')
+      pending: t('oauth:key.publicKeyPublishedNotYetIssuingNewCredentials'),
+      active: t('oauth:key.usedToIssueNewIdentityAndAccessCredentials'),
+      retiring: t('oauth:key.noLongerIssuingNewCredentialsOnlyVerifyingUnexpiredOld'),
+      retired: t('oauth:key.removedFromThePublicKeyList'),
+      compromised: t('oauth:key.markedAsUntrustedCompleteEmergencyRotationAsSoonAs'),
+    }[value] || t('oauth:key.unknownStatusInformation')
   )
 }
 
 export function publicFingerprint(jwk) {
   if (!jwk?.n) {
-    return t('system:publicFingerprintUnavailable')
+    return t('oauth:key.publicFingerprintUnavailable')
   }
-  return t('system:publicFingerprintRsaValue', { arg0: jwk.n.slice(0, 18) })
+  return t('oauth:key.publicFingerprintRsaValue', { arg0: jwk.n.slice(0, 18) })
 }
 
 export function nextActionText(row) {
   return (
     {
-      pending: t('system:waitingToStart'),
-      active: t('system:stopSigningWhenTheNextKeyTakesOver'),
-      retiring: t('system:waitingForAllOldCredentialsToExpire'),
-      retired: t('system:metadataCanBeRemoved'),
-      compromised: t('system:scheduleEmergencyRotationNow'),
-    }[row.status] || t('system:noPlan')
+      pending: t('oauth:key.waitingToStart'),
+      active: t('oauth:key.stopSigningWhenTheNextKeyTakesOver'),
+      retiring: t('oauth:key.waitingForAllOldCredentialsToExpire'),
+      retired: t('oauth:key.metadataCanBeRemoved'),
+      compromised: t('oauth:key.scheduleEmergencyRotationNow'),
+    }[row.status] || t('oauth:key.noPlan')
   )
 }
 
 export function nextActionTime(row) {
   if (row.status === 'pending') {
-    return parseTime(row.signingStartAt) || t('system:manualActivationRequired')
+    return parseTime(row.signingStartAt) || t('oauth:key.manualActivationRequired')
   }
   if (['retiring', 'retired'].includes(row.status)) {
     return row.removeFromJwksAt
-      ? t('system:earliestCleanupValue', { arg0: parseTime(row.removeFromJwksAt) })
-      : t('system:waitingForTheSafeVerificationWindowToEnd')
+      ? t('oauth:key.earliestCleanupValue', { arg0: parseTime(row.removeFromJwksAt) })
+      : t('oauth:key.waitingForTheSafeVerificationWindowToEnd')
   }
   if (row.status === 'active') {
-    return t('system:noAutomaticStopTimeIsSet')
+    return t('oauth:key.noAutomaticStopTimeIsSet')
   }
-  return t('system:checkTheSecurityLogs')
+  return t('oauth:key.checkTheSecurityLogs')
 }
 
 export function activationDisabledReason(row) {
   const publishAt = new Date(row.publishAt).getTime()
   if (!Number.isFinite(publishAt)) {
-    return t('system:invalidPublicKeyPublicationTimeRefreshTheListAnd')
+    return t('oauth:key.invalidPublicKeyPublicationTimeRefreshTheListAnd')
   }
   if (publishAt > Date.now()) {
-    return t('system:thePublicKeyWillBePublishedAtValueIt', { arg0: parseTime(row.publishAt) })
+    return t('oauth:key.thePublicKeyWillBePublishedAtValueIt', { arg0: parseTime(row.publishAt) })
   }
   return ''
 }

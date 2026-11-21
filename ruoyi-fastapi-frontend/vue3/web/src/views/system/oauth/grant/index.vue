@@ -1,10 +1,12 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('oauth:accessControl')"
-      :title="$t('oauth:userGrants')"
-      :description="$t('oauth:manageUserAccessGrantsToApplicationsRevokeCurrentAccessOr')"
-      :filter-hint="$t('oauth:grantStatusAndApplicationAccessPoliciesAreManagedSeparatelyRemoving')"
+      :section="$t('oauth:shared.accessControl')"
+      :title="$t('oauth:grant.userGrants')"
+      :description="$t('oauth:grant.manageUserAccessGrantsToApplicationsRevokeCurrentAccessOr')"
+      :filter-hint="
+        $t('oauth:grant.grantStatusAndApplicationAccessPoliciesAreManagedSeparatelyRemoving')
+      "
     >
       <template #actions>
         <el-button
@@ -12,7 +14,7 @@
           plain
           icon="Lock"
           @click="policyOpen = true"
-          >{{ $t('oauth:accessPolicies') }}</el-button
+          >{{ $t('oauth:grant.accessPolicies') }}</el-button
         >
         <el-button
           type="danger"
@@ -22,7 +24,8 @@
           v-hasPermi="['system:oauthGrant:revoke']"
           @click="openRevoke()"
         >
-          {{ $t('oauth:revokeSelected') }}{{ selected.length ? `（${selected.length}）` : '' }}
+          {{ $t('oauth:grant.revokeSelected')
+          }}{{ selected.length ? `（${selected.length}）` : '' }}
         </el-button>
       </template>
       <template #filters>
@@ -65,11 +68,11 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('oauth:stillValid')"
+                :label="$t('oauth:grant.stillValid')"
                 value="active"
               />
               <el-option
-                :label="$t('oauth:revoked')"
+                :label="$t('oauth:grant.revoked')"
                 value="revoked"
               />
               <el-option
@@ -79,21 +82,21 @@
             </el-select>
           </el-form-item>
           <el-form-item
-            :label="$t('oauth:applicationAccess')"
+            :label="$t('oauth:grant.applicationAccess')"
             prop="accessStatus"
           >
             <el-select
               v-model="queryParams.accessStatus"
               clearable
-              :placeholder="$t('oauth:allPolicies')"
+              :placeholder="$t('oauth:grant.allPolicies')"
               style="width: 200px"
             >
               <el-option
-                :label="$t('oauth:consentAllowed')"
+                :label="$t('oauth:grant.consentAllowed')"
                 value="allowed"
               />
               <el-option
-                :label="$t('oauth:blockAccess')"
+                :label="$t('oauth:grant.blockAccess')"
                 value="blocked"
               />
             </el-select>
@@ -115,7 +118,8 @@
       </template>
       <template #toolbar>
         <span class="result-count"
-          >{{ $t('monitor:found') }}<strong>{{ total }}</strong> {{ $t('oauth:grants') }}</span
+          >{{ $t('monitor:found') }}<strong>{{ total }}</strong>
+          {{ $t('oauth:grant.grants') }}</span
         >
         <right-toolbar
           v-model:showSearch="showSearch"
@@ -145,7 +149,7 @@
               ></span>
               <span
                 ><strong>{{
-                  scope.row.userName || $t('oauth:userValue', { userId: scope.row.userId })
+                  scope.row.userName || $t('oauth:shared.userValue', { userId: scope.row.userId })
                 }}</strong
                 ><small>{{ scope.row.userId || short(scope.row.subjectId) }}</small></span
               >
@@ -153,7 +157,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:grantedToApplication')"
+          :label="$t('oauth:grant.grantedToApplication')"
           min-width="210"
         >
           <template #default="scope"
@@ -164,7 +168,7 @@
           >
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:allowedPermissions')"
+          :label="$t('oauth:grant.allowedPermissions')"
           min-width="260"
         >
           <template #default="scope">
@@ -185,7 +189,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:accessibleServices')"
+          :label="$t('oauth:shared.accessibleServices')"
           min-width="170"
           show-overflow-tooltip
         >
@@ -195,11 +199,11 @@
           }}</template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:lastUsed')"
+          :label="$t('oauth:grant.lastUsed')"
           width="170"
         >
           <template #default="scope">{{
-            parseTime(scope.row.lastUsedAt) || $t('oauth:notUsedYet')
+            parseTime(scope.row.lastUsedAt) || $t('oauth:grant.notUsedYet')
           }}</template>
         </el-table-column>
         <el-table-column
@@ -214,7 +218,7 @@
           >
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:applicationAccess')"
+          :label="$t('oauth:grant.applicationAccess')"
           width="110"
           align="center"
         >
@@ -225,8 +229,8 @@
             >
               {{
                 scope.row.accessStatus === 'blocked'
-                  ? $t('oauth:blockAccess')
-                  : $t('oauth:consentAllowed')
+                  ? $t('oauth:grant.blockAccess')
+                  : $t('oauth:grant.consentAllowed')
               }}
             </el-tag>
           </template>
@@ -253,7 +257,7 @@
                 icon="CircleClose"
                 v-hasPermi="['system:oauthGrant:revoke']"
                 @click="openRevoke(scope.row)"
-                >{{ $t('oauth:revoke') }}</el-button
+                >{{ $t('oauth:grant.revoke') }}</el-button
               >
               <el-button
                 link
@@ -263,14 +267,16 @@
                 @click="openAccess(scope.row)"
                 >{{
                   scope.row.accessStatus === 'blocked'
-                    ? $t('oauth:removeRestriction')
-                    : $t('oauth:blockAccess')
+                    ? $t('oauth:grant.removeRestriction')
+                    : $t('oauth:grant.blockAccess')
                 }}</el-button
               >
             </div>
           </template>
         </el-table-column>
-        <template #empty><el-empty :description="$t('oauth:noMatchingUserGrants')" /></template>
+        <template #empty
+          ><el-empty :description="$t('oauth:grant.noMatchingUserGrants')"
+        /></template>
       </el-table>
       <pagination
         v-show="total > 0"
@@ -288,7 +294,7 @@
 
     <el-dialog
       v-model="revokeOpen"
-      :title="$t('oauth:revokeUserGrants')"
+      :title="$t('oauth:grant.revokeUserGrants')"
       width="min(540px, calc(100vw - 32px))"
       append-to-body
       :close-on-click-modal="false"
@@ -296,16 +302,16 @@
       <div class="impact-summary">
         <el-icon><WarningFilled /></el-icon>
         <div>
-          <strong>{{ $t('oauth:revokeGrantCount', { count: revokeTargetCount }) }}</strong>
+          <strong>{{ $t('oauth:grant.revokeCount', { count: revokeTargetCount }) }}</strong>
           <p>
-            {{ $t('oauth:thisIncludesOneTimeRememberedAndOfflineAccessGrantsResources') }}
+            {{ $t('oauth:grant.thisIncludesOneTimeRememberedAndOfflineAccessGrantsResources') }}
           </p>
         </div>
       </div>
       <label
         class="reason-label"
         for="grant-revoke-reason"
-        >{{ $t('oauth:revocationReason') }}</label
+        >{{ $t('oauth:grant.revocationReason') }}</label
       >
       <el-input
         id="grant-revoke-reason"
@@ -314,7 +320,7 @@
         :rows="3"
         maxlength="200"
         show-word-limit
-        :placeholder="$t('oauth:explainTheRevocationForTheAuditTrail')"
+        :placeholder="$t('oauth:grant.explainTheRevocationForTheAuditTrail')"
       />
       <template #footer>
         <el-button @click="revokeOpen = false">{{ $t('common:cancel') }}</el-button>
@@ -323,7 +329,7 @@
           :disabled="!reason.trim()"
           :loading="revoking"
           @click="revoke"
-          >{{ $t('oauth:confirmRevocation') }}</el-button
+          >{{ $t('oauth:grant.confirmRevocation') }}</el-button
         >
       </template>
     </el-dialog>
@@ -332,8 +338,8 @@
       v-model="accessOpen"
       :title="
         accessBlocked
-          ? $t('oauth:blockUserAccessToApplication')
-          : $t('oauth:removeApplicationAccessRestriction')
+          ? $t('oauth:grant.blockUserAccessToApplication')
+          : $t('oauth:grant.removeApplicationAccessRestriction')
       "
       width="min(540px, calc(100vw - 32px))"
       append-to-body
@@ -343,13 +349,15 @@
         <el-icon><WarningFilled /></el-icon>
         <div>
           <strong
-            >{{ accessTarget.userName || $t('oauth:userValue', { userId: accessTarget.userId }) }} ·
-            {{ accessTarget.clientName || accessTarget.clientId }}</strong
+            >{{
+              accessTarget.userName || $t('oauth:shared.userValue', { userId: accessTarget.userId })
+            }}
+            · {{ accessTarget.clientName || accessTarget.clientId }}</strong
           >
           <p v-if="accessBlocked">
-            {{ $t('oauth:thisRevokesAllExistingGrantsForThisUserAndApplication') }}
+            {{ $t('oauth:grant.thisRevokesAllExistingGrantsForThisUserAndApplication') }}
           </p>
-          <p v-else>{{ $t('oauth:theUserMayGrantConsentAgainAfterTheRestrictionIs') }}</p>
+          <p v-else>{{ $t('oauth:grant.theUserMayGrantConsentAgainAfterTheRestrictionIs') }}</p>
         </div>
       </div>
       <label
@@ -364,7 +372,7 @@
         :rows="3"
         maxlength="200"
         show-word-limit
-        :placeholder="$t('oauth:explainTheOperationForTheAuditTrail')"
+        :placeholder="$t('oauth:grant.explainTheOperationForTheAuditTrail')"
       />
       <template #footer>
         <el-button @click="accessOpen = false">{{ $t('common:cancel') }}</el-button>
@@ -374,7 +382,7 @@
           :loading="savingAccess"
           @click="saveAccess"
           >{{
-            accessBlocked ? $t('oauth:confirmRestriction') : $t('oauth:confirmRemoval')
+            accessBlocked ? $t('oauth:grant.confirmRestriction') : $t('oauth:grant.confirmRemoval')
           }}</el-button
         >
       </template>
@@ -382,7 +390,7 @@
 
     <el-drawer
       v-model="detailOpen"
-      :title="$t('oauth:userGrantDetails')"
+      :title="$t('oauth:grant.userGrantDetails')"
       size="min(640px, 92vw)"
     >
       <div class="detail-hero">
@@ -391,12 +399,12 @@
         ></span>
         <div>
           <strong>{{ detail.userName || detail.userId || $t('monitor:user') }}</strong>
-          <p>{{ $t('oauth:grantedTo') }}{{ detail.clientName || detail.clientId }}</p>
+          <p>{{ $t('oauth:grant.grantedTo') }}{{ detail.clientName || detail.clientId }}</p>
         </div>
         <el-tag :type="statusType(detail.status)">{{ statusText(detail.status) }}</el-tag>
       </div>
       <section class="detail-section">
-        <h4>{{ $t('oauth:allowedPermissions') }}</h4>
+        <h4>{{ $t('oauth:grant.allowedPermissions') }}</h4>
         <div class="tag-summary">
           <el-tag
             v-for="item in detail.grantedScopes || []"
@@ -407,11 +415,11 @@
         </div>
       </section>
       <section class="detail-section">
-        <h4>{{ $t('oauth:accessibleServices') }}</h4>
+        <h4>{{ $t('oauth:shared.accessibleServices') }}</h4>
         <p>
           {{
             (detail.grantedResources || []).join('、') ||
-            $t('oauth:usedOnlyToObtainSignInIdentityInformation')
+            $t('oauth:grant.usedOnlyToObtainSignInIdentityInformation')
           }}
         </p>
       </section>
@@ -420,31 +428,31 @@
         border
         class="detail-descriptions"
       >
-        <el-descriptions-item :label="$t('oauth:grantedAt')">{{
+        <el-descriptions-item :label="$t('oauth:grant.grantedAt')">{{
           parseTime(detail.consentedAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('oauth:lastUsed')">{{
-          parseTime(detail.lastUsedAt) || $t('oauth:notUsedYet')
+        <el-descriptions-item :label="$t('oauth:grant.lastUsed')">{{
+          parseTime(detail.lastUsedAt) || $t('oauth:grant.notUsedYet')
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('oauth:skipFutureConfirmation')">{{
+        <el-descriptions-item :label="$t('oauth:grant.skipFutureConfirmation')">{{
           (detail.rememberedScopes || []).join('、') ||
-          $t('oauth:notRememberedFutureConfirmationFollowsThePolicy')
+          $t('oauth:grant.notRememberedFutureConfirmationFollowsThePolicy')
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('oauth:applicationAccess')">{{
+        <el-descriptions-item :label="$t('oauth:grant.applicationAccess')">{{
           detail.accessStatus === 'blocked'
-            ? $t('oauth:accessBlockedAnAdministratorMustRemoveTheRestriction')
-            : $t('oauth:newConsentAllowed')
+            ? $t('oauth:grant.accessBlockedAnAdministratorMustRemoveTheRestriction')
+            : $t('oauth:grant.newConsentAllowed')
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('oauth:accessPolicyReason')">{{
+        <el-descriptions-item :label="$t('oauth:grant.accessPolicyReason')">{{
           detail.accessReason || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('oauth:revocationReason')">{{
+        <el-descriptions-item :label="$t('oauth:grant.revocationReason')">{{
           detail.revokeReason || '—'
         }}</el-descriptions-item>
       </el-descriptions>
       <el-collapse class="technical-details">
         <el-collapse-item
-          :title="$t('oauth:showTechnicalIdentifiers')"
+          :title="$t('oauth:shared.showTechnicalIdentifiers')"
           name="technical"
         >
           <dl>
@@ -452,7 +460,7 @@
             <dd>{{ detail.grantId }}</dd>
             <dt>{{ $t('monitor:userPrincipal') }}</dt>
             <dd>{{ detail.subjectId }}</dd>
-            <dt>{{ $t('oauth:policyVersion') }}</dt>
+            <dt>{{ $t('oauth:grant.policyVersion') }}</dt>
             <dd>{{ detail.clientPolicyVersion || '—' }}</dd>
           </dl>
         </el-collapse-item>
@@ -513,15 +521,15 @@ function statusText(value) {
   return (
     {
       get active() {
-        return t('oauth:stillValid')
+        return t('oauth:grant.stillValid')
       },
       get revoked() {
-        return t('oauth:revoked')
+        return t('oauth:grant.revoked')
       },
       get expired() {
         return t('components:expired')
       },
-    }[value] || t('oauth:unknownStatus')
+    }[value] || t('oauth:shared.unknownStatus')
   )
 }
 
@@ -571,7 +579,7 @@ async function revoke() {
     await revokeOAuthGrants(revokeIds.value.join(','), {
       reason: reason.value.trim(),
     })
-    proxy.$modal.msgSuccess(t('oauth:grantRevoked'))
+    proxy.$modal.msgSuccess(t('oauth:grant.grantRevoked'))
     revokeOpen.value = false
     await getList()
   } finally {
@@ -597,8 +605,8 @@ async function saveAccess() {
     })
     proxy.$modal.msgSuccess(
       accessBlocked.value
-        ? t('oauth:accessToThisApplicationHasBeenBlocked')
-        : t('oauth:restrictionRemovedGrantConsentAgain')
+        ? t('oauth:grant.accessToThisApplicationHasBeenBlocked')
+        : t('oauth:grant.restrictionRemovedGrantConsentAgain')
     )
     accessOpen.value = false
     await getList()

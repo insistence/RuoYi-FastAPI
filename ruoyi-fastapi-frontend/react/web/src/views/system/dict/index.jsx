@@ -102,7 +102,7 @@ export default function Dict() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(t('system:deleteDictionariesWithIdsValue', { values }))
+      await confirm(t('system:dict.deleteDictionariesWithIdsValue', { values }))
       await delType(values)
       message.success(t('common:deleteSuccess'))
       await getList()
@@ -123,7 +123,7 @@ export default function Dict() {
     }
   }
   const columns = [
-    { align: 'center', title: t('system:dictionaryId'), dataIndex: 'dictId' },
+    { align: 'center', title: t('system:dict.dictionaryId'), dataIndex: 'dictId' },
     {
       align: 'center',
       title: t('system:dict.name'),
@@ -234,7 +234,7 @@ export default function Dict() {
           >
             <Select
               style={{ width: 240 }}
-              placeholder={t('system:dictionaryStatus')}
+              placeholder={t('system:dict.dictionaryStatus')}
               allowClear
               options={sys_normal_disable}
             />
@@ -329,12 +329,12 @@ export default function Dict() {
               refreshCache()
                 .then(() => {
                   clearDictCache()
-                  message.success(t('system:cacheRefreshed'))
+                  message.success(t('system:shared.cacheRefreshed'))
                 })
                 .catch(() => {})
             }
           >
-            {t('system:refreshCache')}
+            {t('system:shared.refreshCache')}
           </Button>
         </HasPermi>
         <RightToolbar
@@ -390,7 +390,7 @@ export default function Dict() {
             label={
               <FormLabel
                 label={t('system:dict.type')}
-                help={t('system:storageKeyForExampleSysUserSex')}
+                help={t('system:dict.storageKeyForExampleSysUserSex')}
               />
             }
             name="dictType"

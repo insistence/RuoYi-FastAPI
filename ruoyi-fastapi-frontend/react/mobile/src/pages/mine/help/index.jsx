@@ -10,14 +10,14 @@ export default function Help() {
   const groups = [
     {
       get title() {
-        return t('mobile:aboutRuoyiFastapi')
+        return t('mobile:help.product')
       },
       icon: 'github',
       items: ['openSource', 'commercial', 'website', 'documentation'],
     },
     {
       get title() {
-        return t('mobile:otherQuestions')
+        return t('mobile:help.other')
       },
       icon: 'help-circle-outline',
       items: ['signOut', 'avatar', 'password'],

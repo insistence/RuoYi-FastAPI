@@ -3,14 +3,12 @@
     <el-drawer
       custom-class="oauth-overlay"
       :visible.sync="visible"
-      :title="$t('authCenter:messages.applicationAccessPolicies')"
+      :title="$t('oauth:grant.applicationAccessPolicies')"
       size="min(960px, 96vw)"
       @open="handleQuery"
     >
       <el-alert
-        :title="
-          $t('authCenter:messages.blockAccessBeforeAUserFirstGrantsConsentAccessIsAllowedWhen')
-        "
+        :title="$t('oauth:grant.blockAccessBeforeAUserFirstGrantsConsentAccessIsAllowedWhen')"
         type="info"
         :closable="false"
         show-icon
@@ -52,15 +50,15 @@
           <el-select
             v-model="queryParams.accessStatus"
             clearable
-            :placeholder="$t('authCenter:messages.allPolicies')"
+            :placeholder="$t('oauth:grant.allPolicies')"
             class="filter-input"
           >
             <el-option
-              :label="$t('authCenter:messages.blockAccess')"
+              :label="$t('oauth:grant.blockAccess')"
               value="blocked"
             />
             <el-option
-              :label="$t('authCenter:messages.allowAccess')"
+              :label="$t('oauth:grant.allowAccess')"
               value="allowed"
             />
           </el-select>
@@ -80,17 +78,14 @@
         </el-form-item>
       </el-form>
       <div class="policy-toolbar">
-        <span
-          >{{ $t('authCenter:messages.configured') }} {{ total }}
-          {{ $t('authCenter:messages.policies') }}</span
-        >
+        <span>{{ $t('oauth:grant.configured') }} {{ total }} {{ $t('oauth:grant.policies') }}</span>
         <el-button
           type="primary"
           icon="el-icon-plus"
           v-hasPermi="['system:oauthGrant:revoke']"
           @click="openAccess()"
         >
-          {{ $t('authCenter:messages.addAccessRestriction') }}
+          {{ $t('oauth:grant.addAccessRestriction') }}
         </el-button>
       </div>
       <el-table
@@ -127,8 +122,8 @@
             <el-tag :type="scope.row.accessStatus === 'blocked' ? 'danger' : 'success'">
               {{
                 scope.row.accessStatus === 'blocked'
-                  ? $t('authCenter:messages.blockAccess')
-                  : $t('authCenter:messages.allowAccess')
+                  ? $t('oauth:grant.blockAccess')
+                  : $t('oauth:grant.allowAccess')
               }}
             </el-tag>
           </template>
@@ -141,11 +136,11 @@
         />
         <el-table-column
           prop="updateBy"
-          :label="$t('authCenter:messages.operator')"
+          :label="$t('oauth:grant.operator')"
           width="110"
         />
         <el-table-column
-          :label="$t('authCenter:messages.lastOperation')"
+          :label="$t('oauth:grant.lastOperation')"
           width="170"
         >
           <template #default="scope">{{ parseTime(scope.row.updateTime) || '—' }}</template>
@@ -164,14 +159,14 @@
               @click="openAccess(scope.row)"
               >{{
                 scope.row.accessStatus === 'blocked'
-                  ? $t('authCenter:expression.removeRestriction')
-                  : $t('authCenter:messages.blockAccess')
+                  ? $t('oauth:grant.removeRestriction')
+                  : $t('oauth:grant.blockAccess')
               }}</el-button
             >
           </template>
         </el-table-column>
         <template #empty
-          ><el-empty :description="$t('authCenter:messages.noMatchingAccessPolicies')"
+          ><el-empty :description="$t('oauth:grant.noMatchingAccessPolicies')"
         /></template>
       </el-table>
       <pagination
@@ -186,8 +181,8 @@
         :visible.sync="accessOpen"
         :title="
           accessBlocked
-            ? $t('authCenter:expression.blockUserAccessToApplication')
-            : $t('authCenter:expression.removeApplicationAccessRestriction')
+            ? $t('oauth:grant.blockUserAccessToApplication')
+            : $t('oauth:grant.removeApplicationAccessRestriction')
         "
         width="min(540px, calc(100vw - 32px))"
         append-to-body
@@ -198,11 +193,9 @@
         <el-alert
           :title="
             accessBlocked
-              ? $t(
-                  'authCenter:expression.thisRevokesAllExistingGrantsForThisUserAndApplicationAndPrevents'
-                )
+              ? $t('oauth:grant.blockAccessSummary')
               : $t(
-                  'authCenter:expression.usersMayGrantConsentAgainAfterTheRestrictionIsRemovedExistingGrants'
+                  'oauth:grant.usersMayGrantConsentAgainAfterTheRestrictionIsRemovedExistingGrants'
                 )
           "
           :type="accessBlocked ? 'warning' : 'info'"
@@ -226,7 +219,7 @@
               :disabled="!creating || saving"
               maxlength="19"
               inputmode="numeric"
-              :placeholder="$t('authCenter:messages.enterTheUserIDFromUserManagement')"
+              :placeholder="$t('oauth:grant.enterTheUserIDFromUserManagement')"
             />
           </el-form-item>
           <el-form-item
@@ -237,7 +230,7 @@
               v-model="accessForm.clientId"
               :disabled="!creating || saving"
               maxlength="128"
-              :placeholder="$t('authCenter:messages.enterTheClientIDFromClientManagement')"
+              :placeholder="$t('oauth:grant.enterTheClientIDFromClientManagement')"
             />
           </el-form-item>
           <el-form-item
@@ -251,7 +244,7 @@
               :rows="3"
               maxlength="200"
               show-word-limit
-              :placeholder="$t('authCenter:messages.provideAReasonForTheAuditTrail')"
+              :placeholder="$t('oauth:grant.provideAReasonForTheAuditTrail')"
             />
           </el-form-item>
         </el-form>
@@ -268,8 +261,8 @@
           >
             {{
               accessBlocked
-                ? $t('authCenter:expression.confirmRestriction')
-                : $t('authCenter:expression.confirmRemoval')
+                ? $t('oauth:grant.confirmRestriction')
+                : $t('oauth:grant.confirmRemoval')
             }}
           </el-button>
         </template>
@@ -315,7 +308,7 @@ const accessRules = {
     {
       required: true,
       pattern: /^[1-9]\d{0,18}$/,
-      message: () => t('authCenter:messages.enterAValidUserID'),
+      message: () => t('oauth:grant.enterAValidUserID'),
       trigger: 'blur',
     },
   ],
@@ -323,7 +316,7 @@ const accessRules = {
     {
       required: true,
       whitespace: true,
-      message: () => t('authCenter:messages.enterAClientID'),
+      message: () => t('oauth:grant.enterAClientID'),
       trigger: 'blur',
     },
   ],
@@ -331,7 +324,7 @@ const accessRules = {
     {
       required: true,
       whitespace: true,
-      message: () => t('authCenter:messages.enterAReasonForThisOperation'),
+      message: () => t('oauth:grant.enterAReasonForThisOperation'),
       trigger: 'blur',
     },
   ],
@@ -387,8 +380,8 @@ async function saveAccess() {
     })
     proxy.$modal.msgSuccess(
       accessBlocked.value
-        ? t('authCenter:messages.theUserHasBeenBlockedFromThisApplication')
-        : t('authCenter:messages.accessRestrictionRemoved')
+        ? t('oauth:grant.theUserHasBeenBlockedFromThisApplication')
+        : t('oauth:grant.accessRestrictionRemoved')
     )
     accessOpen.value = false
     emit('changed')

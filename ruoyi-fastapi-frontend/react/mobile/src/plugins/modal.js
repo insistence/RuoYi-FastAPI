@@ -29,7 +29,7 @@ export default {
   // 弹出提示
   alert(content, title) {
     Taro.showModal({
-      title: title || t('mobile:notice'),
+      title: title || t('common:systemNotice'),
       content: content,
       showCancel: false,
     })
@@ -38,7 +38,7 @@ export default {
   confirm(content, title) {
     return new Promise((resolve, reject) => {
       Taro.showModal({
-        title: title || t('mobile:notice'),
+        title: title || t('common:systemNotice'),
         content: content,
         cancelText: t('common:cancel'),
         confirmText: t('common:confirm'),

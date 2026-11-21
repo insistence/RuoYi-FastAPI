@@ -57,7 +57,7 @@ export default function Timezone() {
           setFollow(useUserStore.getState().timeZone === 'auto')
           setZone(getDisplayTimezone())
         })
-        .catch(() => setError((t) => t('mobile:failedToReadAccountSettingsTrySavingAgainOr'))),
+        .catch(() => setError((t) => t('mobile:timezone.profileFailed'))),
     ])
     setInitializing(false)
   })
@@ -71,9 +71,9 @@ export default function Timezone() {
       await updateUserTimezone(preference)
       useUserStore.getState().applyTimezone(preference)
       setNow(new Date())
-      Taro.showToast({ title: t('mobile:timeZoneSaved'), icon: 'success' })
+      Taro.showToast({ title: t('mobile:timezone.saved'), icon: 'success' })
     } catch (failure) {
-      setError(failure.message || (() => t('mobile:saveFailedPleaseTryAgain')))
+      setError(failure.message || (() => t('common:saveFailed')))
     } finally {
       lock.current = false
       setSaving(false)
@@ -83,14 +83,12 @@ export default function Timezone() {
   return (
     <View className="mobile-page bg-white">
       <Label className="mobile-toggle mb-5">
-        <Text className="text-sm font-medium text-gray-700">
-          {t('mobile:followDeviceAutomatically')}
-        </Text>
+        <Text className="text-sm font-medium text-gray-700">{t('mobile:timezone.automatic')}</Text>
         <Switch
-          aria-label={t('mobile:followDeviceAutomatically')}
+          aria-label={t('mobile:timezone.automatic')}
           nativeProps={
             process.env.TARO_ENV === 'h5'
-              ? { 'aria-label': t('mobile:followDeviceAutomatically'), role: 'switch' }
+              ? { 'aria-label': t('mobile:timezone.automatic'), role: 'switch' }
               : undefined
           }
           checked={follow}
@@ -105,18 +103,18 @@ export default function Timezone() {
             for={process.env.TARO_ENV === 'h5' ? 'timezone-search-input' : 'timezone-search'}
             className="mobile-label"
           >
-            {t('mobile:displayTimeZone')}
+            {t('mobile:timezone.display')}
           </Label>
           <Input
             id="timezone-search"
-            aria-label={t('mobile:searchTimeZones')}
+            aria-label={t('mobile:timezone.search')}
             nativeProps={
               process.env.TARO_ENV === 'h5'
-                ? { id: 'timezone-search-input', 'aria-label': t('mobile:searchTimeZones') }
+                ? { id: 'timezone-search-input', 'aria-label': t('mobile:timezone.search') }
                 : undefined
             }
             className="mobile-input mb-3"
-            placeholder={t('mobile:searchTimeZonesEGAsiaShanghai')}
+            placeholder={t('mobile:timezone.searchPlaceholder')}
             value={search}
             disabled={saving || initializing}
             onInput={(event) => setSearch(event.detail.value)}
@@ -129,7 +127,7 @@ export default function Timezone() {
           >
             <Button
               className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-2.5 text-left leading-normal border border-gray-200"
-              aria-label={t('mobile:chooseADisplayTimeZone')}
+              aria-label={t('mobile:timezone.choose')}
               disabled={saving || initializing || loading || !filtered.length}
             >
               <Text className="break-all text-sm text-gray-800">{zone}</Text>
@@ -141,14 +139,14 @@ export default function Timezone() {
           </Picker>
           {!filtered.length && (
             <Text className="block mt-2 text-sm text-gray-500">
-              {t('mobile:noMatchingTimeZonesTryAnotherSearch')}
+              {t('mobile:timezone.noResults')}
             </Text>
           )}
         </View>
       )}
       {loadError && (
         <View className="mb-5">
-          <Text className="mobile-muted">{t('mobile:failedToLoadTheTimeZoneListYourCurrent')}</Text>
+          <Text className="mobile-muted">{t('mobile:timezone.loadFailed')}</Text>
           <Button
             size="mini"
             className="flex h-11 items-center justify-center rounded-xl bg-blue-50 px-4 text-sm font-medium text-blue-600"
@@ -160,27 +158,25 @@ export default function Timezone() {
           </Button>
         </View>
       )}
-      <Text className="mobile-label">{t('mobile:timePreview')}</Text>
+      <Text className="mobile-label">{t('mobile:timezone.preview')}</Text>
       <View
         className="rounded-xl bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-800 border border-gray-200"
         aria-live="polite"
       >
         <Text className="block break-all">
-          {t('mobile:previewTimeZone')}
+          {t('mobile:timezone.previewZone')}
           {previewZone}
         </Text>
         <Text className="block">
-          {t('mobile:timePreviewMineSettingTimezone')}
+          {t('mobile:timezone.previewTime')}
           {formatDisplayTime(now, locale, previewZone)}
         </Text>
         {follow && !device && (
-          <Text className="mobile-muted">
-            {t('mobile:thisDeviceCannotIdentifyItsTimeZoneTheSystem')}
-          </Text>
+          <Text className="mobile-muted">{t('mobile:timezone.deviceFallback')}</Text>
         )}
       </View>
       <Text className="block mt-2 text-xs text-gray-500 leading-5">
-        {t('mobile:usedForTimeDisplayDateFilteringAndExportsScheduled')}
+        {t('mobile:timezone.hint')}
       </Text>
       {error && (
         <Text
@@ -196,7 +192,7 @@ export default function Timezone() {
         loading={saving}
         onClick={save}
       >
-        {t('mobile:saveTimeZone')}
+        {t('mobile:timezone.save')}
       </Button>
     </View>
   )

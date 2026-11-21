@@ -21,19 +21,19 @@ const PWD_RULES = {
   0: {
     pattern: /^[^<>"'|\\]+$/,
     get message() {
-      return t('common:passwordMustNotContainOr')
+      return t('auth:password.passwordMustNotContainOr')
     },
   },
   1: {
     pattern: /^[0-9]+$/,
     get message() {
-      return t('common:passwordMustContainOnlyDigits09')
+      return t('auth:password.passwordMustContainOnlyDigits09')
     },
   },
   2: {
     pattern: /^[a-zA-Z]+$/,
     get message() {
-      return t('common:passwordMustContainOnlyEnglishLettersAZA')
+      return t('auth:password.passwordMustContainOnlyEnglishLettersAZA')
     },
   },
   3: {
@@ -45,7 +45,7 @@ const PWD_RULES = {
   4: {
     pattern: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[~!@#$%^&*()\-=_+])[A-Za-z\d~!@#$%^&*()\-=_+]+$/,
     get message() {
-      return t('common:passwordMustContainLettersDigitsAndSpecialCharacters')
+      return t('auth:password.passwordMustContainLettersDigitsAndSpecialCharacters')
     },
   },
 }
@@ -62,7 +62,7 @@ export function usePasswordRule() {
       {
         min: 6,
         max: 20,
-        message: t('common:passwordMustContain620Characters'),
+        message: t('auth:password.passwordMustContain620Characters'),
         trigger: 'blur',
       },
       { pattern: rule.pattern, message: rule.message, trigger: 'blur' },
@@ -72,7 +72,7 @@ export function usePasswordRule() {
   const pwdPromptValidator = (value) => {
     const rule = PWD_RULES['0']
     if (!value || value.length < 6 || value.length > 20) {
-      return t('common:passwordMustContain620Characters')
+      return t('auth:password.passwordMustContain620Characters')
     }
     if (!rule.pattern.test(value)) {
       return rule.message
@@ -86,7 +86,7 @@ export function usePasswordRule() {
       {
         min: 6,
         max: 20,
-        message: t('common:newPasswordMustContain620Characters'),
+        message: t('auth:password.newPasswordMustContain620Characters'),
         trigger: 'blur',
       },
       { pattern: rule.pattern, message: rule.message, trigger: 'blur' },
@@ -96,11 +96,11 @@ export function usePasswordRule() {
   const registerPwdValidator = (() => {
     const rule = PWD_RULES['0']
     return [
-      { required: true, message: t('common:login.passwordRequired'), trigger: 'blur' },
+      { required: true, message: t('auth:login.passwordRequired'), trigger: 'blur' },
       {
         min: 6,
         max: 20,
-        message: t('common:userPasswordMustContain620Characters'),
+        message: t('auth:password.userPasswordMustContain620Characters'),
         trigger: 'blur',
       },
       { pattern: rule.pattern, message: rule.message, trigger: 'blur' },

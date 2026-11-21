@@ -60,15 +60,6 @@
     "weeklyReport": "周报",
     "completed": "已完成"
   },
-  "auth": {
-    "loginTitle": "RuoYi-FastAPI移动端登录",
-    "noAccount": "没有账号？",
-    "agreementPrefix": "登录即代表同意",
-    "agreement": "《用户协议》",
-    "and": "和",
-    "privacy": "《隐私协议》",
-    "registerTitle": "RuoYi-FastAPI移动端注册"
-  },
   "about": {
     "version": "版本信息",
     "email": "官方邮箱",

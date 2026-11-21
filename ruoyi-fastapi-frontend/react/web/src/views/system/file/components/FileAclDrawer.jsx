@@ -99,7 +99,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
   }
   async function save() {
     if (entries.some((entry) => !entry.subjectId))
-      return message.warning(t('system:selectACompletePermissionPrincipal'))
+      return message.warning(t('file:acl.selectACompletePermissionPrincipal'))
     setSaving(true)
     try {
       const payload = []
@@ -116,7 +116,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
       }
       if (batch) {
         await confirm(
-          t('system:replaceAllPermissionsForTheValueSelectedFiles', { length: files.length })
+          t('file:acl.replaceAllPermissionsForTheValueSelectedFiles', { length: files.length })
         )
         await batchSaveFileAcl({
           fileIds: files.map((file) => file.fileId).join(','),
@@ -127,8 +127,8 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
       }
       message.success(
         batch
-          ? t('system:filePermissionsSavedForAllSelectedFiles')
-          : t('system:filePermissionsSaved')
+          ? t('file:acl.filePermissionsSavedForAllSelectedFiles')
+          : t('file:acl.filePermissionsSaved')
       )
       onSuccess()
       onClose()
@@ -142,8 +142,8 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
       rootClassName="file-drawer file-acl-drawer"
       title={
         batch
-          ? t('system:batchPermissionsValueFiles', { arg0: files?.length || 0 })
-          : t('system:accessPermissionsValue', { arg0: files?.[0]?.originalName || '' })
+          ? t('file:acl.batchPermissionsValueFiles', { arg0: files?.length || 0 })
+          : t('file:acl.accessPermissionsValue', { arg0: files?.[0]?.originalName || '' })
       }
       open={!!files?.length}
       onClose={onClose}
@@ -159,9 +159,9 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
             disabled={loading}
             onClick={save}
           >
-            {t('system:save')}
+            {t('file:acl.save')}
           </Button>
-          <Button onClick={onClose}>{t('system:components.cancel')}</Button>
+          <Button onClick={onClose}>{t('file:acl.cancel')}</Button>
         </Space>
       }
     >
@@ -177,7 +177,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
       />
       {!batch && (
         <section className="permission-section">
-          <div className="permission-section__title">{t('system:builtInPermissions')}</div>
+          <div className="permission-section__title">{t('file:acl.builtInPermissions')}</div>
           <Table
             rowKey="source"
             loading={loading}
@@ -187,7 +187,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
             scroll={{ x: 855 }}
             columns={[
               {
-                title: t('system:permissionSource'),
+                title: t('file:acl.permissionSource'),
                 align: 'center',
                 width: 110,
                 dataIndex: 'source',
@@ -197,21 +197,21 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
                     type={{ admin: 'danger', owner: 'primary', uploader: 'warning' }[source]}
                   >
                     {{
-                      admin: t('system:platformAdministrator'),
-                      owner: t('system:fileOwner'),
-                      uploader: t('system:fileUploader'),
+                      admin: t('file:acl.platformAdministrator'),
+                      owner: t('file:acl.fileOwner'),
+                      uploader: t('file:acl.fileUploader'),
                     }[source] || source}
                   </FileTag>
                 ),
               },
               {
-                title: t('system:permissionPrincipal'),
+                title: t('file:acl.permissionPrincipal'),
                 align: 'center',
                 width: 180,
                 render: (_, row) => row.subjectName || row.subjectId || '-',
               },
               {
-                title: t('system:rule'),
+                title: t('file:acl.rule'),
                 align: 'center',
                 width: 110,
                 render: (_, row) => (
@@ -219,12 +219,12 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
                     effect="plain"
                     type={row.enabled ? 'success' : 'info'}
                   >
-                    {row.enabled ? t('system:allowDownload') : t('file:removed')}
+                    {row.enabled ? t('file:acl.allowDownload') : t('file:removed')}
                   </FileTag>
                 ),
               },
               {
-                title: t('system:denyTakesPrecedence'),
+                title: t('file:acl.denyTakesPrecedence'),
                 align: 'center',
                 width: 135,
                 render: (_, row) =>
@@ -243,7 +243,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
               },
               {
                 width: 320,
-                title: t('system:permissionDetails'),
+                title: t('file:acl.permissionDetails'),
                 dataIndex: 'description',
                 ellipsis: true,
               },
@@ -252,13 +252,13 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
         </section>
       )}
       <div className="permission-section__header">
-        <span className="permission-section__title">{t('system:explicitPermissions')}</span>
+        <span className="permission-section__title">{t('file:acl.explicitPermissions')}</span>
         <Button
           className="ruoyi-plain-button"
           icon={<PlusOutlined />}
           onClick={addEntry}
         >
-          {t('system:addPermission')}
+          {t('file:acl.addPermission')}
         </Button>
       </div>
       <Table
@@ -270,14 +270,14 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
         scroll={{ x: 980 }}
         columns={[
           {
-            title: t('system:principalType'),
+            title: t('file:acl.principalType'),
             align: 'center',
             width: 125,
             render: (_, row) => (
               <Select
                 style={{ width: '100%' }}
                 value={row.subjectType}
-                aria-label={t('system:principalType')}
+                aria-label={t('file:acl.principalType')}
                 options={[
                   { value: 'user', label: t('system:user.user') },
                   { value: 'role', label: t('system:user.role') },
@@ -300,7 +300,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
             ),
           },
           {
-            title: t('system:principal'),
+            title: t('file:acl.principal'),
             align: 'center',
             width: 230,
             render: (_, row) =>
@@ -313,7 +313,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
                   showSearch
                   treeNodeFilterProp="label"
                   allowClear
-                  placeholder={t('system:selectADepartment')}
+                  placeholder={t('file:acl.selectADepartment')}
                   aria-label={t('file:authorizedDepartments')}
                   onChange={(subjectId) => update(row.key, { subjectId })}
                 />
@@ -321,8 +321,8 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
                 <Select
                   style={{ width: '100%' }}
                   allowClear
-                  placeholder={t('system:searchByName')}
-                  aria-label={t('system:principal')}
+                  placeholder={t('file:acl.searchByName')}
+                  aria-label={t('file:acl.principal')}
                   loading={row.subjectLoading}
                   showSearch={{
                     filterOption: false,
@@ -338,7 +338,7 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
               ),
           },
           {
-            title: t('system:rule'),
+            title: t('file:acl.rule'),
             align: 'center',
             width: 120,
             render: (_, row) => (
@@ -347,21 +347,21 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
                 value={row.effect}
                 aria-label={t('file:authorizationRules')}
                 options={[
-                  { value: 'allow', label: t('system:allowDownload') },
-                  { value: 'deny', label: t('system:denyDownload') },
+                  { value: 'allow', label: t('file:acl.allowDownload') },
+                  { value: 'deny', label: t('file:acl.denyDownload') },
                 ]}
                 onChange={(effect) => update(row.key, { effect })}
               />
             ),
           },
           {
-            title: t('system:includeSubdepartments'),
+            title: t('file:acl.includeSubdepartments'),
             align: 'center',
             width: 125,
             render: (_, row) =>
               row.subjectType === 'dept' ? (
                 <Switch
-                  aria-label={t('system:includeSubdepartments')}
+                  aria-label={t('file:acl.includeSubdepartments')}
                   checked={row.includeChildren}
                   onChange={(includeChildren) => update(row.key, { includeChildren })}
                 />
@@ -370,13 +370,13 @@ export default function FileAclDrawer({ files, batch = false, onClose, onSuccess
               ),
           },
           {
-            title: t('system:validUntil'),
+            title: t('file:acl.validUntil'),
             align: 'center',
             width: 310,
             render: (_, row) => (
               <BusinessDateTimePicker
                 value={row.expireTime}
-                label={t('system:validUntilLeaveEmptyForNoExpiry')}
+                label={t('file:acl.validUntilLeaveEmptyForNoExpiry')}
                 onChange={(expireTime) => update(row.key, { expireTime })}
               />
             ),

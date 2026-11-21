@@ -37,7 +37,7 @@ export default function App({ children }) {
   if (error)
     return (
       <View style={{ padding: 24 }}>
-        <Text>{t('mobile:unableToReadLocalAccountInformationPleaseTryAgain')}</Text>
+        <Text>{t('mobile:app.accountReadFailed')}</Text>
         <Button
           title={t('common:retry')}
           onPress={start}

@@ -49,7 +49,7 @@ export default function IconSelect({
       }}
     >
       <Input
-        aria-label={t('common:searchIcons')}
+        aria-label={t('components:iconSelect.searchIcons')}
         placeholder={t('common:enterAnIconName')}
         allowClear
         value={search}
@@ -57,7 +57,7 @@ export default function IconSelect({
       />
       <div
         className="icon-select-list"
-        aria-label={t('common:icons')}
+        aria-label={t('components:iconSelect.icons')}
       >
         {filtered.length ? (
           <div className="icon-select-grid">
@@ -69,7 +69,7 @@ export default function IconSelect({
                 <button
                   type="button"
                   className={`icon-select-item${icon === value ? ' is-active' : ''}`}
-                  aria-label={t('common:chooseIconValue', { icon })}
+                  aria-label={t('components:iconSelect.chooseIconValue', { icon })}
                   aria-pressed={icon === value}
                   title={icon}
                   disabled={disabled}
@@ -90,7 +90,7 @@ export default function IconSelect({
         ) : (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t('common:noMatchingIcons')}
+            description={t('components:iconSelect.noMatchingIcons')}
           />
         )}
       </div>

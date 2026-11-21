@@ -47,7 +47,7 @@ export default function PluginDependencyDialog({
             disabled={blocked}
             onClick={onDryRun}
           >
-            {t('system:generateInstallationPlan')}
+            {t('pluginAdmin:dependencyDetails.generateInstallationPlan')}
           </Button>
           <HasPermi value={['system:plugin:edit']}>
             <Button
@@ -57,7 +57,7 @@ export default function PluginDependencyDialog({
               disabled={!allowed}
               onClick={onInstall}
             >
-              {t('system:installDependencies')}
+              {t('pluginAdmin:dependencyDetails.installDependencies')}
             </Button>
           </HasPermi>
           <Button onClick={onClose}>{t('layout:search.close')}</Button>
@@ -77,13 +77,13 @@ export default function PluginDependencyDialog({
         items={[
           [t('pluginAdmin:id'), result.pluginId || '-'],
           [
-            t('system:dependencyCheck'),
+            t('pluginAdmin:shared.dependencyCheck'),
             <PluginTag type={result.dependencyOk ? 'success' : 'danger'}>
               {formatBoolean(result.dependencyOk)}
             </PluginTag>,
           ],
           [
-            t('system:missingDependencies'),
+            t('pluginAdmin:dependencyDetails.missingDependencies'),
             <span className="plugin-summary-danger">
               {
                 (result.dependencies || []).filter((item) => item.status !== 'skipped' && !item.ok)
@@ -91,9 +91,12 @@ export default function PluginDependencyDialog({
               }
             </span>,
           ],
-          [t('system:installationPlan'), result.planCount ?? result.plan?.length ?? 0],
           [
-            t('system:installationPolicy'),
+            t('pluginAdmin:dependencyDetails.installationPlan'),
+            result.planCount ?? result.plan?.length ?? 0,
+          ],
+          [
+            t('pluginAdmin:dependencyDetails.installationPolicy'),
             policy ? (
               <PluginTag type={policyAllowed ? 'success' : 'warning'}>
                 {policy.mode || '-'}
@@ -111,8 +114,8 @@ export default function PluginDependencyDialog({
           type={policyAllowed ? 'success' : 'warning'}
           title={
             policyAllowed
-              ? t('system:thePolicyPermitsInstallation')
-              : t('system:thePolicyBlocksInstallation')
+              ? t('pluginAdmin:dependencyDetails.thePolicyPermitsInstallation')
+              : t('pluginAdmin:dependencyDetails.thePolicyBlocksInstallation')
           }
           description={
             <>
@@ -126,8 +129,12 @@ export default function PluginDependencyDialog({
               {!policyAllowed && (
                 <div className="dependency-policy-next">
                   {policy.mode === 'plan_only'
-                    ? t('system:theWebConsoleOnlyGeneratesInstallationPlansPerformControlled')
-                    : t('system:provideTheConfirmationParametersLockFilesOrOfflineArtifacts')}
+                    ? t(
+                        'pluginAdmin:dependencyDetails.theWebConsoleOnlyGeneratesInstallationPlansPerformControlled'
+                      )
+                    : t(
+                        'pluginAdmin:dependencyDetails.provideTheConfirmationParametersLockFilesOrOfflineArtifacts'
+                      )}
                 </div>
               )}
             </>
@@ -138,13 +145,13 @@ export default function PluginDependencyDialog({
         items={[
           {
             key: 'dependencies',
-            label: t('system:dependencyStatus'),
+            label: t('pluginAdmin:dependencyDetails.dependencyStatus'),
             children: (
               <Table
                 size="small"
                 bordered
                 scroll={{ x: 860 }}
-                locale={{ emptyText: t('system:noDependencyDeclarations') }}
+                locale={{ emptyText: t('pluginAdmin:dependencyDetails.noDependencyDeclarations') }}
                 rowKey={(row) => `${row.kind}:${row.requirement}`}
                 pagination={false}
                 dataSource={result.dependencies || []}
@@ -158,7 +165,7 @@ export default function PluginDependencyDialog({
                   },
                   {
                     width: 130,
-                    title: t('system:installedVersion'),
+                    title: t('pluginAdmin:shared.installedVersion'),
                     dataIndex: 'installedVersion',
                     ellipsis: true,
                     render: (value) => value || '-',
@@ -166,7 +173,7 @@ export default function PluginDependencyDialog({
                   {
                     width: 100,
                     align: 'center',
-                    title: t('system:installationStatus'),
+                    title: t('pluginAdmin:dependencyDetails.installationStatus'),
                     render: (_, row) => (
                       <PluginTag type={getDependencyTagType(row)}>
                         {formatDependencyInstalled(row)}
@@ -176,7 +183,7 @@ export default function PluginDependencyDialog({
                   {
                     width: 100,
                     align: 'center',
-                    title: t('system:versionRequirementMet'),
+                    title: t('pluginAdmin:shared.versionRequirementMet'),
                     render: (_, row) => (
                       <PluginTag type={getDependencyTagType(row)}>
                         {formatDependencyVersionSatisfied(row)}
@@ -195,13 +202,13 @@ export default function PluginDependencyDialog({
           },
           {
             key: 'plan',
-            label: t('system:installationPlan'),
+            label: t('pluginAdmin:dependencyDetails.installationPlan'),
             children: (
               <Table
                 size="small"
                 bordered
                 scroll={{ x: 760 }}
-                locale={{ emptyText: t('system:noInstallationPlan') }}
+                locale={{ emptyText: t('pluginAdmin:dependencyDetails.noInstallationPlan') }}
                 rowKey={(row) => `${row.kind}:${row.requirement}`}
                 pagination={false}
                 dataSource={result.plan || []}
@@ -215,7 +222,7 @@ export default function PluginDependencyDialog({
                   },
                   {
                     width: 220,
-                    title: t('system:workingDirectory'),
+                    title: t('pluginAdmin:dependencyDetails.workingDirectory'),
                     dataIndex: 'workdir',
                     ellipsis: true,
                   },
@@ -230,7 +237,10 @@ export default function PluginDependencyDialog({
                           value
                             ? {
                                 text: value,
-                                tooltips: [t('system:copyCommand'), t('system:commandCopied')],
+                                tooltips: [
+                                  t('pluginAdmin:dependencyDetails.copyCommand'),
+                                  t('pluginAdmin:dependencyDetails.commandCopied'),
+                                ],
                               }
                             : false
                         }
@@ -247,7 +257,7 @@ export default function PluginDependencyDialog({
             ? [
                 {
                   key: 'policy',
-                  label: t('system:policyDecision'),
+                  label: t('pluginAdmin:dependencyDetails.policyDecision'),
                   children: (
                     <>
                       <Descriptions
@@ -255,16 +265,19 @@ export default function PluginDependencyDialog({
                         column={2}
                         size="small"
                         items={[
-                          [t('system:policyMode'), policy.mode || '-'],
+                          [t('pluginAdmin:dependencyDetails.policyMode'), policy.mode || '-'],
                           [
-                            t('system:executionAllowed'),
+                            t('pluginAdmin:dependencyDetails.executionAllowed'),
                             <PluginTag type={policyAllowed ? 'success' : 'danger'}>
                               {policyAllowed ? t('authCenter:allow') : t('pluginAdmin:blocked')}
                             </PluginTag>,
                           ],
-                          [t('system:blockingReason'), list(policy.reasons)],
-                          [t('system:prerequisites'), list(policy.requirements)],
-                          [t('system:risks'), list(policy.warnings)],
+                          [t('pluginAdmin:dependencyDetails.blockingReason'), list(policy.reasons)],
+                          [
+                            t('pluginAdmin:dependencyDetails.prerequisites'),
+                            list(policy.requirements),
+                          ],
+                          [t('pluginAdmin:dependencyDetails.risks'), list(policy.warnings)],
                         ].map(([label, children]) => ({
                           key: label,
                           label,
@@ -276,7 +289,7 @@ export default function PluginDependencyDialog({
                         size="small"
                         bordered
                         scroll={{ x: 960 }}
-                        locale={{ emptyText: t('system:noPolicyEntries') }}
+                        locale={{ emptyText: t('pluginAdmin:dependencyDetails.noPolicyEntries') }}
                         rowKey={(row) => `${row.kind}:${row.requirement}`}
                         pagination={false}
                         dataSource={policy.items || []}
@@ -296,7 +309,7 @@ export default function PluginDependencyDialog({
                           {
                             width: 90,
                             align: 'center',
-                            title: t('system:decision'),
+                            title: t('pluginAdmin:dependencyDetails.decision'),
                             dataIndex: 'allowed',
                             render: (value) => (
                               <PluginTag type={value ? 'success' : 'danger'}>
@@ -306,14 +319,14 @@ export default function PluginDependencyDialog({
                           },
                           {
                             width: 120,
-                            title: t('system:lockedVersion'),
+                            title: t('pluginAdmin:dependencyDetails.lockedVersion'),
                             dataIndex: 'lockedVersion',
                             ellipsis: true,
                             render: (value) => value || '-',
                           },
                           {
                             width: 220,
-                            title: t('system:offlineArtifacts'),
+                            title: t('pluginAdmin:dependencyDetails.offlineArtifacts'),
                             dataIndex: 'artifactPath',
                             ellipsis: true,
                             render: (value) => value || '-',

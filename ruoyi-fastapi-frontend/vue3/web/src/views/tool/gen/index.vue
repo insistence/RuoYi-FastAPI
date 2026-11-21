@@ -216,7 +216,7 @@
             ></el-button>
           </el-tooltip>
           <el-tooltip
-            :content="$t('oauth:edit')"
+            :content="$t('common:edit')"
             placement="top"
           >
             <el-button

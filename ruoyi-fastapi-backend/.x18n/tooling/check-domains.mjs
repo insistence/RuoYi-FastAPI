@@ -46,7 +46,7 @@ function check(name, projectRoot, config) {
 
 const directory = mkdtempSync(join(tmpdir(), 'ruoyi-domain-check-'))
 try {
-  const reports = independent ? [] : [check('core', root)]
+  const reports = independent ? [] : [check('core', root, join(root, '.x18n/core.mjs'))]
   for (const plugin of plugins) {
     if (!/^[a-z][a-z0-9_-]{0,63}$/.test(plugin.id)) throw new Error('Invalid plugin domain owner')
     const meta = JSON.parse(readFileSync(join(plugin.root, 'i18n/locale-meta.json'), 'utf8'))
@@ -73,7 +73,7 @@ try {
       `import scanner from ${JSON.stringify(pathToFileURL(scanner).href)}\nexport default {
       name: ${JSON.stringify(domain)}, root: ${JSON.stringify(plugin.root)},
       sourceLocale: ${JSON.stringify(meta.sourceLocale || meta.defaultLocale)}, locales: ${JSON.stringify(locales)},
-      presets: ['python-gettext'], plugins: [scanner],
+      presets: ['python-gettext'], plugins: [scanner(${JSON.stringify(domain)})],
       resources: [{ pattern: ${JSON.stringify(`i18n/catalogs/{locale}/LC_MESSAGES/${domain}.po`)} }],
       usage: { include: ['**/*.py'], exclude: ['tests/**', '.x18n/**', 'target/**'] },
       checks: { 'missing-translation': 'error', 'empty-translation': 'error', 'unused-key': 'warning' },

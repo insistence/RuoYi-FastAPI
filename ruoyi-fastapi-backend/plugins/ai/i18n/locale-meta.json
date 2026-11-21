@@ -1,0 +1,8 @@
+{
+  "sourceLocale": "zh-CN",
+  "defaultLocale": "zh-CN",
+  "locales": [
+    { "code": "zh-CN" },
+    { "code": "en-US", "fallback": ["zh-CN"] }
+  ]
+}

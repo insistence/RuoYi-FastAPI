@@ -42,15 +42,15 @@ export default function PluginPlanDialog({
         <Space wrap>
           <div className="plugin-plan-continue">
             <span className={!continueOnError ? 'is-active' : undefined}>
-              {t('system:stopOnFailure')}
+              {t('pluginAdmin:plan.stopOnFailure')}
             </span>
             <Switch
               checked={continueOnError}
-              aria-label={t('system:continueAfterFailure')}
+              aria-label={t('pluginAdmin:shared.continueAfterFailure')}
               onChange={onContinueOnError}
             />
             <span className={continueOnError ? 'is-active' : undefined}>
-              {t('system:continueAfterFailure')}
+              {t('pluginAdmin:shared.continueAfterFailure')}
             </span>
           </div>
           <HasPermi value={['system:plugin:edit']}>
@@ -60,7 +60,7 @@ export default function PluginPlanDialog({
               disabled={!plan.ok || !plan.executablePluginIds.length}
               onClick={onExecute}
             >
-              {t('system:executionPlan')}
+              {t('pluginAdmin:plan.executionPlan')}
               {operation(plan.operation)}
             </Button>
           </HasPermi>
@@ -79,11 +79,11 @@ export default function PluginPlanDialog({
       <PluginSummary
         columns={4}
         items={[
-          [t('system:plannedOperation'), operation(plan.operation)],
-          [t('system:targetPlugin'), plan.requestedPluginIds.length],
-          [t('system:executable'), plan.executablePluginIds.length],
+          [t('pluginAdmin:plan.plannedOperation'), operation(plan.operation)],
+          [t('pluginAdmin:plan.targetPlugin'), plan.requestedPluginIds.length],
+          [t('pluginAdmin:plan.executable'), plan.executablePluginIds.length],
           [
-            t('system:blockers'),
+            t('pluginAdmin:plan.blockers'),
             <span className="plugin-summary-danger">{plan.blockerCount}</span>,
           ],
         ].map(([label, children]) => ({ key: label, label, children }))}
@@ -93,9 +93,9 @@ export default function PluginPlanDialog({
         column={1}
         className="plugin-plan-scope"
         items={[
-          [t('system:targetScope'), formatPluginIdsForDisplay(plan.requestedPluginIds)],
+          [t('pluginAdmin:plan.targetScope'), formatPluginIdsForDisplay(plan.requestedPluginIds)],
           [
-            t('system:executionOrder'),
+            t('pluginAdmin:plan.executionOrder'),
             <Space
               wrap
               size={[6, 4]}
@@ -112,25 +112,35 @@ export default function PluginPlanDialog({
         items={[
           {
             key: 'items',
-            label: t('system:planItem'),
+            label: t('pluginAdmin:plan.planItem'),
             children: (
               <Table
                 size="small"
                 bordered
                 scroll={{ x: 910 }}
-                locale={{ emptyText: t('system:noPlanItems') }}
+                locale={{ emptyText: t('pluginAdmin:plan.noPlanItems') }}
                 rowKey="pluginId"
                 dataSource={plan.items}
                 pagination={false}
                 columns={[
-                  { width: 70, align: 'center', title: t('system:order'), dataIndex: 'order' },
+                  {
+                    width: 70,
+                    align: 'center',
+                    title: t('pluginAdmin:plan.order'),
+                    dataIndex: 'order',
+                  },
                   { width: 140, title: t('pluginAdmin:id'), dataIndex: 'pluginId', ellipsis: true },
                   { width: 150, title: t('pluginAdmin:name'), dataIndex: 'name', ellipsis: true },
-                  { width: 100, align: 'center', title: t('system:version'), dataIndex: 'version' },
+                  {
+                    width: 100,
+                    align: 'center',
+                    title: t('pluginAdmin:shared.version'),
+                    dataIndex: 'version',
+                  },
                   {
                     width: 90,
                     align: 'center',
-                    title: t('system:explicitlySelected'),
+                    title: t('pluginAdmin:plan.explicitlySelected'),
                     dataIndex: 'requested',
                     render: (value) => (
                       <PluginTag type={value ? 'success' : 'info'}>
@@ -141,7 +151,7 @@ export default function PluginPlanDialog({
                   {
                     width: 90,
                     align: 'center',
-                    title: t('system:executable'),
+                    title: t('pluginAdmin:plan.executable'),
                     dataIndex: 'ready',
                     render: (value) => (
                       <PluginTag type={value ? 'success' : 'danger'}>
@@ -159,7 +169,7 @@ export default function PluginPlanDialog({
                   {
                     width: 90,
                     align: 'center',
-                    title: t('system:blockers'),
+                    title: t('pluginAdmin:plan.blockers'),
                     dataIndex: 'blockers',
                     render: (value) => (
                       <PluginTag type={value?.length ? 'danger' : 'success'}>
@@ -173,14 +183,14 @@ export default function PluginPlanDialog({
           },
           {
             key: 'blockers',
-            label: t('system:components.blockingReason'),
+            label: t('pluginAdmin:plan.blockingReason'),
             children: (
               <>
                 <Table
                   size="small"
                   bordered
                   scroll={{ x: 750 }}
-                  locale={{ emptyText: t('system:noBlockers') }}
+                  locale={{ emptyText: t('pluginAdmin:plan.noBlockers') }}
                   rowKey={(_, index) => index}
                   pagination={false}
                   dataSource={plan.blockers}
@@ -193,7 +203,7 @@ export default function PluginPlanDialog({
                     },
                     {
                       width: 140,
-                      title: t('system:requiredPlugin'),
+                      title: t('pluginAdmin:plan.requiredPlugin'),
                       dataIndex: 'dependencyId',
                       ellipsis: true,
                     },
@@ -238,10 +248,10 @@ export default function PluginPlanDialog({
                   column={4}
                   style={{ marginBottom: 16 }}
                   items={Object.entries({
-                    total: t('system:total'),
+                    total: t('pluginAdmin:plan.total'),
                     succeeded: t('common:success'),
                     failed: t('common:failed'),
-                    skipped: t('system:skipped'),
+                    skipped: t('pluginAdmin:plan.skipped'),
                   }).map(([key, label]) => ({
                     key,
                     label,
@@ -259,7 +269,7 @@ export default function PluginPlanDialog({
                   size="small"
                   bordered
                   scroll={{ x: 890 }}
-                  locale={{ emptyText: t('system:noExecutionRecords') }}
+                  locale={{ emptyText: t('pluginAdmin:shared.noExecutionRecords') }}
                   rowKey="pluginId"
                   dataSource={batch.executed}
                   pagination={false}

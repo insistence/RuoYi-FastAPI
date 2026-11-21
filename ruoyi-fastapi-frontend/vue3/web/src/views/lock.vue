@@ -58,7 +58,7 @@
         v-if="errorMsg || passwordRequired"
         class="error-msg"
       >
-        {{ passwordRequired ? $t('common:login.passwordRequired') : errorMsg }}
+        {{ passwordRequired ? $t('auth:login.passwordRequired') : errorMsg }}
       </div>
 
       <div class="lock-footer">

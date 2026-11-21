@@ -6,8 +6,6 @@
   "dependencies": "依赖",
   "dependencyTitle": "插件依赖",
   "menuConflict": "菜单冲突",
-  "accessibleServices": "可访问服务",
-  "platformDefault": "平台默认",
   "id": "插件ID",
   "name": "插件名称",
   "enableSettings": "启用设置",

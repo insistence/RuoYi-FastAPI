@@ -25,41 +25,41 @@ export function splitRegisteredUris(value) {
  */
 export function validateRegisteredUri(value, uriType) {
   if (!URI_TYPES.has(uriType)) {
-    throw new Error(t('authCenter:messages.invalidURIType'))
+    throw new Error(t('oauth:uri.invalidURIType'))
   }
   if (typeof value !== 'string' || !value || value.length > 1000) {
-    throw new Error(t('authCenter:messages.uRIMustContain11000Characters'))
+    throw new Error(t('oauth:uri.uRIMustContain11000Characters'))
   }
   if (value.includes('*')) {
-    throw new Error(t('authCenter:messages.wildcardsAreNotAllowedInURIs'))
+    throw new Error(t('oauth:uri.wildcardsAreNotAllowedInURIs'))
   }
 
   let target
   try {
     target = new URL(value)
   } catch {
-    throw new Error(t('authCenter:messages.uRIMustBeACompleteHTTPOrHTTPSURL'))
+    throw new Error(t('oauth:uri.uRIMustBeACompleteHTTPOrHTTPSURL'))
   }
   if (!['http:', 'https:'].includes(target.protocol) || !target.hostname) {
-    throw new Error(t('authCenter:messages.uRIMustBeACompleteHTTPOrHTTPSURL'))
+    throw new Error(t('oauth:uri.uRIMustBeACompleteHTTPOrHTTPSURL'))
   }
   if (target.username || target.password) {
-    throw new Error(t('authCenter:messages.uRIMustNotContainUserInformation'))
+    throw new Error(t('oauth:uri.uRIMustNotContainUserInformation'))
   }
   if (target.hash) {
-    throw new Error(t('authCenter:messages.uRIMustNotContainAFragment'))
+    throw new Error(t('oauth:uri.uRIMustNotContainAFragment'))
   }
   if (target.protocol === 'http:' && !DEVELOPMENT_HTTP_HOSTS.has(target.hostname.toLowerCase())) {
-    throw new Error(t('authCenter:messages.hTTPIsAllowedOnlyForLocalDevelopmentAddresses'))
+    throw new Error(t('oauth:uri.hTTPIsAllowedOnlyForLocalDevelopmentAddresses'))
   }
   if (uriType === 'backchannel_logout' && target.search) {
-    throw new Error(t('authCenter:messages.backChannelURIMustNotContainQueryParameters'))
+    throw new Error(t('oauth:uri.backChannelURIMustNotContainQueryParameters'))
   }
   if (
     uriType === 'cors_origin' &&
     (target.pathname !== '/' || target.search || value.endsWith('/'))
   ) {
-    throw new Error(t('authCenter:messages.cORSOriginMayContainOnlyASchemeHostAndPort'))
+    throw new Error(t('oauth:uri.cORSOriginMayContainOnlyASchemeHostAndPort'))
   }
   return value
 }
@@ -76,7 +76,7 @@ export function validateRegisteredUri(value, uriType) {
 export function validateRegisteredUriList(value, uriType, required = false) {
   const uris = splitRegisteredUris(value)
   if (required && uris.length === 0) {
-    throw new Error(t('authCenter:messages.enterAtLeastOneRedirectURI'))
+    throw new Error(t('oauth:uri.enterAtLeastOneRedirectURI'))
   }
   uris.forEach((uri) => validateRegisteredUri(uri, uriType))
   return uris

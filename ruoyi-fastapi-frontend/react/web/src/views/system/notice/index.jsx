@@ -75,7 +75,7 @@ export default function Notice() {
       const values = await noticeRef.validateFields()
       setSaving(true)
       await (noticeId !== undefined ? updateNotice({ ...values, noticeId }) : addNotice(values))
-      message.success(t('system:savedSuccessfully'))
+      message.success(t('system:shared.savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -85,7 +85,7 @@ export default function Notice() {
   }
   async function handleDelete(values) {
     try {
-      await confirm(t('system:deleteAnnouncementsWithIdsValue', { values }))
+      await confirm(t('system:notice.deleteAnnouncementsWithIdsValue', { values }))
       await delNotice(values)
       message.success(t('common:deleteSuccess'))
       await getList()
@@ -130,7 +130,7 @@ export default function Notice() {
         />
       ),
     },
-    { width: 100, align: 'center', title: t('system:createdBy'), dataIndex: 'createBy' },
+    { width: 100, align: 'center', title: t('system:shared.createdBy'), dataIndex: 'createBy' },
     {
       width: 100,
       align: 'center',
@@ -150,7 +150,7 @@ export default function Notice() {
               symbol="User"
               onClick={() => setReadRow(row)}
             >
-              {t('system:readersLabel')}
+              {t('system:notice.readersLabel')}
             </TableAction>
           </HasPermi>
           <HasPermi value={['system:notice:edit']}>
@@ -194,7 +194,7 @@ export default function Notice() {
           >
             <Input
               style={{ width: 200 }}
-              placeholder={t('system:enterAnnouncementTitle')}
+              placeholder={t('system:notice.enterAnnouncementTitle')}
               allowClear
             />
           </Form.Item>
@@ -204,7 +204,7 @@ export default function Notice() {
           >
             <Input
               style={{ width: 200 }}
-              placeholder={t('system:enterOperatorName')}
+              placeholder={t('system:notice.enterOperatorName')}
               allowClear
             />
           </Form.Item>
@@ -297,7 +297,11 @@ export default function Notice() {
       />
       <Modal
         footer={renderDialogFooter}
-        title={noticeId !== undefined ? t('system:editAnnouncement') : t('system:addAnnouncement')}
+        title={
+          noticeId !== undefined
+            ? t('system:notice.editAnnouncement')
+            : t('system:notice.addAnnouncement')
+        }
         open={open}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
@@ -325,7 +329,7 @@ export default function Notice() {
                 rules={[{ required: true }]}
               >
                 <Input
-                  placeholder={t('system:enterAnnouncementTitle')}
+                  placeholder={t('system:notice.enterAnnouncementTitle')}
                   maxLength={50}
                 />
               </Form.Item>

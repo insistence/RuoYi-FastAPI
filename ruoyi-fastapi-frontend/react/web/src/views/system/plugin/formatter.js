@@ -39,21 +39,21 @@ export function formatPluginTime(value) {
 export const pluginStatusOptions = [
   {
     get label() {
-      return t('system:discovered')
+      return t('pluginAdmin:shared.discovered')
     },
     value: 'discovered',
     tagType: 'info',
   },
   {
     get label() {
-      return t('system:installed')
+      return t('pluginAdmin:shared.installed')
     },
     value: 'installed',
     tagType: 'success',
   },
   {
     get label() {
-      return t('system:upgradeAvailable')
+      return t('pluginAdmin:shared.upgradeAvailable')
     },
     value: 'pending_upgrade',
     tagType: 'warning',
@@ -84,14 +84,14 @@ export const operationLogStatusOptions = [
   },
   {
     get label() {
-      return t('system:blocked')
+      return t('pluginAdmin:shared.blocked')
     },
     value: 'blocked',
     tagType: 'warning',
   },
   {
     get label() {
-      return t('system:dryRun')
+      return t('pluginAdmin:shared.dryRun')
     },
     value: 'dry_run',
     tagType: 'info',
@@ -112,7 +112,7 @@ export function getCapabilityReason(capability) {
   return (
     capability?.primaryReason ||
     capability?.warnings?.[0] ||
-    t('system:thisEnvironmentDoesNotPermitThisPluginOperation')
+    t('pluginAdmin:shared.thisEnvironmentDoesNotPermitThisPluginOperation')
   )
 }
 
@@ -121,7 +121,7 @@ export function getDependencyPolicyReason(policy) {
     ...(Array.isArray(policy?.reasons) ? policy.reasons : []),
     ...(Array.isArray(policy?.requirements) ? policy.requirements : []),
   ]
-  return messages[0] || t('system:theCurrentDependencyPolicyDoesNotPermitInstallation')
+  return messages[0] || t('pluginAdmin:shared.theCurrentDependencyPolicyDoesNotPermitInstallation')
 }
 
 export function getOperationTooltip(row, operation, label) {
@@ -137,14 +137,14 @@ export function getDependencyTagType(row) {
 
 export function formatDependencyInstalled(row) {
   if (row.status === 'skipped') {
-    return t('system:notApplicable')
+    return t('pluginAdmin:shared.notApplicable')
   }
   return row.installed ? t('common:yes') : t('common:no')
 }
 
 export function formatDependencyVersionSatisfied(row) {
   if (row.status === 'skipped') {
-    return t('system:notApplicable')
+    return t('pluginAdmin:shared.notApplicable')
   }
   return row.versionSatisfied ? t('common:yes') : t('common:no')
 }
@@ -170,7 +170,7 @@ export function buildErrorActionResult(error, context = {}) {
       message: payload.error || message,
       suggestion:
         migrationRecovery?.suggestion ||
-        t('system:runPluginChecksAndResolveDirectoryDependencyMenuAnd'),
+        t('pluginAdmin:shared.runPluginChecksAndResolveDirectoryDependencyMenuAnd'),
       raw: serializeError(error),
     },
     message,
@@ -197,7 +197,7 @@ export function buildErrorBatchResult(error, operation, executablePluginIds = []
         ok: false,
         status: 'failed',
         message,
-        suggestion: t('system:reviewAuditDetailsOrBackendLogsThenTryAgain'),
+        suggestion: t('pluginAdmin:shared.reviewAuditDetailsOrBackendLogsThenTryAgain'),
       },
     ],
   }
@@ -205,13 +205,16 @@ export function buildErrorBatchResult(error, operation, executablePluginIds = []
 
 export function getErrorMessage(error) {
   if (!error) {
-    return t('system:pluginOperationFailed')
+    return t('pluginAdmin:shared.pluginOperationFailed')
   }
   if (typeof error === 'string') {
     return error
   }
   return (
-    error.message || error.msg || error.response?.data?.msg || t('system:pluginOperationFailed')
+    error.message ||
+    error.msg ||
+    error.response?.data?.msg ||
+    t('pluginAdmin:shared.pluginOperationFailed')
   )
 }
 
@@ -238,7 +241,7 @@ export function formatBoolean(value) {
   if (value === undefined || value === null) {
     return '-'
   }
-  return value ? t('system:passed') : t('common:exception')
+  return value ? t('pluginAdmin:shared.passed') : t('common:exception')
 }
 
 export function formatPlanDependencies(dependencies) {
@@ -329,7 +332,7 @@ export function formatRetentionMessage(result) {
 
 export function formatActionPlanState(action) {
   if (action.ok === true) {
-    return t('system:passed')
+    return t('pluginAdmin:shared.passed')
   }
   if (action.ok === false) {
     return t('common:exception')
@@ -338,10 +341,14 @@ export function formatActionPlanState(action) {
     return action.hook
   }
   if (action.targetEnabled !== undefined) {
-    return action.targetEnabled ? t('system:targetEnabled') : t('system:targetDisabled')
+    return action.targetEnabled
+      ? t('pluginAdmin:shared.targetEnabled')
+      : t('pluginAdmin:shared.targetDisabled')
   }
   if (action.targetStatus !== undefined) {
-    return action.targetStatus === '0' ? t('system:targetHealthy') : t('system:targetDisabled')
+    return action.targetStatus === '0'
+      ? t('pluginAdmin:shared.targetHealthy')
+      : t('pluginAdmin:shared.targetDisabled')
   }
   return '-'
 }

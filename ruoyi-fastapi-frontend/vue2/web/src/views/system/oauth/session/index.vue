@@ -1,14 +1,12 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('authCenter:help.accessControl')"
-      :title="$t('authCenter:messages.signInSessions')"
+      :section="$t('oauth:shared.accessControl')"
+      :title="$t('oauth:session.signInSessions')"
       :description="
-        $t(
-          'authCenter:messages.viewUsersOfUnifiedSignInTheirSourceLocationsAndAssociatedApplications'
-        )
+        $t('oauth:session.viewUsersOfUnifiedSignInTheirSourceLocationsAndAssociatedApplications')
       "
-      :filter-hint="$t('authCenter:messages.onlyActiveSessionsAreShownByDefault')"
+      :filter-hint="$t('oauth:session.onlyActiveSessionsAreShownByDefault')"
     >
       <template #actions>
         <el-button
@@ -19,7 +17,7 @@
           v-hasPermi="['system:oauthSession:revoke']"
           @click="openRevoke()"
         >
-          {{ $t('authCenter:messages.forceSignOut')
+          {{ $t('oauth:session.forceSignOut')
           }}{{ selected.length ? `（${selected.length}）` : '' }}
         </el-button>
       </template>
@@ -49,7 +47,7 @@
             <el-input
               v-model="queryParams.ipAddress"
               clearable
-              :placeholder="$t('authCenter:messages.iPAddress')"
+              :placeholder="$t('oauth:session.iPAddress')"
               style="width: 200px"
             />
           </el-form-item>
@@ -64,11 +62,11 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('authCenter:messages.online')"
+                :label="$t('oauth:session.online')"
                 value="active"
               />
               <el-option
-                :label="$t('authCenter:messages.signedOut')"
+                :label="$t('oauth:session.signedOut')"
                 value="revoked"
               />
               <el-option
@@ -95,7 +93,7 @@
       <template #toolbar>
         <span class="result-count"
           >{{ $t('layout:interface.found') }} <strong>{{ total }}</strong>
-          {{ $t('authCenter:messages.sessions') }}
+          {{ $t('oauth:session.sessions') }}
         </span>
         <right-toolbar
           :showSearch.sync="showSearch"
@@ -128,7 +126,7 @@
               </span>
               <span>
                 <strong>{{
-                  scope.row.userName || $t('auth:user.fallbackName', { id: scope.row.userId })
+                  scope.row.userName || $t('oauth:shared.fallbackName', { id: scope.row.userId })
                 }}</strong>
                 <small>{{ scope.row.userId || shortId(scope.row.subjectId) }}</small>
               </span>
@@ -141,15 +139,13 @@
         >
           <template #default="scope">
             <div class="stacked-cell">
-              <strong>{{
-                scope.row.ipAddress || $t('authCenter:expression.unknownAddress')
-              }}</strong>
+              <strong>{{ scope.row.ipAddress || $t('oauth:session.unknownAddress') }}</strong>
               <small>{{ authMethodText(scope.row.amr) }}</small>
             </div>
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.associatedApplications')"
+          :label="$t('oauth:session.associatedApplications')"
           min-width="210"
         >
           <template #default="scope">
@@ -164,7 +160,7 @@
               <span
                 v-if="!(scope.row.clientIds || []).length"
                 class="muted-value"
-                >{{ $t('authCenter:messages.noAssociatedApplications') }}</span
+                >{{ $t('oauth:session.noAssociatedApplications') }}</span
               >
               <span
                 v-else-if="scope.row.clientIds.length > 2"
@@ -175,7 +171,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.lastActivity')"
+          :label="$t('oauth:session.lastActivity')"
           width="170"
         >
           <template #default="scope">
@@ -183,7 +179,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.latestEndTime')"
+          :label="$t('oauth:session.latestEndTime')"
           width="170"
         >
           <template #default="scope">
@@ -222,13 +218,13 @@
                 icon="el-icon-switch-button"
                 v-hasPermi="['system:oauthSession:revoke']"
                 @click="openRevoke(scope.row)"
-                >{{ $t('authCenter:messages.signOut') }}</el-button
+                >{{ $t('oauth:session.signOut') }}</el-button
               >
             </div>
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('authCenter:messages.noMatchingSignInSessions')" />
+          <el-empty :description="$t('oauth:session.noMatchingSignInSessions')" />
         </template>
       </el-table>
       <pagination
@@ -243,7 +239,7 @@
     <el-dialog
       custom-class="oauth-overlay"
       :visible.sync="revokeOpen"
-      :title="$t('authCenter:messages.forceSignInSessionsToEnd')"
+      :title="$t('oauth:session.forceSignInSessionsToEnd')"
       width="min(540px, calc(100vw - 32px))"
       append-to-body
       :close-on-click-modal="false"
@@ -254,11 +250,11 @@
           aria-hidden="true"
         ></i>
         <div>
-          <strong>{{ $t('auth:session.endCount', { count: revokeIds.length }) }}</strong>
+          <strong>{{ $t('oauth:session.endCount', { count: revokeIds.length }) }}</strong>
           <p>
             {{
               $t(
-                'authCenter:messages.thisEndsTheseSessionsAndTheirOfflineAccessCredentialsResourceServicesDetect'
+                'oauth:session.thisEndsTheseSessionsAndTheirOfflineAccessCredentialsResourceServicesDetect'
               )
             }}
           </p>
@@ -267,7 +263,7 @@
       <label
         class="reason-label"
         for="session-revoke-reason"
-        >{{ $t('authCenter:messages.signOutReason') }}</label
+        >{{ $t('oauth:session.signOutReason') }}</label
       >
       <el-input
         id="session-revoke-reason"
@@ -276,7 +272,7 @@
         :rows="3"
         maxlength="200"
         show-word-limit
-        :placeholder="$t('authCenter:messages.explainTheForcedSignOutForTheAuditTrail')"
+        :placeholder="$t('oauth:session.explainTheForcedSignOutForTheAuditTrail')"
       />
       <template #footer>
         <el-button @click="revokeOpen = false">{{ $t('common:cancel') }}</el-button>
@@ -285,7 +281,7 @@
           :disabled="!reason.trim()"
           :loading="revoking"
           @click="revoke"
-          >{{ $t('authCenter:messages.confirmSignOut') }}</el-button
+          >{{ $t('oauth:session.confirmSignOut') }}</el-button
         >
       </template>
     </el-dialog>
@@ -293,7 +289,7 @@
     <el-drawer
       custom-class="oauth-overlay"
       :visible.sync="detailOpen"
-      :title="$t('authCenter:messages.signInSessionDetails')"
+      :title="$t('oauth:session.signInSessionDetails')"
       size="min(640px, 92vw)"
     >
       <div class="detail-hero">
@@ -306,14 +302,14 @@
         <div>
           <strong>{{ detail.userName || detail.userId || $t('system:user.user') }}</strong>
           <p>
-            {{ detail.ipAddress || $t('authCenter:expression.unknownSourceAddress') }} ·
+            {{ detail.ipAddress || $t('oauth:session.unknownSourceAddress') }} ·
             {{ authMethodText(detail.amr) }}
           </p>
         </div>
         <el-tag :type="statusType(detail.status)">{{ statusText(detail.status) }}</el-tag>
       </div>
       <section class="detail-section">
-        <h4>{{ $t('authCenter:messages.associatedApplications') }}</h4>
+        <h4>{{ $t('oauth:session.associatedApplications') }}</h4>
         <div class="tag-summary">
           <el-tag
             v-for="item in detail.clientIds || []"
@@ -323,7 +319,7 @@
           ><span
             v-if="!(detail.clientIds || []).length"
             class="muted-value"
-            >{{ $t('authCenter:messages.noAssociatedApplications') }}</span
+            >{{ $t('oauth:session.noAssociatedApplications') }}</span
           >
         </div>
       </section>
@@ -335,31 +331,31 @@
         <el-descriptions-item :label="$t('monitor:login.time')">{{
           parseTime(detail.authTime) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('authCenter:messages.lastActivity')">{{
+        <el-descriptions-item :label="$t('oauth:session.lastActivity')">{{
           parseTime(detail.lastSeenAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('authCenter:messages.expiresAfterInactivity')">{{
+        <el-descriptions-item :label="$t('oauth:session.expiresAfterInactivity')">{{
           parseTime(detail.idleExpiresAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('authCenter:messages.latestEndTime')">{{
+        <el-descriptions-item :label="$t('oauth:session.latestEndTime')">{{
           parseTime(detail.absoluteExpiresAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('authCenter:messages.signOutReason')">{{
+        <el-descriptions-item :label="$t('oauth:session.signOutReason')">{{
           detail.revokeReason || '—'
         }}</el-descriptions-item>
       </el-descriptions>
       <el-collapse class="technical-details"
         ><el-collapse-item
-          :title="$t('authCenter:messages.showTechnicalIdentifiers')"
+          :title="$t('oauth:shared.showTechnicalIdentifiers')"
           name="technical"
           ><dl>
             <dt>{{ $t('monitor:messages.sessionID') }}</dt>
             <dd>{{ detail.sid }}</dd>
-            <dt>{{ $t('authCenter:userPrincipal') }}</dt>
+            <dt>{{ $t('oauth:shared.userPrincipal') }}</dt>
             <dd>{{ detail.subjectId }}</dd>
-            <dt>{{ $t('authCenter:messages.identityVersion') }}</dt>
+            <dt>{{ $t('oauth:session.identityVersion') }}</dt>
             <dd>{{ detail.authVersion || '—' }}</dd>
-            <dt>{{ $t('authCenter:messages.authenticationLevel') }}</dt>
+            <dt>{{ $t('oauth:session.authenticationLevel') }}</dt>
             <dd>{{ detail.acr || '—' }}</dd>
           </dl></el-collapse-item
         ></el-collapse
@@ -411,10 +407,10 @@ function shortId(value, size = 12) {
 function statusText(value) {
   return (
     {
-      active: t('authCenter:messages.online'),
-      revoked: t('authCenter:messages.signedOut'),
+      active: t('oauth:session.online'),
+      revoked: t('oauth:session.signedOut'),
       expired: t('common:expired'),
-    }[value] || t('authCenter:messages.unknownStatus')
+    }[value] || t('oauth:shared.unknownStatus')
   )
 }
 
@@ -426,15 +422,15 @@ function statusType(value) {
 /** 获取认证方式的展示名称 */
 function authMethodText(methods = []) {
   const labels = {
-    pwd: t('authCenter:messages.passwordSignIn'),
-    password: t('authCenter:messages.passwordSignIn'),
-    otp: t('authCenter:messages.oneTimeCode'),
-    mfa: t('authCenter:messages.multiFactorAuthentication'),
-    sms: t('authCenter:messages.sMSVerification'),
+    pwd: t('oauth:session.passwordSignIn'),
+    password: t('oauth:session.passwordSignIn'),
+    otp: t('oauth:session.oneTimeCode'),
+    mfa: t('oauth:session.multiFactorAuthentication'),
+    sms: t('oauth:session.sMSVerification'),
   }
   return methods.length
     ? methods.map((item) => labels[item] || item).join(' + ')
-    : t('authCenter:messages.unknownSignInMethod')
+    : t('oauth:session.unknownSignInMethod')
 }
 
 /** 查询认证会话列表 */
@@ -476,7 +472,7 @@ async function revoke() {
     await revokeOAuthSessions(revokeIds.value.join(','), {
       reason: reason.value.trim(),
     })
-    proxy.$modal.msgSuccess(t('authCenter:messages.sessionRevoked'))
+    proxy.$modal.msgSuccess(t('oauth:session.sessionRevoked'))
     revokeOpen.value = false
     await getList()
   } finally {

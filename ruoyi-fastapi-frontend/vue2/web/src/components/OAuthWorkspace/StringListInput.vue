@@ -25,7 +25,7 @@
       icon="el-icon-plus"
       @click="append"
     >
-      {{ addText || $t('authCenter:interface.addItem') }}
+      {{ addText || $t('oauth:workspace.addItem') }}
     </el-button>
   </div>
 </template>

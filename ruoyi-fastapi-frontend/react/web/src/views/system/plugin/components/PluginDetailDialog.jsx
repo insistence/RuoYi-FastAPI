@@ -41,16 +41,16 @@ export default function PluginDetailDialog({
       items={rows.map(([label, children]) => ({
         key: label,
         span: [
-          t('system:latestError'),
-          t('system:pluginDescription'),
-          t('system:workerStatus'),
-          t('system:targetArtifactDigest'),
-          t('system:preparedDigest'),
-          t('system:releaseGeneration'),
-          t('system:installedSchemaVersion'),
-          t('system:backendPath'),
-          t('system:backendModule'),
-          t('system:frontendPath'),
+          t('pluginAdmin:detail.latestError'),
+          t('pluginAdmin:detail.pluginDescription'),
+          t('pluginAdmin:detail.workerStatus'),
+          t('pluginAdmin:detail.targetArtifactDigest'),
+          t('pluginAdmin:detail.preparedDigest'),
+          t('pluginAdmin:shared.releaseGeneration'),
+          t('pluginAdmin:detail.installedSchemaVersion'),
+          t('pluginAdmin:detail.backendPath'),
+          t('pluginAdmin:detail.backendModule'),
+          t('pluginAdmin:detail.frontendPath'),
         ].includes(label)
           ? 2
           : 1,
@@ -124,7 +124,7 @@ export default function PluginDetailDialog({
     { width: 80, align: 'center', title: t('common:count'), render: (_, row) => row.items.length },
     {
       key: 'items',
-      title: t('system:dependency'),
+      title: t('pluginAdmin:detail.dependency'),
       minWidth: 520,
       render: (_, row) => (
         <div className="detail-tag-list">
@@ -145,7 +145,7 @@ export default function PluginDetailDialog({
   return (
     <Modal
       className="plugin-dialog plugin-detail-dialog"
-      title={t('system:pluginDetails')}
+      title={t('pluginAdmin:detail.pluginDetails')}
       open={!!detail}
       width="min(920px, calc(100vw - 32px))"
       onCancel={onClose}
@@ -158,7 +158,7 @@ export default function PluginDetailDialog({
                 type="primary"
                 onClick={onRepair}
               >
-                {t('system:reinstallToRepair')}
+                {t('pluginAdmin:detail.reinstallToRepair')}
               </Button>
             </HasPermi>
           )}
@@ -173,10 +173,12 @@ export default function PluginDetailDialog({
         items={[
           {
             key: 'overview',
-            label: t('system:overview'),
+            label: t('pluginAdmin:detail.overview'),
             children: (
               <>
-                <div className="detail-section-title">{t('system:basicInformation')}</div>
+                <div className="detail-section-title">
+                  {t('pluginAdmin:detail.basicInformation')}
+                </div>
                 {descriptions([
                   [t('pluginAdmin:id'), item.pluginId],
                   [t('pluginAdmin:name'), item.pluginName],
@@ -186,7 +188,7 @@ export default function PluginDetailDialog({
                       : t('pluginAdmin:sourceVersion'),
                     item.version,
                   ],
-                  [t('system:installedVersion'), item.installedVersion],
+                  [t('pluginAdmin:shared.installedVersion'), item.installedVersion],
                   [
                     t('pluginAdmin:enableSettings'),
                     item.enabled === '0' ? t('common:enable') : t('common:disable'),
@@ -194,20 +196,24 @@ export default function PluginDetailDialog({
                   [t('pluginAdmin:status'), getStatusLabel(item.status)],
                   [t('common:source'), item.source],
                   [t('common:updatedTime'), formatPluginTime(item.updateTime)],
-                  [t('system:category'), item.metadata?.category],
+                  [t('pluginAdmin:shared.category'), item.metadata?.category],
                   [t('system:label'), item.metadata?.tags?.join(', ')],
                   [t('system:author'), item.metadata?.author],
-                  [t('system:license'), item.metadata?.license],
-                  [t('system:latestError'), item.lastError],
-                  [t('system:pluginDescription'), item.description],
+                  [t('pluginAdmin:detail.license'), item.metadata?.license],
+                  [t('pluginAdmin:detail.latestError'), item.lastError],
+                  [t('pluginAdmin:detail.pluginDescription'), item.description],
                 ])}
                 {item.source === 'artifact' && (
                   <>
-                    <div className="detail-section-title">{t('system:artifactRelease')}</div>
+                    <div className="detail-section-title">
+                      {t('pluginAdmin:shared.artifactRelease')}
+                    </div>
                     {release.unavailable && (
                       <Alert
                         className="plugin-release-alert"
-                        title={t('system:releaseStatusIsUnavailableRefreshTheListAndTry')}
+                        title={t(
+                          'pluginAdmin:detail.releaseStatusIsUnavailableRefreshTheListAndTry'
+                        )}
                         type="info"
                         showIcon
                       />
@@ -215,7 +221,7 @@ export default function PluginDetailDialog({
                     {release.error && (
                       <Alert
                         className="plugin-release-alert"
-                        title={t('system:artifactReleaseError')}
+                        title={t('pluginAdmin:detail.artifactReleaseError')}
                         description={release.error}
                         type="error"
                         showIcon
@@ -225,66 +231,70 @@ export default function PluginDetailDialog({
                       <Alert
                         className="plugin-release-alert"
                         showIcon
-                        title={t('system:notAllWorkerStatusesHaveBeenConfirmed')}
+                        title={t('pluginAdmin:detail.notAllWorkerStatusesHaveBeenConfirmed')}
                         description={t(
-                          'system:completeTheReleaseDuringAMaintenanceWindowThenStart'
+                          'pluginAdmin:detail.completeTheReleaseDuringAMaintenanceWindowThenStart'
                         )}
                         type="warning"
                       />
                     )}
                     {descriptions([
                       [
-                        t('system:releaseStatus'),
+                        t('pluginAdmin:detail.releaseStatus'),
                         <PluginTag type={release.tagType}>{release.label}</PluginTag>,
                       ],
-                      [t('system:maintenancePreparation'), release.preparationLabel],
-                      [t('system:workerStatus'), release.workerSummary],
+                      [t('pluginAdmin:detail.maintenancePreparation'), release.preparationLabel],
+                      [t('pluginAdmin:detail.workerStatus'), release.workerSummary],
                       [
-                        t('system:targetMatchedDisabledConfirmed'),
+                        t('pluginAdmin:detail.targetMatchedDisabledConfirmed'),
                         `${release.counts.healthy} / ${release.counts.disabled}`,
                       ],
                       [
-                        t('system:mismatchFailed'),
+                        t('pluginAdmin:detail.mismatchFailed'),
                         `${release.counts.mismatch} / ${release.counts.failed}`,
                       ],
                       [
-                        t('system:unconfirmedHeartbeatExpired'),
+                        t('pluginAdmin:detail.unconfirmedHeartbeatExpired'),
                         `${release.counts.missing} / ${release.counts.stale}`,
                       ],
-                      [t('system:targetCodeVersion'), item.release?.targetVersion],
+                      [t('pluginAdmin:detail.targetCodeVersion'), item.release?.targetVersion],
                       [
-                        t('system:targetArtifactDigest'),
+                        t('pluginAdmin:detail.targetArtifactDigest'),
                         <code>{item.release?.targetDigest || t('common:noTargetSelected')}</code>,
                       ],
                       [
-                        t('system:preparedDigest'),
+                        t('pluginAdmin:detail.preparedDigest'),
                         <code>
                           {item.release?.preparedDigest ||
                             t('pluginAdmin:maintenancePreparationIsIncomplete')}
                         </code>,
                       ],
                       [
-                        t('system:releaseGeneration'),
+                        t('pluginAdmin:shared.releaseGeneration'),
                         <code>{item.release?.generation || '-'}</code>,
                       ],
                       [
-                        t('system:installedSchemaVersion'),
+                        t('pluginAdmin:detail.installedSchemaVersion'),
                         <>
                           {item.installedVersion || '-'}
                           <div className="release-explanation">
-                            {t('system:theVersionReachedByDatabaseMigrationsAndInstalledResources')}
+                            {t(
+                              'pluginAdmin:detail.theVersionReachedByDatabaseMigrationsAndInstalledResources'
+                            )}
                           </div>
                         </>,
                       ],
                     ])}
                   </>
                 )}
-                <div className="detail-section-title">{t('system:backendDeclarations')}</div>
+                <div className="detail-section-title">
+                  {t('pluginAdmin:detail.backendDeclarations')}
+                </div>
                 {descriptions([
-                  [t('system:backendPath'), item.backendPath],
-                  [t('system:backendModule'), item.backend?.module],
+                  [t('pluginAdmin:detail.backendPath'), item.backendPath],
+                  [t('pluginAdmin:detail.backendModule'), item.backend?.module],
                   [
-                    t('system:automaticRouteDiscovery'),
+                    t('pluginAdmin:detail.automaticRouteDiscovery'),
                     item.backend?.autoScanRouters == null
                       ? '-'
                       : item.backend.autoScanRouters
@@ -293,29 +303,31 @@ export default function PluginDetailDialog({
                   ],
                   [t('system:scheduledTasks'), item.backend?.jobs?.length || 0],
                 ])}
-                <div className="detail-section-title">{t('system:frontendDeclarations')}</div>
+                <div className="detail-section-title">
+                  {t('pluginAdmin:detail.frontendDeclarations')}
+                </div>
                 {descriptions([
-                  [t('system:frontendPath'), item.frontendPath],
-                  [t('system:frontendPluginId'), item.frontend?.pluginId],
-                  [t('system:frontendBasePath'), item.frontend?.basePath],
-                  [t('system:viewDirectory'), item.frontend?.viewsPath],
-                  [t('system:apiDirectory'), item.frontend?.apiPath],
+                  [t('pluginAdmin:detail.frontendPath'), item.frontendPath],
+                  [t('pluginAdmin:detail.frontendPluginId'), item.frontend?.pluginId],
+                  [t('pluginAdmin:detail.frontendBasePath'), item.frontend?.basePath],
+                  [t('pluginAdmin:detail.viewDirectory'), item.frontend?.viewsPath],
+                  [t('pluginAdmin:detail.apiDirectory'), item.frontend?.apiPath],
                   [
-                    t('system:frontendDelivery'),
+                    t('pluginAdmin:detail.frontendDelivery'),
                     {
-                      none: t('system:noFrontendResources'),
-                      source: t('system:sourceDelivery'),
-                      bundle: t('system:standaloneFrontendArtifact'),
+                      none: t('pluginAdmin:detail.noFrontendResources'),
+                      source: t('pluginAdmin:detail.sourceDelivery'),
+                      bundle: t('pluginAdmin:detail.standaloneFrontendArtifact'),
                     }[item.frontend?.delivery?.type] || item.frontend?.delivery?.type,
                   ],
-                  [t('system:menuDeclarations'), item.frontend?.menus?.length || 0],
+                  [t('pluginAdmin:detail.menuDeclarations'), item.frontend?.menus?.length || 0],
                 ])}
               </>
             ),
           },
           {
             key: 'metrics',
-            label: t('system:runtimeMonitoring'),
+            label: t('pluginAdmin:detail.runtimeMonitoring'),
             children:
               detail && tab === 'metrics' ? (
                 <PluginRuntimeMetrics pluginId={item.pluginId} />
@@ -328,14 +340,14 @@ export default function PluginDetailDialog({
               item.frontend?.menus,
               textColumns([
                 ['name', t('common:name')],
-                ['path', t('system:path')],
-                ['component', t('system:component')],
+                ['path', t('pluginAdmin:shared.path')],
+                ['component', t('pluginAdmin:detail.component')],
                 ['perms', t('system:permission.title')],
                 ['type', t('common:type')],
                 ['orderNum', t('common:sort')],
               ]),
               (row) => row.path || row.perms || row.name,
-              t('system:noMenuDeclarations')
+              t('pluginAdmin:detail.noMenuDeclarations')
             ),
           },
           {
@@ -345,21 +357,21 @@ export default function PluginDetailDialog({
               item.permissions,
               textColumns([
                 ['code', t('system:menu.permission')],
-                ['name', t('system:components.displayName')],
+                ['name', t('pluginAdmin:detail.displayName')],
                 ['description', t('common:description')],
               ]),
               'code',
-              t('system:noPermissionDeclarations')
+              t('pluginAdmin:detail.noPermissionDeclarations')
             ),
           },
           {
             key: 'config',
-            label: t('system:configuration'),
+            label: t('pluginAdmin:shared.configuration'),
             children: table(
               item.config,
               [
                 ...textColumns([
-                  ['key', t('system:configurationKey')],
+                  ['key', t('pluginAdmin:shared.configurationKey')],
                   ['label', t('common:name')],
                   ['type', t('common:type'), 100],
                 ]),
@@ -377,7 +389,7 @@ export default function PluginDetailDialog({
                 {
                   width: 70,
                   align: 'center',
-                  title: t('system:sensitive'),
+                  title: t('pluginAdmin:shared.sensitive'),
                   dataIndex: 'secret',
                   render: (value) => (
                     <PluginTag type={value ? 'warning' : 'info'}>
@@ -392,7 +404,7 @@ export default function PluginDetailDialog({
                 },
                 {
                   width: 200,
-                  title: t('system:constraints'),
+                  title: t('pluginAdmin:detail.constraints'),
                   render: (_, row) => formatConfigConstraint(row),
                 },
                 {
@@ -403,7 +415,7 @@ export default function PluginDetailDialog({
                 },
               ],
               'key',
-              t('system:noConfigurationDeclarations')
+              t('pluginAdmin:detail.noConfigurationDeclarations')
             ),
           },
           {
@@ -411,30 +423,38 @@ export default function PluginDetailDialog({
             label: t('pluginAdmin:dependencies'),
             children: (
               <>
-                <div className="detail-section-title">{t('system:runtimeDependencies')}</div>
+                <div className="detail-section-title">
+                  {t('pluginAdmin:detail.runtimeDependencies')}
+                </div>
                 {table(dependencies, listColumns, 'kind')}
-                <div className="detail-section-title">{t('system:databaseScripts')}</div>
+                <div className="detail-section-title">
+                  {t('pluginAdmin:detail.databaseScripts')}
+                </div>
                 {table(
                   scripts,
                   listColumns.map((column) =>
-                    column.key === 'items' ? { ...column, title: t('system:script') } : column
+                    column.key === 'items'
+                      ? { ...column, title: t('pluginAdmin:detail.script') }
+                      : column
                   ),
                   'kind'
                 )}
-                <div className="detail-section-title">{t('system:executionHistory')}</div>
+                <div className="detail-section-title">
+                  {t('pluginAdmin:detail.executionHistory')}
+                </div>
                 <Table
                   size="small"
                   rowKey="migrationPath"
                   bordered
                   loading={migrationLoading}
                   dataSource={migrations}
-                  locale={{ emptyText: t('system:noMigrationHistory') }}
+                  locale={{ emptyText: t('pluginAdmin:detail.noMigrationHistory') }}
                   pagination={false}
                   scroll={{ x: 1300 }}
                   columns={[
                     ...textColumns([
-                      ['migrationPath', t('system:script')],
-                      ['version', t('system:version')],
+                      ['migrationPath', t('pluginAdmin:detail.script')],
+                      ['version', t('pluginAdmin:shared.version')],
                     ]),
                     {
                       width: 120,
@@ -452,7 +472,7 @@ export default function PluginDetailDialog({
                           }
                         >
                           {{
-                            running: t('system:runningInterrupted'),
+                            running: t('pluginAdmin:detail.runningInterrupted'),
                             success: t('common:success'),
                             failed: t('common:failed'),
                             unknown: t('common:unknown'),
@@ -464,7 +484,7 @@ export default function PluginDetailDialog({
                     },
                     ...textColumns([
                       ['attemptCount', t('monitor:count')],
-                      ['statementCount', t('system:statement')],
+                      ['statementCount', t('pluginAdmin:detail.statement')],
                     ]),
                     {
                       width: 160,
@@ -479,7 +499,11 @@ export default function PluginDetailDialog({
                       dataIndex: 'finishedTime',
                       render: formatPluginTime,
                     },
-                    { width: 220, title: t('system:errorMessage'), dataIndex: 'errorMessage' },
+                    {
+                      width: 220,
+                      title: t('pluginAdmin:detail.errorMessage'),
+                      dataIndex: 'errorMessage',
+                    },
                     {
                       className: 'ruoyi-actions-cell',
                       align: 'center',
@@ -497,7 +521,7 @@ export default function PluginDetailDialog({
                                   symbol="CircleCheck"
                                   onClick={() => onMarkMigration(row, true)}
                                 >
-                                  {t('system:markSuccessful')}
+                                  {t('pluginAdmin:detail.markSuccessful')}
                                 </TableAction>
                               )}
                               {row.status === 'running' && (
@@ -507,7 +531,7 @@ export default function PluginDetailDialog({
                                   symbol="CircleClose"
                                   onClick={() => onMarkMigration(row, false)}
                                 >
-                                  {t('system:markFailed')}
+                                  {t('pluginAdmin:detail.markFailed')}
                                 </TableAction>
                               )}
                             </TableActions>
@@ -522,7 +546,7 @@ export default function PluginDetailDialog({
                   [
                     { title: t('pluginAdmin:id'), dataIndex: 'id', width: 160, ellipsis: true },
                     {
-                      title: t('system:versionConstraint'),
+                      title: t('pluginAdmin:detail.versionConstraint'),
                       dataIndex: 'version',
                       width: 140,
                       ellipsis: true,
@@ -535,14 +559,14 @@ export default function PluginDetailDialog({
                     },
                   ],
                   'id',
-                  t('system:noPluginDependencies')
+                  t('pluginAdmin:detail.noPluginDependencies')
                 )}
                 <div className="detail-section-title">{t('system:scheduledTasks')}</div>
                 {table(
                   item.backend?.jobs,
                   [
                     ...textColumns([
-                      ['id', t('system:taskId')],
+                      ['id', t('pluginAdmin:detail.taskId')],
                       ['name', t('common:name')],
                       ['callable', t('monitor:job.target')],
                       ['cronExpression', 'Cron'],
@@ -550,7 +574,7 @@ export default function PluginDetailDialog({
                     {
                       width: 90,
                       align: 'center',
-                      title: t('system:enabledByDefault'),
+                      title: t('pluginAdmin:detail.enabledByDefault'),
                       dataIndex: 'enabled',
                       render: (value) => (
                         <PluginTag type={value ? 'success' : 'info'}>
@@ -561,7 +585,7 @@ export default function PluginDetailDialog({
                     { title: t('common:description'), dataIndex: 'description' },
                   ],
                   'id',
-                  t('system:noScheduledTaskDeclarations')
+                  t('pluginAdmin:detail.noScheduledTaskDeclarations')
                 )}
               </>
             ),

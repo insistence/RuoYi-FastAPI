@@ -22,6 +22,7 @@ from i18n.message import I18nMessage
 from i18n.translator import I18nUtil
 from plugins.core.discovery.registry import PluginRegistry, RegisteredPlugin
 from plugins.core.discovery.scanner import PluginScanner
+from plugins.core.manifest.schema import PluginManifestError
 from plugins.core.runtime.service.lifecycle.enable import (
     PluginEnabledLifecycleContext,
     PluginEnableUseCase,
@@ -195,6 +196,58 @@ def test_bad_upgrade_preserves_live_catalog_and_compiler_covers_registered_domai
     compile_catalogs()
     assert CatalogRegistry.fingerprint() == fingerprint
     assert t('items.one', domain='plugin.counts', locale='ru-RU', count=5, plural_key='items.many') == '5 предметов'
+
+
+def test_source_plugin_compilation_respects_domain_lifecycle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """验证源码构建生成插件 MO，启用和停用才改变可见词库域。"""
+    monkeypatch.setattr('scripts.compile_i18n.SOURCE_PLUGINS', tmp_path)
+    root = tmp_path / 'counts'
+    spec = write_plugin(root)
+    for code in spec.locales:
+        spec.path(code, '.mo').unlink()
+    compile_catalogs()
+    assert all(spec.path(code, '.mo').is_file() for code in spec.locales)
+    with pytest.raises(KeyError):
+        CatalogRegistry.snapshot(spec.domain)
+    CatalogRegistry.register_plugin('counts', root)
+    assert t('common.success', domain=spec.domain, locale='en-US') == 'Plugin ready'
+    CatalogRegistry.unregister_plugin('counts')
+    with pytest.raises(KeyError):
+        CatalogRegistry.snapshot(spec.domain)
+
+
+def test_prebuilt_plugin_without_po_uses_packaged_catalogs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """验证源码目录内的预构建插件可只交付 MO，编译扫描不重写或激活资源。"""
+    monkeypatch.setattr('scripts.compile_i18n.SOURCE_PLUGINS', tmp_path)
+    spec = write_plugin(tmp_path / 'counts')
+    for code in spec.locales:
+        spec.path(code, '.po').unlink()
+    paths = [spec.path(code, '.mo') for code in spec.locales]
+    before = [path.stat().st_mtime_ns for path in paths]
+    compile_catalogs()
+    assert [path.stat().st_mtime_ns for path in paths] == before
+    with pytest.raises(KeyError):
+        CatalogRegistry.snapshot(spec.domain)
+    paths[0].write_bytes(b'invalid')
+    with pytest.raises(ValueError, match='Invalid compiled'):
+        compile_catalogs()
+
+
+@pytest.mark.parametrize('error', [FileNotFoundError, PluginManifestError])
+def test_broken_source_catalog_isolated_at_startup_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, error: type[Exception]
+) -> None:
+    """验证启动隔离坏插件，发布构建严格校验源码清单与词库。"""
+    monkeypatch.setattr('scripts.compile_i18n.SOURCE_PLUGINS', tmp_path)
+    spec = write_plugin(tmp_path / 'counts')
+    if error is FileNotFoundError:
+        spec.path('en-US', '.po').unlink()
+    else:
+        (tmp_path / 'counts/plugin.yaml').write_text('id: [', encoding='utf-8')
+    compile_catalogs(isolate_plugin_errors=True)
+    assert t('common.success', locale='en-US') == 'Operation successful'
+    with pytest.raises(error):
+        compile_catalogs()
 
 
 def test_catalog_registration_rejects_paths_and_cycles(tmp_path: Path) -> None:

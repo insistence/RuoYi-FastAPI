@@ -15,7 +15,7 @@
         />
       </view>
       <text class="text-center text-xl font-bold tracking-wide text-gray-800">{{
-        $t('mobile:auth.registerTitle')
+        $t('auth:register.title')
       }}</text>
     </view>
 
@@ -32,7 +32,7 @@
           v-model="registerForm.username"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
           type="text"
-          :placeholder="$t('mobile:auth.usernamePlaceholder')"
+          :placeholder="$t('auth:login.usernamePlaceholder')"
           maxlength="30"
         />
       </view>
@@ -48,7 +48,7 @@
           v-model="registerForm.password"
           type="password"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-          :placeholder="$t('mobile:auth.passwordPlaceholder')"
+          :placeholder="$t('auth:login.passwordPlaceholder')"
           maxlength="20"
         />
       </view>
@@ -64,7 +64,7 @@
           v-model="registerForm.confirmPassword"
           type="password"
           class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-          :placeholder="$t('mobile:auth.confirmPasswordPlaceholder')"
+          :placeholder="$t('auth:register.confirmPlaceholder')"
           maxlength="20"
         />
       </view>
@@ -84,7 +84,7 @@
             v-model="registerForm.code"
             type="number"
             class="h-12 w-full rounded-xl bg-gray-50 pl-12 pr-4 text-sm text-gray-700 outline-hidden transition-all focus:bg-white focus:ring-2 focus:ring-blue-400"
-            :placeholder="$t('common:login.code')"
+            :placeholder="$t('auth:login.code')"
             maxlength="4"
           />
         </view>
@@ -104,7 +104,7 @@
         @click="handleRegister"
         class="flex h-12 w-full items-center justify-center rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-transform active:scale-95"
       >
-        {{ $t('mobile:auth.register') }}
+        {{ $t('auth:register.submit') }}
       </button>
 
       <!-- Footer Links -->
@@ -113,7 +113,7 @@
           <text
             @click="handleUserLogin"
             class="ml-1 font-medium text-blue-600 active:opacity-70"
-            >{{ $t('mobile:auth.existingAccount') }}</text
+            >{{ $t('auth:register.signIn') }}</text
           >
         </view>
       </view>
@@ -159,17 +159,17 @@ function getCode() {
 // 注册方法
 async function handleRegister() {
   if (registerForm.value.username === '') {
-    proxy.$modal.msgError(t('common:login.usernameRequired'))
+    proxy.$modal.msgError(t('auth:login.usernameRequired'))
   } else if (registerForm.value.password === '') {
-    proxy.$modal.msgError(t('common:login.passwordRequired'))
+    proxy.$modal.msgError(t('auth:login.passwordRequired'))
   } else if (registerForm.value.confirmPassword === '') {
-    proxy.$modal.msgError(t('mobile:auth.confirmPasswordRequired'))
+    proxy.$modal.msgError(t('auth:register.confirmRequired'))
   } else if (registerForm.value.password !== registerForm.value.confirmPassword) {
-    proxy.$modal.msgError(t('mobile:password.mismatch'))
+    proxy.$modal.msgError(t('auth:password.mismatch'))
   } else if (registerForm.value.code === '' && captchaEnabled.value) {
-    proxy.$modal.msgError(t('common:login.codeRequired'))
+    proxy.$modal.msgError(t('auth:login.codeRequired'))
   } else {
-    proxy.$modal.loading(t('mobile:auth.registering'))
+    proxy.$modal.loading(t('auth:register.submitting'))
     userRegister()
   }
 }
@@ -181,7 +181,7 @@ async function userRegister() {
       proxy.$modal.closeLoading()
       uni.showModal({
         title: t('mobile:app.systemNotice'),
-        content: t('mobile:auth.registerSuccess', { username: registerForm.value.username }),
+        content: t('auth:register.success', { username: registerForm.value.username }),
         confirmText: t('common:confirm'),
         cancelText: t('common:cancel'),
         success: function (res) {

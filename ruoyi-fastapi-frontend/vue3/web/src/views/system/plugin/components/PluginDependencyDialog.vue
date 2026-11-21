@@ -198,7 +198,7 @@
           }}</el-descriptions-item>
           <el-descriptions-item :label="$t('plugins:executionAllowed')">
             <el-tag :type="policyAllowed ? 'success' : 'danger'">{{
-              policyAllowed ? $t('authCenter:allow') : $t('plugins:blockedLabel')
+              policyAllowed ? $t('common:allow') : $t('plugins:blockedLabel')
             }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item :label="$t('plugins:blockingReason')">{{
@@ -236,7 +236,7 @@
           >
             <template #default="scope">
               <el-tag :type="scope.row.allowed ? 'success' : 'danger'">{{
-                scope.row.allowed ? $t('authCenter:allow') : $t('plugins:blockedLabel')
+                scope.row.allowed ? $t('common:allow') : $t('plugins:blockedLabel')
               }}</el-tag>
             </template>
           </el-table-column>

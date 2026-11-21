@@ -33,7 +33,7 @@ export default function AuthRole({ params }) {
     setSaving(true)
     try {
       await updateAuthRole({ userId: user.userId, roleIds: roleIds.join(',') })
-      message.success(t('system:authorizedSuccessfully'))
+      message.success(t('system:shared.authorizedSuccessfully'))
       navigate('/system/user')
     } catch {
     } finally {
@@ -72,7 +72,7 @@ export default function AuthRole({ params }) {
           </Col>
         </Row>
       </Form>
-      <h4 className="form-header h4">{t('system:roleInformation')}</h4>
+      <h4 className="form-header h4">{t('system:user.roleInformation')}</h4>
       <Table
         rowKey="roleId"
         loading={loading}
@@ -102,7 +102,7 @@ export default function AuthRole({ params }) {
             render: (_, row, index) => (page.pageNum - 1) * page.pageSize + index + 1,
           },
           Table.SELECTION_COLUMN,
-          { align: 'center', title: t('system:roleID'), dataIndex: 'roleId' },
+          { align: 'center', title: t('system:shared.roleID'), dataIndex: 'roleId' },
           { align: 'center', title: t('system:role.name'), dataIndex: 'roleName' },
           { align: 'center', title: t('system:permission.code'), dataIndex: 'roleKey' },
           {

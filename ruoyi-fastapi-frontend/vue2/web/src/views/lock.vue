@@ -123,7 +123,7 @@ export default {
     },
     async handleUnlock() {
       if (!this.password) {
-        this.showError(t('common:login.passwordRequired'))
+        this.showError(t('auth:login.passwordRequired'))
         return
       }
       this.loading = true

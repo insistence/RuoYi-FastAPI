@@ -15,7 +15,7 @@ export default function ExcelImportDialog({
   action,
   templateAction,
   templateFileName = 'template',
-  updateSupportLabel = t('common:updateExistingRecords'),
+  updateSupportLabel = t('components:excelImport.updateExistingRecords'),
 }) {
   useI18n()
 
@@ -33,7 +33,7 @@ export default function ExcelImportDialog({
   async function submit() {
     const file = files[0]?.originFileObj || files[0]
     if (!file || !/\.xlsx?$/i.test(file.name))
-      return message.error(t('common:chooseAnXlsOrXlsxFile'))
+      return message.error(t('components:excelImport.chooseAnXlsOrXlsxFile'))
     setLoading(true)
     try {
       const data = new FormData()
@@ -60,14 +60,14 @@ export default function ExcelImportDialog({
       open={open}
       onCancel={loading ? undefined : onClose}
       onOk={result ? onClose : submit}
-      okText={result ? t('layout:search.close') : t('common:startImport')}
+      okText={result ? t('layout:search.close') : t('components:excelImport.startImport')}
       confirmLoading={loading}
       cancelButtonProps={{ disabled: loading }}
     >
       {result ? (
         <Alert
           type="success"
-          title={t('common:importResults')}
+          title={t('components:excelImport.importResults')}
           description={
             <pre
               style={{
@@ -93,8 +93,8 @@ export default function ExcelImportDialog({
             <p>
               <InboxOutlined style={{ fontSize: 40 }} />
             </p>
-            <p>{t('common:dragAFileHereOrClickToUpload')}</p>
-            <p>{t('common:onlyXlsAndXlsxFilesAreSupported')}</p>
+            <p>{t('components:excelImport.dragAFileHereOrClickToUpload')}</p>
+            <p>{t('components:excelImport.onlyXlsAndXlsxFilesAreSupported')}</p>
           </Upload.Dragger>
           <p>
             <Checkbox
@@ -113,7 +113,7 @@ export default function ExcelImportDialog({
                 )
               }
             >
-              {t('common:downloadTemplate')}
+              {t('components:excelImport.downloadTemplate')}
             </Button>
           )}
         </>

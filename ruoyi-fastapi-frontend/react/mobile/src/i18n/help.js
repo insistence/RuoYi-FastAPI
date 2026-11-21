@@ -2,31 +2,31 @@ import { t } from './index'
 
 export const helpTopics = {
   openSource: {
-    title: () => t('mobile:isRuoyiFastapiOpenSource'),
-    content: () => t('mobile:openSource'),
+    title: () => t('mobile:help.openSourceQuestion'),
+    content: () => t('mobile:help.openSourceAnswer'),
   },
   commercial: {
-    title: () => t('mobile:canIUseRuoyiFastapiCommercially'),
-    content: () => t('mobile:yes'),
+    title: () => t('mobile:help.commercialQuestion'),
+    content: () => t('mobile:help.commercialAnswer'),
   },
   website: {
-    title: () => t('mobile:whatIsTheRuoyiFastapiWebsite'),
+    title: () => t('mobile:help.websiteQuestion'),
     content: () => 'https://vfadmin.insistence.tech',
   },
   documentation: {
-    title: () => t('mobile:whereIsTheRuoyiFastapiDocumentation'),
+    title: () => t('mobile:help.docsQuestion'),
     content: () => 'https://vfadmin.insistence.tech',
   },
   signOut: {
-    title: () => t('mobile:howDoISignOut'),
-    content: () => t('mobile:goToMeAppSettingsSignOut'),
+    title: () => t('mobile:help.signOutQuestion'),
+    content: () => t('mobile:help.signOutAnswer'),
   },
   avatar: {
-    title: () => t('mobile:howDoIChangeMyAvatar'),
-    content: () => t('mobile:goToMeChooseAvatarSubmit'),
+    title: () => t('mobile:help.avatarQuestion'),
+    content: () => t('mobile:help.avatarAnswer'),
   },
   password: {
-    title: () => t('mobile:howDoIChangeMyPassword'),
-    content: () => t('mobile:goToMeAppSettingsChangePassword'),
+    title: () => t('mobile:help.passwordQuestion'),
+    content: () => t('mobile:help.passwordAnswer'),
   },
 }

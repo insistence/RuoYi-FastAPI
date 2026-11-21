@@ -39,7 +39,7 @@ export default function Mine() {
           <View onClick={() => go('/pages/mine/info/index')}>
             <Text className="block text-xl font-bold">{name}</Text>
             <View className="flex items-center mt-1 text-sm text-blue-100">
-              <Text>{t('mobile:viewProfile')}</Text>
+              <Text>{t('mobile:profile.view')}</Text>
               <View className="i-mdi-chevron-right ml-1 text-xs" />
             </View>
           </View>
@@ -48,15 +48,15 @@ export default function Mine() {
       <View className="relative z-20 -mt-12 px-4 pb-8">
         <View className="mb-4 rounded-2xl bg-white p-4 shadow-lg grid grid-cols-4 gap-2">
           {[
-            ['account-group', t('mobile:communityChat'), 'bg-pink-50 text-pink-500'],
-            ['face-agent', t('mobile:onlineSupport'), 'bg-blue-50 text-blue-500'],
-            ['forum', t('mobile:feedbackCommunity'), 'bg-purple-50 text-purple-500'],
-            ['thumb-up', t('mobile:likeUs'), 'bg-green-50 text-green-500'],
+            ['account-group', t('mobile:profile.community'), 'bg-pink-50 text-pink-500'],
+            ['face-agent', t('mobile:profile.support'), 'bg-blue-50 text-blue-500'],
+            ['forum', t('mobile:profile.feedback'), 'bg-purple-50 text-purple-500'],
+            ['thumb-up', t('mobile:profile.like'), 'bg-green-50 text-green-500'],
           ].map(([icon, label, color]) => (
             <View
               key={label}
               className="flex flex-col items-center gap-2"
-              onClick={() => toast(t('mobile:thisFeatureIsUnderDevelopment'))}
+              onClick={() => toast(t('mobile:app.comingSoon'))}
             >
               <View className={`size-12 rounded-full flex items-center justify-center ${color}`}>
                 <View className={`i-mdi-${icon} text-2xl`} />
@@ -67,10 +67,10 @@ export default function Mine() {
         </View>
         <View className="overflow-hidden rounded-2xl bg-white shadow-lg">
           {[
-            ['account-edit', t('mobile:editProfile'), 'info/edit', 'text-blue-500'],
-            ['help-circle', t('mobile:frequentlyAskedQuestions'), 'help/index', 'text-orange-500'],
-            ['heart-outline', t('mobile:aboutUs'), 'about/index', 'text-red-500'],
-            ['cog-outline', t('mobile:appSettings'), 'setting/index', 'text-gray-500'],
+            ['account-edit', t('mobile:profile.edit'), 'info/edit', 'text-blue-500'],
+            ['help-circle', t('mobile:help.title'), 'help/index', 'text-orange-500'],
+            ['heart-outline', t('mobile:about.title'), 'about/index', 'text-red-500'],
+            ['cog-outline', t('mobile:settings.title'), 'setting/index', 'text-gray-500'],
           ].map(([icon, label, path, color], index) => (
             <View
               key={path}

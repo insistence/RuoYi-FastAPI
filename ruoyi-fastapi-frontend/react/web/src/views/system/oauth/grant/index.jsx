@@ -36,13 +36,13 @@ const statuses = [
     {
       value: 'active',
       get label() {
-        return t('system:stillValid')
+        return t('oauth:grant.stillValid')
       },
     },
     {
       value: 'revoked',
       get label() {
-        return t('system:revoked')
+        return t('oauth:grant.revoked')
       },
     },
     {
@@ -56,19 +56,19 @@ const statuses = [
     {
       value: 'allowed',
       get label() {
-        return t('system:consentAllowed')
+        return t('oauth:grant.consentAllowed')
       },
     },
     {
       value: 'blocked',
       get label() {
-        return t('system:blockAccess')
+        return t('oauth:grant.blockAccess')
       },
     },
   ]
 const statusTag = (value) => (
   <OAuthTag type={{ active: 'success', revoked: 'danger', expired: 'info' }[value] || 'info'}>
-    {statuses.find((item) => item.value === value)?.label || t('system:unknownStatus')}
+    {statuses.find((item) => item.value === value)?.label || t('oauth:shared.unknownStatus')}
   </OAuthTag>
 )
 export default function OAuthGrant() {
@@ -119,7 +119,7 @@ export default function OAuthGrant() {
         revokeTargets.map((row) => row.grantId),
         { reason: values.reason.trim() }
       )
-      message.success(t('system:grantRevoked'))
+      message.success(t('oauth:grant.grantRevoked'))
       setRevokeTargets(null)
       await getList()
     } catch {
@@ -142,8 +142,8 @@ export default function OAuthGrant() {
       })
       message.success(
         blocked
-          ? t('system:accessToThisApplicationHasBeenBlocked')
-          : t('system:restrictionRemovedGrantConsentAgain')
+          ? t('oauth:grant.accessToThisApplicationHasBeenBlocked')
+          : t('oauth:grant.restrictionRemovedGrantConsentAgain')
       )
       setAccessTarget(null)
       await getList()
@@ -163,14 +163,14 @@ export default function OAuthGrant() {
       width: 180,
       render: (_, row) => (
         <EntityCell
-          name={row.userName || t('authCenter:userIdentifier', { id: row.userId })}
+          name={row.userName || t('oauth:shared.userIdentifier', { id: row.userId })}
           detail={row.userId || row.subjectId?.slice(0, 12)}
           kind="person"
         />
       ),
     },
     {
-      title: t('system:grantedToApplication'),
+      title: t('oauth:grant.grantedToApplication'),
       width: 210,
       render: (_, row) => (
         <div className="oauth-stacked-cell">
@@ -181,7 +181,7 @@ export default function OAuthGrant() {
     },
     {
       width: 260,
-      title: t('system:allowedPermissions'),
+      title: t('oauth:grant.allowedPermissions'),
       dataIndex: 'grantedScopes',
       render: (values) => (
         <TagSummary
@@ -192,16 +192,16 @@ export default function OAuthGrant() {
     },
     {
       width: 170,
-      title: t('pluginAdmin:accessibleServices'),
+      title: t('oauth:shared.accessibleServices'),
       dataIndex: 'grantedResources',
       ellipsis: true,
       render: (values) => values?.join('、') || t('common:identityInformationOnly'),
     },
     {
-      title: t('system:lastUsed'),
+      title: t('oauth:grant.lastUsed'),
       dataIndex: 'lastUsedAt',
       width: 170,
-      render: (value) => parseTime(value) || t('system:notUsedYet'),
+      render: (value) => parseTime(value) || t('oauth:grant.notUsedYet'),
     },
     {
       align: 'center',
@@ -212,7 +212,7 @@ export default function OAuthGrant() {
     },
     {
       align: 'center',
-      title: t('system:applicationAccess'),
+      title: t('oauth:grant.applicationAccess'),
       dataIndex: 'accessStatus',
       width: 110,
       render: (value) => (
@@ -220,7 +220,7 @@ export default function OAuthGrant() {
           effect="plain"
           type={value === 'blocked' ? 'danger' : 'info'}
         >
-          {value === 'blocked' ? t('system:blockAccess') : t('system:consentAllowed')}
+          {value === 'blocked' ? t('oauth:grant.blockAccess') : t('oauth:grant.consentAllowed')}
         </OAuthTag>
       ),
     },
@@ -245,7 +245,7 @@ export default function OAuthGrant() {
                 symbol="CircleClose"
                 onClick={() => openRevoke([row])}
               >
-                {t('system:revoke')}
+                {t('oauth:grant.revoke')}
               </TableAction>
             )}
             <TableAction
@@ -254,8 +254,8 @@ export default function OAuthGrant() {
               onClick={() => openAccess(row)}
             >
               {row.accessStatus === 'blocked'
-                ? t('system:removeRestriction')
-                : t('system:blockAccess')}
+                ? t('oauth:grant.removeRestriction')
+                : t('oauth:grant.blockAccess')}
             </TableAction>
           </HasPermi>
         </TableActions>
@@ -265,10 +265,10 @@ export default function OAuthGrant() {
   return (
     <PageFrame
       className="oauth-grant-page"
-      title={t('system:userGrants')}
-      description={t('system:manageUserAccessGrantsToApplicationsRevokeCurrentAccess')}
-      section={t('authCenter:accessControl')}
-      filterHint={t('system:grantStatusAndApplicationAccessPoliciesAreManagedSeparately')}
+      title={t('oauth:grant.userGrants')}
+      description={t('oauth:grant.manageUserAccessGrantsToApplicationsRevokeCurrentAccess')}
+      section={t('oauth:shared.accessControl')}
+      filterHint={t('oauth:grant.grantStatusAndApplicationAccessPoliciesAreManagedSeparately')}
       actions={
         <>
           <Button
@@ -276,7 +276,7 @@ export default function OAuthGrant() {
             icon={<LockOutlined />}
             onClick={() => setPolicyOpen(true)}
           >
-            {t('system:accessPolicies')}
+            {t('oauth:grant.accessPolicies')}
           </Button>
           <HasPermi value={['system:oauthGrant:revoke']}>
             <Button
@@ -285,7 +285,7 @@ export default function OAuthGrant() {
               disabled={!selected.length}
               onClick={() => openRevoke(selected)}
             >
-              {t('system:revokeSelected')}
+              {t('oauth:grant.revokeSelected')}
               {selected.length ? `（${selected.length}）` : ''}
             </Button>
           </HasPermi>
@@ -332,11 +332,11 @@ export default function OAuthGrant() {
             </Form.Item>
             <Form.Item
               name="accessStatus"
-              label={t('system:applicationAccess')}
+              label={t('oauth:grant.applicationAccess')}
             >
               <Select
                 style={{ width: 200 }}
-                placeholder={t('system:allPolicies')}
+                placeholder={t('oauth:grant.allPolicies')}
                 allowClear
                 options={accessOptions}
               />
@@ -367,7 +367,7 @@ export default function OAuthGrant() {
       toolbar={
         <>
           <span className="result-count">
-            {t('layout:found')} <strong>{total}</strong> {t('system:grants')}
+            {t('layout:found')} <strong>{total}</strong> {t('oauth:grant.grants')}
           </span>
           <RightToolbar
             showSearch={showSearch}
@@ -378,7 +378,7 @@ export default function OAuthGrant() {
       }
     >
       <Table
-        locale={{ emptyText: <Empty description={t('system:noMatchingUserGrants')} /> }}
+        locale={{ emptyText: <Empty description={t('oauth:grant.noMatchingUserGrants')} /> }}
         rowKey="grantId"
         loading={loading}
         dataSource={rows}
@@ -401,8 +401,8 @@ export default function OAuthGrant() {
       <Modal
         width="min(540px, calc(100vw - 32px))"
         className="oauth-dialog oauth-impact-dialog"
-        title={t('system:revokeUserGrants')}
-        okText={t('system:confirmRevocation')}
+        title={t('oauth:grant.revokeUserGrants')}
+        okText={t('oauth:grant.confirmRevocation')}
         open={!!revokeTargets}
         onCancel={() => setRevokeTargets(null)}
         onOk={revoke}
@@ -415,12 +415,12 @@ export default function OAuthGrant() {
           <ExclamationCircleFilled />
           <div>
             <strong>
-              {t('system:revokeExistingGrantsForValueUserAndApplicationPairs', {
+              {t('oauth:grant.revokeExistingGrantsForValueUserAndApplicationPairs', {
                 size: new Set((revokeTargets || []).map((row) => `${row.userId}:${row.clientId}`))
                   .size,
               })}
             </strong>
-            <p>{t('system:thisIncludesOneTimeRememberedAndOfflineAccessGrants')}</p>
+            <p>{t('oauth:grant.thisIncludesOneTimeRememberedAndOfflineAccessGrants')}</p>
           </div>
         </div>
         <Form
@@ -430,13 +430,17 @@ export default function OAuthGrant() {
         >
           <Form.Item
             name="reason"
-            label={t('system:revocationReason')}
+            label={t('oauth:grant.revocationReason')}
             rules={[
-              { required: true, whitespace: true, message: t('system:enterARevocationReason') },
+              {
+                required: true,
+                whitespace: true,
+                message: t('oauth:grant.enterARevocationReason'),
+              },
             ]}
           >
             <Input.TextArea
-              placeholder={t('system:explainTheRevocationForTheAuditTrail')}
+              placeholder={t('oauth:grant.explainTheRevocationForTheAuditTrail')}
               rows={3}
               maxLength={200}
               showCount
@@ -449,8 +453,8 @@ export default function OAuthGrant() {
         className="oauth-dialog oauth-impact-dialog"
         title={
           accessTarget?.accessStatus === 'blocked'
-            ? t('system:removeApplicationAccessRestriction')
-            : t('system:blockUserAccessToApplication')
+            ? t('oauth:grant.removeApplicationAccessRestriction')
+            : t('oauth:grant.blockUserAccessToApplication')
         }
         open={!!accessTarget}
         onCancel={() => setAccessTarget(null)}
@@ -459,8 +463,8 @@ export default function OAuthGrant() {
         mask={{ closable: false }}
         okText={
           accessTarget?.accessStatus === 'blocked'
-            ? t('system:confirmRemoval')
-            : t('system:confirmRestriction')
+            ? t('oauth:grant.confirmRemoval')
+            : t('oauth:grant.confirmRestriction')
         }
         okButtonProps={{
           danger: accessTarget?.accessStatus !== 'blocked',
@@ -472,13 +476,13 @@ export default function OAuthGrant() {
           <ExclamationCircleFilled />
           <div>
             <strong>
-              {accessTarget?.userName || t('system:userValue', { arg0: accessTarget?.userId })} ·{' '}
-              {accessTarget?.clientName || accessTarget?.clientId}
+              {accessTarget?.userName || t('oauth:grant.userValue', { arg0: accessTarget?.userId })}{' '}
+              · {accessTarget?.clientName || accessTarget?.clientId}
             </strong>
             <p>
               {accessTarget?.accessStatus === 'blocked'
-                ? t('system:theUserMayGrantConsentAgainAfterTheRestriction')
-                : t('system:grant.thisRevokesAllExistingGrantsForThisUserAnd')}
+                ? t('oauth:grant.theUserMayGrantConsentAgainAfterTheRestriction')
+                : t('oauth:grant.restrictionWarning')}
             </p>
           </div>
         </div>
@@ -494,12 +498,12 @@ export default function OAuthGrant() {
               {
                 required: true,
                 whitespace: true,
-                message: t('system:enterAReasonForThisOperation'),
+                message: t('oauth:grant.enterAReasonForThisOperation'),
               },
             ]}
           >
             <Input.TextArea
-              placeholder={t('system:explainTheOperationForTheAuditTrail')}
+              placeholder={t('oauth:grant.explainTheOperationForTheAuditTrail')}
               rows={3}
               maxLength={200}
               showCount
@@ -509,7 +513,7 @@ export default function OAuthGrant() {
       </Modal>
       <Drawer
         rootClassName="oauth-dialog oauth-detail-drawer"
-        title={t('system:userGrantDetails')}
+        title={t('oauth:grant.userGrantDetails')}
         open={!!detail}
         onClose={() => setDetail(null)}
         size="min(640px, 92vw)"
@@ -523,13 +527,13 @@ export default function OAuthGrant() {
               <div>
                 <strong>{detail.userName || detail.userId || t('system:user.user')}</strong>
                 <p>
-                  {t('system:grantedTo')} {detail.clientName || detail.clientId}
+                  {t('oauth:grant.grantedTo')} {detail.clientName || detail.clientId}
                 </p>
               </div>
               {statusTag(detail.status)}
             </div>
             <section className="detail-section">
-              <h4>{t('system:allowedPermissions')}</h4>
+              <h4>{t('oauth:grant.allowedPermissions')}</h4>
               <div className="detail-tags">
                 {(detail.grantedScopes || []).map((value) => (
                   <OAuthTag
@@ -542,10 +546,10 @@ export default function OAuthGrant() {
               </div>
             </section>
             <section className="detail-section">
-              <h4>{t('pluginAdmin:accessibleServices')}</h4>
+              <h4>{t('oauth:shared.accessibleServices')}</h4>
               <p>
                 {detail.grantedResources?.join('、') ||
-                  t('system:usedOnlyToObtainSignInIdentityInformation')}
+                  t('oauth:grant.usedOnlyToObtainSignInIdentityInformation')}
               </p>
             </section>
             <Descriptions
@@ -553,21 +557,24 @@ export default function OAuthGrant() {
               bordered
               column={1}
               items={[
-                [t('system:grantedAt'), parseTime(detail.consentedAt) || '—'],
-                [t('system:lastUsed'), parseTime(detail.lastUsedAt) || t('system:notUsedYet')],
+                [t('oauth:grant.grantedAt'), parseTime(detail.consentedAt) || '—'],
                 [
-                  t('system:skipFutureConfirmation'),
+                  t('oauth:grant.lastUsed'),
+                  parseTime(detail.lastUsedAt) || t('oauth:grant.notUsedYet'),
+                ],
+                [
+                  t('oauth:grant.skipFutureConfirmation'),
                   detail.rememberedScopes?.join('、') ||
-                    t('system:notRememberedFutureConfirmationFollowsThePolicy'),
+                    t('oauth:grant.notRememberedFutureConfirmationFollowsThePolicy'),
                 ],
                 [
-                  t('system:applicationAccess'),
+                  t('oauth:grant.applicationAccess'),
                   detail.accessStatus === 'blocked'
-                    ? t('system:accessBlockedAnAdministratorMustRemoveTheRestriction')
-                    : t('system:newConsentAllowed'),
+                    ? t('oauth:grant.accessBlockedAnAdministratorMustRemoveTheRestriction')
+                    : t('oauth:grant.newConsentAllowed'),
                 ],
-                [t('system:accessPolicyReason'), detail.accessReason || '—'],
-                [t('system:revocationReason'), detail.revokeReason || '—'],
+                [t('oauth:grant.accessPolicyReason'), detail.accessReason || '—'],
+                [t('oauth:grant.revocationReason'), detail.revokeReason || '—'],
               ].map(([label, children]) => ({ key: label, label, children }))}
             />
             <Collapse
@@ -577,13 +584,13 @@ export default function OAuthGrant() {
               items={[
                 {
                   key: 'diagnostics',
-                  label: t('system:showTechnicalIdentifiers'),
+                  label: t('oauth:shared.showTechnicalIdentifiers'),
                   children: (
                     <dl>
                       {[
                         ['grantId', t('monitor:authorizationId')],
                         ['subjectId', t('authCenter:userPrincipal')],
-                        ['clientPolicyVersion', t('system:policyVersion')],
+                        ['clientPolicyVersion', t('oauth:grant.policyVersion')],
                       ].map(([key, label]) => (
                         <Fragment key={key}>
                           <dt>{label}</dt>

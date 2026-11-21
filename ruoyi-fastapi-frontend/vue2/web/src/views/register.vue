@@ -13,7 +13,7 @@
           v-model="registerForm.username"
           type="text"
           auto-complete="off"
-          :placeholder="$t('authCenter:interface.username')"
+          :placeholder="$t('auth:login.username')"
         >
           <svg-icon
             slot="prefix"
@@ -30,7 +30,7 @@
           v-model="registerForm.password"
           type="password"
           auto-complete="off"
-          :placeholder="$t('authCenter:interface.password')"
+          :placeholder="$t('auth:login.password')"
           @keyup.enter.native="handleRegister"
         >
           <svg-icon
@@ -62,7 +62,7 @@
         <el-input
           v-model="registerForm.code"
           auto-complete="off"
-          :placeholder="$t('common:login.code')"
+          :placeholder="$t('auth:login.code')"
           style="width: 63%"
           @keyup.enter.native="handleRegister"
         >
@@ -157,9 +157,7 @@ export default {
             trigger: 'blur',
           },
         ],
-        code: [
-          { required: true, trigger: 'change', message: () => t('common:login.codeRequired') },
-        ],
+        code: [{ required: true, trigger: 'change', message: () => t('auth:login.codeRequired') }],
       }
     },
   },

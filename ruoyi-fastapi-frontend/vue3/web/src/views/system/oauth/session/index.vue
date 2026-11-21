@@ -1,10 +1,10 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('oauth:accessControl')"
-      :title="$t('oauth:signInSessions')"
-      :description="$t('oauth:viewUsersOfUnifiedSignInTheirSourceLocationsAnd')"
-      :filter-hint="$t('oauth:onlyActiveSessionsAreShownByDefault')"
+      :section="$t('oauth:shared.accessControl')"
+      :title="$t('oauth:session.signInSessions')"
+      :description="$t('oauth:session.viewUsersOfUnifiedSignInTheirSourceLocationsAnd')"
+      :filter-hint="$t('oauth:session.onlyActiveSessionsAreShownByDefault')"
     >
       <template #actions>
         <el-button
@@ -15,7 +15,8 @@
           v-hasPermi="['system:oauthSession:revoke']"
           @click="openRevoke()"
         >
-          {{ $t('oauth:forceSignOut') }}{{ selected.length ? `（${selected.length}）` : '' }}
+          {{ $t('oauth:session.forceSignOut')
+          }}{{ selected.length ? `（${selected.length}）` : '' }}
         </el-button>
       </template>
       <template #filters>
@@ -43,7 +44,7 @@
             <el-input
               v-model="queryParams.ipAddress"
               clearable
-              :placeholder="$t('oauth:iPAddress')"
+              :placeholder="$t('oauth:session.iPAddress')"
               style="width: 200px"
             />
           </el-form-item>
@@ -58,11 +59,11 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('oauth:online')"
+                :label="$t('oauth:session.online')"
                 value="active"
               />
               <el-option
-                :label="$t('oauth:signedOut')"
+                :label="$t('oauth:session.signedOut')"
                 value="revoked"
               />
               <el-option
@@ -88,7 +89,8 @@
       </template>
       <template #toolbar>
         <span class="result-count"
-          >{{ $t('monitor:found') }}<strong>{{ total }}</strong> {{ $t('oauth:sessions') }}</span
+          >{{ $t('monitor:found') }}<strong>{{ total }}</strong>
+          {{ $t('oauth:session.sessions') }}</span
         >
         <right-toolbar
           v-model:showSearch="showSearch"
@@ -118,7 +120,7 @@
               </span>
               <span>
                 <strong>{{
-                  scope.row.userName || $t('oauth:userValue', { userId: scope.row.userId })
+                  scope.row.userName || $t('oauth:shared.userValue', { userId: scope.row.userId })
                 }}</strong>
                 <small>{{ scope.row.userId || shortId(scope.row.subjectId) }}</small>
               </span>
@@ -131,13 +133,13 @@
         >
           <template #default="scope">
             <div class="stacked-cell">
-              <strong>{{ scope.row.ipAddress || $t('oauth:unknownAddress') }}</strong>
+              <strong>{{ scope.row.ipAddress || $t('oauth:session.unknownAddress') }}</strong>
               <small>{{ authMethodText(scope.row.amr) }}</small>
             </div>
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:associatedApplications')"
+          :label="$t('oauth:session.associatedApplications')"
           min-width="210"
         >
           <template #default="scope">
@@ -152,7 +154,7 @@
               <span
                 v-if="!(scope.row.clientIds || []).length"
                 class="muted-value"
-                >{{ $t('oauth:noAssociatedApplications') }}</span
+                >{{ $t('oauth:session.noAssociatedApplications') }}</span
               >
               <span
                 v-else-if="scope.row.clientIds.length > 2"
@@ -163,7 +165,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:lastActivity')"
+          :label="$t('oauth:session.lastActivity')"
           width="170"
         >
           <template #default="scope">
@@ -171,7 +173,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:latestEndTime')"
+          :label="$t('oauth:session.latestEndTime')"
           width="170"
         >
           <template #default="scope">
@@ -211,13 +213,13 @@
                 icon="SwitchButton"
                 v-hasPermi="['system:oauthSession:revoke']"
                 @click="openRevoke(scope.row)"
-                >{{ $t('oauth:signOut') }}</el-button
+                >{{ $t('oauth:session.signOut') }}</el-button
               >
             </div>
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('oauth:noMatchingSignInSessions')" />
+          <el-empty :description="$t('oauth:session.noMatchingSignInSessions')" />
         </template>
       </el-table>
       <pagination
@@ -231,7 +233,7 @@
 
     <el-dialog
       v-model="revokeOpen"
-      :title="$t('oauth:forceSignInSessionsToEnd')"
+      :title="$t('oauth:session.forceSignInSessionsToEnd')"
       width="min(540px, calc(100vw - 32px))"
       append-to-body
       :close-on-click-modal="false"
@@ -239,16 +241,16 @@
       <div class="impact-summary">
         <el-icon><WarningFilled /></el-icon>
         <div>
-          <strong>{{ $t('oauth:revokeSessionCount', { count: revokeIds.length }) }}</strong>
+          <strong>{{ $t('oauth:session.endCount', { count: revokeIds.length }) }}</strong>
           <p>
-            {{ $t('oauth:thisEndsTheseSessionsAndTheirOfflineAccessCredentialsResource') }}
+            {{ $t('oauth:session.thisEndsTheseSessionsAndTheirOfflineAccessCredentialsResource') }}
           </p>
         </div>
       </div>
       <label
         class="reason-label"
         for="session-revoke-reason"
-        >{{ $t('oauth:signOutReason') }}</label
+        >{{ $t('oauth:session.signOutReason') }}</label
       >
       <el-input
         id="session-revoke-reason"
@@ -257,7 +259,7 @@
         :rows="3"
         maxlength="200"
         show-word-limit
-        :placeholder="$t('oauth:explainTheForcedSignOutForTheAuditTrail')"
+        :placeholder="$t('oauth:session.explainTheForcedSignOutForTheAuditTrail')"
       />
       <template #footer>
         <el-button @click="revokeOpen = false">{{ $t('common:cancel') }}</el-button>
@@ -266,14 +268,14 @@
           :disabled="!reason.trim()"
           :loading="revoking"
           @click="revoke"
-          >{{ $t('oauth:confirmSignOut') }}</el-button
+          >{{ $t('oauth:session.confirmSignOut') }}</el-button
         >
       </template>
     </el-dialog>
 
     <el-drawer
       v-model="detailOpen"
-      :title="$t('oauth:signInSessionDetails')"
+      :title="$t('oauth:session.signInSessionDetails')"
       size="min(640px, 92vw)"
     >
       <div class="detail-hero">
@@ -283,14 +285,14 @@
         <div>
           <strong>{{ detail.userName || detail.userId || $t('monitor:user') }}</strong>
           <p>
-            {{ detail.ipAddress || $t('oauth:unknownSourceAddress') }} ·
+            {{ detail.ipAddress || $t('oauth:session.unknownSourceAddress') }} ·
             {{ authMethodText(detail.amr) }}
           </p>
         </div>
         <el-tag :type="statusType(detail.status)">{{ statusText(detail.status) }}</el-tag>
       </div>
       <section class="detail-section">
-        <h4>{{ $t('oauth:associatedApplications') }}</h4>
+        <h4>{{ $t('oauth:session.associatedApplications') }}</h4>
         <div class="tag-summary">
           <el-tag
             v-for="item in detail.clientIds || []"
@@ -300,7 +302,7 @@
           ><span
             v-if="!(detail.clientIds || []).length"
             class="muted-value"
-            >{{ $t('oauth:noAssociatedApplications') }}</span
+            >{{ $t('oauth:session.noAssociatedApplications') }}</span
           >
         </div>
       </section>
@@ -312,31 +314,31 @@
         <el-descriptions-item :label="$t('monitor:signInTime')">{{
           parseTime(detail.authTime) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('oauth:lastActivity')">{{
+        <el-descriptions-item :label="$t('oauth:session.lastActivity')">{{
           parseTime(detail.lastSeenAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('oauth:expiresAfterInactivity')">{{
+        <el-descriptions-item :label="$t('oauth:session.expiresAfterInactivity')">{{
           parseTime(detail.idleExpiresAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('oauth:latestEndTime')">{{
+        <el-descriptions-item :label="$t('oauth:session.latestEndTime')">{{
           parseTime(detail.absoluteExpiresAt) || '—'
         }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('oauth:signOutReason')">{{
+        <el-descriptions-item :label="$t('oauth:session.signOutReason')">{{
           detail.revokeReason || '—'
         }}</el-descriptions-item>
       </el-descriptions>
       <el-collapse class="technical-details"
         ><el-collapse-item
-          :title="$t('oauth:showTechnicalIdentifiers')"
+          :title="$t('oauth:shared.showTechnicalIdentifiers')"
           name="technical"
           ><dl>
             <dt>{{ $t('monitor:sessionID') }}</dt>
             <dd>{{ detail.sid }}</dd>
             <dt>{{ $t('monitor:userPrincipal') }}</dt>
             <dd>{{ detail.subjectId }}</dd>
-            <dt>{{ $t('oauth:identityVersion') }}</dt>
+            <dt>{{ $t('oauth:session.identityVersion') }}</dt>
             <dd>{{ detail.authVersion || '—' }}</dd>
-            <dt>{{ $t('oauth:authenticationLevel') }}</dt>
+            <dt>{{ $t('oauth:session.authenticationLevel') }}</dt>
             <dd>{{ detail.acr || '—' }}</dd>
           </dl></el-collapse-item
         ></el-collapse
@@ -383,15 +385,15 @@ function statusText(value) {
   return (
     {
       get active() {
-        return t('oauth:online')
+        return t('oauth:session.online')
       },
       get revoked() {
-        return t('oauth:signedOut')
+        return t('oauth:session.signedOut')
       },
       get expired() {
         return t('components:expired')
       },
-    }[value] || t('oauth:unknownStatus')
+    }[value] || t('oauth:shared.unknownStatus')
   )
 }
 
@@ -404,24 +406,24 @@ function statusType(value) {
 function authMethodText(methods = []) {
   const labels = {
     get pwd() {
-      return t('oauth:passwordSignIn')
+      return t('oauth:session.passwordSignIn')
     },
     get password() {
-      return t('oauth:passwordSignIn')
+      return t('oauth:session.passwordSignIn')
     },
     get otp() {
-      return t('oauth:oneTimeCode')
+      return t('oauth:session.oneTimeCode')
     },
     get mfa() {
-      return t('oauth:multiFactorAuthentication')
+      return t('oauth:session.multiFactorAuthentication')
     },
     get sms() {
-      return t('oauth:sMSVerification')
+      return t('oauth:session.sMSVerification')
     },
   }
   return methods.length
     ? methods.map((item) => labels[item] || item).join(' + ')
-    : t('oauth:unknownSignInMethod')
+    : t('oauth:session.unknownSignInMethod')
 }
 
 /** 查询认证会话列表 */
@@ -463,7 +465,7 @@ async function revoke() {
     await revokeOAuthSessions(revokeIds.value.join(','), {
       reason: reason.value.trim(),
     })
-    proxy.$modal.msgSuccess(t('oauth:sessionRevoked'))
+    proxy.$modal.msgSuccess(t('oauth:session.sessionRevoked'))
     revokeOpen.value = false
     await getList()
   } finally {

@@ -27,26 +27,6 @@
     "greeting": "你好，{{name}}",
     "welcome": "欢迎回来"
   },
-  "auth": {
-    "usernamePlaceholder": "请输入账号",
-    "passwordPlaceholder": "请输入密码",
-    "signingIn": "登录中，请耐心等待...",
-    "loginTitle": "RuoYi-FastAPI移动端登录",
-    "login": "登 录",
-    "noAccount": "没有账号？",
-    "registerNow": "立即注册",
-    "acceptTerms": "登录即代表同意",
-    "agreementLink": "《用户协议》",
-    "and": "和",
-    "privacyLink": "《隐私协议》",
-    "confirmPasswordRequired": "请再次输入您的密码",
-    "registering": "注册中，请耐心等待...",
-    "registerTitle": "RuoYi-FastAPI移动端注册",
-    "confirmPasswordPlaceholder": "请输入重复密码",
-    "register": "注 册",
-    "existingAccount": "使用已有账号登录",
-    "registerSuccess": "恭喜你，您的账号 {{username}} 注册成功！"
-  },
   "about": {
     "version": "版本信息",
     "email": "官方邮箱",
@@ -113,20 +93,6 @@
     "checkUpdates": "检查更新",
     "clearCache": "清理缓存",
     "signOut": "退出登录"
-  },
-  "password": {
-    "oldRequired": "旧密码不能为空",
-    "newRequired": "新密码不能为空",
-    "length": "长度在 6 到 20 个字符",
-    "confirmRequired": "确认密码不能为空",
-    "mismatch": "两次输入的密码不一致",
-    "old": "旧密码",
-    "oldPlaceholder": "请输入旧密码",
-    "new": "新密码",
-    "newPlaceholder": "请输入新密码",
-    "confirm": "确认密码",
-    "confirmPlaceholder": "请确认新密码",
-    "title": "修改密码"
   },
   "timezone": {
     "title": "时区设置",

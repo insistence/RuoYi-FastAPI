@@ -137,7 +137,7 @@ test('malformed saved tabs are ignored', () => {
 test('language changes revalidate visible errors only and stop when the form is disposed', async () => {
   await i18n.setPreference('zh-CN')
   const input = { username: 'retained', password: '' }
-  const message = shallowRef(t('common:login.passwordRequired'))
+  const message = shallowRef(t('auth:login.passwordRequired'))
   let validations = 0
   const form = shallowRef({
     fields: [
@@ -145,7 +145,7 @@ test('language changes revalidate visible errors only and stop when the form is 
         validateState: 'error',
         validate: async () => {
           validations++
-          message.value = t('common:login.passwordRequired')
+          message.value = t('auth:login.passwordRequired')
           throw new Error(message.value)
         },
       },

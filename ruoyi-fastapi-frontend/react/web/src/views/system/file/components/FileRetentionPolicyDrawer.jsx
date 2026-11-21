@@ -66,13 +66,13 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
     <>
       <Drawer
         rootClassName="file-drawer"
-        title={t('system:fileRetentionPolicies')}
+        title={t('file:retentionPolicy.fileRetentionPolicies')}
         open={open}
         onClose={onClose}
         size="900px"
       >
         <Alert
-          title={t('system:policiesApplyOnlyToNewOrRecreatedBusinessReferences')}
+          title={t('file:retentionPolicy.policiesApplyOnlyToNewOrRecreatedBusinessReferences')}
           type="info"
           showIcon
           style={{ marginBottom: 8 }}
@@ -174,8 +174,8 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
         width="520px"
         title={
           editing?.businessType
-            ? t('system:editFileRetentionPolicy')
-            : t('system:addFileRetentionPolicy')
+            ? t('file:retentionPolicy.editFileRetentionPolicy')
+            : t('file:retentionPolicy.addFileRetentionPolicy')
         }
         open={!!editing}
         onCancel={() => setEditing(undefined)}
@@ -194,10 +194,10 @@ export default function FileRetentionPolicyDrawer({ open, onClose }) {
           <Form.Item
             name="businessType"
             label={t('monitor:log.businessType')}
-            rules={[{ required: true, message: t('system:enterABusinessType') }]}
+            rules={[{ required: true, message: t('file:retentionPolicy.enterABusinessType') }]}
           >
             <Input
-              placeholder={t('system:enterABusinessType')}
+              placeholder={t('file:retentionPolicy.enterABusinessType')}
               maxLength={50}
               disabled={!!editing?.businessType}
             />

@@ -9,13 +9,13 @@ const WALL_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?
 const RFC3339_PATTERN =
   /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/
 const WEEKDAYS = [
-  () => translateMessage('common:utility.weekday.sunday', '日'),
-  () => translateMessage('common:utility.weekday.monday', '一'),
-  () => translateMessage('common:utility.weekday.tuesday', '二'),
-  () => translateMessage('common:utility.weekday.wednesday', '三'),
-  () => translateMessage('common:utility.weekday.thursday', '四'),
-  () => translateMessage('common:utility.weekday.friday', '五'),
-  () => translateMessage('common:utility.weekday.saturday', '六'),
+  () => translateMessage('utility:weekday.sunday', '日'),
+  () => translateMessage('utility:weekday.monday', '一'),
+  () => translateMessage('utility:weekday.tuesday', '二'),
+  () => translateMessage('utility:weekday.wednesday', '三'),
+  () => translateMessage('utility:weekday.thursday', '四'),
+  () => translateMessage('utility:weekday.friday', '五'),
+  () => translateMessage('utility:weekday.saturday', '六'),
 ]
 const MILLISECONDS_PER_SECOND = 1000
 const MILLISECONDS_PER_MINUTE = 60 * MILLISECONDS_PER_SECOND
@@ -53,7 +53,7 @@ export class TimeInputError extends Error {
 function getFormatter(timezoneName) {
   if (typeof timezoneName !== 'string' || !timezoneName.trim() || /^[+-]/.test(timezoneName)) {
     throw new Error(
-      translateMessage('common:utility.timezone.invalid', `无效的 IANA 时区: ${timezoneName}`, {
+      translateMessage('utility:timezone.invalid', `无效的 IANA 时区: ${timezoneName}`, {
         timezoneName,
       })
     )
@@ -77,7 +77,7 @@ function getFormatter(timezoneName) {
       timezoneFormatters.set(name, formatter)
     } catch {
       throw new Error(
-        translateMessage('common:utility.timezone.invalid', `无效的 IANA 时区: ${timezoneName}`, {
+        translateMessage('utility:timezone.invalid', `无效的 IANA 时区: ${timezoneName}`, {
           timezoneName,
         })
       )
@@ -397,7 +397,7 @@ export function getWallTimeCandidates(value, timezoneName = getDisplayTimezone()
   const wallMilliseconds = parseWallTimeMilliseconds(value)
   if (wallMilliseconds === null) {
     throw new TimeInputError(
-      translateMessage('common:utility.timezone.invalidDateTime', `无效的日期时间: ${value}`, {
+      translateMessage('utility:timezone.invalidDateTime', `无效的日期时间: ${value}`, {
         value,
       }),
       'INVALID_TIME'
@@ -456,7 +456,7 @@ export function toRfc3339(value, { timezoneName = getDisplayTimezone(), offset }
   if (!candidates.length) {
     throw new TimeInputError(
       translateMessage(
-        'common:utility.timezone.nonexistent',
+        'utility:timezone.nonexistent',
         `${value} 在 ${timezoneName} 不存在，请选择夏令时跳转后的有效时间`,
         { value, timezoneName }
       ),
@@ -473,7 +473,7 @@ export function toRfc3339(value, { timezoneName = getDisplayTimezone(), offset }
   }
   throw new TimeInputError(
     translateMessage(
-      'common:utility.timezone.ambiguous',
+      'utility:timezone.ambiguous',
       `${value} 在 ${timezoneName} 出现两次，请选择 UTC 偏移`,
       { value, timezoneName }
     ),
@@ -506,7 +506,7 @@ export function normalizeRangeBoundary(value) {
   if (typeof value === 'string' && DATE_ONLY_PATTERN.test(value)) {
     if (parseWallTimeMilliseconds(value, true) === null) {
       throw new TimeInputError(
-        translateMessage('common:utility.timezone.invalidDate', `无效的日期: ${value}`, { value }),
+        translateMessage('utility:timezone.invalidDate', `无效的日期: ${value}`, { value }),
         'INVALID_DATE'
       )
     }
@@ -539,7 +539,7 @@ export function prepareTimeFields(record, fields, timezoneName = getDisplayTimez
     if (input === null && original != null) {
       throw new TimeInputError(
         translateMessage(
-          'common:utility.timezone.invalidField',
+          'utility:timezone.invalidField',
           `字段 ${field} 包含无效的 RFC 3339 时间`,
           { field }
         ),

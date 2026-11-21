@@ -29,7 +29,11 @@ export default function EntityCell({
   return (
     <div className={'oauth-entity-cell ' + kind + (large ? ' is-large' : '')}>
       <span className="entity-mark">
-        {kind === 'application' ? String(name || t('common:app')).slice(0, 1) : <Icon />}
+        {kind === 'application' ? (
+          String(name || t('components:oauthWorkspace.app')).slice(0, 1)
+        ) : (
+          <Icon />
+        )}
       </span>
       <div className="entity-copy">
         <Typography.Text strong>{name || '—'}</Typography.Text>

@@ -7,37 +7,6 @@
     "select": "请选择数据源",
     "title": "数据源"
   },
-  "cron": {
-    "notSpecified": "不指定",
-    "rangeFrom": "周期从",
-    "day": "日",
-    "from": "从",
-    "everyMonth": "每月",
-    "nearestWeekday": "号最近的那个工作日",
-    "lastDayOfTheMonth": "本月最后一天",
-    "month": "月",
-    "week": "周",
-    "year": "年",
-    "timeExpression": "时间表达式",
-    "cronExpression": "Cron 表达式",
-    "noFutureRuns": "没有未来执行时间",
-    "number": "第",
-    "everyYear": "每年",
-    "days": "日",
-    "months": "月",
-    "weeks": "周",
-    "years": "年",
-    "nextRunsInZone": "最近 5 次运行时间（{{zone}}）",
-    "weekday": {
-      "monday": "星期一",
-      "tuesday": "星期二",
-      "wednesday": "星期三",
-      "thursday": "星期四",
-      "friday": "星期五",
-      "saturday": "星期六",
-      "sunday": "星期日"
-    }
-  },
   "messages": {
     "enterTableName": "请输入表名称",
     "enterTableDescription": "请输入表描述",
@@ -319,35 +288,6 @@
       "select": "选择型组件"
     },
     "weekFormat": "yyyy 第 WW 周"
-  },
-  "interface": {
-    "dayAllowedWildcardsLW": "日，允许的通配符[, - * ? / L W]",
-    "repeatEvery": {
-      "day": "日开始，每",
-      "hour": "小时开始，每",
-      "min": "分钟开始，每",
-      "month": "月开始，每",
-      "second": "秒开始，每",
-      "year": "年开始，每"
-    },
-    "days": "日执行一次",
-    "hourAllowedWildcards": "小时，允许的通配符[, - * /]",
-    "hours": "小时执行一次",
-    "minuteAllowedWildcards": "分钟，允许的通配符[, - * /]",
-    "minutes": "分钟执行一次",
-    "monthAllowedWildcards": "月，允许的通配符[, - * /]",
-    "months": "月月执行一次",
-    "unableToGetScheduledTimesTryAgainLater": "无法获取运行时间，请稍后重试",
-    "nextFiveRuns": "最近5次运行时间（",
-    "calculating": "计算结果中...",
-    "secondAllowedWildcards": "秒，允许的通配符[, - * /]",
-    "seconds": "秒执行一次",
-    "weekAllowedWildcardsL": "周，允许的通配符[, - * ? / L #]",
-    "fromWeekday": "周期从星期",
-    "weekOnWeekday": "周的星期",
-    "lastWeekdayOfTheMonth": "本月最后一个星期",
-    "optionalAllowedWildcards": "不填，允许的通配符[, - * /]",
-    "years": "年执行一次"
   },
   "confirmation": {
     "generatedFilesAtValue": "成功生成到自定义路径：{{value0}}",

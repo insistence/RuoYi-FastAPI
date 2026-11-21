@@ -88,11 +88,21 @@ export default function TreePanel({
           {title}
         </span>
         <div className="tree-panel-actions">
-          <Tooltip title={expanded?.length === 0 ? t('common:expandAll') : t('common:collapseAll')}>
+          <Tooltip
+            title={
+              expanded?.length === 0
+                ? t('components:treePanel.expandAll')
+                : t('components:treePanel.collapseAll')
+            }
+          >
             <Button
               type="text"
               size="small"
-              aria-label={expanded?.length === 0 ? t('common:expandAll') : t('common:collapseAll')}
+              aria-label={
+                expanded?.length === 0
+                  ? t('components:treePanel.expandAll')
+                  : t('components:treePanel.collapseAll')
+              }
               icon={expanded?.length === 0 ? <UpOutlined /> : <DownOutlined />}
               onClick={() => setExpanded(expanded?.length === 0 ? allKeys : [])}
             />
@@ -101,7 +111,7 @@ export default function TreePanel({
             <Button
               type="text"
               size="small"
-              aria-label={t('common:refreshDepartments')}
+              aria-label={t('components:treePanel.refreshDepartments')}
               icon={<ReloadOutlined />}
               onClick={onRefresh}
             />
@@ -113,7 +123,9 @@ export default function TreePanel({
         className="tree-panel-collapse"
         type="text"
         aria-label={
-          collapsed ? t('common:expandDepartmentPanel') : t('common:collapseDepartmentPanel')
+          collapsed
+            ? t('components:treePanel.expandDepartmentPanel')
+            : t('components:treePanel.collapseDepartmentPanel')
         }
         aria-expanded={!collapsed}
         icon={collapsed ? <DoubleRightOutlined /> : <DoubleLeftOutlined />}
@@ -126,7 +138,7 @@ export default function TreePanel({
         <Input
           type="search"
           prefix={<SearchOutlined />}
-          aria-label={t('common:searchDepartments')}
+          aria-label={t('components:treePanel.searchDepartments')}
           placeholder={searchPlaceholder}
           allowClear
           value={search}
@@ -157,7 +169,7 @@ export default function TreePanel({
         <div
           className="tree-panel-resizer"
           role="separator"
-          aria-label={t('common:resizeDepartmentPanel')}
+          aria-label={t('components:treePanel.resizeDepartmentPanel')}
           aria-orientation="vertical"
           aria-valuemin={minWidth}
           aria-valuemax={maxWidth}

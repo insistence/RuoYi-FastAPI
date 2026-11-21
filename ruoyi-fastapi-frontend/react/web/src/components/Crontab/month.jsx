@@ -8,7 +8,7 @@ export default function Field(props) {
     <CronField
       {...props}
       name="month"
-      label={t('common:month')}
+      label={t('components:cron.month')}
       min={1}
       max={12}
     />

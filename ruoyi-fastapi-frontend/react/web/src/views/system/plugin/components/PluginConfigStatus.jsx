@@ -27,7 +27,9 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
       .catch(() => {
         if (active) {
           setData(undefined)
-          setError((t) => t('system:couldNotLoadConfigurationStatusSavedSettingsAreUnaffected'))
+          setError((t) =>
+            t('pluginAdmin:config.couldNotLoadConfigurationStatusSavedSettingsAreUnaffected')
+          )
         }
       })
       .finally(() => active && setLoading(false))
@@ -38,30 +40,30 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
   }, [pluginId, refreshKey, revision])
   const statusText =
     data?.state === 'restart_required'
-      ? t('system:startupConfigurationForValueObservedProcessesWillUpdateAfter', {
+      ? t('pluginAdmin:config.startupConfigurationForValueObservedProcessesWillUpdateAfter', {
           pendingWorkers: data.pendingWorkers,
         })
       : data?.state === 'observed_match'
-        ? t('system:startupConfigurationForValueObservedProcessesMatchesTheSaved', {
+        ? t('pluginAdmin:config.startupConfigurationForValueObservedProcessesMatchesTheSaved', {
             matchedWorkers: data.matchedWorkers,
           })
-        : t('system:noRunningStartupConfigurationHasBeenObservedCheckThat')
+        : t('pluginAdmin:config.noRunningStartupConfigurationHasBeenObservedCheckThat')
   return (
     <section
       className="plugin-config-status"
-      aria-label={t('system:configurationActivationStatus')}
+      aria-label={t('pluginAdmin:config.configurationActivationStatus')}
       aria-busy={loading}
       style={{ marginBottom: 24 }}
     >
       <div className="config-status-toolbar">
-        <strong>{t('system:configurationActivationStatus')}</strong>
+        <strong>{t('pluginAdmin:config.configurationActivationStatus')}</strong>
         <Button
           className="ruoyi-table-action"
           type="link"
           loading={loading}
           onClick={() => setRevision((value) => value + 1)}
         >
-          {t('system:refreshStatus')}
+          {t('pluginAdmin:config.refreshStatus')}
         </Button>
       </div>
       {error ? (
@@ -79,7 +81,7 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
               : data.scope === 'current_worker'
                 ? t('pluginAdmin:thisQueryIncludesOnlyTheCurrentProcess')
                 : t('pluginAdmin:noProcessDataAvailable')}
-            {t('system:startupSnapshotsUpdateAfterRestartPluginsAreResponsibleFor')}
+            {t('pluginAdmin:config.startupSnapshotsUpdateAfterRestartPluginsAreResponsibleFor')}
             {data.sampleIntervalSeconds
               ? t('pluginAdmin:remoteStatusIsReportedEveryValueSeconds', {
                   sampleIntervalSeconds: data.sampleIntervalSeconds,
@@ -91,17 +93,20 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
           data.staleSnapshots ||
           data.workerLimitReached ? (
             <p>
-              {t('system:someProcessVersionsAreUnconfirmed')}
-              {data.unknownWorkers || 0} {t('system:haveNotReportedAConfigurationVersion')}
-              {data.invalidSnapshots || 0} {t('system:invalidSamples')}
-              {data.staleSnapshots || 0} {t('system:expiredSamples')}
-              {data.workerLimitReached ? t('system:thisQueryReachedTheProcessSamplingLimit') : ''}
+              {t('pluginAdmin:config.someProcessVersionsAreUnconfirmed')}
+              {data.unknownWorkers || 0}{' '}
+              {t('pluginAdmin:config.haveNotReportedAConfigurationVersion')}
+              {data.invalidSnapshots || 0} {t('pluginAdmin:config.invalidSamples')}
+              {data.staleSnapshots || 0} {t('pluginAdmin:config.expiredSamples')}
+              {data.workerLimitReached
+                ? t('pluginAdmin:config.thisQueryReachedTheProcessSamplingLimit')
+                : ''}
             </p>
           ) : null}
           <details>
-            <summary>{t('system:viewConfigurationVersionsAndProcessDetails')}</summary>
+            <summary>{t('pluginAdmin:config.viewConfigurationVersionsAndProcessDetails')}</summary>
             <p className="config-revision">
-              {t('system:savedVersion')}
+              {t('pluginAdmin:config.savedVersion')}
               {data.desiredRevision}
             </p>
             {data.workers?.length ? (
@@ -109,7 +114,8 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
                 {data.workers.map((worker) => (
                   <li key={worker.workerId}>
                     <p className="config-revision">
-                      {t('system:process')} {worker.workerId} {t('system:plugin')} {worker.version}
+                      {t('pluginAdmin:config.process')} {worker.workerId}{' '}
+                      {t('pluginAdmin:config.plugin')} {worker.version}
                     </p>
                     <p>
                       {!worker.active
@@ -119,14 +125,14 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
                           : t('pluginAdmin:startupSnapshotWillUpdateAfterRestart')}
                     </p>
                     <p className="config-revision">
-                      {t('system:startupVersion')}
+                      {t('pluginAdmin:config.startupVersion')}
                       {worker.startupRevision}
                     </p>
                     {worker.lastReadRevision && (
                       <p className="config-revision">
-                        {t('system:lastOnDemandRead')}
+                        {t('pluginAdmin:config.lastOnDemandRead')}
                         {worker.lastReadRevision}
-                        {t('system:doesNotConfirmApplicationByTheBusinessLogic')}
+                        {t('pluginAdmin:config.doesNotConfirmApplicationByTheBusinessLogic')}
                       </p>
                     )}
                   </li>
@@ -134,13 +140,15 @@ export default function PluginConfigStatus({ pluginId, refreshKey = 0 }) {
               </ul>
             ) : (
               <p>
-                {t('system:noProcessesSupportingConfigurationVersionReportingHaveBeenObserved')}
+                {t(
+                  'pluginAdmin:config.noProcessesSupportingConfigurationVersionReportingHaveBeenObserved'
+                )}
               </p>
             )}
           </details>
         </>
       ) : loading ? (
-        <p role="status">{t('system:loadingConfigurationVersions')}</p>
+        <p role="status">{t('pluginAdmin:config.loadingConfigurationVersions')}</p>
       ) : null}
     </section>
   )

@@ -26,10 +26,14 @@ export const defaults = {
   remark: '',
 }
 export const uriFields = () => [
-  ['redirectUris', t('system:signInReturnUrls'), 'redirect'],
-  ['postLogoutRedirectUris', t('system:signOutReturnUrls'), 'post_logout'],
-  ['backchannelLogoutUris', t('system:backChannelSignOutNotifications'), 'backchannel_logout'],
-  ['corsOrigins', t('system:allowedWebOrigins'), 'cors_origin'],
+  ['redirectUris', t('oauth:client.signInReturnUrls'), 'redirect'],
+  ['postLogoutRedirectUris', t('oauth:client.signOutReturnUrls'), 'post_logout'],
+  [
+    'backchannelLogoutUris',
+    t('oauth:client.backChannelSignOutNotifications'),
+    'backchannel_logout',
+  ],
+  ['corsOrigins', t('oauth:client.allowedWebOrigins'), 'cors_origin'],
 ]
 
 export function toEditor(detail = {}) {

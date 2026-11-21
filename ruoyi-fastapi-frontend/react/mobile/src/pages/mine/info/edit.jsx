@@ -38,18 +38,18 @@ export default function EditProfile() {
       setReady(true)
       setError('')
     } catch (failure) {
-      setError(failure.message || (() => t('mobile:failedToLoadProfile')))
+      setError(failure.message || (() => t('mobile:profile.editLoadFailed')))
     }
   }
   useLoad(load)
   async function submit() {
     if (lock.current || !ready) return
     const message = !user.nickName?.trim()
-      ? () => t('mobile:nicknameIsRequired')
+      ? () => t('mobile:profile.nicknameRequired')
       : !/^1[3-9]\d{9}$/.test(user.phonenumber)
-        ? () => t('mobile:enterAValidMobileNumber')
+        ? () => t('mobile:profile.phoneInvalid')
         : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)
-          ? () => t('mobile:enterAValidEmailAddress')
+          ? () => t('mobile:profile.emailInvalid')
           : ''
     if (message) {
       setError(message)
@@ -61,10 +61,10 @@ export default function EditProfile() {
     try {
       await updateUserProfile(user)
       await useUserStore.getState().getInfo()
-      await Taro.showToast({ title: t('mobile:updatedSuccessfully'), icon: 'success' })
+      await Taro.showToast({ title: t('common:updateSuccess'), icon: 'success' })
       Taro.navigateBack()
     } catch (failure) {
-      setError(failure.message || (() => t('mobile:updateFailed')))
+      setError(failure.message || (() => t('common:updateFailed')))
     } finally {
       lock.current = false
       setBusy(false)
@@ -74,36 +74,36 @@ export default function EditProfile() {
   return (
     <View className="mobile-page bg-white">
       <FormField
-        label={t('mobile:nickname')}
-        placeholder={t('mobile:enterYourNickname')}
+        label={t('mobile:profile.nickname')}
+        placeholder={t('mobile:profile.nicknamePlaceholder')}
         maxlength={30}
         value={user.nickName}
         onChange={(value) => update('nickName', value)}
       />
       <FormField
-        label={t('mobile:mobileNumber')}
-        placeholder={t('mobile:enterYourMobileNumber')}
+        label={t('mobile:profile.phone')}
+        placeholder={t('mobile:profile.phonePlaceholder')}
         type="number"
         maxlength={11}
         value={user.phonenumber}
         onChange={(value) => update('phonenumber', value)}
       />
       <FormField
-        label={t('mobile:emailMineInfoEdit')}
-        placeholder={t('mobile:enterYourEmailAddress')}
+        label={t('mobile:profile.email')}
+        placeholder={t('mobile:profile.emailPlaceholder')}
         maxlength={50}
         value={user.email}
         onChange={(value) => update('email', value)}
       />
-      <Text className="mobile-label">{t('mobile:gender')}</Text>
+      <Text className="mobile-label">{t('mobile:profile.sex')}</Text>
       <View
         className="flex gap-4"
         role="group"
-        aria-label={t('mobile:gender')}
+        aria-label={t('mobile:profile.sex')}
       >
         {[
-          ['0', t('mobile:male')],
-          ['1', t('mobile:female')],
+          ['0', t('mobile:profile.male')],
+          ['1', t('mobile:profile.female')],
         ].map(([value, label]) => (
           <Button
             key={value}
@@ -117,14 +117,14 @@ export default function EditProfile() {
         ))}
       </View>
       {error && <Text className="mobile-error">{error}</Text>}
-      {!ready && <Button onClick={load}>{t('mobile:reload')}</Button>}
+      {!ready && <Button onClick={load}>{t('common:reload')}</Button>}
       <Button
         className="mobile-button"
         disabled={busy || !ready}
         loading={busy}
         onClick={submit}
       >
-        {t('mobile:submit')}
+        {t('common:submit')}
       </Button>
     </View>
   )

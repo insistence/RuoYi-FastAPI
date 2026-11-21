@@ -15,12 +15,12 @@ import Year from './year'
 
 const fields = () => [
   ['second', t('common:seconds'), Second],
-  ['min', t('common:minutes'), Min],
-  ['hour', t('common:hours'), Hour],
+  ['min', t('components:cron.minutes'), Min],
+  ['hour', t('components:cron.hours'), Hour],
   ['day', t('common:day'), Day],
-  ['month', t('common:month'), Month],
-  ['week', t('common:week'), Week],
-  ['year', t('common:year'), Year],
+  ['month', t('components:cron.month'), Month],
+  ['week', t('components:cron.week'), Week],
+  ['year', t('components:cron.year'), Year],
 ]
 const defaults = ['*', '*', '*', '*', '*', '?', '']
 function parseExpression(expression) {
@@ -66,9 +66,9 @@ export default function Crontab({ expression = '', timeZone, onFill, onHide, hid
       <div className="cron-summary">
         <section
           className="cron-expression"
-          aria-label={t('common:timeExpression')}
+          aria-label={t('components:cron.timeExpression')}
         >
-          <h4>{t('common:timeExpression')}</h4>
+          <h4>{t('components:cron.timeExpression')}</h4>
           <div className="cron-expression-scroll">
             <table>
               <thead>
@@ -81,7 +81,7 @@ export default function Crontab({ expression = '', timeZone, onFill, onHide, hid
                       {label}
                     </th>
                   ))}
-                  <th scope="col">{t('common:cronExpression')}</th>
+                  <th scope="col">{t('components:cron.cronExpression')}</th>
                 </tr>
               </thead>
               <tbody>

@@ -108,7 +108,7 @@ export default function Dept() {
       const values = await deptRef.validateFields()
       setSaving(true)
       await (deptId !== undefined ? updateDept({ ...values, deptId }) : addDept(values))
-      message.success(t('system:savedSuccessfully'))
+      message.success(t('system:shared.savedSuccessfully'))
       setOpen(false)
       await getList()
     } catch {
@@ -121,13 +121,13 @@ export default function Dept() {
       (row) =>
         orders[row.deptId] !== undefined && String(orders[row.deptId]) !== String(row.orderNum)
     )
-    if (!changed.length) return message.warning(t('system:noSortOrderChangesDetected'))
+    if (!changed.length) return message.warning(t('system:shared.noSortOrderChangesDetected'))
     try {
       await updateDeptSort({
         deptIds: changed.map((row) => row.deptId).join(','),
         orderNums: changed.map((row) => orders[row.deptId]).join(','),
       })
-      message.success(t('system:sortOrderSaved'))
+      message.success(t('system:shared.sortOrderSaved'))
       await getList()
     } catch {}
   }
@@ -272,7 +272,7 @@ export default function Dept() {
             type="default"
             onClick={handleSaveSort}
           >
-            {t('system:saveSortOrder')}
+            {t('system:shared.saveSortOrder')}
           </Button>
         </HasPermi>
         <Button
@@ -280,7 +280,7 @@ export default function Dept() {
           type="default"
           onClick={() => setExpanded(expanded.length ? [] : rows.map((row) => row.deptId))}
         >
-          {t('system:expandCollapse')}
+          {t('system:shared.expandCollapse')}
         </Button>
         <RightToolbar
           showSearch={showSearch}
@@ -305,7 +305,9 @@ export default function Dept() {
       />
       <Modal
         footer={renderDialogFooter}
-        title={deptId !== undefined ? t('system:editDepartment') : t('system:addDepartment')}
+        title={
+          deptId !== undefined ? t('system:dept.editDepartment') : t('system:dept.addDepartment')
+        }
         open={open}
         onCancel={() => setOpen(false)}
         onOk={submitForm}
@@ -325,12 +327,12 @@ export default function Dept() {
           <Form.Item
             label={t('system:dept.parent')}
             name="parentId"
-            rules={[{ required: true, message: t('system:parentDepartmentIsRequired') }]}
+            rules={[{ required: true, message: t('system:dept.parentDepartmentIsRequired') }]}
           >
             <TreeSelect
-              placeholder={t('system:selectParentDepartment')}
+              placeholder={t('system:dept.selectParentDepartment')}
               treeData={[
-                { deptId: 0, deptName: t('system:rootDepartment'), children: deptOptions },
+                { deptId: 0, deptName: t('system:dept.rootDepartment'), children: deptOptions },
               ]}
               fieldNames={{
                 value: 'deptId',
@@ -379,7 +381,7 @@ export default function Dept() {
                 label={t('system:dept.leader')}
               >
                 <Input
-                  placeholder={t('system:enterManagerName')}
+                  placeholder={t('system:dept.enterManagerName')}
                   maxLength={20}
                 />
               </Form.Item>
@@ -391,7 +393,7 @@ export default function Dept() {
                 rules={[{ pattern: /^1[3-9]\d{9}$/, message: t('system:user.phoneInvalid') }]}
               >
                 <Input
-                  placeholder={t('system:enterContactNumber')}
+                  placeholder={t('system:dept.enterContactNumber')}
                   maxLength={11}
                 />
               </Form.Item>

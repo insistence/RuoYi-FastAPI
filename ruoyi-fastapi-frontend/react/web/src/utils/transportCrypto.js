@@ -37,7 +37,7 @@ function getBrowserCrypto() {
   const browserCrypto = globalThis.crypto
   if (!browserCrypto?.subtle) {
     throw new Error(
-      translateMessage('common:utility.crypto.unavailable', '当前浏览器不支持 Web Crypto API')
+      translateMessage('utility:crypto.unavailable', '当前浏览器不支持 Web Crypto API')
     )
   }
   return browserCrypto
@@ -285,7 +285,7 @@ function validateTransportPublicKeyResponse(responsePayload) {
   ) {
     throw new Error(
       responsePayload?.msg ||
-        translateMessage('common:utility.crypto.publicKeyFailed', '获取传输层公钥失败')
+        translateMessage('utility:crypto.publicKeyFailed', '获取传输层公钥失败')
     )
   }
 }
@@ -299,20 +299,16 @@ function validateTransportPublicKeyResponse(responsePayload) {
  */
 function validateTransportPublicKeyPayload(payload, transportPolicy) {
   if (!payload?.publicKey || !payload?.kid) {
-    throw new Error(translateMessage('common:utility.crypto.publicKeyFailed', '获取传输层公钥失败'))
+    throw new Error(translateMessage('utility:crypto.publicKeyFailed', '获取传输层公钥失败'))
   }
   if (
     String(payload.envelopeVersion || DEFAULT_TRANSPORT_ENVELOPE_VERSION) !==
     transportPolicy.envelopeVersion
   ) {
-    throw new Error(
-      translateMessage('common:utility.crypto.keyProtocol', '传输层公钥协议版本不受支持')
-    )
+    throw new Error(translateMessage('utility:crypto.keyProtocol', '传输层公钥协议版本不受支持'))
   }
   if (payload.alg !== transportPolicy.requestEnvelopeAlgorithm) {
-    throw new Error(
-      translateMessage('common:utility.crypto.keyAlgorithm', '传输层公钥算法不受支持')
-    )
+    throw new Error(translateMessage('utility:crypto.keyAlgorithm', '传输层公钥算法不受支持'))
   }
 }
 
@@ -332,40 +328,33 @@ function validateResponseEnvelope(envelope, response, transportContext, transpor
 
   if (String(envelope.v || '') !== transportPolicy.envelopeVersion) {
     throw new Error(
-      translateMessage('common:utility.crypto.responseProtocol', '传输层响应协议版本不受支持')
+      translateMessage('utility:crypto.responseProtocol', '传输层响应协议版本不受支持')
     )
   }
   if (String(envelope.alg || '') !== transportPolicy.responseEnvelopeAlgorithm) {
-    throw new Error(
-      translateMessage('common:utility.crypto.responseAlgorithm', '传输层响应算法不受支持')
-    )
+    throw new Error(translateMessage('utility:crypto.responseAlgorithm', '传输层响应算法不受支持'))
   }
   if (String(envelope.kid || '') !== String(transportContext.kid)) {
-    throw new Error(
-      translateMessage('common:utility.crypto.keyVersion', '传输层响应密钥版本不匹配')
-    )
+    throw new Error(translateMessage('utility:crypto.keyVersion', '传输层响应密钥版本不匹配'))
   }
   if (responseKid && String(envelope.kid) !== String(responseKid)) {
     throw new Error(
-      translateMessage('common:utility.crypto.headerVersion', '传输层响应头与响应体密钥版本不一致')
+      translateMessage('utility:crypto.headerVersion', '传输层响应头与响应体密钥版本不一致')
     )
   }
   if (!aad || typeof aad !== 'object' || Array.isArray(aad)) {
-    throw new Error(translateMessage('common:utility.crypto.aad', '传输层响应AAD不合法'))
+    throw new Error(translateMessage('utility:crypto.aad', '传输层响应AAD不合法'))
   }
   if (
     String(aad.method || '').toUpperCase() !== expectedAad.method ||
     String(aad.path || '') !== expectedAad.path
   ) {
     throw new Error(
-      translateMessage(
-        'common:utility.crypto.requestMismatch',
-        '传输层响应的method/path与当前请求不匹配'
-      )
+      translateMessage('utility:crypto.requestMismatch', '传输层响应的method/path与当前请求不匹配')
     )
   }
   if (String(aad.direction || '') !== expectedAad.direction) {
-    throw new Error(translateMessage('common:utility.crypto.direction', '传输层响应方向标识不合法'))
+    throw new Error(translateMessage('utility:crypto.direction', '传输层响应方向标识不合法'))
   }
 }
 
@@ -651,7 +640,7 @@ export async function encryptTransportRequest(config) {
     ) {
       throw new Error(
         translateMessage(
-          'common:utility.crypto.queryLength',
+          'utility:crypto.queryLength',
           '当前GET/DELETE请求参数加密后长度超限，请改用POST请求或精简查询条件'
         )
       )
@@ -738,12 +727,12 @@ export async function decryptTransportResponse(response) {
   const transportPolicy = getTransportCryptoPolicy()
   const transportContext = response.config.__transportCryptoContext
   if (!transportContext) {
-    throw new Error(translateMessage('common:utility.crypto.missingContext', '缺少响应解密上下文'))
+    throw new Error(translateMessage('utility:crypto.missingContext', '缺少响应解密上下文'))
   }
 
   const envelope = parseJsonObject(
     response.data,
-    translateMessage('common:utility.crypto.envelope', '传输层响应信封格式不合法')
+    translateMessage('utility:crypto.envelope', '传输层响应信封格式不合法')
   )
   validateResponseEnvelope(envelope, response, transportContext, transportPolicy)
   const plaintext = await decryptEnvelope(envelope, transportContext)
@@ -774,7 +763,7 @@ export async function decryptTransportErrorResponse(error) {
   try {
     const envelope = parseJsonObject(
       response.data,
-      translateMessage('common:utility.crypto.envelope', '传输层响应信封格式不合法')
+      translateMessage('utility:crypto.envelope', '传输层响应信封格式不合法')
     )
     validateResponseEnvelope(envelope, response, transportContext, transportPolicy)
     const plaintext = await decryptEnvelope(envelope, transportContext)

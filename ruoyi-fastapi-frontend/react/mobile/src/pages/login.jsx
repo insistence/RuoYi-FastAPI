@@ -42,9 +42,7 @@ export default function Login() {
       })
       setForm((old) => ({ ...old, uuid: result.uuid || '', code: '' }))
     } catch (failure) {
-      setError(
-        failure.message || ((t) => t('mobile:failedToLoadTheVerificationCodePleaseTryAgain'))
-      )
+      setError(failure.message || ((t) => t('auth:login.captchaFailed')))
     }
   }
   useLoad(() => {
@@ -56,10 +54,10 @@ export default function Login() {
     if (!form.username.trim() || !form.password || (captcha.enabled && !form.code)) {
       setError(
         !form.username.trim()
-          ? (t) => t('common:login.usernameRequired')
+          ? (t) => t('auth:login.usernameRequired')
           : !form.password
-            ? (t) => t('common:login.passwordRequired')
-            : (t) => t('common:login.codeRequired')
+            ? (t) => t('auth:login.passwordRequired')
+            : (t) => t('auth:login.codeRequired')
       )
       return
     }
@@ -72,7 +70,7 @@ export default function Login() {
       await Taro.switchTab({ url: '/pages/index' })
     } catch (failure) {
       if (failure?.code === 'USER_SESSION_CHANGED') return
-      setError(failure.message || ((t) => t('mobile:signInFailedPleaseTryAgain')))
+      setError(failure.message || ((t) => t('auth:login.failed')))
       if (captcha.enabled) await refreshCode()
     } finally {
       lock.current = false
@@ -92,21 +90,21 @@ export default function Login() {
             mode="widthFix"
           />
         </View>
-        <Text className="auth-title">{t('mobile:ruoyiFastapiMobileSignIn')}</Text>
+        <Text className="auth-title">{t('auth:login.title')}</Text>
       </View>
       <View className="auth-panel mb-auto">
         <FormField
-          label={t('common:login.username')}
+          label={t('auth:login.username')}
           icon="account"
-          placeholder={t('common:login.usernameRequired')}
+          placeholder={t('auth:login.usernameRequired')}
           maxlength={30}
           value={form.username}
           onChange={(value) => update('username', value)}
         />
         <FormField
-          label={t('common:login.password')}
+          label={t('auth:login.password')}
           icon="lock"
-          placeholder={t('common:login.passwordRequired')}
+          placeholder={t('auth:login.passwordRequired')}
           password
           maxlength={20}
           value={form.password}
@@ -117,11 +115,11 @@ export default function Login() {
           <View className="auth-captcha mb-8 flex items-center gap-3">
             <View className="flex-1">
               <FormField
-                label={t('common:login.code')}
+                label={t('auth:login.code')}
                 compact
                 icon="security"
                 type="number"
-                placeholder={t('common:login.code')}
+                placeholder={t('auth:login.code')}
                 maxlength={4}
                 value={form.code}
                 onChange={(value) => update('code', value)}
@@ -138,7 +136,7 @@ export default function Login() {
                   src={captcha.image}
                 />
               ) : (
-                <Text className="text-sm text-blue-600">{t('mobile:refreshVerificationCode')}</Text>
+                <Text className="text-sm text-blue-600">{t('auth:login.refreshCaptcha')}</Text>
               )}
             </View>
           </View>
@@ -150,33 +148,33 @@ export default function Login() {
           disabled={busy}
           onClick={submit}
         >
-          {t('mobile:signIn')}
+          {t('auth:login.submit')}
         </Button>
         {captcha.register && (
           <View className="auth-footer auth-register-link">
-            {t('mobile:noAccount')}
+            {t('auth:login.noAccount')}
             <Text
               className="auth-link"
               onClick={() => Taro.navigateTo({ url: '/pages/register' })}
             >
-              {t('mobile:createAnAccount')}
+              {t('auth:login.registerLink')}
             </Text>
           </View>
         )}
         <View className="auth-footer">
-          <Text>{t('mobile:bySigningInYouAgreeTo')}</Text>
+          <Text>{t('auth:login.acceptTerms')}</Text>
           <Text
             className="auth-link"
             onClick={() => Taro.navigateTo({ url: '/pages/common/agreement/index' })}
           >
-            {t('mobile:userAgreementLogin')}
+            {t('auth:login.agreementLink')}
           </Text>
-          <Text>{t('mobile:and')}</Text>
+          <Text>{t('auth:login.and')}</Text>
           <Text
             className="auth-link"
             onClick={() => Taro.navigateTo({ url: '/pages/common/privacy/index' })}
           >
-            {t('mobile:privacyPolicyLogin')}
+            {t('auth:login.privacyLink')}
           </Text>
         </View>
       </View>

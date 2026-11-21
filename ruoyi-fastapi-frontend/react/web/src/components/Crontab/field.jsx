@@ -8,27 +8,27 @@ import { parseCronField, serializeCronField } from './model'
 
 const weekdays = () =>
   [
-    t('common:sunday'),
-    t('common:monday'),
-    t('common:tuesday'),
-    t('common:wednesday'),
-    t('common:thursday'),
-    t('common:friday'),
-    t('common:saturday'),
+    t('components:cron.sunday'),
+    t('components:cron.monday'),
+    t('components:cron.tuesday'),
+    t('components:cron.wednesday'),
+    t('components:cron.thursday'),
+    t('components:cron.friday'),
+    t('components:cron.saturday'),
   ].map((label, index) => ({ label, value: index + 1 }))
 const months = () => [
-  t('common:january'),
-  t('common:february'),
-  t('common:march'),
-  t('common:april'),
-  t('common:may'),
-  t('common:june'),
-  t('common:july'),
-  t('common:august'),
-  t('common:september'),
-  t('common:october'),
-  t('common:november'),
-  t('common:december'),
+  t('components:cron.january'),
+  t('components:cron.february'),
+  t('components:cron.march'),
+  t('components:cron.april'),
+  t('components:cron.may'),
+  t('components:cron.june'),
+  t('components:cron.july'),
+  t('components:cron.august'),
+  t('components:cron.september'),
+  t('components:cron.october'),
+  t('components:cron.november'),
+  t('components:cron.december'),
 ]
 
 function initialState(value, min, name) {
@@ -94,7 +94,7 @@ export default function CronField({ name, label, min, max, value, onChange }) {
       <span className="cron-number">
         <Button
           type="text"
-          aria-label={t('common:decreaseValue', { title })}
+          aria-label={t('components:cron.decreaseValue', { title })}
           icon={<MinusOutlined />}
           disabled={state[key] <= lower}
           onClick={() => change(state[key] - 1)}
@@ -110,7 +110,7 @@ export default function CronField({ name, label, min, max, value, onChange }) {
         />
         <Button
           type="text"
-          aria-label={t('common:increaseValue', { title })}
+          aria-label={t('components:cron.increaseValue', { title })}
           icon={<PlusOutlined />}
           disabled={state[key] >= upper}
           onClick={() => change(state[key] + 1)}
@@ -152,33 +152,33 @@ export default function CronField({ name, label, min, max, value, onChange }) {
         })
   const rows = [
     ...(name === 'year'
-      ? [row('omit', t('common:leaveBlankSupportedWildcardsValue', { wildcard }))]
+      ? [row('omit', t('components:cron.leaveBlankSupportedWildcardsValue', { wildcard }))]
       : []),
     row(
       'every',
       name === 'year'
-        ? t('common:everyYear')
-        : t('common:valueSupportedWildcardsValue', { label, wildcard })
+        ? t('components:cron.everyYear')
+        : t('components:cron.valueSupportedWildcardsValue', { label, wildcard })
     ),
-    ...(['day', 'week'].includes(name) ? [row('omit', t('common:notSpecified'))] : []),
+    ...(['day', 'week'].includes(name) ? [row('omit', t('components:cron.notSpecified'))] : []),
     row(
       'range',
-      t('common:rangeFrom'),
+      t('components:cron.rangeFrom'),
       <>
         {name === 'week'
-          ? weekday('rangeStart', t('common:startWeekday'), weekdays().slice(0, -1))
-          : number('rangeStart', t('common:startValue', { label }), min, max - 1)}
+          ? weekday('rangeStart', t('components:cron.startWeekday'), weekdays().slice(0, -1))
+          : number('rangeStart', t('components:cron.startValue', { label }), min, max - 1)}
         <span>-</span>
         {name === 'week'
           ? weekday(
               'rangeEnd',
-              t('common:endWeekday'),
+              t('components:cron.endWeekday'),
               weekdays().map((option) => ({
                 ...option,
                 disabled: option.value <= state.rangeStart,
               }))
             )
-          : number('rangeEnd', t('common:endValue', { label }), state.rangeStart + 1, max)}
+          : number('rangeEnd', t('components:cron.endValue', { label }), state.rangeStart + 1, max)}
         {!['week', 'year'].includes(name) && <span>{label}</span>}
       </>
     ),
@@ -188,14 +188,19 @@ export default function CronField({ name, label, min, max, value, onChange }) {
             'step',
             t('common:from'),
             <>
-              {number('stepStart', t('common:startValueInterval', { label }), min, max - 1)}
+              {number(
+                'stepStart',
+                t('components:cron.startValueInterval', { label }),
+                min,
+                max - 1
+              )}
               <span>
-                {name === 'day' ? t('common:Crontab.day') : label}
-                {t('common:startingEvery')}
+                {name === 'day' ? t('components:cron.dayOfMonth') : label}
+                {t('components:cron.startingEvery')}
               </span>
               {number(
                 'stepEvery',
-                t('common:valueInterval', { label }),
+                t('components:cron.valueInterval', { label }),
                 1,
                 Math.max(1, max - state.stepStart)
               )}
@@ -211,15 +216,15 @@ export default function CronField({ name, label, min, max, value, onChange }) {
       ? [
           row(
             'workday',
-            t('common:everyMonth'),
+            t('components:cron.everyMonth'),
             <>
-              {number('day', t('common:nearestWeekdayDate'), 1, 31)}
-              <span>{t('common:nearestWeekday')}</span>
+              {number('day', t('components:cron.nearestWeekdayDate'), 1, 31)}
+              <span>{t('components:cron.nearestWeekday')}</span>
             </>
           ),
-          row('lastDay', t('common:lastDayOfTheMonth')),
+          row('lastDay', t('components:cron.lastDayOfTheMonth')),
           ...(state.mode === 'lastWorkday'
-            ? [row('lastWorkday', t('common:lastWeekdayOfTheMonth'))]
+            ? [row('lastWorkday', t('components:cron.lastWeekdayOfTheMonth'))]
             : []),
         ]
       : []),
@@ -227,29 +232,29 @@ export default function CronField({ name, label, min, max, value, onChange }) {
       ? [
           row(
             'nthWeekday',
-            t('common:number'),
+            t('components:cron.number'),
             <>
-              {number('occurrence', t('common:weekNumber'), 1, 5)}
-              <span>{t('common:on')}</span>
-              {weekday('nthWeekday', t('common:dayOfTheSelectedWeek'))}
+              {number('occurrence', t('components:cron.weekNumber'), 1, 5)}
+              <span>{t('components:cron.on')}</span>
+              {weekday('nthWeekday', t('components:cron.dayOfTheSelectedWeek'))}
             </>
           ),
           row(
             'lastWeekday',
-            t('common:lastInTheMonth'),
-            weekday('lastWeekday', t('common:lastWeekday'))
+            t('components:cron.lastInTheMonth'),
+            weekday('lastWeekday', t('components:cron.lastWeekday'))
           ),
         ]
       : []),
     row(
       'values',
-      t('common:specified'),
+      t('components:cron.specified'),
       <Select
         className="cron-values"
-        placeholder={t('common:multipleSelect')}
+        placeholder={t('components:cron.multipleSelect')}
         mode="multiple"
         allowClear
-        aria-label={t('common:selectedValueValues', { label })}
+        aria-label={t('components:cron.selectedValueValues', { label })}
         value={state.values}
         options={options}
         onChange={(values) => update({ values })}
@@ -259,10 +264,10 @@ export default function CronField({ name, label, min, max, value, onChange }) {
       ? [
           row(
             'custom',
-            t('common:custom'),
+            t('components:cron.custom'),
             <Input
               value={value}
-              aria-label={t('common:valueExpression', { label })}
+              aria-label={t('components:cron.valueExpression', { label })}
               onChange={(event) => {
                 emitted.current = event.target.value
                 onChange(event.target.value)

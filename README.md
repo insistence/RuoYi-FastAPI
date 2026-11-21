@@ -216,6 +216,24 @@ RuoYi-FastAPI/
 └── ruoyi-fastapi-test/          # 端到端与跨工程契约测试
 ```
 
+### 国际化词库
+
+六个前端各自在 `src/i18n/locales/<语言>/<命名空间>.json` 维护页面文案。同一功能的中英文使用相同的语义 key，并保留各语言需要的复数形式。新增词条时，按使用它的功能选择文件。
+
+| 文案用途 | 归属与示例 |
+| --- | --- |
+| 跨功能通用操作 | `common`，如 `common:cancel` |
+| 应用登录、注册和密码校验 | `auth`，如 `auth:login.passwordRequired` |
+| Web 统一认证中心与 OAuth 后台 | 用户授权页归 `authCenter`；后台应用、授权、密钥等按 `oauth:client.*`、`oauth:grant.*`、`oauth:key.*` 分组 |
+| 业务页面与可复用组件 | 菜单、字典等归 `system`；编辑器、Cron 选择器等归 `components`；移动端首页、个人资料等在 `mobile` 下按页面分组 |
+| 插件自有文案 | Web 源码插件在自己的 `plugins/<id>/locales` 中维护；宿主的插件管理页面使用宿主词库 |
+
+在对应前端目录运行 `pnpm run i18n:check` 和 `pnpm run test:i18n`。新增命名空间时，同时确认该应用的 `src/i18n/registry.js` 已加载新文件。
+
+后端 API 消息使用 gettext。宿主词库源文件位于 `i18n/catalogs/<语言>/LC_MESSAGES/core/<模块>.po`。例如，用户和角色消息放在 `system.po`，文件服务消息放在 `file.po`，插件运行时消息放在 `plugin_runtime.po`。新增业务模块时，在每个已启用语言下添加同名 PO，保持消息标识、上下文和复数标识一致。代码生成器按业务表输出独立的 `generated.<模块>.<业务>.po`。
+
+在后端目录运行 `python scripts/compile_i18n.py` 会自动发现并校验各模块，每种语言合并生成一份 `LC_MESSAGES/core.mo`。业务代码继续使用原有消息 key。插件专属消息由插件自己的 `i18n/catalogs/<语言>/LC_MESSAGES/plugin.<id>.po` 维护。
+
 ### 传输层加解密配置说明
 
 后端密钥配置与轮换说明：[ruoyi-fastapi-backend/docs/transport_crypto_config.md](./ruoyi-fastapi-backend/docs/transport_crypto_config.md)

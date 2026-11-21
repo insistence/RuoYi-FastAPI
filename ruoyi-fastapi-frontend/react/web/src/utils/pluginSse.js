@@ -21,7 +21,8 @@ export async function* readPluginSse(body, t = translate) {
   let id = ''
   const consume = () => {
     size += encoder.encode(line).byteLength + 1
-    if (size > PLUGIN_BRIDGE_MAX_BYTES) throw new Error(t('common:eventContentExceeds64Kib'))
+    if (size > PLUGIN_BRIDGE_MAX_BYTES)
+      throw new Error(t('pluginAdmin:realtime.eventContentExceeds64Kib'))
     if (!line) {
       const value = data.length ? { event: event || 'message', data: data.join('\n'), id } : null
       data = []
@@ -47,7 +48,7 @@ export async function* readPluginSse(body, t = translate) {
       }
       total += chunk.value.byteLength
       if (total > PLUGIN_BRIDGE_MAX_STREAM_BYTES)
-        throw new Error(t('common:eventStreamExceeds10Mib'))
+        throw new Error(t('pluginAdmin:realtime.eventStreamExceeds10Mib'))
       let text = decoder.decode(chunk.value, { stream: true })
       if (!text) continue
       if (skipLf && text.startsWith('\n')) text = text.slice(1)
@@ -62,7 +63,7 @@ export async function* readPluginSse(body, t = translate) {
       }
       line += text.slice(offset)
       if (size + encoder.encode(line).byteLength > PLUGIN_BRIDGE_MAX_BYTES)
-        throw new Error(t('common:eventContentExceeds64Kib'))
+        throw new Error(t('pluginAdmin:realtime.eventContentExceeds64Kib'))
     }
   } finally {
     try {
@@ -101,11 +102,11 @@ export function createPluginSseTransport({
       endpoint.search ||
       endpoint.hash
     )
-      throw new Error(t('common:invalidLiveApiUrl'))
+      throw new Error(t('pluginAdmin:realtime.invalidLiveApiUrl'))
     const policy = await loadPolicy()
     if (shouldEncryptRequest({ url }, policy))
-      throw new Error(t('common:theLiveApiHasNoConfiguredTransportPolicyException'))
-    if (signal.aborted) throw new Error(t('common:liveConnectionCancelled'))
+      throw new Error(t('pluginAdmin:realtime.theLiveApiHasNoConfiguredTransportPolicyException'))
+    if (signal.aborted) throw new Error(t('pluginAdmin:realtime.liveConnectionCancelled'))
     endpoint.search = serializeParams(params || {})
     const response = await fetchImpl(endpoint.href, {
       method: 'GET',
@@ -128,11 +129,11 @@ export function createPluginSseTransport({
       !response.body
     ) {
       await response.body?.cancel()
-      throw new Error(t('common:invalidLiveApiResponse'))
+      throw new Error(t('pluginAdmin:realtime.invalidLiveApiResponse'))
     }
     for await (const event of readPluginSse(response.body, t)) {
       if (event.event === 'ruoyi.plugin.closed') {
-        const error = new Error(t('common:theHostClosedTheLiveConnection'))
+        const error = new Error(t('pluginAdmin:realtime.theHostClosedTheLiveConnection'))
         error.name = 'PluginStreamClosedError'
         throw error
       }

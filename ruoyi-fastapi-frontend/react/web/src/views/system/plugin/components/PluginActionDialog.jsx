@@ -15,7 +15,7 @@ import { tagColors } from './PluginReleaseStatus'
 
 export default function PluginActionDialog({
   open,
-  title = t('system:pluginOperationResult'),
+  title = t('pluginAdmin:actions.pluginOperationResult'),
   result = {},
   pending,
   loading,
@@ -63,7 +63,7 @@ export default function PluginActionDialog({
                 loading={loading}
                 onClick={onExecute}
               >
-                {t('system:execute')}
+                {t('pluginAdmin:actions.execute')}
                 {pending.label}
               </Button>
             </HasPermi>
@@ -83,12 +83,12 @@ export default function PluginActionDialog({
       <Descriptions
         bordered
         items={[
-          [t('system:pluginId'), result.pluginId],
-          [t('system:dependencyCheck'), formatBoolean(result.dependencyOk)],
-          [t('system:structureCheck'), formatBoolean(result.structureOk)],
+          [t('pluginAdmin:actions.pluginId'), result.pluginId],
+          [t('pluginAdmin:shared.dependencyCheck'), formatBoolean(result.dependencyOk)],
+          [t('pluginAdmin:actions.structureCheck'), formatBoolean(result.structureOk)],
           [t('pluginAdmin:menuConflict'), formatBoolean(result.menuConflictOk)],
-          [t('system:dryRunMode'), result.dryRun ? t('common:yes') : t('common:no')],
-          [t('system:upgradeRequired'), formatBoolean(result.needsUpgrade)],
+          [t('pluginAdmin:actions.dryRunMode'), result.dryRun ? t('common:yes') : t('common:no')],
+          [t('pluginAdmin:actions.upgradeRequired'), formatBoolean(result.needsUpgrade)],
         ].map(([label, children]) => ({
           key: label,
           label,
@@ -101,27 +101,35 @@ export default function PluginActionDialog({
             ? [
                 {
                   key: 'error',
-                  label: t('system:errorDetails'),
+                  label: t('pluginAdmin:actions.errorDetails'),
                   children: (
                     <>
                       <Alert
                         type="error"
                         showIcon
-                        title={result.error.message || t('system:pluginOperationFailed')}
+                        title={
+                          result.error.message || t('pluginAdmin:shared.pluginOperationFailed')
+                        }
                         style={{ marginBottom: 16 }}
                       />
                       <Descriptions
                         bordered
                         column={2}
                         items={[
-                          [t('system:pluginId'), result.pluginId || pending?.pluginId],
+                          [t('pluginAdmin:actions.pluginId'), result.pluginId || pending?.pluginId],
                           [
                             t('common:actions'),
                             formatPluginOperation(result.operation, dictionary),
                           ],
-                          [t('system:failedStep'), result.failedStep || result.error.failedStep],
+                          [
+                            t('pluginAdmin:shared.failedStep'),
+                            result.failedStep || result.error.failedStep,
+                          ],
                           ['Migration', result.migrationRecovery?.migrationPath],
-                          [t('system:migrationStatus'), result.migrationRecovery?.status],
+                          [
+                            t('pluginAdmin:actions.migrationStatus'),
+                            result.migrationRecovery?.status,
+                          ],
                           [
                             t('common:suggestion'),
                             result.error.suggestion ||
@@ -146,9 +154,9 @@ export default function PluginActionDialog({
             : []),
           {
             key: 'actions',
-            label: t('system:actionPlan'),
+            label: t('pluginAdmin:shared.actionPlan'),
             children: table(result.actions, [
-              { title: t('system:action'), dataIndex: 'label' },
+              { title: t('pluginAdmin:shared.action'), dataIndex: 'label' },
               {
                 align: 'center',
                 title: t('common:enable'),
@@ -173,12 +181,12 @@ export default function PluginActionDialog({
               { title: t('pluginAdmin:dependencies'), dataIndex: 'requirement' },
               {
                 align: 'center',
-                title: t('system:installed'),
+                title: t('pluginAdmin:shared.installed'),
                 render: (_, row) => formatDependencyInstalled(row),
               },
               {
                 align: 'center',
-                title: t('system:versionRequirementMet'),
+                title: t('pluginAdmin:shared.versionRequirementMet'),
                 render: (_, row) => formatDependencyVersionSatisfied(row),
               },
               { title: t('common:description'), dataIndex: 'message' },
@@ -186,13 +194,13 @@ export default function PluginActionDialog({
           },
           {
             key: 'manifest',
-            label: t('system:manifestNotices'),
+            label: t('pluginAdmin:actions.manifestNotices'),
             children: table(
               [...(result.manifestIssues || []), ...(result.manifestWarnings || [])],
               [
                 level,
                 { align: 'center', title: t('common:type'), dataIndex: 'kind' },
-                { title: t('system:path'), dataIndex: 'path' },
+                { title: t('pluginAdmin:shared.path'), dataIndex: 'path' },
                 { title: t('common:description'), dataIndex: 'message' },
                 { title: t('common:suggestion'), dataIndex: 'suggestion' },
               ]
@@ -200,11 +208,11 @@ export default function PluginActionDialog({
           },
           {
             key: 'structure',
-            label: t('system:structureErrors'),
+            label: t('pluginAdmin:actions.structureErrors'),
             children: table(result.structureErrors, [
               level,
               { align: 'center', title: t('common:type'), dataIndex: 'kind' },
-              { title: t('system:path'), dataIndex: 'path' },
+              { title: t('pluginAdmin:shared.path'), dataIndex: 'path' },
               { title: t('common:description'), dataIndex: 'message' },
             ]),
           },
@@ -214,7 +222,7 @@ export default function PluginActionDialog({
             children: table(result.menuConflicts, [
               level,
               { align: 'center', title: t('common:type'), dataIndex: 'kind' },
-              { title: t('system:conflictingValue'), dataIndex: 'value' },
+              { title: t('pluginAdmin:actions.conflictingValue'), dataIndex: 'value' },
               { title: t('common:description'), dataIndex: 'message' },
             ]),
           },

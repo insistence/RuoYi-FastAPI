@@ -1,14 +1,12 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('authCenter:help.integrationManagement')"
+      :section="$t('oauth:shared.integrationManagement')"
       :title="$t('common:apply')"
       :description="
-        $t(
-          'authCenter:messages.manageWhichWebsitesMobileApplicationsAndBackendServicesMayUseUnifiedSign'
-        )
+        $t('oauth:client.manageWhichWebsitesMobileApplicationsAndBackendServicesMayUseUnifiedSign')
       "
-      :filter-hint="$t('authCenter:messages.findApplicationsByNameTypeOrStatus')"
+      :filter-hint="$t('oauth:client.findApplicationsByNameTypeOrStatus')"
     >
       <template #actions>
         <el-button
@@ -17,7 +15,7 @@
           v-hasPermi="['system:oauthClient:add']"
           @click="handleAdd"
         >
-          {{ $t('authCenter:messages.registerApplication') }}
+          {{ $t('oauth:client.registerApplication') }}
         </el-button>
       </template>
 
@@ -30,33 +28,33 @@
           :inline="true"
         >
           <el-form-item
-            :label="$t('authCenter:messages.applicationName')"
+            :label="$t('oauth:client.applicationName')"
             prop="clientName"
           >
             <el-input
               v-model="queryParams.clientName"
               clearable
-              :placeholder="$t('authCenter:messages.enterApplicationName')"
+              :placeholder="$t('oauth:client.enterApplicationName')"
               style="width: 200px"
               @keyup.enter.native="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            :label="$t('authCenter:messages.applicationType')"
+            :label="$t('oauth:client.applicationType')"
             prop="clientType"
           >
             <el-select
               v-model="queryParams.clientType"
               clearable
-              :placeholder="$t('authCenter:messages.allTypes')"
+              :placeholder="$t('oauth:client.allTypes')"
               style="width: 200px"
             >
               <el-option
-                :label="$t('authCenter:messages.backendService')"
+                :label="$t('oauth:client.backendService')"
                 value="confidential"
               />
               <el-option
-                :label="$t('authCenter:messages.webOrMobileApplication')"
+                :label="$t('oauth:client.webOrMobileApplication')"
                 value="public"
               />
             </el-select>
@@ -72,7 +70,7 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('authCenter:messages.inUse')"
+                :label="$t('oauth:shared.inUse')"
                 value="0"
               />
               <el-option
@@ -99,8 +97,8 @@
 
       <template #toolbar>
         <span class="result-count"
-          >{{ $t('authCenter:messages.registered') }} <strong>{{ total }}</strong>
-          {{ $t('authCenter:messages.applications') }}</span
+          >{{ $t('oauth:shared.registered') }} <strong>{{ total }}</strong>
+          {{ $t('oauth:client.applications') }}</span
         >
         <right-toolbar
           :showSearch.sync="showSearch"
@@ -120,7 +118,7 @@
           <template #default="scope">
             <div class="entity-cell">
               <span class="entity-avatar">{{
-                (scope.row.clientName || $t('authCenter:expression.app')).slice(0, 1)
+                (scope.row.clientName || $t('oauth:client.app')).slice(0, 1)
               }}</span>
               <span class="entity-copy">
                 <strong>{{ scope.row.clientName }}</strong>
@@ -130,7 +128,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.applicationType')"
+          :label="$t('oauth:client.applicationType')"
           width="130"
         >
           <template #default="scope">
@@ -140,14 +138,14 @@
             >
               {{
                 scope.row.clientType === 'confidential'
-                  ? $t('authCenter:messages.backendService')
-                  : $t('authCenter:expression.webMobile')
+                  ? $t('oauth:client.backendService')
+                  : $t('oauth:client.webMobile')
               }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.signInAndAccessMethods')"
+          :label="$t('oauth:client.signInAndAccessMethods')"
           min-width="240"
         >
           <template #default="scope">
@@ -155,7 +153,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('pluginAdmin:accessibleServices')"
+          :label="$t('oauth:shared.accessibleServices')"
           min-width="200"
         >
           <template #default="scope">
@@ -170,7 +168,7 @@
               <span
                 v-if="!(scope.row.resourceIds || []).length"
                 class="muted-value"
-                >{{ $t('authCenter:interface.identityInformationOnly') }}</span
+                >{{ $t('oauth:shared.identityInformationOnly') }}</span
               >
               <span
                 v-else-if="scope.row.resourceIds.length > 2"
@@ -192,14 +190,14 @@
             >
               {{
                 scope.row.status === '0'
-                  ? $t('authCenter:messages.inUse')
+                  ? $t('oauth:shared.inUse')
                   : $t('pluginAdmin:release.disabled')
               }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('system:oauth.recentUpdates')"
+          :label="$t('oauth:client.recentUpdates')"
           width="170"
         >
           <template #default="scope">{{ parseTime(scope.row.updateTime) || '—' }}</template>
@@ -236,7 +234,7 @@
                       icon="el-icon-key"
                       v-hasPermi="['system:oauthClient:rotateSecret']"
                     >
-                      {{ $t('authCenter:messages.rotateApplicationSecret') }}
+                      {{ $t('oauth:client.rotateApplicationSecret') }}
                     </el-dropdown-item>
                     <el-dropdown-item
                       v-if="scope.row.status !== '0'"
@@ -244,7 +242,7 @@
                       icon="el-icon-circle-check"
                       v-hasPermi="['system:oauthClient:edit']"
                     >
-                      {{ $t('authCenter:messages.reEnable') }}
+                      {{ $t('oauth:shared.reEnable') }}
                     </el-dropdown-item>
                     <el-dropdown-item
                       v-else
@@ -253,7 +251,7 @@
                       divided
                       v-hasPermi="['system:oauthClient:remove']"
                     >
-                      {{ $t('authCenter:messages.disableApplication') }}
+                      {{ $t('oauth:client.disableApplication') }}
                     </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -262,12 +260,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('authCenter:messages.noMatchingApplications')">
+          <el-empty :description="$t('oauth:client.noMatchingApplications')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthClient:add']"
               @click="handleAdd"
-              >{{ $t('authCenter:messages.registerYourFirstApplication') }}</el-button
+              >{{ $t('oauth:client.registerYourFirstApplication') }}</el-button
             >
           </el-empty>
         </template>
@@ -286,9 +284,7 @@
       custom-class="oauth-overlay"
       :visible.sync="editorOpen"
       :title="
-        form.clientId
-          ? $t('authCenter:expression.editApplication')
-          : $t('authCenter:messages.registerApplication')
+        form.clientId ? $t('oauth:client.editApplication') : $t('oauth:client.registerApplication')
       "
       width="min(960px, calc(100vw - 48px))"
       append-to-body
@@ -296,9 +292,7 @@
       class="oauth-editor-dialog"
     >
       <div class="editor-map">
-        <span class="editor-map-title">{{
-          $t('authCenter:messages.accessRelationshipPreview')
-        }}</span>
+        <span class="editor-map-title">{{ $t('oauth:client.accessRelationshipPreview') }}</span>
         <AccessMap
           :application="form.clientName"
           :type="form.clientType"
@@ -325,11 +319,11 @@
             name="basic"
           >
             <div class="section-heading">
-              <h3>{{ $t('authCenter:messages.applicationIdentity') }}</h3>
+              <h3>{{ $t('oauth:client.applicationIdentity') }}</h3>
               <p>
                 {{
                   $t(
-                    'authCenter:messages.theNameIdentifiesTheApplicationInTheConsoleItsTypeDeterminesWhether'
+                    'oauth:client.theNameIdentifiesTheApplicationInTheConsoleItsTypeDeterminesWhether'
                   )
                 }}
               </p>
@@ -337,10 +331,10 @@
             <el-form-item prop="clientName">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.applicationName')"
+                  :label="$t('oauth:client.applicationName')"
                   :help="
                     $t(
-                      'authCenter:help.helpsAdministratorsIdentifyThisApplicationWithoutAffectingTheSignInFlow'
+                      'oauth:client.helpsAdministratorsIdentifyThisApplicationWithoutAffectingTheSignInFlow'
                     )
                   "
               /></template>
@@ -354,10 +348,10 @@
             <el-form-item prop="clientType">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.applicationType')"
+                  :label="$t('oauth:client.applicationType')"
                   :help="
                     $t(
-                      'authCenter:help.webAndMobileApplicationsCannotKeepSecretsSecurelyBackendServicesCanStore'
+                      'oauth:client.webAndMobileApplicationsCannotKeepSecretsSecurelyBackendServicesCanStore'
                     )
                   "
               /></template>
@@ -371,19 +365,15 @@
                   label="confidential"
                   border
                 >
-                  <span class="choice-title">{{ $t('authCenter:messages.backendService') }}</span>
-                  <small>{{ $t('authCenter:messages.canSafelyStoreAnApplicationSecret') }}</small>
+                  <span class="choice-title">{{ $t('oauth:client.backendService') }}</span>
+                  <small>{{ $t('oauth:client.canSafelyStoreAnApplicationSecret') }}</small>
                 </el-radio>
                 <el-radio
                   label="public"
                   border
                 >
-                  <span class="choice-title">{{
-                    $t('authCenter:messages.webOrMobileApplication')
-                  }}</span>
-                  <small>{{
-                    $t('authCenter:messages.cannotStoreASecretSecurelyOnTheDevice')
-                  }}</small>
+                  <span class="choice-title">{{ $t('oauth:client.webOrMobileApplication') }}</span>
+                  <small>{{ $t('oauth:client.cannotStoreASecretSecurelyOnTheDevice') }}</small>
                 </el-radio>
               </el-radio-group>
             </el-form-item>
@@ -393,7 +383,7 @@
                   :label="$t('common:remark')"
                   :help="
                     $t(
-                      'authCenter:help.forAdministratorsRecordsOnlyThisIsNotSentToExternalApplications'
+                      'oauth:client.forAdministratorsRecordsOnlyThisIsNotSentToExternalApplications'
                     )
                   "
               /></template>
@@ -409,26 +399,24 @@
           </el-tab-pane>
 
           <el-tab-pane
-            :label="$t('authCenter:messages.signInMethods')"
+            :label="$t('oauth:client.signInMethods')"
             name="login"
           >
             <div class="section-heading">
-              <h3>{{ $t('authCenter:messages.howTheApplicationSignsInOrCallsServices') }}</h3>
+              <h3>{{ $t('oauth:client.howTheApplicationSignsInOrCallsServices') }}</h3>
               <p>
                 {{
-                  $t(
-                    'authCenter:messages.selectOnlyTheMethodsTheApplicationNeedsToLimitUnnecessaryAccess'
-                  )
+                  $t('oauth:client.selectOnlyTheMethodsTheApplicationNeedsToLimitUnnecessaryAccess')
                 }}
               </p>
             </div>
             <el-form-item prop="grantTypes">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.allowedMethods')"
+                  :label="$t('oauth:client.allowedMethods')"
                   :help="
                     $t(
-                      'authCenter:help.webAndMobileApplicationsUsuallyUseUserSignInBackgroundTasksWithout'
+                      'oauth:client.webAndMobileApplicationsUsuallyUseUserSignInBackgroundTasksWithout'
                     )
                   "
               /></template>
@@ -437,29 +425,27 @@
                 class="option-stack"
               >
                 <el-checkbox label="authorization_code">{{
-                  $t('authCenter:messages.userSignIn')
+                  $t('oauth:client.userSignIn')
                 }}</el-checkbox>
                 <small>{{
-                  $t(
-                    'authCenter:messages.usersSignInAtTheAuthenticationCenterThenReturnToTheApplication'
-                  )
+                  $t('oauth:client.usersSignInAtTheAuthenticationCenterThenReturnToTheApplication')
                 }}</small>
                 <el-checkbox
                   label="refresh_token"
                   :disabled="!form.grantTypes.includes('authorization_code')"
-                  >{{ $t('authCenter:messages.staySignedIn') }}</el-checkbox
+                  >{{ $t('oauth:client.staySignedIn') }}</el-checkbox
                 >
                 <small>{{
-                  $t('authCenter:messages.allowTheApplicationToExtendASessionAfterTheUserLeaves')
+                  $t('oauth:client.allowTheApplicationToExtendASessionAfterTheUserLeaves')
                 }}</small>
                 <el-checkbox
                   label="client_credentials"
                   :disabled="form.clientType === 'public'"
-                  >{{ $t('authCenter:messages.serviceToServiceCalls') }}</el-checkbox
+                  >{{ $t('oauth:client.serviceToServiceCalls') }}</el-checkbox
                 >
                 <small>{{
                   $t(
-                    'authCenter:messages.aBackendServiceCallsOtherServicesAsItselfWithoutRepresentingAUser'
+                    'oauth:client.aBackendServiceCallsOtherServicesAsItselfWithoutRepresentingAUser'
                   )
                 }}</small>
               </el-checkbox-group>
@@ -467,10 +453,10 @@
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.signInSecurity')"
+                  :label="$t('oauth:client.signInSecurity')"
                   :help="
                     $t(
-                      'authCenter:help.signInSecurityProtectionIsEnabledAutomaticallyTheRemainingOptionsControlUser'
+                      'oauth:client.signInSecurityProtectionIsEnabledAutomaticallyTheRemainingOptionsControlUser'
                     )
                   "
               /></template>
@@ -478,28 +464,28 @@
                 <el-checkbox
                   v-model="form.requirePkce"
                   disabled
-                  >{{ $t('authCenter:messages.signInProtectionEnabledAutomatically') }}</el-checkbox
+                  >{{ $t('oauth:client.signInProtectionEnabledAutomatically') }}</el-checkbox
                 >
                 <el-checkbox v-model="form.requireConsent">{{
-                  $t('authCenter:messages.askUsersToConfirmPermissionsAtSignIn')
+                  $t('oauth:client.askUsersToConfirmPermissionsAtSignIn')
                 }}</el-checkbox>
                 <el-checkbox v-model="form.trustedClient">{{
-                  $t('authCenter:messages.markAsATrustedApplication')
+                  $t('oauth:client.markAsATrustedApplication')
                 }}</el-checkbox>
               </div>
             </el-form-item>
           </el-tab-pane>
 
           <el-tab-pane
-            :label="$t('authCenter:messages.permissionsAndServices')"
+            :label="$t('oauth:client.permissionsAndServices')"
             name="access"
           >
             <div class="section-heading">
-              <h3>{{ $t('authCenter:messages.whatTheApplicationMayRequest') }}</h3>
+              <h3>{{ $t('oauth:client.whatTheApplicationMayRequest') }}</h3>
               <p>
                 {{
                   $t(
-                    'authCenter:messages.chooseEnabledPermissionsAndServicesToAvoidSavingUnknownIdentifiers'
+                    'oauth:client.chooseEnabledPermissionsAndServicesToAvoidSavingUnknownIdentifiers'
                   )
                 }}
               </p>
@@ -507,10 +493,10 @@
             <el-form-item prop="scopeCodes">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.availablePermissions')"
+                  :label="$t('oauth:client.availablePermissions')"
                   :help="
                     $t(
-                      'authCenter:help.theApplicationCanRequestOnlyThePermissionsListedHereWhenSigningIn'
+                      'oauth:client.theApplicationCanRequestOnlyThePermissionsListedHereWhenSigningIn'
                     )
                   "
               /></template>
@@ -518,7 +504,7 @@
                 v-model="form.scopeCodes"
                 multiple
                 filterable
-                :placeholder="$t('authCenter:messages.selectPermissionsTheApplicationMayRequest')"
+                :placeholder="$t('oauth:client.selectPermissionsTheApplicationMayRequest')"
                 style="width: 100%"
               >
                 <el-option
@@ -538,8 +524,8 @@
             >
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.disclosableRoles')"
-                  :help="$t('authCenter:help.onlyTheRolesTheUserAlreadyHasAndThatAppearHereAre')"
+                  :label="$t('oauth:client.disclosableRoles')"
+                  :help="$t('oauth:client.onlyTheRolesTheUserAlreadyHasAndThatAppearHereAre')"
               /></template>
               <el-select
                 v-model="form.allowedRoleKeys"
@@ -548,7 +534,7 @@
                 allow-create
                 default-first-option
                 :placeholder="
-                  $t('authCenter:messages.enterRoleIdentifiersThatMayBeDisclosedToThisApplication')
+                  $t('oauth:client.enterRoleIdentifiersThatMayBeDisclosedToThisApplication')
                 "
                 style="width: 100%"
               />
@@ -556,10 +542,10 @@
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.skipRepeatedConfirmation')"
+                  :label="$t('oauth:client.skipRepeatedConfirmation')"
                   :help="
                     $t(
-                      'authCenter:help.thesePermissionsReduceRepeatedUserConfirmationsAndMustBeIncludedInThe'
+                      'oauth:client.thesePermissionsReduceRepeatedUserConfirmationsAndMustBeIncludedInThe'
                     )
                   "
               /></template>
@@ -567,7 +553,7 @@
                 v-model="form.preAuthorizedScopeCodes"
                 multiple
                 filterable
-                :placeholder="$t('authCenter:messages.chooseFromSelectedPermissions')"
+                :placeholder="$t('oauth:client.chooseFromSelectedPermissions')"
                 style="width: 100%"
               >
                 <el-option
@@ -584,10 +570,10 @@
             <el-form-item>
               <template #label
                 ><FieldLabel
-                  :label="$t('pluginAdmin:accessibleServices')"
+                  :label="$t('oauth:shared.accessibleServices')"
                   :help="
                     $t(
-                      'authCenter:help.enterTheIdentifierOfAServiceCreatedOnTheServicesAndPermissions'
+                      'oauth:client.enterTheIdentifierOfAServiceCreatedOnTheServicesAndPermissions'
                     )
                   "
               /></template>
@@ -595,7 +581,7 @@
                 v-model="form.resourceIds"
                 multiple
                 filterable
-                :placeholder="$t('authCenter:messages.selectServicesTheApplicationMayAccess')"
+                :placeholder="$t('oauth:client.selectServicesTheApplicationMayAccess')"
                 style="width: 100%"
               >
                 <el-option
@@ -612,15 +598,15 @@
           </el-tab-pane>
 
           <el-tab-pane
-            :label="$t('authCenter:messages.callbackURLs')"
+            :label="$t('oauth:client.callbackURLs')"
             name="uri"
           >
             <div class="section-heading">
-              <h3>{{ $t('authCenter:messages.whereUsersMayGoAfterSignIn') }}</h3>
+              <h3>{{ $t('oauth:client.whereUsersMayGoAfterSignIn') }}</h3>
               <p>
                 {{
                   $t(
-                    'authCenter:messages.enterAndValidateEachURLSeparatelyUseCompleteHTTPSURLsInProduction'
+                    'oauth:client.enterAndValidateEachURLSeparatelyUseCompleteHTTPSURLsInProduction'
                   )
                 }}
               </p>
@@ -628,71 +614,69 @@
             <el-form-item prop="redirectUris">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.signInReturnURLs')"
+                  :label="$t('oauth:client.signInReturnURLs')"
                   :help="
-                    $t('authCenter:help.afterSignInTheSystemRedirectsUsersOnlyToURLsRegisteredHere')
+                    $t('oauth:client.afterSignInTheSystemRedirectsUsersOnlyToURLsRegisteredHere')
                   "
               /></template>
               <StringListInput
                 v-model="form.redirectUris"
                 placeholder="https://portal.example.com/callback"
-                :add-text="$t('authCenter:messages.addSignInReturnURL')"
+                :add-text="$t('oauth:client.addSignInReturnURL')"
               />
             </el-form-item>
             <el-form-item prop="postLogoutRedirectUris">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.signOutReturnURLs')"
-                  :help="$t('authCenter:help.uRLsUsersMayReturnToAfterSigningOut')"
+                  :label="$t('oauth:client.signOutReturnURLs')"
+                  :help="$t('oauth:client.uRLsUsersMayReturnToAfterSigningOut')"
               /></template>
               <StringListInput
                 v-model="form.postLogoutRedirectUris"
                 placeholder="https://portal.example.com/signed-out"
-                :add-text="$t('authCenter:messages.addSignOutReturnURL')"
+                :add-text="$t('oauth:client.addSignOutReturnURL')"
               />
             </el-form-item>
             <el-form-item prop="backchannelLogoutUris">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.backChannelSignOutNotifications')"
+                  :label="$t('oauth:client.backChannelSignOutNotifications')"
                   :help="
-                    $t(
-                      'authCenter:help.enterAURLIfTheApplicationNeedsBackChannelSignOutNotifications'
-                    )
+                    $t('oauth:client.enterAURLIfTheApplicationNeedsBackChannelSignOutNotifications')
                   "
               /></template>
               <StringListInput
                 v-model="form.backchannelLogoutUris"
                 placeholder="https://portal.example.com/backchannel-logout"
-                :add-text="$t('authCenter:messages.addBackChannelNotificationURL')"
+                :add-text="$t('oauth:client.addBackChannelNotificationURL')"
               />
             </el-form-item>
             <el-form-item prop="corsOrigins">
               <template #label
                 ><FieldLabel
-                  :label="$t('authCenter:messages.allowedWebOrigins')"
+                  :label="$t('oauth:client.allowedWebOrigins')"
                   :help="
-                    $t('authCenter:help.webOriginsAllowedToCallDirectlyFromABrowserEnterOnlyThe')
+                    $t('oauth:client.webOriginsAllowedToCallDirectlyFromABrowserEnterOnlyThe')
                   "
               /></template>
               <StringListInput
                 v-model="form.corsOrigins"
                 placeholder="https://portal.example.com"
-                :add-text="$t('authCenter:messages.addWebOrigin')"
+                :add-text="$t('oauth:client.addWebOrigin')"
               />
             </el-form-item>
           </el-tab-pane>
 
           <el-tab-pane
-            :label="$t('authCenter:messages.validityPeriods')"
+            :label="$t('oauth:shared.validityPeriods')"
             name="duration"
           >
             <div class="section-heading">
-              <h3>{{ $t('authCenter:messages.howLongSignInCredentialsRemainValid') }}</h3>
+              <h3>{{ $t('oauth:client.howLongSignInCredentialsRemainValid') }}</h3>
               <p>
                 {{
                   $t(
-                    'authCenter:messages.leaveBlankToUsePlatformDefaultsExtendLifetimesOnlyWhenRequiredBy'
+                    'oauth:client.leaveBlankToUsePlatformDefaultsExtendLifetimesOnlyWhenRequiredBy'
                   )
                 }}
               </p>
@@ -705,10 +689,10 @@
                 <el-form-item class="duration-field">
                   <template #label
                     ><FieldLabel
-                      :label="$t('authCenter:messages.accessCredentials')"
+                      :label="$t('oauth:client.accessCredentials')"
                       :help="
                         $t(
-                          'authCenter:help.howLongShortLivedCredentialsRemainValidWhenTheApplicationAccessesA'
+                          'oauth:client.howLongShortLivedCredentialsRemainValidWhenTheApplicationAccessesA'
                         )
                       "
                   /></template>
@@ -716,7 +700,7 @@
                     :value="form.accessTokenTtlSeconds ?? undefined"
                     @input="form.accessTokenTtlSeconds = $event ?? null"
                     :min="1"
-                    :placeholder="$t('pluginAdmin:platformDefault')"
+                    :placeholder="$t('oauth:shared.platformDefault')"
                     controls-position="right"
                     style="width: 100%"
                   />
@@ -730,10 +714,10 @@
                 <el-form-item class="duration-field">
                   <template #label
                     ><FieldLabel
-                      :label="$t('authCenter:messages.expireAfterInactivity')"
+                      :label="$t('oauth:client.expireAfterInactivity')"
                       :help="
                         $t(
-                          'authCenter:help.howLongPersistentSignInCredentialsMayRemainUnusedBeforeExpiring'
+                          'oauth:client.howLongPersistentSignInCredentialsMayRemainUnusedBeforeExpiring'
                         )
                       "
                   /></template>
@@ -741,7 +725,7 @@
                     :value="form.refreshTokenIdleSeconds ?? undefined"
                     @input="form.refreshTokenIdleSeconds = $event ?? null"
                     :min="1"
-                    :placeholder="$t('pluginAdmin:platformDefault')"
+                    :placeholder="$t('oauth:shared.platformDefault')"
                     controls-position="right"
                     style="width: 100%"
                   />
@@ -755,14 +739,14 @@
                 <el-form-item class="duration-field">
                   <template #label
                     ><FieldLabel
-                      :label="$t('authCenter:messages.maximumLifetime')"
-                      :help="$t('auth:client.absoluteRefreshLifetimeHelp')"
+                      :label="$t('oauth:client.maximumLifetime')"
+                      :help="$t('oauth:client.absoluteRefreshLifetimeHelp')"
                   /></template>
                   <el-input-number
                     :value="form.refreshTokenAbsoluteSeconds ?? undefined"
                     @input="form.refreshTokenAbsoluteSeconds = $event ?? null"
                     :min="1"
-                    :placeholder="$t('pluginAdmin:platformDefault')"
+                    :placeholder="$t('oauth:shared.platformDefault')"
                     controls-position="right"
                     style="width: 100%"
                   />
@@ -779,7 +763,7 @@
           type="primary"
           :loading="submitting"
           @click="submit"
-          >{{ $t('authCenter:messages.saveApplication') }}</el-button
+          >{{ $t('oauth:client.saveApplication') }}</el-button
         >
       </template>
     </el-dialog>
@@ -844,7 +828,7 @@ const rules = {
   clientName: [
     {
       required: true,
-      message: () => t('authCenter:messages.enterAnApplicationName'),
+      message: () => t('oauth:client.enterAnApplicationName'),
       trigger: 'blur',
     },
   ],
@@ -852,7 +836,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('auth:interface.selectAnApplicationType')
+        return t('oauth:client.selectAnApplicationType')
       },
       trigger: 'change',
     },
@@ -862,7 +846,7 @@ const rules = {
       required: true,
       type: 'array',
       min: 1,
-      message: () => t('authCenter:messages.selectAtLeastOneSignInOrServiceAccessMethod'),
+      message: () => t('oauth:client.selectAtLeastOneSignInOrServiceAccessMethod'),
       trigger: 'change',
     },
   ],
@@ -871,7 +855,7 @@ const rules = {
       required: true,
       type: 'array',
       min: 1,
-      message: () => t('authCenter:messages.addAtLeastOneAvailablePermission'),
+      message: () => t('oauth:client.addAtLeastOneAvailablePermission'),
       trigger: 'change',
     },
   ],
@@ -1052,13 +1036,11 @@ async function handleUpdate(row) {
 /** 获取授权类型名称 */
 function grantTypeText(types = []) {
   const labels = {
-    authorization_code: t('authCenter:messages.userSignIn'),
-    refresh_token: t('authCenter:messages.staySignedIn'),
-    client_credentials: t('authCenter:messages.serviceToServiceCalls'),
+    authorization_code: t('oauth:client.userSignIn'),
+    refresh_token: t('oauth:client.staySignedIn'),
+    client_credentials: t('oauth:client.serviceToServiceCalls'),
   }
-  return (
-    types.map((item) => labels[item] || item).join(' · ') || t('authCenter:messages.notConfigured')
-  )
+  return types.map((item) => labels[item] || item).join(' · ') || t('oauth:client.notConfigured')
 }
 
 /** 处理客户端行操作 */
@@ -1097,7 +1079,7 @@ async function submit() {
   try {
     const action = form.clientId ? updateOAuthClient : addOAuthClient
     await action(payload())
-    proxy.$modal.msgSuccess(t('authCenter:messages.applicationSettingsSaved'))
+    proxy.$modal.msgSuccess(t('oauth:client.applicationSettingsSaved'))
     editorOpen.value = false
     await getList()
   } finally {
@@ -1110,10 +1092,10 @@ async function changeStatus(row, status) {
   const verb = status === '0' ? t('system:oauth.enable') : t('system:oauth.disabled')
   try {
     await proxy.$modal.confirm(
-      t('auth:interface.valueApplicationValue', { value0: verb, value1: row.clientName })
+      t('oauth:client.valueApplicationValue', { value0: verb, value1: row.clientName })
     )
     await changeOAuthClientStatus({ clientId: row.clientId, status })
-    proxy.$modal.msgSuccess(t('auth:interface.valueSucceeded', { value0: verb }))
+    proxy.$modal.msgSuccess(t('oauth:client.valueSucceeded', { value0: verb }))
     await getList()
   } catch {
     // 用户取消或请求失败时刷新事实状态，避免保留乐观 UI
@@ -1124,7 +1106,7 @@ async function changeStatus(row, status) {
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    t('auth:interface.disablingValueAlsoRevokesItsGrantsAndRefreshCredentialsContinue', {
+    t('oauth:client.disablingValueAlsoRevokesItsGrantsAndRefreshCredentialsContinue', {
       value0: row.clientName,
     })
   )
@@ -1136,7 +1118,7 @@ async function handleDelete(row) {
 /** 轮换客户端密钥并显示一次性明文 */
 async function rotateSecret(row) {
   await proxy.$modal.confirm(
-    t('auth:interface.generateANewSecretForValueTheOldSecretWillEnterALimitedRetirement', {
+    t('oauth:client.generateANewSecretForValueTheOldSecretWillEnterALimitedRetirement', {
       value0: row.clientName,
     })
   )

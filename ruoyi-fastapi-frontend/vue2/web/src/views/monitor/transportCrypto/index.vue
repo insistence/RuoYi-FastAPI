@@ -715,7 +715,7 @@ export default {
         return t('monitor:messages.stable')
       }
       if (this.decryptSuccessRate >= 95) {
-        return t('authCenter:messages.good')
+        return t('common:good')
       }
       if (this.decryptSuccessRate >= 80) {
         return t('monitor:messages.attention')

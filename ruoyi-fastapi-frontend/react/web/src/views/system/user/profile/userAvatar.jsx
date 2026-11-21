@@ -38,7 +38,7 @@ async function cropImage(source, area, rotation) {
     .drawImage(rotated, area.x, area.y, area.width, area.height, 0, 0, 200, 200)
   return new Promise((resolve, reject) =>
     result.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error(t('system:unableToCropTheImage')))),
+      (blob) => (blob ? resolve(blob) : reject(new Error(t('system:user.unableToCropTheImage')))),
       'image/png'
     )
   )
@@ -81,7 +81,7 @@ export default function UserAvatar() {
   )
   function selectFile(file) {
     if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
-      message.error(t('system:uploadAJpgPngWebpOrGifImage'))
+      message.error(t('system:user.uploadAJpgPngWebpOrGifImage'))
       return Upload.LIST_IGNORE
     }
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current)
@@ -117,8 +117,8 @@ export default function UserAvatar() {
     <>
       <Button
         type="text"
-        aria-label={t('system:changeAvatar')}
-        title={t('system:clickToUploadAvatar')}
+        aria-label={t('system:user.changeAvatar')}
+        title={t('system:user.clickToUploadAvatar')}
         className="user-avatar-button"
         onClick={() => {
           setSource(avatar)
@@ -135,7 +135,7 @@ export default function UserAvatar() {
       </Button>
       <Modal
         className="avatar-crop-dialog"
-        title={t('system:changeAvatar')}
+        title={t('system:user.changeAvatar')}
         footer={null}
         open={open}
         afterOpenChange={setVisible}
@@ -171,7 +171,7 @@ export default function UserAvatar() {
             <div className="avatar-preview-area">
               <img
                 src={preview || source}
-                alt={t('system:avatarCropPreview')}
+                alt={t('system:user.avatarCropPreview')}
               />
             </div>
           </Col>
@@ -200,7 +200,7 @@ export default function UserAvatar() {
           >
             <Button
               icon={<PlusOutlined />}
-              aria-label={t('system:zoomIn')}
+              aria-label={t('system:user.zoomIn')}
               onClick={() => setZoom((value) => Math.min(3, value + 0.1))}
             />
           </Col>
@@ -210,7 +210,7 @@ export default function UserAvatar() {
           >
             <Button
               icon={<MinusOutlined />}
-              aria-label={t('system:zoomOut')}
+              aria-label={t('system:user.zoomOut')}
               onClick={() => setZoom((value) => Math.max(1, value - 0.1))}
             />
           </Col>
@@ -220,7 +220,7 @@ export default function UserAvatar() {
           >
             <Button
               icon={<UndoOutlined />}
-              aria-label={t('system:rotateLeft')}
+              aria-label={t('system:user.rotateLeft')}
               onClick={() => setRotation((value) => value - 90)}
             />
           </Col>
@@ -230,7 +230,7 @@ export default function UserAvatar() {
           >
             <Button
               icon={<RedoOutlined />}
-              aria-label={t('system:rotateRight')}
+              aria-label={t('system:user.rotateRight')}
               onClick={() => setRotation((value) => value + 90)}
             />
           </Col>
@@ -243,7 +243,7 @@ export default function UserAvatar() {
               loading={saving}
               onClick={submit}
             >
-              {t('system:submit')}
+              {t('system:user.submit')}
             </Button>
           </Col>
         </Row>

@@ -51,11 +51,11 @@ export function GeneratorRate({ showScore, showText, value, ...props }) {
         <span>
           {
             [
-              t('common:veryPoor'),
-              t('common:disappointing'),
-              t('common:average'),
-              t('common:satisfied'),
-              t('common:excellent'),
+              t('components:generatorControls.veryPoor'),
+              t('components:generatorControls.disappointing'),
+              t('components:generatorControls.average'),
+              t('components:generatorControls.satisfied'),
+              t('components:generatorControls.excellent'),
             ][Math.min(4, Math.ceil(value) - 1)]
           }
         </span>

@@ -14,19 +14,19 @@ const RELEASE_STATUSES = {
   },
   partial: {
     get label() {
-      return t('common:partiallyActive')
+      return t('pluginAdmin:release.partiallyActive')
     },
     tagType: 'warning',
   },
   pending_restart: {
     get label() {
-      return t('common:waitingForRestart')
+      return t('pluginAdmin:release.waitingForRestart')
     },
     tagType: 'warning',
   },
   failed: {
     get label() {
-      return t('common:releaseError')
+      return t('pluginAdmin:release.releaseError')
     },
     tagType: 'danger',
   },
@@ -40,16 +40,16 @@ const RELEASE_STATUSES = {
 
 const PREPARATION_LABELS = {
   get idle() {
-    return t('common:notPrepared')
+    return t('pluginAdmin:release.notPrepared')
   },
   get preparing() {
-    return t('common:preparing')
+    return t('pluginAdmin:release.preparing')
   },
   get prepared() {
-    return t('common:prepared')
+    return t('pluginAdmin:release.prepared')
   },
   get failed() {
-    return t('common:preparationFailed')
+    return t('pluginAdmin:release.preparationFailed')
   },
 }
 
@@ -66,17 +66,17 @@ function workerCount(value) {
 export function getPluginReleaseView(plugin = {}) {
   const release = plugin.release || {}
   const status = RELEASE_STATUSES[release.status] || {
-    label: t('common:unknownStatus'),
+    label: t('pluginAdmin:release.unknownStatus'),
     tagType: 'info',
   }
   const error = release.verificationError || release.lastError || ''
   return {
     ...status,
-    label: release.verificationError ? t('common:validationFailed') : status.label,
+    label: release.verificationError ? t('pluginAdmin:release.validationFailed') : status.label,
     tagType: release.verificationError ? 'danger' : status.tagType,
     preparationLabel: PREPARATION_LABELS[release.prepareStatus] || t('common:unknown'),
-    workerSummary: t('common:valueValueOnlineValueExpectedValue', {
-      arg0: plugin.enabled === '1' ? t('common:disabled') : t('common:ready'),
+    workerSummary: t('pluginAdmin:release.valueValueOnlineValueExpectedValue', {
+      arg0: plugin.enabled === '1' ? t('common:disabled') : t('pluginAdmin:release.ready'),
       arg1: workerCount(plugin.enabled === '1' ? release.disabledWorkers : release.healthyWorkers),
       arg2: workerCount(release.liveWorkers),
       arg3: workerCount(release.expectedWorkers),

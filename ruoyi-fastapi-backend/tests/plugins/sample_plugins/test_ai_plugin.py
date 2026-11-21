@@ -161,6 +161,7 @@ async def test_ai_chat_config_detail_returns_vo_when_config_missing(monkeypatch:
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures('ai_catalog')
 async def test_ai_chat_services_rejects_missing_model(monkeypatch: pytest.MonkeyPatch) -> None:
     """校验 AI 对话在模型不存在时返回带消息标识的错误事件。"""
 
@@ -176,11 +177,18 @@ async def test_ai_chat_services_rejects_missing_model(monkeypatch: pytest.Monkey
     )
 
     assert [json.loads(event) async for event in stream] == [
-        {'error': '模型不存在', 'type': 'error', 'msgKey': 'ai.model.notFound', 'msgParams': {}}
+        {
+            'error': '模型不存在',
+            'type': 'error',
+            'msgKey': 'ai.model.notFound',
+            'msgParams': {},
+            'msgDomain': 'plugin.ai',
+        }
     ]
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures('ai_catalog')
 async def test_ai_chat_services_rejects_disabled_model(monkeypatch: pytest.MonkeyPatch) -> None:
     """校验 AI 对话不能使用已停用模型。"""
 
@@ -206,7 +214,13 @@ async def test_ai_chat_services_rejects_disabled_model(monkeypatch: pytest.Monke
     )
 
     assert [json.loads(event) async for event in stream] == [
-        {'error': '模型已停用', 'type': 'error', 'msgKey': 'ai.model.disabled', 'msgParams': {}}
+        {
+            'error': '模型已停用',
+            'type': 'error',
+            'msgKey': 'ai.model.disabled',
+            'msgParams': {},
+            'msgDomain': 'plugin.ai',
+        }
     ]
 
 

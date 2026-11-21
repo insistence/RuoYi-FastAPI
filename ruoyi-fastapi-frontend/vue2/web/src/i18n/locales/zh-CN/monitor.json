@@ -1,4 +1,9 @@
 {
+  "oauthAudit": {
+    "to": "至",
+    "general": "常规",
+    "critical": "严重"
+  },
   "log": {
     "id": "日志编号",
     "businessType": "业务类型",
@@ -51,10 +56,6 @@
   },
   "server": {
     "os": "操作系统"
-  },
-  "oauthAudit": {
-    "general": "常规",
-    "critical": "严重"
   },
   "operlog": {
     "copied": "已复制"

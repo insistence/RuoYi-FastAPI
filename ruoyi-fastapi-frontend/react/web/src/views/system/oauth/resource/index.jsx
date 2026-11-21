@@ -33,13 +33,13 @@ import RightToolbar from '@/components/RightToolbar'
 
 const claimOptions = () =>
   [
-    ['sub', t('system:uniqueUserIdentifier')],
-    ['name', t('system:name')],
+    ['sub', t('oauth:shared.uniqueUserIdentifier')],
+    ['name', t('oauth:shared.name')],
     ['email', t('system:user.email')],
     ['roles', t('system:user.role')],
     ['client_id', t('authCenter:appId')],
-    ['scope', t('system:grantedPermissions')],
-    ['sid', t('system:sessionIdentifier')],
+    ['scope', t('oauth:resource.grantedPermissions')],
+    ['sid', t('oauth:resource.sessionIdentifier')],
   ].map(([value, label]) => ({ value, label: `${label}（${value}）` }))
 const defaults = {
   resourceId: '',
@@ -54,12 +54,12 @@ const defaults = {
   remark: '',
 }
 function duration(value) {
-  if (!value) return t('system:useSystemDefault')
+  if (!value) return t('oauth:resource.useSystemDefault')
   return value % 3600 === 0
-    ? t('system:valueHours', { arg0: value / 3600 })
+    ? t('oauth:resource.valueHours', { arg0: value / 3600 })
     : value % 60 === 0
-      ? t('system:valueMinutes', { arg0: value / 60 })
-      : t('system:valueSeconds', { value })
+      ? t('oauth:resource.valueMinutes', { arg0: value / 60 })
+      : t('oauth:resource.valueSeconds', { value })
 }
 export default function OAuthResource() {
   useI18n()
@@ -114,7 +114,7 @@ export default function OAuthResource() {
       if (!editing) delete data.status
       setSaving(true)
       await (editing ? updateOAuthResource : addOAuthResource)(data)
-      message.success(t('system:resourceSettingsSaved'))
+      message.success(t('oauth:resource.resourceSettingsSaved'))
       setOpen(false)
       await getList()
     } catch {
@@ -126,15 +126,17 @@ export default function OAuthResource() {
     try {
       await confirm(
         enable
-          ? t('system:enableResourceValue', { resourceName: row.resourceName })
-          : t('system:disablingValueStopsIssuanceAndRefreshOfAccessTokens', {
+          ? t('oauth:resource.enableResourceValue', { resourceName: row.resourceName })
+          : t('oauth:resource.disablingValueStopsIssuanceAndRefreshOfAccessTokens', {
               resourceName: row.resourceName,
             })
       )
       await (enable
         ? changeOAuthResourceStatus({ resourceId: row.resourceId, status: '0' })
         : deleteOAuthResources(row.resourceId))
-      message.success(enable ? t('system:resourceEnabled') : t('system:resourceDisabled'))
+      message.success(
+        enable ? t('oauth:resource.resourceEnabled') : t('oauth:resource.resourceDisabled')
+      )
       await getList()
     } catch {}
   }
@@ -153,14 +155,14 @@ export default function OAuthResource() {
     },
     {
       width: 250,
-      title: t('system:tokenAudience'),
+      title: t('oauth:resource.tokenAudience'),
       dataIndex: 'audience',
       ellipsis: true,
       render: (value) => <code className="resource-audience">{value}</code>,
     },
     {
       width: 240,
-      title: t('system:returnedUserInformation'),
+      title: t('oauth:shared.returnedUserInformation'),
       render: (_, row) => (
         <TagSummary
           effect="plain"
@@ -170,14 +172,14 @@ export default function OAuthResource() {
               .find((item) => item.value === value)
               ?.label.split('（')[0] || value
           }
-          empty={t('authCenter:returnNoAdditionalInformation')}
+          empty={t('oauth:shared.returnNoAdditionalInformation')}
         />
       ),
     },
     {
       width: 120,
       align: 'center',
-      title: t('system:validityPeriods'),
+      title: t('oauth:shared.validityPeriods'),
       dataIndex: 'accessTokenTtlSeconds',
       render: duration,
     },
@@ -188,7 +190,7 @@ export default function OAuthResource() {
       dataIndex: 'status',
       render: (value) => (
         <OAuthTag type={value === '0' ? 'success' : 'info'}>
-          {value === '0' ? t('system:inUse') : t('common:disabled')}
+          {value === '0' ? t('oauth:shared.inUse') : t('common:disabled')}
         </OAuthTag>
       ),
     },
@@ -215,13 +217,13 @@ export default function OAuthResource() {
                 row.status !== '0' &&
                   checkPermi(['system:oauthResource:edit']) && {
                     key: 'enable',
-                    label: t('system:reEnable'),
+                    label: t('oauth:shared.reEnable'),
                     onClick: () => change(row, true),
                   },
                 row.status === '0' &&
                   checkPermi(['system:oauthResource:remove']) && {
                     key: 'disable',
-                    label: t('system:disableService'),
+                    label: t('oauth:resource.disableService'),
                     onClick: () => change(row, false),
                   },
               ].filter(Boolean),
@@ -237,9 +239,9 @@ export default function OAuthResource() {
     <PageFrame
       className="oauth-resource-page"
       title={t('common:service')}
-      description={t('system:registerApiServicesThatReceiveAccessCredentialsAndLimit')}
-      section={t('authCenter:integrationManagement')}
-      filterHint={t('system:findServicesByNameOrStatus')}
+      description={t('oauth:resource.registerApiServicesThatReceiveAccessCredentialsAndLimit')}
+      section={t('oauth:shared.integrationManagement')}
+      filterHint={t('oauth:resource.findServicesByNameOrStatus')}
       actions={
         <HasPermi value={['system:oauthResource:add']}>
           <Button
@@ -247,7 +249,7 @@ export default function OAuthResource() {
             type="primary"
             onClick={add}
           >
-            {t('system:addService')}
+            {t('oauth:resource.addService')}
           </Button>
         </HasPermi>
       }
@@ -261,12 +263,12 @@ export default function OAuthResource() {
             onFinish={(values) => setQuery({ ...values, pageNum: 1, pageSize: query.pageSize })}
           >
             <Form.Item
-              label={t('system:serviceName')}
+              label={t('oauth:resource.serviceName')}
               name="resourceName"
             >
               <Input
                 style={{ width: 200 }}
-                placeholder={t('system:enterServiceName')}
+                placeholder={t('oauth:resource.enterServiceName')}
                 allowClear
               />
             </Form.Item>
@@ -279,7 +281,7 @@ export default function OAuthResource() {
                 placeholder={t('common:allStatuses')}
                 allowClear
                 options={[
-                  { value: '0', label: t('system:inUse') },
+                  { value: '0', label: t('oauth:shared.inUse') },
                   { value: '1', label: t('common:disabled') },
                 ]}
               />
@@ -310,7 +312,7 @@ export default function OAuthResource() {
       toolbar={
         <>
           <span className="result-count">
-            {t('system:registered')} <strong>{total}</strong> {t('system:services')}
+            {t('oauth:shared.registered')} <strong>{total}</strong> {t('oauth:resource.services')}
           </span>
           <RightToolbar
             showSearch={showSearch}
@@ -323,13 +325,13 @@ export default function OAuthResource() {
       <Table
         locale={{
           emptyText: (
-            <Empty description={t('system:noMatchingServices')}>
+            <Empty description={t('oauth:resource.noMatchingServices')}>
               <HasPermi value={['system:oauthResource:add']}>
                 <Button
                   type="primary"
                   onClick={add}
                 >
-                  {t('system:addYourFirstService')}
+                  {t('oauth:resource.addYourFirstService')}
                 </Button>
               </HasPermi>
             </Empty>
@@ -350,7 +352,7 @@ export default function OAuthResource() {
       />
       <Modal
         className="oauth-dialog oauth-resource-editor"
-        title={editing ? t('system:editService') : t('system:addService')}
+        title={editing ? t('oauth:resource.editService') : t('oauth:resource.addService')}
         open={open}
         width="min(820px, calc(100vw - 48px))"
         onCancel={() => setOpen(false)}
@@ -364,7 +366,7 @@ export default function OAuthResource() {
               loading={saving}
               onClick={save}
             >
-              {t('system:saveService')}
+              {t('oauth:resource.saveService')}
             </Button>
           </Space>
         }
@@ -380,8 +382,10 @@ export default function OAuthResource() {
         >
           <section className="form-section">
             <div className="section-heading">
-              <h3>{t('system:serviceIdentity')}</h3>
-              <p>{t('system:applicationsRequestAccessUsingTheServiceIdentifierServicesUse')}</p>
+              <h3>{t('oauth:resource.serviceIdentity')}</h3>
+              <p>
+                {t('oauth:resource.applicationsRequestAccessUsingTheServiceIdentifierServicesUse')}
+              </p>
             </div>
             <Row gutter={18}>
               <Col
@@ -392,15 +396,17 @@ export default function OAuthResource() {
                   name="resourceName"
                   label={
                     <FieldLabel
-                      label={t('system:serviceName')}
-                      help={t('authCenter:aDisplayNameThatHelpsAdministratorsIdentifyThisService')}
+                      label={t('oauth:resource.serviceName')}
+                      help={t(
+                        'oauth:resource.aDisplayNameThatHelpsAdministratorsIdentifyThisService'
+                      )}
                     />
                   }
                   rules={[{ required: true, whitespace: true }]}
                 >
                   <Input
                     maxLength={100}
-                    placeholder={t('system:forExampleOrderService')}
+                    placeholder={t('oauth:resource.forExampleOrderService')}
                   />
                 </Form.Item>
               </Col>
@@ -412,9 +418,9 @@ export default function OAuthResource() {
                   name="resourceId"
                   label={
                     <FieldLabel
-                      label={t('system:serviceIdentifier')}
+                      label={t('oauth:resource.serviceIdentifier')}
                       help={t(
-                        'authCenter:applicationsAssociateThisServiceWithItsUniqueIdentifierWhichCannot'
+                        'oauth:resource.applicationsAssociateThisServiceWithItsUniqueIdentifierWhichCannot'
                       )}
                     />
                   }
@@ -423,7 +429,7 @@ export default function OAuthResource() {
                   <Input
                     disabled={editing}
                     maxLength={100}
-                    placeholder={t('system:forExampleOrdersApi')}
+                    placeholder={t('oauth:resource.forExampleOrdersApi')}
                   />
                 </Form.Item>
               </Col>
@@ -432,8 +438,8 @@ export default function OAuthResource() {
               name="audience"
               label={
                 <FieldLabel
-                  label={t('system:tokenAudience')}
-                  help={t('authCenter:theUniqueValueUsedByTheServiceToValidateAccess')}
+                  label={t('oauth:resource.tokenAudience')}
+                  help={t('oauth:resource.theUniqueValueUsedByTheServiceToValidateAccess')}
                 />
               }
               rules={[{ required: true, whitespace: true }]}
@@ -441,14 +447,16 @@ export default function OAuthResource() {
               <Input
                 disabled={editing}
                 maxLength={500}
-                placeholder={t('system:forExampleHttpsApiExampleCom')}
+                placeholder={t('oauth:resource.forExampleHttpsApiExampleCom')}
               />
             </Form.Item>
           </section>
           <section className="form-section">
             <div className="section-heading">
-              <h3>{t('system:credentialsAndUserInformation')}</h3>
-              <p>{t('system:controlAccessCredentialLifetimesAndTheMaximumUserInformation')}</p>
+              <h3>{t('oauth:resource.credentialsAndUserInformation')}</h3>
+              <p>
+                {t('oauth:resource.controlAccessCredentialLifetimesAndTheMaximumUserInformation')}
+              </p>
             </div>
             <Row gutter={18}>
               <Col
@@ -458,8 +466,10 @@ export default function OAuthResource() {
                 <Form.Item
                   label={
                     <FieldLabel
-                      label={t('system:validityPeriods')}
-                      help={t('authCenter:theMaximumLifetimeOfAccessTokensReceivedByTheService')}
+                      label={t('oauth:shared.validityPeriods')}
+                      help={t(
+                        'oauth:resource.theMaximumLifetimeOfAccessTokensReceivedByTheService'
+                      )}
                     />
                   }
                 >
@@ -471,7 +481,7 @@ export default function OAuthResource() {
                       <InputNumber
                         min={1}
                         precision={0}
-                        placeholder={t('pluginAdmin:platformDefault')}
+                        placeholder={t('oauth:shared.platformDefault')}
                       />
                     </Form.Item>
                     <span className="input-unit">{t('common:seconds')}</span>
@@ -486,14 +496,16 @@ export default function OAuthResource() {
                   name="introspectionClientId"
                   label={
                     <FieldLabel
-                      label={t('system:tokenIntrospectionApplication')}
-                      help={t('authCenter:optionalEnterABackendApplicationIdToCheckWhetherTokens')}
+                      label={t('oauth:resource.tokenIntrospectionApplication')}
+                      help={t(
+                        'oauth:resource.optionalEnterABackendApplicationIdToCheckWhetherTokens'
+                      )}
                     />
                   }
                 >
                   <Input
                     allowClear
-                    placeholder={t('system:optionalBackendApplicationId')}
+                    placeholder={t('oauth:resource.optionalBackendApplicationId')}
                   />
                 </Form.Item>
               </Col>
@@ -502,8 +514,8 @@ export default function OAuthResource() {
               name="allowedClaims"
               label={
                 <FieldLabel
-                  label={t('system:allowedUserInformation')}
-                  help={t('authCenter:limitsTheUserInformationThisServiceCanReceiveTheFinal')}
+                  label={t('oauth:resource.allowedUserInformation')}
+                  help={t('oauth:resource.limitsTheUserInformationThisServiceCanReceiveTheFinal')}
                 />
               }
               rules={[
@@ -511,14 +523,14 @@ export default function OAuthResource() {
                   required: true,
                   type: 'array',
                   min: 1,
-                  message: t('system:selectAtLeastOneAllowedUserInformationField'),
+                  message: t('oauth:resource.selectAtLeastOneAllowedUserInformationField'),
                 },
               ]}
             >
               <Select
                 mode="tags"
                 options={claimOptions()}
-                placeholder={t('system:selectOrEnterUserFields')}
+                placeholder={t('oauth:shared.selectOrEnterUserFields')}
               />
             </Form.Item>
             <Form.Item

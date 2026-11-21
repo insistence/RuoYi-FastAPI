@@ -2,7 +2,7 @@
   <el-dialog
     custom-class="oauth-overlay"
     :visible.sync="visible"
-    :title="$t('authCenter:messages.saveTheApplicationSecret')"
+    :title="$t('oauth:client.saveTheApplicationSecret')"
     width="min(680px, calc(100vw - 48px))"
     append-to-body
     :close-on-click-modal="false"
@@ -15,10 +15,10 @@
       <el-form-item>
         <template #label
           ><FieldLabel
-            :label="$t('authCenter:appId')"
+            :label="$t('oauth:shared.appId')"
             :help="
               $t(
-                'authCenter:help.theSystemGeneratedApplicationIDCopyItToConfigureTheExternalApplication'
+                'oauth:client.theSystemGeneratedApplicationIDCopyItToConfigureTheExternalApplication'
               )
             "
         /></template>
@@ -30,8 +30,8 @@
       <el-form-item>
         <template #label
           ><FieldLabel
-            :label="$t('authCenter:messages.applicationSecret')"
-            :help="$t('authCenter:help.theApplicationSecretActsAsItsPasswordAndIsShownOnlyOnce')"
+            :label="$t('oauth:client.applicationSecret')"
+            :help="$t('oauth:client.theApplicationSecretActsAsItsPasswordAndIsShownOnlyOnce')"
         /></template>
         <el-input
           :value="secret.clientSecret"
@@ -48,7 +48,7 @@
       </el-form-item>
     </el-form>
     <el-checkbox v-model="confirmed">{{
-      $t('authCenter:messages.iHaveStoredTheSecretSecurely')
+      $t('oauth:client.iHaveStoredTheSecretSecurely')
     }}</el-checkbox>
     <template #footer>
       <el-button
@@ -95,11 +95,9 @@ async function copySecret() {
   }
   try {
     await navigator.clipboard.writeText(props.secret.clientSecret)
-    proxy.$modal.msgSuccess(t('authCenter:messages.secretCopied'))
+    proxy.$modal.msgSuccess(t('oauth:client.secretCopied'))
   } catch {
-    proxy.$modal.msgError(
-      t('authCenter:messages.theBrowserDeniedClipboardAccessCopyTheSecretManually')
-    )
+    proxy.$modal.msgError(t('oauth:client.theBrowserDeniedClipboardAccessCopyTheSecretManually'))
   }
 }
 

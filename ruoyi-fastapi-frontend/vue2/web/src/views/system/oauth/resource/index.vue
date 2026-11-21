@@ -1,14 +1,14 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('authCenter:help.integrationManagement')"
+      :section="$t('oauth:shared.integrationManagement')"
       :title="$t('common:service')"
       :description="
         $t(
-          'authCenter:messages.registerAPIServicesThatReceiveAccessCredentialsAndLimitTheUserInformation'
+          'oauth:resource.registerAPIServicesThatReceiveAccessCredentialsAndLimitTheUserInformation'
         )
       "
-      :filter-hint="$t('authCenter:messages.findServicesByNameOrStatus')"
+      :filter-hint="$t('oauth:resource.findServicesByNameOrStatus')"
     >
       <template #actions>
         <el-button
@@ -16,7 +16,7 @@
           icon="el-icon-plus"
           v-hasPermi="['system:oauthResource:add']"
           @click="handleAdd"
-          >{{ $t('authCenter:messages.addService') }}</el-button
+          >{{ $t('oauth:resource.addService') }}</el-button
         >
       </template>
 
@@ -29,13 +29,13 @@
           :inline="true"
         >
           <el-form-item
-            :label="$t('authCenter:messages.serviceName')"
+            :label="$t('oauth:resource.serviceName')"
             prop="resourceName"
           >
             <el-input
               v-model="queryParams.resourceName"
               clearable
-              :placeholder="$t('authCenter:messages.enterServiceName')"
+              :placeholder="$t('oauth:resource.enterServiceName')"
               style="width: 200px"
               @keyup.enter.native="handleQuery"
             />
@@ -51,7 +51,7 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('authCenter:messages.inUse')"
+                :label="$t('oauth:shared.inUse')"
                 value="0"
               />
               <el-option
@@ -78,8 +78,8 @@
 
       <template #toolbar>
         <span class="result-count"
-          >{{ $t('authCenter:messages.registered') }} <strong>{{ total }}</strong>
-          {{ $t('authCenter:messages.services') }}</span
+          >{{ $t('oauth:shared.registered') }} <strong>{{ total }}</strong>
+          {{ $t('oauth:resource.services') }}</span
         >
         <right-toolbar
           :showSearch.sync="showSearch"
@@ -112,7 +112,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.tokenAudience')"
+          :label="$t('oauth:resource.tokenAudience')"
           prop="audience"
           min-width="250"
           show-overflow-tooltip
@@ -122,7 +122,7 @@
           >
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.returnedUserInformation')"
+          :label="$t('oauth:shared.returnedUserInformation')"
           min-width="240"
         >
           <template #default="scope">
@@ -143,14 +143,14 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.validityPeriods')"
+          :label="$t('oauth:shared.validityPeriods')"
           width="120"
           align="center"
         >
           <template #default="scope">{{
             scope.row.accessTokenTtlSeconds
               ? formatDuration(scope.row.accessTokenTtlSeconds)
-              : $t('pluginAdmin:platformDefault')
+              : $t('oauth:shared.platformDefault')
           }}</template>
         </el-table-column>
         <el-table-column
@@ -161,7 +161,7 @@
           <template #default="scope">
             <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">{{
               scope.row.status === '0'
-                ? $t('authCenter:messages.inUse')
+                ? $t('oauth:shared.inUse')
                 : $t('pluginAdmin:release.disabled')
             }}</el-tag>
           </template>
@@ -197,14 +197,14 @@
                       command="enable"
                       icon="el-icon-circle-check"
                       v-hasPermi="['system:oauthResource:edit']"
-                      >{{ $t('authCenter:messages.reEnable') }}</el-dropdown-item
+                      >{{ $t('oauth:shared.reEnable') }}</el-dropdown-item
                     >
                     <el-dropdown-item
                       v-else
                       command="disable"
                       icon="el-icon-circle-close"
                       v-hasPermi="['system:oauthResource:remove']"
-                      >{{ $t('authCenter:messages.disableService') }}</el-dropdown-item
+                      >{{ $t('oauth:resource.disableService') }}</el-dropdown-item
                     >
                   </el-dropdown-menu>
                 </template>
@@ -213,12 +213,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('authCenter:messages.noMatchingServices')">
+          <el-empty :description="$t('oauth:resource.noMatchingServices')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthResource:add']"
               @click="handleAdd"
-              >{{ $t('authCenter:messages.addYourFirstService') }}</el-button
+              >{{ $t('oauth:resource.addYourFirstService') }}</el-button
             >
           </el-empty>
         </template>
@@ -235,11 +235,7 @@
     <el-dialog
       custom-class="oauth-overlay"
       :visible.sync="open"
-      :title="
-        form.persisted
-          ? $t('authCenter:expression.editService')
-          : $t('authCenter:messages.addService')
-      "
+      :title="form.persisted ? $t('oauth:resource.editService') : $t('oauth:resource.addService')"
       width="min(820px, calc(100vw - 48px))"
       append-to-body
       :close-on-click-modal="false"
@@ -254,11 +250,11 @@
       >
         <section class="form-section">
           <div class="section-heading">
-            <h3>{{ $t('authCenter:messages.serviceIdentity') }}</h3>
+            <h3>{{ $t('oauth:resource.serviceIdentity') }}</h3>
             <p>
               {{
                 $t(
-                  'authCenter:messages.applicationsRequestAccessUsingTheServiceIdentifierServicesUseTheTokenAudience'
+                  'oauth:resource.applicationsRequestAccessUsingTheServiceIdentifierServicesUseTheTokenAudience'
                 )
               }}
             </p>
@@ -271,14 +267,14 @@
               <el-form-item prop="resourceName">
                 <template #label
                   ><FieldLabel
-                    :label="$t('authCenter:messages.serviceName')"
+                    :label="$t('oauth:resource.serviceName')"
                     :help="
-                      $t('authCenter:help.aDisplayNameThatHelpsAdministratorsIdentifyThisService')
+                      $t('oauth:resource.aDisplayNameThatHelpsAdministratorsIdentifyThisService')
                     "
                 /></template>
                 <el-input
                   v-model="form.resourceName"
-                  :placeholder="$t('authCenter:messages.forExampleOrderService')"
+                  :placeholder="$t('oauth:resource.forExampleOrderService')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -290,17 +286,17 @@
               <el-form-item prop="resourceId">
                 <template #label
                   ><FieldLabel
-                    :label="$t('authCenter:messages.serviceIdentifier')"
+                    :label="$t('oauth:resource.serviceIdentifier')"
                     :help="
                       $t(
-                        'authCenter:help.applicationsAssociateThisServiceWithItsUniqueIdentifierWhichCannotBeChanged'
+                        'oauth:resource.applicationsAssociateThisServiceWithItsUniqueIdentifierWhichCannotBeChanged'
                       )
                     "
                 /></template>
                 <el-input
                   v-model="form.resourceId"
                   :disabled="form.persisted"
-                  :placeholder="$t('authCenter:messages.forExampleOrdersApi')"
+                  :placeholder="$t('oauth:resource.forExampleOrdersApi')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -309,15 +305,13 @@
           <el-form-item prop="audience">
             <template #label
               ><FieldLabel
-                :label="$t('authCenter:messages.tokenAudience')"
-                :help="
-                  $t('authCenter:help.theUniqueValueUsedByTheServiceToValidateAccessTokensIt')
-                "
+                :label="$t('oauth:resource.tokenAudience')"
+                :help="$t('oauth:resource.theUniqueValueUsedByTheServiceToValidateAccessTokensIt')"
             /></template>
             <el-input
               v-model="form.audience"
               :disabled="form.persisted"
-              :placeholder="$t('authCenter:messages.forExampleHttpsApiExampleCom')"
+              :placeholder="$t('oauth:resource.forExampleHttpsApiExampleCom')"
               style="width: 100%"
             />
           </el-form-item>
@@ -325,11 +319,11 @@
 
         <section class="form-section">
           <div class="section-heading">
-            <h3>{{ $t('authCenter:messages.credentialsAndUserInformation') }}</h3>
+            <h3>{{ $t('oauth:resource.credentialsAndUserInformation') }}</h3>
             <p>
               {{
                 $t(
-                  'authCenter:messages.controlAccessCredentialLifetimesAndTheMaximumUserInformationThisServiceMay'
+                  'oauth:resource.controlAccessCredentialLifetimesAndTheMaximumUserInformationThisServiceMay'
                 )
               }}
             </p>
@@ -342,10 +336,10 @@
               <el-form-item class="duration-field">
                 <template #label
                   ><FieldLabel
-                    :label="$t('authCenter:messages.validityPeriods')"
+                    :label="$t('oauth:shared.validityPeriods')"
                     :help="
                       $t(
-                        'authCenter:help.theMaximumLifetimeOfAccessTokensReceivedByTheServiceLeaveEmpty'
+                        'oauth:resource.theMaximumLifetimeOfAccessTokensReceivedByTheServiceLeaveEmpty'
                       )
                     "
                 /></template>
@@ -353,7 +347,7 @@
                   :value="form.accessTokenTtlSeconds ?? undefined"
                   @input="form.accessTokenTtlSeconds = $event ?? null"
                   :min="1"
-                  :placeholder="$t('pluginAdmin:platformDefault')"
+                  :placeholder="$t('oauth:shared.platformDefault')"
                   controls-position="right"
                   style="width: 100%"
                 />
@@ -367,16 +361,16 @@
               <el-form-item>
                 <template #label
                   ><FieldLabel
-                    :label="$t('authCenter:messages.tokenIntrospectionApplication')"
+                    :label="$t('oauth:resource.tokenIntrospectionApplication')"
                     :help="
                       $t(
-                        'authCenter:help.optionalEnterABackendApplicationIDToCheckWhetherTokensRemainValid'
+                        'oauth:resource.optionalEnterABackendApplicationIDToCheckWhetherTokensRemainValid'
                       )
                     "
                 /></template>
                 <el-input
                   v-model="form.introspectionClientId"
-                  :placeholder="$t('authCenter:messages.optionalBackendApplicationID')"
+                  :placeholder="$t('oauth:resource.optionalBackendApplicationID')"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -385,10 +379,10 @@
           <el-form-item prop="allowedClaims">
             <template #label
               ><FieldLabel
-                :label="$t('authCenter:messages.allowedUserInformation')"
+                :label="$t('oauth:resource.allowedUserInformation')"
                 :help="
                   $t(
-                    'authCenter:help.limitsTheUserInformationThisServiceCanReceiveTheFinalResultAlso'
+                    'oauth:resource.limitsTheUserInformationThisServiceCanReceiveTheFinalResultAlso'
                   )
                 "
             /></template>
@@ -398,7 +392,7 @@
               filterable
               allow-create
               default-first-option
-              :placeholder="$t('authCenter:messages.selectOrEnterUserFields')"
+              :placeholder="$t('oauth:shared.selectOrEnterUserFields')"
               style="width: 100%"
             >
               <el-option
@@ -415,7 +409,7 @@
                 :label="$t('common:remark')"
                 :help="
                   $t(
-                    'authCenter:help.forAdministratorsRecordsOnlyThisIsNotSentToExternalApplicationsOr'
+                    'oauth:resource.forAdministratorsRecordsOnlyThisIsNotSentToExternalApplicationsOr'
                   )
                 "
             /></template>
@@ -436,7 +430,7 @@
           type="primary"
           :loading="saving"
           @click="submitForm"
-          >{{ $t('authCenter:messages.saveService') }}</el-button
+          >{{ $t('oauth:resource.saveService') }}</el-button
         >
       </template>
     </el-dialog>
@@ -480,43 +474,43 @@ const claimOptions = [
   {
     value: 'sub',
     get label() {
-      return t('auth:interface.userIdentifierSub')
+      return t('oauth:shared.userIdentifierSub')
     },
   },
   {
     value: 'name',
     get label() {
-      return t('auth:interface.nameName')
+      return t('oauth:shared.nameName')
     },
   },
   {
     value: 'email',
     get label() {
-      return t('auth:interface.emailEmail')
+      return t('oauth:shared.emailEmail')
     },
   },
   {
     value: 'roles',
     get label() {
-      return t('auth:interface.rolesRoles')
+      return t('oauth:shared.rolesRoles')
     },
   },
   {
     value: 'client_id',
     get label() {
-      return t('auth:interface.clientIDClientId')
+      return t('oauth:resource.clientIDClientId')
     },
   },
   {
     value: 'scope',
     get label() {
-      return t('auth:interface.grantedPermissionsScope')
+      return t('oauth:resource.grantedPermissionsScope')
     },
   },
   {
     value: 'sid',
     get label() {
-      return t('auth:interface.sessionIDSid')
+      return t('oauth:resource.sessionIDSid')
     },
   },
 ]
@@ -525,7 +519,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('auth:interface.enterAServiceIdentifier')
+        return t('oauth:resource.enterAServiceIdentifier')
       },
       trigger: 'blur',
     },
@@ -534,7 +528,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('auth:interface.enterAServiceName')
+        return t('oauth:resource.enterAServiceName')
       },
       trigger: 'blur',
     },
@@ -543,7 +537,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('auth:interface.enterTheTokenAudienceUsuallyTheServiceURL')
+        return t('oauth:resource.enterTheTokenAudienceUsuallyTheServiceURL')
       },
       trigger: 'blur',
     },
@@ -553,7 +547,7 @@ const rules = {
       required: true,
       type: 'array',
       min: 1,
-      message: () => t('authCenter:messages.selectAtLeastOneAllowedUserInformationField'),
+      message: () => t('oauth:resource.selectAtLeastOneAllowedUserInformationField'),
       trigger: 'change',
     },
   ],
@@ -634,7 +628,7 @@ async function submitForm() {
       delete data.status
     }
     await (persisted ? updateOAuthResource(data) : addOAuthResource(data))
-    proxy.$modal.msgSuccess(t('authCenter:messages.resourceSettingsSaved'))
+    proxy.$modal.msgSuccess(t('oauth:resource.resourceSettingsSaved'))
     open.value = false
     await getList()
   } finally {
@@ -646,7 +640,7 @@ async function submitForm() {
 async function changeStatus(row, status) {
   try {
     await proxy.$modal.confirm(
-      t('auth:interface.valueResourceValue', {
+      t('oauth:resource.valueResourceValue', {
         value0: status === '0' ? t('system:oauth.enable') : t('system:oauth.disabled'),
         value1: row.resourceName,
       })
@@ -661,12 +655,12 @@ async function changeStatus(row, status) {
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    t('auth:interface.disablingValueStopsIssuanceAndRefreshOfAccessTokensForThisServiceContinue', {
+    t('oauth:resource.disablingValueStopsIssuanceAndRefreshOfAccessTokensForThisServiceContinue', {
       value0: row.resourceName,
     })
   )
   await deleteOAuthResources(row.resourceId)
-  proxy.$modal.msgSuccess(t('authCenter:messages.resourceDisabled'))
+  proxy.$modal.msgSuccess(t('oauth:resource.resourceDisabled'))
   await getList()
 }
 
@@ -689,12 +683,12 @@ function claimLabel(value) {
 function formatDuration(value) {
   const seconds = Number(value) || 0
   if (seconds >= 3600 && seconds % 3600 === 0) {
-    return t('auth:interface.valueHours', { value0: seconds / 3600 })
+    return t('oauth:resource.valueHours', { value0: seconds / 3600 })
   }
   if (seconds >= 60 && seconds % 60 === 0) {
-    return t('auth:interface.valueMinutes', { value0: seconds / 60 })
+    return t('oauth:resource.valueMinutes', { value0: seconds / 60 })
   }
-  return t('auth:interface.valueSeconds', { value0: seconds })
+  return t('oauth:resource.valueSeconds', { value0: seconds })
 }
 
 getList()

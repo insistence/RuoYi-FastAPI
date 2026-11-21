@@ -12,7 +12,7 @@ export default function JsonEditor({
   onChange,
   onBlur,
   readOnly = false,
-  label = t('common:jsonParameters'),
+  label = t('components:jsonEditor.jsonParameters'),
   valueType = 'object',
   validate,
   rows = 7,
@@ -131,7 +131,11 @@ export default function JsonEditor({
       style={props.style}
     >
       <div className="json-editor-toolbar">
-        <span>{valueType === 'array' ? t('common:jsonArray') : t('common:jsonObject')}</span>
+        <span>
+          {valueType === 'array'
+            ? t('components:jsonEditor.jsonArray')
+            : t('components:jsonEditor.jsonObject')}
+        </span>
         <Space>
           <Button
             type="link"
@@ -139,16 +143,16 @@ export default function JsonEditor({
             icon={<SlidersOutlined />}
             disabled={readOnly || !validation.valid || (!ready && !failed)}
             onClick={format}
-            aria-label={t('common:formatValue', { name })}
+            aria-label={t('components:jsonEditor.formatValue', { name })}
           >
-            {t('common:format')}
+            {t('components:jsonEditor.format')}
           </Button>
           <Button
             type="text"
             size="small"
             icon={<FullscreenOutlined />}
             onClick={() => setExpanded(!expanded)}
-            aria-label={t('common:valuevalueEditor', {
+            aria-label={t('components:jsonEditor.valuevalueEditor', {
               arg0: expanded ? t('common:collapse') : t('common:expand'),
               name,
             })}
@@ -167,7 +171,7 @@ export default function JsonEditor({
         )}
         {!ready && !failed && (
           <div className="json-editor-loading">
-            <Spin size="small" /> {t('common:loadingEditor')}
+            <Spin size="small" /> {t('components:jsonEditor.loadingEditor')}
           </div>
         )}
         {failed && (
@@ -188,7 +192,7 @@ export default function JsonEditor({
             role="status"
             className="json-editor-valid"
           >
-            {t('common:validFormat')}
+            {t('components:jsonEditor.validFormat')}
           </Typography.Text>
         ) : (
           <Button
@@ -197,7 +201,7 @@ export default function JsonEditor({
             onClick={revealError}
           >
             {marker &&
-              t('common:lineValueColumnValue', {
+              t('components:jsonEditor.lineValueColumnValue', {
                 startLineNumber: marker.startLineNumber,
                 startColumn: marker.startColumn,
               })}
@@ -207,8 +211,8 @@ export default function JsonEditor({
         {validation.valid && (
           <Typography.Text type="secondary">
             {failed
-              ? t('common:failedToLoadTheEditorPlainTextInputIs')
-              : t('common:tabToChangeFocusAltShiftFToFormat')}
+              ? t('components:jsonEditor.failedToLoadTheEditorPlainTextInputIs')
+              : t('components:jsonEditor.tabToChangeFocusAltShiftFToFormat')}
           </Typography.Text>
         )}
       </div>

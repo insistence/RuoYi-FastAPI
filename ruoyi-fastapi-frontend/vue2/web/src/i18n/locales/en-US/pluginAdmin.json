@@ -6,8 +6,6 @@
   "dependencies": "Dependencies",
   "dependencyTitle": "Plugin dependencies",
   "menuConflict": "Menu conflicts",
-  "accessibleServices": "Accessible services",
-  "platformDefault": "Platform default",
   "id": "Plugin ID",
   "name": "Plugin name",
   "enableSettings": "Enable settings",

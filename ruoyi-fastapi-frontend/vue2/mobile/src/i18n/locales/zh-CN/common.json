@@ -9,18 +9,6 @@
   "retry": "重试",
   "languageSaved": "语言设置已保存",
   "languageFailed": "语言设置保存失败，请重试",
-  "login": {
-    "title": "若依管理系统",
-    "username": "账号",
-    "password": "密码",
-    "code": "验证码",
-    "remember": "记住密码",
-    "submit": "登 录",
-    "signingIn": "登录中，请耐心等待...",
-    "usernameRequired": "请输入账号",
-    "passwordRequired": "请输入密码",
-    "codeRequired": "请输入验证码"
-  },
   "network": {
     "error": "后端接口连接异常",
     "timeout": "系统接口请求超时",

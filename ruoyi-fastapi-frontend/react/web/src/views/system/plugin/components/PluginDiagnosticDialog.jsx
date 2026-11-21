@@ -14,7 +14,7 @@ import PluginTag from './PluginTag'
 
 export default function PluginDiagnosticDialog({
   open,
-  title = t('system:pluginDiagnostics'),
+  title = t('pluginAdmin:diagnostics.pluginDiagnostics'),
   result = {},
   loading,
   onClose,
@@ -67,14 +67,14 @@ export default function PluginDiagnosticDialog({
             ? [
                 {
                   key: 'health',
-                  label: t('system:healthStatus'),
+                  label: t('pluginAdmin:diagnostics.healthStatus'),
                   children: (
                     <>
                       <Descriptions
                         bordered
                         column={2}
                         items={[
-                          [t('system:checker'), health.checker],
+                          [t('pluginAdmin:diagnostics.checker'), health.checker],
                           [t('common:status'), health.status],
                           [t('common:description'), health.message],
                           [t('common:error'), health.error],
@@ -102,7 +102,7 @@ export default function PluginDiagnosticDialog({
             ? [
                 {
                   key: 'check',
-                  label: t('system:checkSummary'),
+                  label: t('pluginAdmin:diagnostics.checkSummary'),
                   children: (
                     <>
                       <Descriptions
@@ -117,7 +117,10 @@ export default function PluginDiagnosticDialog({
                             formatBoolean(check.pluginDependencyOk),
                           ],
                           [t('pluginAdmin:menuConflict'), formatBoolean(check.menuConflictOk)],
-                          [t('system:configurationItem'), diagnose.config?.summary?.total ?? '-'],
+                          [
+                            t('pluginAdmin:diagnostics.configurationItem'),
+                            diagnose.config?.summary?.total ?? '-',
+                          ],
                         ].map(([label, children]) => ({
                           key: label,
                           label,
@@ -129,7 +132,7 @@ export default function PluginDiagnosticDialog({
                         size="small"
                         bordered
                         scroll={{ x: 820 }}
-                        locale={{ emptyText: t('system:noDiagnosticIssues') }}
+                        locale={{ emptyText: t('pluginAdmin:diagnostics.noDiagnosticIssues') }}
                         rowKey={(_, index) => index}
                         pagination={false}
                         dataSource={validation}
@@ -137,7 +140,7 @@ export default function PluginDiagnosticDialog({
                           {
                             width: 120,
                             align: 'center',
-                            title: t('system:category'),
+                            title: t('pluginAdmin:shared.category'),
                             dataIndex: 'category',
                           },
                           {
@@ -152,7 +155,7 @@ export default function PluginDiagnosticDialog({
                             ),
                           },
                           { width: 170, title: t('common:type'), dataIndex: 'kind' },
-                          { width: 180, title: t('system:object'), dataIndex: 'value' },
+                          { width: 180, title: t('pluginAdmin:shared.object'), dataIndex: 'value' },
                           { width: 260, title: t('common:description'), dataIndex: 'message' },
                         ]}
                       />
@@ -161,7 +164,7 @@ export default function PluginDiagnosticDialog({
                 },
                 {
                   key: 'menus',
-                  label: t('system:menuPlan'),
+                  label: t('pluginAdmin:diagnostics.menuPlan'),
                   children: (
                     <Input.TextArea
                       value={formatJson(diagnose.menuPlan)}
@@ -174,7 +177,7 @@ export default function PluginDiagnosticDialog({
             : []),
           {
             key: 'raw',
-            label: t('system:rawData'),
+            label: t('pluginAdmin:diagnostics.rawData'),
             children: (
               <Input.TextArea
                 value={formatJson(result)}

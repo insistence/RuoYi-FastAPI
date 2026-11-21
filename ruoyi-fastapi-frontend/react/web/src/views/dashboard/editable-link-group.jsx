@@ -43,7 +43,9 @@ export default function EditableLinkGroup() {
             target="_blank"
             rel="noreferrer"
           >
-            {item.preset ? t('common:actionValue', { number: item.preset }) : item.title}
+            {item.preset
+              ? t('dashboard:overview.actionValue', { number: item.preset })
+              : item.title}
           </a>
         ))}
         <Button
@@ -53,11 +55,11 @@ export default function EditableLinkGroup() {
           icon={<PlusOutlined />}
           onClick={() => setOpen(true)}
         >
-          {t('common:dashboard.add')}
+          {t('dashboard:add')}
         </Button>
       </div>
       <Modal
-        title={t('common:addShortcut')}
+        title={t('dashboard:overview.addShortcut')}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={add}
@@ -81,7 +83,7 @@ export default function EditableLinkGroup() {
               { required: true },
               {
                 pattern: /^(https?:\/\/|\/(?!\/))/,
-                message: t('common:enterAnApplicationPathOrAnHttpSUrl'),
+                message: t('dashboard:overview.enterAnApplicationPathOrAnHttpSUrl'),
               },
             ]}
           >

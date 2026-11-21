@@ -1,0 +1,259 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en_US\n"
+"Language-Team: en_US <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "file.access.batchRequiresProtected"
+msgstr "Bulk authorization only supports protected files"
+
+msgid "file.access.batchSaved"
+msgstr "File permissions saved in bulk"
+
+msgid "file.access.concurrentChange"
+msgstr "Another user changed these file permissions. Refresh and try again."
+
+msgid "file.access.duplicateSubject"
+msgstr "The same permission subject cannot be configured more than once"
+
+msgid "file.access.expiryInPast"
+msgstr "Permission expiry must be later than the current time"
+
+msgid "file.access.fileUnavailable"
+msgstr "File information does not exist, has been deleted, or is outside your data permissions"
+
+msgid "file.access.publicFile"
+msgstr "Access permissions cannot be configured for public files"
+
+msgid "file.access.saved"
+msgstr "File permissions saved"
+
+msgid "file.access.subjectUnavailable"
+msgstr "Some permission subjects do not exist, are disabled, or are outside your data permissions"
+
+msgid "file.business.batchSizeRange"
+msgstr "Batch size must be between 1 and %(max_batch_size)s"
+
+msgid "file.business.invalidFileId"
+msgstr "Invalid file ID format"
+
+msgid "file.business.invalidType"
+msgstr "Invalid business type format"
+
+msgid "file.business.policyExists"
+msgstr "A retention policy already exists for business type %(business_type)s"
+
+msgid "file.business.policyNotFound"
+msgstr "File business retention policy not found"
+
+msgid "file.business.protectedRequired"
+msgstr "Business records with retention policies can only reference protected files"
+
+msgid "file.business.referenceLimit"
+msgstr "A business record can reference at most %(max_reference_files)s files"
+
+msgid "file.business.referenceUnavailable"
+msgstr "Some referenced files do not exist or are no longer valid"
+
+msgid "file.idRequired"
+msgstr "File ID is required"
+
+msgid "file.invalidAccessType"
+msgstr "Invalid file access type"
+
+msgid "file.invalidId"
+msgstr "Invalid file ID"
+
+msgid "file.invalidNameOrMissing"
+msgstr "The filename is invalid or the file does not exist"
+
+msgid "file.invalidPathOrMissing"
+msgstr "The resource path is invalid or the file does not exist"
+
+msgid "file.invalidResourceName"
+msgstr "Invalid resource filename"
+
+msgid "file.invalidResourcePath"
+msgstr "Invalid resource path"
+
+msgid "file.invalidType"
+msgstr "Invalid file type"
+
+msgid "file.nameConflict"
+msgstr "A generated filename conflict occurred. Upload the file again."
+
+msgid "file.notFoundOrForbidden"
+msgstr "File information does not exist or is outside your data permissions"
+
+msgid "file.notFoundOrUnauthorized"
+msgstr "The file does not exist or you do not have permission to access it"
+
+msgid "file.purge.batchSizeRange"
+msgstr "Batch size must be between 1 and %(max_purge_batch_size)s"
+
+msgid "file.purge.physicalDeleteFailed"
+msgstr "Unable to permanently delete the physical file. It remains in the cleanup state and can be retried."
+
+msgid "file.purge.verificationFailed"
+msgstr "Recycle area file verification failed. No files were permanently deleted."
+
+msgid "file.purged"
+msgstr "Files permanently deleted"
+
+msgid "file.reconciliation.actionUnavailable"
+msgstr "This action is not supported for the issue's current status"
+
+msgid "file.reconciliation.adminRequired"
+msgstr "Only system administrators can use file storage reconciliation"
+
+msgid "file.reconciliation.alreadyRegistered"
+msgstr "This physical file is already registered"
+
+msgid "file.reconciliation.alreadyRunning"
+msgstr "A file storage reconciliation job is already running"
+
+msgid "file.reconciliation.extensionForbidden"
+msgstr "The orphaned file's extension is not allowed"
+
+msgid "file.reconciliation.extensionMismatch"
+msgstr "The original filename extension must match the physical file"
+
+msgid "file.reconciliation.fileRecordMissing"
+msgstr "The file record linked to this issue does not exist"
+
+msgid "file.reconciliation.invalidStorageArea"
+msgstr "Invalid storage area in the issue record"
+
+msgid "file.reconciliation.invalidTrigger"
+msgstr "Invalid reconciliation trigger type"
+
+msgid "file.reconciliation.issueNotFound"
+msgstr "File storage reconciliation issue not found"
+
+msgid "file.reconciliation.locationMissing"
+msgstr "The issue record has no storage location that can be processed"
+
+msgid "file.reconciliation.noFileReference"
+msgstr "This issue is not linked to a file record"
+
+msgid "file.reconciliation.quarantineMissing"
+msgstr "The quarantined file path does not exist"
+
+msgid "file.reconciliation.registrationUnsupported"
+msgstr "Only orphaned files in public or protected storage can be registered"
+
+msgid "file.reconciliation.resolveFailed"
+msgstr "Unable to resolve the file storage issue. Check the service logs"
+
+msgid "file.reconciliation.resolved"
+msgstr "File storage issue resolved"
+
+msgid "file.reconciliation.scanInProgress"
+msgstr "File storage reconciliation is running. Wait for the scan to finish before resolving issues."
+
+msgid "file.reconciliation.started"
+msgstr "File storage reconciliation started"
+
+msgid "file.recycle.failed"
+msgstr "Unable to move files to the recycle area"
+
+msgid "file.recycle.retentionRange"
+msgstr "Recycle bin retention must be between 1 and %(max_purge_retention_days)s days"
+
+msgid "file.recycle.selectionUnavailable"
+msgstr "Some files do not exist, are not in the recycle bin, or are outside your data permissions"
+
+msgid "file.recycled"
+msgstr "Files moved to the recycle bin"
+
+msgid "file.references.autoPurgeBlocked"
+msgstr "A file selected for automatic cleanup still has business references"
+
+msgid "file.references.preventDelete"
+msgstr ""
+"The following files are still referenced by business records: %(referenced_name_text)s. Remove the references before "
+"deleting them."
+
+msgid "file.references.preventPurge"
+msgstr "Some files still have business references and cannot be permanently deleted"
+
+msgid "file.reminder.daysRange"
+msgstr "Advance reminder days must be between 1 and %(max_remind_days)s"
+
+msgid "file.reminder.invalidId"
+msgstr "Invalid reminder ID"
+
+msgid "file.reminder.markedRead"
+msgstr "Reminder marked as read"
+
+msgid "file.reminder.selectionUnavailable"
+msgstr "Some reminders do not exist, have expired, or are outside your data permissions"
+
+msgid "file.reminder.unavailable"
+msgstr "The reminder does not exist, has expired, or is outside your data permissions"
+
+msgid "file.restore.failed"
+msgstr "Unable to restore files from the recycle area"
+
+msgid "file.restore.selectionUnavailable"
+msgstr "Some files do not exist, have not been deleted, or are outside your data permissions"
+
+msgid "file.restored"
+msgstr "Files restored successfully"
+
+msgid "file.retention.activeReference"
+msgstr "This file has permanent or unexpired business references and cannot be processed as expired"
+
+msgid "file.retention.expiredRecycled"
+msgstr "Expired files moved to the recycle bin"
+
+msgid "file.retention.extended"
+msgstr "File retention period extended"
+
+msgid "file.retention.invalidExtension"
+msgstr "The new expiry must be later than both the current time and the original expiry"
+
+msgid "file.retention.noTimedReference"
+msgstr "This file has no business reference that can be extended. Link it to the business record again."
+
+msgid "file.retention.notConfigured"
+msgstr "No retention period is configured for this file"
+
+msgid "file.retention.notExpired"
+msgstr "This file has not expired and cannot be processed as expired"
+
+msgid "file.retention.permanentReference"
+msgstr "This file has a permanent business reference and cannot be extended through an expiry reminder"
+
+msgid "file.retention.recycleFailed"
+msgstr "Unable to move expired files to the recycle area"
+
+msgid "file.retention.referenceMismatch"
+msgstr "The file expiry does not match its business references. Check the references first."
+
+msgid "file.selection.unavailable"
+msgstr "Some files do not exist, have been deleted, or are outside your data permissions"
+
+msgid "file.sizeLimit"
+msgstr "File size must not exceed %(value)s MB"
+
+msgid "file.transfer.departmentMismatch"
+msgstr "The target user does not belong to the selected department"
+
+msgid "file.transfer.targetUnavailable"
+msgstr "The target user or department does not exist, is disabled, or is outside your data permissions"
+
+msgid "file.transferred"
+msgstr "Files transferred successfully"
+
+msgid "file.uploaded"
+msgstr "Uploaded successfully"

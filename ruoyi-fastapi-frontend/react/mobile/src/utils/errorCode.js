@@ -1,16 +1,16 @@
 export default function errorCode(t) {
   return {
     get 401() {
-      return t('mobile:authenticationFailedUnableToAccessSystemResources')
+      return t('common:network.unauthorized')
     },
     get 403() {
-      return t('mobile:youDoNotHavePermissionForThisAction')
+      return t('common:network.forbidden')
     },
     get 404() {
-      return t('mobile:theRequestedResourceWasNotFound')
+      return t('common:network.notFound')
     },
     get default() {
-      return t('mobile:unknownSystemErrorContactYourAdministrator')
+      return t('common:network.unknown')
     },
   }
 }

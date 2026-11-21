@@ -28,11 +28,11 @@ export default function Pagination({
           {t('common:total')} {total} {t('common:records')}
         </span>
         <Select
-          aria-label={t('common:rowsPerPage')}
+          aria-label={t('components:pagination.rowsPerPage')}
           value={limit}
           options={[...new Set([...pageSizes, limit])]
             .sort((a, b) => a - b)
-            .map((value) => ({ value, label: t('common:valuePage', { value }) }))}
+            .map((value) => ({ value, label: t('components:pagination.valuePage', { value }) }))}
           onChange={(pageSize) => changePage(page * pageSize > total ? 1 : page, pageSize)}
           style={{ width: 128 }}
         />
@@ -44,9 +44,9 @@ export default function Pagination({
           onChange={(pageNum) => changePage(pageNum)}
         />
         <span className="pagination-jumper">
-          {t('common:goTo')}{' '}
+          {t('components:pagination.goTo')}{' '}
           <InputNumber
-            aria-label={t('common:page')}
+            aria-label={t('components:pagination.page')}
             value={jump}
             min={1}
             max={lastPage}
@@ -55,7 +55,7 @@ export default function Pagination({
             onPressEnter={commitJump}
             onBlur={commitJump}
           />{' '}
-          {t('common:page')}
+          {t('components:pagination.page')}
         </span>
       </div>
     )

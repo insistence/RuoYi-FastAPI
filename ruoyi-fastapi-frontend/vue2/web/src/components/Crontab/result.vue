@@ -3,7 +3,7 @@
     class="popup-result"
     :aria-busy="loading"
   >
-    <p class="title">{{ $t('tool:cron.nextRunsInZone', { zone: resultTimeZone }) }}</p>
+    <p class="title">{{ $t('components:cron.nextRunsInZone', { zone: resultTimeZone }) }}</p>
     <ul
       class="popup-result-scroll"
       aria-live="polite"
@@ -15,7 +15,7 @@
       >
         {{ errorMessage }}
       </li>
-      <li v-else-if="loading">{{ $t('tool:interface.calculating') }}</li>
+      <li v-else-if="loading">{{ $t('components:cron.calculating') }}</li>
       <template v-else>
         <li
           v-for="item in resultList"
@@ -23,7 +23,7 @@
         >
           {{ formatBusinessTime(item, 'YYYY-MM-DD HH:mm:ss Z', resultTimeZone) }}
         </li>
-        <li v-if="!resultList.length">{{ $t('tool:cron.noFutureRuns') }}</li>
+        <li v-if="!resultList.length">{{ $t('components:cron.noFutureRuns') }}</li>
       </template>
     </ul>
   </div>
@@ -98,7 +98,7 @@ export default {
         } catch (error) {
           if (requestId !== this._previewRequestSequence || controller.signal.aborted) return
           this.errorMessage =
-            error.message || t('tool:interface.unableToGetScheduledTimesTryAgainLater')
+            error.message || t('components:cron.unableToGetScheduledTimesTryAgainLater')
         } finally {
           if (requestId === this._previewRequestSequence) this.loading = false
         }

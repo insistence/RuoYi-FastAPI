@@ -60,15 +60,6 @@
     "weeklyReport": "Weekly report",
     "completed": "Completed"
   },
-  "auth": {
-    "loginTitle": "Sign in to RuoYi-FastAPI Mobile",
-    "noAccount": "No account yet?",
-    "agreementPrefix": "By signing in, you agree to the",
-    "agreement": "User Agreement",
-    "and": "and",
-    "privacy": "Privacy Policy",
-    "registerTitle": "Create a RuoYi-FastAPI Mobile account"
-  },
   "about": {
     "version": "Version",
     "email": "Email",

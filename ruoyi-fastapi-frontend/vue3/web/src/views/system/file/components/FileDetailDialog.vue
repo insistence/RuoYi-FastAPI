@@ -64,7 +64,7 @@
           type="primary"
           @click="emit('reference', detail)"
         >
-          {{ detail.referenceCount }} {{ $t('authCenter:items') }}</el-button
+          {{ detail.referenceCount }} {{ $t('common:items') }}</el-button
         >
         <span v-else>{{ $t('files:0Items') }}</span>
       </el-descriptions-item>

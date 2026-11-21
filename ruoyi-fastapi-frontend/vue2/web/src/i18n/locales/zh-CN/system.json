@@ -154,8 +154,7 @@
   },
   "oauth": {
     "enable": "启用",
-    "disabled": "停用",
-    "recentUpdates": "最近更新"
+    "disabled": "停用"
   },
   "loginName": "登录名称",
   "enterOperatorName": "请输入操作人员",
@@ -283,10 +282,7 @@
     "manifestWarnings": "Manifest 警告"
   },
   "interface": {
-    "pageOverview": "页面概览",
     "department": "归属部门",
-    "valueMorePermissions": "另有 {{value0}} 项权限",
-    "valueMoreServices": "另有 {{value0}} 个服务",
     "pluginSessionHasExpired": "插件会话已过期",
     "yourBrowserDoesNotSupportFullscreen": "你的浏览器不支持全屏",
     "treeStructure": "树形结构",

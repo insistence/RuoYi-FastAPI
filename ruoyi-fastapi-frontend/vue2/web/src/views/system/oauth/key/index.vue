@@ -1,12 +1,10 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('authCenter:help.securityOperations')"
-      :title="$t('authCenter:messages.signingKeys')"
+      :section="$t('oauth:shared.securityOperations')"
+      :title="$t('oauth:key.signingKeys')"
       :description="
-        $t(
-          'authCenter:messages.manageSigningKeysUsedToProveTheAuthenticityOfIdentityCredentialsAnd'
-        )
+        $t('oauth:key.manageSigningKeysUsedToProveTheAuthenticityOfIdentityCredentialsAnd')
       "
     >
       <template #actions>
@@ -16,7 +14,7 @@
           v-hasPermi="['system:oauthKey:rotate']"
           @click="openRotation"
         >
-          {{ $t('authCenter:messages.scheduleKeyRotation') }}
+          {{ $t('oauth:key.scheduleKeyRotation') }}
         </el-button>
       </template>
 
@@ -33,7 +31,7 @@
               ></i
             ></span>
             <div>
-              <small>{{ $t('authCenter:messages.authenticationService') }}</small>
+              <small>{{ $t('oauth:key.authenticationService') }}</small>
               <strong>{{ serviceStatus.title }}</strong>
               <p>{{ serviceStatus.description }}</p>
             </div>
@@ -55,17 +53,15 @@
               ></i
             ></span>
             <div>
-              <small>{{ $t('authCenter:messages.currentSigningKey') }}</small>
-              <strong>{{ activeKey?.kid || $t('authCenter:expression.notActivated') }}</strong>
+              <small>{{ $t('oauth:key.currentSigningKey') }}</small>
+              <strong>{{ activeKey?.kid || $t('oauth:key.notActivated') }}</strong>
               <p>
                 {{
                   activeKey
-                    ? $t('auth:key.issuingSince', {
-                        time:
-                          parseTime(activeKey.signingStartAt) ||
-                          $t('authCenter:expression.scheduledTime'),
+                    ? $t('oauth:key.issuingSince', {
+                        time: parseTime(activeKey.signingStartAt) || $t('oauth:key.scheduledTime'),
                       })
-                    : $t('authCenter:expression.firstActivateAKeyWhosePublicKeyHasBeenPublished')
+                    : $t('oauth:key.firstActivateAKeyWhosePublicKeyHasBeenPublished')
                 }}
               </p>
             </div>
@@ -87,17 +83,17 @@
               ></i
             ></span>
             <div>
-              <small>{{ $t('authCenter:messages.nextRotation') }}</small>
-              <strong>{{ nextKey?.kid || $t('authCenter:expression.notScheduled') }}</strong>
+              <small>{{ $t('oauth:key.nextRotation') }}</small>
+              <strong>{{ nextKey?.kid || $t('oauth:key.notScheduled') }}</strong>
               <p>
                 {{
                   nextKey
-                    ? $t('auth:key.scheduledAt', {
+                    ? $t('oauth:key.scheduledAt', {
                         time:
                           parseTime(nextKey.signingStartAt) ||
-                          $t('authCenter:expression.timePendingConfirmation'),
+                          $t('oauth:key.timePendingConfirmation'),
                       })
-                    : $t('authCenter:expression.scheduleRotationBeforeTheCurrentKeyExpires')
+                    : $t('oauth:key.scheduleRotationBeforeTheCurrentKeyExpires')
                 }}
               </p>
             </div>
@@ -108,7 +104,7 @@
       <template #toolbar>
         <span class="result-count"
           >{{ $t('system:notice.total') }} <strong>{{ total }}</strong>
-          {{ $t('authCenter:messages.keys') }}</span
+          {{ $t('oauth:key.keys') }}</span
         >
         <right-toolbar
           :show-search="false"
@@ -122,7 +118,7 @@
         row-key="kid"
       >
         <el-table-column
-          :label="$t('authCenter:messages.key')"
+          :label="$t('oauth:key.key')"
           min-width="250"
         >
           <template #default="scope">
@@ -143,7 +139,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.currentPurpose')"
+          :label="$t('oauth:key.currentPurpose')"
           min-width="190"
         >
           <template #default="scope">
@@ -156,7 +152,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.signingMethod')"
+          :label="$t('oauth:key.signingMethod')"
           width="110"
           align="center"
         >
@@ -169,20 +165,20 @@
           >
         </el-table-column>
         <el-table-column
-          :label="$t('authCenter:messages.lifecycle')"
+          :label="$t('oauth:key.lifecycle')"
           min-width="280"
         >
           <template #default="scope">
             <div class="timeline-cell">
               <span
-                ><small>{{ $t('authCenter:messages.publishedToApplications') }}</small
+                ><small>{{ $t('oauth:key.publishedToApplications') }}</small
                 >{{ parseTime(scope.row.publishAt) || '—' }}</span
               >
               <span
                 ><small>{{
                   scope.row.status === 'pending'
-                    ? $t('authCenter:expression.scheduledSigningStart')
-                    : $t('authCenter:expression.signingStarts')
+                    ? $t('oauth:key.scheduledSigningStart')
+                    : $t('oauth:key.signingStarts')
                 }}</small
                 >{{ parseTime(scope.row.signingStartAt) || '—' }}</span
               >
@@ -220,7 +216,7 @@
                     disabled
                     v-hasPermi="['system:oauthKey:activate']"
                   >
-                    {{ $t('authCenter:messages.awaitingPublication') }}
+                    {{ $t('oauth:key.awaitingPublication') }}
                   </el-button>
                 </span>
               </el-tooltip>
@@ -230,7 +226,7 @@
                 icon="el-icon-circle-check"
                 v-hasPermi="['system:oauthKey:activate']"
                 @click="activate(scope.row)"
-                >{{ $t('authCenter:messages.activate') }}</el-button
+                >{{ $t('oauth:key.activate') }}</el-button
               >
               <el-button
                 class="oauth-button-warning"
@@ -239,7 +235,7 @@
                 icon="el-icon-video-pause"
                 v-hasPermi="['system:oauthKey:retire']"
                 @click="retire(scope.row)"
-                >{{ $t('authCenter:messages.stopSigning') }}</el-button
+                >{{ $t('oauth:key.stopSigning') }}</el-button
               >
               <el-button
                 class="oauth-button-danger"
@@ -248,18 +244,18 @@
                 icon="el-icon-delete"
                 v-hasPermi="['system:oauthKey:retire']"
                 @click="handleDelete(scope.row)"
-                >{{ $t('authCenter:messages.deleteRecord') }}</el-button
+                >{{ $t('common:deleteRecord') }}</el-button
               >
             </div>
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('authCenter:messages.noSigningKeyPrepared')">
+          <el-empty :description="$t('oauth:key.noSigningKeyPrepared')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthKey:rotate']"
               @click="openRotation"
-              >{{ $t('authCenter:messages.createTheFirstKey') }}</el-button
+              >{{ $t('oauth:key.createTheFirstKey') }}</el-button
             >
           </el-empty>
         </template>
@@ -276,30 +272,28 @@
     <el-dialog
       custom-class="oauth-overlay"
       :visible.sync="open"
-      :title="$t('authCenter:messages.scheduleSigningKeyRotation')"
+      :title="$t('oauth:key.scheduleSigningKeyRotation')"
       width="min(780px, calc(100vw - 48px))"
       append-to-body
       :close-on-click-modal="false"
     >
       <div
         class="rotation-preview"
-        :aria-label="$t('authCenter:messages.keyRotationProcess')"
+        :aria-label="$t('oauth:key.keyRotationProcess')"
       >
         <div>
-          <span>1</span><strong>{{ $t('authCenter:messages.publishFirst') }}</strong
-          ><small>{{ $t('authCenter:messages.applicationsObtainThePublicKeyInAdvance') }}</small>
+          <span>1</span><strong>{{ $t('oauth:key.publishFirst') }}</strong
+          ><small>{{ $t('oauth:key.applicationsObtainThePublicKeyInAdvance') }}</small>
         </div>
         <i aria-hidden="true" />
         <div>
-          <span>2</span><strong>{{ $t('authCenter:messages.thenTakeOverSigning') }}</strong
-          ><small>{{ $t('authCenter:messages.newCredentialsUseTheNewKey') }}</small>
+          <span>2</span><strong>{{ $t('oauth:key.thenTakeOverSigning') }}</strong
+          ><small>{{ $t('oauth:key.newCredentialsUseTheNewKey') }}</small>
         </div>
         <i aria-hidden="true" />
         <div>
-          <span>3</span><strong>{{ $t('authCenter:messages.retainTheOldPublicKey') }}</strong
-          ><small>{{
-            $t('authCenter:messages.oldCredentialsRemainVerifiableUntilTheyExpire')
-          }}</small>
+          <span>3</span><strong>{{ $t('oauth:key.retainTheOldPublicKey') }}</strong
+          ><small>{{ $t('oauth:key.oldCredentialsRemainVerifiableUntilTheyExpire') }}</small>
         </div>
       </div>
 
@@ -312,83 +306,71 @@
         class="rotation-form"
       >
         <section class="form-section">
-          <h3>{{ $t('authCenter:messages.rotationIdentifier') }}</h3>
+          <h3>{{ $t('oauth:key.rotationIdentifier') }}</h3>
           <p>
-            {{
-              $t('authCenter:messages.giveThisRotationAnIdentifiableReferenceToHelpLocateItInLogs')
-            }}
+            {{ $t('oauth:key.giveThisRotationAnIdentifiableReferenceToHelpLocateItInLogs') }}
           </p>
           <el-form-item prop="kid">
             <template #label
               ><FieldLabel
-                :label="$t('authCenter:messages.keyID')"
-                :help="
-                  $t('authCenter:help.aUniqueIdentifierInThePublicKeyListConsiderIncludingTheYear')
-                "
+                :label="$t('oauth:key.keyID')"
+                :help="$t('oauth:key.aUniqueIdentifierInThePublicKeyListConsiderIncludingTheYear')"
             /></template>
             <el-input
               v-model="form.kid"
               maxlength="128"
-              :placeholder="$t('authCenter:messages.forExample202609Primary')"
+              :placeholder="$t('oauth:key.forExample202609Primary')"
             />
           </el-form-item>
           <el-form-item>
             <template #label
               ><FieldLabel
-                :label="$t('authCenter:messages.signingMethod')"
+                :label="$t('oauth:key.signingMethod')"
                 :help="
                   $t(
-                    'authCenter:help.rS256IsAWidelyCompatibleAsymmetricSigningAlgorithmApplicationsReceiveOnlyThe'
+                    'oauth:key.rS256IsAWidelyCompatibleAsymmetricSigningAlgorithmApplicationsReceiveOnlyThe'
                   )
                 "
             /></template>
             <div class="algorithm-value">
               <strong>RS256</strong
-              ><span>{{
-                $t('authCenter:messages.privateKeysAreNeverShownOrExportedOnThisPage')
-              }}</span>
+              ><span>{{ $t('oauth:key.privateKeysAreNeverShownOrExportedOnThisPage') }}</span>
             </div>
           </el-form-item>
         </section>
 
         <section class="form-section">
-          <h3>{{ $t('authCenter:messages.activationSchedule') }}</h3>
+          <h3>{{ $t('oauth:key.activationSchedule') }}</h3>
           <p>
-            {{ $t('authCenter:messages.publishThePublicKeyBeforeUsingItToSignSoApplicationsHave') }}
+            {{ $t('oauth:key.publishThePublicKeyBeforeUsingItToSignSoApplicationsHave') }}
           </p>
           <el-form-item prop="publishAt">
             <template #label
               ><FieldLabel
-                :label="$t('authCenter:messages.publicKeyPublicationTime')"
-                :help="
-                  $t('authCenter:help.fromThisTimeApplicationsCanObtainTheNewPublicKeyFromThe')
-                "
+                :label="$t('oauth:key.publicKeyPublicationTime')"
+                :help="$t('oauth:key.fromThisTimeApplicationsCanObtainTheNewPublicKeyFromThe')"
             /></template>
             <BusinessDateTimePicker
               v-model="form.publishAt"
-              :label="$t('authCenter:messages.publicKeyPublicationTime')"
+              :label="$t('oauth:key.publicKeyPublicationTime')"
             />
           </el-form-item>
           <el-form-item prop="activateAt">
             <template #label
               ><FieldLabel
-                :label="$t('authCenter:messages.signingStartTime')"
-                :help="
-                  $t('authCenter:help.fromThisTimeNewlyIssuedIdentityAndAccessTokensUseTheNew')
-                "
+                :label="$t('oauth:key.signingStartTime')"
+                :help="$t('oauth:key.fromThisTimeNewlyIssuedIdentityAndAccessTokensUseTheNew')"
             /></template>
             <BusinessDateTimePicker
               v-model="form.activateAt"
-              :label="$t('authCenter:messages.signingStartTime')"
+              :label="$t('oauth:key.signingStartTime')"
             />
           </el-form-item>
           <el-form-item>
             <template #label
               ><FieldLabel
-                :label="$t('authCenter:messages.changeDescription')"
-                :help="
-                  $t('authCenter:help.recordTheReasonForRotationOrARelatedTicketForAuditingThis')
-                "
+                :label="$t('oauth:key.changeDescription')"
+                :help="$t('oauth:key.recordTheReasonForRotationOrARelatedTicketForAuditingThis')"
             /></template>
             <el-input
               v-model="form.remark"
@@ -396,9 +378,7 @@
               :rows="3"
               maxlength="500"
               show-word-limit
-              :placeholder="
-                $t('authCenter:messages.forExampleRoutineQuarterlyRotationRelatedTicketSEC1024')
-              "
+              :placeholder="$t('oauth:key.forExampleRoutineQuarterlyRotationRelatedTicketSEC1024')"
             />
           </el-form-item>
         </section>
@@ -409,7 +389,7 @@
           type="primary"
           :loading="saving"
           @click="rotate"
-          >{{ $t('authCenter:messages.createRotationPlan') }}</el-button
+          >{{ $t('oauth:key.createRotationPlan') }}</el-button
         >
       </template>
     </el-dialog>
@@ -458,23 +438,21 @@ const activeKey = computed(() => rows.value.find((item) => item.status === 'acti
 const serviceStatus = computed(() => {
   if (!enabled.value) {
     return {
-      title: t('authCenter:messages.notEnabled'),
-      description: t(
-        'authCenter:messages.youCanPrepareKeysFirstAndStartIssuingCredentialsWhenTheService'
-      ),
+      title: t('oauth:key.notEnabled'),
+      description: t('oauth:key.youCanPrepareKeysFirstAndStartIssuingCredentialsWhenTheService'),
     }
   }
   if (!ready.value) {
     return {
-      title: t('authCenter:messages.waitingForSigningKeyInitialization'),
+      title: t('oauth:key.waitingForSigningKeyInitialization'),
       description: t(
-        'authCenter:messages.theAdminConsoleRemainsAvailableAuthenticationEndpointsWillTemporarilyRejectRequests'
+        'oauth:key.theAdminConsoleRemainsAvailableAuthenticationEndpointsWillTemporarilyRejectRequests'
       ),
     }
   }
   return {
-    title: t('authCenter:messages.enabledAndReadyForAuthentication'),
-    description: t('authCenter:messages.identityCredentialsAreSignedWithTheCurrentSigningKey'),
+    title: t('oauth:key.enabledAndReadyForAuthentication'),
+    description: t('oauth:key.identityCredentialsAreSignedWithTheCurrentSigningKey'),
   }
 })
 const nextKey = computed(
@@ -488,7 +466,7 @@ const nextKey = computed(
 
 const validateActivationTime = (_rule, value, callback) => {
   if (!value) {
-    return callback(new Error(t('authCenter:messages.chooseASigningStartTime')))
+    return callback(new Error(t('oauth:key.chooseASigningStartTime')))
   }
   callback()
 }
@@ -497,19 +475,19 @@ const rules = {
   kid: [
     {
       required: true,
-      message: () => t('authCenter:messages.enterAnIdentifiableKeyID'),
+      message: () => t('oauth:key.enterAnIdentifiableKeyID'),
       trigger: 'blur',
     },
     {
       pattern: /^[A-Za-z0-9._-]+$/,
-      message: () => t('authCenter:messages.useOnlyLettersDigitsPeriodsHyphensAndUnderscores'),
+      message: () => t('oauth:key.useOnlyLettersDigitsPeriodsHyphensAndUnderscores'),
       trigger: 'blur',
     },
   ],
   publishAt: [
     {
       required: true,
-      message: () => t('authCenter:messages.chooseAPublicKeyPublicationTime'),
+      message: () => t('oauth:key.chooseAPublicKeyPublicationTime'),
       trigger: 'change',
     },
   ],
@@ -520,11 +498,11 @@ const rules = {
 function statusText(value) {
   return (
     {
-      pending: t('authCenter:messages.awaitingActivation'),
-      active: t('authCenter:messages.signing'),
-      retiring: t('authCenter:messages.verifyingOldCredentials'),
-      retired: t('authCenter:messages.retired'),
-      compromised: t('authCenter:messages.possiblyCompromised'),
+      pending: t('oauth:key.awaitingActivation'),
+      active: t('oauth:key.signing'),
+      retiring: t('oauth:key.verifyingOldCredentials'),
+      retired: t('oauth:key.retired'),
+      compromised: t('oauth:key.possiblyCompromised'),
     }[value] || value
   )
 }
@@ -546,64 +524,60 @@ function statusType(value) {
 function roleText(value) {
   return (
     {
-      pending: t('authCenter:messages.publicKeyPublishedNotYetIssuingNewCredentials'),
-      active: t('authCenter:messages.usedToIssueNewIdentityAndAccessCredentials'),
-      retiring: t(
-        'authCenter:messages.noLongerIssuingNewCredentialsOnlyVerifyingUnexpiredOldCredentials'
-      ),
-      retired: t('authCenter:messages.removedFromThePublicKeyList'),
-      compromised: t(
-        'authCenter:messages.markedAsUntrustedCompleteEmergencyRotationAsSoonAsPossible'
-      ),
-    }[value] || t('authCenter:messages.unknownStatusInformation')
+      pending: t('oauth:key.publicKeyPublishedNotYetIssuingNewCredentials'),
+      active: t('oauth:key.usedToIssueNewIdentityAndAccessCredentials'),
+      retiring: t('oauth:key.noLongerIssuingNewCredentialsOnlyVerifyingUnexpiredOldCredentials'),
+      retired: t('oauth:key.removedFromThePublicKeyList'),
+      compromised: t('oauth:key.markedAsUntrustedCompleteEmergencyRotationAsSoonAsPossible'),
+    }[value] || t('oauth:key.unknownStatusInformation')
   )
 }
 
 /** 缩略显示RSA公钥模数 */
 function publicFingerprint(jwk) {
   if (!jwk?.n) {
-    return t('authCenter:messages.publicFingerprintUnavailable')
+    return t('oauth:key.publicFingerprintUnavailable')
   }
-  return t('auth:interface.publicFingerprintRSAValue', { value0: jwk.n.slice(0, 18) })
+  return t('oauth:key.publicFingerprintRSAValue', { value0: jwk.n.slice(0, 18) })
 }
 
 /** 获取密钥后续处理计划 */
 function nextActionText(row) {
   return (
     {
-      pending: t('authCenter:messages.waitingToStart'),
-      active: t('authCenter:messages.stopSigningWhenTheNextKeyTakesOver'),
-      retiring: t('authCenter:messages.waitingForAllOldCredentialsToExpire'),
-      retired: t('authCenter:messages.metadataCanBeRemoved'),
-      compromised: t('authCenter:messages.scheduleEmergencyRotationNow'),
-    }[row.status] || t('authCenter:messages.noPlan')
+      pending: t('oauth:key.waitingToStart'),
+      active: t('oauth:key.stopSigningWhenTheNextKeyTakesOver'),
+      retiring: t('oauth:key.waitingForAllOldCredentialsToExpire'),
+      retired: t('oauth:key.metadataCanBeRemoved'),
+      compromised: t('oauth:key.scheduleEmergencyRotationNow'),
+    }[row.status] || t('oauth:key.noPlan')
   )
 }
 
 /** 显示密钥后续操作的时间条件 */
 function nextActionTime(row) {
   if (row.status === 'pending') {
-    return parseTime(row.signingStartAt) || t('authCenter:messages.manualActivationRequired')
+    return parseTime(row.signingStartAt) || t('oauth:key.manualActivationRequired')
   }
   if (['retiring', 'retired'].includes(row.status)) {
     return row.removeFromJwksAt
-      ? t('auth:interface.earliestCleanupValue', { value0: parseTime(row.removeFromJwksAt) })
-      : t('authCenter:messages.waitingForTheSafeVerificationWindowToEnd')
+      ? t('oauth:key.earliestCleanupValue', { value0: parseTime(row.removeFromJwksAt) })
+      : t('oauth:key.waitingForTheSafeVerificationWindowToEnd')
   }
   if (row.status === 'active') {
-    return t('authCenter:messages.noAutomaticStopTimeIsSet')
+    return t('oauth:key.noAutomaticStopTimeIsSet')
   }
-  return t('authCenter:messages.checkTheSecurityLogs')
+  return t('oauth:key.checkTheSecurityLogs')
 }
 
 /** 检查密钥是否已到允许启用的公开时间 */
 function activationDisabledReason(row) {
   const publishAt = new Date(row.publishAt).getTime()
   if (!Number.isFinite(publishAt)) {
-    return t('authCenter:messages.invalidPublicKeyPublicationTimeRefreshTheListAndTryAgain')
+    return t('oauth:key.invalidPublicKeyPublicationTimeRefreshTheListAndTryAgain')
   }
   if (publishAt > Date.now()) {
-    return t('auth:interface.thePublicKeyWillBePublishedAtValueItCanBeActivatedAfterThat', {
+    return t('oauth:key.thePublicKeyWillBePublishedAtValueItCanBeActivatedAfterThat', {
       value0: parseTime(row.publishAt),
     })
   }
@@ -645,14 +619,14 @@ async function rotate() {
     return
   }
   if (payload.activateAt && new Date(payload.activateAt) < new Date(payload.publishAt)) {
-    proxy.$modal.msgError(t('authCenter:messages.signingCannotStartBeforePublicKeyPublication'))
+    proxy.$modal.msgError(t('oauth:key.signingCannotStartBeforePublicKeyPublication'))
     return
   }
   saving.value = true
   try {
     await rotateOidcKey(payload)
     proxy.$modal.msgSuccess(
-      t('authCenter:messages.rotationScheduledTheNewPublicKeyWillBePublishedFirstAsPlanned')
+      t('oauth:key.rotationScheduledTheNewPublicKeyWillBePublishedFirstAsPlanned')
     )
     open.value = false
     await getList()
@@ -671,42 +645,42 @@ async function activate(row) {
   const signingStartAt = new Date(row.signingStartAt).getTime()
   const scheduleNotice =
     Number.isFinite(signingStartAt) && signingStartAt > Date.now()
-      ? t('auth:interface.thisKeyWasScheduledToStartSigningAtValueThisActionActivatesItEarly', {
+      ? t('oauth:key.thisKeyWasScheduledToStartSigningAtValueThisActionActivatesItEarly', {
           value0: parseTime(row.signingStartAt),
         })
-      : t('authCenter:messages.itWillImmediatelyTakeOverIssuanceOfNewCredentials')
+      : t('oauth:key.itWillImmediatelyTakeOverIssuanceOfNewCredentials')
   await proxy.$modal.confirm(
     t(
-      'auth:interface.activateKeyValueValueTheCurrentSigningKeyWillEnterTheOldCredentialVerificationPeriod',
+      'oauth:key.activateKeyValueValueTheCurrentSigningKeyWillEnterTheOldCredentialVerificationPeriod',
       { value0: row.kid, value1: scheduleNotice }
     )
   )
   await activateOidcKey(row.kid)
-  proxy.$modal.msgSuccess(t('authCenter:messages.theNewSigningKeyIsActive'))
+  proxy.$modal.msgSuccess(t('oauth:key.theNewSigningKeyIsActive'))
   await getList()
 }
 
 /** 停止使用密钥签发新令牌 */
 async function retire(row) {
   await proxy.$modal.confirm(
-    t('auth:interface.stopIssuingNewCredentialsWithKeyValueItsPublicKeyWillRemainAvailableFor', {
+    t('oauth:key.stopIssuingNewCredentialsWithKeyValueItsPublicKeyWillRemainAvailableFor', {
       value0: row.kid,
     })
   )
   await retireOidcKey(row.kid)
-  proxy.$modal.msgSuccess(t('authCenter:messages.theKeyHasStoppedSigningAndIsNowUsedOnlyToVerify'))
+  proxy.$modal.msgSuccess(t('oauth:key.theKeyHasStoppedSigningAndIsNowUsedOnlyToVerify'))
   await getList()
 }
 
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    t('auth:interface.deleteTheRecordForKeyValueConfirmThatEveryCredentialItSignedHasExpired', {
+    t('oauth:key.deleteTheRecordForKeyValueConfirmThatEveryCredentialItSignedHasExpired', {
       value0: row.kid,
     })
   )
   await deleteOidcKey(row.kid)
-  proxy.$modal.msgSuccess(t('authCenter:messages.keyRecordDeleted'))
+  proxy.$modal.msgSuccess(t('oauth:key.keyRecordDeleted'))
   await getList()
 }
 

@@ -154,8 +154,7 @@
   },
   "oauth": {
     "enable": "Enable",
-    "disabled": "Disabled",
-    "recentUpdates": "Recent updates"
+    "disabled": "Disabled"
   },
   "loginName": "Login name",
   "enterOperatorName": "Enter operator name",
@@ -283,10 +282,7 @@
     "manifestWarnings": "Manifest warnings"
   },
   "interface": {
-    "pageOverview": "Page overview",
     "department": "Department",
-    "valueMorePermissions": "{{value0}} more permissions",
-    "valueMoreServices": "{{value0}} more services",
     "pluginSessionHasExpired": "Plugin session has expired",
     "yourBrowserDoesNotSupportFullscreen": "Your browser does not support fullscreen",
     "treeStructure": "Tree structure",

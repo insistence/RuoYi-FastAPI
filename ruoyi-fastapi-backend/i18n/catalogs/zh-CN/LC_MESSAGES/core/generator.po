@@ -1,0 +1,86 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-30 18:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+msgid "generator.childForeignKeyRequired"
+msgstr "子表关联的外键名不能为空"
+
+msgid "generator.childTableRequired"
+msgstr "关联子表的表名不能为空"
+
+msgid "generator.configurationRequired"
+msgstr "请先完善生成配置信息"
+
+msgid "generator.creationDateUnsupported"
+msgstr "PostgreSQL 系统目录不记录建表时间，请清除建表日期筛选"
+
+msgid "generator.generated"
+msgstr "生成代码成功"
+
+msgid "generator.i18nCatalogInvalid"
+msgstr "已有语言资源格式无效，生成已停止以保留原文件"
+
+msgid "generator.i18nInvalidConfiguration"
+msgstr "国际化生成配置无效，请检查语言列表与译文占位符"
+
+msgid "generator.i18nSourceLocaleMismatch"
+msgstr "生成基准语言必须与目标应用及后端一致：%(locale)s"
+
+msgid "generator.importFailed"
+msgstr "导入失败，请查看服务日志"
+
+msgid "generator.invalidCreateStatement"
+msgstr "建表语句不合法"
+
+msgid "generator.mysqlTimeAmbiguous"
+msgstr "MySQL TIME 也可表示时长。确认字段表示一天内时间后，将显示类型设为“时间（一天内）”；时长请使用明确单位的数值列后重新导入"
+
+msgid "generator.outputMustBeBundleRoot"
+msgstr "请选择独立生成目录，不能直接覆盖应用源码目录"
+
+msgid "generator.postgresTimestampAmbiguous"
+msgstr "PostgreSQL 无时区 timestamp 含义不明确，请将真实时刻列改为 TIMESTAMP(3) WITH TIME ZONE 后重新导入生成配置"
+
+msgid "generator.renderFailed"
+msgstr "表 %(table_name)s 的模板渲染失败，请查看服务日志"
+
+msgid "generator.tableCreateFailed"
+msgstr "创建表结构失败，请查看服务日志"
+
+msgid "generator.tableCreated"
+msgstr "创建表结构成功"
+
+msgid "generator.tableIdRequired"
+msgstr "传入业务表id为空"
+
+msgid "generator.tableNotFound"
+msgstr "业务表不存在"
+
+msgid "generator.tableOutsideSource"
+msgstr "业务表不存在或不属于数据源 %(source_name)s：%(table_name)s"
+
+msgid "generator.tablesOutsideSource"
+msgstr "业务表不存在或不属于数据源 %(source_name)s：%(value)s"
+
+msgid "generator.timeWithZoneUnsupported"
+msgstr "带时区的 time 不能作为一天内时间生成，请使用 TIME WITHOUT TIME ZONE；真实时刻请使用 TIMESTAMP(3) WITH TIME ZONE"
+
+msgid "generator.treeCodeRequired"
+msgstr "树编码字段不能为空"
+
+msgid "generator.treeNameRequired"
+msgstr "树名称字段不能为空"
+
+msgid "generator.treeParentCodeRequired"
+msgstr "树父编码字段不能为空"

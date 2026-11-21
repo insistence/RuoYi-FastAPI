@@ -11,20 +11,20 @@ const banners = [banner1, banner2, banner3]
 export default function Work() {
   usePageLocale()
   const modules = [
-    ['account', t('mobile:users'), 'bg-blue-50 text-blue-500'],
-    ['badge-account', t('mobile:roles'), 'bg-orange-50 text-orange-500'],
-    ['office-building', t('mobile:departments'), 'bg-green-50 text-green-500'],
-    ['cog', t('mobile:configuration'), 'bg-red-50 text-red-500'],
-    ['book-open-page-variant', t('mobile:dictionaries'), 'bg-cyan-50 text-cyan-500'],
-    ['bullhorn', t('mobile:announcements'), 'bg-yellow-50 text-yellow-500'],
-    ['file-document-outline', t('mobile:logs'), 'bg-pink-50 text-pink-500'],
-    ['dots-horizontal', t('mobile:more'), 'bg-gray-50 text-gray-500'],
+    ['account', t('mobile:work.users'), 'bg-blue-50 text-blue-500'],
+    ['badge-account', t('mobile:work.roles'), 'bg-orange-50 text-orange-500'],
+    ['office-building', t('mobile:work.departments'), 'bg-green-50 text-green-500'],
+    ['cog', t('mobile:work.config'), 'bg-red-50 text-red-500'],
+    ['book-open-page-variant', t('mobile:work.dictionaries'), 'bg-cyan-50 text-cyan-500'],
+    ['bullhorn', t('mobile:work.notices'), 'bg-yellow-50 text-yellow-500'],
+    ['file-document-outline', t('mobile:work.logs'), 'bg-pink-50 text-pink-500'],
+    ['dots-horizontal', t('mobile:work.more'), 'bg-gray-50 text-gray-500'],
   ]
 
   const allowed = usePageAuth()
   const [current, setCurrent] = useState(0)
   if (!allowed) return null
-  const building = () => toast(t('mobile:thisFeatureIsUnderDevelopment'))
+  const building = () => toast(t('mobile:app.comingSoon'))
   return (
     <View className="mobile-page bg-gray-50">
       <View className="relative overflow-hidden rounded-2xl mb-6 shadow-lg">
@@ -57,15 +57,21 @@ export default function Work() {
       </View>
       <View className="mb-4 flex items-center gap-2">
         <View className="h-4 w-1 rounded-full bg-indigo-500" />
-        <Text className="text-base font-bold text-gray-800">{t('mobile:aiProductivity')}</Text>
+        <Text className="text-base font-bold text-gray-800">{t('mobile:work.ai')}</Text>
       </View>
       <View className="grid grid-cols-2 gap-4 mb-6">
         {[
-          ['chat', t('mobile:chat'), t('mobile:assistant'), 'bg-indigo-500', 'bg-indigo-50'],
+          [
+            'chat',
+            t('mobile:work.chat'),
+            t('mobile:work.assistant'),
+            'bg-indigo-500',
+            'bg-indigo-50',
+          ],
           [
             'image-multiple',
-            t('mobile:imageGeneration'),
-            t('mobile:creativeStudio'),
+            t('mobile:work.image'),
+            t('mobile:work.studio'),
             'bg-purple-500',
             'bg-purple-50',
           ],
@@ -92,7 +98,7 @@ export default function Work() {
       </View>
       <View className="mb-4 flex items-center gap-2">
         <View className="h-4 w-1 rounded-full bg-blue-500" />
-        <Text className="text-base font-bold text-gray-800">{t('mobile:systemManagement')}</Text>
+        <Text className="text-base font-bold text-gray-800">{t('mobile:work.system')}</Text>
       </View>
       <View className="rounded-2xl bg-white p-5 shadow-sm grid grid-cols-4 gap-y-4 gap-x-2">
         {modules.map(([icon, label, color]) => (

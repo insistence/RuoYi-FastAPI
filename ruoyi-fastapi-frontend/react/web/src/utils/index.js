@@ -23,7 +23,7 @@ export function formatTime(time, option) {
   const diff = (now - time) / 1000
 
   if (diff < 30) {
-    return t('common:utils.justNow')
+    return t('utility:relative.justNow')
   } else if (diff < 3600) {
     // less 1 hour
     return new Intl.RelativeTimeFormat(i18n.locale, { numeric: 'always' }).format(
@@ -36,7 +36,7 @@ export function formatTime(time, option) {
       'hour'
     )
   } else if (diff < 3600 * 24 * 2) {
-    return t('common:1DayAgo')
+    return t('utility:relative.1DayAgo')
   }
   return !option && Number.isFinite(time)
     ? new Intl.DateTimeFormat(i18n.locale, {

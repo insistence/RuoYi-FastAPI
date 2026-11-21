@@ -70,10 +70,10 @@ export default function Register() {
           disabled={!captcha?.registerEnabled}
         >
           <Form.Item
-            label={t('common:login.username')}
+            label={t('auth:login.username')}
             name="username"
             rules={[
-              { required: true, message: t('common:login.usernameRequired') },
+              { required: true, message: t('auth:login.usernameRequired') },
               {
                 min: 2,
                 max: 20,
@@ -82,18 +82,18 @@ export default function Register() {
             ]}
           >
             <Input
-              placeholder={t('common:login.username')}
+              placeholder={t('auth:login.username')}
               prefix={<UserOutlined />}
               autoComplete="username"
             />
           </Form.Item>
           <Form.Item
-            label={t('common:login.password')}
+            label={t('auth:login.password')}
             name="password"
             rules={registerPwdValidator}
           >
             <Input.Password
-              placeholder={t('common:login.password')}
+              placeholder={t('auth:login.password')}
               prefix={<LockOutlined />}
               autoComplete="new-password"
             />
@@ -122,11 +122,11 @@ export default function Register() {
             <div className="captcha-row">
               <Form.Item
                 name="code"
-                label={t('common:login.code')}
-                rules={[{ required: true, message: t('common:login.codeRequired') }]}
+                label={t('auth:login.code')}
+                rules={[{ required: true, message: t('auth:login.codeRequired') }]}
               >
                 <Input
-                  placeholder={t('common:login.code')}
+                  placeholder={t('auth:login.code')}
                   prefix={<SafetyOutlined />}
                   autoComplete="off"
                 />

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, dirname, sep } from 'node:path'
+import { basename, join, dirname, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
@@ -67,8 +67,8 @@ test('host and plugin checks use independent declared language sets', async () =
     assert.deepEqual(
       valid.report.data.projects.map((project) => [project.name, project.coverage.length]),
       [
-        ['plugin.ai', 2],
-        ['host', 3],
+        ['plugins/ai', 2],
+        [basename(root), 3],
       ]
     )
     await write(

@@ -55,7 +55,7 @@ export default function FileTable({
     <HasPermi value={[`system:file:${permission}`]}>
       <TableAction
         iconOnly
-        tooltip={disabled ? t('system:cannotDeleteAReferencedFile') : label}
+        tooltip={disabled ? t('file:table.cannotDeleteAReferencedFile') : label}
         symbol={
           permission === 'query'
             ? handler === onAudit
@@ -93,11 +93,11 @@ export default function FileTable({
       width: 110,
       render: (value) => (
         <FileTag type={value === 'public' ? 'success' : 'warning'}>
-          {value === 'public' ? t('system:public') : t('system:protected')}
+          {value === 'public' ? t('file:table.public') : t('file:table.protected')}
         </FileTag>
       ),
     },
-    { align: 'center', title: t('system:extension'), dataIndex: 'extension', width: 90 },
+    { align: 'center', title: t('file:shared.extension'), dataIndex: 'extension', width: 90 },
     {
       align: 'right',
       title: t('system:fileSize'),
@@ -105,7 +105,7 @@ export default function FileTable({
       width: 120,
       render: formatFileSize,
     },
-    { align: 'center', title: t('system:uploader'), dataIndex: 'createBy', width: 120 },
+    { align: 'center', title: t('file:shared.uploader'), dataIndex: 'createBy', width: 120 },
     {
       align: 'center',
       title: t('file:owner'),
@@ -120,7 +120,7 @@ export default function FileTable({
     },
     {
       align: 'center',
-      title: t('system:fileExpiry'),
+      title: t('file:table.fileExpiry'),
       dataIndex: 'expireTime',
       width: 150,
       render: (value) => (
@@ -140,15 +140,15 @@ export default function FileTable({
           }
         >
           <FileTag type={isAclExpiring(row.aclNearestExpireTime) ? 'warning' : 'info'}>
-            {row.aclEntryCount || 0} {t('system:items')}
-            {isAclExpiring(row.aclNearestExpireTime) ? t('system:components.expiringSoon') : ''}
+            {row.aclEntryCount || 0} {t('file:shared.items')}
+            {isAclExpiring(row.aclNearestExpireTime) ? t('file:table.expiringSoon') : ''}
           </FileTag>
         </Tooltip>
       ),
     },
     {
       align: 'center',
-      title: t('system:businessReferences'),
+      title: t('file:shared.businessReferences'),
       dataIndex: 'referenceCount',
       width: 100,
       render: (value, row) =>
@@ -158,15 +158,15 @@ export default function FileTable({
             type="link"
             onClick={() => onReference(row)}
           >
-            {value} {t('system:items')}
+            {value} {t('file:shared.items')}
           </Button>
         ) : (
-          t('system:0Items')
+          t('file:shared.0Items')
         ),
     },
     {
       align: 'center',
-      title: t('system:storageStatus'),
+      title: t('file:shared.storageStatus'),
       dataIndex: 'storageStatus',
       width: 110,
       render: (value) => (
@@ -175,7 +175,7 @@ export default function FileTable({
     },
     {
       align: 'center',
-      title: t('system:uploadedAt'),
+      title: t('file:shared.uploadedAt'),
       dataIndex: 'createTime',
       width: 180,
       render: (value) => parseTime(value),
@@ -204,10 +204,10 @@ export default function FileTable({
             action('download', t('common:download'), <DownloadOutlined />, onDownload, row)}
           {row.status === 'active' &&
             row.accessType === 'private' &&
-            action('edit', t('system:permissions'), <LockOutlined />, onAcl, row)}
+            action('edit', t('file:shared.permissions'), <LockOutlined />, onAcl, row)}
           {row.status === 'active' &&
-            action('transfer', t('system:transfer'), <SwapOutlined />, onTransfer, row)}
-          {action('query', t('system:audit'), <AuditOutlined />, onAudit, row)}
+            action('transfer', t('file:shared.transfer'), <SwapOutlined />, onTransfer, row)}
+          {action('query', t('file:table.audit'), <AuditOutlined />, onAudit, row)}
           {row.status === 'active' &&
             action(
               'remove',
@@ -225,7 +225,7 @@ export default function FileTable({
               'purge',
               row.status === 'purging'
                 ? t('file:retryPermanentDeletion')
-                : t('system:permanentlyDelete'),
+                : t('file:shared.permanentlyDelete'),
               <ClearOutlined />,
               onPurge,
               row,

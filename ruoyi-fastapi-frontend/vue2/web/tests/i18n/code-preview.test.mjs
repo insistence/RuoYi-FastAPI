@@ -31,8 +31,8 @@ test('generated JSON locale files have distinct readable tabs and valid highligh
 test('gettext catalog tabs show the language and file name', () => {
   for (const locale of ['zh-CN', 'en-US']) {
     assert.equal(
-      previewFileLabel(`backend/i18n/catalogs/${locale}/LC_MESSAGES/core.po`),
-      `${locale}/core.po`
+      previewFileLabel(`backend/i18n/catalogs/${locale}/LC_MESSAGES/core/generated.demo.item.po`),
+      `${locale}/core/generated.demo.item.po`
     )
   }
 })

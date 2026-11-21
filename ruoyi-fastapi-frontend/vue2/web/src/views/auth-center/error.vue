@@ -12,7 +12,7 @@
       <p class="panel-kicker">
         {{
           serviceUnavailable
-            ? $t('authCenter:expression.serviceUnavailable')
+            ? $t('authCenter:error.serviceUnavailable')
             : $t('layout:route.authError')
         }}
       </p>
@@ -25,15 +25,15 @@
       </p>
 
       <div class="next-steps">
-        <strong>{{ $t('authCenter:messages.whatYouCanDo') }}</strong>
+        <strong>{{ $t('authCenter:error.whatYouCanDo') }}</strong>
         <ol v-if="serviceUnavailable">
-          <li>{{ $t('authCenter:messages.returnToTheAppOrCloseThisPage') }}</li>
-          <li>{{ $t('authCenter:messages.askYourAdministratorToCheckTheServiceStatus') }}</li>
+          <li>{{ $t('authCenter:error.returnToTheAppOrCloseThisPage') }}</li>
+          <li>{{ $t('authCenter:error.askYourAdministratorToCheckTheServiceStatus') }}</li>
         </ol>
         <ol v-else>
-          <li>{{ $t('authCenter:messages.returnToTheAppAndStartSignInAgain') }}</li>
+          <li>{{ $t('authCenter:error.returnToTheAppAndStartSignInAgain') }}</li>
           <li>
-            {{ $t('authCenter:messages.ifItStillFailsTellYourAdministratorTheAppNameAndWhen') }}
+            {{ $t('authCenter:error.ifItStillFailsTellYourAdministratorTheAppNameAndWhen') }}
           </li>
         </ol>
       </div>
@@ -45,7 +45,7 @@
         class="return-action"
         @click="returnBack"
       >
-        {{ $t('authCenter:messages.goBack') }}
+        {{ $t('authCenter:error.goBack') }}
       </el-button>
       <p
         v-else
@@ -53,8 +53,8 @@
       >
         {{
           serviceUnavailable
-            ? $t('authCenter:expression.youCanSafelyCloseThisPageAndReturnToTheApplication')
-            : $t('authCenter:expression.youCanSafelyCloseThisPageAndRestartSignInFromThe')
+            ? $t('authCenter:error.youCanSafelyCloseThisPageAndReturnToTheApplication')
+            : $t('authCenter:error.youCanSafelyCloseThisPageAndRestartSignInFromThe')
         }}
       </p>
     </div>
@@ -79,24 +79,22 @@ const serviceReason = computed(() => route.value.query.reason)
 const serviceUnavailable = computed(() => ['disabled', 'unavailable'].includes(serviceReason.value))
 const errorTitle = computed(() => {
   if (serviceReason.value === 'disabled')
-    return t('authCenter:messages.authenticationServiceIsDisabled')
+    return t('authCenter:error.authenticationServiceIsDisabled')
   if (serviceReason.value === 'unavailable')
-    return t('authCenter:messages.authenticationServiceIsUnavailable')
-  return t('authCenter:messages.unableToContinue')
+    return t('authCenter:error.authenticationServiceIsUnavailable')
+  return t('authCenter:error.unableToContinue')
 })
 const safeMessage = computed(() => {
   if (serviceReason.value === 'disabled') {
-    return t(
-      'authCenter:messages.authenticationIsNotEnabledReturnToTheAppOrContactYourAdministrator'
-    )
+    return t('authCenter:error.authenticationIsNotEnabledReturnToTheAppOrContactYourAdministrator')
   }
   if (serviceReason.value === 'unavailable') {
-    return t('authCenter:messages.theAuthenticationServiceCannotBeReachedTryAgainLaterFromTheApp')
+    return t('authCenter:error.theAuthenticationServiceCannotBeReachedTryAgainLaterFromTheApp')
   }
   const message = typeof route.value.query.message === 'string' ? route.value.query.message : ''
   return (
     message.slice(0, 240) ||
-    t('authCenter:messages.theAuthenticationRequestMayHaveExpiredBeIncompleteOrReferToAn')
+    t('authCenter:error.theAuthenticationRequestMayHaveExpiredBeIncompleteOrReferToAn')
   )
 })
 

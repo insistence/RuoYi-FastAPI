@@ -4,37 +4,37 @@
       <!-- Old Password -->
       <view class="group relative">
         <text class="mb-2 block text-sm font-medium text-gray-700">{{
-          $t('mobile:password.old')
+          $t('auth:password.old')
         }}</text>
         <input
           v-model="user.oldPassword"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="password"
-          :placeholder="$t('mobile:password.oldPlaceholder')"
+          :placeholder="$t('auth:password.oldPlaceholder')"
         />
       </view>
       <!-- New Password -->
       <view class="group relative">
         <text class="mb-2 block text-sm font-medium text-gray-700">{{
-          $t('mobile:password.new')
+          $t('auth:password.new')
         }}</text>
         <input
           v-model="user.newPassword"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="password"
-          :placeholder="$t('mobile:password.newPlaceholder')"
+          :placeholder="$t('auth:password.newPlaceholder')"
         />
       </view>
       <!-- Confirm Password -->
       <view class="group relative">
         <text class="mb-2 block text-sm font-medium text-gray-700">{{
-          $t('mobile:password.confirm')
+          $t('auth:password.confirm')
         }}</text>
         <input
           v-model="user.confirmPassword"
           class="h-11 w-full rounded-xl bg-gray-50 px-4 text-sm text-gray-800 outline-hidden ring-1 ring-gray-200 transition-all focus:bg-white focus:ring-2 focus:ring-blue-500"
           type="password"
-          :placeholder="$t('mobile:password.confirmPlaceholder')"
+          :placeholder="$t('auth:password.confirmPlaceholder')"
         />
       </view>
 
@@ -65,23 +65,23 @@ const user = reactive({
 
 function submit() {
   if (!user.oldPassword) {
-    proxy.$modal.msgError(t('mobile:password.oldRequired'))
+    proxy.$modal.msgError(t('auth:password.oldRequired'))
     return
   }
   if (!user.newPassword) {
-    proxy.$modal.msgError(t('mobile:password.newRequired'))
+    proxy.$modal.msgError(t('auth:password.newRequired'))
     return
   }
   if (user.newPassword.length < 6 || user.newPassword.length > 20) {
-    proxy.$modal.msgError(t('mobile:password.length'))
+    proxy.$modal.msgError(t('auth:password.length'))
     return
   }
   if (!user.confirmPassword) {
-    proxy.$modal.msgError(t('mobile:password.confirmRequired'))
+    proxy.$modal.msgError(t('auth:password.confirmRequired'))
     return
   }
   if (user.newPassword !== user.confirmPassword) {
-    proxy.$modal.msgError(t('mobile:password.mismatch'))
+    proxy.$modal.msgError(t('auth:password.mismatch'))
     return
   }
 

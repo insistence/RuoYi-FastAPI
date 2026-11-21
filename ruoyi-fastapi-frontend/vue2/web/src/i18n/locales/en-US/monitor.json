@@ -1,4 +1,9 @@
 {
+  "oauthAudit": {
+    "to": "to",
+    "general": "General",
+    "critical": "Critical"
+  },
   "log": {
     "id": "Log ID",
     "businessType": "Business type",
@@ -51,10 +56,6 @@
   },
   "server": {
     "os": "Operating system"
-  },
-  "oauthAudit": {
-    "general": "General",
-    "critical": "Critical"
   },
   "operlog": {
     "copied": "Copied"

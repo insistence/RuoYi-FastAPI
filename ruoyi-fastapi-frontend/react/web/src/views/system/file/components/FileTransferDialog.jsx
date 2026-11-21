@@ -50,7 +50,7 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
         files.map((row) => row.fileId),
         values
       )
-      message.success(t('system:filesTransferredSuccessfully'))
+      message.success(t('file:transfer.filesTransferredSuccessfully'))
       onClose()
       onSuccess()
     } catch {
@@ -67,7 +67,7 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
         arg0:
           files?.length === 1
             ? files[0].originalName
-            : t('system:valueFiles', { arg0: files?.length || 0 }),
+            : t('file:transfer.valueFiles', { arg0: files?.length || 0 }),
       })}
       open={!!files}
       onCancel={onClose}
@@ -86,12 +86,12 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
       >
         <Form.Item
           name="ownerUserId"
-          label={t('system:newOwner')}
-          rules={[{ required: true, message: t('system:selectANewOwner') }]}
+          label={t('file:shared.newOwner')}
+          rules={[{ required: true, message: t('file:transfer.selectANewOwner') }]}
         >
           <Select
             allowClear
-            placeholder={t('system:searchByUsername')}
+            placeholder={t('file:transfer.searchByUsername')}
             showSearch
             filterOption={false}
             loading={searching}
@@ -109,20 +109,22 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
         <Form.Item
           name="deptId"
           label={t('system:user.department')}
-          rules={[{ required: true, message: t('system:components.selectADepartment') }]}
+          rules={[{ required: true, message: t('file:shared.selectADepartment') }]}
         >
           <TreeSelect
             allowClear
-            placeholder={t('system:components.selectADepartment')}
+            placeholder={t('file:shared.selectADepartment')}
             showSearch
             treeNodeFilterProp="label"
             treeData={depts}
             fieldNames={{ label: 'label', value: 'id', children: 'children' }}
           />
         </Form.Item>
-        <Form.Item label={t('system:uploaderPermissions')}>
+        <Form.Item label={t('file:shared.uploaderPermissions')}>
           <div className="file-transfer-permission">
-            <span className={!retainUploaderAccess ? 'is-active' : ''}>{t('system:remove')}</span>
+            <span className={!retainUploaderAccess ? 'is-active' : ''}>
+              {t('file:transfer.remove')}
+            </span>
             <Form.Item
               name="retainUploaderAccess"
               valuePropName="checked"
@@ -130,7 +132,9 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
             >
               <Switch aria-label={t('file:retainUploaderPermissions')} />
             </Form.Item>
-            <span className={retainUploaderAccess ? 'is-active' : ''}>{t('system:retain')}</span>
+            <span className={retainUploaderAccess ? 'is-active' : ''}>
+              {t('file:transfer.retain')}
+            </span>
           </div>
           <div className="file-form-tip">
             {retainUploaderAccess
@@ -140,11 +144,13 @@ export default function FileTransferDialog({ files, onClose, onSuccess }) {
         </Form.Item>
         <Form.Item
           name="reason"
-          label={t('system:transferReason')}
-          rules={[{ required: true, whitespace: true, message: t('system:enterATransferReason') }]}
+          label={t('file:transfer.transferReason')}
+          rules={[
+            { required: true, whitespace: true, message: t('file:transfer.enterATransferReason') },
+          ]}
         >
           <Input.TextArea
-            placeholder={t('system:enterATransferReason')}
+            placeholder={t('file:transfer.enterATransferReason')}
             rows={3}
             maxLength={500}
             showCount

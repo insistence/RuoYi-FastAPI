@@ -1,12 +1,12 @@
 <template>
   <div class="oauth-route-page">
     <PageFrame
-      :section="$t('oauth:integrationManagement')"
+      :section="$t('oauth:shared.integrationManagement')"
       :title="$t('components:permissions')"
       :description="
-        $t('oauth:describeTheIdentityInformationAndServiceOperationsApplicationsMayRequest')
+        $t('oauth:scope.describeTheIdentityInformationAndServiceOperationsApplicationsMayRequest')
       "
-      :filter-hint="$t('oauth:protocolCodesAppearAsSecondaryInformationSearchByNameFor')"
+      :filter-hint="$t('oauth:scope.protocolCodesAppearAsSecondaryInformationSearchByNameFor')"
     >
       <template #actions>
         <el-button
@@ -14,7 +14,7 @@
           icon="Plus"
           v-hasPermi="['system:oauthScope:add']"
           @click="handleAdd"
-          >{{ $t('oauth:addPermission') }}</el-button
+          >{{ $t('oauth:scope.addPermission') }}</el-button
         >
       </template>
 
@@ -26,33 +26,33 @@
           :inline="true"
         >
           <el-form-item
-            :label="$t('oauth:permissionName')"
+            :label="$t('oauth:scope.permissionName')"
             prop="scopeName"
           >
             <el-input
               v-model="queryParams.scopeName"
               clearable
-              :placeholder="$t('oauth:enterPermissionName')"
+              :placeholder="$t('oauth:scope.enterPermissionName')"
               style="width: 200px"
               @keyup.enter="handleQuery"
             />
           </el-form-item>
           <el-form-item
-            :label="$t('oauth:purpose')"
+            :label="$t('oauth:scope.purpose')"
             prop="scopeType"
           >
             <el-select
               v-model="queryParams.scopeType"
               clearable
-              :placeholder="$t('oauth:allPurposes')"
+              :placeholder="$t('oauth:scope.allPurposes')"
               style="width: 200px"
             >
               <el-option
-                :label="$t('oauth:signInIdentityInformation')"
+                :label="$t('oauth:scope.signInIdentityInformation')"
                 value="identity"
               />
               <el-option
-                :label="$t('oauth:serviceAccess')"
+                :label="$t('oauth:scope.serviceAccess')"
                 value="resource"
               />
             </el-select>
@@ -68,7 +68,7 @@
               style="width: 200px"
             >
               <el-option
-                :label="$t('oauth:inUse')"
+                :label="$t('oauth:shared.inUse')"
                 value="0"
               />
               <el-option
@@ -95,7 +95,8 @@
 
       <template #toolbar>
         <span class="result-count"
-          >{{ $t('oauth:defined') }}<strong>{{ total }}</strong> {{ $t('oauth:permissions') }}</span
+          >{{ $t('oauth:scope.defined') }}<strong>{{ total }}</strong>
+          {{ $t('oauth:scope.permissions') }}</span
         >
         <right-toolbar
           v-model:showSearch="showSearch"
@@ -120,7 +121,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:purpose')"
+          :label="$t('oauth:scope.purpose')"
           width="135"
         >
           <template #default="scope">
@@ -130,20 +131,20 @@
             >
               {{
                 scope.row.scopeType === 'identity'
-                  ? $t('oauth:signInIdentityInformation')
-                  : $t('oauth:serviceAccess')
+                  ? $t('oauth:scope.signInIdentityInformation')
+                  : $t('oauth:scope.serviceAccess')
               }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:service')"
+          :label="$t('oauth:scope.service')"
           min-width="180"
         >
           <template #default="scope">{{ resourceName(scope.row.resourceId) }}</template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:returnedUserInformation')"
+          :label="$t('oauth:shared.returnedUserInformation')"
           min-width="230"
         >
           <template #default="scope">
@@ -158,7 +159,7 @@
               <span
                 v-if="!(scope.row.claims || []).length"
                 class="muted-value"
-                >{{ $t('oauth:noAdditionalInformationReturned') }}</span
+                >{{ $t('oauth:scope.noAdditionalInformationReturned') }}</span
               >
               <span
                 v-else-if="scope.row.claims.length > 3"
@@ -169,7 +170,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('oauth:userConfirmation')"
+          :label="$t('oauth:scope.userConfirmation')"
           width="145"
         >
           <template #default="scope">
@@ -178,12 +179,12 @@
                 v-if="scope.row.sensitive"
                 type="warning"
                 size="small"
-                >{{ $t('oauth:sensitivePermission') }}</el-tag
+                >{{ $t('oauth:scope.sensitivePermission') }}</el-tag
               >
               <span>{{
                 scope.row.consentRequired
-                  ? $t('oauth:confirmationRequired')
-                  : $t('oauth:skipRepeatedConfirmationLabel')
+                  ? $t('oauth:scope.confirmationRequired')
+                  : $t('oauth:scope.skipRepeatedConfirmationLabel')
               }}</span>
             </div>
           </template>
@@ -195,7 +196,7 @@
         >
           <template #default="scope">
             <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">{{
-              scope.row.status === '0' ? $t('oauth:inUse') : $t('components:disabled')
+              scope.row.status === '0' ? $t('oauth:shared.inUse') : $t('components:disabled')
             }}</el-tag>
           </template>
         </el-table-column>
@@ -213,7 +214,7 @@
                 icon="Edit"
                 v-hasPermi="['system:oauthScope:edit']"
                 @click="handleUpdate(scope.row)"
-                >{{ $t('oauth:edit') }}</el-button
+                >{{ $t('common:edit') }}</el-button
               >
               <el-dropdown
                 v-if="scope.row.scopeCode !== 'openid'"
@@ -224,7 +225,7 @@
                   link
                   type="primary"
                   icon="ArrowDown"
-                  >{{ $t('oauth:more') }}</el-button
+                  >{{ $t('oauth:shared.more') }}</el-button
                 >
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -233,14 +234,14 @@
                       command="enable"
                       icon="CircleCheck"
                       v-hasPermi="['system:oauthScope:edit']"
-                      >{{ $t('oauth:reEnable') }}</el-dropdown-item
+                      >{{ $t('oauth:shared.reEnable') }}</el-dropdown-item
                     >
                     <el-dropdown-item
                       v-else
                       command="disable"
                       icon="CircleClose"
                       v-hasPermi="['system:oauthScope:remove']"
-                      >{{ $t('oauth:disablePermission') }}</el-dropdown-item
+                      >{{ $t('oauth:scope.disablePermission') }}</el-dropdown-item
                     >
                   </el-dropdown-menu>
                 </template>
@@ -249,12 +250,12 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('oauth:noMatchingPermissions')">
+          <el-empty :description="$t('oauth:scope.noMatchingPermissions')">
             <el-button
               type="primary"
               v-hasPermi="['system:oauthScope:add']"
               @click="handleAdd"
-              >{{ $t('oauth:addYourFirstPermission') }}</el-button
+              >{{ $t('oauth:scope.addYourFirstPermission') }}</el-button
             >
           </el-empty>
         </template>
@@ -270,7 +271,7 @@
 
     <el-dialog
       v-model="open"
-      :title="form.persisted ? $t('oauth:editPermission') : $t('oauth:addPermission')"
+      :title="form.persisted ? $t('oauth:scope.editPermission') : $t('oauth:scope.addPermission')"
       width="min(780px, calc(100vw - 48px))"
       append-to-body
       :close-on-click-modal="false"
@@ -284,15 +285,19 @@
         class="permission-form"
       >
         <div class="section-heading">
-          <h3>{{ $t('oauth:permissionMeaning') }}</h3>
-          <p>{{ $t('oauth:chooseWhetherThisPermissionProvidesSignInInformationOrService') }}</p>
+          <h3>{{ $t('oauth:scope.permissionMeaning') }}</h3>
+          <p>
+            {{ $t('oauth:scope.chooseWhetherThisPermissionProvidesSignInInformationOrService') }}
+          </p>
         </div>
         <el-form-item prop="scopeType">
           <template #label
             ><FieldLabel
-              :label="$t('oauth:permissionPurpose')"
+              :label="$t('oauth:scope.permissionPurpose')"
               :help="
-                $t('oauth:identityPermissionsReturnUserProfileInformationServicePermissionsAllowAn')
+                $t(
+                  'oauth:scope.identityPermissionsReturnUserProfileInformationServicePermissionsAllowAn'
+                )
               "
           /></template>
           <el-radio-group
@@ -304,15 +309,15 @@
               value="identity"
               border
             >
-              <strong>{{ $t('oauth:signInIdentityInformation') }}</strong>
-              <small>{{ $t('oauth:forExampleNameEmailAndRoles') }}</small>
+              <strong>{{ $t('oauth:scope.signInIdentityInformation') }}</strong>
+              <small>{{ $t('oauth:scope.forExampleNameEmailAndRoles') }}</small>
             </el-radio>
             <el-radio
               value="resource"
               border
             >
-              <strong>{{ $t('oauth:serviceAccess') }}</strong>
-              <small>{{ $t('oauth:forExampleViewingOrdersOrUpdatingInventory') }}</small>
+              <strong>{{ $t('oauth:scope.serviceAccess') }}</strong>
+              <small>{{ $t('oauth:scope.forExampleViewingOrdersOrUpdatingInventory') }}</small>
             </el-radio>
           </el-radio-group>
         </el-form-item>
@@ -324,12 +329,12 @@
             <el-form-item prop="scopeName">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:displayName')"
-                  :help="$t('oauth:theNameShownDuringUserConsentAndInAdministrationLists')"
+                  :label="$t('oauth:scope.displayName')"
+                  :help="$t('oauth:scope.theNameShownDuringUserConsentAndInAdministrationLists')"
               /></template>
               <el-input
                 v-model="form.scopeName"
-                :placeholder="$t('oauth:forExampleViewOrders')"
+                :placeholder="$t('oauth:scope.forExampleViewOrders')"
                 style="width: 100%"
               />
             </el-form-item>
@@ -341,13 +346,13 @@
             <el-form-item prop="scopeCode">
               <template #label
                 ><FieldLabel
-                  :label="$t('oauth:permissionCode')"
-                  :help="$t('oauth:protocolCodeUsedInSignInRequestsItCannotBe')"
+                  :label="$t('oauth:scope.permissionCode')"
+                  :help="$t('oauth:scope.protocolCodeUsedInSignInRequestsItCannotBe')"
               /></template>
               <el-input
                 v-model="form.scopeCode"
                 :disabled="form.persisted"
-                :placeholder="$t('oauth:forExampleOrdersRead')"
+                :placeholder="$t('oauth:scope.forExampleOrdersRead')"
                 style="width: 100%"
               />
             </el-form-item>
@@ -359,13 +364,13 @@
         >
           <template #label
             ><FieldLabel
-              :label="$t('oauth:service')"
-              :help="$t('oauth:selectTheServiceTheAppMayAccessWithThisPermission')"
+              :label="$t('oauth:scope.service')"
+              :help="$t('oauth:scope.selectTheServiceTheAppMayAccessWithThisPermission')"
           /></template>
           <el-select
             v-model="form.resourceId"
             filterable
-            :placeholder="$t('oauth:chooseAService')"
+            :placeholder="$t('oauth:scope.chooseAService')"
             style="width: 100%"
           >
             <el-option
@@ -382,8 +387,8 @@
         <el-form-item>
           <template #label
             ><FieldLabel
-              :label="$t('oauth:returnUserInformation')"
-              :help="$t('oauth:userInformationTheAppMayReceiveWithThisPermissionMultiple')"
+              :label="$t('oauth:scope.returnUserInformation')"
+              :help="$t('oauth:scope.userInformationTheAppMayReceiveWithThisPermissionMultiple')"
           /></template>
           <el-select
             v-model="form.claims"
@@ -391,7 +396,7 @@
             filterable
             allow-create
             default-first-option
-            :placeholder="$t('oauth:selectOrEnterUserFields')"
+            :placeholder="$t('oauth:shared.selectOrEnterUserFields')"
             style="width: 100%"
           >
             <el-option
@@ -405,17 +410,17 @@
         <el-form-item>
           <template #label
             ><FieldLabel
-              :label="$t('oauth:userConfirmation')"
+              :label="$t('oauth:scope.userConfirmation')"
               :help="
-                $t('oauth:sensitivePermissionsShouldRequireExplicitConsentAndBeHighlightedOn')
+                $t('oauth:scope.sensitivePermissionsShouldRequireExplicitConsentAndBeHighlightedOn')
               "
           /></template>
           <div class="policy-options">
             <el-checkbox v-model="form.consentRequired">{{
-              $t('oauth:askTheUserToConfirmBeforeUse')
+              $t('oauth:scope.askTheUserToConfirmBeforeUse')
             }}</el-checkbox>
             <el-checkbox v-model="form.sensitive">{{
-              $t('oauth:markAsSensitivePermission')
+              $t('oauth:scope.markAsSensitivePermission')
             }}</el-checkbox>
           </div>
         </el-form-item>
@@ -423,7 +428,7 @@
           <template #label
             ><FieldLabel
               :label="$t('system:remarks')"
-              :help="$t('oauth:forAdministratorNotesOnlyNotShownToExternalApps')"
+              :help="$t('oauth:scope.forAdministratorNotesOnlyNotShownToExternalApps')"
           /></template>
           <el-input
             v-model="form.remark"
@@ -441,7 +446,7 @@
           type="primary"
           :loading="saving"
           @click="submitForm"
-          >{{ $t('oauth:savePermission') }}</el-button
+          >{{ $t('oauth:scope.savePermission') }}</el-button
         >
       </template>
     </el-dialog>
@@ -484,31 +489,31 @@ const claimOptions = [
   {
     value: 'sub',
     get label() {
-      return t('oauth:userIdentifierSub')
+      return t('oauth:shared.userIdentifierSub')
     },
   },
   {
     value: 'name',
     get label() {
-      return t('oauth:nameName')
+      return t('oauth:shared.nameName')
     },
   },
   {
     value: 'email',
     get label() {
-      return t('oauth:emailEmail')
+      return t('oauth:shared.emailEmail')
     },
   },
   {
     value: 'roles',
     get label() {
-      return t('oauth:rolesRoles')
+      return t('oauth:shared.rolesRoles')
     },
   },
   {
     value: 'preferred_username',
     get label() {
-      return t('oauth:accountPreferredUsername')
+      return t('oauth:scope.accountPreferredUsername')
     },
   },
 ]
@@ -517,7 +522,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:enterPermissionCode')
+        return t('oauth:scope.enterPermissionCode')
       },
       trigger: 'blur',
     },
@@ -526,7 +531,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:enterDisplayName')
+        return t('oauth:scope.enterDisplayName')
       },
       trigger: 'blur',
     },
@@ -535,7 +540,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:selectPermissionPurpose')
+        return t('oauth:scope.selectPermissionPurpose')
       },
       trigger: 'change',
     },
@@ -544,7 +549,7 @@ const rules = {
     {
       required: true,
       get message() {
-        return t('oauth:chooseTheServiceThisPermissionBelongsTo')
+        return t('oauth:scope.chooseTheServiceThisPermissionBelongsTo')
       },
       trigger: 'change',
     },
@@ -639,7 +644,7 @@ async function submitForm() {
       data.resourceId = null
     }
     await (persisted ? updateOAuthScope(data) : addOAuthScope(data))
-    proxy.$modal.msgSuccess(t('oauth:permissionSaved'))
+    proxy.$modal.msgSuccess(t('oauth:scope.permissionSaved'))
     open.value = false
     await getList()
   } finally {
@@ -651,7 +656,7 @@ async function submitForm() {
 async function changeStatus(row, status) {
   try {
     await proxy.$modal.confirm(
-      t('oauth:valueScopeValue', {
+      t('oauth:scope.valueScopeValue', {
         arg0: status === '0' ? t('system:enable') : t('system:disabled'),
         scopeCode: row.scopeCode,
       })
@@ -666,12 +671,12 @@ async function changeStatus(row, status) {
 /** 删除按钮操作 */
 async function handleDelete(row) {
   await proxy.$modal.confirm(
-    t('oauth:disablingPermissionValuePreventsAppsFromRequestingItContinue', {
+    t('oauth:scope.disablingPermissionValuePreventsAppsFromRequestingItContinue', {
       scopeName: row.scopeName,
     })
   )
   await deleteOAuthScopes(row.scopeCode)
-  proxy.$modal.msgSuccess(t('oauth:permissionDisabled'))
+  proxy.$modal.msgSuccess(t('oauth:scope.permissionDisabled'))
   await getList()
 }
 
@@ -688,7 +693,7 @@ function handleRowCommand(command, row) {
 /** 获取权限关联的资源服务名称 */
 function resourceName(resourceId) {
   if (!resourceId) {
-    return t('oauth:unifiedIdentityInformation')
+    return t('oauth:scope.unifiedIdentityInformation')
   }
   return (
     resourceOptions.value.find((item) => item.resourceId === resourceId)?.resourceName || resourceId

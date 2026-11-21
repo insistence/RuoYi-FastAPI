@@ -18,8 +18,8 @@ test('generated locale resources retain distinct preview labels and full file id
     'python/do.py.jinja2': 'class Demo: pass',
     'frontend/src/i18n/locales/zh-CN/demo.json': '{}',
     'frontend/src/i18n/locales/en-US/demo.json': '{}',
-    'backend/i18n/catalogs/en-US/LC_MESSAGES/core.po': 'msgid "demo"',
-    'backend/i18n/catalogs/zh-CN/LC_MESSAGES/core.po': 'msgid "demo"',
+    'backend/i18n/catalogs/en-US/LC_MESSAGES/core/generated.demo.item.po': 'msgid "demo"',
+    'backend/i18n/catalogs/zh-CN/LC_MESSAGES/core/generated.demo.item.po': 'msgid "demo"',
   }
   assert.equal(initialPreviewFile(files), 'python/do.py.jinja2')
   assert.equal(previewFileLabel('vue/index.vue.jinja2'), 'index.vue')
@@ -28,8 +28,8 @@ test('generated locale resources retain distinct preview labels and full file id
   assert.deepEqual(jsonKeys.map(previewFileLabel), jsonKeys)
   for (const locale of ['zh-CN', 'en-US']) {
     assert.equal(
-      previewFileLabel(`backend/i18n/catalogs/${locale}/LC_MESSAGES/core.po`),
-      `${locale}/core.po`
+      previewFileLabel(`backend/i18n/catalogs/${locale}/LC_MESSAGES/core/generated.demo.item.po`),
+      `${locale}/core/generated.demo.item.po`
     )
   }
   assert.equal(new Set(Object.keys(files).map(previewFileLabel)).size, Object.keys(files).length)

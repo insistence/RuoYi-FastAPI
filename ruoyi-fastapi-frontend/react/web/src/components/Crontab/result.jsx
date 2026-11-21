@@ -26,7 +26,7 @@ export default function CrontabResult({ expression, timeZone }) {
         if (!controller.signal.aborted) setResult(response.data)
       } catch (err) {
         if (!controller.signal.aborted)
-          setError((t) => err.message || t('common:unableToRetrieveRunTimes'))
+          setError((t) => err.message || t('components:cron.unableToRetrieveRunTimes'))
       } finally {
         if (!controller.signal.aborted) setLoading(false)
       }
@@ -42,7 +42,7 @@ export default function CrontabResult({ expression, timeZone }) {
       aria-busy={loading}
     >
       <p>
-        {t('common:next5Runs')}
+        {t('components:cron.next5Runs')}
         {result.timeZone}）
       </p>
       {error ? (
@@ -58,9 +58,9 @@ export default function CrontabResult({ expression, timeZone }) {
           aria-live="polite"
         >
           {loading ? (
-            <li>{t('common:retrievingRunTimes')}</li>
+            <li>{t('components:cron.retrievingRunTimes')}</li>
           ) : !result.nextRunTimes.length ? (
-            <li>{t('common:noFutureRuns')}</li>
+            <li>{t('components:cron.noFutureRuns')}</li>
           ) : (
             result.nextRunTimes.map((item) => (
               <li key={item}>

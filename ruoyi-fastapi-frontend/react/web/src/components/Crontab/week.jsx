@@ -8,7 +8,7 @@ export default function Field(props) {
     <CronField
       {...props}
       name="week"
-      label={t('common:week')}
+      label={t('components:cron.week')}
       min={1}
       max={7}
     />

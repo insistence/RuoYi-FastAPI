@@ -65,13 +65,13 @@ export function getPlanReadyTagType(ready) {
 
 export function getPlanBlockerStatusLabel(status) {
   const statusMap = {
-    missing: t('common:missingDependencies'),
-    not_installed: t('common:notInstalled'),
+    missing: t('pluginAdmin:plan.missingDependencies'),
+    not_installed: t('pluginAdmin:plan.notInstalled'),
     disabled: t('common:notEnabled'),
-    version_unsatisfied: t('common:versionRequirementNotMet'),
-    source_version_unsatisfied: t('common:sourceVersionRequirementNotMet'),
-    cycle: t('common:circularDependency'),
-    unknown_operation: t('common:unknownOperation'),
+    version_unsatisfied: t('pluginAdmin:plan.versionRequirementNotMet'),
+    source_version_unsatisfied: t('pluginAdmin:plan.sourceVersionRequirementNotMet'),
+    cycle: t('pluginAdmin:plan.circularDependency'),
+    unknown_operation: t('pluginAdmin:plan.unknownOperation'),
   }
 
   return statusMap[status] || status || '-'
@@ -148,9 +148,9 @@ export function buildOperationValidationItems(result) {
   const firstCheck = result.checks?.[0] || {}
   const validationGroups = [
     [t('pluginAdmin:dependencies'), result.dependencies || firstCheck.dependencies],
-    [t('common:manifestError'), result.manifestIssues || firstCheck.manifestIssues],
+    [t('pluginAdmin:plan.manifestError'), result.manifestIssues || firstCheck.manifestIssues],
     [
-      t('common:manifestWarning'),
+      t('pluginAdmin:plan.manifestWarning'),
       result.manifestWarnings || firstCheck.manifestWarnings,
       'warning',
     ],

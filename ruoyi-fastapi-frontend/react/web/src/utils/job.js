@@ -3,8 +3,8 @@ import { t } from '../i18n/index.js'
 export function parseJobParameter(value, field) {
   const isArgs = field === 'jobArgs'
   const message = isArgs
-    ? t('common:positionalArgumentsMustBeAJsonArrayEG')
-    : t('common:keywordArgumentsMustBeAJsonObjectEG')
+    ? t('monitor:job.positionalArgumentsMustBeAJsonArrayEG')
+    : t('monitor:job.keywordArgumentsMustBeAJsonObjectEG')
   let result
   try {
     result = JSON.parse(value)
@@ -20,7 +20,7 @@ export function parseJobParameter(value, field) {
   }
   JSON.stringify(result, (_key, item) => {
     if (typeof item === 'number' && !Number.isFinite(item)) {
-      throw new Error(t('common:aParameterNumberIsOutsideTheSupportedRange'))
+      throw new Error(t('monitor:job.aParameterNumberIsOutsideTheSupportedRange'))
     }
     return item
   })
@@ -52,7 +52,7 @@ export const syncStates = {
   },
   failed: {
     get label() {
-      return t('common:synchronizationFailed')
+      return t('monitor:job.synchronizationFailed')
     },
     type: 'danger',
   },
@@ -68,13 +68,13 @@ export const executionStates = {
   },
   submitted: {
     get label() {
-      return t('common:dispatched')
+      return t('monitor:job.dispatched')
     },
     type: 'primary',
   },
   running: {
     get label() {
-      return t('common:running')
+      return t('monitor:job.running')
     },
     type: 'primary',
   },
@@ -86,13 +86,13 @@ export const executionStates = {
   },
   failed: {
     get label() {
-      return t('common:executionFailed')
+      return t('monitor:job.executionFailed')
     },
     type: 'danger',
   },
   rejected: {
     get label() {
-      return t('common:concurrencyLimitReached')
+      return t('monitor:job.concurrencyLimitReached')
     },
     type: 'warning',
   },
@@ -104,13 +104,13 @@ export const executionStates = {
   },
   cancelled: {
     get label() {
-      return t('common:cancelled')
+      return t('monitor:job.cancelled')
     },
     type: 'info',
   },
   unknown: {
     get label() {
-      return t('common:resultPendingConfirmation')
+      return t('monitor:job.resultPendingConfirmation')
     },
     type: 'warning',
   },

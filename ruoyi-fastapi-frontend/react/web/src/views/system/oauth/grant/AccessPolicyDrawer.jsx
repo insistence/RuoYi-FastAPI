@@ -19,13 +19,13 @@ const policyOptions = [
   {
     value: 'blocked',
     get label() {
-      return t('system:blockAccess')
+      return t('oauth:grant.blockAccess')
     },
   },
   {
     value: 'allowed',
     get label() {
-      return t('system:allowAccess')
+      return t('oauth:grant.allowAccess')
     },
   },
 ]
@@ -78,8 +78,8 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
       })
       message.success(
         blocked
-          ? t('system:theUserHasBeenBlockedFromThisApplication')
-          : t('system:accessRestrictionRemoved')
+          ? t('oauth:grant.theUserHasBeenBlockedFromThisApplication')
+          : t('oauth:grant.accessRestrictionRemoved')
       )
       setTarget(null)
       onChanged?.()
@@ -93,7 +93,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
     <Drawer
       rootClassName="oauth-dialog oauth-access-policy-drawer"
       closable={{ placement: 'end' }}
-      title={t('system:applicationAccessPolicies')}
+      title={t('oauth:grant.applicationAccessPolicies')}
       size="min(960px, 96vw)"
       open={open}
       onClose={onClose}
@@ -102,7 +102,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         className="oauth-policy-note"
         type="info"
         showIcon
-        title={t('system:blockAccessBeforeAUserFirstGrantsConsentAccess')}
+        title={t('oauth:grant.blockAccessBeforeAUserFirstGrantsConsentAccess')}
       />
       <Form
         form={queryForm}
@@ -137,7 +137,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         >
           <Select
             style={{ width: 200 }}
-            placeholder={t('system:allPolicies')}
+            placeholder={t('oauth:grant.allPolicies')}
             allowClear
             options={policyOptions}
           />
@@ -165,7 +165,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
       </Form>
       <div className="oauth-policy-toolbar">
         <span>
-          {t('system:configured')} {total} {t('system:grant.policies')}
+          {t('oauth:grant.configured')} {total} {t('oauth:grant.policies')}
         </span>
         <HasPermi value={['system:oauthGrant:revoke']}>
           <Button
@@ -173,12 +173,12 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
             type="primary"
             onClick={() => edit()}
           >
-            {t('system:addAccessRestriction')}
+            {t('oauth:grant.addAccessRestriction')}
           </Button>
         </HasPermi>
       </div>
       <Table
-        locale={{ emptyText: <Empty description={t('system:noMatchingAccessPolicies')} /> }}
+        locale={{ emptyText: <Empty description={t('oauth:grant.noMatchingAccessPolicies')} /> }}
         rowKey={(row) => `${row.userId}:${row.clientId}`}
         dataSource={rows}
         loading={loading}
@@ -211,14 +211,14 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
             dataIndex: 'accessStatus',
             render: (value) => (
               <OAuthTag type={value === 'blocked' ? 'danger' : 'success'}>
-                {value === 'blocked' ? t('system:blockAccess') : t('system:allowAccess')}
+                {value === 'blocked' ? t('oauth:grant.blockAccess') : t('oauth:grant.allowAccess')}
               </OAuthTag>
             ),
           },
           { width: 180, title: t('common:operationReason'), dataIndex: 'reason', ellipsis: true },
-          { width: 110, title: t('system:operator'), dataIndex: 'updateBy' },
+          { width: 110, title: t('oauth:grant.operator'), dataIndex: 'updateBy' },
           {
-            title: t('system:lastOperation'),
+            title: t('oauth:grant.lastOperation'),
             dataIndex: 'updateTime',
             width: 170,
             render: (value) => parseTime(value) || '—',
@@ -236,8 +236,8 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
                   onClick={() => edit(row)}
                 >
                   {row.accessStatus === 'blocked'
-                    ? t('system:removeRestriction')
-                    : t('system:blockAccess')}
+                    ? t('oauth:grant.removeRestriction')
+                    : t('oauth:grant.blockAccess')}
                 </TableAction>
               </HasPermi>
             ),
@@ -255,8 +255,8 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         className="oauth-dialog oauth-access-policy-editor"
         title={
           blocked
-            ? t('system:blockUserAccessToApplication')
-            : t('system:removeApplicationAccessRestriction')
+            ? t('oauth:grant.blockUserAccessToApplication')
+            : t('oauth:grant.removeApplicationAccessRestriction')
         }
         open={!!target}
         onCancel={() => setTarget(null)}
@@ -267,7 +267,7 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
         closable={!saving}
         cancelButtonProps={{ disabled: saving }}
         okButtonProps={{ danger: blocked }}
-        okText={blocked ? t('system:confirmRestriction') : t('system:confirmRemoval')}
+        okText={blocked ? t('oauth:grant.confirmRestriction') : t('oauth:grant.confirmRemoval')}
         cancelText={t('common:cancel')}
         forceRender
       >
@@ -277,8 +277,8 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
           showIcon
           title={
             blocked
-              ? t('system:thisRevokesAllExistingGrantsForThisUserAnd')
-              : t('system:usersMayGrantConsentAgainAfterTheRestrictionIs')
+              ? t('oauth:grant.revokeWarning')
+              : t('oauth:grant.usersMayGrantConsentAgainAfterTheRestrictionIs')
           }
         />
         <Form
@@ -293,12 +293,12 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
               {
                 required: true,
                 pattern: /^[1-9]\d{0,18}$/,
-                message: t('system:enterAValidUserId'),
+                message: t('oauth:grant.enterAValidUserId'),
               },
             ]}
           >
             <Input
-              placeholder={t('system:enterTheUserIdFromUserManagement')}
+              placeholder={t('oauth:grant.enterTheUserIdFromUserManagement')}
               disabled={!!target?.userId || saving}
               maxLength={19}
               inputMode="numeric"
@@ -307,10 +307,10 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
           <Form.Item
             name="clientId"
             label={t('authCenter:appId')}
-            rules={[{ required: true, whitespace: true, message: t('system:enterAClientId') }]}
+            rules={[{ required: true, whitespace: true, message: t('oauth:grant.enterAClientId') }]}
           >
             <Input
-              placeholder={t('system:enterTheClientIdFromClientManagement')}
+              placeholder={t('oauth:grant.enterTheClientIdFromClientManagement')}
               disabled={!!target?.clientId || saving}
               maxLength={128}
             />
@@ -322,12 +322,12 @@ export default function AccessPolicyDrawer({ open, onClose, onChanged }) {
               {
                 required: true,
                 whitespace: true,
-                message: t('system:enterAReasonForThisOperation'),
+                message: t('oauth:grant.enterAReasonForThisOperation'),
               },
             ]}
           >
             <Input.TextArea
-              placeholder={t('system:provideAReasonForTheAuditTrail')}
+              placeholder={t('oauth:grant.provideAReasonForTheAuditTrail')}
               rows={3}
               disabled={saving}
               maxLength={200}

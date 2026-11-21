@@ -1,4 +1,8 @@
 {
+  "good": "良好",
+  "items": "项",
+  "allow": "允许",
+  "deleteRecord": "删除记录",
   "exportFiles": {
     "users": "用户",
     "roles": "角色",
@@ -25,18 +29,6 @@
   "retry": "重试",
   "languageSaved": "语言设置已保存",
   "languageFailed": "语言设置保存失败，请重试",
-  "login": {
-    "title": "若依管理系统",
-    "username": "账号",
-    "password": "密码",
-    "code": "验证码",
-    "remember": "记住密码",
-    "submit": "登录",
-    "signingIn": "登录中…",
-    "usernameRequired": "请输入账号",
-    "passwordRequired": "请输入密码",
-    "codeRequired": "请输入验证码"
-  },
   "network": {
     "error": "后端接口连接异常",
     "timeout": "系统接口请求超时",
@@ -201,26 +193,6 @@
     "add": "添加",
     "delete": "删除",
     "copy": "复制"
-  },
-  "editor": {
-    "formatLabel": "格式化{{label}}",
-    "toggleLabel": "{{action}}{{label}}编辑器",
-    "linkPrompt": "请输入链接地址:",
-    "save": "保存",
-    "videoPrompt": "请输入视频地址:",
-    "text": "文本",
-    "heading1": "标题1",
-    "heading2": "标题2",
-    "heading3": "标题3",
-    "heading4": "标题4",
-    "heading5": "标题5",
-    "heading6": "标题6",
-    "standardFont": "标准字体",
-    "serifFont": "衬线字体",
-    "monospaceFont": "等宽字体",
-    "visitLink": "访问链接:",
-    "editLink": "编辑",
-    "removeLink": "移除"
   },
   "time": {
     "dateRangeInZone": "日期范围（{{zone}}）",
