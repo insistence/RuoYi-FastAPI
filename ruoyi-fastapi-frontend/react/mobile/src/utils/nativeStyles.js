@@ -367,6 +367,10 @@ export function nativeStyles(classes = '', viewport = { width: 375, height: 667 
       } else style.borderRadius = radii[match[2]]
       continue
     }
+    if (name === 'mt-auto' || name === 'mb-auto') {
+      style[name === 'mt-auto' ? 'marginTop' : 'marginBottom'] = 'auto'
+      continue
+    }
     if ((match = name.match(/^(-?)(p|m)([xytrbl]?)-(\d+(?:\.\d+)?)$/))) {
       const size = Number(match[4]) * 4 * (match[1] ? -1 : 1),
         base = match[2] === 'p' ? 'padding' : 'margin'

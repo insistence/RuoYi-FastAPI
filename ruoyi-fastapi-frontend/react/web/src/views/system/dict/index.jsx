@@ -387,10 +387,14 @@ export default function Dict() {
           >
             <Input placeholder={t('system:dict.namePlaceholder')} />
           </SourceLocaleField>
-          <TranslationFields
-            name="dictNameI18n"
-            label={t('system:dict.name')}
-          />
+          {open && (
+            <TranslationFields
+              original={originalTranslations}
+              maxLength={100}
+              name="dictNameI18n"
+              label={t('system:dict.name')}
+            />
+          )}
           <Form.Item
             label={
               <FormLabel

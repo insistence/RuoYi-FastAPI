@@ -1,22 +1,40 @@
 <template>
-  <div>
-    <el-form-item>
-      <span class="text-muted">{{
-        $t('common:translations.sourceHint', { locale: sourceLanguage })
-      }}</span>
-    </el-form-item>
-    <el-form-item
-      v-for="locale in locales"
-      :key="locale.code"
-      :label="$t('common:translations.locale', { locale: locale.nativeName })"
+  <div
+    v-if="locales.length"
+    class="translation-fields"
+  >
+    <el-button
+      type="text"
+      :aria-expanded="expanded.toString()"
+      @click="expanded = !expanded"
+    >
+      {{
+        expanded
+          ? $t('common:translations.hide')
+          : hasTranslation
+            ? $t('common:translations.show')
+            : $t('common:translations.add')
+      }}
+    </el-button>
+    <div
+      v-if="expanded"
+      class="translation-inputs"
     >
       <el-input
-        :value="fieldValue(locale.code)"
-        :placeholder="$t('common:translations.fallback')"
+        v-for="entry in locales"
+        :key="entry.code"
+        :value="fieldValue(entry.code)"
+        :aria-label="$t('common:translations.locale', { locale: entry.nativeName })"
+        :maxlength="maxlength"
+        :validate-event="false"
+        show-word-limit
         clearable
-        @input="update(locale.code, $event)"
-      />
-    </el-form-item>
+        @input="update(entry.code, $event)"
+      >
+        <template slot="prepend">{{ entry.nativeName }}</template>
+      </el-input>
+      <small class="translation-hint">{{ $t('common:translations.fallback') }}</small>
+    </div>
   </div>
 </template>
 
@@ -24,21 +42,21 @@
 import { meta } from '@/i18n/registry'
 import { DATA_SOURCE_LOCALE } from '@/i18n/runtime.mjs'
 
+const locales = meta.locales.filter((entry) => entry.enabled && entry.code !== DATA_SOURCE_LOCALE)
+
 export default {
   name: 'LocaleTextFields',
   props: {
     value: { type: Object, default: () => ({}) },
     patch: { type: Object, default: () => ({}) },
+    maxlength: { type: Number, required: true },
+  },
+  data() {
+    return { locales, expanded: locales.some((entry) => this.value?.[entry.code]) }
   },
   computed: {
-    sourceLanguage() {
-      return (
-        meta.locales.find((locale) => locale.code === DATA_SOURCE_LOCALE)?.nativeName ||
-        DATA_SOURCE_LOCALE
-      )
-    },
-    locales() {
-      return meta.locales.filter((locale) => locale.enabled && locale.code !== DATA_SOURCE_LOCALE)
+    hasTranslation() {
+      return this.locales.some((entry) => this.fieldValue(entry.code))
     },
   },
   methods: {
@@ -48,9 +66,31 @@ export default {
         : this.value?.[locale] || ''
     },
     update(locale, value) {
-      // 只发送编辑过的语言；清空显式删除翻译，未编辑的条目交由服务端保留。
-      this.$emit('input', { ...this.patch, [locale]: value.trim() ? value : null })
+      const next = { ...this.patch }
+      const translation = value.trim() ? value : ''
+      if (translation === (this.value?.[locale] || '')) delete next[locale]
+      else next[locale] = translation || null
+      this.$emit('input', next)
     },
   },
 }
 </script>
+
+<style scoped>
+.translation-fields {
+  width: 100%;
+  line-height: 1.5;
+}
+.translation-fields .el-button {
+  min-height: 28px;
+  padding: 0;
+}
+.translation-inputs {
+  display: grid;
+  gap: 6px;
+}
+.translation-hint {
+  color: #909399;
+  font-size: 12px;
+}
+</style>

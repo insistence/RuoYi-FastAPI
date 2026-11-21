@@ -85,7 +85,10 @@
     "home": "返回首页"
   },
   "size": {
-    "default": "默认"
+    "default": "默认",
+    "medium": "中等",
+    "small": "小型",
+    "mini": "迷你"
   },
   "route": {
     "home": "首页",

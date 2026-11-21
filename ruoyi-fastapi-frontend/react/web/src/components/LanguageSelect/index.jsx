@@ -1,4 +1,5 @@
-import { Select, message } from 'antd'
+import { GlobalOutlined } from '@ant-design/icons'
+import { Button, Dropdown, message } from 'antd'
 import { useState } from 'react'
 import { useI18n } from '@/i18n/adapter'
 import { saveLocale } from '@/i18n/preference'
@@ -6,13 +7,13 @@ import { saveLocale } from '@/i18n/preference'
 export default function LanguageSelect() {
   const { t, i18n, preference } = useI18n()
   const [busy, setBusy] = useState(false)
-  const options = [
-    { value: 'auto', label: t('common:followDevice') },
-    ...i18n.registry.entries.map((item) => ({ value: item.code, label: item.nativeName })),
+  const items = [
+    { key: 'auto', label: t('common:followDevice') },
+    ...i18n.registry.entries.map((item) => ({ key: item.code, label: item.nativeName })),
   ]
 
   async function handleLanguageChange(value) {
-    if (busy) return
+    if (busy || value === preference) return
     setBusy(true)
     try {
       await saveLocale(value)
@@ -24,13 +25,25 @@ export default function LanguageSelect() {
   }
 
   return (
-    <Select
-      aria-label={t('common:language')}
-      value={preference}
-      options={options}
+    <Dropdown
+      trigger={['click']}
+      placement="bottomRight"
       disabled={busy}
-      onChange={handleLanguageChange}
-      style={{ minWidth: 150 }}
-    />
+      menu={{
+        items,
+        selectable: true,
+        selectedKeys: [preference],
+        onClick: ({ key }) => handleLanguageChange(key),
+      }}
+    >
+      <Button
+        type="text"
+        aria-haspopup="menu"
+        aria-label={t('common:language')}
+        title={t('common:language')}
+        icon={<GlobalOutlined />}
+        disabled={busy}
+      />
+    </Dropdown>
   )
 }

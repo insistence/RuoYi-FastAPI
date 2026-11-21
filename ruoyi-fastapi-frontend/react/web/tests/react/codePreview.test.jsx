@@ -20,7 +20,7 @@ beforeAll(() => {
 })
 afterAll(() => vi.unstubAllGlobals())
 
-test('same-name locale JSON files have distinct full-path tabs and preserve the selected content', async () => {
+test('locale resources have distinct tabs that select and copy the matching file', async () => {
   await act(() => i18n.setPreference('zh-CN'))
   const chinesePath = 'react/locales/zh-CN/example.json'
   const englishPath = 'react/locales/en-US/example.json'
@@ -32,6 +32,8 @@ test('same-name locale JSON files have distinct full-path tabs and preserve the 
         'python/do.py.jinja2': 'class Example: pass',
         [`${chinesePath}.jinja2`]: chinese,
         [`${englishPath}.jinja2`]: english,
+        'backend/i18n/catalogs/zh-CN/LC_MESSAGES/core.po': 'msgstr "名称"',
+        'backend/i18n/catalogs/en-US/LC_MESSAGES/core.po': 'msgstr "Name"',
       }}
       onClose={() => {}}
     />
@@ -43,4 +45,8 @@ test('same-name locale JSON files have distinct full-path tabs and preserve the 
   expect(screen.getByRole('tabpanel').textContent).toContain(english)
   fireEvent.click(screen.getByRole('button', { name: /复制$/ }))
   await waitFor(() => expect(copyText).toHaveBeenCalledWith(english))
+  fireEvent.click(screen.getByRole('tab', { name: 'zh-CN/core.po', exact: true }))
+  expect(screen.getByRole('tabpanel').textContent).toContain('msgstr "名称"')
+  fireEvent.click(screen.getByRole('tab', { name: 'en-US/core.po', exact: true }))
+  expect(screen.getByRole('tabpanel').textContent).toContain('msgstr "Name"')
 })

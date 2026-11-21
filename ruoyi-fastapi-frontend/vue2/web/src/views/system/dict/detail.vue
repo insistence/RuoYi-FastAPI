@@ -60,9 +60,9 @@
                 v-if="item.listClass && item.listClass !== 'default'"
                 :type="item.listClass === 'primary' ? '' : item.listClass"
                 size="small"
-                >{{ item.dictLabel }}</el-tag
+                >{{ $resolveText(item.dictLabel, item.dictLabelI18n) }}</el-tag
               >
-              <span v-else>{{ item.dictLabel }}</span>
+              <span v-else>{{ $resolveText(item.dictLabel, item.dictLabelI18n) }}</span>
             </div>
           </div>
           <div class="dict-cell">
@@ -105,7 +105,11 @@ export default {
   },
   computed: {
     drawerTitle() {
-      return this.row.dictName + '　' + (this.row.dictType || '')
+      return (
+        this.$resolveText(this.row.dictName, this.row.dictNameI18n) +
+        '　' +
+        (this.row.dictType || '')
+      )
     },
     normalCount() {
       return this.dataList.filter((r) => r.status === '0').length

@@ -33,7 +33,6 @@ export default function Navbar({
     navigate = useNavigate()
   return (
     <AntLayout.Header className={`layout-header${settings.dark ? ' is-dark' : ''}`}>
-      <LanguageSelect />
       {showSidebar && <Hamburger />}
       {settings.navType === 3 && settings.sidebarLogo && <Logo top />}
       {settings.navType === 1 ? (
@@ -46,6 +45,7 @@ export default function Navbar({
         />
       )}
       <div className="header-actions">
+        <LanguageSelect />
         <div className="header-secondary">
           <HeaderSearch />
           <RuoYiGit />

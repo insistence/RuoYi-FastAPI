@@ -18,3 +18,24 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+.ruoyi-dialog-form .locale-text-field:has(+ .translation-fields) {
+  margin-bottom: 0;
+}
+
+.translation-fields {
+  margin-bottom: 18px;
+}
+
+.translation-fields > .ant-btn {
+  height: 28px;
+  padding-inline: 0;
+}
+
+.translation-fields .locale-text-field {
+  margin-bottom: 6px;
+}
+
+.translation-fields .ant-typography {
+  font-size: 12px;
+}

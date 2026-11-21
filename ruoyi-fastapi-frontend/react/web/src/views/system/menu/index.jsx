@@ -45,6 +45,10 @@ import SvgIcon from '@/components/SvgIcon'
 import RightToolbar from '@/components/RightToolbar'
 import './style.css'
 
+function displayMenuName(menu) {
+  return i18n.resolveText(menu.menuName, menu.menuNameI18n)
+}
+
 export default function Menu() {
   useI18n()
   const [originalTranslations, setOriginalTranslations] = useState({})
@@ -121,7 +125,7 @@ export default function Menu() {
   }
   async function handleDelete(row) {
     try {
-      await confirm(t('system:deleteTheItemNamedValue', { menuName: row.menuName }))
+      await confirm(t('system:deleteTheItemNamedValue', { menuName: displayMenuName(row) }))
       await delMenu(row.menuId)
       message.success(t('common:deleteSuccess'))
       await getList()
@@ -162,12 +166,15 @@ export default function Menu() {
       dataIndex: 'menuName',
       width: 220,
       ellipsis: true,
-      render: (value, row) => (
-        <span title={i18n.resolveText(value, row.menuNameI18n)}>
-          <SvgIcon iconClass={row.icon} />
-          <span style={{ marginLeft: 5 }}>{i18n.resolveText(value, row.menuNameI18n)}</span>
-        </span>
-      ),
+      render: (_, row) => {
+        const name = displayMenuName(row)
+        return (
+          <span title={name}>
+            <SvgIcon iconClass={row.icon} />
+            <span style={{ marginLeft: 5 }}>{name}</span>
+          </span>
+        )
+      },
     },
     {
       title: t('common:type'),
@@ -362,7 +369,7 @@ export default function Menu() {
               <button
                 type="button"
                 className="menu-tree-toggle"
-                aria-label={`${expanded ? t('common:collapse') : t('common:expand')}${record.menuName}`}
+                aria-label={`${expanded ? t('common:collapse') : t('common:expand')} ${displayMenuName(record)}`}
                 aria-expanded={expanded}
                 onClick={(event) => onExpand(record, event)}
               >
@@ -468,10 +475,7 @@ export default function Menu() {
                 />
               </Form.Item>
             </Col>
-            <Col
-              xs={24}
-              sm={12}
-            >
+            <Col span={24}>
               <SourceLocaleField
                 name="menuName"
                 label={t('system:menu.name')}
@@ -479,12 +483,14 @@ export default function Menu() {
               >
                 <Input placeholder={t('system:menu.placeholder')} />
               </SourceLocaleField>
-            </Col>
-            <Col span={24}>
-              <TranslationFields
-                name="menuNameI18n"
-                label={t('system:menu.name')}
-              />
+              {open && (
+                <TranslationFields
+                  original={originalTranslations}
+                  maxLength={50}
+                  name="menuNameI18n"
+                  label={t('system:menu.name')}
+                />
+              )}
             </Col>
             {menuType === 'C' && (
               <Col

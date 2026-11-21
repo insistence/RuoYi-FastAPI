@@ -81,8 +81,10 @@ export default function Login() {
   }
   return (
     <View className="auth-screen">
-      <LanguageSelect />
-      <View className="flex flex-col items-center">
+      <View className="flex w-full justify-end pt-2">
+        <LanguageSelect />
+      </View>
+      <View className="mt-auto flex flex-col items-center pt-2">
         <View className="auth-logo">
           <Image
             src={logo}
@@ -92,7 +94,7 @@ export default function Login() {
         </View>
         <Text className="auth-title">{t('mobile:ruoyiFastapiMobileSignIn')}</Text>
       </View>
-      <View className="auth-panel">
+      <View className="auth-panel mb-auto">
         <FormField
           label={t('common:login.username')}
           icon="account"

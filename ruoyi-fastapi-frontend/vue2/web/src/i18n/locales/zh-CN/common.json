@@ -136,8 +136,11 @@
   "selectPlaceholder": "请选择",
   "translations": {
     "locale": "翻译（{{locale}}）",
-    "fallback": "未填写时使用原名称，清空可删除已有翻译",
-    "sourceHint": "原名使用{{locale}}维护；其他语言可填写翻译，留空时显示原名。"
+    "fallback": "清空译名后将显示原文。",
+    "add": "添加译名",
+    "hide": "收起译名",
+    "show": "查看译名",
+    "search": "按{{language}}原文搜索"
   },
   "dateAndTime": "日期时间",
   "thisTimeDoesNotExistInTheSelectedTimeZone": "该时间在此时区不存在，请重新选择",

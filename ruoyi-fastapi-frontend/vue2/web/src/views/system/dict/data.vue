@@ -28,7 +28,7 @@
       >
         <el-input
           v-model="queryParams.dictLabel"
-          :placeholder="$t('system:dict.enterADictionaryLabel')"
+          :placeholder="$t('common:translations.search', { language: sourceLanguage })"
           clearable
           @keyup.enter.native="handleQuery"
         />
@@ -264,17 +264,23 @@
         <el-form-item
           :label="$t('system:dict.label')"
           prop="dictLabel"
+          for="edit-dictLabel"
         >
           <el-input
+            id="edit-dictLabel"
             v-model="form.dictLabel"
             :placeholder="$t('system:dict.labelPlaceholder')"
+          >
+            <template slot="prepend">{{ sourceLanguage }}</template>
+          </el-input>
+          <locale-text-fields
+            v-if="open"
+            :value="form.dictLabelI18n"
+            :patch="form.dictLabelI18nPatch"
+            @input="$set(form, 'dictLabelI18nPatch', $event)"
+            :maxlength="100"
           />
         </el-form-item>
-        <locale-text-fields
-          :value="form.dictLabelI18n"
-          :patch="form.dictLabelI18nPatch"
-          @input="$set(form, 'dictLabelI18nPatch', $event)"
-        />
         <el-form-item
           :label="$t('system:dict.value')"
           prop="dictValue"
@@ -357,6 +363,7 @@
 
 <script>
 import { t } from '@/i18n/adapter'
+import { sourceLanguage } from '@/i18n'
 
 import { listData, getData, delData, addData, updateData } from '@/api/system/dict/data'
 import { optionselect as getDictOptionselect, getType } from '@/api/system/dict/type'
@@ -366,6 +373,7 @@ export default {
   dicts: ['sys_normal_disable'],
   data() {
     return {
+      sourceLanguage,
       // 遮罩层
       loading: true,
       // 选中数组

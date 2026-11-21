@@ -283,6 +283,25 @@ select {
     sans-serif;
   margin: 0 0 30px;
 }
+.login-heading {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: start;
+  column-gap: 8px;
+  margin-bottom: 24px;
+}
+.login-heading h1 {
+  grid-column: 2;
+  align-self: center;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.login-heading .ant-btn {
+  justify-self: end;
+  color: var(--ant-color-text-secondary);
+  font-size: 18px;
+}
 .login-card .ant-form {
   font-family: inherit;
 }

@@ -24,17 +24,15 @@
 
 <script>
 export default {
-  data() {
-    return {
-      sizeOptions: [
-        { label: 'Default', value: 'default' },
-        { label: 'Medium', value: 'medium' },
-        { label: 'Small', value: 'small' },
-        { label: 'Mini', value: 'mini' },
-      ],
-    }
-  },
   computed: {
+    sizeOptions() {
+      return [
+        { label: this.$t('layout:size.default'), value: 'default' },
+        { label: this.$t('layout:size.medium'), value: 'medium' },
+        { label: this.$t('layout:size.small'), value: 'small' },
+        { label: this.$t('layout:size.mini'), value: 'mini' },
+      ]
+    },
     size() {
       return this.$store.getters.size
     },

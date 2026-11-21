@@ -1,9 +1,12 @@
 <template>
   <view
-    class="flex h-full flex-col items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 px-6 pb-20 overflow-hidden"
+    class="flex min-h-full flex-col items-center bg-linear-to-br from-blue-50 to-indigo-100 px-6 pt-2 pb-20"
   >
+    <view class="flex w-full justify-end">
+      <LanguageSelect />
+    </view>
     <!-- Logo Section -->
-    <view class="mb-6 flex flex-col items-center">
+    <view class="mt-auto mb-6 flex flex-col items-center pt-2">
       <view class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-white shadow-lg">
         <image
           class="size-10"
@@ -11,15 +14,13 @@
           mode="widthFix"
         />
       </view>
-      <text class="text-xl font-bold tracking-wide text-gray-800">{{
+      <text class="text-center text-xl font-bold tracking-wide text-gray-800">{{
         $t('mobile:auth.registerTitle')
       }}</text>
     </view>
 
-    <LanguageSelect />
-
     <!-- Form Section -->
-    <view class="w-full rounded-3xl bg-white/80 p-6 shadow-xl backdrop-blur-md">
+    <view class="mb-auto w-full rounded-3xl bg-white/80 p-6 shadow-xl backdrop-blur-md">
       <!-- Username -->
       <view class="group relative mb-5">
         <view

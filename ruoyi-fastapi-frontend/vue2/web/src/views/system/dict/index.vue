@@ -15,7 +15,7 @@
       >
         <el-input
           v-model="queryParams.dictName"
-          :placeholder="$t('system:dict.namePlaceholder')"
+          :placeholder="$t('common:translations.search', { language: sourceLanguage })"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
@@ -273,17 +273,23 @@
         <el-form-item
           :label="$t('system:dict.name')"
           prop="dictName"
+          for="edit-dictName"
         >
           <el-input
+            id="edit-dictName"
             v-model="form.dictName"
             :placeholder="$t('system:dict.namePlaceholder')"
+          >
+            <template slot="prepend">{{ sourceLanguage }}</template>
+          </el-input>
+          <locale-text-fields
+            v-if="open"
+            :value="form.dictNameI18n"
+            :patch="form.dictNameI18nPatch"
+            @input="$set(form, 'dictNameI18nPatch', $event)"
+            :maxlength="100"
           />
         </el-form-item>
-        <locale-text-fields
-          :value="form.dictNameI18n"
-          :patch="form.dictNameI18nPatch"
-          @input="$set(form, 'dictNameI18nPatch', $event)"
-        />
         <el-form-item prop="dictType">
           <el-input
             v-model="form.dictType"
@@ -346,6 +352,7 @@
 
 <script>
 import { t } from '@/i18n/adapter'
+import { sourceLanguage } from '@/i18n'
 
 import { getDisplayTimezone } from '@/utils/time'
 import DictDataDrawer from './detail'
@@ -364,6 +371,7 @@ export default {
   dicts: ['sys_normal_disable'],
   data() {
     return {
+      sourceLanguage,
       // 遮罩层
       loading: true,
       // 选中数组

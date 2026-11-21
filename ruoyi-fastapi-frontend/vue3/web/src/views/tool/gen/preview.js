@@ -1,5 +1,8 @@
-/** 模板用文件名展示，直接生成的资源保留路径以区分不同语言。 */
+/** 模板用文件名展示，语言资源保留语言目录以区分同名文件。 */
 export function previewFileLabel(key) {
+  if (key.endsWith('.po')) {
+    return key.replace(/^backend\/i18n\/catalogs\/([^/]+)\/LC_MESSAGES\//, '$1/')
+  }
   return key.endsWith('.jinja2') ? key.slice(key.lastIndexOf('/') + 1, -'.jinja2'.length) : key
 }
 

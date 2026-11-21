@@ -1,5 +1,5 @@
 import appManifest from '../../package.json'
-import { createLocaleRuntime } from './runtime.mjs'
+import { createLocaleRuntime, DATA_SOURCE_LOCALE } from './runtime.mjs'
 import { meta, resources } from './registry'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn.js'
@@ -34,6 +34,8 @@ export const i18n = createLocaleRuntime({
     }
   },
 })
+export const sourceLanguage =
+  i18n.registry.get(DATA_SOURCE_LOCALE)?.nativeName || DATA_SOURCE_LOCALE
 export const t = i18n.t
 export const resolveRouteTitle = (route) => i18n.resolveRouteTitle(route)
 export const refreshDeviceLocale = () => i18n.refreshDeviceLocale()

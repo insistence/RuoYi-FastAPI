@@ -31,7 +31,7 @@
     </template>
 
     <div class="right-menu">
-      <LanguageSelect class="language-select" />
+      <LanguageSelect />
       <template v-if="appStore.device !== 'mobile'">
         <header-search
           id="header-search"
@@ -264,10 +264,6 @@ async function toggleTheme(event) {
 </script>
 
 <style lang="scss" scoped>
-.language-select {
-  vertical-align: middle;
-  margin: 0 8px;
-}
 .navbar.nav3 {
   .hamburger-container {
     display: none !important;

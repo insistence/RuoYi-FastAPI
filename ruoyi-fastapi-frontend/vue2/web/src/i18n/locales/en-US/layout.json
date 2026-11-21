@@ -86,7 +86,10 @@
     "home": "Back to home"
   },
   "size": {
-    "default": "Default"
+    "default": "Default",
+    "medium": "Medium",
+    "small": "Small",
+    "mini": "Mini"
   },
   "route": {
     "home": "Home",

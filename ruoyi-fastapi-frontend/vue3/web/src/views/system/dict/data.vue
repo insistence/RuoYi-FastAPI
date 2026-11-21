@@ -28,7 +28,7 @@
       >
         <el-input
           v-model="queryParams.dictLabel"
-          :placeholder="$t('system:enterDictionaryLabel')"
+          :placeholder="$t('system:translations.search', { language: sourceLanguage })"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
@@ -260,16 +260,22 @@
         <el-form-item
           :label="$t('system:dataLabel')"
           prop="dictLabel"
+          for="edit-dictLabel"
         >
           <el-input
+            id="edit-dictLabel"
             v-model="form.dictLabel"
             :placeholder="$t('system:enterDataLabel')"
+          >
+            <template #prepend>{{ sourceLanguage }}</template>
+          </el-input>
+          <locale-name-input
+            v-if="open"
+            v-model="form.dictLabelI18n"
+            :original="originalTranslations"
+            :maxlength="100"
           />
         </el-form-item>
-        <locale-name-input
-          v-model="form.dictLabelI18n"
-          :original="originalTranslations"
-        />
         <el-form-item
           :label="$t('system:dataValue')"
           prop="dictValue"
@@ -351,6 +357,7 @@
 
 <script setup name="Data">
 import { t } from '@/i18n/adapter'
+import { sourceLanguage } from '@/i18n'
 import { useLocaleForm } from '@/composables/useLocaleForm'
 import { resolveText } from '@/i18n/adapter'
 import LocaleNameInput from '@/components/LocaleNameInput/index.vue'

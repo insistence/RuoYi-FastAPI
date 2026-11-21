@@ -463,6 +463,10 @@
     }
   },
   "i18n": {
-    "sourceLanguage": "Source: {{language}}"
+    "sourceLanguage": "Source: {{language}}",
+    "add": "Add translation",
+    "hide": "Hide translations",
+    "show": "Show translations",
+    "fallback": "Clear a translation to use the original text."
   }
 }

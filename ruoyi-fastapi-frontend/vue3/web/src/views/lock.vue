@@ -12,7 +12,6 @@
 
     <!-- 锁屏卡片 -->
     <div class="lock-card">
-      <LanguageSelect />
       <div class="avatar-wrap">
         <img
           :src="userStore.avatar"
@@ -21,7 +20,10 @@
         />
         <div class="lock-icon">🔒</div>
       </div>
-      <div class="lock-username">{{ userStore.nickName }}</div>
+      <div class="lock-username">
+        {{ userStore.nickName }}
+        <LanguageSelect />
+      </div>
       <div class="lock-hint">{{ $t('auth:lock.hint') }}</div>
 
       <div
@@ -309,6 +311,10 @@ onBeforeUnmount(() => {
 }
 
 .lock-username {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   color: #fff;
   font-size: 18px;
   font-weight: 600;

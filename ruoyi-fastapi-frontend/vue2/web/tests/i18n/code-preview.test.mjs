@@ -28,6 +28,15 @@ test('generated JSON locale files have distinct readable tabs and valid highligh
   assert.doesNotMatch(highlighted, /<img/)
 })
 
+test('gettext catalog tabs show the language and file name', () => {
+  for (const locale of ['zh-CN', 'en-US']) {
+    assert.equal(
+      previewFileLabel(`backend/i18n/catalogs/${locale}/LC_MESSAGES/core.po`),
+      `${locale}/core.po`
+    )
+  }
+})
+
 test('Python template remains the initial tab with its actual unique key', () => {
   const files = {
     'frontend/src/i18n/locales/en-US/demo.json': '{}',

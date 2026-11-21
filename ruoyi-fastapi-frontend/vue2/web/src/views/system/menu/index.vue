@@ -14,7 +14,7 @@
       >
         <el-input
           v-model="queryParams.menuName"
-          :placeholder="$t('system:menu.placeholder')"
+          :placeholder="$t('common:translations.search', { language: sourceLanguage })"
           clearable
           @keyup.enter.native="handleQuery"
         />
@@ -270,7 +270,7 @@
         </el-row>
         <el-row>
           <el-col
-            :span="24"
+            :span="12"
             v-if="form.menuType != 'F'"
           >
             <el-form-item
@@ -309,24 +309,6 @@
               </el-popover>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item
-              :label="$t('system:menu.name')"
-              prop="menuName"
-            >
-              <el-input
-                v-model="form.menuName"
-                :placeholder="$t('system:menu.placeholder')"
-              />
-            </el-form-item>
-            <locale-text-fields
-              :value="form.menuNameI18n"
-              :patch="form.menuNameI18nPatch"
-              @input="$set(form, 'menuNameI18nPatch', $event)"
-            />
-          </el-col>
           <el-col :span="12">
             <el-form-item
               :label="$t('system:dept.order')"
@@ -336,6 +318,30 @@
                 v-model="form.orderNum"
                 controls-position="right"
                 :min="0"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item
+              :label="$t('system:menu.name')"
+              prop="menuName"
+              for="edit-menuName"
+            >
+              <el-input
+                id="edit-menuName"
+                v-model="form.menuName"
+                :placeholder="$t('system:menu.placeholder')"
+              >
+                <template slot="prepend">{{ sourceLanguage }}</template>
+              </el-input>
+              <locale-text-fields
+                v-if="open"
+                :value="form.menuNameI18n"
+                :patch="form.menuNameI18nPatch"
+                @input="$set(form, 'menuNameI18nPatch', $event)"
+                :maxlength="50"
               />
             </el-form-item>
           </el-col>
@@ -559,6 +565,7 @@
 
 <script>
 import { t } from '@/i18n/adapter'
+import { sourceLanguage } from '@/i18n'
 
 import { listMenu, getMenu, delMenu, addMenu, updateMenu, updateMenuSort } from '@/api/system/menu'
 import Treeselect from '@riophae/vue-treeselect'
@@ -571,6 +578,7 @@ export default {
   components: { Treeselect, IconSelect },
   data() {
     return {
+      sourceLanguage,
       // 遮罩层
       loading: true,
       // 显示搜索条件
@@ -767,7 +775,11 @@ export default {
     /** 删除按钮操作 */
     handleDelete(row) {
       this.$modal
-        .confirm(t('system:confirmation.deleteValue', { value0: row.menuName }))
+        .confirm(
+          t('system:confirmation.deleteValue', {
+            value0: this.$resolveText(row.menuName, row.menuNameI18n),
+          })
+        )
         .then(function () {
           return delMenu(row.menuId)
         })

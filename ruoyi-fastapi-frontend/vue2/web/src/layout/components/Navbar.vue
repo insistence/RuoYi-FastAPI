@@ -3,7 +3,6 @@
     class="navbar"
     :class="'nav' + navType"
   >
-    <LanguageSelect />
     <hamburger
       id="hamburger-container"
       :is-active="sidebar.opened"
@@ -32,6 +31,7 @@
       />
     </template>
     <div class="right-menu">
+      <LanguageSelect />
       <template v-if="device !== 'mobile'">
         <search
           id="header-search"

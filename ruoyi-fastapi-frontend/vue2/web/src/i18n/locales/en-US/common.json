@@ -136,8 +136,11 @@
   "selectPlaceholder": "Select",
   "translations": {
     "locale": "Translation ({{locale}})",
-    "fallback": "Uses the original name when empty. Clear to remove an existing translation.",
-    "sourceHint": "Maintain the original name in {{locale}}. Translations for other languages are optional; empty fields use the original name."
+    "fallback": "Clear a translation to use the original text.",
+    "add": "Add translation",
+    "hide": "Hide translations",
+    "show": "Show translations",
+    "search": "Search original ({{language}})"
   },
   "dateAndTime": "Date and time",
   "thisTimeDoesNotExistInTheSelectedTimeZone": "This time does not exist in the selected time zone. Choose another time.",

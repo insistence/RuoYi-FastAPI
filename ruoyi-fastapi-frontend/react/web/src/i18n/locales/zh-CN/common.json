@@ -463,6 +463,10 @@
     }
   },
   "i18n": {
-    "sourceLanguage": "原文：{{language}}"
+    "sourceLanguage": "原文：{{language}}",
+    "add": "添加译名",
+    "hide": "收起译名",
+    "show": "查看译名",
+    "fallback": "清空译名后将显示原文。"
   }
 }

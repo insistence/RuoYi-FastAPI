@@ -26,6 +26,8 @@ test('source and English labels identify separate editable values in the submitt
         <Input />
       </SourceLocaleField>
       <TranslationFields
+        original={{ 'en-US': 'Original name' }}
+        maxLength={100}
         name="dictNameI18n"
         label="字典名称"
       />
@@ -38,6 +40,8 @@ test('source and English labels identify separate editable values in the submitt
   expect(english.value).toBe('Original name')
   fireEvent.change(english, { target: { value: 'Updated English name' } })
   expect(source.value).toBe('原始名称')
+  fireEvent.click(screen.getByRole('button', { name: '收起译名' }))
+  expect(screen.queryByRole('textbox', { name: '字典名称 · English' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Save translations' }))
   await waitFor(() =>
     expect(onFinish).toHaveBeenCalledWith({
@@ -45,6 +49,22 @@ test('source and English labels identify separate editable values in the submitt
       dictNameI18n: { 'en-US': 'Updated English name' },
     })
   )
+})
+
+test('a new record only shows translation inputs after Add translation', async () => {
+  await act(() => i18n.setPreference('en-US'))
+  render(
+    <Form>
+      <TranslationFields
+        name="menuNameI18n"
+        label="Menu name"
+        maxLength={50}
+      />
+    </Form>
+  )
+  expect(screen.queryByRole('textbox')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Add translation' }))
+  expect(screen.getByRole('textbox', { name: 'Menu name · English' }).maxLength).toBe(50)
 })
 
 test.each(['zh-CN', 'en-US'])(

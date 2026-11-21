@@ -7,8 +7,10 @@
       :validate-on-rule-change="false"
       class="login-form"
     >
-      <LanguageSelect />
-      <h3 class="title">{{ title }}</h3>
+      <div class="auth-heading">
+        <h3 class="title">{{ title }}</h3>
+        <LanguageSelect />
+      </div>
       <el-form-item prop="username">
         <el-input
           v-model="loginForm.username"
@@ -247,16 +249,28 @@ getCookie()
   background-image: url('../assets/images/login-background.jpg');
   background-size: cover;
 }
-.title {
-  margin: 0px auto 30px auto;
-  text-align: center;
+.auth-heading {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  align-items: start;
+  column-gap: 8px;
+  margin-bottom: 24px;
   color: #707070;
+}
+.title {
+  grid-column: 2;
+  align-self: center;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .login-form {
   border-radius: 6px;
   background: #ffffff;
   width: 400px;
+  max-width: calc(100% - 32px);
   padding: 25px 25px 5px 25px;
   z-index: 1;
   .el-input {
@@ -311,7 +325,7 @@ html.dark .login {
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   }
 }
-html.dark .title {
+html.dark .auth-heading {
   color: var(--el-text-color-primary);
 }
 </style>

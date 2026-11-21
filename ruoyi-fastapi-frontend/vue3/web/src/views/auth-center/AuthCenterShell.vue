@@ -15,6 +15,7 @@
               <strong>{{ productTitle }}</strong
               ><small>{{ $t('authCenter:authenticationCenter') }}</small>
             </div>
+            <LanguageSelect />
           </div>
 
           <div class="trust-copy">
@@ -64,7 +65,6 @@
       </aside>
 
       <div class="auth-main">
-        <div class="auth-language"><LanguageSelect /></div>
         <div
           v-if="showProgress"
           class="progress-wrap"
@@ -343,12 +343,6 @@ onBeforeUnmount(() => window.clearInterval(countdownTimer))
   background: #76d5a8;
   border-radius: 50%;
   box-shadow: 0 0 0 4px rgb(118 213 168 / 12%);
-}
-
-.auth-language {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
 }
 
 .auth-main {

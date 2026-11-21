@@ -1,5 +1,8 @@
 import { useLocalizedFormErrors } from '@/i18n/form'
-import TranslationFields, { SourceLocaleField } from '@/components/TranslationFields'
+import TranslationFields, {
+  SourceLocaleField,
+  SourceLocaleLabel,
+} from '@/components/TranslationFields'
 import { translationPatch, localizeOptions } from '@/i18n/entities.mjs'
 import { useI18n } from '@/i18n/adapter'
 import { i18n, t } from '@/i18n'
@@ -266,7 +269,7 @@ export default function DictData({ params }) {
           </Form.Item>
           <Form.Item
             name="dictLabel"
-            label={t('system:dictionaryLabel')}
+            label={<SourceLocaleLabel>{t('system:dictionaryLabel')}</SourceLocaleLabel>}
           >
             <Input
               style={{ width: 200 }}
@@ -418,10 +421,14 @@ export default function DictData({ params }) {
           >
             <Input placeholder={t('system:dict.labelPlaceholder')} />
           </SourceLocaleField>
-          <TranslationFields
-            name="dictLabelI18n"
-            label={t('system:dict.label')}
-          />
+          {open && (
+            <TranslationFields
+              original={originalTranslations}
+              maxLength={100}
+              name="dictLabelI18n"
+              label={t('system:dict.label')}
+            />
+          )}
           <Form.Item
             name="dictValue"
             label={t('system:dict.value')}

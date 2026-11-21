@@ -1,7 +1,7 @@
 <template>
   <view class="flex h-full flex-col overflow-y-auto bg-gray-50 pt-4 pb-10">
-    <LanguageSelect />
     <view class="bg-white">
+      <LanguageSelect settings />
       <!-- Change Password -->
       <view
         class="flex items-center justify-between border-b border-gray-100 px-5 py-4 active:bg-gray-50"

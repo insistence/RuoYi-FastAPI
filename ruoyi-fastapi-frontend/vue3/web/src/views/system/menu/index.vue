@@ -12,7 +12,7 @@
       >
         <el-input
           v-model="queryParams.menuName"
-          :placeholder="$t('system:enterMenuName')"
+          :placeholder="$t('system:translations.search', { language: sourceLanguage })"
           clearable
           style="width: 200px"
           @keyup.enter="handleQuery"
@@ -317,21 +317,26 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="24">
             <el-form-item
               :label="$t('system:menuName')"
               prop="menuName"
+              for="edit-menuName"
             >
               <el-input
+                id="edit-menuName"
                 v-model="form.menuName"
                 :placeholder="$t('system:enterMenuName')"
+              >
+                <template #prepend>{{ sourceLanguage }}</template>
+              </el-input>
+              <locale-name-input
+                v-if="open"
+                v-model="form.menuNameI18n"
+                :original="originalTranslations"
+                :maxlength="50"
               />
-            </el-form-item> </el-col
-          ><el-col :span="24"
-            ><locale-name-input
-              v-model="form.menuNameI18n"
-              :original="originalTranslations"
-            />
+            </el-form-item>
           </el-col>
           <el-col
             :span="12"
@@ -559,6 +564,7 @@
 
 <script setup name="Menu">
 import { t } from '@/i18n/adapter'
+import { sourceLanguage } from '@/i18n'
 import { useLocaleForm } from '@/composables/useLocaleForm'
 import { resolveText } from '@/i18n/adapter'
 import LocaleNameInput from '@/components/LocaleNameInput/index.vue'

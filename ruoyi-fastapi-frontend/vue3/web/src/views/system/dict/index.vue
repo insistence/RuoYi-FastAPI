@@ -13,7 +13,7 @@
       >
         <el-input
           v-model="queryParams.dictName"
-          :placeholder="$t('system:enterDictionaryName')"
+          :placeholder="$t('system:translations.search', { language: sourceLanguage })"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
@@ -264,16 +264,22 @@
         <el-form-item
           :label="$t('system:dictionaryName')"
           prop="dictName"
+          for="edit-dictName"
         >
           <el-input
+            id="edit-dictName"
             v-model="form.dictName"
             :placeholder="$t('system:enterDictionaryName')"
+          >
+            <template #prepend>{{ sourceLanguage }}</template>
+          </el-input>
+          <locale-name-input
+            v-if="open"
+            v-model="form.dictNameI18n"
+            :original="originalTranslations"
+            :maxlength="100"
           />
         </el-form-item>
-        <locale-name-input
-          v-model="form.dictNameI18n"
-          :original="originalTranslations"
-        />
         <el-form-item prop="dictType">
           <el-input
             v-model="form.dictType"
@@ -336,6 +342,7 @@
 
 <script setup name="Dict">
 import { t } from '@/i18n/adapter'
+import { sourceLanguage } from '@/i18n'
 import { useLocaleForm } from '@/composables/useLocaleForm'
 import { resolveText } from '@/i18n/adapter'
 import LocaleNameInput from '@/components/LocaleNameInput/index.vue'

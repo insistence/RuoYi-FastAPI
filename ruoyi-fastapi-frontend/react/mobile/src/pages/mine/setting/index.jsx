@@ -34,8 +34,8 @@ export default function Settings() {
   if (!allowed) return null
   return (
     <View className="list-page">
-      <LanguageSelect />
       <View className="bg-white">
+        <LanguageSelect settings />
         {[
           [t('mobile:changePassword'), 'lock', '/pages/mine/pwd/index'],
           [t('mobile:timeZoneSettings'), 'earth', '/pages/mine/setting/timezone'],

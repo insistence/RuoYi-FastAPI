@@ -59,9 +59,11 @@ export default function Login() {
   }
   return (
     <main className="login-page">
-      <LanguageSelect />
       <section className="login-card">
-        <h1>{import.meta.env.VITE_APP_TITLE}</h1>
+        <div className="login-heading">
+          <h1>{import.meta.env.VITE_APP_TITLE}</h1>
+          <LanguageSelect />
+        </div>
         {error && (
           <Alert
             type="error"
