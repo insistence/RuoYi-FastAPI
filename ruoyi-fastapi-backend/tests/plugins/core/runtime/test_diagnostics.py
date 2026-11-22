@@ -263,7 +263,7 @@ async def test_pending_cleanup_is_deduplicated_and_late_completion_disappears(tm
     manager = PluginGatewayASGI(AsyncMock(), PluginLifespanManager(AsyncMock(), managed=False), AsyncMock()).connections
     loaded.gateway = SimpleNamespace(connections=manager)
     try:
-        await cancel_plugin_tasks({task}, timeout=0.01)
+        await cancel_plugin_tasks({task}, grace_seconds=0.01)
         await interrupted.wait()
         # 模拟同一任务同时由通用回收器与连接回收器保留，诊断只能计算一次。
         manager._unfinished.add(task)

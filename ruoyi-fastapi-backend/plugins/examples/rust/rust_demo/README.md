@@ -35,7 +35,7 @@ target/native-package/
   rust_demo-1.0.0.zip
 ```
 
-构建器按当前解释器的 wheel tag 优先级选择发行包，校验名称、版本、Python 要求、已安装依赖及完整 RECORD SHA256，再展开至新目录。拒绝目录越界、链接、大小写冲突、未登记文件和超限解压。部署需选择与目标操作系统、架构和 Python 匹配的制品；Windows wheel 不能在 Linux 使用。本例声明 `abi3-py310`，仍需对实际运行平台分别验证。该构建脚本输出的目录 ZIP 不含发布者签名；签名及维护发布由下面的独立 CLI 完成。
+构建器按当前解释器的 wheel tag 优先级选择发行包，校验名称、版本、Python 要求、已安装依赖及完整 RECORD SHA256，再展开至新目录。拒绝目录越界、链接、大小写冲突、未登记文件和超限解压。部署需选择与目标操作系统、架构和 Python 匹配的制品；Windows wheel 不能在 Linux 使用。本例声明 `abi3-py311`，仍需对实际运行平台分别验证。该构建脚本输出的目录 ZIP 不含发布者签名；签名及维护发布由下面的独立 CLI 完成。
 
 ## 本地集成验证
 
@@ -61,7 +61,7 @@ cargo clippy --manifest-path plugins/examples/rust/rust_demo/Cargo.toml --locked
 
 测试直接加载编译后的扩展，覆盖 ASGI、Router、原生 future、Python 协程桥、权限、异常、取消、lifespan 和真实 APScheduler 单次分发。数据库与登录使用替身；测试不会安装、启用插件或写入实际业务数据库。不设置环境变量时，真实原生测试明确跳过。
 
-仓库的 `.github/workflows/ci-native.yml` 配置 Windows/Linux、Python 3.10、3.11、3.12、3.13、3.14 构建测试矩阵。应以目标平台对应的实际构建与测试结果确认兼容性。
+仓库的 `.github/workflows/ci-native.yml` 配置 Windows/Linux、Python 3.11、3.12、3.13、3.14 构建测试矩阵。应以目标平台对应的实际构建与测试结果确认兼容性。
 
 ## 签名制品与维护发布
 

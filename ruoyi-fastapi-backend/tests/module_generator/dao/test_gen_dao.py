@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -11,7 +11,7 @@ from utils.time_util import TimezoneUtil
 
 TABLE_ID = 7
 COLUMN_ID = 9
-CLIENT_AUDIT_TIME = datetime(2000, 1, 1, tzinfo=timezone.utc)
+CLIENT_AUDIT_TIME = datetime(2000, 1, 1, tzinfo=UTC)
 
 
 @pytest.mark.asyncio

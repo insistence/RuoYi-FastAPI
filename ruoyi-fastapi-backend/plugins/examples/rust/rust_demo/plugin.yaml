@@ -32,4 +32,4 @@ permissions:
     name: 通过 Rust 示例查看本人资料
 compatibility:
   hostApiVersion: ^1.3.0
-  pythonVersion: '>=3.10'
+  pythonVersion: '>=3.11'

@@ -1,7 +1,7 @@
 import importlib.util
 import json
 import sys
-from datetime import date, time, timezone
+from datetime import UTC, date, time
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
@@ -191,7 +191,7 @@ async def test_generated_import_crud_and_query(
             assert result.birthday == date(2000, 2, 29)
             assert result.opening_time == time(9, 15, 0, 123000)
             instant = result.timedetail_list[0].occurred_at if category == 'sub' else result.occurred_at
-            assert instant.tzinfo == timezone.utc
+            assert instant.tzinfo == UTC
             assert instant.microsecond == (456000 if category == 'sub' else 123000)
             serialized = vo.ItemModel.model_validate(result).model_dump(mode='json', by_alias=True)
             assert serialized['birthday'] == '2000-02-29'

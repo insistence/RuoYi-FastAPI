@@ -313,7 +313,7 @@ class PluginRuntimeStartupManager:
         for plugin in registry.list_enabled_plugins():
             try:
                 CatalogRegistry.register_plugin(plugin.plugin_id, plugin.discovered_plugin.backend_path)
-            except (OSError, ValueError, KeyError, TypeError) as exc:  # noqa: PERF203 - 启动时逐插件隔离失败。
+            except (OSError, ValueError, KeyError, TypeError) as exc:
                 failures.add(plugin.plugin_id)
                 logger.error(f'插件词库加载失败：{plugin.plugin_id}，{exc}')
                 if startup_write_enabled:

@@ -7,7 +7,7 @@ import socket
 import subprocess
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager, suppress
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -44,19 +44,21 @@ def frontend_root() -> Path:
     return Path(__file__).resolve().parents[4] / 'ruoyi-fastapi-frontend' / framework / 'web'
 
 
-async def wait_until(predicate: Callable[[], bool], timeout: float = 15) -> None:
+async def wait_until(predicate: Callable[[], bool], wait_seconds: float = 15) -> None:
     """
     有界等待服务器启动或连接回收，不使用固定长睡眠。
 
     :param predicate: 待满足的状态条件
-    :param timeout: 最长等待秒数
+    :param wait_seconds: 最长等待秒数
     :return: None
     """
-    deadline = asyncio.get_running_loop().time() + timeout
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + wait_seconds
     while not predicate():
-        if asyncio.get_running_loop().time() >= deadline:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
             raise TimeoutError('网络验收等待状态超时')
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(min(0.05, remaining))
 
 
 def certificate_files(directory: Path) -> tuple[Path, Path]:
@@ -68,7 +70,7 @@ def certificate_files(directory: Path) -> tuple[Path, Path]:
     """
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, 'localhost')])
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     certificate = (
         x509.CertificateBuilder()
         .subject_name(subject)
@@ -221,7 +223,7 @@ async def network_servers(fixture: SimpleNamespace, directory: Path, output: Pat
             )
             await wait_until(
                 lambda: ready.exists() or process.returncode is not None,
-                timeout=180 if frontend.parent.name == 'vue2' else 60,
+                wait_seconds=180 if frontend.parent.name == 'vue2' else 60,
             )
             if not ready.exists():
                 log.flush()

@@ -1,7 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-
-from typing_extensions import Self
+from typing import Self
 
 from i18n.message import I18nMessage
 

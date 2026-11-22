@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import jwt
 import pytest
@@ -24,7 +24,7 @@ def key_pair() -> tuple[object, object]:
 
 
 def _now() -> int:
-    return int(datetime.now(timezone.utc).timestamp())
+    return int(datetime.now(UTC).timestamp())
 
 
 def test_access_profile_requires_at_jwt_and_checks_audience(key_pair: tuple[object, object]) -> None:

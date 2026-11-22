@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -292,7 +292,7 @@ async def test_prompt_none_preserves_context_and_requires_valid_grant(data_sessi
     assert context.requires_consent is True
     assert AuthorizationService.consent_is_satisfied(context, None) is False
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     grant = SysOAuthGrant(
         grant_id='authorization-grant',
         user_id=7001,

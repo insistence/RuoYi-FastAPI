@@ -1,6 +1,6 @@
 import asyncio
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -49,7 +49,7 @@ def make_file_access_log() -> FileAccessLogModel:
         userAgent='pytest',
         bytesSent=FILE_SIZE,
         operationDetail='{"newStatus":"active"}',
-        accessTime=datetime(2026, 7, 19, 12, 0, 0, tzinfo=timezone.utc),
+        accessTime=datetime(2026, 7, 19, 12, 0, 0, tzinfo=UTC),
     )
 
 

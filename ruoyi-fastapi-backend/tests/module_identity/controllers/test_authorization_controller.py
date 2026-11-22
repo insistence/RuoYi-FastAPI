@@ -1,6 +1,6 @@
 import asyncio
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 
@@ -135,7 +135,7 @@ async def test_authorize_max_age_discards_stale_sso(monkeypatch: pytest.MonkeyPa
         user_id=2,
         subject_id='11111111-1111-4111-8111-111111111111',
         auth_version=1,
-        auth_time=datetime.now(timezone.utc) - timedelta(seconds=30),
+        auth_time=datetime.now(UTC) - timedelta(seconds=30),
     )
 
     async def load_stale(*args: object, **kwargs: object) -> Any:

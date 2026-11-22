@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +35,7 @@ def _token(token_id: str, status: str, now: datetime, idle_expires_at: datetime)
 @pytest.mark.asyncio
 async def test_refresh_family_lock_rotation_and_reuse_distribution(data_session: AsyncSession) -> None:
     """验证 Family 查询、单 Token 轮换和重放后的状态分布。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     data_session.add_all(
         [
             SysUser(user_id=3001, user_name='refresh', nick_name='Refresh', status='0', del_flag='0'),
@@ -79,7 +79,7 @@ async def test_refresh_family_lock_rotation_and_reuse_distribution(data_session:
 
     family = await OAuthTokenDao.lock_family(data_session, 'family-1')
     assert [token.token_id for token in family] == ['token-1', 'token-2']
-    injected_now = datetime(2026, 8, 24, 5, 6, 7, tzinfo=timezone.utc)
+    injected_now = datetime(2026, 8, 24, 5, 6, 7, tzinfo=UTC)
     assert await OAuthTokenDao.mark_used(data_session, 'token-1', 'token-2', now=injected_now)
     assert (await OAuthTokenDao.get_by_token_id(data_session, 'token-1')).last_used_at == injected_now
     changed = await OAuthTokenDao.refresh_token_family_reuse(data_session, 'family-1', 'token-1', now=injected_now)
@@ -92,7 +92,7 @@ async def test_refresh_family_lock_rotation_and_reuse_distribution(data_session:
 @pytest.mark.asyncio
 async def test_refresh_expire_due_handles_idle_and_absolute_expiry(data_session: AsyncSession) -> None:
     """验证闲置和绝对期限任一到期都会使 Active Token 过期。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     data_session.add_all(
         [
             SysUser(user_id=3001, user_name='expire', nick_name='Expire', status='0', del_flag='0'),

@@ -96,12 +96,12 @@ def _release_binding(binding: PluginJobBinding) -> None:
         del _bindings[plugin_id]
 
 
-async def unbind_plugin_jobs(binding: PluginJobBinding, *, timeout: float = CANCEL_TIMEOUT_SECONDS) -> None:
+async def unbind_plugin_jobs(binding: PluginJobBinding, *, grace_seconds: float = CANCEL_TIMEOUT_SECONDS) -> None:
     """
     先停止分发，再整批限时取消；未退出时保留绑定并禁止新实例覆盖。
 
     :param binding: 待解除的插件任务绑定
-    :param timeout: 整批运行任务的取消等待上限秒数
+    :param grace_seconds: 整批运行任务的取消等待上限秒数
     :return: None
     """
     if not binding.closing:
@@ -109,7 +109,7 @@ async def unbind_plugin_jobs(binding: PluginJobBinding, *, timeout: float = CANC
         for task in binding.tasks:
             task.add_done_callback(lambda _: _release_binding(binding))
     try:
-        pending = await cancel_plugin_tasks(binding.tasks, timeout=timeout)
+        pending = await cancel_plugin_tasks(binding.tasks, grace_seconds=grace_seconds)
         if pending:
             logger.warning('插件任务取消等待超时：{}，尚有 {} 个任务未退出', binding.plugin.manifest.id, len(pending))
     finally:
@@ -177,7 +177,7 @@ async def dispatch_plugin_job(plugin_id: str, job_id: str, version: str) -> Any:
         raise
     except Exception as exc:
         error_type = type(exc).__name__
-        timed_out = isinstance(exc, (TimeoutError, asyncio.TimeoutError))
+        timed_out = isinstance(exc, TimeoutError)
         raise
     finally:
         if invocation is not None:

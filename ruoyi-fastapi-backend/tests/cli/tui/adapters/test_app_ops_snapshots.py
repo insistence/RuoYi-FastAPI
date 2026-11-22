@@ -256,7 +256,7 @@ async def test_collect_ops_page_snapshot_builds_health_dependency_and_server_sec
                     'message': '核心运行依赖已安装',
                     'missingRequired': [],
                     'packages': {
-                        'python': {'installed': True, 'version': '3.10.0'},
+                        'python': {'installed': True, 'version': '3.11.0'},
                         'fastapi': {'installed': True, 'version': '0.111.0'},
                         'sqlalchemy': {'installed': True, 'version': '2.0.0'},
                         'redis': {'installed': True, 'version': '5.0.0'},
@@ -277,7 +277,7 @@ async def test_collect_ops_page_snapshot_builds_health_dependency_and_server_sec
                     },
                     'cpu': {'cpuNum': 8, 'used': 21.5},
                     'mem': {'total': '16 GB', 'usage': 48.2},
-                    'py': {'version': '3.10.0', 'runTime': '2天4小时', 'used': '256 MB', 'total': '1 GB'},
+                    'py': {'version': '3.11.0', 'runTime': '2天4小时', 'used': '256 MB', 'total': '1 GB'},
                     'sysFiles': [
                         {
                             'dirName': '/',

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from cli.exit_codes import RUNTIME_ERROR
@@ -107,7 +107,7 @@ class OidcRuntimeCliService:
                     kid=kid,
                     actor=actor,
                     redis=redis,
-                    now=datetime.now(timezone.utc),
+                    now=datetime.now(UTC),
                 )
             return {
                 'ok': True,

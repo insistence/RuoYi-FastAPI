@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -17,7 +17,7 @@ DIGEST_A = 'a' * 64
 DIGEST_B = 'b' * 64
 WORKER_ID = '1' * 32
 EXPECTED_WORKERS = 2
-NOW = datetime(2026, 10, 2, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 2, tzinfo=UTC)
 
 
 @pytest_asyncio.fixture

@@ -32,15 +32,15 @@ class BasePageTest:
         )
         await choices.filter(has_text=re.compile(rf'^\s*{re.escape(department)}(?:\s*\(\d+\))?\s*$')).click()
 
-    async def wait_for_page_title(self, title_text: str, timeout: int = 10000) -> None:
+    async def wait_for_page_title(self, title_text: str, timeout_ms: int = 10000) -> None:
         """等待页面标题出现"""
-        await self.page.wait_for_selector(f'div:has-text("{title_text}")', timeout=timeout)
+        await self.page.wait_for_selector(f'div:has-text("{title_text}")', timeout=timeout_ms)
         page_title = await self.page.inner_text(f'div:has-text("{title_text}")')
         assert title_text in page_title
 
-    async def wait_for_selector(self, selector: str, timeout: int = 10000) -> None:
+    async def wait_for_selector(self, selector: str, timeout_ms: int = 10000) -> None:
         """等待选择器出现"""
-        await self.page.wait_for_selector(selector, timeout=timeout)
+        await self.page.wait_for_selector(selector, timeout=timeout_ms)
 
     async def query_selector(self, selector: str) -> any:
         """查询选择器元素"""

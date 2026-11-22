@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -201,7 +201,7 @@ async def test_oidc_initial_and_expired_password_flags_handle_naive_and_aware_da
 @pytest.mark.asyncio
 async def test_oidc_expired_aware_password_is_reported_without_datetime_error() -> None:
     redis = _Redis({'sys_config:sys.account.passwordValidateDays': '30'})
-    old_date = datetime.now(timezone.utc) - timedelta(days=31)
+    old_date = datetime.now(UTC) - timedelta(days=31)
     with (
         patch.object(OidcConfig, 'oidc_token_hash_pepper', 'p' * 32),
         patch(

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import FastAPI
 
@@ -48,7 +48,7 @@ async def info(context: PluginRequestContext) -> dict[str, str]:
         "pluginId": context.host.plugin_id,
         "hostApiVersion": context.host.api_version,
         "engine": "python",
-        "serverTime": datetime.now(timezone.utc).isoformat(),
+        "serverTime": datetime.now(UTC).isoformat(),
     }
 
 

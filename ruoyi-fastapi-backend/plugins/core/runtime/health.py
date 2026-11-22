@@ -106,7 +106,7 @@ class PluginHealthChecker:
             )
             raw_result = await self._invoke_checker_with_timeout(checker_callable, context)
             return self._normalize_result(raw_result, checker_path, started_at)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return self._build_result(
                 ok=False,
                 status='timeout',

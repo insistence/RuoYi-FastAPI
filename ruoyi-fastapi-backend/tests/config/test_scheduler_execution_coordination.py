@@ -47,33 +47,34 @@ async def test_two_processes_atomically_enforce_logical_job_limit(runtime: Runti
         assert sorted(row.status for row in rows) == ['rejected', 'running']
 
 
-async def wait_for_process_file(path: Path, executor: TimedProcessPoolExecutor, timeout: float = 45) -> dict:
+async def wait_for_process_file(path: Path, executor: TimedProcessPoolExecutor) -> dict:
     """
     等待真实进程进入业务函数
 
     :param path: 进程启动标记文件路径
     :param executor: 提供超时诊断的真实进程执行器
-    :param timeout: 冷启动最长等待秒数，不作为业务执行耗时断言
     :return: 进程启动信息
     """
-    loop = asyncio.get_running_loop()
-    deadline = loop.time() + timeout
+    startup_wait_seconds = 45
     last_error = None
-    while loop.time() < deadline:
-        try:
-            return json.loads(await asyncio.to_thread(path.read_text, encoding='utf-8'))
-        except (FileNotFoundError, json.JSONDecodeError) as exc:
-            last_error = type(exc).__name__
-        await asyncio.sleep(0.02)
-    processes = getattr(executor._pool, '_processes', None) or {}
-    states = [
-        {'pid': process.pid, 'alive': process.is_alive(), 'exitcode': process.exitcode}
-        for process in processes.values()
-    ]
-    raise TimeoutError(
-        f'process did not enter the task within {timeout}s; marker={path}; '
-        f'processes={states}; broken={getattr(executor._pool, "_broken", None)}; last_read={last_error}'
-    )
+    try:
+        async with asyncio.timeout(startup_wait_seconds):
+            while True:
+                try:
+                    return json.loads(await asyncio.to_thread(path.read_text, encoding='utf-8'))
+                except (FileNotFoundError, json.JSONDecodeError) as exc:
+                    last_error = type(exc).__name__
+                await asyncio.sleep(0.02)
+    except TimeoutError as exc:
+        processes = getattr(executor._pool, '_processes', None) or {}
+        states = [
+            {'pid': process.pid, 'alive': process.is_alive(), 'exitcode': process.exitcode}
+            for process in processes.values()
+        ]
+        raise TimeoutError(
+            f'process did not enter the task within {startup_wait_seconds}s; marker={path}; '
+            f'processes={states}; broken={getattr(executor._pool, "_broken", None)}; last_read={last_error}'
+        ) from exc
 
 
 @pytest.mark.asyncio

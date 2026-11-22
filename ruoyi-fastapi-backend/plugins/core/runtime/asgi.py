@@ -191,7 +191,7 @@ class PluginLifespanManager:
         """
         if self._task is None:
             return
-        if await cancel_plugin_tasks({self._task}, timeout=self.cancel_timeout):
+        if await cancel_plugin_tasks({self._task}, grace_seconds=self.cancel_timeout):
             logger.warning('插件生命周期未响应取消；保留任务并拒绝重启，等待任务自行退出')
         else:
             self._task = None

@@ -205,7 +205,7 @@ class PluginV2ScaffoldBuilder:
                 'backend': backend,
                 'frontend': frontend,
                 'permissions': [{'code': f'{plugin_id}:view', 'name': '访问插件'}],
-                'compatibility': {'hostApiVersion': '^1.2.0', 'pythonVersion': '>=3.10'},
+                'compatibility': {'hostApiVersion': '^1.2.0', 'pythonVersion': '>=3.11'},
             },
             allow_unicode=True,
             sort_keys=False,
@@ -318,7 +318,7 @@ class PluginV2ScaffoldBuilder:
 这是 manifest v2 的 {'Rust native' if native else 'Python'} ASGI 源码工程{'，包含独立前端 bundle' if bundle else ''}。
 源码位于 `{root}`，创建工程不会安装、启用或导入插件。下面的命令均在宿主后端根目录执行。
 
-先创建并激活 Python 3.10–3.14 环境；已有宿主环境可直接激活并使用，无需重复创建。
+先创建并激活 Python 3.11–3.14 环境；已有宿主环境可直接激活并使用，无需重复创建。
 
 Windows PowerShell：
 

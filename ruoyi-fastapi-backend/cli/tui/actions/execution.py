@@ -53,7 +53,7 @@ class TuiActionExecutionService:
                 self._dispatch(spec, env),
                 timeout=TUI_ACTION_TIMEOUT_SECONDS,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             payload = {
                 'ok': False,
                 'message': f'{spec.label}执行超时',

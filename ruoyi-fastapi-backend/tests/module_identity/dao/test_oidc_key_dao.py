@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -11,7 +11,7 @@ from module_identity.entity.do.oidc_key_do import SysOidcSigningKey
 
 def _key(kid: str, status: str = 'pending') -> SysOidcSigningKey:
     """构造带引用私钥材料的测试密钥。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return SysOidcSigningKey(
         kid=kid,
         alg='RS256',

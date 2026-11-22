@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import Enum, StrEnum
 
 
-class HttpMethod(str, Enum):
+class HttpMethod(StrEnum):
     """
     HTTP请求方法枚举
 

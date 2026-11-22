@@ -61,7 +61,7 @@ class _PinnedNetworkBackend(httpcore.AsyncNetworkBackend):
         for address in sorted(self._addresses):
             try:
                 return await self._backend.connect_tcp(address, port, **kwargs)
-            except OSError as exc:  # noqa: PERF203
+            except OSError as exc:
                 last_error = exc
         raise last_error or OSError('没有通过安全校验的网络目标')
 

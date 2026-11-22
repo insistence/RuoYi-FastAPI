@@ -200,7 +200,7 @@ async def test_job_timeout_and_host_exception_propagate(setup_plugin: SimpleName
     await state.runtime.activate('dispatch_test', FastAPI())
     try:
         state.service.side_effect = wait
-        with pytest.raises(asyncio.TimeoutError):
+        with pytest.raises(TimeoutError):
             await dispatch_plugin_job('dispatch_test', 'tick', '1.0.0')
         assert closed.is_set()
         state.service.side_effect = ValueError('business-error')
@@ -264,7 +264,7 @@ async def test_unbind_is_bounded_and_blocks_new_binding_until_old_jobs_exit(
     binding = state.runtime.loaded['dispatch_test'].jobs
     task = asyncio.create_task(dispatch_plugin_job('dispatch_test', 'tick', '1.0.0'))
     await opened.wait()
-    stopping = asyncio.create_task(unbind_plugin_jobs(binding, timeout=0.01))
+    stopping = asyncio.create_task(unbind_plugin_jobs(binding, grace_seconds=0.01))
     try:
         await asyncio.wait({stopping}, timeout=1)
         assert stopping.done() and not task.done()
@@ -284,7 +284,7 @@ async def test_unbind_is_bounded_and_blocks_new_binding_until_old_jobs_exit(
         sample = next(item for item in state.runtime.metrics.snapshot().series if item.operation == 'job:tick')
         assert (sample.active, sample.succeeded, sample.cancelled) == (0, 0, 1)
         replacement = bind_plugin_jobs(state.plugin, binding.host, state.gateway, lambda: True)
-        await unbind_plugin_jobs(replacement, timeout=0.01)
+        await unbind_plugin_jobs(replacement, grace_seconds=0.01)
     finally:
         release.set()
         await asyncio.gather(stopping, task, return_exceptions=True)
@@ -307,7 +307,7 @@ async def test_shutdown_keeps_pending_job_diagnostics_until_callback_exits(
         return True
 
     async def bounded_unbind(binding: object) -> None:
-        await unbind_plugin_jobs(binding, timeout=0.01)
+        await unbind_plugin_jobs(binding, grace_seconds=0.01)
 
     state.service.side_effect = resistant
     monkeypatch.setattr('plugins.core.runtime.explicit.unbind_plugin_jobs', bounded_unbind)

@@ -1,6 +1,6 @@
 import re
 from calendar import monthrange
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.cron.expressions import AllExpression
@@ -105,7 +105,7 @@ class MyCronTrigger(CronTrigger):
         """
         candidate = super().get_next_fire_time(previous_fire_time, now)
         while candidate is not None:
-            normalized = candidate.astimezone(timezone.utc).astimezone(self.timezone)
+            normalized = candidate.astimezone(UTC).astimezone(self.timezone)
             if candidate.isoformat() == normalized.isoformat() and candidate.fold == 0:
                 return candidate
             candidate = super().get_next_fire_time(candidate, candidate)

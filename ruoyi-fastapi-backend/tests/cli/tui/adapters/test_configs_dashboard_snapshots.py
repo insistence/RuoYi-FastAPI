@@ -64,7 +64,7 @@ async def test_collect_dashboard_snapshot_adds_risk_heat_panel(
                     'message': '核心运行依赖已安装',
                     'missingRequired': [],
                     'packages': {
-                        'python': {'installed': True, 'version': '3.10.0'},
+                        'python': {'installed': True, 'version': '3.11.0'},
                         'fastapi': {'installed': True, 'version': '0.111.0'},
                         'sqlalchemy': {'installed': True, 'version': '2.0.0'},
                         'redis': {'installed': True, 'version': '5.0.0'},

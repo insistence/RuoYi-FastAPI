@@ -102,7 +102,10 @@ class PluginApplicationRuntime:
         try:
             if self.release_worker is not None:
                 await self.release_worker.start(
-                    app, self.startup_manager.builder, self.lifecycle_lock, timeout=self.ready_wait_timeout_seconds
+                    app,
+                    self.startup_manager.builder,
+                    self.lifecycle_lock,
+                    lock_wait_seconds=self.ready_wait_timeout_seconds,
                 )
                 self.startup_generation = self.release_worker.generation(self.resolve_startup_generation())
                 app.state.plugin_release_worker = self.release_worker

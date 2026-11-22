@@ -207,7 +207,7 @@ class JobExecutionStore:
                         )
                     )
                 return
-            except DBAPIError as exc:  # noqa: PERF203 - 每次重试必须覆盖独立事务的完整生命周期。
+            except DBAPIError as exc:
                 if attempt + 1 >= cls.FINISH_ATTEMPTS or not cls._retryable_finish_error(exc):
                     raise
                 # 旧事务回滚且会话关闭后，再等待并开启新事务。

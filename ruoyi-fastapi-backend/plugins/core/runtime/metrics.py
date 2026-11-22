@@ -341,7 +341,7 @@ class PluginObservedASGI:
             raise
         except Exception as exc:
             error_type = type(exc).__name__
-            timed_out = isinstance(exc, (TimeoutError, asyncio.TimeoutError))
+            timed_out = isinstance(exc, TimeoutError)
             raise
         finally:
             closure = scope.get(CONNECTION_OUTCOME_KEY)

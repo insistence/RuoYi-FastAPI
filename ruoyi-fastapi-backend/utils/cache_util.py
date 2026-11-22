@@ -271,7 +271,7 @@ return #KEYS
                     while not settled.done():
                         try:
                             await asyncio.shield(settled)
-                        except asyncio.CancelledError:  # noqa: PERF203
+                        except asyncio.CancelledError:
                             cancelled = True
                 if cancelled:
                     raise asyncio.CancelledError

@@ -2,7 +2,6 @@ import asyncio
 import hashlib
 import json
 import sys
-import time
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
@@ -66,28 +65,33 @@ class PluginReleaseWorker:
         self.app: Any = None
         self.registered = False
 
-    async def start(self, app: Any, builder: Any, lifecycle_lock: Any, *, timeout: float = 60) -> None:
+    async def start(self, app: Any, builder: Any, lifecycle_lock: Any, *, lock_wait_seconds: float = 60) -> None:
         """
         在生命周期锁内登记宿主快照，验证目标制品并启动心跳上报。
 
         :param app: 当前宿主应用对象
         :param builder: 接收制品发现快照的插件运行时构建器
         :param lifecycle_lock: 与插件维护发布共用的生命周期锁
-        :param timeout: 等待生命周期锁的最长时间，单位为秒
+        :param lock_wait_seconds: 等待生命周期锁的最长时间，单位为秒
         :return: None
         :raises TimeoutError: 在等待时限内未能取得维护发布锁
         """
         self.config.require_enabled()
         self.app = app
-        deadline = time.monotonic() + timeout
-        while True:
-            async with lifecycle_lock.lock(RUNTIME_PLUGIN_ID, 'release_snapshot') as lock:
-                if lock.acquired:
-                    await self._register_snapshot()
-                    break
-            if time.monotonic() >= deadline:
-                raise TimeoutError('等待插件维护发布锁超时')
-            await asyncio.sleep(min(1, self.config.heartbeat_seconds))
+        lock_deadline = asyncio.timeout(lock_wait_seconds)
+        try:
+            async with lock_deadline:
+                while True:
+                    async with lifecycle_lock.lock(RUNTIME_PLUGIN_ID, 'release_snapshot') as lock:
+                        if lock.acquired:
+                            lock_deadline.reschedule(None)
+                            await self._register_snapshot()
+                            break
+                    await asyncio.sleep(min(1, self.config.heartbeat_seconds))
+        except TimeoutError as exc:
+            if lock_deadline.expired():
+                raise TimeoutError('等待插件维护发布锁超时') from exc
+            raise
         # 验签和大文件散列期间也维持宿主存活，维护命令不能越过启动中的进程。
         self.task = asyncio.create_task(self._heartbeat(), name=f'plugin-release-{self.worker_id}')
         plugins = []
@@ -100,7 +104,7 @@ class PluginReleaseWorker:
                     raise ValueError('发布目标与制品插件 ID 不一致')
                 self.versions[target.plugin_id] = artifact.version
                 plugins.append(self.catalog.discovered(artifact, target.generation))
-            except Exception as exc:  # noqa: PERF203 - 单个制品损坏不能阻断其他插件。
+            except Exception as exc:
                 self.errors[target.plugin_id] = str(exc)[:2000]
                 logger.error(f'插件发布目标验证失败：{target.plugin_id}，{exc}')
         errors = [

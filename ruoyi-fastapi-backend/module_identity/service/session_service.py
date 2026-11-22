@@ -1657,7 +1657,7 @@ class LogoutService:
                         audit_writer, 'backchannel_logout_succeeded', uri, client_id, sid
                     )
                     return
-                except PermanentBackchannelError as exc:  # noqa: PERF203
+                except PermanentBackchannelError as exc:
                     await LogoutService._write_backchannel_audit(
                         audit_writer,
                         OidcAuditEvent.BACKCHANNEL_LOGOUT_FAILED,

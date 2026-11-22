@@ -1,6 +1,6 @@
 import asyncio
 import base64
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
@@ -168,7 +168,7 @@ async def test_authorization_code_binds_client_redirect_and_pkce(
             subject_id='subject-2001',
             auth_version=4,
             status='active',
-            auth_time=datetime.now(timezone.utc),
+            auth_time=datetime.now(UTC),
             acr='urn:test',
             amr=['pwd'],
         )
@@ -399,7 +399,7 @@ async def test_user_access_and_id_profiles_have_fixed_claims_and_ttl(monkeypatch
     client = _client(access_token_ttl_seconds=_ACCESS_TTL)
     user = SimpleNamespace(user_id=2001, user_name='user', nick_name='User', status='0', del_flag='0')
     subject = SimpleNamespace(subject_id='subject-2001', auth_version=4)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     session = SimpleNamespace(
         sid='sid-2001',
         auth_time=now - timedelta(minutes=1),
@@ -570,7 +570,7 @@ async def test_signer_loads_private_key_from_same_active_record(monkeypatch: pyt
         return private_key
 
     monkeypatch.setattr('module_identity.service.token_service.KeyService.load_private_key_async', load)
-    key, kid = await TokenService._resolve_signer(object(), None, None, datetime.now(timezone.utc))
+    key, kid = await TokenService._resolve_signer(object(), None, None, datetime.now(UTC))
     assert key is private_key
     assert kid == 'kid-stable'
     assert calls == [record]
@@ -594,8 +594,8 @@ async def test_refresh_scope_expansion_is_rejected_before_rotation(monkeypatch: 
         scopes=['openid'],
         resources=[],
         grant_id='grant-1',
-        idle_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-        absolute_expires_at=datetime.now(timezone.utc) + timedelta(hours=2),
+        idle_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        absolute_expires_at=datetime.now(UTC) + timedelta(hours=2),
     )
     monkeypatch.setattr(
         'module_identity.service.token_service.OAuthClientDao.get_by_client_id',
@@ -657,8 +657,8 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
         scopes=['openid'],
         resources=[],
         grant_id='grant-1',
-        idle_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-        absolute_expires_at=datetime.now(timezone.utc) + timedelta(hours=2),
+        idle_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        absolute_expires_at=datetime.now(UTC) + timedelta(hours=2),
     )
     token = generate_refresh_token()
     row.token_hash = token_digest(token, _PEPPER)
@@ -729,7 +729,7 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
     assert sum(isinstance(item, RefreshTokenReuseDetected) for item in results) == 1
     assert state['reuse'] == 1
     assert isinstance(state['mark_now'], datetime)
-    assert state['mark_now'].tzinfo is timezone.utc
+    assert state['mark_now'].tzinfo is UTC
 
 
 def _async_value(value: object) -> Any:

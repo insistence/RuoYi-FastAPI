@@ -37,7 +37,7 @@ permissions:
     name: 编辑任务
 compatibility:
   hostApiVersion: ^1.4.0
-  pythonVersion: '>=3.10'
+  pythonVersion: '>=3.11'
   databases:
     - mysql
     - postgresql

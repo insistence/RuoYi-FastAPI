@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -7,7 +7,7 @@ from utils.response_util import ResponseUtil
 
 
 def test_response_util_serializes_nested_datetimes_as_fixed_utc_rfc3339() -> None:
-    response = ResponseUtil.success(data={'createdAt': datetime(2026, 8, 28, 10, 30, 0, 123456, tzinfo=timezone.utc)})
+    response = ResponseUtil.success(data={'createdAt': datetime(2026, 8, 28, 10, 30, 0, 123456, tzinfo=UTC)})
     payload = json.loads(response.body)
 
     assert payload['data']['createdAt'] == '2026-08-28T10:30:00.123Z'

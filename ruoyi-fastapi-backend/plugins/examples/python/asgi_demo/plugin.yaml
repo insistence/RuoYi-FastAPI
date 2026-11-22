@@ -19,4 +19,4 @@ permissions:
     name: 查看 ASGI 示例
 compatibility:
   hostApiVersion: ^1.3.0
-  pythonVersion: '>=3.10'
+  pythonVersion: '>=3.11'

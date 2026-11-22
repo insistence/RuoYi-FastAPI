@@ -134,7 +134,7 @@ class AfterCommitCoordinator:
         for callback in callbacks:
             try:
                 await callback()
-            except Exception as exc:  # noqa: PERF203
+            except Exception as exc:
                 self._callback_errors.append(exc)
         callbacks.clear()
 

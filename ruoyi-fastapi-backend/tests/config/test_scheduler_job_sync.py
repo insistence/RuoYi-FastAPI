@@ -1,7 +1,7 @@
 import asyncio
 import json
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -17,7 +17,7 @@ from tests.scheduler_helpers import Runtime, job_info
 @pytest_asyncio.fixture
 async def jobs() -> AsyncIterator[SchedulerJobs]:
     """每个用例使用独立的内存调度器和同步缓存。"""
-    scheduler = AsyncIOScheduler(timezone=timezone.utc)
+    scheduler = AsyncIOScheduler(timezone=UTC)
     scheduler.start(paused=True)
     try:
         yield SchedulerJobs(scheduler)
@@ -53,7 +53,7 @@ async def test_timezone_only_update_rebuilds_trigger_and_failure_remains_retryab
     job_id = str(info.job_id)
     jobs.register_job(info)
     original = jobs.get_job(job_id)
-    changed_at = datetime(2026, 9, 9, tzinfo=timezone.utc)
+    changed_at = datetime(2026, 9, 9, tzinfo=UTC)
     changed = info.model_copy(update={'time_zone': 'UTC', 'update_time': changed_at})
 
     with (

@@ -1,6 +1,6 @@
 import asyncio
 import inspect
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Coroutine, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -52,14 +52,14 @@ class PluginDefinition:
             raise TypeError('register_models 必须可调用')
 
 
-async def await_plugin_callback(
+def await_plugin_callback(
     callback: Callable[..., Any],
     *args: Any,
     timeout: float = 30.0,
     kwargs: Mapping[str, Any] | None = None,
-) -> Any:
+) -> Coroutine[Any, Any, Any]:
     """
-    等待 Python 或原生 awaitable；同步入口必须立即返回。
+    返回等待插件回调的协程。开始等待时才调用 Python 或原生入口。
 
     超时只能取消异步等待，不能强制终止阻塞原生函数。平台不在线程池中执行
     生命周期写操作，也不将同步返回值视为成功，以免事务结束后继续产生副作用。
@@ -68,9 +68,13 @@ async def await_plugin_callback(
     :param args: 传给回调的位置参数
     :param timeout: 异步等待超时时间，单位为秒
     :param kwargs: 传给回调的关键字参数
-    :return: 等待插件回调完成后的返回值
+    :return: 可直接 await 或交给 asyncio.create_task 的协程
     """
-    result = callback(*args, **(kwargs or {}))
-    if not inspect.isawaitable(result):
-        raise TypeError('v2 插件异步回调必须立即返回 awaitable')
-    return await asyncio.wait_for(result, timeout=timeout)
+
+    async def invoke() -> Any:
+        result = callback(*args, **(kwargs or {}))
+        if not inspect.isawaitable(result):
+            raise TypeError('v2 插件异步回调必须立即返回 awaitable')
+        return await asyncio.wait_for(result, timeout=timeout)
+
+    return invoke()

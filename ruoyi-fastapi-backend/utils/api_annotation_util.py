@@ -1,10 +1,9 @@
 import inspect
 from collections.abc import Awaitable, Callable, Sequence
-from typing import TypeVar
+from typing import ParamSpec, TypeVar
 
 from fastapi import Request
 from redis import asyncio as aioredis
-from typing_extensions import ParamSpec
 
 from common.enums import HttpMethod
 from utils.log_util import logger

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -15,7 +15,7 @@ from module_identity.service.identity_service import (
     IdentitySecurityEventService,
 )
 
-_NOW = datetime(2026, 8, 24, 8, 0, tzinfo=timezone.utc)
+_NOW = datetime(2026, 8, 24, 8, 0, tzinfo=UTC)
 _INITIAL_VERSION = 3
 _PASSWORD_REFRESH_COUNT = 2
 _CLAIM_USER_ID = 8

@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
 
 from plugins.core.deployment.state import aggregate_release
 
-NOW = datetime(2026, 10, 2, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 2, tzinfo=UTC)
 DIGEST = 'a' * 64
 GENERATION = 'b' * 32
 

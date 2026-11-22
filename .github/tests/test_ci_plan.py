@@ -9,7 +9,7 @@ ci = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ci)
 FRONTEND_PROJECT_COUNT = 6
 STANDARD_E2E_COMBINATION_COUNT = 6
-FULL_E2E_COMBINATION_COUNT = 30
+FULL_E2E_COMBINATION_COUNT = 24
 
 
 def test_readme_change_only_runs_quality() -> None:
@@ -160,7 +160,7 @@ def test_full_run_preserves_python_database_and_framework_combinations() -> None
     plan = ci.build_plan([], full=True)
     assert all(plan['required'].values())
     assert len(plan['e2e_matrix']['include']) == FULL_E2E_COMBINATION_COUNT
-    assert {row['python'] for row in plan['e2e_matrix']['include']} == {'3.10', '3.11', '3.12', '3.13', '3.14'}
+    assert {row['python'] for row in plan['e2e_matrix']['include']} == {'3.11', '3.12', '3.13', '3.14'}
 
 
 @pytest.mark.parametrize('result', ['failure', 'cancelled', 'skipped', None])

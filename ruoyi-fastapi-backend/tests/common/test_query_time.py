@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 import pytest
@@ -48,8 +48,8 @@ def test_http_boundaries_return_validation_errors() -> None:
 def test_instant_query_compares_instants_instead_of_offset_strings() -> None:
     query = FileInfoQueryModel(beginTime='2026-08-28T10:00:00+08:00', endTime='2026-08-28T03:00:00Z')
     assert TimezoneUtil.rfc3339_range_to_utc(query.begin_time, query.end_time) == (
-        datetime(2026, 8, 28, 2, tzinfo=timezone.utc),
-        datetime(2026, 8, 28, 3, tzinfo=timezone.utc),
+        datetime(2026, 8, 28, 2, tzinfo=UTC),
+        datetime(2026, 8, 28, 3, tzinfo=UTC),
     )
     with pytest.raises(ValidationError):
         FileInfoQueryModel(beginTime='2026-08-28T03:00:00Z', endTime='2026-08-28T10:00:00+08:00')
@@ -59,8 +59,8 @@ def test_instant_query_compares_instants_instead_of_offset_strings() -> None:
 @pytest.mark.parametrize(
     ('boundaries', 'expected_times'),
     [
-        ({'beginTime': '2026-08-28'}, [datetime(2026, 8, 27, 16, tzinfo=timezone.utc)]),
-        ({'endTime': '2026-08-28'}, [datetime(2026, 8, 28, 16, tzinfo=timezone.utc)]),
+        ({'beginTime': '2026-08-28'}, [datetime(2026, 8, 27, 16, tzinfo=UTC)]),
+        ({'endTime': '2026-08-28'}, [datetime(2026, 8, 28, 16, tzinfo=UTC)]),
         ({}, []),
     ],
     ids=['lower-only', 'upper-only', 'unbounded'],

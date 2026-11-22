@@ -1,8 +1,7 @@
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Self, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 from pydantic.alias_generators import to_camel
-from typing_extensions import Self
 
 from common.constant import HttpStatusConstant
 from common.types import ApiUtcDateTime

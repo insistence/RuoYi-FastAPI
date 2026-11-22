@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 import pytest
@@ -214,7 +214,7 @@ async def test_transition_rejects_duplicate_scope_and_incomplete_identity() -> N
 
 def test_max_age_decision_uses_project_local_time() -> None:
     """验证 max_age 使用项目约定的本地无时区时间。"""
-    now = datetime(2026, 8, 24, 13, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 24, 13, 0, tzinfo=UTC)
     assert OidcUtil.requires_reauthentication(now - timedelta(seconds=10), 5, now) is True
     assert OidcUtil.requires_reauthentication(now - timedelta(seconds=2), 5, now) is False
     assert OidcUtil.requires_reauthentication(now, 5, now) is False

@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock
 
@@ -67,7 +67,7 @@ async def verify_persistent_scheduler(
 
     def build_scheduler() -> AsyncIOScheduler:
         return AsyncIOScheduler(
-            timezone=timezone.utc,
+            timezone=UTC,
             jobstores={'default': SQLAlchemyJobStore(engine=engine, tablename='apscheduler_timezone_verify')},
             executors={'default': TimedAsyncIOExecutor(manage_executions=True)},
         )
@@ -107,7 +107,7 @@ async def verify_persistent_scheduler(
         assert SchedulerManager._jobs.is_config_current(restored, updated)
         assert old_signature != SchedulerManager._jobs.trigger_signature(restored.trigger)
         expected = MyCronTrigger.from_crontab(updated.cron_expression, updated.time_zone)
-        start = datetime(2026, 11, 1, tzinfo=timezone.utc)
+        start = datetime(2026, 11, 1, tzinfo=UTC)
         assert restored.trigger.get_next_fire_time(None, start) == expected.get_next_fire_time(None, start)
 
         await assert_independent_manual_request(current, updated, sessions)

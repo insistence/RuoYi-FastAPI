@@ -3,7 +3,7 @@ import math
 import pickle
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 from unittest.mock import Mock, patch
 
 import pytest
@@ -108,8 +108,8 @@ async def test_executors_preserve_return_value_and_log_deleted_one_shot(kind: st
         assert event.snapshot.invoke_target == job.func_ref
         assert scheduler.get_job(job.id) is None
         assert event.scheduled_run_time.utcoffset() == timedelta(0)
-        assert event.start_time.tzinfo is timezone.utc
-        assert event.end_time.tzinfo is timezone.utc
+        assert event.start_time.tzinfo is UTC
+        assert event.end_time.tzinfo is UTC
         assert event.start_time >= event.scheduled_run_time
         assert event.end_time >= event.start_time
         assert event.run_duration_ms >= 0
@@ -184,7 +184,7 @@ async def test_scheduler_emits_one_standard_max_instances_event_and_preserves_re
         if kind == 'process'
         else TimedAsyncIOExecutor(on_rejected=SchedulerManager.scheduler_event_listener)
     )
-    scheduler = AsyncIOScheduler(executors={'default': executor}, timezone=timezone.utc)
+    scheduler = AsyncIOScheduler(executors={'default': executor}, timezone=UTC)
     events = []
     rejected = asyncio.Event()
 

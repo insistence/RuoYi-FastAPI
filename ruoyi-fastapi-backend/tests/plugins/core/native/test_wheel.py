@@ -47,7 +47,7 @@ def make_wheel(root: Path, *, extra: dict[str, bytes] | None = None, tag: str | 
     files = {
         f'{MODULE}/__init__.py': b'raise RuntimeError("static validation must not import")',
         f'{MODULE}/_native{EXTENSION_SUFFIXES[0]}': b'not-an-executable-test-fixture',
-        f'{METADATA}/METADATA': b'Name: ruoyi-plugin-wheel-test\nVersion: 1.0.0\nRequires-Python: >=3.10\n',
+        f'{METADATA}/METADATA': b'Name: ruoyi-plugin-wheel-test\nVersion: 1.0.0\nRequires-Python: >=3.11\n',
         f'{METADATA}/WHEEL': f'Wheel-Version: 1.0\nRoot-Is-Purelib: false\nTag: {selected_tag}\n'.encode(),
         **(extra or {}),
     }

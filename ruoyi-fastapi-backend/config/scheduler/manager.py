@@ -2,7 +2,7 @@ import asyncio
 import json
 import random
 import time
-from datetime import timezone
+from datetime import UTC
 from typing import Any
 
 from apscheduler.events import EVENT_ALL, SchedulerEvent
@@ -22,7 +22,7 @@ from module_admin.entity.vo.job_vo import JobModel
 from utils.log_util import logger
 from utils.server_util import StartupUtil, WorkerIdUtil
 
-scheduler = AsyncIOScheduler(timezone=timezone.utc)
+scheduler = AsyncIOScheduler(timezone=UTC)
 
 
 class SchedulerManager:

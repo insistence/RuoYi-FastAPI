@@ -50,7 +50,7 @@ async def cache_redis(redis_socket: IsolatedRedisServer) -> AsyncIterator[Redis]
             try:
                 await asyncio.wait_for(redis.ping(), timeout=0.2)
                 break
-            except (RedisConnectionError, asyncio.TimeoutError):
+            except (TimeoutError, RedisConnectionError):
                 await asyncio.sleep(0.01)
         else:
             pytest.fail('隔离Redis测试实例未能启动')

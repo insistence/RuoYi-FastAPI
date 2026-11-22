@@ -172,6 +172,26 @@ async def summary(deployment: SimpleNamespace, plugin_id: str = 'release_demo') 
 
 
 @pytest.mark.asyncio
+async def test_lock_deadline_only_limits_acquisition(deployment: SimpleNamespace) -> None:
+    @asynccontextmanager
+    async def busy_lock(_plugin_id: str, _operation: str) -> AsyncIterator[SimpleNamespace]:
+        yield SimpleNamespace(acquired=False)
+
+    worker = PluginReleaseWorker(deployment.config, session_factory=deployment.sessions)
+    builder = PluginRuntimeBuilder(deployment.config.backend_root)
+    app = FastAPI()
+    with pytest.raises(TimeoutError, match='等待插件维护发布锁超时'):
+        await worker.start(app, builder, SimpleNamespace(lock=busy_lock), lock_wait_seconds=0)
+    assert not worker.registered
+
+    try:
+        await worker.start(app, builder, NoopPluginLifecycleLock(), lock_wait_seconds=0)
+        assert worker.registered
+    finally:
+        await worker.stop()
+
+
+@pytest.mark.asyncio
 async def test_real_entrypoint_ready_reports_and_shutdown(deployment: SimpleNamespace) -> None:
     """验证真实入口激活、就绪上报和关闭后的状态变化。"""
     digest = await publish(deployment)

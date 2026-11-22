@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -119,7 +119,7 @@ async def test_key_list_exposes_only_safe_enabled_capability(monkeypatch: pytest
     monkeypatch.setattr(
         OidcRuntimeService,
         'inspect_readiness',
-        lambda db: _async_readiness(OidcReadiness(False, False, 'disabled', datetime.now(timezone.utc))),
+        lambda db: _async_readiness(OidcReadiness(False, False, 'disabled', datetime.now(UTC))),
     )
     response = await list_oidc_keys(_Db())
     assert b'"enabled":false' in response.body

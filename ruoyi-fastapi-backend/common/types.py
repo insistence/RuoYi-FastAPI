@@ -1,5 +1,5 @@
 import re
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from typing import Annotated, Any
 
 from pydantic import AfterValidator, AwareDatetime, BeforeValidator, PlainSerializer
@@ -102,5 +102,5 @@ class DbUtcDateTime(TypeDecorator[datetime]):
         if value is None:
             return None
         if value.tzinfo is None or value.utcoffset() is None:
-            value = value.replace(tzinfo=timezone.utc)
+            value = value.replace(tzinfo=UTC)
         return TimezoneUtil.to_utc_milliseconds(value)

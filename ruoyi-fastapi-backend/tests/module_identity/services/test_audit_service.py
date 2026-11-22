@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from types import SimpleNamespace
 
@@ -114,7 +114,7 @@ async def test_audit_uses_field_whitelist_and_caller_commit_boundary(audit_sessi
 @pytest.mark.asyncio
 async def test_audit_retention_moves_old_events_to_archive(audit_session: AsyncSession) -> None:
     """超过在线保留期的审计事件必须转入归档表后再删除。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     await AuditService.record(audit_session, 'old_event', 'success', create_time=now - timedelta(days=181))
     await AuditService.record(audit_session, 'fresh_event', 'success', create_time=now)
 
@@ -144,7 +144,7 @@ async def test_audit_admin_reads_project_safe_models_and_export(monkeypatch: pyt
         sid='sid-1',
         ip_address='127.0.0.1',
         failure_code=None,
-        create_time=datetime.now(timezone.utc),
+        create_time=datetime.now(UTC),
     )
     calls: list[dict[str, object]] = []
 
@@ -189,7 +189,7 @@ async def test_audit_export_serializes_stored_utc_in_request_timezone(
         audit_session,
         'export_timezone',
         'success',
-        create_time=datetime(2026, 8, 28, 10, 30, 0, 123000, tzinfo=timezone.utc),
+        create_time=datetime(2026, 8, 28, 10, 30, 0, 123000, tzinfo=UTC),
         detail={'private_note': 'not-for-export', 'access_token': 'hidden'},
     )
     await audit_session.commit()

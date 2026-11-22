@@ -78,7 +78,7 @@ class TuiQueryExecutor:
         """
         try:
             return await asyncio.wait_for(operation(), timeout=self.remote_timeout_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return self.build_timeout_payload(label)
         except asyncio.CancelledError:
             raise
@@ -117,7 +117,7 @@ class TuiQueryExecutor:
                 asyncio.shield(future),
                 timeout=remaining,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return self.build_timeout_payload(label)
         except asyncio.CancelledError:
             raise

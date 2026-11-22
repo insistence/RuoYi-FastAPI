@@ -614,7 +614,7 @@ class KeyService:
                 ):
                     await db.commit()
                     activated += 1
-            except Exception:  # noqa: PERF203
+            except Exception:
                 await db.rollback()
                 safe_kid = (
                     record.kid if isinstance(record.kid, str) and OidcUtil.is_valid_kid(record.kid) else 'invalid'

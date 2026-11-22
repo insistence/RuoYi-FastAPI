@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -72,7 +72,7 @@ async def test_audit_list_uses_real_total_and_safe_projection(monkeypatch: pytes
             subject_id='s',
             sid='sid',
             failure_code='invalid_client',
-            create_time=datetime.now(timezone.utc),
+            create_time=datetime.now(UTC),
             detail={'access_token': 'redact'},
         ),
         SimpleNamespace(
@@ -86,7 +86,7 @@ async def test_audit_list_uses_real_total_and_safe_projection(monkeypatch: pytes
             subject_id='s',
             sid='sid',
             failure_code=None,
-            create_time=datetime.now(timezone.utc),
+            create_time=datetime.now(UTC),
             detail={'password': 'redact'},
         ),
     ]

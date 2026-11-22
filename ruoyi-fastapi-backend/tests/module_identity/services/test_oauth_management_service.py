@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -155,7 +155,7 @@ async def test_after_commit_failure_does_not_rollback_committed_management_chang
 async def test_create_detail_bindings_secret_and_cors_snapshot(management_session: AsyncSession) -> None:
     """创建应原子写入绑定，创建不自动发放 Secret，轮换时只返回一次明文。"""
     await _seed_definitions(management_session)
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     detail = await OAuthClientManagementService.create_client(
         management_session, _confidential_payload(), actor='admin', now=now
     )
@@ -241,10 +241,10 @@ async def test_status_soft_disable_and_secret_revoke_are_safe(management_session
             user_id=7,
             subject_id='subject-disable',
             auth_version=1,
-            auth_time=datetime.now(timezone.utc),
-            last_seen_at=datetime.now(timezone.utc),
-            idle_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-            absolute_expires_at=datetime.now(timezone.utc) + timedelta(hours=2),
+            auth_time=datetime.now(UTC),
+            last_seen_at=datetime.now(UTC),
+            idle_expires_at=datetime.now(UTC) + timedelta(hours=1),
+            absolute_expires_at=datetime.now(UTC) + timedelta(hours=2),
             acr='urn:test',
             amr=['pwd'],
             status='active',
@@ -264,9 +264,9 @@ async def test_status_soft_disable_and_secret_revoke_are_safe(management_session
             scopes=[],
             resources=[],
             status='active',
-            issued_at=datetime.now(timezone.utc),
-            idle_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-            absolute_expires_at=datetime.now(timezone.utc) + timedelta(hours=2),
+            issued_at=datetime.now(UTC),
+            idle_expires_at=datetime.now(UTC) + timedelta(hours=1),
+            absolute_expires_at=datetime.now(UTC) + timedelta(hours=2),
         )
     )
     await management_session.flush()
@@ -350,7 +350,7 @@ async def test_secret_rotation_bounds_old_active_secret(management_session: Asyn
     detail = await OAuthClientManagementService.create_client(
         management_session, _confidential_payload(), actor='admin'
     )
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     first = await OAuthClientManagementService.rotate_secret(
         management_session, detail.client_id, actor='admin', now=now, retirement_seconds=120
     )
@@ -382,7 +382,7 @@ async def test_secret_rotation_respects_original_expiry_and_rejects_a_gap(
 ) -> None:
     """轮换不延长原过期时间，远期过期会被截断，排期断档则原子拒绝。"""
     await _seed_definitions(management_session)
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
 
     early_client = await OAuthClientManagementService.create_client(
         management_session, _confidential_payload(client_name='原过期较早'), actor='admin'

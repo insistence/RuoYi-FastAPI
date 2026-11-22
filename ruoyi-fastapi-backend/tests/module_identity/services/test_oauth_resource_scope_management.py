@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 import pytest_asyncio
@@ -85,7 +85,7 @@ def test_management_identifiers_are_safe_path_segments(value: str) -> None:
     with pytest.raises(ValueError):
         ScopeModel(scope_code=value, scope_name='x', scope_type='identity')
     with pytest.raises(ValueError):
-        OidcKeyRotateModel(kid=value, publish_at=datetime.now(timezone.utc))
+        OidcKeyRotateModel(kid=value, publish_at=datetime.now(UTC))
 
 
 def _client_payload(resource_id: str = 'orders-api', scope_code: str | None = None) -> ClientCreateModel:
@@ -126,7 +126,7 @@ async def test_resource_crud_introspection_policy_and_invalidation_snapshot(reso
         resource_session,
         ResourceUpdateModel.model_validate(update_values),
         actor='admin',
-        now=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        now=datetime(2026, 1, 1, tzinfo=UTC),
     )
     assert updated.introspection_client_id == client.client_id
     assert updated.allowed_claims == ['sub', 'email']

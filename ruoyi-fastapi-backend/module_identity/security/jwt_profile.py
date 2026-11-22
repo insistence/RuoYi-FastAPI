@@ -1,6 +1,6 @@
 import math
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import jwt
@@ -378,7 +378,7 @@ def _decode(
     if payload.get('iss') != issuer or not _audience_matches(payload.get('aud'), audience):
         raise JwtProfileError('JWT 签发者或受众不匹配')
     _validate_profile_claims(profile, payload)
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
     _numeric_claims(payload, now=now, skew=clock_skew, verify_exp=not allow_expired_hint)
 
     return dict(payload)

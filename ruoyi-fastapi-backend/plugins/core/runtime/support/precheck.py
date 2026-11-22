@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import Self, TypeAlias
 
 from pydantic import Field
-from typing_extensions import Self
 
 from plugins.core.runtime.support.payload.validation import (
     DependencyItemPayload,

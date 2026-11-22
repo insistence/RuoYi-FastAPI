@@ -2,7 +2,7 @@ import asyncio
 import json
 import time
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from fnmatch import fnmatchcase
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -329,7 +329,7 @@ async def test_empty_runtime_uses_release_worker_identity_without_fabricating_mi
                     'workerId': worker_id,
                     'pluginId': '__runtime__',
                     'state': 'ready',
-                    'heartbeatTime': datetime.fromtimestamp(now - 1, timezone.utc).isoformat(),
+                    'heartbeatTime': datetime.fromtimestamp(now - 1, UTC).isoformat(),
                 }
             ],
         }

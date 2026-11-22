@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -49,7 +49,7 @@ def test_get_file_reference_list_includes_legacy_reference() -> None:
 
 
 def test_get_file_reference_list_converts_orm_reference() -> None:
-    create_time = datetime(2026, 7, 26, 10, 0, 0, tzinfo=timezone.utc)
+    create_time = datetime(2026, 7, 26, 10, 0, 0, tzinfo=UTC)
     file_info = {
         'file_id': FILE_ID,
         'business_type': None,
@@ -194,7 +194,7 @@ def test_remove_business_file_references_does_not_lock_files() -> None:
 
 def test_replace_business_file_references_applies_retention_policy() -> None:
     query_db = make_query_db()
-    create_time = datetime(2026, 7, 23, 10, 0, 0, tzinfo=timezone.utc)
+    create_time = datetime(2026, 7, 23, 10, 0, 0, tzinfo=UTC)
     policy = FileRetentionPolicyModel(businessType='notice', retentionDays=30)
     with (
         patch.object(
@@ -230,8 +230,8 @@ def test_replace_business_file_references_applies_retention_policy() -> None:
 
 
 def test_replace_business_file_references_preserves_extended_expiration() -> None:
-    policy_expire_time = datetime(2026, 8, 22, 10, 0, 0, tzinfo=timezone.utc)
-    extended_expire_time = datetime(2027, 7, 23, 10, 0, 0, tzinfo=timezone.utc)
+    policy_expire_time = datetime(2026, 8, 22, 10, 0, 0, tzinfo=UTC)
+    extended_expire_time = datetime(2027, 7, 23, 10, 0, 0, tzinfo=UTC)
     old_reference = SysFileReference(
         file_id=FILE_ID,
         business_type='notice',
@@ -254,8 +254,8 @@ def test_replace_business_file_references_preserves_extended_expiration() -> Non
 
 
 def test_refresh_file_expire_times_uses_latest_reference_expiration() -> None:
-    first_expire_time = datetime(2026, 8, 1, tzinfo=timezone.utc)
-    last_expire_time = datetime(2026, 9, 1, tzinfo=timezone.utc)
+    first_expire_time = datetime(2026, 8, 1, tzinfo=UTC)
+    last_expire_time = datetime(2026, 9, 1, tzinfo=UTC)
     file_info = SimpleNamespace(
         file_id=FILE_ID,
         business_type=None,

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -2265,7 +2265,7 @@ async def test_plugin_operation_log_export_services_returns_filtered_rows() -> N
                 continue_on_error=False,
             )
             # 固定在 UTC 与上海日期不同的时刻，导出筛选使用应用业务日期。
-            created_at = datetime(2026, 10, 1, 16, 5, tzinfo=timezone.utc)
+            created_at = datetime(2026, 10, 1, 16, 5, tzinfo=UTC)
             await session.execute(update(SysPluginOperationLog).values(create_time=created_at))
             await session.commit()
 
@@ -2315,7 +2315,7 @@ async def test_retain_plugin_operation_log_services_supports_dry_run_and_delete(
                         dry_run='1',
                         continue_on_error='1',
                         status='success',
-                        create_time=datetime.now(timezone.utc) - timedelta(days=30),
+                        create_time=datetime.now(UTC) - timedelta(days=30),
                     ),
                     SysPluginOperationLog(
                         operation='install',
@@ -2323,7 +2323,7 @@ async def test_retain_plugin_operation_log_services_supports_dry_run_and_delete(
                         dry_run='1',
                         continue_on_error='1',
                         status='success',
-                        create_time=datetime.now(timezone.utc),
+                        create_time=datetime.now(UTC),
                     ),
                 ]
             )
@@ -2340,7 +2340,7 @@ async def test_retain_plugin_operation_log_services_supports_dry_run_and_delete(
             await session.commit()
             remaining_count = await PluginDao.count_plugin_operation_logs_before(
                 session,
-                datetime.now(timezone.utc) + timedelta(days=1),
+                datetime.now(UTC) + timedelta(days=1),
             )
 
         assert dry_run_result.matched_count == 1
@@ -2369,7 +2369,7 @@ async def test_retain_plugin_operation_log_services_accepts_zero_days() -> None:
                     dry_run='1',
                     continue_on_error='1',
                     status='success',
-                    create_time=datetime.now(timezone.utc) - timedelta(minutes=1),
+                    create_time=datetime.now(UTC) - timedelta(minutes=1),
                 )
             )
             await session.commit()
@@ -2381,7 +2381,7 @@ async def test_retain_plugin_operation_log_services_accepts_zero_days() -> None:
             await session.commit()
             remaining_count = await PluginDao.count_plugin_operation_logs_before(
                 session,
-                datetime.now(timezone.utc) + timedelta(days=1),
+                datetime.now(UTC) + timedelta(days=1),
             )
 
         assert delete_result.retention_days == 0

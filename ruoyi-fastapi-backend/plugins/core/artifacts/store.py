@@ -313,7 +313,7 @@ class ArtifactStore:
                 try:
                     self._lock_file(descriptor, unlock=False)
                     acquired = True
-                except OSError as exc:  # noqa: PERF203 - 操作系统非阻塞锁必须重试
+                except OSError as exc:
                     if exc.errno not in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
                         raise
                     if time.monotonic() >= deadline:

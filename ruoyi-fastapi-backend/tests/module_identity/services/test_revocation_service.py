@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -159,7 +159,7 @@ async def test_access_revocation_is_written_only_after_commit(monkeypatch: pytes
     redis = FakeRedis()
     coordinator = AfterCommitCoordinator()
     db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
-    now = datetime.fromtimestamp(200, timezone.utc)
+    now = datetime.fromtimestamp(200, UTC)
 
     await RevocationService.revoke(
         db,
@@ -206,7 +206,7 @@ async def test_public_client_can_revoke_its_own_access_after_commit(monkeypatch:
         'signed-public-access',
         OAuthClientPrincipal('client-a', 'public', 'none'),
         coordinator=coordinator,
-        now=datetime.fromtimestamp(200, timezone.utc),
+        now=datetime.fromtimestamp(200, UTC),
     )
     await coordinator.commit(db)
 

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -144,7 +144,7 @@ async def test_access_introspection_honours_revoked_jti_and_resource_owner(
     await redis.set('oidc:revoked_jti:jti-1', '1', ex=60)
 
     result = await IntrospectionService.introspect(
-        object(), redis, 'signed-access', _principal(), now=datetime.now(timezone.utc)
+        object(), redis, 'signed-access', _principal(), now=datetime.now(UTC)
     )
 
     assert result == {'active': False}
@@ -261,7 +261,7 @@ async def test_access_user_state_rejects_each_real_time_failure(
     }
 
     assert not await IntrospectionService._access_user_state(
-        db, claims, _client(), ['https://api.example'], datetime.now(timezone.utc)
+        db, claims, _client(), ['https://api.example'], datetime.now(UTC)
     )
 
 
@@ -333,7 +333,7 @@ async def test_refresh_introspection_rechecks_identity_session_grant_and_resourc
     client.client_pk = 20
     client.client_id = 'business-a'
     token = 'rt1.token-0003.' + ('A' * 43)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     row = SimpleNamespace(
         token_id='token-0003',
         token_hash='',

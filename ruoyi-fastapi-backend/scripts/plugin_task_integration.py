@@ -4,14 +4,14 @@ import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
 TASK_PLUGIN_ID = 'task_demo'
 LEGACY_TASK_ID = '0123456789abcdef0123456789abcdef'
-LEGACY_CREATED_AT = datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+LEGACY_CREATED_AT = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
 EXPECTED_MIGRATIONS = 2
 
 

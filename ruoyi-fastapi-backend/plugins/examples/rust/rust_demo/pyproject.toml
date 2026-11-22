@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "ruoyi-plugin-rust-demo"
 version = "1.0.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 description = "RuoYi native ASGI plugin example"
 
 [tool.maturin]

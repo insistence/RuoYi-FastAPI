@@ -4,7 +4,7 @@ import re
 import secrets
 from collections.abc import Awaitable, Callable, Collection, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -179,7 +179,7 @@ return 1
         record.update(
             {
                 'interactionId': interaction_id,
-                'requestedAt': datetime.now(timezone.utc).isoformat(),
+                'requestedAt': datetime.now(UTC).isoformat(),
                 'csrfHash': csrf_hash,
                 'status': initial_status,
                 'version': 1,
@@ -389,7 +389,7 @@ return 1
             parsed = datetime.fromisoformat(requested_at.replace('Z', '+00:00'))
         except ValueError as exc:
             raise ValueError('认证交互的请求时间 requestedAt 无效') from exc
-        if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+        if parsed.tzinfo is None or parsed.utcoffset() != UTC.utcoffset(parsed):
             raise ValueError('认证交互的请求时间 requestedAt 必须使用 UTC')
         cls._validate_payload(record)
         identity_values = [record.get('userId'), record.get('subjectId'), record.get('authVersion')]

@@ -1,6 +1,6 @@
 import json
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from apscheduler.job import Job
@@ -194,7 +194,7 @@ class SchedulerJobs:
                 task_job_group=job_info.job_group,
                 execution_id=execution_id,
                 dispatch_token=dispatch_token,
-                timezone=timezone.utc,
+                timezone=UTC,
             ),
             misfire_grace_time=None,
             coalesce=False,

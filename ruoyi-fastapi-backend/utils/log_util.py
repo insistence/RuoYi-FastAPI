@@ -6,7 +6,7 @@ import re
 import sys
 import traceback
 from collections.abc import Mapping, Sequence
-from datetime import timezone
+from datetime import UTC
 from typing import Any
 
 from loguru import logger as _logger
@@ -561,7 +561,7 @@ class LoggerInitializer:
         :return: 脱敏后的日志记录字典
         """
         record['message'] = LogSanitizer.sanitize_text(record['message'])
-        record['time'] = record['time'].astimezone(timezone.utc)
+        record['time'] = record['time'].astimezone(UTC)
         return record
 
     def _info_file_filter(self, record: dict) -> bool:

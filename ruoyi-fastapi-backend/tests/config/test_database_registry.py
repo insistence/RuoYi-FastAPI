@@ -1,12 +1,12 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
+from typing import Self
 from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
 from sqlalchemy import URL
 from sqlalchemy.exc import OperationalError
-from typing_extensions import Self
 
 from common.aspect.db_session import DBSessionDependency, get_db_session_provider
 from config import database

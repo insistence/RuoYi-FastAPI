@@ -4,7 +4,7 @@ import os
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from datetime import timezone
+from datetime import UTC
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -216,7 +216,7 @@ async def runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
     async_engine = create_async_engine(f'sqlite+aiosqlite:///{path}')
     sessions = async_sessionmaker(async_engine, expire_on_commit=False)
     scheduler = AsyncIOScheduler(
-        timezone=timezone.utc,
+        timezone=UTC,
         executors={
             'default': TimedAsyncIOExecutor(manage_executions=True),
         },

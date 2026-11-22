@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import select
@@ -99,7 +99,7 @@ def test_denial_is_a_verified_redirect_and_trusted_client_does_not_skip_consent(
 def test_prompt_consent_disables_grant_based_skip() -> None:
     """验证 prompt=consent 强制显示同意页，即使已有 Grant 也不能静默跳过。"""
     context = _context(prompt='consent')
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     grant = SysOAuthGrant(
         grant_id='consent-grant',
         user_id=8001,
@@ -181,7 +181,7 @@ async def test_remember_consent_merges_grant_without_commit(data_session: AsyncS
 @pytest.mark.asyncio
 async def test_compensation_does_not_restore_concurrently_revoked_grant(data_session: AsyncSession) -> None:
     """补偿 CAS 不得覆盖管理员在提交后执行的 Grant 撤销。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     user = SysUser(user_id=8002, user_name='race-user', nick_name='Race User', status='0', del_flag='0')
     client = SysOAuthClient(
         client_pk=8002,
@@ -244,7 +244,7 @@ async def test_compensation_does_not_restore_concurrently_revoked_grant(data_ses
 @pytest.mark.asyncio
 async def test_compensation_does_not_revoke_concurrently_updated_new_grant(data_session: AsyncSession) -> None:
     """新建 Grant 的撤销补偿不得覆盖另一会话的更新，并记录高风险审计。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     user = SysUser(user_id=8003, user_name='new-race-user', nick_name='New Race User', status='0', del_flag='0')
     client = SysOAuthClient(
         client_pk=8003,

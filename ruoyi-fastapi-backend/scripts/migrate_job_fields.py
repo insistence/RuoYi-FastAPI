@@ -302,7 +302,7 @@ def migrate_logs(connection: Connection) -> int:
                 try:
                     values[name] = parser(row[f'legacy_{name}'])
                     json.dumps(values[name], allow_nan=False)
-                except (TypeError, ValueError):  # noqa: PERF203
+                except (TypeError, ValueError):
                     # 旧字段原文仍保存在legacy列，不为无效历史参数构造可执行值。
                     values[name] = None
             matched = re.search(r'任务ID: (\d+), 执行ID: ([0-9a-f]{32})(?:,|$)', row['job_message'] or '')

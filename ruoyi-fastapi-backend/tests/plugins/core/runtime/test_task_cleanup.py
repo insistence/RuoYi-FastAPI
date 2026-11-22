@@ -17,7 +17,7 @@ async def test_batch_cancellation_releases_cooperative_tasks_and_ignores_caller(
 
     tasks = {asyncio.create_task(work()) for _ in range(3)}
     await asyncio.sleep(0)
-    assert await cancel_plugin_tasks(tasks | {asyncio.current_task()}, timeout=0.01) == set()
+    assert await cancel_plugin_tasks(tasks | {asyncio.current_task()}, grace_seconds=0.01) == set()
     assert len(stopped) == len(tasks)
     assert all(task.cancelled() for task in tasks)
 
@@ -38,7 +38,7 @@ async def test_uncooperative_task_is_retained_even_when_waiter_is_cancelled(canc
 
     child = asyncio.create_task(work())
     await opened.wait()
-    waiter = asyncio.create_task(cancel_plugin_tasks({child}, timeout=0.01 if not cancel_waiter else 1))
+    waiter = asyncio.create_task(cancel_plugin_tasks({child}, grace_seconds=0.01 if not cancel_waiter else 1))
     try:
         await interrupted.wait()
         if cancel_waiter:
@@ -59,12 +59,12 @@ async def test_uncooperative_task_is_retained_even_when_waiter_is_cancelled(canc
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('timeout', [0, -1, float('inf'), float('nan')])
-async def test_invalid_timeout_is_rejected_before_any_cancellation(timeout: float) -> None:
+@pytest.mark.parametrize('grace_seconds', [0, -1, float('inf'), float('nan')])
+async def test_invalid_timeout_is_rejected_before_any_cancellation(grace_seconds: float) -> None:
     task = asyncio.create_task(asyncio.sleep(10))
     try:
         with pytest.raises(ValueError, match='大于零'):
-            await cancel_plugin_tasks({task}, timeout=timeout)
+            await cancel_plugin_tasks({task}, grace_seconds=grace_seconds)
         assert not task.done()
     finally:
-        await cancel_plugin_tasks({task}, timeout=0.01)
+        await cancel_plugin_tasks({task}, grace_seconds=0.01)

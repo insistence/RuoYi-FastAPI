@@ -4,7 +4,7 @@ import os
 import time
 from collections import Counter, defaultdict, deque
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Lock
 from typing import Any
 
@@ -1302,4 +1302,4 @@ class TransportCryptoMonitorUtil:
         parsed_datetime = cls._parse_datetime(value)
         if parsed_datetime:
             return parsed_datetime
-        return datetime.min.replace(tzinfo=timezone.utc)
+        return datetime.min.replace(tzinfo=UTC)

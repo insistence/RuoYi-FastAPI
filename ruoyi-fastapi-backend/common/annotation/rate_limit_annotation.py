@@ -6,11 +6,10 @@ from collections import deque
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from functools import wraps
-from typing import Literal, TypeVar
+from typing import Literal, ParamSpec, TypeVar
 
 from fastapi import Request
 from redis import asyncio as aioredis
-from typing_extensions import ParamSpec
 
 from common.context import RequestContext
 from common.enums import HttpMethod, RedisInitKeyConfig

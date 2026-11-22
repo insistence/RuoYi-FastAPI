@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import BytesIO
 
 import httpx
@@ -43,9 +43,7 @@ def timezone_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
         )
         bounds = sorted(value for value in params.values() if isinstance(value, datetime))
         workbook = load_workbook(
-            BytesIO(
-                ExcelUtil.export_list2excel([{'at': datetime(2026, 3, 8, 7, 30, tzinfo=timezone.utc)}], {'at': '时间'})
-            )
+            BytesIO(ExcelUtil.export_list2excel([{'at': datetime(2026, 3, 8, 7, 30, tzinfo=UTC)}], {'at': '时间'}))
         )
         key = await ApiCache(namespace='test')._build_cache_key(request)
         return {
@@ -120,7 +118,7 @@ def test_background_exports_can_select_business_timezone_explicitly() -> None:
         workbook = load_workbook(
             BytesIO(
                 ExcelUtil.export_list2excel(
-                    [{'at': datetime(2026, 3, 8, 7, 30, tzinfo=timezone.utc)}], {'at': '时间'}, timezone_name='UTC'
+                    [{'at': datetime(2026, 3, 8, 7, 30, tzinfo=UTC)}], {'at': '时间'}, timezone_name='UTC'
                 )
             )
         )

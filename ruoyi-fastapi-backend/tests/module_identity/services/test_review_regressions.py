@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 import pytest
@@ -25,7 +25,7 @@ from module_identity.service.token_service import RefreshTokenReuseDetected, Tok
 from utils.oidc_util import OidcUtil
 from utils.response_util import ResponseUtil
 
-NOW = datetime(2026, 9, 12, 10, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 12, 10, 0, tzinfo=UTC)
 PEPPER = 'regression-refresh-pepper-' + 'x' * 32
 
 

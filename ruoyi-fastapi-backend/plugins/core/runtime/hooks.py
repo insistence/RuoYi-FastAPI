@@ -124,7 +124,7 @@ class PluginHookRunner:
             logger.debug('🔄 开始执行插件生命周期钩子')
             try:
                 await self._invoke_hook_with_timeout(hook_callable, context)
-            except asyncio.TimeoutError as exc:
+            except TimeoutError as exc:
                 raise TimeoutError(f'生命周期钩子执行超时：{hook_name}，超过 {self.timeout_seconds} 秒') from exc
             logger.debug('✅ 插件生命周期钩子执行完成')
 

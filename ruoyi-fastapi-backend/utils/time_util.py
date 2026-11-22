@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from functools import cache
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -99,7 +99,7 @@ class TimezoneUtil:
         """
         解析带时区的RFC 3339时刻并归一化为UTC毫秒
 
-        兼容Python 3.10的ISO格式解析，不接受无时区的日期时间。
+        接受带 UTC 标记或数字偏移量的日期时间。
 
         :param value: 待校验的输入值
         :return: 携带UTC时区的毫秒精度时刻
@@ -108,7 +108,7 @@ class TimezoneUtil:
             return cls.to_utc_milliseconds(value)
         if isinstance(value, str) and cls.RFC3339_PATTERN.fullmatch(value):
             try:
-                return cls.to_utc_milliseconds(datetime.fromisoformat(value.upper().replace('Z', '+00:00')))
+                return cls.to_utc_milliseconds(datetime.fromisoformat(value.upper()))
             except ValueError:
                 pass
         raise ValueError('时刻必须是有效的带offset的RFC 3339字符串或aware datetime')
@@ -132,7 +132,7 @@ class TimezoneUtil:
 
         :return: 携带UTC时区的当前时刻
         """
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     @classmethod
     def ensure_aware(cls, value: datetime, *, field_name: str = 'datetime') -> datetime:
@@ -155,7 +155,7 @@ class TimezoneUtil:
         :param value: 携带时区信息的时刻
         :return: 携带UTC时区的时刻
         """
-        return cls.ensure_aware(value).astimezone(timezone.utc)
+        return cls.ensure_aware(value).astimezone(UTC)
 
     @classmethod
     def to_optional_utc(cls, value: datetime | None) -> datetime | None:
@@ -210,7 +210,7 @@ class TimezoneUtil:
         business_timezone = cls.get_timezone(timezone_name) if timezone_name else cls.get_app_timezone()
         start = datetime.combine(begin_date, time.min, tzinfo=business_timezone)
         end = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=business_timezone)
-        return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+        return start.astimezone(UTC), end.astimezone(UTC)
 
     @classmethod
     def local_date_strings_to_utc(
@@ -236,9 +236,9 @@ class TimezoneUtil:
         if end == date.max:
             raise ValueError('结束日期必须早于9999-12-31')
         business_timezone = cls.get_timezone(timezone_name) if timezone_name else cls.get_app_timezone()
-        start = datetime.combine(begin, time.min, tzinfo=business_timezone).astimezone(timezone.utc) if begin else None
+        start = datetime.combine(begin, time.min, tzinfo=business_timezone).astimezone(UTC) if begin else None
         stop = (
-            datetime.combine(end + timedelta(days=1), time.min, tzinfo=business_timezone).astimezone(timezone.utc)
+            datetime.combine(end + timedelta(days=1), time.min, tzinfo=business_timezone).astimezone(UTC)
             if end
             else None
         )

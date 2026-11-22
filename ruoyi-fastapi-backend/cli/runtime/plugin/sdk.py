@@ -531,7 +531,7 @@ class PluginBridgeSdk:
                         path.unlink(missing_ok=True)
                     else:
                         cls._write(path, originals[name])
-                except (OSError, ValueError) as rollback_error:  # noqa: PERF203 - 单个恢复失败不能跳过其他原文件。
+                except (OSError, ValueError) as rollback_error:
                     failures.append(f'{name}: {rollback_error}')
             if failures:
                 raise ValueError(f'SDK 更新失败且回滚未完成，请从 {backup} 恢复：{"；".join(failures)}') from exc

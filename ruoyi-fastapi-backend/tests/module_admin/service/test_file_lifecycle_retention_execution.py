@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -133,7 +133,7 @@ def test_purge_file_rejects_business_reference(tmp_path: Path) -> None:
 
 
 def test_retention_scan_creates_expiring_and_expired_notices() -> None:
-    current_time = datetime.now(timezone.utc)
+    current_time = datetime.now(UTC)
     expired_file = make_file_info(expire_time=current_time - timedelta(days=1))
     expiring_file = SimpleNamespace(
         **{
@@ -264,7 +264,7 @@ def test_retention_policy_rejects_public_business_file() -> None:
 
 
 def test_extend_file_retention_updates_terminal_references() -> None:
-    current_time = datetime.now(timezone.utc)
+    current_time = datetime.now(UTC)
     previous_expire_time = current_time + timedelta(days=1)
     new_expire_time = current_time + timedelta(days=31)
     file_info = make_file_info(expire_time=previous_expire_time)
@@ -313,7 +313,7 @@ def test_extend_file_retention_updates_terminal_references() -> None:
 
 
 def test_dispose_expired_file_releases_expired_references() -> None:
-    current_time = datetime.now(timezone.utc)
+    current_time = datetime.now(UTC)
     expire_time = current_time - timedelta(days=1)
     file_info = make_file_info(expire_time=expire_time)
     reference = SimpleNamespace(
@@ -361,7 +361,7 @@ def test_dispose_expired_file_releases_expired_references() -> None:
 
 
 def test_dispose_expired_file_rejects_active_reference() -> None:
-    expire_time = datetime.now(timezone.utc) - timedelta(days=1)
+    expire_time = datetime.now(UTC) - timedelta(days=1)
     file_info = make_file_info(expire_time=expire_time)
     reference = SimpleNamespace(
         reference_id=1,

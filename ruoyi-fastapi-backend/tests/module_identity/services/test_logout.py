@@ -1,8 +1,9 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, create_autospec
 
+import httpcore
 import httpx
 import jwt
 import pytest
@@ -41,7 +42,7 @@ _HTTP_SEE_OTHER = 303
 @pytest.fixture
 def now() -> datetime:
     """每个用例执行时获取时间，避免等待前序测试期间令牌过期。"""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @pytest.fixture(autouse=True)
@@ -499,37 +500,10 @@ async def test_malformed_retry_payload_goes_to_safe_dead_letter_and_audit(
 async def test_pinned_transport_uses_approved_ip_and_preserves_origin_host(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pinned transport 只拨批准 IP，同时保留注册域名的 Host 和 TLS SNI。"""
 
-    class NetworkStream:
-        def __init__(self) -> None:
-            self.writes: list[bytes] = []
-            self.server_hostname: str | None = None
-            self.response_sent = False
-
-        async def read(self, _max_bytes: int, timeout: float | None = None) -> bytes:
-            if self.response_sent:
-                return b''
-            self.response_sent = True
-            return b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK'
-
-        async def write(self, buffer: bytes, timeout: float | None = None) -> None:
-            self.writes.append(buffer)
-
-        async def start_tls(
-            self,
-            ssl_context: object,
-            server_hostname: str | None = None,
-            timeout: float | None = None,
-        ) -> 'NetworkStream':
-            self.server_hostname = server_hostname
-            return self
-
-        async def aclose(self) -> None:
-            return None
-
-        def get_extra_info(self, _info: str) -> None:
-            return None
-
-    stream = NetworkStream()
+    stream = create_autospec(httpcore.AsyncNetworkStream, instance=True)
+    stream.read.side_effect = [b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK', b'']
+    stream.start_tls.return_value = stream
+    stream.get_extra_info.return_value = None
     transport = PinnedHttpxTransport('client.example', {'203.0.113.7'})
     backend = transport._pool._network_backend
     connect = AsyncMock(return_value=stream)
@@ -540,8 +514,9 @@ async def test_pinned_transport_uses_approved_ip_and_preserves_origin_host(monke
 
     assert response.content == b'OK'
     assert connect.await_args.args[:2] == ('203.0.113.7', 443)
-    assert stream.server_hostname == 'client.example'
-    assert b'host: client.example\r\n' in b''.join(stream.writes).lower()
+    assert stream.start_tls.await_args.kwargs['server_hostname'] == 'client.example'
+    sent = b''.join(call.args[0] for call in stream.write.await_args_list)
+    assert b'host: client.example\r\n' in sent.lower()
 
 
 @pytest.mark.asyncio

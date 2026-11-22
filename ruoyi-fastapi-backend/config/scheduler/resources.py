@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
-from datetime import timezone
+from datetime import UTC
 
 from apscheduler.events import SchedulerEvent
 from apscheduler.jobstores.memory import MemoryJobStore
@@ -97,7 +97,7 @@ class SchedulerResources:
             'default': TimedAsyncIOExecutor(on_rejected=on_event, manage_executions=True),
             'processpool': TimedProcessPoolExecutor(5, on_rejected=on_event, manage_executions=True),
         }
-        scheduler.configure(jobstores=job_stores, executors=executors, job_defaults=job_defaults, timezone=timezone.utc)
+        scheduler.configure(jobstores=job_stores, executors=executors, job_defaults=job_defaults, timezone=UTC)
         self._configured = True
 
     @staticmethod

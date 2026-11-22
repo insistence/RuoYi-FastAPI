@@ -272,7 +272,7 @@ class _PluginConnection:
             self.stop(ACCESS_REVOKED)
         except LookupError:
             self.stop(LOGIN_EXPIRED)
-        except (TimeoutError, asyncio.TimeoutError):
+        except TimeoutError:
             self.stop(CHECK_TIMED_OUT)
         except Exception:
             self.stop(CHECK_UNAVAILABLE)

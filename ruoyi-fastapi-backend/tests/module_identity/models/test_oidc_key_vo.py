@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -32,5 +32,5 @@ def test_rotation_request_rejects_missing_timezone(value: object) -> None:
 
 def test_rotation_request_normalizes_offset_to_utc() -> None:
     model = OidcKeyRotateModel(kid='key-1', publishAt='2026-08-28T10:00:00+08:00')
-    assert model.publish_at == datetime(2026, 8, 28, 2, 0, tzinfo=timezone.utc)
+    assert model.publish_at == datetime(2026, 8, 28, 2, 0, tzinfo=UTC)
     assert model.model_dump(mode='json', by_alias=True)['publishAt'] == '2026-08-28T02:00:00.000Z'

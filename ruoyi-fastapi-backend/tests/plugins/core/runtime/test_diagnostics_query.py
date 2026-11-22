@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -69,7 +69,7 @@ def release(*worker_ids: str, expected: int = 1) -> dict:
                 'state': 'ready',
                 'digest': 'f' * 64,
                 'generation': 'e' * 32,
-                'heartbeatTime': datetime.fromtimestamp(NOW, timezone.utc).isoformat(),
+                'heartbeatTime': datetime.fromtimestamp(NOW, UTC).isoformat(),
             }
             for worker_id in worker_ids
             for plugin_id in ('__runtime__', 'demo')
@@ -120,7 +120,7 @@ def test_replaced_stale_host_does_not_make_current_coverage_incomplete() -> None
     deployment = release(WORKER, OTHER)
     for row in deployment['workers']:
         if row['workerId'] == OTHER:
-            row['heartbeatTime'] = datetime.fromtimestamp(NOW - 61, timezone.utc).isoformat()
+            row['heartbeatTime'] = datetime.fromtimestamp(NOW - 61, UTC).isoformat()
     result = query.build_runtime_diagnostics('demo', report(snapshot()), deployment, now=NOW)
     assert result['state'] == 'observed' and result['missingWorkers'] == 0
     assert result['workers'][1]['actual'] is None
@@ -174,7 +174,7 @@ def test_fresh_runtime_cache_of_stale_host_does_not_fill_expected_capacity() -> 
     deployment['workerTtlSeconds'] = 15
     for row in deployment['workers']:
         if row['workerId'] == OTHER:
-            row['heartbeatTime'] = datetime.fromtimestamp(NOW - 20, timezone.utc).isoformat()
+            row['heartbeatTime'] = datetime.fromtimestamp(NOW - 20, UTC).isoformat()
     result = query.build_runtime_diagnostics(
         'demo', report(snapshot(), snapshot(OTHER, collectedAt=NOW - 20)), deployment, now=NOW
     )

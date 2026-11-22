@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
@@ -535,7 +535,7 @@ async def test_consent_commit_then_redis_cas_failure_compensates_persisted_grant
         granted_resources=(),
         client_policy_version=1,
         status='active',
-        consented_at=datetime.now(timezone.utc),
+        consented_at=datetime.now(UTC),
         expires_at=None,
         revoked_at=None,
         revoke_reason=None,

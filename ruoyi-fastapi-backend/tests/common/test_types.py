@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta, timezone
 
 import pytest
 from pydantic import BaseModel, TypeAdapter, ValidationError
@@ -26,8 +26,8 @@ class TestApiUtcDateTime:
     def test_aware_inputs_keep_the_same_instant(self, value: object) -> None:
         model = TimestampModel(occurred_at=value)
 
-        assert model.occurred_at == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=timezone.utc)
-        assert model.occurred_at.tzinfo is timezone.utc
+        assert model.occurred_at == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=UTC)
+        assert model.occurred_at.tzinfo is UTC
         assert model.model_dump(mode='json')['occurred_at'] == '2026-08-28T02:30:00.123Z'
         assert model.model_dump_json() == '{"occurred_at":"2026-08-28T02:30:00.123Z"}'
 
@@ -73,7 +73,7 @@ class TestDbUtcDateTime:
 
     @pytest.mark.parametrize(
         ('dialect', 'stored_timezone'),
-        [(mysql.dialect(), None), (postgresql.dialect(), timezone.utc), (sqlite.dialect(), None)],
+        [(mysql.dialect(), None), (postgresql.dialect(), UTC), (sqlite.dialect(), None)],
     )
     def test_database_roundtrip_preserves_utc_and_millisecond_precision(
         self, dialect: Dialect, stored_timezone: timezone | None
@@ -85,8 +85,8 @@ class TestDbUtcDateTime:
         assert stored == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=stored_timezone)
         assert stored.tzinfo is stored_timezone
         restored = column_type.process_result_value(stored, dialect)
-        assert restored == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=timezone.utc)
-        assert restored.tzinfo is timezone.utc
+        assert restored == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=UTC)
+        assert restored.tzinfo is UTC
 
     def test_rejects_naive_values(self) -> None:
         with pytest.raises(ValueError, match='只接受携带时区信息'):
@@ -111,7 +111,7 @@ class TestBusinessDate:
             '2026-02-29',
             '20000229',
             '2000-02-29T00:00:00Z',
-            datetime(2000, 2, 29, tzinfo=timezone.utc),
+            datetime(2000, 2, 29, tzinfo=UTC),
             951782400,
         ],
     )
@@ -132,9 +132,7 @@ class TestBusinessTime:
         assert result.tzinfo is None
         assert adapter.dump_json(result) == b'"09:15:00.123456"'
 
-    @pytest.mark.parametrize(
-        'value', ['09:15', '24:00:00', '36:00:00', '09:15:00Z', time(9, tzinfo=timezone.utc), 3600]
-    )
+    @pytest.mark.parametrize('value', ['09:15', '24:00:00', '36:00:00', '09:15:00Z', time(9, tzinfo=UTC), 3600])
     def test_incomplete_times_offsets_and_durations_are_rejected(self, value: object) -> None:
         with pytest.raises(ValidationError, match='一天内时间'):
             TypeAdapter(BusinessTime).validate_python(value)

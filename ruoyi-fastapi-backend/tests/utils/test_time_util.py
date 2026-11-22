@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -9,7 +9,7 @@ from utils.time_util import GenTimeUtil, TimezoneUtil
 def test_utc_now_returns_aware_utc_datetime() -> None:
     now = TimezoneUtil.utc_now()
 
-    assert now.tzinfo is timezone.utc
+    assert now.tzinfo is UTC
     assert now.utcoffset().total_seconds() == 0
 
 
@@ -21,14 +21,14 @@ def test_naive_datetime_is_rejected() -> None:
 def test_datetime_is_normalized_to_utc_and_business_timezone() -> None:
     shanghai_time = datetime.fromisoformat('2026-08-28T10:30:00+08:00')
 
-    assert TimezoneUtil.to_utc(shanghai_time) == datetime(2026, 8, 28, 2, 30, tzinfo=timezone.utc)
+    assert TimezoneUtil.to_utc(shanghai_time) == datetime(2026, 8, 28, 2, 30, tzinfo=UTC)
     assert TimezoneUtil.to_business_time(TimezoneUtil.to_utc(shanghai_time), 'Asia/Shanghai') == shanghai_time
 
 
 def test_optional_utc_preserves_none_and_rejects_naive_datetime() -> None:
     assert TimezoneUtil.to_optional_utc(None) is None
     value = datetime.fromisoformat('2026-08-28T10:30:00+08:00')
-    assert TimezoneUtil.to_optional_utc(value) == datetime(2026, 8, 28, 2, 30, tzinfo=timezone.utc)
+    assert TimezoneUtil.to_optional_utc(value) == datetime(2026, 8, 28, 2, 30, tzinfo=UTC)
     with pytest.raises(ValueError, match='必须携带时区信息'):
         TimezoneUtil.to_optional_utc(datetime(2026, 8, 28, 10, 30))
 
@@ -36,7 +36,7 @@ def test_optional_utc_preserves_none_and_rejects_naive_datetime() -> None:
 def test_to_utc_milliseconds_truncates_sub_millisecond_precision() -> None:
     value = datetime.fromisoformat('2026-08-28T10:30:00.123999+08:00')
 
-    assert TimezoneUtil.to_utc_milliseconds(value) == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=timezone.utc)
+    assert TimezoneUtil.to_utc_milliseconds(value) == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=UTC)
 
 
 @pytest.mark.parametrize(

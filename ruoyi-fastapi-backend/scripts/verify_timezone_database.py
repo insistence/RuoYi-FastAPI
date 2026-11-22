@@ -4,7 +4,7 @@ import importlib
 import json
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -106,7 +106,7 @@ def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings: 
         with engine.connect() as connection:
             value = connection.execute(text('SELECT create_time FROM sys_dept WHERE dept_id=100')).scalar_one()
             if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
+                value = value.replace(tzinfo=UTC)
             assert before <= value <= TimezoneUtil.utc_now() + timedelta(seconds=1), 'Seed time is not UTC'
             report['seed_time_utc'] = value.isoformat()
             preferences = connection.execute(text('SELECT time_zone FROM sys_user')).scalars().all()
@@ -204,7 +204,7 @@ async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
             assert (await connection.execute(text(timezone_query))).scalar_one() in {'UTC', '+00:00'}
             actual = (await connection.execute(select(probe.c.instant).order_by(probe.c.id))).scalars().all()
             assert actual == [TimezoneUtil.to_utc_milliseconds(value) for value in values]
-            assert all(value.tzinfo == timezone.utc for value in actual)
+            assert all(value.tzinfo == UTC for value in actual)
             await connection.execute(probe.insert().values(id=ASYNC_PROBE_ID, instant=values[-1]))
         await async_engine.dispose()
         async with async_engine.connect() as connection:

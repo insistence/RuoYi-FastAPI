@@ -4,9 +4,9 @@ import time
 from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from functools import wraps
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, ParamSpec, TypeVar
 
 import httpx
 from async_lru import alru_cache
@@ -16,7 +16,6 @@ from fastapi.responses import JSONResponse, ORJSONResponse, UJSONResponse
 from pydantic_validation_decorator import FieldValidationError
 from starlette.exceptions import HTTPException
 from starlette.status import HTTP_200_OK
-from typing_extensions import ParamSpec
 from user_agents import parse
 
 from common.context import RequestContext
@@ -46,7 +45,7 @@ P = ParamSpec('P')
 R = TypeVar('R')
 
 
-class _LogFieldRoot(str, Enum):
+class _LogFieldRoot(StrEnum):
     """
     日志字段路径根节点
     """

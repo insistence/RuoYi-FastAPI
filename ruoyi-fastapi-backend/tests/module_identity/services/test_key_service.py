@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -76,7 +76,7 @@ def _record(tmp_path: Path, *, status: str = 'active', matching: bool = True) ->
         key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
     )
 
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     return SimpleNamespace(
         kid='k1',
         alg='RS256',
@@ -229,7 +229,7 @@ async def test_activate_due_continues_when_failure_audit_writer_fails(monkeypatc
 @pytest.mark.asyncio
 async def test_list_due_pending_filters_schedule_and_algorithm(data_session: AsyncSession) -> None:
     """到期查询只返回 RS256、pending 且两个时间点均已到达的密钥。"""
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     rows = [
         SysOidcSigningKey(
             kid='due',
@@ -362,7 +362,7 @@ async def test_management_key_bootstrap_is_available_when_oidc_disabled(data_ses
     row = await KeyService.create_pending_key(
         data_session,
         kid='bootstrap-1',
-        publish_at=datetime.now(timezone.utc) + timedelta(minutes=1),
+        publish_at=datetime.now(UTC) + timedelta(minutes=1),
         actor='admin',
     )
     assert row.status == 'pending'
@@ -377,20 +377,20 @@ async def test_pending_key_times_are_stored_and_returned_in_utc(data_session: As
     await KeyService.create_pending_key(
         data_session,
         kid='timezone-normalized',
-        publish_at=datetime(2026, 8, 27, 17, 37, 37, tzinfo=timezone.utc),
-        activate_at=datetime(2026, 8, 27, 17, 38, 31, tzinfo=timezone.utc),
+        publish_at=datetime(2026, 8, 27, 17, 37, 37, tzinfo=UTC),
+        activate_at=datetime(2026, 8, 27, 17, 38, 31, tzinfo=UTC),
         actor='admin',
-        now=datetime(2026, 8, 27, 17, 30, tzinfo=timezone.utc),
+        now=datetime(2026, 8, 27, 17, 30, tzinfo=UTC),
     )
     await data_session.commit()
     data_session.expunge_all()
 
     row = (await data_session.execute(select(SysOidcSigningKey))).scalar_one()
-    assert row.publish_at == datetime(2026, 8, 27, 17, 37, 37, tzinfo=timezone.utc)
-    assert row.signing_start_at == datetime(2026, 8, 27, 17, 38, 31, tzinfo=timezone.utc)
+    assert row.publish_at == datetime(2026, 8, 27, 17, 37, 37, tzinfo=UTC)
+    assert row.signing_start_at == datetime(2026, 8, 27, 17, 38, 31, tzinfo=UTC)
     view = OidcKeyManagementService.view(row)
-    assert view['publishAt'] == datetime(2026, 8, 27, 17, 37, 37, tzinfo=timezone.utc)
-    assert view['signingStartAt'] == datetime(2026, 8, 27, 17, 38, 31, tzinfo=timezone.utc)
+    assert view['publishAt'] == datetime(2026, 8, 27, 17, 37, 37, tzinfo=UTC)
+    assert view['signingStartAt'] == datetime(2026, 8, 27, 17, 38, 31, tzinfo=UTC)
 
 
 @pytest.mark.asyncio
@@ -399,7 +399,7 @@ async def test_management_bootstrap_is_idempotent_and_activates_first_key(data_s
     config = _config()
     config.oidc_enabled = False
     config.oidc_signing_key_encryption_key = 'e' * 32
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     first, first_created = await OidcKeyManagementService.bootstrap(
         data_session,
@@ -457,7 +457,7 @@ async def test_real_session_rotation_persists_state_and_injected_time(
     data_session: AsyncSession, tmp_path: Path
 ) -> None:
     """真实 AsyncSession 轮换后恰有一个 active 且窗口和时间准确。"""
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     old = _record(tmp_path)
     new = _record(tmp_path)
     new.kid = 'new'
@@ -492,7 +492,7 @@ async def test_manual_activation_can_override_future_signing_schedule(
     data_session: AsyncSession, tmp_path: Path
 ) -> None:
     """管理员明确确认后可提前启用已公开的 pending 密钥。"""
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     target = _record(tmp_path, status='pending')
     target.publish_at = now - timedelta(minutes=5)
     target.signing_start_at = now + timedelta(hours=1)
@@ -510,7 +510,7 @@ async def test_manual_activation_can_override_future_signing_schedule(
 @pytest.mark.asyncio
 async def test_real_session_rotation_rolls_back_on_key_mismatch(data_session: AsyncSession, tmp_path: Path) -> None:
     """候选私钥失败时真实事务回滚，旧 active 状态保持不变。"""
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     old = _record(tmp_path)
     new = _record(tmp_path, matching=False)
     new.kid = 'new'
@@ -534,7 +534,7 @@ async def test_real_session_rotation_rolls_back_on_key_mismatch(data_session: As
 @pytest.mark.asyncio
 async def test_jwks_filters_private_jwk_fields(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """JWKS 始终只输出公开字段，即使数据库 JSON 被污染。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     record = _record(tmp_path)
     record.publish_at = now - timedelta(seconds=1)
     record.public_jwk['d'] = 'secret'
@@ -562,7 +562,7 @@ async def test_jwks_filters_private_jwk_fields(monkeypatch: pytest.MonkeyPatch, 
 @pytest.mark.asyncio
 async def test_jwks_excludes_keys_outside_publish_window(monkeypatch: pytest.MonkeyPatch) -> None:
     """JWKS 不发布尚未到 publish_at 或已过 remove_from_jwks_at 的密钥。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     base = {
         'kty': 'RSA',
         'use': 'sig',
@@ -601,7 +601,7 @@ async def test_jwks_excludes_keys_outside_publish_window(monkeypatch: pytest.Mon
 @pytest.mark.asyncio
 async def test_jwks_rejects_malformed_rsa_jwk(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """非法 RSA n/e 不能污染 JWKS，服务选择 fail-closed。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     record = _record(tmp_path)
     record.publish_at = now - timedelta(seconds=1)
     record.public_jwk['n'] = 'not-a-rsa-modulus'
@@ -620,7 +620,7 @@ async def test_activation_validates_pending_private_key_before_state_change(
 ) -> None:
     """候选密钥公私钥不匹配时不得调用状态切换。"""
     target = _record(tmp_path, status='pending', matching=False)
-    target.publish_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    target.publish_at = datetime.now(UTC) - timedelta(seconds=1)
     old = SimpleNamespace(kid='old', status='active')
     changed = False
 
@@ -652,7 +652,7 @@ async def test_activation_retains_old_key_for_max_overlap_window(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """轮换将旧 active 置为 retiring，并覆盖 overlap 与 Token 安全窗口的较大值。"""
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     target = _record(tmp_path, status='pending')
     target.publish_at = now - timedelta(seconds=1)
     old = SimpleNamespace(kid='old', status='active', remove_from_jwks_at=None)

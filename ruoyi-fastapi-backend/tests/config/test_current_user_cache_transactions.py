@@ -648,10 +648,9 @@ async def test_listener_failure_does_not_change_committed_database_result(
 
 
 @pytest.mark.asyncio
-async def test_commit_invalidation_and_cleanup_support_python310(
+async def test_commit_invalidates_cache_and_closes_redis(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.delattr(asyncio, 'timeout', raising=False)
     redis = SimpleNamespace(aclose=AsyncMock())
     create = AsyncMock(return_value=redis)
     invalidate = AsyncMock(return_value=True)

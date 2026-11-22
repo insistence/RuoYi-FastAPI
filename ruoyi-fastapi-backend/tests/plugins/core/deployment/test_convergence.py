@@ -1,6 +1,6 @@
 import asyncio
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 import pytest
@@ -11,7 +11,7 @@ from plugins.core.deployment.state import aggregate_release
 PLUGIN_ID = 'demo'
 DIGEST = 'a' * 64
 GENERATION = 'b' * 32
-NOW = datetime(2026, 10, 8, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 8, tzinfo=UTC)
 WORKER = 'c' * 32
 OTHER = 'd' * 32
 EXTRA = 'e' * 32
@@ -285,18 +285,22 @@ async def test_active_result_returned_after_deadline_is_still_timeout(clock: Clo
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ('timeout', 'read_timeout', 'reason'), [(0, 10, 'unavailable'), (4, 4, 'timeout'), (20, 10, 'unavailable')]
+    ('total_seconds', 'read_timeout', 'reason'), [(0, 10, 'unavailable'), (4, 4, 'timeout'), (20, 10, 'unavailable')]
 )
 async def test_read_timeout_is_bounded_and_classified_by_budget_source(
-    monkeypatch: pytest.MonkeyPatch, clock: Clock, timeout: float, read_timeout: float, reason: str
+    monkeypatch: pytest.MonkeyPatch,
+    clock: Clock,
+    total_seconds: float,
+    read_timeout: float,
+    reason: str,
 ) -> None:
-    async def time_out(tasks: set, *, timeout: float) -> tuple[set, set]:
+    def time_out(tasks: set, *, timeout: float) -> tuple[set, set]:
         assert timeout == read_timeout
         clock.now += timeout
         return set(), tasks
 
-    monkeypatch.setattr(convergence, 'wait', time_out)
-    result = await wait(AsyncMock(return_value=payload()), timeout_seconds=timeout)
+    monkeypatch.setattr(convergence, 'wait', AsyncMock(side_effect=time_out))
+    result = await wait(AsyncMock(return_value=payload()), timeout_seconds=total_seconds)
     assert result['reason'] == reason and result['attempts'] == 1
 
 
@@ -326,7 +330,7 @@ async def test_timer_before_monotonic_deadline_cannot_become_unavailable_or_late
 
 @pytest.mark.asyncio
 async def test_reader_own_timeout_is_unavailable_even_when_total_budget_limits_read() -> None:
-    reader = AsyncMock(side_effect=asyncio.TimeoutError('private-query-timeout'))
+    reader = AsyncMock(side_effect=TimeoutError('private-query-timeout'))
     result = await wait(reader, timeout_seconds=0.01)
     assert result['reason'] == 'unavailable' and result['ok'] is False
     assert 'private-query-timeout' not in str(result)

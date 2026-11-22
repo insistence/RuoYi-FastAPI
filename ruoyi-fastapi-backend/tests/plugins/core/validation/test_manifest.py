@@ -198,7 +198,7 @@ def test_manifest_checker_accepts_satisfied_compatibility(tmp_path: Path) -> Non
             'compatibility': {
                 'backendVersion': '>=1.0.0',
                 'frontendVersion': '>=1.0.0',
-                'pythonVersion': '>=3.10',
+                'pythonVersion': '>=3.11',
                 'nodeVersion': '>=18.0.0',
             },
         }
@@ -207,7 +207,7 @@ def test_manifest_checker_accepts_satisfied_compatibility(tmp_path: Path) -> Non
     result = PluginManifestChecker(
         backend_root=backend_root,
         frontend_root=frontend_root,
-        python_version='3.10.19',
+        python_version='3.11.0',
         node_version='20.0.0',
     ).check(manifest)
 
@@ -283,7 +283,7 @@ def test_manifest_checker_reports_unsatisfied_compatibility(tmp_path: Path) -> N
             'name': '演示插件',
             'version': '1.0.0',
             'backend': {'module': 'plugins.demo'},
-            'compatibility': {'pythonVersion': '>=99.0.0'},
+            'compatibility': {'pythonVersion': '>=3.11'},
         }
     )
 
@@ -336,7 +336,7 @@ def test_manifest_checker_warns_unknown_compatibility_version(tmp_path: Path) ->
     result = PluginManifestChecker(
         backend_root=tmp_path / 'missing-backend',
         frontend_root=tmp_path / 'missing-frontend',
-        python_version='3.10.19',
+        python_version='3.11.0',
         node_version='20.0.0',
     ).check(manifest)
 

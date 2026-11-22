@@ -2,13 +2,12 @@ import hashlib
 import json
 from collections.abc import Awaitable, Callable, Sequence
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 from fastapi import Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, ORJSONResponse, Response, StreamingResponse, UJSONResponse
 from redis import asyncio as aioredis
-from typing_extensions import ParamSpec
 
 from common.constant import HttpStatusConstant
 from common.context import RequestContext

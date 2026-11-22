@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 RUNTIME_PLUGIN_ID = '__runtime__'
@@ -170,7 +170,7 @@ def aggregate_release(
         raise ValueError('now必须是带时区的UTC时刻')
     if ttl_seconds <= 0:
         raise ValueError('心跳TTL必须大于零')
-    now = now.astimezone(timezone.utc)
+    now = now.astimezone(UTC)
     cutoff = now - timedelta(seconds=ttl_seconds)
     plugin_id = _field(release, 'plugin_id', '')
     target_digest = _field(release, 'target_digest')
