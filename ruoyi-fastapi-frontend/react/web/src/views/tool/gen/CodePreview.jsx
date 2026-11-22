@@ -45,9 +45,12 @@ export default function CodePreview({ preview, onClose }) {
       width="80%"
       destroyOnHidden
     >
+      {/* 弹窗外层禁用指针事件，正文区会裁切溢出内容，菜单挂在两者之间的内容容器。 */}
       <Tabs
         activeKey={activeFile}
         onChange={setActiveFile}
+        more={{ trigger: 'click' }}
+        getPopupContainer={(trigger) => trigger.closest('.ant-modal-container')}
         items={files.map((path) => ({
           key: path,
           label: previewFileLabel(path),
