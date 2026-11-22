@@ -111,6 +111,26 @@ class GenTableTest(SystemPage):
         assert listed['rows'][0]['tableComment'] == self.table_comment
         await expect(self.table_row()).to_contain_text(self.table_comment)
 
+    async def select_preview_file(self, dialog: Locator, name: str) -> None:
+        """通过预览标签或弹窗内的溢出菜单切换到指定文件。"""
+        tab = dialog.get_by_role('tab', name=name, exact=True)
+        target = tab
+        menu = dialog.get_by_role('listbox')
+        more = dialog.locator('button[aria-haspopup="listbox"]')
+        if self.is_react and await more.is_visible():
+            await more.click()
+            await expect(menu).to_be_visible()
+            option = menu.get_by_role('option', name=name, exact=True)
+            if await option.count():
+                target = option
+            else:
+                await more.click()
+                await expect(menu).to_be_hidden()
+        await target.click()
+        await expect(tab).to_have_attribute('aria-selected', 'true')
+        if self.is_react:
+            await expect(menu).to_be_hidden()
+
     async def preview_and_download(self) -> None:
         """核对预览接口、可见 Python 代码和实际下载 ZIP 的内容。"""
         async with self.page.expect_response(
@@ -133,21 +153,7 @@ class GenTableTest(SystemPage):
         assert any('/zh-CN/' in name for name in locale_files), code.keys()
         assert any('/en-US/' in name for name in locale_files), code.keys()
         for name, source in locale_files.items():
-            tab = dialog.get_by_role('tab', name=name, exact=True)
-            more = dialog.locator('.ant-tabs-nav-more')
-            if self.is_react and await more.is_visible():
-                # 通过溢出菜单选择被裁切的标签，避免自动滚动与 Tabs 的焦点滚动相互干扰。
-                await more.hover()
-                menu = self.page.locator('.ant-tabs-dropdown:visible').get_by_role('listbox')
-                await expect(menu).to_be_visible()
-                option = menu.get_by_role('option', name=name, exact=True)
-                if await option.count():
-                    await option.click()
-                else:
-                    await tab.click()
-            else:
-                await tab.click()
-            await expect(tab).to_have_attribute('aria-selected', 'true')
+            await self.select_preview_file(dialog, name)
             preview = dialog.locator('pre:visible').first
             await expect(preview).to_have_text(source)
             rendered = await preview.inner_text()

@@ -143,8 +143,13 @@ class JobManagementTest(SystemPage):
     async def toggle_job_status(self, job_name: str, enabled: bool) -> None:
         switch = self.job_row(job_name).locator('.ant-switch' if self.is_react else '.el-switch')
         await switch.click()
-        confirm = self.page.get_by_role('dialog').get_by_role('button', name=button_name('确定'))
+        action = '启用' if enabled else '暂停|停用'
+        dialog = (
+            self.page.get_by_role('dialog').filter(has_text=re.compile(rf'(?:{action})任务')).filter(has_text=job_name)
+        )
+        confirm = dialog.get_by_role('button', name=button_name('确定'))
         mutation = await self.submit(confirm.click, 'PUT', '/monitor/job/changeStatus')
+        await expect(dialog).to_be_hidden()
         await self.wait_for_sync(mutation)
         await self.search_job(job_name)
         if enabled:
@@ -167,7 +172,8 @@ class JobManagementTest(SystemPage):
                 .get_by_text('执行一次', exact=True)
                 .click()
             )
-        confirm = self.page.get_by_role('dialog').get_by_role('button', name=button_name('确定'))
+        dialog = self.page.get_by_role('dialog').filter(has_text='立即执行一次任务').filter(has_text=job_name)
+        confirm = dialog.get_by_role('button', name=button_name('确定'))
         execution = await self.submit(confirm.click, 'PUT', '/monitor/job/run')
         execution_id = execution['executionId']
         result = await self.poll_api(

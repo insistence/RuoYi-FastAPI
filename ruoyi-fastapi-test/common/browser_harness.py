@@ -61,9 +61,13 @@ class BrowserHarness:
 
     async def api_context(self, token: str | None = None) -> APIRequestContext:
         """创建随用例回收的 API 客户端。"""
+        # UI 操作之间可能长于后端的 keep-alive 超时。直连 API 的测试请求各自关闭连接。
+        headers = {'Connection': 'close'}
+        if token:
+            headers['Authorization'] = f'Bearer {token}'
         context = await self.playwright.request.new_context(
             base_url=Config.backend_url,
-            extra_http_headers={'Authorization': f'Bearer {token}'} if token else {},
+            extra_http_headers=headers,
             timeout=_API_TIMEOUT_MS,
         )
         self.api_contexts.append(context)
