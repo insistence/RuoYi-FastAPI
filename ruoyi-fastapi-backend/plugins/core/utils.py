@@ -1,4 +1,15 @@
 import re
+import sys
+
+if sys.version_info >= (3, 13):
+    from ntpath import isreserved as is_windows_reserved
+else:
+    from pathlib import PureWindowsPath
+
+    def is_windows_reserved(name: str) -> bool:
+        """按 Windows 规则识别保留路径名。"""
+        return PureWindowsPath(name).is_reserved()
+
 
 PLUGIN_ID_PATTERN_TEXT = r'[a-z][a-z0-9_]{1,63}'
 PLUGIN_ID_PATTERN = re.compile(rf'^{PLUGIN_ID_PATTERN_TEXT}$')

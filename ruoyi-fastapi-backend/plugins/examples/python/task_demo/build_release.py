@@ -2,9 +2,20 @@ import argparse
 import json
 import shutil
 import stat
+import sys
 import unicodedata
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Any
+
+if sys.version_info >= (3, 13):
+    from ntpath import isreserved as is_windows_reserved
+else:
+    from pathlib import PureWindowsPath
+
+    def is_windows_reserved(name: str) -> bool:
+        """按 Windows 规则识别保留路径名。"""
+        return PureWindowsPath(name).is_reserved()
+
 
 PLUGIN_ID = 'task_demo'
 BUNDLE = True
@@ -91,7 +102,7 @@ def checked_relative_path(value: str) -> tuple[str, ...]:
             or part.startswith('.')
             or part.endswith((' ', '.'))
             or len(part) > MAX_COMPONENT_LENGTH
-            or PureWindowsPath(part).is_reserved()
+            or is_windows_reserved(part)
             or any(
                 char in '<>:"\\|?*[]' or ord(char) < FIRST_PRINTABLE_CHARACTER or ord(char) == DELETE_CHARACTER
                 for char in part

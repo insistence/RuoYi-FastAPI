@@ -123,7 +123,6 @@ class AiUtil:
             metrics_table='ai_metrics',
             eval_table='ai_eval_runs',
             knowledge_table='ai_knowledge',
-            culture_table='ai_culture',
             traces_table='ai_traces',
             spans_table='ai_spans',
             versions_table='ai_schema_versions',

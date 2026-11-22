@@ -131,6 +131,36 @@ ruoyi plugin install-deps ai --env=dev
 
 脚本按插件生命周期执行，支持重复检查和按数据库类型过滤。
 
+### 从 Agno 2 升级已有数据库
+
+Agno 3 将对话运行记录从 `ai_sessions.runs` 拆分到 `ai_sessions_runs`。已有部署可在停止旧版后端、备份数据库并安装新版插件依赖后，在后端目录使用目标环境的 `APP_ENV` 运行以下 Python 代码。它调用 Agno 的版本化迁移，只处理当前插件已经创建的表，并保留旧会话列。新安装可直接使用新版表结构。
+
+```python
+import asyncio
+
+from agno.db.migrations.manager import MigrationManager
+from plugins.ai.utils.ai_util import AiUtil
+
+
+async def migrate():
+    storage = AiUtil.get_storage_engine()
+    manager = MigrationManager(storage)
+    try:
+        for kind, table in (
+            ('sessions', storage.session_table_name),
+            ('metrics', storage.metrics_table_name),
+            ('evals', storage.eval_table_name),
+            ('knowledge', storage.knowledge_table_name),
+        ):
+            if await storage.table_exists(table):
+                await manager.up(target_version='3.0.0', table_type=kind)
+    finally:
+        await storage.close()
+
+
+asyncio.run(migrate())
+```
+
 ## 开发注意
 
 - 后端模块路径必须保持为 `plugins.ai`，与插件 ID 对齐。

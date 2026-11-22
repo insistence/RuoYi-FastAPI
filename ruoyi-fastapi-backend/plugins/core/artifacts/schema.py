@@ -3,7 +3,7 @@ import json
 import re
 import unicodedata
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
 from cryptography.hazmat.primitives import serialization
@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey,
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from plugins.core.manifest.schema import PluginManifest
-from plugins.core.utils import validate_plugin_id_value
+from plugins.core.utils import is_windows_reserved, validate_plugin_id_value
 
 DIGEST_PATTERN = re.compile(r'^[a-f0-9]{64}$')
 KEY_ID_PATTERN = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')
@@ -65,7 +65,7 @@ def safe_artifact_path(value: str) -> PurePosixPath:
             part in {'', '.', '..'}
             or len(part) > MAX_COMPONENT_LENGTH
             or part.endswith((' ', '.'))
-            or PureWindowsPath(part).is_reserved()
+            or is_windows_reserved(part)
             or any(
                 char in '<>:"\\|?*' or ord(char) < FIRST_PRINTABLE_CHARACTER or ord(char) == DELETE_CHARACTER
                 for char in part

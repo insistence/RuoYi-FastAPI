@@ -69,10 +69,10 @@ class DbUtcDateTime(TypeDecorator[datetime]):
         :return: 数据库实际使用的时间类型
         """
         if dialect.name == 'postgresql':
-            return dialect.type_descriptor(TIMESTAMP(timezone=True, precision=3))
+            return TIMESTAMP(timezone=True, precision=3)
         if dialect.name == 'mysql':
-            return dialect.type_descriptor(DATETIME(fsp=3))
-        return dialect.type_descriptor(DateTime())
+            return DATETIME(fsp=3)
+        return DateTime()
 
     def process_bind_param(self, value: datetime | None, dialect: Dialect) -> datetime | None:
         """

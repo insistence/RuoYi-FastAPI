@@ -2,7 +2,10 @@ import json
 from pathlib import Path
 
 import pytest
+from sqlalchemy.ext.asyncio import create_async_engine
 
+from config.database import DataSourceRegistry
+from config.env import DataBaseConfig
 from plugins.ai.dao.ai_chat_dao import AiChatConfigDao
 from plugins.ai.dao.ai_model_dao import AiModelDao
 from plugins.ai.entity.vo.ai_chat_vo import AiChatConfigModel, AiChatRequestModel
@@ -25,17 +28,17 @@ EXPECTED_AI_PERMISSIONS = {
     'ai:chat:list',
 }
 EXPECTED_AI_PYTHON_DEPENDENCIES = [
-    'agno==2.8.6',
-    'anthropic==0.120.2',
+    'agno==3.2.1',
+    'anthropic==2.12.0',
     'cerebras-cloud-sdk==1.91.0',
-    'cohere==7.0.8',
-    'google-genai==2.16.0',
-    'groq==1.6.0',
-    'litellm==1.94.0',
+    'cohere==7.3.2',
+    'google-genai==3.6.1',
+    'groq==1.7.0',
+    'litellm==1.110.2',
     'llama-api-client==0.6.0',
-    'mistralai==2.10.1',
-    'ollama==0.6.2',
-    'openai==2.52.0',
+    'mistralai==3.8.0',
+    'ollama==0.6.3',
+    'openai==3.57.0',
     'portkey-ai==2.3.4',
 ]
 EXPECTED_AI_VUE2_NPM_DEPENDENCIES = [
@@ -249,6 +252,24 @@ def test_ai_model_factory_rejects_unknown_provider(monkeypatch: pytest.MonkeyPat
             model_name='Demo',
             api_key='secret',
         )
+
+
+@pytest.mark.parametrize(('db_type', 'schema'), [('mysql', 'ai_test'), ('postgresql', 'public')])
+@pytest.mark.asyncio
+async def test_ai_storage_uses_plugin_tables(db_type: str, schema: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    """两个 Agno 存储适配器均能使用宿主引擎和既有的会话表。"""
+    engine = create_async_engine('sqlite+aiosqlite://')
+    monkeypatch.setattr(DataBaseConfig.default_source, 'db_type', db_type)
+    monkeypatch.setattr(DataBaseConfig.default_source, 'db_database', 'ai_test')
+    monkeypatch.setattr(DataSourceRegistry, 'get_async_engine', lambda name: engine)
+    try:
+        storage = AiUtil.get_storage_engine()
+        assert storage.db_engine is engine
+        assert storage.db_schema == schema
+        assert storage.session_table_name == 'ai_sessions'
+        assert storage.runs_table_name == 'ai_sessions_runs'
+    finally:
+        await engine.dispose()
 
 
 def test_ai_model_factory_validates_base_url_boundary() -> None:

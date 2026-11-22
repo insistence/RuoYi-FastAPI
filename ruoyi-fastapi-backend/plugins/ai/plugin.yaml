@@ -92,17 +92,17 @@ permissions:
 
 dependencies:
   python:
-    - agno==2.8.6
-    - anthropic==0.120.2
+    - agno==3.2.1
+    - anthropic==2.12.0
     - cerebras-cloud-sdk==1.91.0
-    - cohere==7.0.8
-    - google-genai==2.16.0
-    - groq==1.6.0
-    - litellm==1.94.0
+    - cohere==7.3.2
+    - google-genai==3.6.1
+    - groq==1.7.0
+    - litellm==1.110.2
     - llama-api-client==0.6.0
-    - mistralai==2.10.1
-    - ollama==0.6.2
-    - openai==2.52.0
+    - mistralai==3.8.0
+    - ollama==0.6.3
+    - openai==3.57.0
     - portkey-ai==2.3.4
   frontend:
     vue2:

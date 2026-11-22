@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -13,6 +13,7 @@ ruoyi = "cli.main:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+asyncio_default_fixture_loop_scope = "fixture-scope"
 markers = [
     "browser: requires a real browser and the frontend network test host",
     "native: requires a prebuilt native plugin artifact",

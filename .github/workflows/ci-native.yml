@@ -43,7 +43,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python: ['3.11', '3.12', '3.13', '3.14']
+        python: ['3.11', '3.12', '3.13', '3.14', '3.15']
     defaults:
       run:
         working-directory: ruoyi-fastapi-backend
@@ -54,7 +54,7 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: pip
           cache-dependency-path: ruoyi-fastapi-backend/requirements*.txt
-      - run: python -m pip install -r requirements.txt -r requirements-test.txt 'maturin>=1.15,<2'
+      - run: python -m pip install -r requirements.txt -r requirements-test.txt 'maturin>=1.16.0,<2'
       - run: python scripts/compile_i18n.py
       - run: rustup toolchain install 1.99.0 --profile minimal
       - run: rustup default 1.99.0

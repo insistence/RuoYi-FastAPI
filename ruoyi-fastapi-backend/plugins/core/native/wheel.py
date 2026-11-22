@@ -7,7 +7,7 @@ import platform
 import shutil
 import stat
 from email.parser import Parser
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath
 from zipfile import ZipFile, ZipInfo
 
 from packaging.requirements import Requirement
@@ -17,6 +17,7 @@ from packaging.utils import canonicalize_name, parse_wheel_filename
 from packaging.version import Version
 
 from plugins.core.manifest.schema import PluginManifest
+from plugins.core.utils import is_windows_reserved
 
 MAX_WHEEL_FILES = 10000
 MAX_WHEEL_BYTES = 512 * 1024 * 1024
@@ -89,10 +90,7 @@ def _safe_member(name: str) -> PurePosixPath:
         or path.is_absolute()
         or '\\' in name
         or ':' in name
-        or any(
-            part in {'', '.', '..'} or part.endswith((' ', '.')) or PureWindowsPath(part).is_reserved()
-            for part in parts
-        )
+        or any(part in {'', '.', '..'} or part.endswith((' ', '.')) or is_windows_reserved(part) for part in parts)
     ):
         raise ValueError(f'wheel 中包含不安全路径：{name}')
     return path

@@ -2,7 +2,7 @@
 
 `task_demo` 是 manifest v2 的 Python ASGI + 独立 bundle 业务示例，当前版本 `1.1.0`。页面提供新增、编辑、删除、状态筛选和分页；数据保存在宿主默认数据源的 `ruoyi_plugin_task_demo` 表中。它演示插件级共享任务清单：有查看权限的用户看到同一组任务，未实现个人、部门或租户数据隔离。
 
-源码位于 `plugins/examples/python/task_demo`，示例目录不参与运行时插件扫描。下面的命令均在后端根目录、已激活并安装宿主依赖的 Python 3.11–3.14 环境执行，适用于 Windows PowerShell、macOS 和 Linux；前端构建使用 Node.js 22。
+源码位于 `plugins/examples/python/task_demo`，示例目录不参与运行时插件扫描。下面的命令均在后端根目录、已激活并安装宿主依赖的 Python 3.11–3.15 环境执行，适用于 Windows PowerShell、macOS 和 Linux；前端构建使用 Node.js 22。
 
 ## 构建与测试
 

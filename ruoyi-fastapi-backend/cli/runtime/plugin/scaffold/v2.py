@@ -248,7 +248,7 @@ class PluginV2ScaffoldBuilder:
             else ''
         )
         native_steps = (
-            '需预先安装 Rust 工具链和匹配目标平台的编译工具，以及 `maturin>=1.15,<2`。'
+            '需预先安装 Rust 工具链和匹配目标平台的编译工具，以及 `maturin>=1.16.0,<2`。'
             '模板包含 Cargo.lock，构建使用 `--locked`。二进制必须匹配部署系统、架构、Python ABI。\n\n'
             if native
             else 'Python 交付目录包含业务 Python 源码；签名验证不提供源码保护。\n\n'
@@ -318,7 +318,7 @@ class PluginV2ScaffoldBuilder:
 这是 manifest v2 的 {'Rust native' if native else 'Python'} ASGI 源码工程{'，包含独立前端 bundle' if bundle else ''}。
 源码位于 `{root}`，创建工程不会安装、启用或导入插件。下面的命令均在宿主后端根目录执行。
 
-先创建并激活 Python 3.11–3.14 环境；已有宿主环境可直接激活并使用，无需重复创建。
+先创建并激活 Python 3.11–3.15 环境；已有宿主环境可直接激活并使用，无需重复创建。
 
 Windows PowerShell：
 
