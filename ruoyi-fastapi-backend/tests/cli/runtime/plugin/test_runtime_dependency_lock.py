@@ -10,7 +10,11 @@ EXPECTED_LOCK_ENTRY_COUNT = 2
 
 
 def write_demo_dependency_manifest(backend_root: Path) -> None:
-    """为 demo 插件补充外部依赖声明。"""
+    """
+    为 demo 插件补充外部依赖声明。
+
+    :param backend_root: 后端项目的根目录
+    """
     manifest_path = backend_root / 'plugins' / 'demo' / 'plugin.yaml'
     manifest = yaml.safe_load(manifest_path.read_text(encoding='utf-8'))
     manifest['dependencies'] = {

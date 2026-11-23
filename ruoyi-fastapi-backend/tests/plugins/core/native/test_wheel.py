@@ -23,7 +23,11 @@ METADATA = f'{MODULE}-1.0.0.dist-info'
 
 @pytest.fixture
 def manifest() -> PluginManifest:
-    """创建原生 wheel 测试使用的插件清单。"""
+    """
+    创建原生 wheel 测试使用的插件清单。
+
+    :return: 原生 wheel 测试使用的插件清单
+    """
     return PluginManifestFactory.create(
         {
             'manifestVersion': 2,
@@ -41,7 +45,14 @@ def manifest() -> PluginManifest:
 
 
 def make_wheel(root: Path, *, extra: dict[str, bytes] | None = None, tag: str | None = None) -> Path:
-    """构造包含可控元数据、文件内容和 RECORD 的原生测试 wheel。"""
+    """
+    构造包含可控元数据、文件内容和 RECORD 的原生测试 wheel。
+
+    :param root: 路径解析的基准目录
+    :param extra: 添加到默认数据上的额外字段
+    :param tag: 用于区分测试数据的标签
+    :return: 包含可控元数据、文件内容和 RECORD 的原生测试 wheel
+    """
     selected_tag = tag or str(next(sys_tags()))
     path = root / f'{MODULE}-1.0.0-{selected_tag}.whl'
     files = {
@@ -172,6 +183,13 @@ def test_extract_failure_cleans_only_new_directory(
     sentinel.touch()
 
     def fail_copy(*args: object, **kwargs: object) -> None:
+        """
+        模拟此操作抛出 OSError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises OSError: 模拟磁盘已满而无法复制文件
+        """
         raise OSError('disk full')
 
     monkeypatch.setattr(wheel_tools.shutil, 'copyfileobj', fail_copy)

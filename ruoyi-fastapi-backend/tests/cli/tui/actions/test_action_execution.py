@@ -22,7 +22,14 @@ adapters_module = importlib.import_module('cli.tui.adapters')
 
 
 def build_record(key: str, title: str, *, status: str = 'ok') -> object:
-    """构建动作解析测试使用的浏览记录。"""
+    """
+    构建动作解析测试使用的浏览记录。
+
+    :param key: 查找数据时使用的键
+    :param title: 当前界面或记录显示的标题
+    :param status: 操作或记录所处的状态
+    :return: 动作解析测试使用的浏览记录
+    """
     return adapters_module.BrowserRecordSnapshot(
         key=key,
         title=title,
@@ -34,6 +41,7 @@ def build_record(key: str, title: str, *, status: str = 'ok') -> object:
 
 
 def test_capabilities_registry_only_exposes_in_process_actions() -> None:
+    """能力注册表只公开进程内操作。"""
     cache_capabilities = capabilities_module.TUI_CAPABILITY_REGISTRY.get_browser_capabilities('cache')
     gen_capabilities = capabilities_module.TUI_CAPABILITY_REGISTRY.get_browser_capabilities('gen')
     app_capabilities = capabilities_module.TUI_CAPABILITY_REGISTRY.get_detail_capabilities('app')
@@ -58,6 +66,7 @@ def test_capabilities_registry_only_exposes_in_process_actions() -> None:
 
 
 def test_action_registry_builds_runtime_parameters_without_cli_arguments() -> None:
+    """操作注册表无需命令行参数即可构造运行参数。"""
     job_record = build_record('job:101', '同步任务', status='warn')
     cache_record = build_record('cache:sys_config', 'sys_config')
     gen_record = build_record('gen:201', 'sys_user')
@@ -89,6 +98,7 @@ def test_action_registry_builds_runtime_parameters_without_cli_arguments() -> No
 
 
 def test_action_registry_prunes_external_wizard_slots() -> None:
+    """操作注册表移除外部向导入口。"""
     gen_record = build_record('gen:201', 'sys_user')
 
     assert (
@@ -107,6 +117,7 @@ def test_action_registry_prunes_external_wizard_slots() -> None:
 
 
 def test_action_templates_build_typed_parameters() -> None:
+    """操作模板生成带类型的参数。"""
     job_record = build_record('job:88', '通知任务')
     gen_record = build_record('gen:301', 'sys_notice')
 
@@ -127,6 +138,7 @@ def test_action_templates_build_typed_parameters() -> None:
 
 @pytest.mark.asyncio
 async def test_action_execution_service_calls_runtime_directly() -> None:
+    """操作执行服务直接调用运行时。"""
     service = action_execution_module.TuiActionExecutionService()
     service.config_runtime.sync_config_cache = AsyncMock(
         return_value={'ok': True, 'message': '参数缓存刷新成功', 'count': 3}
@@ -153,6 +165,7 @@ async def test_action_execution_service_calls_runtime_directly() -> None:
 
 @pytest.mark.asyncio
 async def test_action_execution_service_dispatches_selected_job_id() -> None:
+    """操作执行服务分发选定的任务标识。"""
     service = action_execution_module.TuiActionExecutionService()
     service.job_runtime.run_job_once = AsyncMock(return_value={'ok': True, 'message': '任务执行完成', 'jobId': 42})
     spec = actions_module.TuiActionSpec(
@@ -171,6 +184,7 @@ async def test_action_execution_service_dispatches_selected_job_id() -> None:
 
 @pytest.mark.asyncio
 async def test_action_execution_service_rejects_unknown_action_without_fallback() -> None:
+    """操作执行服务直接拒绝未知操作。"""
     service = action_execution_module.TuiActionExecutionService()
     service.operations_runtime.sync_jobs = AsyncMock(return_value={'ok': True})
     spec = actions_module.TuiActionSpec(
@@ -193,10 +207,16 @@ async def test_action_execution_service_rejects_unknown_action_without_fallback(
 async def test_action_execution_service_times_out_and_cancels(
     monkeypatch: MonkeyPatch,
 ) -> None:
+    """操作超时后取消执行。"""
     service = action_execution_module.TuiActionExecutionService()
     cancelled = asyncio.Event()
 
     async def slow_sync() -> dict[str, object]:
+        """
+        模拟执行时间较长的同步操作。
+
+        :return: 包含 ``ok`` 的数据
+        """
         try:
             await asyncio.sleep(10)
         finally:
@@ -222,6 +242,7 @@ async def test_action_execution_service_times_out_and_cancels(
 
 
 def test_action_result_lines_surface_common_payload_fields() -> None:
+    """操作结果行显示通用响应字段。"""
     spec = actions_module.TuiActionSpec(
         action_id='job-run-once',
         label='执行一次任务',
@@ -250,6 +271,7 @@ def test_action_result_lines_surface_common_payload_fields() -> None:
 
 
 def test_action_hints_match_reduced_action_surface() -> None:
+    """操作提示仅列出当前支持的操作。"""
     browser_hint = actions_module.TUI_ACTION_PRESENTATION_SERVICE.build_browser_action_hint('gen')
     detail_hint = actions_module.TUI_ACTION_PRESENTATION_SERVICE.build_detail_action_hint('app')
 

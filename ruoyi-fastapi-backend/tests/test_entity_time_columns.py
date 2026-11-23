@@ -135,6 +135,14 @@ REQUIRED_UPDATE_TIME_MODELS = {
 
 
 def _column_default(model: type, field_name: str, attribute: str) -> object | None:
+    """
+    读取指定 ORM 列的默认值。
+
+    :param model: 当前处理的数据模型
+    :param field_name: 需要读取或校验的字段名
+    :param attribute: 要读取或替换的属性名
+    :return: 指定 ORM 列的默认值
+    """
     column = model.__table__.c[field_name]
     value = getattr(column, attribute)
     return None if value is None else value.arg

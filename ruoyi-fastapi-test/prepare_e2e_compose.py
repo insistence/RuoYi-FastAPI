@@ -10,7 +10,15 @@ from pathlib import Path
 
 
 def isolate_compose(config: dict, project: str, python_version: str) -> dict:
-    """从已解析的测试配置生成独立项目，保留应用和数据库的真实配置。"""
+    """
+    从已解析的测试配置生成独立项目，保留应用和数据库的真实配置。
+
+    :param config: 当前对象使用的配置
+    :param project: 选中的项目或工作目录
+    :param python_version: 当前 Python 版本
+    :raises ValueError: 测试项目名必须以 ruoyi-ci- 开头且仅包含小写字母、数字、下划线或连字符
+    :return: 当前对象使用的配置
+    """
     if not re.fullmatch(r'ruoyi-ci-[a-z0-9][a-z0-9_-]*', project):
         raise ValueError('测试项目名必须以 ruoyi-ci- 开头且仅包含小写字母、数字、下划线或连字符')
     config = copy.deepcopy(config)
@@ -76,6 +84,7 @@ def isolate_compose(config: dict, project: str, python_version: str) -> dict:
 
 
 def main() -> None:
+    """生成 CI 专用的独立 Compose 配置。"""
     parser = argparse.ArgumentParser(description='生成 CI 专用的独立 Compose 项目，不修改开发配置。')
     parser.add_argument('--database', choices=['mysql', 'postgresql'], required=True)
     parser.add_argument('--framework', choices=['vue2', 'vue3', 'react'], required=True)

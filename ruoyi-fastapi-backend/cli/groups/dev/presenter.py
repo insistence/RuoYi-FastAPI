@@ -2,7 +2,7 @@ class DevCommandPresenter:
     """
     开发命令文本渲染器。
 
-    该渲染器负责将 `dev` 命令组产生的结构化 payload 转换为稳定的文本摘要，
+    该渲染器负责将 ``dev`` 命令组产生的结构化 payload 转换为稳定的文本摘要，
     同时保持 JSON 输出仍由控制器直接返回，不在此处做契约变形。
     """
 
@@ -28,6 +28,8 @@ class DevCommandPresenter:
             lines.append('targets: none')
         lines.extend(self._build_command_result_section('format', payload.get('format')))
         lines.extend(self._build_command_result_section('check', payload.get('check')))
+        if 'docstrings' in payload:
+            lines.extend(self._build_command_result_section('docstrings', payload['docstrings']))
         return '\n'.join(lines)
 
     def build_dev_test_text(self, payload: dict[str, object]) -> str:

@@ -40,7 +40,6 @@ def list_command(
     :param paged: 是否启用分页
     :param page_num: 页码
     :param page_size: 每页数量
-    :return: None
     """
     _JOB_COMMAND_CONTROLLER.list(
         env,
@@ -74,7 +73,6 @@ def run_once(
     :param output: 输出格式
     :param allow_prod: 是否允许生产环境危险命令
     :param yes: 是否跳过确认
-    :return: None
     """
     _JOB_COMMAND_CONTROLLER.run_once(job_id, env, output, allow_prod, yes)
 
@@ -95,7 +93,6 @@ def detail(
     :param job_id: 任务ID
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _JOB_COMMAND_CONTROLLER.detail(job_id, env, output)
 
@@ -131,7 +128,6 @@ def logs(
     :param paged: 是否启用分页
     :param page_num: 页码
     :param page_size: 每页数量
-    :return: None
     """
     _JOB_COMMAND_CONTROLLER.logs(
         env,
@@ -167,7 +163,6 @@ def pause(
     :param output: 输出格式
     :param allow_prod: 是否允许生产环境危险命令
     :param yes: 是否跳过确认
-    :return: None
     """
     _JOB_COMMAND_CONTROLLER.pause(job_id, env, output, allow_prod, yes)
 
@@ -192,7 +187,6 @@ def resume(
     :param output: 输出格式
     :param allow_prod: 是否允许生产环境危险命令
     :param yes: 是否跳过确认
-    :return: None
     """
     _JOB_COMMAND_CONTROLLER.resume(job_id, env, output, allow_prod, yes)
 
@@ -211,6 +205,5 @@ def sync(
     :param output: 输出格式
     :param allow_prod: 是否允许生产环境危险命令
     :param yes: 是否跳过确认
-    :return: None
     """
     _JOB_COMMAND_CONTROLLER.sync(env, output, allow_prod, yes)

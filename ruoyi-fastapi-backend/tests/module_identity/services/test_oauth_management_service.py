@@ -39,7 +39,11 @@ _EXPECTED_PAGE_TOTAL = 3
 
 @pytest_asyncio.fixture
 async def management_session() -> AsyncSession:
-    """创建只包含 OAuth 管理表的真实 SQLite 异步会话。"""
+    """
+    创建只包含 OAuth 管理表的真实 SQLite 异步会话。
+
+    :yield: 只包含 OAuth 管理表的真实 SQLite 异步会话
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [
         SysOAuthClient.__table__,
@@ -63,7 +67,11 @@ async def management_session() -> AsyncSession:
 
 
 async def _seed_definitions(session: AsyncSession) -> None:
-    """写入用于绑定校验的启用 Resource 和 Scope。"""
+    """
+    写入用于绑定校验的启用 Resource 和 Scope。
+
+    :param session: 当前操作共用的会话
+    """
     resource = SysOAuthResource(
         resource_id='resource-a',
         resource_name='Resource A',
@@ -104,7 +112,12 @@ async def _seed_definitions(session: AsyncSession) -> None:
 
 
 def _confidential_payload(**changes: object) -> ClientCreateModel:
-    """构造一个需要授权码、PKCE 和回调地址的机密 Client。"""
+    """
+    构造一个需要授权码、PKCE 和回调地址的机密 Client。
+
+    :param changes: 调用方按名称传入的附加选项
+    :return: 一个需要授权码、PKCE 和回调地址的机密 Client
+    """
     values: dict[str, object] = {
         'client_name': '管理测试 Client',
         'client_type': 'confidential',
@@ -128,21 +141,40 @@ async def test_after_commit_failure_does_not_rollback_committed_management_chang
     """提交后的运行时回调失败不得回滚已提交的管理事务。"""
 
     class _Db:
+        """
+        模拟当前测试所需的数据库操作。
+
+        :cvar commits: 测试中记录的提交次数
+        :cvar rollbacks: 测试中记录的回滚次数
+        """
+
         commits = 0
         rollbacks = 0
 
         async def commit(self) -> None:
+            """累加 ``commits`` 供后续断言检查。"""
             self.commits += 1
 
         async def rollback(self) -> None:
+            """累加 ``rollbacks`` 供后续断言检查。"""
             self.rollbacks += 1
 
     db = _Db()
 
     async def operation() -> str:
+        """
+        返回固定值 ``done``。
+
+        :return: 此分支的固定值 ``'done'``
+        """
         return 'done'
 
     async def after_commit() -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :raises RuntimeError: 模拟提交后刷新运行时失败
+        """
         raise RuntimeError('runtime refresh failed')
 
     with pytest.raises(RuntimeError, match='runtime refresh failed'):

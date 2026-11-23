@@ -9,12 +9,18 @@ BACKEND_DIR = Path(__file__).resolve().parents[3]
 
 
 def _ensure_backend_on_path() -> None:
+    """将后端根目录加入测试进程的导入路径。"""
     if str(BACKEND_DIR) not in sys.path:
         sys.path.insert(0, str(BACKEND_DIR))
 
 
 @pytest.fixture
 def tui_base_modules() -> SimpleNamespace:
+    """
+    重新加载终端界面的基础模块。
+
+    :return: ``SimpleNamespace`` 实例
+    """
     _ensure_backend_on_path()
     sys.modules.pop('cli.main', None)
     sys.modules.pop('cli.tui.commands', None)
@@ -34,6 +40,12 @@ def tui_base_modules() -> SimpleNamespace:
 
 @pytest.fixture
 def tui_modules(tui_base_modules: SimpleNamespace) -> SimpleNamespace:
+    """
+    加载并隔离依赖 Textual 的界面模块。
+
+    :param tui_base_modules: 重新加载终端界面的基础模块
+    :return: 并隔离依赖 Textual 的界面模块
+    """
     pytest.importorskip('textual')
     _ensure_backend_on_path()
     for module_name in (

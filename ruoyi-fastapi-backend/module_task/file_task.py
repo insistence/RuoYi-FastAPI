@@ -8,11 +8,10 @@ MAX_TASK_BATCHES = 100
 
 async def scan_retention_reminders(remind_days: int = 7, batch_size: int = 500) -> None:
     """
-    扫描文件保留期限并生成提醒
+    扫描文件保留期限并生成提醒。
 
     :param remind_days: 提前提醒天数
     :param batch_size: 单类提醒单批处理数量
-    :return: None
     """
     expiring_count = 0
     expired_count = 0
@@ -34,11 +33,10 @@ async def scan_retention_reminders(remind_days: int = 7, batch_size: int = 500) 
 
 async def purge_recycle_bin(retention_days: int = 30, batch_size: int = 100) -> None:
     """
-    永久清理超过保留期限的回收站文件
+    永久清理超过保留期限的回收站文件。
 
     :param retention_days: 回收站保留天数
     :param batch_size: 单批处理数量
-    :return: None
     """
     purge_count = 0
     async with DataSourceRegistry.session() as query_db:
@@ -58,9 +56,8 @@ async def purge_recycle_bin(retention_days: int = 30, batch_size: int = 100) -> 
 
 async def reconcile_file_storage(check_hash: bool = False) -> None:
     """
-    执行数据库和本地文件系统双向对账
+    执行数据库和本地文件系统双向对账。
 
     :param check_hash: 是否校验文件SHA-256
-    :return: None
     """
     await FileReconcileService.run_scheduled_reconcile_services(check_hash)

@@ -46,7 +46,16 @@ _MAX_STATE_LENGTH = 1024
 @dataclass(frozen=True, slots=True)
 class ClientSnapshot:
     """
-    授权流程使用的 Client 只读标量快照
+    授权流程使用的 Client 只读标量快照。
+
+    :ivar client_pk: OAuth Client 主键
+    :ivar client_id: OAuth Client 标识
+    :ivar policy_version: 客户端策略版本
+    :ivar grant_types: 允许使用的授权类型
+    :ivar response_types: 允许使用的授权响应类型
+    :ivar require_pkce: 是否强制使用PKCE
+    :ivar require_consent: 是否要求用户确认授权
+    :ivar trusted_client: 是否为受信任客户端
     """
 
     client_pk: int
@@ -60,12 +69,10 @@ class ClientSnapshot:
 
     def __post_init__(self) -> None:
         """
-        拒绝可变容器，确保冻结快照不会被原地修改
+        拒绝可变容器，确保冻结快照不会被原地修改。
 
-        :return: None
         :raises TypeError: Grant 或 Response 类型不是不可变元组时抛出
         """
-
         if not isinstance(self.grant_types, tuple) or not isinstance(self.response_types, tuple):
             raise TypeError('客户端快照的 grant_types 和 response_types 必须为元组')
 
@@ -73,7 +80,13 @@ class ClientSnapshot:
 @dataclass(frozen=True, slots=True)
 class ScopeSnapshot:
     """
-    授权流程使用的 Scope 只读标量快照
+    授权流程使用的 Scope 只读标量快照。
+
+    :ivar scope_pk: Scope 内部主键
+    :ivar scope_code: Scope 编码
+    :ivar scope_type: 权限类型（identity身份权限 resource资源权限）
+    :ivar resource_pk: Resource 内部主键
+    :ivar consent_required: 是否要求用户确认该权限
     """
 
     scope_pk: int
@@ -86,7 +99,10 @@ class ScopeSnapshot:
 @dataclass(frozen=True, slots=True)
 class ResourceSnapshot:
     """
-    授权流程使用的 Resource 只读标量快照
+    授权流程使用的 Resource 只读标量快照。
+
+    :ivar resource_pk: Resource 内部主键
+    :ivar audience: 令牌适用的目标资源标识
     """
 
     resource_pk: int
@@ -96,9 +112,23 @@ class ResourceSnapshot:
 @dataclass(frozen=True, slots=True)
 class AuthorizationContext:
     """
-    已完成协议校验的不可变授权上下文
+    已完成协议校验的不可变授权上下文。
 
     上下文只保存后续交互和签码所需的白名单字段，不携带未定义查询参数
+
+    :ivar client: 授权流程使用的 Client 只读标量快照
+    :ivar redirect_uri: 已注册的授权回调地址
+    :ivar scopes: 已授予或请求的权限范围
+    :ivar scope_models: 本次授权涉及的权限范围模型
+    :ivar pre_authorized_scopes: 已经预先授权的权限范围
+    :ivar resource: 当前授权或管理的资源
+    :ivar state: 当前流程的状态
+    :ivar nonce: 将认证响应与请求绑定的随机值
+    :ivar code_challenge: Authorization Endpoint 保存的 challenge
+    :ivar code_challenge_method: PKCE挑战方法
+    :ivar prompt: 客户端要求的登录或授权交互方式
+    :ivar max_age: 最大认证时效
+    :ivar required_scopes: 发布声明所需的权限列表
     """
 
     client: ClientSnapshot
@@ -118,11 +148,10 @@ class AuthorizationContext:
     @property
     def requires_consent(self) -> bool:
         """
-        判断当前请求是否存在尚未预授权的用户 Scope
+        判断当前请求是否存在尚未预授权的用户 Scope。
 
         :return: 需要显示同意页时为 True
         """
-
         consentable = set(self.scopes) - set(self.required_scopes)
         if 'consent' in frozenset((self.prompt or '').split()):
             return bool(consentable)
@@ -133,21 +162,19 @@ class AuthorizationContext:
     @property
     def resources(self) -> tuple[str, ...]:
         """
-        返回授权上下文中的 Resource audience
+        返回授权上下文中的 Resource audience。
 
         :return: 最多一个 audience 的元组
         """
-
         return (self.resource.audience,) if self.resource is not None else ()
 
     def to_internal_payload(self, interaction_id: str) -> dict[str, Any]:
         """
-        构建仅供服务端 Redis Interaction 使用的完整绑定载荷
+        构建仅供服务端 Redis Interaction 使用的完整绑定载荷。
 
         :param interaction_id: 服务端生成的 Interaction ID
         :return: 包含后续签码所需绑定字段且不含 ORM 对象的内部载荷
         """
-
         return {
             'interactionId': interaction_id,
             'clientPk': self.client.client_pk,
@@ -167,12 +194,11 @@ class AuthorizationContext:
 
     def to_interaction_payload(self, interaction_id: str) -> dict[str, Any]:
         """
-        构建交互页面可见的非敏感载荷
+        构建交互页面可见的非敏感载荷。
 
         :param interaction_id: 服务端生成的 Interaction ID
         :return: 不包含 state、nonce 和 PKCE challenge 的页面载荷
         """
-
         return {
             'interactionId': interaction_id,
             'clientId': self.client.client_id,
@@ -186,7 +212,10 @@ class AuthorizationContext:
 @dataclass(frozen=True, slots=True)
 class AuthorizationResult:
     """
-    授权流程完成后交给 HTTP Controller 的纯领域结果
+    授权流程完成后交给 HTTP Controller 的纯领域结果。
+
+    :ivar location: 客户端接下来应访问的重定向地址
+    :ivar status_code: 响应使用的 HTTP 状态码
     """
 
     location: str
@@ -195,7 +224,7 @@ class AuthorizationResult:
 
 class AuthorizationService:
     """
-    授权模块服务层
+    授权模块服务层。
 
     校验顺序固定为 Client、精确 Redirect、响应类型、PKCE、Scope 和 Resource，
     只有 Redirect 已验证后才允许协议错误携带 redirect_uri 和 state
@@ -204,14 +233,13 @@ class AuthorizationService:
     @classmethod
     async def _parse_request(cls, db: AsyncSession, raw: dict[str, str]) -> tuple[AuthorizeRequest, str]:
         """
-        先验证 Client 和完整 Redirect，再解析其余协议字段
+        先验证 Client 和完整 Redirect，再解析其余协议字段。
 
         :param db: 异步数据库会话
         :param raw: 已拒绝重复键的 Query 参数
         :return: 解析后的授权请求及已验证 Redirect URI
         :raises OAuthProtocolException: Client、Redirect 或协议字段无效
         """
-
         client_id = raw.get('client_id')
         redirect_uri = raw.get('redirect_uri')
         if not isinstance(client_id, str) or not isinstance(redirect_uri, str):
@@ -246,7 +274,7 @@ class AuthorizationService:
         sso_cookie: str | None = None,
     ) -> AuthorizationResult:
         """
-        执行授权请求业务流程并在服务层完成数据库事务
+        执行授权请求业务流程并在服务层完成数据库事务。
 
         :param db: 异步数据库会话，由本方法提交或回滚
         :param redis: 认证中心 Redis 客户端
@@ -255,7 +283,6 @@ class AuthorizationService:
         :return: 交互页面或 Client 回调的 URL 结果
         :raises OAuthProtocolException: 协议错误，必要时携带已验证 Redirect
         """
-
         request, verified_redirect = await cls._parse_request(db, raw)
         if request.resource and await cls.has_disabled_resource(db, request):
             raise OAuthProtocolException('not_found', 'Resource is unavailable', 404)
@@ -331,7 +358,7 @@ class AuthorizationService:
         coordinator: AfterCommitCoordinator,
     ) -> SysSsoSession | None:
         """
-        校验认证中心 SSO Cookie 并更新 Session 空闲期限
+        校验认证中心 SSO Cookie 并更新 Session 空闲期限。
 
         仅接受认证中心 SSO Cookie，拒绝 Legacy Token 作为登录态
 
@@ -341,7 +368,6 @@ class AuthorizationService:
         :param coordinator: 提交后副作用协调器
         :return: SSO Session 或 None
         """
-
         if cookie is None:
             return None
         try:
@@ -359,14 +385,16 @@ class AuthorizationService:
     @classmethod
     async def _complete_authorization(cls, db: AsyncSession, redis: Any, interaction_id: str) -> AuthorizationResult:
         """
-        消费已完成 Interaction 并生成一次性授权码回调结果
+        消费已完成 Interaction 并生成一次性授权码回调结果。
 
         :param db: 异步数据库会话
         :param redis: Redis 客户端
         :param interaction_id: 交互流程标识
         :return: 授权码重定向结果
+        :raises OidcInteractionException: 认证交互尚未完成；认证交互已完成，请勿重复提交
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises OAuthProtocolException: 无法完成授权并生成一次性授权码
         """
-
         record = await InteractionService.get_record(redis, interaction_id)
         if record.get('status') != 'completed':
             raise OidcInteractionException(interaction_id, '认证交互尚未完成', error='interaction_required')
@@ -429,14 +457,14 @@ class AuthorizationService:
     @classmethod
     async def _completion_grant(cls, db: AsyncSession, record: dict[str, Any], session: SysSsoSession) -> SysOAuthGrant:
         """
-        重新检查访问策略并为免确认流程补齐授权记录
+        重新检查访问策略并为免确认流程补齐授权记录。
 
         :param db: 异步数据库会话
         :param record: 已完成的交互记录
         :param session: 当前有效 SSO Session
         :return: 本次授权码绑定的有效 Grant
+        :raises OAuthProtocolException: 应用访问受限、已有授权失效或需要重新征得同意
         """
-
         client_pk = record['clientPk']
         await OAuthAccessPolicyDao.lock_client(db, client_pk)
         if await OAuthAccessPolicyDao.is_blocked(db, session.user_id, client_pk, for_update=True):
@@ -490,13 +518,12 @@ class AuthorizationService:
     @staticmethod
     async def _reserve_completion(redis: Any, interaction_id: str) -> str | None:
         """
-        以 Interaction 剩余 TTL 保留一次终态完成权
+        以 Interaction 剩余 TTL 保留一次终态完成权。
 
         :param redis: Redis 客户端
         :param interaction_id: 交互流程标识
         :return: 完成标记 Key 或 None
         """
-
         ttl = await redis.ttl(OidcRedisKey.interaction(interaction_id))
         if not isinstance(ttl, int) or ttl <= 0:
             return None
@@ -508,13 +535,11 @@ class AuthorizationService:
     @staticmethod
     async def _best_effort_delete(redis: Any, marker: str) -> None:
         """
-        尽力删除授权完成 marker
+        尽力删除授权完成 marker。
 
         :param redis: Redis 客户端
         :param marker: 完成标记 Key
-        :return: None
         """
-
         try:
             await redis.delete(marker)
         except Exception:
@@ -523,13 +548,12 @@ class AuthorizationService:
     @staticmethod
     def _requires_reauthentication(auth_time: datetime | None, max_age: int) -> bool:
         """
-        判断 SSO Session 是否超过授权请求的 max_age
+        判断 SSO Session 是否超过授权请求的 max_age。
 
         :param auth_time: 认证时间
         :param max_age: 最大认证时效
         :return: 是否需要重新认证
         """
-
         if auth_time is None:
             return True
         current = TimezoneUtil.to_utc(auth_time)
@@ -539,14 +563,14 @@ class AuthorizationService:
     @staticmethod
     def _success_url(redirect_uri: str, code: str, state: str | None) -> str:
         """
-        构建已验证 Client Redirect 的授权码回调地址
+        构建已验证 Client Redirect 的授权码回调地址。
 
         :param redirect_uri: 已验证的重定向 URI
-        :param code: Authorization Code
+        :param code: 授权码
         :param state: 协议 state 值
         :return: 授权码回调 URL
+        :raises OAuthProtocolException: 回调地址不是有效的绝对地址或带有片段
         """
-
         parsed = urlsplit(redirect_uri)
         if parsed.fragment or not parsed.scheme or not parsed.netloc:
             raise OAuthProtocolException('server_error', 'Validated redirect URI is invalid', 500)
@@ -563,14 +587,13 @@ class AuthorizationService:
         exc: OidcInteractionException, redirect_uri: str, state: str | None
     ) -> OAuthProtocolException:
         """
-        把 Interaction 错误绑定到已验证 Redirect
+        把 Interaction 错误绑定到已验证 Redirect。
 
         :param exc: 协议异常
         :param redirect_uri: 待核验的请求重定向 URI
         :param state: 协议 state 值
         :return: 绑定重定向的协议异常
         """
-
         return OAuthProtocolException(
             exc.error,
             exc.message,
@@ -584,14 +607,13 @@ class AuthorizationService:
     @staticmethod
     async def _record_failure_audit(db: AsyncSession, event_type: str, **fields: Any) -> None:
         """
-        尝试记录授权失败审计，审计异常不改变原协议错误响应
+        尝试记录授权失败审计，审计异常不改变原协议错误响应。
 
         :param db: 异步数据库会话
         :param event_type: 审计事件类型
         :param fields: 失败审计字段映射
-        :return: None
+        :raises OAuthProtocolException: 授权审计服务不可用
         """
-
         try:
             await AuditService.record_independent(db, event_type, 'failure', risk_level='high', **fields)
         except Exception as exc:
@@ -600,14 +622,14 @@ class AuthorizationService:
     @staticmethod
     async def verified_redirect(db: AsyncSession, client_id: str, redirect_uri: str) -> str:
         """
-        返回已注册的精确 Redirect URI
+        返回已注册的精确 Redirect URI。
 
         :param db: 异步数据库会话
         :param client_id: OAuth Client 标识
         :param redirect_uri: 已验证的重定向 URI
         :return: 已注册的精确重定向 URI
+        :raises OAuthProtocolException: 客户端未注册或回调地址未登记
         """
-
         client = await OAuthClientDao.get_by_client_id(db, client_id, active_only=True)
         if client is None:
             raise OAuthProtocolException('unauthorized_client', 'Client is not registered')
@@ -619,14 +641,13 @@ class AuthorizationService:
     @staticmethod
     async def verified_redirect_for_client(db: AsyncSession, client_pk: int, redirect_uri: str) -> str | None:
         """
-        按内部 Client 主键确认已注册的 Redirect URI
+        按内部 Client 主键确认已注册的 Redirect URI。
 
         :param db: 异步数据库会话
         :param client_pk: OAuth Client 主键
         :param redirect_uri: 已验证的重定向 URI
         :return: 匹配的重定向 URI 或 None
         """
-
         registered = await OAuthClientDao.find_exact_uri(db, client_pk, 'redirect', redirect_uri)
 
         return registered.uri if registered is not None else None
@@ -634,26 +655,24 @@ class AuthorizationService:
     @staticmethod
     async def valid_grant(db: AsyncSession, user_id: int, client_pk: int) -> SysOAuthGrant | None:
         """
-        读取用户对 Client 的有效 Grant
+        读取用户对 Client 的有效 Grant。
 
         :param db: 异步数据库会话
         :param user_id: 本地用户 ID
         :param client_pk: OAuth Client 主键
         :return: 有效 Grant 或 None
         """
-
         return await OAuthGrantDao.get_valid_for_user_client(db, user_id, client_pk)
 
     @staticmethod
     async def has_disabled_resource(db: AsyncSession, request: AuthorizeRequest) -> bool:
         """
-        判断请求 Resource 是否为该 Client 已绑定的停用资源
+        判断请求 Resource 是否为该 Client 已绑定的停用资源。
 
         :param db: 异步数据库会话
         :param request: 当前 HTTP 请求
         :return: 是否存在禁用 Resource
         """
-
         return bool(request.resource) and await OAuthClientDao.has_disabled_bound_resource(
             db, request.client_id, request.resource
         )
@@ -661,14 +680,13 @@ class AuthorizationService:
     @staticmethod
     async def active_session(db: AsyncSession, sid: str, now: datetime | None = None) -> SysSsoSession | None:
         """
-        读取当前有效 SSO Session
+        读取当前有效 SSO Session。
 
         :param db: 异步数据库会话
         :param sid: SSO Session 标识
         :param now: 当前时间
         :return: 活动 SSO Session 或 None
         """
-
         return await SsoSessionDao.get_active(
             db, sid, now=TimezoneUtil.to_utc(now) if now is not None else TimezoneUtil.utc_now()
         )
@@ -676,14 +694,13 @@ class AuthorizationService:
     @classmethod
     async def validate_request(cls, db: AsyncSession, request: AuthorizeRequest) -> AuthorizationContext:  # noqa: PLR0912, PLR0915
         """
-        校验授权请求并构建不可变授权上下文
+        校验授权请求并构建不可变授权上下文。
 
         :param db: 异步数据库会话
         :param request: 已完成基础字段校验的 Authorization 请求
         :return: 可交给 Interaction 和 Authorization Code 服务的上下文
         :raises OAuthProtocolException: 请求不符合 OAuth/OIDC 协议时抛出
         """
-
         if not OidcConfig.oidc_enabled:
             raise OAuthProtocolException('temporarily_unavailable', 'OIDC provider is disabled', 503)
 
@@ -828,13 +845,12 @@ class AuthorizationService:
         db: AsyncSession, bindings: list[SysOAuthClientScope] | tuple[SysOAuthClientScope, ...]
     ) -> list[SysOAuthScope]:
         """
-        加载 Client Scope 绑定对应的有效 Scope 定义
+        加载 Client Scope 绑定对应的有效 Scope 定义。
 
         :param db: 异步数据库会话
         :param bindings: Client-Scope 绑定集合
         :return: Scope 定义列表
         """
-
         scope_ids = {binding.scope_pk for binding in bindings}
         if not scope_ids:
             return []
@@ -847,13 +863,12 @@ class AuthorizationService:
         db: AsyncSession, bindings: list[SysOAuthClientScope] | tuple[SysOAuthClientScope, ...]
     ) -> list[SysOAuthScope]:
         """
-        加载 Client Scope 绑定对应的 Scope 定义
+        加载 Client Scope 绑定对应的 Scope 定义。
 
         :param db: 异步数据库会话
         :param bindings: Client-Scope 绑定集合
         :return: Scope 定义列表
         """
-
         return await AuthorizationService._load_scope_models(db, bindings)
 
     @staticmethod
@@ -866,7 +881,7 @@ class AuthorizationService:
         state: str | None,
     ) -> SysOAuthResource | None:
         """
-        解析并校验最多一个 Resource audience
+        解析并校验最多一个 Resource audience。
 
         :param requested_resource: 请求中的 Resource audience
         :param resources: Client 已注册的 Resource 集合
@@ -875,8 +890,8 @@ class AuthorizationService:
         :param redirect_uri: 已精确验证的 Redirect URI
         :param state: 原样绑定的客户端 state
         :return: 选中的 Resource，或无 Resource 时返回 None
+        :raises OAuthProtocolException: 目标受众缺失或客户端无权访问目标资源
         """
-
         resource_scopes = [scope for scope in requested_scopes if scope.scope_type == 'resource']
         if requested_resource:
             resource = next((item for item in resources if item.audience == requested_resource), None)
@@ -898,7 +913,7 @@ class AuthorizationService:
     @staticmethod
     def _redirect_error(error: str, description: str, redirect_uri: str, state: str | None) -> OAuthProtocolException:
         """
-        创建已完成 Redirect 校验后的安全协议异常
+        创建已完成 Redirect 校验后的安全协议异常。
 
         :param error: OAuth 标准错误码
         :param description: 不泄漏内部数据的错误描述
@@ -906,7 +921,6 @@ class AuthorizationService:
         :param state: 客户端原样 state
         :return: 标记为可安全重定向的协议异常
         """
-
         return OAuthProtocolException(
             error,
             description,
@@ -920,13 +934,12 @@ class AuthorizationService:
     @staticmethod
     def consent_is_satisfied(context: AuthorizationContext, grant: SysOAuthGrant | None) -> bool:
         """
-        判断有效 Grant 是否覆盖当前授权请求
+        判断有效 Grant 是否覆盖当前授权请求。
 
         :param context: 已验证授权上下文
         :param grant: 当前用户和 Client 的 Grant
         :return: Grant 有效且覆盖全部非预授权 Scope/Resource 时为 True
         """
-
         if not context.requires_consent:
             return True
         prompt_tokens = frozenset((context.prompt or '').split())
@@ -950,25 +963,29 @@ class AuthorizationService:
 
 class AuthorizationCodeReuseError(OAuthProtocolException):
     """
-    表示一个已成功消费的 Authorization Code 被再次提交
+    表示一个已成功消费的 Authorization Code 被再次提交。
+
+    :ivar must_commit: 抛出异常后是否仍须提交状态更改
     """
 
     def __init__(self) -> None:
-        """
-        初始化对象状态
-
-        :return: None
-        """
-
+        """初始化对象状态。"""
         super().__init__('invalid_grant', 'Authorization code is invalid or expired', 400)
         self.must_commit = True
 
 
 class AuthorizationCodeService:
     """
-    授权码模块服务层
+    授权码模块服务层。
 
     Redis 只保存 codeHash 和服务端白名单字段，不保存 Authorization Code 明文
+
+    :cvar _CONSUME_SCRIPT: 原子消费授权码并记录状态的 Redis 脚本
+    :cvar _REQUIRED_FIELDS: 授权码记录必须包含的字段
+    :cvar _MAX_SCOPES: 单次请求允许的最大权限范围数
+    :cvar _MAX_RESOURCES: 单次授权允许绑定的最大资源数
+    :cvar _REUSE_TOMBSTONE_TTL_SECONDS: 识别重复使用的标记保留时长（秒）
+    :cvar _CONSUMED_TOMBSTONE_RESULT: 表示授权码已经消费的标记
     """
 
     _CONSUME_SCRIPT = """
@@ -1027,7 +1044,7 @@ return value
         pepper: str | None = None,
     ) -> str:
         """
-        签发短期 Authorization Code 并以 NX 写入 Redis
+        签发短期 Authorization Code 并以 NX 写入 Redis。
 
         :param redis: 异步 Redis 客户端
         :param payload: 已由服务端构建的白名单标量载荷
@@ -1037,7 +1054,6 @@ return value
         :raises ValueError: 载荷或 Pepper 不符合安全约束
         :raises OAuthProtocolException: Redis 写入失败时抛出
         """
-
         record = cls._validate_payload(payload)
         code = generate_authorization_code()
         parsed = parse_opaque_token(code, 'ac1')
@@ -1062,15 +1078,15 @@ return value
         pepper: str | None = None,
     ) -> dict[str, Any]:
         """
-        使用 Redis Lua 原子校验并消费 Authorization Code
+        使用 Redis Lua 原子校验并消费 Authorization Code。
 
         :param redis: 异步 Redis 客户端
         :param code: 客户端提交的 Authorization Code 明文
         :param pepper: 独立 OIDC Token Hash Pepper
         :return: 去除内部 codeHash/version 后的服务端载荷
         :raises OAuthProtocolException: Code 格式、Secret、状态或 TTL 无效时抛出统一错误
+        :raises AuthorizationCodeReuseError: 授权码先前已被消费
         """
-
         try:
             parsed = parse_opaque_token(code, 'ac1')
             digest = token_digest(code, pepper or OidcConfig.oidc_token_hash_pepper)
@@ -1115,14 +1131,13 @@ return value
         pepper: str | None = None,
     ) -> dict[str, Any] | None:
         """
-        读取已消费授权码的短期绑定载荷
+        读取已消费授权码的短期绑定载荷。
 
         :param redis: Authorization Code Redis 客户端
         :param code: 客户端提交的 Authorization Code 明文
         :param pepper: 独立 OIDC Token Hash Pepper
         :return: 与授权码摘要匹配的绑定载荷，不存在或摘要不匹配时返回 None
         """
-
         try:
             parsed = parse_opaque_token(code, 'ac1')
             digest = token_digest(code, pepper or OidcConfig.oidc_token_hash_pepper)
@@ -1149,13 +1164,11 @@ return value
     @classmethod
     async def invalidate(cls, redis: Redis, code: str) -> None:
         """
-        精确删除一个已签发但未安全完成交付的授权码
+        精确删除一个已签发但未安全完成交付的授权码。
 
         :param redis: Authorization Code Redis 客户端
         :param code: 仅用于解析 code_id，不会写入 Redis
-        :return: None
         """
-
         try:
             parsed = parse_opaque_token(code, 'ac1')
         except (OpaqueTokenError, TypeError, ValueError):
@@ -1166,13 +1179,12 @@ return value
     @classmethod
     def _validate_payload(cls, payload: Mapping[str, Any]) -> dict[str, Any]:
         """
-        校验 Authorization Code 的服务端白名单标量载荷
+        校验 Authorization Code 的服务端白名单标量载荷。
 
         :param payload: 待校验映射
         :return: 可稳定 JSON 序列化的复制载荷
         :raises ValueError: 存在未知、缺失或类型不安全字段时抛出
         """
-
         if not isinstance(payload, Mapping):
             raise ValueError('授权码载荷必须为映射对象')
         keys = set(payload)
@@ -1226,21 +1238,20 @@ return value
 
 
 class InteractionCompletionService:
-    """
-    交互完成模块服务层
-    """
+    """交互完成模块服务层。"""
 
     @staticmethod
     async def complete(redis: Redis, interaction_id: str, db: AsyncSession) -> 'InteractionCompletionResult':
         """
-        完成服务端校验并跳转至已注册的 Client Redirect URI
+        完成服务端校验并跳转至已注册的 Client Redirect URI。
 
         :param redis: 交互 Redis
         :param interaction_id: Interaction 标识
         :param db: 异步数据库会话
         :return: 外部 Client 重定向响应
+        :raises OidcInteractionException: 认证交互尚未完成；认证交互已完成，请勿重复提交
+        :raises OAuthProtocolException: 已验证的回调地址不可用或授权完成失败
         """
-
         record = await InteractionService.get_record(redis, interaction_id)
         if record.get('status') not in {'completed', 'denied'}:
             raise OidcInteractionException(interaction_id, '认证交互尚未完成', error='interaction_required')
@@ -1272,13 +1283,12 @@ class InteractionCompletionService:
     @staticmethod
     async def active_session(db: AsyncSession, record: dict[str, Any]) -> SysSsoSession | None:
         """
-        读取活动会话
+        读取活动会话。
 
         :param db: 异步数据库会话
         :param record: 交互记录
         :return: 活动 SSO Session 或 None
         """
-
         sid = record.get('authenticatedSid')
         if not isinstance(sid, str):
             return None
@@ -1298,7 +1308,7 @@ class InteractionCompletionService:
         db: AsyncSession, redis: Any, record: dict[str, Any], redirect_uri: str, marker: str
     ) -> 'InteractionCompletionResult':
         """
-        签发授权码
+        签发授权码。
 
         :param db: 异步数据库会话
         :param redis: Redis 客户端
@@ -1306,8 +1316,9 @@ class InteractionCompletionService:
         :param redirect_uri: 已验证的重定向 URI
         :param marker: 完成标记 Key
         :return: 授权码
+        :raises OAuthProtocolException: 缺少有效登录会话或授权码签发失败
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
-
         try:
             active = await InteractionCompletionService.active_session(db, record)
         except Exception:
@@ -1370,7 +1381,7 @@ class InteractionCompletionService:
         error: str | None = None,
     ) -> 'InteractionCompletionResult':
         """
-        构建重定向响应
+        构建重定向响应。
 
         :param redirect_uri: 已验证的重定向 URI
         :param record: 交互记录
@@ -1378,7 +1389,6 @@ class InteractionCompletionService:
         :param error: 协议错误码
         :return: 重定向结果
         """
-
         query = []
         if code is not None:
             query.append(('code', code))
@@ -1396,7 +1406,9 @@ class InteractionCompletionService:
 @dataclass(frozen=True)
 class InteractionCompletionResult:
     """
-    完成交互后的重定向目标；Controller 负责构造 HTTP 跳转
+    完成交互后的重定向目标；Controller 负责构造 HTTP 跳转。
+
+    :ivar location: 客户端接下来应访问的重定向地址
     """
 
     location: str

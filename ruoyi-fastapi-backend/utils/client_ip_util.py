@@ -4,14 +4,12 @@ from config.env import AppConfig
 
 
 class ClientIPUtil:
-    """
-    客户端IP提取工具
-    """
+    """客户端IP提取工具。"""
 
     @classmethod
     def get_client_ip(cls, request: Request) -> str:
         """
-        获取客户端真实IP
+        获取客户端真实IP。
 
         仅当请求来源命中可信代理列表，且可信代理跳数大于0时，才会解析
         X-Forwarded-For / X-Real-IP 请求头；否则回退到直接连接来源地址。
@@ -42,7 +40,7 @@ class ClientIPUtil:
     @classmethod
     def _should_trust_proxy_headers(cls, remote_addr: str) -> bool:
         """
-        判断当前连接来源是否属于可信代理
+        判断当前连接来源是否属于可信代理。
 
         :param remote_addr: 与应用直接建立连接的来源IP
         :return: 是否信任代理头
@@ -53,7 +51,7 @@ class ClientIPUtil:
     @classmethod
     def _get_trusted_proxy_ips(cls) -> set[str]:
         """
-        获取可信代理IP集合
+        获取可信代理IP集合。
 
         :return: 可信代理IP集合
         """

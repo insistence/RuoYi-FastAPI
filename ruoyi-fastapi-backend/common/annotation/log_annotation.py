@@ -46,13 +46,11 @@ R = TypeVar('R')
 
 
 class _LogFieldRoot(StrEnum):
-    """
-    日志字段路径根节点
-    """
+    """日志字段路径根节点。"""
 
     def field(self, *parts: str) -> str:
         """
-        生成 include 字段路径
+        生成 include 字段路径。
 
         :param parts: 后续字段路径片段
         :return: 完整字段路径
@@ -62,7 +60,14 @@ class _LogFieldRoot(StrEnum):
 
 class RequestLogFieldRoot(_LogFieldRoot):
     """
-    请求日志字段路径支持的根节点
+    请求日志字段路径支持的根节点。
+
+    :cvar PATH_PARAMS: 请求路径中的参数
+    :cvar QUERY_PARAMS: URL 查询参数
+    :cvar JSON_BODY: 解析后的 JSON 请求体
+    :cvar FORM_DATA: 请求表单数据
+    :cvar FILES: 随请求上传的文件
+    :cvar RAW_BODY: 未解析的请求体
     """
 
     PATH_PARAMS = 'path_params'
@@ -75,7 +80,14 @@ class RequestLogFieldRoot(_LogFieldRoot):
 
 class ResponseLogFieldRoot(_LogFieldRoot):
     """
-    响应日志字段路径推荐的根节点
+    响应日志字段路径推荐的根节点。
+
+    :cvar CODE: 业务响应的状态码
+    :cvar MSG: 业务响应的消息文本
+    :cvar DATA: 业务响应的数据字段
+    :cvar ROWS: 分页响应的记录集合
+    :cvar SUCCESS: 业务响应的成功标志
+    :cvar TIME: 业务响应的时间字段
     """
 
     CODE = 'code'
@@ -88,7 +100,7 @@ class ResponseLogFieldRoot(_LogFieldRoot):
 
 class Log:
     """
-    日志装饰器
+    日志装饰器。
 
     支持的日志模式:
     - `full`: 记录脱敏后的完整载荷
@@ -98,25 +110,42 @@ class Log:
     - `exclude`: 记录完整载荷后排除少数字段，适合中敏感接口
 
     模式建议:
-    - 普通后台管理接口可使用`full`
-    - 包含大量字段但只关心结构时使用`summary`
-    - 包含密钥、密码、提示词、配置项等高敏感字段时优先使用`include`
-    - 字段较多但只需排除极少数字段时可使用`exclude`
-    - 完全无需保留请求体或响应体时使用`none`
+    - 普通后台管理接口可使用 ``full``
+    - 包含大量字段但只关心结构时使用 ``summary``
+    - 包含密钥、密码、提示词、配置项等高敏感字段时优先使用 ``include``
+    - 字段较多但只需排除极少数字段时可使用 ``exclude``
+    - 完全无需保留请求体或响应体时使用 ``none``
 
     include / exclude 模式字段路径规则:
-    - 使用`.`分隔路径，如`json_body.modelCode`、`data.userId`
-    - 请求日志推荐根节点：`path_params`、`query_params`、`json_body`、`form_data`、`files`、`raw_body`
-    - 响应日志推荐根节点：`code`、`msg`、`data`、`rows`、`success`、`time`
+    - 使用 ``.`` 分隔路径，如 ``json_body.modelCode``、``data.userId``
+    - 请求日志推荐根节点：``path_params``、``query_params``、``json_body``、``form_data``、``files``、``raw_body``
+    - 响应日志推荐根节点：``code``、``msg``、``data``、``rows``、``success``、``time``
     - 字段名优先按原样精确匹配，若未命中会自动尝试 snake_case、camelCase、kebab-case 归一化匹配
-    - 数组使用数字下标，如`rows.0.userName`
+    - 数组使用数字下标，如 ``rows.0.userName``
     - 当前不支持通配符
-    - 推荐优先使用`RequestLogFieldRoot.JSON_BODY.field(...)`和`ResponseLogFieldRoot.DATA.field(...)`构造字段路径
+    - 推荐优先使用 ``RequestLogFieldRoot.JSON_BODY.field(...)`` 和 ``ResponseLogFieldRoot.DATA.field(...)`` 构造字段路径
 
     示例:
-    - `request_include_fields=(RequestLogFieldRoot.JSON_BODY.field('model_code'),)`
-    - `response_include_fields=(ResponseLogFieldRoot.DATA.field('userName'),)`
-    - `request_exclude_fields=('json_body.api_key',)`
+    - ``request_include_fields=(RequestLogFieldRoot.JSON_BODY.field('model_code'),)``
+    - ``response_include_fields=(ResponseLogFieldRoot.DATA.field('userName'),)``
+    - ``request_exclude_fields=('json_body.api_key',)``
+
+    :cvar _REQUEST_INCLUDE_ROOTS: 允许在请求日志白名单中使用的根字段
+    :cvar _RESPONSE_INCLUDE_ROOTS: 允许在响应日志白名单中使用的根字段
+    :cvar _MISSING: 标识字段不存在的哨兵对象
+    :cvar _AMBIGUOUS: 标识字段匹配到多个候选项的哨兵对象
+    :ivar title: 当前日志装饰器装饰的模块标题
+    :ivar business_type: 业务类型（OTHER其它 INSERT新增 UPDATE修改 DELETE删除 GRANT授权 EXPORT导出 IMPORT导入 FORCE强退 GENCODE生成代码 CLEAN清空数据）
+    :ivar log_type: 日志类型；``login`` 表示登录日志，仅落登录信息，``operation`` 表示操作日志，会落请求/响应摘要与操作人信息
+    :ivar request_log_mode: 请求日志记录模式；``full`` 记录脱敏后的完整请求，``none`` 不记录请求体，``summary`` 记录请求摘要，``include`` 仅记录request_include_fields指定的字段，``exclude`` 记录完整请求后排除request_exclude_fields指定的字段
+    :ivar response_log_mode: 响应日志记录模式；``full`` 记录脱敏后的完整响应，``none`` 不记录响应体，``summary`` 记录响应摘要，``include`` 仅记录response_include_fields指定的字段，``exclude`` 记录完整响应后排除response_exclude_fields指定的字段
+    :ivar request_include_fields: 请求日志白名单字段路径，仅在request_log_mode='include'时生效；推荐从path_params/query_params/json_body/form_data/files/raw_body开始，字段名支持 snake_case 与 camelCase 自动兼容
+    :ivar response_include_fields: 响应日志白名单字段路径，仅在response_log_mode='include'时生效；推荐从code/msg/data/rows/success/time开始，字段名支持 snake_case 与 camelCase 自动兼容
+    :ivar request_exclude_fields: 请求日志排除字段路径，仅在request_log_mode='exclude'时生效；推荐从path_params/query_params/json_body/form_data/files/raw_body开始，字段名支持 snake_case 与 camelCase 自动兼容
+    :ivar response_exclude_fields: 响应日志排除字段路径，仅在response_log_mode='exclude'时生效；推荐从code/msg/data/rows/success/time开始，字段名支持 snake_case 与 camelCase 自动兼容
+    :ivar _oper_param_len: 操作日志允许保存的请求参数长度
+    :ivar _json_result_len: 操作日志允许保存的响应文本长度
+    :ivar _warned_field_path_warnings: 已发出警告的字段路径
     """
 
     _REQUEST_INCLUDE_ROOTS = tuple(item.value for item in RequestLogFieldRoot)
@@ -137,18 +166,17 @@ class Log:
         response_exclude_fields: tuple[str, ...] | None = None,
     ) -> None:
         """
-        日志装饰器
+        日志装饰器。
 
         :param title: 当前日志装饰器装饰的模块标题
         :param business_type: 业务类型（OTHER其它 INSERT新增 UPDATE修改 DELETE删除 GRANT授权 EXPORT导出 IMPORT导入 FORCE强退 GENCODE生成代码 CLEAN清空数据）
-        :param log_type: 日志类型；`login`表示登录日志，仅落登录信息，`operation`表示操作日志，会落请求/响应摘要与操作人信息
-        :param request_log_mode: 请求日志记录模式；`full`记录脱敏后的完整请求，`none`不记录请求体，`summary`记录请求摘要，`include`仅记录request_include_fields指定的字段，`exclude`记录完整请求后排除request_exclude_fields指定的字段
-        :param response_log_mode: 响应日志记录模式；`full`记录脱敏后的完整响应，`none`不记录响应体，`summary`记录响应摘要，`include`仅记录response_include_fields指定的字段，`exclude`记录完整响应后排除response_exclude_fields指定的字段
+        :param log_type: 日志类型；``login`` 表示登录日志，仅落登录信息，``operation`` 表示操作日志，会落请求/响应摘要与操作人信息
+        :param request_log_mode: 请求日志记录模式；``full`` 记录脱敏后的完整请求，``none`` 不记录请求体，``summary`` 记录请求摘要，``include`` 仅记录request_include_fields指定的字段，``exclude`` 记录完整请求后排除request_exclude_fields指定的字段
+        :param response_log_mode: 响应日志记录模式；``full`` 记录脱敏后的完整响应，``none`` 不记录响应体，``summary`` 记录响应摘要，``include`` 仅记录response_include_fields指定的字段，``exclude`` 记录完整响应后排除response_exclude_fields指定的字段
         :param request_include_fields: 请求日志白名单字段路径，仅在request_log_mode='include'时生效；推荐从path_params/query_params/json_body/form_data/files/raw_body开始，字段名支持 snake_case 与 camelCase 自动兼容
         :param response_include_fields: 响应日志白名单字段路径，仅在response_log_mode='include'时生效；推荐从code/msg/data/rows/success/time开始，字段名支持 snake_case 与 camelCase 自动兼容
         :param request_exclude_fields: 请求日志排除字段路径，仅在request_log_mode='exclude'时生效；推荐从path_params/query_params/json_body/form_data/files/raw_body开始，字段名支持 snake_case 与 camelCase 自动兼容
         :param response_exclude_fields: 响应日志排除字段路径，仅在response_log_mode='exclude'时生效；推荐从code/msg/data/rows/success/time开始，字段名支持 snake_case 与 camelCase 自动兼容
-        :return:
         """
         self.title = title
         self.business_type = business_type.value
@@ -166,8 +194,23 @@ class Log:
         self._warn_invalid_field_path_config()
 
     def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+        """
+        为接口添加操作日志或登录日志记录。
+
+        :param func: 装饰器包装的可调用对象
+        :return: 供调用方使用的 ``wrapper``
+        """
+
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            """
+            执行接口并根据日志策略记录请求、响应及耗时。
+
+            :param args: 传给被调用对象的位置参数
+            :param kwargs: 传给被调用对象的关键字参数
+            :raises Exception: 被装饰操作抛出异常，记录操作日志后将其重新抛出
+            :return: 执行当前操作得到的结果
+            """
             start_time = time.perf_counter()
             # 获取当前被装饰函数所在路径
             func_path = self._get_decorator_func_path(func)
@@ -247,9 +290,7 @@ class Log:
                 # 根据日志类型向对应的日志表插入数据
                 if self.log_type == 'login':
                     # 登录请求来自于api文档时不记录登录日志，其余情况则记录
-                    if request_from_swagger or request_from_redoc:
-                        pass
-                    else:
+                    if not (request_from_swagger or request_from_redoc):
                         user = kwargs.get('form_data')
                         login_log.update(
                             {
@@ -263,7 +304,6 @@ class Log:
                         await LogQueueService.enqueue_login_log(request, LogininforModel(**login_log), func_path)
                 else:
                     current_user = RequestContext.get_current_user()
-                    oper_name = current_user.user.user_name
                     dept_name = current_user.user.dept.dept_name if current_user.user.dept else None
                     operation_log = OperLogModel(
                         title=self.title,
@@ -271,7 +311,7 @@ class Log:
                         method=func_path,
                         requestMethod=request_method,
                         operatorType=operator_type,
-                        operName=oper_name,
+                        operName=current_user.user.user_name,
                         deptName=dept_name,
                         operUrl=oper_url,
                         operIp=oper_ip,
@@ -296,7 +336,7 @@ class Log:
 
     def _get_decorator_func_path(self, func: Callable) -> str:
         """
-        获取被装饰函数所在路径
+        获取被装饰函数所在路径。
 
         :param func: 被装饰函数
         :return: 被装饰函数所在路径
@@ -313,7 +353,7 @@ class Log:
     @staticmethod
     def _limit_log_text(log_text: str, max_length: int, overflow_text: str) -> str:
         """
-        限制日志文本长度，避免超过日志表字段长度
+        限制日志文本长度，避免超过日志表字段长度。
 
         :param log_text: 原始日志文本
         :param max_length: 最大长度
@@ -324,7 +364,7 @@ class Log:
 
     def _get_oper_type(self, user_agent: Any) -> int:
         """
-        获取操作类型
+        获取操作类型。
 
         :param user_agent: 用户代理字符串
         :return: 操作类型
@@ -340,7 +380,7 @@ class Log:
 
     async def _get_oper_location(self, oper_ip: str) -> str:
         """
-        获取请求IP归属区域
+        获取请求IP归属区域。
 
         :param oper_ip: 请求IP
         :return: 请求IP归属区域
@@ -353,7 +393,7 @@ class Log:
 
     async def _get_request_params(self, request: Request) -> dict[str, Any]:
         """
-        获取请求参数
+        获取请求参数。
 
         :param request: Request对象
         :return: 结构化请求参数
@@ -384,7 +424,7 @@ class Log:
 
     async def _get_json_request_params(self, request: Request, content_type: str) -> dict[str, Any]:
         """
-        获取 JSON 请求参数，解析失败时自动降级为原始文本
+        获取 JSON 请求参数，解析失败时自动降级为原始文本。
 
         :param request: Request对象
         :param content_type: 请求头中的 content-type
@@ -408,7 +448,7 @@ class Log:
 
     async def _get_form_request_params(self, request: Request, content_type: str) -> dict[str, Any]:
         """
-        获取表单请求参数
+        获取表单请求参数。
 
         :param request: Request对象
         :param content_type: 请求头中的 content-type
@@ -443,7 +483,7 @@ class Log:
 
     async def _get_raw_request_params(self, request: Request) -> dict[str, Any]:
         """
-        获取原始文本请求参数
+        获取原始文本请求参数。
 
         :param request: Request对象
         :return: 原始文本请求参数
@@ -456,7 +496,7 @@ class Log:
     @staticmethod
     def _decode_request_body(body: bytes) -> str:
         """
-        安全解码请求体，避免日志采集影响主流程
+        安全解码请求体，避免日志采集影响主流程。
 
         :param body: 原始请求体字节
         :return: 解码后的请求体文本
@@ -472,7 +512,7 @@ class Log:
         payload_kind: Literal['request', 'response'],
     ) -> str:
         """
-        根据日志策略构建日志文本
+        根据日志策略构建日志文本。
 
         :param payload: 已完成脱敏的日志载荷
         :param mode: 日志记录模式
@@ -495,7 +535,7 @@ class Log:
 
     def _build_summary_payload(self, payload: Any, payload_kind: Literal['request', 'response']) -> dict[str, Any]:
         """
-        构建摘要日志载荷
+        构建摘要日志载荷。
 
         :param payload: 原始载荷
         :param payload_kind: 载荷类型
@@ -538,7 +578,7 @@ class Log:
         payload_kind: Literal['request', 'response'],
     ) -> dict[str, Any]:
         """
-        提取白名单字段日志载荷
+        提取白名单字段日志载荷。
 
         :param payload: 原始载荷
         :param include_fields: 白名单字段路径
@@ -564,7 +604,7 @@ class Log:
         payload_kind: Literal['request', 'response'],
     ) -> Any:
         """
-        排除指定字段后返回日志载荷
+        排除指定字段后返回日志载荷。
 
         :param payload: 原始载荷
         :param exclude_fields: 排除字段路径
@@ -587,13 +627,12 @@ class Log:
         strategy: Literal['include', 'exclude'],
     ) -> None:
         """
-        记录未命中的字段路径告警，同一路径仅提示一次
+        记录未命中的字段路径告警，同一路径仅提示一次。
 
         :param payload: 原始载荷
         :param field_path: 字段路径
         :param payload_kind: 载荷类型
         :param strategy: 当前字段路径策略
-        :return: None
         """
         warning_key = f'{strategy}:{payload_kind}:{field_path}'
         if warning_key in self._warned_field_path_warnings:
@@ -614,7 +653,7 @@ class Log:
 
     def _describe_missing_field_path(self, payload: Any, field_path: str) -> str:
         """
-        描述字段路径未命中的原因
+        描述字段路径未命中的原因。
 
         :param payload: 原始载荷
         :param field_path: 字段路径
@@ -654,11 +693,7 @@ class Log:
         return ''
 
     def _warn_invalid_field_path_config(self) -> None:
-        """
-        记录字段路径配置告警，帮助开发者发现路径误配
-
-        :return: None
-        """
+        """记录字段路径配置告警，帮助开发者发现路径误配。"""
         warnings = [
             *self._collect_field_path_warnings(
                 mode=self.request_log_mode,
@@ -678,9 +713,9 @@ class Log:
 
     def _validate_request_field_paths_strict(self) -> None:
         """
-        严格校验请求日志字段路径根节点
+        严格校验请求日志字段路径根节点。
 
-        :return: None
+        :raises ValueError: 请求日志字段路径使用不支持的根节点
         """
         field_paths = ()
         if self.request_log_mode == 'include':
@@ -705,7 +740,7 @@ class Log:
         payload_kind: Literal['request', 'response'],
     ) -> list[str]:
         """
-        收集字段路径配置告警信息
+        收集字段路径配置告警信息。
 
         :param mode: 日志记录模式
         :param include_fields: 白名单字段路径列表
@@ -746,7 +781,7 @@ class Log:
         strategy: Literal['include', 'exclude'],
     ) -> str | None:
         """
-        校验单个字段路径
+        校验单个字段路径。
 
         :param field_path: 字段路径
         :param payload_kind: 载荷类型
@@ -771,7 +806,7 @@ class Log:
 
     def _get_field_value_by_path(self, payload: Any, field_path: str) -> Any:
         """
-        通过字段路径获取字段值
+        通过字段路径获取字段值。
 
         :param payload: 原始载荷
         :param field_path: 字段路径
@@ -795,7 +830,7 @@ class Log:
 
     def _get_mapping_value_by_part(self, payload: dict[str, Any], part: str) -> Any:
         """
-        从字典中按字段片段获取值，支持 snake_case / camelCase / kebab-case 自动兼容
+        从字典中按字段片段获取值，支持 snake_case / camelCase / kebab-case 自动兼容。
 
         :param payload: 当前字典载荷
         :param part: 当前路径片段
@@ -814,7 +849,7 @@ class Log:
     @staticmethod
     def _sort_field_paths_for_exclude(field_paths: tuple[str, ...]) -> list[str]:
         """
-        对 exclude 字段路径排序，优先处理更深层路径和更大的列表下标，避免列表删除时发生索引位移
+        对 exclude 字段路径排序，优先处理更深层路径和更大的列表下标，避免列表删除时发生索引位移。
 
         :param field_paths: 原始字段路径
         :return: 排序后的字段路径列表
@@ -824,7 +859,7 @@ class Log:
     @staticmethod
     def _build_exclude_sort_key(field_path: str) -> tuple[int, tuple[tuple[int, int | str], ...]]:
         """
-        构建 exclude 字段路径排序键
+        构建 exclude 字段路径排序键。
 
         :param field_path: 字段路径
         :return: 排序键
@@ -837,7 +872,7 @@ class Log:
 
     def _remove_field_by_path(self, payload: Any, field_path: str) -> bool:
         """
-        按路径移除字段
+        按路径移除字段。
 
         :param payload: 原始载荷
         :param field_path: 字段路径
@@ -878,7 +913,7 @@ class Log:
 
     def _resolve_mapping_key_by_part(self, payload: dict[str, Any], part: str) -> str | object:
         """
-        解析字段片段在字典中的真实键名
+        解析字段片段在字典中的真实键名。
 
         :param payload: 当前字典载荷
         :param part: 当前路径片段
@@ -899,7 +934,7 @@ class Log:
         root: RequestLogFieldRoot | ResponseLogFieldRoot | str, candidates: tuple[str, ...]
     ) -> str | None:
         """
-        解析 include 根节点到标准写法
+        解析 include 根节点到标准写法。
 
         :param root: 原始根节点
         :param candidates: 候选根节点
@@ -914,7 +949,7 @@ class Log:
     @staticmethod
     def _normalize_include_key(field_name: str) -> str:
         """
-        标准化 include 字段名
+        标准化 include 字段名。
 
         :param field_name: 原始字段名
         :return: 标准化后的字段名
@@ -924,7 +959,7 @@ class Log:
     @staticmethod
     def _get_mapping_keys(payload: Any) -> list[str]:
         """
-        获取字典载荷的键列表
+        获取字典载荷的键列表。
 
         :param payload: 原始载荷
         :return: 键列表
@@ -937,7 +972,7 @@ class Log:
         self, user_agent: Any, oper_ip: str, oper_location: str, oper_time: datetime, origin_kwargs: dict
     ) -> dict:
         """
-        获取登录日志信息
+        获取登录日志信息。
 
         :param user_agent: 用户代理字符串
         :param oper_ip: 操作ip
@@ -968,18 +1003,17 @@ class Log:
 
     def _set_login_data(self, login_log: dict, origin_kwargs: dict) -> None:
         """
-        设置登录日志数据
+        设置登录日志数据。
 
         :param login_log: 登录日志信息
         :param origin_kwargs: 原始函数参数
-        :return: None
         """
         if 'form_data' in origin_kwargs:
             origin_kwargs['form_data'].login_info = login_log
 
     def _get_status_and_error_msg(self, result_dict: dict) -> tuple[int, str]:
         """
-        获取操作状态和错误信息
+        获取操作状态和错误信息。
 
         :param result_dict: 操作结果字典
         :return: 操作状态和错误信息元组
@@ -996,7 +1030,7 @@ class Log:
     @staticmethod
     def _get_result_message(result_dict: dict[str, Any]) -> Any:
         """
-        获取响应结果中的消息字段，兼容 msg / message 两种写法
+        获取响应结果中的消息字段，兼容 msg / message 两种写法。
 
         :param result_dict: 操作结果字典
         :return: 消息内容
@@ -1005,7 +1039,7 @@ class Log:
 
     def _is_request_from_swagger_or_redoc(self, request: Request) -> tuple[bool, bool]:
         """
-        判断请求是否来自swagger或redoc
+        判断请求是否来自swagger或redoc。
 
         :param request: Request对象
         :return: 是否来自swagger请求和是否来自redoc请求元组
@@ -1021,7 +1055,7 @@ class Log:
 
     def _get_result_dict(self, result: Any, request_from_swagger: bool, request_from_redoc: bool) -> dict:
         """
-        获取操作结果字典
+        获取操作结果字典。
 
         :param result: 操作结果
         :param request_from_swagger: 是否来自swagger请求
@@ -1043,7 +1077,7 @@ class Log:
 @alru_cache()
 async def get_ip_location(oper_ip: str) -> str:
     """
-    查询ip归属区域
+    查询ip归属区域。
 
     :param oper_ip: 需要查询的ip
     :return: ip归属区域
@@ -1067,10 +1101,10 @@ async def get_ip_location(oper_ip: str) -> str:
 
 def get_function_parameters_name_by_type(func: Callable, param_type: Any) -> list:
     """
-    获取函数指定类型的参数名称
+    获取函数指定类型的参数名称。
 
     :param func: 函数
-    :param arg_type: 参数类型
+    :param param_type: 参数类型
     :return: 函数指定类型的参数名称
     """
     # 获取函数的参数信息
@@ -1095,8 +1129,10 @@ def get_function_parameters_name_by_type(func: Callable, param_type: Any) -> lis
 
 def get_function_parameters_value_by_name(func: Callable, name: str, *args, **kwargs) -> Any:
     """
-    获取函数指定参数的值
+    获取函数指定参数的值。
 
+    :param args: 传给被调用对象的位置参数
+    :param kwargs: 传给被调用对象的关键字参数
     :param func: 函数
     :param name: 参数名
     :return: 参数值

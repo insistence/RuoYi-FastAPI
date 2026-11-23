@@ -9,6 +9,10 @@ from i18n.message import I18nMessage
 class PluginOperationResult:
     """
     插件操作结果视图。
+
+    :ivar payload: 插件运行时负载
+    :ivar ok: 操作或检查是否成功
+    :ivar message: 与当前结果一起返回的说明
     """
 
     payload: Mapping[str, object]

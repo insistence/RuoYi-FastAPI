@@ -7,7 +7,9 @@ class PluginCommandPayloadAdapter:
     插件 CLI 输出负载适配器。
 
     核心运行时 payload 同时服务管理接口和 CLI。CLI 在输出前通过本适配器消除
-    `enabled` 的多重语义，不改变管理接口既有契约。
+    ``enabled`` 的多重语义，不改变管理接口既有契约。
+
+    :cvar _LIFECYCLE_OPERATIONS: 由插件生命周期处理器受理的操作名称
     """
 
     _LIFECYCLE_OPERATIONS = {'enable', 'disable', 'uninstall'}
@@ -31,7 +33,6 @@ class PluginCommandPayloadAdapter:
 
         :param node: 当前负载节点
         :param parent_key: 当前节点在父对象中的字段名
-        :return: None
         """
         if isinstance(node, list):
             for item in node:
@@ -59,7 +60,6 @@ class PluginCommandPayloadAdapter:
 
         :param node: 当前负载节点
         :param parent_key: 当前节点在父对象中的字段名
-        :return: None
         """
         if parent_key != 'database' or 'enabled' not in node:
             return
@@ -72,7 +72,6 @@ class PluginCommandPayloadAdapter:
         将生命周期结果中的目标启停值改为 targetEnabled。
 
         :param node: 当前负载节点
-        :return: None
         """
         if node.get('operation') == 'purge' and 'enabled' in node:
             node.pop('enabled')
@@ -92,7 +91,6 @@ class PluginCommandPayloadAdapter:
 
         :param node: 当前负载节点
         :param parent_key: 当前节点在父对象中的字段名
-        :return: None
         """
         is_action = parent_key == 'actions' and 'name' in node
         is_purge_plan_item = parent_key == 'items' and 'destructive' in node and 'label' in node
@@ -106,7 +104,6 @@ class PluginCommandPayloadAdapter:
 
         :param node: 当前负载节点
         :param parent_key: 当前节点在父对象中的字段名
-        :return: None
         """
         if parent_key != 'items' or 'pluginId' not in node or 'ready' not in node or 'enabled' not in node:
             return
@@ -119,7 +116,6 @@ class PluginCommandPayloadAdapter:
         将插件有效启用态改为 runtimeEnabled。
 
         :param node: 当前负载节点
-        :return: None
         """
         if 'pluginId' not in node or 'status' not in node or 'enabled' not in node or 'dryRun' in node:
             return
@@ -136,7 +132,6 @@ class PluginCommandPayloadAdapter:
 
         :param node: 当前负载节点
         :param parent_key: 当前节点在父对象中的字段名
-        :return: None
         """
         if parent_key == 'jobs' and 'id' in node and isinstance(node.get('enabled'), bool):
             node['defaultEnabled'] = node.pop('enabled')

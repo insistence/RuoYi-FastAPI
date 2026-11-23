@@ -10,6 +10,8 @@ class StatusPanelRenderingSupport:
 
     该对象负责状态类名解析、结构化正文渲染和信号带脉冲文本构建，
     供状态面板、指标卡与信号带组件复用。
+
+    :cvar PULSE_FRAMES: 绘制脉冲动画的帧序列
     """
 
     PULSE_FRAMES = ['·', '•', '◉', '•']
@@ -36,8 +38,9 @@ class StatusPanelRenderingSupport:
         将结构化正文文本渲染为更有层次的终端块内容。
 
         支持以下约定：
-        - `## ` 开头：分组标题
-        - `> ` 开头：说明或子项
+
+        - ``##`` 后跟空格：分组标题
+        - ``>`` 后跟空格：说明或子项
         - 空字符串：保留空行
 
         :param body: 原始正文文本
@@ -88,9 +91,12 @@ class StatusPanel(Static):
     """
     TUI 状态面板组件。
 
-    :param title: 面板标题
-    :param status: 面板状态
-    :param body: 面板正文
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar title: 面板标题
+    :ivar status: 面板状态
+    :ivar body: 面板正文
+    :ivar rendering: 状态面板渲染支持对象
+    :ivar can_focus: 组件是否可以接收键盘焦点
     """
 
     DEFAULT_CSS = """
@@ -144,7 +150,6 @@ class StatusPanel(Static):
         :param status: 面板状态
         :param body: 面板正文
         :param rendering: 状态面板渲染支持对象
-        :return: None
         """
         self.title = title
         self.status = status
@@ -174,10 +179,12 @@ class MetricPanel(Static):
     """
     TUI 首页驾驶舱指标卡组件。
 
-    :param title: 指标标题
-    :param value: 指标主值
-    :param status: 指标状态
-    :param hint: 指标补充说明
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar title: 指标标题
+    :ivar value: 指标主值
+    :ivar status: 指标状态
+    :ivar hint: 指标补充说明
+    :ivar rendering: 状态面板渲染支持对象
     """
 
     DEFAULT_CSS = """
@@ -238,7 +245,6 @@ class MetricPanel(Static):
         :param hint: 指标补充说明
         :param accent: 是否作为主指标高亮展示
         :param rendering: 状态面板渲染支持对象
-        :return: None
         """
         self.title = title
         self.value = value
@@ -270,7 +276,10 @@ class SignalRail(Static):
     """
     首页信号带组件，用于展示简洁的系统态势条目。
 
-    :param lines: 信号文本行
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar lines: 信号文本行
+    :ivar _pulse_index: 当前脉冲动画帧的位置
+    :ivar rendering: 状态面板渲染支持对象
     """
 
     DEFAULT_CSS = """
@@ -291,7 +300,6 @@ class SignalRail(Static):
 
         :param lines: 信号文本行
         :param rendering: 状态面板渲染支持对象
-        :return: None
         """
         self.lines = lines
         self._pulse_index = 0
@@ -299,20 +307,12 @@ class SignalRail(Static):
         super().__init__(self._build_render_text(), markup=False)
 
     def on_mount(self) -> None:
-        """
-        挂载后启动轻量脉冲刷新。
-
-        :return: None
-        """
+        """挂载后启动轻量脉冲刷新。"""
         if not TUI_PLATFORM_POLICY.reduced_motion:
             self.set_interval(0.8, self._advance_pulse, name='signal rail pulse')
 
     def _advance_pulse(self) -> None:
-        """
-        推进信号带脉冲状态。
-
-        :return: None
-        """
+        """推进信号带脉冲状态。"""
         self._pulse_index = (self._pulse_index + 1) % 4
         self.update(self._build_render_text())
 

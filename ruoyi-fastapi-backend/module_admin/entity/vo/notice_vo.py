@@ -11,9 +11,7 @@ from utils.security_util import SecurityUtil
 
 
 class NoticeModel(BaseModel):
-    """
-    通知公告表对应pydantic模型
-    """
+    """通知公告表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -54,34 +52,34 @@ class NoticeModel(BaseModel):
         message=I18nMessage('公告标题不能超过50个字符', msg_key='validation.noticeTitleLength'),
     )
     def get_notice_title(self) -> str | None:
+        """
+        校验并返回公告标题。
+
+        :return: 公告标题
+        """
         return self.notice_title
 
     def validate_fields(self) -> None:
+        """校验公告标题。"""
         self.get_notice_title()
 
 
 class NoticeQueryModel(DateRangeQueryMixin, NoticeModel):
-    """
-    通知公告管理不分页查询模型
-    """
+    """通知公告管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class NoticePageQueryModel(NoticeQueryModel):
-    """
-    通知公告管理分页查询模型
-    """
+    """通知公告管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class NoticeReadUserModel(BaseModel):
-    """
-    公告已读用户模型
-    """
+    """公告已读用户模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -94,9 +92,7 @@ class NoticeReadUserModel(BaseModel):
 
 
 class NoticeReadUserPageQueryModel(BaseModel):
-    """
-    公告已读用户分页查询模型
-    """
+    """公告已读用户分页查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -107,9 +103,7 @@ class NoticeReadUserPageQueryModel(BaseModel):
 
 
 class DeleteNoticeModel(BaseModel):
-    """
-    删除通知公告模型
-    """
+    """删除通知公告模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -117,9 +111,7 @@ class DeleteNoticeModel(BaseModel):
 
 
 class NoticeTopModel(BaseModel):
-    """
-    首页顶部通知公告模型
-    """
+    """首页顶部通知公告模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -133,9 +125,7 @@ class NoticeTopModel(BaseModel):
 
 
 class NoticeTopResponseModel(BaseModel):
-    """
-    首页顶部通知公告响应模型
-    """
+    """首页顶部通知公告响应模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

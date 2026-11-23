@@ -33,7 +33,11 @@ NAMESPACE = 'current-user-cache-test'
 
 @pytest.fixture(scope='module')
 def redis_socket() -> Iterator[IsolatedRedisServer]:
-    """启动隔离 Redis；保留 fixture 名称供现有缓存与会话测试复用。"""
+    """
+    启动隔离 Redis；保留 fixture 名称供现有缓存与会话测试复用。
+
+    :yield: 逐项产生的 ``server``
+    """
     executable = redis_server_executable()
     if executable is None:
         pytest.skip('真实缓存脚本测试需要 redis-server，可通过 RUOYI_TEST_REDIS_SERVER 指定')
@@ -43,7 +47,12 @@ def redis_socket() -> Iterator[IsolatedRedisServer]:
 
 @pytest_asyncio.fixture
 async def cache_redis(redis_socket: IsolatedRedisServer) -> AsyncIterator[Redis]:
-    """每项测试使用独立客户端并清空专属测试实例。"""
+    """
+    每项测试使用独立客户端并清空专属测试实例。
+
+    :param redis_socket: 启动隔离 Redis；保留 fixture 名称供现有缓存与会话测试复用
+    :yield: 用于缓存或发布消息的 Redis 客户端
+    """
     redis = Redis(**redis_socket.connection)
     try:
         for _attempt in range(10):
@@ -61,6 +70,13 @@ async def cache_redis(redis_socket: IsolatedRedisServer) -> AsyncIterator[Redis]
 
 
 def user_model(user_id: int = USER_ID, permission: str = 'demo:read') -> CurrentUserModel:
+    """
+    创建测试使用的 ``CurrentUserModel`` 实例。
+
+    :param user_id: 用户的唯一标识
+    :param permission: 当前请求需要的权限标识
+    :return: 测试使用的 ``CurrentUserModel`` 实例
+    """
     return CurrentUserModel(
         permissions=[permission],
         roles=['reader'],
@@ -73,6 +89,13 @@ def user_model(user_id: int = USER_ID, permission: str = 'demo:read') -> Current
 
 
 async def prime_cache(redis: Redis, user_id: int = USER_ID) -> CurrentUserModel:
+    """
+    为指定用户预先填充测试缓存。
+
+    :param redis: 用于缓存或发布消息的 Redis 客户端
+    :param user_id: 用户的唯一标识
+    :return: 当前操作对应的用户
+    """
     user = user_model(user_id)
     cached, ticket = await CurrentUserCacheUtil.read(redis, NAMESPACE, user_id, TTL_SECONDS)
     assert cached is None
@@ -83,6 +106,7 @@ async def prime_cache(redis: Redis, user_id: int = USER_ID) -> CurrentUserModel:
 
 @pytest.mark.asyncio
 async def test_round_trip_isolates_models_and_omits_password_and_dynamic_fields(cache_redis: Redis) -> None:
+    """缓存读写隔离模型并排除密码和动态字段。"""
     original = await prime_cache(cache_redis)
     cached, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
     assert cached is not None
@@ -105,6 +129,7 @@ async def test_round_trip_isolates_models_and_omits_password_and_dynamic_fields(
 
 @pytest.mark.asyncio
 async def test_password_hash_is_never_serialized(cache_redis: Redis) -> None:
+    """密码哈希不参与序列化。"""
     _, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
     user = user_model()
     user.user.password = 'secret-hash'
@@ -119,6 +144,7 @@ async def test_password_hash_is_never_serialized(cache_redis: Redis) -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize('shared', [False, True])
 async def test_invalidation_rejects_old_query_results(cache_redis: Redis, shared: bool) -> None:
+    """缓存失效后拒绝旧查询结果。"""
     _, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
     assert await CurrentUserCacheUtil.invalidate(cache_redis, NAMESPACE, None if shared else {USER_ID})
     assert not await CurrentUserCacheUtil.write(cache_redis, NAMESPACE, USER_ID, user_model(), ticket)
@@ -129,12 +155,18 @@ async def test_invalidation_rejects_old_query_results(cache_redis: Redis, shared
 
 @pytest.mark.asyncio
 async def test_concurrent_queries_cannot_repopulate_after_invalidation(cache_redis: Redis) -> None:
+    """缓存失效后并发查询不能重新填入旧数据。"""
     query_count = 8
     prepared = []
     all_started = asyncio.Event()
     complete_queries = asyncio.Event()
 
     async def query_and_fill() -> bool:
+        """
+        使用读取票据回填用户缓存。
+
+        :return: 是否使用读取票据回填用户缓存
+        """
         _, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
         prepared.append(ticket)
         if len(prepared) == query_count:
@@ -157,6 +189,7 @@ async def test_concurrent_queries_cannot_repopulate_after_invalidation(cache_red
 
 @pytest.mark.asyncio
 async def test_user_invalidation_preserves_other_users_and_global_invalidates_all(cache_redis: Redis) -> None:
+    """单用户失效保留其他用户数据，全局失效清除所有用户。"""
     await prime_cache(cache_redis, USER_ID)
     await prime_cache(cache_redis, OTHER_USER_ID)
     assert await CurrentUserCacheUtil.invalidate(cache_redis, NAMESPACE, {USER_ID})
@@ -169,6 +202,7 @@ async def test_user_invalidation_preserves_other_users_and_global_invalidates_al
 @pytest.mark.asyncio
 @pytest.mark.parametrize('key_index', [0, 1])
 async def test_missing_epoch_never_restores_existing_snapshot(cache_redis: Redis, key_index: int) -> None:
+    """缺少版本标识时不会恢复已有快照。"""
     await prime_cache(cache_redis)
     keys = CurrentUserCacheUtil._keys(NAMESPACE, USER_ID)
     previous = await cache_redis.get(keys[key_index])
@@ -181,6 +215,7 @@ async def test_missing_epoch_never_restores_existing_snapshot(cache_redis: Redis
 
 @pytest.mark.asyncio
 async def test_fixed_deadline_is_not_extended_by_slow_fill_or_reads(cache_redis: Redis) -> None:
+    """慢速写入或读取不会延长固定截止时间。"""
     _, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
     await asyncio.sleep(0.03)
     assert await CurrentUserCacheUtil.write(cache_redis, NAMESPACE, USER_ID, user_model(), ticket)
@@ -195,6 +230,7 @@ async def test_fixed_deadline_is_not_extended_by_slow_fill_or_reads(cache_redis:
 
 @pytest.mark.asyncio
 async def test_user_epoch_has_idle_expiry_without_extending_snapshot_deadline(cache_redis: Redis) -> None:
+    """用户版本可按空闲时间过期且不延长快照寿命。"""
     await prime_cache(cache_redis)
     global_key, user_key, snapshot_key = CurrentUserCacheUtil._keys(NAMESPACE, USER_ID)
     epoch_ttl_ms = CurrentUserCacheUtil._USER_EPOCH_TTL_SECONDS * 1000
@@ -209,6 +245,7 @@ async def test_user_epoch_has_idle_expiry_without_extending_snapshot_deadline(ca
 
 @pytest.mark.asyncio
 async def test_invalidation_expires_user_epochs_but_keeps_global_epoch(cache_redis: Redis) -> None:
+    """失效操作使用户版本过期并保留全局版本。"""
     assert await CurrentUserCacheUtil.invalidate(cache_redis, NAMESPACE, {USER_ID, OTHER_USER_ID})
     for user_id in (USER_ID, OTHER_USER_ID):
         user_key = CurrentUserCacheUtil._keys(NAMESPACE, user_id)[1]
@@ -219,6 +256,7 @@ async def test_invalidation_expires_user_epochs_but_keeps_global_epoch(cache_red
 
 @pytest.mark.asyncio
 async def test_query_past_its_original_deadline_cannot_fill(cache_redis: Redis) -> None:
+    """查询超过初始截止时间后不能回填。"""
     _, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
     expired = replace(ticket, created_at_ms=ticket.created_at_ms - TTL_MS, deadline_ms=ticket.created_at_ms - 1)
     assert not await CurrentUserCacheUtil.write(cache_redis, NAMESPACE, USER_ID, user_model(), expired)
@@ -227,6 +265,7 @@ async def test_query_past_its_original_deadline_cannot_fill(cache_redis: Redis) 
 
 @pytest.mark.asyncio
 async def test_late_older_query_cannot_replace_newer_snapshot(cache_redis: Redis) -> None:
+    """迟到的旧查询不能替换较新的快照。"""
     _, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
     older = replace(ticket, created_at_ms=ticket.created_at_ms - 100)
     assert await CurrentUserCacheUtil.write(cache_redis, NAMESPACE, USER_ID, user_model(permission='new'), ticket)
@@ -237,6 +276,7 @@ async def test_late_older_query_cannot_replace_newer_snapshot(cache_redis: Redis
 
 @pytest.mark.asyncio
 async def test_shorter_configured_ttl_does_not_accept_previously_longer_snapshot(cache_redis: Redis) -> None:
+    """缩短配置有效期后拒绝原先寿命更长的快照。"""
     _, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
     old = replace(ticket, created_at_ms=ticket.created_at_ms - TTL_MS)
     assert await CurrentUserCacheUtil.write(cache_redis, NAMESPACE, USER_ID, user_model(), old)
@@ -246,6 +286,7 @@ async def test_shorter_configured_ttl_does_not_accept_previously_longer_snapshot
 
 @pytest.mark.asyncio
 async def test_restored_expired_payload_is_not_accepted_even_if_redis_key_has_new_ttl(cache_redis: Redis) -> None:
+    """即使 Redis 键获得新有效期也拒绝已过期的内容。"""
     await prime_cache(cache_redis)
     snapshot_key = CurrentUserCacheUtil._keys(NAMESPACE, USER_ID)[2]
     await cache_redis.hset(snapshot_key, 'deadline', 1)
@@ -256,6 +297,7 @@ async def test_restored_expired_payload_is_not_accepted_even_if_redis_key_has_ne
 @pytest.mark.asyncio
 @pytest.mark.parametrize('damage', ['json', 'user_id', 'password', 'disabled', 'deleted', 'null'])
 async def test_damaged_snapshot_is_not_used(cache_redis: Redis, damage: str) -> None:
+    """损坏的快照不可使用。"""
     await prime_cache(cache_redis)
     key = CurrentUserCacheUtil._keys(NAMESPACE, USER_ID)[2]
     payload = json.loads(await cache_redis.hget(key, 'payload'))
@@ -282,6 +324,7 @@ async def test_damaged_snapshot_is_not_used(cache_redis: Redis, damage: str) -> 
 
 @pytest.mark.asyncio
 async def test_namespaces_and_users_do_not_share_snapshots(cache_redis: Redis) -> None:
+    """不同命名空间和用户不共享快照。"""
     await prime_cache(cache_redis)
     assert (await CurrentUserCacheUtil.read(cache_redis, 'another-database', USER_ID, TTL_SECONDS))[0] is None
     assert (await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, OTHER_USER_ID, TTL_SECONDS))[0] is None
@@ -289,6 +332,7 @@ async def test_namespaces_and_users_do_not_share_snapshots(cache_redis: Redis) -
 
 @pytest.mark.asyncio
 async def test_empty_invalidation_does_not_invalidate_other_users(cache_redis: Redis) -> None:
+    """空的失效请求不影响其他用户。"""
     await prime_cache(cache_redis)
     assert await CurrentUserCacheUtil.invalidate(cache_redis, NAMESPACE, set())
     assert (await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS))[0] is not None
@@ -297,6 +341,7 @@ async def test_empty_invalidation_does_not_invalidate_other_users(cache_redis: R
 @pytest.mark.asyncio
 @pytest.mark.parametrize('error_type', [RedisConnectionError, RedisTimeoutError, ResponseError])
 async def test_cache_failure_returns_to_database_without_claiming_success(error_type: type[Exception]) -> None:
+    """缓存故障时回退到数据库且不报告缓存成功。"""
     redis = AsyncMock(spec=Redis)
     redis.eval.side_effect = error_type('unavailable')
     assert await CurrentUserCacheUtil.read(redis, NAMESPACE, USER_ID, TTL_SECONDS) == (None, None)
@@ -308,6 +353,7 @@ async def test_cache_failure_returns_to_database_without_claiming_success(error_
 @pytest.mark.asyncio
 @pytest.mark.parametrize('result', [None, 1, [], ['global', 'user', '1', '2'], ['global', 'user', None, '2', '']])
 async def test_malformed_redis_response_falls_back_to_database(result: object) -> None:
+    """Redis 返回格式错误时回退到数据库。"""
     redis = AsyncMock(spec=Redis)
     redis.eval.return_value = result
     assert await CurrentUserCacheUtil.read(redis, NAMESPACE, USER_ID, TTL_SECONDS) == (None, None)
@@ -318,10 +364,16 @@ async def test_malformed_redis_response_falls_back_to_database(result: object) -
 async def test_slow_cache_operation_is_bounded_and_cancelled(
     cache_redis: Redis, operation: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """限制慢缓存操作的等待时间并取消操作。"""
     _, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
     stopped = asyncio.Event()
 
     async def slow_eval(*args: object) -> None:
+        """
+        模拟迟迟未完成的缓存脚本。
+
+        :param args: 传给被调用对象的位置参数
+        """
         try:
             await asyncio.Event().wait()
         finally:
@@ -342,6 +394,7 @@ async def test_slow_cache_operation_is_bounded_and_cancelled(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('operation', ['read', 'write', 'invalidate'])
 async def test_cancellation_is_propagated(cache_redis: Redis, operation: str) -> None:
+    """取消信号向调用方传播。"""
     _, ticket = await CurrentUserCacheUtil.read(cache_redis, NAMESPACE, USER_ID, TTL_SECONDS)
     redis = AsyncMock(spec=Redis)
     redis.eval.side_effect = asyncio.CancelledError
@@ -356,10 +409,16 @@ async def test_cancellation_is_propagated(cache_redis: Redis, operation: str) ->
 
 @pytest.mark.asyncio
 async def test_cancelling_caller_stops_pending_redis_operation() -> None:
+    """调用方取消后停止待处理的 Redis 操作。"""
     started = asyncio.Event()
     stopped = asyncio.Event()
 
     async def blocking_eval(*args: object) -> None:
+        """
+        在执行缓存脚本时等待测试控制信号。
+
+        :param args: 传给被调用对象的位置参数
+        """
         started.set()
         try:
             await asyncio.Event().wait()
@@ -380,11 +439,17 @@ async def test_cancelling_caller_stops_pending_redis_operation() -> None:
 @pytest.mark.parametrize('operation', ['read', 'write', 'invalidate'])
 @pytest.mark.parametrize('cancellation', ['task_group', 'deadline'])
 async def test_anyio_parent_cancellation_is_not_converted_to_cache_fallback(operation: str, cancellation: str) -> None:
+    """AnyIO 父级取消信号不会被转换为缓存回退。"""
     started = anyio.Event()
     stopped = anyio.Event()
     results = []
 
     async def blocking_eval(*args: object) -> None:
+        """
+        在执行缓存脚本时等待测试控制信号。
+
+        :param args: 传给被调用对象的位置参数
+        """
         started.set()
         try:
             await anyio.sleep_forever()
@@ -396,6 +461,7 @@ async def test_anyio_parent_cancellation_is_not_converted_to_cache_fallback(oper
     ticket = CurrentUserCacheTicket('global', 'user', 0, TTL_MS)
 
     async def run_operation() -> None:
+        """执行指定的用户缓存操作并收集结果。"""
         if operation == 'read':
             result = await CurrentUserCacheUtil.read(redis, NAMESPACE, USER_ID, TTL_SECONDS)
         elif operation == 'write':
@@ -436,6 +502,12 @@ async def test_cancellation_waits_for_redis_connection_release(  # noqa: PLR0915
     monkeypatch.setattr(CurrentUserCacheUtil, '_OPERATION_TIMEOUT_SECONDS', 0.02 if timed_out else 1)
 
     async def blocking_command(*args: object, **kwargs: object) -> None:
+        """
+        等待测试控制信号后完成命令。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         started.set()
         try:
             await asyncio.Event().wait()
@@ -446,6 +518,11 @@ async def test_cancellation_waits_for_redis_connection_release(  # noqa: PLR0915
     ticket = CurrentUserCacheTicket('global', 'user', 0, TTL_MS)
 
     async def run_operation() -> None:
+        """
+        执行指定的用户缓存操作并收集结果。
+
+        :raises asyncio.CancelledError: 异步操作被取消时
+        """
         with request_scope:
             try:
                 if operation == 'read':
@@ -504,9 +581,16 @@ async def test_cancellation_waits_for_redis_connection_release(  # noqa: PLR0915
 async def test_redis_cleanup_error_does_not_replace_timeout_or_cancellation(
     cancellation: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Redis 清理错误不会覆盖超时或取消。"""
     started = asyncio.Event()
 
     async def failing_cleanup(*args: object) -> None:
+        """
+        模拟资源清理过程中发生故障。
+
+        :param args: 传给被调用对象的位置参数
+        :raises RuntimeError: 模拟清理失败
+        """
         started.set()
         try:
             await asyncio.Event().wait()
@@ -528,12 +612,14 @@ async def test_redis_cleanup_error_does_not_replace_timeout_or_cancellation(
 
 @pytest.mark.asyncio
 async def test_disabled_cache_never_accesses_redis() -> None:
+    """禁用缓存时不访问 Redis。"""
     redis = AsyncMock(spec=Redis)
     assert await CurrentUserCacheUtil.read(redis, NAMESPACE, USER_ID, 0) == (None, None)
     redis.eval.assert_not_called()
 
 
 def test_namespace_is_stable_for_engine_and_connection_and_unknown_bind_bypasses() -> None:
+    """引擎与连接使用稳定命名空间，未知绑定绕过缓存。"""
     engine = create_engine('sqlite://')
     try:
         with engine.connect() as connection:
@@ -548,6 +634,7 @@ def test_namespace_is_stable_for_engine_and_connection_and_unknown_bind_bypasses
 
 @pytest.mark.asyncio
 async def test_async_and_sync_bind_share_namespace() -> None:
+    """异步与同步绑定共享命名空间。"""
     engine = create_async_engine('sqlite+aiosqlite://')
     try:
         async with engine.connect() as connection:

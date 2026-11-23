@@ -49,7 +49,7 @@ class ConfigRiskSupport:
         """
         从配置巡检结果中提取指定风险字段对应的配置键集合。
 
-        :param payload: `config doctor` JSON 负载
+        :param payload: ``config doctor`` JSON 负载
         :param field_name: 风险字段名
         :return: 配置键集合
         """
@@ -62,7 +62,7 @@ class ConfigRiskSupport:
         """
         构建配置风险分类集合。
 
-        :param payload: `config doctor` JSON 负载
+        :param payload: ``config doctor`` JSON 负载
         :return: 按风险分类聚合的配置键集合
         """
         return {
@@ -190,8 +190,9 @@ class ConfigSectionBuilder:
 
     该构建器负责构建参数配置页共享分区，以及单个配置项详情分区。
 
-    :param page_adapter: 参数配置浏览页适配器
-    :param risk_support: 参数配置风险分类支持对象
+    :ivar page_adapter: 参数配置浏览页适配器
+    :ivar risk_support: 参数配置风险分类支持对象
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(
@@ -203,9 +204,9 @@ class ConfigSectionBuilder:
         """
         初始化参数配置浏览页分区构建器。
 
+        :param query_service: TUI 进程内查询服务
         :param page_adapter: 参数配置浏览页适配器
         :param risk_support: 参数配置风险分类支持对象
-        :return: None
         """
         self.page_adapter = page_adapter
         self.risk_support = risk_support
@@ -215,7 +216,7 @@ class ConfigSectionBuilder:
         """
         构建参数配置巡检共享分区。
 
-        :param payload: `config doctor` JSON 负载
+        :param payload: ``config doctor`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -243,7 +244,7 @@ class ConfigSectionBuilder:
         """
         构建参数配置不一致样本共享分区。
 
-        :param payload: `config doctor` JSON 负载
+        :param payload: ``config doctor`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -419,7 +420,7 @@ class ConfigSectionBuilder:
         """
         构建单个配置的一致性分区。
 
-        :param payload: `config get` JSON 负载
+        :param payload: ``config get`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -524,8 +525,8 @@ class ConfigRecordBuilder:
 
     该构建器负责构建配置浏览记录与失败兜底记录。
 
-    :param page_adapter: 参数配置浏览页适配器
-    :param section_builder: 参数配置浏览页分区构建器
+    :ivar page_adapter: 参数配置浏览页适配器
+    :ivar section_builder: 参数配置浏览页分区构建器
     """
 
     def __init__(
@@ -538,7 +539,6 @@ class ConfigRecordBuilder:
 
         :param page_adapter: 参数配置浏览页适配器
         :param section_builder: 参数配置浏览页分区构建器
-        :return: None
         """
         self.page_adapter = page_adapter
         self.section_builder = section_builder
@@ -608,9 +608,10 @@ class ConfigsBrowserAdapter(BaseBrowserAdapter):
     该适配器负责采集配置巡检、配置列表和单项配置详情，并统一完成
     风险分类、筛选排序、共享分区构建与浏览记录装配。
 
-    :param risk_support: 参数配置风险分类支持对象
-    :param section_builder: 参数配置浏览页分区构建器
-    :param record_builder: 参数配置浏览记录构建器
+    :ivar risk_support: 参数配置风险分类支持对象
+    :ivar query_service: TUI 进程内查询服务
+    :ivar section_builder: 参数配置浏览页分区构建器
+    :ivar record_builder: 参数配置浏览记录构建器
     """
 
     def __init__(
@@ -623,10 +624,10 @@ class ConfigsBrowserAdapter(BaseBrowserAdapter):
         """
         初始化参数配置浏览页适配器。
 
+        :param query_service: TUI 进程内查询服务
         :param risk_support: 参数配置风险分类支持对象
         :param section_builder: 参数配置浏览页分区构建器
         :param record_builder: 参数配置浏览记录构建器
-        :return: None
         """
         super().__init__(
             page_title='参数配置',

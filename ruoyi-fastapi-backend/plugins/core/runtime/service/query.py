@@ -38,9 +38,7 @@ AUDIT_LOG_OVERFETCH_MULTIPLIER = 3
 
 
 class PluginQueryRuntimeOperations(Protocol):
-    """
-    查询诊断所需的运行时协作能力。
-    """
+    """查询诊断所需的运行时协作能力。"""
 
     async def get_plugin_config(self, plugin_id: str, *, reveal_secret: bool = False) -> PluginConfigStateResponse:
         """
@@ -55,6 +53,10 @@ class PluginQueryRuntimeOperations(Protocol):
 class PluginQueryUseCase:
     """
     插件查询 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar runtime_operations: 查询诊断所需的运行时协作能力
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(

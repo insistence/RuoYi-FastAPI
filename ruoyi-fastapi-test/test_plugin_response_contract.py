@@ -21,7 +21,13 @@ pytestmark = pytest.mark.harness
 
 
 def capability(frontend: str = 'built', backend: str = 'service') -> dict:
-    """构造与 CI 中源码 AI 插件一致的能力报告。"""
+    """
+    构造与 CI 中源码 AI 插件一致的能力报告。
+
+    :param frontend: 前端部分的配置
+    :param backend: 后端部分的配置或处理对象
+    :return: 与 CI 中源码 AI 插件一致的能力报告
+    """
     warnings = []
     if backend == 'service':
         warnings.append('当前为服务运行模式，请在维护窗口执行插件变更。')
@@ -44,7 +50,14 @@ def capability(frontend: str = 'built', backend: str = 'service') -> dict:
 
 
 def dependency_report(*, installed: bool, satisfied: bool, skipped: bool = False) -> dict:
-    """缺失、版本不满足与 built 模式跳过检查有不同且可验证的语义。"""
+    """
+    缺失、版本不满足与 built 模式跳过检查有不同且可验证的语义。
+
+    :param installed: 当前环境中已安装的版本
+    :param satisfied: 预期条件是否已经满足
+    :param skipped: 是否跳过当前步骤
+    :return: 包含 ``pluginId``、``ok``、``dependencyOk``、``message``、``dependencies`` 等字段的数据
+    """
     ok = skipped or (installed and satisfied)
     return {
         'pluginId': PLUGIN_ID,
@@ -68,7 +81,12 @@ def dependency_report(*, installed: bool, satisfied: bool, skipped: bool = False
 
 
 def install_plan(runtime: dict) -> dict:
-    """有效拓扑与生产环境阻断分别保留，模拟已观测到的 CI 响应结构。"""
+    """
+    有效拓扑与生产环境阻断分别保留，模拟已观测到的 CI 响应结构。
+
+    :param runtime: 只访问临时 SQLite，调度器执行日志不会连接开发数据库
+    :return: 包含 ``ok``、``message``、``operation``、``databaseAvailable``、``databaseError`` 等字段的数据
+    """
     blocked = not runtime['runtimeManageable']
     return {
         'ok': not blocked,
@@ -99,7 +117,12 @@ def install_plan(runtime: dict) -> dict:
 
 
 def envelope(data: dict) -> dict:
-    """响应封装的成功字段必须与业务结果对应。"""
+    """
+    响应封装的成功字段必须与业务结果对应。
+
+    :param data: 当前调用处理的业务数据
+    :return: 包含 ``code``、``success``、``msg``、``data`` 的数据
+    """
     return {
         'code': HTTPStatus.OK if data['ok'] else PLUGIN_WARNING,
         'success': data['ok'],
@@ -113,12 +136,14 @@ def envelope(data: dict) -> dict:
     [(True, True, False), (False, False, False), (True, False, False), (False, False, True)],
 )
 def test_dependency_contract_accepts_only_explained_results(installed: bool, satisfied: bool, skipped: bool) -> None:
+    """依赖检查只接受有原因说明的结果。"""
     report = dependency_report(installed=installed, satisfied=satisfied, skipped=skipped)
     validate_dependency_report(validate_operation_envelope(envelope(report)))
 
 
 @pytest.mark.parametrize('field', ['missingDependencies', 'unsatisfiedDependencies', 'dependencyOk', 'message'])
 def test_dependency_contract_rejects_unexplained_failure(field: str) -> None:
+    """依赖检查拒绝没有说明原因的失败。"""
     report = dependency_report(installed=False, satisfied=False)
     report[field] = {
         'missingDependencies': [],
@@ -135,6 +160,7 @@ def test_dependency_contract_rejects_unexplained_failure(field: str) -> None:
     [('dev', 'dev'), ('dev', 'maintenance'), ('built', 'dev'), ('dev', 'service'), ('built', 'service')],
 )
 def test_plan_contract_distinguishes_runtime_capability(frontend: str, backend: str) -> None:
+    """计划响应区分运行时能力。"""
     runtime = capability(frontend, backend)
     payload = validate_operation_envelope(envelope(install_plan(runtime)))
     assert validate_install_plan(payload, runtime) is (not runtime['runtimeManageable'])
@@ -145,6 +171,7 @@ def test_plan_contract_distinguishes_runtime_capability(frontend: str, backend: 
     ['no_blocker', 'wrong_operation', 'wrong_plugin', 'wrong_mode', 'database_error', 'unexpected_success'],
 )
 def test_plan_contract_rejects_unrelated_or_inconsistent_failure(corruption: str) -> None:
+    """计划响应拒绝无关或前后不一致的失败。"""
     runtime = capability()
     payload = install_plan(runtime)
     if corruption == 'no_blocker':
@@ -166,6 +193,7 @@ def test_plan_contract_rejects_unrelated_or_inconsistent_failure(corruption: str
 
 @pytest.mark.parametrize('corruption', ['server_error', 'success_flag', 'missing_payload', 'wrong_message'])
 def test_operation_envelope_does_not_hide_errors(corruption: str) -> None:
+    """操作响应封装不能隐藏错误。"""
     payload = envelope(install_plan(capability()))
     if corruption == 'server_error':
         payload['code'] = HTTPStatus.INTERNAL_SERVER_ERROR
@@ -180,6 +208,7 @@ def test_operation_envelope_does_not_hide_errors(corruption: str) -> None:
 
 
 async def test_operation_payload_rejects_http_failure_even_with_valid_business_data() -> None:
+    """即使业务数据有效也拒绝 HTTP 层失败的响应。"""
     response = MagicMock(
         status=HTTPStatus.INTERNAL_SERVER_ERROR, json=AsyncMock(return_value=envelope(install_plan(capability())))
     )
@@ -189,6 +218,7 @@ async def test_operation_payload_rejects_http_failure_even_with_valid_business_d
 
 
 def test_capability_rejects_unexplained_blocked_operations_in_development() -> None:
+    """开发环境中的能力检查拒绝无原因的受阻操作。"""
     runtime = capability('dev', 'dev')
     runtime['blockedOperations'] = ['batch_install']
     with pytest.raises(AssertionError):
@@ -197,6 +227,7 @@ def test_capability_rejects_unexplained_blocked_operations_in_development() -> N
 
 @pytest.mark.parametrize('unsafe_field', [None, 'dryRun', 'results'])
 def test_dependency_preview_requires_explicit_safe_environment_block(unsafe_field: str | None) -> None:
+    """依赖预览要求显式声明安全环境限制。"""
     runtime = capability()
     preview = {
         'ok': False,

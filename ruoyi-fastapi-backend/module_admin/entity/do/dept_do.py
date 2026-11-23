@@ -7,9 +7,7 @@ from utils.common_util import SqlalchemyUtil
 
 
 class SysDept(AuditTimeMixin, Base):
-    """
-    部门表
-    """
+    """部门表。"""
 
     __tablename__ = 'sys_dept'
     __table_args__ = {'comment': '部门表'}

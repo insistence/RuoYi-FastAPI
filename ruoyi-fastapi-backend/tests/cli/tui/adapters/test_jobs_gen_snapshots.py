@@ -11,9 +11,17 @@ async def test_collect_jobs_page_snapshot_links_first_job_detail_and_logs(
     jobs_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """任务快照关联首个任务的详情和日志。"""
     calls: list[tuple[str, ...]] = []
 
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``job list``、``job detail``、``job logs`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         calls.append(arguments)
         if arguments[0:2] == ('job', 'list'):
@@ -127,7 +135,16 @@ async def test_collect_jobs_page_snapshot_applies_failed_filter(
     jobs_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """任务快照可筛选失败任务。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``job list``、``job logs`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('job', 'list'):
             return SimpleNamespace(
@@ -200,7 +217,16 @@ async def test_collect_jobs_page_snapshot_applies_query_filter(
     jobs_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """任务快照按查询条件过滤。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``job list`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('job', 'list'):
             return SimpleNamespace(
@@ -244,7 +270,16 @@ async def test_collect_jobs_page_snapshot_surfaces_failure_message(
     jobs_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """任务快照显示失败原因。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        按子命令返回预设的 CLI 输出，供 TUI 生成快照。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: ``SimpleNamespace`` 实例
+        """
         del arguments, parse_json
         return SimpleNamespace(
             payload={
@@ -270,9 +305,17 @@ async def test_collect_gen_page_snapshot_links_first_table_detail(
     gen_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """生成器快照关联首张表的详情。"""
     calls: list[tuple[str, ...]] = []
 
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``gen list``、``gen detail``、``gen preview`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         calls.append(arguments)
         if arguments[0:2] == ('gen', 'list'):
@@ -427,7 +470,16 @@ async def test_gen_browser_adapter_collect_snapshot_exposes_search_context(
     gen_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """生成器浏览器快照提供搜索上下文。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``gen list`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('gen', 'list'):
             return SimpleNamespace(

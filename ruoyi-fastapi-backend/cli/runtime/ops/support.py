@@ -18,10 +18,10 @@ class OperationsDependencySpec:
     """
     运维依赖检查项定义。
 
-    :param package_name: CLI 展示用包名
-    :param distribution: Python 分发名称
-    :param required: 是否为必需依赖
-    :param version: 显式版本，存在时跳过环境读取
+    :ivar package_name: CLI 展示用包名
+    :ivar distribution: Python 分发名称
+    :ivar required: 是否为必需依赖
+    :ivar version: 显式版本，存在时跳过环境读取
     """
 
     package_name: str
@@ -44,7 +44,7 @@ class OperationsDependencyInspector:
         读取指定 Python 包的已安装版本号。
 
         :param distribution_name: Python 包分发名称
-        :return: 已安装版本号，未安装时返回 `None`
+        :return: 已安装版本号，未安装时返回 ``None``
         """
         try:
             return metadata.version(distribution_name)
@@ -128,7 +128,7 @@ class OperationsServerInfoSupport:
     该对象负责 CLI 兜底服务器信息构建与 IP 解析逻辑，
     避免主运行时服务继续承载大量平台采集细节。
 
-    :param infrastructure_gateway: 运维基础设施网关
+    :ivar infrastructure_gateway: 运维基础设施网关
     """
 
     def __init__(self, infrastructure_gateway: OperationsInfrastructureGateway) -> None:
@@ -136,7 +136,6 @@ class OperationsServerInfoSupport:
         初始化服务器信息支持对象。
 
         :param infrastructure_gateway: 运维基础设施网关
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
 

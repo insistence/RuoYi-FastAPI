@@ -13,9 +13,7 @@ from utils.time_util import TimezoneUtil
 
 
 class JobModel(BaseModel):
-    """
-    定时任务调度表对应pydantic模型
-    """
+    """定时任务调度表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -69,10 +67,11 @@ class JobModel(BaseModel):
     @classmethod
     def reject_legacy_policy(cls, value: Any) -> Any:
         """
-        拒绝已替换的策略字段，避免旧调用方的配置被静默忽略
+        拒绝已替换的策略字段，避免旧调用方的配置被静默忽略。
 
         :param value: 接口传入的任务数据
         :return: 使用当前字段的任务数据
+        :raises ValueError: 请使用 misfireGraceTime、coalesce 和 maxInstances 配置执行策略
         """
         if isinstance(value, dict) and {'misfirePolicy', 'misfire_policy', 'concurrent'} & value.keys():
             raise ValueError('请使用 misfireGraceTime、coalesce 和 maxInstances 配置执行策略')
@@ -82,7 +81,7 @@ class JobModel(BaseModel):
     @classmethod
     def validate_time_zone(cls, value: str) -> str:
         """
-        校验任务IANA时区名称
+        校验任务IANA时区名称。
 
         :param value: 任务时区名称
         :return: 去除首尾空白后的有效时区名称
@@ -93,7 +92,7 @@ class JobModel(BaseModel):
     @classmethod
     def validate_cron_expression(cls, value: str | None) -> str | None:
         """
-        校验Quartz表达式语法
+        校验Quartz表达式语法。
 
         :param value: 待校验的Cron表达式
         :return: 去除首尾空白后的表达式，未填写时保留None
@@ -114,6 +113,11 @@ class JobModel(BaseModel):
         message=I18nMessage('调用目标字符串长度不能超过500个字符', msg_key='validation.invokeTargetLength'),
     )
     def get_invoke_target(self) -> str | None:
+        """
+        校验并返回调用目标字符串。
+
+        :return: 调用目标字符串
+        """
         return self.invoke_target
 
     @NotBlank(
@@ -126,17 +130,21 @@ class JobModel(BaseModel):
         message=I18nMessage('Cron执行表达式不能超过255个字符', msg_key='validation.cronLength'),
     )
     def get_cron_expression(self) -> str | None:
+        """
+        校验并返回cron执行表达式。
+
+        :return: cron执行表达式
+        """
         return self.cron_expression
 
     def validate_fields(self) -> None:
+        """校验调用目标字符串、cron执行表达式。"""
         self.get_invoke_target()
         self.get_cron_expression()
 
 
 class JobPreviewRequest(BaseModel):
-    """
-    Cron执行时刻预览请求模型
-    """
+    """Cron执行时刻预览请求模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -149,7 +157,7 @@ class JobPreviewRequest(BaseModel):
     @classmethod
     def validate_time_zone(cls, value: str) -> str:
         """
-        校验任务IANA时区名称
+        校验任务IANA时区名称。
 
         :param value: 任务时区名称
         :return: 去除首尾空白后的有效时区名称
@@ -160,7 +168,7 @@ class JobPreviewRequest(BaseModel):
     @classmethod
     def validate_cron_expression(cls, value: str) -> str:
         """
-        校验Quartz表达式语法
+        校验Quartz表达式语法。
 
         :param value: 待校验的Cron表达式
         :return: 去除首尾空白后的表达式
@@ -170,9 +178,7 @@ class JobPreviewRequest(BaseModel):
 
 
 class JobPreviewResult(BaseModel):
-    """
-    Cron执行时刻预览结果模型
-    """
+    """Cron执行时刻预览结果模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -182,9 +188,7 @@ class JobPreviewResult(BaseModel):
 
 
 class JobLogModel(BaseModel):
-    """
-    定时任务调度日志表对应pydantic模型
-    """
+    """定时任务调度日志表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -211,9 +215,7 @@ class JobLogModel(BaseModel):
 
 
 class JobQueryModel(DateRangeQueryMixin, BaseModel):
-    """
-    定时任务管理不分页查询模型
-    """
+    """定时任务管理不分页查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -225,27 +227,21 @@ class JobQueryModel(DateRangeQueryMixin, BaseModel):
 
 
 class JobPageQueryModel(JobQueryModel):
-    """
-    定时任务管理分页查询模型
-    """
+    """定时任务管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class EditJobModel(JobModel):
-    """
-    编辑定时任务模型
-    """
+    """编辑定时任务模型。"""
 
     job_id: int = Field(gt=0, description='任务ID')
     type: str | None = Field(default=None, description='操作类型')
 
 
 class JobRunModel(BaseModel):
-    """
-    手动执行请求，仅按稳定任务ID读取已保存配置
-    """
+    """手动执行请求，仅按稳定任务ID读取已保存配置。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -253,17 +249,13 @@ class JobRunModel(BaseModel):
 
 
 class ChangeJobStatusModel(JobRunModel):
-    """
-    修改任务状态请求
-    """
+    """修改任务状态请求。"""
 
     status: Literal['0', '1'] = Field(description='状态（0正常 1暂停）')
 
 
 class DeleteJobModel(BaseModel):
-    """
-    删除定时任务模型
-    """
+    """删除定时任务模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -271,9 +263,7 @@ class DeleteJobModel(BaseModel):
 
 
 class JobLogQueryModel(DateRangeQueryMixin, BaseModel):
-    """
-    定时任务日志不分页查询模型
-    """
+    """定时任务日志不分页查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -287,18 +277,14 @@ class JobLogQueryModel(DateRangeQueryMixin, BaseModel):
 
 
 class JobLogPageQueryModel(JobLogQueryModel):
-    """
-    定时任务日志管理分页查询模型
-    """
+    """定时任务日志管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class DeleteJobLogModel(BaseModel):
-    """
-    删除定时任务日志模型
-    """
+    """删除定时任务日志模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

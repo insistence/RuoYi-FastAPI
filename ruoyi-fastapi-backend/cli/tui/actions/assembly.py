@@ -16,11 +16,11 @@ class TuiActionRegistryBuilder:
     该对象负责装配各领域动作模板工厂，最终输出浏览页和详情页共用的
     动作注册表，避免模板常量继续散落在模块底部。
 
-    :param jobs: 任务页动作模板工厂
-    :param cache: 缓存页动作模板工厂
-    :param gen: 代码生成页动作模板工厂
-    :param static: 静态页面动作模板工厂
-    :param spec_factory: 动作规格构建器
+    :ivar jobs: 任务页动作模板工厂
+    :ivar cache: 缓存页动作模板工厂
+    :ivar gen: 代码生成页动作模板工厂
+    :ivar static: 静态页面动作模板工厂
+    :ivar spec_factory: 动作规格构建器
     """
 
     jobs: JobActionTemplateFactory

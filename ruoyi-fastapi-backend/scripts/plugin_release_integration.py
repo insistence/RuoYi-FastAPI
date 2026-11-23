@@ -30,6 +30,10 @@ EXPECTED_WORKER_COUNT = 2
 class RunSpec:
     """
     可跨进程序列化的隔离运行信息，不包含连接密码。
+
+    :ivar engine: 执行当前任务的引擎
+    :ivar run_id: 任务ID
+    :ivar root: 路径解析的基准目录
     """
 
     engine: str
@@ -58,7 +62,7 @@ class RunSpec:
         """
         校验数据库类型、运行标识和绝对输出路径。
 
-        :return: None
+        :raises ValueError: 运行标识无效或输出根目录不是绝对路径
         """
         if self.engine not in {'mysql', 'postgresql'} or not re.fullmatch(r'[0-9a-f]{32}', self.run_id):
             raise ValueError('Invalid isolated integration run identity')
@@ -71,7 +75,7 @@ def require_opt_in(engine: str) -> None:
     在导入服务依赖前检查显式授权和连接凭据环境变量。
 
     :param engine: 验收使用的数据库引擎
-    :return: None
+    :raises ValueError: 未显式启用真实服务测试、选择数据库或提供凭据
     """
     if os.environ.get(OPT_IN) != '1':
         raise ValueError(f'Real-service tests are disabled; explicitly set {OPT_IN}=1')
@@ -103,7 +107,7 @@ def check(condition: bool, message: str) -> None:
 
     :param condition: 预期成立的验收条件
     :param message: 条件不成立时的错误说明
-    :return: None
+    :raises AssertionError: 验收条件未满足
     """
     if not condition:
         raise AssertionError(message)
@@ -115,7 +119,6 @@ def emit(phase: str, **details: Any) -> None:
 
     :param phase: 验收阶段标识
     :param details: 当前阶段的结构化结果
-    :return: None
     """
     print(json.dumps({'phase': phase, **details}, ensure_ascii=False), flush=True)
 
@@ -125,7 +128,6 @@ def configure_process(spec: RunSpec) -> None:
     配置隔离环境并禁用默认应用连接，避免意外使用业务配置。
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
-    :return: None
     """
     require_opt_in(spec.engine)
     spec.validate()
@@ -234,7 +236,8 @@ def wire_runtime(spec: RunSpec, engine: Any) -> tuple[Any, Any]:
 
         :param args: 宿主会话工厂的位置参数，验收时禁止指定命名数据源
         :param kwargs: 宿主会话工厂的关键字参数
-        :return: 异步上下文中的隔离数据库会话
+        :yield: 异步上下文中的隔离数据库会话
+        :raises ValueError: 尝试在隔离验收中使用具名应用数据源
         """
         if args or kwargs.get('name') is not None:
             raise ValueError('Named application data sources are forbidden in integration acceptance')
@@ -267,7 +270,6 @@ async def create_isolated_database(spec: RunSpec, admin: Any) -> None:
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param admin: 用于创建和删除隔离数据库的管理连接池
-    :return: None
     """
     spec.validate()
     quote = '`' if spec.engine == 'mysql' else '"'
@@ -283,7 +285,6 @@ async def drop_isolated_database(spec: RunSpec, admin: Any) -> None:
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param admin: 用于创建和删除隔离数据库的管理连接池
-    :return: None
     """
     spec.validate()
     quote = '`' if spec.engine == 'mysql' else '"'
@@ -317,7 +318,6 @@ async def prepare_schema(spec: RunSpec, engine: Any) -> None:
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param engine: 隔离数据库的异步连接池
-    :return: None
     """
     from sqlalchemy import select  # noqa: PLC0415
 
@@ -452,7 +452,6 @@ async def test_real_lock(spec: RunSpec) -> None:
     验证真实 Redis 锁的互斥、自动续租和按所有者释放行为。
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
-    :return: None
     """
     from plugins.core.runtime.service.lifecycle_lock import RedisPluginLifecycleLock  # noqa: PLC0415
 
@@ -485,6 +484,7 @@ async def maintenance_process(spec: RunSpec, action: str, digest: str | None) ->
     :param action: 当前命令需要执行的操作
     :param digest: 已导入制品的 SHA256 摘要
     :return: 维护操作结果
+    :raises ValueError: 请求的隔离维护操作不受支持
     """
     from plugins.core.deployment.service import PluginDeploymentService  # noqa: PLC0415
     from plugins.core.management.dao.release_dao import PluginReleaseDao  # noqa: PLC0415
@@ -529,7 +529,6 @@ async def worker_process(spec: RunSpec, queue: Any, stop: Any, launch: str, fail
     :param stop: 当前 worker 独享的停止事件
     :param launch: 本轮 worker 启动标识
     :param fail: 是否让当前 worker 在插件启动时主动失败
-    :return: None
     """
     from fastapi import FastAPI  # noqa: PLC0415
 
@@ -570,11 +569,7 @@ async def worker_process(spec: RunSpec, queue: Any, stop: Any, launch: str, fail
 
     async def create_tables() -> None:
         # 表结构已经准备完成，此处只通过真实 Redis 统计启动写入回调的执行次数。
-        """
-        通过 Redis 计数验证只有启动写入进程执行此回调。
-
-        :return: None
-        """
+        """通过 Redis 计数验证只有启动写入进程执行此回调。"""
         await client.incr(f'{spec.redis_prefix}writer:{launch}')
 
     started = False
@@ -616,7 +611,7 @@ def child_entry(spec: RunSpec, queue: Any, action: str, payload: Any, stop: Any 
     :param action: 当前命令需要执行的操作
     :param payload: 当前子进程操作需要的参数
     :param stop: 当前 worker 独享的停止事件
-    :return: None
+    :raises SystemExit: 命令行校验失败或需要终止进程时
     """
     try:
         configure_process(spec)
@@ -660,6 +655,16 @@ async def run_maintenance(spec: RunSpec, action: str, digest: str | None = None)
 class Workers:
     """
     负责全部验收 worker 的启动与回收，包括启动未完成的进程组。
+
+    :ivar spec: 当前验收的隔离运行信息，不包含连接密码
+    :ivar retired_worker_ids: 已确认退出但其诊断快照仍可能保留的本轮 worker 身份
+    :ivar launch: 本轮 worker 启动标识
+    :ivar context: 当前操作所需的上下文
+    :ivar queue: 仅传递结果和脱敏错误的进程队列
+    :ivar stops: 用于通知各子进程退出的信号
+    :ivar processes: 由当前实例管理的子进程
+    :ivar reports: 保存各工作进程报告的集合
+    :ivar killed: 已强制终止的工作进程
     """
 
     def __init__(
@@ -671,7 +676,6 @@ class Workers:
         :param spec: 当前验收的隔离运行信息，不包含连接密码
         :param one_fails: 是否让第二个 worker 主动触发启动失败
         :param retired_worker_ids: 已确认退出但其诊断快照仍可能保留的本轮 worker 身份
-        :return: None
         """
         self.spec = spec
         self.retired_worker_ids = retired_worker_ids
@@ -702,6 +706,7 @@ class Workers:
         启动全部 worker，并验证身份、发布代际和单写入进程约束。
 
         :return: 已启动并收集上报结果的 worker 管理器
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         from plugins.core.runtime.diagnostics_store import (  # noqa: PLC0415
             diagnostics_namespace,
@@ -760,11 +765,7 @@ class Workers:
 
     async def kill_failed_worker(self) -> None:
         # 预设失败的是第二个进程，不能根据队列上报顺序判断进程身份。
-        """
-        终止预设失败的第二个 worker，供心跳过期验收使用。
-
-        :return: None
-        """
+        """终止预设失败的第二个 worker，供心跳过期验收使用。"""
         process = self.processes[1]
         self.killed.add(1)
         process.terminate()
@@ -772,11 +773,7 @@ class Workers:
         check(not process.is_alive(), 'Failed worker did not terminate')
 
     async def close(self) -> None:
-        """
-        停止仍存活的 worker 并关闭队列，异常退出时给出验收错误。
-
-        :return: None
-        """
+        """停止仍存活的 worker 并关闭队列，异常退出时给出验收错误。"""
         for index, process in enumerate(self.processes):
             if index not in self.killed and process.pid is not None and process.is_alive():
                 self.stops[index].set()
@@ -800,7 +797,6 @@ class Workers:
         离开上下文时回收全部 worker 和队列。
 
         :param args: 异步上下文管理协议传入的异常信息
-        :return: None
         """
         await self.close()
 
@@ -910,7 +906,7 @@ async def verify_release_wait_cli(spec: RunSpec, selected: dict[str, Any], scena
     :param selected: 选择操作返回的固定制品摘要和发布代际
     :param scenario: 本次验收场景的输出标识
     :param reason: 预期的机器可读结果原因
-    :return: None
+    :raises AssertionError: 冷启动的等待命令未按约定返回单份 JSON
     """
     child_env = cli_wait_environment(spec)
     command = [
@@ -983,7 +979,7 @@ async def expect_maintenance_blocked(service: Any, digest: str) -> None:
 
     :param service: 连接到隔离数据库的发布服务
     :param digest: 已导入制品的 SHA256 摘要
-    :return: None
+    :raises AssertionError: 仍有在线工作进程时维护操作被错误放行
     """
     try:
         await service.prepare(PLUGIN_ID, digest, maintenance=True)
@@ -1000,7 +996,6 @@ async def verify_migrations(sessions: Any, installed: str, rows: int) -> None:
     :param sessions: 隔离数据库的异步会话工厂
     :param installed: 预期数据库安装版本
     :param rows: 预期迁移探针数据和迁移历史的记录数
-    :return: None
     """
     from sqlalchemy import select, text  # noqa: PLC0415
 
@@ -1029,7 +1024,6 @@ async def exercise_release_recovery(spec: RunSpec, service: Any, target: dict[st
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param service: 连接到隔离数据库的发布服务
     :param target: 回滚后固定的制品摘要和新发布代际
-    :return: None
     """
     async with Workers(spec, one_fails=True) as workers:
         state = await release_state(service)
@@ -1073,7 +1067,6 @@ async def exercise_release(spec: RunSpec, engine: Any) -> None:
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param engine: 隔离数据库的异步连接池
-    :return: None
     """
     from plugins.core.deployment.service import PluginDeploymentService  # noqa: PLC0415
 
@@ -1149,7 +1142,8 @@ async def run(spec: RunSpec) -> None:
     创建隔离资源并执行完整验收，结束时回收本轮资源。
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
-    :return: None
+    :raises ValueError: 请先按 task_demo/README.md 安装前端依赖并构建 web/dist，再运行真实发布验收
+    :raises RuntimeError: 隔离资源清理失败
     """
     task_source = BACKEND_ROOT / 'plugins' / 'examples' / 'python' / 'task_demo'
     if not (task_source / 'web' / 'dist' / 'index.html').is_file():

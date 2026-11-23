@@ -17,9 +17,7 @@ from config.database import Base
 
 
 class SysJob(AuditTimeMixin, Base):
-    """
-    定时任务调度表
-    """
+    """定时任务调度表。"""
 
     __tablename__ = 'sys_job'
     __table_args__ = (
@@ -51,9 +49,7 @@ class SysJob(AuditTimeMixin, Base):
 
 
 class SysJobLog(CreateTimeMixin, Base):
-    """
-    定时任务调度日志表
-    """
+    """定时任务调度日志表。"""
 
     __tablename__ = 'sys_job_log'
     __table_args__ = (

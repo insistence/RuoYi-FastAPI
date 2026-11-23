@@ -9,7 +9,12 @@ RENEWED_LEASE_SECONDS = 120
 
 
 class FakeLeaseRedis:
-    """支持Application leader租约语义的内存Redis。"""
+    """
+    支持Application leader租约语义的内存Redis。
+
+    :ivar values: 当前处理的值集合
+    :ivar expires: 记录的到期时间
+    """
 
     def __init__(self) -> None:
         """初始化内存锁状态。"""
@@ -17,7 +22,15 @@ class FakeLeaseRedis:
         self.expires: dict[str, int] = {}
 
     async def set(self, key: str, value: str, *, nx: bool, ex: int) -> bool:
-        """模拟SET NX EX。"""
+        """
+        模拟SET NX EX。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param nx: 是否只在键尚不存在时写入
+        :param ex: 捕获到的异常实例
+        :return: 是否模拟SET NX EX
+        """
         if nx and key in self.values:
             return False
         self.values[key] = value
@@ -25,11 +38,25 @@ class FakeLeaseRedis:
         return True
 
     async def get(self, key: str) -> str | None:
-        """读取锁值。"""
+        """
+        读取锁值。
+
+        :param key: 查找数据时使用的键
+        :return: 锁值
+        """
         return self.values.get(key)
 
     async def eval(self, script: str, _key_count: int, key: str, *args: object) -> int:
-        """模拟compare-and-expire和compare-and-delete脚本。"""
+        """
+        模拟compare-and-expire和compare-and-delete脚本。
+
+        :param script: 需要运行的脚本
+        :param _key_count: Redis 脚本接收的键数
+        :param key: 查找数据时使用的键
+        :param args: 传给被调用对象的位置参数
+        :return: 比较并续期或删除操作的成功标志
+        :raises AssertionError: 执行了测试未预期的租约脚本
+        """
         owner_token = str(args[0])
         if self.values.get(key) != owner_token:
             return 0

@@ -8,9 +8,7 @@ from utils.common_util import SqlalchemyUtil
 
 
 class SysMenu(AuditTimeMixin, Base):
-    """
-    菜单权限表
-    """
+    """菜单权限表。"""
 
     __tablename__ = 'sys_menu'
     __table_args__ = {'comment': '菜单权限表'}

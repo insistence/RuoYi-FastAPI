@@ -13,7 +13,12 @@ pytestmark = pytest.mark.e2e
 
 
 async def assert_monitor_snapshot(page: Page, payload: dict) -> None:
-    """核对同一响应中的启用状态、计数及环境配置。"""
+    """
+    核对同一响应中的启用状态、计数及环境配置。
+
+    :param page: 浏览器页面或要查询的页码
+    :param payload: 随调用传入或返回的结构化数据
+    """
     assert payload['code'] == HTTPStatus.OK, payload
     data = payload['data']
     cards = page.locator('.summary-card, .crypto-summary')

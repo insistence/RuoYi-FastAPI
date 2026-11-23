@@ -27,16 +27,14 @@ from utils.excel_util import ExcelUtil
 
 
 class {{ BusinessName }}Service:
-    """
-    {{ functionName }}模块服务层
-    """
+    """{{ functionName }}模块服务层。"""
 
     @classmethod
     async def get_{{ businessName }}_list_services(
         cls, query_db: AsyncSession, query_object: {{ BusinessName }}PageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取{{ functionName }}列表信息service
+        获取{{ functionName }}列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -54,7 +52,7 @@ class {{ BusinessName }}Service:
     @classmethod
     async def check_{{ column.python_field | camel_to_snake }}_unique_services(cls, query_db: AsyncSession, page_object: {{ BusinessName }}Model) -> bool:
         """
-        检查{{ comment }}是否唯一service
+        检查{{ comment }}是否唯一service。
 
         :param query_db: orm对象
         :param page_object: {{ functionName }}对象
@@ -72,11 +70,15 @@ class {{ BusinessName }}Service:
     @classmethod
     async def add_{{ businessName }}_services(cls, query_db: AsyncSession, page_object: {{ BusinessName }}Model) -> CrudResponseModel:
         """
-        新增{{ functionName }}信息service
+        新增{{ functionName }}信息service。
 
         :param query_db: orm对象
         :param page_object: 新增{{ functionName }}对象
         :return: 新增{{ functionName }}校验结果
+        {% if columns | selectattr('unique') | list %}
+        :raises ServiceException: 唯一字段与已有记录重复
+        {% endif %}
+        :raises Exception: 写入失败，事务回滚后重新抛出原异常
         """
         {% for column in columns %}
         {% set parentheseIndex = column.column_comment.find("（") %}
@@ -108,11 +110,13 @@ class {{ BusinessName }}Service:
     @classmethod
     async def edit_{{ businessName }}_services(cls, query_db: AsyncSession, page_object: {{ BusinessName }}Model) -> CrudResponseModel:
         """
-        编辑{{ functionName }}信息service
+        编辑{{ functionName }}信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑{{ functionName }}对象
         :return: 编辑{{ functionName }}校验结果
+        :raises ServiceException: 目标记录不存在或唯一字段冲突
+        :raises Exception: 更新失败，事务回滚后重新抛出原异常
         """
         edit_{{ businessName }} = page_object.model_dump(exclude_unset=True, exclude={% raw %}{{% endraw %}{% if table.sub %}'{{ subclassName }}_list', {% endif %}{% for column in columns %}{% if not column.edit and not column.pk and column.column_name not in column_not_edit_show %}'{{ column.python_field | camel_to_snake  }}'{% if not loop.last %}, {% endif %}{% endif %}{% endfor %}{% raw %}}{% endraw %})
         {{ businessName }}_info = await cls.{{ businessName }}_detail_services(query_db, page_object.{{ pk_field }})
@@ -151,11 +155,13 @@ class {{ BusinessName }}Service:
     @classmethod
     async def delete_{{ businessName }}_services(cls, query_db: AsyncSession, page_object: Delete{{ BusinessName }}Model) -> CrudResponseModel:
         """
-        删除{{ functionName }}信息service
+        删除{{ functionName }}信息service。
 
         :param query_db: orm对象
         :param page_object: 删除{{ functionName }}对象
         :return: 删除{{ functionName }}校验结果
+        :raises ServiceException: 缺少待删除记录的主键
+        :raises Exception: 删除失败，事务回滚后重新抛出原异常
         """
         if page_object.{{ pk_field }}s:
             {{ pk_field }}_list = page_object.{{ pk_field }}s.split(',')
@@ -181,10 +187,10 @@ class {{ BusinessName }}Service:
     @classmethod
     async def {{ businessName }}_detail_services(cls, query_db: AsyncSession, {{ pk_field }}: int) -> {{ BusinessName }}Model:
         """
-        获取{{ functionName }}详细信息service
+        获取{{ functionName }}详细信息service。
 
         :param query_db: orm对象
-        :param {{ pk_field }}: {{ pk_field_comment }}
+        :param {{ pk_field }}: 待查询的主键（{{ pk_field_comment }}）
         :return: {{ pk_field_comment }}对应的信息
         """
         {{ businessName }} = await {{ BusinessName }}Dao.get_{{ businessName }}_detail_by_id(query_db, {{ pk_field }}={{ pk_field }})
@@ -195,8 +201,11 @@ class {{ BusinessName }}Service:
     @staticmethod
     async def export_{{ businessName }}_list_services({% if dicts %}request: Request, {% endif %}{{ businessName }}_list: list) -> bytes:
         """
-        导出{{ functionName }}信息service
+        导出{{ functionName }}信息service。
 
+        {% if dicts %}
+        :param request: 读取字典标签时使用的当前 HTTP 请求
+        {% endif %}
         :param {{ businessName }}_list: {{ functionName }}信息列表
         :return: {{ functionName }}信息对应excel的二进制数据
         """

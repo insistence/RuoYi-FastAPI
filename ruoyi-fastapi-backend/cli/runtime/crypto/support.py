@@ -17,7 +17,7 @@ class CryptoDomainSupport:
     该对象负责 RSA 密钥规则校验、密钥对生成和历史密钥规整，
     避免主运行时服务继续承载局部安全规则和数据拼装细节。
 
-    :param infrastructure_gateway: 传输加密基础设施网关
+    :ivar infrastructure_gateway: 传输加密基础设施网关
     """
 
     def __init__(self, infrastructure_gateway: CryptoInfrastructureGateway) -> None:
@@ -25,7 +25,6 @@ class CryptoDomainSupport:
         初始化传输加密领域支持对象。
 
         :param infrastructure_gateway: 传输加密基础设施网关
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
 
@@ -35,7 +34,6 @@ class CryptoDomainSupport:
         校验 RSA 密钥长度是否合法。
 
         :param key_size: RSA 密钥长度
-        :return: None
         :raises ValueError: 密钥长度不满足约束时抛出异常
         """
         if key_size < MIN_RSA_KEY_SIZE or key_size % RSA_KEY_SIZE_STEP != 0:

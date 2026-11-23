@@ -29,12 +29,18 @@ from utils.dependency_util import DependencyUtil
 def test_data_scope_filters_real_query(
     monkeypatch: pytest.MonkeyPatch, roles: list[tuple], admin: bool, expected: list[int]
 ) -> None:
+    """数据权限范围过滤实际查询。"""
     metadata = MetaData()
-    table = Table('records', metadata, Column('user_id', Integer, primary_key=True), Column('dept_id', Integer))
+    table = Table(
+        'records',
+        metadata,
+        Column('user_id', Integer, primary_key=True, comment='用户标识'),
+        Column('dept_id', Integer, comment='部门标识'),
+    )
     mapper = registry()
 
     class Record:
-        pass
+        """表示用于测试数据范围的记录。"""
 
     mapper.map_imperatively(Record, table)
     user = SimpleNamespace(

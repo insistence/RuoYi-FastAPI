@@ -12,14 +12,12 @@ SAFE_MESSAGE = '服务暂时不可用，请稍后重试'
 
 
 class I18nUtil:
-    """
-    词库加载、消息翻译与响应字段工具类
-    """
+    """词库加载、消息翻译与响应字段工具类。"""
 
     @staticmethod
     def _load_catalog(code: str, domain: str = 'core') -> gettext.GNUTranslations:
         """
-        加载并缓存编译后的语言资源
+        加载并缓存编译后的语言资源。
 
         :param code: 已注册的语言标识，不接受请求路径
         :param domain: 由调用方指定的可信 gettext 域名
@@ -29,18 +27,15 @@ class I18nUtil:
 
     @classmethod
     def validate_catalogs(cls) -> None:
-        """
-        校验全部已注册语言的编译产物是否可加载
-        """
+        """校验全部已注册语言的编译产物是否可加载。"""
         CatalogRegistry.refresh()
 
     @staticmethod
     def refresh_catalogs(domain: str | None = None) -> None:
         """
-        在受信发布操作后刷新词库对象和响应缓存指纹
+        在受信发布操作后刷新词库对象和响应缓存指纹。
 
         :param domain: 需要刷新的词库域，未指定时刷新全部已注册域
-        :return: None
         """
         CatalogRegistry.refresh(domain)
 
@@ -56,7 +51,7 @@ class I18nUtil:
         plural_key: str | None = None,
     ) -> str | None:
         """
-        尝试从单个语言资源中取词并插值
+        尝试从单个语言资源中取词并插值。
 
         :param code: 已注册的语言标识
         :param msg_key: 语义消息标识
@@ -94,7 +89,7 @@ class I18nUtil:
         plural_key: str | None = None,
     ) -> str:
         """
-        按指定语言及回退链翻译消息
+        按指定语言及回退链翻译消息。
 
         :param msg_key: 语义消息标识
         :param params: 消息插值参数
@@ -139,7 +134,7 @@ class I18nUtil:
         plural_key: str | None = None,
     ) -> dict:
         """
-        根据请求语言和消息标识生成响应消息字段
+        根据请求语言和消息标识生成响应消息字段。
 
         :param msg: 调用方指定的消息，可携带翻译元数据
         :param msg_key: 显式语义消息标识，优先于消息自带的标识
@@ -194,7 +189,7 @@ def t(
     plural_key: str | None = None,
 ) -> str:
     """
-    即时翻译文本，默认读取调用时的请求语言
+    即时翻译文本，默认读取调用时的请求语言。
 
     接口响应应传递 msg_key 和 msg_params，由响应工具保留消息标识和插值参数。
     后台任务等脱离请求的场景应显式传入语言快照。

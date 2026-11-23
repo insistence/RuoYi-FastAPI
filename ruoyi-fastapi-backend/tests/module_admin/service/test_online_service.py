@@ -10,6 +10,7 @@ from module_admin.service.online_service import OnlineService
 
 @pytest.mark.asyncio
 async def test_online_list_skips_tokens_that_cannot_be_decoded() -> None:
+    """在线列表跳过无法解码的令牌。"""
     redis = SimpleNamespace(
         keys=AsyncMock(return_value=['access_token:stale-session']),
         get=AsyncMock(return_value='invalid-token'),

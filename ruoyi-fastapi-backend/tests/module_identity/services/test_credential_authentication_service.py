@@ -22,9 +22,24 @@ _OIDC_FAILURE_SCRIPT_ARGUMENT_COUNT = 4
 
 
 class _Redis:
-    """记录认证服务访问的 Redis 最小异步替身。"""
+    """
+    记录认证服务访问的 Redis 最小异步替身。
+
+    :ivar values: 当前处理的值集合
+    :ivar eval_values: 用于模拟 Redis 脚本结果的值
+    :ivar get_calls: 记录 ``get`` 的调用情况
+    :ivar set_calls: 记录 ``set`` 的调用情况
+    :ivar delete_calls: 记录 ``delete`` 的调用情况
+    :ivar eval_calls: 记录 ``eval`` 的调用情况
+    """
 
     def __init__(self, values: dict[str, object] | None = None, eval_values: list[object] | None = None) -> None:
+        """
+        初始化测试夹具的 ``values``, ``eval_values``, ``get_calls``, ``set_calls``。
+
+        :param values: 当前处理的值集合
+        :param eval_values: 用于模拟 Redis 脚本结果的值
+        """
         self.values = values or {}
         self.eval_values = list(eval_values or [])
         self.get_calls: list[str] = []
@@ -33,18 +48,44 @@ class _Redis:
         self.eval_calls: list[tuple[str, int, tuple[object, ...]]] = []
 
     async def get(self, key: str) -> object:
+        """
+        读取测试存储中的指定键。
+
+        :param key: 查找数据时使用的键
+        :return: 测试存储中的指定键
+        """
         self.get_calls.append(key)
         return self.values.get(key)
 
     async def set(self, key: str, value: object, *, ex: object) -> None:
+        """
+        写入测试缓存键并设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        """
         self.values[key] = value
         self.set_calls.append((key, value, ex))
 
     async def delete(self, key: str) -> None:
+        """
+        删除测试缓存项及其过期状态。
+
+        :param key: 查找数据时使用的键
+        """
         self.values.pop(key, None)
         self.delete_calls.append(key)
 
     async def eval(self, script: str, count: int, *keys_and_args: object) -> object:
+        """
+        按测试约定模拟 Redis 脚本的执行。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param keys_and_args: 调用方传入的其余位置参数
+        :return: 预设 Redis 脚本结果，队列为空时返回空值
+        """
         self.eval_calls.append((script, count, keys_and_args))
         return self.eval_values.pop(0) if self.eval_values else None
 
@@ -53,6 +94,14 @@ class _AtomicFailureRedis(_Redis):
     """按 OIDC 错误 Lua 脚本语义执行 INCR、锁定和锁前检查。"""
 
     async def eval(self, script: str, count: int, *keys_and_args: object) -> object:
+        """
+        按测试约定模拟 Redis 脚本的执行。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param keys_and_args: 调用方传入的其余位置参数
+        :return: 脚本的预设结果或对应的错误状态码
+        """
         self.eval_calls.append((script, count, keys_and_args))
         if "redis.call('incr'" not in script:
             return self.eval_values.pop(0) if self.eval_values else None
@@ -69,6 +118,13 @@ class _AtomicFailureRedis(_Redis):
 
 
 def _request(redis: _Redis, *, host: str = '127.0.0.1') -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param redis: 模拟测试所需的 Redis 命令
+    :param host: 连接目标或插件宿主上下文
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         app=SimpleNamespace(state=SimpleNamespace(redis=redis)),
         client=SimpleNamespace(host=host),
@@ -77,6 +133,14 @@ def _request(redis: _Redis, *, host: str = '127.0.0.1') -> SimpleNamespace:
 
 
 def _user(user_name: str = 'alice', *, status: str = '0', update_date: object = None) -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param user_name: 当前用户的账号名称
+    :param status: 操作或记录所处的状态
+    :param update_date: 记录最近一次更新的时间
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         user_id=7,
         user_name=user_name,
@@ -88,6 +152,7 @@ def _user(user_name: str = 'alice', *, status: str = '0', update_date: object = 
 
 @pytest.mark.asyncio
 async def test_oidc_unknown_user_and_wrong_password_are_equivalent_and_dummy_verify_runs() -> None:
+    """OIDC 对未知用户和错误密码给出相同响应并执行虚拟校验。"""
     redis = _Redis()
     with (
         patch.object(OidcConfig, 'oidc_token_hash_pepper', 'p' * 32),
@@ -121,6 +186,7 @@ async def test_oidc_unknown_user_and_wrong_password_are_equivalent_and_dummy_ver
 
 @pytest.mark.asyncio
 async def test_oidc_captcha_is_atomically_consumed_and_success_does_not_write_legacy_token_key() -> None:
+    """OIDC 原子消费验证码且成功时不写旧令牌键。"""
     redis = _Redis(eval_values=['1234', None])
     user = _user()
     with (
@@ -160,6 +226,7 @@ async def test_oidc_captcha_is_atomically_consumed_and_success_does_not_write_le
 
 @pytest.mark.asyncio
 async def test_oidc_disabled_user_is_rejected() -> None:
+    """OIDC 拒绝已禁用用户。"""
     status, expected_reason = '1', 'user_disabled'
     redis = _Redis()
     with (
@@ -177,6 +244,7 @@ async def test_oidc_disabled_user_is_rejected() -> None:
 
 @pytest.mark.asyncio
 async def test_oidc_initial_and_expired_password_flags_handle_naive_and_aware_dates() -> None:
+    """OIDC 的初始和过期密码标志兼容有无时区的日期。"""
     redis = _Redis(
         {
             'sys_config:sys.account.initPasswordModify': '1',
@@ -200,6 +268,7 @@ async def test_oidc_initial_and_expired_password_flags_handle_naive_and_aware_da
 
 @pytest.mark.asyncio
 async def test_oidc_expired_aware_password_is_reported_without_datetime_error() -> None:
+    """OIDC 能识别带时区的过期密码。"""
     redis = _Redis({'sys_config:sys.account.passwordValidateDays': '30'})
     old_date = datetime.now(UTC) - timedelta(days=31)
     with (
@@ -219,6 +288,7 @@ async def test_oidc_expired_aware_password_is_reported_without_datetime_error() 
 
 @pytest.mark.asyncio
 async def test_oidc_hashed_error_state_locks_without_plain_username() -> None:
+    """OIDC 使用哈希错误状态锁定账号而不保留明文用户名。"""
     redis = _Redis(eval_values=[-1])
     with (
         patch.object(OidcConfig, 'oidc_token_hash_pepper', 'p' * 32),
@@ -238,6 +308,7 @@ async def test_oidc_hashed_error_state_locks_without_plain_username() -> None:
 
 @pytest.mark.asyncio
 async def test_oidc_error_counter_uses_atomic_incr_expire_and_lock_script() -> None:
+    """OIDC 错误计数通过原子脚本递增、设置过期并加锁。"""
     redis = _Redis(eval_values=[1])
     with (
         patch.object(OidcConfig, 'oidc_token_hash_pepper', 'p' * 32),
@@ -277,6 +348,7 @@ async def test_oidc_failure_script_stays_locked_after_atomic_lock_transition() -
 
 @pytest.mark.asyncio
 async def test_legacy_success_and_wrong_password_keep_legacy_keys_and_messages() -> None:
+    """旧版成功和密码错误的流程保留原有键和消息。"""
     user = _user()
     redis = _Redis()
     with (
@@ -311,6 +383,7 @@ async def test_legacy_success_and_wrong_password_keep_legacy_keys_and_messages()
 
 @pytest.mark.asyncio
 async def test_legacy_unknown_user_keeps_message_and_does_not_create_error_key() -> None:
+    """旧版未知用户保留原提示且不创建错误键。"""
     redis = _Redis()
     with (
         patch(
@@ -328,6 +401,7 @@ async def test_legacy_unknown_user_keeps_message_and_does_not_create_error_key()
 
 @pytest.mark.asyncio
 async def test_legacy_lock_captcha_and_blacklist_keep_original_messages_and_keys() -> None:
+    """旧版锁定、验证码和黑名单流程保留原消息及键。"""
     lock_redis = _Redis({'account_lock:alice': 'alice'})
     with (
         patch(
@@ -377,6 +451,7 @@ async def test_legacy_lock_captcha_and_blacklist_keep_original_messages_and_keys
 
 @pytest.mark.asyncio
 async def test_legacy_service_delegates_and_maps_original_login_exception() -> None:
+    """旧版服务委托登录并映射原有登录异常。"""
     login_user = UserLogin(userName='alice', password='wrong', captchaEnabled=False)
     request = _request(_Redis())
     with (

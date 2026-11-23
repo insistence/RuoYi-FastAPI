@@ -10,7 +10,7 @@ class JobDomainSupport:
     该对象负责任务序列化、分页结果规整和任务操作元数据定义，
     避免主运行时服务继续承载细碎领域规则。
 
-    :param infrastructure_gateway: 定时任务基础设施网关
+    :ivar infrastructure_gateway: 定时任务基础设施网关
     """
 
     def __init__(self, infrastructure_gateway: JobInfrastructureGateway) -> None:
@@ -18,7 +18,6 @@ class JobDomainSupport:
         初始化定时任务领域支持对象。
 
         :param infrastructure_gateway: 定时任务基础设施网关
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
 
@@ -139,7 +138,7 @@ class JobSchedulerSupport:
     该对象负责统一关闭调度器上下文资源，避免调度型操作在 facade 中
     持续堆叠资源清理细节。
 
-    :param infrastructure_gateway: 定时任务基础设施网关
+    :ivar infrastructure_gateway: 定时任务基础设施网关
     """
 
     def __init__(self, infrastructure_gateway: JobInfrastructureGateway) -> None:
@@ -147,7 +146,6 @@ class JobSchedulerSupport:
         初始化定时任务调度上下文支持对象。
 
         :param infrastructure_gateway: 定时任务基础设施网关
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
 
@@ -156,7 +154,6 @@ class JobSchedulerSupport:
         安全关闭任务调度相关资源。
 
         :param redis: Redis 客户端实例
-        :return: None
         """
         scheduler_manager = self.infrastructure_gateway.get_scheduler_manager()
         try:

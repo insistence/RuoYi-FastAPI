@@ -12,16 +12,14 @@ from utils.time_util import TimezoneUtil
 
 
 class JobLogDao:
-    """
-    定时任务日志管理模块数据库操作层
-    """
+    """定时任务日志管理模块数据库操作层。"""
 
     @classmethod
     async def get_job_log_list(
         cls, db: AsyncSession, query_object: JobLogPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        根据查询参数获取定时任务日志列表信息
+        根据查询参数获取定时任务日志列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -53,11 +51,11 @@ class JobLogDao:
     @classmethod
     def add_job_log_dao(cls, db: Session, job_log: JobLogModel) -> SysJobLog:
         """
-        新增定时任务日志数据库操作
+        新增定时任务日志数据库操作。
 
         :param db: orm对象
         :param job_log: 定时任务日志对象
-        :return:
+        :return: 新增的任务日志记录
         """
         db_job_log = SysJobLog(**job_log.model_dump())
         db.add(db_job_log)
@@ -68,20 +66,18 @@ class JobLogDao:
     @classmethod
     async def delete_job_log_dao(cls, db: AsyncSession, job_log: JobLogModel) -> None:
         """
-        删除定时任务日志数据库操作
+        删除定时任务日志数据库操作。
 
         :param db: orm对象
         :param job_log: 定时任务日志对象
-        :return:
         """
         await db.execute(delete(SysJobLog).where(SysJobLog.job_log_id.in_([job_log.job_log_id])))
 
     @classmethod
     async def clear_job_log_dao(cls, db: AsyncSession) -> None:
         """
-        清除定时任务日志数据库操作
+        清除定时任务日志数据库操作。
 
         :param db: orm对象
-        :return:
         """
         await db.execute(delete(SysJobLog))

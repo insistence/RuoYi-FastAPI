@@ -3,7 +3,15 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class PageCase:
-    """三套 Web 工程共有的内置菜单、实际页面内容与首屏业务请求。"""
+    """
+    三套 Web 工程共有的内置菜单、实际页面内容与首屏业务请求。
+
+    :ivar path: 要读取或处理的路径
+    :ivar title: 当前界面或记录显示的标题
+    :ivar content: 需要读取或写入的内容
+    :ivar api: 发起 API 请求的客户端
+    :ivar selector: 定位页面元素的选择器
+    """
 
     path: str
     title: str
@@ -12,7 +20,12 @@ class PageCase:
     selector: str = '.el-table'
 
     def selector_for(self, framework: str) -> str:
-        """按组件库选择实际业务内容，保持页面与接口覆盖相同。"""
+        """
+        按组件库选择实际业务内容，保持页面与接口覆盖相同。
+
+        :param framework: 目标前端框架
+        :return: 当前组件库对应的内容选择器
+        """
         if framework != 'react':
             return self.selector
         overrides = {

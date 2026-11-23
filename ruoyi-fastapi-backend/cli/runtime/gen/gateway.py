@@ -13,18 +13,18 @@ class GenInfrastructureGateway:
     @staticmethod
     def get_sqlglot_module() -> Any:
         """
-        获取 `sqlglot` 模块。
+        获取 ``sqlglot`` 模块。
 
-        :return: `sqlglot` 模块
+        :return: ``sqlglot`` 模块
         """
         return import_module('sqlglot')
 
     @staticmethod
     def get_sqlglot_expressions_module() -> Any:
         """
-        获取 `sqlglot.expressions` 模块。
+        获取 ``sqlglot.expressions`` 模块。
 
-        :return: `sqlglot.expressions` 模块
+        :return: ``sqlglot.expressions`` 模块
         """
         return import_module('sqlglot.expressions')
 

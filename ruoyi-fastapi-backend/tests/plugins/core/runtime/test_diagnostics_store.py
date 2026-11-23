@@ -29,9 +29,18 @@ NAMESPACE = diagnostics_namespace('test-environment:ready')
 
 
 class DiagnosticsRedis:
-    """提供隔离的快照读写，并记录查询过程中是否出现写入。"""
+    """
+    提供隔离的快照读写，并记录查询过程中是否出现写入。
+
+    :ivar values: 当前处理的值集合
+    :ivar expirations: 按键记录的失效时间
+    :ivar writes: 已执行写入操作的记录
+    :ivar fail: 是否模拟操作失败
+    :ivar encoder: 将输入值转换为编码表示的对象
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``values``, ``expirations``, ``writes``, ``fail``。"""
         self.values: dict[str | bytes, bytes] = {}
         self.expirations: dict[str, int] = {}
         self.writes = 0
@@ -39,6 +48,14 @@ class DiagnosticsRedis:
         self.encoder = Encoder('utf-8', 'strict', decode_responses=True)
 
     async def set(self, key: str, value: bytes, *, ex: int) -> None:
+        """
+        写入测试缓存键并设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        :raises ConnectionError: 模拟写入诊断缓存时 Redis 连接失败
+        """
         if self.fail:
             raise ConnectionError('private-diagnostic-password')
         self.writes += 1
@@ -46,9 +63,23 @@ class DiagnosticsRedis:
         self.expirations[key] = ex
 
     async def delete(self, key: str) -> None:
+        """
+        删除测试缓存项及其过期状态。
+
+        :param key: 查找数据时使用的键
+        """
         self.values.pop(key, None)
 
     async def scan_iter(self, *, match: str, count: int, **options: object) -> AsyncIterator[str | bytes]:
+        """
+        逐个返回匹配模式的缓存键。
+
+        :param match: 是否采用匹配当前条件的输入
+        :param count: 本次处理或预期的数量
+        :param options: 调用方按名称传入的附加选项
+        :raises ConnectionError: 模拟扫描诊断缓存时 Redis 连接失败
+        :yield: 匹配模式的缓存键
+        """
         if self.fail:
             raise ConnectionError('private-diagnostic-password')
         for key in self.values:
@@ -57,16 +88,37 @@ class DiagnosticsRedis:
                 yield raw_key if NEVER_DECODE in options else self.encoder.decode(raw_key)
 
     async def mget(self, keys: list[str]) -> list[bytes | None]:
+        """
+        批量读取测试缓存键。
+
+        :param keys: 当前操作涉及的键集合
+        :return: 按请求键顺序排列的缓存值
+        """
         return [self.values.get(key) for key in keys]
 
     async def execute_command(self, command: str, *keys: str, **options: object) -> list[bytes | str | None]:
+        """
+        调度并验证测试存储支持的批量读取命令。
+
+        :param command: 执行的命令及其参数
+        :param keys: 调用方传入的其余位置参数
+        :param options: 调用方按名称传入的附加选项
+        :return: 模拟批量读取命令的结果
+        """
         assert command == 'MGET'
         values = await self.mget(list(keys))
         return [value if value is None or NEVER_DECODE in options else self.encoder.decode(value) for value in values]
 
 
 def snapshot(worker_id: str, *, pending: int = 0, collected_at: float | None = None) -> PluginRuntimeDiagnosticSnapshot:
-    """构造真正观测到零插件的宿主快照，不添加虚假的插件计数。"""
+    """
+    构造真正观测到零插件的宿主快照，不添加虚假的插件计数。
+
+    :param worker_id: 工作进程的标识
+    :param pending: 等待处理的条目
+    :param collected_at: 采集状态的时间
+    :return: 真正观测到零插件的宿主快照
+    """
     return PluginRuntimeDiagnosticSnapshot(
         worker_id=worker_id,
         collected_at=time.time() if collected_at is None else collected_at,
@@ -77,12 +129,19 @@ def snapshot(worker_id: str, *, pending: int = 0, collected_at: float | None = N
 
 
 def store(redis: DiagnosticsRedis, value: PluginRuntimeDiagnosticSnapshot, namespace: str = NAMESPACE) -> None:
-    """放入独立序列化快照以模拟另一个 worker 的定期发布。"""
+    """
+    放入独立序列化快照以模拟另一个 worker 的定期发布。
+
+    :param redis: 提供隔离的快照读写，并记录查询过程中是否出现写入
+    :param value: 当前进程的只读诊断快照，与已有运行指标协议独立
+    :param namespace: 隔离当前资源的命名空间
+    """
     redis.values[f'{namespace}:{value.worker_id}'] = value.model_dump_json(by_alias=True).encode()
 
 
 @pytest.mark.asyncio
 async def test_reader_never_fabricates_local_worker_or_writes_and_isolates_namespace() -> None:
+    """读取器隔离命名空间且不虚构本地进程或写入数据。"""
     redis = DiagnosticsRedis()
     store(redis, snapshot('a' * 32))
     store(redis, snapshot('b' * 32), diagnostics_namespace('other-environment'))
@@ -102,6 +161,7 @@ async def test_reader_never_fabricates_local_worker_or_writes_and_isolates_names
 
 @pytest.mark.asyncio
 async def test_plugin_filter_retains_worker_scope_without_other_plugin_details() -> None:
+    """按插件筛选时保留进程范围并隐藏其他插件详情。"""
     redis = DiagnosticsRedis()
     value = snapshot('a' * 32, pending=3)
     value.plugins = [
@@ -118,6 +178,7 @@ async def test_plugin_filter_retains_worker_scope_without_other_plugin_details()
 
 @pytest.mark.asyncio
 async def test_local_real_snapshot_replaces_own_redis_copy_and_failure_is_explicit() -> None:
+    """本地真实快照替换自身的 Redis 副本并明确报告失败。"""
     redis = DiagnosticsRedis()
     store(redis, snapshot('a' * 32, pending=9))
     store(redis, snapshot('b' * 32, pending=2))
@@ -139,6 +200,7 @@ async def test_local_real_snapshot_replaces_own_redis_copy_and_failure_is_explic
 
 @pytest.mark.asyncio
 async def test_stale_future_invalid_and_identity_conflicts_never_supply_counters() -> None:
+    """过期、未来、无效或身份冲突的快照不贡献计数。"""
     redis = DiagnosticsRedis()
     store(redis, snapshot('a' * 32, collected_at=time.time() - DIAGNOSTICS_TTL_SECONDS - 1))
     store(redis, snapshot('b' * 32, collected_at=time.time() + 100))
@@ -156,6 +218,7 @@ async def test_stale_future_invalid_and_identity_conflicts_never_supply_counters
 
 @pytest.mark.asyncio
 async def test_invalid_utf8_key_and_value_do_not_hide_healthy_workers() -> None:
+    """键值包含无效 UTF-8 时仍能看到健康进程。"""
     redis = DiagnosticsRedis()
     store(redis, snapshot('a' * 32))
     redis.values[f'{NAMESPACE}:{"b" * 32}'] = b'\xff'
@@ -183,6 +246,7 @@ async def test_invalid_utf8_key_and_value_do_not_hide_healthy_workers() -> None:
     ],
 )
 async def test_incomplete_remote_snapshot_cannot_supply_default_zero_counters(missing_field: str) -> None:
+    """不完整的远端快照不能用零值补齐计数。"""
     redis = DiagnosticsRedis()
     store(redis, snapshot('a' * 32))
     incomplete = snapshot('b' * 32)
@@ -205,6 +269,7 @@ async def test_incomplete_remote_snapshot_cannot_supply_default_zero_counters(mi
 
 @pytest.mark.asyncio
 async def test_size_and_worker_limits_are_reported(monkeypatch: pytest.MonkeyPatch) -> None:
+    """报告快照大小和工作进程数量限制。"""
     redis = DiagnosticsRedis()
     monkeypatch.setattr(module, 'MAX_DIAGNOSTICS_SNAPSHOT_BYTES', 10)
     store(redis, snapshot('a' * 32))
@@ -219,6 +284,7 @@ async def test_size_and_worker_limits_are_reported(monkeypatch: pytest.MonkeyPat
 
 @pytest.mark.asyncio
 async def test_expired_during_read_is_unknown_and_io_timeout_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    """读取中到期的快照标为未知并限制 I/O 超时。"""
     redis = DiagnosticsRedis()
     store(redis, snapshot('a' * 32))
     with patch.object(redis, 'mget', AsyncMock(return_value=[None])):
@@ -228,6 +294,12 @@ async def test_expired_during_read_is_unknown_and_io_timeout_is_bounded(monkeypa
     monkeypatch.setattr(module, 'DIAGNOSTICS_IO_TIMEOUT_SECONDS', 0.01)
 
     async def blocked_read(keys: list[str]) -> list[bytes | None]:
+        """
+        阻塞读取以测试超时处理。
+
+        :param keys: 当前操作涉及的键集合
+        :return: 解除阻塞后返回的空结果列表
+        """
         await asyncio.Event().wait()
         return []
 
@@ -239,6 +311,7 @@ async def test_expired_during_read_is_unknown_and_io_timeout_is_bounded(monkeypa
 
 @pytest.mark.asyncio
 async def test_publication_failure_recovers_and_stop_only_deletes_owned_snapshot() -> None:
+    """发布失败后可恢复且停止时只删除自有快照。"""
     redis = DiagnosticsRedis()
     reporter = PluginDiagnosticsReporter(lambda: snapshot('a' * 32), 'a' * 32)
     reporter.start(redis, NAMESPACE)
@@ -260,6 +333,7 @@ async def test_publication_failure_recovers_and_stop_only_deletes_owned_snapshot
 
 @pytest.mark.asyncio
 async def test_wrong_local_identity_cannot_be_published_or_appear_as_current_worker() -> None:
+    """错误本地身份不可发布也不显示为当前进程。"""
     redis = DiagnosticsRedis()
     reporter = PluginDiagnosticsReporter(lambda: snapshot('b' * 32), 'a' * 32)
     reporter.redis, reporter.namespace = redis, NAMESPACE
@@ -273,6 +347,7 @@ async def test_wrong_local_identity_cannot_be_published_or_appear_as_current_wor
 
 @pytest.mark.asyncio
 async def test_application_owns_diagnostics_lifecycle_even_when_shutdown_fails() -> None:
+    """即使关闭失败应用仍负责诊断资源的生命周期。"""
     redis = DiagnosticsRedis()
     app = FastAPI()
     app.state.redis = redis
@@ -299,6 +374,7 @@ async def test_application_owns_diagnostics_lifecycle_even_when_shutdown_fails()
 
 @pytest.mark.asyncio
 async def test_empty_runtime_uses_release_worker_identity_without_fabricating_missing_worker() -> None:
+    """运行时为空时使用发布进程身份且不虚构缺失进程。"""
     app = FastAPI()
     explicit = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     app.state.plugin_explicit_runtime = explicit

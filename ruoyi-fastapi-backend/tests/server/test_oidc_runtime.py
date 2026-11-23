@@ -44,6 +44,11 @@ async def test_oidc_runtime_validation_loads_database_active_key() -> None:
 
     @asynccontextmanager
     async def session() -> AsyncGenerator[object, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         yield db
 
     with (
@@ -62,10 +67,15 @@ async def test_oidc_runtime_validation_loads_database_active_key() -> None:
 
 @pytest.mark.asyncio
 async def test_oidc_runtime_validation_fails_closed_without_usable_key() -> None:
-    """active 元数据或私钥不可用时后台继续启动，但 OIDC 标记为未就绪。"""
+    """验证 active 元数据或私钥不可用时后台继续启动，但 OIDC 标记为未就绪。"""
 
     @asynccontextmanager
     async def session() -> AsyncGenerator[object, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         yield object()
 
     with (
@@ -92,6 +102,12 @@ async def test_background_loops_wait_in_both_leader_and_follower() -> None:
     created: list[object] = []
 
     def create_task(coro: object) -> object:
+        """
+        创建测试任务并将其交给调用方。
+
+        :param coro: 需要执行的协程对象
+        :return: 测试任务并将其交给调用方
+        """
         created.append(coro)
         coro.close()
         return (fake_key_task, fake_retry_task)[len(created) - 1]
@@ -120,10 +136,16 @@ async def test_background_loops_wait_in_both_leader_and_follower() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize('loop', ['key', 'retry'])
 async def test_background_loops_resume_after_lease_reacquisition(loop: str) -> None:
+    """重新获得租约后恢复后台循环。"""
     db = SimpleNamespace(commit=AsyncMock())
 
     @asynccontextmanager
     async def session() -> AsyncGenerator[SimpleNamespace, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         yield db
 
     with (
@@ -162,6 +184,12 @@ async def test_server_background_task_setup_delegates_oidc_runtime() -> None:
     log_task = object()
 
     def create_task(coro: object) -> object:
+        """
+        创建测试任务并将其交给调用方。
+
+        :param coro: 需要执行的协程对象
+        :return: 测试任务并将其交给调用方
+        """
         coro.close()
         return log_task
 

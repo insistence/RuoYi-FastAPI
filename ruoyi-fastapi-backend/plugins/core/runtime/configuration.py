@@ -32,25 +32,29 @@ def config_revision(plugin_id: str, values: Mapping[str, Any]) -> str:
 
 
 class PluginConfigObservation(BaseModel):
-    """
-    当前 worker 的启动配置和最近一次按需读取版本，不包含配置值。
-    """
+    """当前 worker 的启动配置和最近一次按需读取版本，不包含配置值。"""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra='forbid', strict=True)
 
-    plugin_id: str = Field(pattern=r'^[a-z][a-z0-9_]{1,63}$')
-    version: str = Field(max_length=128)
-    digest: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
-    generation: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$')
-    active: bool = False
-    startup_revision: str = Field(pattern=r'^[0-9a-f]{64}$')
-    last_read_revision: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
-    last_read_at: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    plugin_id: str = Field(pattern=r'^[a-z][a-z0-9_]{1,63}$', description='插件标识')
+    version: str = Field(max_length=128, description='插件版本')
+    digest: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$', description='已加载制品的内容摘要')
+    generation: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$', description='当前插件发布代次')
+    active: bool = Field(default=False, description='是否处于活动状态')
+    startup_revision: str = Field(pattern=r'^[0-9a-f]{64}$', description='启动时读取的配置版本')
+    last_read_revision: str | None = Field(
+        default=None, pattern=r'^[0-9a-f]{64}$', description='最近一次读取的配置版本'
+    )
+    last_read_at: float | None = Field(default=None, ge=0, allow_inf_nan=False, description='最近一次读取配置的时间戳')
 
 
 class PluginConfigReader:
     """
     绑定已加载清单的配置读取器，每次读取使用自己的数据库会话。
+
+    :ivar plugin: 当前进程实际加载的插件
+    :ivar session_factory: 宿主提供的数据库会话工厂
+    :ivar observation: 不包含敏感值的运行观测记录
     """
 
     def __init__(
@@ -65,7 +69,6 @@ class PluginConfigReader:
         :param plugin: 当前进程实际加载的插件
         :param session_factory: 宿主提供的数据库会话工厂
         :param observation: 不包含敏感值的运行观测记录
-        :return: None
         """
         self.plugin = plugin
         self.session_factory = session_factory

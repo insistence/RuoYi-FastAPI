@@ -13,9 +13,7 @@ from plugins.core.utils import validate_plugin_id_value
 
 
 class PluginArtifactEnablementService(PluginDeploymentService):
-    """
-    在停机维护窗口原子更新制品启停状态与声明资源的服务。
-    """
+    """在停机维护窗口原子更新制品启停状态与声明资源的服务。"""
 
     async def set_enabled(
         self,

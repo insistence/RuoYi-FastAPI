@@ -22,6 +22,14 @@ from utils.time_util import TimezoneUtil
 
 
 def database_error(code: int | str, *, attribute: str = 'sqlstate', invalidated: bool = False) -> DBAPIError:
+    """
+    构造带有指定错误码的数据库异常。
+
+    :param code: 与当前结果对应的编码
+    :param attribute: 要读取或替换的属性名
+    :param invalidated: 本次失效操作影响的记录
+    :return: 带有指定错误码的数据库异常
+    """
     original = RuntimeError(code, 'injected database failure')
     if isinstance(code, str):
         setattr(original, attribute, code)
@@ -35,7 +43,7 @@ def inject_finish_failures(
     stage: str,
 ) -> tuple[list[Session], list[str], list[float]]:
     """
-    在真实 SQLite 事务执行更新后或提交前注入错误
+    在真实 SQLite 事务执行更新后或提交前注入错误。
 
     :param runtime: 隔离测试运行环境
     :param monkeypatch: 测试替换对象
@@ -48,6 +56,11 @@ def inject_finish_failures(
     delays: list[float] = []
 
     def factory() -> Session:
+        """
+        为当前测试步骤创建受控资源。
+
+        :return: 当前操作使用的数据库会话
+        """
         if sessions:
             assert lifecycle[-1] == 'close'
             assert not sessions[-1].in_transaction()
@@ -57,19 +70,38 @@ def inject_finish_failures(
         original_close = db.close
 
         def execute(state: ORMExecuteState) -> Result[Any]:
+            """
+            按测试场景处理数据库查询并提供结果。
+
+            :param state: 当前流程的状态
+            :raises Exception: 执行测试注入的数据库故障
+            :return: 执行当前操作得到的结果
+            """
             result = state.invoke_statement()
             if stage == 'execute' and failure is not None:
                 raise failure
             return result
 
         def before_commit(_db: Session) -> None:
+            """
+            在事务提交前触发配置的测试行为。
+
+            :param _db: 回调签名接收的数据库会话
+            :raises Exception: 执行提交前注入的故障
+            """
             if stage == 'commit' and failure is not None:
                 raise failure
 
         def after_rollback(_db: Session) -> None:
+            """
+            记录事务回滚后的回调顺序。
+
+            :param _db: 回调签名接收的数据库会话
+            """
             lifecycle.append('rollback')
 
         def close() -> None:
+            """记录测试资源的关闭过程。"""
             original_close()
             lifecycle.append('close')
 
@@ -80,6 +112,11 @@ def inject_finish_failures(
         return db
 
     def sleep(delay: float) -> None:
+        """
+        在事务关闭后记录重试等待时间。
+
+        :param delay: 延迟时长
+        """
         assert lifecycle[-1] == 'close'
         assert not sessions[-1].in_transaction()
         delays.append(delay)
@@ -90,6 +127,12 @@ def inject_finish_failures(
 
 
 async def claimed_execution(runtime: Runtime) -> tuple[str, str, dict[str, Any]]:
+    """
+    准备已认领的任务执行记录。
+
+    :param runtime: 隔离测试运行环境
+    :return: 已认领的执行标识、所有者令牌及预期结果
+    """
     job = await runtime.save()
     execution_id = uuid4().hex
     start = TimezoneUtil.utc_now()
@@ -117,6 +160,7 @@ async def claimed_execution(runtime: Runtime) -> tuple[str, str, dict[str, Any]]
 async def test_finish_retries_rolled_back_transaction_in_a_new_session(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch, stage: str, code: int | str, attribute: str, failed: bool
 ) -> None:
+    """结束任务时使用新会话重试已回滚的事务。"""
     execution_id, token, result = await claimed_execution(runtime)
     result['failed'] = failed
     failures = [database_error(code, attribute=attribute), None]
@@ -147,6 +191,7 @@ async def test_finish_retries_rolled_back_transaction_in_a_new_session(
 async def test_finish_does_not_retry_unrelated_or_invalidated_errors(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch, stage: str, error: DBAPIError
 ) -> None:
+    """结束任务时不重试无关错误或连接失效错误。"""
     execution_id, token, result = await claimed_execution(runtime)
     sessions, lifecycle, delays = inject_finish_failures(runtime, monkeypatch, [error], stage)
     with pytest.raises(DBAPIError) as captured:
@@ -163,6 +208,7 @@ async def test_finish_does_not_retry_unrelated_or_invalidated_errors(
 async def test_finish_stops_after_three_failed_transactions(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch, stage: str
 ) -> None:
+    """结束任务的事务连续失败三次后停止重试。"""
     execution_id, token, result = await claimed_execution(runtime)
     failures = [database_error(1213) for _ in range(3)]
     sessions, lifecycle, delays = inject_finish_failures(runtime, monkeypatch, failures, stage)
@@ -179,6 +225,7 @@ async def test_finish_stops_after_three_failed_transactions(
 async def test_finish_retry_keeps_owner_guard_and_does_not_overwrite_completed_result(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """结束任务的重试校验所有者并保留已有结果。"""
     execution_id, token, result = await claimed_execution(runtime)
     inject_finish_failures(runtime, monkeypatch, [database_error(1213), None, None, None], 'commit')
     await asyncio.to_thread(JobExecutionStore.finish, execution_id, 'wrong-owner', **result)
@@ -190,6 +237,7 @@ async def test_finish_retry_keeps_owner_guard_and_does_not_overwrite_completed_r
 
 @pytest.mark.asyncio
 async def test_result_retry_does_not_repeat_the_user_job(runtime: Runtime, monkeypatch: pytest.MonkeyPatch) -> None:
+    """重试写入结果时不重复执行用户任务。"""
     await runtime.save()
     await SchedulerManager._sync_jobs_from_database()
     job = runtime.scheduler.get_job('42')
@@ -197,6 +245,13 @@ async def test_result_retry_does_not_repeat_the_user_job(runtime: Runtime, monke
     original_claim = JobExecutionStore.claim
 
     def claim_then_inject(*args, **kwargs) -> job_execution.ExecutionClaim:
+        """
+        在取得任务执行权后注入后续故障。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 当前执行的认领信息
+        """
         claim = original_claim(*args, **kwargs)
         inject_finish_failures(runtime, monkeypatch, [database_error(1213), None], 'commit')
         return claim

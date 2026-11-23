@@ -11,6 +11,9 @@ from ..responses import PluginLifecycleResponse, PluginRuntimeBlockedPayloadDict
 class PluginLifecycleSessionContext(Protocol):
     """
     带数据库会话的生命周期上下文。
+
+    :ivar session_context: 当前会话的上下文
+    :ivar session: 当前操作共用的会话
     """
 
     session_context: Any | None
@@ -20,6 +23,8 @@ class PluginLifecycleSessionContext(Protocol):
 class PluginLifecycleUseCaseSupport:
     """
     生命周期 use case 公共协作能力。
+
+    :ivar context: 生命周期上下文
     """
 
     context: PluginRuntimeContextService
@@ -111,7 +116,6 @@ class PluginLifecycleUseCaseSupport:
         关闭生命周期上下文中的数据库会话。
 
         :param context: 生命周期上下文
-        :return: None
         """
         lifecycle_context = cast('PluginLifecycleSessionContext', context)
         session_context = lifecycle_context.session_context

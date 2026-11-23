@@ -9,9 +9,7 @@ from utils.log_util import logger
 
 
 class JwtUtil:
-    """
-    JWT编解码工具类。
-    """
+    """JWT编解码工具类。"""
 
     @classmethod
     def encode(cls, payload: dict[str, Any]) -> str:
@@ -20,6 +18,7 @@ class JwtUtil:
 
         :param payload: JWT载荷
         :return: 编码后的JWT
+        :raises AuthException: 用户token生成失败
         """
         try:
             return jwt.encode(payload, JwtConfig.jwt_secret_key, algorithm=JwtConfig.jwt_algorithm)
@@ -35,6 +34,7 @@ class JwtUtil:
         :param token: 待解析的JWT
         :param options: PyJWT解析选项
         :return: JWT载荷
+        :raises AuthException: 用户token已失效，请重新登录
         """
         try:
             return jwt.decode(

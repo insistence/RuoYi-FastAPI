@@ -1,5 +1,7 @@
+import ast
 import importlib.util
 import json
+import subprocess
 import sys
 from datetime import UTC, date, time
 from pathlib import Path
@@ -15,6 +17,7 @@ from config import database
 from config.env import AppConfig
 from exceptions.exception import ServiceWarning
 from module_generator.entity.vo.gen_vo import GenTableColumnModel, GenTableModel
+from scripts.check_docstrings import BACKEND, sphinx_settings, violations
 from utils import common_util
 from utils.template_util import TemplateInitializer, TemplateUtils
 
@@ -22,6 +25,16 @@ from utils.template_util import TemplateInitializer, TemplateUtils
 def column(
     name: str, sql_type: str, python_type: str, *, pk: bool = False, query_type: str = 'EQ'
 ) -> GenTableColumnModel:
+    """
+    创建测试使用的 ``GenTableColumnModel`` 实例。
+
+    :param name: 用于查找或标识当前对象的名称
+    :param sql_type: 建表时使用的 SQL 列类型
+    :param python_type: PYTHON类型
+    :param pk: 该列是否为主键
+    :param query_type: 查询方式（等于、不等于、大于、小于、范围）
+    :return: 测试使用的 ``GenTableColumnModel`` 实例
+    """
     return GenTableColumnModel(
         columnName=name,
         columnComment=name,
@@ -39,6 +52,14 @@ def column(
 
 
 def make_table(db_type: str, category: str, web_type: str) -> GenTableModel:
+    """
+    根据数据库类型及模板类别构造代码生成样表。
+
+    :param db_type: 数据库类型
+    :param category: 测试的模板或记录类别
+    :param web_type: 渲染模板的前端类型
+    :return: 供调用方使用的 ``table``
+    """
     instant = 'timestamp(3)' if db_type == 'mysql' else 'timestamp(3) with time zone'
     columns = [
         column('item_id', 'bigint', 'int', pk=True),
@@ -97,9 +118,22 @@ def make_table(db_type: str, category: str, web_type: str) -> GenTableModel:
     return table
 
 
-def render_case(db_type: str, category: str, web_type: str) -> dict[str, str]:
+def render_case(db_type: str, category: str, web_type: str, *, field_constraints: bool = False) -> dict[str, str]:
+    """
+    使用样表实际渲染所选模板。
+
+    :param db_type: 数据库类型
+    :param category: 测试的模板或记录类别
+    :param web_type: 渲染模板的前端类型
+    :param field_constraints: 是否生成必填字段校验方法和唯一性检查
+    :return: 按模板名索引的生成代码
+    """
     with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type=db_type)):
         table = make_table(db_type, category, web_type)
+        if field_constraints:
+            table.columns[1].unique = table.columns[1].required = True
+            if table.sub_table:
+                table.sub_table.columns[1].required = True
         context = TemplateUtils.prepare_context(table)
         environment = TemplateInitializer.init_jinja2()
         return {
@@ -107,11 +141,36 @@ def render_case(db_type: str, category: str, web_type: str) -> dict[str, str]:
         }
 
 
+def test_generated_python_docstrings(tmp_path: Path) -> None:
+    """检查各类生成模板及插件脚手架输出的中文接口说明和多行摘要布局。"""
+    sources = {
+        f'{category}_{Path(name).stem}': source
+        for category in ('crud', 'tree', 'sub')
+        for name, source in render_case('mysql', category, 'element-plus', field_constraints=True).items()
+        if name.endswith('.py.jinja2')
+    }
+    assert ':raises ServiceException:' in sources['crud_service.py']
+    assert '校验子表的必填字段' in sources['sub_vo.py']
+    assets = BACKEND / 'cli/runtime/plugin/scaffold/assets'
+    for path in assets.rglob('*.py.tmpl'):
+        sources[f'{path.parent.name}_{path.stem}'] = path.read_text(encoding='utf-8')
+    with sphinx_settings() as settings:
+        for name, source in sources.items():
+            target = tmp_path / name
+            target.write_text(source, encoding='utf-8')
+            assert not list(violations(ast.parse(source), settings, target)), name
+    subprocess.run(
+        [sys.executable, '-m', 'ruff', 'check', '--no-cache', '--select', 'D213', str(tmp_path)],
+        check=True,
+    )
+
+
 @pytest.mark.parametrize('category', ['crud', 'tree', 'sub'])
 @pytest.mark.parametrize('web_type', ['element-ui', 'element-plus'])
 def test_generated_frontend_contains_business_files_and_reuses_project_time_modules(
     category: str, web_type: str
 ) -> None:
+    """生成的前端包含业务文件并复用项目时间模块。"""
     table = make_table('mysql', category, web_type)
     rendered = render_case('mysql', category, web_type)
     files = {TemplateUtils.get_file_name(name, table): content for name, content in rendered.items()}
@@ -131,8 +190,17 @@ def test_generated_frontend_contains_business_files_and_reuses_project_time_modu
 
 
 def import_generated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rendered: dict[str, str]) -> tuple:
+    """
+    加载已渲染的 Python 模块以测试生成代码。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :param rendered: 已渲染的模板内容
+    :return: 已渲染的 Python 模块以测试生成代码
+    """
+
     class TestBase(DeclarativeBase):
-        pass
+        """为生成模块提供独立的 ORM 模型基类。"""
 
     monkeypatch.setattr(database, 'Base', TestBase)
     monkeypatch.setattr(common_util, 'Base', TestBase)
@@ -159,12 +227,40 @@ def import_generated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rendered: 
     return TestBase, *modules
 
 
+def test_generated_models_publish_column_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """验证主表和子表的列说明能传递到数据库元数据与接口模式。"""
+    table = make_table('mysql', 'sub', 'element-plus')
+    table.pk_column.column_comment = None
+    label = """客户的 "VIP" 生日和 O'Brien 备注"""
+    table.columns[2].column_comment = label
+    table.sub_table.columns[2].column_comment = '  '
+    with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type='mysql')):
+        context = TemplateUtils.prepare_context(table)
+    environment = TemplateInitializer.init_jinja2()
+    rendered = {
+        name: environment.get_template(name).render(**context)
+        for name in ('python/do.py.jinja2', 'python/vo.py.jinja2', 'python/dao.py.jinja2')
+    }
+    _, orm, vo, _ = import_generated(tmp_path, monkeypatch, rendered)
+    for mapped, model, name, expected in [
+        (orm.TimeItem, vo.ItemModel, 'item_id', '字段 item_id'),
+        (orm.TimeItem, vo.ItemModel, 'birthday', label),
+        (orm.TimeDetail, vo.DetailModel, 'birthday', '字段 birthday'),
+    ]:
+        assert mapped.__table__.c[name].comment == expected
+        assert model.model_fields[name].description == expected
+    assert vo.ItemQueryModel.model_fields['begin_birthday'].description == f'开始{label}'
+    assert vo.DetailModel.model_json_schema()['properties']['birthday']['description'] == '字段 birthday'
+    assert table.sub_table.columns[2].column_comment == '  '
+
+
 @pytest.mark.parametrize('db_type', ['mysql', 'postgresql'])
 @pytest.mark.parametrize('category', ['crud', 'tree', 'sub'])
 @pytest.mark.asyncio
 async def test_generated_import_crud_and_query(
     db_type: str, category: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """验证生成模块的导入、增删改查和查询。"""
     base, _do, vo, dao = import_generated(tmp_path, monkeypatch, render_case(db_type, category, 'element-plus'))
     monkeypatch.setattr(AppConfig, 'app_timezone', 'America/New_York')
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
@@ -227,6 +323,7 @@ async def test_generated_import_crud_and_query(
 
 @pytest.mark.parametrize('column_type', ['timestamp(3) without time zone', 'timestamp', 'TIMESTAMP(6)'])
 def test_rejects_postgres_ambiguous_timestamp(column_type: str) -> None:
+    """拒绝 PostgreSQL 有歧义的时间戳。"""
     table = make_table('postgresql', 'crud', 'element-plus')
     table.columns[4].column_type = column_type
     with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type='postgresql')):
@@ -236,6 +333,7 @@ def test_rejects_postgres_ambiguous_timestamp(column_type: str) -> None:
 
 
 def test_mysql_time_requires_explicit_time_of_day_control() -> None:
+    """MySQL 时间字段需要明确的时刻控件。"""
     table = make_table('mysql', 'crud', 'element-plus')
     table.columns[3].html_type = 'datetime'
     with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type='mysql')):

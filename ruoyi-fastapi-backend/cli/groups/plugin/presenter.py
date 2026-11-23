@@ -2,9 +2,7 @@ from cli.utils import SHELL_TEXT_FORMATTER
 
 
 class PluginCommandPresenter:
-    """
-    插件命令文本渲染器。
-    """
+    """插件命令文本渲染器。"""
 
     def build_list_text(self, payload: dict[str, object]) -> str:
         """
@@ -863,7 +861,6 @@ class PluginCommandPresenter:
 
         :param lines: 文本行列表
         :param payload: 生命周期负载
-        :return: None
         """
         migration_recovery = payload.get('migrationRecovery')
         if isinstance(migration_recovery, dict):

@@ -67,8 +67,13 @@ _CLIENT_SECONDS = 600
 
 @pytest_asyncio.fixture
 async def auth_flow(data_session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
-    """配置一个业务客户端、机器客户端、资源服务和真实用户会话。"""
+    """
+    配置一个业务客户端、机器客户端、资源服务和真实用户会话。
 
+    :param data_session: 测试使用的数据库会话
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: ``SimpleNamespace`` 实例
+    """
     now = TimezoneUtil.utc_now().replace(microsecond=0)
     monkeypatch.setattr(TimezoneUtil, 'utc_now', staticmethod(lambda: now))
     for name, value in {
@@ -217,8 +222,13 @@ async def auth_flow(data_session: AsyncSession, monkeypatch: pytest.MonkeyPatch)
 
 
 def _authorize_request(flow: SimpleNamespace, *, offline: bool = False) -> dict[str, str]:
-    """构造携带 PKCE 和 Resource 的授权请求。"""
+    """
+    构造携带 PKCE 和 Resource 的授权请求。
 
+    :param flow: 驱动当前场景的业务流程
+    :param offline: 是否使用离线资源
+    :return: 携带 PKCE 和 Resource 的授权请求
+    """
     return {
         'client_id': flow.app.client_id,
         'redirect_uri': 'https://app.example.com/callback',
@@ -234,8 +244,14 @@ def _authorize_request(flow: SimpleNamespace, *, offline: bool = False) -> dict[
 async def _user_token(
     flow: SimpleNamespace, *, remember: bool = False, offline: bool = False
 ) -> tuple[TokenResult, SysOAuthGrant | None]:
-    """通过真实同意和授权码流程签发用户令牌。"""
+    """
+    通过真实同意和授权码流程签发用户令牌。
 
+    :param flow: 驱动当前场景的业务流程
+    :param remember: 是否记住本次选择
+    :param offline: 是否使用离线资源
+    :return: 已签发的用户令牌与对应的授权记录
+    """
     request = AuthorizeRequest(**_authorize_request(flow, offline=offline))
     context = await AuthorizationService.validate_request(flow.db, request)
     consent = await ConsentService.submit_consent(
@@ -284,8 +300,12 @@ async def _user_token(
 
 
 async def _machine_token(flow: SimpleNamespace) -> TokenResult:
-    """为已认证的机器 Client 签发 Resource 访问令牌。"""
+    """
+    为已认证的机器 Client 签发 Resource 访问令牌。
 
+    :param flow: 驱动当前场景的业务流程
+    :return: 机器客户端凭据换取的资源访问令牌
+    """
     return await TokenService.client_credentials(
         flow.db,
         {'grant_type': 'client_credentials', 'scope': 'api.read', 'resource': flow.resource.audience},
@@ -297,8 +317,13 @@ async def _machine_token(flow: SimpleNamespace) -> TokenResult:
 
 
 async def _introspect(flow: SimpleNamespace, token: str) -> dict[str, object]:
-    """使用独立 Resource Client 查询令牌的实时状态。"""
+    """
+    使用独立 Resource Client 查询令牌的实时状态。
 
+    :param flow: 驱动当前场景的业务流程
+    :param token: 用于身份验证或授权的令牌
+    :return: 资源客户端读取的令牌内省结果
+    """
     return await IntrospectionService.introspect(
         flow.db,
         flow.redis,
@@ -310,8 +335,13 @@ async def _introspect(flow: SimpleNamespace, token: str) -> dict[str, object]:
 
 
 def _claims(flow: SimpleNamespace, token: str) -> dict[str, object]:
-    """验证 Access Token 的签名、Issuer 和 Resource Audience。"""
+    """
+    验证 Access Token 的签名、Issuer 和 Resource Audience。
 
+    :param flow: 驱动当前场景的业务流程
+    :param token: 用于身份验证或授权的令牌
+    :return: 通过签名、签发者和受众校验的声明
+    """
     return decode_access_token(
         token,
         verification_key=flow.signer.public_key(),
@@ -321,8 +351,13 @@ def _claims(flow: SimpleNamespace, token: str) -> dict[str, object]:
 
 
 def _sign(flow: SimpleNamespace, claims: dict[str, object]) -> str:
-    """签署指定 Claims，用于验证内省对授权来源的校验。"""
+    """
+    签署指定 Claims，用于验证内省对授权来源的校验。
 
+    :param flow: 驱动当前场景的业务流程
+    :param claims: 令牌携带的身份声明
+    :return: 使用测试私钥签名的 JWT
+    """
     return jwt.encode(
         claims,
         flow.signer,
@@ -334,7 +369,6 @@ def _sign(flow: SimpleNamespace, claims: dict[str, object]) -> str:
 @pytest.mark.asyncio
 async def test_one_time_consent_has_revocable_grant_without_remembering_consent(auth_flow: SimpleNamespace) -> None:
     """一次性同意有可撤销记录，但不授予离线续期和后续免确认资格。"""
-
     token, grant = await _user_token(auth_flow)
     assert grant is not None and token.refresh_token is None
     assert grant.remembered_scopes == [] and grant.remembered_resources == []
@@ -356,7 +390,6 @@ async def test_one_time_consent_still_checks_current_security_state(
     invalid_state: str,
 ) -> None:
     """一次性同意的 Access Token 仍受当前授权策略和用户安全状态约束。"""
-
     token, _ = await _user_token(auth_flow)
     assert (await _introspect(auth_flow, token.access_token))['active'] is True
     if invalid_state == 'policy':
@@ -383,7 +416,6 @@ async def test_saved_grant_revocation_cannot_be_bypassed_by_a_later_grant(
     offline: bool,
 ) -> None:
     """管理端撤销各类授权后，新授权不能恢复旧令牌，其他用户会话不受影响。"""
-
     token, grant = await _user_token(auth_flow, remember=remember, offline=offline)
     assert grant is not None
     if offline:
@@ -438,7 +470,6 @@ async def test_legacy_user_tokens_without_grant_binding_require_reauthorization(
     auth_flow: SimpleNamespace, remember: bool
 ) -> None:
     """旧令牌没有具体 Grant 绑定时拒绝访问，即使用户有其他有效授权。"""
-
     token, _ = await _user_token(auth_flow, remember=remember)
     claims = _claims(auth_flow, token.access_token)
     claims.pop('grant_id', None)
@@ -456,7 +487,6 @@ async def test_incomplete_or_invalid_authorization_context_is_inactive(
     invalid_context: str,
 ) -> None:
     """授权来源 Claims 缺失或不合法时，内省返回 inactive。"""
-
     token, _ = await _user_token(auth_flow)
     claims = _claims(auth_flow, token.access_token)
     claims.update(grant_id=None, client_policy_version=auth_flow.app.policy_version)
@@ -487,7 +517,6 @@ async def test_machine_token_honours_client_resource_and_platform_ttl(
     expected: int,
 ) -> None:
     """机器令牌的响应有效期和 JWT 有效期均遵守 Client、Resource 及平台上限。"""
-
     auth_flow.machine.access_token_ttl_seconds = client_ttl
     auth_flow.resource.access_token_ttl_seconds = resource_ttl
     await auth_flow.db.commit()
@@ -501,7 +530,6 @@ async def test_machine_token_honours_client_resource_and_platform_ttl(
 @pytest.mark.parametrize('legacy', [False, True])
 async def test_scope_disable_immediately_invalidates_machine_tokens(auth_flow: SimpleNamespace, legacy: bool) -> None:
     """Scope 禁用立即使机器令牌失效，新版令牌在 Scope 恢复后仍受策略版本约束。"""
-
     token = (await _machine_token(auth_flow)).access_token
     if legacy:
         claims = _claims(auth_flow, token)
@@ -531,7 +559,6 @@ async def test_scope_disable_immediately_invalidates_machine_tokens(auth_flow: S
 @pytest.mark.parametrize('change', ['unbind', 'identity_scope', 'different_resource'])
 async def test_machine_tokens_recheck_current_scope_bindings(auth_flow: SimpleNamespace, change: str) -> None:
     """机器令牌内省重新检查 Scope 的 Client 绑定、类型和所属 Resource。"""
-
     token = await _machine_token(auth_flow)
     assert (await _introspect(auth_flow, token.access_token))['active'] is True
     if change == 'unbind':
@@ -552,7 +579,6 @@ async def test_authorize_slides_idle_timeout_but_never_extends_absolute_expiry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """授权请求更新 SSO 空闲期限，并保留 Session 的绝对过期上限。"""
-
     flow = auth_flow
     absolute = flow.now + timedelta(minutes=40)
     flow.session.absolute_expires_at = absolute
@@ -587,7 +613,6 @@ async def test_login_cookie_persistence_survives_forced_password_change(
     force_password_change: bool,
 ) -> None:
     """普通登录及强制改密后的 Cookie 持久化行为均遵守保持登录选项。"""
-
     flow = auth_flow
     context = await AuthorizationService.validate_request(flow.db, AuthorizeRequest(**_authorize_request(flow)))
     created = await InteractionService.create(flow.redis, context.to_internal_payload('cookie-test'), pepper=_PEPPER)
@@ -650,7 +675,6 @@ async def test_login_cookie_persistence_survives_forced_password_change(
 @pytest.mark.parametrize('offline', [False, True])
 async def test_block_and_unblock_require_new_authorization(auth_flow: SimpleNamespace, offline: bool) -> None:
     """禁止访问阻断当前令牌和授权确认，解除后只有新授权可以访问。"""
-
     flow = auth_flow
     token, grant = await _user_token(flow, offline=offline)
     client_id, user_id, grant_id = flow.app.client_id, flow.user.user_id, grant.grant_id
@@ -724,7 +748,6 @@ async def test_block_and_unblock_require_new_authorization(auth_flow: SimpleName
 @pytest.mark.asyncio
 async def test_block_rejects_authorize_before_showing_consent(auth_flow: SimpleNamespace) -> None:
     """已有 SSO 时，禁止访问在授权入口直接拒绝，不依赖同意页或令牌端点兜底。"""
-
     flow = auth_flow
     raw, cookie = _authorize_request(flow), flow.cookie
     await OAuthSessionManagementService.set_access(
@@ -738,7 +761,6 @@ async def test_block_rejects_authorize_before_showing_consent(auth_flow: SimpleN
 @pytest.mark.asyncio
 async def test_pre_authorized_flow_also_creates_revocable_grant(auth_flow: SimpleNamespace) -> None:
     """可信应用跳过确认页面时，授权码仍绑定后台可撤销的具体 Grant。"""
-
     flow = auth_flow
     flow.app.require_consent = 0
     await flow.db.commit()
@@ -758,7 +780,6 @@ async def test_pre_authorized_flow_also_creates_revocable_grant(auth_flow: Simpl
 @pytest.mark.asyncio
 async def test_batch_revoke_covers_all_grants_for_selected_user_client(auth_flow: SimpleNamespace) -> None:
     """同一用户应用的重复历史有效记录一并撤销，其他用户及机器访问不受影响。"""
-
     flow = auth_flow
     token, grant = await _user_token(flow, remember=True)
     duplicate = SysOAuthGrant(
@@ -803,7 +824,6 @@ async def test_failed_access_policy_audit_rolls_back_revocation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """禁止操作的审计失败时，访问策略与令牌撤销必须同时回滚。"""
-
     flow = auth_flow
     token, grant = await _user_token(flow)
     user_id, client_pk, client_id = flow.user.user_id, flow.app.client_pk, flow.app.client_id
@@ -821,7 +841,6 @@ async def test_failed_access_policy_audit_rolls_back_revocation(
 @pytest.mark.parametrize('confirm', [False, True])
 async def test_interactive_completion_binds_a_grant(auth_flow: SimpleNamespace, confirm: bool) -> None:
     """登录后直接完成与确认后完成两条交互路径都绑定可撤销授权。"""
-
     flow = auth_flow
     flow.app.require_consent = int(confirm)
     await flow.db.commit()
@@ -854,7 +873,6 @@ async def test_interactive_completion_binds_a_grant(auth_flow: SimpleNamespace, 
 @pytest.mark.asyncio
 async def test_expired_grant_is_not_reactivated_by_new_consent(auth_flow: SimpleNamespace) -> None:
     """授权先于 Access Token 过期后，再次同意也不能恢复旧令牌。"""
-
     flow = auth_flow
     old_token, old_grant = await _user_token(flow)
     old_grant.expires_at = flow.now - timedelta(seconds=1)
@@ -874,7 +892,6 @@ async def test_revocation_between_consent_and_completion_prevents_code(
     blocked: bool,
 ) -> None:
     """同意后、签码前发生撤销或禁止，不得继续发码或复用授权记录。"""
-
     flow = auth_flow
     context = await AuthorizationService.validate_request(flow.db, AuthorizeRequest(**_authorize_request(flow)))
     payload = context.to_internal_payload('pending')

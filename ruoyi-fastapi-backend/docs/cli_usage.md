@@ -543,10 +543,46 @@ ruoyi dev test tests --output=json
 
 说明：
 
-- `dev lint` 默认顺序是先执行 `ruff format`，再执行 `ruff check`
+- `dev lint` 依次运行 Ruff 格式化、静态检查和项目文档规范检查。CLI 和 CI 共用 `scripts/check_docstrings.py` 校验 reST 文档、模型字段和 HTTP 路由说明。在后端目录执行 `python scripts/check_docstrings.py .` 可单独运行这项检查。
 - `--check-only` 会改成只检查，不写回
 - `--fix` 会执行 `ruff check --fix`
 - `dev test` 通过当前环境的 `python -m pytest` 执行测试
+
+#### Python 文档字符串
+
+Python 文件顶部禁止说明性 `#` 注释和模块 docstring。首行 shebang 和 Python 识别的编码声明可以保留。类、方法和函数实现使用 Sphinx/reStructuredText docstring，包括私有成员、嵌套定义和异步函数。使用 `@overload` 的函数在具体实现上统一写文档。[Ruff 重载文档规则](https://docs.astral.sh/ruff/rules/overload-with-docstring/)
+
+摘要、说明段落、接口字段的描述和普通 `#` 注释使用中文，可以混用英文术语和标识符。类型表达式、代码示例和工具指令保留原样。单行 docstring 的摘要与引号同一行。所有多行 docstring 的起始三引号独占首行，摘要从第二行开始，以句末标点结束。正文或字段与摘要之间空一行。项目通过 Ruff 的 D213 检查多行摘要的位置。[Ruff D213](https://docs.astral.sh/ruff/rules/multi-line-summary-second-line/)
+
+函数在 `:param 名称:` 中逐项说明显式参数的用途，包括仅限位置、仅限关键字和可变参数，省略绑定方法的隐式首参。普通类用 `:ivar 名称:` 说明实例属性，用 `:cvar 名称:` 说明类属性。同名属性和构造参数分别写在类和 `__init__` 的文档中。带有自身 docstring 的 `@property` 在访问器上说明即可。类型注解和 `:type:`、`:vartype:` 字段可补充类型信息。字段续行要缩进。[Sphinx Python 域](https://www.sphinx-doc.org/en/master/usage/domains/python.html#info-field-lists)
+
+- 有返回值的函数用 `:return:` 说明调用方获得什么。无返回值的函数可省略该字段。
+- 同步和异步生成器用项目约定的 reST 字段 `:yield:` 说明每次产生什么。同步生成器若还有最终返回值，另写 `:return:`。
+- 对当前函数显式抛出并传给调用方的异常，用 `:raises 异常类型:` 说明触发条件。检查器区分本地捕获和重新抛出，按词法作用域独立检查嵌套函数。
+
+- 每次注册 FastAPI HTTP 路径操作都必须显式提供含中文的 `summary` 和 `description`。摘要写接口做什么，描述补充输入、效果或返回内容。此规则适用于 HTTP 装饰器、`api_route` 和 `add_api_route`，包括 `include_in_schema=False` 的接口。同一函数注册到多条路径时逐条检查。路由函数可省略 docstring 和参数说明。WebSocket 和 Starlette 原生 `route`、`add_route` 使用框架各自的注册参数。[FastAPI 路径操作配置](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/#summary-and-description)
+- pytest 收集的测试函数和测试方法只写测试意图，出现参数、类型、返回值、生成值或异常等接口字段会报错。夹具和测试辅助函数遵循普通函数规则。
+- Pydantic 模型（含派生模型和配置模型）的字段必须提供含中文的 `description`，例如 `name: str = Field(description='用户名称')`。也可通过 `Annotated` 声明。计算字段在装饰器上填写说明，例如 `@computed_field(description='记录总数')`。私有属性、`ClassVar` 和 `model_config` 免检。
+- SQLAlchemy 映射列必须提供含中文的 `comment`，例如 `id: Mapped[int] = mapped_column(primary_key=True, comment='用户标识')`。同样检查 `Table` 中显式声明的 `Column` 和混入类声明的列。`relationship` 等关系属性免写列说明。
+- 两类模型及其普通方法仍需中文 reST 文档。字段说明写在模型声明处，派生类直接继承的字段沿用基类的说明，类文档无需重复写 `:ivar:`。
+- 检查器会拒绝缺失的说明、空白或纯英文的字符串字面量，也会解析同一作用域中的字符串常量。通过运行时表达式提供的说明，以模型最终的字段元数据为准。
+- `alembic/env.py` 和 `common/router.py` 中的 `APIRouterPro` 保留原有文档。同一文件中的 `RouterRegister` 遵循普通类规则。
+
+```python
+def positive_count(value: int) -> int:
+    """
+    校验数量为正整数。
+
+    :param value: 待校验的数量
+    :return: 已校验的数量
+    :raises ValueError: 数量小于 1
+    """
+    if value < 1:
+        raise ValueError('数量必须大于零')
+    return value
+```
+
+行内代码使用双反引号，对 Python 对象的引用可使用 `:py:class:` 等角色。代码示例使用 `::` 或 `.. code-block:: python` 引出缩进的代码块。运行 `ruoyi dev lint 路径 --check-only` 可查看 Ruff 排版检查、Sphinx/reST 解析诊断及 API 字段风格违规的源码位置。检查使用 Sphinx 内置角色和指令，代码块内可以展示其他文档格式。[Sphinx reST 入门](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html)
 
 ### 5.10 `completion`
 

@@ -10,14 +10,12 @@ from module_admin.entity.vo.dept_vo import DeptModel
 
 
 class DeptDao:
-    """
-    部门管理模块数据库操作层
-    """
+    """部门管理模块数据库操作层。"""
 
     @classmethod
     async def get_dept_by_id(cls, db: AsyncSession, dept_id: int) -> SysDept | None:
         """
-        根据部门id获取在用部门信息
+        根据部门id获取在用部门信息。
 
         :param db: orm对象
         :param dept_id: 部门id
@@ -30,7 +28,7 @@ class DeptDao:
     @classmethod
     async def get_dept_detail_by_id(cls, db: AsyncSession, dept_id: int) -> SysDept | None:
         """
-        根据部门id获取部门详细信息
+        根据部门id获取部门详细信息。
 
         :param db: orm对象
         :param dept_id: 部门id
@@ -47,7 +45,7 @@ class DeptDao:
     @classmethod
     async def get_dept_detail_by_info(cls, db: AsyncSession, dept: DeptModel) -> SysDept | None:
         """
-        根据部门参数获取部门信息
+        根据部门参数获取部门信息。
 
         :param db: orm对象
         :param dept: 部门参数对象
@@ -74,7 +72,7 @@ class DeptDao:
         cls, db: AsyncSession, dept_info: DeptModel, data_scope_sql: ColumnElement
     ) -> Sequence[SysDept]:
         """
-        获取部门编辑对应的在用部门列表信息
+        获取部门编辑对应的在用部门列表信息。
 
         :param db: orm对象
         :param dept_info: 部门对象
@@ -107,7 +105,7 @@ class DeptDao:
     @classmethod
     async def get_children_dept_dao(cls, db: AsyncSession, dept_id: int) -> Sequence[SysDept]:
         """
-        根据部门id查询当前部门的子部门列表信息
+        根据部门id查询当前部门的子部门列表信息。
 
         :param db: orm对象
         :param dept_id: 部门id
@@ -124,7 +122,7 @@ class DeptDao:
         cls, db: AsyncSession, dept_info: DeptModel, data_scope_sql: ColumnElement
     ) -> Sequence[SysDept]:
         """
-        获取所有在用部门列表信息
+        获取所有在用部门列表信息。
 
         :param db: orm对象
         :param dept_info: 部门对象
@@ -156,7 +154,7 @@ class DeptDao:
         cls, db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement
     ) -> Sequence[SysDept]:
         """
-        根据查询参数获取部门列表信息
+        根据查询参数获取部门列表信息。
 
         :param db: orm对象
         :param page_object: 不分页查询参数对象
@@ -187,7 +185,7 @@ class DeptDao:
     @classmethod
     async def add_dept_dao(cls, db: AsyncSession, dept: DeptModel) -> SysDept:
         """
-        新增部门数据库操作
+        新增部门数据库操作。
 
         :param db: orm对象
         :param dept: 部门对象
@@ -202,11 +200,10 @@ class DeptDao:
     @classmethod
     async def edit_dept_dao(cls, db: AsyncSession, dept: dict) -> None:
         """
-        编辑部门数据库操作
+        编辑部门数据库操作。
 
         :param db: orm对象
         :param dept: 需要更新的部门字典
-        :return: 编辑校验结果
         """
         await db.execute(
             update(SysDept),
@@ -216,11 +213,10 @@ class DeptDao:
     @classmethod
     async def update_dept_children_dao(cls, db: AsyncSession, update_dept: list) -> None:
         """
-        更新子部门信息
+        更新子部门信息。
 
         :param db: orm对象
         :param update_dept: 需要更新的部门列表
-        :return:
         """
         await db.execute(
             update(SysDept)
@@ -238,11 +234,10 @@ class DeptDao:
     @classmethod
     async def update_dept_sort_dao(cls, db: AsyncSession, dept_sort_list: list[dict[str, int]]) -> None:
         """
-        批量更新部门显示顺序
+        批量更新部门显示顺序。
 
         :param db: orm对象
         :param dept_sort_list: 部门id与显示顺序列表
-        :return:
         """
         await db.execute(
             update(SysDept.__table__)
@@ -254,22 +249,20 @@ class DeptDao:
     @classmethod
     async def update_dept_status_normal_dao(cls, db: AsyncSession, dept_id_list: list) -> None:
         """
-        批量更新部门状态为正常
+        批量更新部门状态为正常。
 
         :param db: orm对象
         :param dept_id_list: 部门id列表
-        :return:
         """
         await db.execute(update(SysDept).where(SysDept.dept_id.in_(dept_id_list)).values(status='0'))
 
     @classmethod
     async def delete_dept_dao(cls, db: AsyncSession, dept: DeptModel) -> None:
         """
-        删除部门数据库操作
+        删除部门数据库操作。
 
         :param db: orm对象
         :param dept: 部门对象
-        :return:
         """
         await db.execute(
             update(SysDept).where(SysDept.dept_id == dept.dept_id).values(del_flag='2', update_by=dept.update_by)
@@ -278,7 +271,7 @@ class DeptDao:
     @classmethod
     async def count_normal_children_dept_dao(cls, db: AsyncSession, dept_id: int) -> int | None:
         """
-        根据部门id查询查询所有子部门（正常状态）的数量
+        根据部门id查询查询所有子部门（正常状态）的数量。
 
         :param db: orm对象
         :param dept_id: 部门id
@@ -297,7 +290,7 @@ class DeptDao:
     @classmethod
     async def count_children_dept_dao(cls, db: AsyncSession, dept_id: int) -> int | None:
         """
-        根据部门id查询查询所有子部门（所有状态）的数量
+        根据部门id查询查询所有子部门（所有状态）的数量。
 
         :param db: orm对象
         :param dept_id: 部门id
@@ -317,7 +310,7 @@ class DeptDao:
     @classmethod
     async def count_dept_user_dao(cls, db: AsyncSession, dept_id: int) -> int | None:
         """
-        根据部门id查询查询部门下的用户数量
+        根据部门id查询查询部门下的用户数量。
 
         :param db: orm对象
         :param dept_id: 部门id

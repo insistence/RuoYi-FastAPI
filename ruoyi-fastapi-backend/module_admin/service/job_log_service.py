@@ -15,16 +15,14 @@ from utils.excel_util import ExcelUtil
 
 
 class JobLogService:
-    """
-    定时任务日志管理模块服务层
-    """
+    """定时任务日志管理模块服务层。"""
 
     @classmethod
     async def get_job_log_list_services(
         cls, query_db: AsyncSession, query_object: JobLogPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取定时任务日志列表信息service
+        获取定时任务日志列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -38,7 +36,7 @@ class JobLogService:
     @classmethod
     def add_job_log_services(cls, query_db: Session, page_object: JobLogModel) -> CrudResponseModel:
         """
-        新增定时任务日志信息service
+        新增定时任务日志信息service。
 
         :param query_db: orm对象
         :param page_object: 新增定时任务日志对象
@@ -57,11 +55,12 @@ class JobLogService:
     @classmethod
     async def delete_job_log_services(cls, query_db: AsyncSession, page_object: DeleteJobLogModel) -> CrudResponseModel:
         """
-        删除定时任务日志信息service
+        删除定时任务日志信息service。
 
         :param query_db: orm对象
         :param page_object: 删除定时任务日志对象
         :return: 删除定时任务日志校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if page_object.job_log_ids:
             job_log_id_list = page_object.job_log_ids.split(',')
@@ -80,10 +79,11 @@ class JobLogService:
     @classmethod
     async def clear_job_log_services(cls, query_db: AsyncSession) -> CrudResponseModel:
         """
-        清除定时任务日志信息service
+        清除定时任务日志信息service。
 
         :param query_db: orm对象
         :return: 清除定时任务日志校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         try:
             await JobLogDao.clear_job_log_dao(query_db)
@@ -98,7 +98,7 @@ class JobLogService:
     @staticmethod
     async def export_job_log_list_services(request: Request, job_log_list: list) -> bytes:
         """
-        导出定时任务日志信息service
+        导出定时任务日志信息service。
 
         :param request: Request对象
         :param job_log_list: 定时任务日志信息列表

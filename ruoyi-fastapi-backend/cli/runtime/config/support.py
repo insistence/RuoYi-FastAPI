@@ -14,7 +14,8 @@ class ConfigDomainSupport:
     该对象负责操作者解析、配置脱敏、序列化、查询模型构建与缺失结果构建，
     避免主运行时服务继续承载大量领域规则。
 
-    :param infrastructure_gateway: 参数配置基础设施网关
+    :ivar infrastructure_gateway: 参数配置基础设施网关
+    :ivar operator_service: 运行时操作者解析服务
     """
 
     def __init__(
@@ -27,7 +28,6 @@ class ConfigDomainSupport:
 
         :param infrastructure_gateway: 参数配置基础设施网关
         :param operator_service: 运行时操作者解析服务
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
         self.operator_service = operator_service

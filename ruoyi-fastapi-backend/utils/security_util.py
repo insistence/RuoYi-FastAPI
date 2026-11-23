@@ -6,7 +6,10 @@ import nh3
 
 class SecurityUtil:
     """
-    安全工具类
+    安全工具类。
+
+    :cvar HTML_TAGS: 清理 HTML 时允许的标签
+    :cvar HTML_ATTRIBUTES: 清理 HTML 时允许保留的属性
     """
 
     # 仅允许文档型富文本；仅保留文本样式，不接受表单或可执行内容，视频嵌入强制使用沙箱。

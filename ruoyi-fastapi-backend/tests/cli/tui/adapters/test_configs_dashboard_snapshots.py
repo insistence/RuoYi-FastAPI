@@ -11,7 +11,16 @@ async def test_collect_dashboard_snapshot_adds_risk_heat_panel(
     health_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """仪表盘快照包含风险热度面板。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``app env``、``app doctor``、``app routes`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('app', 'env'):
             return SimpleNamespace(
@@ -126,7 +135,16 @@ async def test_dashboard_adapter_collect_snapshot_exposes_metrics(
     health_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """仪表盘适配器快照提供指标。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``app env``、``app routes``、``app doctor`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('app', 'env'):
             return SimpleNamespace(payload={'ok': True, 'runtime': {'cliEnv': 'dev', 'configEnv': 'dev'}})
@@ -166,7 +184,16 @@ async def test_collect_dashboard_snapshot_uses_focus_hints_for_healthy_business_
     health_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """业务入口健康时仪表盘提供焦点提示。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``app env``、``app routes``、``app doctor`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('app', 'env'):
             return SimpleNamespace(payload={'ok': True, 'runtime': {'cliEnv': 'dev', 'configEnv': 'dev'}})
@@ -217,7 +244,16 @@ async def test_collect_configs_page_snapshot_surfaces_failure_message(
     configs_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """配置快照显示失败原因。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        按子命令返回预设的 CLI 输出，供 TUI 生成快照。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: ``SimpleNamespace`` 实例
+        """
         del arguments, parse_json
         return SimpleNamespace(
             payload={
@@ -246,7 +282,16 @@ async def test_configs_browser_adapter_collect_snapshot_exposes_search_context(
     configs_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """配置浏览器快照提供搜索上下文。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``config doctor``、``config list`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('config', 'doctor'):
             return SimpleNamespace(
@@ -299,9 +344,17 @@ async def test_collect_configs_page_snapshot_builds_browser_records(
     configs_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """配置快照生成可浏览的记录。"""
     calls: list[tuple[str, ...]] = []
 
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``config doctor``、``config list`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         calls.append(arguments)
         if arguments[0:2] == ('config', 'doctor'):
@@ -394,7 +447,16 @@ async def test_collect_configs_page_snapshot_sorts_and_filters_risky_records(
     configs_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """配置快照对风险记录排序并过滤。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``config doctor``、``config list`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('config', 'doctor'):
             return SimpleNamespace(
@@ -476,7 +538,16 @@ async def test_collect_configs_page_snapshot_applies_query_filter(
     configs_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """配置快照按查询条件过滤。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``config doctor``、``config list`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('config', 'doctor'):
             return SimpleNamespace(

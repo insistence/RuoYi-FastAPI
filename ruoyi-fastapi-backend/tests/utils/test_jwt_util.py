@@ -9,6 +9,7 @@ from utils.jwt_util import JwtUtil
 
 @pytest.mark.parametrize('jwt_error', [DecodeError(), InvalidAlgorithmError(), InvalidKeyError()])
 def test_decode_converts_pyjwt_errors_to_auth_exception(jwt_error: Exception) -> None:
+    """解码时将 PyJWT 错误转换为认证异常。"""
     with (
         patch('utils.jwt_util.jwt.decode', side_effect=jwt_error),
         pytest.raises(AuthException) as exc_info,
@@ -20,6 +21,7 @@ def test_decode_converts_pyjwt_errors_to_auth_exception(jwt_error: Exception) ->
 
 @pytest.mark.parametrize('jwt_error', [InvalidAlgorithmError(), InvalidKeyError()])
 def test_encode_converts_pyjwt_errors_to_auth_exception(jwt_error: Exception) -> None:
+    """编码时将 PyJWT 错误转换为认证异常。"""
     with (
         patch('utils.jwt_util.jwt.encode', side_effect=jwt_error),
         pytest.raises(AuthException) as exc_info,

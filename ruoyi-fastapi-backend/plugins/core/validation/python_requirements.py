@@ -11,6 +11,9 @@ class ParsedPythonRequirement:
 
     保留 packaging 的解析结果，供 manifest 校验、运行时检查和依赖安装策略
     共享同一套名称、版本范围和环境 marker 语义。
+
+    :ivar raw: 尚未解析或规范化的原始值
+    :ivar requirement: Python 依赖声明
     """
 
     raw: str
@@ -48,7 +51,7 @@ class ParsedPythonRequirement:
         """
         获取环境 marker。
 
-        :return: PEP 508 marker
+        :return: 符合 PEP 508 的环境标记
         """
         return str(self.requirement.marker) if self.requirement.marker else None
 

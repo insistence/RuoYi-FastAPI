@@ -13,7 +13,7 @@ class JobActionTemplateFactory:
     该对象负责生成任务浏览页相关动作模板，收口任务 ID 解析、
     暂停/恢复切换和摘要拼装逻辑。
 
-    :param support: 动作模板共享构建支持
+    :ivar support: 动作模板共享构建支持
     """
 
     support: TuiActionTemplateSupport

@@ -33,6 +33,7 @@ from utils.cron_util import CronUtil, MyCronTrigger
     ids=['before-gap', 'before-fold', 'on-gap', 'on-fold'],
 )
 def test_preview_matches_persisted_trigger_across_dst(expression: str, start: str, expected: list[str]) -> None:
+    """跨夏令时的预览与持久化触发器一致。"""
     start_time = datetime.fromisoformat(start)
     preview = CronUtil.next_run_times(expression, 'America/New_York', start_time, 3)
     trigger = pickle.loads(pickle.dumps(MyCronTrigger.from_crontab(expression, 'America/New_York')))
@@ -54,11 +55,13 @@ def test_preview_matches_persisted_trigger_across_dst(expression: str, start: st
     ],
 )
 def test_quartz_week_and_workday_semantics(expression: str, expected: list[str]) -> None:
+    """验证 Quartz 对星期和工作日的解释。"""
     times = CronUtil.next_run_times(expression, 'UTC', datetime(2026, 2, 1, tzinfo=UTC), 2)
     assert [value.date().isoformat() for value in times] == expected
 
 
 def test_cron_trigger_uses_explicit_business_timezone() -> None:
+    """Cron 触发器使用显式指定的业务时区。"""
     trigger = MyCronTrigger.from_crontab('0 0 9 * * ?', 'Asia/Shanghai')
     fire_time = trigger.get_next_fire_time(None, datetime(2026, 1, 1, tzinfo=UTC))
 

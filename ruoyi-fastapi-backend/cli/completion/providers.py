@@ -33,7 +33,7 @@ class CompletionContextResolver:
         解析当前 completion 场景使用的环境名称。
 
         :param ctx: Click 上下文
-        :return: 环境名称，默认返回 `dev`
+        :return: 环境名称，默认返回 ``dev``
         """
         if ctx is not None:
             env_value = getattr(ctx, 'params', {}).get('env')
@@ -132,8 +132,8 @@ class DynamicCompletionService:
     该服务负责 runtime 模块导入、只读协程执行、标准 payload 提取与
     候选过滤，从而避免各补全函数继续复制相同的模板。
 
-    :param context_resolver: completion 上下文解析器
-    :param timeout_seconds: 动态补全超时时间
+    :ivar context_resolver: completion 上下文解析器
+    :ivar timeout_seconds: 动态补全超时时间
     """
 
     context_resolver: CompletionContextResolver = field(default_factory=CompletionContextResolver)
@@ -142,10 +142,10 @@ class DynamicCompletionService:
     @staticmethod
     def _scoped_app_env(env: str) -> Any:
         """
-        为动态补全临时注入 `APP_ENV` 环境变量。
+        为动态补全临时注入 ``APP_ENV`` 环境变量。
 
-        `config.env` 在导入阶段会优先读取 `APP_ENV`，因此补全场景下
-        直接切换进程环境变量比改写 `sys.argv` 更稳定，也更符合当前
+        ``config.env`` 在导入阶段会优先读取 ``APP_ENV``，因此补全场景下
+        直接切换进程环境变量比改写 ``sys.argv`` 更稳定，也更符合当前
         后端配置模块的解析约束。
 
         :param env: 当前补全环境名称
@@ -153,11 +153,25 @@ class DynamicCompletionService:
         """
 
         class _CompletionEnvScope:
+            """
+            为一次动态补全临时切换应用环境。
+
+            :ivar _original_app_env: 进入补全作用域前的应用环境
+            """
+
             def __enter__(self) -> None:
+                """在读取补全候选项之前设置目标环境。"""
                 self._original_app_env = os.environ.get('APP_ENV')
                 os.environ['APP_ENV'] = env
 
             def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
+                """
+                在补全结束时恢复原来的环境配置。
+
+                :param exc_type: 退出上下文时的异常类型
+                :param exc: 捕获到的异常实例
+                :param traceback: 异常的调用栈
+                """
                 if self._original_app_env is None:
                     os.environ.pop('APP_ENV', None)
                 else:
@@ -176,7 +190,7 @@ class DynamicCompletionService:
 
     def run_completion_coroutine(self, coroutine: Any, *, env: str) -> Any:
         """
-        在补全场景下执行异步只读查询，并临时注入 `APP_ENV`。
+        在补全场景下执行异步只读查询，并临时注入 ``APP_ENV``。
 
         :param coroutine: 待执行协程
         :param env: 当前补全环境名称
@@ -254,7 +268,7 @@ class DynamicCompletionService:
         """
         从 CLI 标准结果中提取直接位于顶层字段的字符串列表。
 
-        该方法用于缓存键名等不走 `items/page.rows` 结构的场景，
+        该方法用于缓存键名等不走 ``items/page.rows`` 结构的场景，
         使这类动态补全也能统一复用 runtime 对象加载与协程执行逻辑。
 
         :param payload: CLI 标准结果字典
@@ -372,10 +386,10 @@ class StaticCompletionProvider:
     该对象负责 shell、环境、缓存名称以及 Alembic revision 等静态或
     本地推导型补全候选。
 
-    :param context_resolver: completion 上下文解析器
-    :param dynamic_service: 动态补全执行服务
-    :param shell_spec_registry: shell 元数据注册表
-    :param environment_option_service: 环境选项服务
+    :ivar context_resolver: completion 上下文解析器
+    :ivar dynamic_service: 动态补全执行服务
+    :ivar shell_spec_registry: shell 元数据注册表
+    :ivar environment_option_service: 环境选项服务
     """
 
     context_resolver: CompletionContextResolver = field(default_factory=CompletionContextResolver)
@@ -412,7 +426,7 @@ class StaticCompletionProvider:
         incomplete: str,
     ) -> list[str]:
         """
-        为 `--env` 选项提供可补全的环境名称。
+        为 ``--env`` 选项提供可补全的环境名称。
 
         :param ctx: Click 上下文
         :param args: 当前命令参数列表
@@ -503,7 +517,7 @@ class PathCompletionProvider:
 
     该对象负责项目相对 SQL 文件路径和输出路径补全。
 
-    :param context_resolver: completion 上下文解析器
+    :ivar context_resolver: completion 上下文解析器
     """
 
     context_resolver: CompletionContextResolver = field(default_factory=CompletionContextResolver)
@@ -515,7 +529,7 @@ class PathCompletionProvider:
         incomplete: str,
     ) -> list[str]:
         """
-        为 SQL 文件参数提供项目内 `.sql` 文件补全结果。
+        为 SQL 文件参数提供项目内 ``.sql`` 文件补全结果。
 
         :param ctx: Click 上下文
         :param args: 当前命令参数列表
@@ -541,7 +555,7 @@ class PathCompletionProvider:
         incomplete: str,
     ) -> list[str]:
         """
-        为导出文件参数提供目录和 `.zip` 文件补全结果。
+        为导出文件参数提供目录和 ``.zip`` 文件补全结果。
 
         :param ctx: Click 上下文
         :param args: 当前命令参数列表
@@ -590,19 +604,15 @@ class DomainDynamicCompletionProvider:
 
     该对象负责配置、代码生成、缓存、任务等运行时驱动的只读补全。
 
-    :param context_resolver: completion 上下文解析器
-    :param dynamic_service: 动态补全执行服务
+    :ivar context_resolver: completion 上下文解析器
+    :ivar dynamic_service: 动态补全执行服务
     """
 
     context_resolver: CompletionContextResolver = field(default_factory=CompletionContextResolver)
     dynamic_service: DynamicCompletionService = field(init=False)
 
     def __post_init__(self) -> None:
-        """
-        初始化动态补全执行服务。
-
-        :return: None
-        """
+        """初始化动态补全执行服务。"""
         self.dynamic_service = DynamicCompletionService(context_resolver=self.context_resolver)
 
     def complete_config_keys(
@@ -768,11 +778,11 @@ class CompletionProviderRegistry:
     该注册表只负责持有静态补全、路径补全与动态只读补全 provider，
     供上层 gateway、安装器与其他协作者按职责选择使用。
 
-    :param context_resolver: completion 上下文解析器
-    :param dynamic_service: 动态补全执行服务
-    :param static_provider: 静态 completion 提供器
-    :param path_provider: 路径 completion 提供器
-    :param domain_provider: 业务域动态 completion 提供器
+    :ivar context_resolver: completion 上下文解析器
+    :ivar dynamic_service: 动态补全执行服务
+    :ivar static_provider: 静态 completion 提供器
+    :ivar path_provider: 路径 completion 提供器
+    :ivar domain_provider: 业务域动态 completion 提供器
     """
 
     context_resolver: CompletionContextResolver = field(default_factory=CompletionContextResolver)
@@ -782,11 +792,7 @@ class CompletionProviderRegistry:
     domain_provider: DomainDynamicCompletionProvider = field(init=False)
 
     def __post_init__(self) -> None:
-        """
-        初始化聚合 provider 依赖。
-
-        :return: None
-        """
+        """初始化聚合 provider 依赖。"""
         self.dynamic_service = DynamicCompletionService(context_resolver=self.context_resolver)
         self.static_provider = StaticCompletionProvider(
             context_resolver=self.context_resolver,
@@ -803,9 +809,9 @@ class CompletionProviderGateway:
     completion 对外网关。
 
     该对象负责对命令声明层、上下文层和 TUI 层暴露统一的 completion 入口，
-    避免 `CompletionProviderRegistry` 本体继续膨胀为大而全的委托门面。
+    避免 ``CompletionProviderRegistry`` 本体继续膨胀为大而全的委托门面。
 
-    :param provider_registry: completion provider 注册表
+    :ivar provider_registry: completion provider 注册表
     """
 
     provider_registry: CompletionProviderRegistry = field(default_factory=CompletionProviderRegistry)
@@ -833,7 +839,7 @@ class CompletionProviderGateway:
         incomplete: str,
     ) -> list[str]:
         """
-        为 `--env` 选项提供可补全的环境名称。
+        为 ``--env`` 选项提供可补全的环境名称。
 
         :param ctx: Click 上下文
         :param args: 当前命令参数列表
@@ -897,7 +903,7 @@ class CompletionProviderGateway:
         incomplete: str,
     ) -> list[str]:
         """
-        为 SQL 文件参数提供项目内 `.sql` 文件补全结果。
+        为 SQL 文件参数提供项目内 ``.sql`` 文件补全结果。
 
         :param ctx: Click 上下文
         :param args: 当前命令参数列表
@@ -913,7 +919,7 @@ class CompletionProviderGateway:
         incomplete: str,
     ) -> list[str]:
         """
-        为导出文件参数提供目录和 `.zip` 文件补全结果。
+        为导出文件参数提供目录和 ``.zip`` 文件补全结果。
 
         :param ctx: Click 上下文
         :param args: 当前命令参数列表

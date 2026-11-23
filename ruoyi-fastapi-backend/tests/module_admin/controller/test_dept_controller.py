@@ -13,6 +13,7 @@ from module_admin.service.dept_service import DeptService
 
 @pytest.mark.asyncio
 async def test_add_dept_rejects_parent_outside_data_scope() -> None:
+    """新增部门时拒绝超出数据范围的上级部门。"""
     current_user = SimpleNamespace(user=SimpleNamespace(admin=False, user_name='operator'))
     parent_id = 200
     with (
@@ -34,6 +35,7 @@ async def test_add_dept_rejects_parent_outside_data_scope() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(('parent_id', 'parent_changed'), [(100, False), (200, True)])
 async def test_edit_dept_checks_changed_parent_scope(parent_id: int, parent_changed: bool) -> None:
+    """更换上级部门时校验其数据范围。"""
     current_user = SimpleNamespace(user=SimpleNamespace(admin=False, user_name='operator'))
     query_db, scope = object(), object()
     with (
@@ -63,6 +65,7 @@ async def test_edit_dept_checks_changed_parent_scope(parent_id: int, parent_chan
 
 @pytest.mark.asyncio
 async def test_admin_add_dept_does_not_require_parent_data_scope() -> None:
+    """管理员新增部门无需校验上级部门的数据范围。"""
     current_user = SimpleNamespace(user=SimpleNamespace(admin=True, user_name='admin'))
     with (
         patch.object(DeptService, 'check_dept_data_scope_services', AsyncMock()) as check_scope,

@@ -1,20 +1,20 @@
 class CommonConstant:
     """
-    常用常量
+    常用常量。
 
-    PASSWORD_ERROR_COUNT: 密码错误次数
-    WWW: www主域
-    HTTP: http请求
-    HTTPS: https请求
-    LOOKUP_RMI: RMI远程方法调用
-    LOOKUP_LDAP: LDAP远程方法调用
-    LOOKUP_LDAPS: LDAPS远程方法调用
-    YES: 是否为系统默认（是）
-    NO: 是否为系统默认（否）
-    DEPT_NORMAL: 部门正常状态
-    DEPT_DISABLE: 部门停用状态
-    UNIQUE: 校验是否唯一的返回标识（是）
-    NOT_UNIQUE: 校验是否唯一的返回标识（否）
+    :cvar PASSWORD_ERROR_COUNT: 密码错误次数
+    :cvar WWW: www主域
+    :cvar HTTP: http请求
+    :cvar HTTPS: https请求
+    :cvar LOOKUP_RMI: RMI远程方法调用
+    :cvar LOOKUP_LDAP: LDAP远程方法调用
+    :cvar LOOKUP_LDAPS: LDAPS远程方法调用
+    :cvar YES: 是否为系统默认（是）
+    :cvar NO: 是否为系统默认（否）
+    :cvar DEPT_NORMAL: 部门正常状态
+    :cvar DEPT_DISABLE: 部门停用状态
+    :cvar UNIQUE: 校验是否唯一的返回标识（是）
+    :cvar NOT_UNIQUE: 校验是否唯一的返回标识（否）
     """
 
     PASSWORD_ERROR_COUNT = 5
@@ -34,26 +34,26 @@ class CommonConstant:
 
 class HttpStatusConstant:
     """
-    返回状态码
+    返回状态码。
 
-    SUCCESS: 操作成功
-    CREATED: 对象创建成功
-    ACCEPTED: 请求已经被接受
-    NO_CONTENT: 操作已经执行成功，但是没有返回数据
-    MOVED_PERM: 资源已被移除
-    SEE_OTHER: 重定向
-    NOT_MODIFIED: 资源没有被修改
-    BAD_REQUEST: 参数列表错误（缺少，格式不匹配）
-    UNAUTHORIZED: 未授权
-    FORBIDDEN: 访问受限，授权过期
-    NOT_FOUND: 资源，服务未找到
-    BAD_METHOD: 不允许的http方法
-    CONFLICT: 资源冲突，或者资源被锁
-    UNSUPPORTED_TYPE: 不支持的数据，媒体类型
-    TOO_MANY_REQUESTS: 请求过于频繁
-    ERROR: 系统内部错误
-    NOT_IMPLEMENTED: 接口未实现
-    WARN: 系统警告消息
+    :cvar SUCCESS: 操作成功
+    :cvar CREATED: 对象创建成功
+    :cvar ACCEPTED: 请求已经被接受
+    :cvar NO_CONTENT: 操作已经执行成功，但是没有返回数据
+    :cvar MOVED_PERM: 资源已被移除
+    :cvar SEE_OTHER: 重定向
+    :cvar NOT_MODIFIED: 资源没有被修改
+    :cvar BAD_REQUEST: 参数列表错误（缺少，格式不匹配）
+    :cvar UNAUTHORIZED: 未授权
+    :cvar FORBIDDEN: 访问受限，授权过期
+    :cvar NOT_FOUND: 资源，服务未找到
+    :cvar BAD_METHOD: 不允许的http方法
+    :cvar CONFLICT: 资源冲突，或者资源被锁
+    :cvar UNSUPPORTED_TYPE: 不支持的数据，媒体类型
+    :cvar TOO_MANY_REQUESTS: 请求过于频繁
+    :cvar ERROR: 系统内部错误
+    :cvar NOT_IMPLEMENTED: 接口未实现
+    :cvar WARN: 系统警告消息
     """
 
     SUCCESS = 200
@@ -78,10 +78,10 @@ class HttpStatusConstant:
 
 class JobConstant:
     """
-    定时任务常量
+    定时任务常量。
 
-    JOB_ERROR_LIST: 定时任务禁止调用模块及违规字符串列表
-    JOB_WHITE_LIST: 定时任务允许调用模块列表
+    :cvar JOB_ERROR_LIST: 定时任务禁止调用模块及违规字符串列表
+    :cvar JOB_WHITE_LIST: 定时任务允许调用模块列表
     """
 
     JOB_ERROR_LIST = [
@@ -134,18 +134,18 @@ class JobConstant:
 
 class LockConstant:
     """
-    分布式锁常量
+    分布式锁常量。
 
-    APP_STARTUP_LOCK_KEY: 应用启动分布式锁键
-    LOCK_EXPIRE_SECONDS: 通用分布式锁过期时间（秒）
-    LOCK_RENEWAL_INTERVAL: 分布式锁续期间隔（秒）
-    PLUGIN_STARTUP_READY_KEY: 插件启动就绪状态键
-    PLUGIN_STARTUP_READY_EXPIRE_SECONDS: 插件启动就绪状态过期时间（秒）
-    PLUGIN_STARTUP_FAILED_EXPIRE_SECONDS: 插件启动失败状态过期时间（秒）
-    PLUGIN_STARTUP_READY_WAIT_TIMEOUT_SECONDS: 等待插件启动就绪的超时时间（秒）
-    PLUGIN_STARTUP_READY_WAIT_INTERVAL_SECONDS: 等待插件启动就绪的轮询间隔（秒）
-    PLUGIN_LIFECYCLE_LOCK_PREFIX: 插件生命周期锁键前缀
-    PLUGIN_LIFECYCLE_LOCK_EXPIRE_SECONDS: 插件生命周期锁过期时间（秒）
+    :cvar APP_STARTUP_LOCK_KEY: 应用启动分布式锁键
+    :cvar LOCK_EXPIRE_SECONDS: 通用分布式锁过期时间（秒）
+    :cvar LOCK_RENEWAL_INTERVAL: 分布式锁续期间隔（秒）
+    :cvar PLUGIN_STARTUP_READY_KEY: 插件启动就绪状态键
+    :cvar PLUGIN_STARTUP_READY_EXPIRE_SECONDS: 插件启动就绪状态过期时间（秒）
+    :cvar PLUGIN_STARTUP_FAILED_EXPIRE_SECONDS: 插件启动失败状态过期时间（秒）
+    :cvar PLUGIN_STARTUP_READY_WAIT_TIMEOUT_SECONDS: 等待插件启动就绪的超时时间（秒）
+    :cvar PLUGIN_STARTUP_READY_WAIT_INTERVAL_SECONDS: 等待插件启动就绪的轮询间隔（秒）
+    :cvar PLUGIN_LIFECYCLE_LOCK_PREFIX: 插件生命周期锁键前缀
+    :cvar PLUGIN_LIFECYCLE_LOCK_EXPIRE_SECONDS: 插件生命周期锁过期时间（秒）
     """
 
     APP_STARTUP_LOCK_KEY = 'app:startup:lock'
@@ -167,20 +167,20 @@ class OidcConstant:
     OIDC 状态与现有 ``access_token:*`` Legacy 会话严格隔离；Redis 具体键由
     ``module_identity.redis_keys.OidcRedisKey`` 生成，这里只保存稳定的命名空间。
 
-    REDIS_PREFIX: OIDC Redis 键前缀
-    INTERACTION_NAMESPACE: 认证交互状态命名空间
-    AUTHORIZATION_CODE_NAMESPACE: 授权码命名空间
-    SSO_SESSION_NAMESPACE: 单点登录会话命名空间
-    USER_SESSIONS_NAMESPACE: 用户会话集合命名空间
-    SSO_COOKIE_NAMESPACE: 单点登录 Cookie 命名空间
-    REVOKED_JTI_NAMESPACE: 已撤销令牌 JTI 命名空间
-    RATE_LIMIT_NAMESPACE: OIDC 限流命名空间
-    EVENT_NAMESPACE: OIDC 审计事件命名空间
-    CACHE_NAMESPACE: OIDC 缓存命名空间
-    AUTHORIZE_RATE_LIMIT: 授权端点限流命名空间
-    LOGIN_RATE_LIMIT: 登录端点限流命名空间
-    TOKEN_RATE_LIMIT: 令牌端点限流命名空间
-    INTROSPECT_RATE_LIMIT: 令牌自省端点限流命名空间
+    :cvar REDIS_PREFIX: OIDC Redis 键前缀
+    :cvar INTERACTION_NAMESPACE: 认证交互状态命名空间
+    :cvar AUTHORIZATION_CODE_NAMESPACE: 授权码命名空间
+    :cvar SSO_SESSION_NAMESPACE: 单点登录会话命名空间
+    :cvar USER_SESSIONS_NAMESPACE: 用户会话集合命名空间
+    :cvar SSO_COOKIE_NAMESPACE: 单点登录 Cookie 命名空间
+    :cvar REVOKED_JTI_NAMESPACE: 已撤销令牌 JTI 命名空间
+    :cvar RATE_LIMIT_NAMESPACE: OIDC 限流命名空间
+    :cvar EVENT_NAMESPACE: OIDC 审计事件命名空间
+    :cvar CACHE_NAMESPACE: OIDC 缓存命名空间
+    :cvar AUTHORIZE_RATE_LIMIT: 授权端点限流命名空间
+    :cvar LOGIN_RATE_LIMIT: 登录端点限流命名空间
+    :cvar TOKEN_RATE_LIMIT: 令牌端点限流命名空间
+    :cvar INTROSPECT_RATE_LIMIT: 令牌自省端点限流命名空间
     """
 
     REDIS_PREFIX = 'oidc'
@@ -206,34 +206,34 @@ class OidcAuditEvent:
 
     事件值用于审计持久化和风险检索，禁止写入 Token、Secret 或 Cookie 明文。
 
-    AUTHORIZE_REQUESTED: 收到授权请求
-    AUTHORIZE_SUCCEEDED: 授权请求成功
-    AUTHORIZE_DENIED: 授权请求被拒绝
-    LOGIN_SUCCEEDED: 登录成功
-    LOGIN_FAILED: 登录失败
-    CONSENT_GRANTED: 用户授予同意
-    CONSENT_REVOKED: 用户撤销同意
-    AUTHORIZATION_CODE_REUSED: 授权码重复使用
-    TOKEN_ISSUED: 令牌签发成功
-    TOKEN_FAILED: 令牌处理失败
-    REFRESH_ROTATED: 刷新令牌轮换成功
-    REFRESH_REUSE_DETECTED: 检测到刷新令牌重复使用
-    TOKEN_REVOKED: 令牌已撤销
-    SESSION_REVOKED: 会话已撤销
-    CLIENT_ACCESS_BLOCKED: 用户应用访问已禁止
-    CLIENT_ACCESS_ALLOWED: 用户应用访问已允许
-    GRANT_REVOKED: 授权授予已撤销
-    RESOURCE_POLICY_CHANGED: 资源策略已变更
-    SCOPE_POLICY_CHANGED: Scope 策略已变更
-    CLIENT_CREATED: OAuth 客户端已创建
-    CLIENT_DISABLED: OAuth 客户端已停用
-    CLIENT_SECRET_ROTATED: OAuth 客户端密钥已轮换
-    SIGNING_KEY_ROTATED: OIDC 签名密钥已轮换
-    BACKCHANNEL_LOGOUT_SUCCEEDED: Back-Channel Logout 成功
-    BACKCHANNEL_LOGOUT_FAILED: Back-Channel Logout 失败
-    IDENTITY_SUBJECT_MISSING: 身份 Subject 缺失
-    SECURITY_VERSION_CHANGED: 安全版本已变更
-    INVALID_CLIENT: 无效客户端请求
+    :cvar AUTHORIZE_REQUESTED: 收到授权请求
+    :cvar AUTHORIZE_SUCCEEDED: 授权请求成功
+    :cvar AUTHORIZE_DENIED: 授权请求被拒绝
+    :cvar LOGIN_SUCCEEDED: 登录成功
+    :cvar LOGIN_FAILED: 登录失败
+    :cvar CONSENT_GRANTED: 用户授予同意
+    :cvar CONSENT_REVOKED: 用户撤销同意
+    :cvar AUTHORIZATION_CODE_REUSED: 授权码重复使用
+    :cvar TOKEN_ISSUED: 令牌签发成功
+    :cvar TOKEN_FAILED: 令牌处理失败
+    :cvar REFRESH_ROTATED: 刷新令牌轮换成功
+    :cvar REFRESH_REUSE_DETECTED: 检测到刷新令牌重复使用
+    :cvar TOKEN_REVOKED: 令牌已撤销
+    :cvar SESSION_REVOKED: 会话已撤销
+    :cvar CLIENT_ACCESS_BLOCKED: 用户应用访问已禁止
+    :cvar CLIENT_ACCESS_ALLOWED: 用户应用访问已允许
+    :cvar GRANT_REVOKED: 授权授予已撤销
+    :cvar RESOURCE_POLICY_CHANGED: 资源策略已变更
+    :cvar SCOPE_POLICY_CHANGED: Scope 策略已变更
+    :cvar CLIENT_CREATED: OAuth 客户端已创建
+    :cvar CLIENT_DISABLED: OAuth 客户端已停用
+    :cvar CLIENT_SECRET_ROTATED: OAuth 客户端密钥已轮换
+    :cvar SIGNING_KEY_ROTATED: OIDC 签名密钥已轮换
+    :cvar BACKCHANNEL_LOGOUT_SUCCEEDED: Back-Channel Logout 成功
+    :cvar BACKCHANNEL_LOGOUT_FAILED: Back-Channel Logout 失败
+    :cvar IDENTITY_SUBJECT_MISSING: 身份 Subject 缺失
+    :cvar SECURITY_VERSION_CHANGED: 安全版本已变更
+    :cvar INVALID_CLIENT: 无效客户端请求
     """
 
     AUTHORIZE_REQUESTED = 'authorize_requested'
@@ -270,8 +270,8 @@ class PluginRuntimeConstant:
     """
     插件运行时常量。
 
-    PLUGIN_HOOK_TIMEOUT_SECONDS: 插件钩子执行超时时间（秒）
-    PLUGIN_HEALTH_TIMEOUT_SECONDS: 插件健康检查超时时间（秒）
+    :cvar PLUGIN_HOOK_TIMEOUT_SECONDS: 插件钩子执行超时时间（秒）
+    :cvar PLUGIN_HEALTH_TIMEOUT_SECONDS: 插件健康检查超时时间（秒）
     """
 
     PLUGIN_HOOK_TIMEOUT_SECONDS = 30
@@ -280,146 +280,146 @@ class PluginRuntimeConstant:
 
 class ApiNamespace:
     """
-    接口注解通用命名空间常量
+    接口注解通用命名空间常量。
 
-    这一组常量统一提供给 `ApiCache`、`ApiCacheEvict`、`ApiRateLimit`
+    这一组常量统一提供给 ``ApiCache``、``ApiCacheEvict``、``ApiRateLimit``
     等接口注解使用，用同一套“模块:功能”命名规则收敛缓存和限流场景。
 
-    LOGIN: 登录接口命名空间
-    LOGIN_UNLOCK_SCREEN: 锁屏解锁接口命名空间
-    REGISTER: 注册接口命名空间
-    LOGIN_USER_INFO: 登录用户信息接口命名空间
-    LOGIN_USER_ROUTERS: 登录用户路由接口命名空间
-    CAPTCHA_IMAGE: 图片验证码接口命名空间
-    COMMON_UPLOAD: 通用上传接口命名空间
-    COMMON_PRIVATE_UPLOAD: 通用私有文件上传接口命名空间
-    COMMON_FILE_DOWNLOAD: 通用文件下载接口命名空间
-    TRANSPORT_CRYPTO_PUBLIC_KEY: 传输层加密公钥接口命名空间
-    TRANSPORT_CRYPTO_FRONTEND_CONFIG: 传输层加密前端配置接口命名空间
+    :cvar LOGIN: 登录接口命名空间
+    :cvar LOGIN_UNLOCK_SCREEN: 锁屏解锁接口命名空间
+    :cvar REGISTER: 注册接口命名空间
+    :cvar LOGIN_USER_INFO: 登录用户信息接口命名空间
+    :cvar LOGIN_USER_ROUTERS: 登录用户路由接口命名空间
+    :cvar CAPTCHA_IMAGE: 图片验证码接口命名空间
+    :cvar COMMON_UPLOAD: 通用上传接口命名空间
+    :cvar COMMON_PRIVATE_UPLOAD: 通用私有文件上传接口命名空间
+    :cvar COMMON_FILE_DOWNLOAD: 通用文件下载接口命名空间
+    :cvar TRANSPORT_CRYPTO_PUBLIC_KEY: 传输层加密公钥接口命名空间
+    :cvar TRANSPORT_CRYPTO_FRONTEND_CONFIG: 传输层加密前端配置接口命名空间
 
-    OIDC_AUTHORIZE: OIDC 授权接口命名空间
-    OIDC_LOGIN: OIDC 登录接口命名空间
-    OIDC_TOKEN: OIDC 令牌接口命名空间
-    OIDC_USERINFO: OIDC 用户信息接口命名空间
-    OIDC_INTROSPECT: OIDC 令牌自省接口命名空间
-    OIDC_REVOKE: OIDC 令牌撤销接口命名空间
-    OIDC_LOGOUT: OIDC 登出接口命名空间
-    OIDC_INTERACTION: OIDC 认证交互接口命名空间
-    OIDC_INTERACTION_LOGIN: OIDC 认证交互登录接口命名空间
-    OIDC_INTERACTION_CONSENT: OIDC 认证交互同意接口命名空间
+    :cvar OIDC_AUTHORIZE: OIDC 授权接口命名空间
+    :cvar OIDC_LOGIN: OIDC 登录接口命名空间
+    :cvar OIDC_TOKEN: OIDC 令牌接口命名空间
+    :cvar OIDC_USERINFO: OIDC 用户信息接口命名空间
+    :cvar OIDC_INTROSPECT: OIDC 令牌自省接口命名空间
+    :cvar OIDC_REVOKE: OIDC 令牌撤销接口命名空间
+    :cvar OIDC_LOGOUT: OIDC 登出接口命名空间
+    :cvar OIDC_INTERACTION: OIDC 认证交互接口命名空间
+    :cvar OIDC_INTERACTION_LOGIN: OIDC 认证交互登录接口命名空间
+    :cvar OIDC_INTERACTION_CONSENT: OIDC 认证交互同意接口命名空间
 
-    SYSTEM_OAUTH_CLIENT_CREATE: OAuth 客户端创建接口命名空间
-    SYSTEM_OAUTH_CLIENT_DISABLE: OAuth 客户端停用接口命名空间
-    SYSTEM_OAUTH_CLIENT_STATUS: OAuth 客户端状态接口命名空间
-    SYSTEM_OAUTH_CLIENT_UPDATE: OAuth 客户端更新接口命名空间
-    SYSTEM_OAUTH_CLIENT_SECRET_ROTATE: OAuth 客户端密钥轮换接口命名空间
-    SYSTEM_OAUTH_CLIENT_SECRET_REVOKE: OAuth 客户端密钥撤销接口命名空间
-    SYSTEM_OAUTH_CLIENT_URI_ADD: OAuth 客户端回调地址新增接口命名空间
-    SYSTEM_OAUTH_CLIENT_URI_REMOVE: OAuth 客户端回调地址移除接口命名空间
-    SYSTEM_OAUTH_RESOURCE_CREATE: OAuth 资源创建接口命名空间
-    SYSTEM_OAUTH_RESOURCE_UPDATE: OAuth 资源更新接口命名空间
-    SYSTEM_OAUTH_RESOURCE_DISABLE: OAuth 资源停用接口命名空间
-    SYSTEM_OAUTH_RESOURCE_STATUS: OAuth 资源状态接口命名空间
-    SYSTEM_OAUTH_SCOPE_CREATE: OAuth Scope 创建接口命名空间
-    SYSTEM_OAUTH_SCOPE_UPDATE: OAuth Scope 更新接口命名空间
-    SYSTEM_OAUTH_SCOPE_DISABLE: OAuth Scope 停用接口命名空间
-    SYSTEM_OAUTH_SCOPE_STATUS: OAuth Scope 状态接口命名空间
-    SYSTEM_OAUTH_SESSION_REVOKE: OAuth 会话撤销接口命名空间
-    SYSTEM_OAUTH_SESSION_USER_REVOKE: OAuth 用户会话批量撤销接口命名空间
-    SYSTEM_OAUTH_GRANT_ACCESS: 用户应用访问控制
-    SYSTEM_OAUTH_GRANT_REVOKE: OAuth 授权授予撤销接口命名空间
-    SYSTEM_OAUTH_KEY_ROTATE: OAuth 签名密钥轮换接口命名空间
-    SYSTEM_OAUTH_KEY_ACTIVATE: OAuth 签名密钥激活接口命名空间
-    SYSTEM_OAUTH_KEY_RETIRE: OAuth 签名密钥退役接口命名空间
-    SYSTEM_OAUTH_KEY_DELETE: OAuth 签名密钥删除接口命名空间
-    MONITOR_OAUTH_AUDIT_EXPORT: OAuth 审计日志导出接口命名空间
-    MONITOR_OAUTH_AUDIT_CLEANUP: OAuth 审计日志清理接口命名空间
+    :cvar SYSTEM_OAUTH_CLIENT_CREATE: OAuth 客户端创建接口命名空间
+    :cvar SYSTEM_OAUTH_CLIENT_DISABLE: OAuth 客户端停用接口命名空间
+    :cvar SYSTEM_OAUTH_CLIENT_STATUS: OAuth 客户端状态接口命名空间
+    :cvar SYSTEM_OAUTH_CLIENT_UPDATE: OAuth 客户端更新接口命名空间
+    :cvar SYSTEM_OAUTH_CLIENT_SECRET_ROTATE: OAuth 客户端密钥轮换接口命名空间
+    :cvar SYSTEM_OAUTH_CLIENT_SECRET_REVOKE: OAuth 客户端密钥撤销接口命名空间
+    :cvar SYSTEM_OAUTH_CLIENT_URI_ADD: OAuth 客户端回调地址新增接口命名空间
+    :cvar SYSTEM_OAUTH_CLIENT_URI_REMOVE: OAuth 客户端回调地址移除接口命名空间
+    :cvar SYSTEM_OAUTH_RESOURCE_CREATE: OAuth 资源创建接口命名空间
+    :cvar SYSTEM_OAUTH_RESOURCE_UPDATE: OAuth 资源更新接口命名空间
+    :cvar SYSTEM_OAUTH_RESOURCE_DISABLE: OAuth 资源停用接口命名空间
+    :cvar SYSTEM_OAUTH_RESOURCE_STATUS: OAuth 资源状态接口命名空间
+    :cvar SYSTEM_OAUTH_SCOPE_CREATE: OAuth Scope 创建接口命名空间
+    :cvar SYSTEM_OAUTH_SCOPE_UPDATE: OAuth Scope 更新接口命名空间
+    :cvar SYSTEM_OAUTH_SCOPE_DISABLE: OAuth Scope 停用接口命名空间
+    :cvar SYSTEM_OAUTH_SCOPE_STATUS: OAuth Scope 状态接口命名空间
+    :cvar SYSTEM_OAUTH_SESSION_REVOKE: OAuth 会话撤销接口命名空间
+    :cvar SYSTEM_OAUTH_SESSION_USER_REVOKE: OAuth 用户会话批量撤销接口命名空间
+    :cvar SYSTEM_OAUTH_GRANT_ACCESS: 用户应用访问控制
+    :cvar SYSTEM_OAUTH_GRANT_REVOKE: OAuth 授权授予撤销接口命名空间
+    :cvar SYSTEM_OAUTH_KEY_ROTATE: OAuth 签名密钥轮换接口命名空间
+    :cvar SYSTEM_OAUTH_KEY_ACTIVATE: OAuth 签名密钥激活接口命名空间
+    :cvar SYSTEM_OAUTH_KEY_RETIRE: OAuth 签名密钥退役接口命名空间
+    :cvar SYSTEM_OAUTH_KEY_DELETE: OAuth 签名密钥删除接口命名空间
+    :cvar MONITOR_OAUTH_AUDIT_EXPORT: OAuth 审计日志导出接口命名空间
+    :cvar MONITOR_OAUTH_AUDIT_CLEANUP: OAuth 审计日志清理接口命名空间
 
-    MONITOR_SERVER_INFO: 服务监控信息接口命名空间
-    MONITOR_CACHE_CLEAR_NAME: 缓存名称清理接口命名空间
-    MONITOR_CACHE_CLEAR_KEY: 缓存键清理接口命名空间
-    MONITOR_CACHE_CLEAR_ALL: 缓存全量清理接口命名空间
-    MONITOR_ONLINE_FORCE_LOGOUT: 在线用户强退接口命名空间
-    MONITOR_OPERLOG_CLEAN: 操作日志清空接口命名空间
-    MONITOR_OPERLOG_DELETE: 操作日志删除接口命名空间
-    MONITOR_OPERLOG_EXPORT: 操作日志导出接口命名空间
-    MONITOR_LOGININFO_CLEAN: 登录日志清空接口命名空间
-    MONITOR_LOGININFO_DELETE: 登录日志删除接口命名空间
-    MONITOR_LOGININFO_UNLOCK: 账户解锁接口命名空间
-    MONITOR_LOGININFO_EXPORT: 登录日志导出接口命名空间
-    MONITOR_JOB_LIST: 定时任务分页列表接口命名空间
-    MONITOR_JOB_DETAIL: 定时任务详情接口命名空间
-    MONITOR_JOB_RUN: 定时任务执行接口命名空间
-    MONITOR_JOB_DELETE: 定时任务删除接口命名空间
-    MONITOR_JOB_EXPORT: 定时任务导出接口命名空间
-    MONITOR_JOB_LOG_CLEAN: 定时任务日志清空接口命名空间
-    MONITOR_JOB_LOG_DELETE: 定时任务日志删除接口命名空间
-    MONITOR_JOB_LOG_EXPORT: 定时任务日志导出接口命名空间
+    :cvar MONITOR_SERVER_INFO: 服务监控信息接口命名空间
+    :cvar MONITOR_CACHE_CLEAR_NAME: 缓存名称清理接口命名空间
+    :cvar MONITOR_CACHE_CLEAR_KEY: 缓存键清理接口命名空间
+    :cvar MONITOR_CACHE_CLEAR_ALL: 缓存全量清理接口命名空间
+    :cvar MONITOR_ONLINE_FORCE_LOGOUT: 在线用户强退接口命名空间
+    :cvar MONITOR_OPERLOG_CLEAN: 操作日志清空接口命名空间
+    :cvar MONITOR_OPERLOG_DELETE: 操作日志删除接口命名空间
+    :cvar MONITOR_OPERLOG_EXPORT: 操作日志导出接口命名空间
+    :cvar MONITOR_LOGININFO_CLEAN: 登录日志清空接口命名空间
+    :cvar MONITOR_LOGININFO_DELETE: 登录日志删除接口命名空间
+    :cvar MONITOR_LOGININFO_UNLOCK: 账户解锁接口命名空间
+    :cvar MONITOR_LOGININFO_EXPORT: 登录日志导出接口命名空间
+    :cvar MONITOR_JOB_LIST: 定时任务分页列表接口命名空间
+    :cvar MONITOR_JOB_DETAIL: 定时任务详情接口命名空间
+    :cvar MONITOR_JOB_RUN: 定时任务执行接口命名空间
+    :cvar MONITOR_JOB_DELETE: 定时任务删除接口命名空间
+    :cvar MONITOR_JOB_EXPORT: 定时任务导出接口命名空间
+    :cvar MONITOR_JOB_LOG_CLEAN: 定时任务日志清空接口命名空间
+    :cvar MONITOR_JOB_LOG_DELETE: 定时任务日志删除接口命名空间
+    :cvar MONITOR_JOB_LOG_EXPORT: 定时任务日志导出接口命名空间
 
-    SYSTEM_DEPT_EDIT_TREE: 部门编辑树接口命名空间
-    SYSTEM_DEPT_LIST: 部门列表接口命名空间
-    SYSTEM_DEPT_DETAIL: 部门详情接口命名空间
-    SYSTEM_CONFIG_LIST: 参数配置列表接口命名空间
-    SYSTEM_CONFIG_DETAIL: 参数配置详情接口命名空间
-    SYSTEM_CONFIG_REFRESH_CACHE: 参数缓存刷新接口命名空间
-    SYSTEM_CONFIG_EXPORT: 参数导出接口命名空间
-    SYSTEM_DICT_TYPE_LIST: 字典类型列表接口命名空间
-    SYSTEM_DICT_TYPE_OPTIONS: 字典类型选项接口命名空间
-    SYSTEM_DICT_TYPE_DETAIL: 字典类型详情接口命名空间
-    SYSTEM_DICT_REFRESH_CACHE: 字典缓存刷新接口命名空间
-    SYSTEM_DICT_TYPE_EXPORT: 字典类型导出接口命名空间
-    SYSTEM_DICT_DATA_LIST: 字典数据列表接口命名空间
-    SYSTEM_DICT_DATA_DETAIL: 字典数据详情接口命名空间
-    SYSTEM_DICT_DATA_EXPORT: 字典数据导出接口命名空间
-    SYSTEM_MENU_TREE: 菜单树接口命名空间
-    SYSTEM_MENU_ROLE_TREE: 角色菜单树接口命名空间
-    SYSTEM_MENU_LIST: 菜单分页列表接口命名空间
-    SYSTEM_MENU_DETAIL: 菜单详情接口命名空间
-    SYSTEM_NOTICE_LIST: 通知公告列表接口命名空间
-    SYSTEM_NOTICE_DETAIL: 通知公告详情接口命名空间
-    SYSTEM_FILE_DOWNLOAD: 文件管理下载接口命名空间
-    SYSTEM_FILE_DELETE: 文件管理删除接口命名空间
-    SYSTEM_FILE_ACL: 文件访问控制接口命名空间
-    SYSTEM_FILE_RETENTION_POLICY: 文件业务保留策略接口命名空间
-    SYSTEM_FILE_RECONCILE: 文件存储对账接口命名空间
-    SYSTEM_FILE_TRANSFER: 文件管理转移接口命名空间
-    SYSTEM_FILE_RESTORE: 文件管理恢复接口命名空间
-    SYSTEM_POST_LIST: 岗位列表接口命名空间
-    SYSTEM_POST_DETAIL: 岗位详情接口命名空间
-    SYSTEM_POST_EXPORT: 岗位导出接口命名空间
-    SYSTEM_ROLE_DEPT_TREE: 角色部门树接口命名空间
-    SYSTEM_ROLE_LIST: 角色列表接口命名空间
-    SYSTEM_ROLE_DETAIL: 角色详情接口命名空间
-    SYSTEM_ROLE_ALLOCATED_USER_LIST: 已分配用户角色列表接口命名空间
-    SYSTEM_ROLE_UNALLOCATED_USER_LIST: 未分配用户角色列表接口命名空间
-    SYSTEM_ROLE_EXPORT: 角色导出接口命名空间
-    SYSTEM_ROLE_AUTH_USER_SELECT_ALL: 角色批量分配用户接口命名空间
-    SYSTEM_ROLE_AUTH_USER_CANCEL: 角色取消分配用户接口命名空间
-    SYSTEM_ROLE_AUTH_USER_CANCEL_ALL: 角色批量取消分配用户接口命名空间
-    SYSTEM_USER_DEPT_TREE: 用户部门树接口命名空间
-    SYSTEM_USER_LIST: 用户列表接口命名空间
-    SYSTEM_USER_PROFILE: 用户个人信息接口命名空间
-    SYSTEM_USER_DETAIL: 用户详情接口命名空间
-    SYSTEM_USER_PROFILE_AVATAR: 用户头像上传接口命名空间
-    SYSTEM_USER_IMPORT: 用户导入接口命名空间
-    SYSTEM_USER_EXPORT: 用户导出接口命名空间
+    :cvar SYSTEM_DEPT_EDIT_TREE: 部门编辑树接口命名空间
+    :cvar SYSTEM_DEPT_LIST: 部门列表接口命名空间
+    :cvar SYSTEM_DEPT_DETAIL: 部门详情接口命名空间
+    :cvar SYSTEM_CONFIG_LIST: 参数配置列表接口命名空间
+    :cvar SYSTEM_CONFIG_DETAIL: 参数配置详情接口命名空间
+    :cvar SYSTEM_CONFIG_REFRESH_CACHE: 参数缓存刷新接口命名空间
+    :cvar SYSTEM_CONFIG_EXPORT: 参数导出接口命名空间
+    :cvar SYSTEM_DICT_TYPE_LIST: 字典类型列表接口命名空间
+    :cvar SYSTEM_DICT_TYPE_OPTIONS: 字典类型选项接口命名空间
+    :cvar SYSTEM_DICT_TYPE_DETAIL: 字典类型详情接口命名空间
+    :cvar SYSTEM_DICT_REFRESH_CACHE: 字典缓存刷新接口命名空间
+    :cvar SYSTEM_DICT_TYPE_EXPORT: 字典类型导出接口命名空间
+    :cvar SYSTEM_DICT_DATA_LIST: 字典数据列表接口命名空间
+    :cvar SYSTEM_DICT_DATA_DETAIL: 字典数据详情接口命名空间
+    :cvar SYSTEM_DICT_DATA_EXPORT: 字典数据导出接口命名空间
+    :cvar SYSTEM_MENU_TREE: 菜单树接口命名空间
+    :cvar SYSTEM_MENU_ROLE_TREE: 角色菜单树接口命名空间
+    :cvar SYSTEM_MENU_LIST: 菜单分页列表接口命名空间
+    :cvar SYSTEM_MENU_DETAIL: 菜单详情接口命名空间
+    :cvar SYSTEM_NOTICE_LIST: 通知公告列表接口命名空间
+    :cvar SYSTEM_NOTICE_DETAIL: 通知公告详情接口命名空间
+    :cvar SYSTEM_FILE_DOWNLOAD: 文件管理下载接口命名空间
+    :cvar SYSTEM_FILE_DELETE: 文件管理删除接口命名空间
+    :cvar SYSTEM_FILE_ACL: 文件访问控制接口命名空间
+    :cvar SYSTEM_FILE_RETENTION_POLICY: 文件业务保留策略接口命名空间
+    :cvar SYSTEM_FILE_RECONCILE: 文件存储对账接口命名空间
+    :cvar SYSTEM_FILE_TRANSFER: 文件管理转移接口命名空间
+    :cvar SYSTEM_FILE_RESTORE: 文件管理恢复接口命名空间
+    :cvar SYSTEM_POST_LIST: 岗位列表接口命名空间
+    :cvar SYSTEM_POST_DETAIL: 岗位详情接口命名空间
+    :cvar SYSTEM_POST_EXPORT: 岗位导出接口命名空间
+    :cvar SYSTEM_ROLE_DEPT_TREE: 角色部门树接口命名空间
+    :cvar SYSTEM_ROLE_LIST: 角色列表接口命名空间
+    :cvar SYSTEM_ROLE_DETAIL: 角色详情接口命名空间
+    :cvar SYSTEM_ROLE_ALLOCATED_USER_LIST: 已分配用户角色列表接口命名空间
+    :cvar SYSTEM_ROLE_UNALLOCATED_USER_LIST: 未分配用户角色列表接口命名空间
+    :cvar SYSTEM_ROLE_EXPORT: 角色导出接口命名空间
+    :cvar SYSTEM_ROLE_AUTH_USER_SELECT_ALL: 角色批量分配用户接口命名空间
+    :cvar SYSTEM_ROLE_AUTH_USER_CANCEL: 角色取消分配用户接口命名空间
+    :cvar SYSTEM_ROLE_AUTH_USER_CANCEL_ALL: 角色批量取消分配用户接口命名空间
+    :cvar SYSTEM_USER_DEPT_TREE: 用户部门树接口命名空间
+    :cvar SYSTEM_USER_LIST: 用户列表接口命名空间
+    :cvar SYSTEM_USER_PROFILE: 用户个人信息接口命名空间
+    :cvar SYSTEM_USER_DETAIL: 用户详情接口命名空间
+    :cvar SYSTEM_USER_PROFILE_AVATAR: 用户头像上传接口命名空间
+    :cvar SYSTEM_USER_IMPORT: 用户导入接口命名空间
+    :cvar SYSTEM_USER_EXPORT: 用户导出接口命名空间
 
-    AI_MODEL_LIST: AI模型列表接口命名空间
-    AI_MODEL_ALL: AI模型全量列表接口命名空间
-    AI_MODEL_DETAIL: AI模型详情接口命名空间
-    AI_CHAT_CONFIG: AI对话配置接口命名空间
-    AI_CHAT_SEND: AI对话发送接口命名空间
-    AI_CHAT_CANCEL: AI对话取消接口命名空间
+    :cvar AI_MODEL_LIST: AI模型列表接口命名空间
+    :cvar AI_MODEL_ALL: AI模型全量列表接口命名空间
+    :cvar AI_MODEL_DETAIL: AI模型详情接口命名空间
+    :cvar AI_CHAT_CONFIG: AI对话配置接口命名空间
+    :cvar AI_CHAT_SEND: AI对话发送接口命名空间
+    :cvar AI_CHAT_CANCEL: AI对话取消接口命名空间
 
-    TOOL_GEN_LIST: 代码生成列表接口命名空间
-    TOOL_GEN_DB_LIST: 代码生成数据源列表接口命名空间
-    TOOL_GEN_DETAIL: 代码生成详情接口命名空间
-    TOOL_GEN_PREVIEW: 代码生成预览接口命名空间
-    TOOL_GEN_IMPORT_TABLE: 代码生成导入表接口命名空间
-    TOOL_GEN_CREATE_TABLE: 代码生成建表接口命名空间
-    TOOL_GEN_BATCH_GEN_CODE: 代码生成批量下载接口命名空间
-    TOOL_GEN_GEN_CODE_LOCAL: 代码生成到本地接口命名空间
-    TOOL_GEN_SYNC_DB: 代码生成同步库结构接口命名空间
+    :cvar TOOL_GEN_LIST: 代码生成列表接口命名空间
+    :cvar TOOL_GEN_DB_LIST: 代码生成数据源列表接口命名空间
+    :cvar TOOL_GEN_DETAIL: 代码生成详情接口命名空间
+    :cvar TOOL_GEN_PREVIEW: 代码生成预览接口命名空间
+    :cvar TOOL_GEN_IMPORT_TABLE: 代码生成导入表接口命名空间
+    :cvar TOOL_GEN_CREATE_TABLE: 代码生成建表接口命名空间
+    :cvar TOOL_GEN_BATCH_GEN_CODE: 代码生成批量下载接口命名空间
+    :cvar TOOL_GEN_GEN_CODE_LOCAL: 代码生成到本地接口命名空间
+    :cvar TOOL_GEN_SYNC_DB: 代码生成同步库结构接口命名空间
     """
 
     LOGIN = 'login'
@@ -570,31 +570,31 @@ class ApiNamespace:
 
 class ApiGroup:
     """
-    接口命名空间分组常量
+    接口命名空间分组常量。
 
-    当前主要用于 `ApiCacheEvict` 批量清理关联命名空间，分组成员均来自
-    `ApiNamespace`，按业务写操作影响范围收敛管理。
+    当前主要用于 ``ApiCacheEvict`` 批量清理关联命名空间，分组成员均来自
+    ``ApiNamespace``，按业务写操作影响范围收敛管理。
 
-    PERMISSION_MUTATION: 权限与菜单视图关联命名空间分组
-    DATA_SCOPE_MUTATION: 数据范围相关视图关联命名空间分组
-    MENU_MUTATION: 菜单写操作关联命名空间分组
-    JOB_MUTATION: 定时任务写操作关联命名空间分组
-    POST_MUTATION: 岗位写操作关联命名空间分组
-    NOTICE_MUTATION: 通知公告写操作关联命名空间分组
-    ROLE_ENTITY_MUTATION: 角色实体信息变更关联命名空间分组
-    ROLE_PERMISSION_MUTATION: 角色权限变更关联命名空间分组
-    ROLE_MUTATION: 角色通用写操作关联命名空间组合分组
-    USER_ENTITY_MUTATION: 用户实体信息变更关联命名空间分组
-    USER_PERMISSION_MUTATION: 用户权限变更关联命名空间分组
-    USER_INFO_MUTATION: 用户资料与安全相关写操作关联命名空间分组
-    LOGIN_SUCCESS_MUTATION: 登录成功后关联命名空间分组
-    LOGOUT_MUTATION: 登出后关联命名空间分组
-    CONFIG_MUTATION: 参数配置写操作关联命名空间分组
-    DICT_TYPE_MUTATION: 字典类型写操作关联命名空间分组
-    DICT_DATA_MUTATION: 字典数据写操作关联命名空间分组
-    AI_MODEL_MUTATION: AI模型写操作关联命名空间分组
-    AI_CHAT_CONFIG_MUTATION: AI对话配置写操作关联命名空间分组
-    GEN_MUTATION: 代码生成写操作关联命名空间分组
+    :cvar PERMISSION_MUTATION: 权限与菜单视图关联命名空间分组
+    :cvar DATA_SCOPE_MUTATION: 数据范围相关视图关联命名空间分组
+    :cvar MENU_MUTATION: 菜单写操作关联命名空间分组
+    :cvar JOB_MUTATION: 定时任务写操作关联命名空间分组
+    :cvar POST_MUTATION: 岗位写操作关联命名空间分组
+    :cvar NOTICE_MUTATION: 通知公告写操作关联命名空间分组
+    :cvar ROLE_ENTITY_MUTATION: 角色实体信息变更关联命名空间分组
+    :cvar ROLE_PERMISSION_MUTATION: 角色权限变更关联命名空间分组
+    :cvar ROLE_MUTATION: 角色通用写操作关联命名空间组合分组
+    :cvar USER_ENTITY_MUTATION: 用户实体信息变更关联命名空间分组
+    :cvar USER_PERMISSION_MUTATION: 用户权限变更关联命名空间分组
+    :cvar USER_INFO_MUTATION: 用户资料与安全相关写操作关联命名空间分组
+    :cvar LOGIN_SUCCESS_MUTATION: 登录成功后关联命名空间分组
+    :cvar LOGOUT_MUTATION: 登出后关联命名空间分组
+    :cvar CONFIG_MUTATION: 参数配置写操作关联命名空间分组
+    :cvar DICT_TYPE_MUTATION: 字典类型写操作关联命名空间分组
+    :cvar DICT_DATA_MUTATION: 字典数据写操作关联命名空间分组
+    :cvar AI_MODEL_MUTATION: AI模型写操作关联命名空间分组
+    :cvar AI_CHAT_CONFIG_MUTATION: AI对话配置写操作关联命名空间分组
+    :cvar GEN_MUTATION: 代码生成写操作关联命名空间分组
     """
 
     PERMISSION_MUTATION = (
@@ -736,17 +736,17 @@ class ApiGroup:
 
 class MenuConstant:
     """
-    菜单常量
+    菜单常量。
 
-    ROOT_ID: 根菜单ID
-    TYPE_DIR: 菜单类型（目录）
-    TYPE_MENU: 菜单类型（菜单）
-    TYPE_BUTTON: 菜单类型（按钮）
-    YES_FRAME: 是否菜单外链（是）
-    NO_FRAME: 是否菜单外链（否）
-    LAYOUT: Layout组件标识
-    PARENT_VIEW: ParentView组件标识
-    INNER_LINK: InnerLink组件标识
+    :cvar ROOT_ID: 根菜单ID
+    :cvar TYPE_DIR: 菜单类型（目录）
+    :cvar TYPE_MENU: 菜单类型（菜单）
+    :cvar TYPE_BUTTON: 菜单类型（按钮）
+    :cvar YES_FRAME: 是否菜单外链（是）
+    :cvar NO_FRAME: 是否菜单外链（否）
+    :cvar LAYOUT: Layout组件标识
+    :cvar PARENT_VIEW: ParentView组件标识
+    :cvar INNER_LINK: InnerLink组件标识
     """
 
     ROOT_ID = 0
@@ -762,45 +762,45 @@ class MenuConstant:
 
 class GenConstant:
     """
-    代码生成常量
+    代码生成常量。
 
-    TPL_CRUD: 单表（增删改查
-    TPL_TREE: 树表（增删改查）
-    TPL_SUB: 主子表（增删改查）
-    TREE_CODE: 树编码字段
-    TREE_PARENT_CODE: 树父编码字段
-    TREE_NAME: 树名称字段
-    PARENT_MENU_ID: 上级菜单ID字段
-    PARENT_MENU_NAME: 上级菜单名称字段
-    GEN_VIEW: 生成详情页开关
-    COLUMNTYPE_STR: 数据库字符串类型
-    COLUMNTYPE_TEXT: 数据库文本类型
-    COLUMNTYPE_TIME: 数据库时间类型
-    COLUMNTYPE_GEOMETRY: 数据库字空间类型
-    COLUMNTYPE_NUMBER: 数据库数字类型
-    COLUMNNAME_NOT_EDIT: 页面不需要编辑字段
-    COLUMNNAME_NOT_LIST: 页面不需要显示的列表字段
-    COLUMNNAME_NOT_QUERY: 页面不需要查询字段
-    BASE_ENTITY: Entity基类字段
-    TREE_ENTITY: Tree基类字段
-    HTML_INPUT: 文本框
-    HTML_TEXTAREA: 文本域
-    HTML_SELECT: 下拉框
-    HTML_RADIO: 单选框
-    HTML_CHECKBOX: 复选框
-    HTML_DATETIME: 日期控件
-    HTML_IMAGE_UPLOAD: 图片上传控件
-    HTML_FILE_UPLOAD: 文件上传控件
-    HTML_EDITOR: 富文本控件
-    TYPE_DECIMAL: 高精度计算类型
-    TYPE_DATE: 时间类型
-    QUERY_LIKE: 模糊查询
-    QUERY_EQ: 相等查询
-    REQUIRE: 需要
-    COLUMNNAME_NOT_ADD_SHOW: 页面新增时不显示字段
-    COLUMNNAME_NOT_EDIT_SHOW: 页面编辑时不显示字段
-    DB_TO_SQLALCHEMY_TYPE_MAPPING: 数据库类型与sqlalchemy类型映射
-    DB_TO_PYTHON_TYPE_MAPPING: 数据库类型与python类型映射
+    :cvar TPL_CRUD: 单表（增删改查
+    :cvar TPL_TREE: 树表（增删改查）
+    :cvar TPL_SUB: 主子表（增删改查）
+    :cvar TREE_CODE: 树编码字段
+    :cvar TREE_PARENT_CODE: 树父编码字段
+    :cvar TREE_NAME: 树名称字段
+    :cvar PARENT_MENU_ID: 上级菜单ID字段
+    :cvar PARENT_MENU_NAME: 上级菜单名称字段
+    :cvar GEN_VIEW: 生成详情页开关
+    :cvar COLUMNTYPE_STR: 数据库字符串类型
+    :cvar COLUMNTYPE_TEXT: 数据库文本类型
+    :cvar COLUMNTYPE_TIME: 数据库时间类型
+    :cvar COLUMNTYPE_GEOMETRY: 数据库字空间类型
+    :cvar COLUMNTYPE_NUMBER: 数据库数字类型
+    :cvar COLUMNNAME_NOT_EDIT: 页面不需要编辑字段
+    :cvar COLUMNNAME_NOT_LIST: 页面不需要显示的列表字段
+    :cvar COLUMNNAME_NOT_QUERY: 页面不需要查询字段
+    :cvar BASE_ENTITY: Entity基类字段
+    :cvar TREE_ENTITY: Tree基类字段
+    :cvar HTML_INPUT: 文本框
+    :cvar HTML_TEXTAREA: 文本域
+    :cvar HTML_SELECT: 下拉框
+    :cvar HTML_RADIO: 单选框
+    :cvar HTML_CHECKBOX: 复选框
+    :cvar HTML_DATETIME: 日期控件
+    :cvar HTML_IMAGE_UPLOAD: 图片上传控件
+    :cvar HTML_FILE_UPLOAD: 文件上传控件
+    :cvar HTML_EDITOR: 富文本控件
+    :cvar TYPE_DECIMAL: 高精度计算类型
+    :cvar TYPE_DATE: 时间类型
+    :cvar QUERY_LIKE: 模糊查询
+    :cvar QUERY_EQ: 相等查询
+    :cvar REQUIRE: 需要
+    :cvar COLUMNNAME_NOT_ADD_SHOW: 页面新增时不显示字段
+    :cvar COLUMNNAME_NOT_EDIT_SHOW: 页面编辑时不显示字段
+    :cvar DB_TO_SQLALCHEMY_TYPE_MAPPING: 数据库类型与sqlalchemy类型映射
+    :cvar DB_TO_PYTHON_TYPE_MAPPING: 数据库类型与python类型映射
     """
 
     TPL_CRUD = 'crud'

@@ -7,9 +7,7 @@ from utils.time_util import TimezoneUtil
 
 
 class SysFileInfo(AuditTimeMixin, Base):
-    """
-    文件信息表
-    """
+    """文件信息表。"""
 
     __tablename__ = 'sys_file_info'
     __create_time_nullable__ = False
@@ -59,9 +57,7 @@ class SysFileInfo(AuditTimeMixin, Base):
 
 
 class SysFileReference(CreateTimeMixin, Base):
-    """
-    文件业务引用表
-    """
+    """文件业务引用表。"""
 
     __tablename__ = 'sys_file_reference'
     __create_time_nullable__ = False
@@ -87,9 +83,7 @@ class SysFileReference(CreateTimeMixin, Base):
 
 
 class SysFileRetentionPolicy(AuditTimeMixin, Base):
-    """
-    文件业务保留策略表
-    """
+    """文件业务保留策略表。"""
 
     __tablename__ = 'sys_file_retention_policy'
     __create_time_nullable__ = False
@@ -105,9 +99,7 @@ class SysFileRetentionPolicy(AuditTimeMixin, Base):
 
 
 class SysFileRetentionNotice(CreateTimeMixin, Base):
-    """
-    文件保留期限提醒表
-    """
+    """文件保留期限提醒表。"""
 
     __tablename__ = 'sys_file_retention_notice'
     __create_time_nullable__ = False
@@ -133,9 +125,7 @@ class SysFileRetentionNotice(CreateTimeMixin, Base):
 
 
 class SysFileAcl(CreateTimeMixin, Base):
-    """
-    文件访问控制表
-    """
+    """文件访问控制表。"""
 
     __tablename__ = 'sys_file_acl'
     __create_time_nullable__ = False
@@ -165,9 +155,7 @@ class SysFileAcl(CreateTimeMixin, Base):
 
 
 class SysFileAccessLog(Base):
-    """
-    文件访问审计表
-    """
+    """文件访问审计表。"""
 
     __tablename__ = 'sys_file_access_log'
     __table_args__ = (
@@ -193,9 +181,7 @@ class SysFileAccessLog(Base):
 
 
 class SysFileReconcileRun(Base):
-    """
-    文件存储对账任务表
-    """
+    """文件存储对账任务表。"""
 
     __tablename__ = 'sys_file_reconcile_run'
     __table_args__ = (
@@ -221,9 +207,7 @@ class SysFileReconcileRun(Base):
 
 
 class SysFileReconcileIssue(Base):
-    """
-    文件存储对账异常表
-    """
+    """文件存储对账异常表。"""
 
     __tablename__ = 'sys_file_reconcile_issue'
     __table_args__ = (

@@ -11,7 +11,12 @@ from utils.time_util import TimezoneUtil
 
 class NearestWeekdayExpression(AllExpression):
     """
-    支持Quartz最近工作日语法的日期表达式
+    支持Quartz最近工作日语法的日期表达式。
+
+    :cvar SATURDAY: 周六对应的星期编号
+    :cvar SUNDAY: 周日对应的星期编号
+    :cvar value_re: 解析工作日表达式的正则表达式
+    :ivar day: W前指定的日序号，取值为1至31
     """
 
     SATURDAY = 5
@@ -21,7 +26,7 @@ class NearestWeekdayExpression(AllExpression):
 
     def __init__(self, day: str) -> None:
         """
-        初始化最近工作日表达式
+        初始化最近工作日表达式。
 
         :param day: W前指定的日序号，取值为1至31
         """
@@ -30,7 +35,7 @@ class NearestWeekdayExpression(AllExpression):
 
     def get_next_value(self, date: datetime, field: DayOfMonthField) -> int | None:
         """
-        计算当前月份中满足条件的最近工作日
+        计算当前月份中满足条件的最近工作日。
 
         :param date: 当前查找的日期
         :param field: APScheduler传入的日期字段
@@ -49,7 +54,7 @@ class NearestWeekdayExpression(AllExpression):
 
     def __str__(self) -> str:
         """
-        返回Quartz最近工作日表达式
+        返回Quartz最近工作日表达式。
 
         :return: 日序号和W组成的表达式
         """
@@ -58,7 +63,9 @@ class NearestWeekdayExpression(AllExpression):
 
 class QuartzDayOfMonthField(DayOfMonthField):
     """
-    注册最近工作日表达式的Quartz日期字段
+    注册最近工作日表达式的Quartz日期字段。
+
+    :cvar COMPILERS: 当前 Cron 字段支持的表达式编译器
     """
 
     COMPILERS = [NearestWeekdayExpression, *DayOfMonthField.COMPILERS]
@@ -66,7 +73,13 @@ class QuartzDayOfMonthField(DayOfMonthField):
 
 class MyCronTrigger(CronTrigger):
     """
-    统一任务注册和预览行为的Quartz触发器
+    统一任务注册和预览行为的Quartz触发器。
+
+    :cvar CRON_FIELDS_WITH_YEAR: 包含年份的 Cron 表达式应有的字段数
+    :cvar FIELDS_MAP: Cron 字段名称到解析器的映射
+    :cvar WEEKDAYS: 工作日选择器识别的星期名称
+    :cvar NUMERIC_FIELD: 用于识别数值 Cron 字段的模式
+    :ivar task_job_group: 业务分组快照
     """
 
     CRON_FIELDS_WITH_YEAR = 7
@@ -77,7 +90,7 @@ class MyCronTrigger(CronTrigger):
 
     def __getstate__(self) -> dict:
         """
-        序列化Cron规则及业务分组快照
+        序列化Cron规则及业务分组快照。
 
         :return: 触发器持久化状态
         """
@@ -85,17 +98,16 @@ class MyCronTrigger(CronTrigger):
 
     def __setstate__(self, state: dict) -> None:
         """
-        恢复Cron规则及业务分组快照
+        恢复Cron规则及业务分组快照。
 
         :param state: 触发器持久化状态
-        :return: None
         """
         super().__setstate__(state)
         self.task_job_group = state.get('task_job_group', 'default')
 
     def get_next_fire_time(self, previous_fire_time: datetime | None, now: datetime) -> datetime | None:
         """
-        计算下一次有效执行时刻
+        计算下一次有效执行时刻。
 
         夏令时跳转中不存在的当地时间跳过，重复时间仅取第一次。
 
@@ -114,11 +126,12 @@ class MyCronTrigger(CronTrigger):
     @classmethod
     def from_crontab(cls, expr: str, timezone: str) -> 'MyCronTrigger':
         """
-        根据Quartz表达式和任务时区创建触发器
+        根据Quartz表达式和任务时区创建触发器。
 
         :param expr: 包含6或7个字段的Quartz表达式
         :param timezone: 任务IANA时区名称
         :return: 配置完成的Cron触发器
+        :raises ValueError: 字段数不为六或七，或按周指定日期时日字段未使用问号或星号
         """
         values = expr.split()
         if len(values) not in (6, 7):
@@ -161,12 +174,13 @@ class MyCronTrigger(CronTrigger):
     @classmethod
     def _weekday_names(cls, expression: str) -> str:
         """
-        将Quartz星期编号转换为APScheduler星期名称
+        将Quartz星期编号转换为APScheduler星期名称。
 
         Quartz的1表示星期日；APScheduler的数字0表示星期一。
 
         :param expression: Quartz周字段表达式
         :return: 逗号分隔的星期名称
+        :raises ValueError: Cron 周范围的结束值不能早于开始值
         """
         weekdays = set()
         for part in expression.split(','):
@@ -182,7 +196,13 @@ class MyCronTrigger(CronTrigger):
 
 class CronUtil:
     """
-    Cron表达式工具类
+    Cron表达式工具类。
+
+    :cvar MAX_PREVIEW_COUNT: 最多返回的触发时间预览数
+    :cvar ONE_YEAR_LENGTH: 单个四位年份的字符数
+    :cvar MAX_YEAR: 可参与调度计算的最大年份
+    :cvar CRON_EXPRESSION_LENGTH_MIN: Cron 表达式允许的最少字段数
+    :cvar CRON_EXPRESSION_LENGTH_MAX: Cron 表达式允许的最多字段数
     """
 
     MAX_PREVIEW_COUNT = 20
@@ -193,6 +213,14 @@ class CronUtil:
 
     @classmethod
     def __valid_range(cls, search_str: str, start_range: int, end_range: int) -> bool:
+        """
+        校验 Cron 字段中的数值范围表达式。
+
+        :param search_str: 查找的字符串
+        :param start_range: 请求范围的起始字节位置
+        :param end_range: 请求范围的结束字节位置
+        :return: 是否校验 Cron 字段中的数值范围表达式
+        """
         match = re.match(r'^(\d+)-(\d+)$', search_str)
         if match:
             start, end = int(match.group(1)), int(match.group(2))
@@ -203,6 +231,17 @@ class CronUtil:
     def __valid_sum(
         cls, search_str: str, start_range_a: int, start_range_b: int, end_range_a: int, end_range_b: int, sum_range: int
     ) -> bool:
+        """
+        校验 Cron 字段中的步长表达式。
+
+        :param search_str: 查找的字符串
+        :param start_range_a: 第一个范围的起始字节位置
+        :param start_range_b: 第二个范围的起始字节位置
+        :param end_range_a: 第一个范围的结束字节位置
+        :param end_range_b: 第二个范围的结束字节位置
+        :param sum_range: 参与校验的数值范围
+        :return: 是否校验 Cron 字段中的步长表达式
+        """
         match = re.match(r'^(\d+)/(\d+)$', search_str)
         if match:
             start, end = int(match.group(1)), int(match.group(2))
@@ -216,7 +255,7 @@ class CronUtil:
     @classmethod
     def validate_second_or_minute(cls, second_or_minute: str) -> bool:
         """
-        校验秒或分钟值是否正确
+        校验秒或分钟值是否正确。
 
         :param second_or_minute: 秒或分钟值
         :return: 校验结果
@@ -231,7 +270,7 @@ class CronUtil:
     @classmethod
     def validate_hour(cls, hour: str) -> bool:
         """
-        校验小时值是否正确
+        校验小时值是否正确。
 
         :param hour: 小时值
         :return: 校验结果
@@ -246,7 +285,7 @@ class CronUtil:
     @classmethod
     def validate_day(cls, day: str) -> bool:
         """
-        校验日值是否正确
+        校验日值是否正确。
 
         :param day: 日值
         :return: 校验结果
@@ -262,7 +301,7 @@ class CronUtil:
     @classmethod
     def validate_month(cls, month: str) -> bool:
         """
-        校验月值是否正确
+        校验月值是否正确。
 
         :param month: 月值
         :return: 校验结果
@@ -277,7 +316,7 @@ class CronUtil:
     @classmethod
     def validate_week(cls, week: str) -> bool:
         """
-        校验周值是否正确
+        校验周值是否正确。
 
         :param week: 周值
         :return: 校验结果
@@ -293,7 +332,7 @@ class CronUtil:
     @classmethod
     def validate_year(cls, year: str, timezone: str) -> bool:
         """
-        校验年值是否正确
+        校验年值是否正确。
 
         :param year: 年值
         :param timezone: 任务IANA时区名称，用于确定当前业务年份
@@ -318,7 +357,7 @@ class CronUtil:
     @classmethod
     def validate_cron_expression(cls, cron_expression: str, timezone: str) -> bool:
         """
-        校验Cron表达式是否正确
+        校验Cron表达式是否正确。
 
         :param cron_expression: Cron表达式
         :param timezone: 任务IANA时区名称
@@ -335,13 +374,14 @@ class CronUtil:
         cls, cron_expression: str, time_zone: str, start_time: datetime, count: int = 5
     ) -> list[datetime]:
         """
-        从指定时刻开始枚举未来UTC执行时刻
+        从指定时刻开始枚举未来UTC执行时刻。
 
         :param cron_expression: Quartz表达式
         :param time_zone: 任务IANA时区名称
         :param start_time: 查找起算时刻，包含该时刻
         :param count: 最多返回的执行时刻数量，取值为1至20
         :return: 按时间排序的UTC时刻列表，无未来结果时返回空列表
+        :raises ValueError: 预览数量必须在 1 至 20 之间
         """
         if not 1 <= count <= cls.MAX_PREVIEW_COUNT:
             raise ValueError('预览数量必须在 1 至 20 之间')

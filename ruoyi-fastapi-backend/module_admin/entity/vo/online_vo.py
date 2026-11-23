@@ -6,9 +6,7 @@ from common.types import ApiUtcDateTime
 
 
 class OnlineModel(BaseModel):
-    """
-    在线用户对应pydantic模型
-    """
+    """在线用户对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -23,18 +21,14 @@ class OnlineModel(BaseModel):
 
 
 class OnlineQueryModel(DateRangeQueryMixin, OnlineModel):
-    """
-    岗位管理不分页查询模型
-    """
+    """岗位管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class OnlinePageResponseModel(BaseModel):
-    """
-    在线用户分页响应模型
-    """
+    """在线用户分页响应模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -43,9 +37,7 @@ class OnlinePageResponseModel(BaseModel):
 
 
 class DeleteOnlineModel(BaseModel):
-    """
-    强退在线用户模型
-    """
+    """强退在线用户模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

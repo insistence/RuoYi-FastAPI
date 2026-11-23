@@ -15,8 +15,8 @@ class OutputSettings:
     """
     输出渲染配置。
 
-    :param color_mode: 颜色模式
-    :param icon_mode: 图标模式
+    :ivar color_mode: 颜色模式
+    :ivar icon_mode: 图标模式
     """
 
     color_mode: str = 'always'
@@ -28,10 +28,10 @@ class StatusTokenDefinition:
     """
     状态标签定义。
 
-    :param emoji: emoji 模式文案
-    :param ascii: ASCII 模式文案
-    :param none: 无图标模式文案
-    :param color: 默认前景色
+    :ivar emoji: emoji 模式文案
+    :ivar ascii: ASCII 模式文案
+    :ivar none: 无图标模式文案
+    :ivar color: 默认前景色
     """
 
     emoji: str
@@ -45,9 +45,9 @@ class CommandResult:
     """
     统一命令执行结果。
 
-    :param data: 命令结果负载
-    :param exit_code: 命令退出码
-    :param already_printed: 是否已由上层提前输出
+    :ivar data: 命令结果负载
+    :ivar exit_code: 命令退出码
+    :ivar already_printed: 是否已由上层提前输出
     """
 
     data: Any = None
@@ -59,7 +59,9 @@ class OutputStatusStyler:
     """
     统一负责状态标签与单行文本样式。
 
-    :param settings: 输出配置
+    :cvar _STATUS_DEFINITIONS: 渲染状态标签使用的定义
+    :cvar _STATUS_FIELD_KIND_MAPPING: 将结果字段映射到状态样式的规则
+    :ivar settings: 输出配置
     """
 
     _STATUS_DEFINITIONS = {
@@ -83,7 +85,6 @@ class OutputStatusStyler:
         初始化状态样式器。
 
         :param settings: 输出配置
-        :return: None
         """
         self.settings = settings
 
@@ -310,7 +311,8 @@ class StructuredTextRenderer:
     """
     负责结构化数据到文本的转换与装饰。
 
-    :param status_styler: 状态样式器
+    :cvar _SNAKE_CASE_BOUNDARY_PATTERN: 用于拆分下划线风格字段名的正则表达式
+    :ivar status_styler: 状态样式器
     """
 
     _SNAKE_CASE_BOUNDARY_PATTERN = re.compile(r'(?<!^)(?=[A-Z])')
@@ -320,7 +322,6 @@ class StructuredTextRenderer:
         初始化结构化文本渲染器。
 
         :param status_styler: 状态样式器
-        :return: None
         """
         self.status_styler = status_styler
 
@@ -390,7 +391,7 @@ class StructuredTextRenderer:
     @classmethod
     def format_field_name(cls, key: object) -> str:
         """
-        将字段名标准化为文本输出使用的 `snake_case` 形式。
+        将字段名标准化为文本输出使用的 ``snake_case`` 形式。
 
         :param key: 原始字段名
         :return: 标准化后的字段名
@@ -409,7 +410,6 @@ class StructuredTextRenderer:
         :param prefix: 当前字段前缀
         :param value: 多行文本内容
         :param indent: 子级缩进
-        :return: None
         """
         lines.append(f'{prefix} |')
         lines.extend(f'{indent}{line}' for line in value.splitlines())
@@ -504,8 +504,8 @@ class OutputEmitter:
     """
     负责标准输出、标准错误与命令退出收口。
 
-    :param text_renderer: 结构化文本渲染器
-    :param status_styler: 状态样式器
+    :ivar text_renderer: 结构化文本渲染器
+    :ivar status_styler: 状态样式器
     """
 
     def __init__(self, text_renderer: StructuredTextRenderer, status_styler: OutputStatusStyler) -> None:
@@ -514,7 +514,6 @@ class OutputEmitter:
 
         :param text_renderer: 结构化文本渲染器
         :param status_styler: 状态样式器
-        :return: None
         """
         self.text_renderer = text_renderer
         self.status_styler = status_styler
@@ -525,7 +524,6 @@ class OutputEmitter:
 
         :param data: 输出数据
         :param output_format: 输出格式
-        :return: None
         """
         if data is None:
             return
@@ -542,7 +540,6 @@ class OutputEmitter:
         :param message: 错误消息
         :param output_format: 输出格式
         :param exit_code: 退出码
-        :return: None
         """
         if output_format == 'json':
             print(
@@ -558,7 +555,6 @@ class OutputEmitter:
 
         :param result: 命令执行结果
         :param ctx: CLI 上下文
-        :return: None
         :raises typer.Exit: 始终通过 Typer 退出并返回对应退出码
         """
         if not result.already_printed:
@@ -570,6 +566,10 @@ class OutputRenderer:
     """
     CLI 输出渲染门面。
 
+    :ivar settings: 输出配置
+    :ivar status_styler: 状态样式器
+    :ivar text_renderer: 结构化文本渲染器
+    :ivar emitter: 负责将渲染结果写入目标输出的对象
     :param color_mode: 颜色模式
     :param icon_mode: 图标模式
     """
@@ -578,9 +578,8 @@ class OutputRenderer:
         """
         初始化输出渲染器。
 
-        :param color_mode: 颜色模式，支持 `auto`、`always`、`never`
-        :param icon_mode: 图标模式，支持 `emoji`、`ascii`、`none`
-        :return: None
+        :param color_mode: 颜色模式，支持 ``auto``、``always``、``never``
+        :param icon_mode: 图标模式，支持 ``emoji``、``ascii``、``none``
         """
         self.settings = OutputSettings(color_mode=color_mode, icon_mode=icon_mode)
         self.status_styler = OutputStatusStyler(self.settings)
@@ -610,7 +609,6 @@ class OutputRenderer:
         设置颜色模式。
 
         :param color_mode: 颜色模式
-        :return: None
         """
         self.settings.color_mode = color_mode
 
@@ -619,7 +617,6 @@ class OutputRenderer:
         设置图标模式。
 
         :param icon_mode: 图标模式
-        :return: None
         """
         self.settings.icon_mode = icon_mode
 
@@ -770,7 +767,7 @@ class OutputRenderer:
     @staticmethod
     def format_field_name(key: object) -> str:
         """
-        将字段名标准化为文本输出使用的 `snake_case` 形式。
+        将字段名标准化为文本输出使用的 ``snake_case`` 形式。
 
         :param key: 原始字段名
         :return: 标准化后的字段名
@@ -785,7 +782,6 @@ class OutputRenderer:
         :param prefix: 当前字段前缀
         :param value: 多行文本内容
         :param indent: 子级缩进
-        :return: None
         """
         self.text_renderer.append_multiline_text(lines, prefix, value, indent)
 
@@ -836,7 +832,6 @@ class OutputRenderer:
 
         :param data: 输出数据
         :param output_format: 输出格式
-        :return: None
         """
         self.emitter.emit_output(data, output_format)
 
@@ -858,7 +853,6 @@ class OutputRenderer:
         :param message: 错误消息
         :param output_format: 输出格式
         :param exit_code: 退出码
-        :return: None
         """
         self.emitter.emit_error(message, output_format, exit_code=exit_code)
 
@@ -868,6 +862,5 @@ class OutputRenderer:
 
         :param result: 命令执行结果
         :param ctx: CLI 上下文
-        :return: None
         """
         self.emitter.complete_command(result, ctx)

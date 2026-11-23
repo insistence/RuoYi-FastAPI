@@ -15,8 +15,8 @@ class AppSnapshotSupport:
     该对象负责应用配置快照和环境快照的构建，
     避免主运行时服务继续承载快照字段拼装细节。
 
-    :param infrastructure_gateway: 应用基础设施网关
-    :param runtime_environment: 运行时环境服务
+    :ivar infrastructure_gateway: 应用基础设施网关
+    :ivar runtime_environment: 运行时环境服务
     """
 
     def __init__(
@@ -29,7 +29,6 @@ class AppSnapshotSupport:
 
         :param infrastructure_gateway: 应用基础设施网关
         :param runtime_environment: 运行时环境服务
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
         self.runtime_environment = runtime_environment

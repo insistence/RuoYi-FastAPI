@@ -31,10 +31,20 @@ PURGE_COMMIT_COUNT = 2
 
 
 def make_query_db() -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
 
 def make_current_user() -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(user=SimpleNamespace(user_id=1, user_name='admin', admin=True))
 
 
@@ -42,6 +52,13 @@ def make_file_info(
     access_type: str = 'private',
     expire_time: datetime | None = None,
 ) -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param access_type: 文件访问类型
+    :param expire_time: 文件当前到期时间
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         file_id=FILE_ID,
         original_name='private.txt',
@@ -58,6 +75,7 @@ def make_file_info(
 
 
 def test_purge_file_removes_recycle_content_and_metadata(tmp_path: Path) -> None:
+    """彻底删除文件时清理回收内容和元数据。"""
     public_root = tmp_path / 'public'
     trash_root = tmp_path / 'trash'
     trash_file = trash_root / FILE_ID / 'private.txt'
@@ -101,6 +119,7 @@ def test_purge_file_removes_recycle_content_and_metadata(tmp_path: Path) -> None
 
 
 def test_purge_file_rejects_business_reference(tmp_path: Path) -> None:
+    """仍有业务引用的文件不能彻底删除。"""
     file_info = make_file_info()
     query_db = make_query_db()
 
@@ -133,6 +152,7 @@ def test_purge_file_rejects_business_reference(tmp_path: Path) -> None:
 
 
 def test_retention_scan_creates_expiring_and_expired_notices() -> None:
+    """保留期扫描生成即将过期和已过期通知。"""
     current_time = datetime.now(UTC)
     expired_file = make_file_info(expire_time=current_time - timedelta(days=1))
     expiring_file = SimpleNamespace(
@@ -182,6 +202,7 @@ def test_retention_scan_creates_expiring_and_expired_notices() -> None:
 
 
 def test_mark_retention_notice_read_checks_data_scope() -> None:
+    """标记保留期通知已读时检查数据范围。"""
     query_db = make_query_db()
     query_object = FileRetentionNoticePageQueryModel()
 
@@ -227,6 +248,7 @@ def test_mark_retention_notice_read_checks_data_scope() -> None:
 
 
 def test_retention_policy_rejects_public_business_file() -> None:
+    """保留策略拒绝公开业务文件。"""
     query_db = make_query_db()
     public_file = make_file_info(access_type='public')
 
@@ -264,6 +286,7 @@ def test_retention_policy_rejects_public_business_file() -> None:
 
 
 def test_extend_file_retention_updates_terminal_references() -> None:
+    """延长文件保留期时更新终止状态的引用。"""
     current_time = datetime.now(UTC)
     previous_expire_time = current_time + timedelta(days=1)
     new_expire_time = current_time + timedelta(days=31)
@@ -313,6 +336,7 @@ def test_extend_file_retention_updates_terminal_references() -> None:
 
 
 def test_dispose_expired_file_releases_expired_references() -> None:
+    """处置过期文件时释放过期引用。"""
     current_time = datetime.now(UTC)
     expire_time = current_time - timedelta(days=1)
     file_info = make_file_info(expire_time=expire_time)
@@ -361,6 +385,7 @@ def test_dispose_expired_file_releases_expired_references() -> None:
 
 
 def test_dispose_expired_file_rejects_active_reference() -> None:
+    """处置过期文件时拒绝仍然有效的引用。"""
     expire_time = datetime.now(UTC) - timedelta(days=1)
     file_info = make_file_info(expire_time=expire_time)
     reference = SimpleNamespace(

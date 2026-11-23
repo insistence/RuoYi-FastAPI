@@ -52,6 +52,11 @@ async def test_disabled_feature_returns_clear_blocked_response(monkeypatch: pyte
     """验证功能关闭时返回明确的受限响应。"""
 
     def unavailable() -> None:
+        """
+        在调用时报告预期的测试失败：签名制品发布功能未启用。
+
+        :raises ValueError: 签名制品发布功能未启用
+        """
         raise ValueError('签名制品发布功能未启用')
 
     monkeypatch.setattr(controller, 'get_plugin_deployment_service', unavailable)
@@ -66,6 +71,11 @@ async def test_unexpected_database_error_does_not_expose_connection_details(monk
     """验证意外数据库异常不会将连接细节返回客户端。"""
 
     def unavailable() -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :raises RuntimeError: 模拟含有敏感连接信息的数据库故障
+        """
         raise RuntimeError('mysql://secret-user:secret-password@host')
 
     monkeypatch.setattr(controller, 'get_plugin_deployment_service', unavailable)

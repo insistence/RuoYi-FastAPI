@@ -9,7 +9,9 @@ from utils.time_util import GenTimeUtil
 
 class GenUtils:
     """
-    代码生成器工具类
+    代码生成器工具类。
+
+    :cvar TEXTAREA_COLUMN_LENGTH: 选择多行输入框时使用的列长度阈值
     """
 
     TEXTAREA_COLUMN_LENGTH = 500
@@ -17,7 +19,7 @@ class GenUtils:
     @classmethod
     def init_table(cls, gen_table: GenTableModel, oper_name: str) -> None:
         """
-        初始化表信息
+        初始化表信息。
 
         :param gen_table: 业务表对象
         :param oper_name: 操作人
@@ -34,7 +36,7 @@ class GenUtils:
     @classmethod
     def init_column_field(cls, column: GenTableColumnModel, table: GenTableModel) -> None:
         """
-        初始化列属性字段
+        初始化列属性字段。
 
         :param column: 业务表字段对象
         :param table: 业务表对象
@@ -114,7 +116,7 @@ class GenUtils:
     @classmethod
     def arrays_contains(cls, arr: list[str], target_value: str) -> bool:
         """
-        校验数组是否包含指定值
+        校验数组是否包含指定值。
 
         :param arr: 数组
         :param target_value: 需要校验的值
@@ -125,7 +127,7 @@ class GenUtils:
     @classmethod
     def get_module_name(cls, package_name: str) -> str:
         """
-        获取模块名
+        获取模块名。
 
         :param package_name: 包名
         :return: 模块名
@@ -135,7 +137,7 @@ class GenUtils:
     @classmethod
     def get_business_name(cls, table_name: str) -> str:
         """
-        获取业务名
+        获取业务名。
 
         :param table_name: 业务表名
         :return: 业务名
@@ -145,7 +147,7 @@ class GenUtils:
     @classmethod
     def convert_class_name(cls, table_name: str) -> str:
         """
-        表名转换成Python类名
+        表名转换成Python类名。
 
         :param table_name: 业务表名
         :return: Python类名
@@ -160,7 +162,7 @@ class GenUtils:
     @classmethod
     def replace_first(cls, replacement: str, search_list: list[str]) -> str:
         """
-        批量替换前缀
+        批量替换前缀。
 
         :param replacement: 需要被替换的字符串
         :param search_list: 可替换的字符串列表
@@ -174,7 +176,7 @@ class GenUtils:
     @classmethod
     def replace_text(cls, text: str) -> str:
         """
-        关键字替换
+        关键字替换。
 
         :param text: 需要被替换的字符串
         :return: 替换后的字符串
@@ -184,7 +186,7 @@ class GenUtils:
     @classmethod
     def get_db_type(cls, column_type: str) -> str:
         """
-        获取数据库类型字段
+        获取数据库类型字段。
 
         :param column_type: 字段类型
         :return: 数据库类型
@@ -194,7 +196,7 @@ class GenUtils:
     @classmethod
     def get_column_length(cls, column_type: str) -> int:
         """
-        获取字段长度
+        获取字段长度。
 
         :param column_type: 字段类型
         :return: 字段长度
@@ -207,7 +209,7 @@ class GenUtils:
     @classmethod
     def split_column_type(cls, column_type: str) -> list[str]:
         """
-        拆分列类型
+        拆分列类型。
 
         :param column_type: 字段类型
         :return: 拆分结果
@@ -219,7 +221,7 @@ class GenUtils:
     @classmethod
     def to_camel_case(cls, text: str) -> str:
         """
-        将字符串转换为驼峰命名
+        将字符串转换为驼峰命名。
 
         :param text: 需要转换的字符串
         :return: 驼峰命名

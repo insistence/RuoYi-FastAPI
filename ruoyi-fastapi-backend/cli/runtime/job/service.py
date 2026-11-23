@@ -13,9 +13,9 @@ class JobRuntimeService:
     该服务作为定时任务运行时 facade，对外统一暴露任务列表、详情、日志、
     执行一次、暂停与恢复入口。
 
-    :param infrastructure_gateway: 定时任务基础设施网关
-    :param domain_support: 定时任务领域支持对象
-    :param scheduler_support: 定时任务调度上下文支持对象
+    :ivar infrastructure_gateway: 定时任务基础设施网关
+    :ivar domain_support: 定时任务领域支持对象
+    :ivar scheduler_support: 定时任务调度上下文支持对象
     """
 
     def __init__(
@@ -31,7 +31,6 @@ class JobRuntimeService:
         :param infrastructure_gateway: 定时任务基础设施网关
         :param domain_support: 定时任务领域支持对象
         :param scheduler_support: 定时任务调度上下文支持对象
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway or JobInfrastructureGateway()
         self.domain_support = domain_support or JobDomainSupport(self.infrastructure_gateway)
@@ -127,8 +126,8 @@ class JobRuntimeService:
         :param job_name: 任务名称过滤条件
         :param job_group: 任务组过滤条件
         :param status: 执行状态过滤条件
-        :param begin_date: 开始日期，格式 `YYYY-MM-DD`
-        :param end_date: 结束日期，格式 `YYYY-MM-DD`
+        :param begin_date: 开始日期，格式 ``YYYY-MM-DD``
+        :param end_date: 结束日期，格式 ``YYYY-MM-DD``
         :param paged: 是否启用分页
         :param page_num: 页码
         :param page_size: 每页数量

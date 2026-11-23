@@ -23,8 +23,18 @@ class AppCommandController:
     """
     应用命令控制器。
 
-    该控制器负责组织 `app` 命令组的上下文准备、runtime 调用、
+    该控制器负责组织 ``app`` 命令组的上下文准备、runtime 调用、
     payload 构建，以及基于输出格式选择 presenter 或直接返回 JSON。
+
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar presenter: 应用命令文本渲染器
+    :ivar runtime_service: 应用运行时服务
+    :ivar database_runtime: 数据库运行时服务
+    :ivar operations_runtime: 运维运行时服务
+    :ivar crypto_runtime: 传输加密运行时服务
+    :ivar oidc_runtime: OIDC 就绪检查运行时服务
+    :ivar bootstrap_service: 应用引导服务
     """
 
     def __init__(
@@ -52,7 +62,6 @@ class AppCommandController:
         :param crypto_runtime: 传输加密运行时服务
         :param oidc_runtime: OIDC 就绪检查运行时服务
         :param bootstrap_service: 应用引导服务
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
@@ -69,7 +78,6 @@ class AppCommandController:
         启动当前 FastAPI 应用。
 
         :param env: 当前命令运行环境
-        :return: None
         """
         self.bootstrap_service.exec_app_run_command(env)
 
@@ -79,7 +87,6 @@ class AppCommandController:
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         db_status = self.execution_service.run_async(self.database_runtime.ping_database())
@@ -108,7 +115,6 @@ class AppCommandController:
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         self.execution_service.complete_payload_result(
@@ -124,7 +130,6 @@ class AppCommandController:
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         self.execution_service.complete_payload_result(
@@ -153,7 +158,6 @@ class AppCommandController:
         :param method: 请求方法过滤条件
         :param group_by: 路由分组方式
         :param include_hidden: 是否包含隐藏路由
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         routes_payload = self._serialize_routes(

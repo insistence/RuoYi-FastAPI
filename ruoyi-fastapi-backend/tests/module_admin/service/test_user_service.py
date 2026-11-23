@@ -58,6 +58,7 @@ async def test_edit_user_accepts_form_without_readonly_roles(
     ],
 )
 async def test_validate_password_accepts_each_character_type(pwd_chrtype: str, password: str) -> None:
+    """密码校验接受各类允许的字符。"""
     redis = SimpleNamespace(get=AsyncMock(return_value=pwd_chrtype))
 
     await UserService.validate_password_services(redis, password)
@@ -77,6 +78,7 @@ async def test_validate_password_accepts_each_character_type(pwd_chrtype: str, p
     ],
 )
 async def test_validate_password_rejects_invalid_character_type(pwd_chrtype: str, password: str, message: str) -> None:
+    """密码校验拒绝不允许的字符类型。"""
     redis = SimpleNamespace(get=AsyncMock(return_value=pwd_chrtype))
 
     with pytest.raises(ServiceException) as exc_info:
@@ -88,6 +90,7 @@ async def test_validate_password_rejects_invalid_character_type(pwd_chrtype: str
 @pytest.mark.asyncio
 @pytest.mark.parametrize('password', ['12345', '123456789012345678901'])
 async def test_validate_password_rejects_invalid_length(password: str) -> None:
+    """密码校验拒绝无效长度。"""
     redis = SimpleNamespace(get=AsyncMock(return_value='0'))
 
     with pytest.raises(ServiceException) as exc_info:
@@ -98,6 +101,7 @@ async def test_validate_password_rejects_invalid_length(password: str) -> None:
 
 @pytest.mark.asyncio
 async def test_validate_password_uses_fixed_rule_without_reading_config() -> None:
+    """指定固定密码规则时无需读取配置。"""
     redis = SimpleNamespace(get=AsyncMock(return_value='4'))
 
     await UserService.validate_password_services(redis, 'abcdef', PasswordCharacterType.DEFAULT)
@@ -108,6 +112,7 @@ async def test_validate_password_uses_fixed_rule_without_reading_config() -> Non
 @pytest.mark.asyncio
 @pytest.mark.parametrize('config_value', [None, '', 'invalid'])
 async def test_validate_password_falls_back_to_default_rule(config_value: str | None) -> None:
+    """密码校验支持回退到默认规则。"""
     redis = SimpleNamespace(get=AsyncMock(return_value=config_value))
 
     await UserService.validate_password_services(redis, 'abcdef')

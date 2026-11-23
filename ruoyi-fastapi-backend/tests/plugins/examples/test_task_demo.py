@@ -32,13 +32,22 @@ PLUGIN_ROOT = Path(__file__).resolve().parents[3] / 'plugins' / 'examples' / 'py
 
 @pytest.fixture(autouse=True)
 def isolated_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
-    """每个用例恢复插件自身的工厂引用，不共享测试连接池。"""
+    """
+    每个用例恢复插件自身的工厂引用，不共享测试连接池。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     monkeypatch.setattr(task_demo._runtime, 'session_factory', None)
 
 
 @pytest_asyncio.fixture
 async def task_host(tmp_path: Path) -> AsyncIterator[PluginHostContext]:
-    """仅适配迁移中的时间类型后在 SQLite 执行，不代表 PostgreSQL 方言实测。"""
+    """
+    仅适配迁移中的时间类型后在 SQLite 执行，不代表 PostgreSQL 方言实测。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :yield: ``PluginHostContext`` 实例
+    """
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "tasks.db"}')
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     try:
@@ -52,15 +61,34 @@ async def task_host(tmp_path: Path) -> AsyncIterator[PluginHostContext]:
 
 
 def _context(host: PluginHostContext, permissions: frozenset[str] = frozenset({'*:*:*'})) -> PluginRequestContext:
-    """构造测试专用可信身份；生产身份由宿主网关注入。"""
+    """
+    构造测试专用可信身份；生产身份由宿主网关注入。
+
+    :param host: 宿主注入的能力集合；不保存当前用户或请求数据库会话
+    :param permissions: 当前调用允许使用的权限
+    :return: 测试专用可信身份
+    """
     return PluginRequestContext(host=host, user=SimpleNamespace(user_id=1), permissions=permissions)
 
 
 def _client(host: PluginHostContext, permissions: frozenset[str] = frozenset({'*:*:*'})) -> httpx.AsyncClient:
-    """将可信上下文注入插件子应用，使用真实 SDK HTTP 适配器检查权限与输入。"""
+    """
+    将可信上下文注入插件子应用，使用真实 SDK HTTP 适配器检查权限与输入。
+
+    :param host: 宿主注入的能力集合；不保存当前用户或请求数据库会话
+    :param permissions: 当前调用允许使用的权限
+    :return: ``httpx.AsyncClient`` 实例
+    """
     child = create_plugin(host).app_factory(host)
 
     async def authenticated_app(scope: dict[str, Any], receive: Any, send: Any) -> None:
+        """
+        为插件请求注入已认证上下文后调用下游应用。
+
+        :param scope: 当前操作使用的作用域
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         scope.setdefault('state', {})['plugin_context'] = _context(host, permissions)
         await child(scope, receive, send)
 
@@ -202,6 +230,12 @@ async def test_exception_after_insert_rolls_back(task_host: PluginHostContext, m
     """即使 SQL 已写入，响应构造失败也会回滚该次事务。"""
 
     def broken_payload(row: Any) -> dict[str, Any]:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param row: 当前读取或写入的数据行
+        :raises RuntimeError: 模拟构造响应失败
+        """
         raise RuntimeError('response construction failed')
 
     monkeypatch.setattr(service, '_task_payload', broken_payload)
@@ -218,7 +252,17 @@ async def test_cancel_after_insert_rolls_back_and_closes_owned_session(task_host
     closed = asyncio.Event()
 
     class PausedSession(AsyncSession):
+        """在执行 SQL 时暂停以控制测试并发顺序。"""
+
         async def execute(self, statement: Any, *args: Any, **kwargs: Any) -> Any:
+            """
+            按测试场景处理数据库查询并提供结果。
+
+            :param statement: 即将执行的数据库语句
+            :param args: 传给被调用对象的位置参数
+            :param kwargs: 传给被调用对象的关键字参数
+            :return: 执行当前操作得到的结果
+            """
             result = await super().execute(statement, *args, **kwargs)
             if getattr(statement, 'is_insert', False):
                 inserted.set()
@@ -226,6 +270,7 @@ async def test_cancel_after_insert_rolls_back_and_closes_owned_session(task_host
             return result
 
         async def close(self) -> None:
+            """记录测试资源的关闭过程。"""
             await super().close()
             closed.set()
 
@@ -248,25 +293,59 @@ async def test_cancel_after_insert_rolls_back_and_closes_owned_session(task_host
 
 
 class MemoryMigrationHistory(PluginMigrationHistoryStore):
-    """保留各次调用结果的测试历史存储，数据库 DDL 仍在真实 SQLite 执行。"""
+    """
+    保留各次调用结果的测试历史存储，数据库 DDL 仍在真实 SQLite 执行。
+
+    :ivar records: 当前测试保存的记录
+    :ivar successes: 成功完成的操作记录
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``records``, ``successes``。"""
         self.records: dict[tuple[str, str], PluginMigrationHistoryRecord] = {}
         self.successes: list[tuple[str, str, str]] = []
 
     async def get_record(
         self, query_db: Any, plugin_id: str, migration_path: str
     ) -> PluginMigrationHistoryRecord | None:
+        """
+        将存储值解码为交互记录。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :return: 与交互标识对应的记录
+        """
         return self.records.get((plugin_id, migration_path))
 
     async def record_running(
         self, query_db: Any, plugin_id: str, migration_path: str, checksum: str, version: str, statement_count: int
     ) -> None:
+        """
+        保存正在运行的迁移记录。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param checksum: 校验内容完整性使用的校验和
+        :param version: 当前记录的版本
+        :param statement_count: SQL 语句数量
+        """
         self.records[plugin_id, migration_path] = PluginMigrationHistoryRecord(checksum=checksum, status='running')
 
     async def record_success(
         self, query_db: Any, plugin_id: str, migration_path: str, checksum: str, version: str, statement_count: int
     ) -> None:
+        """
+        保存成功完成的迁移记录。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param checksum: 校验内容完整性使用的校验和
+        :param version: 当前记录的版本
+        :param statement_count: SQL 语句数量
+        """
         self.records[plugin_id, migration_path] = PluginMigrationHistoryRecord(checksum=checksum)
         self.successes.append((plugin_id, migration_path, version))
 
@@ -280,6 +359,17 @@ class MemoryMigrationHistory(PluginMigrationHistoryStore):
         statement_count: int,
         error_message: str,
     ) -> None:
+        """
+        保存迁移失败的测试记录。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param checksum: 校验内容完整性使用的校验和
+        :param version: 当前记录的版本
+        :param statement_count: SQL 语句数量
+        :param error_message: 记录到结果或审计日志中的错误详情
+        """
         self.records[plugin_id, migration_path] = PluginMigrationHistoryRecord(
             checksum=checksum, status='failed', error_message=error_message
         )
@@ -289,6 +379,14 @@ class SqliteMigrationSession(AsyncSession):
     """仅在 SQL 执行边界适配 SQLite 时间类型，runner 校验的原始文件内容保持不变。"""
 
     async def execute(self, statement: Any, *args: Any, **kwargs: Any) -> Any:
+        """
+        按测试场景处理数据库查询并提供结果。
+
+        :param statement: 即将执行的数据库语句
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 底层模拟会话的查询结果
+        """
         if isinstance(statement, TextClause) and 'TIMESTAMP(3) WITH TIME ZONE' in statement.text:
             statement = text(statement.text.replace('TIMESTAMP(3) WITH TIME ZONE', 'DATETIME'))
         return await super().execute(statement, *args, **kwargs)
@@ -300,6 +398,15 @@ def test_time_columns_compile_to_repository_database_contract() -> None:
         column = tasks.c[name]
         assert column.type.compile(dialect=mysql.dialect()) == 'DATETIME(3)'
         assert column.type.compile(dialect=postgresql.dialect()) == 'TIMESTAMP(3) WITH TIME ZONE'
+
+
+def _unavailable_sessions() -> None:
+    """
+    在调用时报告预期的测试失败：query_db 应优先于插件保存的会话工厂。
+
+    :raises AssertionError: query_db 应优先于插件保存的会话工厂
+    """
+    raise AssertionError('query_db 应优先于插件保存的会话工厂')
 
 
 @pytest.mark.asyncio
@@ -356,10 +463,7 @@ async def test_migration_upgrade_preserves_old_rows_and_history_skips_replay(
             assert len(history.successes) == expected_migrations
         assert (await health(health_context))['ok'] is True
 
-        def unavailable_sessions() -> None:
-            raise AssertionError('query_db 应优先于插件保存的会话工厂')
-
-        monkeypatch.setattr(task_demo._runtime, 'session_factory', unavailable_sessions)
+        monkeypatch.setattr(task_demo._runtime, 'session_factory', _unavailable_sessions)
         async with sessions() as db:
             assert (await health(replace(health_context, query_db=db)))['ok'] is True
         async with _client(host) as client:

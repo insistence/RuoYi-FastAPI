@@ -6,9 +6,7 @@ from i18n.message import I18nMessage
 
 
 class PluginPayloadModel(BaseModel):
-    """
-    插件运行时 payload 模型基类。
-    """
+    """插件运行时 payload 模型基类。"""
 
     model_config = ConfigDict(populate_by_name=True, extra='forbid')
 

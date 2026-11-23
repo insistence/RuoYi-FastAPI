@@ -11,7 +11,7 @@ _MISSING_STATUS = object()
 
 class ClientAuthenticationError(ValueError):
     """
-    客户端认证失败
+    客户端认证失败。
 
     协议层应将此异常统一映射为 invalid_client，不能泄漏 Secret 细节
     """
@@ -19,12 +19,12 @@ class ClientAuthenticationError(ValueError):
 
 def hash_client_secret(client_secret: str) -> str:
     """
-    使用项目密码哈希器保存 Client Secret
+    使用项目密码哈希器保存 Client Secret。
 
     :param client_secret: 仅在创建/轮换时可见的明文 Secret
     :return: 可持久化的强哈希
+    :raises ValueError: 客户端密钥不能为空
     """
-
     if not isinstance(client_secret, str) or not client_secret:
         raise ValueError('客户端密钥不能为空')
     return PwdUtil.get_password_hash(client_secret)
@@ -32,13 +32,12 @@ def hash_client_secret(client_secret: str) -> str:
 
 def verify_client_secret(client_secret: str, secret_hash: str) -> bool:
     """
-    验证 Client Secret，错误输入统一返回 False
+    验证 Client Secret，错误输入统一返回 False。
 
     :param client_secret: 请求携带的明文 Secret
     :param secret_hash: 已存储的 Secret 哈希
     :return: Secret 是否匹配
     """
-
     if not isinstance(client_secret, str) or not isinstance(secret_hash, str) or not secret_hash:
         return False
     try:
@@ -58,14 +57,14 @@ def authenticate_client(  # noqa: PLR0912
     secret_match_callback: Callable[[str], None] | None = None,
 ) -> OAuthClientPrincipal:
     """
-    按已注册 Client 策略认证
+    按已注册 Client 策略认证。
 
     机密 Client 仅接受 Basic；公共 Client 仅接受 form 的 client_id 且不得
     携带 Secret。``client_lookup`` 仅用于在 Header client_id 与传入对象
     分离时查找注册记录
 
     :param client: 已注册 Client 或支持属性访问的对象
-    :param authorization: RFC 7617 Basic Header
+    :param authorization: 符合 RFC 7617 的 Basic 认证头
     :param client_id: 公共 Client 的表单 client_id
     :param client_secret: 仅用于拒绝请求体 Secret 的参数
     :param secret_hashes: 可注入的有效 Secret 哈希集合
@@ -74,7 +73,6 @@ def authenticate_client(  # noqa: PLR0912
     :return: 已认证的 OAuth Client 主体
     :raises ClientAuthenticationError: Client 策略或凭据不匹配
     """
-
     supplied_id = client_id
     supplied_secret = client_secret
     auth_method = 'none'

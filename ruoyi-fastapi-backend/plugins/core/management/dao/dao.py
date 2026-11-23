@@ -45,9 +45,7 @@ PLUGIN_MODEL_RUNTIME_FIELDS = {
 
 
 class PluginDao:
-    """
-    插件系统数据库操作层。
-    """
+    """插件系统数据库操作层。"""
 
     @classmethod
     async def get_plugin_by_id(cls, db: AsyncSession, plugin_id: str) -> SysPlugin | None:
@@ -146,7 +144,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin: 插件更新字典
-        :return: None
         """
         await db.execute(
             update(SysPlugin),
@@ -160,7 +157,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_id: 插件ID
-        :return: None
         """
         await db.execute(delete(SysPlugin).where(SysPlugin.plugin_id == plugin_id))
 
@@ -243,7 +239,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_menu: 插件菜单关联对象
-        :return: None
         """
         await db.execute(
             update(SysPluginMenu)
@@ -258,7 +253,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_menu: 插件菜单关联对象
-        :return: None
         """
         await db.execute(
             update(SysPluginMenu)
@@ -276,7 +270,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_id: 插件ID
-        :return: None
         """
         await db.execute(delete(SysPluginMenu).where(SysPluginMenu.plugin_id == plugin_id))
 
@@ -288,7 +281,6 @@ class PluginDao:
         :param db: orm对象
         :param plugin_id: 插件ID
         :param menu_ids: 菜单ID列表
-        :return: None
         """
         if menu_ids:
             await db.execute(
@@ -305,7 +297,6 @@ class PluginDao:
 
         :param db: orm对象
         :param menu_ids: 菜单ID列表
-        :return: None
         """
         if menu_ids:
             await db.execute(delete(SysRoleMenu).where(SysRoleMenu.menu_id.in_(menu_ids)))
@@ -335,7 +326,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_id: 插件ID
-        :return: None
         """
         await db.execute(delete(SysPluginMigration).where(SysPluginMigration.plugin_id == plugin_id))
 
@@ -491,7 +481,6 @@ class PluginDao:
         :param payload: 待写入 payload
         :param existing_plugin_migration: 已有 migration 历史
         :param now: 当前时间
-        :return: None
         """
         status = payload.get('status', 'success')
         if existing_plugin_migration is None:
@@ -548,7 +537,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_id: 插件ID
-        :return: None
         """
         await db.execute(delete(SysPluginConfig).where(SysPluginConfig.plugin_id == plugin_id))
 
@@ -560,7 +548,6 @@ class PluginDao:
         :param db: orm对象
         :param plugin_id: 插件ID
         :param config_keys: 当前 manifest 配置键集合
-        :return: None
         """
         query = delete(SysPluginConfig).where(SysPluginConfig.plugin_id == plugin_id)
         if config_keys:
@@ -621,7 +608,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_config: 插件配置更新字典
-        :return: None
         """
         await db.execute(
             update(SysPluginConfig),
@@ -947,7 +933,6 @@ class PluginDao:
 
         :param db: orm对象
         :param menu: 菜单更新字典
-        :return: None
         """
         if 'menu_name_i18n' in menu:
             current = await db.scalar(
@@ -967,7 +952,6 @@ class PluginDao:
         :param db: orm对象
         :param menu_ids: 菜单ID列表
         :param status: 菜单状态
-        :return: None
         """
         if menu_ids:
             await db.execute(update(SysMenu).where(SysMenu.menu_id.in_(menu_ids)).values(status=status))

@@ -26,8 +26,8 @@ class PluginManifestCheckResult:
     """
     插件 manifest 非阻断检查结果。
 
-    :param plugin_id: 插件 ID
-    :param issues: manifest 检查问题项列表
+    :ivar plugin_id: 插件 ID
+    :ivar issues: manifest 检查问题项列表
     """
 
     plugin_id: str
@@ -66,6 +66,12 @@ class PluginManifestChecker:
     插件 manifest 非阻断检查器。
 
     使用 Checker 模式承载不适合放入 Pydantic 强校验的提示类规则。
+
+    :cvar _node_version_cache: 已查询的 Node.js 版本缓存
+    :ivar backend_root: 后端项目根目录
+    :ivar frontend_root: 前端项目根目录
+    :ivar python_version: 当前 Python 版本
+    :ivar node_version: 当前 Node.js 版本
     """
 
     _node_version_cache: ClassVar[object | str | None] = UNRESOLVED_NODE_VERSION
@@ -85,7 +91,6 @@ class PluginManifestChecker:
         :param frontend_root: 前端项目根目录
         :param python_version: 当前 Python 版本
         :param node_version: 当前 Node.js 版本
-        :return: None
         """
         self.backend_root = backend_root or Path(__file__).resolve().parents[3]
         self.frontend_root = frontend_root or Path(

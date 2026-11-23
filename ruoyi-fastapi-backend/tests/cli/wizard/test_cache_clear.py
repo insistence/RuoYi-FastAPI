@@ -8,6 +8,7 @@ def test_cache_clear_wizard_cancels_when_confirmation_rejected(
     cache_clear_flow: ModuleType,
     exit_codes: ModuleType,
 ) -> None:
+    """拒绝确认后取消清缓存操作。"""
     captured: dict[str, object] = {}
     answers = iter(['dev', 'cache-name', 'sys_config', True, False])
     monkeypatch.setattr(
@@ -43,6 +44,7 @@ def test_cache_clear_wizard_accepts_default_context_values(
     monkeypatch: MonkeyPatch,
     cache_clear_flow: ModuleType,
 ) -> None:
+    """清缓存向导接受上下文默认值。"""
     captured_defaults: dict[str, object] = {}
     captured_confirm_defaults: list[tuple[str, bool]] = []
     answers = iter(['dev', 'cache-name', 'sys_config', True, False])

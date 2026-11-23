@@ -13,7 +13,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def load_module(name: str, path: Path) -> ModuleType:
-    """按路径加载 CI 与 E2E 入口，以验证跨工程的版本契约。"""
+    """
+    按路径加载 CI 与 E2E 入口，以验证跨工程的版本契约。
+
+    :param name: 要读取的本地模块的完整名称
+    :param path: 要读取或处理的路径
+    :return: 提供被测功能的模块
+    """
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

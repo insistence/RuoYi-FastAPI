@@ -19,10 +19,16 @@ class _FakeStream:
     """
     模拟终端输出流。
 
+    :ivar _is_tty: 模拟输出流是否连接到终端
     :param is_tty: 是否模拟为 TTY
     """
 
     def __init__(self, *, is_tty: bool) -> None:
+        """
+        初始化测试夹具的 ``_is_tty``。
+
+        :param is_tty: 是否模拟为 TTY
+        """
         self._is_tty = is_tty
 
     def isatty(self) -> bool:
@@ -45,11 +51,7 @@ def _strip_ansi(text: str) -> str:
 
 
 def test_decorate_text_output_promotes_success_header_with_emoji_icon() -> None:
-    """
-    校验成功结果头在 emoji 模式下会被提升为统一状态头。
-
-    :return: None
-    """
+    """校验成功结果头在 emoji 模式下会被提升为统一状态头。"""
     OUTPUT_RENDERER.set_icon_mode('emoji')
 
     rendered = OUTPUT_RENDERER.decorate_text_output('ok: true\nenv: dev')
@@ -58,11 +60,7 @@ def test_decorate_text_output_promotes_success_header_with_emoji_icon() -> None:
 
 
 def test_decorate_text_output_promotes_failure_header_with_emoji_icon() -> None:
-    """
-    校验失败结果头在 emoji 模式下会被提升为统一状态头。
-
-    :return: None
-    """
+    """校验失败结果头在 emoji 模式下会被提升为统一状态头。"""
     OUTPUT_RENDERER.set_icon_mode('emoji')
 
     rendered = OUTPUT_RENDERER.decorate_text_output('ok: false\nerror: boom')
@@ -71,11 +69,7 @@ def test_decorate_text_output_promotes_failure_header_with_emoji_icon() -> None:
 
 
 def test_colorize_text_output_renders_inline_status_segments_with_emoji_icon() -> None:
-    """
-    校验文本着色后会为 message、hint、error 等字段附加状态标签。
-
-    :return: None
-    """
+    """校验文本着色后会为 message、hint、error 等字段附加状态标签。"""
     OUTPUT_RENDERER.set_icon_mode('emoji')
     OUTPUT_RENDERER.set_color_mode('always')
     decorated = OUTPUT_RENDERER.decorate_text_output('ok: false\nmessage: retry later\nhint: use --yes\nerror: boom')
@@ -89,11 +83,7 @@ def test_colorize_text_output_renders_inline_status_segments_with_emoji_icon() -
 
 
 def test_colorize_text_output_supports_warning_and_info_field_aliases() -> None:
-    """
-    校验 `warning` 与 `info` 字段也会使用统一状态图标渲染。
-
-    :return: None
-    """
+    """校验 ``warning`` 与 ``info`` 字段也会使用统一状态图标渲染。"""
     OUTPUT_RENDERER.set_icon_mode('emoji')
     OUTPUT_RENDERER.set_color_mode('always')
     decorated = OUTPUT_RENDERER.decorate_text_output('ok: true\nwarning: rotate key soon\ninfo: cache refreshed')
@@ -104,11 +94,7 @@ def test_colorize_text_output_supports_warning_and_info_field_aliases() -> None:
 
 
 def test_colorize_text_output_styles_status_segments_inside_list_items() -> None:
-    """
-    校验列表项中的带标签状态片段也会应用统一视觉规则。
-
-    :return: None
-    """
+    """校验列表项中的带标签状态片段也会应用统一视觉规则。"""
     OUTPUT_RENDERER.set_icon_mode('emoji')
     OUTPUT_RENDERER.set_color_mode('always')
     rendered = OUTPUT_RENDERER.colorize_text_output(
@@ -122,11 +108,7 @@ def test_colorize_text_output_styles_status_segments_inside_list_items() -> None
 
 
 def test_colorize_text_output_supports_ascii_icon_mode() -> None:
-    """
-    校验 ascii 图标模式会渲染为纯 ASCII 状态标签。
-
-    :return: None
-    """
+    """校验 ascii 图标模式会渲染为纯 ASCII 状态标签。"""
     OUTPUT_RENDERER.set_icon_mode('ascii')
     OUTPUT_RENDERER.set_color_mode('always')
     decorated = OUTPUT_RENDERER.decorate_text_output('ok: true\nhint: use --yes')
@@ -137,11 +119,7 @@ def test_colorize_text_output_supports_ascii_icon_mode() -> None:
 
 
 def test_colorize_text_output_skips_ansi_when_color_mode_is_never() -> None:
-    """
-    校验关闭颜色后不会输出 ANSI 转义序列。
-
-    :return: None
-    """
+    """校验关闭颜色后不会输出 ANSI 转义序列。"""
     OUTPUT_RENDERER.set_icon_mode('emoji')
     OUTPUT_RENDERER.set_color_mode('never')
     decorated = OUTPUT_RENDERER.decorate_text_output('ok: false\nhint: use --yes')
@@ -153,11 +131,7 @@ def test_colorize_text_output_skips_ansi_when_color_mode_is_never() -> None:
 
 
 def test_render_error_text_uses_status_token_in_emoji_mode() -> None:
-    """
-    校验标准错误输出在 emoji 模式下使用统一错误图标。
-
-    :return: None
-    """
+    """校验标准错误输出在 emoji 模式下使用统一错误图标。"""
     OUTPUT_RENDERER.set_icon_mode('emoji')
     OUTPUT_RENDERER.set_color_mode('never')
 
@@ -167,11 +141,7 @@ def test_render_error_text_uses_status_token_in_emoji_mode() -> None:
 
 
 def test_render_error_text_supports_ascii_mode_with_color() -> None:
-    """
-    校验标准错误输出在 ascii 模式下仍保持统一错误前缀与颜色。
-
-    :return: None
-    """
+    """校验标准错误输出在 ascii 模式下仍保持统一错误前缀与颜色。"""
     OUTPUT_RENDERER.set_icon_mode('ascii')
     OUTPUT_RENDERER.set_color_mode('always')
 

@@ -18,9 +18,7 @@ from cli.tui.copy.fragments import (
 
 
 class TuiWorkspaceCopyMixin:
-    """
-    TUI 工作区与状态文案混入。
-    """
+    """TUI 工作区与状态文案混入。"""
 
     @staticmethod
     def build_workspace_label(label_key: str) -> str:

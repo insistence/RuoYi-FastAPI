@@ -5,6 +5,8 @@ from common.types import ApiUtcDateTime
 
 
 class CpuInfo(BaseModel):
+    """描述处理器的核心数量和使用情况。"""
+
     model_config = ConfigDict(alias_generator=to_camel)
 
     cpu_num: int | None = Field(default=None, description='核心数')
@@ -14,6 +16,8 @@ class CpuInfo(BaseModel):
 
 
 class MemoryInfo(BaseModel):
+    """描述服务器内存的容量和占用情况。"""
+
     model_config = ConfigDict(alias_generator=to_camel)
 
     total: str | None = Field(default=None, description='内存总量')
@@ -23,6 +27,8 @@ class MemoryInfo(BaseModel):
 
 
 class SysInfo(BaseModel):
+    """描述服务器主机及操作系统信息。"""
+
     model_config = ConfigDict(alias_generator=to_camel)
 
     computer_ip: str | None = Field(default=None, description='服务器IP')
@@ -33,6 +39,8 @@ class SysInfo(BaseModel):
 
 
 class PyInfo(MemoryInfo):
+    """描述 Python 运行环境及进程信息。"""
+
     model_config = ConfigDict(alias_generator=to_camel)
 
     name: str | None = Field(default=None, description='Python名称')
@@ -43,6 +51,8 @@ class PyInfo(MemoryInfo):
 
 
 class SysFiles(BaseModel):
+    """描述文件系统挂载点及磁盘空间用量。"""
+
     model_config = ConfigDict(alias_generator=to_camel)
 
     dir_name: str | None = Field(default=None, description='盘符路径')
@@ -55,9 +65,7 @@ class SysFiles(BaseModel):
 
 
 class ServerMonitorModel(BaseModel):
-    """
-    服务监控对应pydantic模型
-    """
+    """服务监控对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

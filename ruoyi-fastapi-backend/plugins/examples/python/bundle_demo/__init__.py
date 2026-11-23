@@ -9,11 +9,9 @@ from .files import register_file_routes
 
 
 class EchoInput(BaseModel):
-    """
-    用于验证 POST 链路的回显请求参数。
-    """
+    """用于验证 POST 链路的回显请求参数。"""
 
-    message: str = Field(min_length=1, max_length=80)
+    message: str = Field(min_length=1, max_length=80, description='需要原样回显的消息')
 
 
 async def summary(context: PluginRequestContext) -> dict[str, str]:

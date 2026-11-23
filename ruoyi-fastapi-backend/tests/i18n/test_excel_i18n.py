@@ -24,6 +24,7 @@ from utils.user_import_util import UserImportUtil
 async def test_published_user_templates_round_trip_independently_of_interface_language(
     locale: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """已发布用户模板可跨界面语言原样导入导出。"""
     token = RequestContext.set_current_locale(LocaleContext(locale))
     try:
         workbook = load_workbook(io.BytesIO(await UserService.get_user_import_template_services()))
@@ -73,6 +74,7 @@ async def test_published_user_templates_round_trip_independently_of_interface_la
 
 
 def test_import_rejects_duplicate_aliases_missing_columns_and_unknown_enums() -> None:
+    """导入拒绝重复别名、缺失列及未知枚举值。"""
     headers = [aliases[0] for aliases in UserImportUtil.HEADER_ALIASES.values()]
     with pytest.raises(ServiceException) as duplicate:
         UserImportUtil.normalize_headers([*headers, 'Login name'])
@@ -86,6 +88,7 @@ def test_import_rejects_duplicate_aliases_missing_columns_and_unknown_enums() ->
 
 
 def test_export_uses_snapshot_for_headers_and_preserves_business_content() -> None:
+    """导出按快照生成表头并保留业务内容。"""
     mapping = {'value': I18nMessage('用户名称', msg_key='export.userName')}
     for context, expected in [
         (LocaleContext('en-US'), 'Username'),
@@ -108,6 +111,7 @@ def test_export_uses_snapshot_for_headers_and_preserves_business_content() -> No
 async def test_dictionary_data_export_matches_each_header_to_its_value(
     locale: str, headers: list[str], label: str
 ) -> None:
+    """字典数据导出的表头与值一一对应。"""
     token = RequestContext.set_current_locale(LocaleContext(locale))
     try:
         exported = await DictDataService.export_dict_data_list_services(
@@ -122,6 +126,7 @@ async def test_dictionary_data_export_matches_each_header_to_its_value(
 
 @pytest.mark.asyncio
 async def test_dictionary_export_localizes_name_and_status_without_changing_type() -> None:
+    """字典导出翻译名称和状态并保留类型。"""
     token = RequestContext.set_current_locale(LocaleContext('en-US'))
     try:
         data = await DictTypeService.export_dict_type_list_services(

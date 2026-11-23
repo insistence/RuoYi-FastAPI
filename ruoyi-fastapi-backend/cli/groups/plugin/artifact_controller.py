@@ -21,6 +21,14 @@ class PluginArtifactCommandController:
     制品发布命令控制器。
 
     普通插件命令及帮助查询不加载制品部署依赖。
+
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar config_factory: 制品部署配置工厂
+    :ivar catalog_factory: 制品目录服务工厂
+    :ivar service_factory: 维护发布服务工厂
+    :ivar enablement_factory: 制品启停服务工厂
+    :ivar maintenance_factory: 制品清理与签名轮换服务工厂
     """
 
     def __init__(
@@ -44,7 +52,6 @@ class PluginArtifactCommandController:
         :param service_factory: 维护发布服务工厂
         :param enablement_factory: 制品启停服务工厂
         :param maintenance_factory: 制品清理与签名轮换服务工厂
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
@@ -85,7 +92,7 @@ class PluginArtifactCommandController:
         :param allow_prod: 是否允许生产环境变更
         :param yes: 是否跳过交互确认
         :param dry_run: 是否只生成清理计划
-        :return: None
+        :raises ValueError: 未知制品维护命令
         """
         methods = {
             'inspect': 'inspect',
@@ -189,7 +196,6 @@ class PluginArtifactCommandController:
 
         :param ctx: CLI 上下文
         :param action: 当前命令需要执行的操作
-        :return: None
         """
         try:
             payload = action()
@@ -222,6 +228,7 @@ class PluginArtifactCommandController:
         :param key_file: 插件目录之外的 Ed25519 PKCS8 私钥文件
         :param password_env: 保存加密私钥密码的环境变量名称
         :return: Ed25519 签名私钥
+        :raises ValueError: 签名私钥必须放在插件源码/预构建目录之外，防止被打入制品；签名私钥文件不存在或过大；签名私钥必须是PKCS8 PEM格式；无法读取PKCS8私钥，请检查密钥格式和密码环境变量；制品签名私钥必须为Ed25519
         """
         if key_file.resolve().is_relative_to(source.resolve()):
             raise ValueError('签名私钥必须放在插件源码/预构建目录之外，防止被打入制品')
@@ -267,7 +274,6 @@ class PluginArtifactCommandController:
         :param key_file: 插件目录之外的 Ed25519 PKCS8 私钥文件
         :param key_id: 发布者公钥标识
         :param password_env: 保存加密私钥密码的环境变量名称
-        :return: None
         """
         ctx = self._context(env, output)
 
@@ -292,7 +298,6 @@ class PluginArtifactCommandController:
         :param path: 待处理的签名制品文件
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self._context(env, output)
 
@@ -319,7 +324,6 @@ class PluginArtifactCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演而不写入发布状态
-        :return: None
         """
         ctx = self._context(
             env, output, command_name='plugin artifact import', allow_prod=allow_prod, yes=yes, dry_run=dry_run
@@ -338,7 +342,6 @@ class PluginArtifactCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param plugin_id: 插件 ID
-        :return: None
         """
         ctx = self._context(env, output)
         self._execute(
@@ -356,7 +359,6 @@ class PluginArtifactCommandController:
         :param digest: 已导入制品的 SHA256 摘要
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self._context(env, output)
         self._execute(
@@ -389,7 +391,6 @@ class PluginArtifactCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演而不写入发布状态
-        :return: None
         """
         ctx = self._context(
             env, output, command_name='plugin release prepare', allow_prod=allow_prod, yes=yes, dry_run=dry_run
@@ -428,7 +429,6 @@ class PluginArtifactCommandController:
         :param maintenance: 是否确认已停止全部宿主 worker 并进入维护窗口
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self._context(env, output, command_name='plugin release select', allow_prod=allow_prod, yes=yes)
         self._execute(
@@ -452,7 +452,6 @@ class PluginArtifactCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param plugin_id: 插件 ID
-        :return: None
         """
         ctx = self._context(env, output)
         self._execute(
@@ -524,7 +523,6 @@ class PluginArtifactCommandController:
         :param expected_workers: 本次发布要求的宿主 worker 数量
         :param timeout_seconds: 轮询超时秒数，为零时只查询一次
         :param poll_interval_seconds: 两次查询的间隔秒数
-        :return: None
         """
         error = self._release_wait_argument_error(
             plugin_id, digest, expected_generation, expected_workers, timeout_seconds, poll_interval_seconds
@@ -596,7 +594,6 @@ class PluginArtifactCommandController:
         :param maintenance: 是否确认已停止全部宿主 worker 并进入维护窗口
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self._context(env, output, command_name='plugin release rollback', allow_prod=allow_prod, yes=yes)
         self._execute(
@@ -635,7 +632,6 @@ class PluginArtifactCommandController:
         :param maintenance: 是否确认已停止全部宿主 worker 并进入维护窗口
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         operation = 'enable' if enabled else 'disable'
         ctx = self._context(env, output, command_name=f'plugin release {operation}', allow_prod=allow_prod, yes=yes)

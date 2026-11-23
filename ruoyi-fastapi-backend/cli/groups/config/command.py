@@ -48,7 +48,6 @@ def list_command(
     :param paged: 是否启用分页
     :param page_num: 页码
     :param page_size: 每页数量
-    :return: None
     """
     _CONFIG_COMMAND_CONTROLLER.list_configs(
         env,
@@ -84,7 +83,6 @@ def get_command(
     :param env: 当前命令运行环境
     :param output: 输出格式
     :param source: 配置读取来源
-    :return: None
     """
     _CONFIG_COMMAND_CONTROLLER.get_config(config_key, env, output, source=source)
 
@@ -121,7 +119,6 @@ def set_command(
     :param name: 参数名称
     :param config_type: 参数类型
     :param remark: 参数备注
-    :return: None
     """
     _CONFIG_COMMAND_CONTROLLER.set_config(
         config_key,
@@ -151,7 +148,6 @@ def sync_cache(
     :param output: 输出格式
     :param allow_prod: 是否允许生产环境危险命令
     :param yes: 是否跳过确认
-    :return: None
     """
     _CONFIG_COMMAND_CONTROLLER.sync_cache(env, output, allow_prod, yes)
 
@@ -168,6 +164,5 @@ def doctor(
     :param env: 当前命令运行环境
     :param output: 输出格式
     :param sample_limit: 问题示例键名输出上限
-    :return: None
     """
     _CONFIG_COMMAND_CONTROLLER.doctor(env, output, sample_limit=sample_limit)

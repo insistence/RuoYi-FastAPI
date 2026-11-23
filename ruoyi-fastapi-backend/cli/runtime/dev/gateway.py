@@ -1,3 +1,4 @@
+import os
 import subprocess
 from typing import Any
 
@@ -10,9 +11,9 @@ class DevelopmentProcessGateway:
     开发子进程执行网关。
 
     该对象负责统一执行开发工具子进程命令，
-    避免支持对象直接依赖 `subprocess` 细节。
+    避免支持对象直接依赖 ``subprocess`` 细节。
 
-    :param runtime_environment: 运行时环境服务
+    :ivar runtime_environment: 运行时环境服务
     """
 
     def __init__(self, runtime_environment: RuntimeEnvironmentService) -> None:
@@ -20,7 +21,6 @@ class DevelopmentProcessGateway:
         初始化开发子进程执行网关。
 
         :param runtime_environment: 运行时环境服务
-        :return: None
         """
         self.runtime_environment = runtime_environment
 
@@ -36,7 +36,8 @@ class DevelopmentProcessGateway:
                 command,
                 cwd=self.runtime_environment.get_backend_dir(),
                 capture_output=True,
-                text=True,
+                encoding='utf-8',
+                env={**os.environ, 'PYTHONIOENCODING': 'utf-8'},
                 check=False,
             )
         except Exception as exc:

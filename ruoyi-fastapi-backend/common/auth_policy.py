@@ -12,11 +12,11 @@ from utils.dependency_util import DependencyUtil
 # 定义排除路由的字典结构
 class ExcludeRoute(TypedDict, total=False):
     """
-    排除路由的字典结构
+    排除路由的字典结构。
 
-    :param path: 路由路径（必填）
-    :param methods: HTTP方法列表，空列表表示所有方法（可选，默认为[]）
-    :param ignore_paths: 需要忽略的特定路径列表，即使匹配通配符也不排除（可选，默认为[]）
+    :ivar path: 路由路径（必填）
+    :ivar methods: HTTP方法列表，空列表表示所有方法（可选，默认为[]）
+    :ivar ignore_paths: 需要忽略的特定路径列表，即使匹配通配符也不排除（可选，默认为[]）
     """
 
     path: str
@@ -26,12 +26,15 @@ class ExcludeRoute(TypedDict, total=False):
 
 class AuthRule:
     """
-    登录认证排除规则
+    登录认证排除规则。
+
+    :ivar exclude_routes: 需要排除的路由列表，格式为：
+    :ivar exclude_patterns: 编译后的排除路由模式列表
     """
 
     def __init__(self, exclude_routes: list[ExcludeRoute] | None = None) -> None:
         """
-        初始化登录认证排除规则
+        初始化登录认证排除规则。
 
         :param exclude_routes: 需要排除的路由列表，格式为：
                             [{'path': '/path1', 'methods': ['GET', 'POST']}, {'path': '/path2/{param}', 'methods': ['GET']}]
@@ -60,7 +63,7 @@ class AuthRule:
 
     def _compile_path_pattern(self, path: str) -> re.Pattern:
         """
-        将FastAPI路径转换为正则表达式模式
+        将FastAPI路径转换为正则表达式模式。
 
         :param path: FastAPI路径（如 /configKey/{config_key}）
         :return: 编译后的正则表达式模式
@@ -73,7 +76,7 @@ class AuthRule:
 
     def is_excluded(self, request: Request) -> bool:
         """
-        判断当前请求是否排除登录认证
+        判断当前请求是否排除登录认证。
 
         :param request: 当前请求对象
         :return: 是否排除认证
@@ -84,7 +87,7 @@ class AuthRule:
 
     def is_excluded_path(self, path: str, method: str) -> bool:
         """
-        判断应用内路径和请求方法是否排除登录认证
+        判断应用内路径和请求方法是否排除登录认证。
 
         :param path: 应用内请求路径
         :param method: 请求方法
@@ -108,9 +111,7 @@ class AuthRule:
 
 
 class AuthPolicy:
-    """
-    登录认证依赖判定
-    """
+    """登录认证依赖判定。"""
 
     @classmethod
     def iter_auth_dependencies(
@@ -120,16 +121,23 @@ class AuthPolicy:
         overrides: dict[Callable, Callable] | None = None,
     ) -> Iterator[AuthRule | None]:
         """
-        遍历实际生效的登录认证声明
+        遍历实际生效的登录认证声明。
 
         :param dependant: 路由依赖
         :param auth_dependencies: 需要识别的认证入口和令牌依赖
         :param overrides: 应用覆盖的依赖
-        :return: 前置认证规则对象，显式登录认证返回None
+        :yield: 前置认证规则对象，显式登录认证返回None
         """
         overrides = overrides or {}
 
         def visit(dependency: Dependant, rule: AuthRule | None = None) -> Iterator[AuthRule | None]:
+            """
+            遍历路由依赖树并应用认证依赖覆盖。
+
+            :param dependency: 当前需要展开的依赖
+            :param rule: 当前正在检查的规则
+            :yield: 依赖树中匹配的认证规则
+            """
             if dependency.call in overrides:
                 # 按替换函数的实际声明判断，普通依赖覆盖不会使公开接口变为必需登录。
                 dependency = get_dependant(
@@ -157,7 +165,7 @@ class AuthPolicy:
         cls, request: Request, auth_dependencies: tuple[Callable, ...]
     ) -> Literal['pre_auth', 'current_user', 'excluded']:
         """
-        根据路由的依赖声明确定登录认证方式
+        根据路由的依赖声明确定登录认证方式。
 
         :param request: 当前请求对象
         :param auth_dependencies: 需要识别的认证入口和令牌依赖

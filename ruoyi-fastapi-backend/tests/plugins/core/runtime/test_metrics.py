@@ -19,7 +19,14 @@ from plugins.core.runtime.metrics import (
 
 
 def collector(worker_id: str = 'a' * 32, version: str = '1.0.0', generation: str | None = None) -> PluginRuntimeMetrics:
-    """构建包含固定插件身份的指标收集器。"""
+    """
+    构建包含固定插件身份的指标收集器。
+
+    :param worker_id: 工作进程的标识
+    :param version: 当前记录的版本
+    :param generation: 当前发布或部署的代次
+    :return: 包含固定插件身份的指标收集器
+    """
     metrics = PluginRuntimeMetrics(worker_id=worker_id)
     metrics.register('metric_demo', version, 'c' * 64, generation)
     return metrics
@@ -84,7 +91,9 @@ async def test_http_observer_tracks_responses_without_recording_paths_or_content
     child = FastAPI()
     seen = []
 
-    @child.get('/items/{item_id}')
+    @child.get(
+        '/items/{item_id}', summary='访问插件条目', description='回显路径中的条目标识，用于验证按路由模板聚合指标。'
+    )
     async def item(item_id: str) -> dict[str, str]:
         seen.append(TraceCtx.get_request_id())
         if item_id == 'denied':
@@ -132,6 +141,13 @@ async def test_cancelled_asgi_request_removes_active_count() -> None:
     metrics = collector()
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         entered.set()
         await asyncio.Event().wait()
 
@@ -156,11 +172,23 @@ async def test_websocket_observation_covers_handshake_and_close(accepted: bool, 
     messages: list[Message] = []
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         if accepted:
             await send({'type': 'websocket.accept'})
         await send({'type': 'websocket.close', 'code': code})
 
     async def send(message: Message) -> None:
+        """
+        收集应用发送的 ASGI 消息。
+
+        :param message: 与当前结果一起返回的说明
+        """
         messages.append(message)
 
     await PluginObservedASGI(child, metrics, 'metric_demo')({'type': 'websocket'}, AsyncMock(), send)

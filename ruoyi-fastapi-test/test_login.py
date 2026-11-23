@@ -47,6 +47,11 @@ async def test_loading_message_before_app_starts(browser_harness: BrowserHarness
     assert entries
 
     async def delay_scripts(route: Route) -> None:
+        """
+        暂停页面脚本请求直到测试允许继续。
+
+        :param route: 当前请求匹配的路由
+        """
         await resume.wait()
         await route.continue_()
 

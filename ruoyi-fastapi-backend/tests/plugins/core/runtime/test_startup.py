@@ -16,7 +16,12 @@ BACKEND_ROOT = Path(__file__).resolve().parents[4]
 
 
 def patch_startup_get_db(fake_get_db: Any) -> object:
-    """patch 启动管理器方法实际使用的默认数据源Session。"""
+    """
+    替换启动管理器方法使用的默认数据源会话。
+
+    :param fake_get_db: 为测试提供数据库连接的依赖替身
+    :return: 替换默认数据源依赖的补丁上下文
+    """
     registry = SimpleNamespace(session=asynccontextmanager(fake_get_db))
     return patch.dict(
         PluginRuntimeStartupManager.load_registry_from_database.__globals__,
@@ -25,7 +30,13 @@ def patch_startup_get_db(fake_get_db: Any) -> object:
 
 
 def patch_startup_global(name: str, value: object) -> object:
-    """patch 启动管理器方法实际使用的模块全局引用。"""
+    """
+    替换启动管理器方法使用的模块全局引用。
+
+    :param name: 用于查找或标识当前对象的名称
+    :param value: 待处理的输入值
+    :return: 临时替换启动模块引用的补丁上下文
+    """
     return patch.dict(PluginRuntimeStartupManager.load_registry_from_database.__globals__, {name: value})
 
 
@@ -180,7 +191,11 @@ async def test_sync_enabled_plugin_install_states_marks_missing_database_plugin_
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """生成测试数据库会话。"""
+        """
+        生成测试数据库会话。
+
+        :yield: 测试数据库会话
+        """
         yield fake_session
 
     discovered_plugin = MagicMock()
@@ -254,7 +269,11 @@ async def test_sync_default_enabled_builtin_plugin_install_states_installs_missi
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """生成测试数据库会话。"""
+        """
+        生成测试数据库会话。
+
+        :yield: 测试数据库会话
+        """
         yield fake_session
 
     discovered_plugin = MagicMock()
@@ -303,7 +322,11 @@ async def test_sync_default_enabled_builtin_checks_dependencies_before_install_s
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """提供测试用数据库会话生成器。"""
+        """
+        提供测试用数据库会话生成器。
+
+        :yield: 测试用数据库会话生成器
+        """
         yield fake_session
 
     discovered_plugin = MagicMock()
@@ -355,7 +378,11 @@ async def test_sync_default_enabled_builtin_plugin_install_states_respects_unins
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """生成测试数据库会话。"""
+        """
+        生成测试数据库会话。
+
+        :yield: 测试数据库会话
+        """
         yield fake_session
 
     discovered_plugin = MagicMock()
@@ -384,7 +411,11 @@ async def test_startup_write_is_required_when_default_builtin_state_is_missing()
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """生成测试数据库会话。"""
+        """
+        生成测试数据库会话。
+
+        :yield: 测试数据库会话
+        """
         yield fake_session
 
     discovered_plugin = MagicMock()
@@ -418,7 +449,11 @@ async def test_startup_write_respects_installed_or_explicitly_uninstalled_builti
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """生成测试数据库会话。"""
+        """
+        生成测试数据库会话。
+
+        :yield: 测试数据库会话
+        """
         yield fake_session
 
     discovered_plugin = MagicMock()
@@ -494,7 +529,11 @@ async def test_load_registry_from_database_rebuilds_registry() -> None:
     fake_session = object()
 
     async def fake_get_db() -> object:
-        """生成测试数据库会话。"""
+        """
+        生成测试数据库会话。
+
+        :yield: 测试数据库会话
+        """
         yield fake_session
 
     fake_registry = PluginRegistry.build([])
@@ -743,7 +782,11 @@ async def test_recover_plugin_dependency_errors_commits_and_reloads_registry() -
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """生成测试数据库会话。"""
+        """
+        生成测试数据库会话。
+
+        :yield: 测试数据库会话
+        """
         yield fake_session
 
     app = FastAPI()
@@ -877,12 +920,14 @@ def test_register_enabled_plugin_routers_uses_enabled_plugin_ids(tmp_path: Path)
     )
 
     class FakePluginRegistry:
-        """
-        测试用插件运行时注册表。
-        """
+        """测试用插件运行时注册表。"""
 
         def list_enabled_plugins(self) -> list[MagicMock]:
-            """获取启用插件列表。"""
+            """
+            获取启用插件列表。
+
+            :return: 启用插件列表
+            """
             return [
                 MagicMock(
                     plugin_id='demo',
@@ -938,12 +983,14 @@ def test_register_enabled_plugin_routers_skips_invalid_route_prefix(tmp_path: Pa
     )
 
     class FakePluginRegistry:
-        """
-        测试用插件运行时注册表。
-        """
+        """测试用插件运行时注册表。"""
 
         def list_enabled_plugins(self) -> list[MagicMock]:
-            """获取启用插件列表。"""
+            """
+            获取启用插件列表。
+
+            :return: 启用插件列表
+            """
             return [
                 MagicMock(
                     plugin_id='demo',
@@ -986,12 +1033,14 @@ def test_register_enabled_plugin_routers_skips_unrecognized_router_factory(tmp_p
     )
 
     class FakePluginRegistry:
-        """
-        测试用插件运行时注册表。
-        """
+        """测试用插件运行时注册表。"""
 
         def list_enabled_plugins(self) -> list[MagicMock]:
-            """获取启用插件列表。"""
+            """
+            获取启用插件列表。
+
+            :return: 启用插件列表
+            """
             return [
                 MagicMock(
                     plugin_id='demo',
@@ -1038,7 +1087,11 @@ async def test_install_enabled_plugin_resources_isolates_failed_plugin() -> None
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """提供测试数据库会话生成器。"""
+        """
+        提供测试数据库会话生成器。
+
+        :yield: 测试数据库会话生成器
+        """
         yield fake_session
 
     broken_plugin = MagicMock()
@@ -1077,7 +1130,11 @@ async def test_sync_default_enabled_builtin_plugins_isolates_install_failure() -
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """提供测试数据库会话生成器。"""
+        """
+        提供测试数据库会话生成器。
+
+        :yield: 测试数据库会话生成器
+        """
         yield fake_session
 
     broken_plugin = MagicMock()
@@ -1142,7 +1199,11 @@ async def test_mark_plugin_runtime_error_updates_database_and_rebuilds_registry(
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """生成测试数据库会话。"""
+        """
+        生成测试数据库会话。
+
+        :yield: 测试数据库会话
+        """
         yield fake_session
 
     app = FastAPI()
@@ -1169,7 +1230,11 @@ async def test_mark_plugin_runtime_error_upserts_discovered_plugin_when_missing(
     fake_session = AsyncMock()
 
     async def fake_get_db() -> object:
-        """生成测试数据库会话。"""
+        """
+        生成测试数据库会话。
+
+        :yield: 测试数据库会话
+        """
         yield fake_session
 
     app = FastAPI()

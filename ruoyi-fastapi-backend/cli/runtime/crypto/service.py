@@ -13,9 +13,9 @@ class CryptoRuntimeService:
     该服务作为传输加密运行时 facade，对外统一暴露配置校验、
     公钥导出、密钥生成和轮换辅助方案构建入口。
 
-    :param infrastructure_gateway: 传输加密基础设施网关
-    :param domain_support: 传输加密领域支持对象
-    :param result_support: 传输加密结果支持对象
+    :ivar infrastructure_gateway: 传输加密基础设施网关
+    :ivar domain_support: 传输加密领域支持对象
+    :ivar result_support: 传输加密结果支持对象
     """
 
     def __init__(
@@ -31,7 +31,6 @@ class CryptoRuntimeService:
         :param infrastructure_gateway: 传输加密基础设施网关
         :param domain_support: 传输加密领域支持对象
         :param result_support: 传输加密结果支持对象
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway or CryptoInfrastructureGateway()
         self.domain_support = domain_support or CryptoDomainSupport(self.infrastructure_gateway)
@@ -47,6 +46,11 @@ class CryptoRuntimeService:
         """
 
         def _operation() -> dict[str, Any]:
+            """
+            按指定密钥长度生成传输加密密钥对。
+
+            :return: 包含 ``ok``、``message``、``kid``、``keySize``、``privateKey`` 等字段的数据
+            """
             self.domain_support.validate_rsa_key_size(key_size)
             private_key_pem, public_key_pem = self.domain_support.generate_rsa_key_pair(key_size)
             return {
@@ -70,6 +74,11 @@ class CryptoRuntimeService:
         transport_key_provider = self.infrastructure_gateway.get_transport_key_provider()
 
         def _operation() -> dict[str, Any]:
+            """
+            校验运行时传输加密配置并返回检查结果。
+
+            :return: 检查结果
+            """
             transport_key_provider.validate_runtime_configuration()
             return {'ok': True, 'message': '传输加密配置校验通过'}
 
@@ -85,6 +94,11 @@ class CryptoRuntimeService:
         transport_crypto_util = self.infrastructure_gateway.get_transport_crypto_util()
 
         def _operation() -> dict[str, Any]:
+            """
+            校验当前密钥配置并导出客户端使用的公钥。
+
+            :return: 包含 ``ok``、``publicKey`` 的数据
+            """
             transport_key_provider.validate_runtime_configuration()
             return {'ok': True, 'publicKey': transport_crypto_util.build_public_key_payload()}
 
@@ -101,6 +115,12 @@ class CryptoRuntimeService:
         transport_key_provider = self.infrastructure_gateway.get_transport_key_provider()
 
         def _operation() -> dict[str, Any]:
+            """
+            根据当前密钥和下一代密钥构建轮换配置。
+
+            :raises ValueError: 新密钥版本不能与当前版本相同
+            :return: 包含 ``ok``、``message``、``currentKid``、``nextKid``、``keySize`` 等字段的数据
+            """
             self.domain_support.validate_rsa_key_size(key_size)
             transport_key_provider.validate_runtime_configuration()
             current_key_pair = transport_key_provider.get_current_key_pair()

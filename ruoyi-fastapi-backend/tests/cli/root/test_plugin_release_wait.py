@@ -25,7 +25,6 @@ def preserve_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     恢复命令运行前的环境选择，避免影响其他 CLI 测试。
 
     :param monkeypatch: pytest 环境隔离工具
-    :return: None
     """
     monkeypatch.setenv('APP_ENV', os.environ.get('APP_ENV', 'dev'))
 
@@ -125,12 +124,7 @@ def wait_arguments(*overrides: str) -> list[str]:
     ],
 )
 def test_wait_outputs_exactly_one_final_json_and_preserves_service_exit_semantics(reason: str) -> None:
-    """
-    成功、超时和各种失败都只输出一个最终对象，并使用统一退出码。
-
-    :param reason: 服务的终止原因
-    :return: None
-    """
+    """成功、超时和各种失败都只输出一个最终对象，并使用统一退出码。"""
     payload = result_payload(reason)
     wait = AsyncMock(return_value=payload)
     result = CliRunner().invoke(app_for(controller_for(SimpleNamespace(wait=wait))), wait_arguments())
@@ -167,12 +161,7 @@ def test_wait_outputs_exactly_one_final_json_and_preserves_service_exit_semantic
     ],
 )
 def test_wait_requires_all_pins_and_rejects_write_options_before_loading_service(arguments: list[str]) -> None:
-    """
-    缺少固定目标、无效计数或写入选项均由参数层拒绝。
-
-    :param arguments: 缺少必填项或包含不受支持选项的命令行
-    :return: None
-    """
+    """缺少固定目标、无效计数或写入选项均由参数层拒绝。"""
     config = Mock(side_effect=AssertionError('参数错误时不能加载配置'))
     result = CliRunner().invoke(app_for(controller_for(SimpleNamespace(), config_factory=config)), arguments)
     assert result.exit_code == ARGUMENT_ERROR
@@ -206,13 +195,7 @@ def test_wait_requires_all_pins_and_rejects_write_options_before_loading_service
 def test_wait_controller_validates_before_context_and_service_creation(
     overrides: dict[str, Any], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """
-    非法目标或非有限时间参数不能触发配置读取，也不会输出 NaN 或 Infinity。
-
-    :param overrides: 替换正常调用的无效参数
-    :param capsys: 标准输出捕获器
-    :return: None
-    """
+    """非法目标或非有限时间参数不能触发配置读取，也不会输出 NaN 或 Infinity。"""
     config = Mock(side_effect=AssertionError('不能读取配置'))
     controller = controller_for(SimpleNamespace(), config_factory=config)
     controller._context = Mock(side_effect=AssertionError('不能创建运行上下文'))
@@ -243,13 +226,7 @@ def test_wait_controller_validates_before_context_and_service_creation(
 @pytest.mark.parametrize('option', ['--timeout', '--interval'])
 @pytest.mark.parametrize('value', ['nan', 'inf', '-inf'])
 def test_wait_cli_rejects_non_finite_durations(option: str, value: str) -> None:
-    """
-    命令行浮点解析不能让 NaN 或无穷大进入等待服务。
-
-    :param option: 超时或查询间隔选项
-    :param value: 非有限数值文本
-    :return: None
-    """
+    """命令行浮点解析不能让 NaN 或无穷大进入等待服务。"""
     config = Mock(side_effect=AssertionError('不能读取配置'))
     result = CliRunner().invoke(
         app_for(controller_for(SimpleNamespace(), config_factory=config)), wait_arguments(option, value)
@@ -260,12 +237,7 @@ def test_wait_cli_rejects_non_finite_durations(option: str, value: str) -> None:
 
 @pytest.mark.parametrize('exception', [asyncio.CancelledError, KeyboardInterrupt])
 def test_wait_cli_cancellation_is_redacted_and_does_not_invent_progress(exception: type[BaseException]) -> None:
-    """
-    取消和用户中断都返回固定结果，不泄露异常文本或伪造已查询次数。
-
-    :param exception: 异步取消或键盘中断异常类型
-    :return: None
-    """
+    """取消和用户中断都返回固定结果，不泄露异常文本或伪造已查询次数。"""
     wait = AsyncMock(side_effect=exception('private-cancellation-detail'))
     result = CliRunner().invoke(app_for(controller_for(SimpleNamespace(wait=wait))), wait_arguments())
     assert result.exit_code == RUNTIME_ERROR, result.output
@@ -280,11 +252,7 @@ def test_wait_cli_cancellation_is_redacted_and_does_not_invent_progress(exceptio
 
 
 def test_wait_initialization_failure_is_redacted_and_uses_final_result_schema() -> None:
-    """
-    部署配置初始化失败不能暴露连接凭据，仍返回同一最终结果结构。
-
-    :return: None
-    """
+    """部署配置初始化失败不能暴露连接凭据，仍返回同一最终结果结构。"""
     config = Mock(side_effect=RuntimeError('private-database-password'))
     result = CliRunner().invoke(app_for(controller_for(SimpleNamespace(), config_factory=config)), wait_arguments())
     assert result.exit_code == RUNTIME_ERROR
@@ -297,11 +265,7 @@ def test_wait_initialization_failure_is_redacted_and_uses_final_result_schema() 
 
 
 def test_release_status_query_success_keeps_existing_ok_meaning() -> None:
-    """
-    查询未就绪发布仍表示查询成功，不改变已有 status 命令的退出契约。
-
-    :return: None
-    """
+    """查询未就绪发布仍表示查询成功，不改变已有 status 命令的退出契约。"""
     payload = {'ok': True, 'releases': [{'pluginId': 'demo', 'status': 'pending_restart'}], 'workers': []}
     service = SimpleNamespace(status=AsyncMock(return_value=payload))
     result = CliRunner().invoke(

@@ -23,11 +23,16 @@ from utils.time_util import TimezoneUtil
 @dataclass(frozen=True, slots=True)
 class OidcReadiness:
     """
-    OIDC 协议运行时就绪快照
+    OIDC 协议运行时就绪快照。
 
     ``enabled`` 只表示部署配置已开启协议，``ready`` 还要求数据库中
     存在可加载的 active 签名密钥。两者分离后，管理后台可以在协议
     尚未就绪时继续启动并完成首把密钥初始化。
+
+    :ivar enabled: 是否启用该项功能
+    :ivar ready: 依赖检查是否已就绪
+    :ivar reason: 作出该决定或状态变化的原因
+    :ivar checked_at: 最近一次执行检查的时间
     """
 
     enabled: bool
@@ -37,11 +42,10 @@ class OidcReadiness:
 
     def as_dict(self) -> dict[str, object]:
         """
-        转换为可安全返回给管理端的状态字段
+        转换为可安全返回给管理端的状态字段。
 
         :return: OIDC 运行时状态字段映射
         """
-
         return {
             'enabled': self.enabled,
             'ready': self.ready,
@@ -52,7 +56,12 @@ class OidcReadiness:
 
 class OidcRuntimeService:
     """
-    OIDC 运行时模块服务层
+    OIDC 运行时模块服务层。
+
+    :cvar _AUDIT_ARCHIVE_INTERVAL_SECONDS: 审计归档间隔（秒）
+    :cvar _READINESS_CACHE_SECONDS: 就绪状态的缓存时长（秒）
+    :cvar _CORS_CACHE_SECONDS: 跨域规则的缓存时长（秒）
+    :cvar _CORS_VERSION_KEY: 标记跨域配置版本的 Redis 键
     """
 
     _AUDIT_ARCHIVE_INTERVAL_SECONDS = 86400
@@ -63,11 +72,10 @@ class OidcRuntimeService:
     @staticmethod
     def _disabled_readiness() -> OidcReadiness:
         """
-        构造 OIDC 协议关闭状态
+        构造 OIDC 协议关闭状态。
 
         :return: OIDC 协议关闭时的就绪快照
         """
-
         return OidcReadiness(
             enabled=False,
             ready=False,
@@ -78,7 +86,7 @@ class OidcRuntimeService:
     @classmethod
     async def inspect_readiness(cls, db: AsyncSession) -> OidcReadiness:
         """
-        检查 OIDC 是否具备对外提供协议服务的签名能力
+        检查 OIDC 是否具备对外提供协议服务的签名能力。
 
         密钥不存在或密钥材料不可用都会被收敛为未就绪状态，不会影响
         管理后台启动；数据库基础设施异常仍向上抛出，由应用通用健康
@@ -87,7 +95,6 @@ class OidcRuntimeService:
         :param db: 异步数据库会话
         :return: OIDC 运行时就绪快照
         """
-
         if not OidcConfig.oidc_enabled:
             return cls._disabled_readiness()
         try:
@@ -109,13 +116,12 @@ class OidcRuntimeService:
     @classmethod
     async def refresh_readiness(cls, app: FastAPI, db: AsyncSession | None = None) -> OidcReadiness:
         """
-        刷新并保存当前 Worker 的 OIDC 就绪快照
+        刷新并保存当前 Worker 的 OIDC 就绪快照。
 
         :param app: FastAPI 应用
         :param db: 可复用的异步数据库会话
         :return: 刷新后的 OIDC 运行时就绪快照
         """
-
         if not OidcConfig.oidc_enabled:
             readiness = cls._disabled_readiness()
         elif db is not None:
@@ -130,7 +136,7 @@ class OidcRuntimeService:
     @classmethod
     async def cached_readiness(cls, app: FastAPI, db: AsyncSession) -> OidcReadiness:
         """
-        读取带短时缓存的 OIDC 就绪状态
+        读取带短时缓存的 OIDC 就绪状态。
 
         缓存避免每个协议请求都重复解密私钥；未就绪状态也会很快重新
         检查，因此其他 Worker 在首把密钥激活后无需重启即可恢复。
@@ -139,7 +145,6 @@ class OidcRuntimeService:
         :param db: 异步数据库会话
         :return: 当前 Worker 的 OIDC 运行时就绪快照
         """
-
         current = TimezoneUtil.utc_now()
         readiness = getattr(app.state, 'oidc_readiness', None)
         if isinstance(readiness, OidcReadiness):
@@ -162,7 +167,7 @@ class OidcRuntimeService:
     @classmethod
     async def validate_runtime(cls, app: FastAPI | None = None) -> OidcReadiness:
         """
-        检查启动阶段的 OIDC 就绪状态，但不阻断管理后台启动
+        检查启动阶段的 OIDC 就绪状态，但不阻断管理后台启动。
 
         协议启用但尚无 active 密钥时记录明确告警，公共 OIDC 端点随后
         返回 503；管理员仍可登录后台创建并激活首把密钥。
@@ -170,7 +175,6 @@ class OidcRuntimeService:
         :param app: 需要保存就绪快照的 FastAPI 应用
         :return: 启动阶段的 OIDC 运行时就绪快照
         """
-
         if not OidcConfig.oidc_enabled:
             readiness = cls._disabled_readiness()
         else:
@@ -186,11 +190,10 @@ class OidcRuntimeService:
     @staticmethod
     async def load_cors_origins() -> tuple[str, ...]:
         """
-        加载启用的 CORS Origin
+        加载启用的 CORS Origin。
 
         :return: 启用的 CORS Origin 元组
         """
-
         async with DataSourceRegistry.session() as db:
             origins = await OAuthClientManagementService.list_active_cors_origins(db)
         return tuple(origins)
@@ -198,12 +201,11 @@ class OidcRuntimeService:
     @classmethod
     async def refresh_cors_snapshot(cls, app: FastAPI) -> tuple[str, ...]:
         """
-        刷新应用的 CORS Origin 快照
+        刷新应用的 CORS Origin 快照。
 
         :param app: FastAPI 应用
         :return: 刷新后的 CORS Origin 元组
         """
-
         if not OidcConfig.oidc_enabled:
             app.state.oidc_registered_cors_origins = ()
             return ()
@@ -216,14 +218,12 @@ class OidcRuntimeService:
     @classmethod
     async def ensure_cors_snapshot(cls, app: FastAPI) -> None:
         """
-        刷新当前Worker的客户端跨域策略快照
+        刷新当前Worker的客户端跨域策略快照。
 
         通过共享版本号发现变更，并以有时限的数据库缓存兜底。
 
         :param app: FastAPI应用对象
-        :return: 无
         """
-
         if not OidcConfig.oidc_enabled:
             app.state.oidc_registered_cors_origins = ()
             return
@@ -257,19 +257,14 @@ class OidcRuntimeService:
     @classmethod
     def cors_snapshot_callback(cls, app: FastAPI) -> Callable[[], Awaitable[None]]:
         """
-        构造提交后刷新 CORS 快照的回调
+        构造提交后刷新 CORS 快照的回调。
 
         :param app: 需要更新 CORS Origin 快照的 FastAPI 应用
         :return: 无参数异步 CORS 快照刷新回调
         """
 
         async def refresh() -> None:
-            """
-            刷新应用 CORS Origin 快照
-
-            :return: None
-            """
-
+            """刷新应用 CORS Origin 快照。"""
             redis = getattr(app.state, 'redis', None)
             try:
                 if redis is not None:
@@ -284,12 +279,10 @@ class OidcRuntimeService:
     @classmethod
     async def start_background_tasks(cls, app: FastAPI) -> None:
         """
-        每个 Worker 启动待命循环，仅当前 Leader 执行业务；重新获租后自动恢复
+        每个 Worker 启动待命循环，仅当前 Leader 执行业务；重新获租后自动恢复。
 
         :param app: FastAPI 应用
-        :return: None
         """
-
         redis = app.state.redis
         app.state.oidc_key_lifecycle_task = (
             asyncio.create_task(cls.key_lifecycle_loop(app)) if OidcConfig.oidc_enabled else None
@@ -301,12 +294,11 @@ class OidcRuntimeService:
     @classmethod
     async def key_lifecycle_loop(cls, app: FastAPI) -> None:
         """
-        运行签名密钥生命周期后台循环
+        运行签名密钥生命周期后台循环。
 
         :param app: FastAPI 应用，包含 Redis 与 OIDC 就绪状态
-        :return: None
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
-
         last_archive_at: datetime | None = None
         redis = app.state.redis
         while True:
@@ -344,12 +336,11 @@ class OidcRuntimeService:
     @staticmethod
     async def backchannel_retry_loop(redis: object) -> None:
         """
-        运行 Back-Channel 重试后台循环
+        运行 Back-Channel 重试后台循环。
 
         :param redis: 异步 Redis 客户端
-        :return: None
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
-
         while True:
             await asyncio.sleep(1)
             if not SchedulerManager.is_application_leader():
@@ -365,12 +356,10 @@ class OidcRuntimeService:
     @staticmethod
     async def stop_background_tasks(app: FastAPI) -> None:
         """
-        停止 OIDC 后台任务
+        停止 OIDC 后台任务。
 
         :param app: FastAPI 应用
-        :return: None
         """
-
         for name in ('oidc_key_lifecycle_task', 'oidc_backchannel_retry_task'):
             task = getattr(app.state, name, None)
             if task is None:

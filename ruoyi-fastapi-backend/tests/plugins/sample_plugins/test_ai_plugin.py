@@ -149,7 +149,12 @@ async def test_ai_chat_config_detail_returns_vo_when_config_missing(monkeypatch:
     """校验 AI 对话配置不存在时服务返回 VO 默认模型，而不是 DO 对象。"""
 
     async def fake_get_chat_config_detail_by_user_id(*_args: object, **_kwargs: object) -> None:
-        """返回测试用 AI 聊天配置。"""
+        """
+        返回测试用 AI 聊天配置。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        """
 
     monkeypatch.setattr(
         AiChatConfigDao,
@@ -169,7 +174,12 @@ async def test_ai_chat_services_rejects_missing_model(monkeypatch: pytest.Monkey
     """校验 AI 对话在模型不存在时返回带消息标识的错误事件。"""
 
     async def fake_get_ai_model_detail_by_id(*_args: object, **_kwargs: object) -> None:
-        """返回测试用 AI 模型配置。"""
+        """
+        返回测试用 AI 模型配置。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        """
 
     monkeypatch.setattr(AiModelDao, 'get_ai_model_detail_by_id', fake_get_ai_model_detail_by_id)
 
@@ -196,7 +206,13 @@ async def test_ai_chat_services_rejects_disabled_model(monkeypatch: pytest.Monke
     """校验 AI 对话不能使用已停用模型。"""
 
     async def fake_get_ai_model_detail_by_id(*_args: object, **_kwargs: object) -> dict[str, object]:
-        """返回测试用 AI 模型配置。"""
+        """
+        返回测试用 AI 模型配置。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 测试用 AI 模型配置
+        """
         return {
             'model_id': 1,
             'model_code': 'gpt-4o-mini',
@@ -233,14 +249,26 @@ def test_ai_model_factory_rejects_unknown_provider(monkeypatch: pytest.MonkeyPat
     class FakeModel:
         """
         测试用模型类。
+
+        :ivar kwargs: 传给被调用对象的关键字参数
         """
 
         def __init__(self, **kwargs: object) -> None:
-            """初始化测试用 AI 模型提供者。"""
+            """
+            初始化测试用 AI 模型提供者。
+
+            :param kwargs: 传给被调用对象的关键字参数
+            """
             self.kwargs = kwargs
 
     def fake_resolve_provider_class(cls: type[AiUtil], provider: str) -> type[FakeModel] | None:
-        """返回测试用 AI 模型提供者类。"""
+        """
+        返回测试用 AI 模型提供者类。
+
+        :param cls: 调用类方法时使用的类对象
+        :param provider: 提供当前服务的实现
+        :return: 测试用 AI 模型提供者类
+        """
         return FakeModel if provider == 'OpenAI' else None
 
     monkeypatch.setattr(AiUtil, '_resolve_provider_class', classmethod(fake_resolve_provider_class))

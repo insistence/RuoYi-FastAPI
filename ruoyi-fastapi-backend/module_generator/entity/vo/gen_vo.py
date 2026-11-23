@@ -12,9 +12,7 @@ from utils.string_util import StringUtil
 
 
 class GenTableBaseModel(BaseModel):
-    """
-    代码生成业务表对应pydantic模型
-    """
+    """代码生成业务表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -44,51 +42,92 @@ class GenTableBaseModel(BaseModel):
 
     @NotBlank(field_name='table_name', message=I18nMessage('表名称不能为空', msg_key='validation.tableNameRequired'))
     def get_table_name(self) -> str | None:
+        """
+        校验并返回表名称。
+
+        :return: 表名称
+        """
         return self.table_name
 
     @NotBlank(
         field_name='table_comment', message=I18nMessage('表描述不能为空', msg_key='validation.tableCommentRequired')
     )
     def get_table_comment(self) -> str | None:
+        """
+        校验并返回表描述。
+
+        :return: 表描述
+        """
         return self.table_comment
 
     @NotBlank(
         field_name='class_name', message=I18nMessage('实体类名称不能为空', msg_key='validation.classNameRequired')
     )
     def get_class_name(self) -> str | None:
+        """
+        校验并返回实体类名称。
+
+        :return: 实体类名称
+        """
         return self.class_name
 
     @NotBlank(
         field_name='package_name', message=I18nMessage('生成包路径不能为空', msg_key='validation.packageNameRequired')
     )
     def get_package_name(self) -> str | None:
+        """
+        校验并返回生成包路径。
+
+        :return: 生成包路径
+        """
         return self.package_name
 
     @NotBlank(
         field_name='module_name', message=I18nMessage('生成模块名不能为空', msg_key='validation.moduleNameRequired')
     )
     def get_module_name(self) -> str | None:
+        """
+        校验并返回生成模块名。
+
+        :return: 生成模块名
+        """
         return self.module_name
 
     @NotBlank(
         field_name='business_name', message=I18nMessage('生成业务名不能为空', msg_key='validation.businessNameRequired')
     )
     def get_business_name(self) -> str | None:
+        """
+        校验并返回生成业务名。
+
+        :return: 生成业务名
+        """
         return self.business_name
 
     @NotBlank(
         field_name='function_name', message=I18nMessage('生成功能名不能为空', msg_key='validation.functionNameRequired')
     )
     def get_function_name(self) -> str | None:
+        """
+        校验并返回生成功能名。
+
+        :return: 生成功能名
+        """
         return self.function_name
 
     @NotBlank(
         field_name='function_author', message=I18nMessage('生成功能作者不能为空', msg_key='validation.authorRequired')
     )
     def get_function_author(self) -> str | None:
+        """
+        校验并返回生成功能作者。
+
+        :return: 生成功能作者
+        """
         return self.function_author
 
     def validate_fields(self) -> None:
+        """校验代码生成所需的表名、模型命名、包名和作者等字段。"""
         self.get_table_name()
         self.get_table_comment()
         self.get_class_name()
@@ -100,17 +139,13 @@ class GenTableBaseModel(BaseModel):
 
 
 class GenTableRowModel(GenTableBaseModel):
-    """
-    代码生成业务表行数据模型
-    """
+    """代码生成业务表行数据模型。"""
 
     columns: list['GenTableColumnBaseModel'] | None = Field(default=None, description='表列信息')
 
 
 class GenTableDbRowModel(BaseModel):
-    """
-    代码生成业务表数据库行数据模型
-    """
+    """代码生成业务表数据库行数据模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -121,21 +156,17 @@ class GenTableDbRowModel(BaseModel):
 
 
 class GenDataSourceModel(BaseModel):
-    """
-    代码生成数据源选项模型
-    """
+    """代码生成数据源选项模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
-    name: str
+    name: str = Field(description='数据源名称')
     db_type: str = Field(description='数据库类型')
-    is_default: bool = False
+    is_default: bool = Field(default=False, description='是否为默认数据源')
 
 
 class GenTableModel(GenTableBaseModel):
-    """
-    代码生成业务表模型
-    """
+    """代码生成业务表模型。"""
 
     pk_column: Optional['GenTableColumnModel'] = Field(default=None, description='主键信息')
     sub_table: Optional['GenTableModel'] = Field(default=None, description='子表信息')
@@ -152,6 +183,11 @@ class GenTableModel(GenTableBaseModel):
 
     @model_validator(mode='after')
     def check_some_is(self) -> 'GenTableModel':
+        """
+        按模板类别补全生成表的主子表和树表标志。
+
+        :return: 当前实例
+        """
         self.sub = bool(self.tpl_category and self.tpl_category == GenConstant.TPL_SUB)
         self.tree = bool(self.tpl_category and self.tpl_category == GenConstant.TPL_TREE)
         self.crud = bool(self.tpl_category and self.tpl_category == GenConstant.TPL_CRUD)
@@ -159,17 +195,13 @@ class GenTableModel(GenTableBaseModel):
 
 
 class EditGenTableModel(GenTableModel):
-    """
-    修改代码生成业务表模型
-    """
+    """修改代码生成业务表模型。"""
 
     params: Optional['GenTableParamsModel'] = Field(default=None, description='业务表参数')
 
 
 class GenTableParamsModel(BaseModel):
-    """
-    代码生成业务表参数模型
-    """
+    """代码生成业务表参数模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -188,27 +220,21 @@ class GenTableParamsModel(BaseModel):
 
 
 class GenTableQueryModel(DateRangeQueryMixin, GenTableBaseModel):
-    """
-    代码生成业务表不分页查询模型
-    """
+    """代码生成业务表不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class GenTablePageQueryModel(GenTableQueryModel):
-    """
-    代码生成业务表分页查询模型
-    """
+    """代码生成业务表分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class GenTableDetailModel(BaseModel):
-    """
-    代码生成业务表详情模型
-    """
+    """代码生成业务表详情模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -218,9 +244,7 @@ class GenTableDetailModel(BaseModel):
 
 
 class DeleteGenTableModel(BaseModel):
-    """
-    删除代码生成业务表模型
-    """
+    """删除代码生成业务表模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -228,9 +252,7 @@ class DeleteGenTableModel(BaseModel):
 
 
 class GenTableColumnBaseModel(BaseModel):
-    """
-    代码生成业务表字段对应pydantic模型
-    """
+    """代码生成业务表字段对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -264,16 +286,20 @@ class GenTableColumnBaseModel(BaseModel):
         field_name='python_field', message=I18nMessage('Python属性不能为空', msg_key='validation.pythonFieldRequired')
     )
     def get_python_field(self) -> str | None:
+        """
+        校验并返回PYTHON字段名。
+
+        :return: PYTHON字段名
+        """
         return self.python_field
 
     def validate_fields(self) -> None:
+        """校验PYTHON字段名。"""
         self.get_python_field()
 
 
 class GenTableColumnModel(GenTableColumnBaseModel):
-    """
-    代码生成业务表字段模型
-    """
+    """代码生成业务表字段模型。"""
 
     cap_python_field: str | None = Field(default=None, description='字段大写形式')
     pk: bool | None = Field(default=None, description='是否主键')
@@ -286,11 +312,16 @@ class GenTableColumnModel(GenTableColumnBaseModel):
     query: bool | None = Field(default=None, description='是否查询字段')
     super_column: bool | None = Field(default=None, description='是否为基类字段')
     usable_column: bool | None = Field(default=None, description='是否为基类字段白名单')
-    time_kind: str | None = Field(default=None, exclude=True)
-    vo_type: str | None = Field(default=None, exclude=True)
+    time_kind: str | None = Field(default=None, exclude=True, description='列表示的时间语义')
+    vo_type: str | None = Field(default=None, exclude=True, description='生成的 Pydantic 模型使用的字段类型')
 
     @model_validator(mode='after')
     def check_some_is(self) -> 'GenTableModel':
+        """
+        根据数据库列配置计算生成模板使用的字段标志。
+
+        :return: 当前实例
+        """
         self.cap_python_field = self.python_field[0].upper() + self.python_field[1:] if self.python_field else None
         self.pk = self.is_pk and self.is_pk == '1'
         self.increment = bool(self.is_increment and self.is_increment == '1')
@@ -310,27 +341,21 @@ class GenTableColumnModel(GenTableColumnBaseModel):
 
 
 class GenTableColumnQueryModel(DateRangeQueryMixin, GenTableColumnBaseModel):
-    """
-    代码生成业务表字段不分页查询模型
-    """
+    """代码生成业务表字段不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class GenTableColumnPageQueryModel(GenTableColumnQueryModel):
-    """
-    代码生成业务表字段分页查询模型
-    """
+    """代码生成业务表字段分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class DeleteGenTableColumnModel(BaseModel):
-    """
-    删除代码生成业务表字段模型
-    """
+    """删除代码生成业务表字段模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

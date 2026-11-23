@@ -10,7 +10,13 @@ from module_identity.entity.do.oidc_key_do import SysOidcSigningKey
 
 
 def _key(kid: str, status: str = 'pending') -> SysOidcSigningKey:
-    """构造带引用私钥材料的测试密钥。"""
+    """
+    构造带引用私钥材料的测试密钥。
+
+    :param kid: 用于定位签名密钥的标识
+    :param status: 操作或记录所处的状态
+    :return: 带引用私钥材料的测试密钥
+    """
     now = datetime.now(UTC)
     return SysOidcSigningKey(
         kid=kid,
@@ -38,6 +44,16 @@ async def test_activate_serializes_by_algorithm_when_no_active_key_exists(data_s
         _context: Any,
         _executemany: bool,
     ) -> None:
+        """
+        保存调用参数供断言使用。
+
+        :param _connection: SQLAlchemy 事件传入的数据库连接
+        :param _cursor: SQLAlchemy 事件传入的游标
+        :param statement: 即将执行的数据库语句
+        :param _parameters: SQL 执行时绑定的参数
+        :param _context: 执行当前语句的上下文
+        :param _executemany: 是否执行批量 SQL
+        """
         if statement.lstrip().upper().startswith(('UPDATE', 'SELECT')):
             statements.append(statement.upper())
 

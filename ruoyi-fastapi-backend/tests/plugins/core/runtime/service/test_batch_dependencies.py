@@ -156,17 +156,26 @@ def test_record_plugin_failure_state_logs_and_swallows_persistence_error(monkeyp
     logged_messages = []
 
     class BrokenAuditGateway:
-        """
-        测试用异常审计网关。
-        """
+        """测试用异常审计网关。"""
 
         @staticmethod
         async def mark_plugin_error(plugin_id: str, error_message: str) -> None:
-            """模拟标记插件异常失败。"""
+            """
+            模拟标记插件异常失败。
+
+            :param plugin_id: 插件清单中的唯一标识
+            :param error_message: 记录到结果或审计日志中的错误详情
+            :raises RuntimeError: 模拟更新插件错误状态时数据库不可用
+            """
             raise RuntimeError('db unavailable')
 
     def fake_exception(message: str, *args: object) -> None:
-        """构造测试用批量操作异常。"""
+        """
+        构造测试用批量操作异常。
+
+        :param message: 与当前结果一起返回的说明
+        :param args: 传给被调用对象的位置参数
+        """
         logged_messages.append(message % args)
 
     monkeypatch.setattr(audit_module.logger, 'exception', fake_exception)
@@ -331,7 +340,13 @@ frontend:
     executed_plugin_ids = []
 
     async def fake_execute(operation: str, plugin_id: str) -> dict[str, object]:
-        """测试用单插件执行函数。"""
+        """
+        测试用单插件执行函数。
+
+        :param operation: 当前处理的操作
+        :param plugin_id: 插件清单中的唯一标识
+        :return: 包含 ``ok``、``message``、``pluginId`` 的数据
+        """
         executed_plugin_ids.append(plugin_id)
         return {
             'ok': plugin_id != 'beta',

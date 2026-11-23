@@ -56,7 +56,7 @@ def test_claim_builder_does_not_leak_local_identity_or_unapproved_contact() -> N
 def test_openid_fails_closed_when_subject_or_sub_policy_is_missing(
     user: dict[str, object], policy: dict[str, object], resource: list[str]
 ) -> None:
-    """openid 请求缺少稳定 Subject 或 sub 策略时不得静默生成 Claims。"""
+    """验证 openid 请求缺少稳定 Subject 或 sub 策略时不得静默生成 Claims。"""
     with pytest.raises(OAuthProtocolException):
         ClaimService.build_claims(user, {'openid'}, policy, resource)
 

@@ -41,32 +41,34 @@ PrecheckCheckPayloadDict: TypeAlias = dict[
 
 
 class PluginPrecheckOperationPayload(PluginPayloadModel):
-    """
-    插件预检操作片段 payload。
-    """
+    """插件预检操作片段 payload。"""
 
-    manifest_ok: bool = Field(alias='manifestOk')
-    dependency_ok: bool = Field(alias='dependencyOk')
-    plugin_dependency_ok: bool = Field(alias='pluginDependencyOk')
-    structure_ok: bool = Field(alias='structureOk')
-    menu_conflict_ok: bool = Field(alias='menuConflictOk')
-    manifest_issues: list[dict[str, object]] = Field(alias='manifestIssues')
-    manifest_warnings: list[dict[str, object]] = Field(alias='manifestWarnings')
-    plugin_dependency_errors: list[dict[str, object]] = Field(alias='pluginDependencyErrors')
-    structure_errors: list[dict[str, object]] = Field(alias='structureErrors')
-    menu_conflicts: list[dict[str, object]] = Field(alias='menuConflicts')
-    dependencies: list[dict[str, object]]
-    plugin_dependencies: list[dict[str, object]] = Field(alias='pluginDependencies')
+    manifest_ok: bool = Field(alias='manifestOk', description='插件清单是否通过校验')
+    dependency_ok: bool = Field(alias='dependencyOk', description='软件包依赖是否满足要求')
+    plugin_dependency_ok: bool = Field(alias='pluginDependencyOk', description='依赖的其他插件是否满足要求')
+    structure_ok: bool = Field(alias='structureOk', description='插件文件结构是否通过校验')
+    menu_conflict_ok: bool = Field(alias='menuConflictOk', description='插件是否通过菜单冲突检查')
+    manifest_issues: list[dict[str, object]] = Field(alias='manifestIssues', description='插件清单中的错误')
+    manifest_warnings: list[dict[str, object]] = Field(alias='manifestWarnings', description='插件清单中的警告')
+    plugin_dependency_errors: list[dict[str, object]] = Field(
+        alias='pluginDependencyErrors', description='插件之间的依赖检查错误'
+    )
+    structure_errors: list[dict[str, object]] = Field(alias='structureErrors', description='插件目录或文件结构检查错误')
+    menu_conflicts: list[dict[str, object]] = Field(alias='menuConflicts', description='检测到的菜单冲突')
+    dependencies: list[dict[str, object]] = Field(description='软件包依赖及其检查结果')
+    plugin_dependencies: list[dict[str, object]] = Field(
+        alias='pluginDependencies', description='插件之间的依赖及其状态'
+    )
 
 
 class PluginPrecheckCheckPayload(PluginPrecheckOperationPayload):
-    """
-    插件预检检查片段 payload。
-    """
+    """插件预检检查片段 payload。"""
 
-    structure: list[dict[str, object]]
-    missing_dependencies: list[str] = Field(alias='missingDependencies')
-    unsatisfied_dependencies: list[str] = Field(alias='unsatisfiedDependencies')
+    structure: list[dict[str, object]] = Field(description='插件目录结构检查结果')
+    missing_dependencies: list[str] = Field(alias='missingDependencies', description='尚未安装的依赖')
+    unsatisfied_dependencies: list[str] = Field(
+        alias='unsatisfiedDependencies', description='已安装但不满足版本要求的依赖'
+    )
 
 
 @dataclass(frozen=True)
@@ -77,21 +79,21 @@ class PluginPrecheckContext:
     使用 Context Object 模式聚合依赖、manifest、插件间依赖、结构和菜单冲突检查结果，
     避免插件运行时在安装、升级和检查流程中重复拼装 payload。
 
-    :param dependency_result: Python/npm 依赖检查结果
-    :param manifest_result: manifest 非阻断检查结果
-    :param plugin_dependency_result: 插件间依赖检查结果
-    :param structure_result: 插件结构检查结果
-    :param menu_conflict_result: 菜单冲突检查结果
-    :param manifest_issues: manifest error 负载
-    :param manifest_warnings: manifest warning 负载
-    :param plugin_dependency_errors: 插件依赖错误负载
-    :param structure_errors: 结构错误负载
-    :param menu_conflicts: 菜单冲突负载
-    :param dependencies: Python/npm 依赖检查负载
-    :param plugin_dependencies: 插件依赖检查负载
-    :param structure: 结构检查完整负载
-    :param missing_dependencies: 缺失依赖名称列表
-    :param unsatisfied_dependencies: 版本不满足依赖名称列表
+    :ivar dependency_result: Python/npm 依赖检查结果
+    :ivar manifest_result: manifest 非阻断检查结果
+    :ivar plugin_dependency_result: 插件间依赖检查结果
+    :ivar structure_result: 插件结构检查结果
+    :ivar menu_conflict_result: 菜单冲突检查结果
+    :ivar manifest_issues: manifest error 负载
+    :ivar manifest_warnings: manifest warning 负载
+    :ivar plugin_dependency_errors: 插件依赖错误负载
+    :ivar structure_errors: 结构错误负载
+    :ivar menu_conflicts: 菜单冲突负载
+    :ivar dependencies: Python/npm 依赖检查负载
+    :ivar plugin_dependencies: 插件依赖检查负载
+    :ivar structure: 结构检查完整负载
+    :ivar missing_dependencies: 缺失依赖名称列表
+    :ivar unsatisfied_dependencies: 版本不满足依赖名称列表
     """
 
     dependency_result: object

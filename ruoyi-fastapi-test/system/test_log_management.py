@@ -12,7 +12,14 @@ pytestmark = pytest.mark.e2e
 
 
 async def wait_for_audit(view: SystemPage, path: str) -> dict:
-    """日志经 Redis Stream 异步入库，轮询真实查询直到目标事件可见。"""
+    """
+    日志经 Redis Stream 异步入库，轮询真实查询直到目标事件可见。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param path: 要读取或处理的路径
+    :return: 随调用传入或返回的结构化数据
+    :raises AssertionError: 目标操作日志未在时限内写入
+    """
     for _ in range(30):
         payload = await view.search()
         if any(record['operUrl'].endswith(path) for record in payload['rows']):

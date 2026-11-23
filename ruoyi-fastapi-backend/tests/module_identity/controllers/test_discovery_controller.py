@@ -14,14 +14,25 @@ _HTTP_UNAVAILABLE = 503
 
 
 def _request(headers: dict[str, str] | None = None, host: str = 'evil.example') -> Request:
-    """创建带可控 Host 和缓存请求头的 Starlette 请求。"""
+    """
+    创建带可控 Host 和缓存请求头的 Starlette 请求。
+
+    :param headers: 响应或请求携带的 HTTP 头
+    :param host: 连接目标或插件宿主上下文
+    :return: 带可控 Host 和缓存请求头的 Starlette 请求
+    """
     raw_headers = [(b'host', host.encode())]
     raw_headers.extend((key.lower().encode(), value.encode()) for key, value in (headers or {}).items())
     return Request({'type': 'http', 'method': 'GET', 'path': '/', 'headers': raw_headers})
 
 
 def _enabled(monkeypatch: pytest.MonkeyPatch) -> OidcConfig:
-    """将全局配置设为启用且固定 issuer。"""
+    """
+    将全局配置设为启用且固定 issuer。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: 供调用方使用的 ``OidcConfig``
+    """
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', True)
     monkeypatch.setattr(OidcConfig, 'oidc_issuer', 'https://auth.example.com')
     monkeypatch.setattr(controller, 'OidcConfig', OidcConfig)
@@ -32,14 +43,34 @@ class _DiscoveryDb:
     """提供 Discovery 动态 Scope 查询的最小显式会话替身。"""
 
     class _Scalars:
+        """提供数据库查询结果的标量访问接口。"""
+
         def all(self) -> list[str]:
+            """
+            向测试用例返回空集合。
+
+            :return: 不含记录的查询列表
+            """
             return []
 
     class _Result:
+        """模拟数据库查询结果。"""
+
         def scalars(self) -> '_DiscoveryDb._Scalars':
+            """
+            提供 SQLAlchemy 标量查询结果的测试替身。
+
+            :return: SQLAlchemy 标量查询结果的测试替身
+            """
             return _DiscoveryDb._Scalars()
 
     async def execute(self, statement: object) -> '_DiscoveryDb._Result':
+        """
+        按测试场景处理数据库查询并提供结果。
+
+        :param statement: 即将执行的数据库语句
+        :return: 包含模拟发现数据的查询结果
+        """
         return _DiscoveryDb._Result()
 
 
@@ -95,15 +126,37 @@ async def test_discovery_publishes_only_active_database_scopes(monkeypatch: pyte
     _enabled(monkeypatch)
 
     class _Scalars:
+        """提供数据库查询结果的标量访问接口。"""
+
         def all(self) -> list[str]:
+            """
+            返回本次查询的全部测试行。
+
+            :return: 本次查询的全部测试行
+            """
             return ['openid', 'orders.read', 'zzz.read']
 
     class _Result:
+        """模拟数据库查询结果。"""
+
         def scalars(self) -> _Scalars:
+            """
+            提供 SQLAlchemy 标量查询结果的测试替身。
+
+            :return: SQLAlchemy 标量查询结果的测试替身
+            """
             return _Scalars()
 
     class _Db:
+        """模拟当前测试所需的数据库操作。"""
+
         async def execute(self, statement: object) -> _Result:
+            """
+            按测试场景处理数据库查询并提供结果。
+
+            :param statement: 即将执行的数据库语句
+            :return: 包含预设记录的查询结果
+            """
             return _Result()
 
     response = await controller.openid_configuration(_request(), _Db())
@@ -118,7 +171,15 @@ async def test_discovery_scope_query_failure_is_no_store_503(monkeypatch: pytest
     _enabled(monkeypatch)
 
     class _FailingDb:
+        """模拟数据库操作失败时的会话。"""
+
         async def execute(self, statement: object) -> object:
+            """
+            模拟此操作抛出 RuntimeError 的情形。
+
+            :param statement: 即将执行的数据库语句
+            :raises RuntimeError: 模拟数据库查询不可用
+            """
             raise RuntimeError('database unavailable')
 
     response = await controller.openid_configuration(_request(), _FailingDb())
@@ -144,6 +205,13 @@ async def test_jwks_is_raw_and_uses_key_service(monkeypatch: pytest.MonkeyPatch)
     _enabled(monkeypatch)
 
     async def build(*args: object, **kwargs: object) -> dict[str, list[dict[str, str]]]:
+        """
+        返回含 ``keys`` 的测试数据。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 含 ``keys`` 的测试数据
+        """
         return {'keys': [{'kty': 'RSA', 'use': 'sig', 'kid': 'k1', 'alg': 'RS256', 'n': 'n', 'e': 'AQAB'}]}
 
     monkeypatch.setattr(controller.KeyService, 'build_jwks', build)
@@ -159,6 +227,13 @@ async def test_jwks_fails_closed_on_invalid_public_key(monkeypatch: pytest.Monke
     _enabled(monkeypatch)
 
     async def build(*args: object, **kwargs: object) -> dict[str, list[dict[str, str]]]:
+        """
+        模拟此操作抛出 KeyServiceError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises KeyServiceError: 模拟公开 JWK 的 RSA 参数无效
+        """
         raise KeyServiceError('public JWK RSA numbers are invalid')
 
     monkeypatch.setattr(controller.KeyService, 'build_jwks', build)

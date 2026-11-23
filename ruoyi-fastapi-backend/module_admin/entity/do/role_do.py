@@ -8,9 +8,7 @@ from utils.common_util import SqlalchemyUtil
 
 
 class SysRole(AuditTimeMixin, Base):
-    """
-    角色信息表
-    """
+    """角色信息表。"""
 
     __tablename__ = 'sys_role'
     __table_args__ = {'comment': '角色信息表'}
@@ -50,9 +48,7 @@ class SysRole(AuditTimeMixin, Base):
 
 
 class SysRoleDept(Base):
-    """
-    角色和部门关联表
-    """
+    """角色和部门关联表。"""
 
     __tablename__ = 'sys_role_dept'
     __table_args__ = {'comment': '角色和部门关联表'}
@@ -62,9 +58,7 @@ class SysRoleDept(Base):
 
 
 class SysRoleMenu(Base):
-    """
-    角色和菜单关联表
-    """
+    """角色和菜单关联表。"""
 
     __tablename__ = 'sys_role_menu'
     __table_args__ = {'comment': '角色和菜单关联表'}

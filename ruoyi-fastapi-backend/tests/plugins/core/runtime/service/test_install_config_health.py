@@ -29,6 +29,10 @@ from tests.plugins.core.runtime.fakes import (
 class ConfigOnlyGateway:
     """
     仅提供插件配置读写能力的测试网关。
+
+    :ivar get_calls: 记录 ``get`` 的调用情况
+    :ivar update_calls: 记录 ``update`` 的调用情况
+    :ivar audit_payloads: 测试中已记录的审计数据
     """
 
     def __init__(self) -> None:
@@ -38,7 +42,13 @@ class ConfigOnlyGateway:
         self.audit_payloads: list[dict[str, object]] = []
 
     async def get_plugin_config(self, discovered_plugin: object, *, reveal_secret: bool = False) -> list[object]:
-        """获取插件配置。"""
+        """
+        获取插件配置。
+
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :param reveal_secret: 是否在返回结果中显示敏感值
+        :return: 插件配置
+        """
         plugin_id = discovered_plugin.manifest.id
         self.get_calls.append((plugin_id, reveal_secret))
         value = 'openai-key' if reveal_secret else '******'
@@ -54,7 +64,13 @@ class ConfigOnlyGateway:
         ]
 
     async def update_plugin_config(self, discovered_plugin: object, values: dict[str, object]) -> list[object]:
-        """更新插件配置。"""
+        """
+        更新插件配置。
+
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :param values: 当前处理的值集合
+        :return: 保存后的模拟配置项
+        """
         plugin_id = discovered_plugin.manifest.id
         self.update_calls.append((plugin_id, values))
         return [
@@ -76,7 +92,15 @@ class ConfigOnlyGateway:
         audit_operation: str,
         success_message: str,
     ) -> list[object]:
-        """在同一事务语义中更新插件配置并记录审计负载。"""
+        """
+        在同一事务语义中更新插件配置并记录审计负载。
+
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :param values: 当前处理的值集合
+        :param audit_operation: 审计操作类型
+        :param success_message: 操作成功提示
+        :return: 供调用方使用的 ``configs``
+        """
         before_configs = await self.get_plugin_config(discovered_plugin, reveal_secret=True)
         configs = await self.update_plugin_config(discovered_plugin, values)
         self.audit_payloads.append(
@@ -92,7 +116,11 @@ class ConfigOnlyGateway:
         return configs
 
     def get_plugin_service(self) -> object:
-        """禁止配置链路回退到管理服务胖接口。"""
+        """
+        禁止配置链路回退到管理服务胖接口。
+
+        :raises AssertionError: 配置读写不应依赖 PluginManagementServiceProtocol
+        """
         raise AssertionError('配置读写不应依赖 PluginManagementServiceProtocol')
 
 
@@ -182,26 +210,49 @@ backend:
     class InstallLifecycleUnitOfWork:
         """
         测试用插件安装生命周期 UoW。
+
+        :ivar gateway: 代理底层操作的网关
+        :ivar session: 当前操作共用的会话
+        :ivar session_context: 当前会话的上下文
         """
 
         def __init__(self, gateway: 'NoFatInstallGateway') -> None:
-            """初始化测试 UoW。"""
+            """
+            初始化测试 UoW。
+
+            :param gateway: 代理底层操作的网关
+            """
             self.gateway = gateway
             self.session: FakeSession | None = None
             self.session_context: FakeSession | None = None
 
         async def __aenter__(self) -> 'InstallLifecycleUnitOfWork':
-            """打开测试 UoW 会话。"""
+            """
+            打开测试 UoW 会话。
+
+            :return: 当前实例
+            """
             self.session_context = self.gateway.session_local()
             self.session = await self.session_context.__aenter__()
             return self
 
         async def __aexit__(self, exc_type: object, exc: object, traceback: object) -> None:
-            """关闭测试 UoW 会话。"""
+            """
+            关闭测试 UoW 会话。
+
+            :param exc_type: 退出上下文时的异常类型
+            :param exc: 捕获到的异常实例
+            :param traceback: 异常的调用栈
+            """
             await self.session_context.__aexit__(exc_type, exc, traceback)
 
         async def check_installed_menu_conflicts(self, discovered_plugin: object) -> list[object]:
-            """检查已安装菜单冲突。"""
+            """
+            检查已安装菜单冲突。
+
+            :param discovered_plugin: 扫描插件目录后得到的插件描述
+            :return: 安装菜单的冲突检查结果
+            """
             return await FakePluginService.check_installed_menu_conflict_services(self.session, discovered_plugin)
 
         async def upsert_discovered_plugin(
@@ -210,7 +261,14 @@ backend:
             backend_root: Path,
             frontend_root: Path,
         ) -> object:
-            """写入插件基础状态。"""
+            """
+            写入插件基础状态。
+
+            :param discovered_plugin: 扫描插件目录后得到的插件描述
+            :param backend_root: 后端项目的根目录
+            :param frontend_root: 前端项目的根目录
+            :return: 写入后的插件状态
+            """
             return await FakePluginService.upsert_discovered_plugin_services(
                 self.session,
                 discovered_plugin,
@@ -219,19 +277,39 @@ backend:
             )
 
         async def install_plugin_menu(self, discovered_plugin: object, *, enabled: bool) -> None:
-            """安装插件菜单。"""
+            """
+            安装插件菜单。
+
+            :param discovered_plugin: 扫描插件目录后得到的插件描述
+            :param enabled: 是否启用该项功能
+            """
             await FakePluginService.install_plugin_menu_services(self.session, discovered_plugin, enabled=enabled)
 
         async def install_plugin_default_config(self, discovered_plugin: object) -> list[object]:
-            """安装插件默认配置。"""
+            """
+            安装插件默认配置。
+
+            :param discovered_plugin: 扫描插件目录后得到的插件描述
+            :return: 默认配置的安装结果
+            """
             return await FakePluginService.install_plugin_default_config_services(self.session, discovered_plugin)
 
         async def install_plugin_jobs(self, discovered_plugin: object, *, enabled: bool) -> None:
-            """同步插件任务。"""
+            """
+            同步插件任务。
+
+            :param discovered_plugin: 扫描插件目录后得到的插件描述
+            :param enabled: 是否启用该项功能
+            """
             await FakePluginService.install_plugin_job_services(self.session, discovered_plugin, enabled=enabled)
 
         async def mark_plugin_installed(self, discovered_plugin: object) -> object:
-            """标记插件已安装。"""
+            """
+            标记插件已安装。
+
+            :param discovered_plugin: 扫描插件目录后得到的插件描述
+            :return: 更新后的安装标记
+            """
             return await FakePluginService.mark_plugin_installed_services(self.session, discovered_plugin)
 
         async def commit(self) -> None:
@@ -239,24 +317,39 @@ backend:
             await self.session.commit()
 
     class NoFatInstallGateway(FakePluginRuntimeGateway):
-        """
-        禁止安装流程读取 fat state gateway 的测试适配器。
-        """
+        """禁止安装流程读取 fat state gateway 的测试适配器。"""
 
         def get_async_session_local(self) -> object:
-            """禁止通过 state gateway 打开数据库会话。"""
+            """
+            禁止通过 state gateway 打开数据库会话。
+
+            :raises AssertionError: 安装流程不应通过 state gateway 打开数据库会话
+            """
             raise AssertionError('安装流程不应通过 state gateway 打开数据库会话')
 
         def get_plugin_service(self) -> object:
-            """禁止通过 state gateway 获取管理服务。"""
+            """
+            禁止通过 state gateway 获取管理服务。
+
+            :raises AssertionError: 安装流程不应通过 state gateway 获取管理服务
+            """
             raise AssertionError('安装流程不应通过 state gateway 获取管理服务')
 
         def open_lifecycle_unit_of_work(self) -> InstallLifecycleUnitOfWork:
-            """打开测试生命周期 UoW。"""
+            """
+            打开测试生命周期 UoW。
+
+            :return: ``InstallLifecycleUnitOfWork`` 实例
+            """
             return InstallLifecycleUnitOfWork(self)
 
         async def run_plugin_migrations(self, discovered_plugin: object) -> list[object]:
-            """通过独立 migration session 执行插件 migration。"""
+            """
+            通过独立 migration session 执行插件 migration。
+
+            :param discovered_plugin: 扫描插件目录后得到的插件描述
+            :return: 独立迁移会话的执行结果
+            """
             async with self.session_local() as migration_session:
                 return await PluginMigrationRunner(
                     discovered_plugin,
@@ -504,16 +597,22 @@ backend:
     (plugin_root / 'migrations' / '001_demo.sql').write_text('select 1;\n', encoding='utf-8')
 
     class NoFatStateGateway(FakePluginRuntimeGateway):
-        """
-        禁止生命周期预检读取 fat state gateway 的测试适配器。
-        """
+        """禁止生命周期预检读取 fat state gateway 的测试适配器。"""
 
         def get_async_session_local(self) -> object:
-            """禁止通过 state gateway 打开数据库会话。"""
+            """
+            禁止通过 state gateway 打开数据库会话。
+
+            :raises AssertionError: 生命周期脚本预检不应通过 state gateway 打开数据库会话
+            """
             raise AssertionError('生命周期脚本预检不应通过 state gateway 打开数据库会话')
 
         def get_plugin_service(self) -> object:
-            """禁止通过 state gateway 获取管理服务。"""
+            """
+            禁止通过 state gateway 获取管理服务。
+
+            :raises AssertionError: 生命周期脚本预检不应通过 state gateway 获取管理服务
+            """
             raise AssertionError('生命周期脚本预检不应通过 state gateway 获取管理服务')
 
     gateway = NoFatStateGateway()
@@ -833,7 +932,16 @@ config:
         dry_run: bool,
         continue_on_error: bool,
     ) -> None:
-        """模拟管理服务审计日志写入失败。"""
+        """
+        模拟管理服务审计日志写入失败。
+
+        :param cls: 调用类方法时使用的类对象
+        :param query_db: 当前操作使用的异步数据库会话
+        :param payload: 随调用传入或返回的结构化数据
+        :param dry_run: 是否只预览操作结果
+        :param continue_on_error: 单项操作失败后是否继续执行
+        :raises RuntimeError: 模拟写入插件操作日志失败
+        """
         raise RuntimeError('audit failed')
 
     gateway = FakePluginRuntimeGateway()
@@ -1091,16 +1199,22 @@ config:
     ]
 
     class NoFatStateGateway(FakePluginRuntimeGateway):
-        """
-        禁止诊断审计快照读取 fat state gateway 的测试适配器。
-        """
+        """禁止诊断审计快照读取 fat state gateway 的测试适配器。"""
 
         def get_async_session_local(self) -> object:
-            """禁止通过 state gateway 打开数据库会话。"""
+            """
+            禁止通过 state gateway 打开数据库会话。
+
+            :raises AssertionError: 诊断审计快照不应通过 state gateway 打开数据库会话
+            """
             raise AssertionError('诊断审计快照不应通过 state gateway 打开数据库会话')
 
         def get_plugin_service(self) -> object:
-            """禁止通过 state gateway 获取管理服务。"""
+            """
+            禁止通过 state gateway 获取管理服务。
+
+            :raises AssertionError: 诊断审计快照不应通过 state gateway 获取管理服务
+            """
             raise AssertionError('诊断审计快照不应通过 state gateway 获取管理服务')
 
     result = asyncio.run(build_runtime_with_gateway(backend_root, NoFatStateGateway()).diagnose_plugin('demo'))

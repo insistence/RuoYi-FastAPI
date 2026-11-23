@@ -4,6 +4,7 @@ from cli.tui import platform as platform_module
 
 
 def test_windows_enables_reduced_motion_by_default(monkeypatch: MonkeyPatch) -> None:
+    """Windows 默认减少动画。"""
     monkeypatch.delenv('RUOYI_TUI_REDUCED_MOTION', raising=False)
     monkeypatch.setattr(platform_module.sys, 'platform', 'win32')
 
@@ -13,6 +14,7 @@ def test_windows_enables_reduced_motion_by_default(monkeypatch: MonkeyPatch) -> 
 
 
 def test_reduced_motion_environment_override_wins(monkeypatch: MonkeyPatch) -> None:
+    """环境变量优先决定是否减少动画。"""
     monkeypatch.setattr(platform_module.sys, 'platform', 'win32')
     monkeypatch.setenv('RUOYI_TUI_REDUCED_MOTION', 'off')
 

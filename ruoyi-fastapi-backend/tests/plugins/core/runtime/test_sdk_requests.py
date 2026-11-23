@@ -17,23 +17,39 @@ from plugins.core.sdk import PluginHostContext, PluginRequestContext, plugin_end
 class ReportBody(BaseModel):
     """验证原生和 Python 回调共享的业务输入数据。"""
 
-    name: str = Field(min_length=2)
-    count: int = Field(ge=1)
+    name: str = Field(min_length=2, description='报表名称')
+    count: int = Field(ge=1, description='报表记录数')
 
 
 def endpoint_app(tmp_path: Path, callback: Any, **options: Any) -> FastAPI:
-    """创建只使用宿主签发身份的 SDK 接口测试应用。"""
+    """
+    创建只使用宿主签发身份的 SDK 接口测试应用。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param callback: 需要在相应阶段调用的函数
+    :param options: 调用方按名称传入的附加选项
+    :return: 只使用宿主签发身份的 SDK 接口测试应用
+    """
     app = FastAPI()
     context = PluginRequestContext(PluginHostContext('sdk_demo', tmp_path), object(), frozenset({'sdk_demo:view'}))
 
     @app.middleware('http')
     async def inject(request: Request, call_next: Any) -> Any:
+        """
+        将查询替身注入待测试的组件。
+
+        :param request: 当前 HTTP 请求
+        :param call_next: 调用下一层请求处理器的异步回调
+        :return: 注入查询替身后的下游响应
+        """
         request.state.plugin_context = context
         return await call_next(request)
 
     app.add_api_route(
         '/reports/{report_id}',
         plugin_endpoint(callback, permission='sdk_demo:view', **options),
+        summary='处理插件报表请求',
+        description='通过插件 SDK 校验权限，并将报表请求交给当前测试的回调。',
         methods=['GET', 'POST'],
     )
     return app
@@ -96,6 +112,11 @@ async def test_endpoint_limits_streamed_body_without_trusting_content_length(tmp
     app = endpoint_app(tmp_path, callback, json_body=True, max_body_bytes=8)
 
     async def chunks() -> AsyncIterator[bytes]:
+        """
+        分块提供用于流式读取测试的数据。
+
+        :yield: 按发送顺序切分的 JSON 字节块
+        """
         yield b'{"a":'
         yield b'"too large"}'
 
@@ -178,6 +199,11 @@ async def test_request_cancellation_reaches_callback(tmp_path: Path) -> None:
     stopped = asyncio.Event()
 
     async def callback(context: PluginRequestContext) -> None:
+        """
+        为并发测试提供可观测的回调执行点。
+
+        :param context: 由宿主鉴权层建立的请求身份，不能由客户端字段直接构造
+        """
         entered.set()
         try:
             await asyncio.Event().wait()

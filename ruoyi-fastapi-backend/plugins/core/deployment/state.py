@@ -101,6 +101,22 @@ def _release_status(target_digest: str | None, live: int, healthy: int, failed: 
 class PluginReleaseSummary:
     """
     发布目标在全部存活宿主进程中的状态汇总。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar target_digest: 当前发布目标的制品摘要
+    :ivar generation: 发布代际标识
+    :ivar status: 操作或记录所处的状态
+    :ivar restart_required: 当前发布是否需要重启工作进程
+    :ivar expected_workers: 预期参与部署的工作进程
+    :ivar live_workers: 仍在发送心跳的工作进程
+    :ivar healthy_workers: 健康检查通过的工作进程
+    :ivar disabled_workers: 已停用的工作进程
+    :ivar mismatch_workers: 当前版本与目标不一致的工作进程
+    :ivar stale_workers: 最近心跳已过期的工作进程
+    :ivar missing_workers: 尚未报告状态的目标工作进程
+    :ivar failed_workers: 准备或加载插件失败的工作进程
+    :ivar prepare_status: 制品准备阶段的状态
+    :ivar last_error: 最近一次错误信息
     """
 
     plugin_id: str

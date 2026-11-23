@@ -14,6 +14,9 @@ class PluginConfigManager:
     插件配置管理器。
 
     使用 Manager 模式集中处理配置声明、配置值序列化、默认值安装和脱敏输出。
+
+    :cvar MASK_VALUE: 隐藏敏感配置值时使用的占位文本
+    :cvar ENCRYPTED_PREFIX: 用于识别加密配置值的前缀
     """
 
     MASK_VALUE = '******'
@@ -181,6 +184,7 @@ class PluginConfigManager:
         :param config_type: 配置类型
         :param secret: 是否敏感配置
         :return: 反序列化后的配置值
+        :raises ValueError: 敏感插件配置不是加密存储格式
         """
         raw_value = value
         if secret and raw_value not in (None, ''):
@@ -217,7 +221,7 @@ class PluginConfigManager:
 
         :param item: 插件配置项声明
         :param value: 待更新配置值
-        :return: None
+        :raises ValueError: 配置缺失必填值，或类型、选项及格式未通过声明的校验
         """
         if item.required and value in (None, ''):
             raise ValueError(f'配置 {item.key} 不能为空')
@@ -246,7 +250,7 @@ class PluginConfigManager:
 
         :param item: 插件配置项声明
         :param value: 待更新配置值
-        :return: None
+        :raises ValueError: 数值超出配置声明的最小值或最大值
         """
         if item.min_value is not None and value < item.min_value:
             raise ValueError(f'配置 {item.key} 不能小于 {item.min_value}')

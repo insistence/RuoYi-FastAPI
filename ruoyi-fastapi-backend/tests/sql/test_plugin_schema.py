@@ -8,7 +8,12 @@ SQL_FILES = (
 
 
 def read_sql(sql_path: Path) -> str:
-    """读取初始化 SQL 文件内容。"""
+    """
+    读取初始化 SQL 文件内容。
+
+    :param sql_path: 需要读取的 SQL 文件路径
+    :return: 初始化 SQL 文件内容
+    """
     return sql_path.read_text(encoding='utf-8')
 
 

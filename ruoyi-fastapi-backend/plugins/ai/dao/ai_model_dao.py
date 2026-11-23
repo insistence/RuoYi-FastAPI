@@ -10,14 +10,12 @@ from utils.page_util import PageUtil
 
 
 class AiModelDao:
-    """
-    AI模型管理数据库操作层
-    """
+    """AI模型管理数据库操作层。"""
 
     @classmethod
     async def get_ai_model_detail_by_id(cls, db: AsyncSession, model_id: int) -> AiModels | None:
         """
-        根据AI模型id获取AI模型详细信息
+        根据AI模型id获取AI模型详细信息。
 
         :param db: orm对象
         :param model_id: AI模型id
@@ -32,7 +30,7 @@ class AiModelDao:
         cls, db: AsyncSession, query_object: AiModelPageQueryModel, data_scope_sql: ColumnElement, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        根据查询参数获取AI模型列表信息
+        根据查询参数获取AI模型列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -61,7 +59,7 @@ class AiModelDao:
     @classmethod
     async def add_ai_model_dao(cls, db: AsyncSession, ai_model: AiModelModel) -> AiModels:
         """
-        新增AI模型数据库操作
+        新增AI模型数据库操作。
 
         :param db: orm对象
         :param ai_model: AI模型对象
@@ -76,11 +74,10 @@ class AiModelDao:
     @classmethod
     async def edit_ai_model_dao(cls, db: AsyncSession, ai_model: dict) -> None:
         """
-        编辑AI模型数据库操作
+        编辑AI模型数据库操作。
 
         :param db: orm对象
         :param ai_model: 需要更新的AI模型字典
-        :return:
         """
         await db.execute(
             update(AiModels),
@@ -90,10 +87,9 @@ class AiModelDao:
     @classmethod
     async def delete_ai_model_dao(cls, db: AsyncSession, ai_model: AiModelModel) -> None:
         """
-        删除AI模型数据库操作
+        删除AI模型数据库操作。
 
         :param db: orm对象
         :param ai_model: AI模型对象
-        :return:
         """
         await db.execute(delete(AiModels).where(AiModels.model_id.in_([ai_model.model_id])))

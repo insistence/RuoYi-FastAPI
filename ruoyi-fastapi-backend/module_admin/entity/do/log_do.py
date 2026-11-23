@@ -6,9 +6,7 @@ from utils.time_util import TimezoneUtil
 
 
 class SysLogininfor(Base):
-    """
-    系统访问记录
-    """
+    """系统访问记录。"""
 
     __tablename__ = 'sys_logininfor'
     __table_args__ = {'comment': '系统访问记录'}
@@ -28,9 +26,7 @@ class SysLogininfor(Base):
 
 
 class SysOperLog(Base):
-    """
-    操作日志记录
-    """
+    """操作日志记录。"""
 
     __tablename__ = 'sys_oper_log'
     __table_args__ = {'comment': '操作日志记录'}

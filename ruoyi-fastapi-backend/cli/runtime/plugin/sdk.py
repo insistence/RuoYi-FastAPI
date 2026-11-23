@@ -30,7 +30,12 @@ MANIFEST_VERSION = 2
 
 
 class PluginBridgeSdk:
-    """离线检查和更新独立 bundle 工程中的桥接 SDK 副本。"""
+    """
+    离线检查和更新独立 bundle 工程中的桥接 SDK 副本。
+
+    :ivar frontend_root: 宿主前端工程根目录或包含框架分类的聚合目录
+    :ivar frontend_framework: SDK 来源宿主的框架标识，auto 表示自动识别
+    """
 
     def __init__(self, frontend_root: Path, frontend_framework: str = 'auto') -> None:
         """
@@ -38,7 +43,6 @@ class PluginBridgeSdk:
 
         :param frontend_root: 宿主前端工程根目录或包含框架分类的聚合目录
         :param frontend_framework: SDK 来源宿主的框架标识，auto 表示自动识别
-        :return: None
         """
         self.frontend_root = select_frontend_root(frontend_root, frontend_framework)
         self.frontend_framework = resolve_frontend_framework_request(self.frontend_root, frontend_framework)
@@ -48,6 +52,7 @@ class PluginBridgeSdk:
         校验宿主 SDK 并生成使用 UTF-8、LF 和内容摘要的三个副本文件。
 
         :return: 按固定文件名索引的文本，不包含时间戳或本机路径
+        :raises ValueError: 宿主工程缺少所需的桥接 SDK 文件
         """
         directory = self._safe_path(self.frontend_root / 'src' / 'utils')
         contents: dict[str, str] = {}
@@ -173,6 +178,7 @@ class PluginBridgeSdk:
 
         :param path: 待使用的文件或目录路径
         :return: 已检查现存路径组件的绝对路径
+        :raises ValueError: SDK 路径包含符号链接或重解析点
         """
         absolute = Path(os.path.abspath(path))
         for component in reversed((absolute, *absolute.parents)):
@@ -192,6 +198,7 @@ class PluginBridgeSdk:
 
         :param project: 用户指定的插件工程根目录
         :return: 工程根目录及固定的 web/vendor 目录
+        :raises ValueError: 插件工程目录不存在；SDK 命令只支持 manifestVersion: 2 的 bundle 工程；web/vendor 必须是目录
         """
         root = cls._safe_path(project)
         if not root.is_dir():
@@ -225,6 +232,7 @@ class PluginBridgeSdk:
         :param content: 元数据 JSON 文本
         :param vendor: 是否要求副本的摘要与来源字段
         :return: 通过字段及类型检查的元数据
+        :raises ValueError: 桥接 SDK 元数据字段无效；桥接 SDK 元数据 schemaVersion 无效；桥接 SDK 的 sdkVersion 无效；桥接 SDK 的 bridgeVersion 无效；桥接 SDK 的 capabilities 无效；桥接 SDK 的摘要算法无效；桥接 SDK 文件摘要记录无效
         """
         metadata = json.loads(content)
         fields = METADATA_FIELDS | ({'hashAlgorithm', 'source', 'files'} if vendor else set())
@@ -268,7 +276,7 @@ class PluginBridgeSdk:
         校验来源记录使用当前项目名和规范的框架工程路径。
 
         :param source: SDK 副本中的来源记录
-        :return: None
+        :raises ValueError: 桥接 SDK 的来源记录无效；桥接 SDK 的来源目录无效
         """
         if not isinstance(source, dict) or set(source) != {'project', 'directory'} or source['project'] != SDK_PROJECT:
             raise ValueError('桥接 SDK 的来源记录无效')
@@ -303,7 +311,7 @@ class PluginBridgeSdk:
 
         :param contents: SDK 的 JS 和类型声明文本
         :param metadata: 对应的元数据
-        :return: None
+        :raises ValueError: 脚本或类型声明导出的版本与 SDK 元数据不符
         """
         for name in SDK_FILES:
             sdk_versions = re.findall(
@@ -452,7 +460,8 @@ class PluginBridgeSdk:
         用工程局部独占文件串行更新，不自动抢占可能仍被使用的旧锁。
 
         :param root: 已验证的工程根目录
-        :return: 持有更新锁的上下文
+        :yield: 持有更新锁的上下文
+        :raises ValueError: SDK 更新锁已存在，请确认没有并发更新后再处理锁文件
         """
         path = cls._safe_path(root / '.plugin-sdk.lock')
         try:
@@ -490,7 +499,6 @@ class PluginBridgeSdk:
 
         :param path: 待替换的 SDK 文件路径
         :param content: 要保存的原始字节
-        :return: None
         """
         cls._safe_path(path)
         temporary = path.with_name(f'.{path.name}.{uuid4().hex}.tmp')
@@ -514,6 +522,8 @@ class PluginBridgeSdk:
         :param originals: 更新前的原始字节快照
         :param backup: 可供人工恢复的原文件备份目录
         :return: 更新后已核实为 current 的检查结果
+        :raises ValueError: SDK 更新失败且无法完整回滚
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         try:
             for name in VENDOR_FILES:

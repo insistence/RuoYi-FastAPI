@@ -8,9 +8,7 @@ from common.types import ApiUtcDateTime
 
 
 class OperLogModel(BaseModel):
-    """
-    操作日志表对应pydantic模型
-    """
+    """操作日志表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -38,9 +36,7 @@ class OperLogModel(BaseModel):
 
 
 class LogininforModel(BaseModel):
-    """
-    登录日志表对应pydantic模型
-    """
+    """登录日志表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -56,9 +52,7 @@ class LogininforModel(BaseModel):
 
 
 class OperLogQueryModel(DateRangeQueryMixin, OperLogModel):
-    """
-    操作日志管理不分页查询模型
-    """
+    """操作日志管理不分页查询模型。"""
 
     order_by_column: str | None = Field(default=None, description='排序的字段名称')
     is_asc: Literal['ascending', 'descending'] | None = Field(
@@ -69,18 +63,14 @@ class OperLogQueryModel(DateRangeQueryMixin, OperLogModel):
 
 
 class OperLogPageQueryModel(OperLogQueryModel):
-    """
-    操作日志管理分页查询模型
-    """
+    """操作日志管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class DeleteOperLogModel(BaseModel):
-    """
-    删除操作日志模型
-    """
+    """删除操作日志模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -88,9 +78,7 @@ class DeleteOperLogModel(BaseModel):
 
 
 class LoginLogQueryModel(DateRangeQueryMixin, LogininforModel):
-    """
-    登录日志管理不分页查询模型
-    """
+    """登录日志管理不分页查询模型。"""
 
     order_by_column: str | None = Field(default=None, description='排序的字段名称')
     is_asc: Literal['ascending', 'descending'] | None = Field(
@@ -101,18 +89,14 @@ class LoginLogQueryModel(DateRangeQueryMixin, LogininforModel):
 
 
 class LoginLogPageQueryModel(LoginLogQueryModel):
-    """
-    登录日志管理分页查询模型
-    """
+    """登录日志管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class DeleteLoginLogModel(BaseModel):
-    """
-    删除登录日志模型
-    """
+    """删除登录日志模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -120,9 +104,7 @@ class DeleteLoginLogModel(BaseModel):
 
 
 class UnlockUser(BaseModel):
-    """
-    解锁用户模型
-    """
+    """解锁用户模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

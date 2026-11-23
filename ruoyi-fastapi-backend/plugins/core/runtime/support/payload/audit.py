@@ -9,39 +9,33 @@ from .base import PluginPayloadModel
 
 
 class PluginAuditItemPayload(PluginPayloadModel):
-    """
-    插件审计单项 payload。
-    """
+    """插件审计单项 payload。"""
 
-    operation_id: object = Field(alias='operationId')
-    operation: object
-    plugin_ids: list[object] = Field(alias='pluginIds')
-    dry_run: bool = Field(alias='dryRun')
-    continue_on_error: bool = Field(alias='continueOnError')
-    status: object
-    summary: object
-    create_time: object = Field(alias='createTime')
-    remark: object
+    operation_id: object = Field(alias='operationId', description='操作记录标识')
+    operation: object = Field(description='执行的操作类型')
+    plugin_ids: list[object] = Field(alias='pluginIds', description='插件标识列表')
+    dry_run: bool = Field(alias='dryRun', description='是否仅预演本次操作')
+    continue_on_error: bool = Field(alias='continueOnError', description='遇到单项错误时是否继续处理')
+    status: object = Field(description='当前状态')
+    summary: object = Field(description='操作结果摘要')
+    create_time: object = Field(alias='createTime', description='操作记录创建时间')
+    remark: object = Field(description='补充说明')
 
 
 class PluginAuditSnapshotPayload(PluginPayloadModel):
-    """
-    插件最近审计快照 payload。
-    """
+    """插件最近审计快照 payload。"""
 
-    available: bool
-    count: int
-    items: list[Mapping[str, object]]
+    available: bool = Field(description='数据是否可用')
+    count: int = Field(description='结果条数')
+    items: list[Mapping[str, object]] = Field(description='结果条目列表')
 
 
 class PluginAuditSnapshotFailurePayload(PluginPayloadModel):
-    """
-    插件最近审计快照读取失败 payload。
-    """
+    """插件最近审计快照读取失败 payload。"""
 
-    available: bool
-    message: str
-    items: list[Mapping[str, object]]
+    available: bool = Field(description='数据是否可用')
+    message: str = Field(description='面向调用方的结果说明')
+    items: list[Mapping[str, object]] = Field(description='结果条目列表')
 
 
 PluginAuditItemPayloadDict: TypeAlias = dict[str, object]
@@ -50,9 +44,7 @@ PluginAuditSnapshotFailurePayloadDict: TypeAlias = dict[str, object]
 
 
 class SupportsAuditModelDump(Protocol):
-    """
-    支持审计记录别名序列化的对象协议。
-    """
+    """支持审计记录别名序列化的对象协议。"""
 
     def model_dump(self, *, by_alias: bool = False) -> Mapping[str, object]:
         """
@@ -65,9 +57,7 @@ class SupportsAuditModelDump(Protocol):
 
 
 class PluginAuditPayloadBuilder:
-    """
-    插件审计负载构建器。
-    """
+    """插件审计负载构建器。"""
 
     @staticmethod
     def build_recent_snapshot_failure(error: Exception) -> PluginAuditSnapshotFailurePayloadDict:

@@ -9,6 +9,9 @@ from ..responses import PluginDependencyInstallResponse
 class PluginLifecycleRuntimeOperations(Protocol):
     """
     生命周期工作流所需的运行时协作能力。
+
+    :ivar dependencies: 插件运行时基础依赖集合
+    :ivar context: 插件应用运行时上下文服务
     """
 
     dependencies: PluginRuntimeDependencies
@@ -27,7 +30,6 @@ class PluginLifecycleRuntimeOperations(Protocol):
         :param payload: 插件操作结果负载
         :param dry_run: 是否预演
         :param continue_on_error: 失败后是否继续
-        :return: None
         """
 
     async def record_plugin_failure_state(self, payload: Mapping[str, object], default_message: str) -> None:
@@ -36,7 +38,6 @@ class PluginLifecycleRuntimeOperations(Protocol):
 
         :param payload: 插件操作返回负载
         :param default_message: 缺省失败信息
-        :return: None
         """
 
     def install_plugin_dependencies_from_result(
@@ -76,8 +77,4 @@ class PluginLifecycleRuntimeOperations(Protocol):
         """
 
     def refresh_dependency_checker(self) -> None:
-        """
-        刷新插件 Python/npm 依赖检查器。
-
-        :return: None
-        """
+        """刷新插件 Python/npm 依赖检查器。"""

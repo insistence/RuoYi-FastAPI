@@ -12,16 +12,19 @@ from utils.time_util import TimezoneUtil
 
 class SchedulerSynchronizer:
     """
-    数据库任务配置校准和已应用版本管理
+    数据库任务配置校准和已应用版本管理。
+
+    :ivar jobs: 本地任务管理器
+    :ivar resources: 调度数据库资源
+    :ivar applied_jobs: 当前已同步到调度器的任务
     """
 
     def __init__(self, jobs: SchedulerJobs, resources: SchedulerResources) -> None:
         """
-        初始化配置同步所需的任务管理器和数据库资源
+        初始化配置同步所需的任务管理器和数据库资源。
 
         :param jobs: 本地任务管理器
         :param resources: 调度数据库资源
-        :return: None
         """
         self.jobs = jobs
         self.resources = resources
@@ -41,6 +44,7 @@ class SchedulerSynchronizer:
         :param is_leader: 检查当前进程是否仍持有Leader租约
         :param raise_errors: 完整扫描失败时是否阻止调度器启动
         :return: 每个任务的应用结果及总体同步状态
+        :raises Exception: 同步任务失败且调用方要求传播错误
         """
         if not is_leader():
             return self.result(
@@ -95,7 +99,7 @@ class SchedulerSynchronizer:
 
     async def sync_job(self, job_id: int, *, is_leader: Callable[[], bool]) -> dict[str, Any]:
         """
-        锁定并应用一个任务的最新配置，独立保存成功或失败状态
+        锁定并应用一个任务的最新配置，独立保存成功或失败状态。
 
         :param job_id: 任务ID
         :param is_leader: 检查当前进程是否仍持有Leader租约
@@ -148,7 +152,7 @@ class SchedulerSynchronizer:
     @staticmethod
     def result(jobs: list[dict[str, Any]], *, default: str = 'applied') -> dict[str, Any]:
         """
-        汇总逐任务结果，失败和待同步状态不会被当成全部生效
+        汇总逐任务结果，失败和待同步状态不会被当成全部生效。
 
         :param jobs: 各任务的同步结果
         :param default: 没有任务结果时使用的同步状态

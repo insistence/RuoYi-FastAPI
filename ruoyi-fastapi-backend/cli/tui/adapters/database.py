@@ -19,11 +19,11 @@ class DatabaseDetailSourcePayloads:
     """
     数据库详情页原始数据源快照。
 
-    :param revision_payload: `db current` 结果
-    :param check_payload: `db check` 结果
-    :param heads_payload: `db heads` 结果
-    :param history_payload: `db history` 结果
-    :param config_payload: `app config` 结果
+    :ivar revision_payload: ``db current`` 结果
+    :ivar check_payload: ``db check`` 结果
+    :ivar heads_payload: ``db heads`` 结果
+    :ivar history_payload: ``db history`` 结果
+    :ivar config_payload: ``app config`` 结果
     """
 
     revision_payload: dict[str, Any] | None
@@ -38,7 +38,9 @@ class DatabaseDetailSnapshotCollector:
     数据库详情页数据采集器。
 
     该对象负责拉取数据库详情页所需的多路 CLI 原始结果，
-    让 `DatabaseDetailAdapter` 保持详情页编排职责。
+    让 ``DatabaseDetailAdapter`` 保持详情页编排职责。
+
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(self, query_service: TuiRuntimeQueryService | None = None) -> None:
@@ -46,7 +48,6 @@ class DatabaseDetailSnapshotCollector:
         初始化数据库详情页数据采集器。
 
         :param query_service: TUI 进程内查询服务
-        :return: None
         """
         self.query_service = query_service or TUI_RUNTIME_QUERIES
 
@@ -86,7 +87,7 @@ class DatabaseSectionBuilder:
         """
         从 Alembic 结果中提取修订版本列表。
 
-        :param payload: `db heads` 或 `db history` JSON 负载
+        :param payload: ``db heads`` 或 ``db history`` JSON 负载
         :return: 修订版本列表
         """
         items = payload.get('items') if isinstance(payload, dict) else None
@@ -121,7 +122,7 @@ class DatabaseSectionBuilder:
         """
         构建数据库迁移状态分区。
 
-        :param payload: `db current` JSON 负载
+        :param payload: ``db current`` JSON 负载
         :return: 分区快照
         """
         current_revision = payload.get('currentRevision', '-') if isinstance(payload, dict) else '-'
@@ -155,10 +156,10 @@ class DatabaseSectionBuilder:
         """
         构建数据库页总览判断分区。
 
-        :param revision_payload: `db current` JSON 负载
-        :param check_payload: `db check` JSON 负载
-        :param heads_payload: `db heads` JSON 负载
-        :param history_payload: `db history` JSON 负载
+        :param revision_payload: ``db current`` JSON 负载
+        :param check_payload: ``db check`` JSON 负载
+        :param heads_payload: ``db heads`` JSON 负载
+        :param history_payload: ``db history`` JSON 负载
         :return: 分区快照
         """
         revision_ok = bool(isinstance(revision_payload, dict) and revision_payload.get('ok', False))
@@ -200,7 +201,7 @@ class DatabaseSectionBuilder:
         """
         构建数据库连接配置分区。
 
-        :param payload: `app config` JSON 负载
+        :param payload: ``app config`` JSON 负载
         :return: 分区快照
         """
         config = payload.get('config') if isinstance(payload, dict) else None
@@ -228,7 +229,7 @@ class DatabaseSectionBuilder:
         """
         构建数据库连通性检查分区。
 
-        :param payload: `db check` JSON 负载
+        :param payload: ``db check`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -255,7 +256,7 @@ class DatabaseSectionBuilder:
         """
         构建 Alembic heads 分区。
 
-        :param payload: `db heads` JSON 负载
+        :param payload: ``db heads`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -292,7 +293,7 @@ class DatabaseSectionBuilder:
         """
         构建 Alembic 历史版本分区。
 
-        :param payload: `db history` JSON 负载
+        :param payload: ``db history`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -372,11 +373,11 @@ class DatabaseSectionBuilder:
         """
         构建数据库页全部详情分区。
 
-        :param revision_payload: `db current` 结果负载
-        :param check_payload: `db check` 结果负载
-        :param heads_payload: `db heads` 结果负载
-        :param history_payload: `db history` 结果负载
-        :param config_payload: `app config` 结果负载
+        :param revision_payload: ``db current`` 结果负载
+        :param check_payload: ``db check`` 结果负载
+        :param heads_payload: ``db heads`` 结果负载
+        :param history_payload: ``db history`` 结果负载
+        :param config_payload: ``app config`` 结果负载
         :return: 详情分区列表
         """
         return [
@@ -398,7 +399,8 @@ class DatabaseDetailAdapter(BaseDetailAdapter):
     该适配器负责采集数据库相关 CLI 结果，并组装为 TUI 详情页快照。
     页面私有的解析逻辑、分区构建逻辑和快照采集流程统一收口在该类中。
 
-    :param section_builder: 数据库详情分区构建器
+    :ivar section_builder: 数据库详情分区构建器
+    :ivar snapshot_collector: 数据库详情页数据采集器
     """
 
     def __init__(
@@ -411,7 +413,6 @@ class DatabaseDetailAdapter(BaseDetailAdapter):
 
         :param section_builder: 数据库详情分区构建器
         :param snapshot_collector: 数据库详情页数据采集器
-        :return: None
         """
         super().__init__(
             page_title='数据库',

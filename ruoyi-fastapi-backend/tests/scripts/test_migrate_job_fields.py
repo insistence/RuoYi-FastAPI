@@ -27,6 +27,7 @@ from scripts.migrate_job_fields import (
     ],
 )
 def test_legacy_args_keep_the_old_execution_meaning(value: str | None, expected: list) -> None:
+    """旧版参数保留原执行语义。"""
     assert parse_legacy_args(value) == expected
 
 
@@ -39,6 +40,7 @@ def test_policy_migration_fixes_discard_and_preserves_other_choices(
     concurrent: str,
     limit: int,
 ) -> None:
+    """策略迁移修正丢弃策略并保留其他选择。"""
     values = convert_configuration({'misfire_policy': policy, 'concurrent': concurrent, 'job_group': 'redis'})
     assert values['misfire_grace_time'] == grace
     assert values['coalesce'] is coalesce
@@ -48,11 +50,13 @@ def test_policy_migration_fixes_discard_and_preserves_other_choices(
 
 @pytest.mark.parametrize('kwargs', ['[1]', '{broken', 'null', 'true', '{"value": NaN}'])
 def test_invalid_definition_parameters_require_repair_before_migration(kwargs: str) -> None:
+    """迁移前必须修复无效定义参数。"""
     with pytest.raises(ValueError):
         convert_configuration({'job_kwargs': kwargs})
 
 
 def test_preflight_rejects_duplicate_identity_or_names_without_mutating() -> None:
+    """预检拒绝重复身份或名称且不修改数据。"""
     engine = create_engine('sqlite://')
     with engine.begin() as connection:
         connection.exec_driver_sql(
@@ -76,6 +80,7 @@ def test_preflight_rejects_duplicate_identity_or_names_without_mutating() -> Non
 
 
 def test_pending_snapshot_is_converted_without_changing_original_data() -> None:
+    """转换待处理快照时保留原数据。"""
     original = {
         'jobId': 42,
         'jobGroup': 'sqlalchemy',
@@ -96,6 +101,11 @@ def test_pending_snapshot_is_converted_without_changing_original_data() -> None:
 
 @pytest.fixture
 def dictionary_db() -> Generator[Connection, None, None]:
+    """
+    构建供任务字段迁移测试使用的 SQLite 数据库。
+
+    :yield: 供任务字段迁移测试使用的 SQLite 数据库
+    """
     engine = create_engine('sqlite://')
     with engine.begin() as connection:
         connection.exec_driver_sql(
@@ -114,6 +124,7 @@ def dictionary_db() -> Generator[Connection, None, None]:
 
 
 def test_store_dictionary_reuses_ids_and_keeps_custom_labels_and_status(dictionary_db: Connection) -> None:
+    """存储字典复用标识并保留自定义标签和状态。"""
     dictionary_db.exec_driver_sql(
         "INSERT INTO sys_dict_type (dict_id, dict_name, dict_type) VALUES (5, '任务分组', 'sys_job_group')"
     )
@@ -145,6 +156,7 @@ def test_store_dictionary_reuses_ids_and_keeps_custom_labels_and_status(dictiona
 
 
 def test_store_dictionary_fills_old_missing_options_and_does_not_reset_later_edits(dictionary_db: Connection) -> None:
+    """存储字典补全旧版本缺失选项且保留后续编辑。"""
     dictionary_db.exec_driver_sql(
         "INSERT INTO sys_dict_type (dict_id, dict_name, dict_type) VALUES (5, '任务分组', 'sys_job_group')"
     )
@@ -178,6 +190,7 @@ def test_store_dictionary_fills_old_missing_options_and_does_not_reset_later_edi
 
 
 def test_store_dictionary_conflict_stops_before_mutation(dictionary_db: Connection) -> None:
+    """检测到存储字典冲突时在写入前停止。"""
     dictionary_db.exec_driver_sql(
         'INSERT INTO sys_dict_type (dict_id, dict_name, dict_type) VALUES '
         "(5, '任务分组', 'sys_job_group'), (8, '已有字典', 'sys_job_store')"
@@ -188,6 +201,7 @@ def test_store_dictionary_conflict_stops_before_mutation(dictionary_db: Connecti
 
 
 def test_store_dictionary_can_initialize_when_type_is_missing(dictionary_db: Connection) -> None:
+    """字典类型缺失时可初始化存储字典。"""
     assert migrate_store_dictionary(dictionary_db, plan_store_dictionary(dictionary_db)) == {
         'current': False,
         'added': 3,

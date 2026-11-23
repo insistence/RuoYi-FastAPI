@@ -50,13 +50,12 @@ _LOGOUT_QUERY_FIELDS = frozenset(_LOGOUT_QUERY_LIMITS)
 
 def _read_authorization_query(request: Request) -> dict[str, str]:
     """
-    读取并拒绝重复授权 Query 参数
+    读取并拒绝重复授权 Query 参数。
 
     :param request: 当前 HTTP 请求
     :return: 唯一 Query 参数映射
     :raises OAuthProtocolException: Query 参数重复时抛出
     """
-
     values: dict[str, str] = {}
     # 拒绝重复授权参数
     for key, value in request.query_params.multi_items():
@@ -68,13 +67,12 @@ def _read_authorization_query(request: Request) -> dict[str, str]:
 
 def _authorization_redis(request: Request) -> Redis:
     """
-    读取应用生命周期创建的 Redis 客户端
+    读取应用生命周期创建的 Redis 客户端。
 
     :param request: 当前 HTTP 请求
     :return: Redis 客户端
     :raises OAuthProtocolException: Redis 客户端不可用时抛出
     """
-
     redis = getattr(request.app.state, 'redis', None)
     if redis is None:
         raise OAuthProtocolException('server_error', 'Authorization service is unavailable', 503)
@@ -83,11 +81,10 @@ def _authorization_redis(request: Request) -> Redis:
 
 async def _enforce_authorization_rate_limit(request: Request, redis: Redis) -> None:
     """
-    按 HMAC-IP 固定窗口执行授权请求限流
+    按 HMAC-IP 固定窗口执行授权请求限流。
 
     :param request: 当前 HTTP 请求
     :param redis: Redis 客户端
-    :return: 无返回值
     :raises OAuthProtocolException: 客户端地址缺失、请求超限或限流服务不可用时抛出
     """
     # 使用 HMAC-IP 固定窗口限流，Redirect 校验前不执行外跳
@@ -112,13 +109,11 @@ async def _enforce_authorization_rate_limit(request: Request, redis: Redis) -> N
 
 async def _record_authorization_failure_audit(db: AsyncSession, **fields: Any) -> None:
     """
-    尝试记录授权失败审计，审计异常不影响原协议错误
+    尝试记录授权失败审计，审计异常不影响原协议错误。
 
     :param db: 异步数据库会话
     :param fields: 审计字段
-    :return: 无返回值
     """
-
     try:
         await AuditService.record_independent(
             db, OidcAuditEvent.AUTHORIZE_DENIED, 'failure', risk_level='high', **fields
@@ -129,24 +124,22 @@ async def _record_authorization_failure_audit(db: AsyncSession, **fields: Any) -
 
 def _oidc_not_found_response() -> Response:
     """
-    构造 OIDC 关闭时的本地 404 响应
+    构造 OIDC 关闭时的本地 404 响应。
 
     :return: OIDC 未启用时的本地 404 响应
     """
-
     return JSONResponse(content={'error': 'not_found'}, status_code=404, headers=_NO_STORE)
 
 
 def _logout_page(title: str, body: str, *, redirect_origin: str | None = None) -> HTMLResponse:
     """
-    构造仅包含服务端固定内容的退出页面
+    构造仅包含服务端固定内容的退出页面。
 
     :param title: 页面标题
     :param body: 服务端生成的页面正文
     :param redirect_origin: 已校验的客户端回调源地址
     :return: 带有内容安全策略的退出页面响应
     """
-
     form_sources = "'self'" + (f' {redirect_origin}' if redirect_origin else '')
     content = (
         '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
@@ -172,13 +165,12 @@ def _logout_page(title: str, body: str, *, redirect_origin: str | None = None) -
 
 def _confirmation_response(token: str, redirect_origin: str | None = None) -> HTMLResponse:
     """
-    构造绑定一次性凭据的退出确认页面
+    构造绑定一次性凭据的退出确认页面。
 
     :param token: 一次性退出确认凭据
     :param redirect_origin: 已校验的客户端回调源地址
     :return: 退出确认页面响应
     """
-
     return _logout_page(
         '退出认证中心？',
         (
@@ -196,23 +188,21 @@ def _confirmation_response(token: str, redirect_origin: str | None = None) -> HT
 
 def _local_response(_request: Request) -> HTMLResponse:
     """
-    构造不回显退出参数的同源完成页
+    构造不回显退出参数的同源完成页。
 
     :param _request: 当前 HTTP 请求
     :return: 同源退出完成页
     """
-
     return _logout_page('已退出', '<p>此次登录已结束，可以关闭此页面。</p>')
 
 
 async def _logout_parameters(request: Request) -> dict[str, str] | None:
     """
-    读取并校验 GET Query 或 POST Form 退出参数
+    读取并校验 GET Query 或 POST Form 退出参数。
 
     :param request: 当前 HTTP 请求
     :return: 通过校验的退出参数，校验失败时返回 None
     """
-
     if request.method == 'POST':
         try:
             values = await read_form(request)
@@ -229,12 +219,11 @@ async def _logout_parameters(request: Request) -> dict[str, str] | None:
 
 def _valid_logout_parameters(values: Iterable[tuple[str, str]]) -> bool:
     """
-    校验退出参数的字段白名单和长度
+    校验退出参数的字段白名单和长度。
 
     :param values: 待校验的退出参数
     :return: 参数是否全部通过校验
     """
-
     return all(key in _LOGOUT_QUERY_FIELDS and len(value) <= _LOGOUT_QUERY_LIMITS[key] for key, value in values)
 
 

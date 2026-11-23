@@ -23,6 +23,8 @@ class PluginOperationService:
     插件管理操作服务。
 
     使用 Facade 模式复用插件应用运行时能力，为插件管理页面接口提供检查、安装和升级入口。
+
+    :ivar runtime_service: 插件运行时服务
     """
 
     def __init__(self, runtime_service: PluginRuntimeService | None = None) -> None:
@@ -30,7 +32,6 @@ class PluginOperationService:
         初始化插件管理操作服务。
 
         :param runtime_service: 插件运行时服务
-        :return: None
         """
         self.runtime_service = runtime_service or get_plugin_runtime_service()
 

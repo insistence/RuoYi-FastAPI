@@ -7,12 +7,15 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 class CaptchaService:
-    """
-    验证码模块服务层
-    """
+    """验证码模块服务层。"""
 
     @classmethod
     async def create_captcha_image_service(cls) -> list[str, int]:
+        """
+        创建登录使用的图形验证码。
+
+        :return: 登录使用的图形验证码
+        """
         # 创建空白图像
         image = Image.new('RGB', (160, 60), color='#EAEAEA')
 

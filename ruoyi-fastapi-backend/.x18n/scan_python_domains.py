@@ -1,7 +1,3 @@
-"""
-使用标准库 AST 为 x18n 扫描消息调用，不导入或执行应用代码
-"""
-
 import ast
 import json
 import sys
@@ -9,10 +5,11 @@ import sys
 
 def scan(source: dict) -> dict:
     """
-    提取静态消息标识和显式 domain，位置使用 JavaScript UTF-16 偏移
+    提取静态消息标识和显式 domain，位置使用 JavaScript UTF-16 偏移。
 
     :param source: 包含源码路径和文本的扫描输入
     :return: 源码路径及消息调用信息
+    :raises ValueError: 静态翻译消息的域不是字面字符串或模块常量
     """
     text = source['text']
     tree = ast.parse(text, filename=source['path'])
@@ -34,7 +31,7 @@ def scan(source: dict) -> dict:
 
     def position(line: int, column: int) -> int:
         """
-        将 Python AST 的 UTF-8 字节位置转换为 JavaScript UTF-16 偏移
+        将 Python AST 的 UTF-8 字节位置转换为 JavaScript UTF-16 偏移。
 
         :param line: 从 1 开始的源码行号
         :param column: 从 0 开始的 UTF-8 字节列偏移

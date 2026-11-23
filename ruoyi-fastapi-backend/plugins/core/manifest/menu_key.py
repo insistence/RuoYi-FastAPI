@@ -7,6 +7,10 @@ from plugins.core.manifest.schema import PluginMenuManifest
 class InstalledPluginMenu:
     """
     已安装插件菜单快照。
+
+    :ivar menu_id: 菜单ID
+    :ivar menu_key: 插件内菜单自然键
+    :ivar manifest_menu: 插件菜单声明
     """
 
     menu_id: int

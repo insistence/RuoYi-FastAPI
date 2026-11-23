@@ -9,17 +9,13 @@ from utils.oidc_util import OidcUtil
 
 
 class OidcKeyModel(BaseModel):
-    """
-    OIDC 签名密钥管理模型基类
-    """
+    """OIDC 签名密钥管理模型基类。"""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True, extra='forbid')
 
 
 class OidcKeyRotateModel(OidcKeyModel):
-    """
-    OIDC 签名密钥轮换请求模型
-    """
+    """OIDC 签名密钥轮换请求模型。"""
 
     alg: Literal['RS256'] = Field(default='RS256', description='签名算法')
     kid: str = Field(min_length=1, max_length=100, description='签名密钥标识')
@@ -31,19 +27,16 @@ class OidcKeyRotateModel(OidcKeyModel):
     @classmethod
     def validate_kid(cls, value: str) -> str:
         """
-        拒绝无法安全放入密钥路径的 kid
+        拒绝无法安全放入密钥路径的 kid。
 
         :param value: 待校验的签名密钥标识
         :return: 校验通过的签名密钥标识
         """
-
         return OidcUtil.validate_path_identifier(value, '签名密钥标识 kid')
 
 
 class OidcKeyViewModel(OidcKeyModel):
-    """
-    仅包含公开 JWK 的签名密钥详情模型
-    """
+    """仅包含公开 JWK 的签名密钥详情模型。"""
 
     kid: str = Field(description='签名密钥标识')
     key_use: Literal['sig'] = Field(default='sig', description='密钥用途')

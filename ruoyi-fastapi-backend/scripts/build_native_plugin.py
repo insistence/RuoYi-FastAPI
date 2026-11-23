@@ -19,6 +19,7 @@ def _resource_roots(source: Path, manifest: Any, output: Path) -> list[Path]:
     :param manifest: 已解析的插件清单
     :param output: 待创建的构建输出目录
     :return: 通过路径检查的部署资源根路径
+    :raises ValueError: 缺少 bundle HTML 入口，请先独立构建前端后再组装制品；输出目录不能位于待交付资源目录内
     """
     from plugins.core.artifacts.package import is_link_or_reparse  # noqa: PLC0415
     from plugins.core.artifacts.schema import safe_artifact_path  # noqa: PLC0415
@@ -57,6 +58,7 @@ def collect_deployment_resources(source: Path, manifest: Any, output: Path) -> d
     :param manifest: 已解析的插件清单
     :param output: 待创建的构建输出目录
     :return: 插件内相对路径与对应源码文件的映射
+    :raises ValueError: 交付资源超过制品文件数量或大小限制
     """
     from plugins.core.artifacts.package import (  # noqa: PLC0415
         CACHE_DIRECTORIES,
@@ -117,7 +119,7 @@ def main() -> None:
     """
     构建原生 wheel 并组装可离线交付的插件目录与 ZIP。
 
-    :return: None
+    :raises ValueError: 交付资源不能越过插件目录
     """
     parser = argparse.ArgumentParser(
         description='构建、静态验证并组装原生插件；使用当前 Python 环境，不写入运行中的 plugins。'

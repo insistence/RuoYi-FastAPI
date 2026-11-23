@@ -13,8 +13,12 @@ class PluginJobModelBuilder:
     """
     插件任务模型构建器。
 
-    使用 Builder 模式将插件 manifest 中的任务声明转换为系统已有的 `JobModel`，
+    使用 Builder 模式将插件 manifest 中的任务声明转换为系统已有的 ``JobModel``，
     让插件任务复用平台原有定时任务表、调度器和日志能力。
+
+    :cvar JOB_GROUP: 插件调度任务使用的分组
+    :cvar JOB_NAME_MAX_LENGTH: 插件任务名称允许的最大长度
+    :cvar REMARK_PREFIX: 标识插件任务的备注前缀
     """
 
     JOB_GROUP = 'default'
@@ -33,6 +37,7 @@ class PluginJobModelBuilder:
         :param enabled: 任务是否启用
         :param manifest: 用于校验任务归属并选择 v2 分发入口的插件清单
         :return: 系统定时任务模型
+        :raises ValueError: 任务不属于当前插件清单；任务 callable 越过插件模块边界
         """
         target, args, kwargs = job.callable, job.args, job.kwargs
         if manifest is not None and manifest.uses_entrypoint:
@@ -74,7 +79,7 @@ class PluginJobModelBuilder:
 
         :param plugin_id: 插件ID
         :param callable_path: 任务调用目标
-        :return: None
+        :raises ValueError: 任务回调不属于当前插件模块
         """
         expected_prefix = f'plugins.{plugin_id}.'
         if not callable_path.startswith(expected_prefix):
@@ -108,8 +113,10 @@ class PluginJobRepository:
     """
     插件任务仓储。
 
-    插件任务复用系统 `sys_job` 表，但插件专用查询和批量清理逻辑收敛在插件模块内，
+    插件任务复用系统 ``sys_job`` 表，但插件专用查询和批量清理逻辑收敛在插件模块内，
     避免向原任务 DAO 暴露插件语义。
+
+    :ivar query_db: orm对象
     """
 
     def __init__(self, query_db: AsyncSession) -> None:
@@ -117,7 +124,6 @@ class PluginJobRepository:
         初始化插件任务仓储。
 
         :param query_db: orm对象
-        :return: None
         """
         self.query_db = query_db
 
@@ -147,7 +153,6 @@ class PluginJobRepository:
         根据任务名称前缀暂停插件任务。
 
         :param job_name_prefix: 任务名称前缀
-        :return: None
         """
         escaped_prefix = escape_sql_like(job_name_prefix)
         escaped_remark_prefix = escape_sql_like(f'{PluginJobModelBuilder.REMARK_PREFIX} {job_name_prefix}')
@@ -187,7 +192,6 @@ class PluginJobRepository:
         根据任务名称前缀删除插件任务。
 
         :param job_name_prefix: 任务名称前缀
-        :return: None
         """
         escaped_prefix = escape_sql_like(job_name_prefix)
         escaped_remark_prefix = escape_sql_like(f'{PluginJobModelBuilder.REMARK_PREFIX} {job_name_prefix}')
@@ -207,7 +211,6 @@ class PluginJobRepository:
 
         :param plugin_id: 插件ID
         :param desired_job_names: manifest 当前声明的完整任务名称集合
-        :return: None
         """
         job_name_prefix = f'{plugin_id}:'
         escaped_prefix = escape_sql_like(job_name_prefix)
@@ -225,8 +228,11 @@ class PluginJobInstaller:
     """
     插件定时任务安装器。
 
-    使用 Installer 模式负责将启用插件的任务声明幂等写入 `sys_job`，并在插件停用或
+    使用 Installer 模式负责将启用插件的任务声明幂等写入 ``sys_job``，并在插件停用或
     出错时暂停对应任务。
+
+    :ivar query_db: orm对象
+    :ivar repository: 保存任务配置的仓储对象
     """
 
     def __init__(self, query_db: AsyncSession) -> None:
@@ -234,7 +240,6 @@ class PluginJobInstaller:
         初始化插件定时任务安装器。
 
         :param query_db: orm对象
-        :return: None
         """
         self.query_db = query_db
         self.repository = PluginJobRepository(query_db)
@@ -264,6 +269,7 @@ class PluginJobInstaller:
 
         :param job_model: 系统定时任务模型
         :return: 写入后的系统任务对象
+        :raises ValueError: 同组已有同名的非插件任务
         """
         existing_job = await self.repository.get_job_detail_by_name_group(job_model.job_name, job_model.job_group)
         if existing_job:
@@ -302,6 +308,5 @@ class PluginJobInstaller:
         暂停指定插件的所有任务。
 
         :param plugin_id: 插件ID
-        :return: None
         """
         await self.repository.pause_jobs_by_name_prefix(f'{plugin_id}:')

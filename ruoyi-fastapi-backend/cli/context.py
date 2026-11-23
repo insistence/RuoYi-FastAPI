@@ -11,13 +11,13 @@ class CliContext:
     """
     CLI 运行上下文。
 
-    env: 当前加载的配置文件选择名
-    app_env: 已加载配置声明的实际应用环境
-    output: 结果输出格式
-    operator: 操作者标识，后续用于审计
-    allow_prod: 是否显式允许生产环境执行危险命令
-    yes: 是否跳过二次确认
-    dry_run: 是否执行演练模式
+    :ivar env: 当前加载的配置文件选择名
+    :ivar app_env: 已加载配置声明的实际应用环境
+    :ivar output: 结果输出格式
+    :ivar operator: 操作者标识，后续用于审计
+    :ivar allow_prod: 是否显式允许生产环境执行危险命令
+    :ivar yes: 是否跳过二次确认
+    :ivar dry_run: 是否执行演练模式
     """
 
     env: str = 'dev'
@@ -33,7 +33,7 @@ class CliContextBuilder:
     """
     CLI 上下文构建器。
 
-    该对象负责将命令层显式参数收口为统一的 `CliContext` 数据对象，
+    该对象负责将命令层显式参数收口为统一的 ``CliContext`` 数据对象，
     供上下文工厂与测试场景复用。
     """
 

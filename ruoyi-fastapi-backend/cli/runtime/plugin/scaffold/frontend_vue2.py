@@ -2,9 +2,7 @@ from .naming import PluginScaffoldNaming
 
 
 class PluginVue2FrontendScaffoldTemplateBuilder:
-    """
-    Vue 2 前端插件模板内容构建器。
-    """
+    """Vue 2 前端插件模板内容构建器。"""
 
     @staticmethod
     def build_view(plugin_id: str) -> str:

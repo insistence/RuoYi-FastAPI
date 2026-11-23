@@ -16,6 +16,9 @@ from plugins.core.lifecycle.migration import (
 class FakeManagedMigrationSession(list):
     """
     测试用托管 migration 执行 session。
+
+    :ivar committed: 是否已经提交事务
+    :ivar rolled_back: 是否已经回滚事务
     """
 
     def __init__(self) -> None:
@@ -36,6 +39,11 @@ class FakeManagedMigrationSession(list):
 class FakeMigrationHistoryStore(PluginMigrationHistoryStore):
     """
     测试用 migration 历史存储。
+
+    :ivar history_records: 已保存的历史执行记录
+    :ivar records: 当前测试保存的记录
+    :ivar running_records: 当前处于运行状态的记录
+    :ivar failure_records: 记录执行失败的条目
     """
 
     def __init__(
@@ -43,7 +51,12 @@ class FakeMigrationHistoryStore(PluginMigrationHistoryStore):
         checksums: dict[tuple[str, str], str] | None = None,
         records: dict[tuple[str, str], PluginMigrationHistoryRecord] | None = None,
     ) -> None:
-        """初始化测试用 migration 历史存储。"""
+        """
+        初始化测试用 migration 历史存储。
+
+        :param checksums: 按资源名索引的校验和
+        :param records: 当前测试保存的记录
+        """
         self.history_records = records or {
             key: PluginMigrationHistoryRecord(checksum=value) for key, value in (checksums or {}).items()
         }
@@ -57,7 +70,14 @@ class FakeMigrationHistoryStore(PluginMigrationHistoryStore):
         plugin_id: str,
         migration_path: str,
     ) -> PluginMigrationHistoryRecord | None:
-        """获取已执行 migration 记录。"""
+        """
+        获取已执行 migration 记录。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :return: 已执行 migration 记录
+        """
         return self.history_records.get((plugin_id, migration_path))
 
     async def record_running(
@@ -69,7 +89,16 @@ class FakeMigrationHistoryStore(PluginMigrationHistoryStore):
         version: str,
         statement_count: int,
     ) -> None:
-        """记录 migration 开始执行。"""
+        """
+        记录 migration 开始执行。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param checksum: 校验内容完整性使用的校验和
+        :param version: 当前记录的版本
+        :param statement_count: SQL 语句数量
+        """
         self.running_records.append((plugin_id, migration_path, checksum, version, statement_count))
 
     async def record_success(
@@ -81,7 +110,16 @@ class FakeMigrationHistoryStore(PluginMigrationHistoryStore):
         version: str,
         statement_count: int,
     ) -> None:
-        """记录 migration 成功执行历史。"""
+        """
+        记录 migration 成功执行历史。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param checksum: 校验内容完整性使用的校验和
+        :param version: 当前记录的版本
+        :param statement_count: SQL 语句数量
+        """
         self.records.append((plugin_id, migration_path, checksum, version, statement_count))
 
     async def record_failure(
@@ -94,7 +132,17 @@ class FakeMigrationHistoryStore(PluginMigrationHistoryStore):
         statement_count: int,
         error_message: str,
     ) -> None:
-        """记录 migration 失败历史。"""
+        """
+        记录 migration 失败历史。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param checksum: 校验内容完整性使用的校验和
+        :param version: 当前记录的版本
+        :param statement_count: SQL 语句数量
+        :param error_message: 记录到结果或审计日志中的错误详情
+        """
         self.failure_records.append((plugin_id, migration_path, checksum, version, statement_count, error_message))
 
 
@@ -103,7 +151,13 @@ def write_plugin_with_migration(
     migration_content: str,
     migration_name: str = '001_demo.py',
 ) -> None:
-    """写入带 migration 的测试插件。"""
+    """
+    写入带 migration 的测试插件。
+
+    :param plugin_root: 插件的根目录
+    :param migration_content: 测试迁移脚本的内容
+    :param migration_name: 迁移脚本的文件名
+    """
     (plugin_root / 'migrations').mkdir(parents=True)
     (plugin_root / 'migrations' / migration_name).write_text(migration_content, encoding='utf-8')
     (plugin_root / 'plugin.yaml').write_text(
@@ -121,7 +175,11 @@ backend:
 
 
 def write_plugin_with_database_migrations(plugin_root: Path) -> None:
-    """写入带数据库方言 migration 的测试插件。"""
+    """
+    写入带数据库方言 migration 的测试插件。
+
+    :param plugin_root: 插件的根目录
+    """
     (plugin_root / 'migrations' / 'mysql').mkdir(parents=True)
     (plugin_root / 'migrations' / 'postgresql').mkdir(parents=True)
     (plugin_root / 'migrations' / 'mysql' / '001_demo.sql').write_text(
@@ -292,7 +350,13 @@ async def test_plugin_migration_runner_reports_recovery_when_success_history_wri
     query_db = FakeManagedMigrationSession()
 
     async def fail_record_success(*_args: object, **_kwargs: object) -> None:
-        """模拟 success 历史写入失败。"""
+        """
+        模拟 success 历史写入失败。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :raises RuntimeError: 模拟记录迁移历史时服务不可用
+        """
         raise RuntimeError('history down')
 
     history_store.record_success = fail_record_success  # type: ignore[method-assign]

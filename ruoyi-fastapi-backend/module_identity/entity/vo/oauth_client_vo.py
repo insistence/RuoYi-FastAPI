@@ -10,17 +10,13 @@ _MAX_ROLE_KEY_LENGTH = 100
 
 
 class ClientModel(BaseModel):
-    """
-    OAuth Client 管理模型基类
-    """
+    """OAuth Client 管理模型基类。"""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True, extra='forbid')
 
 
 class ClientCreateModel(ClientModel):
-    """
-    创建 OAuth Client 请求
-    """
+    """创建 OAuth Client 请求。"""
 
     client_name: str = Field(min_length=1, max_length=100, description='客户端名称')
     client_type: Literal['public', 'confidential'] = Field(
@@ -56,12 +52,11 @@ class ClientCreateModel(ClientModel):
     @classmethod
     def default_non_code_response_types(cls, value: Any) -> Any:
         """
-        为不含 authorization_code 的 Client 默认空 response_types
+        为不含 authorization_code 的 Client 默认空 response_types。
 
         :param value: 管理端提交的原始字段映射
         :return: 应用默认值后的原始字段映射
         """
-
         if isinstance(value, dict) and 'response_types' not in value and 'responseTypes' not in value:
             grant_key = 'grant_types' if 'grant_types' in value else 'grantTypes'
             response_key = 'response_types' if 'grant_types' in value else 'responseTypes'
@@ -73,12 +68,11 @@ class ClientCreateModel(ClientModel):
     @model_validator(mode='after')
     def validate_auth_policy(self) -> 'ClientCreateModel':  # noqa: PLR0912
         """
-        校验 Client Authentication、Grant、PKCE 与 URI 注册策略
+        校验 Client Authentication、Grant、PKCE 与 URI 注册策略。
 
         :return: 当前已校验 Client 创建模型
         :raises ValueError: 策略、Grant 或注册 URI 不符合规范
         """
-
         if len(set(self.allowed_role_keys)) != len(self.allowed_role_keys) or any(
             not role or len(role) > _MAX_ROLE_KEY_LENGTH or '*' in role or any(char.isspace() for char in role)
             for role in self.allowed_role_keys
@@ -120,7 +114,7 @@ class ClientCreateModel(ClientModel):
 
 class ClientUpdateModel(ClientCreateModel):
     """
-    更新 OAuth Client 的管理请求
+    更新 OAuth Client 的管理请求。
 
     更新请求必须携带外部 client_id。
     """
@@ -130,7 +124,7 @@ class ClientUpdateModel(ClientCreateModel):
 
 class ClientViewModel(ClientCreateModel):
     """
-    OAuth Client 安全字段脱敏后的详情模型
+    OAuth Client 安全字段脱敏后的详情模型。
 
     模型不包含任何明文或哈希 Client Secret。
     """
@@ -144,7 +138,7 @@ class ClientViewModel(ClientCreateModel):
 
 class ClientSecretResponseModel(ClientModel):
     """
-    Client Secret 一次性展示响应
+    Client Secret 一次性展示响应。
 
     调用方必须在本次响应后立即安全保存明文 Secret。
     """
@@ -158,9 +152,7 @@ class ClientSecretResponseModel(ClientModel):
 
 
 class SecretRotationModel(ClientModel):
-    """
-    Client Secret 轮换的时间策略
-    """
+    """Client Secret 轮换的时间策略。"""
 
     not_before: ApiUtcDateTime | None = Field(default=None, description='密钥生效时间')
     expires_at: ApiUtcDateTime | None = Field(default=None, description='过期时间')
@@ -169,7 +161,7 @@ class SecretRotationModel(ClientModel):
 
 class ClientUriModel(ClientModel):
     """
-    单个注册 URI 的管理模型
+    单个注册 URI 的管理模型。
 
     URI 在 DTO 边界执行精确匹配所需的安全校验。
     """
@@ -184,11 +176,10 @@ class ClientUriModel(ClientModel):
     @model_validator(mode='after')
     def validate_uri(self) -> 'ClientUriModel':
         """
-        校验并规范化单个注册 URI
+        校验并规范化单个注册 URI。
 
         :return: 当前已校验 URI 模型
         """
-
         self.uri = OidcUtil.validate_registered_uri(self.uri_type, self.uri)
 
         return self
@@ -196,7 +187,7 @@ class ClientUriModel(ClientModel):
 
 class ClientPageQueryModel(ClientModel):
     """
-    Client 分页查询参数
+    Client 分页查询参数。
 
     page_num 与 page_size 使用管理端统一分页约束。
     """
@@ -212,7 +203,7 @@ class ClientPageQueryModel(ClientModel):
 
 class ClientStatusModel(ClientModel):
     """
-    Client 启停状态变更请求
+    Client 启停状态变更请求。
 
     status 只允许项目约定的 0（正常）或 1（停用）。
     """

@@ -20,13 +20,7 @@ def test_complete_alembic_revisions_returns_default_choices_and_local_revisions(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    """
-    校验 Alembic 版本补全会返回默认候选和本地迁移版本。
-
-    :param tmp_path: pytest 临时目录
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验 Alembic 版本补全会返回默认候选和本地迁移版本。"""
     versions_dir = tmp_path / 'alembic' / 'versions'
     versions_dir.mkdir(parents=True)
     (versions_dir / '2026_04_29_1000-abc123_add_demo_table.py').write_text('# test', encoding='utf-8')
@@ -47,13 +41,7 @@ def test_complete_sql_files_returns_project_relative_sql_paths(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    """
-    校验 SQL 文件补全会返回项目相对路径。
-
-    :param tmp_path: pytest 临时目录
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验 SQL 文件补全会返回项目相对路径。"""
     sql_dir = tmp_path / 'sql'
     sql_dir.mkdir()
     (sql_dir / 'demo.sql').write_text('select 1;', encoding='utf-8')
@@ -66,16 +54,13 @@ def test_complete_sql_files_returns_project_relative_sql_paths(
 
 
 def test_complete_cache_names_returns_static_cache_name_choices(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验缓存名称补全会返回系统内置缓存名称。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验缓存名称补全会返回系统内置缓存名称。"""
 
     class _FakeCacheKeyConfig:
         """
         模拟缓存键配置对象。
+
+        :ivar key: 缓存名称
         """
 
         def __init__(self, key: str) -> None:
@@ -83,13 +68,14 @@ def test_complete_cache_names_returns_static_cache_name_choices(monkeypatch: Mon
             初始化模拟缓存键配置对象。
 
             :param key: 缓存名称
-            :return: None
             """
             self.key = key
 
     class _FakeEnumsModule:
         """
         模拟枚举模块。
+
+        :cvar RedisInitKeyConfig: 测试使用的 Redis 初始化键配置
         """
 
         RedisInitKeyConfig = [_FakeCacheKeyConfig('sys_config'), _FakeCacheKeyConfig('login_tokens')]
@@ -107,13 +93,7 @@ def test_complete_output_paths_returns_directories_and_zip_files(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    """
-    校验导出路径补全会返回目录和 zip 文件。
-
-    :param tmp_path: pytest 临时目录
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验导出路径补全会返回目录和 zip 文件。"""
     build_dir = tmp_path / 'build'
     build_dir.mkdir()
     (build_dir / 'gen.zip').write_text('zip', encoding='utf-8')
@@ -128,22 +108,17 @@ def test_complete_output_paths_returns_directories_and_zip_files(
 
 
 def test_complete_config_keys_returns_dynamic_readonly_choices(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验参数键名补全会返回动态只读查询结果。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验参数键名补全会返回动态只读查询结果。"""
 
     class _FakeConfigRuntime:
         """
         模拟配置运行时模块。
+
+        :cvar CONFIG_RUNTIME: 配置命令的测试运行时
         """
 
         class ConfigRuntime:
-            """
-            模拟配置运行时服务对象。
-            """
+            """模拟配置运行时服务对象。"""
 
             @staticmethod
             def list_configs(**kwargs: str) -> dict:
@@ -178,22 +153,17 @@ def test_complete_config_keys_returns_dynamic_readonly_choices(monkeypatch: Monk
 
 
 def test_complete_gen_table_names_returns_dynamic_readonly_choices(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验代码生成业务表补全会返回动态只读查询结果。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验代码生成业务表补全会返回动态只读查询结果。"""
 
     class _FakeGenRuntime:
         """
         模拟代码生成运行时模块。
+
+        :cvar GEN_RUNTIME: 生成器命令的测试运行时
         """
 
         class GenRuntime:
-            """
-            模拟代码生成运行时服务对象。
-            """
+            """模拟代码生成运行时服务对象。"""
 
             @staticmethod
             def list_gen_tables(**kwargs: str) -> dict:
@@ -236,12 +206,7 @@ def test_complete_gen_table_names_returns_dynamic_readonly_choices(monkeypatch: 
 
 
 def test_dynamic_completion_returns_empty_list_when_runtime_fails(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验动态补全在运行时失败时会优雅降级为空列表。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验动态补全在运行时失败时会优雅降级为空列表。"""
     monkeypatch.setattr(
         completion_registry.dynamic_service,
         'load_runtime_module',
@@ -254,22 +219,17 @@ def test_dynamic_completion_returns_empty_list_when_runtime_fails(monkeypatch: M
 
 
 def test_complete_cache_keys_returns_dynamic_readonly_choices(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验缓存键名补全会基于缓存名称返回动态只读查询结果。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验缓存键名补全会基于缓存名称返回动态只读查询结果。"""
 
     class _FakeCacheRuntime:
         """
         模拟缓存运行时模块。
+
+        :cvar CACHE_RUNTIME: 缓存命令的测试运行时
         """
 
         class CacheRuntime:
-            """
-            模拟缓存运行时服务对象。
-            """
+            """模拟缓存运行时服务对象。"""
 
             @staticmethod
             def list_cache_keys(cache_name: str) -> dict[str, str]:
@@ -286,6 +246,8 @@ def test_complete_cache_keys_returns_dynamic_readonly_choices(monkeypatch: Monke
     class _FakeContext:
         """
         模拟 Click 上下文。
+
+        :cvar params: 调用时传入的参数
         """
 
         params = {'cache_name': 'sys_config'}
@@ -308,22 +270,17 @@ def test_complete_cache_keys_returns_dynamic_readonly_choices(monkeypatch: Monke
 
 
 def test_complete_job_names_returns_dynamic_readonly_choices(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验任务名称补全会返回动态只读查询结果。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验任务名称补全会返回动态只读查询结果。"""
 
     class _FakeJobRuntime:
         """
         模拟任务运行时模块。
+
+        :cvar JOB_RUNTIME: 调度命令的测试运行时
         """
 
         class JobRuntime:
-            """
-            模拟任务运行时服务对象。
-            """
+            """模拟任务运行时服务对象。"""
 
             @staticmethod
             def list_jobs(**kwargs: str) -> dict:
@@ -356,22 +313,17 @@ def test_complete_job_names_returns_dynamic_readonly_choices(monkeypatch: Monkey
 
 
 def test_complete_job_ids_returns_dynamic_readonly_choices(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验任务 ID 补全会返回动态只读查询结果。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验任务 ID 补全会返回动态只读查询结果。"""
 
     class _FakeJobRuntime:
         """
         模拟任务运行时模块。
+
+        :cvar JOB_RUNTIME: 调度命令的测试运行时
         """
 
         class JobRuntime:
-            """
-            模拟任务运行时服务对象。
-            """
+            """模拟任务运行时服务对象。"""
 
             @staticmethod
             def list_jobs(**kwargs: str) -> dict:
@@ -404,16 +356,16 @@ def test_complete_job_ids_returns_dynamic_readonly_choices(monkeypatch: MonkeyPa
 
 
 def test_run_completion_coroutine_scopes_app_env(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验动态补全执行时会临时注入 APP_ENV，并在结束后恢复原值。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验动态补全执行时会临时注入 APP_ENV，并在结束后恢复原值。"""
     monkeypatch.setenv('APP_ENV', 'prod')
     captured: dict[str, str | None] = {}
 
     async def _read_env() -> str | None:
+        """
+        记录调用期间可见的应用环境。
+
+        :return: 被测调用期间读取的环境标记
+        """
         captured['during'] = os.environ.get('APP_ENV')
         return captured['during']
 
@@ -425,15 +377,15 @@ def test_run_completion_coroutine_scopes_app_env(monkeypatch: MonkeyPatch) -> No
 
 
 def test_run_completion_coroutine_clears_scoped_app_env_when_original_missing(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验动态补全执行结束后会移除临时注入的 APP_ENV。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验动态补全执行结束后会移除临时注入的 APP_ENV。"""
     monkeypatch.delenv('APP_ENV', raising=False)
 
     async def _read_env() -> str | None:
+        """
+        记录调用期间可见的应用环境。
+
+        :return: 环境变量中记录的运行环境
+        """
         return os.environ.get('APP_ENV')
 
     result = completion_registry.dynamic_service.run_completion_coroutine(_read_env(), env='dockerpg')

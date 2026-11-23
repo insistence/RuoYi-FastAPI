@@ -21,7 +21,18 @@ from utils.transport_crypto_util import (
 
 class TransportCryptoMiddleware:
     """
-    传输层请求解密与响应加密中间件
+    传输层请求解密与响应加密中间件。
+
+    :cvar _STANDARD_OIDC_PATHS: 使用标准 OIDC 传输协议的端点路径
+    :cvar _ENCRYPT_REQUEST_HEADER: 标识请求加密方式的 HTTP 头
+    :cvar _ENCRYPT_RESPONSE_HEADER: 标识响应加密方式的 HTTP 头
+    :cvar _ENCRYPT_ALG_HEADER: 声明加密算法的 HTTP 头
+    :cvar _ENCRYPT_KID_HEADER: 声明加密密钥标识的 HTTP 头
+    :cvar _MONITOR_REQUEST_MODE_HEADER: 记录请求加密模式的监控头
+    :cvar _MONITOR_RESPONSE_MODE_HEADER: 记录响应加密模式的监控头
+    :cvar _MONITOR_STATUS_HEADER: 记录加密处理状态的监控头
+    :cvar _MONITOR_KID_HEADER: 记录密钥标识的监控头
+    :ivar app: FastAPI/Starlette应用对象
     """
 
     # 标准 OAuth/OIDC 客户端无法理解项目自定义传输信封，协议路径始终旁路，
@@ -49,21 +60,19 @@ class TransportCryptoMiddleware:
 
     def __init__(self, app: ASGIApp) -> None:
         """
-        初始化传输层加解密中间件
+        初始化传输层加解密中间件。
 
         :param app: FastAPI/Starlette应用对象
-        :return: None
         """
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
-        拦截HTTP请求，按配置执行请求解密与响应加密
+        拦截HTTP请求，按配置执行请求解密与响应加密。
 
         :param scope: 当前ASGI请求作用域
         :param receive: ASGI receive函数
         :param send: ASGI send函数
-        :return: None
         """
         if scope['type'] != 'http' or not TransportCryptoConfig.transport_crypto_enabled:
             await self.app(scope, receive, send)
@@ -156,6 +165,11 @@ class TransportCryptoMiddleware:
             return
 
         async def send_wrapper(message: Message) -> None:
+            """
+            在发送 HTTP 响应时应用传输加密策略。
+
+            :param message: 原始异常信息
+            """
             await response_encryptor(message)
 
         response_encryptor = self._build_response_encryptor(
@@ -174,13 +188,14 @@ class TransportCryptoMiddleware:
         body: bytes,
     ) -> tuple[Scope, bytes, dict[str, str | bytes | bool]]:
         """
-        解密请求并回写解密后的headers、query和body
+        解密请求并回写解密后的headers、query和body。
 
         :param scope: 当前ASGI请求作用域
         :param request: FastAPI请求对象
         :param headers: 当前请求头对象
         :param body: 原始请求体字节串
         :return: 解密后的scope、请求体与加密上下文
+        :raises ValueError: 未找到可解密的请求载荷；请求中存在不一致的密钥版本；请求中存在不一致的会话密钥；加密请求缺少可用的密钥上下文
         """
         new_scope = dict(scope)
         new_scope['state'] = dict(scope.get('state', {}))
@@ -232,7 +247,7 @@ class TransportCryptoMiddleware:
         envelope: dict[str, str],
     ) -> DecryptedTransportEnvelope:
         """
-        解密单个请求信封并执行时间窗、防重放校验
+        解密单个请求信封并执行时间窗、防重放校验。
 
         :param request: 当前请求对象
         :param scope: 当前ASGI请求作用域
@@ -250,7 +265,7 @@ class TransportCryptoMiddleware:
 
     def _extract_query_envelope(self, scope: Scope) -> dict[str, str] | None:
         """
-        从查询参数中提取加密信封
+        从查询参数中提取加密信封。
 
         :param scope: 当前ASGI请求作用域
         :return: 查询参数中的信封字典，不存在时返回None
@@ -263,11 +278,12 @@ class TransportCryptoMiddleware:
 
     def _extract_body_envelope(self, content_type: str, body: bytes) -> dict[str, str] | None:
         """
-        根据内容类型从请求体中提取加密信封
+        根据内容类型从请求体中提取加密信封。
 
         :param content_type: 当前请求内容类型
         :param body: 原始请求体字节串
         :return: 请求体中的信封字典，不存在时返回None
+        :raises ValueError: 加密请求体格式不合法
         """
         if not body or 'multipart/form-data' in content_type:
             return None
@@ -303,8 +319,9 @@ class TransportCryptoMiddleware:
         crypto_context: dict[str, str | bytes | bool],
     ) -> Callable[[Message], Awaitable[None]]:
         """
-        构建响应加密发送器，仅对JSON响应执行加密
+        构建响应加密发送器，仅对JSON响应执行加密。
 
+        :param app: FastAPI/Starlette应用对象
         :param scope: 当前ASGI请求作用域
         :param send: ASGI send函数
         :param crypto_context: 当前请求加密上下文
@@ -315,6 +332,11 @@ class TransportCryptoMiddleware:
         should_buffer_json = False
 
         async def _encrypt_response(message: Message) -> None:
+            """
+            按协商的密钥和算法加密响应内容。
+
+            :param message: 原始异常信息
+            """
             nonlocal response_start_message, should_buffer_json
 
             if message['type'] == 'http.response.start':
@@ -402,8 +424,9 @@ class TransportCryptoMiddleware:
         kid: str | None = None,
     ) -> Callable[[Message], Awaitable[None]]:
         """
-        构建明文响应观察器，为响应追加监控诊断头
+        构建明文响应观察器，为响应追加监控诊断头。
 
+        :param app: FastAPI/Starlette应用对象
         :param send: ASGI send函数
         :param request_mode: 请求传输模式
         :param crypto_status: 当前传输层处理状态
@@ -413,6 +436,11 @@ class TransportCryptoMiddleware:
         has_recorded_response = False
 
         async def _observe_response(message: Message) -> None:
+            """
+            记录直通响应的传输状态。
+
+            :param message: 原始异常信息
+            """
             nonlocal has_recorded_response
 
             if message['type'] == 'http.response.start':
@@ -441,7 +469,7 @@ class TransportCryptoMiddleware:
 
     def _build_crypto_context(self, decrypted_payload: DecryptedTransportEnvelope) -> dict[str, str | bytes | bool]:
         """
-        从解密结果构建请求生命周期内的加密上下文
+        从解密结果构建请求生命周期内的加密上下文。
 
         :param decrypted_payload: 解密后的请求信封对象
         :return: 请求加密上下文字典
@@ -459,7 +487,7 @@ class TransportCryptoMiddleware:
         body: bytes,
     ) -> dict[str, str | bytes | bool] | None:
         """
-        尝试在解密失败场景下提取AES会话密钥，以便返回加密错误响应
+        尝试在解密失败场景下提取AES会话密钥，以便返回加密错误响应。
 
         :param scope: 当前ASGI请求作用域
         :param headers: 当前请求头对象
@@ -488,7 +516,7 @@ class TransportCryptoMiddleware:
 
     def _extract_request_kid(self, scope: Scope, headers: Headers, body: bytes) -> str | None:
         """
-        尝试从原始请求信封中提取密钥版本
+        尝试从原始请求信封中提取密钥版本。
 
         :param scope: 当前ASGI请求作用域
         :param headers: 当前请求头对象
@@ -509,10 +537,11 @@ class TransportCryptoMiddleware:
     @staticmethod
     def _loads_json_mapping(payload: str) -> dict:
         """
-        将JSON字符串解析为字典，并限制结果必须为JSON对象
+        将JSON字符串解析为字典，并限制结果必须为JSON对象。
 
         :param payload: JSON字符串
         :return: 解析后的字典对象
+        :raises ValueError: 解密后的请求载荷必须为JSON对象
         """
         json_payload = json.loads(payload)
         if not isinstance(json_payload, dict):
@@ -522,7 +551,7 @@ class TransportCryptoMiddleware:
     @staticmethod
     async def _read_body(receive: Receive) -> bytes:
         """
-        从ASGI receive中读取完整请求体
+        从ASGI receive中读取完整请求体。
 
         :param receive: ASGI receive函数
         :return: 完整请求体字节串
@@ -540,7 +569,7 @@ class TransportCryptoMiddleware:
     @staticmethod
     def _build_receive(body: bytes) -> Receive:
         """
-        根据指定请求体重建一次性可消费的ASGI receive函数
+        根据指定请求体重建一次性可消费的ASGI receive函数。
 
         :param body: 需要回放的请求体字节串
         :return: 重建后的ASGI receive函数
@@ -548,6 +577,11 @@ class TransportCryptoMiddleware:
         has_been_called = False
 
         async def _receive() -> Message:
+            """
+            将缓冲的请求体交还给下游 ASGI 应用。
+
+            :return: 带有已缓冲请求体的 ASGI 消息
+            """
             nonlocal has_been_called
             if has_been_called:
                 return {'type': 'http.request', 'body': b'', 'more_body': False}
@@ -559,7 +593,7 @@ class TransportCryptoMiddleware:
     @staticmethod
     def _replace_header(headers: list[tuple[bytes, bytes]], key: bytes, value: bytes) -> list[tuple[bytes, bytes]]:
         """
-        替换或新增指定响应头
+        替换或新增指定响应头。
 
         :param headers: 原始请求/响应头列表
         :param key: 头名称
@@ -576,7 +610,7 @@ class TransportCryptoMiddleware:
     @staticmethod
     def _remove_header(headers: list[tuple[bytes, bytes]], key: bytes) -> list[tuple[bytes, bytes]]:
         """
-        删除指定请求头
+        删除指定请求头。
 
         :param headers: 原始请求头列表
         :param key: 头名称
@@ -590,7 +624,7 @@ class TransportCryptoMiddleware:
     @staticmethod
     def _normalize_path(path: str) -> str:
         """
-        标准化请求路径，剥离应用根路径前缀
+        标准化请求路径，剥离应用根路径前缀。
 
         :param path: 原始请求路径
         :return: 标准化后的业务路径
@@ -608,7 +642,7 @@ class TransportCryptoMiddleware:
         extra_headers: dict[str, str],
     ) -> list[tuple[bytes, bytes]]:
         """
-        将字符串响应头批量写回到原始headers列表
+        将字符串响应头批量写回到原始headers列表。
 
         :param headers: 原始请求/响应头列表
         :param extra_headers: 需要追加的响应头
@@ -630,7 +664,7 @@ class TransportCryptoMiddleware:
         kid: str | None = None,
     ) -> dict[str, str]:
         """
-        构建传输层加解密监控响应头
+        构建传输层加解密监控响应头。
 
         :param request_mode: 请求传输模式
         :param response_mode: 响应传输模式
@@ -658,7 +692,7 @@ class TransportCryptoMiddleware:
         headers: dict[str, str] | None = None,
     ) -> None:
         """
-        发送错误响应，在存在AES会话密钥时优先返回加密错误响应
+        发送错误响应，在存在AES会话密钥时优先返回加密错误响应。
 
         :param scope: 当前ASGI请求作用域
         :param receive: ASGI receive函数
@@ -666,7 +700,6 @@ class TransportCryptoMiddleware:
         :param msg_key: 错误消息的语义标识
         :param crypto_context: 可选的请求加密上下文
         :param headers: 需要追加的诊断响应头
-        :return: None
         """
         response_content = {
             'code': HttpStatusConstant.BAD_REQUEST,
@@ -694,7 +727,7 @@ class TransportCryptoMiddleware:
     @staticmethod
     def _classify_failure_reason(message: str) -> str:
         """
-        根据异常信息归类传输层失败原因
+        根据异常信息归类传输层失败原因。
 
         :param message: 原始异常信息
         :return: 失败原因分类编码
@@ -741,7 +774,7 @@ class TransportCryptoMiddleware:
     @classmethod
     def _is_excluded_path(cls, path: str) -> bool:
         """
-        判断当前路径是否在传输加密排除列表内
+        判断当前路径是否在传输加密排除列表内。
 
         :param path: 当前请求路径
         :return: 是否命中排除列表
@@ -757,7 +790,7 @@ class TransportCryptoMiddleware:
     @classmethod
     def _is_required_path(cls, path: str) -> bool:
         """
-        判断当前路径是否在强制加密列表内
+        判断当前路径是否在强制加密列表内。
 
         :param path: 当前请求路径
         :return: 是否命中强制加密列表
@@ -774,7 +807,7 @@ class TransportCryptoMiddleware:
     @classmethod
     def _is_enabled_path(cls, path: str) -> bool:
         """
-        判断当前路径是否在启用传输加密的列表内
+        判断当前路径是否在启用传输加密的列表内。
 
         :param path: 当前请求路径
         :return: 当前路径是否启用传输加密
@@ -791,9 +824,8 @@ class TransportCryptoMiddleware:
 
 def add_transport_crypto_middleware(app: ASGIApp) -> None:
     """
-    添加传输层加解密中间件
+    添加传输层加解密中间件。
 
     :param app: FastAPI/Starlette应用对象
-    :return: None
     """
     app.add_middleware(TransportCryptoMiddleware)

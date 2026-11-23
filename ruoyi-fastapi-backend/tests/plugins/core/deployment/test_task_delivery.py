@@ -24,15 +24,7 @@ async def test_task_signed_delivery_preserves_data_and_exercises_crud(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """
-    在 SQLite 中适配时间类型后执行 DDL，验证真实维护流程及交付包业务接口。
-
-    :param deployment_sessions: 临时宿主表的数据库会话工厂
-    :param deployment_config: 临时制品存储和信任配置
-    :param tmp_path: 本次测试的独立目录
-    :param monkeypatch: pytest 环境隔离工具
-    :return: None
-    """
+    """在 SQLite 中适配时间类型后执行 DDL，验证真实维护流程及交付包业务接口。"""
     import shutil  # noqa: PLC0415
 
     # SQLite 只有 INTEGER PRIMARY KEY 才会生成自增值，宿主生产表使用 BIGINT。

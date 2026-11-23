@@ -1,7 +1,5 @@
 class PluginScaffoldNaming:
-    """
-    插件模板命名转换工具。
-    """
+    """插件模板命名转换工具。"""
 
     @staticmethod
     def to_class_name(plugin_id: str) -> str:

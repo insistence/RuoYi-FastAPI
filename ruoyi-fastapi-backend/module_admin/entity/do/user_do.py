@@ -8,9 +8,7 @@ from utils.common_util import SqlalchemyUtil
 
 
 class SysUser(AuditTimeMixin, Base):
-    """
-    用户信息表
-    """
+    """用户信息表。"""
 
     __tablename__ = 'sys_user'
     __table_args__ = {'comment': '用户信息表'}
@@ -49,9 +47,7 @@ class SysUser(AuditTimeMixin, Base):
 
 
 class SysUserRole(Base):
-    """
-    用户和角色关联表
-    """
+    """用户和角色关联表。"""
 
     __tablename__ = 'sys_user_role'
     __table_args__ = {'comment': '用户和角色关联表'}
@@ -61,9 +57,7 @@ class SysUserRole(Base):
 
 
 class SysUserPost(Base):
-    """
-    用户与岗位关联表
-    """
+    """用户与岗位关联表。"""
 
     __tablename__ = 'sys_user_post'
     __table_args__ = {'comment': '用户与岗位关联表'}

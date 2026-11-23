@@ -18,9 +18,7 @@ from utils.time_util import TimezoneUtil
 
 
 class SysOAuthResource(Base):
-    """
-    OAuth资源服务器表
-    """
+    """OAuth资源服务器表。"""
 
     __tablename__ = 'sys_oauth_resource'
     __table_args__ = (
@@ -37,9 +35,9 @@ class SysOAuthResource(Base):
         autoincrement=True,
         comment='内部主键',
     )
-    resource_id = Column(String(64), nullable=False, comment='Resource ID')
+    resource_id = Column(String(64), nullable=False, comment='资源标识')
     resource_name = Column(String(100), nullable=False, comment='Resource 名称')
-    audience = Column(String(500), nullable=False, comment='Access Token audience')
+    audience = Column(String(500), nullable=False, comment='访问令牌受众')
     token_format = Column(String(16), nullable=False, server_default='jwt', comment='Token 格式')
     signing_alg = Column(String(16), nullable=False, server_default='RS256', comment='签名算法')
     access_token_ttl_seconds = Column(Integer, nullable=True, comment='Access Token 有效期')
@@ -61,9 +59,7 @@ class SysOAuthResource(Base):
 
 
 class SysOAuthScope(Base):
-    """
-    OAuth权限表
-    """
+    """OAuth权限表。"""
 
     __tablename__ = 'sys_oauth_scope'
     __table_args__ = (
@@ -103,9 +99,7 @@ class SysOAuthScope(Base):
 
 
 class SysOAuthClientScope(Base):
-    """
-    OAuth客户端与权限关联表
-    """
+    """OAuth客户端与权限关联表。"""
 
     __tablename__ = 'sys_oauth_client_scope'
     __table_args__ = (
@@ -135,9 +129,7 @@ class SysOAuthClientScope(Base):
 
 
 class SysOAuthClientResource(Base):
-    """
-    OAuth客户端与资源关联表
-    """
+    """OAuth客户端与资源关联表。"""
 
     __tablename__ = 'sys_oauth_client_resource'
     __table_args__ = (

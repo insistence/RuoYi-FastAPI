@@ -22,7 +22,12 @@ NOW = datetime(2026, 10, 2, tzinfo=UTC)
 
 @pytest_asyncio.fixture
 async def sessions(tmp_path: Path) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
-    """创建仅含发布相关表的临时数据库会话工厂。"""
+    """
+    创建仅含发布相关表的临时数据库会话工厂。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :yield: 仅含发布相关表的临时数据库会话工厂
+    """
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "releases.sqlite"}')
     async with engine.begin() as connection:
         await connection.run_sync(
@@ -41,7 +46,14 @@ async def sessions(tmp_path: Path) -> AsyncIterator[async_sessionmaker[AsyncSess
 
 
 async def register(db: AsyncSession, digest: str = DIGEST_A, version: str = '1.0.0') -> SysPluginArtifact:
-    """为测试登记指定摘要与版本的制品索引。"""
+    """
+    为测试登记指定摘要与版本的制品索引。
+
+    :param db: 当前操作使用的数据库会话
+    :param digest: 用于验证内容完整性的摘要
+    :param version: 当前记录的版本
+    :return: 已登记的制品索引记录
+    """
     return await PluginReleaseDao.register_artifact(
         db,
         digest=digest,
@@ -55,7 +67,12 @@ async def register(db: AsyncSession, digest: str = DIGEST_A, version: str = '1.0
 
 
 async def prepare(db: AsyncSession) -> SysPluginRelease:
-    """为测试建立制品与已安装版本匹配的准备证据。"""
+    """
+    为测试建立制品与已安装版本匹配的准备证据。
+
+    :param db: 当前操作使用的数据库会话
+    :return: 准备状态更新后的记录
+    """
     await register(db)
     db.add(SysPlugin(plugin_id='demo', plugin_name='Demo', version='1.0.0', installed_version='1.0.0'))
     await db.flush()
@@ -190,6 +207,11 @@ async def test_competing_target_selections_only_one_generation_wins(sessions: as
         await db.commit()
 
     async def select_once() -> str:
+        """
+        在独立会话中完成一次制品查询。
+
+        :return: 选中的发布代次或并发冲突标记
+        """
         async with sessions() as db:
             try:
                 row = await PluginReleaseDao.select_target(

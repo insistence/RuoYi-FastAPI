@@ -18,7 +18,11 @@ GENERATION = 'c' * 32
 
 
 def artifact_record() -> SysPlugin:
-    """构造管理视图使用的制品来源插件记录。"""
+    """
+    构造管理视图使用的制品来源插件记录。
+
+    :return: 管理视图使用的制品来源插件记录
+    """
     return SysPlugin(
         plugin_id='demo',
         plugin_name='Demo',
@@ -99,15 +103,33 @@ async def test_release_view_separates_selected_code_schema_and_worker_activation
     )
 
     class Catalog:
+        """提供插件制品目录的测试替身。"""
+
         def __init__(self, config: object) -> None:
-            pass
+            """
+            无需外部依赖即可创建该测试替身。
+
+            :param config: 当前对象使用的配置
+            """
 
         @staticmethod
         def reject_source_conflict(plugin_id: str) -> None:
+            """
+            校验测试传入的插件来源。
+
+            :param plugin_id: 插件清单中的唯一标识
+            """
             assert plugin_id == 'demo'
 
         @staticmethod
         async def get(digest: str) -> object:
+            """
+            读取测试存储中的指定键。
+
+            :param digest: 用于验证内容完整性的摘要
+            :raises ValueError: 制品摘要校验失败
+            :return: 测试存储中的指定键
+            """
             assert digest == DIGEST
             if not verified:
                 raise ValueError('制品摘要校验失败')
@@ -115,6 +137,13 @@ async def test_release_view_separates_selected_code_schema_and_worker_activation
 
         @staticmethod
         def discovered(artifact: object, generation: str) -> DiscoveredPlugin:
+            """
+            校验部署代次并返回发现的插件。
+
+            :param artifact: 当前验证或交付的插件制品
+            :param generation: 当前发布或部署的代次
+            :return: 发现的插件
+            """
             assert generation == GENERATION
             return discovered
 

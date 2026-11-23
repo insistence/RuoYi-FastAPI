@@ -17,18 +17,17 @@ if TYPE_CHECKING:
 
 
 class FilePathUtil:
-    """
-    文件路径安全校验工具类
-    """
+    """文件路径安全校验工具类。"""
 
     @classmethod
     def resolve_path_within_root(cls, root: str | os.PathLike[str], untrusted_path: str) -> Path:
         """
-        将不可信相对路径解析为根目录内路径
+        将不可信相对路径解析为根目录内路径。
 
         :param root: 文件根目录
         :param untrusted_path: 不可信文件路径
         :return: 根目录内的路径
+        :raises ValueError: 文件路径不能为空；文件路径不合法；文件路径超出允许目录
         """
         if not untrusted_path or '\x00' in untrusted_path:
             raise ValueError('文件路径不能为空')
@@ -58,11 +57,12 @@ class FilePathUtil:
     @classmethod
     def resolve_file_within_root(cls, root: str | os.PathLike[str], untrusted_path: str) -> Path:
         """
-        将不可信相对路径解析为根目录内已存在的普通文件
+        将不可信相对路径解析为根目录内已存在的普通文件。
 
         :param root: 文件根目录
         :param untrusted_path: 不可信文件路径
         :return: 根目录内的文件路径
+        :raises FileNotFoundError: 文件不存在
         """
         candidate_path = cls.resolve_path_within_root(root, untrusted_path)
 
@@ -73,7 +73,10 @@ class FilePathUtil:
 
 class UploadUtil:
     """
-    上传工具类
+    上传工具类。
+
+    :cvar GENERATED_FILE_INFO_LENGTH: 上传文件名中生成信息片段的字符数
+    :cvar MAX_RANDOM_CODE: 文件名随机编码允许的最大值
     """
 
     GENERATED_FILE_INFO_LENGTH = 18
@@ -82,7 +85,7 @@ class UploadUtil:
     @classmethod
     def generate_random_number(cls) -> str:
         """
-        生成3位数字构成的字符串
+        生成3位数字构成的字符串。
 
         :return: 3位数字构成的字符串
         """
@@ -93,7 +96,7 @@ class UploadUtil:
     @classmethod
     def check_file_exists(cls, filepath: str | os.PathLike[str]) -> bool:
         """
-        检查文件是否存在
+        检查文件是否存在。
 
         :param filepath: 文件路径
         :return: 校验结果
@@ -103,7 +106,7 @@ class UploadUtil:
     @classmethod
     def ensure_directory(cls, directory: str | os.PathLike[str]) -> None:
         """
-        创建文件目录
+        创建文件目录。
 
         :param directory: 文件目录
         """
@@ -112,7 +115,7 @@ class UploadUtil:
     @classmethod
     def check_file_extension(cls, file: UploadFile) -> bool:
         """
-        检查文件后缀是否合法
+        检查文件后缀是否合法。
 
         :param file: 文件对象
         :return: 校验结果
@@ -124,7 +127,7 @@ class UploadUtil:
     @classmethod
     def get_file_extension(cls, filename: str | None) -> str:
         """
-        获取文件名的小写扩展名
+        获取文件名的小写扩展名。
 
         :param filename: 文件名称
         :return: 小写文件扩展名
@@ -137,7 +140,7 @@ class UploadUtil:
     @classmethod
     def get_original_filename(cls, filename: str | None) -> str:
         """
-        获取移除目录信息后的原始文件名
+        获取移除目录信息后的原始文件名。
 
         :param filename: 文件名称
         :return: 原始文件名
@@ -149,7 +152,7 @@ class UploadUtil:
     @classmethod
     def get_safe_file_stem(cls, filename: str | None) -> str:
         """
-        获取移除路径和非法字符后的文件名前缀
+        获取移除路径和非法字符后的文件名前缀。
 
         :param filename: 文件名称
         :return: 安全文件名前缀
@@ -170,7 +173,7 @@ class UploadUtil:
         accept_ranges: bool = True,
     ) -> dict[str, str]:
         """
-        构造文件下载响应头
+        构造文件下载响应头。
 
         :param filename: 文件名称
         :param byte_range: 文件字节范围
@@ -198,7 +201,7 @@ class UploadUtil:
     @classmethod
     def check_file_timestamp(cls, filename: str) -> bool:
         """
-        校验文件时间戳是否合法
+        校验文件时间戳是否合法。
 
         :param filename: 文件名称
         :return: 校验结果
@@ -216,7 +219,7 @@ class UploadUtil:
     @classmethod
     def check_file_machine(cls, filename: str) -> bool:
         """
-        校验文件机器码是否合法
+        校验文件机器码是否合法。
 
         :param filename: 文件名称
         :return: 校验结果
@@ -230,7 +233,7 @@ class UploadUtil:
     @classmethod
     def check_file_random_code(cls, filename: str) -> bool:
         """
-        校验文件随机码是否合法
+        校验文件随机码是否合法。
 
         :param filename: 文件名称
         :return: 校验结果
@@ -251,12 +254,13 @@ class UploadUtil:
         length: int | None = None,
     ) -> AsyncGenerator[bytes, None]:
         """
-        根据文件生成二进制数据
+        根据文件生成二进制数据。
 
         :param filepath: 文件路径
         :param start: 读取起始字节位置
         :param length: 读取字节数
-        :yield: 二进制数据
+        :yield: 按读取顺序逐块产生二进制数据的异步迭代器
+        :raises ValueError: 文件读取范围不合法
         """
         if start < 0 or (length is not None and length < 0):
             raise ValueError('文件读取范围不合法')
@@ -275,7 +279,7 @@ class UploadUtil:
     @classmethod
     def delete_file(cls, filepath: str | os.PathLike[str]) -> None:
         """
-        根据文件路径删除对应文件
+        根据文件路径删除对应文件。
 
         :param filepath: 文件路径
         """
@@ -284,7 +288,7 @@ class UploadUtil:
     @classmethod
     def move_file(cls, source: str | os.PathLike[str], target: str | os.PathLike[str]) -> None:
         """
-        移动文件到目标路径
+        移动文件到目标路径。
 
         :param source: 原文件路径
         :param target: 目标文件路径
@@ -295,7 +299,7 @@ class UploadUtil:
     @classmethod
     def remove_empty_directory(cls, directory: str | os.PathLike[str]) -> None:
         """
-        删除空目录
+        删除空目录。
 
         :param directory: 目录路径
         """

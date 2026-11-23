@@ -17,7 +17,13 @@ from utils.upload_util import FilePathUtil, UploadUtil
 
 class FileStorageInfo(Protocol):
     """
-    文件存储信息协议
+    文件存储信息协议。
+
+    :ivar file_id: 文件ID
+    :ivar storage_type: 文件存储类型
+    :ivar access_type: 文件访问类型
+    :ivar storage_key: 存储相对路径
+    :ivar stored_name: 存储文件名
     """
 
     file_id: str
@@ -30,7 +36,12 @@ class FileStorageInfo(Protocol):
 @dataclass(frozen=True)
 class FileByteRange:
     """
-    文件字节范围
+    文件字节范围。
+
+    :ivar start: 响应包含的第一个字节偏移
+    :ivar end: 响应包含的最后一个字节偏移
+    :ivar file_size: 文件总大小
+    :ivar is_partial: 是否按客户端请求只返回部分字节
     """
 
     start: int
@@ -41,7 +52,7 @@ class FileByteRange:
     @property
     def length(self) -> int:
         """
-        获取范围字节数
+        获取范围字节数。
 
         :return: 范围字节数
         """
@@ -51,7 +62,12 @@ class FileByteRange:
 @dataclass(frozen=True)
 class FileDownloadResult:
     """
-    文件下载结果
+    文件下载结果。
+
+    :ivar data: 要写入下载响应的文件内容
+    :ivar filename: 浏览器下载时使用的文件名
+    :ivar byte_range: 文件字节范围
+    :ivar accept_ranges: 是否支持Range请求
     """
 
     data: AsyncGenerator[bytes, None]
@@ -63,7 +79,10 @@ class FileDownloadResult:
 @dataclass(frozen=True)
 class StagedFile:
     """
-    待删除文件暂存信息
+    待删除文件暂存信息。
+
+    :ivar source_path: 操作前文件所在的路径
+    :ivar trash_path: 文件移入回收区后的路径
     """
 
     source_path: Path
@@ -73,7 +92,23 @@ class StagedFile:
 @dataclass(frozen=True)
 class FileReconcileFinding:
     """
-    文件存储对账异常
+    文件存储对账异常。
+
+    :ivar issue_key: 异常唯一标识
+    :ivar issue_type: 异常类型
+    :ivar severity: 问题的严重程度
+    :ivar detail: 用于说明当前结果的详细信息
+    :ivar file_id: 文件ID
+    :ivar storage_type: 文件存储类型
+    :ivar access_type: 文件访问类型
+    :ivar expected_root: 记录声明的存储根目录
+    :ivar expected_key: 记录声明的存储对象键
+    :ivar actual_root: 实际存储根目录
+    :ivar actual_key: 扫描到的存储对象键
+    :ivar expected_size: 预期文件大小
+    :ivar actual_size: 实际文件大小
+    :ivar expected_hash: 预期SHA-256
+    :ivar actual_hash: 实际SHA-256
     """
 
     issue_key: str
@@ -96,7 +131,11 @@ class FileReconcileFinding:
 @dataclass(frozen=True)
 class FileReconcileScanResult:
     """
-    文件存储对账扫描结果
+    文件存储对账扫描结果。
+
+    :ivar findings: 本次扫描发现的对账问题
+    :ivar scanned_file_count: 已检查的文件记录数量
+    :ivar scanned_storage_count: 已扫描的存储对象数量
     """
 
     findings: list[FileReconcileFinding]
@@ -107,7 +146,14 @@ class FileReconcileScanResult:
 @dataclass(frozen=True)
 class _FileReconcileContext:
     """
-    文件存储对账内部上下文
+    文件存储对账内部上下文。
+
+    :ivar file_info: 文件信息
+    :ivar source_root: 来源存储区域
+    :ivar source_key: 来源相对路径
+    :ivar source_path: 操作前文件所在的路径
+    :ivar trash_key: 文件在回收区中的存储键
+    :ivar trash_path: 文件移入回收区后的路径
     """
 
     file_info: dict[str, Any]
@@ -120,7 +166,9 @@ class _FileReconcileContext:
 
 class FileUtil:
     """
-    文件工具类
+    文件工具类。
+
+    :cvar FILE_RANGE_PATTERN: 解析 HTTP 字节范围请求头的正则表达式
     """
 
     FILE_RANGE_PATTERN = re.compile(r'^bytes=(\d*)-(\d*)$', re.IGNORECASE)
@@ -128,11 +176,13 @@ class FileUtil:
     @classmethod
     def parse_byte_range(cls, range_header: str | None, file_size: int) -> FileByteRange:
         """
-        解析HTTP单区间Range请求头
+        解析HTTP单区间Range请求头。
 
         :param range_header: Range请求头
         :param file_size: 文件总大小
         :return: 文件字节范围
+        :raises ValueError: 文件大小不能小于0
+        :raises FileRangeNotSatisfiableException: 字节范围格式无效、包含多段或无法满足
         """
         if file_size < 0:
             raise ValueError('文件大小不能小于0')
@@ -176,10 +226,11 @@ class FileUtil:
     @classmethod
     def parse_file_ids(cls, file_ids: str) -> list[str]:
         """
-        解析并校验文件ID
+        解析并校验文件ID。
 
         :param file_ids: 文件ID字符串
         :return: 文件ID列表
+        :raises ServiceException: 文件ID不能为空；文件ID格式不正确
         """
         if not file_ids:
             raise ServiceException(message='文件ID不能为空', msg_key='file.idRequired')
@@ -196,10 +247,9 @@ class FileUtil:
     @classmethod
     def enrich_storage_status(cls, file_rows: list[dict[str, Any]]) -> None:
         """
-        补充文件物理存储状态
+        补充文件物理存储状态。
 
         :param file_rows: 文件信息列表
-        :return: None
         """
         for file_row in file_rows:
             file_row['storageStatus'] = cls.get_storage_status(file_row)
@@ -207,13 +257,20 @@ class FileUtil:
     @classmethod
     def get_storage_status(cls, file_info: dict[str, Any]) -> str:
         """
-        获取文件物理存储状态
+        获取文件物理存储状态。
 
         :param file_info: 文件信息
         :return: 文件物理存储状态
         """
 
         def get_value(snake_name: str, camel_name: str) -> Any:
+            """
+            兼容蛇形和驼峰字段名读取文件状态。
+
+            :param snake_name: 字段的下划线形式
+            :param camel_name: 字段的驼峰形式
+            :return: 从蛇形或驼峰字段读取的值
+            """
             return file_info.get(snake_name) if snake_name in file_info else file_info.get(camel_name)
 
         try:
@@ -252,10 +309,11 @@ class FileUtil:
     @classmethod
     def stage_file_deletions(cls, file_infos: list[FileStorageInfo]) -> list[StagedFile]:
         """
-        将待删除文件移入回收区
+        将待删除文件移入回收区。
 
         :param file_infos: 文件信息列表
         :return: 暂存文件列表
+        :raises Exception: 底层操作失败时向调用方传播异常
         """
         staged_files = []
         try:
@@ -281,10 +339,11 @@ class FileUtil:
     @classmethod
     def _get_staged_file_paths(cls, file_info: FileStorageInfo) -> StagedFile:
         """
-        获取文件原路径和回收区路径
+        获取文件原路径和回收区路径。
 
         :param file_info: 文件信息
         :return: 文件暂存信息
+        :raises ValueError: 文件存储类型或访问类型异常
         """
         if file_info.storage_type != 'local' or file_info.access_type not in {'public', 'private'}:
             raise ValueError('文件存储类型或访问类型异常')
@@ -301,10 +360,9 @@ class FileUtil:
     @classmethod
     def restore_staged_files(cls, staged_files: list[StagedFile]) -> None:
         """
-        将隔离区文件恢复到原路径
+        将隔离区文件恢复到原路径。
 
         :param staged_files: 暂存文件列表
-        :return: None
         """
         for staged_file in reversed(staged_files):
             try:
@@ -320,10 +378,12 @@ class FileUtil:
     @classmethod
     def prepare_deleted_files_for_restore(cls, file_infos: list[FileStorageInfo]) -> list[StagedFile]:
         """
-        校验待恢复文件并生成暂存信息
+        校验待恢复文件并生成暂存信息。
 
         :param file_infos: 文件信息列表
         :return: 暂存文件列表
+        :raises FileNotFoundError: 回收区文件不存在
+        :raises FileExistsError: 文件原路径已存在
         """
         staged_files = []
         for file_info in file_infos:
@@ -338,10 +398,12 @@ class FileUtil:
     @classmethod
     def prepare_deleted_files_for_purge(cls, file_infos: list[FileStorageInfo]) -> list[StagedFile]:
         """
-        校验待永久清理文件并生成暂存信息
+        校验待永久清理文件并生成暂存信息。
 
         :param file_infos: 文件信息列表
         :return: 暂存文件列表
+        :raises FileExistsError: 待清理文件仍存在于正式存储目录
+        :raises ValueError: 回收区路径不是普通文件
         """
         staged_files = []
         for file_info in file_infos:
@@ -356,10 +418,11 @@ class FileUtil:
     @classmethod
     def purge_deleted_files(cls, staged_files: list[StagedFile]) -> None:
         """
-        永久删除回收区文件
+        永久删除回收区文件。
 
         :param staged_files: 暂存文件列表
-        :return: None
+        :raises FileExistsError: 待清理文件仍存在于正式存储目录
+        :raises ValueError: 回收区路径不是普通文件
         """
         for staged_file in staged_files:
             if staged_file.source_path.exists():
@@ -373,10 +436,10 @@ class FileUtil:
     @classmethod
     def restore_deleted_files(cls, staged_files: list[StagedFile]) -> None:
         """
-        将已删除文件从回收区恢复到原路径
+        将已删除文件从回收区恢复到原路径。
 
         :param staged_files: 暂存文件列表
-        :return: None
+        :raises Exception: 底层操作失败时向调用方传播异常
         """
         restored_files = []
         try:
@@ -394,10 +457,9 @@ class FileUtil:
     @classmethod
     def _restage_restored_files(cls, staged_files: list[StagedFile]) -> None:
         """
-        将恢复失败的文件重新移入回收区
+        将恢复失败的文件重新移入回收区。
 
         :param staged_files: 暂存文件列表
-        :return: None
         """
         for staged_file in reversed(staged_files):
             try:
@@ -412,10 +474,9 @@ class FileUtil:
     @classmethod
     def cleanup_trash_directories(cls, staged_files: list[StagedFile]) -> None:
         """
-        清理恢复后留下的空回收区目录
+        清理恢复后留下的空回收区目录。
 
         :param staged_files: 暂存文件列表
-        :return: None
         """
         for staged_file in staged_files:
             UploadUtil.remove_empty_directory(staged_file.trash_path.parent)
@@ -423,7 +484,11 @@ class FileUtil:
 
 class FileReconcileUtil:
     """
-    文件存储对账工具类
+    文件存储对账工具类。
+
+    :cvar MAX_SCAN_ENTRIES: 单次对账允许遍历的最大条目数
+    :cvar HASH_CHUNK_SIZE: 计算文件哈希时每次读取的字节数
+    :cvar ORPHAN_GRACE_SECONDS: 将未引用文件判定为孤立文件前等待的秒数
     """
 
     MAX_SCAN_ENTRIES = 1_000_000
@@ -433,11 +498,12 @@ class FileReconcileUtil:
     @classmethod
     def scan_storage(cls, file_infos: list[dict[str, Any]], check_hash: bool = False) -> FileReconcileScanResult:
         """
-        执行数据库和本地文件系统双向对账
+        执行数据库和本地文件系统双向对账。
 
         :param file_infos: 文件信息列表
         :param check_hash: 是否校验文件SHA-256
         :return: 对账扫描结果
+        :raises RuntimeError: 被扫描的物理文件数超过上限
         """
         roots = cls.get_storage_roots()
         cls._validate_storage_roots(roots)
@@ -524,7 +590,7 @@ class FileReconcileUtil:
     @classmethod
     def get_storage_roots(cls) -> dict[str, Path]:
         """
-        获取对账使用的本地存储根目录
+        获取对账使用的本地存储根目录。
 
         :return: 存储区域和绝对根目录映射
         """
@@ -538,11 +604,12 @@ class FileReconcileUtil:
     @classmethod
     def resolve_location(cls, root_name: str, relative_key: str) -> Path:
         """
-        安全解析指定存储区域内的相对路径
+        安全解析指定存储区域内的相对路径。
 
         :param root_name: 存储区域
         :param relative_key: 相对路径
         :return: 安全文件路径
+        :raises ValueError: 存储区域不合法
         """
         roots = cls.get_storage_roots()
         if root_name not in roots:
@@ -553,20 +620,21 @@ class FileReconcileUtil:
     @classmethod
     def calculate_file_hash(cls, filepath: Path) -> str:
         """
-        计算普通文件SHA-256
+        计算普通文件SHA-256。
 
         :param filepath: 文件路径
-        :return: SHA-256
+        :return: 内容的 SHA-256 摘要
         """
         return cls.calculate_file_integrity(filepath)[1]
 
     @classmethod
     def calculate_file_integrity(cls, filepath: Path) -> tuple[int, str]:
         """
-        稳定计算普通文件大小和SHA-256
+        稳定计算普通文件大小和SHA-256。
 
         :param filepath: 文件路径
         :return: 文件大小和SHA-256
+        :raises ValueError: 目标路径不是普通文件；文件在摘要计算期间发生变化
         """
         if filepath.is_symlink() or not filepath.is_file():
             raise ValueError('目标路径不是普通文件')
@@ -601,13 +669,16 @@ class FileReconcileUtil:
         target_key: str,
     ) -> tuple[Path, Path]:
         """
-        在受控存储区域之间移动普通文件
+        在受控存储区域之间移动普通文件。
 
         :param source_root: 来源存储区域
         :param source_key: 来源相对路径
         :param target_root: 目标存储区域
         :param target_key: 目标相对路径
         :return: 来源和目标文件路径
+        :raises ValueError: 来源路径不是普通文件
+        :raises FileExistsError: 目标路径已存在
+        :raises OSError: 文件移动结果校验失败
         """
         source_path = cls.resolve_location(source_root, source_key)
         target_path = cls.resolve_location(target_root, target_key)
@@ -625,10 +696,11 @@ class FileReconcileUtil:
     @classmethod
     def delete_quarantine_file(cls, quarantine_key: str) -> Path:
         """
-        永久删除隔离区普通文件
+        永久删除隔离区普通文件。
 
         :param quarantine_key: 隔离区相对路径
         :return: 已删除文件路径
+        :raises ValueError: 隔离区目标不是普通文件
         """
         quarantine_path = cls.resolve_location('quarantine', quarantine_key)
         if quarantine_path.is_symlink() or not quarantine_path.is_file():
@@ -646,8 +718,12 @@ class FileReconcileUtil:
         **metadata: Any,
     ) -> FileReconcileFinding:
         """
-        构造包含稳定唯一标识的对账异常
+        构造包含稳定唯一标识的对账异常。
 
+        :param issue_type: 异常类型
+        :param severity: 问题的严重程度
+        :param detail: 用于说明当前结果的详细信息
+        :param metadata: 调用方按名称传入的附加选项
         :return: 对账异常
         """
         identity = '|'.join(
@@ -684,6 +760,14 @@ class FileReconcileUtil:
         file_info: dict[str, Any],
         roots: dict[str, Path],
     ) -> _FileReconcileContext:
+        """
+        构建对账检查使用的文件信息及路径上下文。
+
+        :param file_info: 文件信息
+        :param roots: 需要检查的文件存储根目录集合
+        :raises ValueError: 文件ID为空；暂不支持非本地存储类型；访问类型不合法；存储路径或存储文件名为空；存储文件名包含路径信息；存储路径和存储文件名不一致；文件状态和删除标志不一致；文件状态不合法
+        :return: 对账检查使用的文件信息及路径上下文
+        """
         file_id = cls._get_text_value(file_info, 'file_id')
         storage_type = cls._get_text_value(file_info, 'storage_type')
         access_type = cls._get_text_value(file_info, 'access_type')
@@ -729,6 +813,15 @@ class FileReconcileUtil:
         expected_locations: set[tuple[str, str]],
         check_hash: bool,
     ) -> tuple[list[FileReconcileFinding], set[tuple[str, str]]]:
+        """
+        检查文件记录与磁盘文件状态的一致性。
+
+        :param context: 文件存储对账内部上下文
+        :param roots: 需要检查的文件存储根目录集合
+        :param expected_locations: 记录声明的存储位置
+        :param check_hash: 是否校验文件SHA-256
+        :return: 发现的问题与已识别的存储位置
+        """
         file_info = context.file_info
         file_id = cls._get_text_value(file_info, 'file_id')
         storage_type = cls._get_text_value(file_info, 'storage_type')
@@ -899,7 +992,18 @@ class FileReconcileUtil:
         expected_key: str,
         check_hash: bool,
     ) -> list[FileReconcileFinding]:
-        """构造文件大小和摘要一致性异常。"""
+        """
+        构造文件大小和摘要一致性异常。
+
+        :param file_info: 文件信息
+        :param actual_path: 扫描到的文件路径
+        :param actual_root: 实际存储根目录
+        :param actual_key: 扫描到的存储对象键
+        :param expected_root: 记录声明的存储根目录
+        :param expected_key: 记录声明的存储对象键
+        :param check_hash: 是否校验文件SHA-256
+        :return: 文件大小和摘要一致性异常
+        """
         file_id = cls._get_text_value(file_info, 'file_id')
         storage_type = cls._get_text_value(file_info, 'storage_type')
         access_type = cls._get_text_value(file_info, 'access_type')
@@ -950,7 +1054,12 @@ class FileReconcileUtil:
 
     @classmethod
     def _iter_storage_entries(cls, root: Path) -> Iterator[tuple[str, Path, bool]]:
-        """逐项遍历存储目录，避免大目录扫描时一次性占用过多内存。"""
+        """
+        逐项遍历存储目录，避免大目录扫描时一次性占用过多内存。
+
+        :param root: 路径解析的基准目录
+        :yield: 相对存储键、磁盘路径及条目状态标志
+        """
         stack = [root]
         while stack:
             directory = stack.pop()
@@ -969,6 +1078,14 @@ class FileReconcileUtil:
 
     @classmethod
     def _resolve_lexical_path(cls, root: Path, relative_key: str) -> Path:
+        """
+        解析路径的词法位置。
+
+        :param root: 路径解析的基准目录
+        :param relative_key: 相对路径
+        :raises ValueError: 存储路径包含符号链接
+        :return: 供调用方使用的 ``candidate_path``
+        """
         FilePathUtil.resolve_path_within_root(root, relative_key)
         normalized_key = relative_key.replace('\\', '/')
         candidate_path = root.joinpath(*normalized_key.split('/'))
@@ -981,6 +1098,12 @@ class FileReconcileUtil:
 
     @classmethod
     def _validate_storage_roots(cls, roots: dict[str, Path]) -> None:
+        """
+        校验对账可访问的存储根目录。
+
+        :param roots: 需要检查的文件存储根目录集合
+        :raises ValueError: 存储根目录重合或互相嵌套
+        """
         root_items = list(roots.items())
         for index, (root_name, root_path) in enumerate(root_items):
             root_path.mkdir(parents=True, exist_ok=True)
@@ -994,6 +1117,13 @@ class FileReconcileUtil:
 
     @staticmethod
     def _is_relative_to(path: Path, parent: Path) -> bool:
+        """
+        判断候选路径是否位于指定目录之下。
+
+        :param path: 要读取或处理的路径
+        :param parent: 用于判断路径从属关系的父目录
+        :return: 是否候选路径是否位于指定目录之下
+        """
         try:
             path.relative_to(parent)
             return True
@@ -1002,6 +1132,12 @@ class FileReconcileUtil:
 
     @staticmethod
     def _get_path_state(path: Path) -> str:
+        """
+        读取对账路径的文件系统状态。
+
+        :param path: 要读取或处理的路径
+        :return: 对账路径的文件系统状态
+        """
         if path.is_symlink():
             return 'unsafe'
         if not path.exists():
@@ -1010,10 +1146,24 @@ class FileReconcileUtil:
 
     @staticmethod
     def _get_text_value(file_info: dict[str, Any], field_name: str) -> str | None:
+        """
+        从文件记录中提取文本字段。
+
+        :param file_info: 文件信息
+        :param field_name: 需要读取或校验的字段名
+        :return: 文本字段值，缺失时为空值
+        """
         value = file_info.get(field_name)
         return str(value) if value is not None else None
 
     @staticmethod
     def _get_int_value(file_info: dict[str, Any], field_name: str) -> int | None:
+        """
+        从文件记录中提取整数字段。
+
+        :param file_info: 文件信息
+        :param field_name: 需要读取或校验的字段名
+        :return: 整数字段值，缺失时为空值
+        """
         value = file_info.get(field_name)
         return int(value) if value is not None else None

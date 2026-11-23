@@ -28,29 +28,50 @@ from module_identity.service.session_service import SsoSessionService
 
 
 class _Session:
-    """记录 Controller 事务边界。"""
+    """
+    记录 Controller 事务边界。
+
+    :ivar commits: 测试中记录的提交次数
+    :ivar rollbacks: 测试中记录的回滚次数
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
         self.commits = 0
         self.rollbacks = 0
 
     async def commit(self) -> None:
+        """累加 ``commits`` 供后续断言检查。"""
         self.commits += 1
 
     async def rollback(self) -> None:
+        """累加 ``rollbacks`` 供后续断言检查。"""
         self.rollbacks += 1
 
 
 def _user() -> SimpleNamespace:
-    """构造最小管理用户。"""
+    """
+    构造最小管理用户。
+
+    :return: 最小管理用户
+    """
     return SimpleNamespace(user=SimpleNamespace(user_name='admin', user_id=1, dept=None))
 
 
 def _request() -> Request:
-    """构造含最小 Redis 状态的管理请求。"""
+    """
+    构造含最小 Redis 状态的管理请求。
+
+    :return: 含最小 Redis 状态的管理请求
+    """
     app = SimpleNamespace(state=SimpleNamespace(redis=SimpleNamespace()))
 
     async def receive() -> dict[str, object]:
+        """
+        提供下游 ASGI 应用读取的 HTTP 请求体消息。
+
+        :return: 下游 ASGI 应用读取的 HTTP 请求体消息
+        """
         return {'type': 'http.request', 'body': b'', 'more_body': False}
 
     return Request(
@@ -59,7 +80,12 @@ def _request() -> Request:
 
 
 def _route_map(router: object) -> dict[tuple[str, str], APIRoute]:
-    """索引路由路径、方法。"""
+    """
+    索引路由路径、方法。
+
+    :param router: 注册端点所用的路由器
+    :return: 按路径和 HTTP 方法索引的路由
+    """
     return {
         (route.path, method): route
         for route in router.routes
@@ -101,16 +127,36 @@ async def test_batch_revoke_is_atomic_and_reason_does_not_leak(
     db = _Session()
 
     async def audit(*args: object, **kwargs: object) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
+        return
 
     monkeypatch.setattr(AuditService, 'record', audit)
 
     async def enqueue(*args: object, **kwargs: object) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
+        return
 
     monkeypatch.setattr(LogQueueService, 'enqueue_operation_log', enqueue)
 
     async def revoke(*args: object, **kwargs: object) -> bool:
+        """
+        在请求处理中撤销测试凭据。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises ValueError: 模拟撤销操作产生含敏感信息的错误
+        :return: 此分支的固定值 ``True``
+        """
         if args[2] == 'bad':
             raise ValueError('refresh_token_hash=do-not-leak')
         return True
@@ -129,6 +175,13 @@ async def test_batch_revoke_is_atomic_and_reason_does_not_leak(
     assert db.commits == 0 and db.rollbacks == 1
 
     async def grant_revoke(*args: object, **kwargs: object) -> bool:
+        """
+        在此测试分支返回 True。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``True``
+        """
         return True
 
     monkeypatch.setattr(OAuthGrantDao, 'targets', AsyncMock(return_value=[(2, 1)]))
@@ -156,6 +209,13 @@ async def test_session_controller_injects_redis_without_passing_request_to_servi
     captured: dict[str, object] = {}
 
     async def revoke_sessions(*args: object, **kwargs: object) -> int:
+        """
+        记录批量撤销的参数并返回影响数量。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``1``
+        """
         captured['args'] = args
         captured['kwargs'] = kwargs
         return 1
@@ -163,7 +223,13 @@ async def test_session_controller_injects_redis_without_passing_request_to_servi
     monkeypatch.setattr(OAuthSessionManagementService, 'revoke_sessions', revoke_sessions)
 
     async def enqueue_operation_log(*args: object, **kwargs: object) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
+        return
 
     monkeypatch.setattr(LogQueueService, 'enqueue_operation_log', enqueue_operation_log)
     token = RequestContext.set_current_user(_user())
@@ -195,14 +261,35 @@ async def test_grant_detail_never_returns_refresh_hash(monkeypatch: pytest.Monke
     )
 
     async def get_grant(*args: object, **kwargs: object) -> object:
+        """
+        向调用方返回 ``row``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 与查询匹配的记录
+        """
         return row
 
     async def execute(*args: object, **kwargs: object) -> object:
+        """
+        创建测试使用的 ``SimpleNamespace`` 实例。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 测试使用的 ``SimpleNamespace`` 实例
+        """
         return SimpleNamespace(all=list, scalars=lambda: SimpleNamespace(all=list, first=lambda: None))
 
     monkeypatch.setattr(OAuthGrantDao, 'get_by_grant_id', get_grant)
 
     async def client_id(*args: object, **kwargs: object) -> str:
+        """
+        返回固定值 ``client-2``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``'client-2'``
+        """
         return 'client-2'
 
     monkeypatch.setattr(OAuthClientDao, 'id_for_pk', client_id)
@@ -216,7 +303,6 @@ async def test_grant_detail_never_returns_refresh_hash(monkeypatch: pytest.Monke
 @pytest.mark.parametrize('grant_ids', ['grant-1', 'grant-1,grant-2'])
 async def test_grant_revoke_runs_rate_limit_and_operation_log(monkeypatch: pytest.MonkeyPatch, grant_ids: str) -> None:
     """HTTP 撤销请求经过完整装饰器链并记录实际请求和撤销结果。"""
-
     db = _Session()
     user = _user()
     path = f'/system/oauth/grant/{grant_ids}'
@@ -270,7 +356,6 @@ async def test_grant_revoke_runs_rate_limit_and_operation_log(monkeypatch: pytes
 @pytest.mark.parametrize('blocked', [True, False])
 async def test_access_policy_runs_rate_limit_and_operation_log(monkeypatch: pytest.MonkeyPatch, blocked: bool) -> None:
     """禁止及解除访问通过真实 HTTP 装饰器链，准确传递用户、应用和原因。"""
-
     db, user = _Session(), _user()
     path = '/system/oauth/grant/user/7/client/business-app/access'
     route = _route_map(oauth_grant_controller)[('/system/oauth/grant/user/{user_id}/client/{client_id}/access', 'PUT')]

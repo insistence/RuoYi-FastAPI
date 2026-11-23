@@ -43,12 +43,18 @@ pytestmark = [
 
 @pytest.fixture(scope='module')
 def plugin() -> DiscoveredPlugin:
+    """
+    加载测试所需的插件及其清单。
+
+    :return: 测试所需的插件及其清单
+    """
     root = Path(PLUGIN_DIRECTORY).resolve()
     assert (root / 'plugin.yaml').is_file(), '指定的 Rust 交付目录不存在'
     return PluginScanner(root.parent).load_manifest(root / 'plugin.yaml')
 
 
 def test_distribution_contains_native_business_code_and_passes_static_discovery(plugin: DiscoveredPlugin) -> None:
+    """发行包包含原生业务代码并通过静态发现。"""
     check = PluginStructureChecker(plugin.backend_path.parents[1]).check(plugin, include_frontend=False)
     assert check.ok, check.failed_items
     files = [path for path in plugin.backend_path.rglob('*') if path.is_file()]
@@ -64,6 +70,7 @@ def test_distribution_contains_native_business_code_and_passes_static_discovery(
 
 @pytest.mark.asyncio
 async def test_compiled_native_health_returns_rust_future(plugin: DiscoveredPlugin) -> None:
+    """编译后的原生健康检查返回 Rust Future。"""
     loader = PluginEntrypointLoader(plugin)
     callback = loader.load_callable(plugin.manifest.backend.health.checker)
     assert not inspect.iscoroutinefunction(callback)
@@ -73,11 +80,17 @@ async def test_compiled_native_health_returns_rust_future(plugin: DiscoveredPlug
 
 @asynccontextmanager
 async def fake_session() -> AsyncGenerator[object, None]:
+    """
+    为上下文提供受控的测试会话。
+
+    :yield: 上下文内使用的受控测试会话
+    """
     yield object()
 
 
 @pytest.mark.asyncio
 async def test_real_native_subapp_uses_host_auth_lifespan_and_python_service(plugin: DiscoveredPlugin) -> None:
+    """真实原生子应用使用宿主认证、生命周期和 Python 服务。"""
     app = FastAPI()
     gateway = SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True))
     runtime = ExplicitPluginRuntime(gateway)
@@ -136,12 +149,18 @@ async def test_real_native_subapp_uses_host_auth_lifespan_and_python_service(plu
 
 @pytest.mark.asyncio
 async def test_native_python_coroutine_bridge_keeps_context_and_cancellation(plugin: DiscoveredPlugin) -> None:
+    """原生与 Python 协程桥接保留上下文及取消语义。"""
     trace = ContextVar('native_test_trace', default='missing')
     started = asyncio.Event()
     closed = asyncio.Event()
     loop = asyncio.get_running_loop()
 
     async def service(context: PluginRequestContext) -> None:
+        """
+        检查宿主服务回调的事件循环及请求上下文。
+
+        :param context: 由宿主鉴权层建立的请求身份，不能由客户端字段直接构造
+        """
         assert asyncio.get_running_loop() is loop
         assert trace.get() == 'current-request'
         started.set()
@@ -167,7 +186,15 @@ async def test_native_python_coroutine_bridge_keeps_context_and_cancellation(plu
 
 @pytest.mark.asyncio
 async def test_native_python_service_exception_propagates(plugin: DiscoveredPlugin) -> None:
+    """原生调用传播 Python 服务异常。"""
+
     async def failed_service(context: PluginRequestContext) -> None:
+        """
+        模拟此操作抛出 ValueError 的情形。
+
+        :param context: 由宿主鉴权层建立的请求身份，不能由客户端字段直接构造
+        :raises ValueError: 模拟宿主服务调用失败
+        """
         raise ValueError('host-service-failed')
 
     host = PluginHostContext('rust_demo', plugin.backend_path, services={'users.current_profile.v1': failed_service})
@@ -179,6 +206,7 @@ async def test_native_python_service_exception_propagates(plugin: DiscoveredPlug
 
 @pytest.mark.asyncio
 async def test_real_native_router_gets_host_context_and_permissions(plugin: DiscoveredPlugin) -> None:
+    """真实原生路由获取宿主上下文及权限。"""
     manifest = plugin.manifest.model_copy(deep=True)
     manifest.backend.integration = 'router'
     manifest.backend.asgi = None
@@ -190,10 +218,21 @@ async def test_real_native_router_gets_host_context_and_permissions(plugin: Disc
     user = SimpleNamespace(user=SimpleNamespace(user_id=7), permissions=['rust_demo:view', 'rust_demo:profile'])
 
     async def login(token: str = Depends(oauth2_scheme)) -> object:
+        """
+        校验测试令牌并提供已登录用户。
+
+        :param token: 用于身份验证或授权的令牌
+        :return: 当前操作对应的用户
+        """
         assert token == 'test-token'
         return user
 
     async def session() -> AsyncIterator[object]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         yield object()
 
     app.dependency_overrides[LoginService.get_current_user] = login
@@ -201,6 +240,13 @@ async def test_real_native_router_gets_host_context_and_permissions(plugin: Disc
 
     @app.exception_handler(PermissionException)
     async def permission_error(request: object, exc: PermissionException) -> JSONResponse:
+        """
+        创建测试使用的 ``JSONResponse`` 实例。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: 测试使用的 ``JSONResponse`` 实例
+        """
         return JSONResponse({'detail': exc.message}, status_code=status.HTTP_403_FORBIDDEN)
 
     with patch('plugins.core.runtime.explicit.DataSourceRegistry.session', fake_session):
@@ -231,6 +277,7 @@ async def test_real_native_router_gets_host_context_and_permissions(plugin: Disc
 
 @pytest.mark.asyncio
 async def test_real_scheduler_invokes_rust_awaitable_through_persistent_dispatcher(plugin: DiscoveredPlugin) -> None:
+    """真实调度器通过持久化分派器等待 Rust 结果。"""
     app = FastAPI()
     gateway = SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True))
     runtime = ExplicitPluginRuntime(gateway)
@@ -238,6 +285,11 @@ async def test_real_scheduler_invokes_rust_awaitable_through_persistent_dispatch
     completed = asyncio.get_running_loop().create_future()
 
     def on_execution(event: object) -> None:
+        """
+        将任务执行结果交给等待的测试。
+
+        :param event: 待处理的事件
+        """
         if not completed.done():
             completed.set_result(event)
 

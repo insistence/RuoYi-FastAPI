@@ -5,7 +5,10 @@ from exceptions.exception import ServiceException
 
 class UserImportUtil:
     """
-    用户导入格式注册与归一化工具类
+    用户导入格式注册与归一化工具类。
+
+    :cvar HEADER_ALIASES: 导入表头到模型字段的别名映射
+    :cvar VALUE_ALIASES: 导入单元格文本到字段值的别名映射
     """
 
     # 已发布模板的别名独立于当前启用语言，新增语言时追加别名，保留旧模板兼容性。
@@ -26,10 +29,12 @@ class UserImportUtil:
     @classmethod
     def normalize_headers(cls, headers: list[object]) -> list[str]:
         """
-        独立于界面语言识别已发布模板，拒绝歧义或缺失的必需列
+        独立于界面语言识别已发布模板，拒绝歧义或缺失的必需列。
 
         :param headers: 表格原始表头
         :return: 对应的稳定字段名，额外列保留原名
+        :raises ValueError: 同一导入表头别名映射到多个字段
+        :raises ServiceException: 导入表头含重复列或缺少必需列
         """
         aliases = {}
         for field, names in cls.HEADER_ALIASES.items():
@@ -64,11 +69,12 @@ class UserImportUtil:
     @classmethod
     def normalize_value(cls, field: str, value: object) -> str:
         """
-        将模板固定枚举名称或原始码值映射回稳定码值
+        将模板固定枚举名称或原始码值映射回稳定码值。
 
         :param field: 导入字段名
         :param value: 单元格内容
         :return: 稳定码值
+        :raises ServiceException: 导入字段的显示名称或枚举码值无效
         """
         if isinstance(value, Real) and not isinstance(value, bool) and float(value).is_integer():
             value = int(value)

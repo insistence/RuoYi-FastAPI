@@ -18,6 +18,12 @@ MAX_CLOCK_SKEW_SECONDS = 5
 class PluginMetricsReporter:
     """
     将进程累计指标定期发布到 Redis；观测失败不影响插件业务或发布状态。
+
+    :ivar metrics: 当前 worker 的本地指标收集器
+    :ivar redis: 当前宿主 Redis 客户端
+    :ivar namespace: 当前环境的指标命名空间
+    :ivar task: 在后台执行当前工作的异步任务
+    :ivar publication_failed: 最近一次发布是否失败
     """
 
     def __init__(self, metrics: PluginRuntimeMetrics) -> None:
@@ -25,7 +31,6 @@ class PluginMetricsReporter:
         初始化尚未连接外部存储的指标报告器。
 
         :param metrics: 当前 worker 的本地指标收集器
-        :return: None
         """
         self.metrics = metrics
         self.redis: Any = None
@@ -48,7 +53,6 @@ class PluginMetricsReporter:
 
         :param redis: 当前宿主 Redis 客户端
         :param namespace: 当前环境的指标命名空间
-        :return: None
         """
         if self.task is not None:
             return
@@ -58,11 +62,7 @@ class PluginMetricsReporter:
             self.task = asyncio.create_task(self._run(), name=f'plugin-metrics-{self.metrics.worker_id}')
 
     async def publish(self) -> None:
-        """
-        发布有界快照并设置过期时间，避免异常退出的进程永久计入汇总。
-
-        :return: None
-        """
+        """发布有界快照并设置过期时间，避免异常退出的进程永久计入汇总。"""
         if self.redis is None:
             return
         try:
@@ -80,21 +80,13 @@ class PluginMetricsReporter:
             self.publication_failed = False
 
     async def _run(self) -> None:
-        """
-        定期采样，不在请求路径同步写入 Redis。
-
-        :return: None
-        """
+        """定期采样，不在请求路径同步写入 Redis。"""
         while True:
             await asyncio.sleep(METRICS_PUBLISH_SECONDS)
             await self.publish()
 
     async def stop(self) -> None:
-        """
-        取消采样任务并仅移除本 worker 的快照；清理失败时依赖 TTL。
-
-        :return: None
-        """
+        """取消采样任务并仅移除本 worker 的快照；清理失败时依赖 TTL。"""
         if self.task is not None:
             self.task.cancel()
             with suppress(asyncio.CancelledError):

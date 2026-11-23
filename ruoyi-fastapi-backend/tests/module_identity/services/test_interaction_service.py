@@ -16,7 +16,12 @@ _CHALLENGE = 'A' * 43
 
 
 def _payload(**overrides: object) -> dict[str, object]:
-    """构造 AuthorizationContext 的内部白名单载荷。"""
+    """
+    构造 AuthorizationContext 的内部白名单载荷。
+
+    :param overrides: 调用方按名称传入的附加选项
+    :return: AuthorizationContext 的内部白名单载荷
+    """
     value: dict[str, object] = {
         'interactionId': 'context-id',
         'clientPk': 1001,
@@ -191,6 +196,13 @@ async def test_transition_rejects_interaction_without_ttl(monkeypatch: pytest.Mo
     redis.values[key] = (value, None)
 
     async def get_record(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """
+        将存储值解码为交互记录。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 从缓存中解码的交互记录
+        """
         return json.loads(value)
 
     monkeypatch.setattr(InteractionService, '_get_record', classmethod(get_record))

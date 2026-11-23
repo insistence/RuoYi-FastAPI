@@ -21,6 +21,10 @@ from tests.plugins.core.runtime.fakes import (
 class MigrationOnlyGateway:
     """
     仅提供插件 migration 历史能力的测试网关。
+
+    :ivar records: 当前测试保存的记录
+    :ivar list_calls: 记录 ``list`` 的调用情况
+    :ivar mark_calls: 记录 ``mark`` 的调用情况
     """
 
     def __init__(self) -> None:
@@ -59,7 +63,13 @@ class MigrationOnlyGateway:
         self.mark_calls: list[tuple[str, str, str, str | None]] = []
 
     async def list_plugin_migrations(self, plugin_id: str, status: str | None = None) -> list[object]:
-        """查询测试 migration 历史。"""
+        """
+        查询测试 migration 历史。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param status: 操作或记录所处的状态
+        :return: 测试 migration 历史
+        """
         self.list_calls.append((plugin_id, status))
         return [
             record
@@ -68,7 +78,13 @@ class MigrationOnlyGateway:
         ]
 
     async def get_plugin_migration(self, plugin_id: str, migration_path: str) -> object | None:
-        """获取测试 migration 历史。"""
+        """
+        获取测试 migration 历史。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :return: 测试 migration 历史
+        """
         for record in reversed(self.records):
             if record.plugin_id == plugin_id and record.migration_path == migration_path:
                 return record
@@ -81,7 +97,15 @@ class MigrationOnlyGateway:
         status: str,
         error_message: str | None = None,
     ) -> object | None:
-        """标记测试 migration 历史状态。"""
+        """
+        标记测试 migration 历史状态。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param status: 操作或记录所处的状态
+        :param error_message: 记录到结果或审计日志中的错误详情
+        :return: 当前操作使用的记录
+        """
         self.mark_calls.append((plugin_id, migration_path, status, error_message))
         record = await self.get_plugin_migration(plugin_id, migration_path)
         if record:
@@ -90,7 +114,11 @@ class MigrationOnlyGateway:
         return record
 
     def get_plugin_service(self) -> object:
-        """禁止 migration 链路回退到管理服务胖接口。"""
+        """
+        禁止 migration 链路回退到管理服务胖接口。
+
+        :raises AssertionError: migration 历史不应依赖 PluginManagementServiceProtocol
+        """
         raise AssertionError('migration 历史不应依赖 PluginManagementServiceProtocol')
 
 
@@ -742,6 +770,8 @@ dependencies:
     class NoFatLifecycleStateGateway(FakePluginRuntimeGateway):
         """
         禁止启用流程读取 fat state gateway 的测试适配器。
+
+        :ivar enabled_state_calls: 记录 ``enabled_state`` 的调用情况
         """
 
         def __init__(self) -> None:
@@ -750,11 +780,19 @@ dependencies:
             self.enabled_state_calls: list[tuple[str, bool, object | None]] = []
 
         def get_async_session_local(self) -> object:
-            """禁止通过 state gateway 打开数据库会话。"""
+            """
+            禁止通过 state gateway 打开数据库会话。
+
+            :raises AssertionError: 启用流程不应通过 state gateway 打开数据库会话
+            """
             raise AssertionError('启用流程不应通过 state gateway 打开数据库会话')
 
         def get_plugin_service(self) -> object:
-            """禁止通过 state gateway 获取管理服务。"""
+            """
+            禁止通过 state gateway 获取管理服务。
+
+            :raises AssertionError: 启用流程不应通过 state gateway 获取管理服务
+            """
             raise AssertionError('启用流程不应通过 state gateway 获取管理服务')
 
         async def set_plugin_enabled_state(
@@ -763,7 +801,14 @@ dependencies:
             enabled: bool,
             discovered_plugin: object | None = None,
         ) -> object:
-            """通过窄端口更新插件启停状态。"""
+            """
+            通过窄端口更新插件启停状态。
+
+            :param plugin_id: 插件清单中的唯一标识
+            :param enabled: 是否启用该项功能
+            :param discovered_plugin: 扫描插件目录后得到的插件描述
+            :return: 当前调用产生的响应
+            """
             self.enabled_state_calls.append((plugin_id, enabled, discovered_plugin))
             async with self.session_local() as session:
                 response = await FakePluginService.update_plugin_enabled_services(
@@ -811,7 +856,15 @@ backend:
         enabled: bool,
         discovered_plugin: object | None = None,
     ) -> object:
-        """模拟启用插件失败。"""
+        """
+        模拟启用插件失败。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param enabled: 是否启用该项功能
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :raises RuntimeError: 模拟写入启用状态失败
+        """
         raise RuntimeError('enable update failed')
 
     original_update_enabled = FakePluginService.update_plugin_enabled_services
@@ -1093,7 +1146,15 @@ backend:
         enabled: bool,
         discovered_plugin: object | None = None,
     ) -> object:
-        """模拟禁用插件失败。"""
+        """
+        模拟禁用插件失败。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param enabled: 是否启用该项功能
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :raises RuntimeError: 模拟写入停用状态失败
+        """
         raise RuntimeError('disable update failed')
 
     original_update_enabled = FakePluginService.update_plugin_enabled_services
@@ -1237,7 +1298,13 @@ def test_plugin_runtime_uninstall_plugin_reports_failed_lifecycle_step(tmp_path:
     gateway = FakePluginRuntimeGateway()
 
     async def raise_uninstall_failure(query_db: object, plugin_id: str) -> object:
-        """模拟卸载插件失败。"""
+        """
+        模拟卸载插件失败。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :raises RuntimeError: 模拟写入卸载状态失败
+        """
         raise RuntimeError('uninstall update failed')
 
     original_mark_uninstalled = FakePluginService.mark_plugin_uninstalled_services
@@ -1539,16 +1606,22 @@ backend:
     )
 
     class NoFatPurgeGateway(FakePluginRuntimeGateway):
-        """
-        禁止物理清理流程读取 fat state gateway 的测试适配器。
-        """
+        """禁止物理清理流程读取 fat state gateway 的测试适配器。"""
 
         def get_async_session_local(self) -> object:
-            """禁止通过 state gateway 打开数据库会话。"""
+            """
+            禁止通过 state gateway 打开数据库会话。
+
+            :raises AssertionError: 物理清理流程不应通过 state gateway 打开数据库会话
+            """
             raise AssertionError('物理清理流程不应通过 state gateway 打开数据库会话')
 
         def get_plugin_service(self) -> object:
-            """禁止通过 state gateway 获取管理服务。"""
+            """
+            禁止通过 state gateway 获取管理服务。
+
+            :raises AssertionError: 物理清理流程不应通过 state gateway 获取管理服务
+            """
             raise AssertionError('物理清理流程不应通过 state gateway 获取管理服务')
 
     gateway = NoFatPurgeGateway()

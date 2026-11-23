@@ -5,7 +5,12 @@ from plugins.core.manifest.schema import PluginConfigItemManifest
 
 
 def _build_item(**overrides: object) -> PluginConfigItemManifest:
-    """构造指定类型和值的测试配置项。"""
+    """
+    构造指定类型和值的测试配置项。
+
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 指定类型和值的测试配置项
+    """
     data: dict[str, object] = {'key': 'limit', 'type': 'number', 'default': 5}
     data.update(overrides)
     return PluginConfigItemManifest.model_validate(data)

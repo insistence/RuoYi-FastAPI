@@ -15,13 +15,24 @@ from .gateway import FakePluginRuntimeGateway
 
 
 def write_manifest(plugin_dir: Path, content: str) -> None:
-    """写入测试插件清单。"""
+    """
+    写入测试插件清单。
+
+    :param plugin_dir: 保存插件清单和资源的目录
+    :param content: 需要读取或写入的内容
+    """
     plugin_dir.mkdir(parents=True)
     (plugin_dir / 'plugin.yaml').write_text(content, encoding='utf-8')
 
 
 def build_runtime(backend_root: Path, frontend_root: Path | None = None) -> PluginRuntimeService:
-    """构建测试用插件运行时服务。"""
+    """
+    构建测试用插件运行时服务。
+
+    :param backend_root: 后端项目的根目录
+    :param frontend_root: 前端项目的根目录
+    :return: 测试用插件运行时服务
+    """
     return PluginRuntimeService(
         runtime_environment=FakeRuntimeEnvironment(backend_root, frontend_root),
         dependency_checker=PluginDependencyChecker(
@@ -32,7 +43,12 @@ def build_runtime(backend_root: Path, frontend_root: Path | None = None) -> Plug
 
 
 def build_gateway_overrides(gateway: object) -> PluginRuntimeGatewayOverrides:
-    """构建测试用插件运行时窄端口覆盖项。"""
+    """
+    构建测试用插件运行时窄端口覆盖项。
+
+    :param gateway: 代理底层操作的网关
+    :return: 测试用插件运行时窄端口覆盖项
+    """
     return PluginRuntimeGatewayOverrides(
         config_gateway=gateway,
         audit_gateway=gateway,
@@ -46,7 +62,12 @@ def build_gateway_overrides(gateway: object) -> PluginRuntimeGatewayOverrides:
 
 
 def build_fake_lifecycle_precheck(ok: bool = True) -> SimpleNamespace:
-    """构建测试用插件生命周期预检上下文。"""
+    """
+    构建测试用插件生命周期预检上下文。
+
+    :param ok: 操作或检查是否成功
+    :return: 测试用插件生命周期预检上下文
+    """
     return SimpleNamespace(
         ok=ok,
         manifest_result=SimpleNamespace(ok=ok),
@@ -64,7 +85,14 @@ def build_runtime_with_gateway(
     gateway: FakePluginRuntimeGateway,
     frontend_root: Path | None = None,
 ) -> PluginRuntimeService:
-    """构建带测试运行时适配器的插件运行时服务。"""
+    """
+    构建带测试运行时适配器的插件运行时服务。
+
+    :param backend_root: 后端项目的根目录
+    :param gateway: 测试用插件运行时适配器
+    :param frontend_root: 前端项目的根目录
+    :return: 带测试运行时适配器的插件运行时服务
+    """
     return PluginRuntimeService(
         runtime_environment=FakeRuntimeEnvironment(backend_root, frontend_root),
         dependency_checker=PluginDependencyChecker(
@@ -78,7 +106,11 @@ def build_runtime_with_gateway(
 
 
 def create_controller_dir(plugin_root: Path) -> None:
-    """创建测试插件 controller 目录。"""
+    """
+    创建测试插件 controller 目录。
+
+    :param plugin_root: 插件的根目录
+    """
     (plugin_root / 'controller').mkdir(parents=True)
 
 
@@ -88,7 +120,14 @@ def create_frontend_view(
     view_path: str = 'index.vue',
     frontend_root: Path | None = None,
 ) -> None:
-    """创建测试插件前端视图文件。"""
+    """
+    创建测试插件前端视图文件。
+
+    :param backend_root: 后端项目的根目录
+    :param plugin_id: 插件清单中的唯一标识
+    :param view_path: 需要加载的视图路径
+    :param frontend_root: 前端项目的根目录
+    """
     resolved_frontend_root = frontend_root or Path(
         PluginRuntimeEnvironmentService(backend_root=backend_root).get_frontend_dir()
     )

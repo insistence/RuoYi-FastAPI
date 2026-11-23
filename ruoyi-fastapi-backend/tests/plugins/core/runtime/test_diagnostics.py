@@ -158,6 +158,13 @@ async def test_real_lifespan_exit_changes_readiness_without_marking_pending_canc
     release = asyncio.Event()
 
     async def application(scope: dict, receive: object, send: object) -> None:
+        """
+        模拟应用的生命周期消息交换。
+
+        :param scope: 当前操作使用的作用域
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         await receive()
         await send({'type': 'lifespan.startup.complete'})
         await release.wait()
@@ -192,9 +199,22 @@ async def test_live_connection_counts_do_not_include_ordinary_http_or_auth_data(
     release = asyncio.Event()
 
     async def authorize(scope: dict) -> PluginRequestContext:
+        """
+        创建测试使用的 ``PluginRequestContext`` 实例。
+
+        :param scope: 当前操作使用的作用域
+        :return: 测试使用的 ``PluginRequestContext`` 实例
+        """
         return PluginRequestContext(loaded.host, user=SimpleNamespace(private='private-user'))
 
     async def application(scope: dict, receive: object, send: object) -> None:
+        """
+        模拟应用的生命周期消息交换。
+
+        :param scope: 当前操作使用的作用域
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         if scope['path'] == '/ordinary':
             await send({'type': 'http.response.start', 'status': 200, 'headers': []})
             await send({'type': 'http.response.body', 'body': b'private-response'})
@@ -209,11 +229,21 @@ async def test_live_connection_counts_do_not_include_ordinary_http_or_auth_data(
         await release.wait()
 
     async def receive() -> dict:
+        """
+        为下游 ASGI 应用提供待接收的测试消息。
+
+        :return: 下游应用接收的模拟消息
+        """
         await asyncio.Event().wait()
         return {}
 
     async def send(message: dict) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param message: 与当前结果一起返回的说明
+        """
+        return
 
     loaded.lifespan = PluginLifespanManager(application, managed=False)
     await loaded.lifespan.startup()
@@ -249,6 +279,7 @@ async def test_pending_cleanup_is_deduplicated_and_late_completion_disappears(tm
     cancellation_count = 0
 
     async def resistant() -> None:
+        """模拟延迟响应取消信号的任务。"""
         nonlocal cancellation_count
         started.set()
         try:

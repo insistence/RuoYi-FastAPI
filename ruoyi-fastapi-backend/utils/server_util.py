@@ -18,7 +18,21 @@ from config.env import AppConfig
 
 class APIDocsUtil:
     """
-    API文档工具类
+    API文档工具类。
+
+    :cvar _OPENAPI_URL: 提供 OpenAPI 描述的路由路径
+    :cvar _PROXY_OPENAPI_URL: 经过反向代理时使用的 OpenAPI 路径
+    :cvar _DOCS_URL: Swagger UI 的路由路径
+    :cvar _PROXY_DOCS_URL: 经过反向代理时使用的 Swagger UI 路径
+    :cvar _REDOC_URL: ReDoc 的路由路径
+    :cvar _PROXY_REDOC_URL: 经过反向代理时使用的 ReDoc 路径
+    :cvar _OAUTH2_REDIRECT_URL: Swagger UI 完成 OAuth 认证的回调路径
+    :cvar _PROXY_OAUTH2_REDIRECT_URL: 经过反向代理时的 OAuth 回调路径
+    :cvar DEFAULT_REDOC_JS_URL: ReDoc 默认加载的 JavaScript 资源地址
+    :cvar DEFAULT_REDOC_FAVICON_URL: ReDoc 默认加载的站点图标地址
+    :cvar DEFAULT_SWAGGER_JS_URL: Swagger UI 默认加载的 JavaScript 资源地址
+    :cvar DEFAULT_SWAGGER_CSS_URL: Swagger UI 默认加载的样式表地址
+    :cvar DEFAULT_SWAGGER_FAVICON_URL: Swagger UI 默认使用的站点图标地址
     """
 
     # API文档URLs
@@ -41,42 +55,54 @@ class APIDocsUtil:
     @classmethod
     def proxy_openapi_url(cls) -> str | None:
         """
-        代理OpenAPI文档URL
+        代理OpenAPI文档URL。
+
+        :return: 代理环境下 OpenAPI 描述的访问地址
         """
         return cls._PROXY_OPENAPI_URL if not (AppConfig.app_disable_swagger and AppConfig.app_disable_redoc) else None
 
     @classmethod
     def docs_url(cls) -> str:
         """
-        文档URL
+        文档URL。
+
+        :return: 供调用方使用的 ``cls._DOCS_URL``
         """
         return cls._DOCS_URL
 
     @classmethod
     def proxy_docs_url(cls) -> str:
         """
-        代理文档URL
+        代理文档URL。
+
+        :return: 代理环境下交互文档的访问地址
         """
         return cls._PROXY_DOCS_URL if not AppConfig.app_disable_swagger else None
 
     @classmethod
     def redoc_url(cls) -> str:
         """
-        ReDoc文档URL
+        ReDoc文档URL。
+
+        :return: 供调用方使用的 ``cls._REDOC_URL``
         """
         return cls._REDOC_URL
 
     @classmethod
     def proxy_redoc_url(cls) -> str:
         """
-        代理ReDoc文档URL
+        代理ReDoc文档URL。
+
+        :return: 代理环境下 ReDoc 的访问地址
         """
         return cls._PROXY_REDOC_URL if not AppConfig.app_disable_redoc else None
 
     @classmethod
     def proxy_oauth2_redirect_url(cls) -> str:
         """
-        代理OAuth2重定向URL
+        代理OAuth2重定向URL。
+
+        :return: 代理环境下 OAuth2 回调地址
         """
         return cls._PROXY_OAUTH2_REDIRECT_URL if not AppConfig.app_disable_swagger else None
 
@@ -90,17 +116,23 @@ class APIDocsUtil:
         swagger_favicon_url: str = DEFAULT_SWAGGER_FAVICON_URL,
     ) -> None:
         """
-        配置文档静态资源
+        配置文档静态资源。
 
         :param redoc_js_url: 用于加载ReDoc JavaScript的URL
         :param redoc_favicon_url: ReDoc要使用的favicon的URL
         :param swagger_js_url: 用于加载Swagger UI JavaScript的URL
         :param swagger_css_url: 用于加载Swagger UI CSS的URL
         :param swagger_favicon_url: Swagger UI要使用的favicon的URL
-        :return:
         """
 
         def redoc_monkey_patch(*args, **kwargs) -> HTMLResponse:
+            """
+            使用本地静态资源生成 ReDoc 页面。
+
+            :param args: 传给被调用对象的位置参数
+            :param kwargs: 传给被调用对象的关键字参数
+            :return: 引用本地静态资源的 ReDoc 响应
+            """
             return get_redoc_html(
                 *args,
                 **kwargs,
@@ -109,6 +141,13 @@ class APIDocsUtil:
             )
 
         def swagger_ui_monkey_patch(*args, **kwargs) -> HTMLResponse:
+            """
+            使用本地静态资源生成 Swagger UI 页面。
+
+            :param args: 传给被调用对象的位置参数
+            :param kwargs: 传给被调用对象的关键字参数
+            :return: 引用本地静态资源的 Swagger UI 响应
+            """
             return get_swagger_ui_html(
                 *args,
                 **kwargs,
@@ -131,7 +170,7 @@ class APIDocsUtil:
         swagger_favicon_url: str = DEFAULT_SWAGGER_FAVICON_URL,
     ) -> None:
         """
-        自定义API文档路由
+        自定义API文档路由。
 
         :param app: FastAPI对象
         :param redoc_js_url: 用于加载ReDoc JavaScript的URL
@@ -139,11 +178,15 @@ class APIDocsUtil:
         :param swagger_js_url: 用于加载Swagger UI JavaScript的URL
         :param swagger_css_url: 用于加载Swagger UI CSS的URL
         :param swagger_favicon_url: Swagger UI要使用的favicon的URL
-        :return:
         """
         original_openapi = app.openapi
 
         def openapi() -> dict[str, Any]:
+            """
+            提供应用的 OpenAPI 描述。
+
+            :return: 应用的 OpenAPI 描述
+            """
             # 生成文档时再加载认证规则，避免服务器工具与登录服务循环引用。
             from utils.openapi_util import OpenAPIUtil  # noqa: PLC0415
 
@@ -158,12 +201,30 @@ class APIDocsUtil:
             return await cls._custom_openapi(app)
 
         async def custom_redoc(request: Request) -> HTMLResponse:
+            """
+            返回自定义 ReDoc 文档页面。
+
+            :param request: 当前 HTTP 请求
+            :return: 自定义 ReDoc 文档页面
+            """
             return await cls._custom_redoc(app, redoc_js_url, redoc_favicon_url)
 
         async def custom_swagger(request: Request) -> HTMLResponse:
+            """
+            返回自定义 Swagger UI 文档页面。
+
+            :param request: 当前 HTTP 请求
+            :return: 自定义 Swagger UI 文档页面
+            """
             return await cls._custom_swagger(app, swagger_js_url, swagger_css_url, swagger_favicon_url)
 
         async def custom_swagger_ui_redirect(request: Request) -> HTMLResponse:
+            """
+            返回 Swagger UI 的 OAuth 重定向页面。
+
+            :param request: 当前 HTTP 请求
+            :return: Swagger UI 的 OAuth 重定向页面
+            """
             return await cls._custom_swagger_ui_redirect(app, swagger_favicon_url)
 
         # 注册路由
@@ -174,7 +235,7 @@ class APIDocsUtil:
     @classmethod
     async def _custom_openapi(cls, app: FastAPI) -> JSONResponse:
         """
-        自定义 OpenAPI 路由处理函数
+        自定义 OpenAPI 路由处理函数。
 
         :param app: FastAPI对象
         :return: openapi的json响应
@@ -189,7 +250,7 @@ class APIDocsUtil:
         redoc_favicon_url: str,
     ) -> HTMLResponse:
         """
-        自定义 ReDoc 路由处理函数
+        自定义 ReDoc 路由处理函数。
 
         :param app: FastAPI对象
         :param redoc_js_url: 用于加载ReDoc JavaScript的URL
@@ -218,7 +279,7 @@ class APIDocsUtil:
         swagger_favicon_url: str,
     ) -> HTMLResponse:
         """
-        自定义 Swagger UI 路由处理函数
+        自定义 Swagger UI 路由处理函数。
 
         :param app: FastAPI对象
         :param swagger_js_url: 用于加载Swagger UI JavaScript的URL
@@ -250,7 +311,7 @@ class APIDocsUtil:
         swagger_favicon_url: str,
     ) -> HTMLResponse:
         """
-        自定义 Swagger UI OAuth2 重定向路由处理函数
+        自定义 Swagger UI OAuth2 重定向路由处理函数。
 
         :param app: FastAPI对象
         :param swagger_favicon_url: Swagger UI要使用的favicon的URL
@@ -267,7 +328,7 @@ class APIDocsUtil:
     @staticmethod
     def _get_disabled_html_content(title: str, name: str, favicon_url: str) -> HTMLResponse:
         """
-        生成禁用文档的HTML内容
+        生成禁用文档的HTML内容。
 
         :param title: 页面标题
         :param name: 文档名称
@@ -308,13 +369,12 @@ class APIDocsUtil:
         cls, app: FastAPI, swagger_handler: Callable, redirect_handler: Callable, redoc_handler: Callable
     ) -> None:
         """
-        注册文档路由
+        注册文档路由。
 
         :param app: FastAPI对象
         :param swagger_handler: Swagger UI 路由处理函数
         :param redirect_handler: Swagger UI OAuth2 重定向路由处理函数
         :param redoc_handler: ReDoc 路由处理函数
-        :return:
         """
         swagger_urls: list[str] = (
             [cls._DOCS_URL] if not AppConfig.app_disable_swagger else [cls._DOCS_URL, cls._PROXY_DOCS_URL]
@@ -342,6 +402,11 @@ class StartupUtil:
 
     worker_id 仅用于日志展示，租约所有权使用进程唯一 owner token，避免多个
     worker 配置相同展示 ID 时同时误判为 leader。
+
+    :cvar _RENEW_SCRIPT: 验证锁所有权并延长有效期的 Redis 脚本
+    :cvar _RELEASE_SCRIPT: 仅在令牌匹配时释放 Redis 锁的脚本
+    :cvar _application_lock_owner_token: 用于验证应用锁所有权的令牌
+    :cvar _application_lock_owner_pid: 持有应用启动锁的进程编号
     """
 
     _RENEW_SCRIPT = """
@@ -467,6 +532,11 @@ class StartupUtil:
         """
 
         async def _loop() -> None:
+            """
+            定期续约应用启动时取得的主节点租约。
+
+            :raises asyncio.CancelledError: 异步操作被取消时
+            """
             while True:
                 try:
                     renewed = await cls.renew_application_leader(
@@ -494,7 +564,9 @@ class StartupUtil:
 
 class WorkerIdUtil:
     """
-    Worker标识生成工具类
+    Worker标识生成工具类。
+
+    :cvar _worker_id: 当前工作进程的标识
     """
 
     _worker_id: str | None = None
@@ -502,7 +574,7 @@ class WorkerIdUtil:
     @classmethod
     def get_worker_id(cls, configured_worker_id: str | None) -> str:
         """
-        获取当前worker标识
+        获取当前worker标识。
 
         :param configured_worker_id: 配置的worker标识
         :return: 当前worker标识
@@ -518,7 +590,10 @@ class WorkerIdUtil:
 
 class IPUtil:
     """
-    IP工具类
+    IP工具类。
+
+    :cvar _PREFERRED_DNS_HOSTS: 探测出站网络地址时优先尝试的 DNS 主机
+    :cvar _DNS_CONNECT_TIMEOUT: 探测 DNS 主机时允许的连接等待时间
     """
 
     _PREFERRED_DNS_HOSTS: tuple[str, str] = ('223.5.5.5', '8.8.8.8')
@@ -527,7 +602,9 @@ class IPUtil:
     @classmethod
     def get_local_ip(cls) -> str:
         """
-        获取本机Local IP
+        获取本机Local IP。
+
+        :return: 本机Local IP
         """
         try:
             for snics in psutil.net_if_addrs().values():
@@ -542,7 +619,9 @@ class IPUtil:
     @classmethod
     def get_network_ips(cls) -> list[str]:
         """
-        获取本机Network IP列表
+        获取本机Network IP列表。
+
+        :return: 本机Network IP列表
         """
         network_ips = []
         try:

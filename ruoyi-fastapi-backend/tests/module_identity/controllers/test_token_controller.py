@@ -24,25 +24,43 @@ _EXPECTED_CONTROLLER_COMMITS = 2
 
 @pytest.fixture(autouse=True)
 def _disable_rate_limit_for_controller_unit_tests(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Controller 单元测试隔离 Redis 限流实现；限流器另行测试。"""
+    """
+    隔离控制器单元测试中的 Redis 限流实现。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
 
     async def allow(*_args: object, **_kwargs: object) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        """
+        return
 
     monkeypatch.setattr(controller.OidcRateLimiter, 'enforce', allow)
 
 
 class _Db:
-    """记录 Controller 事务边界的最小异步会话替身。"""
+    """
+    记录 Controller 事务边界的最小异步会话替身。
+
+    :ivar commits: 测试中记录的提交次数
+    :ivar rollbacks: 测试中记录的回滚次数
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
         self.commits = 0
         self.rollbacks = 0
 
     async def commit(self) -> None:
+        """累加 ``commits`` 供后续断言检查。"""
         self.commits += 1
 
     async def rollback(self) -> None:
+        """累加 ``rollbacks`` 供后续断言检查。"""
         self.rollbacks += 1
 
 
@@ -50,12 +68,21 @@ class _FailCommitDb(_Db):
     """提交失败并允许回滚的会话替身。"""
 
     async def commit(self) -> None:
+        """
+        在测试会话中处理事务提交。
+
+        :raises RuntimeError: 模拟提交事务失败
+        """
         self.commits += 1
         raise RuntimeError('commit failed')
 
 
 def _request() -> SimpleNamespace:
-    """构造携带应用 Redis 状态的请求替身。"""
+    """
+    构造携带应用 Redis 状态的请求替身。
+
+    :return: 携带应用 Redis 状态的请求替身
+    """
     return SimpleNamespace(
         headers={'authorization': 'Basic test'},
         app=SimpleNamespace(state=SimpleNamespace(redis=object())),
@@ -91,6 +118,13 @@ async def test_token_invalid_client_has_basic_challenge(monkeypatch: pytest.Monk
     monkeypatch.setattr(controller, 'read_form', lambda request: _async(_form()))
 
     async def invalid(*args: object, **kwargs: object) -> object:
+        """
+        模拟此操作抛出 OAuthProtocolException 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises OAuthProtocolException: 模拟客户端认证失败
+        """
         raise OAuthProtocolException('invalid_client', 'Client authentication failed', 401)
 
     monkeypatch.setattr(TokenService, 'authenticate_client', invalid)
@@ -152,6 +186,13 @@ async def test_refresh_reuse_commits_family_before_invalid_grant(monkeypatch: py
     )
 
     async def reuse(*args: object, **kwargs: object) -> TokenResult:
+        """
+        模拟此操作抛出 RefreshTokenReuseDetected 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RefreshTokenReuseDetected: 模拟检测到刷新令牌被重复使用
+        """
         raise RefreshTokenReuseDetected
 
     monkeypatch.setattr(TokenService, 'issue_token', reuse)
@@ -174,6 +215,13 @@ async def test_refresh_reuse_commit_failure_is_server_error_and_rolls_back(monke
     )
 
     async def reuse(*args: object, **kwargs: object) -> TokenResult:
+        """
+        模拟此操作抛出 RefreshTokenReuseDetected 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RefreshTokenReuseDetected: 模拟检测到刷新令牌被重复使用
+        """
         raise RefreshTokenReuseDetected
 
     monkeypatch.setattr(TokenService, 'issue_token', reuse)
@@ -208,6 +256,12 @@ async def test_introspect_form_boundary_preserves_http_error(monkeypatch: pytest
     db = _Db()
 
     async def invalid_form(request: object) -> dict[str, str]:
+        """
+        模拟此操作抛出 HTTPException 的情形。
+
+        :param request: 当前 HTTP 请求
+        :raises HTTPException: 模拟表单输入无效
+        """
         raise HTTPException(status_code=status_code, detail='invalid input')
 
     monkeypatch.setattr(controller, 'read_form', invalid_form)
@@ -231,7 +285,15 @@ async def test_revoke_and_introspect_receive_database_rsa_verification_key(monke
     )
 
     class KeyDb(_Db):
+        """提供令牌校验时的密钥查询结果。"""
+
         async def scalar(self, statement: object) -> object:
+            """
+            向调用方返回 ``record``。
+
+            :param statement: 即将执行的数据库语句
+            :return: 与当前标识匹配的记录
+            """
             return record
 
     token = jwt.encode(
@@ -265,6 +327,12 @@ async def test_revoke_and_introspect_receive_database_rsa_verification_key(monke
     )
 
     async def revoke_service(*args: object, **kwargs: object) -> None:
+        """
+        捕获撤销操作使用的验证密钥。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         captured.append(kwargs['verification_key'])
 
     monkeypatch.setattr(controller.RevocationService, 'revoke', revoke_service)
@@ -274,6 +342,13 @@ async def test_revoke_and_introspect_receive_database_rsa_verification_key(monke
     captured.clear()
 
     async def introspect_service(*args: object, **kwargs: object) -> dict[str, bool]:
+        """
+        捕获令牌内省使用的验证密钥。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 包含 ``active`` 的数据
+        """
         captured.append(kwargs['verification_key'])
         return {'active': False}
 
@@ -284,14 +359,28 @@ async def test_revoke_and_introspect_receive_database_rsa_verification_key(monke
 
 
 def _form() -> dict[str, str]:
-    """构造 Controller 测试表单。"""
+    """
+    构造 Controller 测试表单。
+
+    :return: Controller 测试表单
+    """
     return {'grant_type': 'client_credentials', 'client_id': 'c'}
 
 
 def _async(value: object) -> Any:
-    """构造异步测试结果。"""
+    """
+    构造异步测试结果。
+
+    :param value: 待处理的输入值
+    :return: 异步测试结果
+    """
 
     async def result() -> object:
+        """
+        向调用方返回 ``value``。
+
+        :return: 为此调用预设的值
+        """
         return value
 
     return result()

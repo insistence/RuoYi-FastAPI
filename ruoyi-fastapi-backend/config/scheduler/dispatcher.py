@@ -16,17 +16,22 @@ from utils.time_util import TimezoneUtil
 
 class SchedulerDispatcher:
     """
-    持久化执行请求领取、派发和下次调度时刻观测
+    持久化执行请求领取、派发和下次调度时刻观测。
+
+    :ivar jobs: 本地任务管理器
+    :ivar resources: 调度数据库资源
+    :ivar synchronizer: 已应用配置管理器
+    :ivar lock: 用于串行访问共享资源的锁
+    :ivar _observed_at: 最近一次观测到调度状态的时刻
     """
 
     def __init__(self, jobs: SchedulerJobs, resources: SchedulerResources, synchronizer: SchedulerSynchronizer) -> None:
         """
-        初始化请求派发所需的任务、数据库和配置同步对象
+        初始化请求派发所需的任务、数据库和配置同步对象。
 
         :param jobs: 本地任务管理器
         :param resources: 调度数据库资源
         :param synchronizer: 已应用配置管理器
-        :return: None
         """
         self.jobs = jobs
         self.resources = resources
@@ -36,10 +41,9 @@ class SchedulerDispatcher:
 
     async def refresh_observations(self, *, is_leader: Callable[[], bool]) -> None:
         """
-        定期保存Leader观测的下次调度时刻，供其他worker读取
+        定期保存Leader观测的下次调度时刻，供其他worker读取。
 
         :param is_leader: 检查当前进程是否仍持有Leader租约
-        :return: None
         """
         now = time.monotonic()
         interval_seconds = 5
@@ -67,10 +71,9 @@ class SchedulerDispatcher:
 
     async def dispatch_pending(self, *, is_leader: Callable[[], bool]) -> None:
         """
-        分批领取待执行请求，派发只在领取事务提交后进行
+        分批领取待执行请求，派发只在领取事务提交后进行。
 
         :param is_leader: 检查当前进程是否仍持有Leader租约
-        :return: None
         """
         if not is_leader() or self.lock.locked():
             return

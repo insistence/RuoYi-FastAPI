@@ -28,16 +28,14 @@ from utils.excel_util import ExcelUtil
 
 
 class DictTypeService:
-    """
-    字典类型管理模块服务层
-    """
+    """字典类型管理模块服务层。"""
 
     @classmethod
     async def get_dict_type_list_services(
         cls, query_db: AsyncSession, query_object: DictTypePageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取字典类型列表信息service
+        获取字典类型列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -55,7 +53,7 @@ class DictTypeService:
     @classmethod
     async def check_dict_type_unique_services(cls, query_db: AsyncSession, page_object: DictTypeModel) -> bool:
         """
-        校验字典类型称是否唯一service
+        校验字典类型称是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 字典类型对象
@@ -74,12 +72,14 @@ class DictTypeService:
         cls, request: Request, query_db: AsyncSession, page_object: DictTypeModel
     ) -> CrudResponseModel:
         """
-        新增字典类型信息service
+        新增字典类型信息service。
 
         :param request: Request对象
         :param query_db: orm对象
         :param page_object: 新增岗位对象
         :return: 新增字典类型校验结果
+        :raises ServiceException: 字典类型已存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if not await cls.check_dict_type_unique_services(query_db, page_object):
             raise ServiceException(
@@ -103,12 +103,14 @@ class DictTypeService:
         cls, request: Request, query_db: AsyncSession, page_object: DictTypeModel
     ) -> CrudResponseModel:
         """
-        编辑字典类型信息service
+        编辑字典类型信息service。
 
         :param request: Request对象
         :param query_db: orm对象
         :param page_object: 编辑字典类型对象
         :return: 编辑字典类型校验结果
+        :raises ServiceException: 字典类型不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         edit_dict_type = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
         dict_type_info = await cls.dict_type_detail_services(query_db, page_object.dict_id)
@@ -148,12 +150,14 @@ class DictTypeService:
         cls, request: Request, query_db: AsyncSession, page_object: DeleteDictTypeModel
     ) -> CrudResponseModel:
         """
-        删除字典类型信息service
+        删除字典类型信息service。
 
         :param request: Request对象
         :param query_db: orm对象
         :param page_object: 删除字典类型对象
         :return: 删除字典类型校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入字典类型id为空
         """
         if page_object.dict_ids:
             dict_id_list = page_object.dict_ids.split(',')
@@ -181,7 +185,7 @@ class DictTypeService:
     @classmethod
     async def dict_type_detail_services(cls, query_db: AsyncSession, dict_id: int) -> DictTypeModel:
         """
-        获取字典类型详细信息service
+        获取字典类型详细信息service。
 
         :param query_db: orm对象
         :param dict_id: 字典类型id
@@ -195,7 +199,7 @@ class DictTypeService:
     @staticmethod
     async def export_dict_type_list_services(dict_type_list: list) -> bytes:
         """
-        导出字典类型信息service
+        导出字典类型信息service。
 
         :param dict_type_list: 字典信息列表
         :return: 字典信息对应excel的二进制数据
@@ -226,7 +230,7 @@ class DictTypeService:
     @classmethod
     async def refresh_sys_dict_services(cls, request: Request, query_db: AsyncSession) -> CrudResponseModel:
         """
-        刷新字典缓存信息service
+        刷新字典缓存信息service。
 
         :param request: Request对象
         :param query_db: orm对象
@@ -239,16 +243,14 @@ class DictTypeService:
 
 
 class DictDataService:
-    """
-    字典数据管理模块服务层
-    """
+    """字典数据管理模块服务层。"""
 
     @classmethod
     async def get_dict_data_list_services(
         cls, query_db: AsyncSession, query_object: DictDataPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取字典数据列表信息service
+        获取字典数据列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -268,7 +270,7 @@ class DictDataService:
         cls, query_db: AsyncSession, dict_type: str
     ) -> Sequence[SysDictData | None]:
         """
-        获取字典数据列表信息service
+        获取字典数据列表信息service。
 
         :param query_db: orm对象
         :param dict_type: 字典类型
@@ -281,11 +283,10 @@ class DictDataService:
     @classmethod
     async def init_cache_sys_dict_services(cls, query_db: AsyncSession, redis: aioredis.Redis) -> None:
         """
-        应用初始化：获取所有字典类型对应的字典数据信息并缓存service
+        应用初始化：获取所有字典类型对应的字典数据信息并缓存service。
 
         :param query_db: orm对象
         :param redis: redis对象
-        :return:
         """
         prefix = f'{RedisInitKeyConfig.SYS_DICT.key}:'
         keys = await redis.keys(f'{prefix}*')
@@ -297,15 +298,21 @@ class DictDataService:
     @staticmethod
     async def publish_dict_cache(query_db: AsyncSession, redis: aioredis.Redis, *dict_types: str) -> None:
         """
-        将指定字典类型的最新数据写入缓存
+        将指定字典类型的最新数据写入缓存。
 
         :param query_db: orm对象
         :param redis: redis对象
         :param dict_types: 待刷新缓存的字典类型
-        :return:
         """
 
         async def publish_snapshot(pipe: aioredis.client.Pipeline, *, dict_type: str, cache_key: str) -> None:
+            """
+            发布提交后的字典缓存快照。
+
+            :param pipe: 用于批量提交 Redis 操作的管道
+            :param dict_type: 字典类型
+            :param cache_key: 缓存键名
+            """
             # WATCH 冲突后 Redis 会再次调用此函数，每次都要打开新会话读取最新已提交的数据。
             async with AsyncSession(bind=query_db.bind) as snapshot_db:
                 rows = await DictDataDao.query_dict_data_list(snapshot_db, dict_type)
@@ -327,7 +334,7 @@ class DictDataService:
         cls, redis: aioredis.Redis, dict_type: str
     ) -> list[dict[str, Any]]:
         """
-        从缓存获取字典数据列表信息service
+        从缓存获取字典数据列表信息service。
 
         :param redis: redis对象
         :param dict_type: 字典类型
@@ -339,7 +346,7 @@ class DictDataService:
     @classmethod
     async def check_dict_data_unique_services(cls, query_db: AsyncSession, page_object: DictDataModel) -> bool:
         """
-        校验字典数据是否唯一service
+        校验字典数据是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 字典数据对象
@@ -356,12 +363,14 @@ class DictDataService:
         cls, request: Request, query_db: AsyncSession, page_object: DictDataModel
     ) -> CrudResponseModel:
         """
-        新增字典数据信息service
+        新增字典数据信息service。
 
         :param request: Request对象
         :param query_db: orm对象
         :param page_object: 新增岗位对象
         :return: 新增字典数据校验结果
+        :raises ServiceException: 同一字典类型下已存在对应数据
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if not await cls.check_dict_data_unique_services(query_db, page_object):
             raise ServiceException(
@@ -383,12 +392,14 @@ class DictDataService:
         cls, request: Request, query_db: AsyncSession, page_object: DictDataModel
     ) -> CrudResponseModel:
         """
-        编辑字典数据信息service
+        编辑字典数据信息service。
 
         :param request: Request对象
         :param query_db: orm对象
         :param page_object: 编辑字典数据对象
         :return: 编辑字典数据校验结果
+        :raises ServiceException: 字典数据不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         edit_data_type = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
         dict_data_info = await cls.dict_data_detail_services(query_db, page_object.dict_code)
@@ -417,12 +428,14 @@ class DictDataService:
         cls, request: Request, query_db: AsyncSession, page_object: DeleteDictDataModel
     ) -> CrudResponseModel:
         """
-        删除字典数据信息service
+        删除字典数据信息service。
 
         :param request: Request对象
         :param query_db: orm对象
         :param page_object: 删除字典数据对象
         :return: 删除字典数据校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入字典数据id为空
         """
         if page_object.dict_codes:
             dict_code_list = page_object.dict_codes.split(',')
@@ -444,7 +457,7 @@ class DictDataService:
     @classmethod
     async def dict_data_detail_services(cls, query_db: AsyncSession, dict_code: int) -> DictDataModel:
         """
-        获取字典数据详细信息service
+        获取字典数据详细信息service。
 
         :param query_db: orm对象
         :param dict_code: 字典数据id
@@ -458,7 +471,7 @@ class DictDataService:
     @staticmethod
     async def export_dict_data_list_services(dict_data_list: list) -> bytes:
         """
-        导出字典数据信息service
+        导出字典数据信息service。
 
         :param dict_data_list: 字典数据信息列表
         :return: 字典数据信息对应excel的二进制数据

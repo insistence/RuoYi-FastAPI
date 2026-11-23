@@ -19,8 +19,8 @@ class WizardInteractionSupport:
     """
     向导交互与上下文构建支持对象。
 
-    :param context_factory: CLI 上下文工厂
-    :param prompt_service: 向导提示服务
+    :ivar context_factory: CLI 上下文工厂
+    :ivar prompt_service: 向导提示服务
     """
 
     def __init__(
@@ -34,7 +34,6 @@ class WizardInteractionSupport:
 
         :param context_factory: CLI 上下文工厂
         :param prompt_service: 向导提示服务
-        :return: None
         """
         self.context_factory = context_factory
         self.prompt_service = prompt_service
@@ -85,8 +84,8 @@ class WizardResultSupport:
     """
     向导结果收口支持对象。
 
-    :param execution_service: CLI 执行服务
-    :param preview_renderer: 向导预览渲染器
+    :ivar execution_service: CLI 执行服务
+    :ivar preview_renderer: 向导预览渲染器
     """
 
     def __init__(
@@ -100,7 +99,6 @@ class WizardResultSupport:
 
         :param execution_service: CLI 执行服务
         :param preview_renderer: 向导预览渲染器
-        :return: None
         """
         self.execution_service = execution_service
         self.preview_renderer = preview_renderer
@@ -111,7 +109,6 @@ class WizardResultSupport:
 
         :param ctx: CLI 上下文
         :param result: 命令结果对象
-        :return: None
         """
         self.execution_service.complete_result(ctx, result)
 
@@ -128,7 +125,6 @@ class WizardResultSupport:
         :param ctx: CLI 上下文
         :param payload: 标准结果负载
         :param default_exit_code: 默认退出码
-        :return: None
         """
         self.execution_service.complete_payload(ctx, payload, default_exit_code=default_exit_code)
 
@@ -149,7 +145,6 @@ class WizardResultSupport:
         :param text_builder: 文本结果构建函数
         :param default_exit_code: 默认退出码
         :param text_condition: 文本模式结果构建判定函数
-        :return: None
         """
         self.execution_service.complete_payload_result(
             ctx,
@@ -181,8 +176,8 @@ class WizardNestedCommandSupport:
     """
     向导内部 CLI 调用支持对象。
 
-    :param command_runner: 内部 CLI 子进程调用函数
-    :param live_command_runner: 内部 CLI 实时执行函数
+    :ivar command_runner: 内部 CLI 子进程调用函数
+    :ivar live_command_runner: 内部 CLI 实时执行函数
     """
 
     def __init__(
@@ -196,7 +191,6 @@ class WizardNestedCommandSupport:
 
         :param command_runner: 内部 CLI 子进程调用函数
         :param live_command_runner: 内部 CLI 实时执行函数
-        :return: None
         """
         self.command_runner = command_runner
         self.live_command_runner = live_command_runner
@@ -242,7 +236,7 @@ class WizardExecutionResultSupport:
     该对象负责提取内部 CLI 结果的 payload、退出码与错误文本，并构建
     默认失败负载，让模板基类不再直接持有结果翻译细节。
 
-    :param failure_message: 默认失败提示
+    :ivar failure_message: 默认失败提示
     """
 
     def __init__(self, *, failure_message: str) -> None:
@@ -250,7 +244,6 @@ class WizardExecutionResultSupport:
         初始化执行结果翻译支持对象。
 
         :param failure_message: 默认失败提示
-        :return: None
         """
         self.failure_message = failure_message
 
@@ -316,9 +309,13 @@ class WizardSupportCache:
     向导协作者缓存。
 
     该对象负责延迟构建并复用当前 flow 需要的 interaction/result/nested
-    support collaborator，让 `BaseCliWizardFlow` 回到模板骨架与桥接层角色。
+    support collaborator，让 ``BaseCliWizardFlow`` 回到模板骨架与桥接层角色。
 
-    :param owner: 当前向导 flow
+    :ivar owner: 当前向导 flow
+    :ivar _interaction_support: 负责处理向导交互的组件
+    :ivar _result_support: 将执行结果转换为向导输出的组件
+    :ivar _nested_command_support: 支持在向导内调用子命令的组件
+    :ivar _execution_result_support: 解析命令退出状态及输出的组件
     """
 
     def __init__(self, owner: 'BaseCliWizardFlow[Any]') -> None:
@@ -326,7 +323,6 @@ class WizardSupportCache:
         初始化向导协作者缓存。
 
         :param owner: 当前向导 flow
-        :return: None
         """
         self.owner = owner
         self._interaction_support: WizardInteractionSupport | None = None
@@ -397,6 +393,10 @@ class BaseNestedCommandWizardFlow(ABC, Generic[SelectionT]):
 
     子类需要提供参数采集、上下文构建、预览摘要、执行参数和
     结果收口策略，从而复用向导的通用交互主链路。
+
+    :ivar wizard_name: 向导名称
+    :ivar preview_title: 预览标题
+    :ivar failure_message: 默认失败提示
     """
 
     wizard_name: str
@@ -408,7 +408,6 @@ class BaseNestedCommandWizardFlow(ABC, Generic[SelectionT]):
         执行向导主流程。
 
         :param output: 输出格式
-        :return: None
         """
         selection = self.collect_selection()
         self.prepare_execution_state(selection, output)
@@ -470,7 +469,6 @@ class BaseNestedCommandWizardFlow(ABC, Generic[SelectionT]):
 
         :param selection: 向导采集结果
         :param output: 输出格式
-        :return: None
         """
         del selection, output
 
@@ -479,7 +477,7 @@ class BaseNestedCommandWizardFlow(ABC, Generic[SelectionT]):
         允许子类在默认 payload 收口前接管执行结果。
 
         该钩子适用于需要切换到 live exec、实时终端占用或其他非标准 payload
-        收口路径的少数 flow。返回 `True` 表示结果已处理完成。
+        收口路径的少数 flow。返回 ``True`` 表示结果已处理完成。
 
         :param ctx: CLI 上下文
         :param nested_result: 执行结果
@@ -610,7 +608,6 @@ class BaseNestedCommandWizardFlow(ABC, Generic[SelectionT]):
 
         :param ctx: CLI 上下文
         :param result: 命令结果
-        :return: None
         """
 
     @abstractmethod
@@ -643,7 +640,6 @@ class BaseNestedCommandWizardFlow(ABC, Generic[SelectionT]):
         :param ctx: CLI 上下文
         :param payload: 结果负载
         :param default_exit_code: 默认退出码
-        :return: None
         """
 
     def execute(self, selection: SelectionT, output: OutputOption) -> Any:
@@ -673,6 +669,14 @@ class BaseCliWizardFlow(BaseNestedCommandWizardFlow[SelectionT], ABC):
 
     该基类在通用向导主链路之上继续下沉当前项目稳定复用的桥接逻辑，
     包括确认交互、上下文构建、命令结果收口与内部 CLI 调用封装。
+
+    :cvar context_factory: CLI 上下文工厂
+    :cvar execution_service: CLI 执行服务
+    :cvar prompt_service: 向导提示服务
+    :cvar preview_renderer: 向导预览渲染器
+    :cvar nested_command_runner: 在向导内运行子命令的回调
+    :cvar nested_live_command_runner: 运行子命令并实时输出进度的回调
+    :ivar _support_cache: 按需复用向导支持组件的缓存
     """
 
     context_factory: ClassVar[CliContextFactory] = DEFAULT_CORE_SERVICES.context_factory
@@ -688,8 +692,6 @@ class BaseCliWizardFlow(BaseNestedCommandWizardFlow[SelectionT], ABC):
 
         该基类通过协作者缓存稳定持有交互、结果收口和内部 CLI 调用 support，
         避免模板方法执行过程中重复构建同类对象。
-
-        :return: None
         """
         self._support_cache: WizardSupportCache | None = None
 
@@ -697,7 +699,7 @@ class BaseCliWizardFlow(BaseNestedCommandWizardFlow[SelectionT], ABC):
         """
         返回当前向导使用的协作者缓存。
 
-        保持惰性创建，以兼容未显式调用基类 `__init__` 的现有 flow。
+        保持惰性创建，以兼容未显式调用基类 ``__init__`` 的现有 flow。
 
         :return: 协作者缓存
         """
@@ -791,7 +793,6 @@ class BaseCliWizardFlow(BaseNestedCommandWizardFlow[SelectionT], ABC):
 
         :param ctx: CLI 上下文
         :param result: 命令结果对象
-        :return: None
         """
         self.get_result_support().complete_result(ctx, result)
 
@@ -808,7 +809,6 @@ class BaseCliWizardFlow(BaseNestedCommandWizardFlow[SelectionT], ABC):
         :param ctx: CLI 上下文
         :param payload: 标准结果负载
         :param default_exit_code: 默认退出码
-        :return: None
         """
         self.get_result_support().complete_payload(ctx, payload, default_exit_code=default_exit_code)
 
@@ -829,7 +829,6 @@ class BaseCliWizardFlow(BaseNestedCommandWizardFlow[SelectionT], ABC):
         :param text_builder: 文本结果构建函数
         :param default_exit_code: 默认退出码
         :param text_condition: 文本模式结果构建判定函数
-        :return: None
         """
         self.get_result_support().complete_payload_result(
             ctx,
@@ -880,9 +879,9 @@ class BaseLiveExecCliWizardFlow(BaseCliWizardFlow[SelectionT], ABC):
     统一封装“确认后切换到实时终端执行路径”的 CLI 向导基类。
 
     该特化基类用于少量不走 JSON payload 收口，而是在确认后直接
-    切换到现有命令实时执行链路的向导场景，例如 `wizard app-run`。
+    切换到现有命令实时执行链路的向导场景，例如 ``wizard app-run``。
     它在保留预览与确认模板骨架的前提下，显式表达“执行阶段即完成收口”，
-    避免子类再通过覆写 `complete_payload()` 或 `handle_execution_result()`
+    避免子类再通过覆写 ``complete_payload()`` 或 ``handle_execution_result()``
     实现规避式短路。
     """
 
@@ -892,7 +891,6 @@ class BaseLiveExecCliWizardFlow(BaseCliWizardFlow[SelectionT], ABC):
 
         :param selection: 向导采集结果
         :param output: 输出格式
-        :return: None
         """
         self.exec_nested_command(*self.build_execute_arguments(selection, output))
 

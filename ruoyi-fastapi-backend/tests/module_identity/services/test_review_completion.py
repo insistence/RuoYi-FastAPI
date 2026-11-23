@@ -50,14 +50,23 @@ auth_flow = _auth_flow_fixture
 
 
 def _basic(client_id: str, secret: str) -> str:
-    """生成符合协议编码要求的机密客户端认证头。"""
+    """
+    生成符合协议编码要求的机密客户端认证头。
 
+    :param client_id: 客户端标识
+    :param secret: 用于验证身份或令牌的秘密值
+    :return: 符合协议编码要求的机密客户端认证头
+    """
     return 'Basic ' + base64.b64encode(f'{quote_plus(client_id)}:{quote_plus(secret)}'.encode()).decode()
 
 
 async def _confidential_token(flow: SimpleNamespace) -> tuple:
-    """通过机密客户端的真实授权码流程签发离线令牌。"""
+    """
+    通过机密客户端的真实授权码流程签发离线令牌。
 
+    :param flow: 驱动当前场景的业务流程
+    :return: 依次为 ``token``、``secret``、``authorization`` 的元组
+    """
     flow.app.client_type = 'confidential'
     flow.app.token_endpoint_auth_method = 'client_secret_basic'
     secret = await OAuthClientManagementService._new_secret(flow.db, flow.app, 'admin', flow.now, not_before=flow.now)
@@ -113,7 +122,6 @@ async def _confidential_token(flow: SimpleNamespace) -> tuple:
 @pytest.mark.parametrize('stored_status', ['active', 'expired'])
 async def test_revoke_user_terminates_expired_offline_sessions(auth_flow: SimpleNamespace, stored_status: str) -> None:
     """自然过期不影响离线续期，但管理员按用户撤销必须终止该能力。"""
-
     flow = auth_flow
     token, _ = await _user_token(flow, offline=True)
     flow.session.idle_expires_at = flow.now - timedelta(seconds=1)
@@ -146,7 +154,6 @@ async def test_revoke_user_terminates_expired_offline_sessions(auth_flow: Simple
 @pytest.mark.asyncio
 async def test_secret_rotation_and_revocation_preserve_existing_authorization(auth_flow: SimpleNamespace) -> None:
     """凭据轮换只改变客户端认证，旧授权可通过新凭据继续续期。"""
-
     flow = auth_flow
     token, old_secret, old_header = await _confidential_token(flow)
     policy_version = flow.app.policy_version
@@ -193,7 +200,6 @@ async def test_token_hint_does_not_override_real_token_type(
     auth_flow: SimpleNamespace, kind: str, hint: str | None
 ) -> None:
     """内省和撤销均忽略不匹配或未知的可选令牌类型提示。"""
-
     flow = auth_flow
     token, _ = await _user_token(flow, offline=True)
     value = getattr(token, kind)
@@ -224,7 +230,6 @@ async def test_effective_expiry_matches_list_count_detail_without_mutating_state
     auth_flow: SimpleNamespace, expiry: str
 ) -> None:
     """列表筛选、总数和详情采用相同有效状态，读取不改变离线凭据语义。"""
-
     flow = auth_flow
     _, grant = await _user_token(flow)
     setattr(flow.session, f'{expiry}_expires_at', flow.now - timedelta(seconds=1))
@@ -258,7 +263,6 @@ async def test_online_authorization_records_exact_session_participation(
     auth_flow: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """没有刷新令牌的授权也记录应用，其他设备的参与应用不混入当前登出。"""
-
     flow = auth_flow
     token, _ = await _user_token(flow)
     await _user_token(flow)
@@ -301,7 +305,6 @@ async def test_online_authorization_records_exact_session_participation(
 @pytest.mark.asyncio
 async def test_legacy_refresh_binding_is_an_exact_session_fallback(auth_flow: SimpleNamespace) -> None:
     """升级前的离线凭据仍可恢复精确会话参与者，不依赖同用户授权时间推断。"""
-
     flow = auth_flow
     await _user_token(flow, offline=True)
     await flow.db.execute(delete(SysSsoSessionClient))
@@ -314,10 +317,19 @@ async def test_failed_token_transaction_rolls_back_session_participation(
     auth_flow: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """令牌签发事务失败时不能残留成功登录关联记录。"""
-
     record = AuditService.record
 
     async def fail_token_audit(db: AsyncSession, event_type: str, *args: object, **kwargs: object) -> object:
+        """
+        在令牌签发审计时模拟写入失败。
+
+        :param db: 当前操作使用的数据库会话
+        :param event_type: 审计事件类型
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟写入令牌审计时服务不可用
+        :return: 未注入故障时原审计函数的结果
+        """
         if event_type == OidcAuditEvent.TOKEN_ISSUED:
             raise RuntimeError('audit unavailable')
         return await record(db, event_type, *args, **kwargs)
@@ -333,7 +345,6 @@ async def test_access_policy_without_grant_is_queryable_and_unblocking_does_not_
     auth_flow: SimpleNamespace,
 ) -> None:
     """首次授权前的禁止策略独立可见，解除后也不凭空恢复授权。"""
-
     flow = auth_flow
     await OAuthSessionManagementService.set_access(
         flow.db, flow.user.user_id, 'business-app', True, 'admin', '预先禁止'
@@ -359,8 +370,13 @@ async def test_access_policy_without_grant_is_queryable_and_unblocking_does_not_
 
 
 def _http_app(flow: SimpleNamespace, router: APIRouter) -> FastAPI:
-    """挂载真实路由并将数据库依赖定向到隔离测试库。"""
+    """
+    挂载真实路由并将数据库依赖定向到隔离测试库。
 
+    :param flow: 驱动当前场景的业务流程
+    :param router: 注册端点所用的路由器
+    :return: 正在配置或处理请求的 ASGI 应用
+    """
     app = FastAPI()
     app.state.redis = flow.redis
     app.include_router(router)
@@ -381,7 +397,6 @@ async def test_authorize_accepts_query_response_mode_on_both_methods(
     auth_flow: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, method: str
 ) -> None:
     """标准授权方法均进入真实交互流程，未登录时保持 prompt=none 的标准错误。"""
-
     monkeypatch.setattr(OidcRateLimiter, 'enforce', AsyncMock())
     values = {**_authorize_request(auth_flow), 'response_mode': 'query', 'prompt': 'none', 'state': 'test-state'}
     app = _http_app(auth_flow, authorization_controller)
@@ -401,7 +416,6 @@ async def test_authorize_accepts_query_response_mode_on_both_methods(
 @pytest.mark.parametrize('case', ['duplicate', 'query_and_body', 'json', 'bad_escape', 'oversize'])
 async def test_authorize_post_rejects_ambiguous_or_invalid_forms(auth_flow: SimpleNamespace, case: str) -> None:
     """支持 POST 不放宽重复参数、编码、媒体类型和体积限制。"""
-
     body = urlencode(_authorize_request(auth_flow))
     url = '/oauth2/authorize'
     media_type = 'application/x-www-form-urlencoded'
@@ -429,7 +443,6 @@ async def test_authorize_post_rejects_ambiguous_or_invalid_forms(auth_flow: Simp
 @pytest.mark.asyncio
 async def test_unsupported_response_mode_is_only_redirected_to_verified_client(auth_flow: SimpleNamespace) -> None:
     """不支持的响应模式只能向已登记回调返回错误。"""
-
     values = {**_authorize_request(auth_flow), 'response_mode': 'fragment'}
     with pytest.raises(OAuthProtocolException) as error:
         await AuthorizationService._parse_request(auth_flow.db, values)
@@ -443,7 +456,6 @@ async def test_unsupported_response_mode_is_only_redirected_to_verified_client(a
 @pytest.mark.asyncio
 async def test_access_policy_list_route_returns_camel_case_without_grants(auth_flow: SimpleNamespace) -> None:
     """独立策略列表路由返回规范字段，不被授权详情路径截获。"""
-
     flow = auth_flow
     await OAuthSessionManagementService.set_access(
         flow.db, flow.user.user_id, 'business-app', True, 'admin', '预先禁止'

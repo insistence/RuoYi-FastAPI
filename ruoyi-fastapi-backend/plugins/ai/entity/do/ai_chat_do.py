@@ -5,9 +5,7 @@ from config.database import Base
 
 
 class AiChatConfig(AuditTimeMixin, Base):
-    """
-    AI对话配置表
-    """
+    """AI对话配置表。"""
 
     __tablename__ = 'ai_chat_config'
     __table_args__ = {'comment': 'AI对话配置表'}

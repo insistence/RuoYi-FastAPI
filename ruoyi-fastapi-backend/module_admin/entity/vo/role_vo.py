@@ -10,9 +10,7 @@ from i18n.message import I18nMessage
 
 
 class RoleModel(BaseModel):
-    """
-    角色表对应pydantic模型
-    """
+    """角色表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -38,6 +36,12 @@ class RoleModel(BaseModel):
     @field_validator('menu_check_strictly', 'dept_check_strictly')
     @classmethod
     def check_filed_mapping(cls, v: int | bool) -> int | bool:
+        """
+        将角色标志值转换为模型接受的表示。
+
+        :param v: 待校验的字段映射
+        :return: 待校验的字段映射
+        """
         if v == 1:
             v = True
         elif v == 0:
@@ -50,6 +54,11 @@ class RoleModel(BaseModel):
 
     @model_validator(mode='after')
     def check_admin(self) -> 'RoleModel':
+        """
+        根据角色编号标记管理员角色。
+
+        :return: 当前实例
+        """
         if self.role_id == 1:
             self.admin = True
         else:
@@ -64,6 +73,11 @@ class RoleModel(BaseModel):
         message=I18nMessage('角色名称长度不能超过30个字符', msg_key='validation.roleNameLength'),
     )
     def get_role_name(self) -> str | None:
+        """
+        校验并返回角色名称。
+
+        :return: 角色名称
+        """
         return self.role_name
 
     @NotBlank(field_name='role_key', message=I18nMessage('权限字符不能为空', msg_key='validation.roleKeyRequired'))
@@ -74,22 +88,31 @@ class RoleModel(BaseModel):
         message=I18nMessage('权限字符长度不能超过100个字符', msg_key='validation.roleKeyLength'),
     )
     def get_role_key(self) -> str | None:
+        """
+        校验并返回角色权限字符串。
+
+        :return: 角色权限字符串
+        """
         return self.role_key
 
     @NotBlank(field_name='role_sort', message=I18nMessage('显示顺序不能为空', msg_key='validation.orderRequired'))
     def get_role_sort(self) -> int | None:
+        """
+        校验并返回显示顺序。
+
+        :return: 显示顺序
+        """
         return self.role_sort
 
     def validate_fields(self) -> None:
+        """校验角色名称、角色权限字符串、显示顺序。"""
         self.get_role_name()
         self.get_role_key()
         self.get_role_sort()
 
 
 class RoleMenuModel(BaseModel):
-    """
-    角色和菜单关联表对应pydantic模型
-    """
+    """角色和菜单关联表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -98,9 +121,7 @@ class RoleMenuModel(BaseModel):
 
 
 class RoleDeptModel(BaseModel):
-    """
-    角色和部门关联表对应pydantic模型
-    """
+    """角色和部门关联表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -109,27 +130,21 @@ class RoleDeptModel(BaseModel):
 
 
 class RoleQueryModel(DateRangeQueryMixin, RoleModel):
-    """
-    角色管理不分页查询模型
-    """
+    """角色管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class RolePageQueryModel(RoleQueryModel):
-    """
-    角色管理分页查询模型
-    """
+    """角色管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class RoleMenuQueryModel(BaseModel):
-    """
-    角色菜单查询模型
-    """
+    """角色菜单查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -138,9 +153,7 @@ class RoleMenuQueryModel(BaseModel):
 
 
 class RoleDeptQueryModel(BaseModel):
-    """
-    角色部门查询模型
-    """
+    """角色部门查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -149,9 +162,7 @@ class RoleDeptQueryModel(BaseModel):
 
 
 class AddRoleModel(RoleModel):
-    """
-    新增角色模型
-    """
+    """新增角色模型。"""
 
     dept_ids: list = Field(default=[], description='部门ID信息')
     menu_ids: list = Field(default=[], description='菜单ID信息')
@@ -159,9 +170,7 @@ class AddRoleModel(RoleModel):
 
 
 class DeleteRoleModel(BaseModel):
-    """
-    删除角色模型
-    """
+    """删除角色模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

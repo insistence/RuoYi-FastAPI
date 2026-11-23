@@ -28,7 +28,10 @@ from utils.time_util import TimezoneUtil
 
 class FileInfoDao:
     """
-    文件信息数据操作层
+    文件信息数据操作层。
+
+    :cvar FILE_EXPIRING_DAYS: 查询即将到期文件时向前看的天数
+    :cvar ACL_EXPIRING_DAYS: 查询即将到期授权时向前看的天数
     """
 
     FILE_EXPIRING_DAYS = 7
@@ -37,7 +40,7 @@ class FileInfoDao:
     @classmethod
     async def add_file_info_dao(cls, db: AsyncSession, file_info: FileInfoModel) -> SysFileInfo:
         """
-        新增文件信息
+        新增文件信息。
 
         :param db: orm对象
         :param file_info: 文件信息对象
@@ -56,7 +59,7 @@ class FileInfoDao:
         file_data_scope_sql: ColumnElement | None = None,
     ) -> SysFileInfo | None:
         """
-        根据文件ID获取有效文件信息
+        根据文件ID获取有效文件信息。
 
         :param db: orm对象
         :param file_id: 文件ID
@@ -81,12 +84,11 @@ class FileInfoDao:
     @classmethod
     async def release_stale_runs(cls, db: AsyncSession, stale_before: datetime, current_time: datetime) -> None:
         """
-        释放超时未完成的对账任务锁
+        释放超时未完成的对账任务锁。
 
         :param db: orm对象
         :param stale_before: 超时边界
         :param current_time: 当前时间
-        :return: None
         """
         await db.execute(
             update(SysFileReconcileRun)
@@ -105,11 +107,10 @@ class FileInfoDao:
     @classmethod
     async def add_reconcile_run(cls, db: AsyncSession, reconcile_run: SysFileReconcileRun) -> None:
         """
-        新增文件存储对账任务
+        新增文件存储对账任务。
 
         :param db: orm对象
         :param reconcile_run: 对账任务
-        :return: None
         """
         db.add(reconcile_run)
         await db.flush()
@@ -117,7 +118,7 @@ class FileInfoDao:
     @classmethod
     async def get_reconcile_run_by_id(cls, db: AsyncSession, run_id: str) -> SysFileReconcileRun | None:
         """
-        根据任务ID获取文件存储对账任务
+        根据任务ID获取文件存储对账任务。
 
         :param db: orm对象
         :param run_id: 任务ID
@@ -132,7 +133,7 @@ class FileInfoDao:
     @classmethod
     async def has_running_reconcile_run(cls, db: AsyncSession) -> bool:
         """
-        判断是否存在运行中的文件存储对账任务
+        判断是否存在运行中的文件存储对账任务。
 
         :param db: orm对象
         :return: 是否正在运行
@@ -147,7 +148,7 @@ class FileInfoDao:
         is_page: bool = True,
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取文件存储对账任务列表
+        获取文件存储对账任务列表。
 
         :param db: orm对象
         :param query_object: 查询参数
@@ -181,7 +182,7 @@ class FileInfoDao:
     @classmethod
     async def get_all_local_file_infos(cls, db: AsyncSession) -> list[dict[str, Any]]:
         """
-        获取全部本地文件存储信息
+        获取全部本地文件存储信息。
 
         :param db: orm对象
         :return: 文件存储信息列表
@@ -216,7 +217,7 @@ class FileInfoDao:
         current_time: datetime,
     ) -> int:
         """
-        新增或更新文件存储对账异常
+        新增或更新文件存储对账异常。
 
         :param db: orm对象
         :param run_id: 任务ID
@@ -283,7 +284,7 @@ class FileInfoDao:
         current_time: datetime,
     ) -> int:
         """
-        自动关闭本次扫描未再次出现的异常
+        自动关闭本次扫描未再次出现的异常。
 
         :param db: orm对象
         :param run_id: 任务ID
@@ -322,9 +323,18 @@ class FileInfoDao:
         error_message: str = '',
     ) -> None:
         """
-        完成文件存储对账任务
+        完成文件存储对账任务。
 
-        :return: None
+        :param db: 当前操作使用的数据库会话
+        :param run_id: 任务ID
+        :param status: 操作或记录所处的状态
+        :param finished_time: 操作完成时间
+        :param scanned_file_count: 已检查的文件记录数量
+        :param scanned_storage_count: 已扫描的存储对象数量
+        :param issue_count: 检出的异常总数
+        :param new_issue_count: 本次新增的异常数
+        :param resolved_issue_count: 本次已解决的异常数
+        :param error_message: 记录到结果或审计日志中的错误详情
         """
         await db.execute(
             update(SysFileReconcileRun)
@@ -350,7 +360,7 @@ class FileInfoDao:
         is_page: bool = True,
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取文件存储对账异常列表
+        获取文件存储对账异常列表。
 
         :param db: orm对象
         :param query_object: 查询参数
@@ -399,7 +409,7 @@ class FileInfoDao:
         issue_id: int,
     ) -> SysFileReconcileIssue | None:
         """
-        锁定文件存储对账异常
+        锁定文件存储对账异常。
 
         :param db: orm对象
         :param issue_id: 异常ID
@@ -422,7 +432,7 @@ class FileInfoDao:
         file_id: str,
     ) -> SysFileInfo | None:
         """
-        锁定对账异常关联的文件信息
+        锁定对账异常关联的文件信息。
 
         :param db: orm对象
         :param file_id: 文件ID
@@ -444,9 +454,13 @@ class FileInfoDao:
         reason: str,
     ) -> None:
         """
-        关闭文件大小和摘要不一致异常
+        关闭文件大小和摘要不一致异常。
 
-        :return: None
+        :param db: 当前操作使用的数据库会话
+        :param file_id: 文件ID
+        :param current_time: 当前时间
+        :param handled_by: 处理该问题的用户标识
+        :param reason: 作出该决定或状态变化的原因
         """
         await db.execute(
             update(SysFileReconcileIssue)
@@ -467,7 +481,7 @@ class FileInfoDao:
     @classmethod
     async def get_reconcile_stats(cls, db: AsyncSession) -> dict[str, Any]:
         """
-        获取文件存储对账统计
+        获取文件存储对账统计。
 
         :param db: orm对象
         :return: 对账统计
@@ -535,7 +549,7 @@ class FileInfoDao:
         file_data_scope_sql: ColumnElement | None = None,
     ) -> SysFileInfo | None:
         """
-        根据文件ID获取文件详细信息
+        根据文件ID获取文件详细信息。
 
         :param db: orm对象
         :param file_id: 文件ID
@@ -563,7 +577,7 @@ class FileInfoDao:
         file_data_scope_sql: ColumnElement | None = None,
     ) -> SysFileInfo | None:
         """
-        根据文件ID锁定有效文件信息
+        根据文件ID锁定有效文件信息。
 
         :param db: orm对象
         :param file_id: 文件ID
@@ -595,7 +609,7 @@ class FileInfoDao:
         file_data_scope_sql: ColumnElement | None = None,
     ) -> list[SysFileInfo]:
         """
-        根据文件ID列表锁定有效文件信息
+        根据文件ID列表锁定有效文件信息。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
@@ -628,7 +642,7 @@ class FileInfoDao:
         file_data_scope_sql: ColumnElement | None = None,
     ) -> list[SysFileInfo]:
         """
-        根据文件ID列表锁定已删除文件信息
+        根据文件ID列表锁定已删除文件信息。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
@@ -661,7 +675,7 @@ class FileInfoDao:
         file_data_scope_sql: ColumnElement | None = None,
     ) -> list[SysFileInfo]:
         """
-        根据文件ID列表锁定可永久清理的文件信息
+        根据文件ID列表锁定可永久清理的文件信息。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
@@ -694,7 +708,7 @@ class FileInfoDao:
         batch_size: int,
     ) -> list[SysFileInfo]:
         """
-        获取自动清理的回收站文件
+        获取自动清理的回收站文件。
 
         :param db: orm对象
         :param deleted_before: 最晚删除时间
@@ -738,7 +752,7 @@ class FileInfoDao:
         is_page: bool = False,
     ) -> PageModel | list[dict[str, Any]]:
         """
-        根据查询参数获取文件信息列表
+        根据查询参数获取文件信息列表。
 
         :param db: orm对象
         :param query_object: 文件信息查询参数
@@ -787,7 +801,7 @@ class FileInfoDao:
         file_data_scope_sql: ColumnElement,
     ) -> dict[str, Any] | None:
         """
-        获取包含管理展示字段的文件详情
+        获取包含管理展示字段的文件详情。
 
         :param db: orm对象
         :param file_id: 文件ID
@@ -837,7 +851,7 @@ class FileInfoDao:
         file_data_scope_sql: ColumnElement,
     ) -> FileStatsModel:
         """
-        获取文件管理统计信息
+        获取文件管理统计信息。
 
         :param db: orm对象
         :param query_object: 文件信息查询参数
@@ -932,7 +946,7 @@ class FileInfoDao:
         current_time: datetime,
     ) -> list[ColumnElement | bool]:
         """
-        构建文件管理查询条件
+        构建文件管理查询条件。
 
         :param query_object: 文件信息查询参数
         :param current_time: 当前时间
@@ -975,13 +989,12 @@ class FileInfoDao:
         update_time: datetime,
     ) -> None:
         """
-        逻辑删除文件信息
+        逻辑删除文件信息。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
         :param update_by: 更新者
         :param update_time: 更新时间
-        :return: None
         """
         await db.execute(
             update(SysFileInfo)
@@ -1004,13 +1017,12 @@ class FileInfoDao:
         update_time: datetime,
     ) -> None:
         """
-        恢复文件信息
+        恢复文件信息。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
         :param update_by: 更新者
         :param update_time: 更新时间
-        :return: None
         """
         await db.execute(
             update(SysFileInfo)
@@ -1033,13 +1045,12 @@ class FileInfoDao:
         update_time: datetime,
     ) -> None:
         """
-        标记文件正在执行永久清理
+        标记文件正在执行永久清理。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
         :param update_by: 更新者
         :param update_time: 更新时间
-        :return: None
         """
         await db.execute(
             update(SysFileInfo)
@@ -1058,11 +1069,10 @@ class FileInfoDao:
     @classmethod
     async def purge_file_infos(cls, db: AsyncSession, file_ids: list[str]) -> None:
         """
-        永久删除文件元数据及关联管理数据
+        永久删除文件元数据及关联管理数据。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
-        :return: None
         """
         await db.execute(delete(SysFileAcl).where(SysFileAcl.file_id.in_(file_ids)))
         await db.execute(delete(SysFileReference).where(SysFileReference.file_id.in_(file_ids)))
@@ -1083,7 +1093,7 @@ class FileInfoDao:
         user_data_scope_sql: ColumnElement,
     ) -> SysUser | None:
         """
-        获取数据权限范围内的文件转移目标用户
+        获取数据权限范围内的文件转移目标用户。
 
         :param db: orm对象
         :param user_id: 用户ID
@@ -1115,7 +1125,7 @@ class FileInfoDao:
         dept_data_scope_sql: ColumnElement,
     ) -> SysDept | None:
         """
-        获取数据权限范围内的文件转移目标部门
+        获取数据权限范围内的文件转移目标部门。
 
         :param db: orm对象
         :param dept_id: 部门ID
@@ -1151,7 +1161,7 @@ class FileInfoDao:
         update_time: datetime,
     ) -> None:
         """
-        批量转移文件所有者和所属部门
+        批量转移文件所有者和所属部门。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
@@ -1160,7 +1170,6 @@ class FileInfoDao:
         :param retain_uploader_access: 是否保留上传人访问权限
         :param update_by: 更新者
         :param update_time: 更新时间
-        :return: None
         """
         await db.execute(
             update(SysFileInfo)
@@ -1184,7 +1193,7 @@ class FileInfoDao:
         storage_type: str = 'local',
     ) -> SysFileInfo | None:
         """
-        根据存储相对路径获取文件信息
+        根据存储相对路径获取文件信息。
 
         :param db: orm对象
         :param storage_key: 存储相对路径

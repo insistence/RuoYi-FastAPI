@@ -23,6 +23,7 @@ jobs:
         run: |
           ruff check ruoyi-fastapi-backend ruoyi-fastapi-test .github/scripts .github/tests
           ruff format --check ruoyi-fastapi-backend ruoyi-fastapi-test .github/scripts .github/tests
+          python ruoyi-fastapi-backend/scripts/check_docstrings.py ruoyi-fastapi-backend ruoyi-fastapi-test .github/scripts .github/tests
       - name: Test CI routing, failure gates and deployment contracts
         run: python -m pytest .github/tests -q --junitxml=target/ci/quality.xml
       - name: Validate every Compose framework selection

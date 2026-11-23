@@ -13,7 +13,13 @@ def test_entity_module_importer_defaults_to_backend_root() -> None:
 
 
 def write_python_file(file_path: Path, content: str = '') -> Path:
-    """写入 Python 测试文件。"""
+    """
+    写入 Python 测试文件。
+
+    :param file_path: 文件路径
+    :param content: 需要读取或写入的内容
+    :return: 文件路径
+    """
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(content, encoding='utf-8')
 

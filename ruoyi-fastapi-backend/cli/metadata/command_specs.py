@@ -7,13 +7,13 @@ class CompletionShellSpec:
     """
     Shell completion 元数据定义。
 
-    name: shell 名称
-    description: shell 描述文本
-    generator: 脚本生成方式
-    default_target: 默认脚本落盘路径，相对于用户 home 目录
-    default_rc_file: 默认 rc 文件路径，相对于用户 home 目录
-    auto_discovery: 是否会被 shell 自动发现
-    supported: 当前版本是否已支持
+    :ivar name: shell 名称
+    :ivar description: shell 描述文本
+    :ivar generator: 脚本生成方式
+    :ivar default_target: 默认脚本落盘路径，相对于用户 home 目录
+    :ivar default_rc_file: 默认 rc 文件路径，相对于用户 home 目录
+    :ivar auto_discovery: 是否会被 shell 自动发现
+    :ivar supported: 当前版本是否已支持
     """
 
     name: str
@@ -33,7 +33,7 @@ class CompletionShellSpecRegistry:
     该注册表集中维护 CLI 当前支持的 shell completion 元数据，
     供 installer、doctor 和 provider 等场景统一查询。
 
-    :param specs: 按 shell 名称索引的元数据表
+    :ivar specs: 按 shell 名称索引的元数据表
     """
 
     specs: dict[str, CompletionShellSpec]

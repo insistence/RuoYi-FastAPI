@@ -11,9 +11,9 @@ class DetailSectionSnapshot:
     """
     TUI 详情页单个分区快照。
 
-    :param title: 分区标题
-    :param status: 分区状态
-    :param lines: 分区正文文本行
+    :ivar title: 分区标题
+    :ivar status: 分区状态
+    :ivar lines: 分区正文文本行
     """
 
     title: str
@@ -26,10 +26,10 @@ class DetailPageSnapshot:
     """
     TUI 详情页聚合快照。
 
-    :param title: 页面标题
-    :param subtitle: 页面副标题
-    :param sections: 页面分区列表
-    :param search: 当前页面搜索上下文
+    :ivar title: 页面标题
+    :ivar subtitle: 页面副标题
+    :ivar sections: 页面分区列表
+    :ivar search: 当前页面搜索上下文
     """
 
     title: str
@@ -43,12 +43,14 @@ class BrowserRecordSnapshot:
     """
     TUI 浏览页单条记录快照。
 
-    :param key: 记录唯一标识
-    :param title: 记录标题
-    :param status: 记录状态
-    :param summary: 记录摘要
-    :param metadata_lines: 记录元信息文本行
-    :param detail_sections: 记录联动详情分区列表
+    :ivar key: 记录唯一标识
+    :ivar title: 记录标题
+    :ivar status: 记录状态
+    :ivar summary: 记录摘要
+    :ivar metadata_lines: 记录元信息文本行
+    :ivar detail_sections: 记录联动详情分区列表
+    :ivar detail_loader: 按需加载记录详情的回调
+    :ivar _cached_detail_sections: 已加载的详情分区
     """
 
     key: str
@@ -83,13 +85,13 @@ class BrowserPageSnapshot:
     """
     TUI 浏览页聚合快照。
 
-    :param title: 页面标题
-    :param subtitle: 页面副标题
-    :param records: 可浏览记录列表
-    :param shared_sections: 全局共享分区列表
-    :param filters: 页面可用筛选项
-    :param active_filter_key: 当前激活筛选键
-    :param search: 当前页面搜索上下文
+    :ivar title: 页面标题
+    :ivar subtitle: 页面副标题
+    :ivar records: 可浏览记录列表
+    :ivar shared_sections: 全局共享分区列表
+    :ivar filters: 页面可用筛选项
+    :ivar active_filter_key: 当前激活筛选键
+    :ivar search: 当前页面搜索上下文
     """
 
     title: str

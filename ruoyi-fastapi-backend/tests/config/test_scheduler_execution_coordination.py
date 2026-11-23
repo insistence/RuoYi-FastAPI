@@ -32,6 +32,7 @@ from utils.time_util import TimezoneUtil
 
 @pytest.mark.asyncio
 async def test_two_processes_atomically_enforce_logical_job_limit(runtime: Runtime) -> None:
+    """两个进程以原子方式执行逻辑任务并发限制。"""
     job = await runtime.save()
     snapshot = job.model_dump(mode='json', by_alias=True)
     with ProcessPoolExecutor(
@@ -49,11 +50,12 @@ async def test_two_processes_atomically_enforce_logical_job_limit(runtime: Runti
 
 async def wait_for_process_file(path: Path, executor: TimedProcessPoolExecutor) -> dict:
     """
-    等待真实进程进入业务函数
+    等待真实进程进入业务函数。
 
     :param path: 进程启动标记文件路径
     :param executor: 提供超时诊断的真实进程执行器
     :return: 进程启动信息
+    :raises TimeoutError: 等待操作超过时限时
     """
     startup_wait_seconds = 45
     last_error = None
@@ -83,6 +85,7 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """运行中的进程阻止新执行器，并能在任务删除后结束。"""
     started, release = tmp_path / 'started.json', tmp_path / 'release'
     monkeypatch.setattr(task_module, 'runtime_process', held_process_job, raising=False)
     executor = TimedProcessPoolExecutor(
@@ -141,6 +144,7 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
 
 @pytest.mark.asyncio
 async def test_expired_dispatch_token_cannot_run_reclaimed_request(runtime: Runtime) -> None:
+    """过期的调度令牌不能执行已回收的请求。"""
     job = await runtime.save()
     async with runtime.sessions() as db:
         request = await JobRuntimeDao.create_request(db, job, None)
@@ -172,6 +176,7 @@ async def test_expired_dispatch_token_cannot_run_reclaimed_request(runtime: Runt
 
 @pytest.mark.asyncio
 async def test_only_original_owner_can_finish_unknown_execution(runtime: Runtime) -> None:
+    """只有原所有者可以结束状态未知的执行。"""
     job = await runtime.save()
     execution_id = uuid4().hex
     now = TimezoneUtil.utc_now()

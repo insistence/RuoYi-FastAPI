@@ -12,6 +12,7 @@ from module_generator.service.gen_service import GenTableService
 
 
 def test_get_data_source_list_services_returns_camel_case_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    """数据源列表服务以驼峰字段返回。"""
     settings = SimpleNamespace(
         db_default_source='primary',
         db_sources={
@@ -31,6 +32,7 @@ def test_get_data_source_list_services_returns_camel_case_response(monkeypatch: 
 
 @pytest.mark.asyncio
 async def test_get_gen_db_table_list_by_name_services_transforms_rows(monkeypatch: pytest.MonkeyPatch) -> None:
+    """按名称查询数据库表的服务转换结果行。"""
     engine = create_engine('sqlite:///:memory:')
     with engine.connect() as connection:
         rows = connection.execute(
@@ -39,6 +41,12 @@ async def test_get_gen_db_table_list_by_name_services_transforms_rows(monkeypatc
 
     @asynccontextmanager
     async def session(_source_name: str) -> AsyncGenerator[object, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :param _source_name: 数据源名称
+        :yield: 数据库会话
+        """
         yield SimpleNamespace()
 
     settings = SimpleNamespace(
@@ -61,6 +69,7 @@ async def test_get_gen_db_table_list_by_name_services_transforms_rows(monkeypatc
 
 @pytest.mark.asyncio
 async def test_batch_gen_code_services_rejects_tables_from_other_sources() -> None:
+    """批量生成时拒绝其他数据源的表。"""
     with (
         patch(
             'module_generator.service.gen_service.GenTableDao.get_gen_table_names',
@@ -81,6 +90,7 @@ async def test_batch_gen_code_services_rejects_tables_from_other_sources() -> No
 
 @pytest.mark.asyncio
 async def test_edit_gen_table_services_preserves_alias_fields_for_both_daos() -> None:
+    """编辑生成表时两个 DAO 均保留别名字段。"""
     table_id = 7
     column_id = 9
     page_object = EditGenTableModel(

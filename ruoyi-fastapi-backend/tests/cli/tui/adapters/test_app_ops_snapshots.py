@@ -11,7 +11,16 @@ async def test_collect_app_page_snapshot_builds_env_config_and_route_sections(
     app_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """应用快照包含环境、配置和路由分区。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``app env``、``app config``、``app routes`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('app', 'env'):
             return SimpleNamespace(
@@ -174,7 +183,16 @@ async def test_collect_app_page_snapshot_applies_query_filter(
     app_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """应用快照按查询条件过滤。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``app env``、``app config``、``completion doctor`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('app', 'env'):
             return SimpleNamespace(payload={'ok': True, 'runtime': {'cliEnv': 'dev', 'configEnv': 'dev'}})
@@ -234,7 +252,16 @@ async def test_collect_ops_page_snapshot_builds_health_dependency_and_server_sec
     ops_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """运维快照包含健康、依赖和服务器分区。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``ops health``、``ops ping-db``、``ops ping-redis`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('ops', 'health'):
             return SimpleNamespace(
@@ -329,7 +356,16 @@ async def test_collect_ops_page_snapshot_surfaces_health_risk_subtitle(
     ops_adapter: ModuleType,
     install_query_service: Callable[[ModuleType, Callable[..., object]], object],
 ) -> None:
+    """运维快照在副标题显示健康风险。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``ops health``、``ops ping-db``、``ops ping-redis`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('ops', 'health'):
             return SimpleNamespace(

@@ -17,10 +17,16 @@ FILE_ID = '11111111-1111-4111-8111-111111111111'
 
 
 def make_query_db() -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
 
 def test_get_file_reference_list_includes_legacy_reference() -> None:
+    """文件引用列表包含旧版引用。"""
     file_info = {
         'file_id': FILE_ID,
         'business_type': 'notice',
@@ -49,6 +55,7 @@ def test_get_file_reference_list_includes_legacy_reference() -> None:
 
 
 def test_get_file_reference_list_converts_orm_reference() -> None:
+    """文件引用列表转换 ORM 引用。"""
     create_time = datetime(2026, 7, 26, 10, 0, 0, tzinfo=UTC)
     file_info = {
         'file_id': FILE_ID,
@@ -98,6 +105,7 @@ def test_get_file_reference_list_converts_orm_reference() -> None:
 
 
 def test_replace_business_file_references_locks_files_without_committing() -> None:
+    """替换业务文件引用时锁定文件并保留事务控制权。"""
     query_db = make_query_db()
     file_infos = [SimpleNamespace(file_id=FILE_ID)]
     with (
@@ -141,6 +149,7 @@ def test_replace_business_file_references_locks_files_without_committing() -> No
 
 
 def test_replace_business_file_references_rejects_invalid_file() -> None:
+    """替换业务引用时拒绝无效文件。"""
     query_db = make_query_db()
     with (
         patch.object(FileInfoDao, 'get_file_infos_by_ids_for_update', new=AsyncMock(return_value=[])),
@@ -167,6 +176,7 @@ def test_replace_business_file_references_rejects_invalid_file() -> None:
 
 
 def test_remove_business_file_references_does_not_lock_files() -> None:
+    """移除业务文件引用无需锁定文件。"""
     query_db = make_query_db()
     with (
         patch.object(
@@ -193,6 +203,7 @@ def test_remove_business_file_references_does_not_lock_files() -> None:
 
 
 def test_replace_business_file_references_applies_retention_policy() -> None:
+    """替换业务文件引用时应用保留策略。"""
     query_db = make_query_db()
     create_time = datetime(2026, 7, 23, 10, 0, 0, tzinfo=UTC)
     policy = FileRetentionPolicyModel(businessType='notice', retentionDays=30)
@@ -230,6 +241,7 @@ def test_replace_business_file_references_applies_retention_policy() -> None:
 
 
 def test_replace_business_file_references_preserves_extended_expiration() -> None:
+    """替换业务文件引用时保留已延长的过期时间。"""
     policy_expire_time = datetime(2026, 8, 22, 10, 0, 0, tzinfo=UTC)
     extended_expire_time = datetime(2027, 7, 23, 10, 0, 0, tzinfo=UTC)
     old_reference = SysFileReference(
@@ -254,6 +266,7 @@ def test_replace_business_file_references_preserves_extended_expiration() -> Non
 
 
 def test_refresh_file_expire_times_uses_latest_reference_expiration() -> None:
+    """按最晚引用到期时间刷新文件的过期时间。"""
     first_expire_time = datetime(2026, 8, 1, tzinfo=UTC)
     last_expire_time = datetime(2026, 9, 1, tzinfo=UTC)
     file_info = SimpleNamespace(

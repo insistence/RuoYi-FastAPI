@@ -38,6 +38,13 @@ async def test_late_dict_refresh_cannot_overwrite_a_newer_publication(
     read_sessions: list[AsyncSession] = []
 
     async def query(db: AsyncSession, name: str) -> list[dict | None]:
+        """
+        模拟读取数据库快照并记录查询状态。
+
+        :param db: 当前操作使用的数据库会话
+        :param name: 用于查找或标识当前对象的名称
+        :return: 用于比较状态的快照
+        """
         assert name == 'colors'
         snapshot = rows.copy()
         read_sessions.append(db)
@@ -66,6 +73,7 @@ async def test_late_dict_refresh_cannot_overwrite_a_newer_publication(
 
 @pytest.mark.asyncio
 async def test_cache_tracks_type_and_data_crud(cache_redis: Redis) -> None:  # noqa: F811
+    """缓存跟踪字典类型和字典数据的增删改查。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=cache_redis)))
     read = DictDataService.query_dict_data_list_from_cache_services

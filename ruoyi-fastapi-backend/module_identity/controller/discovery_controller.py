@@ -20,11 +20,10 @@ _CACHE_CONTROL = 'public, max-age=300'
 
 def _disabled_response() -> Response:
     """
-    返回协议端点关闭时的标准 404 响应
+    返回协议端点关闭时的标准 404 响应。
 
     :return: 协议端点关闭时的标准 404 响应
     """
-
     return JSONResponse(
         content={'error': 'not_found'}, status_code=404, headers={'Cache-Control': 'no-store', 'Pragma': 'no-cache'}
     )
@@ -32,13 +31,12 @@ def _disabled_response() -> Response:
 
 def _etag_response(request: Request, payload: dict[str, Any]) -> Response:
     """
-    按 If-None-Match 返回标准 JSON 或 304 响应
+    按 If-None-Match 返回标准 JSON 或 304 响应。
 
     :param request: 当前 HTTP 请求
     :param payload: 待返回的 JSON 数据
     :return: 标准 JSON 响应或 304 响应
     """
-
     etag = OidcUtil.json_etag(payload)
     headers = {'Cache-Control': _CACHE_CONTROL, 'ETag': etag}
     if_none_match = request.headers.get('if-none-match', '')

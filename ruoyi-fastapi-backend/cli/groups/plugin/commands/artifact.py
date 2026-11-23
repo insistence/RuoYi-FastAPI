@@ -21,7 +21,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
 
     :param app: Typer 命令组
     :param get_controller: 制品命令控制器工厂
-    :return: None
     """
     artifact_app = typer.Typer(help='构建、验证和导入签名插件制品', no_args_is_help=True)
     release_app = typer.Typer(help='维护准备、目标选择和worker实际加载状态', no_args_is_help=True)
@@ -50,7 +49,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param password_env: 保存加密私钥密码的环境变量名称
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().build_artifact(
             source, destination, env, output, key_file=key_file, key_id=key_id, password_env=password_env
@@ -68,7 +66,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param path: 待处理的签名制品文件
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().verify_artifact(path, env, output)
 
@@ -90,7 +87,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演而不写入发布状态
-        :return: None
         """
         get_controller().import_artifact(path, env, output, allow_prod=allow_prod, yes=yes, dry_run=dry_run)
 
@@ -106,7 +102,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param plugin_id: 插件 ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().list_artifacts(env, output, plugin_id=plugin_id)
 
@@ -124,7 +119,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param digest: 已导入制品的 SHA256 摘要
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().plan_release(plugin_id, digest, env, output)
 
@@ -150,7 +144,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演而不写入发布状态
-        :return: None
         """
         get_controller().prepare_release(
             plugin_id, digest, env, output, maintenance=maintenance, allow_prod=allow_prod, yes=yes, dry_run=dry_run
@@ -180,7 +173,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         get_controller().select_release(
             plugin_id,
@@ -206,7 +198,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param plugin_id: 插件 ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().release_status(env, output, plugin_id=plugin_id)
 
@@ -234,7 +225,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param interval: 查询间隔秒数
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().wait_release(
             plugin_id,
@@ -271,7 +261,6 @@ def register_artifact_commands(app: typer.Typer, get_controller: Callable[[], An
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         get_controller().rollback_release(
             plugin_id,
@@ -291,7 +280,6 @@ def _register_release_enablement(app: typer.Typer, get_controller: Callable[[], 
 
     :param app: Typer 命令组
     :param get_controller: 制品命令控制器工厂
-    :return: None
     """
 
     @app.command('enable', help='维护启用目标制品并更新代际，重启后生效')
@@ -314,7 +302,6 @@ def _register_release_enablement(app: typer.Typer, get_controller: Callable[[], 
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         get_controller().set_release_enabled(
             plugin_id,
@@ -347,7 +334,6 @@ def _register_release_enablement(app: typer.Typer, get_controller: Callable[[], 
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         get_controller().set_release_enabled(
             plugin_id,

@@ -30,19 +30,48 @@ _HTTP_TOO_MANY_REQUESTS = 429
 
 
 class _QueryParams:
-    """提供 Starlette QueryParams 所需的多值读取接口。"""
+    """
+    提供 Starlette QueryParams 所需的多值读取接口。
+
+    :ivar values: 当前处理的值集合
+    """
 
     def __init__(self, values: list[tuple[str, str]]) -> None:
+        """
+        初始化测试夹具的 ``values``。
+
+        :param values: 当前处理的值集合
+        """
         self.values = values
 
     def multi_items(self) -> list[tuple[str, str]]:
+        """
+        向调用方返回 ``self.values``。
+
+        :return: 测试缓存当前保存的值
+        """
         return self.values
 
 
 class _Request:
-    """构造不携带 Legacy 会话的认证请求。"""
+    """
+    构造不携带 Legacy 会话的认证请求。
+
+    :ivar method: 当前请求的 HTTP 方法
+    :ivar query_params: 模拟 HTTP 请求中的查询参数
+    :ivar cookies: 模拟请求或响应携带的 Cookie
+    :ivar headers: 响应或请求携带的 HTTP 头
+    :ivar client: 发起当前调用的客户端
+    :ivar app: 正在配置或处理请求的 ASGI 应用
+    """
 
     def __init__(self, values: list[tuple[str, str]], redis: FakeRedis | None = None) -> None:
+        """
+        初始化测试夹具的 ``method``, ``query_params``, ``cookies``, ``headers``。
+
+        :param values: 当前处理的值集合
+        :param redis: 用于缓存或发布消息的 Redis 客户端
+        """
         self.method = 'GET'
         self.query_params = _QueryParams(values)
         self.cookies: dict[str, str] = {}
@@ -55,6 +84,14 @@ class _RateRedis(FakeRedis):
     """仅实现授权端点固定窗口 Lua 等效语义的 FakeRedis。"""
 
     async def eval(self, script: str, numkeys: int, *args: Any) -> Any:
+        """
+        按测试约定模拟 Redis 脚本的执行。
+
+        :param script: 需要运行的脚本
+        :param numkeys: 传给 Redis 脚本的键数量
+        :param args: 传给被调用对象的位置参数
+        :return: 测试脚本按当前状态返回的结果
+        """
         if script != infrastructure_service.OidcRateLimiter._SCRIPT:
             return await super().eval(script, numkeys, *args)
         async with self.lock:
@@ -66,7 +103,12 @@ class _RateRedis(FakeRedis):
 
 
 def _values(**overrides: str) -> list[tuple[str, str]]:
-    """构造有效授权 Query 参数。"""
+    """
+    构造有效授权 Query 参数。
+
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 有效授权 Query 参数
+    """
     values = {
         'response_type': 'code',
         'client_id': 'authorization-client',
@@ -83,7 +125,11 @@ def _values(**overrides: str) -> list[tuple[str, str]]:
 
 @pytest.fixture
 def oidc_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    """配置控制器测试使用的安全 OIDC 参数。"""
+    """
+    配置控制器测试使用的安全 OIDC 参数。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', True)
     monkeypatch.setattr(OidcConfig, 'oidc_issuer', 'https://auth.example.com')
     monkeypatch.setattr(OidcConfig, 'oidc_pkce_methods', 'S256')
@@ -139,6 +185,13 @@ async def test_authorize_max_age_discards_stale_sso(monkeypatch: pytest.MonkeyPa
     )
 
     async def load_stale(*args: object, **kwargs: object) -> Any:
+        """
+        向调用方返回 ``stale``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已经过期的快照
+        """
         return stale
 
     monkeypatch.setattr(AuthorizationService, '_load_sso_session', load_stale)
@@ -255,24 +308,42 @@ async def test_complete_code_audit_failure_cleans_code_and_marker(monkeypatch: p
 
 
 class _Db:
-    """记录授权完成测试的事务动作。"""
+    """
+    记录授权完成测试的事务动作。
+
+    :ivar commits: 测试中记录的提交次数
+    :ivar rollbacks: 测试中记录的回滚次数
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
         self.commits = 0
         self.rollbacks = 0
 
     async def commit(self) -> None:
+        """累加 ``commits`` 供后续断言检查。"""
         self.commits += 1
 
     async def rollback(self) -> None:
+        """累加 ``rollbacks`` 供后续断言检查。"""
         self.rollbacks += 1
 
 
 async def _async(value: object) -> Any:
-    """构造异步测试结果。"""
+    """
+    构造异步测试结果。
+
+    :param value: 待处理的输入值
+    :return: 待处理的输入值
+    """
     return value
 
 
 async def _raise_async(error: Exception) -> Any:
-    """构造异步异常结果。"""
+    """
+    构造异步异常结果。
+
+    :param error: 发生错误时返回的错误信息
+    :raises Exception: 底层操作失败时向调用方传播异常
+    """
     raise error

@@ -21,14 +21,14 @@ class PluginJobBinding:
     """
     当前进程中已准备好的插件任务能力。
 
-    :param plugin: 任务所属的已发现插件
-    :param host: 任务使用的宿主能力上下文
-    :param gateway: 插件启用状态查询网关
-    :param ready: 查询插件是否就绪的回调
-    :param loop: 所属宿主事件循环
-    :param tasks: 当前仍在执行的插件异步任务集合
-    :param metrics: 可选的当前 worker 指标收集器
-    :param closing: 是否已停止接收新任务并正在回收旧任务
+    :ivar plugin: 任务所属的已发现插件
+    :ivar host: 任务使用的宿主能力上下文
+    :ivar gateway: 插件启用状态查询网关
+    :ivar ready: 查询插件是否就绪的回调
+    :ivar loop: 所属宿主事件循环
+    :ivar tasks: 当前仍在执行的插件异步任务集合
+    :ivar metrics: 可选的当前 worker 指标收集器
+    :ivar closing: 是否已停止接收新任务并正在回收旧任务
     """
 
     plugin: DiscoveredPlugin
@@ -44,7 +44,7 @@ class PluginJobBinding:
         """
         关闭后不再启动业务回调，也不把迟到结果报告为成功。
 
-        :return: None
+        :raises asyncio.CancelledError: 绑定已进入关闭流程
         """
         if self.closing:
             raise asyncio.CancelledError
@@ -70,6 +70,8 @@ def bind_plugin_jobs(
     :param ready: 查询插件是否就绪的回调
     :param metrics: 可选的运行指标收集器
     :return: 绑定到当前事件循环的插件任务能力
+    :raises RuntimeError: 旧任务尚未退出或运行时已绑定
+    :raises ValueError: 任务宿主身份不匹配或缺少数据库会话工厂
     """
     plugin_id = plugin.manifest.id
     existing = _bindings.get(plugin_id)
@@ -89,7 +91,6 @@ def _release_binding(binding: PluginJobBinding) -> None:
     全部旧任务退出后才释放绑定，防止同进程启动重叠实例。
 
     :param binding: 已进入关闭阶段的插件任务绑定
-    :return: None
     """
     plugin_id = binding.plugin.manifest.id
     if binding.closing and not any(not task.done() for task in binding.tasks) and _bindings.get(plugin_id) is binding:
@@ -102,7 +103,6 @@ async def unbind_plugin_jobs(binding: PluginJobBinding, *, grace_seconds: float 
 
     :param binding: 待解除的插件任务绑定
     :param grace_seconds: 整批运行任务的取消等待上限秒数
-    :return: None
     """
     if not binding.closing:
         binding.closing = True
@@ -124,6 +124,11 @@ async def dispatch_plugin_job(plugin_id: str, job_id: str, version: str) -> Any:
     :param job_id: 插件清单声明的任务 ID
     :param version: 调度记录绑定的插件版本
     :return: 插件异步任务回调的执行结果
+    :raises RuntimeError: 插件任务必须在所属宿主事件循环执行
+    :raises LookupError: 插件未声明指定的任务
+    :raises asyncio.CancelledError: 异步操作被取消时
+    :raises PermissionError: 当前执行上下文缺少调用所需的权限
+    :raises Exception: 底层操作失败时向调用方传播异常
     """
     binding = _bindings.get(plugin_id)
     if binding is None or binding.closing or not binding.ready():

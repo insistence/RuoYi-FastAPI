@@ -11,11 +11,7 @@ VALID_RSA_KEY_SIZE = 2048
 
 
 def test_crypto_domain_support_rejects_invalid_rsa_key_size() -> None:
-    """
-    校验传输加密领域支持对象会拒绝非法 RSA 密钥长度。
-
-    :return: None
-    """
+    """校验传输加密领域支持对象会拒绝非法 RSA 密钥长度。"""
     support = CryptoDomainSupport(CryptoInfrastructureGateway())
 
     try:
@@ -27,15 +23,16 @@ def test_crypto_domain_support_rejects_invalid_rsa_key_size() -> None:
 
 
 def test_crypto_domain_support_rejects_non_list_legacy_key_pairs() -> None:
-    """
-    校验传输加密领域支持对象会拒绝非数组格式的历史密钥配置。
-
-    :return: None
-    """
+    """校验传输加密领域支持对象会拒绝非数组格式的历史密钥配置。"""
     gateway = CryptoInfrastructureGateway()
     support = CryptoDomainSupport(gateway)
 
     def _fake_transport_crypto_config() -> SimpleNamespace:
+        """
+        创建测试使用的 ``SimpleNamespace`` 实例。
+
+        :return: 测试使用的 ``SimpleNamespace`` 实例
+        """
         return SimpleNamespace(transport_crypto_legacy_key_pairs='{"kid": "legacy"}')
 
     object.__setattr__(gateway, 'get_transport_crypto_config', _fake_transport_crypto_config)
@@ -49,11 +46,7 @@ def test_crypto_domain_support_rejects_non_list_legacy_key_pairs() -> None:
 
 
 def test_crypto_runtime_service_keygen_returns_argument_error_for_invalid_size() -> None:
-    """
-    校验传输加密运行时在非法密钥长度下返回参数错误结果。
-
-    :return: None
-    """
+    """校验传输加密运行时在非法密钥长度下返回参数错误结果。"""
     service = CryptoRuntimeService()
 
     payload = service.generate_crypto_key_pair('kid-20260511', INVALID_RSA_KEY_SIZE)
@@ -64,11 +57,7 @@ def test_crypto_runtime_service_keygen_returns_argument_error_for_invalid_size()
 
 
 def test_crypto_runtime_service_rotation_rejects_same_kid() -> None:
-    """
-    校验传输加密运行时会拒绝与当前版本相同的新密钥版本。
-
-    :return: None
-    """
+    """校验传输加密运行时会拒绝与当前版本相同的新密钥版本。"""
     gateway = CryptoInfrastructureGateway()
     service = CryptoRuntimeService(infrastructure_gateway=gateway)
 
@@ -92,11 +81,7 @@ def test_crypto_runtime_service_rotation_rejects_same_kid() -> None:
 
 
 def test_crypto_runtime_service_rotation_builds_merged_payload() -> None:
-    """
-    校验传输加密运行时会生成包含历史密钥合并结果的轮换辅助数据。
-
-    :return: None
-    """
+    """校验传输加密运行时会生成包含历史密钥合并结果的轮换辅助数据。"""
     gateway = CryptoInfrastructureGateway()
     domain_support = CryptoDomainSupport(gateway)
     service = CryptoRuntimeService(

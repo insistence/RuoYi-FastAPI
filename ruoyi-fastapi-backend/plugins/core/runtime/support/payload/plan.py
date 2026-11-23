@@ -25,191 +25,173 @@ if TYPE_CHECKING:
 class SupportsOk(Protocol):
     """
     支持 ok 属性的检查结果协议。
+
+    :ivar ok: 操作或检查是否成功
     """
 
     ok: bool
 
 
 class PluginPlanBlockerPayload(PluginPayloadModel):
-    """
-    插件批量操作计划阻塞项 payload。
-    """
+    """插件批量操作计划阻塞项 payload。"""
 
-    plugin_id: str = Field(alias='pluginId')
-    dependency_id: str = Field(alias='dependencyId')
-    status: str
-    message: str
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    dependency_id: str = Field(alias='dependencyId', description='被依赖的插件标识')
+    status: str = Field(description='当前状态')
+    message: str = Field(description='面向调用方的结果说明')
 
 
 class PluginPlanItemPayload(PluginPayloadModel):
-    """
-    插件批量操作计划项 payload。
-    """
+    """插件批量操作计划项 payload。"""
 
-    plugin_id: str = Field(alias='pluginId')
-    name: str
-    version: str
-    operation: str
-    order: int
-    requested: bool
-    dependencies: list[str]
-    installed_version: str | None = Field(alias='installedVersion')
-    enabled: str | None
-    status: str | None
-    ready: bool
-    blockers: list[dict[str, object]]
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    name: str = Field(description='插件名称')
+    version: str = Field(description='插件版本')
+    operation: str = Field(description='执行的操作类型')
+    order: int = Field(description='排列顺序')
+    requested: bool = Field(description='是否由本次请求显式指定')
+    dependencies: list[str] = Field(description='当前插件依赖的插件标识')
+    installed_version: str | None = Field(alias='installedVersion', description='已安装的版本')
+    enabled: str | None = Field(description='是否启用')
+    status: str | None = Field(description='当前状态')
+    ready: bool = Field(description='执行该计划项的前置条件是否已满足')
+    blockers: list[dict[str, object]] = Field(description='阻止执行计划的原因')
 
 
 class PluginPlanPayload(PluginPayloadModel):
-    """
-    插件批量操作拓扑计划 payload。
-    """
+    """插件批量操作拓扑计划 payload。"""
 
-    operation: str
-    ok: bool
-    requested_plugin_ids: list[str] = Field(alias='requestedPluginIds')
-    ordered_plugin_ids: list[str] = Field(alias='orderedPluginIds')
-    items: list[dict[str, object]]
-    blockers: list[dict[str, object]]
-    blocker_count: int = Field(alias='blockerCount')
+    operation: str = Field(description='执行的操作类型')
+    ok: bool = Field(description='本次操作是否成功')
+    requested_plugin_ids: list[str] = Field(alias='requestedPluginIds', description='调用方指定的插件标识列表')
+    ordered_plugin_ids: list[str] = Field(alias='orderedPluginIds', description='按执行顺序排列的插件标识列表')
+    items: list[dict[str, object]] = Field(description='结果条目列表')
+    blockers: list[dict[str, object]] = Field(description='阻止执行计划的原因')
+    blocker_count: int = Field(alias='blockerCount', description='阻止执行计划的问题数')
 
 
 class PluginPlanResponsePayload(PluginPayloadModel):
-    """
-    插件批量操作计划响应 payload。
-    """
+    """插件批量操作计划响应 payload。"""
 
-    ok: bool
-    message: str
-    operation: str
-    database_available: bool = Field(alias='databaseAvailable')
-    database_error: str | None = Field(alias='databaseError')
-    plan: dict[str, object]
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    operation: str = Field(description='执行的操作类型')
+    database_available: bool = Field(alias='databaseAvailable', description='数据库是否可用')
+    database_error: str | None = Field(alias='databaseError', description='数据库访问失败的原因')
+    plan: dict[str, object] = Field(description='预定执行的操作计划')
 
 
 class DependencyInstallPlanItemPayload(PluginPayloadModel):
-    """
-    依赖安装计划项 payload。
-    """
+    """依赖安装计划项 payload。"""
 
-    kind: str
-    requirement: str
-    name: str
-    command: list[str]
-    command_text: str = Field(alias='commandText')
-    workdir: str
-    reason: str
-    status: str
+    kind: str = Field(description='依赖使用的软件包管理方式')
+    requirement: str = Field(description='软件包依赖声明')
+    name: str = Field(description='待安装的软件包名称')
+    command: list[str] = Field(description='用于执行命令的参数列表')
+    command_text: str = Field(alias='commandText', description='供展示的命令文本')
+    workdir: str = Field(description='执行命令的工作目录')
+    reason: str = Field(description='安排该操作的原因')
+    status: str = Field(description='当前状态')
 
 
 class DependencyInstallResultPayload(PluginPayloadModel):
-    """
-    依赖安装执行结果 payload。
-    """
+    """依赖安装执行结果 payload。"""
 
-    kind: str
-    requirement: str
-    name: str
-    command: list[str]
-    command_text: str = Field(alias='commandText')
-    workdir: str
-    return_code: int = Field(alias='returnCode')
-    stdout: str
-    stderr: str
+    kind: str = Field(description='依赖使用的软件包管理方式')
+    requirement: str = Field(description='软件包依赖声明')
+    name: str = Field(description='执行安装的软件包名称')
+    command: list[str] = Field(description='用于执行命令的参数列表')
+    command_text: str = Field(alias='commandText', description='供展示的命令文本')
+    workdir: str = Field(description='执行命令的工作目录')
+    return_code: int = Field(alias='returnCode', description='子进程退出码')
+    stdout: str = Field(description='命令的标准输出')
+    stderr: str = Field(description='命令的标准错误输出')
 
 
 class CommandResultPayload(PluginPayloadModel):
-    """
-    系统命令执行结果 payload。
-    """
+    """系统命令执行结果 payload。"""
 
-    return_code: int = Field(alias='returnCode')
-    stdout: str
-    stderr: str
+    return_code: int = Field(alias='returnCode', description='子进程退出码')
+    stdout: str = Field(description='命令的标准输出')
+    stderr: str = Field(description='命令的标准错误输出')
 
 
 class PurgePlanItemPayload(PluginPayloadModel):
-    """
-    插件物理清理计划项 payload。
-    """
+    """插件物理清理计划项 payload。"""
 
-    name: str
-    label: str
-    enabled: bool
-    destructive: bool
-    count: int | None
-    target: str | None
+    name: str = Field(description='清理操作名称')
+    label: str = Field(description='面向用户的显示名称')
+    enabled: bool = Field(description='是否启用')
+    destructive: bool = Field(description='是否会删除已有数据或资源')
+    count: int | None = Field(description='结果条数')
+    target: str | None = Field(description='本项操作的目标')
 
 
 class PurgePlanPayload(PluginPayloadModel):
-    """
-    插件物理清理计划 payload。
-    """
+    """插件物理清理计划 payload。"""
 
-    plugin_id: str = Field(alias='pluginId')
-    removes_source: bool = Field(alias='removesSource')
-    requires_hook: bool = Field(alias='requiresHook')
-    destructive_count: int = Field(alias='destructiveCount')
-    items: list[dict[str, object]]
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    removes_source: bool = Field(alias='removesSource', description='本次操作是否移除插件源码')
+    requires_hook: bool = Field(alias='requiresHook', description='是否需要运行清理钩子')
+    destructive_count: int = Field(alias='destructiveCount', description='涉及删除已有数据或资源的操作数')
+    items: list[dict[str, object]] = Field(description='结果条目列表')
 
 
 class ActionPayload(PluginPayloadModel):
-    """
-    插件操作动作项 payload。
-    """
+    """插件操作动作项 payload。"""
 
-    name: str | None = None
-    label: str | None = None
-    enabled: bool | None = None
-    count: int | None = None
-    ok: bool | None = None
-    hook: str | None = None
-    target_enabled: bool | None = Field(default=None, alias='targetEnabled')
-    target_status: str | None = Field(default=None, alias='targetStatus')
+    name: str | None = Field(default=None, description='操作名称')
+    label: str | None = Field(default=None, description='面向用户的显示名称')
+    enabled: bool | None = Field(default=None, description='是否启用')
+    count: int | None = Field(default=None, description='结果条数')
+    ok: bool | None = Field(default=None, description='本次操作是否成功')
+    hook: str | None = Field(default=None, description='本项操作调用的生命周期钩子')
+    target_enabled: bool | None = Field(default=None, alias='targetEnabled', description='操作后期望的启用状态')
+    target_status: str | None = Field(default=None, alias='targetStatus', description='操作后期望达到的状态')
 
 
 class VersionStatePayload(PluginPayloadModel):
-    """
-    插件升级版本状态 payload。
-    """
+    """插件升级版本状态 payload。"""
 
-    installed: bool
-    installed_version: str | None = Field(alias='installedVersion')
-    current_version: str = Field(alias='currentVersion')
-    needs_upgrade: bool = Field(alias='needsUpgrade')
+    installed: bool = Field(description='是否已经安装')
+    installed_version: str | None = Field(alias='installedVersion', description='已安装的版本')
+    current_version: str = Field(alias='currentVersion', description='当前发现的插件版本')
+    needs_upgrade: bool = Field(alias='needsUpgrade', description='是否需要升级已安装版本')
 
 
 UpgradeDryRunPayloadContext: TypeAlias = dict[str, object]
 
 
 class UpgradeDryRunPayload(PluginPayloadModel):
-    """
-    插件升级 dry-run payload。
-    """
+    """插件升级 dry-run payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    dry_run: bool = Field(alias='dryRun')
-    installed: bool
-    installed_version: str | None = Field(alias='installedVersion')
-    current_version: str = Field(alias='currentVersion')
-    needs_upgrade: bool = Field(alias='needsUpgrade')
-    database_available: bool = Field(alias='databaseAvailable')
-    database_error: str | None = Field(alias='databaseError')
-    dependency_ok: bool = Field(alias='dependencyOk')
-    manifest_ok: bool = Field(alias='manifestOk')
-    plugin_dependency_ok: bool = Field(alias='pluginDependencyOk')
-    structure_ok: bool = Field(alias='structureOk')
-    menu_conflict_ok: bool = Field(alias='menuConflictOk')
-    actions: list[dict[str, object]]
-    manifest_issues: list[dict[str, object]] = Field(alias='manifestIssues')
-    manifest_warnings: list[dict[str, object]] = Field(alias='manifestWarnings')
-    plugin_dependency_errors: list[dict[str, object]] = Field(alias='pluginDependencyErrors')
-    structure_errors: list[dict[str, object]] = Field(alias='structureErrors')
-    menu_conflicts: list[dict[str, object]] = Field(alias='menuConflicts')
-    dependencies: list[dict[str, object]]
-    plugin_dependencies: list[dict[str, object]] = Field(alias='pluginDependencies')
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    dry_run: bool = Field(alias='dryRun', description='是否仅预演本次操作')
+    installed: bool = Field(description='是否已经安装')
+    installed_version: str | None = Field(alias='installedVersion', description='已安装的版本')
+    current_version: str = Field(alias='currentVersion', description='当前发现的插件版本')
+    needs_upgrade: bool = Field(alias='needsUpgrade', description='是否需要升级已安装版本')
+    database_available: bool = Field(alias='databaseAvailable', description='数据库是否可用')
+    database_error: str | None = Field(alias='databaseError', description='数据库访问失败的原因')
+    dependency_ok: bool = Field(alias='dependencyOk', description='软件包依赖是否满足要求')
+    manifest_ok: bool = Field(alias='manifestOk', description='插件清单是否通过校验')
+    plugin_dependency_ok: bool = Field(alias='pluginDependencyOk', description='依赖的其他插件是否满足要求')
+    structure_ok: bool = Field(alias='structureOk', description='插件文件结构是否通过校验')
+    menu_conflict_ok: bool = Field(alias='menuConflictOk', description='插件是否通过菜单冲突检查')
+    actions: list[dict[str, object]] = Field(description='待执行或已执行的操作明细')
+    manifest_issues: list[dict[str, object]] = Field(alias='manifestIssues', description='插件清单中的错误')
+    manifest_warnings: list[dict[str, object]] = Field(alias='manifestWarnings', description='插件清单中的警告')
+    plugin_dependency_errors: list[dict[str, object]] = Field(
+        alias='pluginDependencyErrors', description='插件之间的依赖检查错误'
+    )
+    structure_errors: list[dict[str, object]] = Field(alias='structureErrors', description='插件目录或文件结构检查错误')
+    menu_conflicts: list[dict[str, object]] = Field(alias='menuConflicts', description='检测到的菜单冲突')
+    dependencies: list[dict[str, object]] = Field(description='软件包依赖及其检查结果')
+    plugin_dependencies: list[dict[str, object]] = Field(
+        alias='pluginDependencies', description='插件之间的依赖及其状态'
+    )
 
 
 PluginPlanPayloadDict: TypeAlias = dict[str, object]
@@ -217,9 +199,7 @@ UpgradeDryRunPayloadDict: TypeAlias = dict[str, object]
 
 
 class PluginPlanPayloadMixin:
-    """
-    插件依赖拓扑、执行动作和物理清理计划负载构建能力。
-    """
+    """插件依赖拓扑、执行动作和物理清理计划负载构建能力。"""
 
     @staticmethod
     def build_plugin_plan_blocker(item: PluginDependencyPlanBlocker) -> PluginPlanBlockerPayload:

@@ -12,6 +12,11 @@ class ActionConfirmScreen(ModalScreen[bool]):
     """
     通用动作确认弹窗。
 
+    :cvar CSS: 终端界面使用的样式规则
+    :cvar BINDINGS: 终端界面的快捷键和对应动作
+    :ivar _dialog_title: 确认框的标题
+    :ivar _dialog_lines: 确认框正文显示的各行
+    :ivar _confirm_label: 确认按钮的文字
     :param title: 弹窗标题
     :param lines: 预览文本行
     :param confirm_label: 确认按钮文本
@@ -65,6 +70,13 @@ class ActionConfirmScreen(ModalScreen[bool]):
     ]
 
     def __init__(self, title: str, lines: list[str], confirm_label: str) -> None:
+        """
+        设置待确认操作的标题、说明和按钮文字。
+
+        :param title: 弹窗标题
+        :param lines: 预览文本行
+        :param confirm_label: 确认按钮文本
+        """
         super().__init__()
         self._dialog_title = title
         self._dialog_lines = lines
@@ -74,7 +86,7 @@ class ActionConfirmScreen(ModalScreen[bool]):
         """
         构建确认弹窗界面。
 
-        :return: Textual 组件结果
+        :yield: Textual 组件结果
         """
         with Vertical(id='action-confirm-dialog'):
             yield Static(self._dialog_title, id='action-confirm-title', markup=False)
@@ -85,44 +97,24 @@ class ActionConfirmScreen(ModalScreen[bool]):
                 yield Button(self._confirm_label, id='action-confirm-submit', variant='primary')
 
     def on_mount(self) -> None:
-        """
-        弹窗挂载后默认聚焦确认按钮。
-
-        :return: None
-        """
+        """弹窗挂载后默认聚焦确认按钮。"""
         self.call_after_refresh(self.query_one('#action-confirm-submit', Button).focus)
 
     def action_cancel(self) -> None:
-        """
-        取消并关闭弹窗。
-
-        :return: None
-        """
+        """取消并关闭弹窗。"""
         self.dismiss(False)
 
     def action_submit(self) -> None:
-        """
-        通过键盘确认执行当前动作。
-
-        :return: None
-        """
+        """通过键盘确认执行当前动作。"""
         submit_button = self.query_one('#action-confirm-submit', Button)
         submit_button.press()
 
     @on(Button.Pressed, '#action-confirm-cancel')
     def on_cancel_pressed(self) -> None:
-        """
-        响应取消按钮。
-
-        :return: None
-        """
+        """响应取消按钮。"""
         self.dismiss(False)
 
     @on(Button.Pressed, '#action-confirm-submit')
     def on_submit_pressed(self) -> None:
-        """
-        响应确认按钮。
-
-        :return: None
-        """
+        """响应确认按钮。"""
         self.dismiss(True)

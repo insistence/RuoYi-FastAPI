@@ -9,9 +9,7 @@ from cli.tui.copy.fragments import (
 
 
 class TuiNavigationCopyMixin:
-    """
-    TUI 导航与基础标签文案混入。
-    """
+    """TUI 导航与基础标签文案混入。"""
 
     @staticmethod
     def render_view_label(view_key: str) -> str:
@@ -75,7 +73,7 @@ class TuiNavigationCopyMixin:
     @staticmethod
     def build_tui_command_help() -> str:
         """
-        构建 `ruoyi tui` 命令帮助文案。
+        构建 ``ruoyi tui`` 命令帮助文案。
 
         :return: 命令帮助文案
         """

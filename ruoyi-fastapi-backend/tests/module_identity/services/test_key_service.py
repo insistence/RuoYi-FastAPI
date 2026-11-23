@@ -25,7 +25,11 @@ _MIN_TEST_RSA_BITS = 2048
 
 @pytest_asyncio.fixture
 async def data_session() -> AsyncSession:
-    """仅创建密钥和审计表，隔离项目其他 ORM 的 SQLite 方言差异。"""
+    """
+    仅创建密钥和审计表，隔离项目其他 ORM 的 SQLite 方言差异。
+
+    :yield: 当前操作共用的会话
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [SysOidcSigningKey.__table__, SysOAuthAuditLog.__table__]
     async with engine.begin() as connection:
@@ -38,8 +42,11 @@ async def data_session() -> AsyncSession:
 
 @pytest.fixture(autouse=True)
 def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
-    """将全局 OIDC 配置固定为密钥服务测试所需的基线。"""
+    """
+    将全局 OIDC 配置固定为密钥服务测试所需的基线。
 
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     values = {
         'oidc_enabled': True,
         'oidc_active_kid': 'k1',
@@ -58,13 +65,23 @@ def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _config() -> OidcConfig:
-    """返回当前测试使用的全局 OIDC 配置。"""
+    """
+    返回当前测试使用的全局 OIDC 配置。
 
+    :return: 当前测试使用的全局 OIDC 配置
+    """
     return OidcConfig
 
 
 def _record(tmp_path: Path, *, status: str = 'active', matching: bool = True) -> SimpleNamespace:
-    """生成带文件私钥和公开 JWK 的内存记录。"""
+    """
+    生成带文件私钥和公开 JWK 的内存记录。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param status: 操作或记录所处的状态
+    :param matching: 是否提供与当前记录匹配的值
+    :return: 带文件私钥和公开 JWK 的内存记录
+    """
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     numbers = key.public_key().public_numbers()
     n = base64url_encode(numbers.n.to_bytes((numbers.n.bit_length() + 7) // 8, 'big')).decode()
@@ -109,13 +126,22 @@ async def test_activate_due_processes_only_scheduled_keys_and_rolls_back_failure
     """后台只处理到期 pending，并在单项失败时回滚该项事务。"""
 
     class _Session:
+        """
+        模拟测试事务的会话生命周期。
+
+        :cvar commits: 测试中记录的提交次数
+        :cvar rollbacks: 测试中记录的回滚次数
+        """
+
         commits = 0
         rollbacks = 0
 
         async def commit(self) -> None:
+            """累加 ``commits`` 供后续断言检查。"""
             self.commits += 1
 
         async def rollback(self) -> None:
+            """累加 ``rollbacks`` 供后续断言检查。"""
             self.rollbacks += 1
 
     session = _Session()
@@ -123,9 +149,23 @@ async def test_activate_due_processes_only_scheduled_keys_and_rolls_back_failure
     scheduled: list[str] = []
 
     async def due_keys(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回到期可处理的测试密钥。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 到期可处理的测试密钥
+        """
         return [due]
 
     async def activate(*args: object, **kwargs: object) -> bool:
+        """
+        记录目标密钥的激活调用。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``True``
+        """
         scheduled.append(args[1])
         return True
 
@@ -137,11 +177,24 @@ async def test_activate_due_processes_only_scheduled_keys_and_rolls_back_failure
     assert session.rollbacks == 0
 
     async def fail(*args: object, **kwargs: object) -> bool:
+        """
+        模拟此操作抛出 KeyServiceError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises KeyServiceError: 模拟私钥与公开 JWK 不匹配
+        """
         raise KeyServiceError('private key does not match public JWK')
 
     audit_events: list[tuple[object, ...]] = []
 
     async def audit_writer(*args: object, **kwargs: object) -> None:
+        """
+        为测试事务写入审计事件。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         audit_events.append(args)
 
     monkeypatch.setattr(KeyService, 'activate_key', fail)
@@ -155,13 +208,22 @@ async def test_activate_due_audits_first_failure_and_continues_next_key(monkeypa
     """首把激活失败必须独立审计，且不得阻断后续到期密钥。"""
 
     class _Session:
+        """
+        模拟测试事务的会话生命周期。
+
+        :cvar commits: 测试中记录的提交次数
+        :cvar rollbacks: 测试中记录的回滚次数
+        """
+
         commits = 0
         rollbacks = 0
 
         async def commit(self) -> None:
+            """累加 ``commits`` 供后续断言检查。"""
             self.commits += 1
 
         async def rollback(self) -> None:
+            """累加 ``rollbacks`` 供后续断言检查。"""
             self.rollbacks += 1
 
     session = _Session()
@@ -169,14 +231,36 @@ async def test_activate_due_audits_first_failure_and_continues_next_key(monkeypa
     audit_events: list[dict[str, object]] = []
 
     async def due_keys(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        向调用方返回 ``pending``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 仍在等待处理的记录
+        """
         return pending
 
     async def activate(db: object, kid: str, **kwargs: object) -> bool:
+        """
+        记录目标密钥的激活调用。
+
+        :param db: 当前操作使用的数据库会话
+        :param kid: 用于定位签名密钥的标识
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises KeyServiceError: 模拟激活时私钥与公开 JWK 不匹配
+        :return: 此分支的固定值 ``True``
+        """
         if kid == 'first':
             raise KeyServiceError('private key does not match public JWK')
         return True
 
     async def audit_writer(*args: object, **kwargs: object) -> None:
+        """
+        为测试事务写入审计事件。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         audit_events.append(kwargs)
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_due_pending', due_keys)
@@ -193,22 +277,47 @@ async def test_activate_due_continues_when_failure_audit_writer_fails(monkeypatc
     activated: list[str] = []
 
     class _Session:
+        """模拟测试事务的会话生命周期。"""
+
         async def commit(self) -> None:
-            pass
+            """在测试会话中处理事务提交。"""
 
         async def rollback(self) -> None:
-            pass
+            """在测试会话中处理事务回滚。"""
 
     async def due_keys(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        向调用方返回 ``pending``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 仍在等待处理的记录
+        """
         return pending
 
     async def activate(db: object, kid: str, **kwargs: object) -> bool:
+        """
+        记录目标密钥的激活调用。
+
+        :param db: 当前操作使用的数据库会话
+        :param kid: 用于定位签名密钥的标识
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises KeyServiceError: 模拟激活时私钥与公开 JWK 不匹配
+        :return: 此分支的固定值 ``True``
+        """
         if kid == 'first':
             raise KeyServiceError('activation failed')
         activated.append(kid)
         return True
 
     async def failed_audit(*args: object, **kwargs: object) -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟审计数据库不可用
+        """
         raise RuntimeError('audit database unavailable')
 
     warnings: list[str] = []
@@ -293,15 +402,39 @@ async def test_rotation_lock_is_cross_instance_exclusive_and_releases_atomically
     """轮换锁在 Redis 中互斥，并只允许持有者删除自己的锁。"""
 
     class _Redis:
+        """
+        模拟测试所需的 Redis 命令。
+
+        :cvar value: 待处理的输入值
+        """
+
         value: str | None = None
 
         async def set(self, key: str, value: str, *, nx: bool, ex: int) -> bool:
+            """
+            写入测试缓存键并设置过期时间。
+
+            :param key: 查找数据时使用的键
+            :param value: 待处理的输入值
+            :param nx: 是否只在键尚不存在时写入
+            :param ex: 捕获到的异常实例
+            :return: 是否写入测试缓存键并设置过期时间
+            """
             if nx and self.value is not None:
                 return False
             self.value = value
             return True
 
         async def eval(self, script: str, count: int, key: str, token: str) -> int:
+            """
+            按测试约定模拟 Redis 脚本的执行。
+
+            :param script: 需要运行的脚本
+            :param count: 本次处理或预期的数量
+            :param key: 查找数据时使用的键
+            :param token: 用于身份验证或授权的令牌
+            :return: 表示模拟脚本执行状态的整数
+            """
             if self.value == token:
                 self.value = None
                 return 1
@@ -326,7 +459,7 @@ async def test_private_key_must_match_public_jwk(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_private_key_requires_active_signing_window(tmp_path: Path) -> None:
-    """pending 或已停止签名的密钥不能用于签名。"""
+    """验证处于 pending 状态或已停止签名的密钥不能用于签名。"""
     with pytest.raises(KeyServiceError, match='预期状态为 active'):
         await KeyService.load_private_key_async(_record(tmp_path, status='pending'))
 
@@ -346,6 +479,13 @@ async def test_imported_database_kid_is_validated_before_jwks_and_signing(
         OidcUtil.normalize_public_jwk(record)
 
     async def published(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已发布的测试密钥记录。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已发布的测试密钥记录
+        """
         return [record]
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_published', published)
@@ -436,7 +576,13 @@ async def test_runtime_active_key_uses_database_state_not_bootstrap_kid(tmp_path
 
 
 def _orm_key(record: SimpleNamespace, status: str) -> SysOidcSigningKey:
-    """把内存密钥记录转换为真实 ORM 密钥。"""
+    """
+    把内存密钥记录转换为真实 ORM 密钥。
+
+    :param record: 当前操作使用的记录
+    :param status: 操作或记录所处的状态
+    :return: ``SysOidcSigningKey`` 实例
+    """
     return SysOidcSigningKey(
         kid=record.kid,
         alg=record.alg,
@@ -540,6 +686,13 @@ async def test_jwks_filters_private_jwk_fields(monkeypatch: pytest.MonkeyPatch, 
     record.public_jwk['d'] = 'secret'
 
     async def published(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已发布的测试密钥记录。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已发布的测试密钥记录
+        """
         return [record]
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_published', published)
@@ -592,6 +745,13 @@ async def test_jwks_excludes_keys_outside_publish_window(monkeypatch: pytest.Mon
     ]
 
     async def published(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        向调用方返回 ``records``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 匹配查询的记录集合
+        """
         return records
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_published', published)
@@ -607,6 +767,13 @@ async def test_jwks_rejects_malformed_rsa_jwk(monkeypatch: pytest.MonkeyPatch, t
     record.public_jwk['n'] = 'not-a-rsa-modulus'
 
     async def published(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已发布的测试密钥记录。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已发布的测试密钥记录
+        """
         return [record]
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_published', published)
@@ -625,15 +792,43 @@ async def test_activation_validates_pending_private_key_before_state_change(
     changed = False
 
     async def lock_algorithm(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已锁定的旧密钥与目标密钥。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已锁定的旧密钥与目标密钥
+        """
         return [old, target]
 
     async def get_target(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``target``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 当前操作的目标记录
+        """
         return target
 
     async def get_old(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``old``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 更新前的记录
+        """
         return old
 
     async def activate(*args: object, **kwargs: object) -> bool:
+        """
+        记录目标密钥的激活调用。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``True``
+        """
         nonlocal changed
         changed = True
         return True
@@ -662,20 +857,54 @@ async def test_activation_retains_old_key_for_max_overlap_window(
     config.oidc_allowed_clock_skew_seconds = 60
 
     async def audit(*args: object, **kwargs: object) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
+        return
 
     monkeypatch.setattr('module_identity.service.key_service.AuditService.record', audit)
 
     async def lock_algorithm(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已锁定的旧密钥与目标密钥。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已锁定的旧密钥与目标密钥
+        """
         return [old, target]
 
     async def get_target(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``target``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 当前操作的目标记录
+        """
         return target
 
     async def get_old(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``old``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 更新前的记录
+        """
         return old
 
     async def activate(*args: object, **kwargs: object) -> bool:
+        """
+        在此测试分支返回 True。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``True``
+        """
         return True
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.lock_algorithm_for_update', lock_algorithm)

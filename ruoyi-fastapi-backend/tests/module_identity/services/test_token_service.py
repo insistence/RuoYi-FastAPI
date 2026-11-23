@@ -73,7 +73,11 @@ async def test_confidential_auth_marks_only_matching_secret_used(monkeypatch: py
 
 
 def _config() -> SimpleNamespace:
-    """构造最小 JWT/TTL 配置快照。"""
+    """
+    构造最小 JWT/TTL 配置快照。
+
+    :return: 最小 JWT/TTL 配置快照
+    """
     return SimpleNamespace(
         oidc_issuer='https://auth.example.com',
         oidc_access_token_ttl_seconds=600,
@@ -87,8 +91,11 @@ def _config() -> SimpleNamespace:
 
 @pytest.fixture(autouse=True)
 def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
-    """将全局 OIDC 配置固定为本文件测试所需的协议值。"""
+    """
+    将全局 OIDC 配置固定为本文件测试所需的协议值。
 
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     values = {
         'oidc_issuer': 'https://auth.example.com',
         'oidc_access_token_ttl_seconds': _DEFAULT_TTL,
@@ -103,7 +110,12 @@ def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _client(**overrides: object) -> SimpleNamespace:
-    """构造 Token 流程所需的 Client 标量快照。"""
+    """
+    构造 Token 流程所需的 Client 标量快照。
+
+    :param overrides: 调用方按名称传入的附加选项
+    :return: Token 流程所需的 Client 标量快照
+    """
     value: dict[str, object] = {
         'client_pk': 1001,
         'client_id': 'portal-client',
@@ -120,7 +132,12 @@ def _client(**overrides: object) -> SimpleNamespace:
 
 
 def _code_payload(**overrides: object) -> dict[str, object]:
-    """构造已由 AuthorizationCodeService 验证的 Code 绑定。"""
+    """
+    构造已由 AuthorizationCodeService 验证的 Code 绑定。
+
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 已由 AuthorizationCodeService 验证的 Code 绑定
+    """
     value: dict[str, object] = {
         'clientPk': 1001,
         'redirectUri': 'https://portal.example/callback',
@@ -157,11 +174,25 @@ async def test_authorization_code_binds_client_redirect_and_pkce(
     )
 
     async def identity(*args: object, **kwargs: object) -> tuple[object, object]:
+        """
+        返回认证依赖解析出的用户标识。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 认证依赖解析出的用户标识
+        """
         return SimpleNamespace(user_id=2001, status='0', del_flag='0'), SimpleNamespace(
             subject_id='subject-2001', auth_version=4
         )
 
     async def session(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        创建测试使用的 ``SimpleNamespace`` 实例。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 测试使用的 ``SimpleNamespace`` 实例
+        """
         return SimpleNamespace(
             sid='sid-2001',
             user_id=2001,
@@ -566,6 +597,13 @@ async def test_signer_loads_private_key_from_same_active_record(monkeypatch: pyt
     calls: list[object] = []
 
     async def load(value: object, **kwargs: object) -> object:
+        """
+        捕获加载请求并提供测试密钥。
+
+        :param value: 待处理的输入值
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 供调用方使用的 ``private_key``
+        """
         calls.append(value)
         return private_key
 
@@ -695,6 +733,13 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
     )
 
     async def mark_used(*args: object, **kwargs: object) -> bool:
+        """
+        记录授权凭据被使用的时间。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 是否记录授权凭据被使用的时间
+        """
         state['mark_now'] = kwargs.get('now')
         async with lock:
             if state['rotated']:
@@ -703,6 +748,13 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
             return True
 
     async def reuse(*args: object, **kwargs: object) -> int:
+        """
+        统计刷新凭据的重复使用次数。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``1``
+        """
         state['reuse'] += 1
         return 1
 
@@ -733,9 +785,19 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
 
 
 def _async_value(value: object) -> Any:
-    """返回异步测试桩。"""
+    """
+    返回异步测试桩。
+
+    :param value: 待处理的输入值
+    :return: 异步测试桩
+    """
 
     async def result() -> object:
+        """
+        向调用方返回 ``value``。
+
+        :return: 为此调用预设的值
+        """
         return value
 
     return result()

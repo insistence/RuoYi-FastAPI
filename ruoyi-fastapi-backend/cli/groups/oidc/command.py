@@ -31,7 +31,7 @@ def bootstrap_key(
     actor: Annotated[str, typer.Option('--actor', help='写入审计记录的部署操作者')] = 'system:deployment',
 ) -> None:
     """
-    初始化首把 OIDC 签名密钥
+    初始化首把 OIDC 签名密钥。
 
     :param env: 当前命令运行环境
     :param output: 输出格式
@@ -40,7 +40,6 @@ def bootstrap_key(
     :param dry_run: 是否只执行预演
     :param kid: 首把签名密钥标识
     :param actor: 部署操作人标识
-    :return: None
     """
     _OIDC_COMMAND_CONTROLLER.bootstrap_key(
         env,

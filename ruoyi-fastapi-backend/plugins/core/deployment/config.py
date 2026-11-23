@@ -11,15 +11,13 @@ MAX_TRUST_FILE_BYTES = 1024 * 1024
 
 
 class TrustedPublisher(BaseModel):
-    """
-    将公钥与可发布插件ID显式绑定的发布者配置。
-    """
+    """将公钥与可发布插件ID显式绑定的发布者配置。"""
 
     model_config = ConfigDict(extra='forbid', populate_by_name=True, strict=True)
-    key_id: str = Field(alias='keyId', pattern=r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')
-    public_key: str = Field(alias='publicKey', min_length=1, max_length=8192)
-    plugin_ids: list[str] = Field(alias='pluginIds', min_length=1, max_length=256)
-    enabled: bool = True
+    key_id: str = Field(alias='keyId', pattern=r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', description='签名密钥标识')
+    public_key: str = Field(alias='publicKey', min_length=1, max_length=8192, description='用于验证制品签名的公钥')
+    plugin_ids: list[str] = Field(alias='pluginIds', min_length=1, max_length=256, description='插件标识列表')
+    enabled: bool = Field(default=True, description='是否启用')
 
     @field_validator('plugin_ids')
     @classmethod
@@ -41,13 +39,11 @@ class TrustedPublisher(BaseModel):
 
 
 class PluginTrustDocument(BaseModel):
-    """
-    由宿主管理的发布者公钥及授权范围配置文档。
-    """
+    """由宿主管理的发布者公钥及授权范围配置文档。"""
 
     model_config = ConfigDict(extra='forbid', populate_by_name=True, strict=True)
-    schema_version: int = Field(alias='schemaVersion', ge=1, le=1)
-    keys: list[TrustedPublisher] = Field(max_length=256)
+    schema_version: int = Field(alias='schemaVersion', ge=1, le=1, description='数据结构的版本')
+    keys: list[TrustedPublisher] = Field(max_length=256, description='受信任的制品签发者及其密钥')
 
 
 def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -70,6 +66,13 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 class PluginDeploymentConfig:
     """
     制品发布配置快照，支持为测试和维护实例注入独立目录。
+
+    :ivar backend_root: 后端项目的根目录
+    :ivar store_root: 保存已验证插件制品的根目录
+    :ivar trust_file: 本次验收使用的临时发布者公钥文件
+    :ivar enabled: 是否启用该项功能
+    :ivar heartbeat_seconds: 两次发送心跳的时间间隔（秒）
+    :ivar worker_ttl_seconds: 发布 worker 的有效心跳秒数
     """
 
     backend_root: Path
@@ -104,7 +107,6 @@ class PluginDeploymentConfig:
         """
         检查发布功能已启用且制品存储与源码目录相互隔离。
 
-        :return: None
         :raises ValueError: 功能未启用或制品存储与宿主源码路径重叠
         """
         if not self.enabled:
@@ -148,7 +150,6 @@ class PluginDeploymentConfig:
 
         :param key_id: 签名公钥在宿主信任配置中的标识
         :param plugin_id: 插件ID
-        :return: None
         :raises ValueError: 发布者不受信任、已停用或未获准发布指定插件
         """
         publisher = self.read_publishers().get(key_id)

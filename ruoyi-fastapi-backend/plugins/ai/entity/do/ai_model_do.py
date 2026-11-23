@@ -7,9 +7,7 @@ from utils.common_util import SqlalchemyUtil
 
 
 class AiModels(AuditTimeMixin, Base):
-    """
-    AI模型表
-    """
+    """AI模型表。"""
 
     __tablename__ = 'ai_models'
     __table_args__ = {'comment': 'AI模型表'}
@@ -28,13 +26,13 @@ class AiModels(AuditTimeMixin, Base):
         String(255),
         nullable=True,
         server_default=SqlalchemyUtil.get_server_default_null(DataBaseConfig.default_source.db_type),
-        comment='API Key',
+        comment='接口访问密钥',
     )
     base_url = Column(
         String(255),
         nullable=True,
         server_default=SqlalchemyUtil.get_server_default_null(DataBaseConfig.default_source.db_type),
-        comment='Base URL',
+        comment='服务基础地址',
     )
     model_type = Column(
         String(50),

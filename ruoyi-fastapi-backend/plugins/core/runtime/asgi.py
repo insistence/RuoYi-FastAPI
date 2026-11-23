@@ -21,6 +21,18 @@ from utils.log_util import logger
 class PluginLifespanManager:
     """
     通过 ASGI lifespan 协议驱动一个 worker 内的插件实例。
+
+    :ivar app: 插件 ASGI 应用
+    :ivar timeout: 生命周期事件确认的超时时间，单位为秒
+    :ivar cancel_timeout: 生命周期任务取消的等待上限秒数
+    :ivar managed: 是否由宿主驱动 ASGI 生命周期协议
+    :ivar state: 当前流程的状态
+    :ivar started: 是否已经完成启动
+    :ivar _stopping: 是否已经开始关闭
+    :ivar _operation_lock: 串行执行启动和关闭操作的锁
+    :ivar _task: 驱动插件生命周期的后台任务
+    :ivar _receive: 插件生命周期使用的 ASGI 接收回调
+    :ivar _send: 插件生命周期使用的 ASGI 发送回调
     """
 
     def __init__(
@@ -38,7 +50,7 @@ class PluginLifespanManager:
         :param timeout: 生命周期事件确认的超时时间，单位为秒
         :param managed: 是否由宿主驱动 ASGI 生命周期协议
         :param cancel_timeout: 生命周期任务取消的等待上限秒数
-        :return: None
+        :raises ValueError: 生命周期等待时间必须大于零
         """
         if any(not math.isfinite(value) or value <= 0 for value in (timeout, cancel_timeout)):
             raise ValueError('生命周期等待时间必须大于零')
@@ -66,18 +78,14 @@ class PluginLifespanManager:
     @property
     def ready(self) -> bool:
         """
-        lifespan 意外退出后不再接受业务请求。
+        判断插件生命周期任务是否仍可接受业务请求。
 
         :return: 插件是否已启动且生命周期任务仍然存活
         """
         return self.started and not self._stopping and (not self.managed or self.has_pending_task)
 
     async def startup(self) -> None:
-        """
-        只有确认 startup.complete 后才允许接收业务请求。
-
-        :return: None
-        """
+        """只有确认 startup.complete 后才允许接收业务请求。"""
         async with self._operation_lock:
             self._stopping = False
             await self._startup()
@@ -86,7 +94,8 @@ class PluginLifespanManager:
         """
         串行启动新一轮协议，旧任务退出后才允许重试。
 
-        :return: None
+        :raises RuntimeError: 上一次插件生命周期尚未退出，不能重新启动
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         if self.started:
             return
@@ -108,11 +117,7 @@ class PluginLifespanManager:
             raise
 
     async def shutdown(self) -> None:
-        """
-        即使协议失败或超时，也回收本 worker 创建的 lifespan task。
-
-        :return: None
-        """
+        """即使协议失败或超时，也回收本 worker 创建的 lifespan task。"""
         self._stopping = True
         async with self._operation_lock:
             await self._shutdown()
@@ -121,7 +126,7 @@ class PluginLifespanManager:
         """
         串行发送关闭消息，避免并发调用消费同一个协议确认。
 
-        :return: None
+        :raises TimeoutError: ASGI lifespan.shutdown 确认后未退出
         """
         was_started = self.started
         self.started = False
@@ -140,7 +145,6 @@ class PluginLifespanManager:
         在独立协程中等待 ASGI 应用返回的任意 awaitable。
 
         :param scope: 当前启动轮次的独立生命周期作用域
-        :return: None
         """
         await self.app(scope, self._receive.get, self._send.put)
 
@@ -149,7 +153,8 @@ class PluginLifespanManager:
         发送生命周期事件并等待子应用确认。
 
         :param event: 生命周期事件名称，支持 startup 和 shutdown
-        :return: None
+        :raises RuntimeError: ASGI lifespan 在 startup 后提前退出
+        :raises TimeoutError: 等待 ASGI 生命周期应答超时
         """
         await self._receive.put({'type': f'lifespan.{event}'})
         response = asyncio.create_task(self._send.get())
@@ -177,18 +182,14 @@ class PluginLifespanManager:
         """
         将子应用自行取消作为协议失败，保留宿主调用者自身的取消语义。
 
-        :return: None
+        :raises RuntimeError: ASGI 生命周期任务自行取消
         """
         if self._task.cancelled():
             raise RuntimeError('ASGI 生命周期任务自行取消')
         self._task.result()
 
     async def _cancel_task(self) -> None:
-        """
-        取消并回收当前 worker 的生命周期任务。
-
-        :return: None
-        """
+        """取消并回收当前 worker 的生命周期任务。"""
         if self._task is None:
             return
         if await cancel_plugin_tasks({self._task}, grace_seconds=self.cancel_timeout):
@@ -203,6 +204,11 @@ class PluginGatewayASGI:
 
     接受宿主 Bearer 或限定 bundle 的插件会话，由宿主授权器校验。
     静态资源与业务接口都必须经过同一身份门禁。
+
+    :ivar app: 受保护的插件 ASGI 应用
+    :ivar lifespan: 当前插件的生命周期管理器
+    :ivar authorize: 根据 ASGI 请求作用域构建宿主身份上下文的异步授权器
+    :ivar connections: 当前由网关管理的连接
     """
 
     def __init__(
@@ -224,7 +230,6 @@ class PluginGatewayASGI:
         :param recheck_interval: 已建立长连接的身份复核间隔秒数
         :param recheck_timeout: 每次长连接身份复核的超时秒数
         :param cancel_timeout: 长连接任务取消的等待秒数
-        :return: None
         """
         self.app = app
         self.lifespan = lifespan
@@ -244,7 +249,7 @@ class PluginGatewayASGI:
         :param scope: ASGI 请求作用域
         :param receive: ASGI 消息接收函数
         :param send: ASGI 消息发送函数
-        :return: None
+        :raises RuntimeError: 插件 lifespan 必须由宿主管理器驱动
         """
         if scope['type'] not in {'http', 'websocket'}:
             raise RuntimeError('插件 lifespan 必须由宿主管理器驱动')
@@ -264,11 +269,7 @@ class PluginGatewayASGI:
         await self.connections.run(self.app, scope, child_scope, context, receive, send)
 
     async def drain(self) -> None:
-        """
-        在释放插件资源前停止当前 worker 的 SSE 与 WebSocket。
-
-        :return: None
-        """
+        """在释放插件资源前停止当前 worker 的 SSE 与 WebSocket。"""
         await self.connections.drain()
 
     @staticmethod
@@ -281,7 +282,6 @@ class PluginGatewayASGI:
         :param send: ASGI 消息发送函数
         :param status: HTTP 拒绝响应状态码
         :param message: 拒绝原因
-        :return: None
         """
         if scope['type'] == 'websocket':
             await send({'type': 'websocket.close', 'code': 1008, 'reason': message})

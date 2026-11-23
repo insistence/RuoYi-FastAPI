@@ -22,7 +22,12 @@ MYSQL_DEADLOCK = 1213
 @dataclass(frozen=True)
 class ExecutionClaim:
     """
-    实际执行前获得的占用凭据或明确的未执行原因
+    实际执行前获得的占用凭据或明确的未执行原因。
+
+    :ivar accepted: 当前执行请求是否成功认领
+    :ivar token: 当前执行占用凭据
+    :ivar status: 执行状态
+    :ivar message: 执行结果或未执行原因
     """
 
     accepted: bool
@@ -33,7 +38,11 @@ class ExecutionClaim:
 
 class JobExecutionStore:
     """
-    使用独立短事务保存占用、续租和最终执行结果
+    使用独立短事务保存占用、续租和最终执行结果。
+
+    :cvar LEASE_SECONDS: 工作租约保持有效的秒数
+    :cvar HEARTBEAT_SECONDS: 两次续租心跳之间的秒数
+    :cvar FINISH_ATTEMPTS: 提交任务终态时允许的最大尝试次数
     """
 
     LEASE_SECONDS = 30
@@ -43,7 +52,7 @@ class JobExecutionStore:
     @staticmethod
     def session() -> Session:
         """
-        按当前进程的数据源配置创建独立同步会话
+        按当前进程的数据源配置创建独立同步会话。
 
         :return: 同步数据库会话
         """
@@ -61,7 +70,7 @@ class JobExecutionStore:
         dispatch_token: str | None = None,
     ) -> ExecutionClaim:
         """
-        串行检查同一任务的并发占用，再原子标记本次执行开始
+        串行检查同一任务的并发占用，再原子标记本次执行开始。
 
         :param execution_id: 执行ID
         :param job_id: 任务ID
@@ -128,12 +137,11 @@ class JobExecutionStore:
     @staticmethod
     def _stop(execution: SysJobExecution, status: str, message: str) -> None:
         """
-        保存未执行的终态，不伪造实际执行开始时间和耗时
+        保存未执行的终态，不伪造实际执行开始时间和耗时。
 
         :param execution: 执行记录对象
         :param status: 执行状态
         :param message: 执行结果或未执行原因
-        :return: None
         """
         execution.status = status
         execution.message = message
@@ -144,7 +152,7 @@ class JobExecutionStore:
     @classmethod
     def renew(cls, execution_id: str, token: str) -> bool:
         """
-        仅允许当前占用者续租；迟到的旧执行不能更新其他请求
+        仅允许当前占用者续租；迟到的旧执行不能更新其他请求。
 
         :param execution_id: 执行ID
         :param token: 当前执行占用凭据
@@ -175,7 +183,7 @@ class JobExecutionStore:
         run_duration_ms: int,
     ) -> None:
         """
-        按占用凭据保存真实执行结果；结果未知的原执行仍可补交最终结果
+        按占用凭据保存真实执行结果；结果未知的原执行仍可补交最终结果。
 
         :param execution_id: 执行ID
         :param token: 当前执行占用凭据
@@ -184,7 +192,7 @@ class JobExecutionStore:
         :param start_time: 实际执行开始时刻
         :param end_time: 实际执行结束时刻
         :param run_duration_ms: 实际执行耗时（毫秒）
-        :return: None
+        :raises DBAPIError: 写入任务结果遇到不可重试的错误或已耗尽重试次数
         """
         for attempt in range(cls.FINISH_ATTEMPTS):
             try:
@@ -216,7 +224,7 @@ class JobExecutionStore:
     @staticmethod
     def _retryable_finish_error(error: DBAPIError) -> bool:
         """
-        只重试数据库明确回滚的死锁或序列化冲突，连接中断等不明结果继续向上报告
+        只重试数据库明确回滚的死锁或序列化冲突，连接中断等不明结果继续向上报告。
 
         :param error: SQLAlchemy 包装的数据库异常
         :return: 是否可以重试终态更新事务
@@ -240,7 +248,7 @@ class JobExecutionStore:
         dispatch_token: str | None = None,
     ) -> None:
         """
-        记录过期或执行器拒绝，已有执行记录保持原状态以避免覆盖结果
+        记录过期或执行器拒绝，已有执行记录保持原状态以避免覆盖结果。
 
         :param execution_id: 执行ID
         :param job_id: 任务ID
@@ -249,7 +257,6 @@ class JobExecutionStore:
         :param status: 执行状态
         :param message: 执行结果或未执行原因
         :param dispatch_token: 本次派发的领取凭据
-        :return: None
         """
         with cls.session() as db, db.begin():
             locked = db.execute(
@@ -280,16 +287,20 @@ class JobExecutionStore:
 
 class ExecutionHeartbeat:
     """
-    在同步、异步和进程池任务运行期间独立续租，退出时停止续租
+    在同步、异步和进程池任务运行期间独立续租，退出时停止续租。
+
+    :ivar execution_id: 执行ID
+    :ivar token: 当前执行占用凭据
+    :ivar _stop: 通知心跳循环退出的信号
+    :ivar _thread: 执行周期性心跳的后台线程
     """
 
     def __init__(self, execution_id: str, token: str) -> None:
         """
-        保存执行凭据，线程只在任务真正开始后创建
+        保存执行凭据，线程只在任务真正开始后创建。
 
         :param execution_id: 执行ID
         :param token: 当前执行占用凭据
-        :return: None
         """
         self.execution_id = execution_id
         self.token = token
@@ -297,34 +308,22 @@ class ExecutionHeartbeat:
         self._thread = threading.Thread(target=self._renew, name=f'job-lease-{execution_id[:8]}', daemon=True)
 
     def start(self) -> None:
-        """
-        启动占用续租
-
-        :return: None
-        """
+        """启动占用续租。"""
         self._thread.start()
 
     def stop(self) -> None:
-        """
-        通知续租线程退出，避免任务完成后继续持有占用
-
-        :return: None
-        """
+        """通知续租线程退出，避免任务完成后继续持有占用。"""
         self._stop.set()
 
     def _renew(self) -> None:
-        """
-        周期续租；连接故障交由过期状态处理，不自动重放业务调用
-
-        :return: None
-        """
+        """周期续租；连接故障交由过期状态处理，不自动重放业务调用。"""
         while not self._stop.wait(JobExecutionStore.HEARTBEAT_SECONDS):
             if not self._renew_once():
                 return
 
     def _renew_once(self) -> bool:
         """
-        尝试续租一次，暂时断连后允许下一轮恢复连接
+        尝试续租一次，暂时断连后允许下一轮恢复连接。
 
         :return: 是否继续续租
         """

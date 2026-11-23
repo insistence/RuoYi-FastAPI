@@ -15,7 +15,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
 
     :param app: Typer 命令组
     :param get_controller: 插件命令控制器工厂
-    :return: None
     """
 
     @app.command('batch', help='按拓扑顺序批量执行插件操作')
@@ -40,7 +39,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
         :param continue_on_error: 失败后是否继续执行后续插件
-        :return: None
         """
         get_controller().batch_plugins(
             operation,
@@ -71,7 +69,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         get_controller().install_plugin(
             plugin_id,
@@ -100,7 +97,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         get_controller().upgrade_plugin(
             plugin_id,
@@ -129,7 +125,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         get_controller().set_plugin_enabled(
             plugin_id,
@@ -159,7 +154,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         get_controller().set_plugin_enabled(
             plugin_id,
@@ -189,7 +183,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         get_controller().uninstall_plugin(
             plugin_id,
@@ -218,7 +211,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         get_controller().purge_plugin(
             plugin_id,
@@ -243,7 +235,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param status: 执行状态
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().list_plugin_migrations(plugin_id, status, env, output)
 
@@ -267,7 +258,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         get_controller().mark_plugin_migration_success(
             plugin_id,
@@ -299,7 +289,6 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         get_controller().mark_plugin_migration_failed(
             plugin_id,

@@ -15,7 +15,7 @@ class TuiActionSpecFactory:
     """
     TUI 动作规格构建器。
 
-    该对象负责统一构建动作预览文本与 `TuiActionSpec`，
+    该对象负责统一构建动作预览文本与 ``TuiActionSpec``，
     避免各动作函数继续手工拼接重复的预览和规格对象。
     """
 
@@ -113,15 +113,15 @@ class TuiActionTemplate:
     该模板将命令参数构建、摘要构建与执行模式收敛为统一对象，
     使动作注册层可以直接声明“某个槽位对应哪类动作”。
 
-    :param action_id: 动作唯一标识
-    :param label: 动作显示名称
-    :param parameter_builder: 进程内动作参数构建器
-    :param summary_builder: 预览摘要构建器
-    :param action_id_builder: 动态动作标识构建器
-    :param label_builder: 动态动作标题构建器
-    :param preview_title: 预览标题
-    :param consequence_text: 结果影响说明
-    :param refresh_view: 执行后是否刷新视图
+    :ivar action_id: 动作唯一标识
+    :ivar label: 动作显示名称
+    :ivar parameter_builder: 进程内动作参数构建器
+    :ivar summary_builder: 预览摘要构建器
+    :ivar action_id_builder: 动态动作标识构建器
+    :ivar label_builder: 动态动作标题构建器
+    :ivar preview_title: 预览标题
+    :ivar consequence_text: 结果影响说明
+    :ivar refresh_view: 执行后是否刷新视图
     """
 
     action_id: str
@@ -175,7 +175,7 @@ class TuiActionTemplateSupport:
     该对象集中封装多个动作模板都会复用的记录解析与摘要拼装逻辑，
     避免这些基础能力继续散落在模块级函数中。
 
-    :param spec_factory: 动作规格构建器
+    :ivar spec_factory: 动作规格构建器
     """
 
     spec_factory: TuiActionSpecFactory

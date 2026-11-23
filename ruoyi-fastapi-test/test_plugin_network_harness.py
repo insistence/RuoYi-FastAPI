@@ -25,6 +25,12 @@ async def test_plugin_read_recovers_only_one_connection_reset(
     requests = []
 
     async def respond(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        """
+        按请求方法提供浏览器测试响应。
+
+        :param reader: 读取输入内容的对象
+        :param writer: 负责写入测试结果的对象
+        """
         try:
             request = await reader.readuntil(b'\r\n\r\n')
             requests.append(request.split(b'\r\n')[0])

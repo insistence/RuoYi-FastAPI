@@ -54,28 +54,26 @@ DataSourceBase = get_data_source_base('{{ dataSourceName }}')
 
 
 class {{ ClassName }}({% if main_time.create and main_time.update %}AuditTimeMixin, {% elif main_time.create %}CreateTimeMixin, {% elif main_time.update %}UpdateTimeMixin, {% endif %}{% if dataSourceName == defaultDataSourceName %}Base{% else %}DataSourceBase{% endif %}):
-    """
-    {{ functionName }}表
-    """
+    """{{ functionName }}表。"""
 
     __tablename__ = '{{ tableName }}'
-    __table_args__ = {'comment': '{{ tableComment }}'}
+    __table_args__ = {'comment': {{ (tableComment or '') | python_literal }}}
     {% if main_time.create and (main_time.create.required or main_time.create.pk) %}
     __create_time_nullable__ = False
     {% endif %}
     {% if main_time.create and main_time.create.column_comment != '创建时间' %}
-    __create_time_comment__ = '{{ main_time.create.column_comment }}'
+    __create_time_comment__ = {{ main_time.create.column_comment | model_field_label | python_literal }}
     {% endif %}
     {% if main_time.update and (main_time.update.required or main_time.update.pk) %}
     __update_time_nullable__ = False
     {% endif %}
     {% if main_time.update and main_time.update.column_comment != '更新时间' %}
-    __update_time_comment__ = '{{ main_time.update.column_comment }}'
+    __update_time_comment__ = {{ main_time.update.column_comment | model_field_label | python_literal }}
     {% endif %}
 
     {% for column in columns %}
     {% if not (column.column_name in ["create_time", "update_time"] and column.time_kind == "instant") %}
-    {{ column.column_name }} = Column({% if column.time_kind == "instant" %}DbUtcDateTime(){% else %}{{ column.column_type | get_sqlalchemy_type(dataSourceName) }}{% endif %}, {% if column.pk %}primary_key=True, {% endif %}{% if column.increment %}autoincrement=True, {% endif %}{% if column.required or column.pk %}nullable=False{% else %}nullable=True{% endif %}, comment='{{ column.column_comment }}')
+    {{ column.column_name }} = Column({% if column.time_kind == "instant" %}DbUtcDateTime(){% else %}{{ column.column_type | get_sqlalchemy_type(dataSourceName) }}{% endif %}, {% if column.pk %}primary_key=True, {% endif %}{% if column.increment %}autoincrement=True, {% endif %}{% if column.required or column.pk %}nullable=False{% else %}nullable=True{% endif %}, comment={{ column.column_comment | model_field_label | python_literal }})
     {% endif %}
     {% endfor %}
 
@@ -86,27 +84,25 @@ class {{ ClassName }}({% if main_time.create and main_time.update %}AuditTimeMix
 
 {% if table.sub %}
 class {{ subClassName }}({% if sub_time.create and sub_time.update %}AuditTimeMixin, {% elif sub_time.create %}CreateTimeMixin, {% elif sub_time.update %}UpdateTimeMixin, {% endif %}{% if dataSourceName == defaultDataSourceName %}Base{% else %}DataSourceBase{% endif %}):
-    """
-    {{ subTable.function_name }}表
-    """
+    """{{ subTable.function_name }}表。"""
 
     __tablename__ = '{{ subTableName }}'
     {% if sub_time.create and (sub_time.create.required or sub_time.create.pk) %}
     __create_time_nullable__ = False
     {% endif %}
     {% if sub_time.create and sub_time.create.column_comment != '创建时间' %}
-    __create_time_comment__ = '{{ sub_time.create.column_comment }}'
+    __create_time_comment__ = {{ sub_time.create.column_comment | model_field_label | python_literal }}
     {% endif %}
     {% if sub_time.update and (sub_time.update.required or sub_time.update.pk) %}
     __update_time_nullable__ = False
     {% endif %}
     {% if sub_time.update and sub_time.update.column_comment != '更新时间' %}
-    __update_time_comment__ = '{{ sub_time.update.column_comment }}'
+    __update_time_comment__ = {{ sub_time.update.column_comment | model_field_label | python_literal }}
     {% endif %}
 
     {% for column in subTable.columns %}
     {% if not (column.column_name in ["create_time", "update_time"] and column.time_kind == "instant") %}
-    {{ column.column_name }} = Column({% if column.time_kind == "instant" %}DbUtcDateTime(){% else %}{{ column.column_type | get_sqlalchemy_type(dataSourceName) }}{% endif %}, {% if column.column_name == subTableFkName %}ForeignKey('{{ tableName }}.{{ pkColumn.column_name }}'), {% endif %}{% if column.pk %}primary_key=True, {% endif %}{% if column.increment %}autoincrement=True, {% endif %}{% if column.required or column.pk %}nullable=False{% else %}nullable=True{% endif %}, comment='{{ column.column_comment }}')
+    {{ column.column_name }} = Column({% if column.time_kind == "instant" %}DbUtcDateTime(){% else %}{{ column.column_type | get_sqlalchemy_type(dataSourceName) }}{% endif %}, {% if column.column_name == subTableFkName %}ForeignKey('{{ tableName }}.{{ pkColumn.column_name }}'), {% endif %}{% if column.pk %}primary_key=True, {% endif %}{% if column.increment %}autoincrement=True, {% endif %}{% if column.required or column.pk %}nullable=False{% else %}nullable=True{% endif %}, comment={{ column.column_comment | model_field_label | python_literal }})
     {% endif %}
     {% endfor %}
 

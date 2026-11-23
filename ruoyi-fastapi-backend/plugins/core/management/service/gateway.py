@@ -27,6 +27,11 @@ if TYPE_CHECKING:
 class PluginManagementLifecycleUnitOfWork:
     """
     插件管理生命周期主事务工作单元。
+
+    :ivar async_session_local: 异步数据库会话工厂
+    :ivar plugin_service: 插件管理服务类
+    :ivar session_context: 当前会话的上下文
+    :ivar session: 数据库会话
     """
 
     def __init__(
@@ -39,7 +44,6 @@ class PluginManagementLifecycleUnitOfWork:
 
         :param async_session_local: 异步数据库会话工厂
         :param plugin_service: 插件管理服务类
-        :return: None
         """
         self.async_session_local = async_session_local
         self.plugin_service = plugin_service
@@ -63,7 +67,6 @@ class PluginManagementLifecycleUnitOfWork:
         :param exc_type: 异常类型
         :param exc: 异常对象
         :param traceback: 异常堆栈
-        :return: None
         """
         if self.session_context is None:
             return
@@ -107,7 +110,6 @@ class PluginManagementLifecycleUnitOfWork:
 
         :param discovered_plugin: 已发现插件
         :param enabled: 是否启用菜单
-        :return: None
         """
         await self.plugin_service.install_plugin_menu_services(self.session, discovered_plugin, enabled=enabled)
 
@@ -126,7 +128,6 @@ class PluginManagementLifecycleUnitOfWork:
 
         :param discovered_plugin: 已发现插件
         :param enabled: 插件任务是否启用
-        :return: None
         """
         await self.plugin_service.install_plugin_job_services(
             self.session,
@@ -180,11 +181,7 @@ class PluginManagementLifecycleUnitOfWork:
         return await self.plugin_service.purge_plugin_metadata_by_id_services(self.session, plugin_id)
 
     async def commit(self) -> None:
-        """
-        提交生命周期主事务。
-
-        :return: None
-        """
+        """提交生命周期主事务。"""
         await self.session.commit()
 
 
@@ -405,7 +402,6 @@ class PluginManagementRuntimeGateway:
         :param session: 数据库会话
         :param plugin_service: 插件管理服务类
         :param plugin_id: 插件ID
-        :return: None
         :raises ValueError: 插件尚未安装
         """
         if not await plugin_service.is_plugin_installed_services(session, plugin_id):
@@ -424,7 +420,6 @@ class PluginManagementRuntimeGateway:
         :param payload: 操作日志负载
         :param dry_run: 是否预演
         :param continue_on_error: 失败后是否继续
-        :return: None
         """
         async_session_local = self.get_async_session_local()
         plugin_service = self.get_plugin_service()
@@ -618,6 +613,8 @@ class PluginManagementRuntimeGateway:
         """
         构建插件 migration 执行历史对象。
 
+        :param status: 执行状态
+        :param error_message: 记录到结果或审计日志中的错误详情
         :param plugin_id: 插件ID
         :param migration_path: migration 相对路径
         :param checksum: 内容校验值

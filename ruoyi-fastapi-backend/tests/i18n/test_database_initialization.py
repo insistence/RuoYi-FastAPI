@@ -28,6 +28,7 @@ def test_translation_columns_compile_to_comparable_postgres_jsonb(dialect: Diale
 
 
 def test_fresh_database_user_locale_defaults() -> None:
+    """新数据库为用户提供默认语言。"""
     for filename, _ in SQL_FILES:
         sql = (SQL_DIR / filename).read_text(encoding='utf-8')
         schema = sql.split('create table sys_user (', 1)[1].split('\n)', 1)[0]
@@ -52,7 +53,14 @@ def test_fresh_database_scripts_insert_matching_translations(model: type, field:
         for line in schema.strip().splitlines():
             column = line.split()[0]
             if column in model_table.c:
-                columns.append(Column(column, model_table.c[column].type, primary_key=column == primary_key))
+                columns.append(
+                    Column(
+                        column,
+                        model_table.c[column].type,
+                        primary_key=column == primary_key,
+                        comment=model_table.c[column].comment,
+                    )
+                )
         table = Table(name, MetaData(), *columns)
         with create_engine('sqlite:///:memory:').begin() as connection:
             table.create(connection)

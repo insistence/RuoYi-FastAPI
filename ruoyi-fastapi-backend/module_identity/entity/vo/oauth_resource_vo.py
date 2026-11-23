@@ -7,17 +7,13 @@ from utils.oidc_util import OidcUtil
 
 
 class ResourceModel(BaseModel):
-    """
-    Resource 与 Scope 管理模型基类
-    """
+    """Resource 与 Scope 管理模型基类。"""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True, extra='forbid')
 
 
 class ScopeModel(ResourceModel):
-    """
-    OAuth Scope 管理模型
-    """
+    """OAuth Scope 管理模型。"""
 
     scope_code: str = Field(min_length=1, max_length=100, description='权限标识')
     scope_name: str = Field(min_length=1, max_length=100, description='权限名称')
@@ -34,11 +30,11 @@ class ScopeModel(ResourceModel):
     @model_validator(mode='after')
     def validate_scope_resource(self) -> 'ScopeModel':
         """
-        校验 Resource Scope 与 Resource ID 的绑定关系
+        校验 Resource Scope 与 Resource ID 的绑定关系。
 
         :return: 当前已校验 Scope
+        :raises ValueError: 资源权限必须提供 resource_id；身份权限范围不能绑定业务资源
         """
-
         if self.scope_type == 'resource' and not self.resource_id:
             raise ValueError('资源权限必须提供 resource_id')
         if self.scope_type == 'identity' and self.resource_id:
@@ -47,9 +43,7 @@ class ScopeModel(ResourceModel):
 
 
 class ResourceCreateModel(ResourceModel):
-    """
-    Resource Server 创建模型
-    """
+    """Resource Server 创建模型。"""
 
     resource_id: str = Field(min_length=1, max_length=64, description='资源标识')
     resource_name: str = Field(min_length=1, max_length=100, description='资源名称')
@@ -67,25 +61,19 @@ class ResourceCreateModel(ResourceModel):
 
 
 class ResourceUpdateModel(ResourceCreateModel):
-    """
-    Resource Server 更新模型
-    """
+    """Resource Server 更新模型。"""
 
     status: Literal['0', '1'] = Field(default='0', description='状态（0正常 1停用）')
 
 
 class ResourceViewModel(ResourceCreateModel):
-    """
-    Resource Server 管理详情模型
-    """
+    """Resource Server 管理详情模型。"""
 
     status: Literal['0', '1'] = Field(default='0', description='状态（0正常 1停用）')
 
 
 class ClaimPolicyModel(ResourceModel):
-    """
-    Client/Resource Claim 允许列表模型
-    """
+    """Client/Resource Claim 允许列表模型。"""
 
     client_id: str | None = Field(default=None, description='客户端标识')
     resource_id: str | None = Field(default=None, description='资源标识')
@@ -94,9 +82,7 @@ class ClaimPolicyModel(ResourceModel):
 
 
 class ResourcePageQueryModel(ResourceModel):
-    """
-    Resource Server 分页查询模型
-    """
+    """Resource Server 分页查询模型。"""
 
     resource_name: str | None = Field(default=None, description='资源名称')
     status: Literal['0', '1'] | None = Field(default=None, description='状态（0正常 1停用）')
@@ -105,9 +91,7 @@ class ResourcePageQueryModel(ResourceModel):
 
 
 class ScopePageQueryModel(ResourceModel):
-    """
-    Scope 分页查询模型
-    """
+    """Scope 分页查询模型。"""
 
     scope_name: str | None = Field(default=None, description='权限名称')
     scope_type: Literal['identity', 'resource'] | None = Field(
@@ -119,9 +103,7 @@ class ScopePageQueryModel(ResourceModel):
 
 
 class ResourceStatusModel(ResourceModel):
-    """
-    Resource Server 启停状态模型
-    """
+    """Resource Server 启停状态模型。"""
 
     resource_id: str = Field(description='资源标识')
     status: Literal['0', '1'] = Field(description='状态（0正常 1停用）')
@@ -132,9 +114,7 @@ class ResourceStatusModel(ResourceModel):
 
 
 class ScopeStatusModel(ResourceModel):
-    """
-    Scope 启停状态模型
-    """
+    """Scope 启停状态模型。"""
 
     scope_code: str = Field(description='权限标识')
     status: Literal['0', '1'] = Field(description='状态（0正常 1停用）')

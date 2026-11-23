@@ -5,7 +5,13 @@ from apscheduler.triggers.date import DateTrigger
 
 class TaskDateTrigger(DateTrigger):
     """
-    携带任务原始时区的单次触发器
+    携带任务原始时区的单次触发器。
+
+    :ivar task_timezone: 任务原始IANA时区名称
+    :ivar task_job_id: 关联的逻辑任务ID
+    :ivar task_job_group: 业务分组快照
+    :ivar execution_id: 执行ID
+    :ivar dispatch_token: 本次派发的领取凭据
     """
 
     def __init__(
@@ -19,7 +25,7 @@ class TaskDateTrigger(DateTrigger):
         **kwargs,
     ) -> None:
         """
-        初始化保留任务时区的单次触发器
+        初始化保留任务时区的单次触发器。
 
         :param task_timezone: 任务原始IANA时区名称
         :param task_job_id: 关联的逻辑任务ID
@@ -27,7 +33,6 @@ class TaskDateTrigger(DateTrigger):
         :param execution_id: 执行ID
         :param dispatch_token: 本次派发的领取凭据
         :param kwargs: 传递给DateTrigger的执行时刻及其他配置
-        :return: None
         """
         super().__init__(**kwargs)
         self.task_timezone = task_timezone
@@ -38,7 +43,7 @@ class TaskDateTrigger(DateTrigger):
 
     def __getstate__(self) -> dict[str, Any]:
         """
-        序列化单次触发器及任务时区
+        序列化单次触发器及任务时区。
 
         :return: 可供持久化任务仓库存储的触发器状态
         """
@@ -53,10 +58,9 @@ class TaskDateTrigger(DateTrigger):
 
     def __setstate__(self, state: dict[str, Any]) -> None:
         """
-        从持久化状态恢复触发器和任务时区
+        从持久化状态恢复触发器和任务时区。
 
         :param state: 已序列化的触发器状态
-        :return: None
         """
         super().__setstate__(state)
         self.task_timezone = state['task_timezone']
@@ -68,7 +72,7 @@ class TaskDateTrigger(DateTrigger):
 
 def trigger_timezone(trigger: Any) -> str | None:
     """
-    读取触发器携带的任务时区
+    读取触发器携带的任务时区。
 
     :param trigger: Cron、单次或组合触发器
     :return: 任务时区名称，未携带时区时返回None

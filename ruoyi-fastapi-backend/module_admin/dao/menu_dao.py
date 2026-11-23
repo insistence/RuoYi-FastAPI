@@ -12,14 +12,12 @@ from module_admin.entity.vo.menu_vo import MenuModel, MenuQueryModel
 
 
 class MenuDao:
-    """
-    菜单管理模块数据库操作层
-    """
+    """菜单管理模块数据库操作层。"""
 
     @classmethod
     async def get_menu_detail_by_id(cls, db: AsyncSession, menu_id: int) -> SysMenu | None:
         """
-        根据菜单id获取菜单详细信息
+        根据菜单id获取菜单详细信息。
 
         :param db: orm对象
         :param menu_id: 菜单id
@@ -32,7 +30,7 @@ class MenuDao:
     @classmethod
     async def get_menu_detail_by_info(cls, db: AsyncSession, menu: MenuModel) -> SysMenu | None:
         """
-        根据菜单参数获取菜单信息
+        根据菜单参数获取菜单信息。
 
         :param db: orm对象
         :param menu: 菜单参数对象
@@ -57,7 +55,7 @@ class MenuDao:
     @classmethod
     async def get_menus_by_path_or_route_name(cls, db: AsyncSession, path: str, route_name: str) -> Sequence[SysMenu]:
         """
-        根据路由地址或路由名称获取目录和菜单列表
+        根据路由地址或路由名称获取目录和菜单列表。
 
         :param db: orm对象
         :param path: 路由地址
@@ -86,7 +84,7 @@ class MenuDao:
     @classmethod
     async def get_menu_list_for_tree(cls, db: AsyncSession, user_id: int, role: list) -> Sequence[SysMenu]:
         """
-        根据角色信息获取所有在用菜单列表信息
+        根据角色信息获取所有在用菜单列表信息。
 
         :param db: orm对象
         :param user_id: 用户id
@@ -132,7 +130,7 @@ class MenuDao:
         cls, db: AsyncSession, page_object: MenuQueryModel, user_id: int, role: list
     ) -> Sequence[SysMenu]:
         """
-        根据查询参数获取菜单列表信息
+        根据查询参数获取菜单列表信息。
 
         :param db: orm对象
         :param page_object: 不分页查询参数对象
@@ -194,11 +192,11 @@ class MenuDao:
     @classmethod
     async def add_menu_dao(cls, db: AsyncSession, menu: MenuModel) -> SysMenu:
         """
-        新增菜单数据库操作
+        新增菜单数据库操作。
 
         :param db: orm对象
         :param menu: 菜单对象
-        :return:
+        :return: 新增的菜单记录
         """
         db_menu = SysMenu(**menu.model_dump(exclude={'create_time', 'update_time'}))
         db_menu.menu_name_i18n = TranslationUtil.merge(None, menu.menu_name_i18n)
@@ -210,11 +208,10 @@ class MenuDao:
     @classmethod
     async def edit_menu_dao(cls, db: AsyncSession, menu: dict) -> None:
         """
-        编辑菜单数据库操作
+        编辑菜单数据库操作。
 
         :param db: orm对象
         :param menu: 需要更新的菜单字典
-        :return:
         """
         if 'menu_name_i18n' in menu:
             current = await db.scalar(
@@ -229,11 +226,10 @@ class MenuDao:
     @classmethod
     async def update_menu_sort_dao(cls, db: AsyncSession, menu_sort_list: list[dict[str, int]]) -> None:
         """
-        批量更新菜单显示顺序
+        批量更新菜单显示顺序。
 
         :param db: orm对象
         :param menu_sort_list: 菜单ID与显示顺序列表
-        :return:
         """
         await db.execute(
             update(SysMenu.__table__)
@@ -245,18 +241,17 @@ class MenuDao:
     @classmethod
     async def delete_menu_dao(cls, db: AsyncSession, menu: MenuModel) -> None:
         """
-        删除菜单数据库操作
+        删除菜单数据库操作。
 
         :param db: orm对象
         :param menu: 菜单对象
-        :return:
         """
         await db.execute(delete(SysMenu).where(SysMenu.menu_id.in_([menu.menu_id])))
 
     @classmethod
     async def has_child_by_menu_id_dao(cls, db: AsyncSession, menu_id: int) -> int | None:
         """
-        根据菜单id查询菜单关联子菜单的数量
+        根据菜单id查询菜单关联子菜单的数量。
 
         :param db: orm对象
         :param menu_id: 菜单id
@@ -271,7 +266,7 @@ class MenuDao:
     @classmethod
     async def check_menu_exist_role_dao(cls, db: AsyncSession, menu_id: int) -> int | None:
         """
-        根据菜单id查询菜单关联角色数量
+        根据菜单id查询菜单关联角色数量。
 
         :param db: orm对象
         :param menu_id: 菜单id

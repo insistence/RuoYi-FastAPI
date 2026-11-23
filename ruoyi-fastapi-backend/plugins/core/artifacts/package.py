@@ -99,7 +99,6 @@ def _payload_path(name: str) -> None:
     校验部署文件路径，拒绝源码工程、环境文件和构建缓存。
 
     :param name: 制品内文件的规范相对路径
-    :return: None
     :raises ValueError: 路径不安全或包含禁止交付的文件
     """
     path = safe_artifact_path(name)
@@ -207,7 +206,6 @@ def _preflight_zip(path: Path, limits: ArtifactLimits) -> None:
 
     :param path: 待处理的文件路径
     :param limits: 文件数量、大小及压缩容器的资源上限
-    :return: None
     :raises ValueError: ZIP 结束记录、中央目录或容器类型不受支持
     """
     with path.open('rb') as stream:
@@ -242,7 +240,6 @@ def _preflight_entries(stream: BinaryIO, central_end: int, count: int, limits: A
     :param central_end: 中央目录结束位置的绝对字节偏移
     :param count: ZIP 结束记录声明的条目数量
     :param limits: 文件数量、大小及压缩容器的资源上限
-    :return: None
     :raises ValueError: 中央目录记录不完整、越界或实际数量不匹配
     """
     actual_count = 0

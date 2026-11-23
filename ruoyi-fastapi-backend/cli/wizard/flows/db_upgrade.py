@@ -7,12 +7,12 @@ from cli.wizard.base import BaseCliWizardFlow
 @dataclass(frozen=True)
 class DbUpgradeWizardSelection:
     """
-    `wizard db-upgrade` 向导采集结果。
+    ``wizard db-upgrade`` 向导采集结果。
 
-    :param env: 运行环境
-    :param revision: 目标迁移版本
-    :param dry_run: 是否演练执行
-    :param allow_prod: 是否允许生产环境执行
+    :ivar env: 运行环境
+    :ivar revision: 目标迁移版本
+    :ivar dry_run: 是否演练执行
+    :ivar allow_prod: 是否允许生产环境执行
     """
 
     env: str
@@ -23,11 +23,14 @@ class DbUpgradeWizardSelection:
 
 class DbUpgradeWizardFlow(BaseCliWizardFlow[DbUpgradeWizardSelection]):
     """
-    `wizard db-upgrade` 向导流程。
+    ``wizard db-upgrade`` 向导流程。
 
-    :param default_env: 默认环境
-    :param default_revision: 默认目标 revision
-    :param default_dry_run: 默认是否先执行 dry-run
+    :cvar wizard_name: 向导名称
+    :cvar preview_title: 预览标题
+    :cvar failure_message: 流程失败时显示的提示
+    :ivar default_env: 默认环境
+    :ivar default_revision: 默认目标 revision
+    :ivar default_dry_run: 默认是否先执行 dry-run
     """
 
     wizard_name = 'wizard db-upgrade'
@@ -47,7 +50,6 @@ class DbUpgradeWizardFlow(BaseCliWizardFlow[DbUpgradeWizardSelection]):
         :param default_env: 默认环境
         :param default_revision: 默认目标 revision
         :param default_dry_run: 默认是否先执行 dry-run
-        :return: None
         """
         self.default_env = default_env
         self.default_revision = default_revision
@@ -154,13 +156,12 @@ def run_db_upgrade_wizard(
     default_dry_run: bool = True,
 ) -> None:
     """
-    执行 `wizard db-upgrade` 向导。
+    执行 ``wizard db-upgrade`` 向导。
 
     :param output: 输出格式
     :param default_env: 默认环境
     :param default_revision: 默认目标 revision
     :param default_dry_run: 默认是否先 dry-run
-    :return: None
     """
     DbUpgradeWizardFlow(
         default_env=default_env,

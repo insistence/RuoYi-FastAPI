@@ -13,8 +13,8 @@ class CompletionCommandRegistration:
     """
     completion 子命令注册描述。
 
-    :param name: 子命令名称
-    :param help_text: 子命令帮助文本
+    :ivar name: 子命令名称
+    :ivar help_text: 子命令帮助文本
     """
 
     name: str
@@ -26,10 +26,10 @@ class CompletionSubcommandRegistrar:
     """
     completion 子命令注册器。
 
-    该对象负责将 `show/install/doctor` 子命令挂载到 completion 应用，
+    该对象负责将 ``show/install/doctor`` 子命令挂载到 completion 应用，
     将 Typer 命令声明细节从构建器主体中拆出。
 
-    :param completion_provider_gateway: completion 提供器对外网关
+    :ivar completion_provider_gateway: completion 提供器对外网关
     """
 
     completion_provider_gateway: CompletionProviderGateway = field(default_factory=lambda: COMPLETION_PROVIDER_GATEWAY)
@@ -53,7 +53,6 @@ class CompletionSubcommandRegistrar:
 
         :param app: completion 子应用
         :param controller: completion 命令控制器
-        :return: None
         """
         registrations = {registration.name: registration for registration in self.build_registrations()}
 
@@ -69,7 +68,6 @@ class CompletionSubcommandRegistrar:
             输出指定 shell 的 completion 脚本。
 
             :param shell: shell 名称
-            :return: None
             """
             controller.show(shell)
 
@@ -96,7 +94,6 @@ class CompletionSubcommandRegistrar:
             :param activate: 是否写入 shell rc 文件激活命令
             :param rc_file: 自定义 shell rc 文件路径
             :param force: 是否强制覆盖已存在文件
-            :return: None
             """
             controller.install(
                 output,
@@ -115,7 +112,6 @@ class CompletionSubcommandRegistrar:
             检查当前 completion 配置状态。
 
             :param output: 输出格式
-            :return: None
             """
             controller.doctor(output)
 
@@ -125,10 +121,10 @@ class CompletionCommandBuilder:
     """
     completion 子应用构建器。
 
-    该构建器负责装配 `completion` 子应用，并将控制器实例和子命令注册
+    该构建器负责装配 ``completion`` 子应用，并将控制器实例和子命令注册
     细节收口到类式对象协作中。
 
-    :param completion_subcommand_registrar: completion 子命令注册器
+    :ivar completion_subcommand_registrar: completion 子命令注册器
     """
 
     completion_subcommand_registrar: CompletionSubcommandRegistrar = field(

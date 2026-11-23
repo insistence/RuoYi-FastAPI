@@ -15,6 +15,12 @@ UNSUPPORTED_PLUGIN_MANIFEST_NAMES = ('plugin.yml',)
 class DiscoveredPlugin:
     """
     已发现插件。
+
+    :ivar manifest: 插件主清单
+    :ivar backend_path: 后端插件相对路径
+    :ivar manifest_path: 插件清单路径
+    :ivar artifact_digest: 进程实际加载的制品摘要，宿主报告不设置此值
+    :ivar artifact_generation: 发现该插件时对应的制品代次
     """
 
     manifest: PluginManifest
@@ -41,6 +47,10 @@ class PluginDiscoveryError:
     插件发现错误。
 
     用于在容错扫描模式下记录单个插件加载失败，便于上层隔离损坏插件。
+
+    :ivar manifest_path: 插件清单路径
+    :ivar plugin_dir: 保存插件清单和资源的目录
+    :ivar error_message: 记录到结果或审计日志中的错误详情
     """
 
     manifest_path: Path | None
@@ -54,6 +64,9 @@ class PluginDiscoveryResult:
     插件发现结果。
 
     同时承载成功发现的插件和加载失败明细，避免单个错误插件拖垮整体扫描。
+
+    :ivar plugins: 参与当前操作的插件集合
+    :ivar errors: 按条目收集的异常或失败原因
     """
 
     plugins: list[DiscoveredPlugin] = field(default_factory=list)
@@ -78,6 +91,8 @@ class PluginScanner:
     - :meth:`discover`：严格扫描，任一插件清单错误立即抛出 ``PluginManifestError``。
     - :meth:`discover_with_errors`：容错扫描，逐插件隔离失败，plugin.yml 文件名错误、
       YAML 损坏、清单校验失败等都作为对应插件的错误记录，不影响其他插件。
+
+    :ivar plugins_root: 后端插件根目录
     """
 
     def __init__(self, plugins_root: Path | str) -> None:
@@ -217,7 +232,6 @@ class PluginScanner:
         校验插件根路径是目录。
 
         :raises PluginManifestError: 根路径不是目录
-        :return: None
         """
         if not self.plugins_root.is_dir():
             raise PluginManifestError(f'插件根路径不是目录：{self.plugins_root}')
@@ -227,7 +241,6 @@ class PluginScanner:
         严格模式下检查不支持的插件清单文件名，任一存在立即抛错。
 
         :raises PluginManifestError: 存在不支持的清单文件名
-        :return: None
         """
         for manifest_name in UNSUPPORTED_PLUGIN_MANIFEST_NAMES:
             unsupported_manifest_paths = sorted(self.plugins_root.glob(f'*/{manifest_name}'))

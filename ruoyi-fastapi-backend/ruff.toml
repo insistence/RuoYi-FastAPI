@@ -12,6 +12,10 @@ select = [
     "A",      # flake8-builtins
     "COM",    # flake8-commas
     "C4",     # flake8-comprehensions
+    "D2",     # docstring layout; dev lint checks presence with route and model context
+    "D213",   # 多行文档字符串的摘要从第二行开始
+    "D3",     # docstring quotation marks
+    "D4",     # docstring content
     "ISC",    # flake8-implicit-str-concat
     "ICN",    # flake8-import-conventions
     "PIE",    # flake8-pie
@@ -37,6 +41,7 @@ ignore = [
     "ANN401", # dynamically typed expressions (typing.Any) are disallowed in {name}
     "B008",   # do not perform function calls in argument defaults
     "COM812", # trailing comma missing
+    "D400",   # dev lint checks terminal punctuation in both Chinese and English
     "RET504", # unnecessary assignment to {name} before return statement
     "SIM105", # use contextlib.suppress({exception}) instead of try-except-pass
     "C901",   # too complex
@@ -49,11 +54,19 @@ ignore = [
     "RUF012", # mutable class attributes should be annotated with typing.ClassVar
 ]
 
+[lint.per-file-ignores]
+"alembic/env.py" = ["D"]  # Preserve Alembic's original documentation.
+"common/router.py" = ["D205"]  # APIRouterPro retains the original FastAPI example.
+
 [lint.flake8-type-checking]
 runtime-evaluated-base-classes = ["pydantic.BaseModel", "sqlalchemy.orm.DeclarativeBase"]
 
 [lint.isort]
 known-third-party = ["alembic"]
+
+[lint.pydocstyle]
+# Use general layout rules; parameters and return values use reST fields.
+convention = "pep257"
 
 [lint.pylint]
 max-args = 10

@@ -24,14 +24,12 @@ R = TypeVar('R')
 
 
 class ApiCacheManager:
-    """
-    接口缓存键与命名空间管理工具类
-    """
+    """接口缓存键与命名空间管理工具类。"""
 
     @classmethod
     async def clear_namespace(cls, redis: aioredis.Redis, namespace: str) -> int:
         """
-        清理指定命名空间下的接口缓存
+        清理指定命名空间下的接口缓存。
 
         :param redis: Redis连接对象
         :param namespace: 缓存命名空间
@@ -42,7 +40,7 @@ class ApiCacheManager:
     @classmethod
     async def clear_all(cls, redis: aioredis.Redis) -> int:
         """
-        清理所有接口缓存
+        清理所有接口缓存。
 
         :param redis: Redis连接对象
         :return: 删除的缓存数量
@@ -52,7 +50,7 @@ class ApiCacheManager:
     @classmethod
     async def clear_namespaces(cls, redis: aioredis.Redis, namespaces: list[str] | tuple[str, ...] | set[str]) -> int:
         """
-        批量清理多个命名空间下的接口缓存
+        批量清理多个命名空间下的接口缓存。
 
         :param redis: Redis连接对象
         :param namespaces: 需要清理的缓存命名空间列表
@@ -67,7 +65,7 @@ class ApiCacheManager:
     @classmethod
     async def clear_namespace_prefix(cls, redis: aioredis.Redis, namespace_prefix: str) -> int:
         """
-        按命名空间前缀清理接口缓存
+        按命名空间前缀清理接口缓存。
 
         :param redis: Redis连接对象
         :param namespace_prefix: 缓存命名空间前缀
@@ -82,7 +80,7 @@ class ApiCacheManager:
         namespace_prefixes: list[str] | tuple[str, ...] | set[str],
     ) -> int:
         """
-        批量按命名空间前缀清理接口缓存
+        批量按命名空间前缀清理接口缓存。
 
         :param redis: Redis连接对象
         :param namespace_prefixes: 需要清理的缓存命名空间前缀列表
@@ -97,7 +95,7 @@ class ApiCacheManager:
     @classmethod
     def build_namespace_pattern(cls, namespace: str) -> str:
         """
-        生成命名空间扫描表达式
+        生成命名空间扫描表达式。
 
         :param namespace: 缓存命名空间
         :return: 缓存键扫描匹配模式
@@ -107,7 +105,7 @@ class ApiCacheManager:
     @classmethod
     def build_namespace_prefix_pattern(cls, namespace_prefix: str) -> str:
         """
-        生成命名空间前缀扫描表达式
+        生成命名空间前缀扫描表达式。
 
         :param namespace_prefix: 缓存命名空间前缀
         :return: 缓存键扫描匹配模式
@@ -117,7 +115,7 @@ class ApiCacheManager:
     @classmethod
     async def _clear_by_pattern(cls, redis: aioredis.Redis, pattern: str) -> int:
         """
-        根据扫描表达式清理匹配的接口缓存
+        根据扫描表达式清理匹配的接口缓存。
 
         :param redis: Redis连接对象
         :param pattern: 缓存键扫描匹配模式
@@ -131,13 +129,11 @@ class ApiCacheManager:
 
 
 class _ApiCacheSupport:
-    """
-    接口缓存装饰器共用工具基类
-    """
+    """接口缓存装饰器共用工具基类。"""
 
     def _load_json_content(self, response_body: str) -> Any | None:
         """
-        解析JSON响应体内容
+        解析JSON响应体内容。
 
         :param response_body: JSON字符串响应体
         :return: 解析后的Python对象，解析失败时返回None
@@ -149,7 +145,7 @@ class _ApiCacheSupport:
 
     def _extract_json_response_content(self, result: Any) -> Any | None:
         """
-        提取响应中的JSON内容
+        提取响应中的JSON内容。
 
         :param result: 原始接口返回结果
         :return: 解析后的JSON内容，无法提取时返回None
@@ -167,7 +163,7 @@ class _ApiCacheSupport:
 
     def _match_response_codes(self, response_content: Any, response_codes: set[int]) -> bool:
         """
-        判断响应内容中的业务响应码是否匹配
+        判断响应内容中的业务响应码是否匹配。
 
         :param response_content: JSON响应内容
         :param response_codes: 允许的业务响应码集合
@@ -184,7 +180,7 @@ class _ApiCacheSupport:
 
     def _get_matched_response_content(self, result: Any, response_codes: set[int]) -> Any | None:
         """
-        提取并校验满足业务响应码要求的JSON响应内容
+        提取并校验满足业务响应码要求的JSON响应内容。
 
         :param result: 原始接口返回结果
         :param response_codes: 允许的业务响应码集合
@@ -199,7 +195,13 @@ class _ApiCacheSupport:
 
 class ApiCache(_ApiCacheSupport):
     """
-    接口缓存装饰器，仅用于幂等且返回JSON的接口
+    接口缓存装饰器，仅用于幂等且返回JSON的接口。
+
+    :ivar namespace: 缓存命名空间，用于区分不同接口类型
+    :ivar expire_seconds: 缓存过期时间，单位秒
+    :ivar vary_by_user: 是否按当前登录用户隔离缓存
+    :ivar methods: 允许启用缓存的HttpMethod枚举列表，为None时默认仅缓存GET请求
+    :ivar cache_response_codes: 允许缓存的业务响应码，为None时默认仅缓存成功响应
     """
 
     def __init__(
@@ -211,7 +213,7 @@ class ApiCache(_ApiCacheSupport):
         cache_response_codes: set[int] | None = None,
     ) -> None:
         """
-        初始化接口缓存装饰器
+        初始化接口缓存装饰器。
 
         :param namespace: 缓存命名空间，用于区分不同接口类型
         :param expire_seconds: 缓存过期时间，单位秒
@@ -229,7 +231,7 @@ class ApiCache(_ApiCacheSupport):
 
     def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         """
-        为目标异步接口函数增加接口缓存能力
+        为目标异步接口函数增加接口缓存能力。
 
         :param func: 需要被缓存的异步接口函数
         :return: 包装后的异步接口函数
@@ -237,6 +239,13 @@ class ApiCache(_ApiCacheSupport):
 
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            """
+            读取匹配请求的接口缓存，并在缓存未命中时执行接口。
+
+            :param args: 传给被调用对象的位置参数
+            :param kwargs: 传给被调用对象的关键字参数
+            :return: 匹配请求的接口缓存
+            """
             request, redis = ApiAnnotationUtil.resolve_request_redis(
                 func, '当前应用未初始化Redis连接，跳过接口缓存', *args, **kwargs
             )
@@ -263,7 +272,7 @@ class ApiCache(_ApiCacheSupport):
 
     def _is_request_method_allowed(self, request: Request) -> bool:
         """
-        判断当前请求方法是否允许启用接口缓存
+        判断当前请求方法是否允许启用接口缓存。
 
         :param request: 当前请求对象
         :return: 是否允许缓存
@@ -272,7 +281,7 @@ class ApiCache(_ApiCacheSupport):
 
     async def _build_cache_key(self, request: Request, *, catalog_fingerprint: str | None = None) -> str:
         """
-        根据当前请求生成稳定缓存键
+        根据当前请求生成稳定缓存键。
 
         :param request: 当前请求对象
         :param catalog_fingerprint: 本次请求使用的词库版本指纹，未提供时读取当前指纹
@@ -306,7 +315,7 @@ class ApiCache(_ApiCacheSupport):
 
     def _get_user_scope(self, request: Request) -> str:
         """
-        获取用户隔离维度
+        获取用户隔离维度。
 
         优先使用当前登录用户ID，未登录时回退到Authorization摘要。
 
@@ -322,7 +331,7 @@ class ApiCache(_ApiCacheSupport):
 
     def _serialize_response(self, result: Any) -> str | None:
         """
-        将响应对象序列化为可存入缓存的字符串
+        将响应对象序列化为可存入缓存的字符串。
 
         :param result: 原始接口返回结果
         :return: 序列化后的缓存内容，不可缓存时返回None
@@ -335,7 +344,7 @@ class ApiCache(_ApiCacheSupport):
 
     def _extract_response_payload(self, result: Any) -> dict[str, Any] | None:
         """
-        提取可缓存的响应载荷
+        提取可缓存的响应载荷。
 
         :param result: 原始接口返回结果
         :return: 可缓存的响应载荷，不可缓存时返回None
@@ -375,7 +384,7 @@ class ApiCache(_ApiCacheSupport):
 
     def _build_cached_response(self, cached_response: str) -> JSONResponse:
         """
-        根据缓存内容重建JSON响应对象
+        根据缓存内容重建JSON响应对象。
 
         :param cached_response: 缓存中读取到的响应字符串
         :return: 重建后的JSON响应对象
@@ -394,12 +403,11 @@ class ApiCache(_ApiCacheSupport):
 
     async def _cache_response(self, redis: aioredis.Redis, cache_key: str, result: Any) -> None:
         """
-        将接口响应写入接口缓存
+        将接口响应写入接口缓存。
 
         :param redis: Redis连接对象
         :param cache_key: 接口缓存键
         :param result: 原始接口返回结果
-        :return: None
         """
         serialized_response = self._serialize_response(result)
         if serialized_response is None:
@@ -410,7 +418,7 @@ class ApiCache(_ApiCacheSupport):
 
     def _filter_response_headers(self, headers: dict[str, str]) -> dict[str, str]:
         """
-        过滤不适合直接回放的响应头
+        过滤不适合直接回放的响应头。
 
         :param headers: 原始响应头
         :return: 过滤后的响应头
@@ -420,7 +428,7 @@ class ApiCache(_ApiCacheSupport):
 
     def _refresh_response_time(self, response_content: Any) -> Any:
         """
-        刷新项目统一响应体中的time字段
+        刷新项目统一响应体中的time字段。
 
         :param response_content: JSON响应内容
         :return: 刷新time后的响应内容
@@ -438,7 +446,11 @@ class ApiCache(_ApiCacheSupport):
 
 class ApiCacheEvict(_ApiCacheSupport):
     """
-    接口缓存失效装饰器，用于在写操作成功后统一清理相关缓存
+    接口缓存失效装饰器，用于在写操作成功后统一清理相关缓存。
+
+    :ivar namespaces: 需要失效的缓存命名空间列表
+    :ivar namespace_prefixes: 需要失效的缓存命名空间前缀列表
+    :ivar evict_response_codes: 允许触发失效的业务响应码，默认为仅成功响应触发
     """
 
     def __init__(
@@ -448,11 +460,12 @@ class ApiCacheEvict(_ApiCacheSupport):
         evict_response_codes: set[int] | None = None,
     ) -> None:
         """
-        初始化接口缓存失效装饰器
+        初始化接口缓存失效装饰器。
 
         :param namespaces: 需要失效的缓存命名空间列表
         :param namespace_prefixes: 需要失效的缓存命名空间前缀列表
         :param evict_response_codes: 允许触发失效的业务响应码，默认为仅成功响应触发
+        :raises ValueError: ApiCacheEvict至少需要指定namespaces或namespace_prefixes
         """
         self.namespaces = tuple(dict.fromkeys(namespaces or ()))
         self.namespace_prefixes = tuple(dict.fromkeys(namespace_prefixes or ()))
@@ -465,7 +478,7 @@ class ApiCacheEvict(_ApiCacheSupport):
 
     def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         """
-        为目标异步接口函数增加缓存失效能力
+        为目标异步接口函数增加缓存失效能力。
 
         :param func: 需要在成功后触发缓存失效的异步接口函数
         :return: 包装后的异步接口函数
@@ -473,6 +486,13 @@ class ApiCacheEvict(_ApiCacheSupport):
 
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            """
+            在接口成功执行后失效相关缓存。
+
+            :param args: 传给被调用对象的位置参数
+            :param kwargs: 传给被调用对象的关键字参数
+            :return: 执行当前操作得到的结果
+            """
             result = await func(*args, **kwargs)
             _, redis = ApiAnnotationUtil.resolve_request_redis(
                 func, '当前应用未初始化Redis连接，跳过接口缓存失效', *args, **kwargs
@@ -489,10 +509,9 @@ class ApiCacheEvict(_ApiCacheSupport):
 
     async def _evict_cache(self, redis: aioredis.Redis) -> None:
         """
-        根据配置统一执行接口缓存失效
+        根据配置统一执行接口缓存失效。
 
         :param redis: Redis连接对象
-        :return: None
         """
         if self.namespaces:
             await ApiCacheManager.clear_namespaces(redis, self.namespaces)
@@ -502,7 +521,7 @@ class ApiCacheEvict(_ApiCacheSupport):
 
     def _should_evict(self, result: Any) -> bool:
         """
-        判断当前响应是否应触发缓存失效
+        判断当前响应是否应触发缓存失效。
 
         :param result: 原始接口返回结果
         :return: 是否触发缓存失效

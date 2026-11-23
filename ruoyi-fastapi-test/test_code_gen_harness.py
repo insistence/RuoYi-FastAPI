@@ -80,6 +80,11 @@ async def test_edit_table_waits_for_details_and_ignores_departing_search_form(
     """.replace('RENDER_DELAY', '500' if delayed == 'render' else '0')
 
     async def respond(route: Route) -> None:
+        """
+        按请求方法提供浏览器测试响应。
+
+        :param route: 当前请求匹配的路由
+        """
         if route.request.method == 'PUT':
             saved.update(route.request.post_data_json)
             await route.fulfill(json={'code': 200})

@@ -12,6 +12,7 @@ def test_config_doctor_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
     parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
 ) -> None:
+    """配置诊断按约定输出 JSON。"""
     completed = run_cli_command('config', 'doctor', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 

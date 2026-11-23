@@ -20,9 +20,7 @@ from .responses import PluginBatchResponse, PluginLifecycleResponse, PluginPlanR
 
 
 class PluginBatchRuntimeOperations(Protocol):
-    """
-    批量工作流所需的运行时协作能力。
-    """
+    """批量工作流所需的运行时协作能力。"""
 
     async def install_plugin(
         self,
@@ -87,7 +85,6 @@ class PluginBatchRuntimeOperations(Protocol):
         :param payload: 插件操作结果负载
         :param dry_run: 是否预演
         :param continue_on_error: 失败后是否继续
-        :return: None
         """
 
     async def execute_batch_plugin_item(
@@ -107,6 +104,10 @@ class PluginBatchRuntimeOperations(Protocol):
 class PluginBatchUseCase:
     """
     插件批量计划和批量执行 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar runtime_operations: 批量工作流所需的运行时协作能力
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(

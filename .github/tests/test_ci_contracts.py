@@ -29,7 +29,11 @@ reports = load_script('check_test_report')
 
 @pytest.fixture
 def configuration() -> dict[str, Any]:
-    """提供前端、nginx 和后端框架一致的 Compose 配置。"""
+    """
+    提供前端、nginx 和后端框架一致的 Compose 配置。
+
+    :return: 前端、nginx 和后端框架一致的 Compose 配置
+    """
     frontend = ROOT / 'ruoyi-fastapi-frontend/vue2/web'
     return {
         'services': {

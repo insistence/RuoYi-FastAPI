@@ -6,7 +6,12 @@ from plugins.core.manifest.schema import PluginManifest
 
 
 def build_discovered_plugin(*, with_frontend: bool = True) -> DiscoveredPlugin:
-    """构建能力测试使用的已发现插件。"""
+    """
+    构建能力测试使用的已发现插件。
+
+    :param with_frontend: 是否生成前端资源
+    :return: 能力测试使用的已发现插件
+    """
     manifest_data: dict[str, object] = {
         'id': 'demo',
         'name': 'Demo',

@@ -12,9 +12,7 @@ T = TypeVar('T')
 
 
 class CrudResponseModel(BaseModel):
-    """
-    操作响应模型
-    """
+    """操作响应模型。"""
 
     is_success: bool = Field(description='操作是否成功')
     message: str = Field(description='响应信息')
@@ -28,7 +26,7 @@ class CrudResponseModel(BaseModel):
     @model_validator(mode='after')
     def preserve_message_metadata(self) -> Self:
         """
-        通过现有消息字段保留词库域和复数消息元数据
+        通过现有消息字段保留词库域和复数消息元数据。
 
         :return: 保留消息元数据的操作响应模型
         """
@@ -45,9 +43,7 @@ class CrudResponseModel(BaseModel):
 
 
 class ResponseBaseModel(BaseModel):
-    """
-    响应模型
-    """
+    """响应模型。"""
 
     code: int = Field(default=HttpStatusConstant.SUCCESS, description='响应码')
     msg: str = Field(default='操作成功', description='响应信息')
@@ -61,15 +57,17 @@ class ResponseBaseModel(BaseModel):
 
 
 class DynamicResponseModel(ResponseBaseModel, Generic[T]):
-    """
-    动态响应模型
-    """
+    """动态响应模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
     def __class_getitem__(cls, item: Any) -> Any | Self:
         """
-        当使用 DynamicResponseModel[Item] 语法时，动态创建一个包含所有字段的新模型
+        当使用 DynamicResponseModel[Item] 语法时，动态创建一个包含所有字段的新模型。
+
+        :param item: 当前要处理的条目
+        :return: 绑定给定数据类型的响应模型
+        :raises TypeError: 泛型参数不是 Pydantic 模型
         """
         # 检查是否已经为该类型创建了模型
         if not hasattr(cls, '_cached_models'):
@@ -107,9 +105,7 @@ class DynamicResponseModel(ResponseBaseModel, Generic[T]):
 
 
 class PageModel(BaseModel, Generic[T]):
-    """
-    分页模型
-    """
+    """分页模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -121,14 +117,10 @@ class PageModel(BaseModel, Generic[T]):
 
 
 class PageResponseModel(PageModel, ResponseBaseModel, Generic[T]):
-    """
-    分页响应模型
-    """
+    """分页响应模型。"""
 
 
 class DataResponseModel(ResponseBaseModel, Generic[T]):
-    """
-    数据响应模型
-    """
+    """数据响应模型。"""
 
     data: T = Field(description='响应数据')

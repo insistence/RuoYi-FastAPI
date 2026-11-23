@@ -41,7 +41,14 @@ class EnablementRuntime(MaintenanceRuntime):
     """模拟启停预检结果及并发状态变化的维护运行时。"""
 
     async def set_plugin_enabled(self, plugin_id: str, *, enabled: bool, dry_run: bool) -> dict[str, Any]:
-        """返回测试指定的启停预检结果。"""
+        """
+        返回测试指定的启停预检结果。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param enabled: 是否启用该项功能
+        :param dry_run: 是否只预览操作结果
+        :return: 测试指定的启停预检结果
+        """
         owner: EnablementFactory = self.owner
         owner.checks.append((plugin_id, enabled, dry_run))
         if owner.before_check is not None:
@@ -50,23 +57,44 @@ class EnablementRuntime(MaintenanceRuntime):
 
 
 class EnablementFactory(MaintenanceFactory):
-    """记录启停运行时创建信息的测试工厂。"""
+    """
+    记录启停运行时创建信息的测试工厂。
+
+    :ivar checks: 已执行检查的记录
+    :ivar before_check: 在执行检查之前调用的回调
+    :ivar reject: 测试是否模拟拒绝当前请求
+    """
 
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
-        """初始化预检结果与回调记录。"""
+        """
+        初始化预检结果与回调记录。
+
+        :param sessions: 创建当前测试的数据库会话的工厂
+        """
         super().__init__(sessions)
         self.checks: list[tuple[str, bool, bool]] = []
         self.before_check: Callable[[], Awaitable[None]] | None = None
         self.reject = False
 
     def __call__(self, config: PluginDeploymentConfig, plugins: list[DiscoveredPlugin]) -> EnablementRuntime:
-        """根据测试配置创建启停维护运行时。"""
+        """
+        根据测试配置创建启停维护运行时。
+
+        :param config: 制品发布配置快照，支持为测试和维护实例注入独立目录
+        :param plugins: 参与当前操作的插件集合
+        :return: ``EnablementRuntime`` 实例
+        """
         return EnablementRuntime(self, plugins)
 
 
 @pytest.fixture
 def enablement_factory(deployment_sessions: async_sessionmaker[AsyncSession]) -> EnablementFactory:
-    """提供可注入预检行为的维护运行时工厂。"""
+    """
+    提供可注入预检行为的维护运行时工厂。
+
+    :param deployment_sessions: 部署流程使用的会话工厂
+    :return: 可注入预检行为的维护运行时工厂
+    """
     return EnablementFactory(deployment_sessions)
 
 
@@ -77,7 +105,15 @@ def enablement_service(
     enablement_factory: EnablementFactory,
     monkeypatch: pytest.MonkeyPatch,
 ) -> PluginArtifactEnablementService:
-    """创建使用临时数据库和测试维护运行时的启停服务。"""
+    """
+    创建使用临时数据库和测试维护运行时的启停服务。
+
+    :param deployment_sessions: 部署流程使用的会话工厂
+    :param deployment_config: 构造独立存储目录与受限发布者公钥配置
+    :param enablement_factory: 提供可注入预检行为的维护运行时工厂
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: 使用临时数据库和测试维护运行时的启停服务
+    """
     monkeypatch.setattr(sys, 'dont_write_bytecode', sys.dont_write_bytecode)
     return PluginArtifactEnablementService(
         deployment_config,
@@ -89,7 +125,14 @@ def enablement_service(
 
 @pytest.fixture
 def resource_archive(deployment_source: Path, deployment_key: Ed25519PrivateKey, tmp_path: Path) -> Path:
-    """构建带菜单与任务声明的签名测试制品。"""
+    """
+    构建带菜单与任务声明的签名测试制品。
+
+    :param deployment_source: 创建用于验证静态维护边界的临时部署目录
+    :param deployment_key: 生成发布测试使用的临时签名私钥
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 带菜单与任务声明的签名测试制品
+    """
     manifest = yaml.safe_load((deployment_source / 'plugin.yaml').read_text(encoding='utf-8'))
     manifest['backend']['jobs'] = [
         {
@@ -108,7 +151,12 @@ def resource_archive(deployment_source: Path, deployment_key: Ed25519PrivateKey,
 
 
 async def _seed_resources(sessions: async_sessionmaker[AsyncSession], *, disabled: bool = False) -> None:
-    """在临时数据库中写入启停测试需要的声明资源。"""
+    """
+    在临时数据库中写入启停测试需要的声明资源。
+
+    :param sessions: 创建当前测试的数据库会话的工厂
+    :param disabled: 是否将目标标记为停用
+    """
     status = '1' if disabled else '0'
     async with sessions() as db:
         plugin = await db.get(SysPlugin, PLUGIN_ID)
@@ -147,14 +195,26 @@ async def selected_release(
     resource_archive: Path,
     deployment_sessions: async_sessionmaker[AsyncSession],
 ) -> dict[str, Any]:
-    """准备已完成维护且已选择目标的发布记录。"""
+    """
+    准备已完成维护且已选择目标的发布记录。
+
+    :param enablement_service: 创建使用临时数据库和测试维护运行时的启停服务
+    :param resource_archive: 构建带菜单与任务声明的签名测试制品
+    :param deployment_sessions: 部署流程使用的会话工厂
+    :return: 供调用方使用的 ``selected``
+    """
     selected = await import_prepare_select(enablement_service, resource_archive)
     await _seed_resources(deployment_sessions)
     return selected
 
 
 async def _snapshot(sessions: async_sessionmaker[AsyncSession]) -> dict[str, Any]:
-    """读取发布状态、插件状态及声明资源的完整比较快照。"""
+    """
+    读取发布状态、插件状态及声明资源的完整比较快照。
+
+    :param sessions: 创建当前测试的数据库会话的工厂
+    :return: 发布状态、插件状态及声明资源的完整比较快照
+    """
     async with sessions() as db:
         plugin = await db.get(SysPlugin, PLUGIN_ID)
         release = await db.get(SysPluginRelease, PLUGIN_ID)
@@ -274,6 +334,14 @@ async def test_audit_failure_rolls_back_generation_plugin_menu_and_job_updates(
     before = await _snapshot(deployment_sessions)
 
     async def failed_audit(db: AsyncSession, payload: dict[str, Any], actor: str | None) -> None:
+        """
+        模拟审计写入失败以检验事务处理。
+
+        :param db: 当前操作使用的数据库会话
+        :param payload: 随调用传入或返回的结构化数据
+        :param actor: 发起操作的主体
+        :raises RuntimeError: 模拟审计服务不可用
+        """
         assert (await db.get(SysPlugin, PLUGIN_ID)).enabled == '1'
         assert (await db.get(SysMenu, PLUGIN_MENU_ID)).status == '1'
         assert (await db.get(SysJob, FIRST_JOB_ID)).status == '1'
@@ -324,6 +392,7 @@ async def test_precheck_race_cannot_apply_enablement_against_changed_preparation
     after_concurrent_change: dict[str, Any] = {}
 
     async def concurrent_change() -> None:
+        """在独立事务中写入并发更改。"""
         async with deployment_sessions() as db:
             if changed_field == 'installed_version':
                 await db.execute(

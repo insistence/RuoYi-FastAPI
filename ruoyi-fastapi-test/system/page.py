@@ -20,35 +20,60 @@ if TYPE_CHECKING:
 
 
 class SystemPage(BasePageTest):
-    """通过真实界面操作与真实接口结果同步系统管理测试。"""
+    """
+    通过真实界面操作与真实接口结果同步系统管理测试。
+
+    :ivar api: 发起 API 请求的客户端
+    :ivar list_path: 显示记录列表的页面路径
+    """
 
     api: APIRequestContext
     list_path: str
 
     @property
     def is_react(self) -> bool:
-        """根据本轮框架使用真实组件选择器，不改变业务断言。"""
+        """
+        根据本轮框架使用真实组件选择器，不改变业务断言。
+
+        :return: 是否根据本轮框架使用真实组件选择器
+        """
         return Config.frontend_framework == 'react'
 
     async def setup(self, harness: BrowserHarness) -> None:
-        """复用浏览器登录，并保留仅用于持久化核验和失败清理的 API 客户端。"""
+        """
+        复用浏览器登录，并保留仅用于持久化核验和失败清理的 API 客户端。
+
+        :param harness: 复用会话浏览器，每个用例独立管理上下文及失败诊断
+        """
         await super().setup(harness)
         self.api = await harness.api_context(self.token)
 
     @property
     def form(self) -> Locator:
-        """当前页面可见的查询表单。"""
+        """
+        当前页面可见的查询表单。
+
+        :return: 供调用方使用的 ``self.page.locator(f'.app-main .app-container {selector}:visible').first``
+        """
         selector = '.ant-form' if self.is_react else '.el-form'
         return self.page.locator(f'.app-main .app-container {selector}:visible').first
 
     @property
     def dialog(self) -> Locator:
-        """当前组件库的可见编辑弹窗。"""
+        """
+        当前组件库的可见编辑弹窗。
+
+        :return: 当前可见的编辑弹窗定位器
+        """
         return self.page.locator('.ant-modal:visible' if self.is_react else '.el-dialog:visible')
 
     @property
     def rows(self) -> Locator:
-        """主表格数据行，不重复计算 Element UI 固定列的镜像表格。"""
+        """
+        主表格数据行，不重复计算 Element UI 固定列的镜像表格。
+
+        :return: 主表格中的数据行定位器
+        """
         selector = (
             '.app-main .ant-table-tbody > .ant-table-row:visible'
             if self.is_react
@@ -57,17 +82,34 @@ class SystemPage(BasePageTest):
         return self.page.locator(selector)
 
     def row(self, identity: str) -> Locator:
-        """按当前测试记录的精确文本定位，避免误操作列表第一条业务数据。"""
+        """
+        按当前测试记录的精确文本定位，避免误操作列表第一条业务数据。
+
+        :param identity: 用于请求的身份信息
+        :return: 精确匹配测试记录的数据行定位器
+        """
         return self.rows.filter(has=self.page.get_by_text(identity, exact=True))
 
     @staticmethod
     def button(scope: Locator | Page, label: str) -> Locator:
-        """图标字体可能进入 Vue2 可访问名称，因此按完整文字后缀匹配。"""
+        """
+        图标字体可能进入 Vue2 可访问名称，因此按完整文字后缀匹配。
+
+        :param scope: 当前操作使用的作用域
+        :param label: 显示给用户的标签
+        :return: 按可访问名称匹配的按钮定位器
+        """
         # Ant Design 的双字按钮可能在两字之间加入空格。
         return scope.get_by_role('button', name=button_name(label))
 
     def field(self, scope: Locator, label: str) -> Locator:
-        """两种组件库都按真实表单标签定位，不依赖 Vue3 自动生成的 input id。"""
+        """
+        两种组件库都按真实表单标签定位，不依赖 Vue3 自动生成的 input id。
+
+        :param scope: 当前操作使用的作用域
+        :param label: 显示给用户的标签
+        :return: 给定表单标签对应的字段定位器
+        """
         suffix = r'(?: · 原文：简体中文)?' if self.is_react and label in {'菜单名称', '字典名称', '数据标签'} else ''
         label_selector = '.ant-form-item-label' if self.is_react else '.el-form-item__label'
         field_selector = '.ant-form-item' if self.is_react else '.el-form-item'
@@ -77,11 +119,23 @@ class SystemPage(BasePageTest):
         return scope.locator(f'{field_selector}:visible').filter(has=labels)
 
     def input(self, scope: Locator, label: str) -> Locator:
-        """返回字段内的文本、密码或数字输入框。"""
+        """
+        返回字段内的文本、密码或数字输入框。
+
+        :param scope: 当前操作使用的作用域
+        :param label: 显示给用户的标签
+        :return: 字段内的文本、密码或数字输入框
+        """
         return self.field(scope, label).locator('input:not([type=radio]):not([type=checkbox]), textarea').first
 
     async def open_translation_input(self, scope: Locator, source_label: str) -> Locator:
-        """展开当前表单的译名区域，按可访问名称定位英文输入框。"""
+        """
+        展开当前表单的译名区域，按可访问名称定位英文输入框。
+
+        :param scope: 当前操作使用的作用域
+        :param source_label: 在界面中显示的数据来源标签
+        :return: 展开后的英文译名输入框定位器
+        """
         fields = scope.locator('.translation-fields')
         toggle = fields.locator('button[aria-expanded]')
         if await toggle.get_attribute('aria-expanded') == 'false':
@@ -94,11 +148,23 @@ class SystemPage(BasePageTest):
         return fields.get_by_role('textbox', name=label, exact=True)
 
     async def fill(self, scope: Locator, label: str, value: str) -> None:
-        """填写真实输入控件，触发框架正常的输入事件。"""
+        """
+        填写真实输入控件，触发框架正常的输入事件。
+
+        :param scope: 当前操作使用的作用域
+        :param label: 显示给用户的标签
+        :param value: 待处理的输入值
+        """
         await self.input(scope, label).fill(value)
 
     async def choose(self, scope: Locator, label: str, option: str) -> None:
-        """选择两种 Element 组件库中的下拉选项。"""
+        """
+        选择两种 Element 组件库中的下拉选项。
+
+        :param scope: 当前操作使用的作用域
+        :param label: 显示给用户的标签
+        :param option: 当前选择或待选择的选项
+        """
         await self.field(scope, label).locator('.ant-select' if self.is_react else '.el-select').click()
         selector = (
             '.ant-select-dropdown:visible .ant-select-item-option'
@@ -109,7 +175,13 @@ class SystemPage(BasePageTest):
         await choices.click()
 
     async def radio(self, scope: Locator, label: str, option: str) -> None:
-        """选择并核对单选项。"""
+        """
+        选择并核对单选项。
+
+        :param scope: 当前操作使用的作用域
+        :param label: 显示给用户的标签
+        :param option: 当前选择或待选择的选项
+        """
         choice = (
             self.field(scope, label)
             .locator('.ant-radio-wrapper' if self.is_react else '.el-radio')
@@ -119,7 +191,13 @@ class SystemPage(BasePageTest):
         await expect(choice.locator('input[type=radio]')).to_be_checked()
 
     async def choose_department(self, scope: Locator, label: str, department: str) -> None:
-        """覆盖 Element、vue-treeselect 和 Ant Design 的真实树节点。"""
+        """
+        覆盖 Element、vue-treeselect 和 Ant Design 的真实树节点。
+
+        :param scope: 当前操作使用的作用域
+        :param label: 显示给用户的标签
+        :param department: 测试操作对应的部门
+        """
         if self.is_react:
             await self.field(scope, label).locator('.ant-select').click()
             await (
@@ -137,19 +215,38 @@ class SystemPage(BasePageTest):
 
     @staticmethod
     def matches(response: Response, path: str, method: str) -> bool:
-        """同时匹配请求方法和 API 路径，兼容两套开发代理前缀。"""
+        """
+        同时匹配请求方法和 API 路径，兼容两套开发代理前缀。
+
+        :param response: 当前调用产生的响应
+        :param path: 要读取或处理的路径
+        :param method: 当前请求的 HTTP 方法
+        :return: 是否同时匹配请求方法和 API 路径
+        """
         return response.request.method == method and urlsplit(response.url).path.rstrip('/').endswith(path)
 
     @staticmethod
     async def payload(response: Response) -> dict:
-        """HTTP 与应用状态都必须成功，不让 200 包装的业务错误通过测试。"""
+        """
+        HTTP 与应用状态都必须成功，不让 200 包装的业务错误通过测试。
+
+        :param response: 当前调用产生的响应
+        :return: 随调用传入或返回的结构化数据
+        """
         assert response.ok, f'{response.request.method} {response.url}: HTTP {response.status}'
         payload = await response.json()
         assert payload.get('code') == HTTPStatus.OK, f'{response.url}: {payload}'
         return payload
 
     async def action(self, trigger: Callable[[], Awaitable[None]], path: str, method: str = 'GET') -> dict:
-        """先监听目标响应，再执行点击，避免固定睡眠和遗漏快速响应。"""
+        """
+        先监听目标响应，再执行点击，避免固定睡眠和遗漏快速响应。
+
+        :param trigger: 计算任务下次执行时间的触发器
+        :param path: 要读取或处理的路径
+        :param method: 当前请求的 HTTP 方法
+        :return: 本次点击触发的接口响应
+        """
         async with self.page.expect_response(lambda response: self.matches(response, path, method)) as response_info:
             await trigger()
         return await self.payload(await response_info.value)
@@ -164,14 +261,25 @@ class SystemPage(BasePageTest):
         await expect(self.page.locator(f'.app-main {table}:visible').first).to_be_visible()
 
     async def open(self, route: str, list_path: str) -> dict:
-        """打开真实管理页面并核对首个列表响应。"""
+        """
+        打开真实管理页面并核对首个列表响应。
+
+        :param route: 当前请求匹配的路由
+        :param list_path: 显示记录列表的页面路径
+        :return: 随调用传入或返回的结构化数据
+        """
         self.list_path = list_path
         payload = await self.action(lambda: self.page.goto(Config.frontend_url + route), list_path)
         await self.rendered()
         return payload
 
     async def search(self, fields: dict[str, str] | None = None) -> dict:
-        """按界面查询并返回真实响应。"""
+        """
+        按界面查询并返回真实响应。
+
+        :param fields: 当前场景涉及的字段
+        :return: 真实响应
+        """
         await self.rendered()
         for label, value in (fields or {}).items():
             await self.fill(self.form, label, value)
@@ -180,13 +288,21 @@ class SystemPage(BasePageTest):
         return payload
 
     async def reset(self) -> dict:
-        """通过重置按钮恢复查询条件。"""
+        """
+        通过重置按钮恢复查询条件。
+
+        :return: 随调用传入或返回的结构化数据
+        """
         payload = await self.action(self.button(self.form, '重置').click, self.list_path)
         await self.rendered()
         return payload
 
     async def add(self) -> Locator:
-        """打开新增弹窗。"""
+        """
+        打开新增弹窗。
+
+        :return: 测试正在操作的对话框
+        """
         await self.button(self.page, '新增').first.click()
         await expect(self.dialog).to_be_visible()
         return self.dialog
@@ -197,13 +313,26 @@ class SystemPage(BasePageTest):
         await expect(self.dialog).to_have_count(0)
 
     async def edit(self, identity: str, resource: str, record_id: int) -> Locator:
-        """从目标记录打开编辑弹窗，并等待详情加载。"""
+        """
+        从目标记录打开编辑弹窗，并等待详情加载。
+
+        :param identity: 用于请求的身份信息
+        :param resource: 当前授权或管理的资源
+        :param record_id: 要查询或修改的记录标识
+        :return: 测试正在操作的对话框
+        """
         await self.action(lambda: self.row_action(identity, '修改'), f'{resource}/{record_id}')
         await expect(self.dialog).to_be_visible()
         return self.dialog
 
     async def save(self, resource: str, method: str) -> dict:
-        """保存表单，要求写请求、列表刷新和弹窗关闭全部完成。"""
+        """
+        保存表单，要求写请求、列表刷新和弹窗关闭全部完成。
+
+        :param resource: 当前授权或管理的资源
+        :param method: 当前请求的 HTTP 方法
+        :return: 随调用传入或返回的结构化数据
+        """
         dialog = self.dialog
         async with self.page.expect_response(lambda response: self.matches(response, self.list_path, 'GET')) as listed:
             await self.action(self.button(dialog, '确定').click, resource, method)
@@ -213,14 +342,26 @@ class SystemPage(BasePageTest):
         return payload
 
     async def delete(self, identity: str, resource: str, record_id: int) -> dict:
-        """删除本用例创建的目标行，并核对其消失。"""
+        """
+        删除本用例创建的目标行，并核对其消失。
+
+        :param identity: 用于请求的身份信息
+        :param resource: 当前授权或管理的资源
+        :param record_id: 要查询或修改的记录标识
+        :return: 随调用传入或返回的结构化数据
+        """
         await self.row_action(identity, '删除')
         payload = await self.confirm_refresh(f'{resource}/{record_id}')
         await expect(self.row(identity)).to_have_count(0)
         return payload
 
     async def row_action(self, identity: str, action: str) -> None:
-        """兼容 Vue2 文本/更多菜单和 Vue3 用户角色页的图标按钮。"""
+        """
+        兼容 Vue2 文本/更多菜单和 Vue3 用户角色页的图标按钮。
+
+        :param identity: 用于请求的身份信息
+        :param action: 当前要记录或执行的动作
+        """
         row = self.row(identity)
         named = self.button(row, action)
         if await named.count():
@@ -244,7 +385,13 @@ class SystemPage(BasePageTest):
         await row.get_by_role('button').nth(positions[action]).click()
 
     async def toggle_status(self, identity: str, resource: str, record_id: int) -> None:
-        """停用再启用，并逐次重读保存状态，不依赖成功 toast。"""
+        """
+        停用再启用，并逐次重读保存状态，不依赖成功 toast。
+
+        :param identity: 用于请求的身份信息
+        :param resource: 当前授权或管理的资源
+        :param record_id: 要查询或修改的记录标识
+        """
         for status in ('1', '0'):
             await self.row(identity).locator('.ant-switch' if self.is_react else '.el-switch').click()
             confirmation = self.page.locator(
@@ -259,7 +406,13 @@ class SystemPage(BasePageTest):
             await self.persisted(resource, record_id, {'status': status})
 
     async def confirm_refresh(self, path: str, method: str = 'DELETE') -> dict:
-        """确认危险操作，并等待操作及其列表刷新均成功。"""
+        """
+        确认危险操作，并等待操作及其列表刷新均成功。
+
+        :param path: 要读取或处理的路径
+        :param method: 当前请求的 HTTP 方法
+        :return: 随调用传入或返回的结构化数据
+        """
         confirmation = self.page.locator('.ant-modal-confirm:visible' if self.is_react else '.el-message-box:visible')
         await expect(confirmation).to_be_visible()
         async with self.page.expect_response(lambda response: self.matches(response, self.list_path, 'GET')) as listed:
@@ -270,7 +423,14 @@ class SystemPage(BasePageTest):
         return payload
 
     async def persisted(self, resource: str, record_id: int, expected: dict) -> dict:
-        """从真实后端重读已保存数据，防止仅验证成功提示或前端本地状态。"""
+        """
+        从真实后端重读已保存数据，防止仅验证成功提示或前端本地状态。
+
+        :param resource: 当前授权或管理的资源
+        :param record_id: 要查询或修改的记录标识
+        :param expected: 断言使用的预期结果
+        :return: 当前操作使用的记录
+        """
         response = await self.api.get(f'{resource}/{record_id}')
         assert response.ok
         payload = await response.json()
@@ -282,20 +442,39 @@ class SystemPage(BasePageTest):
 
     @staticmethod
     def records(payload: dict) -> list[dict]:
-        """兼容分页 rows 与树形列表 data 的真实响应格式。"""
+        """
+        兼容分页 rows 与树形列表 data 的真实响应格式。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 需要处理的各行记录
+        """
         rows = payload.get('rows', payload.get('data', []))
         assert isinstance(rows, list), payload
         return rows
 
     @classmethod
     def record(cls, payload: dict, field: str, value: str) -> dict:
-        """查询必须返回且仅返回一个目标记录。"""
+        """
+        查询必须返回且仅返回一个目标记录。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :param field: 需要读取或修改的字段
+        :param value: 待处理的输入值
+        :return: 必须返回且仅返回一个目标记录
+        """
         records = [row for row in cls.records(payload) if row[field] == value]
         assert len(records) == 1, f'未找到唯一的 {field}={value!r}: {payload}'
         return records[0]
 
     async def cleanup(self, resource: str, field: str, values: Sequence[str], id_key: str) -> None:
-        """失败时只清理精确匹配本用例唯一标识的数据，不触碰预置记录。"""
+        """
+        失败时只清理精确匹配本用例唯一标识的数据，不触碰预置记录。
+
+        :param resource: 当前授权或管理的资源
+        :param field: 需要读取或修改的字段
+        :param values: 当前处理的值集合
+        :param id_key: 从响应中读取记录标识的键
+        """
         for value in values:
             response = await self.api.get(f'{resource}/list', params={field: value, 'pageSize': 1000, 'pageNum': 1})
             assert response.ok

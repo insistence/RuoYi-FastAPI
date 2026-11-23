@@ -21,6 +21,11 @@ EXPECTED_VISIBLE_READ_USER_COUNT = 2
 
 
 async def _create_notice_tables() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    """
+    为通知测试创建数据库表及会话。
+
+    :return: 依次为 ``engine``、``session_maker`` 的元组
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
@@ -50,6 +55,13 @@ async def _create_notice_tables() -> tuple[AsyncEngine, async_sessionmaker[Async
 
 
 def _notice(notice_id: int, status: str = '0') -> SysNotice:
+    """
+    创建测试使用的 ``SysNotice`` 实例。
+
+    :param notice_id: 公告ID
+    :param status: 操作或记录所处的状态
+    :return: 测试使用的 ``SysNotice`` 实例
+    """
     return SysNotice(
         notice_id=notice_id,
         notice_title=f'公告{notice_id}',
@@ -63,6 +75,7 @@ def _notice(notice_id: int, status: str = '0') -> SysNotice:
 
 @pytest.mark.asyncio
 async def test_get_notice_top_returns_latest_normal_notices_with_read_status() -> None:
+    """置顶公告返回最新正常公告及阅读状态。"""
     engine, session_maker = await _create_notice_tables()
     try:
         async with session_maker() as session:
@@ -83,6 +96,7 @@ async def test_get_notice_top_returns_latest_normal_notices_with_read_status() -
 
 @pytest.mark.asyncio
 async def test_mark_notice_read_is_idempotent_for_single_and_batch_requests() -> None:
+    """单个及批量标记已读均支持重复请求。"""
     engine, session_maker = await _create_notice_tables()
     try:
         async with session_maker() as session:
@@ -101,6 +115,7 @@ async def test_mark_notice_read_is_idempotent_for_single_and_batch_requests() ->
 
 @pytest.mark.asyncio
 async def test_get_notice_read_user_list_supports_search_and_pagination() -> None:
+    """公告阅读用户列表支持搜索和分页。"""
     engine, session_maker = await _create_notice_tables()
     try:
         async with session_maker() as session:
@@ -163,6 +178,7 @@ async def test_get_notice_read_user_list_supports_search_and_pagination() -> Non
 
 @pytest.mark.asyncio
 async def test_delete_notice_removes_read_records_in_same_transaction() -> None:
+    """删除公告时在同一事务清理阅读记录。"""
     engine, session_maker = await _create_notice_tables()
     try:
         async with session_maker() as session:
@@ -182,6 +198,7 @@ async def test_delete_notice_removes_read_records_in_same_transaction() -> None:
 
 
 def test_parse_notice_ids_deduplicates_values_and_rejects_invalid_input() -> None:
+    """解析公告标识时去重并拒绝无效输入。"""
     assert NoticeService.parse_notice_ids('1, 2,1,,3') == [1, 2, 3]
 
     with pytest.raises(ServiceException) as exc_info:

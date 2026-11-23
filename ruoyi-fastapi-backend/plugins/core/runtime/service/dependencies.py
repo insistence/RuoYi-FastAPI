@@ -30,6 +30,9 @@ PLUGIN_DEPENDENCY_INSTALL_TIMEOUT_SECONDS = 600
 class PluginDependencyUseCase:
     """
     插件 Python/npm 依赖检查和安装 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(self, dependencies: PluginRuntimeDependencies, context: PluginRuntimeContextService) -> None:
@@ -240,6 +243,7 @@ class PluginDependencyUseCase:
         :param confirmed: 是否已显式确认
         :param output_callback: 依赖安装实时输出回调
         :return: 插件依赖安装负载
+        :raises Exception: 底层操作失败时向调用方传播异常
         """
         discovered_plugin = discovered_plugin or self._get_discovered_plugin(plugin_id)
         install_plan = PluginDependencyInstallPlanner(
@@ -346,6 +350,7 @@ class PluginDependencyUseCase:
         :param confirmed: 是否已显式确认
         :param output_callback: 依赖安装实时输出回调
         :return: 插件依赖安装负载
+        :raises Exception: 底层操作失败时向调用方传播异常
         """
         discovered_plugin = discovered_plugin or self._get_discovered_plugin(plugin_id)
         install_plan = PluginDependencyInstallPlanner(
@@ -447,7 +452,6 @@ class PluginDependencyUseCase:
         :param total: 安装项总数
         :param requirement: 依赖声明
         :param status: 当前状态
-        :return: None
         """
         if output_callback is not None:
             output_callback('status', f'[{index}/{total}] {status}：{requirement}\n')

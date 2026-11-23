@@ -19,9 +19,9 @@ class DashboardPanelSnapshot:
     """
     TUI 首页单个面板快照。
 
-    :param title: 面板标题
-    :param status: 面板状态
-    :param lines: 面板正文文本行
+    :ivar title: 面板标题
+    :ivar status: 面板状态
+    :ivar lines: 面板正文文本行
     """
 
     title: str
@@ -34,10 +34,10 @@ class DashboardMetricSnapshot:
     """
     TUI 首页单个指标卡快照。
 
-    :param title: 指标标题
-    :param value: 指标主值
-    :param status: 指标状态
-    :param hint: 指标补充说明
+    :ivar title: 指标标题
+    :ivar value: 指标主值
+    :ivar status: 指标状态
+    :ivar hint: 指标补充说明
     """
 
     title: str
@@ -51,8 +51,9 @@ class DashboardSnapshot:
     """
     TUI 首页聚合快照。
 
-    :param env: 当前运行环境
-    :param panels: 面板列表
+    :ivar env: 当前运行环境
+    :ivar panels: 面板列表
+    :ivar metrics: 当前运行状态的指标
     """
 
     env: str
@@ -65,13 +66,13 @@ class DashboardSourcePayloads:
     """
     TUI 首页聚合数据源快照。
 
-    :param app_env_payload: 应用环境结果
-    :param app_routes_payload: 应用路由结果
-    :param doctor_payload: 应用检查结果
-    :param database_payload: 数据库版本结果
-    :param cache_payload: 缓存统计结果
-    :param deps_payload: 依赖检查结果
-    :param server_payload: 服务器摘要结果
+    :ivar app_env_payload: 应用环境结果
+    :ivar app_routes_payload: 应用路由结果
+    :ivar doctor_payload: 应用检查结果
+    :ivar database_payload: 数据库版本结果
+    :ivar cache_payload: 缓存统计结果
+    :ivar deps_payload: 依赖检查结果
+    :ivar server_payload: 服务器摘要结果
     """
 
     app_env_payload: dict[str, Any] | None
@@ -88,10 +89,17 @@ class DashboardSnapshotCollector:
     TUI 首页聚合数据采集器。
 
     该对象负责从多路 CLI 命令收集 dashboard 所需原始结果，
-    让 `DashboardAdapter` 保持首页装配职责，而不继续承载所有采集细节。
+    让 ``DashboardAdapter`` 保持首页装配职责，而不继续承载所有采集细节。
+
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(self, query_service: TuiRuntimeQueryService | None = None) -> None:
+        """
+        保存仪表盘使用的运行时查询服务。
+
+        :param query_service: TUI 进程内查询服务
+        """
         self.query_service = query_service or TUI_RUNTIME_QUERIES
 
     async def collect(self, env: str) -> DashboardSourcePayloads:
@@ -294,7 +302,7 @@ class DashboardPanelCompressor:
 
     该对象负责将原始多行面板压缩为适合首页展示的统一密度摘要卡。
 
-    :param formatting: 首页仪表盘格式化支持对象
+    :ivar formatting: 首页仪表盘格式化支持对象
     """
 
     def __init__(self, formatting: DashboardFormattingSupport) -> None:
@@ -302,7 +310,6 @@ class DashboardPanelCompressor:
         初始化首页面板压缩器。
 
         :param formatting: 首页仪表盘格式化支持对象
-        :return: None
         """
         self.formatting = formatting
 
@@ -360,7 +367,7 @@ class DashboardPanelBuilder:
     该对象负责根据各个 CLI 结果负载构建首页展示面板，并统一风险热区与
     建议入口逻辑。
 
-    :param formatting: 首页仪表盘格式化支持对象
+    :ivar formatting: 首页仪表盘格式化支持对象
     """
 
     def __init__(self, formatting: DashboardFormattingSupport) -> None:
@@ -368,7 +375,6 @@ class DashboardPanelBuilder:
         初始化首页面板构建器。
 
         :param formatting: 首页仪表盘格式化支持对象
-        :return: None
         """
         self.formatting = formatting
 
@@ -382,8 +388,8 @@ class DashboardPanelBuilder:
         构建应用环境总览面板。
 
         :param env: 当前运行环境
-        :param env_payload: `app env` JSON 负载
-        :param routes_payload: `app routes` JSON 负载
+        :param env_payload: ``app env`` JSON 负载
+        :param routes_payload: ``app routes`` JSON 负载
         :return: 面板快照
         """
         runtime = env_payload.get('runtime') if isinstance(env_payload, dict) else None
@@ -420,7 +426,7 @@ class DashboardPanelBuilder:
         """
         构建健康检查面板。
 
-        :param payload: `app doctor` JSON 负载
+        :param payload: ``app doctor`` JSON 负载
         :return: 面板快照
         """
         if not isinstance(payload, dict):
@@ -602,7 +608,7 @@ class DashboardPanelBuilder:
         """
         构建数据库状态面板。
 
-        :param payload: `db current` JSON 负载
+        :param payload: ``db current`` JSON 负载
         :return: 面板快照
         """
         current_revision = payload.get('currentRevision', '-') if isinstance(payload, dict) else '-'
@@ -633,7 +639,7 @@ class DashboardPanelBuilder:
         """
         构建缓存状态面板。
 
-        :param payload: `cache stats` JSON 负载
+        :param payload: ``cache stats`` JSON 负载
         :return: 面板快照
         """
         if not isinstance(payload, dict):
@@ -667,7 +673,7 @@ class DashboardPanelBuilder:
         """
         构建首页依赖版本摘要面板。
 
-        :param payload: `ops deps` JSON 负载
+        :param payload: ``ops deps`` JSON 负载
         :return: 面板快照
         """
         if not isinstance(payload, dict):
@@ -706,7 +712,7 @@ class DashboardPanelBuilder:
         """
         构建首页服务器概况面板。
 
-        :param payload: `ops server-info` JSON 负载
+        :param payload: ``ops server-info`` JSON 负载
         :return: 面板快照
         """
         server = payload.get('server') if isinstance(payload, dict) else None
@@ -832,7 +838,7 @@ class DashboardMetricBuilder:
 
     该对象负责根据健康检查、数据库和缓存状态构建首页驾驶舱指标卡。
 
-    :param formatting: 首页仪表盘格式化支持对象
+    :ivar formatting: 首页仪表盘格式化支持对象
     """
 
     def __init__(self, formatting: DashboardFormattingSupport) -> None:
@@ -840,7 +846,6 @@ class DashboardMetricBuilder:
         初始化首页指标卡构建器。
 
         :param formatting: 首页仪表盘格式化支持对象
-        :return: None
         """
         self.formatting = formatting
 
@@ -920,6 +925,12 @@ class DashboardAdapter:
 
     该适配器负责采集应用、健康检查、数据库、缓存与运维只读快照，
     并委托面板构建器、指标构建器和压缩器组装首页结果。
+
+    :ivar formatting: 首页仪表盘格式化支持对象
+    :ivar panel_builder: 首页面板构建器
+    :ivar metric_builder: 首页指标卡构建器
+    :ivar panel_compressor: 首页面板压缩器
+    :ivar snapshot_collector: 首页聚合数据采集器
     """
 
     def __init__(
@@ -938,7 +949,6 @@ class DashboardAdapter:
         :param metric_builder: 首页指标卡构建器
         :param panel_compressor: 首页面板压缩器
         :param snapshot_collector: 首页聚合数据采集器
-        :return: None
         """
         self.formatting = formatting or DashboardFormattingSupport()
         self.panel_builder = panel_builder or DashboardPanelBuilder(self.formatting)

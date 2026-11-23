@@ -33,6 +33,7 @@ TWICE_UPDATED_CONFIG_VERSION = 3
     ],
 )
 async def test_invalid_configuration_is_rejected_before_save(runtime: Runtime, change: dict) -> None:
+    """保存前拒绝无效配置。"""
     async with runtime.sessions() as db:
         with pytest.raises((ServiceException, ValidationError)):
             await JobService.add_job_services(db, job_info(**change))
@@ -45,6 +46,7 @@ async def test_invalid_configuration_is_rejected_before_save(runtime: Runtime, c
 async def test_registration_error_is_saved_and_can_be_retried(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """记录注册失败的原因并允许重试。"""
     original_add = runtime.scheduler.add_job
     monkeypatch.setattr(
         runtime.scheduler, 'add_job', lambda **_kwargs: (_ for _ in ()).throw(RuntimeError('store offline'))
@@ -70,6 +72,7 @@ async def test_registration_error_is_saved_and_can_be_retried(
 async def test_edit_is_targeted_and_invalid_edit_preserves_both_states(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """定向编辑任务，编辑无效时保留两端状态。"""
     job = await runtime.save()
     await runtime.save(job_info(jobId=43, jobName='unrelated'))
     await SchedulerManager._sync_jobs_from_database()
@@ -95,16 +98,18 @@ async def test_edit_is_targeted_and_invalid_edit_preserves_both_states(
 async def test_one_registration_failure_does_not_block_other_jobs(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """单个任务注册失败不阻塞其他任务。"""
     await runtime.save()
     await runtime.save(job_info(jobId=43, jobName='second'))
     add = runtime.scheduler.add_job
 
     def fail_first(**kwargs) -> object:
         """
-        模拟一个任务的存储故障，其余任务正常注册
+        模拟一个任务的存储故障，其余任务正常注册。
 
         :param kwargs: 关键字参数
         :return: 注册后的任务对象
+        :raises RuntimeError: 模拟第一次调用失败
         """
         if kwargs['id'] == '42':
             raise RuntimeError('first failed')
@@ -120,6 +125,7 @@ async def test_one_registration_failure_does_not_block_other_jobs(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('status', ['0', '1'])
 async def test_manual_request_survives_sync_without_changing_cron(runtime: Runtime, status: str) -> None:
+    """手动请求在同步后保留且不修改 cron。"""
     job = await runtime.save(job_info(status=status))
     await SchedulerManager._sync_jobs_from_database()
     original = runtime.scheduler.get_job('42')
@@ -142,6 +148,7 @@ async def test_manual_request_survives_sync_without_changing_cron(runtime: Runti
 @pytest.mark.asyncio
 @pytest.mark.parametrize('limit', [1, 2])
 async def test_cron_and_manual_share_the_same_concurrency_limit(runtime: Runtime, limit: int) -> None:
+    """定时与手动执行共用并发限制。"""
     job = await runtime.save(job_info(invokeTarget='module_task.scheduler_test.runtime_held', maxInstances=limit))
     await SchedulerManager._sync_jobs_from_database()
     runtime.scheduler.modify_job('42', next_run_time=TimezoneUtil.utc_now())
@@ -166,6 +173,7 @@ async def test_cron_and_manual_share_the_same_concurrency_limit(runtime: Runtime
 async def test_lost_notification_is_recovered_and_duplicate_wakeup_does_not_repeat(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """恢复遗漏通知且重复唤醒不会重复执行。"""
     job = await runtime.save()
     monkeypatch.setattr(SchedulerManager, '_is_leader', False)
     SchedulerManager._redis.publish.side_effect = RuntimeError('offline')
@@ -185,6 +193,7 @@ async def test_lost_notification_is_recovered_and_duplicate_wakeup_does_not_repe
 
 @pytest.mark.asyncio
 async def test_delete_cancels_unstarted_requests_and_keeps_queryable_tombstone(runtime: Runtime) -> None:
+    """删除任务时取消未启动请求并保留可查询的删除记录。"""
     job = await runtime.save()
     async with runtime.sessions() as db:
         submitted = await JobService.execute_job_once_services(db, job)
@@ -209,6 +218,7 @@ async def test_delete_cancels_unstarted_requests_and_keeps_queryable_tombstone(r
 
 @pytest.mark.asyncio
 async def test_expired_started_request_is_not_replayed_but_unstarted_request_is_reclaimed(runtime: Runtime) -> None:
+    """过期的已启动请求不重放，未启动请求可回收。"""
     job = await runtime.save()
     async with runtime.sessions() as db:
         first = await JobRuntimeDao.create_request(db, job, None)
@@ -245,6 +255,7 @@ async def test_overlapping_edits_and_late_notifications_apply_latest_version(
     runtime: Runtime,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """并发编辑和迟到通知使用最新版本。"""
     await runtime.save()
     await SchedulerManager._sync_jobs_from_database()
     committed_ids = []
@@ -252,6 +263,13 @@ async def test_overlapping_edits_and_late_notifications_apply_latest_version(
     sync = SchedulerManager.request_scheduler_sync
 
     async def delayed_notification(job_ids: set[int], *, immediate: bool) -> dict:
+        """
+        在指定版本提交后推迟调度通知。
+
+        :param job_ids: 需要删除的定时任务ID
+        :param immediate: 是否立即触发操作
+        :return: 延迟通知后的任务同步结果
+        """
         committed_ids.append(job_ids)
         if len(committed_ids) == UPDATED_CONFIG_VERSION:
             both_committed.set()
@@ -259,6 +277,12 @@ async def test_overlapping_edits_and_late_notifications_apply_latest_version(
         return await sync(job_ids, immediate=immediate)
 
     async def edit(change: dict) -> dict:
+        """
+        在测试会话中修改调度记录。
+
+        :param change: 本次测试要施加的变更
+        :return: 执行当前操作得到的结果
+        """
         async with runtime.sessions() as db:
             return (await JobService.edit_job_services(db, EditJobModel(jobId=42, **change))).result
 
@@ -279,6 +303,7 @@ async def test_deleted_configuration_remains_retryable_when_removal_fails(
     runtime: Runtime,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """移除失败后仍可重试清理已删除的配置。"""
     await runtime.save()
     await SchedulerManager._sync_jobs_from_database()
     remove = runtime.scheduler.remove_job

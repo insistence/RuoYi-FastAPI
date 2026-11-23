@@ -48,13 +48,11 @@ _DatabaseEngine = TypeVar('_DatabaseEngine', Engine, AsyncEngine)
 
 
 class _QuietSqlLogFilter(logging.Filter):
-    """
-    按连接日志标记过滤内部SQL，保留警告和错误
-    """
+    """按连接日志标记过滤内部SQL，保留警告和错误。"""
 
     def filter(self, record: logging.LogRecord) -> bool:
         """
-        判断是否保留当前SQLAlchemy日志
+        判断是否保留当前SQLAlchemy日志。
 
         :param record: 待输出的日志记录
         :return: 是否保留日志
@@ -71,7 +69,7 @@ _QUIET_SQL_LOG_FILTER = _QuietSqlLogFilter()
 
 def quiet_sql_engine(engine: _DatabaseEngine) -> _DatabaseEngine:
     """
-    创建复用原连接池、只过滤自身常规SQL日志的引擎视图
+    创建复用原连接池、只过滤自身常规SQL日志的引擎视图。
 
     :param engine: 注册中心管理的同步或异步引擎
     :return: 带有内部SQL日志标记的引擎视图，由原引擎统一管理连接池
@@ -87,7 +85,7 @@ def quiet_sql_engine(engine: _DatabaseEngine) -> _DatabaseEngine:
 
 def _error_details(exc: BaseException) -> tuple[str, int | None]:
     """
-    提取不含连接凭据和SQL参数的安全错误摘要
+    提取不含连接凭据和SQL参数的安全错误摘要。
 
     :param exc: 原始异常或数据源异常
     :return: 异常类型和数字错误码
@@ -101,7 +99,7 @@ def _error_details(exc: BaseException) -> tuple[str, int | None]:
 
 def _error_log_suffix(error_type: str, error_code: int | None) -> str:
     """
-    构建数据源错误日志摘要
+    构建数据源错误日志摘要。
 
     :param error_type: 异常类型
     :param error_code: 数字错误码
@@ -114,7 +112,13 @@ def _error_log_suffix(error_type: str, error_code: int | None) -> str:
 @dataclass(frozen=True, slots=True)
 class DatabaseDriverAdapter:
     """
-    数据库驱动适配器
+    数据库驱动适配器。
+
+    :ivar db_type: 数据库类型
+    :ivar async_driver: 异步数据库连接使用的驱动
+    :ivar sync_driver: 同步数据库连接使用的驱动
+    :ivar async_connect_timeout_key: 异步驱动接受的连接超时选项
+    :ivar sync_connect_timeout_key: 同步驱动接受的连接超时选项
     """
 
     db_type: str
@@ -125,7 +129,7 @@ class DatabaseDriverAdapter:
 
     def build_url(self, config: DataSourceSettings, *, sync: bool) -> URL:
         """
-        根据数据源配置构建SQLAlchemy数据库连接URL
+        根据数据源配置构建SQLAlchemy数据库连接URL。
 
         :param config: 数据源配置
         :param sync: 是否构建同步数据库连接URL
@@ -142,7 +146,7 @@ class DatabaseDriverAdapter:
 
     def build_connect_args(self, config: DataSourceSettings, *, sync: bool) -> dict[str, Any]:
         """
-        构建数据库驱动连接参数
+        构建数据库驱动连接参数。
 
         :param config: 数据源配置
         :param sync: 是否构建同步数据库连接参数
@@ -183,7 +187,7 @@ _DATABASE_DRIVER_ADAPTERS = {
 
 def _secret_value(value: SecretStr | str) -> str:
     """
-    获取密码配置的原始值
+    获取密码配置的原始值。
 
     :param value: 密码配置
     :return: 密码原始值
@@ -193,7 +197,7 @@ def _secret_value(value: SecretStr | str) -> str:
 
 def _database_source(config: DataBaseSettings | DataSourceSettings) -> DataSourceSettings:
     """
-    获取指定配置对应的数据源配置
+    获取指定配置对应的数据源配置。
 
     :param config: 数据库集合配置或单个数据源配置
     :return: 单个数据源配置
@@ -203,10 +207,11 @@ def _database_source(config: DataBaseSettings | DataSourceSettings) -> DataSourc
 
 def _driver_adapter(config: DataSourceSettings) -> DatabaseDriverAdapter:
     """
-    获取数据库驱动适配器
+    获取数据库驱动适配器。
 
     :param config: 数据源配置
     :return: 数据库驱动适配器
+    :raises ValueError: 没有支持当前数据库类型的驱动适配器
     """
     adapter = _DATABASE_DRIVER_ADAPTERS.get(config.db_type)
     if adapter is None:
@@ -216,7 +221,7 @@ def _driver_adapter(config: DataSourceSettings) -> DatabaseDriverAdapter:
 
 def _build_url(config: DataSourceSettings, *, sync: bool) -> URL:
     """
-    使用对应的数据库驱动适配器构建连接URL
+    使用对应的数据库驱动适配器构建连接URL。
 
     :param config: 数据源配置
     :param sync: 是否构建同步数据库连接URL
@@ -227,7 +232,7 @@ def _build_url(config: DataSourceSettings, *, sync: bool) -> URL:
 
 def build_async_sqlalchemy_database_url(config: DataBaseSettings | DataSourceSettings | None = None) -> URL:
     """
-    构建异步SQLAlchemy数据库连接URL
+    构建异步SQLAlchemy数据库连接URL。
 
     :param config: 数据库集合配置或单个数据源配置
     :return: 异步SQLAlchemy数据库连接URL
@@ -237,7 +242,7 @@ def build_async_sqlalchemy_database_url(config: DataBaseSettings | DataSourceSet
 
 def build_sync_sqlalchemy_database_url(config: DataBaseSettings | DataSourceSettings | None = None) -> URL:
     """
-    构建同步SQLAlchemy数据库连接URL
+    构建同步SQLAlchemy数据库连接URL。
 
     :param config: 数据库集合配置或单个数据源配置
     :return: 同步SQLAlchemy数据库连接URL
@@ -247,7 +252,7 @@ def build_sync_sqlalchemy_database_url(config: DataBaseSettings | DataSourceSett
 
 def _engine_options(config: DataSourceSettings, echo: bool | None = None) -> dict[str, Any]:
     """
-    构建数据库引擎连接池参数
+    构建数据库引擎连接池参数。
 
     :param config: 数据源配置
     :param echo: 是否输出SQLAlchemy SQL日志
@@ -268,7 +273,7 @@ def create_async_db_engine(
     echo: bool | None = None, config: DataBaseSettings | DataSourceSettings | None = None
 ) -> AsyncEngine:
     """
-    创建异步SQLAlchemy Engine
+    创建异步SQLAlchemy Engine。
 
     :param echo: 是否输出SQLAlchemy SQL日志
     :param config: 数据库集合配置或单个数据源配置
@@ -287,7 +292,7 @@ def create_sync_db_engine(
     echo: bool | None = None, config: DataBaseSettings | DataSourceSettings | None = None
 ) -> Engine:
     """
-    创建同步SQLAlchemy Engine
+    创建同步SQLAlchemy Engine。
 
     :param echo: 是否输出SQLAlchemy SQL日志
     :param config: 数据库集合配置或单个数据源配置
@@ -304,7 +309,14 @@ def create_sync_db_engine(
 
 class CurrentUserCacheSession(Session):
     """
-    登记当前用户资料和权限变更，在事务提交后使缓存失效
+    登记当前用户资料和权限变更，在事务提交后使缓存失效。
+
+    :cvar _USER_TABLES: 变更后需要刷新特定用户缓存的数据表
+    :cvar _SHARED_TABLES: 变更后需要刷新共享权限缓存的数据表
+    :cvar _CHANGE_KEY: 会话中用于跟踪待失效数据的键
+    :cvar _REDIS_KEY: 会话中保存 Redis 客户端的键
+    :cvar _INVALIDATE_TIMEOUT_SECONDS: 缓存失效操作的超时时间（秒）
+    :cvar _CLOSE_TIMEOUT_SECONDS: 等待关闭的超时时间（秒）
     """
 
     _USER_TABLES = frozenset({'sys_user', 'sys_user_role', 'sys_user_post'})
@@ -317,7 +329,7 @@ class CurrentUserCacheSession(Session):
     @staticmethod
     def _table_names(table: Any) -> set[str]:
         """
-        解析别名和多表更新目标中的原始表名
+        解析别名和多表更新目标中的原始表名。
 
         :param table: SQLAlchemy写入目标
         :return: 原始表名集合
@@ -332,7 +344,7 @@ class CurrentUserCacheSession(Session):
     @staticmethod
     def _has_unscoped_write(statement: Any) -> bool:
         """
-        识别原生SQL和包装语句中无法精确定位用户的写入
+        识别原生SQL和包装语句中无法精确定位用户的写入。
 
         :param statement: SQLAlchemy执行语句
         :return: 是否需要全局失效
@@ -354,10 +366,9 @@ class CurrentUserCacheSession(Session):
 
     def _record_cache_change(self, user_ids: set[int] | None) -> None:
         """
-        按当前事务登记变更，None表示共享权限或无法确定用户范围
+        按当前事务登记变更，None表示共享权限或无法确定用户范围。
 
         :param user_ids: 需要失效的用户ID集合
-        :return: None
         """
         transaction = self.get_nested_transaction() or self.get_transaction()
         if transaction is None:
@@ -371,7 +382,7 @@ class CurrentUserCacheSession(Session):
     @classmethod
     def _where_user_ids(cls, clause: Any, table_name: str, parameters: Any) -> set[int] | None:
         """
-        仅识别明确的用户ID等值条件，复杂条件保守失效全部快照
+        仅识别明确的用户ID等值条件，复杂条件保守失效全部快照。
 
         :param clause: 更新或删除语句的条件
         :param table_name: 目标表名
@@ -410,10 +421,9 @@ class CurrentUserCacheSession(Session):
 
     async def _invalidate_cache(self, user_ids: set[int] | None) -> None:
         """
-        提交完成后轮换缓存版本，Redis异常由短时硬过期兜底
+        提交完成后轮换缓存版本，Redis异常由短时硬过期兜底。
 
         :param user_ids: 需要失效的用户ID集合，None表示全部用户
-        :return: None
         """
         from config.get_redis import RedisUtil  # noqa: PLC0415
         from utils.cache_util import CurrentUserCacheUtil  # noqa: PLC0415
@@ -446,7 +456,7 @@ class CurrentUserCacheSession(Session):
 @event.listens_for(CurrentUserCacheSession, 'do_orm_execute', retval=True)
 def _track_current_user_statement(state: ORMExecuteState) -> Any:
     """
-    登记成功执行的用户及权限写入，覆盖ORM批量操作和Core语句
+    登记成功执行的用户及权限写入，覆盖ORM批量操作和Core语句。
 
     :param state: 当前SQL执行状态
     :return: 原语句执行结果
@@ -517,12 +527,11 @@ def _track_current_user_statement(state: ORMExecuteState) -> Any:
 @event.listens_for(CurrentUserCacheSession, 'before_flush')
 def _track_current_user_flush(session: CurrentUserCacheSession, _context: Any, _instances: Any) -> None:
     """
-    登记ORM对象变更，覆盖直接修改用户和权限模型的入口
+    登记ORM对象变更，覆盖直接修改用户和权限模型的入口。
 
     :param session: 当前数据库会话
     :param _context: 刷新上下文
     :param _instances: 刷新对象
-    :return: None
     """
     if not AppConfig.app_current_user_cache_enabled:
         return
@@ -545,10 +554,9 @@ def _track_current_user_flush(session: CurrentUserCacheSession, _context: Any, _
 @event.listens_for(CurrentUserCacheSession, 'after_commit')
 def _invalidate_current_user_cache(session: CurrentUserCacheSession) -> None:
     """
-    保存点提交只合并记录，最外层提交后才执行缓存失效
+    保存点提交只合并记录，最外层提交后才执行缓存失效。
 
     :param session: 当前数据库会话
-    :return: None
     """
     try:
         transaction = session.get_nested_transaction() or session.get_transaction()
@@ -575,11 +583,10 @@ def _invalidate_current_user_cache(session: CurrentUserCacheSession) -> None:
 @event.listens_for(CurrentUserCacheSession, 'after_transaction_end')
 def _discard_current_user_changes(session: CurrentUserCacheSession, transaction: SessionTransaction) -> None:
     """
-    清理已结束事务的记录，回滚和关闭会话不影响Redis缓存
+    清理已结束事务的记录，回滚和关闭会话不影响Redis缓存。
 
     :param session: 当前数据库会话
     :param transaction: 已结束的事务
-    :return: None
     """
     changes = session.info.get(session._CHANGE_KEY)
     if changes is not None:
@@ -590,7 +597,7 @@ def _discard_current_user_changes(session: CurrentUserCacheSession, transaction:
 
 def create_async_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     """
-    创建异步Session工厂
+    创建异步Session工厂。
 
     :param engine: 异步SQLAlchemy Engine
     :return: 异步Session工厂
@@ -606,7 +613,7 @@ def create_async_session_factory(engine: AsyncEngine) -> async_sessionmaker[Asyn
 
 def create_sync_session_factory(engine: Engine) -> sessionmaker:
     """
-    创建同步Session工厂
+    创建同步Session工厂。
 
     :param engine: 同步SQLAlchemy Engine
     :return: 同步Session工厂
@@ -617,7 +624,18 @@ def create_sync_session_factory(engine: Engine) -> sessionmaker:
 @dataclass(slots=True)
 class DataSourceRuntime:
     """
-    数据源运行时状态
+    数据源运行时状态。
+
+    :ivar name: 数据源名称
+    :ivar config: 单个数据源配置
+    :ivar async_engine: 用于异步数据库操作的 SQLAlchemy 引擎
+    :ivar async_session_factory: 创建异步数据库会话的工厂
+    :ivar sync_engine: 用于同步数据库操作的 SQLAlchemy 引擎
+    :ivar available: 数据源当前是否可用
+    :ivar last_health_check_at: 上一次健康检查的时间
+    :ivar next_retry_at: 下次允许重试连接的时间
+    :ivar session_timezone: 为数据库会话设置的时区
+    :ivar health_lock: 避免并发执行数据源健康检查的锁
     """
 
     name: str
@@ -634,10 +652,22 @@ class DataSourceRuntime:
 
 class _DataSourceRegistry:
     """
-    数据源注册中心
+    数据源注册中心。
+
+    :ivar settings: 当前操作采用的配置
+    :ivar _runtimes: 按名称索引的数据源运行时
+    :ivar _initialized: 是否已完成初始化
+    :ivar _log_enabled: 是否开启数据源日志
+    :ivar _configs: 按名称保存的数据源配置
+    :ivar _cache_redis: 与数据源共享的 Redis 客户端
     """
 
     def __init__(self, settings: DataBaseSettings | None = None) -> None:
+        """
+        根据数据源配置初始化运行时连接注册表。
+
+        :param settings: 当前操作采用的配置
+        """
         self.settings = settings or DataBaseConfig
         self._runtimes: dict[str, DataSourceRuntime] = {}
         self._initialized = False
@@ -647,19 +677,19 @@ class _DataSourceRegistry:
 
     def set_cache_redis(self, redis: Any | None) -> None:
         """
-        绑定应用生命周期管理的Redis，数据库会话只借用连接池
+        绑定应用生命周期管理的Redis，数据库会话只借用连接池。
 
         :param redis: 应用Redis客户端，None表示解除绑定
-        :return: None
         """
         self._cache_redis = redis
 
     def _resolve_name(self, name: str | None = None) -> str:
         """
-        解析并校验数据源名称
+        解析并校验数据源名称。
 
         :param name: 数据源名称
         :return: 已配置的数据源名称
+        :raises DataSourceNotFoundException: 指定的数据源没有注册
         """
         source_name = name or self.settings.db_default_source
         if source_name not in self._configs:
@@ -668,7 +698,7 @@ class _DataSourceRegistry:
 
     def _runtime(self, name: str | None = None) -> DataSourceRuntime:
         """
-        获取或创建数据源运行时状态
+        获取或创建数据源运行时状态。
 
         :param name: 数据源名称
         :return: 数据源运行时状态
@@ -683,10 +713,9 @@ class _DataSourceRegistry:
     @staticmethod
     def _mark_unavailable(runtime: DataSourceRuntime) -> None:
         """
-        标记数据源不可用并设置下次重试时间
+        标记数据源不可用并设置下次重试时间。
 
         :param runtime: 数据源运行时状态
-        :return: None
         """
         now = TimezoneUtil.utc_now()
         runtime.available = False
@@ -700,17 +729,24 @@ class _DataSourceRegistry:
         runtime: DataSourceRuntime,
         exc: BaseException,
     ) -> DataSourceException:
-        """将底层异常转换为不泄露连接信息的数据源异常。"""
+        """
+        将底层异常转换为不泄露连接信息的数据源异常。
+
+        :param exception_type: 异常的类型
+        :param runtime: 数据源运行时状态
+        :param exc: 捕获到的异常实例
+        :return: 带安全诊断信息的数据源异常实例
+        """
         error_type, error_code = _error_details(exc)
         return exception_type(runtime.name, error_type=error_type, error_code=error_code)
 
     @classmethod
     def _ensure_async_resources(cls, runtime: DataSourceRuntime) -> None:
         """
-        确保数据源异步引擎和Session工厂已创建
+        确保数据源异步引擎和Session工厂已创建。
 
         :param runtime: 数据源运行时状态
-        :return: None
+        :raises DataSourceInitializationException: 异步引擎或会话工厂初始化失败
         """
         if runtime.async_engine is not None and runtime.async_session_factory is not None:
             return
@@ -725,10 +761,10 @@ class _DataSourceRegistry:
 
     async def initialize(self, log_enabled: bool = True) -> None:
         """
-        初始化并检查所有数据源的连接状态
+        初始化并检查所有数据源的连接状态。
 
         :param log_enabled: 是否输出数据源启动日志
-        :return: None
+        :raises DataSourceInitializationException: 必需数据源初始化失败
         """
         self._log_enabled = log_enabled
         if self._initialized:
@@ -782,7 +818,7 @@ class _DataSourceRegistry:
 
     def get_async_engine(self, name: str | None = None) -> AsyncEngine:
         """
-        获取数据源异步引擎
+        获取数据源异步引擎。
 
         :param name: 数据源名称
         :return: 异步SQLAlchemy Engine
@@ -794,10 +830,11 @@ class _DataSourceRegistry:
 
     def get_sync_engine(self, name: str | None = None) -> Engine:
         """
-        获取数据源同步引擎
+        获取数据源同步引擎。
 
         :param name: 数据源名称
         :return: 同步SQLAlchemy Engine
+        :raises DataSourceInitializationException: 同步引擎初始化失败
         """
         runtime = self._runtime(name)
         if runtime.sync_engine is None:
@@ -809,10 +846,9 @@ class _DataSourceRegistry:
 
     async def _check_health(self, name: str) -> None:
         """
-        检查指定数据源的连接状态
+        检查指定数据源的连接状态。
 
         :param name: 数据源名称
-        :return: None
         """
         runtime = self._runtime(name)
         async with runtime.health_lock:
@@ -820,10 +856,10 @@ class _DataSourceRegistry:
 
     async def _check_health_locked(self, runtime: DataSourceRuntime) -> None:
         """
-        在持有健康检查锁时检查数据源连接状态
+        在持有健康检查锁时检查数据源连接状态。
 
         :param runtime: 数据源运行时状态
-        :return: None
+        :raises DataSourceUnavailableException: 数据源未通过连接健康检查
         """
         try:
             self._ensure_async_resources(runtime)
@@ -844,10 +880,10 @@ class _DataSourceRegistry:
 
     async def _ensure_available(self, runtime: DataSourceRuntime) -> None:
         """
-        确保指定数据源当前可用
+        确保指定数据源当前可用。
 
         :param runtime: 数据源运行时状态
-        :return: None
+        :raises DataSourceUnavailableException: 数据源尚处在故障冷却期
         """
         async with runtime.health_lock:
             if runtime.available:
@@ -864,10 +900,11 @@ class _DataSourceRegistry:
     @asynccontextmanager
     async def connection(self, name: str | None = None) -> AsyncGenerator[AsyncConnection, None]:
         """
-        创建指定数据源的异步数据库连接事务
+        创建指定数据源的异步数据库连接事务。
 
         :param name: 数据源名称
-        :return: 异步数据库连接
+        :yield: 异步数据库连接
+        :raises DBAPIError: 数据库操作失败且连接未被标记失效
         """
         runtime = self._runtime(name)
         await self._ensure_available(runtime)
@@ -884,11 +921,12 @@ class _DataSourceRegistry:
     @asynccontextmanager
     async def session(self, name: str | None = None, *, log_sql: bool = True) -> AsyncGenerator[AsyncSession, None]:
         """
-        创建指定数据源的异步数据库会话
+        创建指定数据源的异步数据库会话。
 
         :param name: 数据源名称
         :param log_sql: 是否保留数据源原有的SQL日志设置，False时只过滤此会话的常规SQL日志
-        :return: 异步数据库会话
+        :yield: 异步数据库会话
+        :raises DBAPIError: 会话中的数据库操作失败且连接未被标记失效
         """
         runtime = self._runtime(name)
         await self._ensure_available(runtime)
@@ -911,9 +949,9 @@ class _DataSourceRegistry:
 
     async def dispose_all(self) -> None:
         """
-        释放所有数据源的同步和异步引擎
+        释放所有数据源的同步和异步引擎。
 
-        :return: None
+        :raises BaseException: 释放引擎时有清理操作失败
         """
         runtimes = tuple(self._runtimes.values())
         self._cache_redis = None
@@ -953,13 +991,13 @@ DataSourceRegistry = _DataSourceRegistry()
 
 
 class Base(AsyncAttrs, DeclarativeBase):
-    pass
+    """默认数据源的 SQLAlchemy 声明式模型基类。"""
 
 
 @cache
 def get_data_source_base(source_name: str) -> type[DeclarativeBase]:
     """
-    获取指定数据源独立且可复用的ORM元数据基类
+    获取指定数据源独立且可复用的ORM元数据基类。
 
     :param source_name: 数据源名称
     :return: ORM元数据基类
@@ -967,7 +1005,7 @@ def get_data_source_base(source_name: str) -> type[DeclarativeBase]:
     DataBaseConfig.get_source(source_name)
 
     class NamedDataSourceBase(AsyncAttrs, DeclarativeBase):
-        pass
+        """绑定指定数据源元数据的声明式模型基类。"""
 
     NamedDataSourceBase.__name__ = f'{source_name.title().replace("_", "").replace("-", "")}DataSourceBase'
     return NamedDataSourceBase

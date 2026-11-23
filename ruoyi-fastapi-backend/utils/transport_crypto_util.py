@@ -22,7 +22,7 @@ from utils.time_util import TimezoneUtil
 # 通用编码辅助
 def _urlsafe_b64encode(data: bytes) -> str:
     """
-    将字节串编码为URL安全的Base64字符串
+    将字节串编码为URL安全的Base64字符串。
 
     :param data: 原始字节串
     :return: URL安全的Base64字符串
@@ -32,7 +32,7 @@ def _urlsafe_b64encode(data: bytes) -> str:
 
 def _urlsafe_b64decode(data: str) -> bytes:
     """
-    将URL安全的Base64字符串解码为字节串
+    将URL安全的Base64字符串解码为字节串。
 
     :param data: URL安全的Base64字符串
     :return: 解码后的字节串
@@ -42,11 +42,15 @@ def _urlsafe_b64decode(data: str) -> bytes:
 
 
 class TransportKeyError(ValueError):
-    """可通过刷新公钥重试的传输层密钥错误。"""
+    """
+    可通过刷新公钥重试的传输层密钥错误。
+
+    :ivar msg_key: 对外响应使用的语义标识
+    """
 
     def __init__(self, message: str, *, msg_key: str) -> None:
         """
-        保存诊断原文和客户端用于判断重试的消息标识
+        保存诊断原文和客户端用于判断重试的消息标识。
 
         :param message: 内部诊断使用的错误原文
         :param msg_key: 对外响应使用的语义标识
@@ -58,11 +62,11 @@ class TransportKeyError(ValueError):
 @dataclass(frozen=True)
 class TransportKeyPair:
     """
-    传输层密钥对载体
+    传输层密钥对载体。
 
-    kid: 密钥版本标识
-    private_key_pem: PEM格式私钥
-    public_key_pem: PEM格式公钥
+    :ivar kid: 密钥版本标识
+    :ivar private_key_pem: PEM格式私钥
+    :ivar public_key_pem: PEM格式公钥
     """
 
     kid: str
@@ -74,14 +78,14 @@ class TransportKeyPair:
 @dataclass(frozen=True)
 class DecryptedTransportEnvelope:
     """
-    请求信封解密结果
+    请求信封解密结果。
 
-    kid: 请求使用的密钥版本标识
-    nonce: 请求随机数
-    timestamp: 请求时间戳
-    aes_key: 当前请求协商出的AES会话密钥
-    aad: 通过校验后的AAD上下文
-    plaintext: 解密得到的原始请求载荷
+    :ivar kid: 请求使用的密钥版本标识
+    :ivar nonce: 请求随机数
+    :ivar timestamp: 请求时间戳
+    :ivar aes_key: 当前请求协商出的AES会话密钥
+    :ivar aad: 通过校验后的AAD上下文
+    :ivar plaintext: 解密得到的原始请求载荷
     """
 
     kid: str
@@ -95,7 +99,12 @@ class DecryptedTransportEnvelope:
 # 传输层密钥管理
 class TransportKeyProvider:
     """
-    传输层密钥提供者
+    传输层密钥提供者。
+
+    :cvar _lock: 协调并发访问共享状态的锁
+    :cvar _key_pairs: 按密钥标识索引的加解密密钥对
+    :cvar _MIN_RSA_KEY_SIZE: 接受的 RSA 密钥最小位数
+    :cvar _RSA_KEY_SIZE_STEP: 支持的相邻 RSA 密钥长度间隔
     """
 
     _lock = Lock()
@@ -106,9 +115,9 @@ class TransportKeyProvider:
     @classmethod
     def validate_runtime_configuration(cls) -> None:
         """
-        校验传输层加解密运行配置，确保启用时显式配置密钥对
+        校验传输层加解密运行配置，确保启用时显式配置密钥对。
 
-        :return: None
+        :raises ValueError: TRANSPORT_CRYPTO_RSA_KEY_SIZE必须大于等于2048，且为256的整数倍；启用传输层加解密时，必须显式配置TRANSPORT_CRYPTO_PUBLIC_KEY和TRANSPORT_CRYPTO_PRIVATE_KEY；TRANSPORT_CRYPTO_PUBLIC_KEY与TRANSPORT_CRYPTO_PRIVATE_KEY不匹配
         """
         if not TransportCryptoConfig.transport_crypto_enabled or TransportCryptoConfig.transport_crypto_mode == 'off':
             return
@@ -143,7 +152,7 @@ class TransportKeyProvider:
     @classmethod
     def get_current_key_pair(cls) -> TransportKeyPair:
         """
-        获取当前启用的密钥对
+        获取当前启用的密钥对。
 
         :return: 当前启用的密钥对
         """
@@ -157,7 +166,7 @@ class TransportKeyProvider:
     @classmethod
     def get_current_kid(cls) -> str:
         """
-        获取当前启用的密钥标识
+        获取当前启用的密钥标识。
 
         :return: 当前启用的密钥标识
         """
@@ -166,7 +175,7 @@ class TransportKeyProvider:
     @classmethod
     def get_public_key_pem(cls, kid: str | None = None) -> str:
         """
-        获取公钥PEM
+        获取公钥PEM。
 
         :param kid: 密钥版本标识，未传入时默认使用当前版本
         :return: PEM格式公钥字符串
@@ -176,7 +185,7 @@ class TransportKeyProvider:
     @classmethod
     def get_private_key_pem(cls, kid: str | None = None) -> str:
         """
-        获取私钥PEM
+        获取私钥PEM。
 
         :param kid: 密钥版本标识，未传入时默认使用当前版本
         :return: PEM格式私钥字符串
@@ -186,10 +195,11 @@ class TransportKeyProvider:
     @classmethod
     def get_key_pair(cls, kid: str | None = None) -> TransportKeyPair:
         """
-        根据kid获取密钥对，未传入时返回当前密钥对
+        根据kid获取密钥对，未传入时返回当前密钥对。
 
         :param kid: 密钥版本标识，未传入时默认使用当前版本
         :return: 匹配到的密钥对
+        :raises TransportKeyError: 密钥版本不存在
         """
         target_kid = kid or cls.get_current_kid()
         if cls._key_pairs is None:
@@ -204,7 +214,7 @@ class TransportKeyProvider:
     @classmethod
     def get_supported_kids(cls) -> tuple[str, ...]:
         """
-        获取当前支持解密的全部密钥版本
+        获取当前支持解密的全部密钥版本。
 
         :return: 当前支持解密的密钥版本元组
         """
@@ -215,9 +225,10 @@ class TransportKeyProvider:
     @classmethod
     def _build_key_pairs(cls) -> dict[str, TransportKeyPair]:
         """
-        构建当前进程可用的全部密钥对映射
+        构建当前进程可用的全部密钥对映射。
 
         :return: 以kid为键的密钥对映射
+        :raises ValueError: 启用传输层加解密时，必须显式配置TRANSPORT_CRYPTO_PUBLIC_KEY和TRANSPORT_CRYPTO_PRIVATE_KEY
         """
         configured_private_key = cls._normalize_pem(TransportCryptoConfig.transport_crypto_private_key)
         configured_public_key = cls._normalize_pem(TransportCryptoConfig.transport_crypto_public_key)
@@ -237,9 +248,10 @@ class TransportKeyProvider:
     @classmethod
     def _build_legacy_key_pairs(cls) -> dict[str, TransportKeyPair]:
         """
-        构建历史密钥对映射，用于密钥轮换窗口内的兼容解密
+        构建历史密钥对映射，用于密钥轮换窗口内的兼容解密。
 
         :return: 以kid为键的历史密钥对映射
+        :raises ValueError: 传输层历史密钥配置不是合法JSON；传输层历史密钥配置必须是JSON数组；传输层历史密钥项必须是JSON对象；传输层历史密钥项必须包含kid和privateKey
         """
         legacy_key_pairs: dict[str, TransportKeyPair] = {}
         configured_legacy_key_pairs = TransportCryptoConfig.transport_crypto_legacy_key_pairs
@@ -283,7 +295,7 @@ class TransportKeyProvider:
     @staticmethod
     def _normalize_pem(pem_value: str) -> str:
         """
-        兼容环境变量中的换行转义
+        兼容环境变量中的换行转义。
 
         :param pem_value: 原始PEM字符串
         :return: 标准化后的PEM字符串
@@ -293,17 +305,15 @@ class TransportKeyProvider:
 
 # 传输层安全校验
 class TransportSecurityUtil:
-    """
-    传输层安全校验工具
-    """
+    """传输层安全校验工具。"""
 
     @classmethod
     def validate_timestamp(cls, timestamp: int) -> None:
         """
-        校验请求时间窗
+        校验请求时间窗。
 
         :param timestamp: 请求信封中的时间戳
-        :return: None
+        :raises ValueError: 加密请求已过期，请刷新页面后重试
         """
         now_timestamp = int(time.time())
         if abs(now_timestamp - timestamp) > TransportCryptoConfig.transport_crypto_clock_skew_seconds:
@@ -318,12 +328,12 @@ class TransportSecurityUtil:
     @classmethod
     async def validate_replay(cls, request: Request, kid: str, nonce: str) -> None:
         """
-        使用Redis进行防重放校验
+        使用Redis进行防重放校验。
 
         :param request: 当前请求对象
         :param kid: 当前密钥版本标识
         :param nonce: 当前请求随机数
-        :return: None
+        :raises ValueError: 服务端防重放校验不可用，请稍后重试；检测到重复请求，请勿重放加密报文
         """
         redis = getattr(request.app.state, 'redis', None)
         if redis is None:
@@ -351,7 +361,7 @@ class TransportSecurityUtil:
     @classmethod
     def _should_fail_closed_when_replay_check_unavailable(cls, request: Request) -> bool:
         """
-        判断当前请求在防重放能力不可用时是否需要直接拒绝
+        判断当前请求在防重放能力不可用时是否需要直接拒绝。
 
         :param request: 当前请求对象
         :return: 是否需要失败关闭
@@ -364,7 +374,7 @@ class TransportSecurityUtil:
     @staticmethod
     def _normalize_path(path: str) -> str:
         """
-        标准化请求路径，剥离应用根路径前缀
+        标准化请求路径，剥离应用根路径前缀。
 
         :param path: 原始请求路径
         :return: 标准化后的业务路径
@@ -378,7 +388,7 @@ class TransportSecurityUtil:
     @staticmethod
     def _is_required_path(path: str) -> bool:
         """
-        判断当前路径是否命中强制加密路径配置
+        判断当前路径是否命中强制加密路径配置。
 
         :param path: 当前请求路径
         :return: 是否命中强制加密路径
@@ -396,7 +406,11 @@ class TransportSecurityUtil:
 # 传输层加解密核心能力
 class TransportCryptoUtil:
     """
-    传输层加解密工具
+    传输层加解密工具。
+
+    :cvar _ENVELOPE_VERSION: 加密信封使用的协议版本
+    :cvar _RESPONSE_ENVELOPE_ALGORITHM: 响应加密信封使用的算法标识
+    :cvar _REQUIRED_ENVELOPE_FIELDS: 解包加密信封时必须存在的字段
     """
 
     _ENVELOPE_VERSION = '1'
@@ -406,7 +420,7 @@ class TransportCryptoUtil:
     @classmethod
     def get_response_envelope_algorithm(cls) -> str:
         """
-        获取响应信封算法标识
+        获取响应信封算法标识。
 
         :return: 响应信封算法标识
         """
@@ -420,7 +434,7 @@ class TransportCryptoUtil:
         expected_path: str,
     ) -> DecryptedTransportEnvelope:
         """
-        解密请求信封
+        解密请求信封。
 
         :param envelope: 请求加密信封
         :param expected_method: 当前请求预期HTTP方法
@@ -447,10 +461,11 @@ class TransportCryptoUtil:
     @classmethod
     def decrypt_request_key(cls, envelope: dict[str, Any]) -> bytes:
         """
-        仅解出请求中的AES会话密钥，用于异常场景构造加密错误响应
+        仅解出请求中的AES会话密钥，用于异常场景构造加密错误响应。
 
         :param envelope: 请求加密信封
         :return: 请求协商出的AES会话密钥
+        :raises TransportKeyError: 请求密钥解密失败
         """
         kid = str(envelope['kid'])
         private_key_pem = TransportKeyProvider.get_private_key_pem(kid)
@@ -474,7 +489,7 @@ class TransportCryptoUtil:
         path: str,
     ) -> bytes:
         """
-        使用请求协商出的AES密钥加密响应体
+        使用请求协商出的AES密钥加密响应体。
 
         :param aes_key: 请求协商出的AES会话密钥
         :param payload: 需要加密的响应体字节串
@@ -499,7 +514,7 @@ class TransportCryptoUtil:
     @classmethod
     def decode_query_envelope(cls, encrypted_query: str) -> dict[str, Any]:
         """
-        解码查询参数中的加密信封
+        解码查询参数中的加密信封。
 
         :param encrypted_query: 查询参数中的加密信封字符串
         :return: 解码后的信封字典
@@ -510,7 +525,7 @@ class TransportCryptoUtil:
     @classmethod
     def build_public_key_payload(cls) -> dict[str, Any]:
         """
-        构建公钥下发载荷
+        构建公钥下发载荷。
 
         :return: 公钥下发载荷字典
         """
@@ -526,7 +541,7 @@ class TransportCryptoUtil:
     @classmethod
     def build_frontend_config_payload(cls) -> dict[str, Any]:
         """
-        构建前端传输层加解密运行配置载荷
+        构建前端传输层加解密运行配置载荷。
 
         :return: 前端传输层加解密运行配置载荷字典
         """
@@ -551,10 +566,10 @@ class TransportCryptoUtil:
     @classmethod
     def _validate_envelope(cls, envelope: dict[str, Any]) -> None:
         """
-        校验请求加密信封的结构、协议版本与算法是否有效
+        校验请求加密信封的结构、协议版本与算法是否有效。
 
         :param envelope: 请求加密信封
-        :return: None
+        :raises ValueError: 加密请求信封格式不合法；加密请求协议版本不受支持；加密请求算法不受支持
         """
         if not isinstance(envelope, dict):
             raise ValueError('加密请求信封格式不合法')
@@ -577,12 +592,13 @@ class TransportCryptoUtil:
         expected_path: str,
     ) -> dict[str, str]:
         """
-        提取并校验请求AAD，确保密文与当前接口绑定
+        提取并校验请求AAD，确保密文与当前接口绑定。
 
         :param envelope: 请求加密信封
         :param expected_method: 当前请求预期HTTP方法
         :param expected_path: 当前请求预期路径
         :return: 归一化后的AAD字典
+        :raises ValueError: 加密请求缺少合法的aad；加密请求的method/path与当前接口不匹配
         """
         aad = envelope.get('aad')
         if not isinstance(aad, dict):
@@ -598,7 +614,7 @@ class TransportCryptoUtil:
     @staticmethod
     def _build_aad_bytes(aad: dict[str, str]) -> bytes:
         """
-        将AAD字典序列化为AES-GCM additionalData所需字节串
+        将AAD字典序列化为AES-GCM additionalData所需字节串。
 
         :param aad: AAD字典
         :return: 序列化后的AAD字节串
@@ -608,7 +624,7 @@ class TransportCryptoUtil:
     @staticmethod
     def _split_paths(path_value: str) -> list[str]:
         """
-        将逗号分隔的路径配置拆分为列表
+        将逗号分隔的路径配置拆分为列表。
 
         :param path_value: 原始路径配置
         :return: 路径列表
@@ -619,7 +635,23 @@ class TransportCryptoUtil:
 # 传输层监控读写与聚合
 class TransportCryptoMonitorUtil:
     """
-    传输层加解密监控工具
+    传输层加解密监控工具。
+
+    :cvar _REDIS_KEY_PREFIX: 加密监控数据使用的 Redis 键前缀
+    :cvar _META_STARTED_AT_KEY: 记录监控启动时间的 Redis 键
+    :cvar _COUNTERS_KEY: 保存加密操作计数的 Redis 键
+    :cvar _FAILURE_REASONS_KEY: 保存失败原因计数的 Redis 键
+    :cvar _KIDS_KEY: 保存各密钥使用计数的 Redis 键
+    :cvar _RECENT_FAILURES_KEY: 保存最近失败记录的 Redis 键
+    :cvar _RECENT_FAILURE_LIMIT: 最多保留的最近失败记录数
+    :cvar _REDIS_WARNING_INTERVAL_SECONDS: Redis 告警的最小间隔（秒）
+    :cvar _lock: 协调并发访问共享状态的锁
+    :cvar _started_at: 当前监控实例的启动时间
+    :cvar _counters: 按事件累计的计数器
+    :cvar _failure_reasons: 各类失败原因的累计次数
+    :cvar _kid_counters: 按密钥标识记录的使用次数
+    :cvar _recent_failures: 最近发生的失败记录
+    :cvar _last_redis_warning_at: 上次记录 Redis 异常警告的时间
     """
 
     _REDIS_KEY_PREFIX = 'transport:monitor'
@@ -642,10 +674,9 @@ class TransportCryptoMonitorUtil:
     @classmethod
     async def record_plain_request(cls, app: FastAPI | None = None) -> None:
         """
-        记录明文请求
+        记录明文请求。
 
         :param app: FastAPI应用对象
-        :return: None
         """
         if await cls._write_redis_counters(
             app,
@@ -660,11 +691,10 @@ class TransportCryptoMonitorUtil:
     @classmethod
     async def record_encrypted_request(cls, app: FastAPI | None = None, kid: str | None = None) -> None:
         """
-        记录加密请求
+        记录加密请求。
 
         :param app: FastAPI应用对象
         :param kid: 当前请求使用的密钥版本
-        :return: None
         """
         if await cls._write_redis_counters(
             app,
@@ -681,12 +711,11 @@ class TransportCryptoMonitorUtil:
     @classmethod
     async def record_required_rejected(cls, app: FastAPI | None = None, method: str = '', path: str = '') -> None:
         """
-        记录强制加密接口被明文访问的拒绝事件
+        记录强制加密接口被明文访问的拒绝事件。
 
         :param app: FastAPI应用对象
         :param method: 请求方法
         :param path: 请求路径
-        :return: None
         """
         if await cls._write_redis_failure(
             app,
@@ -701,11 +730,10 @@ class TransportCryptoMonitorUtil:
     @classmethod
     async def record_decrypt_success(cls, app: FastAPI | None = None, kid: str | None = None) -> None:
         """
-        记录请求解密成功事件
+        记录请求解密成功事件。
 
         :param app: FastAPI应用对象
         :param kid: 当前请求使用的密钥版本
-        :return: None
         """
         if await cls._write_redis_counters(
             app,
@@ -726,14 +754,13 @@ class TransportCryptoMonitorUtil:
         kid: str | None = None,
     ) -> None:
         """
-        记录请求解密失败事件
+        记录请求解密失败事件。
 
         :param app: FastAPI应用对象
         :param method: 请求方法
         :param path: 请求路径
         :param reason: 失败原因分类
         :param kid: 当前请求使用的密钥版本
-        :return: None
         """
         if await cls._write_redis_failure(app, method=method, path=path, reason=reason, kid=kid):
             return
@@ -742,10 +769,9 @@ class TransportCryptoMonitorUtil:
     @classmethod
     async def record_plain_response(cls, app: FastAPI | None = None) -> None:
         """
-        记录明文响应
+        记录明文响应。
 
         :param app: FastAPI应用对象
-        :return: None
         """
         if await cls._write_redis_counters(app, counter_updates={'plain_responses_total': 1}):
             return
@@ -759,12 +785,11 @@ class TransportCryptoMonitorUtil:
         is_error: bool = False,
     ) -> None:
         """
-        记录加密响应
+        记录加密响应。
 
         :param app: FastAPI应用对象
         :param kid: 当前响应使用的密钥版本
         :param is_error: 是否为错误响应
-        :return: None
         """
         counter_updates = {'encrypted_responses_total': 1}
         if is_error:
@@ -781,7 +806,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     async def get_snapshot(cls, app: FastAPI | None = None) -> dict[str, Any]:
         """
-        获取传输层加解密监控快照
+        获取传输层加解密监控快照。
 
         :param app: FastAPI应用对象
         :return: 监控快照字典
@@ -801,7 +826,7 @@ class TransportCryptoMonitorUtil:
         kid_counter_updates: dict[str, int] | None = None,
     ) -> bool:
         """
-        将监控计数写入Redis
+        将监控计数写入Redis。
 
         :param app: FastAPI应用对象
         :param counter_updates: 全局计数增量
@@ -839,7 +864,7 @@ class TransportCryptoMonitorUtil:
         include_decrypt_failure: bool = True,
     ) -> bool:
         """
-        将失败事件写入Redis
+        将失败事件写入Redis。
 
         :param app: FastAPI应用对象
         :param method: 请求方法
@@ -884,7 +909,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     async def _get_redis_snapshot(cls, app: FastAPI | None) -> dict[str, Any]:
         """
-        从Redis中读取监控快照
+        从Redis中读取监控快照。
 
         :param app: FastAPI应用对象
         :return: Redis监控快照字典
@@ -931,7 +956,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     async def _get_redis_kid_stats(cls, redis: aioredis.Redis, kids: list[str]) -> list[dict[str, Any]]:
         """
-        获取Redis中的按密钥版本聚合统计
+        获取Redis中的按密钥版本聚合统计。
 
         :param redis: Redis客户端
         :param kids: 密钥版本列表
@@ -957,11 +982,7 @@ class TransportCryptoMonitorUtil:
     # 进程内回退统计
     @classmethod
     def _record_plain_request_local(cls) -> None:
-        """
-        在本地内存中记录明文请求
-
-        :return: None
-        """
+        """在本地内存中记录明文请求。"""
         with cls._lock:
             cls._counters['requests_total'] += 1
             cls._counters['plain_requests_total'] += 1
@@ -969,10 +990,9 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _record_encrypted_request_local(cls, kid: str | None = None) -> None:
         """
-        在本地内存中记录加密请求
+        在本地内存中记录加密请求。
 
         :param kid: 当前请求使用的密钥版本
-        :return: None
         """
         with cls._lock:
             cls._counters['requests_total'] += 1
@@ -982,10 +1002,9 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _record_decrypt_success_local(cls, kid: str | None = None) -> None:
         """
-        在本地内存中记录解密成功事件
+        在本地内存中记录解密成功事件。
 
         :param kid: 当前请求使用的密钥版本
-        :return: None
         """
         with cls._lock:
             cls._counters['decrypt_success_total'] += 1
@@ -993,22 +1012,17 @@ class TransportCryptoMonitorUtil:
 
     @classmethod
     def _record_plain_response_local(cls) -> None:
-        """
-        在本地内存中记录明文响应
-
-        :return: None
-        """
+        """在本地内存中记录明文响应。"""
         with cls._lock:
             cls._counters['plain_responses_total'] += 1
 
     @classmethod
     def _record_encrypted_response_local(cls, kid: str | None = None, is_error: bool = False) -> None:
         """
-        在本地内存中记录加密响应
+        在本地内存中记录加密响应。
 
         :param kid: 当前响应使用的密钥版本
         :param is_error: 是否为错误响应
-        :return: None
         """
         with cls._lock:
             cls._counters['encrypted_responses_total'] += 1
@@ -1026,14 +1040,13 @@ class TransportCryptoMonitorUtil:
         include_decrypt_failure: bool = True,
     ) -> None:
         """
-        在本地内存中记录失败事件
+        在本地内存中记录失败事件。
 
         :param method: 请求方法
         :param path: 请求路径
         :param reason: 失败原因分类
         :param kid: 当前请求使用的密钥版本
         :param include_decrypt_failure: 是否计入解密失败次数
-        :return: None
         """
         with cls._lock:
             if include_decrypt_failure:
@@ -1055,7 +1068,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _get_local_snapshot_parts(cls) -> dict[str, Any]:
         """
-        获取本地内存中的监控快照片段
+        获取本地内存中的监控快照片段。
 
         :return: 本地监控快照片段
         """
@@ -1081,7 +1094,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _merge_snapshot_parts(cls, redis_snapshot: dict[str, Any], local_snapshot: dict[str, Any]) -> dict[str, Any]:
         """
-        合并Redis统计与本地回退统计
+        合并Redis统计与本地回退统计。
 
         :param redis_snapshot: Redis监控快照片段
         :param local_snapshot: 本地监控快照片段
@@ -1136,7 +1149,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _build_snapshot(cls, snapshot_parts: dict[str, Any]) -> dict[str, Any]:
         """
-        基于监控片段构建最终快照
+        基于监控片段构建最终快照。
 
         :param snapshot_parts: 监控快照片段
         :return: 最终监控快照
@@ -1177,7 +1190,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _get_redis_client(cls, app: FastAPI | None) -> aioredis.Redis | None:
         """
-        获取当前应用中的Redis客户端
+        获取当前应用中的Redis客户端。
 
         :param app: FastAPI应用对象
         :return: Redis客户端，不存在时返回None
@@ -1189,11 +1202,10 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _increase_kid_counter_local(cls, kid: str | None, counter_name: str) -> None:
         """
-        在本地内存中按密钥版本累加统计值
+        在本地内存中按密钥版本累加统计值。
 
         :param kid: 当前密钥版本
         :param counter_name: 统计项名称
-        :return: None
         """
         if not kid:
             return
@@ -1202,11 +1214,10 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _log_redis_warning(cls, action: str, exc: Exception) -> None:
         """
-        记录Redis监控降级日志，并限制日志频率
+        记录Redis监控降级日志，并限制日志频率。
 
         :param action: 当前执行动作
         :param exc: 异常对象
-        :return: None
         """
         now = time.monotonic()
         with cls._lock:
@@ -1218,7 +1229,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _has_local_fallback_data(cls, local_snapshot: dict[str, Any]) -> bool:
         """
-        判断本地回退统计中是否存在有效数据
+        判断本地回退统计中是否存在有效数据。
 
         :param local_snapshot: 本地监控快照片段
         :return: 是否存在有效数据
@@ -1234,7 +1245,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _build_kid_counter_key(cls, kid: str) -> str:
         """
-        构建按密钥版本统计的Redis键名
+        构建按密钥版本统计的Redis键名。
 
         :param kid: 密钥版本
         :return: Redis键名
@@ -1244,7 +1255,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _parse_recent_failures(cls, recent_failures: list[str]) -> list[dict[str, Any]]:
         """
-        解析Redis中的最近失败记录
+        解析Redis中的最近失败记录。
 
         :param recent_failures: Redis中存储的失败记录列表
         :return: 失败记录对象列表
@@ -1264,7 +1275,7 @@ class TransportCryptoMonitorUtil:
     @staticmethod
     def _to_int_mapping(mapping: dict[str, Any]) -> dict[str, int]:
         """
-        将Redis返回的字符串字典转换为整数字典
+        将Redis返回的字符串字典转换为整数字典。
 
         :param mapping: Redis原始字典
         :return: 转换后的整数字典
@@ -1274,7 +1285,7 @@ class TransportCryptoMonitorUtil:
     @staticmethod
     def _parse_datetime(value: Any) -> datetime | None:
         """
-        将字符串时间解析为datetime对象
+        将字符串时间解析为datetime对象。
 
         :param value: 原始时间值
         :return: datetime对象，解析失败时返回None
@@ -1294,7 +1305,7 @@ class TransportCryptoMonitorUtil:
     @classmethod
     def _coerce_datetime_for_sort(cls, value: Any) -> datetime:
         """
-        将任意时间值转换为可排序的datetime对象
+        将任意时间值转换为可排序的datetime对象。
 
         :param value: 原始时间值
         :return: datetime对象

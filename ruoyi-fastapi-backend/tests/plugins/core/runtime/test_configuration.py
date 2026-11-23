@@ -33,7 +33,12 @@ from tests.plugins.core.runtime.test_metrics_store import MetricsRedis
 
 @pytest_asyncio.fixture
 async def config_sessions(tmp_path: Path) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
-    """使用独立 SQLite 验证配置落库、解密和重启读取。"""
+    """
+    使用独立 SQLite 验证配置落库、解密和重启读取。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :yield: 连接临时配置库的会话工厂
+    """
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "config.sqlite"}')
     async with engine.begin() as db:
         await db.run_sync(SysPluginConfig.__table__.create)
@@ -186,12 +191,24 @@ async def test_failed_or_cancelled_read_keeps_previous_observation(
 
     @asynccontextmanager
     async def session() -> AsyncIterator[object]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         try:
             yield object()
         finally:
             closed.append(True)
 
     async def read(*args: object, **kwargs: object) -> list:
+        """
+        控制测试读取操作的完成或失败。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟读取数据时数据库不可用
+        """
         entered.set()
         if cancelled:
             await asyncio.Event().wait()

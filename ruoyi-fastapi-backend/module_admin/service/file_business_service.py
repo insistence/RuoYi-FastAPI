@@ -31,7 +31,9 @@ from utils.time_util import TimezoneUtil
 
 class FileReferenceService:
     """
-    文件业务引用服务层
+    文件业务引用服务层。
+
+    :cvar MAX_REFERENCE_FILES: 一次操作可关联的最大文件数
     """
 
     MAX_REFERENCE_FILES = 100
@@ -44,12 +46,13 @@ class FileReferenceService:
         file_data_scope_sql: ColumnElement,
     ) -> list[FileReferenceModel]:
         """
-        获取文件业务引用列表service
+        获取文件业务引用列表service。
 
         :param query_db: orm对象
         :param file_id: 文件ID
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :return: 文件业务引用列表
+        :raises ServiceException: 文件信息不存在或超出数据权限
         """
         file_info = await FileInfoDao.get_file_management_detail_by_id(query_db, file_id, file_data_scope_sql)
         if file_info is None:
@@ -83,7 +86,7 @@ class FileReferenceService:
         business_name: str | None = None,
     ) -> None:
         """
-        在调用方业务事务内全量替换文件引用service
+        在调用方业务事务内全量替换文件引用service。
 
         :param query_db: orm对象
         :param business_type: 业务类型
@@ -92,7 +95,7 @@ class FileReferenceService:
         :param create_by: 创建者
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :param business_name: 业务名称
-        :return: None
+        :raises ServiceException: 部分引用文件不存在或已失效；配置保留策略的业务只能引用受保护文件
         """
         normalized_business_type = cls._normalize_text(business_type, '业务类型', 50, required=True)
         normalized_business_id = cls._normalize_text(business_id, '业务ID', 64, required=True)
@@ -151,12 +154,11 @@ class FileReferenceService:
         business_id: str,
     ) -> None:
         """
-        在调用方业务事务内解除业务对象的全部文件引用service
+        在调用方业务事务内解除业务对象的全部文件引用service。
 
         :param query_db: orm对象
         :param business_type: 业务类型
         :param business_id: 业务ID
-        :return: None
         """
         await cls.replace_business_file_references_services(
             query_db,
@@ -174,7 +176,7 @@ class FileReferenceService:
         file_infos: list[SysFileInfo] | list[dict],
     ) -> dict[str, int]:
         """
-        获取包含兼容字段的文件业务引用数量映射service
+        获取包含兼容字段的文件业务引用数量映射service。
 
         :param query_db: orm对象
         :param file_infos: 文件信息列表
@@ -192,7 +194,13 @@ class FileReferenceService:
 
     @classmethod
     def _normalize_file_ids(cls, file_ids: list[str]) -> list[str]:
-        """校验并标准化文件ID列表。"""
+        """
+        校验并标准化文件ID列表。
+
+        :param file_ids: 文件ID列表
+        :raises ServiceException: 文件ID格式错误
+        :return: 按输入顺序去重后的有效文件标识
+        """
         if len(file_ids) > cls.MAX_REFERENCE_FILES:
             raise ServiceException(
                 message=f'单个业务对象最多引用{cls.MAX_REFERENCE_FILES}个文件',
@@ -207,7 +215,16 @@ class FileReferenceService:
 
     @staticmethod
     def _normalize_text(value: str | None, field_name: str, max_length: int, required: bool = False) -> str | None:
-        """校验并标准化业务引用文本字段。"""
+        """
+        校验并标准化业务引用文本字段。
+
+        :param value: 待处理的输入值
+        :param field_name: 需要读取或校验的字段名
+        :param max_length: 字段允许的最大长度
+        :param required: 是否必须提供该字段
+        :raises ServiceException: 必填文本为空或文本格式不符合要求
+        :return: 供调用方使用的 ``normalized_value``
+        """
         normalized_value = value.strip() if value else None
         if required and not normalized_value:
             raise ServiceException(
@@ -225,16 +242,21 @@ class FileReferenceService:
 
     @staticmethod
     def _get_value(item: SysFileInfo | dict, snake_name: str, camel_name: str) -> Any:
-        """兼容读取ORM对象和查询字典。"""
+        """
+        兼容读取ORM对象和查询字典。
+
+        :param item: 当前要处理的条目
+        :param snake_name: 字段的下划线形式
+        :param camel_name: 字段的驼峰形式
+        :return: 从记录读取的字段值
+        """
         if isinstance(item, dict):
             return item.get(snake_name) if snake_name in item else item.get(camel_name)
         return getattr(item, snake_name)
 
 
 class FileRetentionPolicyService:
-    """
-    文件业务保留策略服务层
-    """
+    """文件业务保留策略服务层。"""
 
     @classmethod
     async def get_file_retention_policy_list_services(
@@ -242,7 +264,7 @@ class FileRetentionPolicyService:
         query_db: AsyncSession,
     ) -> list[FileRetentionPolicyModel]:
         """
-        获取文件业务保留策略列表service
+        获取文件业务保留策略列表service。
 
         :param query_db: orm对象
         :return: 文件业务保留策略列表
@@ -257,7 +279,7 @@ class FileRetentionPolicyService:
         business_type: str,
     ) -> FileRetentionPolicyModel | None:
         """
-        获取已启用的文件业务保留策略service
+        获取已启用的文件业务保留策略service。
 
         :param query_db: orm对象
         :param business_type: 业务类型
@@ -278,12 +300,14 @@ class FileRetentionPolicyService:
         operator_name: str,
     ) -> CrudResponseModel:
         """
-        新增文件业务保留策略service
+        新增文件业务保留策略service。
 
         :param query_db: orm对象
         :param policy: 文件业务保留策略
         :param operator_name: 操作人名称
         :return: 操作结果
+        :raises ServiceException: 该业务类型已有保留策略
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         cls._validate_business_type(policy.business_type)
         exists_policy = await FileRetentionPolicyDao.get_file_retention_policy_by_business_type(
@@ -324,12 +348,14 @@ class FileRetentionPolicyService:
         operator_name: str,
     ) -> CrudResponseModel:
         """
-        修改文件业务保留策略service
+        修改文件业务保留策略service。
 
         :param query_db: orm对象
         :param policy: 文件业务保留策略
         :param operator_name: 操作人名称
         :return: 操作结果
+        :raises ServiceException: 文件业务保留策略不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         cls._validate_business_type(policy.business_type)
         exists_policy = await FileRetentionPolicyDao.get_file_retention_policy_by_business_type(
@@ -367,11 +393,13 @@ class FileRetentionPolicyService:
         business_type: str,
     ) -> CrudResponseModel:
         """
-        删除文件业务保留策略service
+        删除文件业务保留策略service。
 
         :param query_db: orm对象
         :param business_type: 业务类型
         :return: 操作结果
+        :raises ServiceException: 文件业务保留策略不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         normalized_business_type = business_type.strip()
         cls._validate_business_type(normalized_business_type)
@@ -391,14 +419,23 @@ class FileRetentionPolicyService:
 
     @staticmethod
     def _validate_business_type(business_type: str) -> None:
-        """校验业务类型。"""
+        """
+        校验业务类型。
+
+        :param business_type: 业务类型
+        :raises ServiceException: 业务类型格式错误
+        """
         if not business_type.isprintable():
             raise ServiceException(message='业务类型格式错误', msg_key='file.business.invalidType')
 
 
 class FileRetentionNoticeService:
     """
-    文件保留期限提醒服务层
+    文件保留期限提醒服务层。
+
+    :cvar DEFAULT_REMIND_DAYS: 到期前默认提前提醒的天数
+    :cvar MAX_REMIND_DAYS: 允许提前提醒的最大天数
+    :cvar MAX_BATCH_SIZE: 单批处理的最大记录数
     """
 
     DEFAULT_REMIND_DAYS = 7
@@ -414,13 +451,14 @@ class FileRetentionNoticeService:
         file_data_scope_sql: ColumnElement | None = None,
     ) -> FileRetentionScanModel:
         """
-        扫描并生成文件保留期限提醒service
+        扫描并生成文件保留期限提醒service。
 
         :param query_db: orm对象
         :param remind_days: 提前提醒天数
         :param batch_size: 单类提醒单批处理数量
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :return: 扫描结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         cls._validate_scan_parameters(remind_days, batch_size)
         current_time = TimezoneUtil.utc_now()
@@ -480,7 +518,7 @@ class FileRetentionNoticeService:
         is_page: bool = True,
     ) -> PageModel | list[dict]:
         """
-        获取文件保留期限提醒列表service
+        获取文件保留期限提醒列表service。
 
         :param query_db: orm对象
         :param query_object: 查询参数
@@ -504,13 +542,15 @@ class FileRetentionNoticeService:
         file_data_scope_sql: ColumnElement,
     ) -> CrudResponseModel:
         """
-        标记文件保留期限提醒为已读service
+        标记文件保留期限提醒为已读service。
 
         :param query_db: orm对象
         :param notice_ids: 提醒ID字符串
         :param read_by: 读取者
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :return: 操作结果
+        :raises ServiceException: 部分提醒不存在、已失效或超出数据权限
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         parsed_notice_ids = cls._parse_notice_ids(notice_ids)
         scoped_notice_ids = await FileRetentionNoticeDao.get_notice_ids_in_data_scope_for_update(
@@ -538,7 +578,13 @@ class FileRetentionNoticeService:
 
     @classmethod
     def _validate_scan_parameters(cls, remind_days: int, batch_size: int) -> None:
-        """校验提醒扫描参数。"""
+        """
+        校验提醒扫描参数。
+
+        :param remind_days: 提前提醒天数
+        :param batch_size: 单类提醒单批处理数量
+        :raises ServiceException: 提前提醒天数或批次大小超出允许范围
+        """
         if remind_days < 1 or remind_days > cls.MAX_REMIND_DAYS:
             raise ServiceException(
                 message=f'提前提醒天数必须在1到{cls.MAX_REMIND_DAYS}之间',
@@ -554,7 +600,13 @@ class FileRetentionNoticeService:
 
     @staticmethod
     def _parse_notice_ids(notice_ids: str) -> list[int]:
-        """解析并校验提醒ID。"""
+        """
+        解析并校验提醒ID。
+
+        :param notice_ids: 提醒ID字符串
+        :raises ServiceException: 提醒ID格式不正确
+        :return: 供调用方使用的 ``parsed_notice_ids``
+        """
         try:
             parsed_notice_ids = list(dict.fromkeys(int(item.strip()) for item in notice_ids.split(',') if item.strip()))
         except (AttributeError, ValueError) as exc:

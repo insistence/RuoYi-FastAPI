@@ -1,5 +1,3 @@
-"""React templates preserve the generator's CRUD, tree, child-table and time contracts."""
-
 import json
 import subprocess
 from pathlib import Path
@@ -16,6 +14,7 @@ from utils.template_util import TemplateInitializer, TemplateUtils
 @pytest.mark.parametrize('db_type', ['mysql', 'postgresql'])
 @pytest.mark.parametrize('category', ['crud', 'tree', 'sub'])
 def test_react_templates_render_all_business_files(db_type: str, category: str) -> None:
+    """React 模板渲染全部业务文件。"""
     table = make_table(db_type, category, 'react-antd')
     rendered = render_case(db_type, category, 'react-antd')
     files = {TemplateUtils.get_file_name(name, table): text for name, text in rendered.items()}
@@ -47,6 +46,7 @@ def test_react_templates_render_all_business_files(db_type: str, category: str) 
 
 @pytest.mark.parametrize('category', ['crud', 'tree', 'sub'])
 def test_react_templates_do_not_depend_on_missing_context(category: str) -> None:
+    """React 模板无需缺失的上下文项。"""
     table = make_table('mysql', category, 'react-antd')
     context = TemplateUtils.prepare_context(table)
     environment = TemplateInitializer.init_jinja2()
@@ -58,6 +58,7 @@ def test_react_templates_do_not_depend_on_missing_context(category: str) -> None
 
 @pytest.mark.parametrize('category', ['crud', 'tree', 'sub'])
 def test_react_preview_preserves_unicode_and_safe_string_literals(category: str, tmp_path: Path) -> None:
+    """React 预览保留 Unicode 并安全生成字符串字面量。"""
     table = make_table('mysql', category, 'react-antd')
     label = '中文名称「测试」😀 "引号" \\路径 <标签> & 单引号\''
     table.columns[1].column_comment = label

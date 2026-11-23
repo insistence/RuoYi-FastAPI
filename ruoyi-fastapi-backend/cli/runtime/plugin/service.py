@@ -23,6 +23,13 @@ PYTEST_COMMAND_TIMEOUT_SECONDS = 120
 class CliPluginRuntimeDependencies:
     """
     CLI 插件运行时依赖容器。
+
+    :ivar runtime_environment: 插件运行时环境服务
+    :ivar dependency_checker: 插件依赖检查器
+    :ivar management_gateway: 插件管理运行时适配器
+    :ivar model_gateway: 插件管理模型工厂网关
+    :ivar command_gateway: 插件命令执行网关
+    :ivar lifecycle_lock: 插件生命周期操作锁
     """
 
     runtime_environment: object | None = None
@@ -39,6 +46,12 @@ class CliPluginRuntimeService:
 
     该服务负责为 CLI 组装核心插件运行时，并只承载 CLI 专属开发命令能力，
     例如插件测试执行、插件模板创建和本地辅助文件生成。
+
+    :ivar success_code: CLI 成功退出码
+    :ivar runtime_error_code: CLI 运行失败退出码
+    :ivar plugin_gateway: 插件 CLI 运行时网关
+    :ivar dependencies: 执行当前步骤所需的依赖
+    :ivar _core_runtime: 提供底层插件操作的运行时
     """
 
     def __init__(
@@ -66,7 +79,6 @@ class CliPluginRuntimeService:
         :param command_gateway: 插件命令执行网关
         :param lifecycle_lock: 插件生命周期操作锁
         :param plugin_gateway: 插件 CLI 运行时网关
-        :return: None
         """
         self.success_code = success_code
         self.runtime_error_code = runtime_error_code
@@ -374,6 +386,7 @@ class CliPluginRuntimeService:
         :param backend_root: 后端项目根目录
         :param output_path: 用户指定输出路径
         :return: 规范化后的输出路径
+        :raises ValueError: 输出路径超出后端工程目录
         """
         raw_output_path = Path(output_path)
         resolved_backend_root = backend_root.resolve(strict=False)
@@ -399,7 +412,7 @@ class CliPluginRuntimeService:
         执行插件测试样例。
 
         :param plugin_id: 插件ID
-        :param keyword: pytest `-k` 过滤表达式
+        :param keyword: pytest ``-k`` 过滤表达式
         :param maxfail: 最大失败数，0 表示不限制
         :param quiet: 是否启用简洁输出
         :param frontend_build: 是否执行前端构建验收

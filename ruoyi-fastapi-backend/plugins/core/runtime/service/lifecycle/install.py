@@ -29,6 +29,24 @@ from .runner import PluginLifecycleStep, PluginLifecycleStepFailed, PluginLifecy
 class PluginInstallLifecycleContext:
     """
     插件安装声明式生命周期上下文。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar dry_run: 是否只预览操作结果
+    :ivar backend_root: 后端项目的根目录
+    :ivar discovered_plugins: 已发现插件列表
+    :ivar discovered_plugin: 扫描插件目录后得到的插件描述
+    :ivar precheck: 插件预检上下文
+    :ivar actions: 即将执行或已记录的操作步骤
+    :ivar dependency_install_view: 当前依赖安装计划的视图
+    :ivar plugin: 当前处理的插件
+    :ivar installed_configs: 已安装配置列表
+    :ivar migration_results: migration 执行结果列表
+    :ivar seed_results: seed 执行结果列表
+    :ivar hook_result: 清理钩子执行结果
+    :ivar session: 当前操作共用的会话
+    :ivar lifecycle_uow: 当前生命周期操作共享的事务工作单元
+    :ivar session_context: 当前会话的上下文
+    :ivar catalog_snapshot: 操作开始时捕获的插件目录快照
     """
 
     plugin_id: str
@@ -53,6 +71,10 @@ class PluginInstallLifecycleContext:
 class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
     """
     插件安装 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar runtime_operations: 生命周期工作流所需的运行时协作能力
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(
@@ -297,7 +319,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         打开安装数据库会话。
 
         :param context: 插件安装上下文
-        :return: None
         """
         context.session_context = self.dependencies.lifecycle_uow_gateway.open_lifecycle_unit_of_work()
         context.lifecycle_uow = await context.session_context.__aenter__()
@@ -339,7 +360,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         写入插件基础状态。
 
         :param context: 插件安装上下文
-        :return: None
         """
         context.plugin = await context.lifecycle_uow.upsert_discovered_plugin(
             context.discovered_plugin,
@@ -357,7 +377,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         安装插件菜单。
 
         :param context: 插件安装上下文
-        :return: None
         """
         plugin_enabled = getattr(context.plugin, 'enabled', '0') == '0'
         await context.lifecycle_uow.install_plugin_menu(
@@ -375,7 +394,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         安装插件默认配置。
 
         :param context: 插件安装上下文
-        :return: None
         """
         context.installed_configs = await context.lifecycle_uow.install_plugin_default_config(
             context.discovered_plugin,
@@ -391,7 +409,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         同步插件定时任务。
 
         :param context: 插件安装上下文
-        :return: None
         """
         plugin_enabled = getattr(context.plugin, 'enabled', '0') == '0'
         await context.lifecycle_uow.install_plugin_jobs(
@@ -409,7 +426,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         执行插件 migration。
 
         :param context: 插件安装上下文
-        :return: None
         """
         context.migration_results = await self.dependencies.migration_execution_gateway.run_plugin_migrations(
             context.discovered_plugin,
@@ -425,7 +441,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         执行插件 seed。
 
         :param context: 插件安装上下文
-        :return: None
         """
         context.seed_results = await PluginSeedRunner(context.discovered_plugin).run(context.session)
 
@@ -439,7 +454,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         执行插件安装钩子。
 
         :param context: 插件安装上下文
-        :return: None
         """
         context.hook_result = await PluginHookRunner(context.discovered_plugin).run(
             'on_install',
@@ -456,7 +470,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         标记插件已安装。
 
         :param context: 插件安装上下文
-        :return: None
         """
         context.plugin = await context.lifecycle_uow.mark_plugin_installed(
             context.discovered_plugin,
@@ -472,7 +485,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         提交安装事务。
 
         :param context: 插件安装上下文
-        :return: None
         """
         await context.lifecycle_uow.commit()
         CatalogRegistry.commit_plugin(
@@ -489,7 +501,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         关闭安装数据库会话。
 
         :param context: 插件安装上下文
-        :return: None
         """
         if context.session_context is not None:
             await self._close_install_session(context)
@@ -501,7 +512,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         关闭安装数据库会话。
 
         :param context: 插件安装上下文
-        :return: None
         """
         await self._close_lifecycle_session(context)
 
@@ -531,7 +541,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
 
         :param precheck: 插件预检上下文
         :param context: 插件安装上下文
-        :return: None
         """
         context.precheck = precheck
         context.actions = PluginPayloadBuilder.build_install_actions(

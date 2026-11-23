@@ -13,7 +13,15 @@ from module_identity.controller.oidc_key_controller import oidc_key_controller
 
 
 def _route(router: Any, path: str, method: str) -> APIRoute:
-    """查找指定方法的路由。"""
+    """
+    查找指定方法的路由。
+
+    :param router: 注册端点所用的路由器
+    :param path: 要读取或处理的路径
+    :param method: 当前请求的 HTTP 方法
+    :return: 指定方法的路由
+    :raises AssertionError: 未找到给定方法和路径的路由
+    """
     for route in router.routes:
         if isinstance(route, APIRoute) and route.path == path and method in route.methods:
             return route
@@ -21,7 +29,13 @@ def _route(router: Any, path: str, method: str) -> APIRoute:
 
 
 def _rate_limit(endpoint: Callable[..., Any]) -> ApiRateLimit:
-    """从 ``functools.wraps`` 生成的限流包装器闭包读取配置。"""
+    """
+    从 ``functools.wraps`` 生成的限流包装器闭包读取配置。
+
+    :param endpoint: 接收该请求的端点
+    :return: 待处理的输入值
+    :raises AssertionError: 端点缺少限流装饰器
+    """
     pending: list[Callable[..., Any]] = [endpoint]
     visited: set[int] = set()
     while pending:

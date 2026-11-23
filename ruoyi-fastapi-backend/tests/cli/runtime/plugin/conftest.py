@@ -17,54 +17,98 @@ EXPECTED_FRONTEND_BUILD_TIMEOUT = 300
 class FakeRuntimeEnvironment:
     """
     测试用插件 CLI 运行时环境服务。
+
+    :ivar backend_dir: 后端项目目录
+    :ivar frontend_dir: 前端项目目录
     """
 
     def __init__(self, backend_dir: Path, frontend_dir: Path | None = None) -> None:
-        """初始化测试用插件 CLI 运行时环境服务。"""
+        """
+        初始化测试用插件 CLI 运行时环境服务。
+
+        :param backend_dir: 后端项目目录
+        :param frontend_dir: 前端项目目录
+        """
         self.backend_dir = backend_dir
         self.frontend_dir = frontend_dir or Path(
             PluginRuntimeEnvironmentService(backend_root=backend_dir).get_frontend_dir()
         )
 
     def get_backend_dir(self) -> str:
-        """获取后端项目根目录。"""
+        """
+        获取后端项目根目录。
+
+        :return: 后端项目根目录
+        """
         return str(self.backend_dir)
 
     def get_backend_plugins_dir(self) -> str:
-        """获取后端插件根目录。"""
+        """
+        获取后端插件根目录。
+
+        :return: 后端插件根目录
+        """
         return str(self.backend_dir / 'plugins')
 
     def get_frontend_dir(self) -> str:
-        """获取前端项目根目录。"""
+        """
+        获取前端项目根目录。
+
+        :return: 前端项目根目录
+        """
         return str(self.frontend_dir)
 
     def get_frontend_framework(self, frontend_root: Path | None = None) -> str:
-        """获取指定测试前端工程的框架标识。"""
+        """
+        获取指定测试前端工程的框架标识。
+
+        :param frontend_root: 前端项目的根目录
+        :return: 指定测试前端工程的框架标识
+        """
         return PluginFrontendFrameworkResolver.resolve(frontend_root or self.frontend_dir)
 
     def get_frontend_plugins_dir(self) -> str:
-        """获取前端插件根目录。"""
+        """
+        获取前端插件根目录。
+
+        :return: 前端插件根目录
+        """
         return str(self.frontend_dir / 'plugins')
 
     @staticmethod
     def get_frontend_mode() -> str:
-        """获取测试用前端运行模式。"""
+        """
+        获取测试用前端运行模式。
+
+        :return: 此分支的固定值 ``'dev'``
+        """
         return 'dev'
 
     @staticmethod
     def get_backend_runtime_mode() -> str:
-        """获取测试用后端运行模式。"""
+        """
+        获取测试用后端运行模式。
+
+        :return: 此分支的固定值 ``'dev'``
+        """
         return 'dev'
 
     @staticmethod
     def get_python_executable() -> str:
-        """获取测试用 Python 解释器。"""
+        """
+        获取测试用 Python 解释器。
+
+        :return: 测试用 Python 解释器
+        """
         return sys.executable
 
 
 class FakePluginRuntimeGateway:
     """
     测试用插件 CLI 运行时适配器。
+
+    :ivar completed_process: 用于模拟子进程执行结果的对象
+    :ivar commands: 测试替身收到的命令
     """
 
     def __init__(self) -> None:
@@ -79,13 +123,26 @@ class FakePluginRuntimeGateway:
         *,
         timeout: int | None = None,
     ) -> CompletedProcess[str]:
-        """记录测试用系统命令。"""
+        """
+        记录测试用系统命令。
+
+        :param command: 执行的命令及其参数
+        :param workdir: 命令执行时使用的工作目录
+        :param timeout: 等待操作完成的超时限制
+        :return: 供调用方使用的 ``self.completed_process``
+        """
         self.commands.append((command, workdir, timeout))
         return self.completed_process
 
 
 def build_runtime(backend_root: Path, frontend_root: Path | None = None) -> CliPluginRuntimeService:
-    """构建测试用插件 CLI 运行时服务。"""
+    """
+    构建测试用插件 CLI 运行时服务。
+
+    :param backend_root: 后端项目的根目录
+    :param frontend_root: 前端项目的根目录
+    :return: 测试用插件 CLI 运行时服务
+    """
     return CliPluginRuntimeService(
         runtime_environment=FakeRuntimeEnvironment(backend_root, frontend_root),
         dependency_checker=PluginDependencyChecker(
@@ -100,7 +157,14 @@ def build_runtime_with_gateway(
     gateway: FakePluginRuntimeGateway,
     frontend_root: Path | None = None,
 ) -> CliPluginRuntimeService:
-    """构建带测试运行时适配器的插件 CLI 运行时服务。"""
+    """
+    构建带测试运行时适配器的插件 CLI 运行时服务。
+
+    :param backend_root: 后端项目的根目录
+    :param gateway: 测试用插件运行时适配器
+    :param frontend_root: 前端项目的根目录
+    :return: 带测试运行时适配器的插件 CLI 运行时服务
+    """
     return CliPluginRuntimeService(
         runtime_environment=FakeRuntimeEnvironment(backend_root, frontend_root),
         dependency_checker=PluginDependencyChecker(

@@ -8,7 +8,7 @@ from common.types import ApiUtcDateTime
 
 class SessionModel(BaseModel):
     """
-    Session、Grant 和 Audit 管理模型基类
+    Session、Grant 和 Audit 管理模型基类。
 
     管理端字段接受 camelCase 别名并拒绝额外字段。
     """
@@ -17,9 +17,7 @@ class SessionModel(BaseModel):
 
 
 class GrantModel(SessionModel):
-    """
-    用户对 OAuth Client 的授权详情模型
-    """
+    """用户对 OAuth Client 的授权详情模型。"""
 
     grant_id: str = Field(description='授权记录标识')
     user_id: int | None = Field(default=None, description='用户ID')
@@ -43,9 +41,7 @@ class GrantModel(SessionModel):
 
 
 class SsoSessionModel(SessionModel):
-    """
-    认证中心 SSO Session 脱敏详情模型
-    """
+    """认证中心 SSO Session 脱敏详情模型。"""
 
     sid: str = Field(description='SSO会话标识')
     user_id: int | None = Field(default=None, description='用户ID')
@@ -69,25 +65,19 @@ class SsoSessionModel(SessionModel):
 
 
 class SessionRevokeModel(SessionModel):
-    """
-    SSO Session 撤销请求模型
-    """
+    """SSO Session 撤销请求模型。"""
 
     reason: str = Field(min_length=1, max_length=200, description='会话或授权的撤销原因')
 
 
 class GrantAccessModel(SessionRevokeModel):
-    """
-    用户对应用的访问控制请求模型
-    """
+    """用户对应用的访问控制请求模型。"""
 
     blocked: bool = Field(strict=True, description='是否禁止用户访问应用')
 
 
 class SessionPageQueryModel(SessionModel):
-    """
-    SSO Session 分页查询模型
-    """
+    """SSO Session 分页查询模型。"""
 
     user_id: int | None = Field(default=None, description='用户ID')
     ip_address: str | None = Field(default=None, description='IP地址')
@@ -102,18 +92,18 @@ class SessionPageQueryModel(SessionModel):
     @model_validator(mode='after')
     def validate_time_range(self) -> 'SessionPageQueryModel':
         """
-        校验 Session 查询时间范围
-        """
+        校验 Session 查询时间范围。
 
+        :raises ValueError: 结束时间不得早于开始时间
+        :return: 当前实例
+        """
         if self.start_time and self.end_time and self.end_time < self.start_time:
             raise ValueError('结束时间不得早于开始时间')
         return self
 
 
 class GrantPageQueryModel(SessionModel):
-    """
-    OAuth Grant 分页查询模型
-    """
+    """OAuth Grant 分页查询模型。"""
 
     user_id: int | None = Field(default=None, description='用户ID')
     client_id: str | None = Field(default=None, description='客户端标识')
@@ -126,9 +116,7 @@ class GrantPageQueryModel(SessionModel):
 
 
 class AccessPolicyModel(SessionModel):
-    """
-    用户应用访问策略管理模型
-    """
+    """用户应用访问策略管理模型。"""
 
     user_id: int = Field(description='用户ID')
     user_name: str = Field(description='用户名称')
@@ -141,9 +129,7 @@ class AccessPolicyModel(SessionModel):
 
 
 class AccessPolicyPageQueryModel(SessionModel):
-    """
-    用户应用访问策略分页查询模型
-    """
+    """用户应用访问策略分页查询模型。"""
 
     user_id: int | None = Field(default=None, gt=0, description='用户ID')
     client_id: str | None = Field(default=None, max_length=128, description='客户端标识')
@@ -154,7 +140,7 @@ class AccessPolicyPageQueryModel(SessionModel):
 
 class AuditPageQueryModel(SessionModel):
     """
-    OAuth 审计分页查询模型
+    OAuth 审计分页查询模型。
 
     支持按 Client、用户、事件结果、风险和时间范围过滤。
     """
@@ -176,21 +162,18 @@ class AuditPageQueryModel(SessionModel):
     @model_validator(mode='after')
     def validate_time_range(self) -> 'AuditPageQueryModel':
         """
-        校验审计查询的起止时间顺序
+        校验审计查询的起止时间顺序。
 
         :return: 当前已校验查询模型
         :raises ValueError: 结束时间早于开始时间
         """
-
         if self.start_time and self.end_time and self.end_time < self.start_time:
             raise ValueError('结束时间不得早于开始时间')
         return self
 
 
 class AuditModel(SessionModel):
-    """
-    脱敏 OAuth 审计事件详情模型
-    """
+    """脱敏 OAuth 审计事件详情模型。"""
 
     audit_id: int = Field(description='审计记录ID')
     event_type: str = Field(description='审计事件类型')

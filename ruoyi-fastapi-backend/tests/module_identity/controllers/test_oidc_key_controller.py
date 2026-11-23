@@ -18,26 +18,42 @@ from module_identity.service.runtime_service import OidcReadiness, OidcRuntimeSe
 
 
 class _Session:
-    """记录提交和回滚。"""
+    """
+    记录提交和回滚。
+
+    :ivar commits: 测试中记录的提交次数
+    :ivar rollbacks: 测试中记录的回滚次数
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
         self.commits = 0
         self.rollbacks = 0
 
     async def commit(self) -> None:
+        """累加 ``commits`` 供后续断言检查。"""
         self.commits += 1
 
     async def rollback(self) -> None:
+        """累加 ``rollbacks`` 供后续断言检查。"""
         self.rollbacks += 1
 
 
 def _user() -> SimpleNamespace:
-    """构造管理用户。"""
+    """
+    构造管理用户。
+
+    :return: 管理用户
+    """
     return SimpleNamespace(user=SimpleNamespace(user_name='admin'))
 
 
 def _request() -> Request:
-    """构造密钥管理写请求。"""
+    """
+    构造密钥管理写请求。
+
+    :return: 密钥管理写请求
+    """
     app = SimpleNamespace(state=SimpleNamespace())
     return Request({'type': 'http', 'method': 'PUT', 'path': '/', 'headers': [], 'app': app})
 
@@ -68,6 +84,13 @@ async def test_key_write_failures_rollback_and_never_return_private_fields(monke
     db = _Session()
 
     async def fail(*args: object, **kwargs: object) -> bool:
+        """
+        模拟此操作抛出 ValueError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises ValueError: 模拟密钥操作产生含敏感信息的错误
+        """
         raise ValueError('private_key_ciphertext=secret')
 
     monkeypatch.setattr(KeyService, 'activate_key', fail)
@@ -77,6 +100,13 @@ async def test_key_write_failures_rollback_and_never_return_private_fields(monke
     assert db.rollbacks == 1 and db.commits == 0
 
     async def retire(*args: object, **kwargs: object) -> bool:
+        """
+        在此测试分支返回 True。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``True``
+        """
         return True
 
     monkeypatch.setattr(KeyService, 'retire_key', retire)
@@ -95,6 +125,13 @@ async def test_key_activation_returns_clear_message_before_publication(monkeypat
     db = _Session()
 
     async def unpublished(*args: object, **kwargs: object) -> bool:
+        """
+        在调用时报告预期的测试失败：目标签名密钥尚未发布。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises KeyServiceError: 目标签名密钥尚未发布
+        """
         raise KeyServiceError('目标签名密钥尚未发布')
 
     monkeypatch.setattr(KeyService, 'activate_key', unpublished)
@@ -109,10 +146,19 @@ async def test_key_list_exposes_only_safe_enabled_capability(monkeypatch: pytest
     """密钥列表向管理页暴露启用能力，但不阻断 OIDC 关闭时的引导。"""
 
     class _Db:
+        """模拟当前测试所需的数据库操作。"""
+
         async def rollback(self) -> None:
-            pass
+            """在测试会话中处理事务回滚。"""
 
     async def list_page(*args: object, **kwargs: object) -> tuple[list[object], int]:
+        """
+        提供分页查询的测试结果。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 分页查询的测试结果
+        """
         return [], 0
 
     monkeypatch.setattr(OidcKeyManagementService, 'list_page', list_page)
@@ -128,5 +174,10 @@ async def test_key_list_exposes_only_safe_enabled_capability(monkeypatch: pytest
 
 
 async def _async_readiness(value: OidcReadiness) -> OidcReadiness:
-    """返回可注入控制器的异步就绪状态。"""
+    """
+    返回可注入控制器的异步就绪状态。
+
+    :param value: OIDC 协议运行时就绪快照
+    :return: OIDC 协议运行时就绪快照
+    """
     return value

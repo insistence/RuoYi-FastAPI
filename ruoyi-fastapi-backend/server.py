@@ -26,10 +26,9 @@ from utils.transport_crypto_util import TransportKeyProvider
 
 async def _start_background_tasks(app: FastAPI) -> None:
     """
-    启动应用后台任务
+    启动应用后台任务。
 
     :param app: FastAPI对象
-    :return: None
     """
     await SchedulerManager.init_system_scheduler(app.state.redis)
     app.state.log_aggregator_task = asyncio.create_task(LogAggregatorService.consume_stream(app.state.redis))
@@ -38,10 +37,9 @@ async def _start_background_tasks(app: FastAPI) -> None:
 
 async def _stop_background_tasks(app: FastAPI) -> None:
     """
-    停止应用后台任务并释放资源
+    停止应用后台任务并释放资源。
 
     :param app: FastAPI对象
-    :return: None
     """
     try:
         log_task = getattr(app.state, 'log_aggregator_task', None)
@@ -72,7 +70,6 @@ async def _initialize_application_runtime(app: FastAPI, application_leader: bool
 
     :param app: FastAPI对象
     :param application_leader: 当前worker是否为Application leader
-    :return: None
     """
     await DataSourceRegistry.initialize(log_enabled=application_leader)
 
@@ -91,9 +88,7 @@ async def _initialize_application_runtime(app: FastAPI, application_leader: bool
     await OidcRuntimeService.validate_runtime(app)
 
     async def create_plugin_entity_tables() -> None:
-        """
-        在插件 writer 导入实体后同步插件表。
-        """
+        """在插件 writer 导入实体后同步插件表。"""
         await init_create_table(
             stage='plugin_entities',
             log_success_enabled=True,
@@ -120,7 +115,6 @@ async def _shutdown_application_runtime(app: FastAPI) -> None:
     关闭插件运行时并保证基础设施资源始终释放。
 
     :param app: FastAPI对象
-    :return: None
     """
     try:
         if getattr(app.state, 'plugin_application_runtime_started', False):
@@ -155,11 +149,7 @@ def _log_address_group(
 
 
 def _show_startup_addresses() -> None:
-    """
-    显示应用及接口文档访问地址
-
-    :return: None
-    """
+    """显示应用及接口文档访问地址。"""
     host = AppConfig.app_host
     if host == '0.0.0.0':
         local_ip = IPUtil.get_local_ip()
@@ -181,10 +171,10 @@ def _show_startup_addresses() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
-    应用生命周期管理
+    应用生命周期管理。
 
     :param app: FastAPI对象
-    :return: None
+    :yield: 上下文就绪后将控制权交给调用方
     """
     I18nUtil.validate_catalogs()
     app.state.redis = None
@@ -240,7 +230,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 def create_app() -> FastAPI:
     """
-    创建FastAPI应用
+    创建FastAPI应用。
 
     :return: FastAPI对象
     """

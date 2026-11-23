@@ -16,14 +16,12 @@ from utils.time_util import TimezoneUtil
 
 
 class ResponseUtil:
-    """
-    响应工具类
-    """
+    """响应工具类。"""
 
     @staticmethod
     def _json_content(result: dict[str, Any]) -> Any:
         """
-        序列化响应时刻及显式标记的国际化消息
+        序列化响应时刻及显式标记的国际化消息。
 
         :param result: 待返回的响应内容
         :return: 可供JSON响应使用的数据
@@ -56,7 +54,7 @@ class ResponseUtil:
         plural_key: str | None = None,
     ) -> Response:
         """
-        成功响应方法
+        成功响应方法。
 
         :param msg: 可选，自定义成功响应信息
         :param data: 可选，成功响应结果中属性为data的值
@@ -125,7 +123,7 @@ class ResponseUtil:
         plural_key: str | None = None,
     ) -> Response:
         """
-        失败响应方法
+        失败响应方法。
 
         :param msg: 可选，自定义失败响应信息
         :param data: 可选，失败响应结果中属性为data的值
@@ -194,7 +192,7 @@ class ResponseUtil:
         plural_key: str | None = None,
     ) -> Response:
         """
-        未认证响应方法
+        未认证响应方法。
 
         :param msg: 可选，自定义未认证响应信息
         :param data: 可选，未认证响应结果中属性为data的值
@@ -263,7 +261,7 @@ class ResponseUtil:
         plural_key: str | None = None,
     ) -> Response:
         """
-        未授权响应方法
+        未授权响应方法。
 
         :param msg: 可选，自定义未授权响应信息
         :param data: 可选，未授权响应结果中属性为data的值
@@ -332,7 +330,7 @@ class ResponseUtil:
         plural_key: str | None = None,
     ) -> Response:
         """
-        错误响应方法
+        错误响应方法。
 
         :param msg: 可选，自定义错误响应信息
         :param data: 可选，错误响应结果中属性为data的值
@@ -401,7 +399,7 @@ class ResponseUtil:
         plural_key: str | None = None,
     ) -> Response:
         """
-        接口限流响应方法
+        接口限流响应方法。
 
         :param msg: 可选，自定义限流响应信息
         :param data: 可选，限流响应结果中属性为data的值
@@ -462,7 +460,7 @@ class ResponseUtil:
         status_code: int = status.HTTP_200_OK,
     ) -> Response:
         """
-        流式响应方法
+        流式响应方法。
 
         :param data: 流式传输的内容
         :param headers: 可选，响应头信息

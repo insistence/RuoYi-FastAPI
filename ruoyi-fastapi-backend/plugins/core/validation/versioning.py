@@ -14,6 +14,11 @@ class PluginVersion:
     插件版本值对象。
 
     使用 Value Object 模式封装插件版本解析和比较所需的结构化信息。
+
+    :ivar raw: 尚未解析或规范化的原始值
+    :ivar release: 发布号
+    :ivar prerelease_label: 预发布版本的阶段标签
+    :ivar prerelease_number: 同一预发布阶段的顺序号
     """
 
     raw: str
@@ -86,6 +91,8 @@ class PluginVersionComparator:
     插件版本比较器。
 
     使用 Comparator 模式提供插件版本相等、排序和升级判断能力。
+
+    :cvar PRERELEASE_ORDER: 比较同一正式版本的预发布阶段时使用的顺序
     """
 
     PRERELEASE_ORDER = {

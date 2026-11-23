@@ -27,7 +27,7 @@ ASYNC_PROBE_ID = 99
 
 def load_source(args: argparse.Namespace) -> DataSourceSettings:
     """
-    从本地配置读取待验证数据源
+    从本地配置读取待验证数据源。
 
     :param args: 命令行参数
     :return: 数据源连接配置
@@ -41,7 +41,7 @@ def load_source(args: argparse.Namespace) -> DataSourceSettings:
 
 def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings:  # noqa: PLR0915
     """
-    创建隔离测试库并验证UTC种子数据
+    创建隔离测试库并验证UTC种子数据。
 
     :param source: 具备建库权限的源连接配置
     :param report: 原地补充数据库版本和初始化结果的报告字典
@@ -70,14 +70,14 @@ def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings: 
     }
     before = TimezoneUtil.utc_now() - timedelta(seconds=1)
     if target.db_type == 'mysql':
-        import pymysql  # noqa: PLC0415 - load only the selected driver
+        import pymysql  # noqa: PLC0415 - 只加载选定的驱动
         from pymysql.constants import CLIENT  # noqa: PLC0415
 
         connection = pymysql.connect(
             **connection_args, charset='utf8mb4', autocommit=True, client_flag=CLIENT.MULTI_STATEMENTS
         )
     else:
-        import psycopg2  # noqa: PLC0415 - load only the selected driver
+        import psycopg2  # noqa: PLC0415 - 只加载选定的驱动
 
         connection = psycopg2.connect(**connection_args)
         connection.autocommit = True
@@ -119,7 +119,7 @@ def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings: 
 
 def inspect_schema(source: DataSourceSettings, report: dict) -> None:
     """
-    逐列核对实际数据库和ORM的时间类型约定
+    逐列核对实际数据库和ORM的时间类型约定。
 
     :param source: 隔离测试库的数据源配置
     :param report: 原地补充验证结果的报告字典
@@ -178,7 +178,7 @@ def inspect_schema(source: DataSourceSettings, report: dict) -> None:
 
 async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
     """
-    验证同步和异步驱动的UTC会话、精度及重连行为
+    验证同步和异步驱动的UTC会话、精度及重连行为。
 
     :param source: 隔离测试库的数据源配置
     :param report: 原地补充验证结果的报告字典
@@ -187,7 +187,10 @@ async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
     async_engine = create_async_db_engine(config=source, echo=False)
     metadata = MetaData()
     probe = Table(
-        'timezone_verify_probe', metadata, Column('id', Integer, primary_key=True), Column('instant', DbUtcDateTime())
+        'timezone_verify_probe',
+        metadata,
+        Column('id', Integer, primary_key=True, comment='验证记录标识'),
+        Column('instant', DbUtcDateTime(), comment='用于验证 UTC 转换的时刻'),
     )
     metadata.create_all(engine)
     values = [
@@ -225,7 +228,7 @@ async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
 
 async def verify_generator(source: DataSourceSettings, report: dict) -> None:
     """
-    使用真实数据库验证普通表、树表和主子表生成代码
+    使用真实数据库验证普通表、树表和主子表生成代码。
 
     :param source: 隔离测试库的数据源配置
     :param report: 原地补充验证结果的报告字典
@@ -255,7 +258,7 @@ async def verify_generator(source: DataSourceSettings, report: dict) -> None:
 
 async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict) -> None:
     """
-    验证数据库元数据时间及持久化调度行为
+    验证数据库元数据时间及持久化调度行为。
 
     :param source: 隔离测试库的数据源配置
     :param report: 原地补充验证结果的报告字典
@@ -297,9 +300,7 @@ async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict
 
 
 def main() -> None:
-    """
-    运行真实数据库的时区契约验收并输出报告
-    """
+    """运行真实数据库的时区契约验收并输出报告。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--env-file', default='.env.dev')
     parser.add_argument('--source')

@@ -16,9 +16,9 @@ class AppRuntimeService:
     该服务作为应用运行时 facade，对外统一暴露应用实例构建、
     应用配置快照与环境信息快照入口。
 
-    :param runtime_environment: 运行时环境服务
-    :param infrastructure_gateway: 应用基础设施网关
-    :param snapshot_support: 应用快照支持对象
+    :ivar runtime_environment: 运行时环境服务
+    :ivar infrastructure_gateway: 应用基础设施网关
+    :ivar snapshot_support: 应用快照支持对象
     """
 
     def __init__(
@@ -34,7 +34,6 @@ class AppRuntimeService:
         :param runtime_environment: 运行时环境服务
         :param infrastructure_gateway: 应用基础设施网关
         :param snapshot_support: 应用快照支持对象
-        :return: None
         """
         self.runtime_environment = runtime_environment or RUNTIME_ENVIRONMENT
         self.infrastructure_gateway = infrastructure_gateway or AppInfrastructureGateway()

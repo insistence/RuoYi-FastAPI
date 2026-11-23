@@ -27,8 +27,10 @@ from module_identity.service.interaction_service import InteractionFlowService
 @dataclass(frozen=True, slots=True)
 class ConsentResult:
     """
-    授权确认结果
+    授权确认结果。
 
+    :ivar previous_grant: 变更前的用户授权
+    :ivar persisted_grant: 已写入数据库的授权
     :ivar approved: 是否批准授权
     :ivar scopes: 服务端从原请求范围内收敛后的 Scope
     :ivar grant: 本次同意关联的可撤销 Grant
@@ -43,7 +45,7 @@ class ConsentResult:
 
 class ConsentService:
     """
-    授权同意模块服务层
+    授权同意模块服务层。
 
     用户提交只能取消原始请求中的可选 Scope，不能增加 Scope，也不能取消服务端必需 Scope
     每次同意均保存可撤销 Grant，记住同意仅控制后续是否需要再次确认
@@ -52,7 +54,7 @@ class ConsentService:
     @staticmethod
     def validate_submission(context: AuthorizationContext, approved: bool, scopes: Iterable[str]) -> tuple[str, ...]:
         """
-        校验并收敛用户提交的授权 Scope
+        校验并收敛用户提交的授权 Scope。
 
         :param context: 已完成协议校验的授权上下文
         :param approved: 用户是否批准授权
@@ -60,7 +62,6 @@ class ConsentService:
         :return: 按原请求顺序返回的有效 Scope
         :raises OAuthProtocolException: 拒绝授权、扩大 Scope 或取消必需 Scope 时抛出
         """
-
         requested = tuple(context.scopes)
         submitted = tuple(dict.fromkeys(scopes))
         requested_set = set(requested)
@@ -83,7 +84,7 @@ class ConsentService:
         scopes: Iterable[str],
     ) -> SysOAuthGrant:
         """
-        持久化用户同意的 Scope
+        持久化用户同意的 Scope。
 
         :param db: 异步数据库会话
         :param context: 已完成协议校验的授权上下文
@@ -94,7 +95,6 @@ class ConsentService:
 
         调用方负责提交事务；本方法不执行 commit。Grant 撤销与 Token 联动不在本接口内完成
         """
-
         selected_scopes = cls.validate_submission(context, True, scopes)
 
         return await OAuthGrantDao.merge_active_grant(
@@ -119,7 +119,7 @@ class ConsentService:
         subject_id: str | None = None,
     ) -> ConsentResult:
         """
-        处理授权确认并写入可撤销 Grant
+        处理授权确认并写入可撤销 Grant。
 
         :param db: 异步数据库会话
         :param context: 已完成协议校验的授权上下文
@@ -129,10 +129,11 @@ class ConsentService:
         :param user_id: 持久化 Grant 所需的本地用户 ID
         :param subject_id: 持久化 Grant 所需的稳定 Subject
         :return: 授权处理结果
+        :raises ValueError: 创建授权记录必须提供用户编号和主体标识
+        :raises OAuthProtocolException: 当前策略禁止用户访问该客户端
 
         调用方负责 commit；拒绝授权不会写入 Grant
         """
-
         selected_scopes = cls.validate_submission(context, approved, scopes)
         if user_id is None or subject_id is None:
             raise ValueError('创建授权记录必须提供用户编号和主体标识')
@@ -162,13 +163,12 @@ class ConsentService:
     @staticmethod
     async def compensate_persisted_grant(db: AsyncSession, result: ConsentResult) -> None:
         """
-        补偿已提交但 Interaction CAS 失败的持久授权
+        补偿已提交但 Interaction CAS 失败的持久授权。
 
         :param db: 用于独立补偿事务的数据库会话
         :param result: 已提交的授权结果及更新前快照
-        :return: None
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
-
         if result.grant is None or result.persisted_grant is None:
             return
         try:
@@ -206,26 +206,24 @@ class ConsentService:
     @staticmethod
     def consent_is_satisfied(context: AuthorizationContext, grant: SysOAuthGrant | None) -> bool:
         """
-        判断已有 Grant 是否可以跳过本次同意页
+        判断已有 Grant 是否可以跳过本次同意页。
 
         :param context: 已完成协议校验的授权上下文
         :param grant: 当前用户和 Client 的候选 Grant
         :return: 仅当策略版本、范围和 Resource 均匹配时返回 True
         """
-
         return AuthorizationService.consent_is_satisfied(context, grant)
 
     @staticmethod
     def _redirect_error(context: AuthorizationContext, error: str, description: str) -> OAuthProtocolException:
         """
-        创建带已验证 Redirect 的授权错误
+        创建带已验证 Redirect 的授权错误。
 
         :param context: 已完成 Redirect 校验的上下文
         :param error: OAuth 标准错误码
         :param description: 安全错误描述
         :return: 可安全重定向的协议异常
         """
-
         return OAuthProtocolException(
             error,
             description,
@@ -238,20 +236,18 @@ class ConsentService:
 
 
 class InteractionConsentService:
-    """
-    认证中心授权同意流程模块服务层
-    """
+    """认证中心授权同意流程模块服务层。"""
 
     @staticmethod
     async def context_from_record(db: AsyncSession, record: dict[str, object]) -> AuthorizationContext:
         """
-        从 Interaction 白名单记录和当前数据库策略重建同意上下文
+        从 Interaction 白名单记录和当前数据库策略重建同意上下文。
 
         :param db: 异步数据库会话
         :param record: Interaction 内部记录
         :return: 当前策略下的授权上下文
+        :raises OidcInteractionException: 客户端已停用或不可用；权限范围策略已变更，请重新授权；资源访问策略已变更，请重新授权
         """
-
         client = await OAuthClientDao.get_by_pk(db, record['clientPk'], active_only=True)
         if client is None:
             raise OidcInteractionException(
@@ -323,7 +319,7 @@ class InteractionConsentService:
         csrf_token: str | None,
     ) -> InteractionResultModel:
         """
-        校验并提交授权同意，只允许原始 Scope 子集
+        校验并提交授权同意，只允许原始 Scope 子集。
 
         :param redis: 交互 Redis
         :param interaction_id: Interaction 标识
@@ -331,8 +327,8 @@ class InteractionConsentService:
         :param db: 异步数据库会话
         :param csrf_token: Interaction CSRF 原文
         :return: 同源完成跳转动作
+        :raises OAuthProtocolException: 处理同意请求时发生需要继续传播的协议错误
         """
-
         record = await InteractionFlowService.csrf_record(redis, interaction_id, csrf_token)
         InteractionFlowService.require_status(record, 'awaiting_consent')
         context = await InteractionConsentService.context_from_record(db, record)
@@ -382,12 +378,7 @@ class InteractionConsentService:
         )
 
         async def compensate() -> None:
-            """
-            执行事务补偿
-
-            :return: None
-            """
-
+            """执行事务补偿。"""
             await ConsentService.compensate_persisted_grant(db, result)
 
         await InteractionFlowService.commit_transition(
@@ -410,15 +401,15 @@ class InteractionConsentService:
         csrf_token: str | None,
     ) -> InteractionResultModel:
         """
-        以 CSRF 保护的原子状态迁移拒绝当前授权
+        以 CSRF 保护的原子状态迁移拒绝当前授权。
 
         :param redis: 交互 Redis
         :param interaction_id: Interaction 标识
         :param db: 异步数据库会话
         :param csrf_token: Interaction CSRF 原文
         :return: 同源完成跳转动作
+        :raises OidcInteractionException: 认证交互已失效，请重新发起认证
         """
-
         record = await InteractionFlowService.csrf_record(redis, interaction_id, csrf_token)
         if record.get('status') not in {'awaiting_login', 'awaiting_consent', 'password_change_required'}:
             raise OidcInteractionException(

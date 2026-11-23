@@ -22,6 +22,16 @@ def _menu(
     route_name: str | None,
     menu_name: str = '已有菜单',
 ) -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param menu_id: 菜单ID
+    :param parent_id: 父菜单ID
+    :param path: 要读取或处理的路径
+    :param route_name: 路由名称
+    :param menu_name: 菜单名称
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         menu_id=menu_id,
         parent_id=parent_id,
@@ -52,6 +62,7 @@ def _menu(
 async def test_check_route_config_unique_rejects_route_conflicts(
     page_object: MenuModel, existing_menu: SimpleNamespace
 ) -> None:
+    """路由配置唯一性检查拒绝冲突。"""
     with patch.object(
         MenuDao,
         'get_menus_by_path_or_route_name',
@@ -64,6 +75,7 @@ async def test_check_route_config_unique_rejects_route_conflicts(
 
 @pytest.mark.asyncio
 async def test_check_route_config_unique_allows_same_path_under_different_parent_with_distinct_route_name() -> None:
+    """不同上级下的同路径可使用不同路由名。"""
     page_object = MenuModel(menuId=2, parentId=2, path='system/user', routeName='SecondSystemUser')
     existing_menu = _menu(menu_id=1, parent_id=1, path='system/user', route_name='FirstSystemUser')
     with patch.object(
@@ -78,6 +90,7 @@ async def test_check_route_config_unique_allows_same_path_under_different_parent
 
 @pytest.mark.asyncio
 async def test_check_route_config_unique_ignores_current_menu() -> None:
+    """校验路由唯一性时排除当前菜单。"""
     page_object = MenuModel(menuId=1, parentId=1, path='system/user', routeName='SystemUser')
     current_menu = _menu(menu_id=1, parent_id=1, path='system/user', route_name='SystemUser')
     with patch.object(
@@ -92,6 +105,7 @@ async def test_check_route_config_unique_ignores_current_menu() -> None:
 
 @pytest.mark.asyncio
 async def test_add_menu_rejects_duplicate_route_config() -> None:
+    """新增菜单拒绝重复路由配置。"""
     page_object = MenuModel(menuName='用户管理', parentId=1, path='system/user', routeName='SystemUser', isFrame=1)
     with (
         patch.object(MenuService, 'check_menu_name_unique_services', new=AsyncMock(return_value=True)),
@@ -107,6 +121,7 @@ async def test_add_menu_rejects_duplicate_route_config() -> None:
 
 @pytest.mark.asyncio
 async def test_get_menus_by_path_or_route_name_is_case_insensitive_and_excludes_buttons() -> None:
+    """按路径或路由名查询时忽略大小写并排除按钮。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
@@ -152,6 +167,7 @@ async def test_get_menus_by_path_or_route_name_is_case_insensitive_and_excludes_
 
 
 def test_parse_menu_sort_items_preserves_corresponding_order_values() -> None:
+    """解析菜单排序时保留各菜单对应的顺序值。"""
     result = MenuService.parse_menu_sort_items(MenuSortModel(menuIds='101, 102', orderNums='3, 1'))
 
     assert result == [
@@ -171,6 +187,7 @@ def test_parse_menu_sort_items_preserves_corresponding_order_values() -> None:
     ],
 )
 def test_parse_menu_sort_items_rejects_invalid_parameters(menu_ids: str, order_nums: str) -> None:
+    """菜单排序拒绝无效参数。"""
     with pytest.raises(ServiceException) as exc_info:
         MenuService.parse_menu_sort_items(MenuSortModel(menuIds=menu_ids, orderNums=order_nums))
 
@@ -179,6 +196,7 @@ def test_parse_menu_sort_items_rejects_invalid_parameters(menu_ids: str, order_n
 
 @pytest.mark.asyncio
 async def test_update_menu_sort_updates_all_rows_in_one_transaction() -> None:
+    """在同一事务中更新全部菜单排序。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
@@ -208,6 +226,7 @@ async def test_update_menu_sort_updates_all_rows_in_one_transaction() -> None:
 
 @pytest.mark.asyncio
 async def test_update_menu_sort_rolls_back_and_wraps_database_error() -> None:
+    """菜单排序遇到数据库错误时回滚并转换异常。"""
     query_db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
     with (
@@ -225,6 +244,11 @@ async def test_update_menu_sort_rolls_back_and_wraps_database_error() -> None:
 
 
 async def _create_menu_tree() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    """
+    在独立数据库中准备菜单树数据。
+
+    :return: 依次为 ``engine``、``sessions`` 的元组
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     sessions = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
@@ -248,6 +272,7 @@ async def _create_menu_tree() -> tuple[AsyncEngine, async_sessionmaker[AsyncSess
 @pytest.mark.asyncio
 @pytest.mark.parametrize('parent_id', [501, 502, 503, 701, 800, 999])
 async def test_edit_menu_rejects_invalid_parent_chains_without_writing(parent_id: int) -> None:
+    """编辑菜单时拒绝无效上级链且不写库。"""
     engine, sessions = await _create_menu_tree()
     try:
         async with sessions() as session:
@@ -266,6 +291,7 @@ async def test_edit_menu_rejects_invalid_parent_chains_without_writing(parent_id
 @pytest.mark.asyncio
 @pytest.mark.parametrize('parent_id', [None, 0, 600])
 async def test_edit_menu_preserves_root_or_moves_subtree_to_valid_parent(parent_id: int | None) -> None:
+    """编辑菜单时可保留根节点或移动子树至有效上级。"""
     engine, sessions = await _create_menu_tree()
     try:
         async with sessions() as session:

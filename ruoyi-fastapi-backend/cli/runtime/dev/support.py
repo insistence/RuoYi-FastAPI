@@ -39,7 +39,7 @@ class DevelopmentCommandSupport:
     该对象负责开发工具命令参数拼装，
     避免主运行时服务继续承载命令行桥接细节。
 
-    :param runtime_environment: 运行时环境服务
+    :ivar runtime_environment: 运行时环境服务
     """
 
     def __init__(self, runtime_environment: RuntimeEnvironmentService) -> None:
@@ -47,7 +47,6 @@ class DevelopmentCommandSupport:
         初始化开发命令构建支持对象。
 
         :param runtime_environment: 运行时环境服务
-        :return: None
         """
         self.runtime_environment = runtime_environment
 
@@ -102,7 +101,7 @@ class DevelopmentCommandSupport:
         构建 pytest 命令。
 
         :param normalized_targets: 已规整目标列表
-        :param keyword: pytest `-k` 表达式
+        :param keyword: pytest ``-k`` 表达式
         :param maxfail: 最大失败数
         :param quiet: 是否启用简洁输出
         :return: pytest 命令参数列表

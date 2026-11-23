@@ -12,14 +12,12 @@ from utils.jwt_util import JwtUtil
 
 
 class OnlineService:
-    """
-    在线用户管理模块服务层
-    """
+    """在线用户管理模块服务层。"""
 
     @classmethod
     async def get_online_list_services(cls, request: Request, query_object: OnlineQueryModel) -> list[dict[str, Any]]:
         """
-        获取在线用户表信息service
+        获取在线用户表信息service。
 
         :param request: Request对象
         :param query_object: 查询参数对象
@@ -68,11 +66,12 @@ class OnlineService:
     @classmethod
     async def delete_online_services(cls, request: Request, page_object: DeleteOnlineModel) -> CrudResponseModel:
         """
-        强退在线用户信息service
+        强退在线用户信息service。
 
         :param request: Request对象
         :param page_object: 强退在线用户对象
         :return: 强退在线用户校验结果
+        :raises ServiceException: 传入session_id为空
         """
         if page_object.token_ids:
             token_id_list = page_object.token_ids.split(',')

@@ -10,9 +10,8 @@ __version__ = '0.1.0'
 
 def add_trace_middleware(app: FastAPI) -> None:
     """
-    添加trace中间件
+    添加trace中间件。
 
     :param app: FastAPI对象
-    :return:
     """
     app.add_middleware(TraceASGIMiddleware)

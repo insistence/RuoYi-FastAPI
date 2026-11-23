@@ -16,6 +16,10 @@ EXISTING_MENU_ID = 200
 class FakePluginDao:
     """
     测试用插件 DAO。
+
+    :cvar plugin_menus: 测试中由插件注册的菜单
+    :cvar menus: 测试仓储中保存的菜单
+    :cvar next_menu_id: 分配给下一条测试菜单的标识
     """
 
     plugin_menus: dict[tuple[str, str], SimpleNamespace] = {}
@@ -36,17 +40,36 @@ class FakePluginDao:
         plugin_id: str,
         menu_key: str,
     ) -> SimpleNamespace | None:
-        """根据插件菜单自然键查询关联。"""
+        """
+        根据插件菜单自然键查询关联。
+
+        :param db: 当前操作使用的数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param menu_key: 插件内菜单自然键
+        :return: 与插件和菜单键匹配的归属记录
+        """
         return cls.plugin_menus.get((plugin_id, menu_key))
 
     @classmethod
     async def get_plugin_menu_list(cls, db: object, plugin_id: str) -> list[SimpleNamespace]:
-        """查询插件菜单关联列表。"""
+        """
+        查询插件菜单关联列表。
+
+        :param db: 当前操作使用的数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :return: 插件菜单关联列表
+        """
         return [plugin_menu for key, plugin_menu in cls.plugin_menus.items() if key[0] == plugin_id]
 
     @classmethod
     async def get_plugin_menu_by_menu_id(cls, db: object, menu_id: int) -> SimpleNamespace | None:
-        """根据菜单 ID 查询插件 ownership。"""
+        """
+        根据菜单 ID 查询插件 ownership。
+
+        :param db: 当前操作使用的数据库会话
+        :param menu_id: 菜单ID
+        :return: 给定菜单标识对应的插件归属记录
+        """
         return next(
             (plugin_menu for plugin_menu in cls.plugin_menus.values() if plugin_menu.menu_id == menu_id),
             None,
@@ -54,12 +77,24 @@ class FakePluginDao:
 
     @classmethod
     async def get_sys_menu_by_id(cls, db: object, menu_id: int) -> SimpleNamespace | None:
-        """根据菜单 ID 查询系统菜单。"""
+        """
+        根据菜单 ID 查询系统菜单。
+
+        :param db: 当前操作使用的数据库会话
+        :param menu_id: 菜单ID
+        :return: 对应的系统菜单，未命中时为空值
+        """
         return cls.menus.get(menu_id)
 
     @classmethod
     async def get_sys_menu_by_perms(cls, db: object, perms: str) -> SimpleNamespace | None:
-        """根据权限标识查询系统菜单。"""
+        """
+        根据权限标识查询系统菜单。
+
+        :param db: 当前操作使用的数据库会话
+        :param perms: 调用主体所拥有的权限集合
+        :return: 当前要安装或操作的菜单项
+        """
         for menu in cls.menus.values():
             if menu.perms == perms:
                 return menu
@@ -73,7 +108,15 @@ class FakePluginDao:
         path: str,
         component: str,
     ) -> SimpleNamespace | None:
-        """根据路由自然键查询系统菜单。"""
+        """
+        根据路由自然键查询系统菜单。
+
+        :param db: 当前操作使用的数据库会话
+        :param parent_id: 父菜单ID
+        :param path: 要读取或处理的路径
+        :param component: 当前检查或渲染的组件
+        :return: 当前要安装或操作的菜单项
+        """
         for menu in cls.menus.values():
             if menu.parent_id == parent_id and menu.path == path and menu.component == component:
                 return menu
@@ -87,7 +130,15 @@ class FakePluginDao:
         menu_name: str,
         path: str,
     ) -> SimpleNamespace | None:
-        """根据菜单名称和路径查询系统菜单。"""
+        """
+        根据菜单名称和路径查询系统菜单。
+
+        :param db: 当前操作使用的数据库会话
+        :param parent_id: 父菜单ID
+        :param menu_name: 菜单名称
+        :param path: 要读取或处理的路径
+        :return: 当前要安装或操作的菜单项
+        """
         for menu in cls.menus.values():
             if menu.parent_id == parent_id and menu.menu_name == menu_name and menu.path == path:
                 return menu
@@ -95,7 +146,13 @@ class FakePluginDao:
 
     @classmethod
     async def add_sys_menu(cls, db: object, menu: object) -> SimpleNamespace:
-        """新增系统菜单。"""
+        """
+        新增系统菜单。
+
+        :param db: 当前操作使用的数据库会话
+        :param menu: 当前要安装或操作的菜单项
+        :return: 供调用方使用的 ``sys_menu``
+        """
         menu_data = menu.model_dump(exclude_unset=True)
         menu_id = cls.next_menu_id
         cls.next_menu_id += 1
@@ -107,20 +164,37 @@ class FakePluginDao:
 
     @classmethod
     async def update_sys_menu(cls, db: object, menu: dict) -> None:
-        """更新系统菜单。"""
+        """
+        更新系统菜单。
+
+        :param db: 当前操作使用的数据库会话
+        :param menu: 当前要安装或操作的菜单项
+        """
         sys_menu = cls.menus[menu['menu_id']]
         for key, value in menu.items():
             setattr(sys_menu, key, value)
 
     @classmethod
     async def update_sys_menu_status_by_ids(cls, db: object, menu_ids: list[int], status: str) -> None:
-        """批量更新系统菜单状态。"""
+        """
+        批量更新系统菜单状态。
+
+        :param db: 当前操作使用的数据库会话
+        :param menu_ids: 菜单ID列表
+        :param status: 操作或记录所处的状态
+        """
         for menu_id in menu_ids:
             cls.menus[menu_id].status = status
 
     @classmethod
     async def add_plugin_menu(cls, db: object, plugin_menu: object) -> SimpleNamespace:
-        """新增插件菜单关联。"""
+        """
+        新增插件菜单关联。
+
+        :param db: 当前操作使用的数据库会话
+        :param plugin_menu: 插件菜单关联对象
+        :return: 供调用方使用的 ``plugin_menu_model``
+        """
         plugin_menu_data = plugin_menu.model_dump(exclude_unset=True)
         plugin_menu_model = SimpleNamespace(**plugin_menu_data)
         cls.plugin_menus[(plugin_menu_model.plugin_id, plugin_menu_model.menu_key)] = plugin_menu_model
@@ -129,7 +203,12 @@ class FakePluginDao:
 
     @classmethod
     async def update_plugin_menu_by_key(cls, db: object, plugin_menu: object) -> None:
-        """根据插件菜单自然键更新插件菜单关联。"""
+        """
+        根据插件菜单自然键更新插件菜单关联。
+
+        :param db: 当前操作使用的数据库会话
+        :param plugin_menu: 插件菜单关联对象
+        """
         plugin_menu_data = plugin_menu.model_dump(exclude_unset=True)
         cls.plugin_menus[(plugin_menu_data['plugin_id'], plugin_menu_data['menu_key'])].menu_id = plugin_menu_data[
             'menu_id'
@@ -137,7 +216,12 @@ class FakePluginDao:
 
     @classmethod
     async def update_plugin_menu_key_by_menu_id(cls, db: object, plugin_menu: object) -> None:
-        """根据菜单 ID 更新插件菜单自然键。"""
+        """
+        根据菜单 ID 更新插件菜单自然键。
+
+        :param db: 当前操作使用的数据库会话
+        :param plugin_menu: 插件菜单关联对象
+        """
         plugin_menu_data = plugin_menu.model_dump(exclude_unset=True)
         old_key = next(
             key
@@ -150,7 +234,13 @@ class FakePluginDao:
 
     @classmethod
     async def delete_plugin_menus_by_ids(cls, db: object, plugin_id: str, menu_ids: list[int]) -> None:
-        """删除指定插件菜单 ownership。"""
+        """
+        删除指定插件菜单 ownership。
+
+        :param db: 当前操作使用的数据库会话
+        :param plugin_id: 插件清单中的唯一标识
+        :param menu_ids: 菜单ID列表
+        """
         cls.plugin_menus = {
             key: plugin_menu
             for key, plugin_menu in cls.plugin_menus.items()
@@ -159,13 +249,22 @@ class FakePluginDao:
 
     @classmethod
     async def delete_sys_menus_by_ids(cls, db: object, menu_ids: list[int]) -> None:
-        """删除系统菜单。"""
+        """
+        删除系统菜单。
+
+        :param db: 当前操作使用的数据库会话
+        :param menu_ids: 菜单ID列表
+        """
         for menu_id in menu_ids:
             cls.menus.pop(menu_id, None)
 
 
 def build_manifest() -> PluginManifest:
-    """构造测试插件清单。"""
+    """
+    构造测试插件清单。
+
+    :return: 测试插件清单
+    """
     return PluginManifest.model_validate(
         {
             'id': 'demo',

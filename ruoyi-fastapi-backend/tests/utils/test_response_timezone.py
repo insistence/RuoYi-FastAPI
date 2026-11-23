@@ -7,6 +7,7 @@ from utils.response_util import ResponseUtil
 
 
 def test_response_util_serializes_nested_datetimes_as_fixed_utc_rfc3339() -> None:
+    """响应中的嵌套日期时间统一序列化为 UTC 的 RFC 3339 格式。"""
     response = ResponseUtil.success(data={'createdAt': datetime(2026, 8, 28, 10, 30, 0, 123456, tzinfo=UTC)})
     payload = json.loads(response.body)
 
@@ -16,5 +17,6 @@ def test_response_util_serializes_nested_datetimes_as_fixed_utc_rfc3339() -> Non
 
 
 def test_response_util_rejects_naive_datetime_output() -> None:
+    """响应拒绝无时区日期时间。"""
     with pytest.raises(ValueError, match='必须携带时区'):
         ResponseUtil.success(data={'createdAt': datetime(2026, 8, 28, 10, 30)})

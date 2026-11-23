@@ -7,9 +7,7 @@ from utils.common_util import SqlalchemyUtil
 
 
 class SysConfig(AuditTimeMixin, Base):
-    """
-    参数配置表
-    """
+    """参数配置表。"""
 
     __tablename__ = 'sys_config'
     __table_args__ = {'comment': '参数配置表'}

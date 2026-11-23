@@ -8,9 +8,7 @@ from utils.common_util import SqlalchemyUtil
 
 
 class SysDictType(AuditTimeMixin, Base):
-    """
-    字典类型表
-    """
+    """字典类型表。"""
 
     __tablename__ = 'sys_dict_type'
     __table_args__ = {'comment': '字典类型表'}
@@ -31,9 +29,7 @@ class SysDictType(AuditTimeMixin, Base):
 
 
 class SysDictData(AuditTimeMixin, Base):
-    """
-    字典数据表
-    """
+    """字典数据表。"""
 
     __tablename__ = 'sys_dict_data'
     __table_args__ = {'comment': '字典数据表'}

@@ -19,17 +19,17 @@ class PluginHostContext:
     services 只包含宿主显式登记的接口，不提供通过字符串导入任意服务的执行器。
     具体服务仍负责权限和事务规则；该对象不是针对不可信代码的沙箱。
 
-    :param plugin_id: 插件 ID
-    :param resource_root: 插件资源根目录
-    :param config: 当前插件的只读配置快照
-    :param services: 宿主显式注册的只读服务映射
-    :param session_factory: 由宿主提供的数据库会话工厂
-    :param redis: 宿主共享的 Redis 客户端
-    :param logger: 绑定插件标识的日志对象
-    :param startup_write_enabled: 当前实例是否允许执行启动期全局写入
-    :param api_version: 宿主插件 API 版本
-    :param config_revision: 启动配置快照的不透明版本，手动构造上下文时可为空
-    :param config_reader: 宿主绑定的当前插件配置读取器
+    :ivar plugin_id: 插件 ID
+    :ivar resource_root: 插件资源根目录
+    :ivar config: 当前插件的只读配置快照
+    :ivar services: 宿主显式注册的只读服务映射
+    :ivar session_factory: 由宿主提供的数据库会话工厂
+    :ivar redis: 宿主共享的 Redis 客户端
+    :ivar logger: 绑定插件标识的日志对象
+    :ivar startup_write_enabled: 当前实例是否允许执行启动期全局写入
+    :ivar api_version: 宿主插件 API 版本
+    :ivar config_revision: 启动配置快照的不透明版本，手动构造上下文时可为空
+    :ivar config_reader: 宿主绑定的当前插件配置读取器
     """
 
     plugin_id: str
@@ -45,11 +45,7 @@ class PluginHostContext:
     config_reader: Callable[[], Awaitable[PluginConfigSnapshot]] | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        """
-        规范化资源根目录，并将配置和服务映射转换为只读快照。
-
-        :return: None
-        """
+        """规范化资源根目录，并将配置和服务映射转换为只读快照。"""
         object.__setattr__(self, 'resource_root', self.resource_root.resolve())
         object.__setattr__(self, 'config', MappingProxyType(dict(self.config)))
         object.__setattr__(self, 'services', MappingProxyType(dict(self.services)))
@@ -71,6 +67,7 @@ class PluginHostContext:
 
         :param relative_path: 相对于当前插件资源根目录的路径
         :return: 通过插件目录边界校验的资源绝对路径
+        :raises ValueError: 插件资源路径不能越过插件根目录
         """
         path = (self.resource_root / relative_path).resolve()
         if not path.is_relative_to(self.resource_root):
@@ -83,6 +80,7 @@ class PluginHostContext:
 
         :param name: 宿主注册的版本化服务名称
         :return: 对应的宿主服务能力对象
+        :raises LookupError: 宿主未注册指定名称的服务
         """
         if name not in self.services:
             raise LookupError(f'宿主未提供插件服务：{name}')
@@ -94,13 +92,13 @@ class PluginRequestContext:
     """
     由宿主鉴权层建立的请求身份，不能由客户端字段直接构造。
 
-    :param host: 当前插件的宿主能力上下文
-    :param user: 宿主登录服务返回的当前用户
-    :param permissions: 当前用户的接口权限集合
-    :param request_id: 宿主提供的请求关联标识
-    :param query_db: 显式事务块内有效的数据库会话，不得跨任务共享
-    :param request: SDK 接口适配器提供的 HTTP 请求数据快照
-    :param _transaction: 宿主内部的会话所有权记录，业务代码不应自行构造
+    :ivar host: 当前插件的宿主能力上下文
+    :ivar user: 宿主登录服务返回的当前用户
+    :ivar permissions: 当前用户的接口权限集合
+    :ivar request_id: 宿主提供的请求关联标识
+    :ivar query_db: 显式事务块内有效的数据库会话，不得跨任务共享
+    :ivar request: SDK 接口适配器提供的 HTTP 请求数据快照
+    :ivar _transaction: 宿主内部的会话所有权记录，业务代码不应自行构造
     """
 
     host: PluginHostContext
@@ -116,7 +114,7 @@ class PluginRequestContext:
         执行接口权限检查；数据权限由具体服务按当前用户处理。
 
         :param permission: 当前操作要求的接口权限标识
-        :return: None
+        :raises PermissionError: 当前上下文缺少指定权限
         """
         if permission not in self.permissions and '*:*:*' not in self.permissions:
             raise PermissionError(f'缺少权限：{permission}')
@@ -126,7 +124,7 @@ class PluginRequestContext:
         """
         为当前任务创建显式事务，成功提交、异常或取消回滚，并关闭独占会话。
 
-        :return: 仅在当前事务块和当前 asyncio 任务内有效的请求上下文
+        :yield: 仅在当前事务块和当前 asyncio 任务内有效的请求上下文
         :raises RuntimeError: 嵌套事务、缺少会话工厂或在失效上下文上重新开启事务
         """
         if self.query_db is not None or self._transaction is not None:
@@ -163,9 +161,9 @@ class _PluginTransactionState:
     """
     记录显式事务的会话、所属任务和有效期。
 
-    :param session: 当前事务独占的数据库会话
-    :param owner: 开启事务的 asyncio 任务
-    :param active: 事务块是否仍有效
+    :ivar session: 当前事务独占的数据库会话
+    :ivar owner: 开启事务的 asyncio 任务
+    :ivar active: 事务块是否仍有效
     """
 
     session: Any
@@ -178,9 +176,9 @@ class PluginTaskContext:
     """
     后台任务身份；不隐式授予请求用户或管理员权限。
 
-    :param host: 当前插件的宿主能力上下文
-    :param job_id: 插件清单声明的任务 ID
-    :param request_id: 本次任务执行的独立追踪标识
+    :ivar host: 当前插件的宿主能力上下文
+    :ivar job_id: 插件清单声明的任务 ID
+    :ivar request_id: 本次任务执行的独立追踪标识
     """
 
     host: PluginHostContext

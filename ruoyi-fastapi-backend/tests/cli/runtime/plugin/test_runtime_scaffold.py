@@ -11,7 +11,12 @@ from .conftest import FakeRuntimeEnvironment, build_runtime
 
 
 def write_frontend_package(frontend_root: Path, dependencies: dict[str, str]) -> None:
-    """写入测试用前端 package.json。"""
+    """
+    写入测试用前端 package.json。
+
+    :param frontend_root: 前端项目的根目录
+    :param dependencies: 执行当前步骤所需的依赖
+    """
     frontend_root.mkdir(parents=True, exist_ok=True)
     (frontend_root / 'package.json').write_text(
         json.dumps({'dependencies': dependencies}),
@@ -22,21 +27,38 @@ def write_frontend_package(frontend_root: Path, dependencies: dict[str, str]) ->
 class LazyPluginGateway:
     """
     测试用 CLI 插件网关，验证开发者能力可懒解析运行时依赖。
+
+    :ivar backend_root: 后端项目的根目录
+    :ivar runtime_environment_requested: 是否已请求创建运行环境
     """
 
     def __init__(self, backend_root: Path) -> None:
-        """初始化测试用 CLI 插件网关。"""
+        """
+        初始化测试用 CLI 插件网关。
+
+        :param backend_root: 后端项目的根目录
+        """
         self.backend_root = backend_root
         self.runtime_environment_requested = False
 
     def get_core_runtime_environment(self) -> FakeRuntimeEnvironment:
-        """获取测试运行时环境。"""
+        """
+        获取测试运行时环境。
+
+        :return: 测试运行时环境
+        """
         self.runtime_environment_requested = True
         return FakeRuntimeEnvironment(self.backend_root)
 
     @staticmethod
     def build_exception_payload(message: str, exc: Exception) -> dict[str, object]:
-        """构建测试异常负载。"""
+        """
+        构建测试异常负载。
+
+        :param message: 与当前结果一起返回的说明
+        :param exc: 捕获到的异常实例
+        :return: 测试异常负载
+        """
         return {'ok': False, 'message': message, 'error': str(exc)}
 
 

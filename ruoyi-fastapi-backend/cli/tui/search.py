@@ -7,9 +7,9 @@ class PageFilterOption:
     """
     浏览页筛选项定义。
 
-    :param key: 筛选键
-    :param label: 展示名称
-    :param shortcut: 快捷键
+    :ivar key: 筛选键
+    :ivar label: 展示名称
+    :ivar shortcut: 快捷键
     """
 
     key: str
@@ -22,9 +22,9 @@ class PageSearchContext:
     """
     浏览页搜索上下文定义。
 
-    :param placeholder: 搜索输入提示
-    :param query: 当前搜索词
-    :param suggestions: 候选建议列表
+    :ivar placeholder: 搜索输入提示
+    :ivar query: 当前搜索词
+    :ivar suggestions: 候选建议列表
     """
 
     placeholder: str
@@ -37,8 +37,8 @@ class SearchSuggestionProviderSpec:
     """
     页面搜索建议提供者定义。
 
-    :param placeholder: 搜索输入提示
-    :param suggestion_provider: 候选建议提供函数
+    :ivar placeholder: 搜索输入提示
+    :ivar suggestion_provider: 候选建议提供函数
     """
 
     placeholder: str
@@ -67,7 +67,7 @@ class TuiSearchSuggestionProviderRegistry:
     该对象负责管理页面搜索提示文案及其候选建议提供函数，避免搜索服务
     继续通过字符串反射隐式定位 completion provider。
 
-    :param providers: 页面搜索提供者映射
+    :ivar providers: 页面搜索提供者映射
     """
 
     def __init__(self, providers: dict[str, SearchSuggestionProviderSpec]) -> None:
@@ -75,7 +75,6 @@ class TuiSearchSuggestionProviderRegistry:
         初始化搜索建议提供者注册表。
 
         :param providers: 页面搜索提供者映射
-        :return: None
         """
         self.providers = {self.normalize_view_key(key): value for key, value in providers.items()}
 
@@ -162,6 +161,8 @@ class TuiSearchService:
     TUI 搜索服务。
 
     该对象负责筛选项解析、筛选条文案构建、搜索上下文装配和详情分区过滤。
+
+    :ivar provider_registry: 页面搜索建议提供者注册表
     """
 
     def __init__(self, provider_registry: TuiSearchSuggestionProviderRegistry) -> None:
@@ -169,7 +170,6 @@ class TuiSearchService:
         初始化 TUI 搜索服务。
 
         :param provider_registry: 页面搜索建议提供者注册表
-        :return: None
         """
         self.provider_registry = provider_registry
 

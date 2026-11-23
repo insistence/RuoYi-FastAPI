@@ -6,6 +6,7 @@ from plugins.core.management.entity.vo.schemas import PluginMigrationModel, Plug
 
 
 def test_plugin_persistence_payload_ignores_client_audit_times() -> None:
+    """插件持久化数据忽略客户端提交的审计时间。"""
     now = datetime(2026, 8, 21, 12, 0, 0, tzinfo=UTC)
     payload = PluginDao.dump_plugin_persistence_payload(
         PluginModel(
@@ -22,6 +23,7 @@ def test_plugin_persistence_payload_ignores_client_audit_times() -> None:
 
 
 def test_existing_migration_update_uses_onupdate_not_external_time() -> None:
+    """迁移更新通过 onupdate 生成时间。"""
     now = datetime(2026, 8, 21, 12, 0, 0, tzinfo=UTC)
     payload = PluginMigrationModel(
         pluginId='demo',

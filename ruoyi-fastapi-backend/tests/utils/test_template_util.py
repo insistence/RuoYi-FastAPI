@@ -17,6 +17,14 @@ def _gen_table(
     tpl_web_type: str = 'element-ui',
     tpl_category: str = 'crud',
 ) -> GenTableModel:
+    """
+    构造含主键及样例字段的生成表。
+
+    :param gen_view: 是否生成详情页
+    :param tpl_web_type: 前端模板类型（element-ui、element-plus、react-antd）
+    :param tpl_category: 使用的模板（crud单表操作 tree树表操作）
+    :return: 含主键及样例字段的生成表
+    """
     columns = [
         GenTableColumnModel(
             columnName='item_id',
@@ -89,6 +97,7 @@ def _gen_table(
     ],
 )
 def test_get_gen_view_supports_stored_option_formats(value: object, expected: bool) -> None:
+    """生成视图设置支持已存储的选项格式。"""
     params = {'genView': value} if value is not None else None
 
     assert TemplateUtils.get_gen_view(params) is expected
@@ -96,6 +105,7 @@ def test_get_gen_view_supports_stored_option_formats(value: object, expected: bo
 
 @pytest.mark.parametrize(('value', 'expected'), [('1', True), ('0', False)])
 def test_gen_table_params_accepts_frontend_string_switch(value: str, expected: bool) -> None:
+    """生成表参数接受前端字符串开关。"""
     assert GenTableParamsModel(genView=value).gen_view is expected
 
 
@@ -107,6 +117,7 @@ def test_gen_table_params_accepts_frontend_string_switch(value: str, expected: b
     ],
 )
 def test_template_list_and_context_include_optional_view(tpl_web_type: str, view_template: str) -> None:
+    """模板清单和上下文包含可选视图。"""
     gen_table = _gen_table(gen_view=True, tpl_web_type=tpl_web_type)
 
     templates = TemplateUtils.get_template_list(gen_table)
@@ -118,6 +129,7 @@ def test_template_list_and_context_include_optional_view(tpl_web_type: str, view
 
 
 def test_template_list_omits_view_when_disabled() -> None:
+    """关闭视图后模板清单省略该项。"""
     gen_table = _gen_table(gen_view=False)
 
     templates = TemplateUtils.get_template_list(gen_table)
@@ -130,6 +142,7 @@ def test_template_list_omits_view_when_disabled() -> None:
 @pytest.mark.parametrize('tpl_web_type', ['element-ui', 'element-plus'])
 @pytest.mark.parametrize('tpl_category', ['crud', 'tree'])
 def test_detail_templates_render_with_list_integration(tpl_web_type: str, tpl_category: str) -> None:
+    """详情模板渲染时集成列表入口。"""
     gen_table = _gen_table(gen_view=True, tpl_web_type=tpl_web_type, tpl_category=tpl_category)
     context = TemplateUtils.prepare_context(gen_table)
     env = TemplateInitializer.init_jinja2()
@@ -150,6 +163,7 @@ def test_detail_templates_render_with_list_integration(tpl_web_type: str, tpl_ca
 
 @pytest.mark.asyncio
 async def test_set_table_from_options_restores_view_flag() -> None:
+    """从表选项恢复视图开关。"""
     gen_table = _gen_table(gen_view=True)
     gen_table.view = False
 
@@ -161,6 +175,7 @@ async def test_set_table_from_options_restores_view_flag() -> None:
 def test_secondary_source_templates_use_named_dependency_and_isolated_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """辅助数据源模板使用具名依赖及独立元数据。"""
     gen_table = _gen_table(gen_view=False)
     gen_table.data_source_name = 'reporting'
     monkeypatch.setattr(
@@ -189,6 +204,7 @@ def test_secondary_source_templates_use_named_dependency_and_isolated_metadata(
 
 
 def test_python_templates_handle_audit_timestamps_by_exact_column_name() -> None:
+    """Python 模板按确切列名处理审计时间。"""
     columns = [
         GenTableColumnModel(
             columnName='item_id',
@@ -278,6 +294,7 @@ def test_python_templates_handle_audit_timestamps_by_exact_column_name() -> None
 
 
 def test_dao_audit_filter_uses_a_set_for_a_single_timestamp() -> None:
+    """DAO 过滤单一审计时间时仍使用集合。"""
     columns = [
         GenTableColumnModel(
             columnName='item_id',
@@ -315,6 +332,7 @@ def test_dao_audit_filter_uses_a_set_for_a_single_timestamp() -> None:
 
 
 def test_do_template_supports_required_update_time_only_mixin() -> None:
+    """数据对象模板支持仅要求更新时间的混入类。"""
     columns = [
         GenTableColumnModel(
             columnName='item_id',
@@ -349,6 +367,7 @@ def test_do_template_supports_required_update_time_only_mixin() -> None:
 
 
 def test_sub_table_entity_template_uses_required_nullable_semantics() -> None:
+    """子表实体模板区分必填字段和可空字段。"""
     gen_table = _gen_table(gen_view=False, tpl_category='sub')
     gen_table.sub_table_name = 'gen_item_detail'
     gen_table.sub_table_fk_name = 'item_id'
@@ -413,6 +432,7 @@ def test_sub_table_entity_template_uses_required_nullable_semantics() -> None:
 
 
 def test_named_data_source_bases_are_cached_and_isolated(monkeypatch: pytest.MonkeyPatch) -> None:
+    """按名称分别缓存并隔离数据源基类。"""
     database.get_data_source_base.cache_clear()
     monkeypatch.setattr(type(database.DataBaseConfig), 'get_source', lambda _self, _name: object())
 
@@ -438,6 +458,7 @@ def test_named_data_source_bases_are_cached_and_isolated(monkeypatch: pytest.Mon
 def test_sqlalchemy_type_mapping_uses_target_source(
     monkeypatch: pytest.MonkeyPatch, db_type: str, column_type: str, expected: str
 ) -> None:
+    """SQLAlchemy 类型映射使用目标数据源。"""
     monkeypatch.setattr(
         type(database.DataBaseConfig),
         'get_source',

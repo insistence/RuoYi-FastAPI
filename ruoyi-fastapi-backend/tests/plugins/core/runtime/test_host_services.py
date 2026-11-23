@@ -16,11 +16,17 @@ from plugins.core.sdk import PluginHostContext, PluginRequestContext, plugin_end
 
 @pytest.mark.asyncio
 async def test_profile_facade_calls_existing_service_for_own_user_and_limits_fields(tmp_path: Path) -> None:
+    """资料接口调用现有服务，仅访问当前用户并限制返回字段。"""
     events = []
     db = object()
 
     @asynccontextmanager
     async def session() -> AsyncGenerator[object, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         events.append('open')
         try:
             yield db
@@ -54,6 +60,7 @@ async def test_profile_facade_calls_existing_service_for_own_user_and_limits_fie
 @pytest.mark.asyncio
 @pytest.mark.parametrize('invalid', ['foreign_plugin', 'permission', 'identity'])
 async def test_profile_facade_rejects_invalid_context_before_database(tmp_path: Path, invalid: str) -> None:
+    """资料接口在访问数据库前拒绝无效上下文。"""
     session = AsyncMock()
     service = build_host_services('demo', session)['users.current_profile.v1']
     host = PluginHostContext('other' if invalid == 'foreign_plugin' else 'demo', tmp_path)
@@ -68,10 +75,17 @@ async def test_profile_facade_rejects_invalid_context_before_database(tmp_path: 
 
 @pytest.mark.asyncio
 async def test_endpoint_adapter_enforces_permission_and_waits_native_style_result(tmp_path: Path) -> None:
+    """端点适配器校验权限并等待原生实现的异步结果。"""
     host = PluginHostContext('demo', tmp_path)
     callback = AsyncMock(return_value={'ok': True})
 
     def native_callback(context: PluginRequestContext) -> object:
+        """
+        将宿主上下文传给原生样式回调。
+
+        :param context: 由宿主鉴权层建立的请求身份，不能由客户端字段直接构造
+        :return: 原生样式回调提供的异步结果
+        """
         return callback(context)
 
     endpoint = plugin_endpoint(native_callback, permission='demo:view')
@@ -104,9 +118,15 @@ async def test_endpoint_adapter_enforces_permission_and_waits_native_style_resul
 
 @pytest.mark.asyncio
 async def test_endpoint_timeout_cancels_python_service(tmp_path: Path) -> None:
+    """端点超时后取消 Python 服务。"""
     closed = asyncio.Event()
 
     async def slow(context: PluginRequestContext) -> None:
+        """
+        模拟延迟完成的服务调用。
+
+        :param context: 由宿主鉴权层建立的请求身份，不能由客户端字段直接构造
+        """
         try:
             await asyncio.Event().wait()
         finally:
@@ -134,6 +154,7 @@ async def test_endpoint_timeout_cancels_python_service(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize('startup_failure', [False, True])
 async def test_lifespan_adapter_closes_even_partial_startup(tmp_path: Path, startup_failure: bool) -> None:
+    """生命周期适配器清理部分启动的资源。"""
     host = PluginHostContext('demo', tmp_path)
     startup = AsyncMock(return_value={'ready': True}, side_effect=RuntimeError('failed') if startup_failure else None)
     shutdown = AsyncMock()

@@ -16,7 +16,11 @@ from tests.scheduler_helpers import Runtime, job_info
 
 @pytest_asyncio.fixture
 async def jobs() -> AsyncIterator[SchedulerJobs]:
-    """每个用例使用独立的内存调度器和同步缓存。"""
+    """
+    每个用例使用独立的内存调度器和同步缓存。
+
+    :yield: ``SchedulerJobs`` 实例
+    """
     scheduler = AsyncIOScheduler(timezone=UTC)
     scheduler.start(paused=True)
     try:
@@ -75,6 +79,7 @@ async def test_timezone_only_update_rebuilds_trigger_and_failure_remains_retryab
 async def test_non_leader_only_notifies_ids_and_tolerates_notification_failure(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch, immediate: bool, publish_fails: bool
 ) -> None:
+    """非主节点仅通知任务标识，并容忍通知失败。"""
     monkeypatch.setattr(SchedulerManager, '_is_leader', False)
     publish = SchedulerManager._redis.publish
     publish.side_effect = RuntimeError('offline') if publish_fails else None
@@ -91,6 +96,7 @@ async def test_non_leader_only_notifies_ids_and_tolerates_notification_failure(
 async def test_immediate_sync_notifies_new_leader_if_lease_is_lost_waiting_for_lock(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """等待锁时失去租约会向新主节点通知立即同步。"""
     lock = SchedulerManager._sync_lock
     await lock.acquire()
     sync = AsyncMock()
@@ -110,11 +116,18 @@ async def test_immediate_sync_notifies_new_leader_if_lease_is_lost_waiting_for_l
 async def test_immediate_sync_stops_local_updates_if_lease_is_lost_during_read(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """读取时失去租约会停止本地更新。"""
     await runtime.save()
     await SchedulerManager._sync_jobs_from_database()
     original = runtime.scheduler.get_job('42')
 
     async def read_jobs(_session: object) -> list:
+        """
+        模拟调度工作进程读取任务列表。
+
+        :param _session: 回调签名接收的会话
+        :return: 测试工作进程可见的任务列表
+        """
         monkeypatch.setattr(SchedulerManager, '_is_leader', False)
         return []
 

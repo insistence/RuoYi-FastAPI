@@ -21,7 +21,13 @@ from module_identity.service.consent_service import ConsentResult, ConsentServic
 
 
 def _context(*, prompt: str | None = None, trusted_client: int = 0) -> AuthorizationContext:
-    """构造同意服务所需的已验证上下文。"""
+    """
+    构造同意服务所需的已验证上下文。
+
+    :param prompt: 客户端要求的登录或授权交互方式
+    :param trusted_client: 是否为受信任客户端
+    :return: 同意服务所需的已验证上下文
+    """
     client = ClientSnapshot(
         client_pk=8001,
         client_id='consent-client',

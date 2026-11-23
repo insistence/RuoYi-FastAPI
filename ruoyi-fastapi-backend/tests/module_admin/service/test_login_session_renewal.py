@@ -19,9 +19,18 @@ _PLUGIN_SESSION_READS = 2
 
 
 class SessionRedis:
-    """使用可控时间模拟登录会话和原子续期、退出命令。"""
+    """
+    使用可控时间模拟登录会话和原子续期、退出命令。
+
+    :ivar now: 当前场景使用的基准时间
+    :ivar values: 当前处理的值集合
+    :ivar deadlines: 各操作的截止时间
+    :ivar renew_calls: 记录 ``renew`` 的调用情况
+    :ivar logout_calls: 记录 ``logout`` 的调用情况
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``now``, ``values``, ``deadlines``, ``renew_calls``。"""
         self.now = 0
         self.values: dict[str, str] = {}
         self.deadlines: dict[str, int] = {}
@@ -29,22 +38,56 @@ class SessionRedis:
         self.logout_calls: list[tuple[str, str]] = []
 
     def _read(self, key: str) -> str | None:
+        """
+        返回仍在有效期内的缓存值。
+
+        :param key: 查找数据时使用的键
+        :return: 仍在有效期内的缓存值
+        """
         if self.deadlines.get(key, float('inf')) <= self.now:
             self.values.pop(key, None)
         return self.values.get(key)
 
     async def get(self, key: str) -> str | None:
+        """
+        读取测试存储中的指定键。
+
+        :param key: 查找数据时使用的键
+        :return: 测试存储中的指定键
+        """
         return self._read(key)
 
     async def set(self, key: str, value: str, *, ex: int) -> None:
+        """
+        写入测试缓存键并设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        """
         self.values[key] = value
         self.deadlines[key] = self.now + ex
 
     async def delete(self, key: str) -> None:
+        """
+        删除测试缓存项及其过期状态。
+
+        :param key: 查找数据时使用的键
+        """
         self.values.pop(key, None)
         self.deadlines.pop(key, None)
 
     async def eval(self, script: str, count: int, key: str, token: str, seconds: int | None = None) -> int:
+        """
+        按测试约定模拟 Redis 脚本的执行。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param key: 查找数据时使用的键
+        :param token: 用于身份验证或授权的令牌
+        :param seconds: 以秒计的时间值
+        :return: 对应 Redis 脚本分支的整数状态
+        """
         assert count == 1
         if script == _SESSION_LOGOUT_SCRIPT:
             assert seconds is None
@@ -65,6 +108,12 @@ class SessionRedis:
 
 @pytest.fixture
 def session_case(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
+    """
+    组合会话续期所需的请求、缓存和用户。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: ``SimpleNamespace`` 实例
+    """
     redis = SessionRedis()
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis)))
     token = JwtUtil.encode(
@@ -84,6 +133,7 @@ def session_case(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 async def test_valid_session_renews_only_its_expiration(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
+    """有效会话仅更新自身的有效期。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     key = 'access_token:session-a' if same_time_login else 'access_token:7'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
@@ -110,12 +160,19 @@ async def test_concurrent_session_change_cannot_be_overwritten_or_restored(
     change: str,
     for_plugin: bool,
 ) -> None:
+    """并发变更的会话不能被覆盖或恢复。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     key = 'access_token:session-a' if same_time_login else 'access_token:7'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
     loaded, resume = asyncio.Event(), asyncio.Event()
 
     async def load_user(*args: object) -> CurrentUserModel:
+        """
+        控制测试用户加载完成的时机。
+
+        :param args: 传给被调用对象的位置参数
+        :return: 当前操作对应的用户
+        """
         loaded.set()
         await resume.wait()
         return session_case.user
@@ -153,6 +210,7 @@ async def test_concurrent_session_change_cannot_be_overwritten_or_restored(
 async def test_expired_session_does_not_load_user_or_renew(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """会话过期后不加载用户也不续期。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
     key = 'access_token:session-a'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
@@ -170,6 +228,7 @@ async def test_expired_session_does_not_load_user_or_renew(
 async def test_renewal_failure_does_not_authenticate_request(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """续期失败时拒绝认证请求。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
     key = 'access_token:session-a'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
@@ -189,6 +248,7 @@ async def test_renewal_failure_does_not_authenticate_request(
 async def test_committed_renewal_timeout_does_not_authenticate_request(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
+    """已提交的续期超时后拒绝认证请求。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     key = 'access_token:session-a' if same_time_login else 'access_token:7'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
@@ -196,6 +256,16 @@ async def test_committed_renewal_timeout_does_not_authenticate_request(
     original_eval = session_case.redis.eval
 
     async def renew_then_timeout(script: str, count: int, cache_key: str, token: str, seconds: int) -> int:
+        """
+        在续期写入后模拟 Redis 响应超时。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param cache_key: 缓存键名
+        :param token: 用于身份验证或授权的令牌
+        :param seconds: 以秒计的时间值
+        :raises RedisTimeoutError: 模拟续期已提交但 Redis 响应超时
+        """
         await original_eval(script, count, cache_key, token, seconds)
         raise RedisTimeoutError('redis response timeout')
 
@@ -217,6 +287,7 @@ async def test_committed_renewal_timeout_does_not_authenticate_request(
 async def test_cancelled_committed_renewal_does_not_authenticate_request(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
+    """取消已提交的续期后拒绝认证请求。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     key = 'access_token:session-a' if same_time_login else 'access_token:7'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
@@ -225,6 +296,16 @@ async def test_cancelled_committed_renewal_does_not_authenticate_request(
     renewed, resume = asyncio.Event(), asyncio.Event()
 
     async def renew_then_wait(script: str, count: int, cache_key: str, token: str, seconds: int) -> int:
+        """
+        在续期成功后等待其他操作。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param cache_key: 缓存键名
+        :param token: 用于身份验证或授权的令牌
+        :param seconds: 以秒计的时间值
+        :return: 执行当前操作得到的结果
+        """
         result = await original_eval(script, count, cache_key, token, seconds)
         renewed.set()
         await resume.wait()
@@ -249,6 +330,7 @@ async def test_cancelled_committed_renewal_does_not_authenticate_request(
 async def test_concurrent_requests_can_renew_the_same_session(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """并发请求可续期同一会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
     key = 'access_token:session-a'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
@@ -267,12 +349,19 @@ async def test_concurrent_requests_can_renew_the_same_session(
 async def test_cancelled_request_does_not_renew_session(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """取消请求时不续期会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
     key = 'access_token:session-a'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
     loaded, resume = asyncio.Event(), asyncio.Event()
 
     async def load_user(*args: object) -> CurrentUserModel:
+        """
+        控制测试用户加载完成的时机。
+
+        :param args: 传给被调用对象的位置参数
+        :return: 当前操作对应的用户
+        """
         loaded.set()
         await resume.wait()
         return session_case.user
@@ -294,6 +383,7 @@ async def test_cancelled_request_does_not_renew_session(
 async def test_plugin_validation_never_renews_main_session(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
+    """插件校验不续期主会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     key = 'access_token:session-a' if same_time_login else 'access_token:7'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
@@ -311,6 +401,7 @@ async def test_plugin_validation_never_renews_main_session(
 async def test_plugin_final_session_check_failure_does_not_authenticate(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
+    """插件最终会话校验失败时拒绝认证。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     key = 'access_token:session-a' if same_time_login else 'access_token:7'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
@@ -318,6 +409,13 @@ async def test_plugin_final_session_check_failure_does_not_authenticate(
     session_reads = 0
 
     async def read_session(cache_key: str) -> str | None:
+        """
+        记录会话缓存的读取次数。
+
+        :param cache_key: 缓存键名
+        :raises RedisTimeoutError: 模拟读取会话时 Redis 超时
+        :return: 缓存中当前的会话记录
+        """
         nonlocal session_reads
         if cache_key == key:
             session_reads += 1
@@ -345,6 +443,7 @@ async def test_plugin_final_session_check_failure_does_not_authenticate(
 async def test_cancelled_plugin_final_session_check_does_not_authenticate(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
+    """取消插件最终会话校验时拒绝认证。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     key = 'access_token:session-a' if same_time_login else 'access_token:7'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
@@ -353,6 +452,12 @@ async def test_cancelled_plugin_final_session_check_does_not_authenticate(
     session_reads = 0
 
     async def read_session(cache_key: str) -> str | None:
+        """
+        记录会话缓存的读取次数。
+
+        :param cache_key: 缓存键名
+        :return: 缓存中当前的会话记录
+        """
         nonlocal session_reads
         if cache_key == key:
             session_reads += 1
@@ -385,6 +490,7 @@ async def test_cancelled_plugin_final_session_check_does_not_authenticate(
 async def test_logout_is_idempotent_and_only_removes_its_session(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
+    """重复注销只移除本次会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     token_id = 'session-a' if same_time_login else '7'
     key = f'access_token:{token_id}'
@@ -416,6 +522,7 @@ async def test_logout_is_idempotent_and_only_removes_its_session(
 async def test_logout_of_stale_token_keeps_current_session(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool, state: str
 ) -> None:
+    """旧令牌注销时保留当前会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     token_id = 'session-a' if same_time_login else '7'
     key = f'access_token:{token_id}'
@@ -445,6 +552,7 @@ async def test_concurrent_new_login_survives_old_token_logout(
     same_time_login: bool,
     login_before_logout: bool,
 ) -> None:
+    """并发建立的新会话不受旧令牌注销影响。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     token_id = 'session-a' if same_time_login else '7'
     key = f'access_token:{token_id}'
@@ -454,6 +562,15 @@ async def test_concurrent_new_login_survives_old_token_logout(
     entered, resume = asyncio.Event(), asyncio.Event()
 
     async def delayed_logout(script: str, count: int, cache_key: str, token: str) -> int:
+        """
+        在退出登录的指定阶段等待并发操作。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param cache_key: 缓存键名
+        :param token: 用于身份验证或授权的令牌
+        :return: 原注销服务的执行结果
+        """
         result = None if login_before_logout else await original_eval(script, count, cache_key, token)
         entered.set()
         await resume.wait()
@@ -480,6 +597,7 @@ async def test_concurrent_new_login_survives_old_token_logout(
 async def test_logout_after_committed_renewal_does_not_restore_session(
     session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
+    """续期提交后注销不会恢复会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     token_id = 'session-a' if same_time_login else '7'
     key = f'access_token:{token_id}'
@@ -488,6 +606,16 @@ async def test_logout_after_committed_renewal_does_not_restore_session(
     renewed, resume = asyncio.Event(), asyncio.Event()
 
     async def delayed_renewal(script: str, count: int, cache_key: str, token: str, seconds: int | None = None) -> int:
+        """
+        在会话续期期间暂停缓存操作。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param cache_key: 缓存键名
+        :param token: 用于身份验证或授权的令牌
+        :param seconds: 以秒计的时间值
+        :return: 执行当前操作得到的结果
+        """
         result = await original_eval(script, count, cache_key, token, seconds)
         if script == _SESSION_RENEW_SCRIPT:
             renewed.set()
@@ -520,6 +648,7 @@ async def test_failed_logout_and_retry_cannot_delete_new_login(
     committed: bool,
     failure: str,
 ) -> None:
+    """注销失败后的重试不能删除新登录会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     token_id = 'session-a' if same_time_login else '7'
     key = f'access_token:{token_id}'
@@ -529,6 +658,15 @@ async def test_failed_logout_and_retry_cannot_delete_new_login(
     entered, resume = asyncio.Event(), asyncio.Event()
 
     async def failed_logout(script: str, count: int, cache_key: str, token: str) -> int:
+        """
+        在指定注销阶段模拟缓存响应超时。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param cache_key: 缓存键名
+        :param token: 用于身份验证或授权的令牌
+        :raises RedisTimeoutError: 模拟注销期间 Redis 响应超时
+        """
         if committed:
             await original_eval(script, count, cache_key, token)
         entered.set()

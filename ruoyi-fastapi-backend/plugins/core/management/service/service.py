@@ -45,6 +45,8 @@ from utils.time_util import TimezoneUtil
 class PluginService:
     """
     插件系统服务层。
+
+    :cvar ORPHAN_PLUGIN_REASON: 缺少插件资源时记录的原因
     """
 
     ORPHAN_PLUGIN_REASON = '插件源码不存在，仅允许物理清理平台元数据'
@@ -343,7 +345,6 @@ class PluginService:
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
         :param enabled: 插件菜单是否启用
-        :return: None
         """
         menu_installer = PluginMenuInstaller(query_db)
         await menu_installer.install_manifest_menus(discovered_plugin.manifest)
@@ -408,7 +409,6 @@ class PluginService:
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
         :param enabled: 插件任务是否允许启用
-        :return: None
         """
         await PluginJobInstaller(query_db).install_plugin_jobs(discovered_plugin, enabled=enabled)
 
@@ -466,6 +466,7 @@ class PluginService:
         :param discovered_plugin: 已发现插件对象
         :param update_model: 插件配置更新模型
         :return: 更新后的插件配置值列表
+        :raises ValueError: 待更新的配置键未在插件清单声明
         """
         await cls.install_plugin_default_config_services(query_db, discovered_plugin)
         manifest_items = {item.key: item for item in discovered_plugin.manifest.config.items}
@@ -832,6 +833,7 @@ class PluginService:
         :param query_db: orm对象
         :param plugin_id: 插件ID
         :return: 插件物理清理计划
+        :raises ValueError: 制品插件不能通过孤儿元数据清理入口删除，请使用维护发布流程
         """
         plugin = await PluginDao.get_plugin_by_id(query_db, plugin_id)
         if getattr(plugin, 'source', None) == 'artifact':
@@ -875,7 +877,7 @@ class PluginService:
 
         :param query_db: orm对象
         :param plugin_id: 插件ID
-        :return: None
+        :raises ValueError: 制品插件不能通过普通purge删除平台状态，请使用维护发布流程
         """
         plugin = await PluginDao.get_plugin_by_id(query_db, plugin_id)
         if getattr(plugin, 'source', None) == 'artifact':
@@ -1171,6 +1173,13 @@ class PluginService:
         """
 
         def contains(value: object, keyword: str | None) -> bool:
+            """
+            检查插件字段是否匹配列表过滤条件。
+
+            :param value: 待处理的输入值
+            :param keyword: 要匹配的关键字
+            :return: 是否插件字段是否匹配列表过滤条件
+            """
             return keyword is None or keyword in str(value or '')
 
         return [

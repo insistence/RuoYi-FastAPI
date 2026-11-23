@@ -19,11 +19,11 @@ class OpsDetailSourcePayloads:
     """
     运维详情页原始数据源快照。
 
-    :param health_payload: `ops health` 结果
-    :param ping_db_payload: `ops ping-db` 结果
-    :param ping_redis_payload: `ops ping-redis` 结果
-    :param deps_payload: `ops deps` 结果
-    :param server_payload: `ops server-info` 结果
+    :ivar health_payload: ``ops health`` 结果
+    :ivar ping_db_payload: ``ops ping-db`` 结果
+    :ivar ping_redis_payload: ``ops ping-redis`` 结果
+    :ivar deps_payload: ``ops deps`` 结果
+    :ivar server_payload: ``ops server-info`` 结果
     """
 
     health_payload: dict[str, Any] | None
@@ -38,10 +38,17 @@ class OpsDetailSnapshotCollector:
     运维详情页数据采集器。
 
     该对象负责拉取运维详情页所需的多路 CLI 原始结果，
-    让 `OpsDetailAdapter` 保持详情页编排职责。
+    让 ``OpsDetailAdapter`` 保持详情页编排职责。
+
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(self, query_service: TuiRuntimeQueryService | None = None) -> None:
+        """
+        保存运维详情页使用的运行时查询服务。
+
+        :param query_service: TUI 进程内查询服务
+        """
         self.query_service = query_service or TUI_RUNTIME_QUERIES
 
     async def collect(self, env: str) -> OpsDetailSourcePayloads:
@@ -85,7 +92,7 @@ class OpsSectionBuilder:
         """
         构建运维健康检查分区。
 
-        :param payload: `ops health` JSON 负载
+        :param payload: ``ops health`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict):
@@ -116,7 +123,7 @@ class OpsSectionBuilder:
         """
         构建数据库探活结果分区。
 
-        :param payload: `ops ping-db` JSON 负载
+        :param payload: ``ops ping-db`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict):
@@ -142,7 +149,7 @@ class OpsSectionBuilder:
         """
         构建 Redis 探活结果分区。
 
-        :param payload: `ops ping-redis` JSON 负载
+        :param payload: ``ops ping-redis`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict):
@@ -168,7 +175,7 @@ class OpsSectionBuilder:
         """
         构建运维依赖版本分区。
 
-        :param payload: `ops deps` JSON 负载
+        :param payload: ``ops deps`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict):
@@ -207,7 +214,7 @@ class OpsSectionBuilder:
         """
         构建服务器运行概况分区。
 
-        :param payload: `ops server-info` JSON 负载
+        :param payload: ``ops server-info`` JSON 负载
         :return: 分区快照
         """
         server = payload.get('server') if isinstance(payload, dict) else None
@@ -251,7 +258,7 @@ class OpsSectionBuilder:
         """
         构建服务器磁盘样本分区。
 
-        :param payload: `ops server-info` JSON 负载
+        :param payload: ``ops server-info`` JSON 负载
         :return: 分区快照
         """
         server = payload.get('server') if isinstance(payload, dict) else None
@@ -322,9 +329,9 @@ class OpsSectionBuilder:
         """
         构建运维页总览判断分区。
 
-        :param health_payload: `ops health` JSON 负载
-        :param deps_payload: `ops deps` JSON 负载
-        :param server_payload: `ops server-info` JSON 负载
+        :param health_payload: ``ops health`` JSON 负载
+        :param deps_payload: ``ops deps`` JSON 负载
+        :param server_payload: ``ops server-info`` JSON 负载
         :return: 分区快照
         """
         health_ok = bool(isinstance(health_payload, dict) and health_payload.get('ok', False))
@@ -382,11 +389,11 @@ class OpsSectionBuilder:
         """
         构建运维页全部详情分区。
 
-        :param health_payload: `ops health` 结果负载
-        :param ping_db_payload: `ops ping-db` 结果负载
-        :param ping_redis_payload: `ops ping-redis` 结果负载
-        :param deps_payload: `ops deps` 结果负载
-        :param server_payload: `ops server-info` 结果负载
+        :param health_payload: ``ops health`` 结果负载
+        :param ping_db_payload: ``ops ping-db`` 结果负载
+        :param ping_redis_payload: ``ops ping-redis`` 结果负载
+        :param deps_payload: ``ops deps`` 结果负载
+        :param server_payload: ``ops server-info`` 结果负载
         :return: 详情分区列表
         """
         return [
@@ -407,6 +414,9 @@ class OpsDetailAdapter(BaseDetailAdapter):
 
     该适配器负责采集运维相关 CLI 结果，并委托分区构建器组装为
     TUI 详情页快照。
+
+    :ivar section_builder: 运维详情分区构建器
+    :ivar snapshot_collector: 运维详情页数据采集器
     """
 
     def __init__(
@@ -419,7 +429,6 @@ class OpsDetailAdapter(BaseDetailAdapter):
 
         :param section_builder: 运维详情分区构建器
         :param snapshot_collector: 运维详情页数据采集器
-        :return: None
         """
         super().__init__(
             page_title='运维',

@@ -18,7 +18,6 @@ def clear_frontend_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     清除前端路径与框架环境变量，避免本机配置影响测试。
 
     :param monkeypatch: pytest 环境变量替换工具
-    :return: None
     """
     for name in (
         'RUOYI_PLUGIN_FRONTEND_ROOT',

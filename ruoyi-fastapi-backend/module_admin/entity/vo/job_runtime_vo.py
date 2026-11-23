@@ -7,9 +7,7 @@ from common.types import ApiUtcDateTime
 
 
 class JobExecutionModel(BaseModel):
-    """
-    可供管理界面查询的执行状态，不包含执行占用凭据
-    """
+    """可供管理界面查询的执行状态，不包含执行占用凭据。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -30,9 +28,7 @@ class JobExecutionModel(BaseModel):
 
 
 class JobExecutionQueryModel(BaseModel):
-    """
-    执行记录分页查询条件
-    """
+    """执行记录分页查询条件。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -47,9 +43,7 @@ class JobExecutionQueryModel(BaseModel):
 
 
 class JobSyncModel(BaseModel):
-    """
-    单任务配置版本和实际应用状态
-    """
+    """单任务配置版本和实际应用状态。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -68,9 +62,7 @@ class JobSyncModel(BaseModel):
 
 
 class JobSyncQueryModel(BaseModel):
-    """
-    包含删除记录的同步状态分页查询条件
-    """
+    """包含删除记录的同步状态分页查询条件。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -83,9 +75,7 @@ class JobSyncQueryModel(BaseModel):
 
 
 class JobMutationResult(BaseModel):
-    """
-    业务修改已保存与调度配置已生效分开表达的响应数据
-    """
+    """业务修改已保存与调度配置已生效分开表达的响应数据。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

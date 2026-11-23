@@ -14,7 +14,12 @@ _UNAUTHORIZED = 401
 
 
 def _request(redis: object | None = None) -> SimpleNamespace:
-    """构造 UserInfo 请求替身。"""
+    """
+    构造 UserInfo 请求替身。
+
+    :param redis: 用于缓存或发布消息的 Redis 客户端
+    :return: UserInfo 请求替身
+    """
     return SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis or object())))
 
 
@@ -22,13 +27,22 @@ class _ActiveRedis:
     """模拟未命中撤销列表的 Redis。"""
 
     async def exists(self, key: str) -> bool:
+        """
+        在此测试分支返回 False。
+
+        :param key: 查找数据时使用的键
+        :return: 此分支的固定值 ``False``
+        """
         return False
 
 
 @pytest.fixture(autouse=True)
 def _active_authorization(monkeypatch: pytest.MonkeyPatch) -> None:
-    """为 Claims 输出测试提供明确有效的授权，撤销链路由真实数据库回归覆盖。"""
+    """
+    为 Claims 输出测试提供明确有效的授权，撤销链路由真实数据库回归覆盖。
 
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     grant = SimpleNamespace(
         user_id=2,
         subject_id='subject-1',
@@ -203,7 +217,16 @@ async def test_userinfo_live_state_failures_are_bearer_401(monkeypatch: pytest.M
     monkeypatch.setattr(service.IdentityUserDao, 'get_user', lambda *args, **kwargs: _async(user))
 
     class _Redis:
+        """模拟测试所需的 Redis 命令。"""
+
         async def exists(self, key: str) -> bool:
+            """
+            按测试场景报告撤销记录是否存在。
+
+            :param key: 查找数据时使用的键
+            :raises RuntimeError: 模拟查询 Redis 键时连接失败
+            :return: 是否按测试场景报告撤销记录是否存在
+            """
             if failure == 'redis':
                 raise RuntimeError('redis unavailable')
             return failure == 'revoked'
@@ -239,9 +262,19 @@ async def test_userinfo_disabled_is_local_not_found(monkeypatch: pytest.MonkeyPa
 
 
 def _async(value: object) -> Any:
-    """构造异步测试结果。"""
+    """
+    构造异步测试结果。
+
+    :param value: 待处理的输入值
+    :return: 异步测试结果
+    """
 
     async def result() -> object:
+        """
+        向调用方返回 ``value``。
+
+        :return: 为此调用预设的值
+        """
         return value
 
     return result()

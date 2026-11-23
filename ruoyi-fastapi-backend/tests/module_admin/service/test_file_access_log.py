@@ -19,24 +19,55 @@ LONG_OPERATION_DETAIL_LENGTH = 3000
 
 
 class AsyncSessionContext:
-    """测试用异步数据库会话上下文。"""
+    """
+    测试用异步数据库会话上下文。
+
+    :ivar session: 当前操作共用的会话
+    """
 
     def __init__(self, session: SimpleNamespace) -> None:
+        """
+        初始化测试夹具的 ``session``。
+
+        :param session: 当前操作共用的会话
+        """
         self.session = session
 
     async def __aenter__(self) -> SimpleNamespace:
+        """
+        向调用方返回 ``self.session``。
+
+        :return: 当前测试上下文持有的数据库会话
+        """
         return self.session
 
     async def __aexit__(self, exc_type: type | None, exc_value: BaseException | None, traceback: object) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param exc_type: 退出上下文时的异常类型
+        :param exc_value: 退出上下文时的异常实例
+        :param traceback: 异常的调用栈
+        """
+        return
 
 
 def make_database_registry(session: SimpleNamespace) -> SimpleNamespace:
-    """构造使用测试会话的数据库注册表。"""
+    """
+    构造使用测试会话的数据库注册表。
+
+    :param session: 当前操作共用的会话
+    :return: 使用测试会话的数据库注册表
+    """
     return SimpleNamespace(session=lambda: AsyncSessionContext(session))
 
 
 def make_file_access_log() -> FileAccessLogModel:
+    """
+    创建测试使用的 ``FileAccessLogModel`` 实例。
+
+    :return: 测试使用的 ``FileAccessLogModel`` 实例
+    """
     return FileAccessLogModel(
         fileId='file-id',
         action='download',
@@ -54,6 +85,7 @@ def make_file_access_log() -> FileAccessLogModel:
 
 
 def test_file_access_log_operation_detail_uses_unbounded_text_type() -> None:
+    """文件访问日志详情使用不限长度的文本类型。"""
     operation_detail_column = SysFileAccessLog.__table__.c.operation_detail
 
     assert isinstance(operation_detail_column.type, Text)
@@ -61,6 +93,7 @@ def test_file_access_log_operation_detail_uses_unbounded_text_type() -> None:
 
 
 def test_file_access_log_is_enqueued_to_redis_stream() -> None:
+    """文件访问日志进入 Redis Stream。"""
     redis = SimpleNamespace(xadd=AsyncMock())
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis)))
 
@@ -84,6 +117,7 @@ def test_file_access_log_is_enqueued_to_redis_stream() -> None:
 
 
 def test_file_access_log_event_is_persisted_and_acknowledged() -> None:
+    """持久化文件访问日志后确认事件。"""
     session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
     redis = SimpleNamespace(set=AsyncMock(return_value=True), xack=AsyncMock(), delete=AsyncMock())
     file_access_log = make_file_access_log()
@@ -119,6 +153,7 @@ def test_file_access_log_event_is_persisted_and_acknowledged() -> None:
 
 
 def test_file_audit_batch_events_use_independent_deduplication_keys() -> None:
+    """批量审计事件使用独立的去重键。"""
     redis = SimpleNamespace(xadd=AsyncMock())
     request = SimpleNamespace(
         app=SimpleNamespace(state=SimpleNamespace(redis=redis)),
@@ -128,6 +163,7 @@ def test_file_audit_batch_events_use_independent_deduplication_keys() -> None:
     current_user = SimpleNamespace(user=SimpleNamespace(user_id=10, user_name='user10'))
 
     async def enqueue_batch() -> None:
+        """向文件审计队列投递测试批次。"""
         await FileAuditService.enqueue_file_audit(
             request,
             current_user,
@@ -162,6 +198,7 @@ def test_file_audit_batch_events_use_independent_deduplication_keys() -> None:
 
 
 def test_file_audit_operation_detail_is_not_truncated() -> None:
+    """保留完整的文件审计操作详情。"""
     reason = 'a' * LONG_OPERATION_DETAIL_LENGTH
     serialized_detail = FileAuditService._serialize_operation_detail({'reason': reason})
 

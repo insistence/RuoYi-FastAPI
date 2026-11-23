@@ -29,6 +29,8 @@ class PluginMenuInstaller:
     插件管理模块菜单安装器。
 
     使用 Service Object 模式封装插件菜单幂等写入、状态切换和关联维护逻辑。
+
+    :ivar query_db: orm对象
     """
 
     def __init__(self, query_db: AsyncSession) -> None:
@@ -36,7 +38,6 @@ class PluginMenuInstaller:
         初始化插件菜单安装器。
 
         :param query_db: orm对象
-        :return: None
         """
         self.query_db = query_db
 
@@ -76,7 +77,6 @@ class PluginMenuInstaller:
 
         :param plugin_id: 插件ID
         :param status: 菜单状态（0正常 1停用）
-        :return: None
         """
         plugin_menus = await PluginDao.get_plugin_menu_list(self.query_db, plugin_id)
         menu_ids = [plugin_menu.menu_id for plugin_menu in plugin_menus]
@@ -99,6 +99,7 @@ class PluginMenuInstaller:
         :param parent_key: 父级菜单自然键
         :param seen_menu_keys: 当前插件已处理自然键集合
         :return: 已安装插件菜单快照列表
+        :raises ValueError: 菜单树出现重复的自然键
         """
         menu_key = PluginMenuKeyBuilder.build(menu, parent_key)
         if menu_key in seen_menu_keys:
@@ -285,7 +286,6 @@ class PluginMenuInstaller:
         :param plugin_id: 插件ID
         :param menu_id: 菜单ID
         :param menu_key: 插件菜单自然键
-        :return: None
         """
         plugin_menu_model = PluginMenuModel(pluginId=plugin_id, menuId=menu_id, menuKey=menu_key)
         existing_plugin_menu = await PluginDao.get_plugin_menu_by_key(self.query_db, plugin_id, menu_key)
@@ -304,7 +304,6 @@ class PluginMenuInstaller:
 
         :param plugin_id: 插件ID
         :param desired_menu_keys: manifest 当前菜单自然键集合
-        :return: None
         """
         plugin_menus = await PluginDao.get_plugin_menu_list(self.query_db, plugin_id)
         stale_menu_ids = [

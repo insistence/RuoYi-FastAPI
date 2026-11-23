@@ -13,8 +13,8 @@ class GenRuntimeService:
     该服务作为代码生成运行时 facade，对外统一暴露业务表、数据库物理表、
     建表 SQL、代码预览、导出与数据库同步等入口。
 
-    :param infrastructure_gateway: 代码生成基础设施网关
-    :param domain_support: 代码生成领域支持对象
+    :ivar infrastructure_gateway: 代码生成基础设施网关
+    :ivar domain_support: 代码生成领域支持对象
     """
 
     def __init__(
@@ -28,7 +28,6 @@ class GenRuntimeService:
 
         :param infrastructure_gateway: 代码生成基础设施网关
         :param domain_support: 代码生成领域支持对象
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway or GenInfrastructureGateway()
         self.domain_support = domain_support or GenDomainSupport(self.infrastructure_gateway)
@@ -305,7 +304,7 @@ class GenRuntimeService:
         导出代码生成结果。
 
         :param table_names: 业务表名称列表
-        :param mode: 导出模式，支持 `zip` 与 `local`
+        :param mode: 导出模式，支持 ``zip`` 与 ``local``
         :param output_file: zip 导出目标文件路径
         :param dry_run: 是否仅演练执行
         :return: 导出结果

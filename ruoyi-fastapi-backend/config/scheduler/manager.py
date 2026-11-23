@@ -27,7 +27,34 @@ scheduler = AsyncIOScheduler(timezone=UTC)
 
 class SchedulerManager:
     """
-    定时任务统一入口，负责生命周期、Leader控制和跨进程同步通知
+    定时任务统一入口，负责生命周期、Leader控制和跨进程同步通知。
+
+    :cvar _scheduler: 管理定时任务的调度器实例
+    :cvar _is_leader: 当前进程是否持有调度器主锁
+    :cvar _worker_id: 当前工作进程的标识
+    :cvar _application_lock_owner_token: 用于验证应用锁所有权的令牌
+    :cvar _application_lock_renewal_task: 周期性续租应用主锁的后台任务
+    :cvar _redis: 回调签名接收的 Redis 客户端
+    :cvar _sync_channel: 传递调度同步通知的 Redis 频道
+    :cvar _sync_listener_task: 接收同步通知的后台任务
+    :cvar _lock_lost_task: 丢失主锁后处理调度切换的任务
+    :cvar _sync_task: 应用待处理同步变更的任务
+    :cvar _sync_pending: 是否已有同步请求排队
+    :cvar _sync_full_pending: 是否等待执行一次全量同步
+    :cvar _sync_pending_ids: 待同步的任务标识集合
+    :cvar _sync_lock: 串行处理调度同步请求的锁
+    :cvar _last_sync_at: 最近一次同步任务的时间
+    :cvar _sync_debounce_seconds: 合并同步请求的等待时间（秒）
+    :cvar _sync_min_interval_seconds: 两次同步的最小间隔（秒）
+    :cvar _reacquire_task: 尝试重新取得主锁的任务
+    :cvar _reacquire_interval_seconds: 重新获取租约的间隔（秒）
+    :cvar _reacquire_jitter_seconds: 重新获取租约时的随机抖动范围（秒）
+    :cvar _is_closing: 是否正在关闭当前资源
+    :cvar _resources: 调度器启动时创建的共享资源
+    :cvar _jobs: 当前管理的任务集合
+    :cvar _synchronizer: 在数据库与调度器间同步任务的组件
+    :cvar _dispatcher: 分派调度操作的组件
+    :cvar _listener: 监听调度事件的组件
     """
 
     _scheduler: AsyncIOScheduler = scheduler
@@ -61,7 +88,7 @@ class SchedulerManager:
     @classmethod
     def _should_enable_scheduler_sync(cls) -> bool:
         """
-        判断是否需要启用多 worker 的任务状态同步机制
+        判断是否需要启用多 worker 的任务状态同步机制。
 
         :return: 是否开启定时同步与监听
         """
@@ -70,10 +97,9 @@ class SchedulerManager:
     @classmethod
     async def init_system_scheduler(cls, redis: aioredis.Redis) -> None:
         """
-        应用启动时初始化定时任务（使用分布式锁确保只有一个worker启动scheduler）
+        应用启动时初始化定时任务（使用分布式锁确保只有一个worker启动scheduler）。
 
         :param redis: Redis连接对象
-        :return: None
         """
         cls._redis = redis
         cls._is_closing = False
@@ -137,11 +163,7 @@ class SchedulerManager:
 
     @classmethod
     async def stop_application_lock_renewal(cls) -> None:
-        """
-        停止当前进程的Application leader租约续期任务。
-
-        :return: None
-        """
+        """停止当前进程的Application leader租约续期任务。"""
         renewal_task = cls._application_lock_renewal_task
         cls._application_lock_renewal_task = None
         if not renewal_task or renewal_task.done():
@@ -155,10 +177,9 @@ class SchedulerManager:
     @classmethod
     async def _start_scheduler_as_leader(cls, redis: aioredis.Redis) -> None:
         """
-        以 Leader 身份启动 Scheduler（内部方法，调用前需确保已持有锁）
+        以 Leader 身份启动 Scheduler（内部方法，调用前需确保已持有锁）。
 
         :param redis: Redis连接对象
-        :return: None
         """
         cls._is_leader = True
         logger.info(f'🎯 Worker {cls._worker_id} 持有 Application 锁，开始启动定时任务...')
@@ -207,7 +228,7 @@ class SchedulerManager:
         Application leader身份。
 
         :param redis: Redis连接对象
-        :return: None
+        :raises Exception: 底层操作失败时向调用方传播异常
         """
         cls.start_application_lock_renewal(redis)
         try:
@@ -227,11 +248,7 @@ class SchedulerManager:
 
     @classmethod
     def on_lock_lost(cls) -> None:
-        """
-        锁丢失处理入口
-
-        :return: None
-        """
+        """锁丢失处理入口。"""
         if not cls._is_leader:
             return
         cls._is_leader = False
@@ -242,11 +259,7 @@ class SchedulerManager:
 
     @classmethod
     async def _handle_lock_lost(cls) -> None:
-        """
-        处理锁丢失后的资源释放
-
-        :return: None
-        """
+        """处理锁丢失后的资源释放。"""
         if cls._sync_listener_task:
             cls._sync_listener_task.cancel()
             try:
@@ -269,11 +282,7 @@ class SchedulerManager:
 
     @classmethod
     def _ensure_reacquire_task(cls) -> None:
-        """
-        启动锁重新竞争任务
-
-        :return: None
-        """
+        """启动锁重新竞争任务。"""
         if cls._is_closing or not cls._redis:
             return
         if cls._reacquire_task and not cls._reacquire_task.done():
@@ -283,7 +292,7 @@ class SchedulerManager:
     @classmethod
     def _get_reacquire_delay(cls) -> float:
         """
-        获取带随机抖动的锁重新竞争间隔
+        获取带随机抖动的锁重新竞争间隔。
 
         :return: 重新竞争等待秒数
         """
@@ -292,9 +301,9 @@ class SchedulerManager:
     @classmethod
     async def _run_reacquire_loop(cls) -> None:
         """
-        循环尝试重新获取锁并恢复调度器
+        循环尝试重新获取锁并恢复调度器。
 
-        :return: None
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
         try:
             while not cls._is_leader and not cls._is_closing:
@@ -327,11 +336,7 @@ class SchedulerManager:
 
     @classmethod
     async def close_system_scheduler(cls) -> None:
-        """
-        应用关闭时关闭定时任务
-
-        :return: None
-        """
+        """应用关闭时关闭定时任务。"""
         cls._is_closing = True
         await cls.stop_application_lock_renewal()
         if cls._sync_listener_task:
@@ -390,7 +395,7 @@ class SchedulerManager:
         immediate: bool = False,
     ) -> dict[str, Any]:
         """
-        请求调度器同步任务状态
+        请求调度器同步任务状态。
 
         :param job_ids: 指定受影响任务，None 表示完整校准
         :param immediate: Leader 是否在返回前完成本地同步
@@ -425,11 +430,7 @@ class SchedulerManager:
 
     @classmethod
     def _ensure_sync_task(cls) -> None:
-        """
-        启动同步调度任务
-
-        :return: None
-        """
+        """启动同步调度任务。"""
         if cls._sync_task and not cls._sync_task.done():
             return
         cls._sync_task = asyncio.create_task(cls._run_sync_loop())
@@ -437,9 +438,9 @@ class SchedulerManager:
     @classmethod
     async def _run_sync_loop(cls) -> None:
         """
-        执行同步调度循环
+        执行同步调度循环。
 
-        :return: None
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
         try:
             while True:
@@ -454,11 +455,7 @@ class SchedulerManager:
 
     @classmethod
     async def _sync_with_throttle(cls) -> None:
-        """
-        按节流规则执行同步
-
-        :return: None
-        """
+        """按节流规则执行同步。"""
         async with cls._sync_lock:
             if not cls._is_leader:
                 return
@@ -478,10 +475,10 @@ class SchedulerManager:
     @classmethod
     async def _listen_sync_channel(cls, redis: aioredis.Redis) -> None:
         """
-        监听同步请求通道
+        监听同步请求通道。
 
         :param redis: Redis连接对象
-        :return: None
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
         while True:
             pubsub = redis.pubsub()
@@ -510,10 +507,9 @@ class SchedulerManager:
     @classmethod
     async def _handle_sync_notification(cls, data: str | bytes) -> None:
         """
-        解析唤醒通知；实际配置和执行请求均重新从数据库读取
+        解析唤醒通知；实际配置和执行请求均重新从数据库读取。
 
         :param data: 同步通知数据
-        :return: None
         """
         try:
             payload = json.loads(data)
@@ -530,11 +526,7 @@ class SchedulerManager:
 
     @classmethod
     async def request_execution_dispatch(cls) -> None:
-        """
-        唤醒 Leader 处理持久化执行请求，通知失败由周期派发恢复
-
-        :return: None
-        """
+        """唤醒 Leader 处理持久化执行请求，通知失败由周期派发恢复。"""
         try:
             if cls._is_leader:
                 await cls._drain_execution_requests()
@@ -545,11 +537,7 @@ class SchedulerManager:
 
     @classmethod
     def _configure_scheduler(cls) -> None:
-        """
-        配置当前调度器的任务存储、执行器和事件回调
-
-        :return: None
-        """
+        """配置当前调度器的任务存储、执行器和事件回调。"""
         cls._resources.configure(cls._scheduler, cls.scheduler_event_listener)
 
     @classmethod
@@ -557,7 +545,7 @@ class SchedulerManager:
         cls, job_ids: set[int] | None = None, *, raise_errors: bool = False
     ) -> dict[str, Any]:
         """
-        调用配置同步功能类校准数据库任务
+        调用配置同步功能类校准数据库任务。
 
         :param job_ids: 指定任务ID，None表示完整校准
         :param raise_errors: 是否向调用方抛出完整扫描异常
@@ -569,27 +557,22 @@ class SchedulerManager:
 
     @classmethod
     async def _drain_execution_requests(cls) -> None:
-        """
-        调用执行派发功能类处理已持久化的执行请求
-
-        :return: None
-        """
+        """调用执行派发功能类处理已持久化的执行请求。"""
         await cls._dispatcher.dispatch_pending(is_leader=cls.is_application_leader)
 
     @classmethod
     def scheduler_event_listener(cls, event: SchedulerEvent) -> None:
         """
-        调用日志功能类记录任务执行事件
+        调用日志功能类记录任务执行事件。
 
         :param event: 调度器产生的执行事件
-        :return: None
         """
         cls._listener.handle_event(event)
 
     @staticmethod
     def _prepare_scheduler_job_add(job_info: JobModel) -> dict[str, Any]:
         """
-        校验任务配置并构造注册参数
+        校验任务配置并构造注册参数。
 
         :param job_info: 任务配置
         :return: 调度器任务注册参数
@@ -599,7 +582,7 @@ class SchedulerManager:
     @classmethod
     def get_scheduler_job(cls, job_id: str | int) -> Job | None:
         """
-        获取当前进程的调度任务
+        获取当前进程的调度任务。
 
         :param job_id: 任务ID
         :return: 调度任务，不存在时返回None
@@ -609,10 +592,9 @@ class SchedulerManager:
     @classmethod
     def add_scheduler_job(cls, job_info: JobModel) -> None:
         """
-        在Leader进程中注册任务
+        在Leader进程中注册任务。
 
         :param job_info: 任务配置
-        :return: None
         """
         if cls._is_leader:
             cls._jobs.add_job(job_info)
@@ -620,10 +602,9 @@ class SchedulerManager:
     @classmethod
     def remove_scheduler_job(cls, job_id: str | int) -> None:
         """
-        在Leader进程中移除任务
+        在Leader进程中移除任务。
 
         :param job_id: 任务ID
-        :return: None
         """
         if cls._is_leader:
             cls._jobs.remove_job(job_id)
@@ -631,12 +612,12 @@ class SchedulerManager:
     @classmethod
     def execute_scheduler_job_once(cls, job_info: JobModel, *, execution_id: str, dispatch_token: str) -> None:
         """
-        在Leader进程中注册已领取的单次执行请求
+        在Leader进程中注册已领取的单次执行请求。
 
         :param job_info: 任务配置
         :param execution_id: 已持久化的执行请求ID
         :param dispatch_token: 本次派发的领取凭据
-        :return: None
+        :raises RuntimeError: 仅 Leader 可以派发已领取的执行请求
         """
         if not cls._is_leader:
             raise RuntimeError('仅 Leader 可以派发已领取的执行请求')

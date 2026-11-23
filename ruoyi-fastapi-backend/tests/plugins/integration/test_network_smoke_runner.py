@@ -19,6 +19,11 @@ async def test_network_cleanup_preserves_original_failure(
     stopping = asyncio.Event()
 
     async def serve(**kwargs: object) -> None:
+        """
+        将测试服务标记为就绪并等待停止。
+
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         server.started = True
         await stopping.wait()
 
@@ -26,6 +31,13 @@ async def test_network_cleanup_preserves_original_failure(
     monkeypatch.setattr(smoke.uvicorn, 'Server', lambda config: server)
 
     async def start_frontend(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        按测试场景模拟前端启动结果。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: ``SimpleNamespace`` 实例
+        """
         if failure == 'startup':
             kwargs['stdout'].write("Cannot find module 'memory-fs'\n")
         else:

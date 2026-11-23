@@ -13,12 +13,15 @@ from utils.common_util import bytes2human
 
 
 class ServerService:
-    """
-    服务监控模块服务层
-    """
+    """服务监控模块服务层。"""
 
     @staticmethod
     async def get_server_monitor_info() -> ServerMonitorModel:
+        """
+        汇总服务器的处理器、内存、运行环境和磁盘信息。
+
+        :return: 执行当前操作得到的结果
+        """
         # CPU信息
         # 获取CPU总核心数
         cpu_num = psutil.cpu_count(logical=True)
@@ -90,7 +93,7 @@ class ServerService:
     @classmethod
     def _get_disk_info(cls) -> list[SysFiles]:
         """
-        获取可访问的磁盘信息
+        获取可访问的磁盘信息。
 
         :return: 磁盘信息列表
         """
@@ -120,7 +123,7 @@ class ServerService:
     @staticmethod
     def _read_disk_info(device: str, mountpoint: str, filesystem: str) -> SysFiles | None:
         """
-        读取指定磁盘的容量信息
+        读取指定磁盘的容量信息。
 
         :param device: 磁盘设备名称
         :param mountpoint: 磁盘挂载路径

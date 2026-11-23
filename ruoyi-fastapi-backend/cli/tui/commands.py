@@ -42,7 +42,7 @@ class TuiAppModuleLoader:
     TUI 应用模块加载器。
 
     该对象负责识别缺失的可选依赖，并在命令执行阶段按需导入
-    `cli.tui.app` 模块。
+    ``cli.tui.app`` 模块。
     """
 
     def is_missing_dependency_error(self, exc: ModuleNotFoundError) -> bool:
@@ -59,7 +59,7 @@ class TuiAppModuleLoader:
         """
         惰性导入 TUI 应用模块。
 
-        :return: `cli.tui.app` 模块对象
+        :return: ``cli.tui.app`` 模块对象
         """
         return import_module('cli.tui.app')
 
@@ -69,10 +69,10 @@ class TuiCommandRegistration:
     """
     TUI 命令注册器。
 
-    :param context_factory: CLI 上下文工厂
-    :param execution_service: CLI 执行服务
-    :param dependency_result_factory: TUI 缺失依赖结果构建器
-    :param module_loader: TUI 应用模块加载器
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar dependency_result_factory: TUI 缺失依赖结果构建器
+    :ivar module_loader: TUI 应用模块加载器
     """
 
     context_factory: CliContextFactory
@@ -82,10 +82,10 @@ class TuiCommandRegistration:
 
     def handle_tui_command(self, env: str) -> None:
         """
-        执行 `ruoyi tui` 命令。
+        执行 ``ruoyi tui`` 命令。
 
         :param env: 当前命令运行环境
-        :return: None
+        :raises ModuleNotFoundError: 加载终端界面时遇到需要向上传播的模块导入错误
         """
         ctx = self.context_factory.build_readonly(env, 'text')
         try:
@@ -102,9 +102,9 @@ class TuiCommandRegistration:
 
     def build(self) -> typer.Typer:
         """
-        构建 `tui` 子应用。
+        构建 ``tui`` 子应用。
 
-        :return: `tui` 子应用
+        :return: ``tui`` 子应用
         """
         app = typer.Typer(
             help=TUI_COPY.build_tui_command_help(),
@@ -121,7 +121,6 @@ class TuiCommandRegistration:
             进入只读巡检工作台。
 
             :param env: 当前命令运行环境
-            :return: None
             """
             self.handle_tui_command(env)
 
@@ -129,10 +128,9 @@ class TuiCommandRegistration:
 
     def register(self, root_cli: typer.Typer) -> None:
         """
-        向根 Typer 应用注册 `tui` 命令。
+        向根 Typer 应用注册 ``tui`` 命令。
 
         :param root_cli: 根 Typer 应用
-        :return: None
         """
         root_cli.add_typer(self.build(), name='tui')
 

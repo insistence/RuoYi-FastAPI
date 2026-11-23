@@ -55,12 +55,7 @@ def invoke_sdk(operation: str, project: Path, *options: str) -> tuple[int, dict]
 
 
 def test_sdk_cli_requires_explicit_force_for_untracked_copy_and_dry_run_does_not_write(project: Path) -> None:
-    """
-    验证旧工程纳管前可预演，默认拒绝写入且强制更新只修改 SDK。
-
-    :param project: 未跟踪 SDK 的隔离工程
-    :return: None
-    """
+    """验证旧工程纳管前可预演，默认拒绝写入且强制更新只修改 SDK。"""
     before = {path.relative_to(project): path.read_bytes() for path in project.rglob('*') if path.is_file()}
     code, payload = invoke_sdk('check', project)
     assert code == DEPENDENCY_ERROR and payload['status'] == 'untracked'
@@ -79,13 +74,7 @@ def test_sdk_cli_requires_explicit_force_for_untracked_copy_and_dry_run_does_not
 
 
 def test_sdk_cli_bad_source_is_json_and_nonzero(project: Path, tmp_path: Path) -> None:
-    """
-    验证来源 SDK 缺失时返回单份 JSON 和非零状态。
-
-    :param project: 独立测试工程
-    :param tmp_path: 不包含 SDK 的来源目录
-    :return: None
-    """
+    """验证来源 SDK 缺失时返回单份 JSON 和非零状态。"""
     result = CliRunner().invoke(
         sdk_app(), ['sdk', 'check', str(project), '--frontend-root', str(tmp_path), '--output', 'json']
     )
@@ -177,23 +166,13 @@ def test_sdk_cli_rejects_removed_frontend_version_option(project: Path) -> None:
 
 
 def test_sdk_cli_invalid_output_is_argument_error(project: Path) -> None:
-    """
-    验证 SDK 子命令复用 CLI 输出格式约束。
-
-    :param project: 独立测试工程
-    :return: None
-    """
+    """验证 SDK 子命令复用 CLI 输出格式约束。"""
     result = CliRunner().invoke(sdk_app(), ['sdk', 'check', str(project), '--output', 'xml'])
     assert result.exit_code == ARGUMENT_ERROR
 
 
 def test_sdk_check_cold_process_does_not_load_host_configuration_or_project(project: Path) -> None:
-    """
-    验证实际根命令能在无宿主配置条件下离线运行，不导入业务或数据库。
-
-    :param project: 包含禁止执行代码的独立工程
-    :return: None
-    """
+    """验证实际根命令能在无宿主配置条件下离线运行，不导入业务或数据库。"""
     script = """
 import json, sys
 from typer.testing import CliRunner

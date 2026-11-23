@@ -23,6 +23,7 @@ from exceptions.handle import handle_exception
     ],
 )
 async def test_data_source_exceptions_use_service_exception_handler(exception: Exception) -> None:
+    """数据源异常由服务异常处理器处理。"""
     app = FastAPI()
     handle_exception(app)
 

@@ -24,7 +24,11 @@ _ROLE_REFRESH_COUNT = 4
 
 @pytest_asyncio.fixture
 async def security_session() -> AsyncSession:
-    """创建身份安全事件涉及表的真实异步数据库会话。"""
+    """
+    创建身份安全事件涉及表的真实异步数据库会话。
+
+    :yield: 身份安全事件涉及表的真实异步数据库会话
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [
         SysUser.__table__,
@@ -43,7 +47,13 @@ async def security_session() -> AsyncSession:
 
 
 async def _seed_user(session: AsyncSession, user_id: int, *, with_subject: bool = True) -> None:
-    """写入一个用户及其可撤销的 Session、Refresh。"""
+    """
+    写入一个用户及其可撤销的 Session、Refresh。
+
+    :param session: 当前操作共用的会话
+    :param user_id: 用户的唯一标识
+    :param with_subject: 是否为样例关联身份主体
+    """
     session.add(SysUser(user_id=user_id, user_name=f'user-{user_id}', nick_name='User'))
     if with_subject:
         session.add(

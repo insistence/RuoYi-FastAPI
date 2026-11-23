@@ -7,6 +7,7 @@ def test_gen_import_wizard_executes_nested_cli_with_selected_tables(
     monkeypatch: MonkeyPatch,
     gen_import_flow: ModuleType,
 ) -> None:
+    """导入向导将选中的表传给嵌套命令。"""
     captured: dict[str, object] = {}
     answers = iter(['dev', 'sys_user,sys_role', True, True])
     monkeypatch.setattr(
@@ -66,6 +67,7 @@ def test_gen_import_wizard_accepts_default_context_values(
     monkeypatch: MonkeyPatch,
     gen_import_flow: ModuleType,
 ) -> None:
+    """导入向导接受上下文默认值。"""
     captured_defaults: dict[str, object] = {}
     captured_confirm_defaults: list[tuple[str, bool]] = []
     answers = iter(['dev', 'sys_user', True, False])
@@ -109,6 +111,7 @@ def test_gen_import_wizard_falls_back_to_failure_payload_when_nested_result_has_
     monkeypatch: MonkeyPatch,
     gen_import_flow: ModuleType,
 ) -> None:
+    """导入命令缺少字典结果时返回失败信息。"""
     captured: dict[str, object] = {}
     answers = iter(['dev', 'sys_notice', True, True])
     monkeypatch.setattr(

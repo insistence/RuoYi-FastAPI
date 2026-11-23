@@ -6,9 +6,7 @@ from utils.time_util import TimezoneUtil
 
 
 class SysOAuthAuditLog(Base):
-    """
-    OAuth/OIDC安全审计日志表
-    """
+    """OAuth/OIDC安全审计日志表。"""
 
     __tablename__ = 'sys_oauth_audit_log'
     __table_args__ = (
@@ -35,9 +33,9 @@ class SysOAuthAuditLog(Base):
     resource_id = Column(String(64), nullable=True, comment='Resource ID 快照')
     user_id = Column(BigInteger, nullable=True, comment='用户ID快照')
     subject_id = Column(String(36), nullable=True, comment='Subject 快照')
-    sid = Column(String(36), nullable=True, comment='SSO Session ID')
-    grant_id = Column(String(36), nullable=True, comment='Grant ID')
-    token_id = Column(String(36), nullable=True, comment='Token ID')
+    sid = Column(String(36), nullable=True, comment='单点登录会话标识')
+    grant_id = Column(String(36), nullable=True, comment='授权记录标识')
+    token_id = Column(String(36), nullable=True, comment='令牌标识')
     ip_address = Column(String(128), nullable=True, comment='客户端 IP')
     user_agent = Column(String(500), nullable=True, comment='脱敏 User-Agent')
     failure_code = Column(String(64), nullable=True, comment='失败码')
@@ -46,9 +44,7 @@ class SysOAuthAuditLog(Base):
 
 
 class SysOAuthAuditArchive(Base):
-    """
-    OAuth/OIDC安全审计归档表
-    """
+    """OAuth/OIDC安全审计归档表。"""
 
     __tablename__ = 'sys_oauth_audit_archive'
     __table_args__ = (
@@ -66,9 +62,9 @@ class SysOAuthAuditArchive(Base):
     resource_id = Column(String(64), nullable=True, comment='Resource ID 快照')
     user_id = Column(BigInteger, nullable=True, comment='用户ID快照')
     subject_id = Column(String(36), nullable=True, comment='Subject 快照')
-    sid = Column(String(36), nullable=True, comment='SSO Session ID')
-    grant_id = Column(String(36), nullable=True, comment='Grant ID')
-    token_id = Column(String(36), nullable=True, comment='Token ID')
+    sid = Column(String(36), nullable=True, comment='单点登录会话标识')
+    grant_id = Column(String(36), nullable=True, comment='授权记录标识')
+    token_id = Column(String(36), nullable=True, comment='令牌标识')
     ip_address = Column(String(128), nullable=True, comment='客户端 IP')
     user_agent = Column(String(500), nullable=True, comment='脱敏 User-Agent')
     failure_code = Column(String(64), nullable=True, comment='失败码')

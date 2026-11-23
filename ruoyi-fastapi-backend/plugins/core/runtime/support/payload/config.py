@@ -10,103 +10,87 @@ from .base import PluginPayloadModel
 
 
 class PluginConfigStatePayload(PluginPayloadModel):
-    """
-    插件配置读取/更新 payload。
-    """
+    """插件配置读取/更新 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    configs: list[dict[str, object]]
-    operation: str | None = None
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    configs: list[dict[str, object]] = Field(description='插件配置项列表')
+    operation: str | None = Field(default=None, description='执行的操作类型')
 
 
 class PluginConfigExportFailurePayload(PluginPayloadModel):
-    """
-    插件配置导出失败 payload。
-    """
+    """插件配置导出失败 payload。"""
 
-    ok: object
-    message: object
-    plugin_id: str = Field(alias='pluginId')
-    reveal_secret: bool = Field(alias='revealSecret')
-    values: dict[str, object]
-    metadata: list[dict[str, object]]
+    ok: object = Field(description='本次操作是否成功')
+    message: object = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    reveal_secret: bool = Field(alias='revealSecret', description='是否显示敏感配置的原值')
+    values: dict[str, object] = Field(description='按配置键索引的值')
+    metadata: list[dict[str, object]] = Field(description='导出配置的元数据')
 
 
 class PluginConfigExportPayload(PluginPayloadModel):
-    """
-    插件配置导出 payload。
-    """
+    """插件配置导出 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    reveal_secret: bool = Field(alias='revealSecret')
-    configs: list[dict[str, object]]
-    values: dict[str, object]
-    metadata: list[dict[str, object]]
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    reveal_secret: bool = Field(alias='revealSecret', description='是否显示敏感配置的原值')
+    configs: list[dict[str, object]] = Field(description='插件配置项列表')
+    values: dict[str, object] = Field(description='按配置键索引的值')
+    metadata: list[dict[str, object]] = Field(description='导出配置的元数据')
 
 
 class PluginConfigDiagnosticSummaryPayload(PluginPayloadModel):
-    """
-    插件配置诊断摘要 payload。
-    """
+    """插件配置诊断摘要 payload。"""
 
-    total: int
-    secret_count: int = Field(alias='secretCount')
-    required_count: int = Field(alias='requiredCount')
-    configured_count: int = Field(alias='configuredCount')
-    missing_required_count: int = Field(alias='missingRequiredCount')
-    missing_required_keys: list[str] = Field(alias='missingRequiredKeys')
-    masked: bool
+    total: int = Field(description='条目总数')
+    secret_count: int = Field(alias='secretCount', description='敏感配置项数')
+    required_count: int = Field(alias='requiredCount', description='必填配置项数')
+    configured_count: int = Field(alias='configuredCount', description='已设置值的配置项数')
+    missing_required_count: int = Field(alias='missingRequiredCount', description='尚未填写的必填配置项数')
+    missing_required_keys: list[str] = Field(alias='missingRequiredKeys', description='尚未填写的必填配置键')
+    masked: bool = Field(description='敏感值是否已遮盖')
 
 
 class PluginConfigImportPayload(PluginPayloadModel):
-    """
-    插件配置导入 payload。
-    """
+    """插件配置导入 payload。"""
 
-    ok: object | None = None
-    message: object | None = None
-    plugin_id: object | None = Field(default=None, alias='pluginId')
-    operation: str | None = None
-    configs: list[dict[str, object]] | None = None
-    imported_keys: list[str] = Field(alias='importedKeys')
+    ok: object | None = Field(default=None, description='本次操作是否成功')
+    message: object | None = Field(default=None, description='面向调用方的结果说明')
+    plugin_id: object | None = Field(default=None, alias='pluginId', description='插件标识')
+    operation: str | None = Field(default=None, description='执行的操作类型')
+    configs: list[dict[str, object]] | None = Field(default=None, description='插件配置项列表')
+    imported_keys: list[str] = Field(alias='importedKeys', description='本次导入的配置键')
 
 
 class PluginConfigAuditChangePayload(PluginPayloadModel):
-    """
-    插件配置审计变更项 payload。
-    """
+    """插件配置审计变更项 payload。"""
 
-    key: str
-    label: object
-    secret: bool
-    before: object
-    after: object
+    key: str = Field(description='配置项的键')
+    label: object = Field(description='面向用户的显示名称')
+    secret: bool = Field(description='是否包含敏感值')
+    before: object = Field(description='变更前的配置值')
+    after: object = Field(description='变更后的配置值')
 
 
 class PluginConfigAuditSummaryPayload(PluginPayloadModel):
-    """
-    插件配置审计摘要 payload。
-    """
+    """插件配置审计摘要 payload。"""
 
-    changed_count: int = Field(alias='changedCount')
-    changed_keys: list[str] = Field(alias='changedKeys')
-    changes: list[dict[str, object]]
+    changed_count: int = Field(alias='changedCount', description='已变更的配置项数')
+    changed_keys: list[str] = Field(alias='changedKeys', description='本次变更的配置键')
+    changes: list[dict[str, object]] = Field(description='逐项记录的配置变更')
 
 
 class PluginConfigAuditPayload(PluginPayloadModel):
-    """
-    插件配置审计 payload。
-    """
+    """插件配置审计 payload。"""
 
-    ok: bool
-    operation: str
-    plugin_id: str = Field(alias='pluginId')
-    message: str
-    summary: dict[str, object]
+    ok: bool = Field(description='本次操作是否成功')
+    operation: str = Field(description='执行的操作类型')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    message: str = Field(description='面向调用方的结果说明')
+    summary: dict[str, object] = Field(description='操作结果摘要')
 
 
 PluginConfigStatePayloadDict: TypeAlias = dict[str, object]

@@ -31,6 +31,11 @@ PluginDependencyOutputCallback = Callable[[str, str], None]
 class PluginCommandController:
     """
     插件命令控制器。
+
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar presenter: 插件命令文本渲染器
+    :ivar _plugin_runtime: 插件运行时服务
     """
 
     def __init__(
@@ -48,7 +53,6 @@ class PluginCommandController:
         :param execution_service: CLI 执行服务
         :param presenter: 插件命令文本渲染器
         :param plugin_runtime: 插件运行时服务
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
@@ -81,7 +85,6 @@ class PluginCommandController:
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.core_runtime.list_plugins_with_state())
@@ -109,7 +112,6 @@ class PluginCommandController:
         :param text_builder: 文本构造器
         :param success_exit_code: 成功退出码
         :param failure_exit_code: 失败退出码
-        :return: None
         """
         payload = PluginCommandPayloadAdapter.adapt(payload)
         self.execution_service.complete_payload_with_text(
@@ -152,7 +154,6 @@ class PluginCommandController:
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.core_runtime.get_plugin_info_with_state(plugin_id))
@@ -170,7 +171,6 @@ class PluginCommandController:
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.core_runtime.check_plugin(plugin_id)
@@ -187,7 +187,6 @@ class PluginCommandController:
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.core_runtime.check_plugin_dependencies(plugin_id)
@@ -205,7 +204,6 @@ class PluginCommandController:
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.core_runtime.precheck_plugin_operation(plugin_id, operation))
@@ -222,7 +220,6 @@ class PluginCommandController:
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.core_runtime.health_plugin(plugin_id))
@@ -240,7 +237,6 @@ class PluginCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param output_file: 诊断包 JSON 导出文件路径
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.plugin_runtime.diagnose_plugin_with_runtime(plugin_id))
@@ -264,7 +260,6 @@ class PluginCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param output_file: Markdown 文档导出文件路径
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.core_runtime.generate_plugin_docs(plugin_id)
@@ -302,7 +297,6 @@ class PluginCommandController:
         :param maxfail: 最大失败数
         :param quiet: 是否启用简洁输出
         :param frontend_build: 是否执行前端构建验收
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.plugin_runtime.test_plugin(
@@ -326,7 +320,6 @@ class PluginCommandController:
         :param plugin_ids: 插件ID列表
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.core_runtime.plan_plugins(operation, plugin_ids or None)
@@ -359,7 +352,6 @@ class PluginCommandController:
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
         :param continue_on_error: 失败后是否继续执行后续插件
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -399,7 +391,6 @@ class PluginCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param options: 依赖安装命令选项
-        :return: None
         """
         ctx = self.context_factory.build_regular(
             env,
@@ -482,6 +473,12 @@ class PluginCommandController:
             return None
 
         def output_callback(kind: str, text: str) -> None:
+            """
+            将依赖安装过程的输出转交给 CLI 展示层。
+
+            :param kind: 当前条目的类别
+            :param text: 待处理的文本
+            """
             if text:
                 typer.echo(text, nl=False, err=kind == 'stderr')
 
@@ -502,7 +499,6 @@ class PluginCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param options: 依赖锁文件命令选项
-        :return: None
         """
         ctx = self.context_factory.build_regular(
             env,
@@ -538,7 +534,6 @@ class PluginCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param options: 允许列表示例命令选项
-        :return: None
         """
         ctx = self.context_factory.build_regular(
             env,
@@ -636,7 +631,6 @@ class PluginCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param options: 插件创建命令选项
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         if options.backend_only and options.frontend_only:
@@ -690,7 +684,6 @@ class PluginCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -727,7 +720,6 @@ class PluginCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -766,7 +758,6 @@ class PluginCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         command_name = 'plugin enable' if enabled else 'plugin disable'
         ctx = self.context_factory.build_dangerous(
@@ -806,7 +797,6 @@ class PluginCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -843,7 +833,6 @@ class PluginCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否仅预演
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -869,7 +858,6 @@ class PluginCommandController:
         :param status: 执行状态
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.core_runtime.list_plugin_migrations(plugin_id, status))
@@ -900,7 +888,6 @@ class PluginCommandController:
         :param note: 人工恢复备注
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -941,7 +928,6 @@ class PluginCommandController:
         :param note: 人工恢复备注
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -988,7 +974,6 @@ class PluginCommandController:
         :param reveal_secret: 是否导出敏感配置明文
         :param output_file: 配置导出 JSON 文件路径
         :param input_file: 配置导入 JSON 文件路径
-        :return: None
         """
         if action == 'get':
             self._get_plugin_config(plugin_id, env, output)
@@ -1047,7 +1032,6 @@ class PluginCommandController:
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.core_runtime.get_plugin_config(plugin_id))
@@ -1078,7 +1062,6 @@ class PluginCommandController:
         :param yes: 是否跳过确认
         :param reveal_secret: 是否导出敏感配置明文
         :param output_file: 配置导出 JSON 文件路径
-        :return: None
         """
         ctx = (
             self.context_factory.build_dangerous(
@@ -1127,7 +1110,6 @@ class PluginCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param input_file: 配置导入 JSON 文件路径
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -1175,7 +1157,6 @@ class PluginCommandController:
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -1210,6 +1191,7 @@ class PluginCommandController:
 
         :param pairs: 配置键值参数列表
         :return: 配置键值字典
+        :raises ValueError: 配置项未按 key=value 提供
         """
         values = {}
         for pair in pairs:

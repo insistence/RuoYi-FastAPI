@@ -13,7 +13,7 @@ class StaticActionTemplateFactory:
     该对象负责生成不依赖当前记录内容的页面动作模板，统一详情页和
     部分浏览页的固定动作定义。
 
-    :param support: 动作模板共享构建支持
+    :ivar support: 动作模板共享构建支持
     """
 
     support: TuiActionTemplateSupport

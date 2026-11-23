@@ -6,14 +6,12 @@ from plugins.ai.entity.vo.ai_chat_vo import AiChatConfigModel
 
 
 class AiChatConfigDao:
-    """
-    AI对话配置数据库操作层
-    """
+    """AI对话配置数据库操作层。"""
 
     @classmethod
     async def get_chat_config_detail_by_user_id(cls, db: AsyncSession, user_id: int) -> AiChatConfig | None:
         """
-        根据用户ID获取配置
+        根据用户ID获取配置。
 
         :param db: orm对象
         :param user_id: 用户ID
@@ -28,7 +26,7 @@ class AiChatConfigDao:
     @classmethod
     async def add_chat_config_dao(cls, db: AsyncSession, chat_config: AiChatConfigModel) -> AiChatConfig:
         """
-        新增对话配置数据库操作
+        新增对话配置数据库操作。
 
         :param db: orm对象
         :param chat_config: 对话配置对象
@@ -45,11 +43,10 @@ class AiChatConfigDao:
     @classmethod
     async def edit_chat_config_dao(cls, db: AsyncSession, chat_config: dict) -> None:
         """
-        编辑对话配置数据库操作
+        编辑对话配置数据库操作。
 
         :param db: orm对象
         :param chat_config: 需要更新的对话配置字典
-        :return:
         """
         await db.execute(
             update(AiChatConfig),

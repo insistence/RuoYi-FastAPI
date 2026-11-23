@@ -3,7 +3,10 @@ from utils.time_util import TimezoneUtil
 
 def job(*args, **kwargs) -> None:
     """
-    定时任务执行同步函数示例
+    定时任务执行同步函数示例。
+
+    :param args: 传给被调用对象的位置参数
+    :param kwargs: 传给被调用对象的关键字参数
     """
     print(args)
     print(kwargs)
@@ -12,7 +15,10 @@ def job(*args, **kwargs) -> None:
 
 async def async_job(*args, **kwargs) -> None:
     """
-    定时任务执行异步函数示例
+    定时任务执行异步函数示例。
+
+    :param args: 传给被调用对象的位置参数
+    :param kwargs: 传给被调用对象的关键字参数
     """
     print(args)
     print(kwargs)

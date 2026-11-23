@@ -14,9 +14,7 @@ MAX_FORM_BYTES = 64 * 1024
 
 
 class FileInspection(BaseModel):
-    """
-    返回文件元数据与摘要，不保存上传内容。
-    """
+    """返回文件元数据与摘要，不保存上传内容。"""
 
     filename: str = Field(description='客户端提交的文件名，仅作展示')
     size: int = Field(description='文件实际字节数')
@@ -29,7 +27,6 @@ def register_file_routes(app: FastAPI, *, permission: str = 'bundle_demo:view') 
 
     :param app: 插件所属的子应用
     :param permission: 两个文件接口要求的插件权限
-    :return: None
     """
 
     @app.post(
@@ -46,6 +43,7 @@ def register_file_routes(app: FastAPI, *, permission: str = 'bundle_demo:view') 
             累计实际请求体大小，在解析 multipart 之前执行硬上限检查。
 
             :return: 当前 ASGI 消息
+            :raises MultiPartException: 上传请求超过大小限制
             """
             nonlocal received
             message = await request.receive()

@@ -13,7 +13,14 @@ pytestmark = pytest.mark.e2e
 
 
 async def check_assigned_user(view: SystemPage, role_id: int, name: str, *, assigned: bool) -> None:
-    """重新读取已授权用户，验证新增和取消授权确实保存。"""
+    """
+    重新读取已授权用户，验证新增和取消授权确实保存。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param role_id: 角色id
+    :param name: 用于查找或标识当前对象的名称
+    :param assigned: 分配给目标的记录或权限
+    """
     response = await view.api.get('/system/role/authUser/allocatedList', params={'roleId': role_id, 'userName': name})
     payload = await response.json()
     assert response.ok and payload['code'] == HTTPStatus.OK, payload
@@ -22,7 +29,13 @@ async def check_assigned_user(view: SystemPage, role_id: int, name: str, *, assi
 
 
 async def assign_and_cancel(view: SystemPage, role_id: int, user_name: str) -> None:
-    """先后验证单条取消和批量取消授权。"""
+    """
+    先后验证单条取消和批量取消授权。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param role_id: 角色id
+    :param user_name: 当前用户的账号名称
+    """
     resource = '/system/role'
     for bulk in (False, True):
         await view.action(view.button(view.page, '添加用户').click, f'{resource}/authUser/unallocatedList')
@@ -63,7 +76,12 @@ async def assign_and_cancel(view: SystemPage, role_id: int, user_name: str) -> N
 
 
 async def select_system_menu(view: SystemPage, dialog: Locator) -> None:
-    """选中系统管理根节点，并核对组件实际的选中状态。"""
+    """
+    选中系统管理根节点，并核对组件实际的选中状态。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param dialog: 测试正在操作的对话框
+    """
     menu_node = (
         dialog.locator('.ant-tree-treenode' if view.is_react else '.el-tree-node__content')
         .filter(has=view.page.get_by_text('系统管理', exact=True))

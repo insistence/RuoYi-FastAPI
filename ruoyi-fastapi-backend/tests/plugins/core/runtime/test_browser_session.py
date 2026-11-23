@@ -28,25 +28,46 @@ from module_admin.entity.do.user_do import SysUser
 from module_admin.service.login_service import LoginService, oauth2_scheme
 from module_plugin.controller.plugin_browser_controller import plugin_browser_controller
 from plugins.core.discovery.registry import RegisteredPlugin
-from plugins.core.discovery.scanner import PluginScanner
+from plugins.core.discovery.scanner import DiscoveredPlugin, PluginScanner
 from plugins.core.runtime.browser_session import COOKIE_NAME_PREFIX, SESSION_KEY_PREFIX
 from plugins.core.runtime.explicit import ExplicitPluginRuntime
 from utils.jwt_util import JwtUtil
 
 
 class MemoryRedis:
-    """实现本协议使用的原子 NX/expire，并允许明确模拟到期。"""
+    """
+    实现本协议使用的原子 NX/expire，并允许明确模拟到期。
+
+    :ivar values: 当前处理的值集合
+    :ivar deadlines: 各操作的截止时间
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``values``, ``deadlines``。"""
         self.values: dict[str, str] = {}
         self.deadlines: dict[str, float] = {}
 
     async def get(self, key: str) -> str | None:
+        """
+        读取测试存储中的指定键。
+
+        :param key: 查找数据时使用的键
+        :return: 测试存储中的指定键
+        """
         if self.deadlines.get(key, float('inf')) <= time.time():
             self.values.pop(key, None)
         return self.values.get(key)
 
     async def set(self, key: str, value: str, *, ex: int = 300, nx: bool = False) -> bool:
+        """
+        写入测试缓存键并设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        :param nx: 是否只在键尚不存在时写入
+        :return: 是否写入测试缓存键并设置过期时间
+        """
         if nx and await self.get(key) is not None:
             return False
         self.values[key] = value
@@ -54,6 +75,13 @@ class MemoryRedis:
         return True
 
     async def expire(self, key: str, seconds: int) -> bool:
+        """
+        为测试缓存键设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param seconds: 以秒计的时间值
+        :return: 是否为测试缓存键设置过期时间
+        """
         if await self.get(key) is None:
             return False
         self.deadlines[key] = time.time() + seconds
@@ -80,8 +108,13 @@ def create_plugin(host):
 """
 
 
-@pytest_asyncio.fixture
-async def browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[SimpleNamespace]:
+def _write_browser_plugin(tmp_path: Path) -> DiscoveredPlugin:
+    """
+    写入测试插件的前端资源和清单，并返回扫描结果。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 扫描结果
+    """
     directory = tmp_path / 'plugins' / 'browser_test'
     (directory / 'web' / 'dist' / 'assets').mkdir(parents=True)
     (directory / 'web' / 'dist' / 'index.html').write_text('<html><head></head><body>Bundle</body></html>')
@@ -101,7 +134,19 @@ async def browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
         'permissions': ['browser_test:view'],
     }
     (directory / 'plugin.yaml').write_text(yaml.safe_dump(data))
-    plugin = PluginScanner(directory.parent).load_manifest(directory / 'plugin.yaml')
+    return PluginScanner(directory.parent).load_manifest(directory / 'plugin.yaml')
+
+
+@pytest_asyncio.fixture
+async def browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[SimpleNamespace]:
+    """
+    装配可通过浏览器访问的测试插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :yield: ``SimpleNamespace`` 实例
+    """
+    plugin = _write_browser_plugin(tmp_path)
     app = FastAPI()
     app.state.redis = redis = MemoryRedis()
     runtime = ExplicitPluginRuntime(SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True)))
@@ -115,15 +160,32 @@ async def browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
     monkeypatch.setattr(TransportCryptoConfig, 'transport_crypto_enabled', False)
 
     async def current_user(token_value: str = Depends(oauth2_scheme)) -> object:
+        """
+        在令牌匹配时提供测试用户。
+
+        :param token_value: 测试令牌的实际值
+        :raises HTTPException: 模拟请求未获得身份认证
+        :return: 当前操作对应的用户
+        """
         if token_value != token:
             raise HTTPException(status_code=401)
         return user
 
     async def session_dependency() -> AsyncIterator[object]:
+        """
+        为当前请求提供测试数据库会话。
+
+        :yield: 当前请求借用的测试数据库会话
+        """
         yield object()
 
     @asynccontextmanager
     async def session() -> AsyncGenerator[object, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         yield object()
 
     app.dependency_overrides[LoginService.get_current_user] = current_user
@@ -134,7 +196,7 @@ async def browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
     monkeypatch.setattr('plugins.core.runtime.explicit.DataSourceRegistry.session', session)
     app.include_router(plugin_browser_controller)
 
-    @app.get('/system/private')
+    @app.get('/system/private', summary='检查宿主私有端点', description='检查请求携带的令牌并返回认证状态。')
     async def private(token_value: Annotated[str, Depends(oauth2_scheme)]) -> dict:
         return {'authenticated': bool(token_value)}
 
@@ -165,6 +227,12 @@ async def browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
 
 
 async def issue(browser: SimpleNamespace) -> httpx.Response:
+    """
+    通过插件接口申请测试浏览器会话。
+
+    :param browser: 执行页面操作的浏览器实例
+    :return: 插件浏览器会话的签发响应
+    """
     return await browser.client.post(
         '/plugin/runtime/browser_test/session',
         headers={
@@ -216,6 +284,7 @@ async def test_plugin_session_error_status_and_language(browser: SimpleNamespace
 
 @pytest.mark.asyncio
 async def test_issued_cookie_loads_ui_and_api_but_never_host_api(browser: SimpleNamespace) -> None:
+    """签发的 Cookie 可访问插件界面和接口且不能访问宿主接口。"""
     client = browser.client
     assert (await client.get('/apps/browser_test/ui/')).status_code == status.HTTP_401_UNAUTHORIZED
     response = await issue(browser)
@@ -245,6 +314,7 @@ async def test_issued_cookie_loads_ui_and_api_but_never_host_api(browser: Simple
 
 @pytest.mark.asyncio
 async def test_multitab_renewal_reuses_cookie_and_csrf(browser: SimpleNamespace) -> None:
+    """多标签页续期复用 Cookie 和 CSRF 令牌。"""
     first, second = await asyncio.gather(issue(browser), issue(browser))
     assert first.json()['data']['csrfToken'] == second.json()['data']['csrfToken']
     assert first.cookies == second.cookies
@@ -253,6 +323,7 @@ async def test_multitab_renewal_reuses_cookie_and_csrf(browser: SimpleNamespace)
 
 @pytest.mark.asyncio
 async def test_cookie_writes_require_origin_and_csrf(browser: SimpleNamespace) -> None:
+    """写入 Cookie 需要验证来源和 CSRF。"""
     response = await issue(browser)
     csrf = response.json()['data']['csrfToken']
     for headers in (
@@ -272,6 +343,7 @@ async def test_cookie_writes_require_origin_and_csrf(browser: SimpleNamespace) -
 @pytest.mark.asyncio
 @pytest.mark.parametrize('reason', ['logout', 'replaced', 'expired', 'disabled', 'permission', 'version', 'nonce'])
 async def test_session_fails_closed_after_binding_or_access_changes(browser: SimpleNamespace, reason: str) -> None:
+    """绑定或访问权限变化后拒绝已有会话。"""
     await issue(browser)
     key = next(key for key in browser.redis.values if key.startswith(SESSION_KEY_PREFIX))
     if reason == 'logout':
@@ -298,6 +370,7 @@ async def test_session_fails_closed_after_binding_or_access_changes(browser: Sim
 
 @pytest.mark.asyncio
 async def test_cross_origin_issuance_and_unknown_plugin_rejected(browser: SimpleNamespace) -> None:
+    """拒绝跨域签发和未知插件。"""
     headers = {'Authorization': f'Bearer {browser.token}', 'Origin': 'https://evil.test'}
     assert (
         await browser.client.post('/plugin/runtime/browser_test/session', headers=headers)
@@ -312,6 +385,7 @@ async def test_cross_origin_issuance_and_unknown_plugin_rejected(browser: Simple
 async def test_required_encryption_bypasses_only_readonly_registered_ui(
     browser: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """强制加密时仅放行已注册的只读界面。"""
     await issue(browser)
     monkeypatch.setattr(TransportCryptoConfig, 'transport_crypto_enabled', True)
     monkeypatch.setattr(TransportCryptoConfig, 'transport_crypto_mode', 'required')
@@ -338,6 +412,7 @@ async def test_required_encryption_bypasses_only_readonly_registered_ui(
 async def test_renewal_retries_if_record_expires_and_another_tab_replaces_it(
     browser: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """记录过期且被其他标签页替换后重试续期。"""
     first = await issue(browser)
     key = next(key for key in browser.redis.values if key.startswith(SESSION_KEY_PREFIX))
     replacement = json.loads(browser.redis.values[key])
@@ -346,6 +421,13 @@ async def test_renewal_retries_if_record_expires_and_another_tab_replaces_it(
     replaced = False
 
     async def replace_before_expire(record_key: str, seconds: int) -> bool:
+        """
+        在设置有效期前替换缓存值。
+
+        :param record_key: 定位目标记录的键
+        :param seconds: 以秒计的时间值
+        :return: 是否在设置有效期前替换缓存值
+        """
         nonlocal replaced
         if not replaced:
             replaced = True
@@ -370,6 +452,7 @@ async def test_renewal_retries_if_record_expires_and_another_tab_replaces_it(
 async def test_real_plugin_login_resolution_does_not_refresh_or_restore_main_session(
     monkeypatch: pytest.MonkeyPatch, same_time_login: bool, logout_after_read: bool
 ) -> None:
+    """解析真实插件登录时不刷新或恢复主会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     redis = MemoryRedis()
     app = FastAPI()
@@ -384,6 +467,12 @@ async def test_real_plugin_login_resolution_does_not_refresh_or_restore_main_ses
     original_get = redis.get
 
     async def get_with_concurrent_logout(record_key: str) -> str | None:
+        """
+        模拟读取浏览器会话期间发生注销。
+
+        :param record_key: 定位目标记录的键
+        :return: 待处理的输入值
+        """
         value = await original_get(record_key)
         if record_key == key and logout_after_read:
             redis.values.pop(key, None)

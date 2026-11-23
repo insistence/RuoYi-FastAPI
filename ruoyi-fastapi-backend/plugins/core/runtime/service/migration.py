@@ -15,6 +15,8 @@ MIGRATION_MANUAL_TRANSITIONS: dict[MigrationRecoveryStatus, set[str]] = {
 class PluginMigrationUseCase:
     """
     插件 migration 历史查询和人工恢复 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
     """
 
     def __init__(self, dependencies: PluginRuntimeDependencies) -> None:

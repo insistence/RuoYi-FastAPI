@@ -15,10 +15,21 @@ from module_admin.service.dept_service import DeptService
 
 
 async def _create_dept_table() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    """
+    在内存数据库中准备部门表。
+
+    :return: 依次为 ``engine``、``session_maker`` 的元组
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
 
     @event.listens_for(engine.sync_engine, 'connect')
     def register_find_in_set(connection: Any, _record: Any) -> None:
+        """
+        为 SQLite 测试连接注册集合成员查找函数。
+
+        :param connection: 当前操作使用的连接
+        :param _record: 回调接收的记录
+        """
         connection.create_function('find_in_set', 2, lambda value, values: int(str(value) in (values or '').split(',')))
 
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
@@ -28,6 +39,7 @@ async def _create_dept_table() -> tuple[AsyncEngine, async_sessionmaker[AsyncSes
 
 
 def test_parse_dept_sort_items_preserves_corresponding_order_values() -> None:
+    """解析部门排序时保留各部门对应的顺序值。"""
     result = DeptService.parse_dept_sort_items(DeptSortModel(deptIds='101, 102', orderNums='3, 1'))
 
     assert result == [
@@ -47,6 +59,7 @@ def test_parse_dept_sort_items_preserves_corresponding_order_values() -> None:
     ],
 )
 def test_parse_dept_sort_items_rejects_invalid_parameters(dept_ids: str, order_nums: str) -> None:
+    """部门排序拒绝无效参数。"""
     with pytest.raises(ServiceException) as exc_info:
         DeptService.parse_dept_sort_items(DeptSortModel(deptIds=dept_ids, orderNums=order_nums))
 
@@ -55,6 +68,7 @@ def test_parse_dept_sort_items_rejects_invalid_parameters(dept_ids: str, order_n
 
 @pytest.mark.asyncio
 async def test_update_dept_sort_updates_all_rows_in_one_transaction() -> None:
+    """在同一事务中更新全部部门排序。"""
     engine, session_maker = await _create_dept_table()
     try:
         async with session_maker() as session:
@@ -80,6 +94,7 @@ async def test_update_dept_sort_updates_all_rows_in_one_transaction() -> None:
 
 @pytest.mark.asyncio
 async def test_update_dept_sort_rolls_back_and_wraps_database_error() -> None:
+    """部门排序遇到数据库错误时回滚并转换异常。"""
     query_db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
     with (
@@ -97,6 +112,11 @@ async def test_update_dept_sort_rolls_back_and_wraps_database_error() -> None:
 
 
 async def _seed_dept_tree(session: AsyncSession) -> None:
+    """
+    写入供层级查询使用的部门测试数据。
+
+    :param session: 当前操作共用的会话
+    """
     session.add_all(
         [
             SysDept(dept_id=100, parent_id=0, ancestors='0', dept_name='总部门'),
@@ -113,6 +133,7 @@ async def _seed_dept_tree(session: AsyncSession) -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize('parent_id', [101, 102, 103, 201, 999])
 async def test_edit_dept_rejects_cycles_and_invalid_parents_without_writing(parent_id: int) -> None:
+    """编辑部门时拒绝循环关系或无效上级且不写库。"""
     engine, sessions = await _create_dept_table()
     try:
         async with sessions() as session:
@@ -131,6 +152,7 @@ async def test_edit_dept_rejects_cycles_and_invalid_parents_without_writing(pare
 @pytest.mark.asyncio
 @pytest.mark.parametrize('parent_id', [0, 200])
 async def test_edit_dept_moves_whole_subtree_and_rebuilds_ancestors(parent_id: int) -> None:
+    """移动整个部门子树并重建祖先关系。"""
     engine, sessions = await _create_dept_table()
     try:
         async with sessions() as session:
@@ -160,6 +182,7 @@ async def test_edit_dept_moves_whole_subtree_and_rebuilds_ancestors(parent_id: i
 @pytest.mark.asyncio
 @pytest.mark.parametrize('dept_id', [100, 101])
 async def test_edit_dept_preserves_omitted_parent_and_ignores_supplied_ancestors(dept_id: int) -> None:
+    """编辑部门时保留省略的上级并忽略外部提供的祖先。"""
     engine, sessions = await _create_dept_table()
     try:
         async with sessions() as session:
@@ -177,6 +200,7 @@ async def test_edit_dept_preserves_omitted_parent_and_ignores_supplied_ancestors
 @pytest.mark.asyncio
 @pytest.mark.parametrize('parent_id', [None, 201, 999])
 async def test_add_dept_rejects_missing_or_deleted_parent(parent_id: int | None) -> None:
+    """上级缺失或已删除时拒绝新增部门。"""
     engine, sessions = await _create_dept_table()
     try:
         async with sessions() as session:

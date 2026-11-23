@@ -19,9 +19,7 @@ from utils.time_util import TimezoneUtil
 
 
 class SysOAuthClient(Base):
-    """
-    OAuth客户端表
-    """
+    """OAuth客户端表。"""
 
     __tablename__ = 'sys_oauth_client'
     __table_args__ = (
@@ -37,7 +35,7 @@ class SysOAuthClient(Base):
         autoincrement=True,
         comment='内部主键',
     )
-    client_id = Column(String(64), nullable=False, comment='Client ID')
+    client_id = Column(String(64), nullable=False, comment='客户端标识')
     client_name = Column(String(100), nullable=False, comment='客户端名称')
     client_type = Column(String(20), nullable=False, comment='Client 类型')
     token_endpoint_auth_method = Column(String(32), nullable=False, comment='Token 端点认证方式')
@@ -52,7 +50,7 @@ class SysOAuthClient(Base):
     access_token_ttl_seconds = Column(Integer, nullable=True, comment='Access Token 有效期')
     refresh_token_idle_seconds = Column(Integer, nullable=True, comment='Refresh Token 闲置有效期')
     refresh_token_absolute_seconds = Column(Integer, nullable=True, comment='Refresh Token 绝对有效期')
-    logo_uri = Column(String(500), nullable=True, comment='Logo URI')
+    logo_uri = Column(String(500), nullable=True, comment='标志图片地址')
     policy_uri = Column(String(500), nullable=True, comment='隐私政策 URI')
     tos_uri = Column(String(500), nullable=True, comment='服务条款 URI')
     backchannel_logout_session_required = Column(
@@ -69,9 +67,7 @@ class SysOAuthClient(Base):
 
 
 class SysOAuthClientSecret(Base):
-    """
-    OAuth客户端密钥表，仅保存密钥强哈希
-    """
+    """OAuth客户端密钥表，仅保存密钥强哈希。"""
 
     __tablename__ = 'sys_oauth_client_secret'
     __table_args__ = (
@@ -79,7 +75,7 @@ class SysOAuthClientSecret(Base):
         {'comment': 'OAuth Client Secret'},
     )
 
-    secret_id = Column(String(36), primary_key=True, nullable=False, comment='Secret ID')
+    secret_id = Column(String(36), primary_key=True, nullable=False, comment='密钥标识')
     client_pk = Column(
         BigInteger,
         ForeignKey('sys_oauth_client.client_pk', name='fk_oauth_client_secret_client', ondelete='RESTRICT'),
@@ -99,9 +95,7 @@ class SysOAuthClientSecret(Base):
 
 
 class SysOAuthClientUri(Base):
-    """
-    OAuth客户端注册地址表
-    """
+    """OAuth客户端注册地址表。"""
 
     __tablename__ = 'sys_oauth_client_uri'
     __table_args__ = (
@@ -133,13 +127,12 @@ class SysOAuthClientUri(Base):
     @validates('uri')
     def derive_uri_hash(self, key: str, value: str) -> str:
         """
-        根据 URI 更新摘要
+        根据 URI 更新摘要。
 
         :param key: 触发校验的属性名称
         :param value: 待写入的注册地址
         :return: 用于继续写入的原始注册地址
         """
-
         self.uri_hash = OidcUtil.sha256_digest(value)
 
         return value

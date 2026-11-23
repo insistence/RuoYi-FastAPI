@@ -11,9 +11,7 @@ from i18n.translation import TranslationUtil
 
 
 class MenuBaseModel(BaseModel):
-    """
-    菜单表对应pydantic模型
-    """
+    """菜单表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -46,10 +44,20 @@ class MenuBaseModel(BaseModel):
         message=I18nMessage('菜单名称长度不能超过50个字符', msg_key='validation.menuNameLength'),
     )
     def get_menu_name(self) -> str | None:
+        """
+        校验并返回菜单名称。
+
+        :return: 菜单名称
+        """
         return self.menu_name
 
     @NotBlank(field_name='order_num', message=I18nMessage('显示顺序不能为空', msg_key='validation.orderRequired'))
     def get_order_num(self) -> int | None:
+        """
+        校验并返回显示顺序。
+
+        :return: 显示顺序
+        """
         return self.order_num
 
     @Size(
@@ -59,6 +67,11 @@ class MenuBaseModel(BaseModel):
         message=I18nMessage('路由地址长度不能超过200个字符', msg_key='validation.routePathLength'),
     )
     def get_path(self) -> str | None:
+        """
+        校验并返回路由地址。
+
+        :return: 路由地址
+        """
         return self.path
 
     @Size(
@@ -68,10 +81,20 @@ class MenuBaseModel(BaseModel):
         message=I18nMessage('组件路径长度不能超过255个字符', msg_key='validation.componentPathLength'),
     )
     def get_component(self) -> str | None:
+        """
+        校验并返回组件路径。
+
+        :return: 组件路径
+        """
         return self.component
 
     @NotBlank(field_name='menu_type', message=I18nMessage('菜单类型不能为空', msg_key='validation.menuTypeRequired'))
     def get_menu_type(self) -> Literal['M', 'C', 'F'] | None:
+        """
+        校验并返回菜单类型（M目录 C菜单 F按钮）。
+
+        :return: 菜单类型（M目录 C菜单 F按钮）
+        """
         return self.menu_type
 
     @Size(
@@ -81,9 +104,15 @@ class MenuBaseModel(BaseModel):
         message=I18nMessage('权限标识长度不能超过100个字符', msg_key='validation.permissionLength'),
     )
     def get_perms(self) -> str | None:
+        """
+        校验并返回权限标识。
+
+        :return: 权限标识
+        """
         return self.perms
 
     def validate_fields(self) -> None:
+        """校验代码生成所需的表名、模型命名、包名和作者等字段。"""
         self.get_menu_name()
         self.get_order_num()
         self.get_path()
@@ -93,9 +122,7 @@ class MenuBaseModel(BaseModel):
 
 
 class MenuModel(MenuBaseModel):
-    """
-    包含多语言译文的菜单模型
-    """
+    """包含多语言译文的菜单模型。"""
 
     menu_name_i18n: dict[str, str | None] = Field(default_factory=dict, alias='menuNameI18n', description='多语言译文')
 
@@ -103,24 +130,23 @@ class MenuModel(MenuBaseModel):
     @classmethod
     def validate_menu_name_i18n(cls, value: object) -> dict[str, str | None]:
         """
-        校验多语言译文
+        校验多语言译文。
+
+        :param value: 待处理的输入值
+        :return: 通过校验的菜单名称译文
         """
         return TranslationUtil.validate(value, 50)
 
 
 class MenuQueryModel(DateRangeQueryMixin, MenuBaseModel):
-    """
-    菜单管理不分页查询模型
-    """
+    """菜单管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class MenuTreeModel(BaseModel):
-    """
-    菜单树模型
-    """
+    """菜单树模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -132,9 +158,7 @@ class MenuTreeModel(BaseModel):
 
 
 class DeleteMenuModel(BaseModel):
-    """
-    删除菜单模型
-    """
+    """删除菜单模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -142,9 +166,7 @@ class DeleteMenuModel(BaseModel):
 
 
 class MenuSortModel(BaseModel):
-    """
-    菜单排序批量保存模型
-    """
+    """菜单排序批量保存模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

@@ -47,7 +47,13 @@ from utils.upload_util import UploadUtil
 
 @dataclass(frozen=True)
 class FileAuditSnapshot:
-    """文件审计快照。"""
+    """
+    文件审计快照。
+
+    :ivar file_id: 文件ID
+    :ivar original_name: 原始文件名
+    :ivar access_type: 文件访问类型
+    """
 
     file_id: str
     original_name: str
@@ -55,9 +61,7 @@ class FileAuditSnapshot:
 
 
 class FileRetentionDispositionService:
-    """
-    文件到期处置服务层
-    """
+    """文件到期处置服务层。"""
 
     @classmethod
     async def extend_file_retention_services(
@@ -70,7 +74,7 @@ class FileRetentionDispositionService:
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
-        延长文件保留期限service
+        延长文件保留期限service。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -79,6 +83,8 @@ class FileRetentionDispositionService:
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :param request: Request对象
         :return: 延期结果
+        :raises ServiceException: 无法获取当前用户信息；提醒不存在、已失效或超出数据权限；文件未配置保留期限；新的到期时间必须晚于当前时间和原到期时间；文件不存在可延期的限时业务引用，请先重新关联业务；文件存在永久业务引用，不能通过到期提醒延期；文件到期时间与业务引用不一致，请先检查业务引用
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         user = current_user.user
         if user is None or not user.user_name:
@@ -214,7 +220,7 @@ class FileRetentionDispositionService:
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
-        将到期文件移入回收站service
+        将到期文件移入回收站service。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -223,6 +229,8 @@ class FileRetentionDispositionService:
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :param request: Request对象
         :return: 处置结果
+        :raises ServiceException: 无法获取当前用户信息；提醒不存在、已失效或超出数据权限；文件尚未到期，不能执行到期处置；文件存在永久或尚未到期的业务引用，不能执行到期处置；到期文件移入回收区失败
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         user = current_user.user
         if user is None or not user.user_name:
@@ -358,7 +366,20 @@ class FileRetentionDispositionService:
         reference_count: int | None = None,
         error_message: str = '',
     ) -> None:
-        """写入文件到期处置审计。"""
+        """
+        写入文件到期处置审计。
+
+        :param request: 当前 HTTP 请求
+        :param current_user: 当前登录用户及其权限信息
+        :param file_snapshot: 用于比较文件状态的快照
+        :param action: 当前要记录或执行的动作
+        :param result: 执行当前操作得到的结果
+        :param reason: 作出该决定或状态变化的原因
+        :param previous_expire_time: 修改前的到期时间
+        :param new_expire_time: 更新后的到期时间
+        :param reference_count: 文件被引用的次数
+        :param error_message: 记录到结果或审计日志中的错误详情
+        """
         operation_detail = {
             'originalName': file_snapshot.original_name,
             'accessType': file_snapshot.access_type,
@@ -381,7 +402,12 @@ class FileRetentionDispositionService:
 
     @staticmethod
     def _build_reference_snapshots(reference_list: list[SysFileReference]) -> list[dict[str, Any]]:
-        """构建释放业务引用的审计快照。"""
+        """
+        构建释放业务引用的审计快照。
+
+        :param reference_list: 引用该文件的业务记录
+        :return: 释放业务引用的审计快照
+        """
         return [
             {
                 'referenceId': reference.reference_id,
@@ -395,6 +421,13 @@ class FileRetentionDispositionService:
 
 
 class FileLifecycleService:
+    """
+    管理文件删除、回收和恢复。
+
+    :cvar MAX_PURGE_RETENTION_DAYS: 清理策略允许配置的最长保留天数
+    :cvar MAX_PURGE_BATCH_SIZE: 一批允许清理的最大文件数
+    """
+
     MAX_PURGE_RETENTION_DAYS = 36500
     MAX_PURGE_BATCH_SIZE = 1000
 
@@ -408,7 +441,7 @@ class FileLifecycleService:
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
-        删除文件service
+        删除文件service。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -416,6 +449,8 @@ class FileLifecycleService:
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :param request: Request对象
         :return: 删除结果
+        :raises ServiceException: 无法获取当前用户信息；部分文件不存在、已删除或超出数据权限；文件移入回收区失败
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         file_ids = FileUtil.parse_file_ids(delete_file.file_ids)
         user = current_user.user
@@ -522,7 +557,7 @@ class FileLifecycleService:
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
-        永久清理回收站文件service
+        永久清理回收站文件service。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -530,6 +565,8 @@ class FileLifecycleService:
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :param request: Request对象
         :return: 永久清理结果
+        :raises ServiceException: 无法获取当前用户信息；部分文件不存在、未进入回收站或超出数据权限；部分文件仍被业务引用，不能永久清理；回收区文件校验失败，未执行永久清理；永久清理物理文件失败，文件已保留为清理中状态，可重试
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         parsed_file_ids = FileUtil.parse_file_ids(file_ids)
         user = current_user.user
@@ -636,12 +673,16 @@ class FileLifecycleService:
         batch_size: int = 100,
     ) -> int:
         """
-        按回收站保留天数自动永久清理文件service
+        按回收站保留天数自动永久清理文件service。
 
         :param query_db: orm对象
         :param retention_days: 回收站保留天数
         :param batch_size: 单批处理数量
         :return: 永久清理文件数量
+        :raises ServiceException: 自动清理候选文件仍存在业务引用
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises OSError: 事务失败并回滚后重新抛出原异常
+        :raises ValueError: 事务失败并回滚后重新抛出原异常
         """
         cls._validate_purge_parameters(retention_days, batch_size)
         deleted_before = TimezoneUtil.utc_now() - timedelta(days=retention_days)
@@ -719,7 +760,7 @@ class FileLifecycleService:
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
-        恢复文件service
+        恢复文件service。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -727,6 +768,8 @@ class FileLifecycleService:
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :param request: Request对象
         :return: 恢复结果
+        :raises ServiceException: 无法获取当前用户信息；部分文件不存在、未删除或超出数据权限；文件从回收区恢复失败
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         parsed_file_ids = FileUtil.parse_file_ids(file_ids)
         user = current_user.user
@@ -838,7 +881,7 @@ class FileLifecycleService:
     @staticmethod
     def _build_file_audit_snapshots(file_infos: list[SysFileInfo]) -> list[FileAuditSnapshot]:
         """
-        在事务结束前固化文件审计字段
+        在事务结束前固化文件审计字段。
 
         :param file_infos: 文件信息列表
         :return: 文件审计快照列表
@@ -861,7 +904,15 @@ class FileLifecycleService:
         result: str,
         error_message: str = '',
     ) -> None:
-        """批量写入永久清理审计。"""
+        """
+        批量写入永久清理审计。
+
+        :param request: 当前 HTTP 请求
+        :param current_user: 当前登录用户及其权限信息
+        :param file_audit_snapshots: 用于生成审计记录的文件快照
+        :param result: 执行当前操作得到的结果
+        :param error_message: 记录到结果或审计日志中的错误详情
+        """
         for file_audit_snapshot in file_audit_snapshots:
             await FileAuditService.enqueue_file_audit(
                 request,
@@ -879,7 +930,13 @@ class FileLifecycleService:
 
     @classmethod
     def _validate_purge_parameters(cls, retention_days: int, batch_size: int) -> None:
-        """校验自动清理参数。"""
+        """
+        校验自动清理参数。
+
+        :param retention_days: 回收站保留天数
+        :param batch_size: 单批处理数量
+        :raises ServiceException: 回收站保留天数或清理批次大小超出允许范围
+        """
         if retention_days < 1 or retention_days > cls.MAX_PURGE_RETENTION_DAYS:
             raise ServiceException(
                 message=f'回收站保留天数必须在1到{cls.MAX_PURGE_RETENTION_DAYS}之间',
@@ -895,6 +952,8 @@ class FileLifecycleService:
 
 
 class FileQueryService:
+    """查询文件列表、详情及管理统计。"""
+
     @classmethod
     async def get_file_list_services(
         cls,
@@ -904,7 +963,7 @@ class FileQueryService:
         is_page: bool = True,
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取文件信息列表service
+        获取文件信息列表service。
 
         :param query_db: orm对象
         :param query_object: 文件信息查询参数
@@ -927,7 +986,7 @@ class FileQueryService:
         file_data_scope_sql: ColumnElement,
     ) -> FileStatsModel:
         """
-        获取文件管理统计信息service
+        获取文件管理统计信息service。
 
         :param query_db: orm对象
         :param query_object: 文件信息查询参数
@@ -944,12 +1003,13 @@ class FileQueryService:
         file_data_scope_sql: ColumnElement,
     ) -> FileInfoDisplayModel:
         """
-        获取文件详细信息service
+        获取文件详细信息service。
 
         :param query_db: orm对象
         :param file_id: 文件ID
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :return: 文件详细信息
+        :raises ServiceException: 文件信息不存在或超出数据权限
         """
         file_info = await FileInfoDao.get_file_management_detail_by_id(query_db, file_id, file_data_scope_sql)
         if file_info is None:
@@ -969,7 +1029,7 @@ class FileQueryService:
         is_page: bool = True,
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取文件访问审计列表service
+        获取文件访问审计列表service。
 
         :param query_db: orm对象
         :param file_id: 文件ID
@@ -977,6 +1037,7 @@ class FileQueryService:
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :param is_page: 是否开启分页
         :return: 文件访问审计列表
+        :raises ServiceException: 文件信息不存在或超出数据权限
         """
         if await FileInfoDao.get_file_info_detail_by_id(query_db, file_id, file_data_scope_sql) is None:
             raise ServiceException(message='文件信息不存在或超出数据权限', msg_key='file.notFoundOrForbidden')
@@ -985,11 +1046,10 @@ class FileQueryService:
     @staticmethod
     def _enrich_file_reference_counts(file_rows: list[dict[str, Any]], reference_count_map: dict[str, int]) -> None:
         """
-        补充文件业务引用数量
+        补充文件业务引用数量。
 
         :param file_rows: 文件信息列表
         :param reference_count_map: 文件ID和业务引用数量映射
-        :return: None
         """
         for file_row in file_rows:
             file_id = str(file_row.get('file_id') or file_row.get('fileId'))
@@ -997,6 +1057,8 @@ class FileQueryService:
 
 
 class FileTransferService:
+    """处理文件所有权的转移。"""
+
     @classmethod
     async def transfer_file_services(
         cls,
@@ -1010,7 +1072,7 @@ class FileTransferService:
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
-        批量转移文件service
+        批量转移文件service。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -1021,6 +1083,8 @@ class FileTransferService:
         :param dept_data_scope_sql: 部门数据权限对应的查询sql语句
         :param request: Request对象
         :return: 转移结果
+        :raises ServiceException: 无法获取当前用户信息；目标用户或部门不存在、已停用或超出数据权限；目标用户不属于所选部门；部分文件不存在、已删除或超出数据权限
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         parsed_file_ids = FileUtil.parse_file_ids(file_ids)
         user = current_user.user
@@ -1118,7 +1182,11 @@ class FileTransferService:
 
 class FileReconcileService:
     """
-    文件存储对账服务
+    文件存储对账服务。
+
+    :cvar RUN_LOCK_NAME: 对账任务使用的互斥锁名称
+    :cvar RUN_STALE_HOURS: 将未完成任务判为失效前等待的小时数
+    :cvar ISSUE_ACTIONS: 各类对账异常支持的处理操作
     """
 
     RUN_LOCK_NAME = 'storage_reconcile'
@@ -1143,13 +1211,15 @@ class FileReconcileService:
         current_user: CurrentUserModel | None = None,
     ) -> FileReconcileRunModel:
         """
-        创建文件存储对账任务
+        创建文件存储对账任务。
 
         :param query_db: orm对象
         :param check_hash: 是否校验文件摘要
         :param trigger_type: 触发类型
         :param current_user: 当前用户对象
         :return: 对账任务
+        :raises ServiceException: 对账任务触发类型不正确；已有文件存储对账任务正在运行
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if trigger_type not in {'manual', 'scheduled'}:
             raise ServiceException(message='对账任务触发类型不正确', msg_key='file.reconciliation.invalidTrigger')
@@ -1189,10 +1259,9 @@ class FileReconcileService:
     @classmethod
     async def execute_reconcile_run_services(cls, run_id: str) -> None:
         """
-        在独立会话中执行文件存储对账任务
+        在独立会话中执行文件存储对账任务。
 
         :param run_id: 任务ID
-        :return: None
         """
         try:
             async with DataSourceRegistry.session() as query_db:
@@ -1253,10 +1322,9 @@ class FileReconcileService:
     @classmethod
     async def run_scheduled_reconcile_services(cls, check_hash: bool = False) -> None:
         """
-        执行定时文件存储对账
+        执行定时文件存储对账。
 
         :param check_hash: 是否校验文件摘要
-        :return: None
         """
         async with DataSourceRegistry.session() as query_db:
             try:
@@ -1279,7 +1347,13 @@ class FileReconcileService:
         is_page: bool = True,
     ) -> PageModel | list[FileReconcileRunModel]:
         """
-        获取文件存储对账任务列表
+        获取文件存储对账任务列表。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param current_user: 当前登录用户及其权限信息
+        :param query_object: 文件存储对账任务分页查询模型
+        :param is_page: 是否开启分页
+        :return: 文件存储对账任务列表
         """
         cls._require_admin(current_user)
         run_list = await FileInfoDao.get_reconcile_run_list(query_db, query_object, is_page)
@@ -1305,7 +1379,13 @@ class FileReconcileService:
         is_page: bool = True,
     ) -> PageModel | list[FileReconcileIssueModel]:
         """
-        获取文件存储对账异常列表
+        获取文件存储对账异常列表。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param current_user: 当前登录用户及其权限信息
+        :param query_object: 文件存储对账异常分页查询模型
+        :param is_page: 是否开启分页
+        :return: 文件存储对账异常列表
         """
         cls._require_admin(current_user)
         issue_list = await FileInfoDao.get_reconcile_issue_list(query_db, query_object, is_page)
@@ -1335,7 +1415,11 @@ class FileReconcileService:
         current_user: CurrentUserModel,
     ) -> FileReconcileStatsModel:
         """
-        获取文件存储对账统计
+        获取文件存储对账统计。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param current_user: 当前登录用户及其权限信息
+        :return: 文件存储对账统计
         """
         cls._require_admin(current_user)
         stats = await FileInfoDao.get_reconcile_stats(query_db)
@@ -1355,7 +1439,7 @@ class FileReconcileService:
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
-        处理文件存储对账异常
+        处理文件存储对账异常。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -1363,6 +1447,8 @@ class FileReconcileService:
         :param handle: 处理参数
         :param request: Request对象
         :return: 处理结果
+        :raises ServiceException: 文件存储对账任务运行中，请等待扫描完成后再处理异常；文件存储对账异常不存在；当前异常状态不支持该处理动作；事务失败并回滚后重新抛出原异常
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         cls._require_admin(current_user)
         if await FileInfoDao.has_running_reconcile_run(query_db):
@@ -1444,7 +1530,16 @@ class FileReconcileService:
         current_user: CurrentUserModel,
         current_time: datetime,
     ) -> tuple[str | None, tuple[str, str, str, str] | None]:
-        """执行已通过状态校验的对账处理动作。"""
+        """
+        执行已通过状态校验的对账处理动作。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param issue: 文件存储对账异常表
+        :param handle: 处理参数
+        :param current_user: 当前登录用户及其权限信息
+        :param current_time: 当前时间
+        :return: 依次为 ``file_id``、``performed_move`` 的元组
+        """
         user = cls._require_admin(current_user)
         performed_move: tuple[str, str, str, str] | None = None
         file_id = issue.file_id
@@ -1486,6 +1581,12 @@ class FileReconcileService:
         cls,
         issue: SysFileReconcileIssue,
     ) -> tuple[str, str, str, str]:
+        """
+        将对账问题涉及的文件移到选定位置。
+
+        :param issue: 文件存储对账异常表
+        :return: 回滚时需要撤销的文件移动记录
+        """
         move = cls._get_issue_move_locations(issue)
         await asyncio.to_thread(FileReconcileUtil.move_regular_file, *move)
         return move
@@ -1495,6 +1596,12 @@ class FileReconcileService:
         cls,
         issue: SysFileReconcileIssue,
     ) -> tuple[str, str, str, str]:
+        """
+        将有问题的文件移入对账隔离区。
+
+        :param issue: 文件存储对账异常表
+        :return: 回滚时需要撤销的文件移动记录
+        """
         source_root, source_key = cls._require_location(issue.actual_root, issue.actual_key)
         quarantine_key = f'{issue.issue_id}/{source_root}/{source_key}'
         move = (source_root, source_key, 'quarantine', quarantine_key)
@@ -1507,6 +1614,13 @@ class FileReconcileService:
         cls,
         issue: SysFileReconcileIssue,
     ) -> tuple[str, str, str, str]:
+        """
+        从隔离区恢复文件。
+
+        :param issue: 文件存储对账异常表
+        :raises ServiceException: 隔离区文件路径不存在
+        :return: 回滚时需要撤销的文件移动记录
+        """
         if not issue.quarantine_key:
             raise ServiceException(message='隔离区文件路径不存在', msg_key='file.reconciliation.quarantineMissing')
         target_root, target_key = cls._require_location(issue.actual_root, issue.actual_key)
@@ -1517,6 +1631,12 @@ class FileReconcileService:
 
     @staticmethod
     async def _delete_quarantine_file(issue: SysFileReconcileIssue) -> None:
+        """
+        删除隔离区中的文件。
+
+        :param issue: 文件存储对账异常表
+        :raises ServiceException: 隔离区文件路径不存在
+        """
         if not issue.quarantine_key:
             raise ServiceException(message='隔离区文件路径不存在', msg_key='file.reconciliation.quarantineMissing')
         await asyncio.to_thread(FileReconcileUtil.delete_quarantine_file, issue.quarantine_key)
@@ -1531,6 +1651,17 @@ class FileReconcileService:
         reason: str,
         current_time: datetime,
     ) -> str:
+        """
+        将当前文件状态确认为对账结果。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param issue: 文件存储对账异常表
+        :param handled_by: 处理该问题的用户标识
+        :param reason: 作出该决定或状态变化的原因
+        :param current_time: 当前时间
+        :raises ServiceException: 异常未关联文件信息；异常关联的文件信息不存在
+        :return: 供调用方使用的 ``issue.file_id``
+        """
         if not issue.file_id:
             raise ServiceException(message='异常未关联文件信息', msg_key='file.reconciliation.noFileReference')
         file_info = await FileInfoDao.get_file_info_for_reconcile(query_db, issue.file_id)
@@ -1567,6 +1698,17 @@ class FileReconcileService:
         current_user: CurrentUserModel,
         current_time: datetime,
     ) -> str:
+        """
+        为没有登记的磁盘文件创建记录。
+
+        :param query_db: 当前操作使用的异步数据库会话
+        :param issue: 文件存储对账异常表
+        :param handle: 处理参数
+        :param current_user: 当前登录用户及其权限信息
+        :param current_time: 当前时间
+        :raises ServiceException: 仅公开或受保护存储区的孤立文件可以登记；该物理文件已登记到文件信息表；孤立文件扩展名不在允许范围内；原始文件名扩展名必须与物理文件一致
+        :return: 供调用方使用的 ``file_id``
+        """
         user = cls._require_admin(current_user)
         access_type, storage_key = cls._require_location(issue.actual_root, issue.actual_key)
         if issue.issue_type != 'orphan_file' or access_type not in {'public', 'private'}:
@@ -1627,6 +1769,12 @@ class FileReconcileService:
         cls,
         issue: SysFileReconcileIssue | FileReconcileIssueModel,
     ) -> list[FileReconcileAction]:
+        """
+        返回当前对账问题允许执行的处理操作。
+
+        :param issue: 待处理的文件对账异常记录
+        :return: 当前对账问题允许执行的处理操作
+        """
         if issue.quarantine_key or issue.status == 'quarantined':
             return ['restore_quarantine', 'delete_quarantine']
         if issue.status == 'ignored':
@@ -1644,12 +1792,26 @@ class FileReconcileService:
         cls,
         issue: SysFileReconcileIssue,
     ) -> tuple[str, str, str, str]:
+        """
+        确定处理对账问题时使用的源位置和目标位置。
+
+        :param issue: 文件存储对账异常表
+        :return: 依次为 ``source_root``、``source_key``、``target_root``、``target_key`` 的元组
+        """
         source_root, source_key = cls._require_location(issue.actual_root, issue.actual_key)
         target_root, target_key = cls._require_location(issue.expected_root, issue.expected_key)
         return source_root, source_key, target_root, target_key
 
     @staticmethod
     def _require_location(root_name: str | None, relative_key: str | None) -> tuple[str, str]:
+        """
+        校验对账操作所需的文件位置。
+
+        :param root_name: 存储区域
+        :param relative_key: 相对路径
+        :raises ServiceException: 异常记录缺少可处理的存储位置；异常记录的存储区域不合法
+        :return: 依次为 ``root_name``、``relative_key`` 的元组
+        """
         if not root_name or not relative_key:
             raise ServiceException(
                 message='异常记录缺少可处理的存储位置', msg_key='file.reconciliation.locationMissing'
@@ -1666,6 +1828,15 @@ class FileReconcileService:
         handled_by: str,
         handled_time: datetime,
     ) -> None:
+        """
+        保存对账问题的处理结果。
+
+        :param issue: 文件存储对账异常表
+        :param status: 操作或记录所处的状态
+        :param handle: 处理参数
+        :param handled_by: 处理该问题的用户标识
+        :param handled_time: 问题处理时间
+        """
         issue.status = status
         issue.handle_action = handle.action
         issue.handle_reason = handle.reason
@@ -1674,6 +1845,11 @@ class FileReconcileService:
 
     @classmethod
     async def _rollback_file_move(cls, move: tuple[str, str, str, str]) -> None:
+        """
+        撤销未能完成的对账文件移动。
+
+        :param move: 回滚时需要撤销的文件移动记录
+        """
         source_root, source_key, target_root, target_key = move
         try:
             await asyncio.to_thread(
@@ -1688,6 +1864,12 @@ class FileReconcileService:
 
     @staticmethod
     def _build_run_data(reconcile_run: SysFileReconcileRun) -> dict[str, Any]:
+        """
+        组装文件对账批次的结果数据。
+
+        :param reconcile_run: 对账任务
+        :return: 文件对账批次的结果数据
+        """
         return {
             'run_id': reconcile_run.run_id,
             'trigger_type': reconcile_run.trigger_type,
@@ -1706,6 +1888,13 @@ class FileReconcileService:
 
     @staticmethod
     def _require_admin(current_user: CurrentUserModel | None) -> Any:
+        """
+        校验当前用户具有文件对账管理权限。
+
+        :param current_user: 当前登录用户及其权限信息
+        :raises ServiceException: 仅系统管理员可以使用文件存储对账功能
+        :return: 当前操作对应的用户
+        """
         user = current_user.user if current_user else None
         if user is None or not user.admin or not user.user_name:
             raise ServiceException(

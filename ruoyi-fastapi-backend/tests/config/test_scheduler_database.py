@@ -14,6 +14,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 def test_scheduler_database_engines_keep_jobstore_logging_isolated(monkeypatch: pytest.MonkeyPatch) -> None:
+    """调度器数据库引擎隔离任务存储日志。"""
     jobstore_engine = MagicMock()
     listener_engine = MagicMock()
     create_engine = MagicMock(return_value=jobstore_engine)
@@ -32,6 +33,7 @@ def test_scheduler_database_engines_keep_jobstore_logging_isolated(monkeypatch: 
 
 
 def test_scheduler_cleanup_does_not_dispose_registry_listener_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    """清理调度器时保留注册表监听引擎。"""
     jobstore_engine = MagicMock()
     listener_engine = MagicMock()
     monkeypatch.setattr(SchedulerManager._resources, '_jobstore_engine', jobstore_engine)
@@ -49,11 +51,13 @@ def test_scheduler_cleanup_does_not_dispose_registry_listener_engine(monkeypatch
 
 @pytest.mark.parametrize('method_name', ['request_scheduler_sync', '_drain_execution_requests'])
 def test_registered_scheduler_callbacks_survive_serialization(method_name: str) -> None:
+    """已注册的调度回调可正常序列化。"""
     method = getattr(SchedulerManager, method_name)
     assert ref_to_obj(obj_to_ref(method)) == method
 
 
 def test_dao_can_import_adapter_before_scheduler_without_circular_import() -> None:
+    """DAO 可在调度器之前导入适配器且不产生循环导入。"""
     script = """
 import json
 import sys

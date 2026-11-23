@@ -27,7 +27,7 @@ class CacheRowExtractor:
         """
         从缓存统计结果中提取缓存名称列表。
 
-        :param payload: `cache stats` JSON 负载
+        :param payload: ``cache stats`` JSON 负载
         :return: 缓存名称行列表
         """
         if not isinstance(payload, dict):
@@ -52,8 +52,9 @@ class CacheSectionBuilder:
     该构建器负责构建缓存浏览页共享分区，以及单个缓存名前缀下的键摘要、
     键列表和键详情分区。
 
-    :param page_adapter: 缓存浏览页适配器
-    :param row_extractor: 缓存浏览行提取器
+    :ivar page_adapter: 缓存浏览页适配器
+    :ivar row_extractor: 缓存浏览行提取器
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(
@@ -65,9 +66,9 @@ class CacheSectionBuilder:
         """
         初始化缓存浏览页分区构建器。
 
+        :param query_service: TUI 进程内查询服务
         :param page_adapter: 缓存浏览页适配器
         :param row_extractor: 缓存浏览行提取器
-        :return: None
         """
         self.page_adapter = page_adapter
         self.row_extractor = row_extractor or CacheRowExtractor()
@@ -77,7 +78,7 @@ class CacheSectionBuilder:
         """
         构建缓存总览共享分区。
 
-        :param payload: `cache stats` JSON 负载
+        :param payload: ``cache stats`` JSON 负载
         :return: 分区快照
         """
         info = payload.get('info') if isinstance(payload, dict) and isinstance(payload.get('info'), dict) else {}
@@ -105,7 +106,7 @@ class CacheSectionBuilder:
         """
         构建缓存页总览判断共享分区。
 
-        :param payload: `cache stats` JSON 负载
+        :param payload: ``cache stats`` JSON 负载
         :param filtered_rows: 当前筛选后的缓存名列表
         :return: 分区快照
         """
@@ -151,7 +152,7 @@ class CacheSectionBuilder:
         """
         构建缓存命令统计共享分区。
 
-        :param payload: `cache stats` JSON 负载
+        :param payload: ``cache stats`` JSON 负载
         :return: 分区快照
         """
         command_stats = payload.get('commandStats') if isinstance(payload, dict) else None
@@ -195,7 +196,7 @@ class CacheSectionBuilder:
         """
         构建缓存键摘要分区。
 
-        :param payload: `cache keys` JSON 负载
+        :param payload: ``cache keys`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -229,7 +230,7 @@ class CacheSectionBuilder:
         """
         构建缓存键列表分区。
 
-        :param payload: `cache keys` JSON 负载
+        :param payload: ``cache keys`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -258,7 +259,7 @@ class CacheSectionBuilder:
         """
         渲染缓存 TTL 文本。
 
-        :param payload: `cache ttl` JSON 负载
+        :param payload: ``cache ttl`` JSON 负载
         :return: TTL 文本
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -375,7 +376,7 @@ class CacheSectionBuilder:
         """
         构建缓存浏览页共享分区。
 
-        :param payload: `cache stats` 结果负载
+        :param payload: ``cache stats`` 结果负载
         :param filtered_rows: 当前筛选后的缓存名列表
         :return: 共享分区列表
         """
@@ -393,8 +394,8 @@ class CacheRecordBuilder:
 
     该对象负责构建缓存页单条浏览记录与失败兜底记录。
 
-    :param page_adapter: 缓存浏览页适配器
-    :param section_builder: 缓存浏览页分区构建器
+    :ivar page_adapter: 缓存浏览页适配器
+    :ivar section_builder: 缓存浏览页分区构建器
     """
 
     def __init__(
@@ -407,7 +408,6 @@ class CacheRecordBuilder:
 
         :param page_adapter: 缓存浏览页适配器
         :param section_builder: 缓存浏览页分区构建器
-        :return: None
         """
         self.page_adapter = page_adapter
         self.section_builder = section_builder
@@ -459,6 +459,11 @@ class CacheBrowserAdapter(BaseBrowserAdapter):
 
     该适配器负责采集 Redis 统计和缓存名前缀列表，并委托协作对象构建
     共享分区、单条记录与键详情分区。
+
+    :ivar row_extractor: 缓存浏览行提取器
+    :ivar query_service: TUI 进程内查询服务
+    :ivar section_builder: 缓存浏览页分区构建器
+    :ivar record_builder: 缓存浏览记录构建器
     """
 
     def __init__(
@@ -471,10 +476,10 @@ class CacheBrowserAdapter(BaseBrowserAdapter):
         """
         初始化缓存浏览页适配器。
 
+        :param query_service: TUI 进程内查询服务
         :param row_extractor: 缓存浏览行提取器
         :param section_builder: 缓存浏览页分区构建器
         :param record_builder: 缓存浏览记录构建器
-        :return: None
         """
         super().__init__(
             page_title='缓存',

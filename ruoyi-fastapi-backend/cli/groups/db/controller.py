@@ -12,12 +12,13 @@ class DbCommandController:
     """
     数据库命令控制器。
 
-    该控制器负责组织 `db` 命令组的上下文准备、runtime 调用、
+    该控制器负责组织 ``db`` 命令组的上下文准备、runtime 调用、
     payload 注入，以及基于输出格式选择 presenter 或直接返回 JSON。
 
-    :param context_factory: CLI 上下文工厂
-    :param execution_service: CLI 执行服务
-    :param presenter: 数据库命令文本渲染器
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar presenter: 数据库命令文本渲染器
+    :ivar runtime_service: 数据库运行时服务
     """
 
     def __init__(
@@ -35,7 +36,6 @@ class DbCommandController:
         :param execution_service: CLI 执行服务
         :param presenter: 数据库命令文本渲染器
         :param runtime_service: 数据库运行时服务
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
@@ -48,7 +48,6 @@ class DbCommandController:
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         self.execution_service.complete_payload(
@@ -61,7 +60,6 @@ class DbCommandController:
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.runtime_service.get_current_revision()
@@ -92,7 +90,6 @@ class DbCommandController:
         :param yes: 是否跳过确认
         :param dry_run: 是否演练执行
         :param revision: 目标迁移版本
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -120,7 +117,6 @@ class DbCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否演练执行
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -151,7 +147,6 @@ class DbCommandController:
         :param yes: 是否跳过确认
         :param dry_run: 是否演练执行
         :param revision: 目标回退版本
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -184,7 +179,6 @@ class DbCommandController:
         :param yes: 是否跳过确认
         :param dry_run: 是否演练执行
         :param autogenerate: 是否自动生成迁移内容
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -205,7 +199,6 @@ class DbCommandController:
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.runtime_service.get_alembic_heads()
@@ -224,7 +217,6 @@ class DbCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param limit: 输出的最大历史记录数量
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.runtime_service.get_alembic_history(limit=limit)

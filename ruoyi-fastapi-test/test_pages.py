@@ -17,7 +17,13 @@ pytestmark = pytest.mark.e2e
 
 
 def builtin_routes(routes: list[dict[str, Any]], parent: str = '') -> set[str]:
-    """列出服务端真实返回的内置页面，忽略外链和独立插件路由。"""
+    """
+    列出服务端真实返回的内置页面，忽略外链和独立插件路由。
+
+    :param routes: 已配置的路由条目
+    :param parent: 用于判断路径从属关系的父目录
+    :return: 服务端真实返回的内置页面
+    """
     paths = set()
     for route in routes:
         segment = route['path']

@@ -34,6 +34,7 @@ def test_guard_uses_loaded_environment_without_resource_access(
     expected_app: str,
     rejected: bool,
 ) -> None:
+    """守卫从已加载环境判断而无需访问资源。"""
     (tmp_path / f'.env.{expected_selector}').write_text(f'APP_ENV={file_env}\n', encoding='utf-8')
     script = """
 import json
@@ -82,11 +83,17 @@ print(json.dumps({'env': ctx.env, 'appEnv': ctx.app_env, 'rejected': result is n
 
 
 def test_env_option_uses_external_default_and_preserves_explicit_choice(monkeypatch: pytest.MonkeyPatch) -> None:
+    """环境选项采用外部默认值并保留显式选择。"""
     app = typer.Typer()
     selected = []
 
     @app.command()
     def run(env: EnvOption = 'dev') -> None:
+        """
+        记录测试命令的运行参数。
+
+        :param env: 当前运行环境
+        """
         selected.append(env)
 
     monkeypatch.setenv('APP_ENV', 'prod')

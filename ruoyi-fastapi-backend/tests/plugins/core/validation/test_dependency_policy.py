@@ -15,12 +15,22 @@ CONFIGURED_INSTALL_TIMEOUT_SECONDS = 42
 
 
 def build_plan(*items: DependencyInstallPlanItem) -> DependencyInstallPlan:
-    """构建测试用依赖安装计划。"""
+    """
+    构建测试用依赖安装计划。
+
+    :param items: 调用方传入的其余位置参数
+    :return: 测试用依赖安装计划
+    """
     return DependencyInstallPlan(plugin_id='demo', items=list(items))
 
 
 def build_python_item(requirement: str = 'openai>=2.0.0') -> DependencyInstallPlanItem:
-    """构建测试用 Python 安装计划项。"""
+    """
+    构建测试用 Python 安装计划项。
+
+    :param requirement: 依赖声明，包括包名和版本约束
+    :return: 测试用 Python 安装计划项
+    """
     return DependencyInstallPlanItem(
         kind='python',
         requirement=requirement,
@@ -37,7 +47,14 @@ def build_npm_item(
     kind: str = 'npm',
     name: str = 'dayjs',
 ) -> DependencyInstallPlanItem:
-    """构建测试用 npm 安装计划项。"""
+    """
+    构建测试用 npm 安装计划项。
+
+    :param requirement: 依赖声明，包括包名和版本约束
+    :param kind: 当前条目的类别
+    :param name: 用于查找或标识当前对象的名称
+    :return: 测试用 npm 安装计划项
+    """
     return DependencyInstallPlanItem(
         kind=kind,
         requirement=requirement,

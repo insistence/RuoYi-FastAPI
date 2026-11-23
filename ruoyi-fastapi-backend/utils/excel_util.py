@@ -14,16 +14,14 @@ from utils.time_util import TimezoneUtil
 
 
 class ExcelUtil:
-    """
-    Excel操作类
-    """
+    """Excel操作类。"""
 
     @classmethod
     def __mapping_list(
         cls, list_data: list, mapping_dict: dict, timezone_name: str, locale_context: LocaleContext
     ) -> list[dict]:
         """
-        按导出语言生成表头和单元格文本，并按导出时区转换日期时间
+        按导出语言生成表头和单元格文本，并按导出时区转换日期时间。
 
         :param list_data: 数据列表
         :param mapping_dict: 映射字典
@@ -60,7 +58,7 @@ class ExcelUtil:
         locale_context: LocaleContext | None = None,
     ) -> bytes:
         """
-        工具方法：将需要导出的list数据转化为对应excel的二进制数据
+        工具方法：将需要导出的list数据转化为对应excel的二进制数据。
 
         :param list_data: 数据列表
         :param mapping_dict: 映射字典
@@ -87,7 +85,7 @@ class ExcelUtil:
         locale_context: LocaleContext | None = None,
     ) -> bytes:
         """
-        生成包含本地化表头和下拉选项的 Excel 模板
+        生成包含本地化表头和下拉选项的 Excel 模板。
 
         :param header_list: 表头数据列表
         :param selector_header_list: 需要设置为选择器格式的表头数据列表
@@ -159,7 +157,7 @@ class ExcelUtil:
     @staticmethod
     def _display_value(value: object, context: LocaleContext) -> object:
         """
-        仅翻译声明了消息标识的固定文本，保留业务内容
+        仅翻译声明了消息标识的固定文本，保留业务内容。
 
         :param value: 表头、固定枚举或业务数据
         :param context: 导出语言快照

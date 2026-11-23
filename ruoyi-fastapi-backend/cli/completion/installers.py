@@ -20,13 +20,11 @@ CLICK_COMPLETE_ENV_VAR = '_RUOYI_COMPLETE'
 
 
 class PortableBashComplete(BashComplete):
-    """
-    无需探测本机Bash版本的补全脚本生成器
-    """
+    """无需探测本机Bash版本的补全脚本生成器。"""
 
     def source(self) -> str:
         """
-        生成可供其他机器使用的Bash补全脚本
+        生成可供其他机器使用的Bash补全脚本。
 
         旧版Bash差异已由脚本转换器处理；跳过Click版本探测，避免调用Windows WSL启动器。
 
@@ -60,8 +58,8 @@ class CompletionInstallerShellSupport:
 
         兼容目标主要包括 macOS 默认 Bash 3.2：
 
-        - `complete -o nosort` 在旧 Bash 上会在 `source` 阶段直接报错
-        - `compopt` 在旧 Bash 上可能不存在
+        - ``complete -o nosort`` 在旧 Bash 上会在 ``source`` 阶段直接报错
+        - ``compopt`` 在旧 Bash 上可能不存在
 
         :param script_text: Click 原始 Bash completion 脚本文本
         :return: 兼容处理后的脚本文本
@@ -141,10 +139,10 @@ class CompletionShellRuntimePolicy:
     """
     completion shell 运行时策略定义。
 
-    :param name: shell 名称
-    :param click_completion_class: Click completion 生成器类型
-    :param script_transformer: 脚本文本后处理函数
-    :param source_command_builder: 激活命令构建函数
+    :ivar name: shell 名称
+    :ivar click_completion_class: Click completion 生成器类型
+    :ivar script_transformer: 脚本文本后处理函数
+    :ivar source_command_builder: 激活命令构建函数
     """
 
     name: str
@@ -158,7 +156,7 @@ class CompletionShellRuntimePolicyRegistry:
     """
     completion shell 运行时策略注册表。
 
-    :param policies: 按 shell 名称索引的运行时策略映射
+    :ivar policies: 按 shell 名称索引的运行时策略映射
     """
 
     policies: dict[str, CompletionShellRuntimePolicy]
@@ -210,9 +208,9 @@ class CompletionInstallerService:
     该服务负责 shell 元数据解析、脚本生成、目标路径解析、激活命令构建、
     rc 文件写入以及安装结果收口。
 
-    :param completion_provider_gateway: completion 提供器对外网关
-    :param shell_spec_registry: shell 元数据注册表
-    :param shell_runtime_policy_registry: shell 运行时策略注册表
+    :ivar completion_provider_gateway: completion 提供器对外网关
+    :ivar shell_spec_registry: shell 元数据注册表
+    :ivar shell_runtime_policy_registry: shell 运行时策略注册表
     """
 
     def __init__(
@@ -228,7 +226,6 @@ class CompletionInstallerService:
         :param completion_provider_gateway: completion 提供器对外网关
         :param shell_spec_registry: shell 元数据注册表
         :param shell_runtime_policy_registry: shell 运行时策略注册表
-        :return: None
         """
         self.completion_provider_gateway = completion_provider_gateway or COMPLETION_PROVIDER_GATEWAY
         self.shell_spec_registry = shell_spec_registry or COMPLETION_SHELL_SPEC_REGISTRY

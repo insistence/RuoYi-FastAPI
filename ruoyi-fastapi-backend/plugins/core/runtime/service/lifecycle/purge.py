@@ -28,6 +28,20 @@ from .runner import PluginLifecycleStep, PluginLifecycleStepFailed, PluginLifecy
 class PluginPurgeLifecycleContext:
     """
     插件物理清理声明式生命周期上下文。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar dry_run: 是否只预览操作结果
+    :ivar backend_root: 后端项目的根目录
+    :ivar discovered_plugins: 已发现插件列表
+    :ivar discovered_plugin: 扫描插件目录后得到的插件描述
+    :ivar precheck: 执行操作前取得的检查结果
+    :ivar dependency_payload: 插件依赖检查负载
+    :ivar actions: 即将执行或已记录的操作步骤
+    :ivar plan: 清理插件时采用的执行计划
+    :ivar hook_result: 清理钩子执行结果
+    :ivar session: 当前操作共用的会话
+    :ivar lifecycle_uow: 当前生命周期操作共享的事务工作单元
+    :ivar session_context: 当前会话的上下文
     """
 
     plugin_id: str
@@ -48,6 +62,10 @@ class PluginPurgeLifecycleContext:
 class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
     """
     插件物理清理 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar runtime_operations: 生命周期工作流所需的运行时协作能力
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(
@@ -273,7 +291,6 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         发现本地插件列表。
 
         :param context: 插件物理清理上下文
-        :return: None
         """
         context.backend_root = context.discovered_plugin.backend_path.parent.parent
         context.discovered_plugins = self._discover_plugins(context.backend_root)
@@ -288,7 +305,6 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         构建物理清理预检。
 
         :param context: 插件物理清理上下文
-        :return: None
         """
         context.precheck = await self._build_precheck_context(
             cast('Path', context.backend_root),
@@ -311,7 +327,6 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         检查物理清理目标的已启用依赖方。
 
         :param context: 插件物理清理上下文
-        :return: None
         """
         context.dependency_payload = await self._build_enabled_dependents_payload(
             context.plugin_id,
@@ -328,7 +343,6 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         构建物理清理计划。
 
         :param context: 插件物理清理上下文
-        :return: None
         """
         context.session_context = self.dependencies.lifecycle_uow_gateway.open_lifecycle_unit_of_work()
         context.lifecycle_uow = await context.session_context.__aenter__()
@@ -389,7 +403,6 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         执行物理清理钩子。
 
         :param context: 插件物理清理上下文
-        :return: None
         """
         context.hook_result = await PluginHookRunner(context.discovered_plugin).run(
             'on_purge',
@@ -406,7 +419,6 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         清理插件平台元数据。
 
         :param context: 插件物理清理上下文
-        :return: None
         """
         await context.lifecycle_uow.purge_plugin_metadata(context.discovered_plugin)
 
@@ -420,7 +432,6 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         提交物理清理事务。
 
         :param context: 插件物理清理上下文
-        :return: None
         """
         await context.lifecycle_uow.commit()
         await self._close_purge_session(context)
@@ -432,6 +443,5 @@ class PluginPurgeUseCase(PluginLifecycleUseCaseSupport):
         关闭物理清理数据库会话。
 
         :param context: 插件物理清理上下文
-        :return: None
         """
         await self._close_lifecycle_session(context)

@@ -61,15 +61,27 @@ _SESSION_STATUS_EXPIRED = 'expired'
 
 
 class SsoSessionError(ValueError):
-    """
-    SSO Session 创建、校验和撤销错误类型
-    """
+    """SSO Session 创建、校验和撤销错误类型。"""
 
 
 @dataclass(frozen=True)
 class SsoSessionSnapshot:
     """
-    记录 SSO Session 缓存所需的不可变字段
+    记录 SSO Session 缓存所需的不可变字段。
+
+    :ivar sid: 关联的单点登录会话标识
+    :ivar user_id: 用户的唯一标识
+    :ivar subject_id: 身份主体的唯一标识
+    :ivar auth_version: 创建时的身份安全版本
+    :ivar auth_time: 用户认证时间
+    :ivar last_seen_at: 会话最近活动时间
+    :ivar idle_expires_at: 闲置过期时间
+    :ivar absolute_expires_at: Session 绝对过期时间
+    :ivar acr: 认证上下文
+    :ivar amr: 认证方式列表
+    :ivar remember_me: 是否使用 remember-me 绝对 TTL
+    :ivar status: 操作或记录所处的状态
+    :ivar session_secret_hash: 会话密钥单向计算后的哈希
     """
 
     sid: str
@@ -88,20 +100,17 @@ class SsoSessionSnapshot:
 
 
 class SsoSessionService:
-    """
-    OIDC SSO Session 模块服务层
-    """
+    """OIDC SSO Session 模块服务层。"""
 
     @staticmethod
     def _require_coordinator(coordinator: AfterCommitCoordinator | None) -> AfterCommitCoordinator:
         """
-        确认提交后副作用协调器可用
+        确认提交后副作用协调器可用。
 
         :param coordinator: 只登记提交后副作用的协调器
         :return: 通过校验的协调器
         :raises SsoSessionError: 未提供有效协调器
         """
-
         if not isinstance(coordinator, AfterCommitCoordinator):
             raise SsoSessionError('缺少事务提交后副作用协调器')
         return coordinator
@@ -109,12 +118,10 @@ class SsoSessionService:
     @staticmethod
     def _validate_config_ttls() -> None:
         """
-        检查会话相关 TTL 配置均为正整数
+        检查会话相关 TTL 配置均为正整数。
 
-        :return: None
         :raises SsoSessionError: TTL 不是正整数
         """
-
         for field_name in _SESSION_TTL_FIELDS:
             value = getattr(OidcConfig, field_name, None)
             if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
@@ -123,14 +130,13 @@ class SsoSessionService:
     @staticmethod
     def _remaining_ttl(absolute_expires_at: datetime, now: datetime) -> int:
         """
-        根据绝对过期时间计算 Redis 缓存剩余 TTL
+        根据绝对过期时间计算 Redis 缓存剩余 TTL。
 
         :param absolute_expires_at: Session 绝对过期时间
         :param now: 当前项目时间
         :return: 至少一秒的 Redis TTL
         :raises SsoSessionError: Session 已过期
         """
-
         seconds = int((absolute_expires_at - now).total_seconds())
         if seconds < _SESSION_CACHE_TTL_FLOOR:
             raise SsoSessionError('会话已过期')
@@ -139,12 +145,11 @@ class SsoSessionService:
     @classmethod
     def _snapshot(cls, row: SysSsoSession) -> SsoSessionSnapshot:
         """
-        从 ORM 行提取不依赖数据库会话的 Session 快照
+        从 ORM 行提取不依赖数据库会话的 Session 快照。
 
         :param row: 数据库 Session ORM 行
         :return: 不再依赖 ORM 生命周期的 Session 快照
         """
-
         return SsoSessionSnapshot(
             sid=row.sid,
             user_id=row.user_id,
@@ -164,12 +169,11 @@ class SsoSessionService:
     @classmethod
     def _cache_payload(cls, row: SsoSessionSnapshot) -> dict[str, Any]:
         """
-        将 Session 快照编码为 Redis 缓存载荷
+        将 Session 快照编码为 Redis 缓存载荷。
 
         :param row: 数据库 Session
         :return: 可 JSON 序列化的缓存摘要
         """
-
         return {
             'sid': row.sid,
             'user_id': row.user_id,
@@ -196,14 +200,12 @@ class SsoSessionService:
     @classmethod
     async def _cache_row(cls, redis: Redis, row: SsoSessionSnapshot, now: datetime) -> None:
         """
-        将 Session 快照写入会话、Cookie 和用户索引缓存
+        将 Session 快照写入会话、Cookie 和用户索引缓存。
 
         :param redis: 异步 Redis 客户端
         :param row: SSO Session 快照
         :param now: 当前时间
-        :return: None
         """
-
         ttl = cls._remaining_ttl(TimezoneUtil.to_optional_utc(row.absolute_expires_at) or now, now)
         payload = json.dumps(cls._cache_payload(row), ensure_ascii=False, separators=(',', ':'))
         await redis.set(OidcRedisKey.sso_session(row.sid), payload, ex=ttl)
@@ -217,14 +219,12 @@ class SsoSessionService:
     @classmethod
     async def _clear_cache(cls, redis: Redis, row: SsoSessionSnapshot, extra_secret_hash: str | None = None) -> None:
         """
-        删除 Session、Cookie 和用户索引缓存
+        删除 Session、Cookie 和用户索引缓存。
 
         :param redis: 异步 Redis 客户端
         :param row: SSO Session 快照
         :param extra_secret_hash: 需要额外清理的 Cookie Secret 摘要
-        :return: None
         """
-
         hashes = {row.session_secret_hash}
         if extra_secret_hash:
             hashes.add(extra_secret_hash)
@@ -236,14 +236,12 @@ class SsoSessionService:
     @classmethod
     async def _publish_revoked(cls, redis: Redis, sid: str, reason: str) -> None:
         """
-        发布 Session 已撤销事件
+        发布 Session 已撤销事件。
 
         :param redis: 异步 Redis 客户端
         :param sid: Session 标识
         :param reason: 撤销原因
-        :return: None
         """
-
         await redis.publish(
             OidcRedisKey.event_session_revoked(),
             json.dumps({'event': 'session_revoked', 'sid': sid, 'reason': reason}, separators=(',', ':')),
@@ -259,15 +257,13 @@ class SsoSessionService:
         reason: str | None = None,
     ) -> None:
         """
-        尽力清理 Session 缓存并发布撤销事件
+        尽力清理 Session 缓存并发布撤销事件。
 
         :param redis: 异步 Redis 客户端
         :param row: SSO Session 快照
         :param presented_digest: 当前 Cookie 摘要
         :param reason: 撤销原因
-        :return: None
         """
-
         try:
             await cls._clear_cache(redis, row, presented_digest)
         except Exception:
@@ -297,7 +293,7 @@ class SsoSessionService:
         coordinator: AfterCommitCoordinator | None = None,
     ) -> tuple[str, SysSsoSession]:
         """
-        校验身份状态并创建 SSO Session 与 Cookie
+        校验身份状态并创建 SSO Session 与 Cookie。
 
         :param db: 异步数据库会话，调用方负责提交事务
         :param redis: Redis 热缓存客户端
@@ -309,13 +305,12 @@ class SsoSessionService:
         :param ip_address: 登录来源 IP
         :param user_agent: 登录 User-Agent，仅保存摘要
         :param remember_me: 是否使用 remember-me 绝对 TTL
-        :param pepper: OIDC Token Pepper
+        :param pepper: 用于 OIDC 令牌摘要的独立密钥
         :param now: 可注入当前项目时间
         :param coordinator: 必须由调用方在数据库提交成功后执行缓存写入
         :return: ``(Cookie 原文, 数据库 Session)``
         :raises SsoSessionError: Session 状态或事务操作不符合要求
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         coordinator = cls._require_coordinator(coordinator)
         cls._validate_config_ttls()
@@ -383,12 +378,7 @@ class SsoSessionService:
         snapshot = cls._snapshot(row)
 
         async def cache_after_commit() -> None:
-            """
-            在事务提交后写入新建 Session 的缓存
-
-            :return: None
-            """
-
+            """在事务提交后写入新建 Session 的缓存。"""
             try:
                 await cls._cache_row(redis, snapshot, current)
             except Exception:
@@ -401,7 +391,7 @@ class SsoSessionService:
     @classmethod
     async def validate_logout_cookie(cls, db: AsyncSession, cookie: str) -> SysSsoSession:
         """
-        校验退出确认时的浏览器会话归属
+        校验退出确认时的浏览器会话归属。
 
         允许用户显式退出自然过期的会话，并继续撤销其关联离线授权。
 
@@ -410,7 +400,6 @@ class SsoSessionService:
         :return: 已校验归属的SSO会话
         :raises SsoSessionError: 会话不存在、已撤销或凭据不匹配
         """
-
         try:
             sid, secret = OidcUtil.parse_sso_cookie(cookie)
             digest = OidcUtil.session_secret_digest(secret, OidcConfig.oidc_token_hash_pepper)
@@ -437,18 +426,17 @@ class SsoSessionService:
         coordinator: AfterCommitCoordinator | None = None,
     ) -> SysSsoSession:
         """
-        验证 Cookie、Session 有效期和用户身份安全版本
+        验证 Cookie、Session 有效期和用户身份安全版本。
 
         :param db: 异步数据库会话
         :param redis: Redis 热缓存客户端
         :param cookie: 客户端 Cookie 原文
-        :param pepper: OIDC Token Pepper
+        :param pepper: 用于 OIDC 令牌摘要的独立密钥
         :param now: 可注入当前项目时间
         :param coordinator: 必须由调用方在数据库提交成功后执行缓存清理或失效事件
         :return: 已验证的数据库 Session
         :raises SsoSessionError: Cookie 或任何安全状态校验失败
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         coordinator = cls._require_coordinator(coordinator)
         try:
@@ -464,12 +452,7 @@ class SsoSessionService:
         if row is None:
 
             async def clear_missing_cookie() -> None:
-                """
-                在 Session 不存在时删除 Cookie 索引
-
-                :return: None
-                """
-
+                """在 Session 不存在时删除 Cookie 索引。"""
                 try:
                     await redis.delete(OidcRedisKey.sso_cookie(digest))
                 except Exception:
@@ -480,12 +463,7 @@ class SsoSessionService:
         if not hmac.compare_digest(row.session_secret_hash, digest):
 
             async def clear_presented_cookie() -> None:
-                """
-                在 Cookie Secret 不匹配时删除当前索引
-
-                :return: None
-                """
-
+                """在 Cookie Secret 不匹配时删除当前索引。"""
                 try:
                     await redis.delete(OidcRedisKey.sso_cookie(digest))
                 except Exception:
@@ -508,12 +486,7 @@ class SsoSessionService:
                 snapshot = cls._snapshot(row)
 
                 async def clear_expired() -> None:
-                    """
-                    在 Session 到期后清理缓存
-
-                    :return: None
-                    """
-
+                    """在 Session 到期后清理缓存。"""
                     await cls._best_effort_cleanup(redis, snapshot, presented_digest=digest)
 
                 await coordinator.register(clear_expired)
@@ -536,12 +509,7 @@ class SsoSessionService:
         snapshot = cls._snapshot(row)
 
         async def refresh_cache() -> None:
-            """
-            在校验成功后刷新 Session 缓存
-
-            :return: None
-            """
-
+            """在校验成功后刷新 Session 缓存。"""
             try:
                 await cls._cache_row(redis, snapshot, current)
             except Exception:
@@ -563,7 +531,7 @@ class SsoSessionService:
         coordinator: AfterCommitCoordinator,
     ) -> None:
         """
-        将无效 Session 标记为撤销并登记提交后清理动作
+        将无效 Session 标记为撤销并登记提交后清理动作。
 
         :param db: 异步数据库会话
         :param redis: 异步 Redis 客户端
@@ -572,9 +540,7 @@ class SsoSessionService:
         :param reason: 撤销原因
         :param now: 当前时间
         :param coordinator: 事务提交协调器
-        :return: None
         """
-
         changed = False
         if row.status == _SESSION_STATUS_ACTIVE:
             changed = await SsoSessionDao.revoke(db, row.sid, reason=reason, now=now)
@@ -592,12 +558,7 @@ class SsoSessionService:
         snapshot = cls._snapshot(row)
 
         async def cleanup() -> None:
-            """
-            在撤销或过期后清理 Session 缓存
-
-            :return: None
-            """
-
+            """在撤销或过期后清理 Session 缓存。"""
             await cls._best_effort_cleanup(
                 redis,
                 snapshot,
@@ -619,18 +580,17 @@ class SsoSessionService:
         coordinator: AfterCommitCoordinator | None = None,
     ) -> SysSsoSession:
         """
-        刷新活动 Session 的最近访问时间和空闲过期时间
+        刷新活动 Session 的最近访问时间和空闲过期时间。
 
         :param db: 异步数据库会话
         :param redis: Redis 热缓存客户端
         :param cookie: 当前 Cookie 原文
-        :param pepper: OIDC Token Pepper
+        :param pepper: 用于 OIDC 令牌摘要的独立密钥
         :param now: 可注入当前项目时间
         :param coordinator: 必须由调用方在数据库提交成功后执行缓存更新
         :return: 更新后的数据库 Session
         :raises SsoSessionError: Session 状态或事务操作不符合要求
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         coordinator = cls._require_coordinator(coordinator)
         cls._validate_config_ttls()
@@ -647,12 +607,7 @@ class SsoSessionService:
         snapshot = cls._snapshot(refreshed)
 
         async def refresh_cache() -> None:
-            """
-            在校验成功后刷新 Session 缓存
-
-            :return: None
-            """
-
+            """在校验成功后刷新 Session 缓存。"""
             try:
                 await cls._cache_row(redis, snapshot, current)
             except Exception:
@@ -674,18 +629,17 @@ class SsoSessionService:
         coordinator: AfterCommitCoordinator | None = None,
     ) -> str:
         """
-        轮换 Session Cookie Secret 并更新缓存索引
+        轮换 Session Cookie Secret 并更新缓存索引。
 
         :param db: 异步数据库会话
         :param redis: Redis 热缓存客户端
         :param cookie: 旧 Cookie 原文
-        :param pepper: OIDC Token Pepper
+        :param pepper: 用于 OIDC 令牌摘要的独立密钥
         :param now: 可注入当前项目时间
         :param coordinator: 必须由调用方在数据库提交成功后执行缓存更新
         :return: 新 Cookie 原文
         :raises SsoSessionError: Session 状态或事务操作不符合要求
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         coordinator = cls._require_coordinator(coordinator)
         row = await cls.validate(db, redis, cookie, pepper=pepper, now=current, coordinator=coordinator)
@@ -702,12 +656,7 @@ class SsoSessionService:
         snapshot = cls._snapshot(row)
 
         async def refresh_rotated_cache() -> None:
-            """
-            在 Cookie 轮换后更新新旧缓存索引
-
-            :return: None
-            """
-
+            """在 Cookie 轮换后更新新旧缓存索引。"""
             try:
                 await redis.delete(OidcRedisKey.sso_cookie(old_digest))
                 await cls._cache_row(redis, snapshot, current)
@@ -730,7 +679,7 @@ class SsoSessionService:
         coordinator: AfterCommitCoordinator | None = None,
     ) -> bool:
         """
-        撤销指定 Session 并清理其 Cookie 凭据
+        撤销指定 Session 并清理其 Cookie 凭据。
 
         :param db: 异步数据库会话
         :param redis: Redis 热缓存客户端
@@ -740,7 +689,6 @@ class SsoSessionService:
         :param coordinator: 必须由调用方在数据库提交成功后执行清理闭包
         :return: 数据库状态实际改变时返回 True
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         coordinator = cls._require_coordinator(coordinator)
         row = await SsoSessionDao.get_by_sid(db, sid, for_update=True)
@@ -761,12 +709,7 @@ class SsoSessionService:
         snapshot = cls._snapshot(row)
 
         async def cleanup() -> None:
-            """
-            在撤销或过期后清理 Session 缓存
-
-            :return: None
-            """
-
+            """在撤销或过期后清理 Session 缓存。"""
             await cls._best_effort_cleanup(redis, snapshot, reason=reason if changed else None)
 
         await coordinator.register(cleanup)
@@ -785,7 +728,7 @@ class SsoSessionService:
         coordinator: AfterCommitCoordinator | None = None,
     ) -> int:
         """
-        撤销指定用户全部在线及自然过期的 Session，终止其离线访问
+        撤销指定用户全部在线及自然过期的 Session，终止其离线访问。
 
         :param db: 异步数据库会话
         :param redis: Redis 热缓存客户端
@@ -795,7 +738,6 @@ class SsoSessionService:
         :param coordinator: 必须由调用方在数据库提交成功后执行清理闭包
         :return: 数据库更新的 Session 数量
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         coordinator = cls._require_coordinator(coordinator)
         rows = list(await SsoSessionDao.list_for_user(db, user_id, for_update=True, revocable_only=True))
@@ -815,12 +757,7 @@ class SsoSessionService:
                 )
 
         async def cleanup() -> None:
-            """
-            在撤销或过期后清理 Session 缓存
-
-            :return: None
-            """
-
+            """在撤销或过期后清理 Session 缓存。"""
             for snapshot in changed_snapshots:
                 await cls._best_effort_cleanup(redis, snapshot, reason=reason)
 
@@ -838,7 +775,7 @@ class SsoSessionService:
         coordinator: AfterCommitCoordinator | None = None,
     ) -> int:
         """
-        批量标记已到期的 Session 并登记缓存清理
+        批量标记已到期的 Session 并登记缓存清理。
 
         :param db: 异步数据库会话
         :param redis: Redis 热缓存客户端
@@ -846,7 +783,6 @@ class SsoSessionService:
         :param coordinator: 必须由调用方在数据库提交成功后执行缓存清理
         :return: 数据库更新数量
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         coordinator = cls._require_coordinator(coordinator)
         rows = list(await SsoSessionDao.list_due(db, now=current, for_update=True))
@@ -856,12 +792,7 @@ class SsoSessionService:
                 changed_snapshots.append(cls._snapshot(row))  # noqa: PERF401
 
         async def cleanup() -> None:
-            """
-            在撤销或过期后清理 Session 缓存
-
-            :return: None
-            """
-
+            """在撤销或过期后清理 Session 缓存。"""
             for snapshot in changed_snapshots:
                 await cls._best_effort_cleanup(redis, snapshot)
 
@@ -872,14 +803,13 @@ class SsoSessionService:
     @classmethod
     def cookie_max_age(cls, session: SysSsoSession, *, now: datetime | None = None) -> int | None:
         """
-        根据 Session 的绝对过期时间计算保持登录 Cookie 的剩余寿命
+        根据 Session 的绝对过期时间计算保持登录 Cookie 的剩余寿命。
 
         :param session: 当前 SSO Session ORM
         :param now: 可注入当前项目时间
         :return: 保持登录 Cookie 的剩余秒数，普通登录返回 None
         :raises SsoSessionError: Session 缺少绝对过期时间或已过期
         """
-
         if not session.remember_me:
             return None
         absolute = TimezoneUtil.to_optional_utc(session.absolute_expires_at)
@@ -890,13 +820,12 @@ class SsoSessionService:
     @staticmethod
     def cookie_parameters(*, max_age: int | None = None) -> dict[str, str | bool | int]:
         """
-        根据配置构造 SSO Cookie 的 HTTP 属性
+        根据配置构造 SSO Cookie 的 HTTP 属性。
 
         :param max_age: 可选 Cookie 最大寿命秒数
         :return: 由 Controller 传给 HTTP Response 的 Cookie 参数
         :raises SsoSessionError: Logout Session 校验失败
         """
-
         if not OidcConfig.oidc_sso_cookie_name.startswith('__Host-') or not OidcConfig.oidc_sso_cookie_secure:
             raise SsoSessionError('使用 __Host- 前缀的单点登录 Cookie 必须启用 Secure')
         if OidcConfig.oidc_sso_cookie_domain or OidcConfig.oidc_sso_cookie_samesite != 'lax':
@@ -938,7 +867,11 @@ _BACKCHANNEL_QUEUE_MAX_LENGTH = 1000
 @dataclass(frozen=True, slots=True)
 class LogoutResult:
     """
-    记录 RP-Initiated Logout 的重定向结果和错误信息
+    记录 RP-Initiated Logout 的重定向结果和错误信息。
+
+    :ivar redirect_uri: 已注册的授权回调地址
+    :ivar state: 当前流程的状态
+    :ivar session_revoked: 会话是否已被撤销
     """
 
     redirect_uri: str | None
@@ -948,18 +881,15 @@ class LogoutResult:
     @property
     def is_local(self) -> bool:
         """
-        判断退出回调是否指向本地地址
+        判断退出回调是否指向本地地址。
 
         :return: LogoutResult 未提供重定向 URI 时是否在本地完成退出
         """
-
         return self.redirect_uri is None
 
 
 class LogoutServiceError(ValueError):
-    """
-    RP-Initiated Logout 参数或回调校验错误类型
-    """
+    """RP-Initiated Logout 参数或回调校验错误类型。"""
 
 
 BackchannelAuditWriter = Callable[..., Awaitable[None]]
@@ -967,9 +897,7 @@ BackchannelRetryQueue = Callable[..., Awaitable[None]]
 
 
 class LogoutService:
-    """
-    OIDC Logout 模块服务层
-    """
+    """OIDC Logout 模块服务层。"""
 
     @classmethod
     async def execute_logout(  # noqa: PLR0913
@@ -990,11 +918,11 @@ class LogoutService:
         retry_queue: BackchannelRetryQueue | None = None,
     ) -> LogoutResult:
         """
-        编排 RP-Initiated Logout 的校验、撤销和响应
+        编排 RP-Initiated Logout 的校验、撤销和响应。
 
         :param db: 异步数据库会话
         :param redis: SSO 热缓存客户端
-        :param id_token_hint: OIDC ID Token Hint
+        :param id_token_hint: 用于提示会话身份的 OIDC 身份令牌
         :param cookie: 当前 SSO Cookie
         :param post_logout_redirect_uri: 请求的退出后重定向 URI
         :param state: 仅在重定向 URI 验证成功后返回的状态值
@@ -1008,7 +936,6 @@ class LogoutService:
         :return: 不包含敏感材料的退出结果
         :raises Exception: 核心流程或数据库提交失败时原样抛出异常
         """
-
         coordinator = AfterCommitCoordinator()
         try:
             result = await cls._logout(
@@ -1056,7 +983,7 @@ class LogoutService:
         retry_queue: BackchannelRetryQueue | None = None,
     ) -> LogoutResult:
         """
-        在事务中处理 Logout Hint、Session 撤销和通知登记
+        在事务中处理 Logout Hint、Session 撤销和通知登记。
 
         :param db: 异步数据库会话；事务由公共编排入口提交或回滚
         :param redis: SSO 热缓存客户端，仅传递给 Session 服务
@@ -1075,7 +1002,6 @@ class LogoutService:
         :return: 不包含敏感材料的退出结果
         :raises LogoutServiceError: 请求违反安全边界
         """
-
         if not OidcConfig.oidc_enabled:
             raise LogoutServiceError('统一认证中心未启用')
         if not confirmed:
@@ -1155,7 +1081,7 @@ class LogoutService:
     @classmethod
     async def _validate_id_token_hint(cls, db: AsyncSession, token: str, now: datetime) -> tuple[dict[str, Any], Any]:
         """
-        验证 ID Token Hint 的签名、发行者和 Session 绑定
+        验证 ID Token Hint 的签名、发行者和 Session 绑定。
 
         :param db: 异步数据库会话
         :param token: 令牌值
@@ -1163,7 +1089,6 @@ class LogoutService:
         :return: 包含协议字段的字典
         :raises LogoutServiceError: Logout 参数或回调地址不符合要求
         """
-
         if not isinstance(token, str) or not token or token.count('.') != _JWT_DOT_COUNT:
             raise LogoutServiceError('退出请求中的身份令牌提示 id_token_hint 无效')
         try:
@@ -1203,13 +1128,12 @@ class LogoutService:
     @classmethod
     async def _lock_session_refresh_tokens(cls, db: AsyncSession, sid: str) -> list[Any]:
         """
-        锁定指定 Session 关联的 Refresh Token 记录
+        锁定指定 Session 关联的 Refresh Token 记录。
 
         :param db: 异步数据库会话
         :param sid: Session 标识
         :return: 规范化后的列表
         """
-
         return list(await OAuthTokenDao.list_for_sid_for_update(db, sid))
 
     @classmethod
@@ -1223,7 +1147,7 @@ class LogoutService:
         coordinator: AfterCommitCoordinator,
     ) -> None:
         """
-        标记 Session 及其 Refresh Token 为撤销并登记缓存清理
+        标记 Session 及其 Refresh Token 为撤销并登记缓存清理。
 
         :param db: 异步数据库会话
         :param redis: 异步 Redis 客户端
@@ -1231,9 +1155,7 @@ class LogoutService:
         :param refresh_rows: Refresh 记录集合
         :param now: 当前时间
         :param coordinator: 事务提交协调器
-        :return: None
         """
-
         await SsoSessionService.revoke(db, redis, sid, reason='rp_initiated_logout', now=now, coordinator=coordinator)
         for family_id in {row.family_id for row in refresh_rows}:
             await OAuthTokenDao.revoke_family(db, family_id, reason='rp_initiated_logout')
@@ -1255,7 +1177,7 @@ class LogoutService:
         retry_queue: BackchannelRetryQueue | None,
     ) -> None:
         """
-        为已撤销 Session 登记各 Client 的 Back-Channel 通知
+        为已撤销 Session 登记各 Client 的 Back-Channel 通知。
 
         :param db: 异步数据库会话
         :param redis: 异步 Redis 客户端
@@ -1268,9 +1190,7 @@ class LogoutService:
         :param notifier: 通知器
         :param audit_writer: 审计写入回调
         :param retry_queue: 重试队列回调
-        :return: None
         """
-
         effective_retry_queue = retry_queue or cls._redis_retry_queue(redis)
         effective_audit_writer = audit_writer or cls._audit_writer(db)
         callbacks: list[Callable[[], Awaitable[None]]] = []
@@ -1305,13 +1225,11 @@ class LogoutService:
 
                     async def permanent_failure(uri_value: str = uri, client_value: str = client.client_id) -> None:
                         """
-                        记录 Back-Channel 通知的永久失败
+                        记录 Back-Channel 通知的永久失败。
 
                         :param uri_value: URI 值
                         :param client_value: 客户端值
-                        :return: None
                         """
-
                         await cls._write_backchannel_audit(
                             effective_audit_writer,
                             OidcAuditEvent.BACKCHANNEL_LOGOUT_FAILED,
@@ -1332,16 +1250,14 @@ class LogoutService:
                         include_sid_value: bool = include_sid,
                     ) -> None:
                         """
-                        记录 Logout Token 签名失败
+                        记录 Logout Token 签名失败。
 
                         :param uri_value: URI 值
                         :param client_value: 客户端值
                         :param event_jti_value: 事件 JTI
                         :param subject_id_value: Subject 标识
                         :param include_sid_value: 是否包含 Session 标识
-                        :return: None
                         """
-
                         await cls._write_backchannel_audit(
                             effective_audit_writer,
                             OidcAuditEvent.BACKCHANNEL_LOGOUT_FAILED,
@@ -1379,20 +1295,14 @@ class LogoutService:
             semaphore = asyncio.Semaphore(_BACKCHANNEL_MAX_CONCURRENCY)
 
             async def notify_all() -> None:
-                """
-                向已登记的 Client 发送退出通知
-
-                :return: None
-                """
+                """向已登记的 Client 发送退出通知。"""
 
                 async def run(callback: Callable[[], Awaitable[None]]) -> None:
                     """
-                    执行一次通知回调并统一处理发送异常
+                    执行一次通知回调并统一处理发送异常。
 
                     :param callback: 提交后回调
-                    :return: None
                     """
-
                     async with semaphore:
                         await callback()
 
@@ -1411,7 +1321,7 @@ class LogoutService:
         max_items: int = _BACKCHANNEL_MAX_QUEUE_ITEMS,
     ) -> int:
         """
-        读取并处理 Back-Channel Logout 重试队列
+        读取并处理 Back-Channel Logout 重试队列。
 
         :param db: 异步数据库会话
         :param redis: Redis 队列客户端
@@ -1422,7 +1332,6 @@ class LogoutService:
         :raises PermanentBackchannelError: Back-Channel 通知达到永久失败条件
         :raises ValueError: 输入值不符合约束
         """
-
         limit = max(1, min(int(max_items), _BACKCHANNEL_MAX_QUEUE_ITEMS))
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         processed = 0
@@ -1526,36 +1435,33 @@ class LogoutService:
     @staticmethod
     async def _safe_backchannel_uri(uri: Any) -> bool:
         """
-        验证 Back-Channel URI 使用允许的网络地址
+        验证 Back-Channel URI 使用允许的网络地址。
 
         :param uri: 回调 URI
         :return: URI 是否通过 Back-Channel 网络地址安全检查
         """
-
         return await is_safe_backchannel_uri(uri)
 
     @staticmethod
     async def _public_dns_only(hostname: str, port: int) -> bool:
         """
-        解析主机名并确认所有地址均为公网地址
+        解析主机名并确认所有地址均为公网地址。
 
         :param hostname: 主机名
         :param port: 端口
         :return: 主机解析得到的所有地址是否均为公网地址
         """
-
         return await public_dns_only(hostname, port)
 
     @staticmethod
     async def _verified_addresses(hostname: str, port: int) -> set[str]:
         """
-        获取通过公网地址校验的主机地址集合
+        获取通过公网地址校验的主机地址集合。
 
         :param hostname: 主机名
         :param port: 端口
         :return: 通过校验的地址集合
         """
-
         return await public_dns_addresses(hostname, port)
 
     @classmethod
@@ -1573,7 +1479,7 @@ class LogoutService:
         db: AsyncSession,
     ) -> str | None:
         """
-        为指定 Client 和 Session 签发 Back-Channel Logout Token
+        为指定 Client 和 Session 签发 Back-Channel Logout Token。
 
         :param client_id: 客户端标识
         :param sid: Session 标识
@@ -1586,7 +1492,6 @@ class LogoutService:
         :param db: 异步数据库会话
         :return: 已签名的 Back-Channel Logout JWT，签名材料不可用时返回 None
         """
-
         if signing_key is None or signing_kid is None:
             record = await OidcKeyDao.get_active(db, alg=_RS256)
             if record is None:
@@ -1626,7 +1531,7 @@ class LogoutService:
         retry_queue: BackchannelRetryQueue | None = None,
     ) -> Callable[[], Awaitable[None]]:
         """
-        创建发送 Back-Channel Logout 通知并处理失败的回调
+        创建发送 Back-Channel Logout 通知并处理失败的回调。
 
         :param uri: 回调 URI
         :param token: 令牌值
@@ -1643,12 +1548,7 @@ class LogoutService:
         """
 
         async def notify() -> None:
-            """
-            发送一次 Back-Channel Logout 通知
-
-            :return: None
-            """
-
+            """发送一次 Back-Channel Logout 通知。"""
             last_error: Exception | None = None
             for attempt in range(_BACKCHANNEL_MAX_ATTEMPTS):
                 try:
@@ -1696,16 +1596,14 @@ class LogoutService:
         uri: str, token: str, notifier: BackchannelNotifier | None, timeout_seconds: float
     ) -> None:
         """
-        向 Client 的 Back-Channel URI 发送 Logout Token
+        向 Client 的 Back-Channel URI 发送 Logout Token。
 
         :param uri: 已注册的 Back-Channel URI
         :param token: 仅存在于本次内存请求中的 Logout Token
         :param notifier: 可注入发送器
         :param timeout_seconds: 有界网络超时
-        :return: None
         :raises LogoutServiceError: Logout 参数或回调地址不符合要求
         """
-
         addresses: set[str] | None = None
         if notifier is None:
             parsed = urlsplit(uri)
@@ -1724,7 +1622,7 @@ class LogoutService:
     @staticmethod
     def _audit_writer(db: AsyncSession) -> BackchannelAuditWriter:
         """
-        创建绑定数据库会话的 Back-Channel 审计写入器
+        创建绑定数据库会话的 Back-Channel 审计写入器。
 
         :param db: 异步数据库会话
         :return: 绑定当前数据库会话的 Back-Channel 审计写入器
@@ -1739,16 +1637,14 @@ class LogoutService:
             failure_code: str | None = None,
         ) -> None:
             """
-            写入一次 Back-Channel 审计事件
+            写入一次 Back-Channel 审计事件。
 
             :param event: 事件类型
             :param uri: 回调 URI
             :param client_id: 客户端标识
             :param sid: Session 标识
             :param failure_code: 失败代码
-            :return: None
             """
-
             try:
                 await AuditService.record_independent(
                     db,
@@ -1774,7 +1670,7 @@ class LogoutService:
         failure_code: str | None = None,
     ) -> None:
         """
-        记录一次 Back-Channel 通知结果
+        记录一次 Back-Channel 通知结果。
 
         :param audit_writer: 审计写入回调
         :param event: 事件类型
@@ -1782,9 +1678,7 @@ class LogoutService:
         :param client_id: 客户端标识
         :param sid: Session 标识
         :param failure_code: 失败代码
-        :return: None
         """
-
         if audit_writer is not None:
             try:
                 await audit_writer(event, uri, client_id, sid, failure_code=failure_code)
@@ -1803,7 +1697,7 @@ class LogoutService:
         include_sid: bool = True,
     ) -> None:
         """
-        将失败的 Back-Channel 通知加入重试队列
+        将失败的 Back-Channel 通知加入重试队列。
 
         :param retry_queue: 重试队列回调
         :param uri: 回调 URI
@@ -1812,9 +1706,7 @@ class LogoutService:
         :param event_jti: 事件 JTI
         :param subject_id: Subject 标识
         :param include_sid: 是否包含 Session 标识
-        :return: None
         """
-
         if retry_queue is not None:
             try:
                 await retry_queue(
@@ -1831,7 +1723,7 @@ class LogoutService:
     @staticmethod
     def _redis_retry_queue(redis: Redis) -> BackchannelRetryQueue:
         """
-        创建基于 Redis 的 Back-Channel 重试队列适配器
+        创建基于 Redis 的 Back-Channel 重试队列适配器。
 
         :param redis: 异步 Redis 客户端
         :return: 基于 Redis 的 Back-Channel 重试队列适配器
@@ -1847,7 +1739,7 @@ class LogoutService:
             include_sid: bool = True,
         ) -> None:
             """
-            加入一条 Back-Channel 重试任务
+            加入一条 Back-Channel 重试任务。
 
             :param uri: 回调 URI
             :param client_id: 客户端标识
@@ -1855,9 +1747,7 @@ class LogoutService:
             :param event_jti: 事件 JTI
             :param subject_id: Subject 标识
             :param include_sid: 是否包含 Session 标识
-            :return: None
             """
-
             payload = json.dumps(
                 {
                     'uri': uri,
@@ -1879,11 +1769,10 @@ class LogoutService:
     @staticmethod
     def _backchannel_timeout() -> float:
         """
-        读取 Back-Channel 请求超时配置
+        读取 Back-Channel 请求超时配置。
 
         :return: 超时时间（秒）
         """
-
         value = getattr(OidcConfig, 'oidc_backchannel_logout_timeout_seconds', _BACKCHANNEL_TIMEOUT_SECONDS)
         if (
             isinstance(value, bool)

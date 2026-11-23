@@ -11,9 +11,7 @@ from i18n.translation import TranslationUtil
 
 
 class DictTypeBaseModel(BaseModel):
-    """
-    字典类型表对应pydantic模型
-    """
+    """字典类型表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -35,6 +33,11 @@ class DictTypeBaseModel(BaseModel):
         message=I18nMessage('字典类型名称长度不能超过100个字符', msg_key='validation.dictNameLength'),
     )
     def get_dict_name(self) -> str | None:
+        """
+        校验并返回字典名称。
+
+        :return: 字典名称
+        """
         return self.dict_name
 
     @NotBlank(field_name='dict_type', message=I18nMessage('字典类型不能为空', msg_key='validation.dictTypeRequired'))
@@ -52,17 +55,21 @@ class DictTypeBaseModel(BaseModel):
         ),
     )
     def get_dict_type(self) -> str | None:
+        """
+        校验并返回字典类型。
+
+        :return: 字典类型
+        """
         return self.dict_type
 
     def validate_fields(self) -> None:
+        """校验字典名称、字典类型。"""
         self.get_dict_name()
         self.get_dict_type()
 
 
 class DictTypeModel(DictTypeBaseModel):
-    """
-    包含多语言译文的字典类型模型
-    """
+    """包含多语言译文的字典类型模型。"""
 
     dict_name_i18n: dict[str, str | None] = Field(default_factory=dict, alias='dictNameI18n', description='多语言译文')
 
@@ -70,15 +77,16 @@ class DictTypeModel(DictTypeBaseModel):
     @classmethod
     def validate_dict_name_i18n(cls, value: object) -> dict[str, str | None]:
         """
-        校验多语言译文
+        校验多语言译文。
+
+        :param value: 待处理的输入值
+        :return: 通过校验的字典名称译文
         """
         return TranslationUtil.validate(value, 100)
 
 
 class DictDataBaseModel(BaseModel):
-    """
-    字典数据表对应pydantic模型
-    """
+    """字典数据表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -105,6 +113,11 @@ class DictDataBaseModel(BaseModel):
         message=I18nMessage('字典标签长度不能超过100个字符', msg_key='validation.dictLabelLength'),
     )
     def get_dict_label(self) -> str | None:
+        """
+        校验并返回字典标签。
+
+        :return: 字典标签
+        """
         return self.dict_label
 
     @NotBlank(field_name='dict_value', message=I18nMessage('字典键值不能为空', msg_key='validation.dictValueRequired'))
@@ -115,6 +128,11 @@ class DictDataBaseModel(BaseModel):
         message=I18nMessage('字典键值长度不能超过100个字符', msg_key='validation.dictValueLength'),
     )
     def get_dict_value(self) -> str | None:
+        """
+        校验并返回字典键值。
+
+        :return: 字典键值
+        """
         return self.dict_value
 
     @NotBlank(field_name='dict_type', message=I18nMessage('字典类型不能为空', msg_key='validation.dictTypeRequired'))
@@ -125,6 +143,11 @@ class DictDataBaseModel(BaseModel):
         message=I18nMessage('字典类型长度不能超过100个字符', msg_key='validation.dictTypeLength'),
     )
     def get_dict_type(self) -> str | None:
+        """
+        校验并返回字典类型。
+
+        :return: 字典类型
+        """
         return self.dict_type
 
     @Size(
@@ -134,9 +157,15 @@ class DictDataBaseModel(BaseModel):
         message=I18nMessage('样式属性长度不能超过100个字符', msg_key='validation.cssClassLength'),
     )
     def get_css_class(self) -> str | None:
+        """
+        校验并返回样式属性（其他样式扩展）。
+
+        :return: 样式属性（其他样式扩展）
+        """
         return self.css_class
 
     def validate_fields(self) -> None:
+        """校验字典标签、字典键值、字典类型、样式属性（其他样式扩展）。"""
         self.get_dict_label()
         self.get_dict_value()
         self.get_dict_type()
@@ -144,9 +173,7 @@ class DictDataBaseModel(BaseModel):
 
 
 class DictDataModel(DictDataBaseModel):
-    """
-    包含多语言译文的字典数据模型
-    """
+    """包含多语言译文的字典数据模型。"""
 
     dict_label_i18n: dict[str, str | None] = Field(
         default_factory=dict, alias='dictLabelI18n', description='多语言译文'
@@ -156,33 +183,30 @@ class DictDataModel(DictDataBaseModel):
     @classmethod
     def validate_dict_label_i18n(cls, value: object) -> dict[str, str | None]:
         """
-        校验多语言译文
+        校验多语言译文。
+
+        :param value: 待处理的输入值
+        :return: 通过校验的字典标签译文
         """
         return TranslationUtil.validate(value, 100)
 
 
 class DictTypeQueryModel(DateRangeQueryMixin, DictTypeBaseModel):
-    """
-    字典类型管理不分页查询模型
-    """
+    """字典类型管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class DictTypePageQueryModel(DictTypeQueryModel):
-    """
-    字典类型管理分页查询模型
-    """
+    """字典类型管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class DeleteDictTypeModel(BaseModel):
-    """
-    删除字典类型模型
-    """
+    """删除字典类型模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -190,27 +214,21 @@ class DeleteDictTypeModel(BaseModel):
 
 
 class DictDataQueryModel(DateRangeQueryMixin, DictDataBaseModel):
-    """
-    字典数据管理不分页查询模型
-    """
+    """字典数据管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class DictDataPageQueryModel(DictDataQueryModel):
-    """
-    字典数据管理分页查询模型
-    """
+    """字典数据管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class DeleteDictDataModel(BaseModel):
-    """
-    删除字典数据模型
-    """
+    """删除字典数据模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

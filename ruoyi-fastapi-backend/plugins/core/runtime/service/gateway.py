@@ -42,6 +42,7 @@ def run_plugin_command(
     :param timeout: 命令超时时间
     :param output_callback: 实时输出回调
     :return: 命令执行结果
+    :raises subprocess.TimeoutExpired: 插件系统命令超过指定运行时限
     """
     if output_callback is None:
         return subprocess.run(
@@ -70,7 +71,13 @@ def run_plugin_command(
         kind: Literal['stdout', 'stderr'],
         output_parts: list[str],
     ) -> None:
-        """持续读取并转发单个子进程输出流。"""
+        """
+        持续读取并转发单个子进程输出流。
+
+        :param stream: 需要逐块读取的流
+        :param kind: 当前条目的类别
+        :param output_parts: 按接收顺序保存输出片段的列表
+        """
         try:
             for text in iter(stream.readline, ''):
                 output_parts.append(text)
@@ -118,9 +125,7 @@ def run_plugin_command(
 
 @runtime_checkable
 class AsyncSessionFactoryProtocol(Protocol):
-    """
-    异步数据库会话工厂协议。
-    """
+    """异步数据库会话工厂协议。"""
 
     def __call__(self) -> AbstractAsyncContextManager[AsyncSession]:
         """
@@ -132,9 +137,7 @@ class AsyncSessionFactoryProtocol(Protocol):
 
 @runtime_checkable
 class PluginManagementServiceProtocol(Protocol):
-    """
-    插件运行时依赖的管理服务协议。
-    """
+    """插件运行时依赖的管理服务协议。"""
 
     @classmethod
     async def get_plugin_list_services(cls, query_db: AsyncSession) -> list[PluginStateRecord]:
@@ -229,7 +232,6 @@ class PluginManagementServiceProtocol(Protocol):
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
         :param enabled: 是否启用
-        :return: None
         """
 
     @classmethod
@@ -260,7 +262,6 @@ class PluginManagementServiceProtocol(Protocol):
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件
         :param enabled: 插件任务是否启用
-        :return: None
         """
 
     @classmethod
@@ -491,9 +492,7 @@ class PluginManagementServiceProtocol(Protocol):
 
 @runtime_checkable
 class PluginConfigGateway(Protocol):
-    """
-    插件配置网关协议。
-    """
+    """插件配置网关协议。"""
 
     async def get_plugin_config(
         self,
@@ -543,9 +542,7 @@ class PluginConfigGateway(Protocol):
 
 @runtime_checkable
 class PluginAuditGateway(Protocol):
-    """
-    插件审计网关协议。
-    """
+    """插件审计网关协议。"""
 
     async def list_plugin_operation_logs(self, *, export_limit: int) -> list[PluginOperationLogDetailModel]:
         """
@@ -568,7 +565,6 @@ class PluginAuditGateway(Protocol):
         :param payload: 操作日志负载
         :param dry_run: 是否预演
         :param continue_on_error: 失败后是否继续
-        :return: None
         """
 
     async def mark_plugin_error(self, plugin_id: str, error_message: str) -> bool:
@@ -583,9 +579,7 @@ class PluginAuditGateway(Protocol):
 
 @runtime_checkable
 class PluginStateQueryGateway(Protocol):
-    """
-    插件状态查询网关协议。
-    """
+    """插件状态查询网关协议。"""
 
     async def list_plugin_states(self) -> list[PluginStateRecord]:
         """
@@ -605,9 +599,7 @@ class PluginStateQueryGateway(Protocol):
 
 @runtime_checkable
 class PluginMigrationHistoryGateway(Protocol):
-    """
-    插件 migration 历史网关协议。
-    """
+    """插件 migration 历史网关协议。"""
 
     async def list_plugin_migrations(
         self,
@@ -651,9 +643,7 @@ class PluginMigrationHistoryGateway(Protocol):
 
 @runtime_checkable
 class PluginPurgePlanGateway(Protocol):
-    """
-    插件清理计划网关协议。
-    """
+    """插件清理计划网关协议。"""
 
     async def build_plugin_purge_plan(self, discovered_plugin: DiscoveredPlugin) -> PluginPurgePlan:
         """
@@ -666,9 +656,7 @@ class PluginPurgePlanGateway(Protocol):
 
 @runtime_checkable
 class PluginLifecycleStateGateway(Protocol):
-    """
-    插件生命周期状态写入网关协议。
-    """
+    """插件生命周期状态写入网关协议。"""
 
     async def set_plugin_enabled_state(
         self,
@@ -698,6 +686,8 @@ class PluginLifecycleStateGateway(Protocol):
 class PluginLifecycleUnitOfWork(Protocol):
     """
     插件生命周期主事务工作单元协议。
+
+    :ivar session: 当前操作共用的会话
     """
 
     session: AsyncSession
@@ -731,7 +721,6 @@ class PluginLifecycleUnitOfWork(Protocol):
 
         :param discovered_plugin: 已发现插件
         :param enabled: 是否启用菜单
-        :return: None
         """
 
     async def install_plugin_default_config(self, discovered_plugin: DiscoveredPlugin) -> list[PluginConfigModel]:
@@ -748,7 +737,6 @@ class PluginLifecycleUnitOfWork(Protocol):
 
         :param discovered_plugin: 已发现插件
         :param enabled: 插件任务是否启用
-        :return: None
         """
 
     async def mark_plugin_installed(self, discovered_plugin: DiscoveredPlugin) -> PluginModel:
@@ -792,18 +780,12 @@ class PluginLifecycleUnitOfWork(Protocol):
         """
 
     async def commit(self) -> None:
-        """
-        提交生命周期主事务。
-
-        :return: None
-        """
+        """提交生命周期主事务。"""
 
 
 @runtime_checkable
 class PluginLifecycleUnitOfWorkGateway(Protocol):
-    """
-    插件生命周期主事务工作单元网关协议。
-    """
+    """插件生命周期主事务工作单元网关协议。"""
 
     def open_lifecycle_unit_of_work(self) -> AbstractAsyncContextManager[PluginLifecycleUnitOfWork]:
         """
@@ -815,9 +797,7 @@ class PluginLifecycleUnitOfWorkGateway(Protocol):
 
 @runtime_checkable
 class PluginMigrationExecutionGateway(Protocol):
-    """
-    插件 migration 独立执行网关协议。
-    """
+    """插件 migration 独立执行网关协议。"""
 
     async def run_plugin_migrations(self, discovered_plugin: DiscoveredPlugin) -> list[PluginMigrationResult]:
         """
@@ -830,9 +810,7 @@ class PluginMigrationExecutionGateway(Protocol):
 
 @runtime_checkable
 class PluginManagementModelGateway(Protocol):
-    """
-    插件管理模型工厂网关协议。
-    """
+    """插件管理模型工厂网关协议。"""
 
     def build_operation_log_export_query(self, export_limit: int) -> PluginOperationLogExportQueryModel:
         """
@@ -863,6 +841,8 @@ class PluginManagementModelGateway(Protocol):
         """
         构建插件 migration 执行历史对象。
 
+        :param status: 执行状态
+        :param error_message: 记录到结果或审计日志中的错误详情
         :param plugin_id: 插件ID
         :param migration_path: migration 相对路径
         :param checksum: 内容校验值
@@ -874,9 +854,7 @@ class PluginManagementModelGateway(Protocol):
 
 @runtime_checkable
 class PluginCommandRunnerGateway(Protocol):
-    """
-    插件命令执行网关协议。
-    """
+    """插件命令执行网关协议。"""
 
     def run_command(
         self,
@@ -898,9 +876,7 @@ class PluginCommandRunnerGateway(Protocol):
 
 
 class UnavailablePluginStateQueryGateway:
-    """
-    不可用的插件状态查询网关。
-    """
+    """不可用的插件状态查询网关。"""
 
     @staticmethod
     async def list_plugin_states() -> list[PluginStateRecord]:
@@ -925,9 +901,7 @@ class UnavailablePluginStateQueryGateway:
 
 
 class UnavailablePluginMigrationHistoryGateway:
-    """
-    不可用的插件 migration 历史网关。
-    """
+    """不可用的插件 migration 历史网关。"""
 
     @staticmethod
     async def list_plugin_migrations(
@@ -977,9 +951,7 @@ class UnavailablePluginMigrationHistoryGateway:
 
 
 class UnavailablePluginPurgePlanGateway:
-    """
-    不可用的插件清理计划网关。
-    """
+    """不可用的插件清理计划网关。"""
 
     @staticmethod
     async def build_plugin_purge_plan(discovered_plugin: DiscoveredPlugin) -> PluginPurgePlan:
@@ -994,9 +966,7 @@ class UnavailablePluginPurgePlanGateway:
 
 
 class UnavailablePluginLifecycleStateGateway:
-    """
-    不可用的插件生命周期状态写入网关。
-    """
+    """不可用的插件生命周期状态写入网关。"""
 
     @staticmethod
     async def set_plugin_enabled_state(
@@ -1028,9 +998,7 @@ class UnavailablePluginLifecycleStateGateway:
 
 
 class UnavailablePluginLifecycleUnitOfWorkGateway:
-    """
-    不可用的插件生命周期主事务工作单元网关。
-    """
+    """不可用的插件生命周期主事务工作单元网关。"""
 
     @staticmethod
     def open_lifecycle_unit_of_work() -> AbstractAsyncContextManager[PluginLifecycleUnitOfWork]:
@@ -1044,9 +1012,7 @@ class UnavailablePluginLifecycleUnitOfWorkGateway:
 
 
 class UnavailablePluginMigrationExecutionGateway:
-    """
-    不可用的插件 migration 独立执行网关。
-    """
+    """不可用的插件 migration 独立执行网关。"""
 
     @staticmethod
     async def run_plugin_migrations(discovered_plugin: DiscoveredPlugin) -> list[PluginMigrationResult]:
@@ -1061,9 +1027,7 @@ class UnavailablePluginMigrationExecutionGateway:
 
 
 class UnavailablePluginConfigGateway:
-    """
-    不可用的插件配置网关。
-    """
+    """不可用的插件配置网关。"""
 
     @staticmethod
     async def get_plugin_config(
@@ -1118,9 +1082,7 @@ class UnavailablePluginConfigGateway:
 
 
 class UnavailablePluginAuditGateway:
-    """
-    不可用的插件审计网关。
-    """
+    """不可用的插件审计网关。"""
 
     @staticmethod
     async def list_plugin_operation_logs(*, export_limit: int) -> list[PluginOperationLogDetailModel]:
@@ -1164,9 +1126,7 @@ class UnavailablePluginAuditGateway:
 
 
 class UnavailablePluginManagementModelGateway:
-    """
-    不可用的插件管理模型工厂网关。
-    """
+    """不可用的插件管理模型工厂网关。"""
 
     @staticmethod
     def build_operation_log_export_query(export_limit: int) -> PluginOperationLogExportQueryModel:
@@ -1203,6 +1163,8 @@ class UnavailablePluginManagementModelGateway:
         """
         构建插件 migration 执行历史对象。
 
+        :param status: 执行状态
+        :param error_message: 记录到结果或审计日志中的错误详情
         :param plugin_id: 插件ID
         :param migration_path: migration 相对路径
         :param checksum: 内容校验值
@@ -1215,9 +1177,7 @@ class UnavailablePluginManagementModelGateway:
 
 
 class DefaultPluginCommandRunnerGateway:
-    """
-    默认插件命令执行网关。
-    """
+    """默认插件命令执行网关。"""
 
     @staticmethod
     def run_command(

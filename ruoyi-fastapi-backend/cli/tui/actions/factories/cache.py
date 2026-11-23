@@ -13,7 +13,7 @@ class CacheActionTemplateFactory:
     该对象负责生成缓存浏览页相关动作模板，统一缓存清理预演和预热动作
     的参数与预览摘要构建。
 
-    :param support: 动作模板共享构建支持
+    :ivar support: 动作模板共享构建支持
     """
 
     support: TuiActionTemplateSupport

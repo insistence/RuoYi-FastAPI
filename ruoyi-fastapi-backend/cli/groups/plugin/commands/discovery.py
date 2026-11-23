@@ -12,7 +12,6 @@ def register_discovery_commands(app: typer.Typer, get_controller: Callable[[], A
 
     :param app: Typer 命令组
     :param get_controller: 插件命令控制器工厂
-    :return: None
     """
 
     @app.command('list', help='查看本地插件列表')
@@ -25,7 +24,6 @@ def register_discovery_commands(app: typer.Typer, get_controller: Callable[[], A
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().list_plugins(env, output)
 
@@ -41,7 +39,6 @@ def register_discovery_commands(app: typer.Typer, get_controller: Callable[[], A
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().plugin_info(plugin_id, env, output)
 
@@ -57,7 +54,6 @@ def register_discovery_commands(app: typer.Typer, get_controller: Callable[[], A
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().check_plugin(plugin_id, env, output)
 
@@ -73,7 +69,6 @@ def register_discovery_commands(app: typer.Typer, get_controller: Callable[[], A
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().health_plugin(plugin_id, env, output)
 
@@ -91,7 +86,6 @@ def register_discovery_commands(app: typer.Typer, get_controller: Callable[[], A
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param output_file: 诊断包 JSON 导出文件路径
-        :return: None
         """
         get_controller().diagnose_plugin(plugin_id, env, output, output_file=output_file)
 
@@ -109,6 +103,5 @@ def register_discovery_commands(app: typer.Typer, get_controller: Callable[[], A
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param output_file: Markdown 文档导出文件路径
-        :return: None
         """
         get_controller().generate_plugin_docs(plugin_id, env, output, output_file=output_file)

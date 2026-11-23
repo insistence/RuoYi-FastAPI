@@ -19,8 +19,8 @@ class CryptoDetailSourcePayloads:
     """
     传输加密详情页原始数据源快照。
 
-    :param validate_payload: `crypto validate` 结果
-    :param public_payload: `crypto export-public` 结果
+    :ivar validate_payload: ``crypto validate`` 结果
+    :ivar public_payload: ``crypto export-public`` 结果
     """
 
     validate_payload: dict[str, Any] | None
@@ -32,10 +32,17 @@ class CryptoDetailSnapshotCollector:
     传输加密详情页数据采集器。
 
     该对象负责拉取传输加密详情页所需的 CLI 原始结果，
-    让 `CryptoDetailAdapter` 保持详情页编排职责。
+    让 ``CryptoDetailAdapter`` 保持详情页编排职责。
+
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(self, query_service: TuiRuntimeQueryService | None = None) -> None:
+        """
+        保存加密详情页使用的运行时查询服务。
+
+        :param query_service: TUI 进程内查询服务
+        """
         self.query_service = query_service or TUI_RUNTIME_QUERIES
 
     async def collect(self, env: str) -> CryptoDetailSourcePayloads:
@@ -68,7 +75,7 @@ class CryptoSectionBuilder:
         """
         构建传输加密运行校验分区。
 
-        :param payload: `crypto validate` JSON 负载
+        :param payload: ``crypto validate`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict):
@@ -97,7 +104,7 @@ class CryptoSectionBuilder:
         """
         构建公钥身份分区。
 
-        :param payload: `crypto export-public` JSON 负载
+        :param payload: ``crypto export-public`` JSON 负载
         :return: 分区快照
         """
         public_key_payload = payload.get('publicKey') if isinstance(payload, dict) else None
@@ -124,7 +131,7 @@ class CryptoSectionBuilder:
         """
         构建兼容版本分区。
 
-        :param payload: `crypto export-public` JSON 负载
+        :param payload: ``crypto export-public`` JSON 负载
         :return: 分区快照
         """
         public_key_payload = payload.get('publicKey') if isinstance(payload, dict) else None
@@ -155,7 +162,7 @@ class CryptoSectionBuilder:
         """
         构建公钥预览分区。
 
-        :param payload: `crypto export-public` JSON 负载
+        :param payload: ``crypto export-public`` JSON 负载
         :return: 分区快照
         """
         public_key_payload = payload.get('publicKey') if isinstance(payload, dict) else None
@@ -193,8 +200,8 @@ class CryptoSectionBuilder:
         """
         构建加密页总览判断分区。
 
-        :param validate_payload: `crypto validate` JSON 负载
-        :param public_payload: `crypto export-public` JSON 负载
+        :param validate_payload: ``crypto validate`` JSON 负载
+        :param public_payload: ``crypto export-public`` JSON 负载
         :return: 分区快照
         """
         validate_ok = bool(isinstance(validate_payload, dict) and validate_payload.get('ok', False))
@@ -287,8 +294,8 @@ class CryptoSectionBuilder:
         """
         构建传输加密页全部详情分区。
 
-        :param validate_payload: `crypto validate` 结果负载
-        :param public_payload: `crypto export-public` 结果负载
+        :param validate_payload: ``crypto validate`` 结果负载
+        :param public_payload: ``crypto export-public`` 结果负载
         :param env: 当前运行环境
         :return: 详情分区列表
         """
@@ -310,7 +317,8 @@ class CryptoDetailAdapter(BaseDetailAdapter):
     该适配器负责采集传输加密相关 CLI 结果，并组装为 TUI 详情页快照。
     页面私有的解析逻辑、分区构建逻辑和快照采集流程统一收口在该类中。
 
-    :param section_builder: 传输加密详情分区构建器
+    :ivar section_builder: 传输加密详情分区构建器
+    :ivar snapshot_collector: 传输加密详情页数据采集器
     """
 
     def __init__(
@@ -323,7 +331,6 @@ class CryptoDetailAdapter(BaseDetailAdapter):
 
         :param section_builder: 传输加密详情分区构建器
         :param snapshot_collector: 传输加密详情页数据采集器
-        :return: None
         """
         super().__init__(
             page_title='传输加密',

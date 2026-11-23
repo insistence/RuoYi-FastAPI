@@ -27,11 +27,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.mark.asyncio
 async def test_plugin_contract_and_permission() -> None:
-    """
-    验证插件工厂、生命周期、接口权限和健康检查合约。
-
-    :return: None
-    """
+    """验证插件工厂、生命周期、接口权限和健康检查合约。"""
     plugin = PluginScanner(ROOT.parent).load_manifest(ROOT / "plugin.yaml")
     host = PluginHostContext(
         "__PLUGIN_ID__", ROOT, logger=logging.getLogger("__PLUGIN_ID__")

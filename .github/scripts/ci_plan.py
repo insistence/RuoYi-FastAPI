@@ -198,7 +198,6 @@ def write_outputs(plan: dict[str, Any]) -> None:
     输出 GitHub 任务参数及可审阅的执行摘要。
 
     :param plan: 本次运行计划
-    :return: None
     """
     payload = {
         **plan['required'],
@@ -222,7 +221,7 @@ def main() -> None:
     """
     执行变更选路或最终结果校验。
 
-    :return: None
+    :raises SystemExit: 变更选路或最终结果校验失败
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=('plan', 'gate'))

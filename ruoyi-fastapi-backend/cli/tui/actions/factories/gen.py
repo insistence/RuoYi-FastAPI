@@ -13,7 +13,7 @@ class GenActionTemplateFactory:
     该对象负责生成代码生成浏览页相关动作模板，统一记录标题提取、
     导出预演和表结构同步动作的构建逻辑。
 
-    :param support: 动作模板共享构建支持
+    :ivar support: 动作模板共享构建支持
     """
 
     support: TuiActionTemplateSupport

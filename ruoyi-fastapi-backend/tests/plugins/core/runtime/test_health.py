@@ -15,7 +15,11 @@ from plugins.core.runtime.health import PluginHealthChecker
 
 @pytest.fixture(autouse=True)
 def isolate_health_plugin_modules() -> Generator[None, None, None]:
-    """隔离测试插件模块，避免 v2 加载器复用其他临时目录的旧模块。"""
+    """
+    隔离测试插件模块，避免 v2 加载器复用其他临时目录的旧模块。
+
+    :yield: 上下文就绪后将控制权交给调用方
+    """
     for name in list(sys.modules):
         if name == 'plugins.demo_health' or name.startswith('plugins.demo_health.'):
             sys.modules.pop(name, None)
@@ -35,7 +39,14 @@ def write_plugin_with_health(
     *,
     manifest_version: int = 1,
 ) -> None:
-    """写入带健康检查的测试插件。"""
+    """
+    写入带健康检查的测试插件。
+
+    :param plugin_root: 插件的根目录
+    :param health_content: 测试健康检查模块的源码
+    :param checker_path: 健康检查声明路径
+    :param manifest_version: 插件清单版本
+    """
     plugin_root.mkdir(parents=True)
     (plugin_root / '__init__.py').write_text('', encoding='utf-8')
     (plugin_root / 'health.py').write_text(health_content, encoding='utf-8')

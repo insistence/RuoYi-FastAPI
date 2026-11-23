@@ -25,7 +25,7 @@ from utils.time_util import TimezoneUtil
 
 async def persisted_callable() -> str:
     """
-    无副作用的持久化任务
+    无副作用的持久化任务。
 
     :return: 执行结果标记
     """
@@ -39,13 +39,12 @@ async def verify_persistent_scheduler(
     execution_engine: Engine | None = None,
 ) -> None:
     """
-    验证真实任务仓库重启校准及独立手动请求，全部访问调用方的隔离库
+    验证真实任务仓库重启校准及独立手动请求，全部访问调用方的隔离库。
 
     :param engine: 隔离测试数据库引擎
     :param monkeypatch: 测试替换对象
     :param sessions: 异步数据库会话工厂
     :param execution_engine: 执行记录使用的数据库引擎，未指定时使用任务仓库引擎
-    :return: None
     """
     info = JobModel(
         jobId=81,
@@ -66,6 +65,11 @@ async def verify_persistent_scheduler(
         await db.commit()
 
     def build_scheduler() -> AsyncIOScheduler:
+        """
+        创建测试使用的 ``AsyncIOScheduler`` 实例。
+
+        :return: 测试使用的 ``AsyncIOScheduler`` 实例
+        """
         return AsyncIOScheduler(
             timezone=UTC,
             jobstores={'default': SQLAlchemyJobStore(engine=engine, tablename='apscheduler_timezone_verify')},
@@ -123,6 +127,7 @@ async def test_persistent_restart_reconciles_timezone_and_preserves_cron_during_
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """持久化重启后校准时区，手动运行时保留 cron。"""
     # SQLite 全库写锁与真实数据库的行锁不同，任务仓库使用另一文件以免伪造行锁死锁。
     engine = create_engine(f'sqlite:///{tmp_path / "aps-jobs.db"}')
     try:
@@ -140,16 +145,20 @@ async def assert_independent_manual_request(
     sessions: async_sessionmaker[AsyncSession],
 ) -> None:
     """
-    断言手动请求和周期校准都不改写原 Cron，且真实结果可查询
+    断言手动请求和周期校准都不改写原 Cron，且真实结果可查询。
 
     :param current: 当前测试调度器
     :param updated: 更新后的任务配置
     :param sessions: 异步数据库会话工厂
-    :return: None
     """
     finished = asyncio.get_running_loop().create_future()
 
     def on_complete(event: JobExecutionEvent) -> None:
+        """
+        在目标任务完成时通知等待方。
+
+        :param event: 待处理的事件
+        """
         if event.job_id.startswith('_manual:') and not finished.done():
             finished.set_result(event)
 

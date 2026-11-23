@@ -9,12 +9,12 @@ from cli.wizard.base import BaseCliWizardFlow
 @dataclass(frozen=True)
 class GenImportWizardSelection:
     """
-    `wizard gen-import` 向导采集结果。
+    ``wizard gen-import`` 向导采集结果。
 
-    :param env: 运行环境
-    :param table_names: 待导入物理表名称列表
-    :param dry_run: 是否演练执行
-    :param allow_prod: 是否允许生产环境执行
+    :ivar env: 运行环境
+    :ivar table_names: 待导入物理表名称列表
+    :ivar dry_run: 是否演练执行
+    :ivar allow_prod: 是否允许生产环境执行
     """
 
     env: str
@@ -25,11 +25,14 @@ class GenImportWizardSelection:
 
 class GenImportWizardFlow(BaseCliWizardFlow[GenImportWizardSelection]):
     """
-    `wizard gen-import` 向导流程。
+    ``wizard gen-import`` 向导流程。
 
-    :param default_env: 默认环境
-    :param default_table_names: 默认物理表名称列表文本
-    :param default_dry_run: 默认是否先执行 dry-run
+    :cvar wizard_name: 向导名称
+    :cvar preview_title: 预览标题
+    :cvar failure_message: 流程失败时显示的提示
+    :ivar default_env: 默认环境
+    :ivar default_table_names: 默认物理表名称列表文本
+    :ivar default_dry_run: 默认是否先执行 dry-run
     """
 
     wizard_name = 'wizard gen-import'
@@ -49,7 +52,6 @@ class GenImportWizardFlow(BaseCliWizardFlow[GenImportWizardSelection]):
         :param default_env: 默认环境
         :param default_table_names: 默认物理表名称列表文本
         :param default_dry_run: 默认是否先执行 dry-run
-        :return: None
         """
         self.default_env = default_env
         self.default_table_names = default_table_names
@@ -193,13 +195,12 @@ def run_gen_import_wizard(
     default_dry_run: bool = True,
 ) -> None:
     """
-    执行 `wizard gen-import` 向导。
+    执行 ``wizard gen-import`` 向导。
 
     :param output: 输出格式
     :param default_env: 默认环境
     :param default_table_names: 默认物理表名称列表文本
     :param default_dry_run: 默认是否先 dry-run
-    :return: None
     """
     GenImportWizardFlow(
         default_env=default_env,

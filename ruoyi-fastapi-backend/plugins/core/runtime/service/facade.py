@@ -61,6 +61,22 @@ class PluginRuntimeService:
 
     使用 Facade + 组合式 use case 管理插件查询、检查、生命周期、配置、测试和模板等核心能力。
     数据库状态、管理模型和命令执行等外部依赖通过显式端口注入。
+
+    :ivar lifecycle_lock: 插件生命周期操作锁
+    :ivar dependencies: 新的插件运行时依赖容器
+    :ivar context: 当前操作所需的上下文
+    :ivar audit: 执行插件操作审计的服务
+    :ivar batch: 执行批量插件操作的服务
+    :ivar config: 当前对象使用的配置
+    :ivar dependency: 当前需要展开的依赖
+    :ivar enable: 是否启用目标功能
+    :ivar install: 安装插件资源的服务
+    :ivar migration: 插件的数据迁移配置
+    :ivar precheck: 执行操作前取得的检查结果
+    :ivar purge: 清理插件数据和资源的服务
+    :ivar query: 限制查询结果的条件
+    :ivar tools: 提供插件辅助操作的服务
+    :ivar upgrade: 管理插件升级的服务
     """
 
     def __init__(
@@ -82,7 +98,6 @@ class PluginRuntimeService:
         :param model_gateway: 插件管理模型工厂网关
         :param command_gateway: 插件命令执行网关
         :param lifecycle_lock: 插件生命周期操作锁
-        :return: None
         """
         resolved_environment = runtime_environment or PLUGIN_RUNTIME_ENVIRONMENT
         resolved_dependency_checker = dependency_checker or PluginDependencyChecker(
@@ -122,7 +137,6 @@ class PluginRuntimeService:
         替换插件运行时依赖容器并刷新组合 use case。
 
         :param dependencies: 新的插件运行时依赖容器
-        :return: None
         """
         self.dependencies = dependencies
         self.context = PluginRuntimeContextService(dependencies)
@@ -144,16 +158,11 @@ class PluginRuntimeService:
         替换插件依赖检查器。
 
         :param dependency_checker: 新的依赖检查器
-        :return: None
         """
         self.dependencies.dependency_checker = dependency_checker
 
     def refresh_dependency_checker(self) -> None:
-        """
-        刷新插件 Python/npm 依赖检查器。
-
-        :return: None
-        """
+        """刷新插件 Python/npm 依赖检查器。"""
         self.set_dependency_checker(
             PluginDependencyChecker(
                 npm_inspector=NpmDependencyInspector(
@@ -465,6 +474,11 @@ class PluginRuntimeService:
         """
 
         def install_dependencies() -> PluginDependencyInstallResponse:
+            """
+            执行运行时插件依赖安装。
+
+            :return: 依赖安装器返回的执行结果
+            """
             if output_callback is None:
                 return installer(plugin_id, dry_run=dry_run, policy_config=policy_config, confirmed=confirmed)
             return installer(
@@ -476,6 +490,11 @@ class PluginRuntimeService:
             )
 
         async def execute_with_source_check() -> PluginDependencyInstallResponse:
+            """
+            校验插件来源后执行依赖安装操作。
+
+            :return: 来源检查的拒绝信息或依赖安装结果
+            """
             # 来源查询与审计共用同一个循环，避免异步连接池复用已关闭loop的连接。
             blocked = await self.context.guard_artifact_operation(
                 plugin_id, 'dependency_install', check_capability=False
@@ -574,7 +593,6 @@ class PluginRuntimeService:
         :param payload: 插件操作结果负载
         :param dry_run: 是否预演
         :param continue_on_error: 失败后是否继续
-        :return: None
         """
         await self.audit.record_plugin_operation_log(
             cast('dict[str, object]', payload),
@@ -588,7 +606,6 @@ class PluginRuntimeService:
 
         :param payload: 插件操作返回负载
         :param default_message: 缺省失败信息
-        :return: None
         """
         await self.audit.record_plugin_failure_state(cast('dict[str, object]', payload), default_message)
 

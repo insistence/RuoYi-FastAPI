@@ -27,7 +27,6 @@ async def shutdown(host: PluginHostContext) -> None:
     记录插件关闭，可在此释放插件自有资源并保留宿主共享连接池。
 
     :param host: 宿主提供的插件上下文
-    :return: None
     """
     host.logger.info("__PLUGIN_ID__ stopped")
     # 仅释放插件自身创建的资源，不关闭宿主 Redis 或数据库连接池。

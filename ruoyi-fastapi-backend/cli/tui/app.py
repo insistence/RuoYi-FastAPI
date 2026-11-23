@@ -33,9 +33,9 @@ class TuiViewSpec:
     """
     TUI 视图规格定义。
 
-    :param view_key: 视图标识
-    :param include_query: 是否注入搜索词
-    :param include_filter: 是否注入筛选键
+    :ivar view_key: 视图标识
+    :ivar include_query: 是否注入搜索词
+    :ivar include_filter: 是否注入筛选键
     """
 
     view_key: str
@@ -48,8 +48,8 @@ class TuiViewDefinition:
     """
     TUI 视图定义。
 
-    :param view_key: 视图标识
-    :param collector: 页面快照采集器
+    :ivar view_key: 视图标识
+    :ivar collector: 页面快照采集器
     """
 
     view_key: str
@@ -62,10 +62,10 @@ class TuiViewRegistry:
     TUI 视图注册表。
 
     该对象集中维护视图打开、刷新与顺序导航所需的元数据，
-    避免 `RuoyiTuiApp` 内继续手工维护多份视图映射。
+    避免 ``RuoyiTuiApp`` 内继续手工维护多份视图映射。
 
-    :param definitions: 视图定义映射
-    :param navigation_items: 导航项列表
+    :ivar definitions: 视图定义映射
+    :ivar navigation_items: 导航项列表
     """
 
     definitions: dict[str, TuiViewDefinition]
@@ -300,9 +300,9 @@ class TuiBindingSpec:
     """
     TUI 快捷键绑定定义。
 
-    :param key: 快捷键
-    :param action: 动作名称
-    :param label: 展示标签
+    :ivar key: 快捷键
+    :ivar action: 动作名称
+    :ivar label: 展示标签
     """
 
     key: str
@@ -314,7 +314,7 @@ class TuiBindingBuilder:
     """
     TUI 快捷键绑定构建器。
 
-    该对象负责统一装配应用级固定绑定和视图跳转绑定，避免 `RuoyiTuiApp`
+    该对象负责统一装配应用级固定绑定和视图跳转绑定，避免 ``RuoyiTuiApp``
     继续手工维护重复的绑定元组列表。
     """
 
@@ -368,7 +368,7 @@ class TuiViewRegistryBuilder:
     TUI 视图注册表构建器。
 
     该对象负责根据统一规格构建导航项和快照采集定义，避免模块内
-    继续维护重复的 `lambda collect(...)` 配置块。
+    继续维护重复的 ``lambda collect(...)`` 配置块。
     """
 
     def build_navigation_items(self) -> list[NavigationItem]:
@@ -396,6 +396,12 @@ class TuiViewRegistryBuilder:
         """
 
         async def collect(app: 'RuoyiTuiApp') -> PageSnapshot:
+            """
+            收集当前视图需要的运行时快照。
+
+            :param app: 当前 TUI 应用实例
+            :return: 当前视图需要的运行时快照
+            """
             collect_kwargs: dict[str, str] = {}
             if spec.include_filter:
                 collect_kwargs['filter_key'] = app.get_browser_filter(spec.view_key)
@@ -431,11 +437,11 @@ class TuiViewStateStore:
     TUI 视图状态存储。
 
     该对象集中维护页面级动作反馈、浏览页筛选键和搜索词，避免
-    `RuoyiTuiApp` 本体继续直接操作多份同类字典状态。
+    ``RuoyiTuiApp`` 本体继续直接操作多份同类字典状态。
 
-    :param action_feedback_by_view: 动作反馈映射
-    :param browser_filter_by_view: 浏览页筛选映射
-    :param browser_query_by_view: 浏览页搜索词映射
+    :ivar action_feedback_by_view: 动作反馈映射
+    :ivar browser_filter_by_view: 浏览页筛选映射
+    :ivar browser_query_by_view: 浏览页搜索词映射
     """
 
     action_feedback_by_view: dict[str, list[str]]
@@ -461,7 +467,6 @@ class TuiViewStateStore:
 
         :param view_key: 页面视图标识
         :param lines: 反馈文本行
-        :return: None
         """
         self.action_feedback_by_view[view_key] = list(lines)
 
@@ -480,7 +485,6 @@ class TuiViewStateStore:
 
         :param view_key: 页面视图标识
         :param filter_key: 当前筛选键
-        :return: None
         """
         self.browser_filter_by_view[view_key] = filter_key
 
@@ -500,7 +504,6 @@ class TuiViewStateStore:
 
         :param view_key: 页面视图标识
         :param query: 当前搜索词
-        :return: None
         """
         normalized_query = str(query or '').strip()
         if normalized_query:
@@ -528,7 +531,7 @@ class TuiScreenFactory:
     """
     TUI 工作台页面工厂。
 
-    该对象负责把页面快照转换为具体 screen 实例，避免 `RuoyiTuiApp`
+    该对象负责把页面快照转换为具体 screen 实例，避免 ``RuoyiTuiApp``
     同时承担状态协调和 screen 构建职责。
     """
 
@@ -594,8 +597,8 @@ class TuiScreenNavigator:
 
     该对象负责处理首屏展示与后续切屏差异，让应用壳更专注于状态切换。
 
-    :param app: 当前 TUI 应用实例
-    :param initialized: 工作台屏幕是否已初始化
+    :ivar app: 当前 TUI 应用实例
+    :ivar initialized: 工作台屏幕是否已初始化
     """
 
     app: 'RuoyiTuiApp'
@@ -605,12 +608,11 @@ class TuiScreenNavigator:
         """
         显示工作台页面，并兼容首屏初始化与后续切屏。
 
-        Textual 在默认根屏阶段直接调用 `switch_screen()` 会触发内部回调栈异常，
-        因此首次展示页面需要使用 `push_screen()` 建立活动屏，后续再改用
-        `switch_screen()` 做同层页面替换。
+        Textual 在默认根屏阶段直接调用 ``switch_screen()`` 会触发内部回调栈异常，
+        因此首次展示页面需要使用 ``push_screen()`` 建立活动屏，后续再改用
+        ``switch_screen()`` 做同层页面替换。
 
         :param screen: 待显示的页面对象
-        :return: None
         """
         if not self.initialized:
             self.app.push_screen(screen)
@@ -626,6 +628,10 @@ class TuiSnapshotCache:
 
     缓存按视图、筛选与搜索条件隔离，并通过容量和 TTL 双重限制避免
     工作台长时间运行后无界增长。
+
+    :ivar ttl_seconds: 有效期，单位为秒
+    :ivar max_entries: 缓存允许保留的最大条目数
+    :ivar _entries: 已缓存的条目
     """
 
     ttl_seconds: float = TUI_SNAPSHOT_CACHE_TTL_SECONDS
@@ -658,7 +664,6 @@ class TuiSnapshotCache:
 
         :param key: 缓存键
         :param snapshot: 页面快照
-        :return: None
         """
         self._entries[key] = (monotonic(), snapshot)
         self._entries.move_to_end(key)
@@ -670,7 +675,6 @@ class TuiSnapshotCache:
         删除指定缓存项。
 
         :param key: 缓存键
-        :return: None
         """
         self._entries.pop(key, None)
 
@@ -681,11 +685,12 @@ class TuiViewOpeningCoordinator:
     TUI 视图打开协调器。
 
     该对象负责串联视图解析、快照采集、screen 构建与切屏展示，
-    让 `RuoyiTuiApp` 更专注于状态暴露与 Textual action 桥接。
+    让 ``RuoyiTuiApp`` 更专注于状态暴露与 Textual action 桥接。
 
-    :param view_registry: 视图注册表
-    :param screen_factory: 工作台页面工厂
-    :param navigation_items: 导航项列表
+    :ivar view_registry: 视图注册表
+    :ivar screen_factory: 工作台页面工厂
+    :ivar navigation_items: 导航项列表
+    :ivar snapshot_cache: TUI 页面快照短期缓存
     """
 
     view_registry: TuiViewRegistry
@@ -732,9 +737,11 @@ class TuiViewOpeningCoordinator:
         """
         切换并展示指定视图。
 
+        :param request_id: 请求编号
+        :param force_refresh: 是否绕过已有缓存重新读取
         :param app: 当前 TUI 应用实例
         :param view_key: 目标视图标识
-        :return: None
+        :raises asyncio.CancelledError: 等待视图快照时当前任务被取消
         """
         resolved_view_key = self.view_registry.resolve_view_key(view_key)
         if app.screen_navigator.initialized:
@@ -776,7 +783,17 @@ class RuoyiTuiApp(App[None]):
     """
     RuoYi CLI Textual 应用。
 
-    :param env: 当前运行环境
+    :cvar CSS: 终端界面使用的样式规则
+    :cvar BINDINGS: 终端界面的快捷键和对应动作
+    :ivar env: 当前运行环境
+    :ivar current_view: 当前显示的视图
+    :ivar requested_view: 正在请求切换到的视图
+    :ivar _view_request_id: 用于识别过期加载任务的视图请求编号
+    :ivar _view_task: 正在加载视图的异步任务
+    :ivar view_state_store: 保存各视图状态的对象
+    :ivar screen_factory: 工作台页面工厂
+    :ivar screen_navigator: 负责在终端界面之间导航的对象
+    :ivar view_opening_coordinator: 协调视图异步打开和切换的对象
     """
 
     CSS = _TUI_APP_CSS
@@ -787,7 +804,6 @@ class RuoyiTuiApp(App[None]):
         初始化 TUI 应用实例。
 
         :param env: 当前运行环境
-        :return: None
         """
         self.env = env
         self.current_view = 'dashboard'
@@ -834,8 +850,8 @@ class RuoyiTuiApp(App[None]):
         """
         切换并展示指定视图。
 
+        :param force_refresh: 是否绕过已有缓存重新读取
         :param view_key: 目标视图标识
-        :return: None
         """
         resolved_view_key = TUI_VIEW_REGISTRY.resolve_view_key(view_key)
         self.requested_view = resolved_view_key
@@ -857,7 +873,6 @@ class RuoyiTuiApp(App[None]):
 
         :param view_key: 页面视图标识
         :param lines: 反馈文本行
-        :return: None
         """
         self.view_state_store.remember_action_feedback(view_key, lines)
 
@@ -876,7 +891,6 @@ class RuoyiTuiApp(App[None]):
 
         :param view_key: 页面视图标识
         :param filter_key: 当前筛选键
-        :return: None
         """
         self.view_state_store.remember_browser_filter(view_key, filter_key)
 
@@ -896,7 +910,6 @@ class RuoyiTuiApp(App[None]):
 
         :param view_key: 页面视图标识
         :param query: 当前搜索词
-        :return: None
         """
         self.view_state_store.remember_browser_query(view_key, query)
 
@@ -911,19 +924,11 @@ class RuoyiTuiApp(App[None]):
         return self.view_state_store.get_browser_query(view_key, default)
 
     def on_mount(self) -> None:
-        """
-        在应用启动时载入首页。
-
-        :return: None
-        """
+        """在应用启动时载入首页。"""
         self.show_view('dashboard')
 
     def on_unmount(self) -> None:
-        """
-        应用卸载时取消页面加载任务。
-
-        :return: None
-        """
+        """应用卸载时取消页面加载任务。"""
         if self._view_task is not None and not self._view_task.done():
             self._view_task.cancel()
 
@@ -932,115 +937,62 @@ class RuoyiTuiApp(App[None]):
         按视图标识打开对应页面。
 
         :param view_key: 视图标识
-        :return: None
         """
         self.show_view(view_key)
 
     def action_focus_sidebar(self) -> None:
-        """
-        将焦点切换到左侧导航栏。
-
-        :return: None
-        """
+        """将焦点切换到左侧导航栏。"""
         try:
             self.screen.query_one(WorkspaceSidebar).focus()
         except NoMatches:
             return
 
     def action_show_previous_view(self) -> None:
-        """
-        切换到前一个工作台视图。
-
-        :return: None
-        """
+        """切换到前一个工作台视图。"""
         self.open_view(TUI_VIEW_REGISTRY.get_relative_view_key(self.requested_view, -1))
 
     def action_show_next_view(self) -> None:
-        """
-        切换到后一个工作台视图。
-
-        :return: None
-        """
+        """切换到后一个工作台视图。"""
         self.open_view(TUI_VIEW_REGISTRY.get_relative_view_key(self.requested_view, 1))
 
     def action_refresh_current_view(self) -> None:
-        """
-        刷新当前视图数据。
-
-        :return: None
-        """
+        """刷新当前视图数据。"""
         self.show_view(self.current_view, force_refresh=True)
 
     def action_show_dashboard(self) -> None:
-        """
-        切换到首页视图。
-
-        :return: None
-        """
+        """切换到首页视图。"""
         self.open_view('dashboard')
 
     def action_show_app(self) -> None:
-        """
-        切换到应用详情视图。
-
-        :return: None
-        """
+        """切换到应用详情视图。"""
         self.open_view('app')
 
     def action_show_ops(self) -> None:
-        """
-        切换到运维详情视图。
-
-        :return: None
-        """
+        """切换到运维详情视图。"""
         self.open_view('ops')
 
     def action_show_database(self) -> None:
-        """
-        切换到数据库详情视图。
-
-        :return: None
-        """
+        """切换到数据库详情视图。"""
         self.open_view('database')
 
     def action_show_cache(self) -> None:
-        """
-        切换到缓存浏览视图。
-
-        :return: None
-        """
+        """切换到缓存浏览视图。"""
         self.open_view('cache')
 
     def action_show_jobs(self) -> None:
-        """
-        切换到任务浏览视图。
-
-        :return: None
-        """
+        """切换到任务浏览视图。"""
         self.open_view('jobs')
 
     def action_show_gen(self) -> None:
-        """
-        切换到代码生成浏览视图。
-
-        :return: None
-        """
+        """切换到代码生成浏览视图。"""
         self.open_view('gen')
 
     def action_show_configs(self) -> None:
-        """
-        切换到配置浏览视图。
-
-        :return: None
-        """
+        """切换到配置浏览视图。"""
         self.open_view('configs')
 
     def action_show_crypto(self) -> None:
-        """
-        切换到传输加密详情视图。
-
-        :return: None
-        """
+        """切换到传输加密详情视图。"""
         self.open_view('crypto')
 
 
@@ -1052,7 +1004,7 @@ class TuiAppRunner:
     该对象负责按环境创建并运行 Textual 应用实例，使命令入口不再依赖
     模块级启动函数。
 
-    :param app_factory: TUI 应用工厂
+    :ivar app_factory: TUI 应用工厂
     """
 
     app_factory: Callable[[str], RuoyiTuiApp]
@@ -1062,7 +1014,6 @@ class TuiAppRunner:
         启动 TUI 应用。
 
         :param env: 当前运行环境
-        :return: None
         """
         self.app_factory(env).run()
 

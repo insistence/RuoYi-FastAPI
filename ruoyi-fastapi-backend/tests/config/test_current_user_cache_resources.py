@@ -20,7 +20,12 @@ from utils.cache_util import CurrentUserCacheUtil
 
 @pytest.fixture
 def shared_cache_client(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
-    """提交后失效借用应用连接，只监测新建和关闭行为。"""
+    """
+    提交后失效借用应用连接，只监测新建和关闭行为。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: ``SimpleNamespace`` 实例
+    """
     redis = SimpleNamespace(aclose=AsyncMock())
     create = AsyncMock(side_effect=AssertionError('借用应用Redis时不能另建连接池'))
     invalidate = AsyncMock(return_value=True)
@@ -35,6 +40,7 @@ async def test_shared_redis_is_reused_across_commits(
     shared_cache_client: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """多次提交复用共享 Redis 客户端。"""
     monkeypatch.setattr(CurrentUserCacheSession, '_invalidate_cache', _ORIGINAL_INVALIDATE)
     shared = shared_cache_client
     async with cache_transactions.sessions(info={CurrentUserCacheSession._REDIS_KEY: shared.redis}) as db:
@@ -58,12 +64,19 @@ async def test_shared_cache_failure_preserves_commit_without_closing_pool(
     monkeypatch: pytest.MonkeyPatch,
     failure: str,
 ) -> None:
+    """共享缓存失败后保留数据库提交及连接池。"""
     monkeypatch.setattr(CurrentUserCacheSession, '_invalidate_cache', _ORIGINAL_INVALIDATE)
     monkeypatch.setattr(CurrentUserCacheSession, '_INVALIDATE_TIMEOUT_SECONDS', 0.01)
     shared = shared_cache_client
     stopped = anyio.Event()
 
     async def invalidate(*args: Any) -> None:
+        """
+        模拟缓存或会话的失效操作。
+
+        :param args: 传给被调用对象的位置参数
+        :raises RedisConnectionError: 模拟共享 Redis 缓存不可用
+        """
         if failure == 'redis':
             raise RedisConnectionError('shared cache unavailable')
         try:
@@ -91,6 +104,7 @@ async def test_cancelled_shared_invalidation_preserves_borrowed_pool(
     monkeypatch: pytest.MonkeyPatch,
     cancellation: str,
 ) -> None:
+    """取消共享缓存失效操作后保留借用的连接池。"""
     monkeypatch.setattr(CurrentUserCacheSession, '_invalidate_cache', _ORIGINAL_INVALIDATE)
     shared = shared_cache_client
     entered = anyio.Event()
@@ -98,6 +112,11 @@ async def test_cancelled_shared_invalidation_preserves_borrowed_pool(
     cancelled = anyio.Event()
 
     async def invalidate(*args: Any) -> None:
+        """
+        模拟缓存或会话的失效操作。
+
+        :param args: 传给被调用对象的位置参数
+        """
         entered.set()
         try:
             await anyio.sleep_forever()
@@ -109,6 +128,11 @@ async def test_cancelled_shared_invalidation_preserves_borrowed_pool(
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='committed'))
 
         async def commit() -> None:
+            """
+            在测试会话中处理事务提交。
+
+            :raises asyncio.CancelledError: 异步操作被取消时
+            """
             try:
                 await db.commit()
             except asyncio.CancelledError:
@@ -141,7 +165,12 @@ async def test_cancelled_shared_invalidation_preserves_borrowed_pool(
 
 
 def _registry(env: SimpleNamespace) -> _DataSourceRegistry:
-    """使用隔离SQLite引擎验证会话资源注入，不访问配置中的业务数据源。"""
+    """
+    使用隔离SQLite引擎验证会话资源注入，不访问配置中的业务数据源。
+
+    :param env: 当前运行环境
+    :return: 供调用方使用的 ``registry``
+    """
     registry = _DataSourceRegistry(
         SimpleNamespace(db_default_source='primary', db_sources={'primary': object(), 'reporting': object()})
     )
@@ -162,6 +191,7 @@ async def test_registry_sessions_borrow_registered_cache_client(
     source: str | None,
     log_sql: bool,
 ) -> None:
+    """注册表会话借用已注册的缓存客户端。"""
     registry = _registry(cache_transactions)
     redis = shared_cache_client.redis
     registry.set_cache_redis(redis)
@@ -182,6 +212,7 @@ async def test_detaching_shared_redis_only_changes_new_sessions(
     cache_transactions: SimpleNamespace,  # noqa: F811
     shared_cache_client: SimpleNamespace,
 ) -> None:
+    """解除共享 Redis 绑定只影响新会话。"""
     registry = _registry(cache_transactions)
     redis = shared_cache_client.redis
     registry.set_cache_redis(redis)
@@ -204,6 +235,7 @@ async def test_registry_disposal_releases_reference_without_closing_borrowed_cli
     monkeypatch: pytest.MonkeyPatch,
     dispose_failure: bool,
 ) -> None:
+    """释放注册表引用时保留借用的客户端。"""
     registry = _registry(cache_transactions)
     redis = shared_cache_client.redis
     registry.set_cache_redis(redis)

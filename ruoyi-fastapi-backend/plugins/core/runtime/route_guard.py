@@ -9,9 +9,7 @@ from exceptions.exception import PermissionException
 
 @runtime_checkable
 class PluginRouteStateGateway(Protocol):
-    """
-    插件路由状态读取端口。
-    """
+    """插件路由状态读取端口。"""
 
     async def is_plugin_enabled(self, db: AsyncSession, plugin_id: str) -> bool:
         """
@@ -24,9 +22,7 @@ class PluginRouteStateGateway(Protocol):
 
 
 class UnavailablePluginRouteStateGateway:
-    """
-    不可用的插件路由状态读取端口。
-    """
+    """不可用的插件路由状态读取端口。"""
 
     @staticmethod
     async def is_plugin_enabled(db: AsyncSession, plugin_id: str) -> bool:
@@ -44,6 +40,9 @@ class UnavailablePluginRouteStateGateway:
 class CheckPluginEnabled:
     """
     校验插件路由运行时启用状态。
+
+    :ivar plugin_id: 插件ID
+    :ivar state_gateway: 插件路由状态读取端口
     """
 
     def __init__(self, plugin_id: str, state_gateway: PluginRouteStateGateway | None = None) -> None:
@@ -62,6 +61,7 @@ class CheckPluginEnabled:
 
         :param db: orm对象
         :return: 是否通过
+        :raises PermissionException: 插件未启用，接口不可访问
         """
         if not await self.state_gateway.is_plugin_enabled(db, self.plugin_id):
             raise PermissionException(data='', message='插件未启用，接口不可访问', msg_key='plugin.disabled')

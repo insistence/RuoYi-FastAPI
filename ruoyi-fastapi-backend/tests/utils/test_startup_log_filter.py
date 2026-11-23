@@ -8,7 +8,14 @@ from utils.log_util import LoggerInitializer
 
 
 def build_log_record(*, level: str, level_no: int, extra: dict[str, object]) -> dict[str, object]:
-    """构建 Logger filter 所需的最小日志记录。"""
+    """
+    构建 Logger filter 所需的最小日志记录。
+
+    :param level: 日志或结果使用的级别
+    :param level_no: 日志级别的数值
+    :param extra: 添加到默认数据上的额外字段
+    :return: Logger filter 所需的最小日志记录
+    """
     return {
         'level': SimpleNamespace(name=level, no=level_no),
         'extra': dict(extra),

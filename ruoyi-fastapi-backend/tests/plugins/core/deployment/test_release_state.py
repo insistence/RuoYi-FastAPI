@@ -11,7 +11,13 @@ GENERATION = 'b' * 32
 
 
 def release(expected_workers: int = 1, **overrides: object) -> SimpleNamespace:
-    """构造发布目标及预期进程数量的测试记录。"""
+    """
+    构造发布目标及预期进程数量的测试记录。
+
+    :param expected_workers: 预期参与部署的工作进程
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 发布目标及预期进程数量的测试记录
+    """
     return SimpleNamespace(
         **{
             'plugin_id': 'demo',
@@ -25,14 +31,26 @@ def release(expected_workers: int = 1, **overrides: object) -> SimpleNamespace:
 
 
 def host(worker_id: str, **overrides: object) -> SimpleNamespace:
-    """构造宿主进程存活报告。"""
+    """
+    构造宿主进程存活报告。
+
+    :param worker_id: 工作进程的标识
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 宿主进程存活报告
+    """
     return SimpleNamespace(
         **{'worker_id': worker_id, 'plugin_id': '__runtime__', 'state': 'ready', 'heartbeat_time': NOW, **overrides}
     )
 
 
 def plugin(worker_id: str, **overrides: object) -> SimpleNamespace:
-    """构造插件实际加载状态报告。"""
+    """
+    构造插件实际加载状态报告。
+
+    :param worker_id: 工作进程的标识
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 插件实际加载状态报告
+    """
     return SimpleNamespace(
         **{
             'worker_id': worker_id,

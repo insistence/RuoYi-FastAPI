@@ -10,6 +10,7 @@ def test_wizard_help_lists_supported_subcommands(
     backend_dir: Path,
     cli_main: ModuleType,
 ) -> None:
+    """向导帮助列出支持的子命令。"""
     runner = CliRunner()
     monkeypatch.chdir(backend_dir)
 

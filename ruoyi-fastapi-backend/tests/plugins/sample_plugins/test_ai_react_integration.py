@@ -28,7 +28,11 @@ REACT_ROOT = BACKEND_ROOT.parent / 'ruoyi-fastapi-frontend' / 'react' / 'web'
 
 
 def load_ai_manifest() -> 'PluginManifest':
-    """加载实际 AI 插件清单，避免用测试清单掩盖发布遗漏。"""
+    """
+    加载实际 AI 插件清单，避免用测试清单掩盖发布遗漏。
+
+    :return: 实际 AI 插件清单
+    """
     return (
         PluginScanner(BACKEND_ROOT / 'plugins').load_manifest(BACKEND_ROOT / 'plugins' / 'ai' / 'plugin.yaml').manifest
     )
@@ -86,7 +90,13 @@ async def test_ai_stream_preserves_react_markdown_and_existing_vue_protocol(reas
         """离线流式 Agent，不请求模型或数据库。"""
 
         async def arun(self, message: str, **kwargs) -> 'AsyncIterator[SimpleNamespace]':
-            """逐段返回测试模型事件。"""
+            """
+            逐段返回测试模型事件。
+
+            :param message: 与当前结果一起返回的说明
+            :param kwargs: 传给被调用对象的关键字参数
+            :yield: 逐项产生的 ``chunk``
+            """
             assert message == '你好'
             assert kwargs == {'stream': True, 'stream_events': True}
             for chunk in chunks:

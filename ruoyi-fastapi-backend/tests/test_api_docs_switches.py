@@ -11,6 +11,7 @@ from utils.server_util import APIDocsUtil
 def test_custom_schema_respects_docs_switches(
     monkeypatch: pytest.MonkeyPatch, disable_swagger: bool, disable_redoc: bool
 ) -> None:
+    """自定义文档遵循文档开关。"""
     monkeypatch.setattr(AppConfig, 'app_disable_swagger', disable_swagger)
     monkeypatch.setattr(AppConfig, 'app_disable_redoc', disable_redoc)
     app = FastAPI(openapi_url=None)
@@ -26,6 +27,7 @@ def test_custom_schema_respects_docs_switches(
 def test_proxy_schema_and_enabled_ui_are_available(
     monkeypatch: pytest.MonkeyPatch, disable_swagger: bool, disable_redoc: bool
 ) -> None:
+    """代理文档和已启用的文档界面可访问。"""
     monkeypatch.setattr(AppConfig, 'app_disable_swagger', disable_swagger)
     monkeypatch.setattr(AppConfig, 'app_disable_redoc', disable_redoc)
     app = FastAPI(

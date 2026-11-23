@@ -22,9 +22,7 @@ OBJECT_PATH_PARTS = 3
 
 
 class PluginArtifactMaintenanceService(PluginDeploymentService):
-    """
-    停机维护制品存储，使用可恢复日志连接文件变更与数据库事务。
-    """
+    """停机维护制品存储，使用可恢复日志连接文件变更与数据库事务。"""
 
     def _object_path(self, relative: str) -> Path:
         """
@@ -32,6 +30,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
 
         :param relative: 存储内的插件、版本和摘要路径
         :return: 已检查的绝对目录
+        :raises ValueError: 制品维护目录必须是 plugin/version/digest
         """
         parts = safe_artifact_path(relative).parts
         if len(parts) != OBJECT_PATH_PARTS or not DIGEST_PATTERN.fullmatch(parts[-1]):
@@ -55,6 +54,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
         有界枚举普通制品目录，在进入每级目录前排除链接。
 
         :return: 已检查边界的摘要目录列表
+        :raises ValueError: 制品数量超过单次维护检查上限
         """
         root = self.catalog.store.root
         result = []
@@ -85,6 +85,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
         :param keep_last: 每个插件至少保留的最近导入制品数量
         :param min_age_days: 制品最短保留天数
         :return: 完整检查结果、候选摘要与计划摘要
+        :raises ValueError: 保留数量和天数不能为负数
         """
         self.config.require_enabled()
         if keep_last < 0 or min_age_days < 0:
@@ -145,7 +146,6 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
         :param reasons: 当前保护原因
         :param cutoff: 最短保留时间边界
         :param keys: 当前可信公钥
-        :return: None
         """
         relative = row['relativePath']
         try:
@@ -193,6 +193,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
 
         :param digest: 已校验的制品摘要
         :return: 存储内部的隔离路径
+        :raises ValueError: 维护日志摘要无效
         """
         if not DIGEST_PATTERN.fullmatch(digest):
             raise ValueError('维护日志摘要无效')
@@ -208,7 +209,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
 
         :param path: 本次维护隔离目录
         :param digest: 授权清理的摘要
-        :return: None
+        :raises ValueError: 制品清理目录越界；隔离制品摘要不一致
         """
         root = (self.catalog.store.root / '.maintenance' / 'objects').resolve()
         ArtifactStore._assert_real_path(path)
@@ -239,6 +240,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
         :param maintenance: 是否确认全部宿主进程已停止
         :param actor: 操作者
         :return: 计划或实际清理摘要
+        :raises ValueError: 制品清理计划已变化，请重新预演并核对 --expected-plan；隔离目录已存在，须先恢复维护日志
         """
         if dry_run:
             return await self.inspect(keep_last=keep_last, min_age_days=min_age_days)
@@ -276,7 +278,6 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
 
         :param path: 已验证的制品根目录
         :param signature: 待写入的签名 JSON
-        :return: None
         """
         temporary_root = self.catalog.store.root / '.maintenance'
         ArtifactStore._assert_real_path(temporary_root)
@@ -308,6 +309,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
         :param maintenance: 是否确认全部宿主进程已停止
         :param actor: 操作者
         :return: 保持摘要与版本不变的轮换结果
+        :raises ValueError: 制品未登记或签名密钥已变化；新旧签名密钥标识必须不同；轮换制品内容与原索引不一致；制品签名索引发生并发变化
         """
         self._require_maintenance(maintenance)
         async with self.lifecycle_lock.lock('__artifacts__', 'artifact_rotate_signature') as lock:
@@ -383,6 +385,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
         :param maintenance: 是否确认全部宿主进程已停止
         :param actor: 操作者
         :return: 已恢复的制品摘要列表
+        :raises ValueError: 制品维护日志过大；制品维护日志身份无效；维护日志目录与摘要不一致；未知制品维护日志操作
         """
         self._require_maintenance(maintenance)
         restored = []
@@ -432,7 +435,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
         :param journal: 已检查的维护日志
         :param path: 规范制品目录
         :param record: 当前已提交的索引
-        :return: None
+        :raises ValueError: 原目录和隔离目录同时存在，拒绝自动覆盖；隔离对象与日志摘要不一致；恢复目标与制品索引不一致；索引仍存在但原目录和隔离目录均已丢失
         """
         digest = journal['digest']
         quarantine = self._quarantine(digest)
@@ -458,7 +461,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
         :param journal: 已检查的维护日志
         :param path: 规范制品目录
         :param record: 当前已提交的索引
-        :return: None
+        :raises ValueError: 轮换恢复缺少匹配的制品索引；签名索引已被其他操作更新；轮换恢复签名与日志身份不一致
         """
         digest = journal['digest']
         if record is None or record.relative_path != journal['relativePath']:

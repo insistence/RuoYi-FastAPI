@@ -11,6 +11,7 @@ from cli.runtime.plugin.service import CliPluginRuntimeService
 
 @pytest.mark.asyncio
 async def test_cli_diagnose_appends_runtime_without_changing_static_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    """命令行诊断在静态结果后追加运行时信息。"""
     read = AsyncMock(return_value={'state': 'unavailable', 'observedTotals': None})
     monkeypatch.setattr('plugins.core.runtime.diagnostics_query.read_cli_runtime_diagnostics', read)
     runtime = CliPluginRuntimeService(runtime_environment=SimpleNamespace(get_backend_dir=lambda: '/backend'))
@@ -22,6 +23,7 @@ async def test_cli_diagnose_appends_runtime_without_changing_static_result(monke
 
 
 def test_runtime_shared_contract_and_unknown_text_are_preserved() -> None:
+    """保留共享运行时响应约定和未知文本。"""
     payload = {
         'ok': True,
         'runtime': {

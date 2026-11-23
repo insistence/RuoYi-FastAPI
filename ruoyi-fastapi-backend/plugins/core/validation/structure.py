@@ -26,6 +26,12 @@ UNSAFE_SQL_TIME_TYPE = re.compile(r'\b(?:timestamp|datetime)\b', re.IGNORECASE)
 class PluginStructureCheckItem:
     """
     插件结构检查项。
+
+    :ivar kind: 检查类型
+    :ivar path: 要读取或处理的路径
+    :ivar ok: 操作或检查是否成功
+    :ivar message: 与当前结果一起返回的说明
+    :ivar suggestion: 对当前检查结果给出的处理建议
     """
 
     kind: str
@@ -64,6 +70,9 @@ class PluginStructureCheckItem:
 class PluginStructureCheckResult:
     """
     插件结构检查结果。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar items: 已收集的结构检查项
     """
 
     plugin_id: str
@@ -102,6 +111,10 @@ class PluginStructureChecker:
     插件结构检查器。
 
     使用 Checker 模式集中验证 manifest 引用的后端目录、seed 文件和前端页面是否存在。
+
+    :ivar backend_root: 后端项目根目录
+    :ivar runtime_environment: 运行时环境服务
+    :ivar frontend_root: 前端插件根目录，默认使用运行时环境解析出的 plugins 目录
     """
 
     def __init__(self, backend_root: Path | str, frontend_root: Path | str | None = None) -> None:
@@ -522,6 +535,7 @@ class PluginStructureChecker:
 
         :param module_path: Python 模块路径
         :return: 模块文件路径
+        :raises ImportError: 后端模块对应的 Python 文件不存在
         """
         module_file = self.backend_root / Path(*module_path.split('.')).with_suffix('.py')
         if module_file.is_file():
@@ -540,6 +554,7 @@ class PluginStructureChecker:
         :param discovered_plugin: 已发现插件对象
         :param module_path: Python 模块路径
         :return: 模块文件路径
+        :raises ImportError: 插件模块对应的 Python 文件不存在
         """
         backend_module = discovered_plugin.manifest.backend.module
         if module_path == backend_module:
@@ -622,7 +637,7 @@ class PluginStructureChecker:
     @staticmethod
     def _check_migration_time_types(migration_file: Path, migration_path: str) -> PluginStructureCheckItem:
         """
-        检查插件SQL脚本中的真实时刻列类型
+        检查插件SQL脚本中的真实时刻列类型。
 
         :param migration_file: 待检查的SQL文件路径
         :param migration_path: SQL文件相对插件根目录的路径

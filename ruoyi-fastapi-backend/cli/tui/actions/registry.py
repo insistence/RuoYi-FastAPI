@@ -11,10 +11,10 @@ class TuiActionSlotResolver:
     TUI 动作槽位解析器。
 
     该对象将一个页面支持的槽位动作集中定义为映射关系，避免继续在
-    `resolve_*_action` 中堆叠条件分支。
+    ``resolve_*_action`` 中堆叠条件分支。
 
-    :param slot_templates: 槽位到动作模板的映射
-    :param spec_factory: 动作规格构建器
+    :ivar slot_templates: 槽位到动作模板的映射
+    :ivar spec_factory: 动作规格构建器
     """
 
     slot_templates: dict[ActionSlot, TuiActionTemplate]
@@ -49,8 +49,8 @@ class TuiActionRegistry:
     该注册表负责集中维护浏览页和详情页的动作解析器，从而将
     原本散落的条件分发收敛为可声明的映射关系。
 
-    :param browser_resolvers: 浏览页动作槽位解析器映射
-    :param detail_resolvers: 详情页动作槽位解析器映射
+    :ivar browser_resolvers: 浏览页动作槽位解析器映射
+    :ivar detail_resolvers: 详情页动作槽位解析器映射
     """
 
     browser_resolvers: dict[str, TuiActionSlotResolver]

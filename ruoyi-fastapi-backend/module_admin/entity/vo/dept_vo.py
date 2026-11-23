@@ -10,9 +10,7 @@ from i18n.message import I18nMessage
 
 
 class DeptModel(BaseModel):
-    """
-    部门表对应pydantic模型
-    """
+    """部门表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -39,10 +37,20 @@ class DeptModel(BaseModel):
         message=I18nMessage('部门名称长度不能超过30个字符', msg_key='validation.deptNameLength'),
     )
     def get_dept_name(self) -> str | None:
+        """
+        校验并返回部门名称。
+
+        :return: 部门名称
+        """
         return self.dept_name
 
     @NotBlank(field_name='order_num', message=I18nMessage('显示顺序不能为空', msg_key='validation.orderRequired'))
     def get_order_num(self) -> int | None:
+        """
+        校验并返回显示顺序。
+
+        :return: 显示顺序
+        """
         return self.order_num
 
     @Size(
@@ -52,6 +60,11 @@ class DeptModel(BaseModel):
         message=I18nMessage('联系电话长度不能超过11个字符', msg_key='validation.contactPhoneLength'),
     )
     def get_phone(self) -> str | None:
+        """
+        校验并返回联系电话。
+
+        :return: 联系电话
+        """
         return self.phone
 
     @Network(
@@ -66,9 +79,15 @@ class DeptModel(BaseModel):
         message=I18nMessage('邮箱长度不能超过50个字符', msg_key='validation.emailLength'),
     )
     def get_email(self) -> str | None:
+        """
+        校验并返回邮箱。
+
+        :return: 邮箱
+        """
         return self.email
 
     def validate_fields(self) -> None:
+        """校验部门名称、显示顺序、联系电话、邮箱。"""
         self.get_dept_name()
         self.get_order_num()
         self.get_phone()
@@ -76,18 +95,14 @@ class DeptModel(BaseModel):
 
 
 class DeptQueryModel(DateRangeQueryMixin, DeptModel):
-    """
-    部门管理不分页查询模型
-    """
+    """部门管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class DeptTreeModel(BaseModel):
-    """
-    部门树模型
-    """
+    """部门树模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -98,9 +113,7 @@ class DeptTreeModel(BaseModel):
 
 
 class DeleteDeptModel(BaseModel):
-    """
-    删除部门模型
-    """
+    """删除部门模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -110,9 +123,7 @@ class DeleteDeptModel(BaseModel):
 
 
 class DeptSortModel(BaseModel):
-    """
-    部门排序批量保存模型
-    """
+    """部门排序批量保存模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

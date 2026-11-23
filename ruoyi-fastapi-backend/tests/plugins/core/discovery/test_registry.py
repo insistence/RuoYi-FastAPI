@@ -12,7 +12,15 @@ def build_discovered_plugin(
     auto_scan: bool = True,
     version: str = '1.0.0',
 ) -> DiscoveredPlugin:
-    """构造测试用已发现插件。"""
+    """
+    构造测试用已发现插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param plugin_id: 插件清单中的唯一标识
+    :param auto_scan: 是否自动扫描插件控制器
+    :param version: 当前记录的版本
+    :return: 测试用已发现插件
+    """
     backend_path = tmp_path / plugin_id
     backend_path.mkdir(parents=True)
     manifest_path = backend_path / 'plugin.yaml'
@@ -30,7 +38,14 @@ def build_discovered_plugin(
 
 
 def build_database_plugin(plugin_id: str = 'demo', *, enabled: str = '0', status: str = 'installed') -> PluginModel:
-    """构造测试用数据库插件状态。"""
+    """
+    构造测试用数据库插件状态。
+
+    :param plugin_id: 插件清单中的唯一标识
+    :param enabled: 是否启用该项功能
+    :param status: 操作或记录所处的状态
+    :return: 测试用数据库插件状态
+    """
     return PluginModel(
         pluginId=plugin_id,
         pluginName='演示插件',

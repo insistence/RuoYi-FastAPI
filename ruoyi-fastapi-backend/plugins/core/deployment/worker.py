@@ -22,6 +22,12 @@ from utils.time_util import TimezoneUtil
 class WorkerTarget:
     """
     当前宿主进程固定的插件目标、发布代际和维护准备状态快照。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar digest: 用于验证内容完整性的摘要
+    :ivar generation: 当前发布或部署的代次
+    :ivar enabled: 是否启用该项功能
+    :ivar prepared: 工作进程是否已准备好目标制品
     """
 
     plugin_id: str
@@ -34,6 +40,20 @@ class WorkerTarget:
 class PluginReleaseWorker:
     """
     宿主发布快照与心跳上报器，注册时与维护服务共用全局锁。
+
+    :ivar config: 制品发布配置快照
+    :ivar session_factory: 异步数据库会话工厂，未提供时使用宿主数据源
+    :ivar dao: 制品、发布目标及进程报告的数据访问接口
+    :ivar catalog: 当前运行时使用的插件目录
+    :ivar worker_id: 工作进程的标识
+    :ivar targets: 当前工作进程需要加载的发布目标
+    :ivar reserved_ids: 已被制品发布记录占用的插件 ID 集合
+    :ivar versions: 按插件标识记录的版本
+    :ivar errors: 按条目收集的异常或失败原因
+    :ivar state: 当前流程的状态
+    :ivar task: 在后台执行当前工作的异步任务
+    :ivar app: 当前宿主应用对象
+    :ivar registered: 已注册的对象集合
     """
 
     def __init__(
@@ -49,7 +69,6 @@ class PluginReleaseWorker:
         :param config: 制品发布配置快照
         :param session_factory: 异步数据库会话工厂，未提供时使用宿主数据源
         :param dao: 制品、发布目标及进程报告的数据访问接口
-        :return: None
         """
         self.config = config
         self.session_factory = session_factory or DataSourceRegistry.session
@@ -73,7 +92,6 @@ class PluginReleaseWorker:
         :param builder: 接收制品发现快照的插件运行时构建器
         :param lifecycle_lock: 与插件维护发布共用的生命周期锁
         :param lock_wait_seconds: 等待生命周期锁的最长时间，单位为秒
-        :return: None
         :raises TimeoutError: 在等待时限内未能取得维护发布锁
         """
         self.config.require_enabled()
@@ -118,11 +136,7 @@ class PluginReleaseWorker:
         await self.report()
 
     async def _register_snapshot(self) -> None:
-        """
-        固定当前发布目标和保留插件ID，并登记正在启动的宿主进程。
-
-        :return: None
-        """
+        """固定当前发布目标和保留插件ID，并登记正在启动的宿主进程。"""
         async with self.session_factory() as db:
             targets = []
             # 即使尚未选择目标，已导入制品的 ID 也不能回退为同名源码插件。
@@ -175,7 +189,6 @@ class PluginReleaseWorker:
         """
         在导入或就绪前确认数据库发布目标仍与当前进程快照一致。
 
-        :return: None
         :raises RuntimeError: 当前发布目标或代际与进程启动快照不一致
         """
         async with self.session_factory() as db:
@@ -192,7 +205,6 @@ class PluginReleaseWorker:
         """
         确认发布快照未变后上报宿主就绪及各插件的实际状态。
 
-        :return: None
         :raises RuntimeError: 当前发布目标或代际在启动过程中发生变化
         """
         await self.assert_snapshot_current()
@@ -223,11 +235,7 @@ class PluginReleaseWorker:
         return 'failed', '当前 worker 未完成目标制品激活或健康检查'
 
     async def report(self) -> None:
-        """
-        以同一心跳时间写入宿主状态及全部目标插件的实际加载状态。
-
-        :return: None
-        """
+        """以同一心跳时间写入宿主状态及全部目标插件的实际加载状态。"""
         if not self.registered:
             return
         now = TimezoneUtil.utc_now()
@@ -251,11 +259,7 @@ class PluginReleaseWorker:
             await db.commit()
 
     async def _heartbeat(self) -> None:
-        """
-        周期性刷新进程报告，数据库暂不可用时保留旧报告等待自然过期。
-
-        :return: None
-        """
+        """周期性刷新进程报告，数据库暂不可用时保留旧报告等待自然过期。"""
         while True:
             await asyncio.sleep(self.config.heartbeat_seconds)
             try:
@@ -269,7 +273,6 @@ class PluginReleaseWorker:
         停止心跳任务，并上报正常停止或宿主失败状态。
 
         :param failed: 是否以失败状态结束宿主报告，为 False 时报告正常停止
-        :return: None
         """
         if self.task is not None:
             self.task.cancel()

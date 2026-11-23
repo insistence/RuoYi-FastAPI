@@ -15,10 +15,23 @@ from plugins.core.artifacts.store import ArtifactStore
 
 
 def _parallel_import(root: str, artifact_path: str, public_key: bytes, gate: Any) -> tuple[str, str]:
-    """在独立进程中同步校验起点，使并发导入争用同一制品目标。"""
+    """
+    在独立进程中同步校验起点，使并发导入争用同一制品目标。
+
+    :param root: 路径解析的基准目录
+    :param artifact_path: 插件制品在文件系统中的路径
+    :param public_key: RSA 公钥
+    :param gate: 控制操作何时继续的同步信号
+    :return: 制品存储路径及摘要
+    """
     checked = False
 
     def check_candidate(candidate: StoredArtifact) -> None:
+        """
+        检查插件候选目录和清单的状态。
+
+        :param candidate: 完成验证的不可变存储信息，供平台预检与发布服务读取
+        """
         nonlocal checked
         assert (candidate.plugin_path / 'plugin.yaml').is_file()
         if not checked:
@@ -32,14 +45,23 @@ def _parallel_import(root: str, artifact_path: str, public_key: bytes, gate: Any
 
 
 def _assert_staging_empty(root: Path) -> None:
-    """检查本次导入没有遗留暂存目录。"""
+    """
+    检查本次导入没有遗留暂存目录。
+
+    :param root: 路径解析的基准目录
+    """
     staging = root / '.staging'
     assert staging.is_dir()
     assert list(staging.iterdir()) == []
 
 
 def _file_snapshot(root: Path) -> dict[str, tuple[bytes, int]]:
-    """记录存储文件内容和修改时间以比较幂等导入结果。"""
+    """
+    记录存储文件内容和修改时间以比较幂等导入结果。
+
+    :param root: 路径解析的基准目录
+    :return: 相对路径到文件内容和修改时间的映射
+    """
     return {
         path.relative_to(root).as_posix(): (path.read_bytes(), path.stat().st_mtime_ns)
         for path in root.rglob('*')
@@ -86,6 +108,11 @@ def test_repeated_import_keeps_existing_bytes_and_modification_times(
     checked_paths: list[Path] = []
 
     def check_candidate(candidate: StoredArtifact) -> None:
+        """
+        检查插件候选目录和清单的状态。
+
+        :param candidate: 完成验证的不可变存储信息，供平台预检与发布服务读取
+        """
         checked_paths.append(candidate.root_path)
 
     second = store.import_artifact(artifact_path, trusted_keys, validate_candidate=check_candidate)
@@ -148,6 +175,13 @@ def test_candidate_failure_never_publishes_or_removes_unrelated_staging(
     expected = verify_artifact(artifact_path, trusted_keys)
 
     def check_candidate(candidate: StoredArtifact) -> bool:
+        """
+        检查插件候选目录和清单的状态。
+
+        :param candidate: 完成验证的不可变存储信息，供平台预检与发布服务读取
+        :raises RuntimeError: 模拟候选制品未通过平台校验
+        :return: 是否插件候选目录和清单的状态
+        """
         if failure == 'raise':
             raise RuntimeError('platform validation failed')
         if failure == 'mutate':
@@ -175,6 +209,12 @@ def test_async_candidate_validation_is_rejected_instead_of_being_skipped(
     executed = False
 
     async def check_candidate(candidate: StoredArtifact) -> bool:
+        """
+        检查插件候选目录和清单的状态。
+
+        :param candidate: 完成验证的不可变存储信息，供平台预检与发布服务读取
+        :return: 此分支的固定值 ``False``
+        """
         nonlocal executed
         executed = True
         return False
@@ -200,6 +240,14 @@ def test_extraction_failure_cleans_only_its_private_directory(
     sentinel.write_text('keep', encoding='utf-8')
 
     def fail_extract(snapshot: Path, candidate: Path, verified: VerifiedArtifact) -> None:
+        """
+        在候选目录留下部分内容后模拟解包失败。
+
+        :param snapshot: 用于比较状态的快照
+        :param candidate: 待校验的候选项
+        :param verified: 完成静态校验的容器信息，不替代文件变化后的重新验证
+        :raises OSError: 模拟磁盘已满而无法解包
+        """
         assert snapshot.is_file()
         assert verified.plugin_id
         candidate.mkdir()
@@ -269,6 +317,12 @@ def test_import_verifies_the_private_snapshot_after_source_is_replaced(
     snapshot = store._snapshot
 
     def snapshot_then_replace_source(source: Path, target: Path) -> None:
+        """
+        创建交付物快照后替换原始文件。
+
+        :param source: 本次文件操作的源路径
+        :param target: 本次操作的目标
+        """
         snapshot(source, target)
         source.write_bytes(b'original upload was replaced after snapshot')
 

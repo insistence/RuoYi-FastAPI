@@ -26,30 +26,66 @@ PLUGIN_ID = 'artifact_demo'
 
 
 class MaintenanceRuntime:
-    """模拟安装、升级及预检结果的维护运行时。"""
+    """
+    模拟安装、升级及预检结果的维护运行时。
+
+    :ivar owner: 负责当前操作的对象
+    :ivar plugins: 参与当前操作的插件集合
+    """
 
     def __init__(self, owner: 'MaintenanceFactory', plugins: list[DiscoveredPlugin]) -> None:
-        """保存测试制品快照、数据库工厂及故障配置。"""
+        """
+        保存测试制品快照、数据库工厂及故障配置。
+
+        :param owner: 负责当前操作的对象
+        :param plugins: 参与当前操作的插件集合
+        """
         self.owner = owner
         self.plugins = {plugin.manifest.id: plugin for plugin in plugins}
 
     async def install_plugin(self, plugin_id: str, **kwargs: Any) -> dict[str, Any]:
-        """按测试配置模拟插件安装。"""
+        """
+        按测试配置模拟插件安装。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 模拟插件安装的执行结果
+        """
         return await self.execute('install', plugin_id, **kwargs)
 
     async def upgrade_plugin(self, plugin_id: str, **kwargs: Any) -> dict[str, Any]:
-        """按测试配置模拟插件升级。"""
+        """
+        按测试配置模拟插件升级。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 模拟插件升级的执行结果
+        """
         return await self.execute('upgrade', plugin_id, **kwargs)
 
     async def check_plugin_async(self, plugin_id: str) -> dict[str, Any]:
-        """返回当前测试指定的静态预检结果。"""
+        """
+        返回当前测试指定的静态预检结果。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :return: 当前测试指定的静态预检结果
+        """
         self.owner.calls.append(('check', True, self.plugins[plugin_id].manifest.version))
         return {'ok': self.owner.failure != 'check', 'message': 'static dependency check'}
 
     async def execute(
         self, operation: str, plugin_id: str, *, dry_run: bool = False, operated_by: str | None = None
     ) -> dict[str, Any]:
-        """模拟维护写入及失败场景，更新临时安装状态。"""
+        """
+        模拟维护写入及失败场景，更新临时安装状态。
+
+        :param operation: 当前处理的操作
+        :param plugin_id: 插件清单中的唯一标识
+        :param dry_run: 是否只预览操作结果
+        :param operated_by: 操作者用户名，非预演时写入审计日志
+        :return: 包含维护操作状态及提示的响应
+        :raises RuntimeError: 模拟执行迁移时注入的数据库故障
+        """
         plugin = self.plugins[plugin_id]
         self.owner.calls.append((operation, dry_run, plugin.manifest.version))
         if dry_run:
@@ -75,22 +111,43 @@ class MaintenanceRuntime:
 
 
 class MaintenanceFactory:
-    """记录维护运行时创建情况并提供可控故障的测试工厂。"""
+    """
+    记录维护运行时创建情况并提供可控故障的测试工厂。
+
+    :ivar sessions: 测试创建的数据库会话或会话工厂
+    :ivar calls: 测试替身记录的调用信息
+    :ivar failure: 用于模拟失败的异常或状态
+    """
 
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
-        """初始化测试数据库和维护故障配置。"""
+        """
+        初始化测试数据库和维护故障配置。
+
+        :param sessions: 创建当前测试的数据库会话的工厂
+        """
         self.sessions = sessions
         self.calls: list[tuple[str, bool, str]] = []
         self.failure: str | None = None
 
     def __call__(self, config: PluginDeploymentConfig, plugins: list[DiscoveredPlugin]) -> MaintenanceRuntime:
-        """为当前候选制品创建测试维护运行时。"""
+        """
+        为当前候选制品创建测试维护运行时。
+
+        :param config: 制品发布配置快照，支持为测试和维护实例注入独立目录
+        :param plugins: 参与当前操作的插件集合
+        :return: ``MaintenanceRuntime`` 实例
+        """
         return MaintenanceRuntime(self, plugins)
 
 
 @pytest.fixture
 def maintenance_factory(deployment_sessions: async_sessionmaker[AsyncSession]) -> MaintenanceFactory:
-    """提供可记录维护操作的运行时工厂。"""
+    """
+    提供可记录维护操作的运行时工厂。
+
+    :param deployment_sessions: 部署流程使用的会话工厂
+    :return: 可记录维护操作的运行时工厂
+    """
     return MaintenanceFactory(deployment_sessions)
 
 
@@ -101,7 +158,15 @@ def service(
     maintenance_factory: MaintenanceFactory,
     monkeypatch: pytest.MonkeyPatch,
 ) -> PluginDeploymentService:
-    """创建使用临时数据库与测试生命周期锁的发布服务。"""
+    """
+    创建使用临时数据库与测试生命周期锁的发布服务。
+
+    :param deployment_sessions: 部署流程使用的会话工厂
+    :param deployment_config: 构造独立存储目录与受限发布者公钥配置
+    :param maintenance_factory: 提供可记录维护操作的运行时工厂
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: 使用临时数据库与测试生命周期锁的发布服务
+    """
     monkeypatch.setattr(sys, 'dont_write_bytecode', sys.dont_write_bytecode)
     return PluginDeploymentService(
         deployment_config,
@@ -112,7 +177,13 @@ def service(
 
 
 async def import_prepare_select(service: PluginDeploymentService, archive: Path) -> dict[str, Any]:
-    """依次导入、维护准备并选择测试制品。"""
+    """
+    依次导入、维护准备并选择测试制品。
+
+    :param service: 创建使用临时数据库与测试生命周期锁的发布服务
+    :param archive: 包含待安装资源的归档
+    :return: 维护模式下选定制品后的发布信息
+    """
     imported = await service.catalog.import_artifact(archive)
     prepared = await service.prepare(PLUGIN_ID, imported['digest'], maintenance=True, actor='operator')
     return await service.select(
@@ -125,7 +196,15 @@ async def import_prepare_select(service: PluginDeploymentService, archive: Path)
 
 
 def new_archive(source: Path, destination: Path, key: Ed25519PrivateKey, version: str) -> Path:
-    """为指定版本创建新的签名测试制品。"""
+    """
+    为指定版本创建新的签名测试制品。
+
+    :param source: 包含插件清单和待打包资源的目录
+    :param destination: 复制或移动操作的目标位置
+    :param key: 为新制品签名的 Ed25519 私钥
+    :param version: 当前记录的版本
+    :return: 复制或移动操作的目标位置
+    """
     manifest = yaml.safe_load((source / 'plugin.yaml').read_text())
     manifest['version'] = version
     (source / 'plugin.yaml').write_text(yaml.safe_dump(manifest), encoding='utf-8')
@@ -366,6 +445,13 @@ async def test_generation_conflict_and_audit_failure_cannot_commit_target_change
         await service.select(PLUGIN_ID, imported['digest'], maintenance=True, expected_generation='f' * 32)
 
     async def failed_audit(*args: Any, **kwargs: Any) -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟审计事务失败
+        """
         raise RuntimeError('audit transaction failed')
 
     monkeypatch.setattr(service, '_audit', failed_audit)
@@ -395,6 +481,13 @@ async def test_rollback_resource_and_target_changes_share_a_transaction(
     second = await import_prepare_select(service, upgrade)
 
     async def failed_audit(*args: Any, **kwargs: Any) -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟审计事务失败
+        """
         raise RuntimeError('rollback audit failed')
 
     monkeypatch.setattr(service, '_audit', failed_audit)
@@ -431,8 +524,17 @@ async def test_lifecycle_lock_denial_is_not_bypassed(
     """验证无法取得生命周期锁时不执行维护操作。"""
 
     class DeniedLock:
+        """模拟未能获取插件操作锁。"""
+
         @asynccontextmanager
         async def lock(self, plugin_id: str, operation: str) -> AsyncGenerator[PluginLifecycleLockResult, None]:
+            """
+            模拟获取插件维护锁的结果。
+
+            :param plugin_id: 插件清单中的唯一标识
+            :param operation: 当前处理的操作
+            :yield: ``PluginLifecycleLockResult`` 实例
+            """
             yield PluginLifecycleLockResult(False, 'maintenance already running')
 
     imported = await service.catalog.import_artifact(deployment_archive)
@@ -547,7 +649,16 @@ async def test_wait_assertion_uses_existing_release_reports_without_database_wri
     def record_statement(
         connection: object, cursor: object, statement: str, parameters: object, context: object, executemany: bool
     ) -> None:
-        """记录验收阶段 SQL，不修改当前数据库连接。"""
+        """
+        记录验收阶段 SQL，不修改当前数据库连接。
+
+        :param connection: 当前操作使用的连接
+        :param cursor: 执行当前 SQL 的数据库游标
+        :param statement: 即将执行的数据库语句
+        :param parameters: 分派给目标命令的参数
+        :param context: 当前操作所需的上下文
+        :param executemany: 是否批量执行同一条语句
+        """
         statements.append(statement)
 
     event.listen(engine, 'before_cursor_execute', record_statement)

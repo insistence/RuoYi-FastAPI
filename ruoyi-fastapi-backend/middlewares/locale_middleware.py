@@ -8,12 +8,14 @@ from i18n.locale import LocaleUtil
 
 class LocaleMiddleware:
     """
-    请求语言中间件，注册在传输加密中间件外层
+    请求语言中间件，注册在传输加密中间件外层。
+
+    :ivar app: 由本中间件包装的 ASGI 应用
     """
 
     def __init__(self, app: ASGIApp) -> None:
         """
-        初始化请求语言中间件
+        初始化请求语言中间件。
 
         :param app: 由本中间件包装的 ASGI 应用
         """
@@ -21,7 +23,7 @@ class LocaleMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
-        协商请求语言并在请求结束或取消时恢复上下文
+        协商请求语言并在请求结束或取消时恢复上下文。
 
         :param scope: ASGI 请求作用域
         :param receive: ASGI 接收函数
@@ -35,6 +37,11 @@ class LocaleMiddleware:
         token = RequestContext.set_current_locale(context)
 
         async def send_localized(message: Message) -> None:
+            """
+            将协商后的语言信息写入响应头并发送消息。
+
+            :param message: 与当前结果一起返回的说明
+            """
             if message['type'] == 'http.response.start':
                 LocaleUtil.add_locale_headers(MutableHeaders(scope=message), context)
             await send(message)
@@ -47,7 +54,7 @@ class LocaleMiddleware:
 
 def add_locale_middleware(app: FastAPI) -> None:
     """
-    添加请求语言中间件
+    添加请求语言中间件。
 
     :param app: FastAPI 应用
     """

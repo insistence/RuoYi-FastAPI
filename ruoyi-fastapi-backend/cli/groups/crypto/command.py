@@ -22,7 +22,6 @@ def validate(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _CRYPTO_COMMAND_CONTROLLER.validate(env, output)
 
@@ -41,7 +40,6 @@ def keygen(
     :param output: 输出格式
     :param kid: 生成的密钥版本标识
     :param key_size: RSA 密钥长度
-    :return: None
     """
     _CRYPTO_COMMAND_CONTROLLER.keygen(env, output, kid=kid, key_size=key_size)
 
@@ -66,7 +64,6 @@ def rotate(
     :param dry_run: 是否演练执行
     :param next_kid: 轮换后的新密钥版本标识
     :param key_size: 新密钥的 RSA 长度
-    :return: None
     """
     _CRYPTO_COMMAND_CONTROLLER.rotate(
         env,
@@ -89,6 +86,5 @@ def export_public(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _CRYPTO_COMMAND_CONTROLLER.export_public(env, output)

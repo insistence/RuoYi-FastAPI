@@ -39,45 +39,65 @@ _ORIGINAL_INVALIDATE = CurrentUserCacheSession._invalidate_cache
 
 
 class CacheTestBase(DeclarativeBase):
-    pass
+    """提供缓存集成测试的声明式模型基类。"""
 
 
 class CacheUser(CacheTestBase):
+    """缓存集成测试使用的用户表映射。"""
+
     __tablename__ = 'sys_user'
 
-    user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_name: Mapped[str] = mapped_column(String, unique=True)
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True, comment='用户标识')
+    user_name: Mapped[str] = mapped_column(String, unique=True, comment='用户名称')
 
 
 class CacheRole(CacheTestBase):
+    """缓存集成测试使用的角色表映射。"""
+
     __tablename__ = 'sys_role'
 
-    role_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    role_name: Mapped[str] = mapped_column(String)
+    role_id: Mapped[int] = mapped_column(Integer, primary_key=True, comment='角色标识')
+    role_name: Mapped[str] = mapped_column(String, comment='角色名称')
 
 
 class CacheUserRole(CacheTestBase):
+    """缓存集成测试使用的用户角色关联表映射。"""
+
     __tablename__ = 'sys_user_role'
 
-    user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    role_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True, comment='用户标识')
+    role_id: Mapped[int] = mapped_column(Integer, primary_key=True, comment='角色标识')
 
 
 class CacheJob(CacheTestBase):
+    """缓存集成测试使用的任务表映射。"""
+
     __tablename__ = 'sys_job'
 
-    job_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    job_name: Mapped[str] = mapped_column(String)
+    job_id: Mapped[int] = mapped_column(Integer, primary_key=True, comment='任务标识')
+    job_name: Mapped[str] = mapped_column(String, comment='任务名称')
 
 
 SHARED_TABLES = {
-    name: Table(name, CacheTestBase.metadata, Column('id', Integer, primary_key=True), Column('name', String))
+    name: Table(
+        name,
+        CacheTestBase.metadata,
+        Column('id', Integer, primary_key=True, comment='测试记录标识'),
+        Column('name', String, comment='测试记录名称'),
+    )
     for name in ('sys_menu', 'sys_dept', 'sys_post', 'sys_role_menu', 'sys_role_dept')
 }
 
 
 @pytest_asyncio.fixture
 async def cache_transactions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[SimpleNamespace]:
+    """
+    为缓存事务测试准备数据库和运行配置。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :yield: ``SimpleNamespace`` 实例
+    """
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', True)
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "cache-transactions.db"}')
     async with engine.begin() as connection:
@@ -90,6 +110,12 @@ async def cache_transactions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     invalidations = []
 
     async def invalidate(session: CurrentUserCacheSession, user_ids: set[int] | None) -> None:
+        """
+        模拟缓存或会话的失效操作。
+
+        :param session: 登记当前用户资料和权限变更，在事务提交后使缓存失效
+        :param user_ids: 当前操作涉及的用户标识集合
+        """
         async with engine.connect() as connection:
             names = (await connection.execute(select(CacheUser.user_name).order_by(CacheUser.user_id))).scalars().all()
         invalidations.append((user_ids, names))
@@ -103,6 +129,7 @@ async def cache_transactions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
 
 @pytest.mark.asyncio
 async def test_user_change_invalidates_only_after_commit(cache_transactions: SimpleNamespace) -> None:
+    """用户变更仅在提交后使缓存失效。"""
     env = cache_transactions
     async with env.sessions() as db:
         user = await db.get(CacheUser, 1)
@@ -117,6 +144,7 @@ async def test_user_change_invalidates_only_after_commit(cache_transactions: Sim
 @pytest.mark.asyncio
 @pytest.mark.parametrize('finish', ['rollback', 'close'])
 async def test_rollback_and_close_discard_changes(cache_transactions: SimpleNamespace, finish: str) -> None:
+    """回滚和关闭会话时丢弃待处理变更。"""
     env = cache_transactions
     async with env.sessions() as db:
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='changed'))
@@ -127,6 +155,7 @@ async def test_rollback_and_close_discard_changes(cache_transactions: SimpleName
 
 @pytest.mark.asyncio
 async def test_nested_commit_waits_for_outer_commit(cache_transactions: SimpleNamespace) -> None:
+    """嵌套提交等待外层事务提交。"""
     env = cache_transactions
     async with env.sessions.begin() as db:
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='outer'))
@@ -138,6 +167,7 @@ async def test_nested_commit_waits_for_outer_commit(cache_transactions: SimpleNa
 
 @pytest.mark.asyncio
 async def test_nested_rollback_does_not_invalidate_rolled_back_user(cache_transactions: SimpleNamespace) -> None:
+    """嵌套回滚不使已回滚用户的缓存失效。"""
     env = cache_transactions
     async with env.sessions.begin() as db:
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='outer'))
@@ -149,6 +179,7 @@ async def test_nested_rollback_does_not_invalidate_rolled_back_user(cache_transa
 
 @pytest.mark.asyncio
 async def test_nested_commit_then_outer_rollback_does_not_invalidate(cache_transactions: SimpleNamespace) -> None:
+    """嵌套提交后回滚外层事务不会使缓存失效。"""
     env = cache_transactions
     async with env.sessions() as db:
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='outer'))
@@ -182,6 +213,7 @@ async def test_nested_commit_then_outer_rollback_does_not_invalidate(cache_trans
 async def test_core_and_text_mutations_are_tracked(
     cache_transactions: SimpleNamespace, statement: Any, expected: set[int] | None
 ) -> None:
+    """跟踪 Core 语句和文本 SQL 的修改。"""
     env = cache_transactions
     async with env.sessions.begin() as db:
         await db.execute(statement)
@@ -209,6 +241,7 @@ async def test_alias_mutations_invalidate_only_auth_tables(
     name_column: str,
     tracked: bool,
 ) -> None:
+    """别名写入仅使认证表对应的缓存失效。"""
     env = cache_transactions
     if alias_type == 'orm':
         target = aliased(model)
@@ -240,6 +273,7 @@ async def test_alias_mutations_invalidate_only_auth_tables(
 async def test_alias_target_with_original_table_filter_invalidates_all_users(
     cache_transactions: SimpleNamespace,
 ) -> None:
+    """别名目标使用原表过滤时使全部用户缓存失效。"""
     env = cache_transactions
     users = CacheUser.__table__
     target = users.alias('target')
@@ -256,6 +290,7 @@ async def test_alias_target_with_original_table_filter_invalidates_all_users(
 async def test_wrapped_write_invalidates_only_after_commit(
     cache_transactions: SimpleNamespace, wrapper: str, finish: str
 ) -> None:
+    """包装后的写入仅在提交后使缓存失效。"""
     env = cache_transactions
     raw_sql = text("UPDATE sys_user SET user_name = 'changed' WHERE user_id = 1 RETURNING user_id, user_name")
     if wrapper == 'columns':
@@ -282,6 +317,7 @@ async def test_wrapped_write_invalidates_only_after_commit(
 async def test_readonly_wrappers_and_sql_fragments_do_not_invalidate(
     cache_transactions: SimpleNamespace, wrapper: str
 ) -> None:
+    """只读包装和 SQL 片段不触发缓存失效。"""
     env = cache_transactions
     raw_sql = text('SELECT user_id, user_name FROM sys_user WHERE user_id = 1')
     if wrapper == 'columns':
@@ -308,6 +344,7 @@ async def test_readonly_wrappers_and_sql_fragments_do_not_invalidate(
 def test_nested_dml_cte_invalidates_auth_writes_conservatively(
     monkeypatch: pytest.MonkeyPatch, operation: str, outer: str, auth_table: bool
 ) -> None:
+    """嵌套 DML 公用表表达式按保守策略使认证缓存失效。"""
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', True)
     target = CacheUser.__table__ if auth_table else CacheJob.__table__
     id_column, name_column = ('user_id', 'user_name') if auth_table else ('job_id', 'job_name')
@@ -353,6 +390,7 @@ def test_nested_dml_cte_invalidates_auth_writes_conservatively(
     ],
 )
 def test_explain_analyze_write_requires_invalidation(monkeypatch: pytest.MonkeyPatch, sql: str) -> None:
+    """分析实际执行的写语句时需要使缓存失效。"""
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', True)
     with CurrentUserCacheSession() as db, db.begin() as transaction:
         state = SimpleNamespace(
@@ -386,6 +424,7 @@ def test_join_update_tracks_auth_tables_after_sql_execution(
     joined_id_column: str,
     tracked: bool,
 ) -> None:
+    """连接更新在 SQL 执行后跟踪认证表。"""
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', True)
     target = model.__table__
     joined = joined_model.__table__.alias('joined')
@@ -419,6 +458,7 @@ def test_join_update_tracks_auth_tables_after_sql_execution(
 
 @pytest.mark.asyncio
 async def test_shared_change_overrides_user_scope(cache_transactions: SimpleNamespace) -> None:
+    """共享数据变更优先于单用户范围。"""
     env = cache_transactions
     async with env.sessions.begin() as db:
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='changed'))
@@ -429,6 +469,7 @@ async def test_shared_change_overrides_user_scope(cache_transactions: SimpleName
 
 @pytest.mark.asyncio
 async def test_readonly_and_unchanged_orm_object_do_not_invalidate(cache_transactions: SimpleNamespace) -> None:
+    """只读或未发生变化的 ORM 对象不使缓存失效。"""
     env = cache_transactions
     async with env.sessions.begin() as db:
         user = await db.get(CacheUser, 1)
@@ -441,6 +482,7 @@ async def test_readonly_and_unchanged_orm_object_do_not_invalidate(cache_transac
 async def test_disabled_cache_does_not_register_mutations(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """禁用缓存后不登记变更。"""
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', False)
     async with cache_transactions.sessions.begin() as db:
         await db.execute(update(CacheUser).values(user_name=CacheUser.user_name + '-new'))
@@ -451,6 +493,7 @@ async def test_disabled_cache_does_not_register_mutations(
 
 @pytest.mark.asyncio
 async def test_failed_commit_does_not_invalidate(cache_transactions: SimpleNamespace) -> None:
+    """提交失败时不使缓存失效。"""
     env = cache_transactions
     async with env.sessions() as db:
         user = await db.get(CacheUser, 1)
@@ -464,10 +507,12 @@ async def test_failed_commit_does_not_invalidate(cache_transactions: SimpleNames
 
 @pytest.mark.asyncio
 async def test_cancellation_before_commit_rolls_back(cache_transactions: SimpleNamespace) -> None:
+    """提交前取消操作将回滚事务。"""
     env = cache_transactions
     entered = asyncio.Event()
 
     async def mutate() -> None:
+        """在测试事务中修改与缓存关联的数据。"""
         async with env.sessions.begin() as db:
             await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='cancelled'))
             entered.set()
@@ -487,10 +532,17 @@ async def test_cancellation_before_commit_rolls_back(cache_transactions: SimpleN
 async def test_cancellation_after_commit_does_not_undo_committed_data(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """提交后取消操作保留已提交的数据。"""
     env = cache_transactions
     entered = asyncio.Event()
 
     async def invalidate(session: CurrentUserCacheSession, user_ids: set[int] | None) -> None:
+        """
+        模拟缓存或会话的失效操作。
+
+        :param session: 登记当前用户资料和权限变更，在事务提交后使缓存失效
+        :param user_ids: 当前操作涉及的用户标识集合
+        """
         assert user_ids == {1}
         entered.set()
         await asyncio.Event().wait()
@@ -498,6 +550,7 @@ async def test_cancellation_after_commit_does_not_undo_committed_data(
     monkeypatch.setattr(CurrentUserCacheSession, '_invalidate_cache', invalidate)
 
     async def mutate() -> None:
+        """在测试事务中修改与缓存关联的数据。"""
         async with env.sessions() as db:
             await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='committed'))
             await db.commit()
@@ -517,6 +570,7 @@ async def test_cancellation_after_commit_does_not_undo_committed_data(
 async def test_all_shared_permission_tables_invalidate_global(
     cache_transactions: SimpleNamespace, table_name: str
 ) -> None:
+    """任意共享权限表变更均使全局缓存失效。"""
     env = cache_transactions
     async with env.sessions.begin() as db:
         await db.execute(insert(SHARED_TABLES[table_name]).values(id=1, name='changed'))
@@ -525,6 +579,7 @@ async def test_all_shared_permission_tables_invalidate_global(
 
 @pytest.mark.asyncio
 async def test_multiple_savepoint_levels_preserve_parent_changes(cache_transactions: SimpleNamespace) -> None:
+    """多层保存点保留父事务的变更。"""
     env = cache_transactions
     async with env.sessions.begin() as db:
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='outer'))
@@ -537,6 +592,7 @@ async def test_multiple_savepoint_levels_preserve_parent_changes(cache_transacti
 
 @pytest.mark.asyncio
 async def test_session_can_be_reused_after_commit_and_rollback(cache_transactions: SimpleNamespace) -> None:
+    """提交或回滚后可复用会话。"""
     env = cache_transactions
     async with env.sessions() as db:
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='first-commit'))
@@ -552,10 +608,16 @@ async def test_session_can_be_reused_after_commit_and_rollback(cache_transaction
 async def test_disabled_cache_does_not_compile_tracking_sql(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """禁用缓存后跳过跟踪 SQL 的编译。"""
     env = cache_transactions
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', False)
 
     def unexpected_scope(*args: Any) -> None:
+        """
+        在调用时报告预期的测试失败：关闭缓存后不应分析用户变更范围。
+
+        :param args: 传给被调用对象的位置参数
+        """
         pytest.fail('关闭缓存后不应分析用户变更范围')
 
     monkeypatch.setattr(CurrentUserCacheSession, '_where_user_ids', unexpected_scope)
@@ -570,6 +632,7 @@ async def test_disabled_cache_does_not_compile_tracking_sql(
 async def test_cache_failure_does_not_turn_committed_write_into_error(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, failure: str
 ) -> None:
+    """缓存失败不影响已提交写入的结果。"""
     env = cache_transactions
     redis = SimpleNamespace(aclose=AsyncMock())
     create = AsyncMock(return_value=redis)
@@ -583,6 +646,11 @@ async def test_cache_failure_does_not_turn_committed_write_into_error(
     else:
 
         async def blocked(*args: Any) -> None:
+            """
+            将调用保持在等待状态以验证取消行为。
+
+            :param args: 传给被调用对象的位置参数
+            """
             await asyncio.Event().wait()
 
         if failure == 'create_timeout':
@@ -606,6 +674,7 @@ async def test_cache_failure_does_not_turn_committed_write_into_error(
 async def test_sync_session_commit_survives_missing_greenlet_and_closes_coroutine(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, recwarn: pytest.WarningsRecorder
 ) -> None:
+    """同步会话缺少 greenlet 时完成提交并关闭协程。"""
     engine = create_engine(cache_transactions.engine.url.set(drivername='sqlite'))
     create = AsyncMock()
     monkeypatch.setattr(RedisUtil, 'create_redis_pool', create)
@@ -628,6 +697,7 @@ async def test_sync_session_commit_survives_missing_greenlet_and_closes_coroutin
 async def test_listener_failure_does_not_change_committed_database_result(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, stage: str
 ) -> None:
+    """监听器失败不改变已提交的数据库结果。"""
     invalidate = AsyncMock(side_effect=RuntimeError('cache listener unavailable'))
     async with cache_transactions.sessions() as db:
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='committed'))
@@ -651,6 +721,7 @@ async def test_listener_failure_does_not_change_committed_database_result(
 async def test_commit_invalidates_cache_and_closes_redis(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """提交后使缓存失效并关闭 Redis 客户端。"""
     redis = SimpleNamespace(aclose=AsyncMock())
     create = AsyncMock(return_value=redis)
     invalidate = AsyncMock(return_value=True)
@@ -670,6 +741,7 @@ async def test_commit_invalidates_cache_and_closes_redis(
 async def test_unknown_namespace_does_not_invalidate_another_database(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """未知命名空间不会使其他数据库的缓存失效。"""
     create = AsyncMock()
     monkeypatch.setattr(RedisUtil, 'create_redis_pool', create)
     monkeypatch.setattr(CurrentUserCacheUtil, 'namespace_for_bind', lambda bind: None)
@@ -683,6 +755,7 @@ async def test_unknown_namespace_does_not_invalidate_another_database(
 async def test_cancellation_closes_cache_client_and_preserves_commit(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """取消操作时关闭缓存客户端并保留提交。"""
     redis = SimpleNamespace(aclose=AsyncMock())
     monkeypatch.setattr(RedisUtil, 'create_redis_pool', AsyncMock(return_value=redis))
     monkeypatch.setattr(CurrentUserCacheUtil, 'invalidate', AsyncMock(side_effect=asyncio.CancelledError))
@@ -703,6 +776,7 @@ async def test_cancellation_closes_cache_client_and_preserves_commit(
 async def test_anyio_cancellation_finishes_cache_cleanup_and_preserves_commit(  # noqa: PLR0915
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, cancellation: str, stage: str
 ) -> None:
+    """AnyIO 取消操作后完成缓存清理并保留提交。"""
     entered = anyio.Event()
     release_close = anyio.Event()
     closed = anyio.Event()
@@ -711,6 +785,11 @@ async def test_anyio_cancellation_finishes_cache_cleanup_and_preserves_commit(  
     cancel_scope = None
 
     async def invalidate(*args: Any) -> None:
+        """
+        模拟缓存或会话的失效操作。
+
+        :param args: 传给被调用对象的位置参数
+        """
         if stage != 'invalidate':
             return
         entered.set()
@@ -721,6 +800,7 @@ async def test_anyio_cancellation_finishes_cache_cleanup_and_preserves_commit(  
         await anyio.sleep_forever()
 
     async def close() -> None:
+        """记录测试资源的关闭过程。"""
         if stage == 'close':
             entered.set()
             if cancellation == 'scope':
@@ -735,6 +815,13 @@ async def test_anyio_cancellation_finishes_cache_cleanup_and_preserves_commit(  
     redis = SimpleNamespace(aclose=AsyncMock(side_effect=close))
 
     async def invalidate_cache(session: CurrentUserCacheSession, user_ids: set[int] | None) -> None:
+        """
+        模拟事务完成时清除缓存。
+
+        :param session: 登记当前用户资料和权限变更，在事务提交后使缓存失效
+        :param user_ids: 当前操作涉及的用户标识集合
+        :raises Exception: 底层操作失败时向调用方传播异常
+        """
         try:
             await _ORIGINAL_INVALIDATE(session, user_ids)
         except anyio.get_cancelled_exc_class():
@@ -748,6 +835,11 @@ async def test_anyio_cancellation_finishes_cache_cleanup_and_preserves_commit(  
         await db.execute(update(CacheUser).where(CacheUser.user_id == 1).values(user_name='committed'))
 
         async def commit() -> None:
+            """
+            在测试会话中处理事务提交。
+
+            :raises Exception: 底层操作失败时向调用方传播异常
+            """
             try:
                 await db.commit()
             except anyio.get_cancelled_exc_class():
@@ -780,11 +872,18 @@ async def test_anyio_cancellation_finishes_cache_cleanup_and_preserves_commit(  
 async def test_concurrent_commits_invalidate_each_user_without_shared_state(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """并发提交分别使对应用户缓存失效。"""
     entered = asyncio.Event()
     release = asyncio.Event()
     invalidations = []
 
     async def invalidate(session: CurrentUserCacheSession, user_ids: set[int] | None) -> None:
+        """
+        模拟缓存或会话的失效操作。
+
+        :param session: 登记当前用户资料和权限变更，在事务提交后使缓存失效
+        :param user_ids: 当前操作涉及的用户标识集合
+        """
         if user_ids == {1}:
             entered.set()
             await release.wait()
@@ -793,6 +892,11 @@ async def test_concurrent_commits_invalidate_each_user_without_shared_state(
     monkeypatch.setattr(CurrentUserCacheSession, '_invalidate_cache', invalidate)
 
     async def mutate(user_id: int) -> None:
+        """
+        在测试事务中修改与缓存关联的数据。
+
+        :param user_id: 用户的唯一标识
+        """
         async with cache_transactions.sessions.begin() as db:
             await db.execute(update(CacheUser).where(CacheUser.user_id == user_id).values(user_name=f'user-{user_id}'))
 
@@ -806,6 +910,7 @@ async def test_concurrent_commits_invalidate_each_user_without_shared_state(
 
 @pytest.mark.asyncio
 async def test_orm_bulk_user_update_uses_primary_key_scope(cache_transactions: SimpleNamespace) -> None:
+    """ORM 批量用户更新按主键确定范围。"""
     env = cache_transactions
     async with env.sessions.begin() as db:
         await db.execute(update(CacheUser), [{'user_id': 1, 'user_name': 'changed'}])
@@ -816,6 +921,7 @@ async def test_orm_bulk_user_update_uses_primary_key_scope(cache_transactions: S
 async def test_core_bulk_update_cannot_assume_parameter_is_a_primary_key_filter(
     cache_transactions: SimpleNamespace,
 ) -> None:
+    """Core 批量更新不会将普通参数误作主键过滤条件。"""
     env = cache_transactions
     async with env.sessions.begin() as db:
         await db.execute(
@@ -829,6 +935,7 @@ async def test_core_bulk_update_cannot_assume_parameter_is_a_primary_key_filter(
 async def test_user_relation_move_invalidates_old_and_new_users(
     cache_transactions: SimpleNamespace, assignment: str
 ) -> None:
+    """移动用户关联后同时使新旧用户缓存失效。"""
     env = cache_transactions
     relation = CacheUserRole.__table__
     async with env.engine.begin() as connection:
@@ -859,6 +966,7 @@ async def test_user_relation_move_invalidates_old_and_new_users(
 
 @pytest.mark.asyncio
 async def test_core_tuple_parameters_commit_with_precise_user_scope(cache_transactions: SimpleNamespace) -> None:
+    """Core 元组参数提交后按准确的用户范围使缓存失效。"""
     env = cache_transactions
     users = CacheUser.__table__
     statement = update(users).where(users.c.user_id == bindparam('target_id')).values(user_name=bindparam('next_name'))
@@ -872,9 +980,16 @@ async def test_core_tuple_parameters_commit_with_precise_user_scope(cache_transa
 async def test_scope_analysis_failure_preserves_sql_result_and_invalidates_globally(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """范围分析失败时保留 SQL 结果并使全局缓存失效。"""
     env = cache_transactions
 
     def failed_scope(*args: Any) -> None:
+        """
+        模拟此操作抛出 ValueError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :raises ValueError: 模拟 SQL 参数格式无法识别
+        """
         raise ValueError('unexpected parameter format')
 
     monkeypatch.setattr(CurrentUserCacheSession, '_where_user_ids', failed_scope)
@@ -888,9 +1003,15 @@ async def test_scope_analysis_failure_preserves_sql_result_and_invalidates_globa
 async def test_sql_execution_failure_still_propagates_before_scope_analysis(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """范围分析前的 SQL 执行错误继续传播。"""
     env = cache_transactions
 
     def unexpected_scope(*args: Any) -> None:
+        """
+        在调用时报告预期的测试失败：SQL执行失败后不应分析缓存变更范围。
+
+        :param args: 传给被调用对象的位置参数
+        """
         pytest.fail('SQL执行失败后不应分析缓存变更范围')
 
     monkeypatch.setattr(CurrentUserCacheSession, '_where_user_ids', unexpected_scope)
@@ -906,9 +1027,16 @@ async def test_sql_execution_failure_still_propagates_before_scope_analysis(
 async def test_scope_analysis_cancellation_is_not_swallowed(
     cache_transactions: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """范围分析期间的取消异常继续传播。"""
     env = cache_transactions
 
     def cancelled_scope(*args: Any) -> None:
+        """
+        模拟此操作抛出 asyncio.CancelledError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :raises asyncio.CancelledError: 异步操作被取消时
+        """
         raise asyncio.CancelledError
 
     monkeypatch.setattr(CurrentUserCacheSession, '_where_user_ids', cancelled_scope)

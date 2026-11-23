@@ -82,6 +82,12 @@ async def test_non_leader_scheduler_starts_reacquire_task() -> None:
     SchedulerManager._is_closing = False
 
     def create_task(coroutine: object) -> MagicMock:
+        """
+        创建测试任务并将其交给调用方。
+
+        :param coroutine: 需要调度的协程
+        :return: 测试任务并将其交给调用方
+        """
         coroutine.close()
         return scheduled_task
 
@@ -216,6 +222,12 @@ def test_scheduler_lock_lost_callback_revokes_leader_state() -> None:
     scheduled_task = MagicMock()
 
     def create_task(coroutine: object) -> MagicMock:
+        """
+        创建测试任务并将其交给调用方。
+
+        :param coroutine: 需要调度的协程
+        :return: 测试任务并将其交给调用方
+        """
         coroutine.close()
         return scheduled_task
 

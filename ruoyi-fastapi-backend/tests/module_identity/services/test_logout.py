@@ -41,23 +41,40 @@ _HTTP_SEE_OTHER = 303
 
 @pytest.fixture
 def now() -> datetime:
-    """每个用例执行时获取时间，避免等待前序测试期间令牌过期。"""
+    """
+    每个用例执行时获取时间，避免等待前序测试期间令牌过期。
+
+    :return: 测试执行时的 UTC 时刻
+    """
     return datetime.now(UTC)
 
 
 @pytest.fixture(autouse=True)
 def _disable_logout_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Logout Controller 单元测试隔离 Redis 限流器。"""
+    """
+    Logout Controller 单元测试隔离 Redis 限流器。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
 
     async def allow(*_args: object, **_kwargs: object) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        """
+        return
 
     monkeypatch.setattr(OidcRateLimiter, 'enforce', allow)
 
 
 def _config() -> SimpleNamespace:
-    """构造 Logout 测试配置。"""
+    """
+    构造 Logout 测试配置。
 
+    :return: Logout 测试配置
+    """
     return SimpleNamespace(
         oidc_enabled=True,
         oidc_issuer=_ISSUER,
@@ -68,8 +85,11 @@ def _config() -> SimpleNamespace:
 
 @pytest.fixture(autouse=True)
 def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
-    """将全局 OIDC 配置固定为 Logout 测试所需的协议值。"""
+    """
+    将全局 OIDC 配置固定为 Logout 测试所需的协议值。
 
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', True)
     monkeypatch.setattr(OidcConfig, 'oidc_issuer', _ISSUER)
     monkeypatch.setattr(OidcConfig, 'oidc_allowed_clock_skew_seconds', 60)
@@ -77,8 +97,14 @@ def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _key_record(private_key: object, now: datetime, kid: str = 'key-1') -> SimpleNamespace:
-    """构造本地数据库公开 JWK 记录。"""
+    """
+    构造本地数据库公开 JWK 记录。
 
+    :param private_key: 仅在当前构建进程内使用的 Ed25519 签名私钥
+    :param now: 用于设置签发和过期时间的基准时刻
+    :param kid: 用于定位签名密钥的标识
+    :return: 本地数据库公开 JWK 记录
+    """
     numbers = private_key.public_key().public_numbers()
     public_jwk = {
         'kty': 'RSA',
@@ -100,8 +126,15 @@ def _key_record(private_key: object, now: datetime, kid: str = 'key-1') -> Simpl
 
 
 def _id_token(private_key: object, *, now: datetime, kid: str = 'key-1', aud: str = 'portal') -> str:
-    """签发用于测试的真实 ID Token。"""
+    """
+    签发用于测试的真实 ID Token。
 
+    :param private_key: 仅在当前构建进程内使用的 Ed25519 签名私钥
+    :param now: 用于设置签发和过期时间的基准时刻
+    :param kid: 用于定位签名密钥的标识
+    :param aud: 令牌声明的受众
+    :return: 使用测试签名密钥签发的身份令牌
+    """
     return encode_id_token(
         {
             'iss': _ISSUER,
@@ -125,7 +158,6 @@ async def test_id_token_hint_uses_local_rsa_kid_and_rejects_remote_header(
     monkeypatch: pytest.MonkeyPatch, now: datetime
 ) -> None:
     """ID Token Hint 仅使用本地 DB JWK，远程 header 参数直接拒绝。"""
-
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     client = SimpleNamespace(client_pk=20, client_id='portal', status='0')
     monkeypatch.setattr(
@@ -157,7 +189,6 @@ async def test_pending_signing_key_cannot_validate_id_token_hint(
     monkeypatch: pytest.MonkeyPatch, now: datetime
 ) -> None:
     """待激活签名密钥只能发布，不能用于验证 ID Token Hint。"""
-
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     client = SimpleNamespace(client_pk=20, client_id='portal', status='0')
     monkeypatch.setattr(
@@ -176,7 +207,6 @@ async def test_pending_signing_key_cannot_validate_id_token_hint(
 @pytest.mark.asyncio
 async def test_logout_redirect_and_backchannel_are_after_commit(monkeypatch: pytest.MonkeyPatch, now: datetime) -> None:
     """已注册 Redirect 安全附加 state，通知只在 commit 后执行。"""
-
     client = SimpleNamespace(client_pk=20, client_id='portal', status='0')
     session = SimpleNamespace(sid='sid-1', status='active', subject_id='subject-1')
     monkeypatch.setattr(
@@ -192,9 +222,16 @@ async def test_logout_redirect_and_backchannel_are_after_commit(monkeypatch: pyt
     sent: list[tuple[str, str]] = []
 
     async def register_backchannel(*args: object, **kwargs: object) -> None:
+        """
+        注册提交后触发的注销通知回调。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         coordinator = kwargs['coordinator']
 
         async def notify() -> None:
+            """记录待发送的后通道注销通知。"""
             sent.append(('https://portal.example/oidc/backchannel-logout', 'logout-token'))
 
         await coordinator.register(notify)
@@ -244,10 +281,16 @@ async def test_invalid_hint_with_valid_cookie_still_revokes_server_session(
     monkeypatch: pytest.MonkeyPatch, now: datetime
 ) -> None:
     """无效 Hint 不得重定向，但有效 Cookie 仍必须撤销服务端 Session。"""
-
     session = SimpleNamespace(sid='sid-1', status='active', subject_id='subject-1')
 
     async def invalid_hint(*_args: object, **_kwargs: object) -> object:
+        """
+        模拟此操作抛出 LogoutServiceError 的情形。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :raises LogoutServiceError: 模拟注销请求中的身份令牌提示无效
+        """
         raise LogoutServiceError('invalid id_token_hint')
 
     monkeypatch.setattr(LogoutService, '_validate_id_token_hint', invalid_hint)
@@ -284,7 +327,6 @@ async def test_unsafe_or_unregistered_redirect_falls_back_to_local_and_logout_to
     monkeypatch: pytest.MonkeyPatch, now: datetime
 ) -> None:
     """未注册 URI 不开放重定向；生成的 Logout Token 使用专用 Profile。"""
-
     client = SimpleNamespace(client_pk=20, client_id='portal', status='0')
     session = SimpleNamespace(sid='sid-1', status='active', subject_id='subject-1')
     monkeypatch.setattr(
@@ -355,7 +397,6 @@ async def test_backchannel_dns_private_and_ipv6_addresses_are_rejected(
     monkeypatch: pytest.MonkeyPatch, address: str
 ) -> None:
     """Back-Channel DNS 解析到内网、IPv6 回环或 metadata 地址时拒绝发送。"""
-
     monkeypatch.setattr(
         'module_identity.security.uri_validator.socket.getaddrinfo',
         lambda *_args, **_kwargs: [(2, 1, 6, '', (address, 443))],
@@ -369,12 +410,18 @@ async def test_backchannel_retry_queue_and_structured_audit_exclude_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Back-Channel 失败有限重试、入队和审计均不携带 Logout Token。"""
-
     attempts = 0
     queued: list[tuple[str, str, str]] = []
     audited: list[tuple[str, str, str, str]] = []
 
     async def fail(_uri: str, _token: str) -> None:
+        """
+        记录操作尝试并触发预期故障。
+
+        :param _uri: 回调签名接收的 URI
+        :param _token: 回调签名接收的令牌
+        :raises RuntimeError: 模拟网络不可用
+        """
         nonlocal attempts
         attempts += 1
         raise RuntimeError('network down')
@@ -388,10 +435,29 @@ async def test_backchannel_retry_queue_and_structured_audit_exclude_token(
         subject_id: str | None = None,
         include_sid: bool = True,
     ) -> None:
+        """
+        记录加入重试队列的注销通知。
+
+        :param uri: 请求对应的资源标识符
+        :param client_id: 客户端标识
+        :param sid: 关联的单点登录会话标识
+        :param event_jti: 事件 JTI
+        :param subject_id: 身份主体的唯一标识
+        :param include_sid: 是否包含 Session 标识
+        """
         del event_jti, subject_id, include_sid
         queued.append((uri, client_id, sid))
 
     async def audit(event: str, uri: str, client_id: str, sid: str, *, failure_code: str | None = None) -> None:
+        """
+        记录测试操作产生的审计事件。
+
+        :param event: 待处理的事件
+        :param uri: 请求对应的资源标识符
+        :param client_id: 客户端标识
+        :param sid: 关联的单点登录会话标识
+        :param failure_code: 失败原因代码
+        """
         del failure_code
         audited.append((event, uri, client_id, sid))
 
@@ -421,6 +487,13 @@ async def test_backchannel_retry_metadata_reuses_event_jti_without_token(
     metadata: list[dict[str, object]] = []
 
     async def fail(_uri: str, _token: str) -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param _uri: 回调签名接收的 URI
+        :param _token: 回调签名接收的令牌
+        :raises RuntimeError: 模拟网络不可用
+        """
         raise RuntimeError('network down')
 
     async def queue(
@@ -429,6 +502,14 @@ async def test_backchannel_retry_metadata_reuses_event_jti_without_token(
         _sid: str,
         **kwargs: object,
     ) -> None:
+        """
+        记录加入重试队列的注销通知。
+
+        :param _uri: 回调签名接收的 URI
+        :param _client_id: 回调签名接收的客户端标识
+        :param _sid: 回调签名接收的会话标识
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         metadata.append(kwargs)
 
     monkeypatch.setattr('module_identity.service.session_service._BACKCHANNEL_RETRY_DELAY_SECONDS', 0)
@@ -454,12 +535,28 @@ async def test_backchannel_permanent_http_4xx_is_not_retried(monkeypatch: pytest
     audited: list[str] = []
 
     async def permanent(_uri: str, _token: str) -> None:
+        """
+        模拟注销通知发生不可重试的错误。
+
+        :param _uri: 回调签名接收的 URI
+        :param _token: 回调签名接收的令牌
+        :raises httpx.HTTPStatusError: 模拟对端返回不可重试的 HTTP 400
+        """
         nonlocal attempts
         attempts += 1
         request = httpx.Request('POST', 'https://client.example/logout')
         raise httpx.HTTPStatusError('bad request', request=request, response=httpx.Response(400, request=request))
 
     async def audit(event: str, _uri: str, _client_id: str, _sid: str, **kwargs: object) -> None:
+        """
+        记录测试操作产生的审计事件。
+
+        :param event: 待处理的事件
+        :param _uri: 回调签名接收的 URI
+        :param _client_id: 回调签名接收的客户端标识
+        :param _sid: 回调签名接收的会话标识
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         audited.append(f'{event}:{kwargs.get("failure_code")}')
 
     monkeypatch.setattr('module_identity.service.session_service._BACKCHANNEL_RETRY_DELAY_SECONDS', 0)
@@ -487,6 +584,15 @@ async def test_malformed_retry_payload_goes_to_safe_dead_letter_and_audit(
     audited: list[str] = []
 
     async def audit(event: str, _uri: str, _client_id: str, _sid: str, **kwargs: object) -> None:
+        """
+        记录测试操作产生的审计事件。
+
+        :param event: 待处理的事件
+        :param _uri: 回调签名接收的 URI
+        :param _client_id: 回调签名接收的客户端标识
+        :param _sid: 回调签名接收的会话标识
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         audited.append(f'{event}:{kwargs.get("failure_code")}')
 
     monkeypatch.setattr(LogoutService, '_audit_writer', lambda _db: audit)
@@ -499,7 +605,6 @@ async def test_malformed_retry_payload_goes_to_safe_dead_letter_and_audit(
 @pytest.mark.asyncio
 async def test_pinned_transport_uses_approved_ip_and_preserves_origin_host(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pinned transport 只拨批准 IP，同时保留注册域名的 Host 和 TLS SNI。"""
-
     stream = create_autospec(httpcore.AsyncNetworkStream, instance=True)
     stream.read.side_effect = [b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK', b'']
     stream.start_tls.return_value = stream
@@ -524,11 +629,19 @@ async def test_pinned_transport_stops_oversized_response_stream() -> None:
     """远端超大响应在流读取时主动中止，不在内存中无限累积。"""
 
     class Stream:
+        """提供可异步迭代和关闭的响应流。"""
+
         async def __aiter__(self) -> Any:
+            """
+            提供测试数据的异步迭代器。
+
+            :yield: 测试数据的异步迭代器
+            """
             yield b'x' * (70 * 1024)
 
         async def aclose(self) -> None:
-            return None
+            """完成无需返回值的回调。"""
+            return
 
     response = SimpleNamespace(status=200, headers=[], stream=Stream(), extensions={}, aclose=AsyncMock())
     transport = PinnedHttpxTransport('client.example', {'203.0.113.7'})
@@ -565,6 +678,12 @@ async def test_backchannel_retry_consumer_revalidates_uri_and_reissues_short_liv
     sent: list[tuple[str, str]] = []
 
     async def notify(uri: str, token: str) -> None:
+        """
+        记录待发送的后通道注销通知。
+
+        :param uri: 请求对应的资源标识符
+        :param token: 用于身份验证或授权的令牌
+        """
         sent.append((uri, token))
 
     result = await LogoutService.consume_backchannel_retry(object(), redis, notifier=notify)
@@ -579,7 +698,6 @@ async def test_logout_endpoint_disabled_is_local_404_without_legacy_pre_auth(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """OIDC 关闭时直接返回裸 404，不执行数据库或 Legacy PreAuth。"""
-
     config = SimpleNamespace(oidc_enabled=False)
     monkeypatch.setattr(controller, 'OidcConfig', config)
     response = await controller.logout(_request(), object())
@@ -592,7 +710,6 @@ async def test_logout_endpoint_prepares_confirmation_without_clearing_sso_cookie
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """初次退出只建立确认，不清理 SSO Cookie 或撤销登录。"""
-
     config = SimpleNamespace(
         oidc_enabled=True,
         oidc_sso_cookie_name='__Host-ruoyi-sso',
@@ -603,6 +720,13 @@ async def test_logout_endpoint_prepares_confirmation_without_clearing_sso_cookie
     monkeypatch.setattr(controller, 'OidcConfig', config)
 
     async def fake_logout(*_args: object, **_kwargs: object) -> LogoutResult:
+        """
+        创建测试使用的 ``LogoutResult`` 实例。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 测试使用的 ``LogoutResult`` 实例
+        """
         return LogoutResult('https://portal.example/logged-out', 'state-1', True)
 
     monkeypatch.setattr(controller.LogoutService, 'execute_logout', fake_logout)
@@ -627,7 +751,6 @@ async def test_logout_endpoint_unexpected_service_error_returns_503_without_clea
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Logout Service 异常时返回 503，避免清理仍有效的认证 Cookie。"""
-
     config = SimpleNamespace(
         oidc_enabled=True,
         oidc_sso_cookie_name='__Host-ruoyi-sso',
@@ -638,6 +761,13 @@ async def test_logout_endpoint_unexpected_service_error_returns_503_without_clea
     monkeypatch.setattr(controller, 'OidcConfig', config)
 
     async def fail(*_args: object, **_kwargs: object) -> LogoutResult:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :raises RuntimeError: 模拟网络不可用
+        """
         raise RuntimeError('unexpected failure')
 
     monkeypatch.setattr(controller.LogoutConfirmationService, 'issue', fail)
@@ -653,7 +783,6 @@ async def test_logout_endpoint_post_form_forwards_logout_parameters(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """POST application/x-www-form-urlencoded 正确解析并转发 Logout 参数。"""
-
     config = SimpleNamespace(
         oidc_enabled=True,
         oidc_sso_cookie_name='__Host-ruoyi-sso',
@@ -666,6 +795,14 @@ async def test_logout_endpoint_post_form_forwards_logout_parameters(
     captured: dict[str, object] = {}
 
     async def prepare(_redis: object, parameters: dict[str, str], _cookie: str | None) -> tuple[str, str]:
+        """
+        捕获注销确认参数并提供固定测试值。
+
+        :param _redis: 回调签名接收的 Redis 客户端
+        :param parameters: 分派给目标命令的参数
+        :param _cookie: 回调签名接收的 Cookie 值
+        :return: 固定的注销确认令牌和随机数
+        """
         captured.update(parameters)
         return 't' * 43, 'n' * 43
 
@@ -694,11 +831,22 @@ def _request(
     headers: list[tuple[bytes, bytes]] | None = None,
     body: bytes = b'',
 ) -> Request:
-    """构造带最小 Redis 状态的 Starlette Request。"""
+    """
+    构造带最小 Redis 状态的 Starlette Request。
 
+    :param method: 当前请求的 HTTP 方法
+    :param headers: 响应或请求携带的 HTTP 头
+    :param body: 请求或测试样例的正文
+    :return: 带最小 Redis 状态的 Starlette Request
+    """
     app = SimpleNamespace(state=SimpleNamespace(redis=object()))
 
     async def receive() -> dict[str, object]:
+        """
+        提供下游 ASGI 应用读取的 HTTP 请求体消息。
+
+        :return: 下游 ASGI 应用读取的 HTTP 请求体消息
+        """
         return {'type': 'http.request', 'body': body, 'more_body': False}
 
     return Request(
@@ -715,20 +863,38 @@ def _request(
 
 
 def _async_return(value: object) -> object:
-    """构造固定值异步桩。"""
+    """
+    构造固定值异步桩。
+
+    :param value: 待处理的输入值
+    :return: 固定值异步桩
+    """
 
     async def return_value(*_args: object, **_kwargs: object) -> object:
+        """
+        向调用方返回 ``value``。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 为此调用预设的值
+        """
         return value
 
     return return_value
 
 
 async def _async_noop(*_args: object, **_kwargs: object) -> None:
-    """构造无副作用异步桩。"""
+    """
+    构造无副作用异步桩。
+
+    :param _args: 调用方传入的其余位置参数
+    :param _kwargs: 调用方按名称传入的附加选项
+    """
 
 
 @pytest.mark.asyncio
 async def test_expired_id_token_is_accepted_only_as_logout_hint(monkeypatch: pytest.MonkeyPatch, now: datetime) -> None:
+    """过期身份令牌仅可用于注销提示。"""
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     payload = jwt.decode(_id_token(private_key, now=now), options={'verify_signature': False})
     payload.update(iat=int(now.timestamp()) - 1200, exp=int(now.timestamp()) - 600)
@@ -751,6 +917,7 @@ async def test_expired_id_token_is_accepted_only_as_logout_hint(monkeypatch: pyt
 async def test_confirmed_logout_does_not_revoke_another_accounts_hint_session(
     monkeypatch: pytest.MonkeyPatch, now: datetime
 ) -> None:
+    """确认注销不能撤销另一账号的提示会话。"""
     client = SimpleNamespace(client_pk=20, client_id='portal', status='0')
     other = SimpleNamespace(sid='other-sid', subject_id='other-subject', status='active')
     current = SimpleNamespace(sid='current-sid', subject_id='current-subject', status='active')

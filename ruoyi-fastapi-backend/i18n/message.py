@@ -1,10 +1,10 @@
 def validate_plural(count: int | None, plural_key: str | None) -> None:
     """
-    校验复数数量与消息标识成对提供，且数量为非负整数
+    校验复数数量与消息标识成对提供，且数量为非负整数。
 
     :param count: 复数消息数量
     :param plural_key: 复数消息标识
-    :return: None
+    :raises ValueError: 复数键与计数没有配对，或计数不是非负整数
     """
     if (count is None) != (plural_key is None):
         raise ValueError('count and plural_key must be provided together')
@@ -14,7 +14,13 @@ def validate_plural(count: int | None, plural_key: str | None) -> None:
 
 class I18nMessage(str):
     """
-    保存原文和消息标识，在响应阶段按请求语言翻译
+    保存原文和消息标识，在响应阶段按请求语言翻译。
+
+    :ivar msg_key: 完整消息标识
+    :ivar msg_params: 消息插值参数
+    :ivar domain: 已注册的词库域
+    :ivar count: 本次处理或预期的数量
+    :ivar plural_key: 复数消息标识
     """
 
     msg_key: str
@@ -34,7 +40,7 @@ class I18nMessage(str):
         plural_key: str | None = None,
     ) -> 'I18nMessage':
         """
-        构造带国际化元数据的原文，不在模块加载时读取语言上下文
+        构造带国际化元数据的原文，不在模块加载时读取语言上下文。
 
         :param message: 写入日志或异常的消息原文
         :param msg_key: 完整消息标识
@@ -55,7 +61,7 @@ class I18nMessage(str):
 
     def __getnewargs_ex__(self) -> tuple[tuple[str], dict]:
         """
-        复制或序列化时保留消息元数据
+        复制或序列化时保留消息元数据。
 
         :return: 重建消息所需的构造参数
         """

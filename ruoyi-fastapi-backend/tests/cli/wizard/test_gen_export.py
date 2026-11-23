@@ -7,6 +7,7 @@ def test_gen_export_wizard_executes_nested_cli_with_selected_tables(
     monkeypatch: MonkeyPatch,
     gen_export_flow: ModuleType,
 ) -> None:
+    """导出向导将选中的表传给嵌套命令。"""
     captured: dict[str, object] = {}
     answers = iter(['dev', 'sys_user,sys_role', 'zip', 'build/demo.zip', True, True])
     monkeypatch.setattr(
@@ -71,6 +72,7 @@ def test_gen_export_wizard_accepts_default_context_values(
     monkeypatch: MonkeyPatch,
     gen_export_flow: ModuleType,
 ) -> None:
+    """导出向导接受上下文默认值。"""
     captured_defaults: dict[str, object] = {}
     captured_confirm_defaults: list[tuple[str, bool]] = []
     answers = iter(['dev', 'sys_user', 'zip', 'build/demo.zip', True, False])

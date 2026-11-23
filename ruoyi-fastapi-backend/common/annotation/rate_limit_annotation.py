@@ -31,7 +31,16 @@ RateLimitFailStrategy = Literal['open', 'closed', 'local_fallback']
 @dataclass(frozen=True)
 class ApiRateLimitPresetConfig:
     """
-    接口限流预设配置
+    接口限流预设配置。
+
+    :ivar name: 用于查找或标识当前对象的名称
+    :ivar limit: 窗口内允许的最大请求次数，可覆盖预设
+    :ivar window_seconds: 限流窗口时长，单位秒，可覆盖预设
+    :ivar scope: 限流作用域，ip: 按客户端IP限流，客户端IP由可信代理配置控制提取，user: 仅按当前登录用户限流，未登录请求跳过限流，user_or_ip: 已登录按用户限流，未登录按客户端IP限流，可覆盖预设
+    :ivar algorithm: 限流算法，fixed_window: 固定窗口，sliding_window: 滑动窗口，可覆盖预设
+    :ivar fail_strategy: 限流组件异常时的故障策略，open: 放行，closed: 直接拦截，local_fallback: 使用进程内内存做应急兜底限流，仅保证单进程内生效，可覆盖预设
+    :ivar methods: 需要限流的HttpMethod枚举列表，为None时默认限制所有方法，可覆盖预设
+    :ivar message: 触发限流后的提示信息，可覆盖预设
     """
 
     name: str
@@ -47,7 +56,9 @@ class ApiRateLimitPresetConfig:
 @dataclass(frozen=True)
 class ApiRateLimitBypassConfig:
     """
-    接口限流角色豁免配置
+    接口限流角色豁免配置。
+
+    :ivar roles: 应用规则的角色集合
     """
 
     roles: tuple[str, ...]
@@ -55,24 +66,24 @@ class ApiRateLimitBypassConfig:
 
 class ApiRateLimitPreset:
     """
-    接口限流预设
+    接口限流预设。
 
-    ANON_AUTH_LOGIN: 匿名登录类接口限流预设
-    ANON_AUTH_REGISTER: 匿名注册类接口限流预设
-    ANON_AUTH_CAPTCHA: 匿名验证码类接口限流预设
-    ANON_PUBLIC_METADATA: 匿名公开元数据接口限流预设
-    COMMON_UPLOAD: 通用上传接口限流预设
-    USER_INTERACTIVE_HIGH_FREQ: 用户高频交互接口限流预设
-    USER_RESOURCE_EXECUTION: 用户执行类接口限流预设
-    USER_COMMON_MUTATION: 用户普通写操作接口限流预设
-    USER_SECURITY_MUTATION: 用户安全敏感操作接口限流预设
-    USER_DESTRUCTIVE_MUTATION: 用户破坏性操作接口限流预设
-    USER_RESOURCE_EXPORT: 用户导出类接口限流预设
-    USER_RESOURCE_IMPORT: 用户导入类接口限流预设
-    USER_RESOURCE_UPLOAD: 用户上传类接口限流预设
-    USER_RESOURCE_GENERATE: 用户生成类接口限流预设
-    USER_RESOURCE_DOWNLOAD: 用户下载类接口限流预设
-    USER_RESOURCE_SYNC: 用户同步类接口限流预设
+    :cvar ANON_AUTH_LOGIN: 匿名登录类接口限流预设
+    :cvar ANON_AUTH_REGISTER: 匿名注册类接口限流预设
+    :cvar ANON_AUTH_CAPTCHA: 匿名验证码类接口限流预设
+    :cvar ANON_PUBLIC_METADATA: 匿名公开元数据接口限流预设
+    :cvar COMMON_UPLOAD: 通用上传接口限流预设
+    :cvar USER_INTERACTIVE_HIGH_FREQ: 用户高频交互接口限流预设
+    :cvar USER_RESOURCE_EXECUTION: 用户执行类接口限流预设
+    :cvar USER_COMMON_MUTATION: 用户普通写操作接口限流预设
+    :cvar USER_SECURITY_MUTATION: 用户安全敏感操作接口限流预设
+    :cvar USER_DESTRUCTIVE_MUTATION: 用户破坏性操作接口限流预设
+    :cvar USER_RESOURCE_EXPORT: 用户导出类接口限流预设
+    :cvar USER_RESOURCE_IMPORT: 用户导入类接口限流预设
+    :cvar USER_RESOURCE_UPLOAD: 用户上传类接口限流预设
+    :cvar USER_RESOURCE_GENERATE: 用户生成类接口限流预设
+    :cvar USER_RESOURCE_DOWNLOAD: 用户下载类接口限流预设
+    :cvar USER_RESOURCE_SYNC: 用户同步类接口限流预设
     """
 
     ANON_AUTH_LOGIN = ApiRateLimitPresetConfig(
@@ -182,12 +193,29 @@ class ApiRateLimit:
     """
     接口限流装饰器，支持Redis固定窗口、滑动窗口及本地应急兜底。
 
-    `local_fallback` 仅作为Redis异常场景下的进程内应急保护，能提供单进程内的
+    ``local_fallback`` 仅作为Redis异常场景下的进程内应急保护，能提供单进程内的
     基础限流能力，但不保证多 worker / 多实例部署下的全局一致性。
 
-    `ip` 维度限流通过 `ClientIPUtil` 提取客户端地址，仅当请求来源命中
-    `APP_TRUSTED_PROXY_IPS` 且 `APP_TRUSTED_PROXY_HOPS` 大于0时，才会解析
-    `X-Forwarded-For` / `X-Real-IP` 请求头；否则回退到直接连接来源地址。
+    ``ip`` 维度限流通过 ``ClientIPUtil`` 提取客户端地址，仅当请求来源命中
+    ``APP_TRUSTED_PROXY_IPS`` 且 ``APP_TRUSTED_PROXY_HOPS`` 大于0时，才会解析
+    ``X-Forwarded-For`` / ``X-Real-IP`` 请求头；否则回退到直接连接来源地址。
+
+    :cvar _SUPPORTED_SCOPES: 允许配置的限流作用域
+    :cvar _SUPPORTED_ALGORITHMS: 可供选择的限流算法
+    :cvar _SUPPORTED_FAIL_STRATEGIES: 限流后端异常时支持的处理策略
+    :cvar _FIXED_WINDOW_LUA_SCRIPT: 在 Redis 中更新固定窗口计数器的 Lua 脚本
+    :cvar _SLIDING_WINDOW_LUA_SCRIPT: 在 Redis 中维护滑动窗口的 Lua 脚本
+    :cvar _LOCAL_FALLBACK_STORE: 限流后端不可用时使用的进程内存储
+    :ivar namespace: 限流命名空间，用于区分不同接口
+    :ivar preset_name: 当前使用的限流预设名称
+    :ivar limit: 窗口内允许的最大请求次数，可覆盖预设
+    :ivar window_seconds: 限流窗口时长，单位秒，可覆盖预设
+    :ivar scope: 限流作用域，ip: 按客户端IP限流，客户端IP由可信代理配置控制提取，user: 仅按当前登录用户限流，未登录请求跳过限流，user_or_ip: 已登录按用户限流，未登录按客户端IP限流，可覆盖预设
+    :ivar algorithm: 限流算法，fixed_window: 固定窗口，sliding_window: 滑动窗口，可覆盖预设
+    :ivar fail_strategy: 限流组件异常时的故障策略，open: 放行，closed: 直接拦截，local_fallback: 使用进程内内存做应急兜底限流，仅保证单进程内生效，可覆盖预设
+    :ivar bypass_roles: 原始角色标识列表
+    :ivar methods: 需要限流的HttpMethod枚举列表，为None时默认限制所有方法，可覆盖预设
+    :ivar message: 触发限流后的提示信息，可覆盖预设
     """
 
     _SUPPORTED_SCOPES: tuple[RateLimitScope, ...] = ('ip', 'user', 'user_or_ip')
@@ -259,7 +287,7 @@ class ApiRateLimit:
         preset: ApiRateLimitPresetConfig | None = None,
     ) -> None:
         """
-        初始化接口限流装饰器
+        初始化接口限流装饰器。
 
         :param namespace: 限流命名空间，用于区分不同接口
         :param limit: 窗口内允许的最大请求次数，可覆盖预设
@@ -271,6 +299,7 @@ class ApiRateLimit:
         :param methods: 需要限流的HttpMethod枚举列表，为None时默认限制所有方法，可覆盖预设
         :param message: 触发限流后的提示信息，可覆盖预设
         :param preset: 限流预设配置
+        :raises ValueError: ApiRateLimit的namespace不能为空；ApiRateLimit的limit必须大于0；ApiRateLimit的window_seconds必须大于0；ApiRateLimit在scope=ip时不支持角色豁免配置
         """
         resolved_limit = limit if limit is not None else preset.limit if preset else None
         resolved_window_seconds = (
@@ -313,7 +342,7 @@ class ApiRateLimit:
 
     def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         """
-        为目标异步接口函数增加接口限流能力
+        为目标异步接口函数增加接口限流能力。
 
         :param func: 需要限流的异步接口函数
         :return: 包装后的异步接口函数
@@ -321,6 +350,13 @@ class ApiRateLimit:
 
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            """
+            校验请求的限流条件后执行被装饰的接口。
+
+            :param args: 传给被调用对象的位置参数
+            :param kwargs: 传给被调用对象的关键字参数
+            :return: 通过限流检查后原端点返回的响应
+            """
             request = ApiAnnotationUtil.get_request(func, *args, **kwargs)
             if request is None:
                 return await func(*args, **kwargs)
@@ -364,7 +400,7 @@ class ApiRateLimit:
 
     def _is_request_method_allowed(self, request: Request) -> bool:
         """
-        判断当前请求方法是否启用限流
+        判断当前请求方法是否启用限流。
 
         :param request: 当前请求对象
         :return: 是否启用限流
@@ -373,10 +409,11 @@ class ApiRateLimit:
 
     def _normalize_bypass_roles(self, bypass_roles: Sequence[str] | None) -> tuple[str, ...]:
         """
-        标准化角色豁免配置
+        标准化角色豁免配置。
 
         :param bypass_roles: 原始角色标识列表
         :return: 去重后的角色标识元组
+        :raises ValueError: ApiRateLimit的bypass_roles不能包含空角色标识
         """
         if not bypass_roles:
             return ()
@@ -393,7 +430,7 @@ class ApiRateLimit:
 
     def _match_bypass_role(self) -> str | None:
         """
-        判断当前登录用户是否命中角色豁免
+        判断当前登录用户是否命中角色豁免。
 
         :return: 命中的角色标识，未命中时返回None
         """
@@ -413,7 +450,7 @@ class ApiRateLimit:
 
     async def _acquire_rate_limit(self, redis: aioredis.Redis, request: Request) -> dict[str, int | bool] | None:
         """
-        获取当前请求的限流计数结果
+        获取当前请求的限流计数结果。
 
         :param redis: Redis连接对象
         :param request: 当前请求对象
@@ -455,8 +492,9 @@ class ApiRateLimit:
         self, request: Request, current_time_ms: int, include_window_bucket: bool = True
     ) -> str | None:
         """
-        构建当前请求的限流键
+        构建当前请求的限流键。
 
+        :param include_window_bucket: 是否将固定限流窗口编号写入缓存键
         :param request: 当前请求对象
         :param current_time_ms: 当前时间戳，单位毫秒
         :return: 限流键，当前请求不适用限流时返回None
@@ -491,7 +529,7 @@ class ApiRateLimit:
         self, request: Request, reason: str, error_message: str
     ) -> dict[str, int | bool] | None:
         """
-        处理Redis不可用或执行异常时的限流故障策略
+        处理Redis不可用或执行异常时的限流故障策略。
 
         :param request: 当前请求对象
         :param reason: 降级原因
@@ -508,7 +546,7 @@ class ApiRateLimit:
 
     def _acquire_local_fallback_rate_limit(self, request: Request) -> dict[str, int | bool] | None:
         """
-        使用进程内内存进行应急兜底限流，仅在Redis异常时启用
+        使用进程内内存进行应急兜底限流，仅在Redis异常时启用。
 
         该兜底能力仅在当前进程内生效，不保证多 worker / 多实例场景下的
         全局一致限流，更适合作为短时故障期间的降级保护。
@@ -556,7 +594,7 @@ class ApiRateLimit:
 
     def _build_closed_rate_limit_result(self) -> dict[str, int | bool]:
         """
-        构建故障关闭策略下的拦截结果
+        构建故障关闭策略下的拦截结果。
 
         :return: 限流结果
         """
@@ -573,7 +611,7 @@ class ApiRateLimit:
 
     def _get_route_path(self, request: Request) -> str:
         """
-        获取当前请求的路由模板路径
+        获取当前请求的路由模板路径。
 
         :param request: 当前请求对象
         :return: 路由模板路径
@@ -584,7 +622,7 @@ class ApiRateLimit:
 
     def _get_scope_value(self, request: Request) -> str | None:
         """
-        获取当前请求的限流作用域值
+        获取当前请求的限流作用域值。
 
         :param request: 当前请求对象
         :return: 作用域值，当前请求不适用限流时返回None
@@ -603,7 +641,7 @@ class ApiRateLimit:
 
     def _get_current_user_id(self) -> int | None:
         """
-        获取当前登录用户ID
+        获取当前登录用户ID。
 
         :return: 用户ID，未登录时返回None
         """
@@ -612,7 +650,7 @@ class ApiRateLimit:
 
     def _get_current_user(self) -> CurrentUserModel | None:
         """
-        获取当前登录用户
+        获取当前登录用户。
 
         :return: 当前登录用户，未登录时返回None
         """
@@ -623,7 +661,7 @@ class ApiRateLimit:
 
     def _get_client_ip(self, request: Request) -> str:
         """
-        获取客户端IP地址
+        获取客户端IP地址。
 
         :param request: 当前请求对象
         :return: 客户端IP地址
@@ -632,7 +670,7 @@ class ApiRateLimit:
 
     def _build_rate_limit_headers(self, rate_limit_result: dict[str, int | bool]) -> dict[str, str]:
         """
-        构建限流响应头
+        构建限流响应头。
 
         :param rate_limit_result: 限流结果
         :return: 限流响应头
@@ -649,11 +687,10 @@ class ApiRateLimit:
 
     def _log_rate_limit_hit(self, request: Request, rate_limit_result: dict[str, int | bool]) -> None:
         """
-        记录限流命中日志
+        记录限流命中日志。
 
         :param request: 当前请求对象
         :param rate_limit_result: 限流结果
-        :return: None
         """
         logger.warning(
             '接口限流命中: namespace={} preset={} algorithm={} fail_strategy={} method={} path={} scope={} scope_value={} current={} limit={} retry_after={}s',
@@ -672,12 +709,11 @@ class ApiRateLimit:
 
     def _log_rate_limit_degrade(self, request: Request, reason: str, error_message: str) -> None:
         """
-        记录限流组件异常时的降级日志
+        记录限流组件异常时的降级日志。
 
         :param request: 当前请求对象
         :param reason: 降级原因
         :param error_message: 错误详情
-        :return: None
         """
         log_message = (
             '接口限流降级: namespace={} preset={} algorithm={} fail_strategy={} '
@@ -702,11 +738,10 @@ class ApiRateLimit:
 
     def _log_rate_limit_bypass(self, request: Request, bypass_role: str) -> None:
         """
-        记录角色豁免限流日志
+        记录角色豁免限流日志。
 
         :param request: 当前请求对象
         :param bypass_role: 命中的角色标识
-        :return: None
         """
         logger.info(
             '接口限流绕过: namespace={} preset={} method={} path={} scope={} bypass_role={}',

@@ -15,10 +15,11 @@ from utils.time_util import TimezoneUtil
 
 def plan_store_dictionary(connection: Connection) -> dict[str, Any]:
     """
-    检查旧任务分组字典，生成复用原记录的调度存储字典迁移计划
+    检查旧任务分组字典，生成复用原记录的调度存储字典迁移计划。
 
     :param connection: 数据库连接
     :return: 字典迁移计划
+    :raises ValueError: 新旧调度存储字典同时存在，请先处理 sys_job_group 和 sys_job_store 冲突；调度存储字典存在重复键值，请先处理冲突
     """
     metadata = MetaData()
     types = Table('sys_dict_type', metadata, autoload_with=connection)
@@ -50,7 +51,7 @@ def plan_store_dictionary(connection: Connection) -> dict[str, Any]:
 
 def migrate_store_dictionary(connection: Connection, plan: dict[str, Any]) -> dict[str, Any]:
     """
-    将任务分组字典改为调度存储字典，保留已有编号、排序和自定义标签
+    将任务分组字典改为调度存储字典，保留已有编号、排序和自定义标签。
 
     :param connection: 数据库连接
     :param plan: 只读检查生成的字典迁移计划
@@ -97,7 +98,7 @@ def migrate_store_dictionary(connection: Connection, plan: dict[str, Any]) -> di
 
 def parse_legacy_args(value: Any) -> list[Any]:
     """
-    按旧调度器的规则迁移位置参数，保留原有值类型和逗号分隔语义
+    按旧调度器的规则迁移位置参数，保留原有值类型和逗号分隔语义。
 
     :param value: 旧位置参数
     :return: JSON位置参数数组
@@ -115,10 +116,11 @@ def parse_legacy_args(value: Any) -> list[Any]:
 
 def parse_legacy_kwargs(value: Any) -> dict[str, Any]:
     """
-    将旧关键字参数转换为JSON对象
+    将旧关键字参数转换为JSON对象。
 
     :param value: 旧关键字参数
     :return: JSON关键字参数对象
+    :raises ValueError: 关键字参数不是JSON对象
     """
     parsed = {} if value is None or value == '' else (json.loads(value) if isinstance(value, str) else value)
     if not isinstance(parsed, dict):
@@ -128,14 +130,22 @@ def parse_legacy_kwargs(value: Any) -> dict[str, Any]:
 
 def convert_configuration(row: dict[str, Any], *, snapshot: bool = False) -> dict[str, Any]:
     """
-    转换旧任务字段，修正放弃执行的宽限时间并保留旧并发上限
+    转换旧任务字段，修正放弃执行的宽限时间并保留旧并发上限。
 
     :param row: 旧任务记录或执行快照
     :param snapshot: 是否使用接口驼峰字段名
     :return: 新字段和值
+    :raises ValueError: 旧执行策略或并发配置无效；旧分组无法对应已注册的调度存储
     """
 
     def read(name: str, default: Any = None) -> Any:
+        """
+        从新旧任务配置字段中读取配置值。
+
+        :param name: 用于查找或标识当前对象的名称
+        :param default: 未提供有效值时使用的默认值
+        :return: 优先从新字段读取的配置值
+        """
         key = (
             ''.join(part.title() if index else part for index, part in enumerate(name.split('_'))) if snapshot else name
         )
@@ -168,7 +178,7 @@ def convert_configuration(row: dict[str, Any], *, snapshot: bool = False) -> dic
 
 def table_columns(connection: Connection, name: str) -> dict[str, dict]:
     """
-    读取当前表结构，支持DDL部分完成后的再次运行
+    读取当前表结构，支持DDL部分完成后的再次运行。
 
     :param connection: 数据库连接
     :param name: 表名
@@ -179,7 +189,7 @@ def table_columns(connection: Connection, name: str) -> dict[str, dict]:
 
 def is_current_schema(connection: Connection) -> bool:
     """
-    检查新字段、主键及唯一规则，避免重复转换已升级的数据
+    检查新字段、主键及唯一规则，避免重复转换已升级的数据。
 
     :param connection: 数据库连接
     :return: 是否已完成第二轮字段迁移
@@ -202,10 +212,11 @@ def is_current_schema(connection: Connection) -> bool:
 
 def preflight(connection: Connection) -> dict[str, Any]:
     """
-    只读检查主键、名称冲突及参数，所有定义通过后才允许修改表结构
+    只读检查主键、名称冲突及参数，所有定义通过后才允许修改表结构。
 
     :param connection: 数据库连接
     :return: 迁移计划及转换后的任务数据
+    :raises ValueError: 有重复标识、无效任务配置或尚未完成的任务执行
     """
     if is_current_schema(connection):
         return {'current': True, 'jobs': [], 'requests': [], 'policies': {}}
@@ -252,13 +263,12 @@ def preflight(connection: Connection) -> dict[str, Any]:
 
 def add_column(connection: Connection, table: str, name: str, definition: str) -> None:
     """
-    仅添加尚不存在的迁移字段
+    仅添加尚不存在的迁移字段。
 
     :param connection: 数据库连接
     :param table: 表名
     :param name: 字段名
     :param definition: 固定的DDL字段定义
-    :return: None
     """
     if name not in table_columns(connection, table):
         connection.exec_driver_sql(f'ALTER TABLE {table} ADD COLUMN {name} {definition}')
@@ -266,12 +276,11 @@ def add_column(connection: Connection, table: str, name: str, definition: str) -
 
 def archive_column(connection: Connection, table: str, name: str) -> None:
     """
-    保留旧字段原文，供升级审计和备份恢复时核对
+    保留旧字段原文，供升级审计和备份恢复时核对。
 
     :param connection: 数据库连接
     :param table: 表名
     :param name: 旧字段名
-    :return: None
     """
     columns = table_columns(connection, table)
     if f'legacy_{name}' not in columns and name in columns:
@@ -280,7 +289,7 @@ def archive_column(connection: Connection, table: str, name: str) -> None:
 
 def migrate_logs(connection: Connection) -> int:
     """
-    分批转换日志参数，只从明确的日志编号信息补全关联，不按名称猜测
+    分批转换日志参数，只从明确的日志编号信息补全关联，不按名称猜测。
 
     :param connection: 数据库连接
     :return: 转换的日志数量
@@ -315,11 +324,12 @@ def migrate_logs(connection: Connection) -> int:
 
 def apply_migration(connection: Connection, plan: dict[str, Any]) -> dict[str, Any]:
     """
-    应用已通过检查的迁移计划，PostgreSQL使用事务，MySQL可从保留的旧字段重试
+    应用已通过检查的迁移计划，PostgreSQL使用事务，MySQL可从保留的旧字段重试。
 
     :param connection: 所有应用worker停止后的独占数据库连接
     :param plan: 只读预检产生的迁移计划
     :return: 迁移数量报告
+    :raises ValueError: 字段迁移仅支持MySQL和PostgreSQL
     """
     if plan['current']:
         return {'current': True, 'jobs': 0, 'requests': 0, 'logs': 0}
@@ -368,10 +378,9 @@ def apply_migration(connection: Connection, plan: dict[str, Any]) -> dict[str, A
 
 def finalize_schema(connection: Connection) -> None:
     """
-    数据转换完成后建立主键、索引和约束
+    数据转换完成后建立主键、索引和约束。
 
     :param connection: 数据库连接
-    :return: None
     """
     mysql = connection.dialect.name == 'mysql'
     inspector = inspect(connection)
@@ -413,11 +422,7 @@ def finalize_schema(connection: Connection) -> None:
 
 
 def main() -> None:
-    """
-    默认只读预检，显式选择应用迁移时才修改指定数据源
-
-    :return: None
-    """
+    """默认只读预检，显式选择应用迁移时才修改指定数据源。"""
     parser = argparse.ArgumentParser(description='迁移第二轮任务字段，默认只读检查')
     parser.add_argument('--env-file', default='.env.dev', help='数据源配置文件')
     parser.add_argument('--source', help='指定数据源别名')

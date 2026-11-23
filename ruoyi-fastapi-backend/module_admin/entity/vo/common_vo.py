@@ -5,9 +5,7 @@ from pydantic.alias_generators import to_camel
 
 
 class UploadResponseModel(BaseModel):
-    """
-    上传响应模型
-    """
+    """上传响应模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

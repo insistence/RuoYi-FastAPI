@@ -75,35 +75,60 @@ _MIN_EXPECTED_COMMITS = 2
 
 
 class _Db:
-    """记录交互控制器事务边界。"""
+    """
+    记录交互控制器事务边界。
+
+    :ivar commits: 测试中记录的提交次数
+    :ivar rollbacks: 测试中记录的回滚次数
+    :ivar events: 保存已发出事件的序列
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``commits``, ``rollbacks``, ``events``。"""
         self.commits = 0
         self.rollbacks = 0
         self.events: list[object] = []
 
     def add(self, value: object) -> None:
+        """
+        将测试对象加入待检查的操作记录。
+
+        :param value: 待处理的输入值
+        """
         self.events.append(value)
 
     async def flush(self) -> None:
-        return None
+        """完成无需返回值的回调。"""
+        return
 
     async def commit(self) -> None:
+        """累加 ``commits`` 供后续断言检查。"""
         self.commits += 1
 
     async def rollback(self) -> None:
+        """累加 ``rollbacks`` 供后续断言检查。"""
         self.rollbacks += 1
 
 
 @dataclass
 class _User:
-    """登录成功所需的最小用户标量。"""
+    """
+    登录成功所需的最小用户标量。
+
+    :ivar user_id: 用户的唯一标识
+    """
 
     user_id: int = 2
 
 
 def _payload(status: str = 'awaiting_login', **overrides: object) -> dict[str, object]:
-    """构造 Interaction 内部白名单载荷。"""
+    """
+    构造 Interaction 内部白名单载荷。
+
+    :param status: 操作或记录所处的状态
+    :param overrides: 调用方按名称传入的附加选项
+    :return: Interaction 内部白名单载荷
+    """
     payload: dict[str, object] = {
         'interactionId': 'interaction-controller-id',
         'clientPk': 1001,
@@ -129,7 +154,13 @@ def _payload(status: str = 'awaiting_login', **overrides: object) -> dict[str, o
 
 
 def _request(redis: FakeRedis, csrf: str | None = None) -> SimpleNamespace:
-    """构造交互页面请求替身。"""
+    """
+    构造交互页面请求替身。
+
+    :param redis: 测试用 Redis
+    :param csrf: 请求中的 CSRF 校验值
+    :return: 交互页面请求替身
+    """
     return SimpleNamespace(
         app=SimpleNamespace(state=SimpleNamespace(redis=redis)),
         headers={'x-csrf-token': csrf} if csrf else {},
@@ -139,7 +170,11 @@ def _request(redis: FakeRedis, csrf: str | None = None) -> SimpleNamespace:
 
 
 def _context() -> AuthorizationContext:
-    """构造同意校验使用的不可变上下文。"""
+    """
+    构造同意校验使用的不可变上下文。
+
+    :return: 同意校验使用的不可变上下文
+    """
     return AuthorizationContext(
         client=ClientSnapshot(1001, 'portal-client', 1, ('authorization_code',), ('code',), True, True, False),
         redirect_uri='https://portal.example/callback',
@@ -161,7 +196,11 @@ def _context() -> AuthorizationContext:
 
 @pytest.fixture
 def oidc_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    """配置安全 OIDC 参数。"""
+    """
+    配置安全 OIDC 参数。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', True)
     monkeypatch.setattr(OidcConfig, 'oidc_token_hash_pepper', _PEPPER)
     monkeypatch.setattr(OidcConfig, 'oidc_authorization_code_ttl_seconds', 90)
@@ -197,12 +236,33 @@ async def test_login_and_complete_real_interaction_lifecycle(monkeypatch: pytest
     )
 
     async def authenticate(*args: object, **kwargs: object) -> CredentialAuthenticationResult:
+        """
+        向调用方返回 ``result``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 为当前测试预设的操作结果
+        """
         return result
 
     async def require_subject(*args: object, **kwargs: object) -> Any:
+        """
+        向调用方返回 ``subject``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 令牌中标识用户的主体
+        """
         return subject
 
     async def create_sso(*args: object, **kwargs: object) -> tuple[str, Any]:
+        """
+        提供登录流程使用的测试会话。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 登录流程使用的测试会话
+        """
         return 'ss1.sid-1.' + 'A' * 43, session
 
     monkeypatch.setattr(CredentialAuthenticationService, 'authenticate_oidc', authenticate)
@@ -232,6 +292,12 @@ async def test_login_and_complete_real_interaction_lifecycle(monkeypatch: pytest
     audit_events: list[str] = []
 
     async def record_audit(*args: object, **kwargs: object) -> None:
+        """
+        记录本次提交的审计事件。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         audit_events.append(str(args[1]))
 
     monkeypatch.setattr(AuditService, 'record', record_audit)
@@ -263,12 +329,33 @@ async def test_forced_password_login_creates_no_sso_cookie_or_active_session(
     subject = SimpleNamespace(subject_id='11111111-1111-4111-8111-111111111111', auth_version=1)
 
     async def authenticate(*args: object, **kwargs: object) -> CredentialAuthenticationResult:
+        """
+        向调用方返回 ``result``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 为当前测试预设的操作结果
+        """
         return result
 
     async def require_subject(*args: object, **kwargs: object) -> Any:
+        """
+        向调用方返回 ``subject``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 令牌中标识用户的主体
+        """
         return subject
 
     async def forbidden_sso(*args: object, **kwargs: object) -> Any:
+        """
+        模拟此操作抛出 AssertionError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises AssertionError: 强制密码登录错误地尝试创建单点登录会话
+        """
         raise AssertionError('forced password login must not create SSO')
 
     monkeypatch.setattr(CredentialAuthenticationService, 'authenticate_oidc', authenticate)
@@ -360,7 +447,12 @@ async def test_captcha_endpoint_has_independent_oidc_limit_and_fail_closed(
 
 
 async def _raise_async(error: Exception) -> Any:
-    """在测试中构造异步异常结果。"""
+    """
+    在测试中构造异步异常结果。
+
+    :param error: 发生错误时返回的错误信息
+    :raises Exception: 底层操作失败时向调用方传播异常
+    """
     raise error
 
 
@@ -432,11 +524,28 @@ async def test_body_parser_rejects_duplicate_unknown_and_oversized_json_without_
     """JSON 解析错误统一脱敏，且受 16KiB 总体大小限制。"""
 
     class BodyRequest:
+        """
+        分块提供测试请求体。
+
+        :ivar headers: 响应或请求携带的 HTTP 头
+        :ivar value: 待处理的输入值
+        """
+
         def __init__(self, value: bytes) -> None:
+            """
+            初始化测试夹具的 ``headers``, ``value``。
+
+            :param value: 待处理的输入值
+            """
             self.headers = {'content-type': 'application/json'}
             self.value = value
 
         async def stream(self) -> Any:
+            """
+            将请求数据分段异步输出。
+
+            :yield: 按读取进度切分的请求体字节块
+            """
             midpoint = len(self.value) // 2
             yield self.value[:midpoint]
             yield self.value[midpoint:]
@@ -462,6 +571,11 @@ def test_interaction_routes_stream_and_normalize_malformed_json_without_password
     app.include_router(interaction_controller)
 
     async def db_override() -> Any:
+        """
+        为请求提供替代数据库会话。
+
+        :yield: 本次请求使用的模拟数据库会话
+        """
         yield _Db()
 
     app.dependency_overrides[get_db_session_provider(None)] = db_override
@@ -494,9 +608,17 @@ async def test_db_commit_then_redis_cas_failure_runs_compensation(monkeypatch: p
     compensated = False
 
     async def failed_transition(*args: object, **kwargs: object) -> object:
+        """
+        模拟此操作抛出 OidcInteractionException 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises OidcInteractionException: 模拟交互状态的比较交换失败
+        """
         raise OidcInteractionException(created.interaction_id, 'CAS failed', error='server_error', status_code=503)
 
     async def compensate() -> None:
+        """记录失败处理是否触发补偿。"""
         nonlocal compensated
         compensated = True
 
@@ -551,16 +673,31 @@ async def test_consent_commit_then_redis_cas_failure_compensates_persisted_grant
     compensated = False
 
     async def revoke(*_args: object, **_kwargs: object) -> bool:
+        """
+        在此测试分支返回 True。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 此分支的固定值 ``True``
+        """
         return True
 
     monkeypatch.setattr(OAuthGrantDao, 'revoke_snapshot', revoke)
 
     async def compensate() -> None:
+        """记录失败处理是否触发补偿。"""
         nonlocal compensated
         compensated = True
         await ConsentService.compensate_persisted_grant(db, result)
 
     async def cas_failure(*_args: object, **_kwargs: object) -> None:
+        """
+        模拟此操作抛出 OidcInteractionException 的情形。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :raises OidcInteractionException: 模拟交互状态的比较交换失败
+        """
         raise OidcInteractionException(created.interaction_id, 'CAS failed', error='server_error', status_code=503)
 
     monkeypatch.setattr(InteractionService, 'transition', cas_failure)
@@ -632,15 +769,34 @@ async def test_password_change_cas_failure_runs_full_security_saga(monkeypatch: 
     )
 
     async def revoke(*_args: object, **_kwargs: object) -> None:
+        """
+        在请求处理中撤销测试凭据。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        """
         revoked.append(session.sid)
 
     async def record_independent(*args: object, **_kwargs: object) -> None:
+        """
+        记录独立事务写入的审计事件。
+
+        :param args: 传给被调用对象的位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        """
         audit_events.append(str(args[1]))
 
     monkeypatch.setattr(SsoSessionService, 'revoke', revoke)
     monkeypatch.setattr(AuditService, 'record_independent', record_independent)
 
     async def cas_fail(*args: object, **kwargs: object) -> None:
+        """
+        模拟此操作抛出 OidcInteractionException 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises OidcInteractionException: 模拟交互状态的比较交换失败
+        """
         raise OidcInteractionException(created.interaction_id, 'CAS failed', error='server_error', status_code=503)
 
     monkeypatch.setattr(InteractionService, 'transition', cas_fail)
@@ -696,6 +852,13 @@ async def test_password_change_saga_continues_when_interaction_delete_fails(
     audits: list[str] = []
 
     async def delete_failure(*_args: object, **_kwargs: object) -> int:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :raises RuntimeError: 模拟删除 Redis 记录失败
+        """
         raise RuntimeError('redis unavailable')
 
     monkeypatch.setattr(redis, 'delete', delete_failure)
@@ -712,6 +875,13 @@ async def test_password_change_saga_continues_when_interaction_delete_fails(
     monkeypatch.setattr(AuditService, 'record_independent', lambda *args, **kwargs: _append_async(audits, str(args[1])))
 
     async def cas_fail(*_args: object, **_kwargs: object) -> None:
+        """
+        模拟此操作抛出 OidcInteractionException 的情形。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :raises OidcInteractionException: 模拟交互状态的比较交换失败
+        """
         raise OidcInteractionException(created.interaction_id, 'CAS failed', error='server_error', status_code=503)
 
     monkeypatch.setattr(InteractionService, 'transition', cas_fail)
@@ -730,23 +900,58 @@ async def test_password_change_saga_continues_when_interaction_delete_fails(
 
 
 class _ScalarDb(_Db):
-    """支持改密测试查询用户的最小数据库替身。"""
+    """
+    支持改密测试查询用户的最小数据库替身。
+
+    :ivar value: 待处理的输入值
+    """
 
     def __init__(self, value: object) -> None:
+        """
+        初始化测试夹具的 ``value``。
+
+        :param value: 待处理的输入值
+        """
         super().__init__()
         self.value = value
 
     async def scalar(self, *_args: object, **_kwargs: object) -> object:
+        """
+        向调用方返回 ``self.value``。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 测试对象保存的值
+        """
         return self.value
 
     async def execute(self, *_args: object, **_kwargs: object) -> object:
+        """
+        按测试场景处理数据库查询并提供结果。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 包含预设记录的查询结果
+        """
         value = self.value
 
         class _Result:
+            """模拟数据库查询结果。"""
+
             def scalars(self) -> object:
+                """
+                向调用方返回 ``self``。
+
+                :return: 当前测试对象
+                """
                 return self
 
             def first(self) -> object:
+                """
+                向调用方返回 ``value``。
+
+                :return: 为此调用预设的值
+                """
                 return value
 
         return _Result()
@@ -760,9 +965,15 @@ async def test_cache_callback_failure_does_not_compensate_committed_session() ->
     compensated = False
 
     async def cache_failure() -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :raises RuntimeError: 模拟缓存服务不可用
+        """
         raise RuntimeError('cache unavailable')
 
     async def compensate() -> None:
+        """记录失败处理是否触发补偿。"""
         nonlocal compensated
         compensated = True
 
@@ -807,6 +1018,13 @@ async def test_code_audit_failure_invalidates_code_and_marker(monkeypatch: pytes
     )
 
     async def audit_failure(*_args: object, **_kwargs: object) -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :raises RuntimeError: 模拟审计服务不可用
+        """
         raise RuntimeError('audit unavailable')
 
     monkeypatch.setattr(AuditService, 'record', audit_failure)
@@ -860,18 +1078,35 @@ async def test_code_invalidate_failure_still_cleans_marker_and_rolls_back(monkey
 
 
 def _async(value: object) -> Any:
-    """构造异步测试结果。"""
+    """
+    构造异步测试结果。
+
+    :param value: 待处理的输入值
+    :return: 异步测试结果
+    """
 
     async def result() -> object:
+        """
+        向调用方返回 ``value``。
+
+        :return: 为此调用预设的值
+        """
         return value
 
     return result()
 
 
 def _append_async(values: list[Any], value: Any) -> Any:
-    """构造追加测试值的异步结果。"""
+    """
+    构造追加测试值的异步结果。
+
+    :param values: 当前处理的值集合
+    :param value: 待处理的输入值
+    :return: 追加测试值的异步结果
+    """
 
     async def result() -> None:
+        """记录调用方收到的异步结果。"""
         values.append(value)
 
     return result()
@@ -904,6 +1139,11 @@ async def test_interaction_http_response_matches_frontend_data_contract(
     app.include_router(interaction_controller)
 
     async def db_override() -> Any:
+        """
+        为请求提供替代数据库会话。
+
+        :yield: 本次请求使用的模拟数据库会话
+        """
         yield _Db()
 
     app.dependency_overrides[get_db_session_provider(None)] = db_override

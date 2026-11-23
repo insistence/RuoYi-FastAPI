@@ -37,7 +37,7 @@ class BrowserScreenSupport:
     浏览页屏幕支持对象。
 
     该对象负责浏览页摘要、搜索词、动作解析、空态/加载态分区构建和
-    焦点顺序编排，使 `BrowserScreen` 本体主要保留 Textual 事件桥接。
+    焦点顺序编排，使 ``BrowserScreen`` 本体主要保留 Textual 事件桥接。
     """
 
     @staticmethod
@@ -263,11 +263,22 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
     """
     TUI 浏览型页面。
 
-    :param snapshot: 浏览页快照
-    :param env: 当前运行环境
-    :param active_view: 当前激活视图
-    :param navigation_items: 导航项列表
-    :param refreshed_at: 本次刷新时间
+    :cvar BINDINGS: 终端界面的快捷键和对应动作
+    :ivar snapshot: 浏览页快照
+    :ivar env: 当前运行环境
+    :ivar active_view: 当前激活视图
+    :ivar navigation_items: 导航项列表
+    :ivar refreshed_at: 本次刷新时间
+    :ivar selected_record_index: 当前选中记录的位置
+    :ivar selected_section_index: 当前选中分区的索引
+    :ivar _is_syncing_sections: 是否正在同步分区选择
+    :ivar _record_detail_request_id: 当前记录详情加载请求的编号
+    :ivar _record_detail_task: 后台加载当前记录详情的任务
+    :ivar _action_task: 当前正在执行的界面操作任务
+    :ivar _last_action_result: 最近一次界面操作的结果
+    :ivar _action_feedback_lines: 最近动作反馈文本
+    :ivar support: 浏览页屏幕支持对象
+    :ivar focus_service: 浏览页焦点服务
     """
 
     BINDINGS = [
@@ -313,7 +324,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         :param action_feedback_lines: 最近动作反馈文本
         :param support: 浏览页屏幕支持对象
         :param focus_service: 浏览页焦点服务
-        :return: None
         """
         self.snapshot = snapshot
         self.env = env
@@ -349,6 +359,11 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         return self.support.build_filter_bar_text(self.snapshot)
 
     def _current_search_query(self) -> str:
+        """
+        返回当前列表正在使用的搜索条件。
+
+        :return: 当前列表正在使用的搜索条件
+        """
         return self.support.current_search_query(self.snapshot)
 
     def _apply_filter_shortcut(self, shortcut: str) -> None:
@@ -356,7 +371,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         按快捷键切换当前浏览页筛选条件。
 
         :param shortcut: 筛选快捷键
-        :return: None
         """
         if not self.snapshot.filters:
             return
@@ -369,11 +383,7 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         self.app.action_refresh_current_view()
 
     def _open_search(self) -> None:
-        """
-        打开当前浏览页搜索输入弹窗。
-
-        :return: None
-        """
+        """打开当前浏览页搜索输入弹窗。"""
         TUI_SCREEN_INTERACTION_SERVICE.open_search_dialog(
             self,
             self.snapshot.search,
@@ -385,16 +395,11 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         处理页内搜索输入结果。
 
         :param query: 搜索词
-        :return: None
         """
         TUI_SCREEN_INTERACTION_SERVICE.remember_query_and_refresh(self, self.active_view, query)
 
     def _clear_search(self) -> None:
-        """
-        清空当前浏览页搜索词。
-
-        :return: None
-        """
+        """清空当前浏览页搜索词。"""
         TUI_SCREEN_INTERACTION_SERVICE.clear_query_and_refresh(
             self,
             self.active_view,
@@ -434,7 +439,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         打开指定槽位动作的确认弹窗。
 
         :param slot: 动作槽位
-        :return: None
         """
         self._action_task = TUI_SCREEN_INTERACTION_SERVICE.confirm_and_schedule_action(
             self,
@@ -448,10 +452,15 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         执行低风险动作并在结束后通知与刷新页面。
 
         :param action: 动作定义
-        :return: None
         """
 
         async def _handle_result(result: TuiActionResult, feedback_lines: list[str]) -> None:
+            """
+            将操作结果交给当前视图处理。
+
+            :param result: TUI 动作执行结果
+            :param feedback_lines: 最近动作反馈文本
+            """
             self._last_action_result = result
             self._action_feedback_lines = feedback_lines
             await self._render_record_detail()
@@ -499,18 +508,13 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         取消指定后台任务。
 
         :param task: 待取消任务
-        :return: None
         """
         if task is None or task.done():
             return
         task.cancel()
 
     def _cancel_background_tasks(self) -> None:
-        """
-        取消当前屏幕持有的后台任务。
-
-        :return: None
-        """
+        """取消当前屏幕持有的后台任务。"""
         self._record_detail_request_id += 1
         self._cancel_task(self._record_detail_task)
         self._cancel_task(self._action_task)
@@ -547,11 +551,7 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         return self.support.build_empty_section()
 
     async def _render_record_detail(self) -> None:
-        """
-        根据当前选中记录刷新右侧详情区域。
-
-        :return: None
-        """
+        """根据当前选中记录刷新右侧详情区域。"""
         record = self._get_record_or_fallback(self.selected_record_index)
         sections = self._get_sections_for_record(self.selected_record_index)
         selected_section = self._get_section_or_fallback(self.selected_record_index, self.selected_section_index)
@@ -580,7 +580,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         依据当前分区状态同步右侧详情容器样式。
 
         :param section: 当前分区快照
-        :return: None
         """
         detail_pane = self.query_one('#browser-detail-pane', Vertical)
         detail_pane.remove_class('is-ok', 'is-fail', 'is-warn', 'is-info')
@@ -593,7 +592,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
 
         :param index: 记录索引
         :param request_id: 当前加载请求编号
-        :return: None
         """
         record = self._get_record_or_fallback(index)
         try:
@@ -612,7 +610,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         为当前选中记录安排一次后台详情加载。
 
         :param index: 记录索引
-        :return: None
         """
         record = self._get_record_or_fallback(index)
         if record.detail_loader is None:
@@ -630,7 +627,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         更新当前选中记录，并同步右侧详情视图。
 
         :param index: 待选中的记录索引
-        :return: None
         """
         if not self.snapshot.records:
             self.selected_record_index = 0
@@ -651,7 +647,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         更新当前选中分区，并同步最右侧详情内容。
 
         :param index: 分区索引
-        :return: None
         """
         if self._is_syncing_sections:
             return
@@ -687,52 +682,28 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         self._sync_detail_pane_state(current_section)
 
     def on_mount(self) -> None:
-        """
-        浏览页挂载后默认将焦点停留在左侧导航。
-
-        :return: None
-        """
+        """浏览页挂载后默认将焦点停留在左侧导航。"""
         self.call_after_refresh(self.query_one(WorkspaceSidebar).focus)
         self._schedule_record_detail_load(self.selected_record_index)
 
     def on_unmount(self) -> None:
-        """
-        浏览页卸载时取消尚未完成的后台任务。
-
-        :return: None
-        """
+        """浏览页卸载时取消尚未完成的后台任务。"""
         self._cancel_background_tasks()
 
     def action_apply_filter_1(self) -> None:
-        """
-        应用第一个浏览页筛选条件。
-
-        :return: None
-        """
+        """应用第一个浏览页筛选条件。"""
         self._apply_filter_shortcut('1')
 
     def action_apply_filter_2(self) -> None:
-        """
-        应用第二个浏览页筛选条件。
-
-        :return: None
-        """
+        """应用第二个浏览页筛选条件。"""
         self._apply_filter_shortcut('2')
 
     def action_apply_filter_3(self) -> None:
-        """
-        应用第三个浏览页筛选条件。
-
-        :return: None
-        """
+        """应用第三个浏览页筛选条件。"""
         self._apply_filter_shortcut('3')
 
     def action_apply_filter_4(self) -> None:
-        """
-        应用第四个浏览页筛选条件。
-
-        :return: None
-        """
+        """应用第四个浏览页筛选条件。"""
         self._apply_filter_shortcut('4')
 
     def _open_sidebar_item(self, event: WorkspaceSidebar.Highlighted | WorkspaceSidebar.Selected) -> None:
@@ -740,7 +711,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         根据侧边栏事件打开对应视图，并避免重复打开当前页面。
 
         :param event: 侧边栏高亮或选中事件
-        :return: None
         """
         item = getattr(event.item, 'item', None)
         if not isinstance(item, NavigationItem):
@@ -757,7 +727,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         响应左侧导航选中事件并切换视图。
 
         :param event: 导航选中事件
-        :return: None
         """
         self._open_sidebar_item(event)
 
@@ -767,7 +736,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         响应左侧导航高亮变更并立即切换视图。
 
         :param event: 导航高亮事件
-        :return: None
         """
         self._open_sidebar_item(event)
 
@@ -775,7 +743,7 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         """
         构建浏览页界面结构。
 
-        :return: Textual 组件结果
+        :yield: Textual 组件结果
         """
         yield WorkspaceHeader(self.env, self.active_view)
         with Horizontal(id='workspace-shell'):
@@ -820,7 +788,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         响应记录导航高亮变更并更新详情内容。
 
         :param event: 记录导航高亮事件
-        :return: None
         """
         await self._update_selected_record(event.index)
 
@@ -830,6 +797,5 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         响应记录详情分区高亮变更并更新最右侧详情内容。
 
         :param event: 分区导航高亮事件
-        :return: None
         """
         self._update_selected_section(event.index)

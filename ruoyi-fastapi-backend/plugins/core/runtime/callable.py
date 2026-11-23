@@ -14,9 +14,9 @@ class LoadedPluginCallable:
     """
     已加载的插件 callable。
 
-    :param module_name: 完整 Python 模块名
-    :param callable_name: callable 名称
-    :param callable_object: callable 对象
+    :ivar module_name: 完整 Python 模块名
+    :ivar callable_name: callable 名称
+    :ivar callable_object: callable 对象
     """
 
     module_name: str
@@ -30,6 +30,9 @@ class PluginCallableLoader:
 
     使用 Loader 模式统一插件生命周期钩子、健康检查等 manifest callable 的模块边界校验、
     本地文件加载和 Python import fallback。
+
+    :ivar discovered_plugin: 已发现插件对象
+    :ivar label: callable 类型标签，用于错误信息
     """
 
     def __init__(self, discovered_plugin: DiscoveredPlugin, *, label: str) -> None:
@@ -38,7 +41,6 @@ class PluginCallableLoader:
 
         :param discovered_plugin: 已发现插件对象
         :param label: callable 类型标签，用于错误信息
-        :return: None
         """
         self.discovered_plugin = discovered_plugin
         self.label = label
@@ -49,6 +51,7 @@ class PluginCallableLoader:
 
         :param callable_path: manifest 中声明的 callable 路径，格式为 <module_path>:<callable_name>
         :return: 已加载 callable
+        :raises RuntimeError: 插件回调不存在或不可调用
         """
         if self.discovered_plugin.manifest.uses_entrypoint:
             from plugins.core.runtime.entrypoint import PluginEntrypointLoader  # noqa: PLC0415
@@ -76,6 +79,7 @@ class PluginCallableLoader:
 
         :param module_path: manifest 中声明的模块路径
         :return: 完整 Python 模块名
+        :raises RuntimeError: 模块路径不属于当前插件
         """
         plugin_module = self.discovered_plugin.manifest.backend.module
         if module_path == plugin_module or module_path.startswith(f'{plugin_module}.'):
@@ -134,6 +138,7 @@ class PluginCallableLoader:
         :param module_name: 完整 Python 模块名
         :param module_file: 模块文件路径
         :return: Python 模块对象
+        :raises RuntimeError: 无法为目标文件创建模块加载器
         """
         module_spec = importlib.util.spec_from_file_location(module_name, module_file)
         if module_spec is None or module_spec.loader is None:

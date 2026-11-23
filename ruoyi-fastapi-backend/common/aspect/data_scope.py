@@ -10,7 +10,16 @@ from utils.dependency_util import DependencyUtil
 
 class GetDataScope:
     """
-    获取当前用户数据权限对应的查询sql语句
+    获取当前用户数据权限对应的查询sql语句。
+
+    :cvar DATA_SCOPE_ALL: 可以访问所有部门数据的数据权限标识
+    :cvar DATA_SCOPE_CUSTOM: 使用角色自定义部门范围的数据权限标识
+    :cvar DATA_SCOPE_DEPT: 仅可访问本部门数据的权限标识
+    :cvar DATA_SCOPE_DEPT_AND_CHILD: 可访问本部门及下级部门数据的权限标识
+    :cvar DATA_SCOPE_SELF: 仅可访问本人数据的权限标识
+    :ivar query_alias: 所要查询表对应的sqlalchemy模型类，不可为空
+    :ivar user_alias: 用户id字段别名，默认为'user_id'
+    :ivar dept_alias: 部门id字段别名，默认为'dept_id'
     """
 
     DATA_SCOPE_ALL = '1'
@@ -26,7 +35,7 @@ class GetDataScope:
         dept_alias: str | None = 'dept_id',
     ) -> None:
         """
-        获取当前用户数据权限对应的查询sql语句
+        获取当前用户数据权限对应的查询sql语句。
 
         :param query_alias: 所要查询表对应的sqlalchemy模型类，不可为空
         :param user_alias: 用户id字段别名，默认为'user_id'
@@ -37,6 +46,12 @@ class GetDataScope:
         self.dept_alias = dept_alias
 
     def __call__(self, request: Request) -> ColumnElement:
+        """
+        根据当前用户和角色构建数据范围查询条件。
+
+        :param request: 当前 HTTP 请求
+        :return: 限制当前用户可见数据的 SQL 条件
+        """
         DependencyUtil.check_exclude_routes(request, err_msg='当前路由不在认证规则内，不可使用GetDataScope依赖项')
         current_user = RequestContext.get_current_user()
         if current_user.user.admin:
@@ -103,7 +118,7 @@ def DataScopeDependency(  # noqa: N802
     dept_alias: str | None = 'dept_id',
 ) -> params.Depends:
     """
-    当前用户数据权限依赖
+    当前用户数据权限依赖。
 
     :param query_alias: 所要查询表对应的sqlalchemy模型类，不可为空
     :param user_alias: 用户id字段别名，默认为'user_id'

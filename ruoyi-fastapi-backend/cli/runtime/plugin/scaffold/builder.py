@@ -18,6 +18,12 @@ class PluginScaffoldBuilder:
     插件模板构建器。
 
     使用 Builder 模式生成后端与前端插件模板文件计划，并在确认无冲突后落地。
+
+    :cvar build_conflict_payload: 构建脚手架文件冲突结果的函数
+    :cvar build_success_payload: 构建脚手架生成成功结果的函数
+    :ivar backend_root: 后端项目根目录
+    :ivar frontend_root: 前端工程根目录或包含框架分类的聚合目录
+    :ivar frontend_framework_resolver: 宿主框架解析函数，保留运行环境中选择的框架
     """
 
     def __init__(
@@ -32,7 +38,6 @@ class PluginScaffoldBuilder:
         :param backend_root: 后端项目根目录
         :param frontend_root: 前端工程根目录或包含框架分类的聚合目录
         :param frontend_framework_resolver: 宿主框架解析函数，保留运行环境中选择的框架
-        :return: None
         """
         self.backend_root = backend_root
         self.frontend_root = select_frontend_root(frontend_root)
@@ -66,6 +71,7 @@ class PluginScaffoldBuilder:
         :param test: 是否创建测试样例
         :param frontend_framework: 目标前端框架标识，auto 表示自动识别；源码模板支持 vue2、vue3、react
         :return: 插件模板写入计划
+        :raises ValueError: backend 和 frontend 至少需要创建一个
         """
         self._validate_plugin_id(plugin_id)
         frontend_root = select_frontend_root(self.frontend_root, frontend_framework)
@@ -165,7 +171,6 @@ class PluginScaffoldBuilder:
         校验插件模板 ID。
 
         :param plugin_id: 插件ID
-        :return: None
         """
         validate_plugin_id_value(plugin_id)
 
@@ -210,7 +215,6 @@ class PluginScaffoldBuilder:
         执行插件模板写入计划。
 
         :param scaffold_plan: 插件模板写入计划
-        :return: None
         """
         for file_payload in scaffold_plan['files']:
             file_path = Path(file_payload['path'])

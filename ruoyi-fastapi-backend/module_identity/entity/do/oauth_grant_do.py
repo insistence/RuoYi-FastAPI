@@ -6,9 +6,7 @@ from utils.time_util import TimezoneUtil
 
 
 class SysOAuthAccessPolicy(Base):
-    """
-    用户与 OAuth Client 的访问控制表
-    """
+    """用户与 OAuth Client 的访问控制表。"""
 
     __tablename__ = 'sys_oauth_access_policy'
     __table_args__ = ({'comment': 'OAuth 用户应用访问控制'},)
@@ -34,9 +32,7 @@ class SysOAuthAccessPolicy(Base):
 
 
 class SysOAuthGrant(Base):
-    """
-    OAuth授权记录表
-    """
+    """OAuth授权记录表。"""
 
     __tablename__ = 'sys_oauth_grant'
     __table_args__ = (
@@ -46,7 +42,7 @@ class SysOAuthGrant(Base):
         {'comment': 'OAuth Grant'},
     )
 
-    grant_id = Column(String(36), primary_key=True, nullable=False, comment='Grant ID')
+    grant_id = Column(String(36), primary_key=True, nullable=False, comment='授权记录标识')
     user_id = Column(
         BigInteger,
         ForeignKey('sys_user.user_id', name='fk_oauth_grant_user', ondelete='RESTRICT'),
@@ -64,7 +60,7 @@ class SysOAuthGrant(Base):
     granted_resources = Column(JSON, nullable=False, comment='已同意 Resource audience')
     remembered_scopes = Column(JSON, nullable=True, comment='后续可免确认的 Scope')
     remembered_resources = Column(JSON, nullable=True, comment='后续可免确认的 Resource audience')
-    client_policy_version = Column(BigInteger, nullable=False, comment='Client Policy Version')
+    client_policy_version = Column(BigInteger, nullable=False, comment='客户端策略版本')
     status = Column(String(16), nullable=False, server_default='active', comment='Grant 状态')
     consented_at = Column(DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='同意时间')
     expires_at = Column(DbUtcDateTime(), nullable=True, comment='过期时间')
@@ -74,9 +70,7 @@ class SysOAuthGrant(Base):
 
 
 class SysSsoSession(Base):
-    """
-    OIDC单点登录会话表
-    """
+    """OIDC单点登录会话表。"""
 
     __tablename__ = 'sys_sso_session'
     __table_args__ = (
@@ -86,7 +80,7 @@ class SysSsoSession(Base):
         {'comment': 'OIDC SSO Session'},
     )
 
-    sid = Column(String(36), primary_key=True, nullable=False, comment='OIDC Session ID')
+    sid = Column(String(36), primary_key=True, nullable=False, comment='OIDC 会话标识')
     session_secret_hash = Column(CHAR(64), nullable=False, comment='SSO Cookie 摘要')
     user_id = Column(
         BigInteger,
@@ -112,9 +106,7 @@ class SysSsoSession(Base):
 
 
 class SysSsoSessionClient(Base):
-    """
-    SSO 会话与参与应用关联表
-    """
+    """SSO 会话与参与应用关联表。"""
 
     __tablename__ = 'sys_sso_session_client'
     __table_args__ = (Index('idx_sso_session_client_client', 'client_pk'), {'comment': 'SSO 会话参与应用'})
@@ -124,7 +116,7 @@ class SysSsoSessionClient(Base):
         ForeignKey('sys_sso_session.sid', name='fk_sso_session_client_sid', ondelete='RESTRICT'),
         primary_key=True,
         nullable=False,
-        comment='SSO Session ID',
+        comment='单点登录会话标识',
     )
     client_pk = Column(
         BigInteger,
@@ -138,9 +130,7 @@ class SysSsoSessionClient(Base):
 
 
 class SysOAuthRefreshToken(Base):
-    """
-    OAuth刷新令牌表，仅保存令牌摘要
-    """
+    """OAuth刷新令牌表，仅保存令牌摘要。"""
 
     __tablename__ = 'sys_oauth_refresh_token'
     __table_args__ = (
@@ -153,9 +143,9 @@ class SysOAuthRefreshToken(Base):
         {'comment': 'OAuth Refresh Token'},
     )
 
-    token_id = Column(String(36), primary_key=True, nullable=False, comment='Token ID')
+    token_id = Column(String(36), primary_key=True, nullable=False, comment='令牌标识')
     token_hash = Column(CHAR(64), nullable=False, comment='Token HMAC 摘要')
-    family_id = Column(String(36), nullable=False, comment='Token Family ID')
+    family_id = Column(String(36), nullable=False, comment='令牌族标识')
     parent_token_id = Column(
         String(36),
         ForeignKey('sys_oauth_refresh_token.token_id', name='fk_oauth_refresh_parent', ondelete='RESTRICT'),
@@ -172,7 +162,7 @@ class SysOAuthRefreshToken(Base):
         String(36),
         ForeignKey('sys_oauth_grant.grant_id', name='fk_oauth_refresh_grant', ondelete='RESTRICT'),
         nullable=False,
-        comment='Grant ID',
+        comment='授权记录标识',
     )
     user_id = Column(
         BigInteger,
@@ -192,7 +182,7 @@ class SysOAuthRefreshToken(Base):
         String(36),
         ForeignKey('sys_sso_session.sid', name='fk_oauth_refresh_sid', ondelete='RESTRICT'),
         nullable=False,
-        comment='SSO Session ID',
+        comment='单点登录会话标识',
     )
     scopes = Column(JSON, nullable=False, comment='绑定 Scope')
     resources = Column(JSON, nullable=False, comment='绑定 Resource audience')

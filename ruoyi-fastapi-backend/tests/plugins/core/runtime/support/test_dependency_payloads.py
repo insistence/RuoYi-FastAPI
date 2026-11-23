@@ -13,7 +13,15 @@ def build_npm_plan_item(
     requirement: str,
     name: str,
 ) -> DependencyInstallPlanItem:
-    """构造测试用 npm 依赖安装计划项。"""
+    """
+    构造测试用 npm 依赖安装计划项。
+
+    :param workdir: 命令执行时使用的工作目录
+    :param kind: 当前条目的类别
+    :param requirement: 依赖声明，包括包名和版本约束
+    :param name: 用于查找或标识当前对象的名称
+    :return: 测试用 npm 依赖安装计划项
+    """
     command = ['npm', 'install']
     if kind == 'npmDev':
         command.append('--save-dev')
@@ -123,7 +131,7 @@ def test_npm_package_json_synchronizer_uses_star_without_version(tmp_path: Path)
 
 
 def test_pnpm_keeps_manifest_and_lockfile_in_sync(tmp_path: Path) -> None:
-    """pnpm 安装后不回写单个 manifest，保留与锁文件匹配的实际保存约束。"""
+    """验证 pnpm 安装后不回写单个 manifest，保留与锁文件匹配的实际保存约束。"""
     package_json_path = tmp_path / 'package.json'
     package_content = '{"dependencies":{"plain-npm":"1.2.3"}}\n'
     package_json_path.write_text(package_content, encoding='utf-8')

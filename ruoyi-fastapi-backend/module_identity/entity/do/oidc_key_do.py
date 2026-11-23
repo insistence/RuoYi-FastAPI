@@ -6,9 +6,7 @@ from utils.time_util import TimezoneUtil
 
 
 class SysOidcSigningKey(Base):
-    """
-    OIDC签名密钥表
-    """
+    """OIDC签名密钥表。"""
 
     __tablename__ = 'sys_oidc_signing_key'
     __table_args__ = (
@@ -30,7 +28,7 @@ class SysOidcSigningKey(Base):
         autoincrement=True,
         comment='内部主键',
     )
-    kid = Column(String(100), nullable=False, comment='JWKS Key ID')
+    kid = Column(String(100), nullable=False, comment='JWKS 密钥标识')
     key_use = Column(String(16), nullable=False, server_default='sig', comment='JWK 用途')
     alg = Column(String(16), nullable=False, server_default='RS256', comment='签名算法')
     public_jwk = Column(JSON, nullable=False, comment='公开 JWK')

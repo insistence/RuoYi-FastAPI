@@ -20,22 +20,52 @@ from module_identity.service.session_service import LogoutResult, LogoutService
 
 
 class ConfirmationRedis:
+    """
+    模拟带过期时间的注销确认记录。
+
+    :ivar values: 当前处理的值集合
+    """
+
     def __init__(self) -> None:
+        """初始化测试夹具的 ``values``。"""
         self.values: dict[str, tuple[str, float]] = {}
 
     async def set(self, key: str, value: str, *, ex: int, nx: bool = False) -> bool:
+        """
+        写入测试缓存键并设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        :param nx: 是否只在键尚不存在时写入
+        :return: 是否写入测试缓存键并设置过期时间
+        """
         if nx and key in self.values:
             return False
         self.values[key] = (value, monotonic() + ex)
         return True
 
     async def eval(self, _script: str, _count: int, key: str) -> str | None:
+        """
+        按测试约定模拟 Redis 脚本的执行。
+
+        :param _script: 测试替身接收的 Redis 脚本
+        :param _count: 调用方传入的计数
+        :param key: 查找数据时使用的键
+        :return: 模拟脚本读取或更新后的值
+        """
         value, expires = self.values.pop(key, (None, 0))
         return value if expires > monotonic() else None
 
 
 @pytest.fixture
 def logout_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[TestClient, AsyncMock]]:
+    """
+    创建启用认证中心的注销测试客户端。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :yield: 依次为 ``client``、``execute`` 的元组
+    """
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', True)
     monkeypatch.setattr(OidcConfig, 'oidc_issuer', 'https://auth.example')
     monkeypatch.setattr(OidcConfig, 'oidc_token_hash_pepper', 'logout-confirmation-test-' + 'x' * 32)
@@ -48,6 +78,11 @@ def logout_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[TestClient,
     db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
     async def get_db() -> AsyncIterator[SimpleNamespace]:
+        """
+        为请求提供数据库会话。
+
+        :yield: 当前操作使用的数据库会话
+        """
         yield db
 
     app.dependency_overrides[get_db_session_provider(None)] = get_db
@@ -62,6 +97,7 @@ def logout_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[TestClient,
 def test_standard_logout_requires_confirmation_then_redirects(
     logout_client: tuple[TestClient, AsyncMock], method: str
 ) -> None:
+    """标准注销先确认再重定向。"""
     client, execute = logout_client
     parameters = {
         'id_token_hint': 'private-hint',
@@ -100,6 +136,7 @@ def test_standard_logout_requires_confirmation_then_redirects(
 
 
 def test_cancel_keeps_sso_cookie_and_never_calls_revocation(logout_client: tuple[TestClient, AsyncMock]) -> None:
+    """取消注销时保留单点登录 Cookie 且不撤销会话。"""
     client, execute = logout_client
     client.cookies.set(OidcConfig.oidc_sso_cookie_name, 'current-sso', domain='auth.example', path='/')
     page = client.get('/oauth2/logout')
@@ -119,6 +156,7 @@ def test_cancel_keeps_sso_cookie_and_never_calls_revocation(logout_client: tuple
 def test_confirmation_rejects_wrong_origin_browser_or_expiry(
     logout_client: tuple[TestClient, AsyncMock], attack: str
 ) -> None:
+    """注销确认时拒绝来源、浏览器或有效期不符的请求。"""
     client, execute = logout_client
     page = client.get('/oauth2/logout')
     token = re.search(r'name="confirmation" value="([^"]+)"', page.text).group(1)
@@ -156,6 +194,7 @@ def test_cross_site_post_may_omit_lax_sso_cookie_until_confirmation(
 def test_changing_an_initially_bound_sso_cookie_rejects_confirmation(
     logout_client: tuple[TestClient, AsyncMock],
 ) -> None:
+    """最初绑定的单点登录 Cookie 变化后拒绝确认。"""
     client, execute = logout_client
     client.cookies.set(OidcConfig.oidc_sso_cookie_name, 'first-sso', domain='auth.example', path='/')
     page = client.get('/oauth2/logout')
@@ -175,6 +214,7 @@ def test_changing_an_initially_bound_sso_cookie_rejects_confirmation(
 async def test_confirmation_csp_allows_only_verified_registered_redirect(
     monkeypatch: pytest.MonkeyPatch, registered: bool
 ) -> None:
+    """确认页的 CSP 仅允许已验证的注册重定向地址。"""
     monkeypatch.setattr(
         LogoutService, '_validate_id_token_hint', AsyncMock(return_value=({}, SimpleNamespace(client_pk=1)))
     )

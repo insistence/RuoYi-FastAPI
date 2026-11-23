@@ -15,12 +15,12 @@ class TuiActionSpec:
     """
     TUI 低风险动作定义。
 
-    :param action_id: 动作唯一标识
-    :param label: 动作显示名称
-    :param parameters: 进程内运行时调用参数
-    :param preview_title: 预览弹窗标题
-    :param preview_lines: 预览摘要文本
-    :param refresh_view: 执行完成后是否刷新当前页面
+    :ivar action_id: 动作唯一标识
+    :ivar label: 动作显示名称
+    :ivar parameters: 进程内运行时调用参数
+    :ivar preview_title: 预览弹窗标题
+    :ivar preview_lines: 预览摘要文本
+    :ivar refresh_view: 执行完成后是否刷新当前页面
     """
 
     action_id: str
@@ -36,8 +36,8 @@ class TuiActionResult:
     """
     TUI 动作执行结果。
 
-    :param spec: 动作定义
-    :param payload: CLI JSON 负载
+    :ivar spec: 动作定义
+    :ivar payload: CLI JSON 负载
     """
 
     spec: TuiActionSpec

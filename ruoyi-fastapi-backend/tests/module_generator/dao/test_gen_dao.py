@@ -16,6 +16,7 @@ CLIENT_AUDIT_TIME = datetime(2000, 1, 1, tzinfo=UTC)
 
 @pytest.mark.asyncio
 async def test_get_gen_table_by_name_is_scoped_to_data_source() -> None:
+    """按名称获取生成表时限定数据源。"""
     result = MagicMock()
     result.scalars.return_value.first.return_value = None
     db = MagicMock()
@@ -31,6 +32,7 @@ async def test_get_gen_table_by_name_is_scoped_to_data_source() -> None:
 
 @pytest.mark.asyncio
 async def test_get_gen_table_list_filters_source_when_requested() -> None:
+    """生成表列表可按指定数据源过滤。"""
     query_object = GenTablePageQueryModel(dataSourceName='reporting')
 
     with patch.object(PageUtil, 'paginate', new=AsyncMock(return_value=[])) as paginate:
@@ -42,6 +44,7 @@ async def test_get_gen_table_list_filters_source_when_requested() -> None:
 
 @pytest.mark.asyncio
 async def test_get_gen_db_table_list_does_not_bind_unreferenced_model_defaults() -> None:
+    """查询数据库表时跳过未引用的模型默认值。"""
     query_object = GenTablePageQueryModel(formColNum=3)
 
     with patch.object(PageUtil, 'paginate', new=AsyncMock(return_value=[])) as paginate:
@@ -54,6 +57,7 @@ async def test_get_gen_db_table_list_does_not_bind_unreferenced_model_defaults()
 
 @pytest.mark.asyncio
 async def test_get_gen_db_table_list_only_binds_active_sql_filters() -> None:
+    """查询数据库表时仅绑定启用的过滤条件。"""
     query_object = GenTablePageQueryModel(
         tableName='sys_user',
         tableComment='用户',
@@ -79,6 +83,7 @@ async def test_get_gen_db_table_list_only_binds_active_sql_filters() -> None:
 
 @pytest.mark.asyncio
 async def test_get_gen_db_table_list_uses_target_source_config() -> None:
+    """数据库表列表使用目标数据源配置。"""
     query_object = GenTablePageQueryModel()
 
     with patch.object(PageUtil, 'paginate', new=AsyncMock(return_value=[])) as paginate:
@@ -96,6 +101,7 @@ async def test_get_gen_db_table_list_uses_target_source_config() -> None:
 
 @pytest.mark.asyncio
 async def test_edit_gen_table_keeps_alias_fields_while_excluding_audit_times() -> None:
+    """编辑生成表时保留别名字段并排除审计时间。"""
     db = MagicMock()
     db.execute = AsyncMock()
 
@@ -113,6 +119,7 @@ async def test_edit_gen_table_keeps_alias_fields_while_excluding_audit_times() -
 
 @pytest.mark.asyncio
 async def test_edit_gen_table_column_keeps_alias_fields_while_excluding_audit_times() -> None:
+    """编辑生成表列时保留别名字段并排除审计时间。"""
     db = MagicMock()
     db.execute = AsyncMock()
 

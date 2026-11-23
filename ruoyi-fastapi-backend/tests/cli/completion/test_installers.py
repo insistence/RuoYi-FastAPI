@@ -13,11 +13,7 @@ from cli.completion.installers import (
 
 
 def test_build_source_command_uses_shell_runtime_policy() -> None:
-    """
-    校验安装服务会按 shell 运行时策略构建 source 命令。
-
-    :return: None
-    """
+    """校验安装服务会按 shell 运行时策略构建 source 命令。"""
     installer = CompletionInstallerService()
     target_file = Path('/tmp/ruoyi-completion')
 
@@ -31,11 +27,7 @@ def test_build_source_command_uses_shell_runtime_policy() -> None:
 
 
 def test_make_bash_completion_script_compatible_wraps_legacy_instructions() -> None:
-    """
-    校验 Bash 兼容转换会包装旧版 shell 不支持的指令。
-
-    :return: None
-    """
+    """校验 Bash 兼容转换会包装旧版 shell 不支持的指令。"""
     script_text = 'compopt -o dirnames\ncompopt -o default\ncomplete -o nosort -F _ruoyi_completion ruoyi'
 
     compatible_script = CompletionInstallerShellSupport.make_bash_completion_script_compatible(script_text)
@@ -46,17 +38,10 @@ def test_make_bash_completion_script_compatible_wraps_legacy_instructions() -> N
 
 
 def test_render_completion_script_uses_runtime_policy_transformer(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验脚本渲染会通过 shell 运行时策略执行脚本后处理。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验脚本渲染会通过 shell 运行时策略执行脚本后处理。"""
 
     class DummyComplete:
-        """
-        模拟 Click completion 生成器。
-        """
+        """模拟 Click completion 生成器。"""
 
         def __init__(self, *args, **kwargs) -> None:
             """
@@ -64,7 +49,6 @@ def test_render_completion_script_uses_runtime_policy_transformer(monkeypatch: M
 
             :param args: 位置参数
             :param kwargs: 关键字参数
-            :return: None
             """
 
         @staticmethod
@@ -95,17 +79,14 @@ def test_render_completion_script_uses_runtime_policy_transformer(monkeypatch: M
 
 
 def test_render_powershell_completion_script_contains_native_completer() -> None:
-    """
-    校验 PowerShell completion 脚本会注册原生命令补全器。
-
-    :return: None
-    """
+    """校验 PowerShell completion 脚本会注册原生命令补全器。"""
     installer = CompletionInstallerService()
     root_cli = typer.Typer()
 
     @root_cli.command()
     def demo() -> None:
-        return None
+        """完成无需返回值的回调。"""
+        return
 
     rendered_script = installer.render_completion_script(root_cli, 'powershell')
 
@@ -114,11 +95,13 @@ def test_render_powershell_completion_script_contains_native_completer() -> None
 
 
 def test_render_bash_script_does_not_execute_the_host_shell() -> None:
+    """渲染 Bash 脚本时不执行宿主命令。"""
     root_cli = typer.Typer()
 
     @root_cli.command()
     def demo() -> None:
-        return None
+        """完成无需返回值的回调。"""
+        return
 
     with patch('click.shell_completion.BashComplete._check_version', side_effect=AssertionError('host shell invoked')):
         rendered = CompletionInstallerService().render_completion_script(root_cli, 'bash')

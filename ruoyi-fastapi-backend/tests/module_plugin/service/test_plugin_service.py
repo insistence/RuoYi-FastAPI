@@ -69,12 +69,15 @@ async def test_plugin_diagnose_with_audit_filters_recent_logs(tmp_path: Path) ->
             await session.commit()
 
             class FakeRuntimeService:
-                """
-                测试用插件运行时服务。
-                """
+                """测试用插件运行时服务。"""
 
                 async def diagnose_plugin(self, plugin_id: str) -> dict[str, object]:
-                    """返回测试用插件诊断结果。"""
+                    """
+                    返回测试用插件诊断结果。
+
+                    :param plugin_id: 插件清单中的唯一标识
+                    :return: 测试用插件诊断结果
+                    """
                     return {
                         'ok': True,
                         'message': '插件诊断包生成完成',

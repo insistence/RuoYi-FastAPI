@@ -28,9 +28,21 @@ _USER_IP = '198.51.100.23'
 
 
 def _request(peer: str | None, headers: dict[str, str]) -> Request:
+    """
+    构造供当前场景使用的 HTTP 请求。
+
+    :param peer: 与当前连接对端有关的信息
+    :param headers: 响应或请求携带的 HTTP 头
+    :return: 供当前场景使用的 HTTP 请求
+    """
     body = json.dumps({'userName': 'alice', 'password': 'test-password'}).encode()
 
     async def receive() -> dict[str, object]:
+        """
+        提供下游 ASGI 应用读取的 HTTP 请求体消息。
+
+        :return: 下游 ASGI 应用读取的 HTTP 请求体消息
+        """
         return {'type': 'http.request', 'body': body, 'more_body': False}
 
     return Request(
@@ -55,6 +67,11 @@ def _request(peer: str | None, headers: dict[str, str]) -> Request:
 
 @pytest.fixture
 def oidc_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    为测试启用并配置 OIDC 服务。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', True)
     monkeypatch.setattr(OidcConfig, 'oidc_issuer', 'https://auth.example')
     monkeypatch.setattr(OidcConfig, 'oidc_token_hash_pepper', _PEPPER)
@@ -74,6 +91,14 @@ def oidc_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
 def client_request(
     request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch, oidc_enabled: None
 ) -> tuple[Request, str]:
+    """
+    按测试参数构造含代理信息的请求。
+
+    :param request: pytest 当前用例的请求上下文
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :param oidc_enabled: 为测试启用并配置 OIDC 服务
+    :return: 包含代理信息的请求及其预期客户端地址
+    """
     peer, hops, headers, expected = request.param
     monkeypatch.setattr(AppConfig, 'app_trusted_proxy_hops', hops)
     return _request(peer, headers), expected
@@ -83,6 +108,7 @@ def client_request(
 async def test_login_passes_resolved_ip_to_credentials_and_session_flow(
     client_request: tuple[Request, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """登录时将解析出的 IP 传给凭据和会话流程。"""
     request, expected = client_request
     request.scope['method'] = 'POST'
     login = AsyncMock(return_value=InteractionLoginOutcome(failure_message='认证信息无效'))
@@ -97,6 +123,7 @@ async def test_login_passes_resolved_ip_to_credentials_and_session_flow(
 async def test_captcha_uses_the_resolved_client_ip(
     client_request: tuple[Request, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """验证码使用解析出的客户端 IP。"""
     request, expected = client_request
     generate = AsyncMock(return_value=CaptchaOutcome(result=CaptchaResponseModel(captcha_enabled=False)))
     monkeypatch.setattr(InteractionFlowService, 'captcha', generate)
@@ -110,6 +137,7 @@ async def test_captcha_uses_the_resolved_client_ip(
 async def test_authorize_rate_limit_hashes_the_resolved_client_ip(
     client_request: tuple[Request, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """授权限流对解析出的客户端 IP 取哈希。"""
     request, expected = client_request
     enforce = AsyncMock()
     monkeypatch.setattr(OidcRateLimiter, 'enforce', enforce)
@@ -124,6 +152,7 @@ async def test_authorize_rate_limit_hashes_the_resolved_client_ip(
 async def test_logout_rate_limit_hashes_the_resolved_client_ip(
     client_request: tuple[Request, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """注销限流对解析出的客户端 IP 取哈希。"""
     request, expected = client_request
     enforce = AsyncMock()
     monkeypatch.setattr(OidcRateLimiter, 'enforce', enforce)
@@ -140,6 +169,7 @@ async def test_logout_rate_limit_hashes_the_resolved_client_ip(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('oidc_enabled')
 async def test_authorization_still_rejects_unknown_peer_ip(monkeypatch: pytest.MonkeyPatch) -> None:
+    """授权仍拒绝未知的对端 IP。"""
     monkeypatch.setattr(AppConfig, 'app_trusted_proxy_hops', 1)
     enforce = AsyncMock()
     monkeypatch.setattr(OidcRateLimiter, 'enforce', enforce)

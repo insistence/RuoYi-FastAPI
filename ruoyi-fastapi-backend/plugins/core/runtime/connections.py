@@ -26,11 +26,11 @@ class ConnectionClosure:
     """
     可公开的连接关闭原因，不携带凭证或底层异常详情。
 
-    :param code: 对应的 HTTP 状态
-    :param reason: 稳定的机器可读原因
-    :param message: WebSocket 关闭提示
-    :param outcome: 运行观测的终态分类
-    :param websocket_code: WebSocket 关闭码
+    :ivar code: 对应的 HTTP 状态
+    :ivar reason: 稳定的机器可读原因
+    :ivar message: WebSocket 关闭提示
+    :ivar outcome: 运行观测的终态分类
+    :ivar websocket_code: WebSocket 关闭码
     """
 
     code: int
@@ -67,6 +67,15 @@ def _user_id(context: PluginRequestContext) -> Any:
 class PluginConnectionManager:
     """
     复核当前 worker 的 SSE 与 WebSocket，关闭前先取消业务任务。
+
+    :ivar authorize: 使用独立数据库会话重新鉴权的授权器
+    :ivar ready: 当前插件是否仍然就绪
+    :ivar recheck_interval: 相邻复核的等待秒数
+    :ivar recheck_timeout: 单次复核的超时秒数
+    :ivar cancel_timeout: 业务取消及关闭消息发送分别允许的等待秒数
+    :ivar closing: 是否正在关闭连接
+    :ivar connections: 当前由网关管理的连接
+    :ivar _unfinished: 尚未完成关闭的连接
     """
 
     def __init__(
@@ -86,7 +95,7 @@ class PluginConnectionManager:
         :param recheck_interval: 相邻复核的等待秒数
         :param recheck_timeout: 单次复核的超时秒数
         :param cancel_timeout: 业务取消及关闭消息发送分别允许的等待秒数
-        :return: None
+        :raises ValueError: 连接复核和关闭时间必须大于零
         """
         if any(not math.isfinite(value) or value <= 0 for value in (recheck_interval, recheck_timeout, cancel_timeout)):
             raise ValueError('连接复核和关闭时间必须大于零')
@@ -136,17 +145,12 @@ class PluginConnectionManager:
         :param context: 首次鉴权所得的权限快照
         :param receive: 原始 ASGI 消息接收函数
         :param send: 原始 ASGI 消息发送函数
-        :return: None
         """
         connection = _PluginConnection(self, scope, context, receive, send)
         await connection.run(app, child_scope)
 
     async def drain(self) -> None:
-        """
-        拒绝新连接并并发关闭当前流，在有限时间内等待请求退出。
-
-        :return: None
-        """
+        """拒绝新连接并并发关闭当前流，在有限时间内等待请求退出。"""
         self.closing = True
         connections = tuple(self.connections)
         for connection in connections:
@@ -162,7 +166,6 @@ class PluginConnectionManager:
         有界等待协作式取消，保留未退出任务并回收它们最终的异常。
 
         :param task: 需要停止的异步任务
-        :return: None
         """
         if not task.done():
             task.cancel()
@@ -180,7 +183,6 @@ class PluginConnectionManager:
         释放迟到任务并读取异常，避免未处理任务异常告警。
 
         :param task: 已完成的迟到任务
-        :return: None
         """
         self._unfinished.discard(task)
         with suppress(asyncio.CancelledError, Exception):
@@ -190,6 +192,20 @@ class PluginConnectionManager:
 class _PluginConnection:
     """
     单条请求的收发状态及权限复核任务。
+
+    :ivar manager: 当前插件的连接管理器
+    :ivar scope: 宿主请求作用域
+    :ivar auth_scope: 建立连接时取得的授权范围
+    :ivar context: 初始权限快照
+    :ivar receive: 原始接收函数
+    :ivar send: 原始发送函数
+    :ivar owner: 负责当前操作的对象
+    :ivar closed: 是否已经关闭该连接
+    :ivar checker: 用于取得或验证健康状态的检查器
+    :ivar started: 是否已经完成启动
+    :ivar completed: 命令执行完成后的进程结果
+    :ivar disconnected: 对端是否已断开连接
+    :ivar line_ended: 当前响应行是否已结束
     """
 
     def __init__(
@@ -208,7 +224,6 @@ class _PluginConnection:
         :param context: 初始权限快照
         :param receive: 原始接收函数
         :param send: 原始发送函数
-        :return: None
         """
         self.manager = manager
         self.scope = scope
@@ -229,7 +244,6 @@ class _PluginConnection:
         记录首次关闭原因并阻止后续业务消息进入连接。
 
         :param reason: 已脱敏的关闭原因
-        :return: None
         """
         if not self.closed.done() and not self.completed:
             self.closed.set_result(reason)
@@ -238,7 +252,7 @@ class _PluginConnection:
         """
         仅为事件流及已接受的 WebSocket 启动周期复核。
 
-        :return: None
+        :raises asyncio.CancelledError: 管理器关闭时取消启动
         """
         if self.manager.closing:
             self.stop(PLUGIN_SHUTDOWN)
@@ -249,11 +263,7 @@ class _PluginConnection:
         self.checker = asyncio.create_task(self._check())
 
     async def _check(self) -> None:
-        """
-        定期重新鉴权；权限减配、用户变化或无法确认身份时关闭连接。
-
-        :return: None
-        """
+        """定期重新鉴权；权限减配、用户变化或无法确认身份时关闭连接。"""
         try:
             while True:
                 await asyncio.sleep(self.manager.recheck_interval)
@@ -295,7 +305,7 @@ class _PluginConnection:
         识别长连接并隔离已撤销连接的迟到输出。
 
         :param message: 插件发送的 ASGI 消息
-        :return: None
+        :raises asyncio.CancelledError: 通道关闭时取消发送
         """
         if self.closed.done():
             raise asyncio.CancelledError
@@ -323,7 +333,7 @@ class _PluginConnection:
 
         :param app: 插件 ASGI 应用
         :param child_scope: 已注入宿主上下文的请求作用域
-        :return: None
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
         task = asyncio.create_task(self._invoke(app, child_scope))
         try:
@@ -355,7 +365,6 @@ class _PluginConnection:
 
         :param app: 插件 ASGI 应用
         :param child_scope: 已注入宿主上下文的请求作用域
-        :return: None
         """
         await app(child_scope, self._receive, self._send)
 
@@ -364,7 +373,6 @@ class _PluginConnection:
         发送协议内的终止消息；SSE 控制事件由宿主适配器转换为失败。
 
         :param reason: 首次记录的关闭原因
-        :return: None
         """
         if self.scope['type'] == 'websocket':
             message = {'type': 'websocket.close', 'code': reason.websocket_code, 'reason': reason.message}

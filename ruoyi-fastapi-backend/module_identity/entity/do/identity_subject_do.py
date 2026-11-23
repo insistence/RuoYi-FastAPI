@@ -6,9 +6,7 @@ from utils.time_util import TimezoneUtil
 
 
 class SysIdentitySubject(Base):
-    """
-    统一认证主体关联表
-    """
+    """统一认证主体关联表。"""
 
     __tablename__ = 'sys_identity_subject'
     __table_args__ = (
@@ -31,7 +29,7 @@ class SysIdentitySubject(Base):
         nullable=False,
         comment='本地用户ID',
     )
-    subject_id = Column(String(36), nullable=False, comment='OIDC Subject')
+    subject_id = Column(String(36), nullable=False, comment='OIDC 主体标识')
     auth_version = Column(BigInteger, nullable=False, server_default='1', comment='认证安全版本')
     create_by = Column(String(64), nullable=True, comment='创建者')
     create_time = Column(DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='创建时间')

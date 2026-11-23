@@ -15,17 +15,24 @@ from plugins.core.sdk import PluginHostContext, PluginRequestContext
 
 @pytest.mark.asyncio
 async def test_mounted_app_lifespan_state_root_path_and_shutdown(tmp_path: Path) -> None:
+    """挂载应用保留生命周期状态、根路径和关闭处理。"""
     events = []
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[dict[str, str], None]:
+        """
+        记录下游应用的启动和关闭过程。
+
+        :param app: 正在配置或处理请求的 ASGI 应用
+        :yield: 包含 ``resource`` 的数据
+        """
         events.append('start')
         yield {'resource': 'ready'}
         events.append('stop')
 
     child = FastAPI(lifespan=lifespan)
 
-    @child.get('/api/state')
+    @child.get('/api/state', summary='查询插件应用状态', description='返回插件应用的资源状态、标识及挂载信息。')
     async def state(request: Request) -> dict[str, str]:
         return {
             'resource': request.state.resource,
@@ -34,6 +41,12 @@ async def test_mounted_app_lifespan_state_root_path_and_shutdown(tmp_path: Path)
         }
 
     async def authorize(scope: Scope) -> PluginRequestContext:
+        """
+        创建测试使用的 ``PluginRequestContext`` 实例。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :return: 测试使用的 ``PluginRequestContext`` 实例
+        """
         return PluginRequestContext(PluginHostContext('demo', tmp_path), user=None)
 
     manager = PluginLifespanManager(child)
@@ -54,12 +67,26 @@ async def test_mounted_app_lifespan_state_root_path_and_shutdown(tmp_path: Path)
 @pytest.mark.asyncio
 @pytest.mark.parametrize('failure', [PermissionError, LookupError])
 async def test_gateway_rejects_http_and_websocket_without_invoking_plugin(failure: type[Exception]) -> None:
+    """网关拒绝 HTTP 或 WebSocket 后不调用插件。"""
     reached = []
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         reached.append(scope)
 
     async def authorize(scope: Scope) -> PluginRequestContext:
+        """
+        模拟此操作抛出 failure 的情形。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :raises Exception: 底层操作失败时向调用方传播异常
+        """
         raise failure()
 
     manager = PluginLifespanManager(child, managed=False)
@@ -71,6 +98,11 @@ async def test_gateway_rejects_http_and_websocket_without_invoking_plugin(failur
     messages = []
 
     async def send(message: Message) -> None:
+        """
+        收集应用发送的 ASGI 消息。
+
+        :param message: 与当前结果一起返回的说明
+        """
         messages.append(message)
 
     await gateway({'type': 'websocket', 'path': '/ws'}, None, send)
@@ -80,9 +112,17 @@ async def test_gateway_rejects_http_and_websocket_without_invoking_plugin(failur
 
 @pytest.mark.asyncio
 async def test_failed_or_unsupported_lifespan_cleans_up() -> None:
+    """生命周期失败或不受支持时清理资源。"""
     stopped = asyncio.Event()
 
     async def failed(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟子应用未完成其生命周期操作。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         try:
             await receive()
             await send({'type': 'lifespan.startup.failed', 'message': 'broken resource'})
@@ -97,6 +137,13 @@ async def test_failed_or_unsupported_lifespan_cleans_up() -> None:
     assert not manager.started
 
     async def unsupported(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟直接结束的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         return
 
     with pytest.raises(RuntimeError, match='确认前退出'):
@@ -105,9 +152,17 @@ async def test_failed_or_unsupported_lifespan_cleans_up() -> None:
 
 @pytest.mark.asyncio
 async def test_lifespan_timeout_cancels_task() -> None:
+    """生命周期超时后取消任务。"""
     stopped = asyncio.Event()
 
     async def hangs(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        保持异步任务等待以触发超时处理。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         try:
             await asyncio.Event().wait()
         finally:
@@ -127,6 +182,13 @@ async def test_lifespan_timeout_is_bounded_and_retry_uses_fresh_protocol_state(p
     attempts = []
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         attempts.append(scope['state'])
         await receive()
         if len(attempts) > 1:
@@ -172,7 +234,17 @@ async def test_lifespan_timeout_is_bounded_and_retry_uses_fresh_protocol_state(p
 @pytest.mark.asyncio
 @pytest.mark.parametrize('phase', ['startup', 'shutdown'])
 async def test_lifespan_self_cancellation_is_protocol_error(phase: str) -> None:
+    """生命周期主动取消被识别为协议错误。"""
+
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        :raises asyncio.CancelledError: 异步操作被取消时
+        """
         await receive()
         if phase == 'shutdown':
             await send({'type': 'lifespan.startup.complete'})
@@ -190,13 +262,30 @@ async def test_lifespan_self_cancellation_is_protocol_error(phase: str) -> None:
 
 @pytest.mark.asyncio
 async def test_lifespan_accepts_callable_returning_future() -> None:
+    """生命周期接受返回 Future 的可调用对象。"""
+
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         await receive()
         await send({'type': 'lifespan.startup.complete'})
         await receive()
         await send({'type': 'lifespan.shutdown.complete'})
 
     def app(scope: Scope, receive: Receive, send: Send) -> asyncio.Future[None]:
+        """
+        将测试请求交给下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        :return: 运行下游 ASGI 应用的异步任务
+        """
         return asyncio.create_task(child(scope, receive, send))
 
     manager = PluginLifespanManager(app)
@@ -208,9 +297,17 @@ async def test_lifespan_accepts_callable_returning_future() -> None:
 
 @pytest.mark.asyncio
 async def test_host_cancellation_propagates_and_releases_lifespan_task() -> None:
+    """宿主取消时传播取消信号并释放生命周期任务。"""
     opened, stopped = asyncio.Event(), asyncio.Event()
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         opened.set()
         try:
             await asyncio.Event().wait()
@@ -228,6 +325,7 @@ async def test_host_cancellation_propagates_and_releases_lifespan_task() -> None
 
 @pytest.mark.parametrize('timeout', [0, -1, float('inf'), float('nan')])
 def test_lifespan_rejects_invalid_time_limits(timeout: float) -> None:
+    """生命周期拒绝无效的时间限制。"""
     with pytest.raises(ValueError, match='大于零'):
         PluginLifespanManager(None, timeout=timeout)
     with pytest.raises(ValueError, match='大于零'):
@@ -236,10 +334,18 @@ def test_lifespan_rejects_invalid_time_limits(timeout: float) -> None:
 
 @pytest.mark.asyncio
 async def test_concurrent_shutdown_waits_for_startup_and_sends_one_shutdown() -> None:
+    """并发关闭等待启动完成并只发送一次关闭事件。"""
     opened, release = asyncio.Event(), asyncio.Event()
     messages = []
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         messages.append((await receive())['type'])
         opened.set()
         await release.wait()

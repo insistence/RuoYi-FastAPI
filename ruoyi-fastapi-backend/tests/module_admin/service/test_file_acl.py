@@ -21,6 +21,11 @@ BATCH_FILE_COUNT = 2
 
 
 def make_query_db() -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
 
@@ -31,6 +36,16 @@ def make_current_user(
     ancestors: str = '',
     admin: bool = False,
 ) -> SimpleNamespace:
+    """
+    构造带有测试所需角色和权限的用户。
+
+    :param user_id: 用户的唯一标识
+    :param role_ids: 角色id
+    :param dept_id: 部门id
+    :param ancestors: 当前部门的祖先路径
+    :param admin: 是否使用管理员身份
+    :return: 带有测试所需角色和权限的用户
+    """
     roles = [SimpleNamespace(role_id=role_id) for role_id in (role_ids or [])]
     dept = SimpleNamespace(dept_id=dept_id, ancestors=ancestors) if dept_id else None
     user = SimpleNamespace(
@@ -50,6 +65,14 @@ def make_file_info(
     upload_user_id: int = 11,
     uploader_access_enabled: str = '1',
 ) -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param owner_user_id: 新所有者用户ID
+    :param upload_user_id: 上传用户ID
+    :param uploader_access_enabled: 是否保留上传人访问权限
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         owner_user_id=owner_user_id,
         upload_user_id=upload_user_id,
@@ -63,6 +86,15 @@ def make_acl(
     effect: str = 'allow',
     include_children: str = '0',
 ) -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param subject_type: 主体类型
+    :param subject_id: 身份主体的唯一标识
+    :param effect: 更新权限或状态时采用的效果
+    :param include_children: 部门是否包含下级
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         subject_type=subject_type,
         subject_id=subject_id,
@@ -84,6 +116,7 @@ def test_private_file_acl_allows_matching_user_role_or_department(
     current_user: SimpleNamespace,
     file_acl: SimpleNamespace,
 ) -> None:
+    """私有文件授权匹配用户、角色或部门。"""
     with patch.object(FileAclDao, 'get_effective_file_acl_list', new=AsyncMock(return_value=[file_acl])):
         result = asyncio.run(
             CommonService._has_private_file_download_permission(
@@ -99,6 +132,7 @@ def test_private_file_acl_allows_matching_user_role_or_department(
 
 
 def test_private_file_acl_does_not_apply_parent_department_without_include_children() -> None:
+    """未启用包含子部门时不沿用上级部门的文件授权。"""
     current_user = make_current_user(20, dept_id=120, ancestors='0,100,110')
     file_acl = make_acl('dept', 100, include_children='0')
 
@@ -117,6 +151,7 @@ def test_private_file_acl_does_not_apply_parent_department_without_include_child
 
 
 def test_file_acl_department_options_are_returned_as_tree() -> None:
+    """文件授权部门选项按树返回。"""
     dept_list = [
         SimpleNamespace(dept_id=PARENT_DEPT_ID, dept_name='研发中心', parent_id=0),
         SimpleNamespace(dept_id=CHILD_DEPT_ID, dept_name='平台研发部', parent_id=PARENT_DEPT_ID),
@@ -130,6 +165,7 @@ def test_file_acl_department_options_are_returned_as_tree() -> None:
 
 
 def test_file_acl_list_returns_current_version() -> None:
+    """文件授权列表返回当前版本。"""
     acl_version = 7
     with (
         patch.object(
@@ -173,6 +209,7 @@ def test_file_acl_list_returns_current_version() -> None:
 
 
 def test_file_acl_list_marks_uploader_permission_non_overridable_when_uploader_is_owner() -> None:
+    """上传者也是所有者时其权限标记为不可覆盖。"""
     file_info = SimpleNamespace(
         acl_version=0,
         access_type='private',
@@ -210,6 +247,7 @@ def test_file_acl_list_marks_uploader_permission_non_overridable_when_uploader_i
 
 
 def test_file_acl_list_exposes_disabled_uploader_permission() -> None:
+    """文件授权列表显示已禁用的上传者权限。"""
     file_info = SimpleNamespace(
         access_type='private',
         owner_user_id=10,
@@ -230,6 +268,7 @@ def test_file_acl_list_exposes_disabled_uploader_permission() -> None:
 
 
 def test_file_acl_role_options_exclude_roles_with_members_outside_user_data_scope() -> None:
+    """文件授权角色选项排除成员超出当前用户数据范围的角色。"""
     query_db = SimpleNamespace(
         execute=AsyncMock(
             side_effect=[
@@ -251,6 +290,7 @@ def test_file_acl_role_options_exclude_roles_with_members_outside_user_data_scop
 
 
 def test_private_file_acl_explicit_deny_overrides_uploader_and_allow_rule() -> None:
+    """显式拒绝优先于上传者身份及允许规则。"""
     current_user = make_current_user(20, role_ids=[5])
     file_acl_list = [make_acl('role', 5, effect='allow'), make_acl('user', 20, effect='deny')]
 
@@ -269,6 +309,7 @@ def test_private_file_acl_explicit_deny_overrides_uploader_and_allow_rule() -> N
 
 
 def test_private_file_acl_does_not_allow_uploader_when_compatibility_access_is_disabled() -> None:
+    """关闭兼容访问后上传者不自动获得私有文件权限。"""
     current_user = make_current_user(20)
 
     with patch.object(FileAclDao, 'get_effective_file_acl_list', new=AsyncMock(return_value=[])):
@@ -287,6 +328,7 @@ def test_private_file_acl_does_not_allow_uploader_when_compatibility_access_is_d
 
 @pytest.mark.parametrize('current_user', [make_current_user(20, admin=True), make_current_user(20)])
 def test_private_file_acl_admin_or_owner_is_not_blocked_by_deny(current_user: SimpleNamespace) -> None:
+    """管理员或所有者不受私有文件拒绝规则阻拦。"""
     file_info = make_file_info(owner_user_id=20 if not current_user.user.admin else 10)
     get_acl_list = AsyncMock(return_value=[make_acl('user', 20, effect='deny')])
 
@@ -306,6 +348,7 @@ def test_private_file_acl_admin_or_owner_is_not_blocked_by_deny(current_user: Si
 
 
 def test_save_file_acl_normalizes_department_scope_and_commits() -> None:
+    """保存文件授权时规范化部门范围并提交。"""
     query_db = make_query_db()
     current_user = make_current_user(1, admin=True)
     acl_version = 3
@@ -368,6 +411,7 @@ def test_save_file_acl_normalizes_department_scope_and_commits() -> None:
 
 
 def test_batch_save_file_acl_replaces_all_selected_private_files() -> None:
+    """批量保存替换全部选中私有文件的授权。"""
     query_db = make_query_db()
     current_user = make_current_user(1, admin=True)
     file_infos = [
@@ -410,6 +454,7 @@ def test_batch_save_file_acl_replaces_all_selected_private_files() -> None:
 
 
 def test_batch_save_file_acl_rejects_public_files() -> None:
+    """批量保存文件授权时拒绝公开文件。"""
     query_db = make_query_db()
     save_model = BatchSaveFileAclModel(fileIds=FILE_ID, entries=[])
     file_infos = [SimpleNamespace(file_id=FILE_ID, access_type='public', acl_version=0)]
@@ -436,6 +481,7 @@ def test_batch_save_file_acl_rejects_public_files() -> None:
 
 
 def test_save_file_acl_rejects_duplicate_or_expired_entries() -> None:
+    """保存文件授权时拒绝重复或过期条目。"""
     query_db = make_query_db()
     current_user = make_current_user(1, admin=True)
     file_info = SimpleNamespace(access_type='private', acl_version=0)
@@ -489,6 +535,7 @@ def test_save_file_acl_rejects_duplicate_or_expired_entries() -> None:
 
 
 def test_save_file_acl_rejects_subject_outside_data_scope() -> None:
+    """保存文件授权时拒绝数据范围外的主体。"""
     query_db = make_query_db()
     current_user = make_current_user(1, admin=True)
     file_info = SimpleNamespace(access_type='private', acl_version=0)
@@ -518,6 +565,7 @@ def test_save_file_acl_rejects_subject_outside_data_scope() -> None:
 
 
 def test_save_file_acl_rejects_file_outside_data_scope() -> None:
+    """保存文件授权时拒绝数据范围外的文件。"""
     query_db = make_query_db()
     current_user = make_current_user(20)
     save_model = SaveFileAclModel(aclVersion=0, entries=[])
@@ -550,6 +598,7 @@ def test_save_file_acl_rejects_file_outside_data_scope() -> None:
 
 
 def test_save_file_acl_rejects_stale_acl_version() -> None:
+    """保存文件授权时拒绝过期版本。"""
     query_db = make_query_db()
     file_info = SimpleNamespace(access_type='private', acl_version=2)
     save_model = SaveFileAclModel(aclVersion=1, entries=[])

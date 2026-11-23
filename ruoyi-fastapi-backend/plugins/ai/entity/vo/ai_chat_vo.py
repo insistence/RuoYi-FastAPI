@@ -7,9 +7,7 @@ from common.types import ApiUtcDateTime
 
 
 class AiChatRequestModel(BaseModel):
-    """
-    AI对话请求模型
-    """
+    """AI对话请求模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -21,9 +19,7 @@ class AiChatRequestModel(BaseModel):
 
 
 class AiChatConfigModel(BaseModel):
-    """
-    AI对话配置模型
-    """
+    """AI对话配置模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -41,9 +37,7 @@ class AiChatConfigModel(BaseModel):
 
 
 class AiChatSessionBaseModel(BaseModel):
-    """
-    AI对话会话基础模型
-    """
+    """AI对话会话基础模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -56,9 +50,7 @@ class AiChatSessionBaseModel(BaseModel):
 
 
 class ModelInfoModel(BaseModel):
-    """
-    对话会话数据模型-模型信息模型
-    """
+    """对话会话数据模型-模型信息模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -69,9 +61,7 @@ class ModelInfoModel(BaseModel):
 
 
 class AgentDataModel(BaseModel):
-    """
-    对话会话数据模型-智能体数据模型
-    """
+    """对话会话数据模型-智能体数据模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -80,9 +70,7 @@ class AgentDataModel(BaseModel):
 
 
 class SessionMetricsModel(BaseModel):
-    """
-    对话会话数据模型-会话指标模型
-    """
+    """对话会话数据模型-会话指标模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -104,9 +92,7 @@ class SessionMetricsModel(BaseModel):
 
 
 class SessionDataModel(BaseModel):
-    """
-    对话会话数据模型
-    """
+    """对话会话数据模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -115,9 +101,7 @@ class SessionDataModel(BaseModel):
 
 
 class MessageMetrics(BaseModel):
-    """
-    对话消息模型-消息指标模型
-    """
+    """对话消息模型-消息指标模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -130,9 +114,7 @@ class MessageMetrics(BaseModel):
 
 
 class ChatMessageModel(BaseModel):
-    """
-    对话消息模型
-    """
+    """对话消息模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -148,9 +130,7 @@ class ChatMessageModel(BaseModel):
 
 
 class AiChatSessionModel(AiChatSessionBaseModel):
-    """
-    AI对话会话模型
-    """
+    """AI对话会话模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

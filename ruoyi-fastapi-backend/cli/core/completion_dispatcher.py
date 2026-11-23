@@ -16,8 +16,8 @@ class CompletionInstructionSupport:
     该对象负责管理 completion 环境变量名、受支持 shell 列表，以及
     Click / Typer 两种指令格式的判定逻辑。
 
-    :param complete_env_var: completion 环境变量名
-    :param supported_shells: 支持的 shell 名称列表
+    :ivar complete_env_var: completion 环境变量名
+    :ivar supported_shells: 支持的 shell 名称列表
     """
 
     complete_env_var: str = '_RUOYI_COMPLETE'
@@ -27,7 +27,7 @@ class CompletionInstructionSupport:
         """
         判断 completion 指令是否为 Click 原生格式。
 
-        Click 原生格式为 `<shell>_<instruction>`，例如 `bash_complete`。
+        Click 原生格式为 ``<shell>_<instruction>``，例如 ``bash_complete``。
 
         :param instruction: completion 指令文本
         :return: 是否为 Click 风格指令
@@ -38,7 +38,7 @@ class CompletionInstructionSupport:
         """
         判断 completion 指令是否为 Typer 兼容格式。
 
-        Typer 兼容格式为 `<instruction>_<shell>`，例如 `complete_bash`。
+        Typer 兼容格式为 ``<instruction>_<shell>``，例如 ``complete_bash``。
 
         :param instruction: completion 指令文本
         :return: 是否为 Typer 风格指令
@@ -53,7 +53,7 @@ class CompletionInstructionReader:
 
     该对象负责从当前进程环境中读取并规范化 completion 指令。
 
-    :param support: completion 指令解析支持对象
+    :ivar support: completion 指令解析支持对象
     """
 
     support: CompletionInstructionSupport
@@ -75,19 +75,15 @@ class CompletionDispatcher:
     该对象负责识别 Click 与 Typer 两种 completion 指令格式，
     并在命中时直接执行补全流程后退出当前进程。
 
-    :param support: completion 指令解析支持对象
-    :param instruction_reader: completion 指令读取器
+    :ivar support: completion 指令解析支持对象
+    :ivar instruction_reader: completion 指令读取器
     """
 
     support: CompletionInstructionSupport = field(default_factory=CompletionInstructionSupport)
     instruction_reader: CompletionInstructionReader = field(init=False)
 
     def __post_init__(self) -> None:
-        """
-        初始化 completion 指令读取器。
-
-        :return: None
-        """
+        """初始化 completion 指令读取器。"""
         object.__setattr__(self, 'instruction_reader', CompletionInstructionReader(self.support))
 
     def dispatch(self, cli: typer.Typer) -> None:
@@ -95,10 +91,10 @@ class CompletionDispatcher:
         处理 shell completion 请求并在命中时直接退出。
 
         这里同时兼容 Click 与 Typer 两种 completion 指令格式，避免
-        生成脚本格式和运行时解析格式不一致时出现 `Shell complete not supported.`。
+        生成脚本格式和运行时解析格式不一致时出现 ``Shell complete not supported.``。
 
         :param cli: Typer 根应用
-        :return: None
+        :raises SystemExit: 补全协议处理结束时将补全器退出码交给命令行
         """
         ensure_custom_completion_classes_registered()
         instruction = self.instruction_reader.read_instruction()

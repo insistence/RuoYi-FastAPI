@@ -21,9 +21,7 @@ FileReconcileAction = Literal[
 
 
 class FileInfoModel(BaseModel):
-    """
-    文件信息表对应pydantic模型
-    """
+    """文件信息表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -55,9 +53,7 @@ class FileInfoModel(BaseModel):
 
 
 class FileInfoDisplayModel(FileInfoModel):
-    """
-    文件信息展示模型
-    """
+    """文件信息展示模型。"""
 
     owner_name: str | None = Field(default=None, description='所有者用户名称')
     dept_name: str | None = Field(default=None, description='所属部门名称')
@@ -70,9 +66,7 @@ class FileInfoDisplayModel(FileInfoModel):
 
 
 class FileReferenceModel(BaseModel):
-    """
-    文件业务引用表对应pydantic模型
-    """
+    """文件业务引用表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -88,9 +82,7 @@ class FileReferenceModel(BaseModel):
 
 
 class FileRetentionPolicyModel(BaseModel):
-    """
-    文件业务保留策略模型
-    """
+    """文件业务保留策略模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True, str_strip_whitespace=True)
 
@@ -105,9 +97,7 @@ class FileRetentionPolicyModel(BaseModel):
 
 
 class FileRetentionNoticeModel(BaseModel):
-    """
-    文件保留期限提醒展示模型
-    """
+    """文件保留期限提醒展示模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -127,9 +117,7 @@ class FileRetentionNoticeModel(BaseModel):
 
 
 class FileRetentionNoticeQueryModel(BaseModel):
-    """
-    文件保留期限提醒不分页查询模型
-    """
+    """文件保留期限提醒不分页查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -139,18 +127,14 @@ class FileRetentionNoticeQueryModel(BaseModel):
 
 
 class FileRetentionNoticePageQueryModel(FileRetentionNoticeQueryModel):
-    """
-    文件保留期限提醒分页查询模型
-    """
+    """文件保留期限提醒分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class FileRetentionScanModel(BaseModel):
-    """
-    文件保留期限提醒扫描结果模型
-    """
+    """文件保留期限提醒扫描结果模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -159,9 +143,7 @@ class FileRetentionScanModel(BaseModel):
 
 
 class ExtendFileRetentionModel(BaseModel):
-    """
-    延长文件保留期限模型
-    """
+    """延长文件保留期限模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, str_strip_whitespace=True)
 
@@ -170,9 +152,7 @@ class ExtendFileRetentionModel(BaseModel):
 
 
 class DisposeExpiredFileModel(BaseModel):
-    """
-    到期文件处置模型
-    """
+    """到期文件处置模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, str_strip_whitespace=True)
 
@@ -180,9 +160,7 @@ class DisposeExpiredFileModel(BaseModel):
 
 
 class FileAccessLogModel(BaseModel):
-    """
-    文件访问审计表对应pydantic模型
-    """
+    """文件访问审计表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -214,9 +192,7 @@ class FileAccessLogModel(BaseModel):
 
 
 class FileAclModel(BaseModel):
-    """
-    文件访问控制表对应pydantic模型
-    """
+    """文件访问控制表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -234,9 +210,7 @@ class FileAclModel(BaseModel):
 
 
 class FileAclItemModel(BaseModel):
-    """
-    文件访问控制配置项模型
-    """
+    """文件访问控制配置项模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -248,9 +222,7 @@ class FileAclItemModel(BaseModel):
 
 
 class FileAclBuiltinPermissionModel(BaseModel):
-    """
-    文件内置访问权限展示模型
-    """
+    """文件内置访问权限展示模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -264,9 +236,7 @@ class FileAclBuiltinPermissionModel(BaseModel):
 
 
 class FileAclListModel(BaseModel):
-    """
-    文件访问控制列表模型
-    """
+    """文件访问控制列表模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -278,9 +248,7 @@ class FileAclListModel(BaseModel):
 
 
 class SaveFileAclModel(BaseModel):
-    """
-    保存文件访问控制模型
-    """
+    """保存文件访问控制模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -289,9 +257,7 @@ class SaveFileAclModel(BaseModel):
 
 
 class BatchSaveFileAclModel(BaseModel):
-    """
-    批量保存文件访问控制模型
-    """
+    """批量保存文件访问控制模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -300,9 +266,7 @@ class BatchSaveFileAclModel(BaseModel):
 
 
 class FileAclSubjectOptionModel(BaseModel):
-    """
-    文件访问控制主体选项模型
-    """
+    """文件访问控制主体选项模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -312,9 +276,7 @@ class FileAclSubjectOptionModel(BaseModel):
 
 
 class FileInfoQueryModel(InstantRangeQueryMixin, BaseModel):
-    """
-    文件信息管理不分页查询模型
-    """
+    """文件信息管理不分页查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -332,18 +294,14 @@ class FileInfoQueryModel(InstantRangeQueryMixin, BaseModel):
 
 
 class FileInfoPageQueryModel(FileInfoQueryModel):
-    """
-    文件信息管理分页查询模型
-    """
+    """文件信息管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class FileStatsModel(BaseModel):
-    """
-    文件管理统计模型
-    """
+    """文件管理统计模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -359,9 +317,7 @@ class FileStatsModel(BaseModel):
 
 
 class FileAccessLogQueryModel(InstantRangeQueryMixin, BaseModel):
-    """
-    文件访问审计不分页查询模型
-    """
+    """文件访问审计不分页查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -387,18 +343,14 @@ class FileAccessLogQueryModel(InstantRangeQueryMixin, BaseModel):
 
 
 class FileAccessLogPageQueryModel(FileAccessLogQueryModel):
-    """
-    文件访问审计分页查询模型
-    """
+    """文件访问审计分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class DeleteFileModel(BaseModel):
-    """
-    删除文件模型
-    """
+    """删除文件模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -406,9 +358,7 @@ class DeleteFileModel(BaseModel):
 
 
 class TransferFileModel(BaseModel):
-    """
-    转移文件模型
-    """
+    """转移文件模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, str_strip_whitespace=True)
 
@@ -419,9 +369,7 @@ class TransferFileModel(BaseModel):
 
 
 class FileReconcileRunModel(BaseModel):
-    """
-    文件存储对账任务展示模型
-    """
+    """文件存储对账任务展示模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -441,9 +389,7 @@ class FileReconcileRunModel(BaseModel):
 
 
 class FileReconcileRunPageQueryModel(BaseModel):
-    """
-    文件存储对账任务分页查询模型
-    """
+    """文件存储对账任务分页查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -454,9 +400,7 @@ class FileReconcileRunPageQueryModel(BaseModel):
 
 
 class FileReconcileIssueModel(BaseModel):
-    """
-    文件存储对账异常展示模型
-    """
+    """文件存储对账异常展示模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
@@ -502,9 +446,7 @@ class FileReconcileIssueModel(BaseModel):
 
 
 class FileReconcileIssuePageQueryModel(BaseModel):
-    """
-    文件存储对账异常分页查询模型
-    """
+    """文件存储对账异常分页查询模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -517,9 +459,7 @@ class FileReconcileIssuePageQueryModel(BaseModel):
 
 
 class FileReconcileStartModel(BaseModel):
-    """
-    启动文件存储对账模型
-    """
+    """启动文件存储对账模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -527,9 +467,7 @@ class FileReconcileStartModel(BaseModel):
 
 
 class FileReconcileHandleModel(BaseModel):
-    """
-    文件存储对账异常处理模型
-    """
+    """文件存储对账异常处理模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, str_strip_whitespace=True)
 
@@ -539,9 +477,7 @@ class FileReconcileHandleModel(BaseModel):
 
 
 class FileReconcileStatsModel(BaseModel):
-    """
-    文件存储对账统计模型
-    """
+    """文件存储对账统计模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

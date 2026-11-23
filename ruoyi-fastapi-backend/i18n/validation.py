@@ -44,14 +44,12 @@ _ERROR_MESSAGES = {
 
 
 class ValidationMessageUtil:
-    """
-    原生 422 校验错误翻译工具，保留字段定位和公开约束
-    """
+    """原生 422 校验错误翻译工具，保留字段定位和公开约束。"""
 
     @staticmethod
     def localize(error: dict[str, Any]) -> dict[str, Any]:
         """
-        翻译支持的校验错误，未知类型使用通用提示并保留字段路径
+        翻译支持的校验错误，未知类型使用通用提示并保留字段路径。
 
         :param error: 原生校验错误信息
         :return: 包含译文和消息元数据的校验错误

@@ -40,6 +40,13 @@ class PluginBundleASGI:
 
     构建目录应在部署后保持只读。此类只负责静态交付，不签发会话、不公开资源，
     也不改变外层传输加密策略。lifespan 和非 UI 请求始终委派原始子应用。
+
+    :ivar child_app: 接收非 UI 请求的原始插件 ASGI 应用
+    :ivar plugin_id: 插件 ID
+    :ivar plugin_root: 插件资源根目录
+    :ivar bundle_manifest: 插件前端构建产物声明
+    :ivar bundle_root: 前端资源包所在的根目录
+    :ivar entry_path: 前端资源包入口所在的路径
     """
 
     def __init__(
@@ -56,7 +63,7 @@ class PluginBundleASGI:
         :param plugin_id: 插件 ID
         :param plugin_root: 插件资源根目录
         :param bundle_manifest: 插件前端构建产物声明
-        :return: None
+        :raises ValueError: 插件 bundle 目录不存在；插件 bundle 入口不存在
         """
         self.child_app = child_app
         self.plugin_id = plugin_id
@@ -76,7 +83,6 @@ class PluginBundleASGI:
         :param scope: ASGI 请求作用域
         :param receive: ASGI 消息接收函数
         :param send: ASGI 消息发送函数
-        :return: None
         """
         if scope['type'] != 'http':
             await self.child_app(scope, receive, send)
@@ -243,6 +249,7 @@ class PluginBundleASGI:
         :param root: 允许访问的资源根目录
         :param relative_path: 清单声明的相对资源路径
         :return: 位于允许目录内的资源绝对路径
+        :raises ValueError: 插件 bundle 资源路径非法；插件 bundle 资源路径越界
         """
         if not cls._safe_parts(relative_path):
             raise ValueError('插件 bundle 资源路径非法')

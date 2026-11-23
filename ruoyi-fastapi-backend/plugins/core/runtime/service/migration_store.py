@@ -18,6 +18,10 @@ class PluginDatabaseMigrationHistoryStore(PluginMigrationHistoryStore):
     插件数据库 migration 历史存储。
 
     使用 Adapter 模式将插件 core runner 需要的历史接口适配到外部 migration 历史服务。
+
+    :ivar plugin_service: 插件服务类
+    :ivar model_gateway: 插件管理模型工厂网关
+    :ivar async_session_local: 独立数据库会话工厂
     """
 
     def __init__(
@@ -30,7 +34,6 @@ class PluginDatabaseMigrationHistoryStore(PluginMigrationHistoryStore):
 
         :param plugin_service: 插件服务类
         :param async_session_local: 独立数据库会话工厂
-        :return: None
         """
         self.plugin_service = plugin_service
         self.model_gateway: PluginManagementModelGateway | None = None
@@ -96,7 +99,7 @@ class PluginDatabaseMigrationHistoryStore(PluginMigrationHistoryStore):
         :param checksum: 内容校验值
         :param version: 执行时插件版本
         :param statement_count: SQL 语句数量
-        :return: None
+        :raises RuntimeError: 插件运行时缺少 migration 历史记录模型网关
         """
         if self.model_gateway is None:
             raise RuntimeError('插件运行时缺少 migration 历史记录模型网关')
@@ -130,7 +133,7 @@ class PluginDatabaseMigrationHistoryStore(PluginMigrationHistoryStore):
         :param checksum: 内容校验值
         :param version: 执行时插件版本
         :param statement_count: SQL 语句数量
-        :return: None
+        :raises RuntimeError: 插件运行时缺少 migration 历史记录模型网关
         """
         if self.model_gateway is None:
             raise RuntimeError('插件运行时缺少 migration 历史记录模型网关')
@@ -165,7 +168,7 @@ class PluginDatabaseMigrationHistoryStore(PluginMigrationHistoryStore):
         :param version: 执行时插件版本
         :param statement_count: SQL 语句数量
         :param error_message: 失败错误信息
-        :return: None
+        :raises RuntimeError: 插件运行时缺少 migration 历史记录模型网关
         """
         if self.model_gateway is None:
             raise RuntimeError('插件运行时缺少 migration 历史记录模型网关')
@@ -188,7 +191,6 @@ class PluginDatabaseMigrationHistoryStore(PluginMigrationHistoryStore):
 
         :param query_db: 当前生命周期 orm对象
         :param plugin_migration: migration 历史模型
-        :return: None
         """
         if self.async_session_local is None:
             await self.plugin_service.add_plugin_migration_services(query_db, plugin_migration)
@@ -204,6 +206,8 @@ class PluginMigrationHistoryGatewayStore(PluginMigrationHistoryStore):
     插件 migration 历史查询端口适配器。
 
     仅用于生命周期脚本预检读取历史状态，执行期写入仍由 PluginDatabaseMigrationHistoryStore 负责。
+
+    :ivar migration_history_gateway: migration 历史查询端口
     """
 
     def __init__(self, migration_history_gateway: PluginMigrationHistoryGateway) -> None:
@@ -211,7 +215,6 @@ class PluginMigrationHistoryGatewayStore(PluginMigrationHistoryStore):
         初始化 migration 历史查询适配器。
 
         :param migration_history_gateway: migration 历史查询端口
-        :return: None
         """
         self.migration_history_gateway = migration_history_gateway
 

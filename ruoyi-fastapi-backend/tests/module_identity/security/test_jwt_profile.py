@@ -19,15 +19,26 @@ from module_identity.security.jwt_profile import (
 
 @pytest.fixture()
 def key_pair() -> tuple[object, object]:
+    """
+    生成用于令牌测试的临时 RSA 密钥对。
+
+    :return: 用于令牌测试的临时 RSA 密钥对
+    """
     private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     return private, private.public_key()
 
 
 def _now() -> int:
+    """
+    返回当前 UTC 时间戳。
+
+    :return: 当前 UTC 时间戳
+    """
     return int(datetime.now(UTC).timestamp())
 
 
 def test_access_profile_requires_at_jwt_and_checks_audience(key_pair: tuple[object, object]) -> None:
+    """访问令牌校验要求 at+jwt 并检查受众。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -59,6 +70,7 @@ def test_access_profile_requires_at_jwt_and_checks_audience(key_pair: tuple[obje
 
 
 def test_id_token_cannot_be_used_as_access_token_and_leeway_is_forwarded(key_pair: tuple[object, object]) -> None:
+    """拒绝将身份令牌当作访问令牌并传递允许的时间偏差。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -87,6 +99,7 @@ def test_id_token_cannot_be_used_as_access_token_and_leeway_is_forwarded(key_pai
 
 
 def test_wrong_algorithm_kid_and_numeric_types_are_rejected(key_pair: tuple[object, object]) -> None:
+    """拒绝错误的算法、密钥标识及数值类型。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -130,6 +143,7 @@ def test_wrong_algorithm_kid_and_numeric_types_are_rejected(key_pair: tuple[obje
 
 
 def test_signed_non_finite_numeric_date_is_rejected(key_pair: tuple[object, object]) -> None:
+    """拒绝签名中非有限的数值日期。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -189,6 +203,7 @@ def test_access_profile_requires_gty_and_rejects_machine_user_field_confusion(
 
 
 def test_logout_profile_requires_event_and_non_empty_sid_or_sub(key_pair: tuple[object, object]) -> None:
+    """注销令牌必须含注销事件及非空的会话或主体标识。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -254,7 +269,6 @@ def test_logout_profile_rejects_invalid_signed_claims(
 @pytest.mark.parametrize('expiry', [None, 'future', True, 0, -1])
 def test_logout_profile_rejects_missing_invalid_or_expired_exp(key_pair: tuple[object, object], expiry: object) -> None:
     """接收方拒绝缺失、类型错误或过期的退出令牌。"""
-
     private, public = key_pair
     claims = {
         'iss': 'https://issuer.example',

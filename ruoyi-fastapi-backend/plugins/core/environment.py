@@ -20,6 +20,13 @@ class PluginRuntimeEnvironmentService:
     插件运行时环境服务。
 
     为插件运行时提供前后端工程目录、Python 可执行文件和运行模式。
+
+    :ivar backend_root: 后端项目根目录
+    :ivar frontend_root: 前端项目根目录或统一前端目录
+    :ivar frontend_framework: 前端框架标识，auto 使用环境变量，未配置时默认 vue3
+    :ivar python_executable: Python 可执行文件路径
+    :ivar frontend_mode: 当前使用的前端集成模式
+    :ivar backend_runtime_mode: 后端运行模式
     """
 
     def __init__(
@@ -36,7 +43,6 @@ class PluginRuntimeEnvironmentService:
         :param frontend_root: 前端项目根目录或统一前端目录
         :param python_executable: Python 可执行文件路径
         :param frontend_framework: 前端框架标识，auto 使用环境变量，未配置时默认 vue3
-        :return: None
         """
         self.backend_root = self._resolve_backend_root(backend_root)
         self.frontend_root = resolve_frontend_root(self.backend_root, frontend_root, frontend_framework)

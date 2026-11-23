@@ -27,6 +27,22 @@ from .runner import PluginLifecycleStep, PluginLifecycleStepFailed, PluginLifecy
 class PluginEnabledLifecycleContext:
     """
     插件启停声明式生命周期上下文。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar enabled: 是否启用
+    :ivar dry_run: 是否只预览操作结果
+    :ivar operation: 当前处理的操作
+    :ivar backend_root: 后端项目的根目录
+    :ivar discovered_plugins: 已发现插件列表
+    :ivar discovered_plugin: 扫描插件目录后得到的插件描述
+    :ivar precheck: 执行操作前取得的检查结果
+    :ivar actions: 即将执行或已记录的操作步骤
+    :ivar dependency_payload: 插件依赖检查负载
+    :ivar response: 当前调用产生的响应
+    :ivar session: 当前操作共用的会话
+    :ivar plugin_service: 执行插件业务操作的服务
+    :ivar session_context: 当前会话的上下文
+    :ivar catalog_snapshot: 操作开始时捕获的插件目录快照
     """
 
     plugin_id: str
@@ -50,6 +66,19 @@ class PluginEnabledLifecycleContext:
 class PluginUninstallLifecycleContext:
     """
     插件卸载声明式生命周期上下文。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar dry_run: 是否只预览操作结果
+    :ivar backend_root: 后端项目的根目录
+    :ivar discovered_plugins: 已发现插件列表
+    :ivar discovered_plugin: 扫描插件目录后得到的插件描述
+    :ivar precheck: 执行操作前取得的检查结果
+    :ivar actions: 即将执行或已记录的操作步骤
+    :ivar dependency_payload: 插件依赖检查负载
+    :ivar response: 当前调用产生的响应
+    :ivar session: 当前操作共用的会话
+    :ivar plugin_service: 执行插件业务操作的服务
+    :ivar session_context: 当前会话的上下文
     """
 
     plugin_id: str
@@ -69,6 +98,10 @@ class PluginUninstallLifecycleContext:
 class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
     """
     插件启停和安全卸载 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar runtime_operations: 生命周期工作流所需的运行时协作能力
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(
@@ -428,7 +461,6 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         关闭插件启停数据库会话。
 
         :param context: 插件启停上下文
-        :return: None
         """
         await self._close_lifecycle_session(context)
 
@@ -657,6 +689,5 @@ class PluginEnableUseCase(PluginLifecycleUseCaseSupport):
         关闭插件卸载数据库会话。
 
         :param context: 插件卸载上下文
-        :return: None
         """
         await self._close_lifecycle_session(context)

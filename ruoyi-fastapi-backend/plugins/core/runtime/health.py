@@ -17,10 +17,10 @@ class PluginHealthContext:
     """
     插件健康检查上下文。
 
-    :param plugin_id: 插件 ID
-    :param discovered_plugin: 已发现插件对象
-    :param app: FastAPI 应用对象
-    :param query_db: orm对象
+    :ivar plugin_id: 插件 ID
+    :ivar discovered_plugin: 已发现插件对象
+    :ivar app: FastAPI 应用对象
+    :ivar query_db: orm对象
     """
 
     plugin_id: str
@@ -34,14 +34,14 @@ class PluginHealthResult:
     """
     插件健康检查结果。
 
-    :param plugin_id: 插件 ID
-    :param ok: 健康检查是否通过
-    :param status: 健康状态
-    :param message: 健康检查说明
-    :param checker: 健康检查声明路径
-    :param duration_ms: 检查耗时毫秒
-    :param details: 健康检查扩展详情
-    :param error: 健康检查异常信息
+    :ivar plugin_id: 插件 ID
+    :ivar ok: 健康检查是否通过
+    :ivar status: 健康状态
+    :ivar message: 健康检查说明
+    :ivar checker: 健康检查声明路径
+    :ivar duration_ms: 检查耗时毫秒
+    :ivar details: 健康检查扩展详情
+    :ivar error: 健康检查异常信息
     """
 
     plugin_id: str
@@ -59,6 +59,9 @@ class PluginHealthChecker:
     插件健康检查器。
 
     使用 Strategy + Command Runner 思路执行插件 manifest 中声明的只读健康检查 callable。
+
+    :ivar discovered_plugin: 已发现插件对象
+    :ivar timeout_seconds: 异步健康检查超时时间
     """
 
     def __init__(
@@ -72,7 +75,6 @@ class PluginHealthChecker:
 
         :param discovered_plugin: 已发现插件对象
         :param timeout_seconds: 异步健康检查超时时间
-        :return: None
         """
         self.discovered_plugin = discovered_plugin
         self.timeout_seconds = timeout_seconds or PluginRuntimeConstant.PLUGIN_HEALTH_TIMEOUT_SECONDS
@@ -145,6 +147,7 @@ class PluginHealthChecker:
         :param checker_callable: 已加载的健康检查 callable
         :param context: 健康检查上下文
         :return: 健康检查原始返回值
+        :raises TypeError: 插件健康检查必须使用 async def 声明，平台不会在线程中执行不可终止的同步检查
         """
         callable_object = checker_callable.callable_object
         if self.discovered_plugin.manifest.uses_entrypoint:
@@ -181,6 +184,7 @@ class PluginHealthChecker:
         :param checker_path: 健康检查声明路径
         :param started_at: 检查开始时间
         :return: 插件健康检查结果
+        :raises TypeError: v2 插件健康检查必须返回 bool 或包含 bool 类型 ok 字段的字典
         """
         if self.discovered_plugin.manifest.uses_entrypoint and not (
             isinstance(raw_result, bool) or (isinstance(raw_result, dict) and isinstance(raw_result.get('ok'), bool))

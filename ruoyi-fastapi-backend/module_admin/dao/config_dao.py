@@ -11,14 +11,12 @@ from utils.time_util import TimezoneUtil
 
 
 class ConfigDao:
-    """
-    参数配置管理模块数据库操作层
-    """
+    """参数配置管理模块数据库操作层。"""
 
     @classmethod
     async def get_config_detail_by_id(cls, db: AsyncSession, config_id: int) -> SysConfig | None:
         """
-        根据参数配置id获取参数配置详细信息
+        根据参数配置id获取参数配置详细信息。
 
         :param db: orm对象
         :param config_id: 参数配置id
@@ -31,7 +29,7 @@ class ConfigDao:
     @classmethod
     async def get_config_detail_by_info(cls, db: AsyncSession, config: ConfigModel) -> SysConfig | None:
         """
-        根据参数配置参数获取参数配置信息
+        根据参数配置参数获取参数配置信息。
 
         :param db: orm对象
         :param config: 参数配置参数对象
@@ -57,7 +55,7 @@ class ConfigDao:
         cls, db: AsyncSession, query_object: ConfigPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        根据查询参数获取参数配置列表信息
+        根据查询参数获取参数配置列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -88,11 +86,11 @@ class ConfigDao:
     @classmethod
     async def add_config_dao(cls, db: AsyncSession, config: ConfigModel) -> SysConfig:
         """
-        新增参数配置数据库操作
+        新增参数配置数据库操作。
 
         :param db: orm对象
         :param config: 参数配置对象
-        :return:
+        :return: 新增的参数配置记录
         """
         db_config = SysConfig(**config.model_dump(exclude={'create_time', 'update_time'}))
         db.add(db_config)
@@ -103,11 +101,10 @@ class ConfigDao:
     @classmethod
     async def edit_config_dao(cls, db: AsyncSession, config: dict) -> None:
         """
-        编辑参数配置数据库操作
+        编辑参数配置数据库操作。
 
         :param db: orm对象
         :param config: 需要更新的参数配置字典
-        :return:
         """
         await db.execute(
             update(SysConfig),
@@ -117,10 +114,9 @@ class ConfigDao:
     @classmethod
     async def delete_config_dao(cls, db: AsyncSession, config: ConfigModel) -> None:
         """
-        删除参数配置数据库操作
+        删除参数配置数据库操作。
 
         :param db: orm对象
         :param config: 参数配置对象
-        :return:
         """
         await db.execute(delete(SysConfig).where(SysConfig.config_id.in_([config.config_id])))

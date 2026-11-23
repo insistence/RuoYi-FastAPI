@@ -22,7 +22,6 @@ def ping_db(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _OPS_COMMAND_CONTROLLER.ping_db(env, output)
 
@@ -37,7 +36,6 @@ def ping_redis_command(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _OPS_COMMAND_CONTROLLER.ping_redis(env, output)
 
@@ -52,7 +50,6 @@ def health(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _OPS_COMMAND_CONTROLLER.health(env, output)
 
@@ -69,7 +66,6 @@ def deps(
     :param env: 当前命令运行环境
     :param output: 输出格式
     :param include_dev: 是否附带输出开发依赖
-    :return: None
     """
     _OPS_COMMAND_CONTROLLER.deps(env, output, include_dev=include_dev)
 
@@ -84,6 +80,5 @@ def server_info(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _OPS_COMMAND_CONTROLLER.server_info(env, output)

@@ -18,6 +18,7 @@ from utils.time_util import TimezoneUtil
 
 @pytest.mark.parametrize('zone', ['', 'Invalid/Zone', '/etc/localtime', '../UTC', 'UTC+08:00'])
 def test_invalid_timezone_is_a_model_validation_error(zone: str) -> None:
+    """无效时区触发模型校验错误。"""
     with pytest.raises(ValidationError, match='IANA'):
         JobModel(timeZone=zone)
     with pytest.raises(ValidationError, match='IANA'):
@@ -27,9 +28,12 @@ def test_invalid_timezone_is_a_model_validation_error(zone: str) -> None:
 
 
 def test_http_boundaries_return_validation_errors() -> None:
+    """HTTP 入口返回校验错误。"""
     app = FastAPI()
 
-    @app.get('/query')
+    @app.get(
+        '/query', summary='校验日期查询参数', description='返回通过校验的日期查询条件，错误参数触发 HTTP 校验响应。'
+    )
     def date_query(query: Annotated[ConfigPageQueryModel, Query()]) -> dict:
         return query.model_dump()
 
@@ -46,6 +50,7 @@ def test_http_boundaries_return_validation_errors() -> None:
 
 
 def test_instant_query_compares_instants_instead_of_offset_strings() -> None:
+    """时间点查询按实际时刻比较。"""
     query = FileInfoQueryModel(beginTime='2026-08-28T10:00:00+08:00', endTime='2026-08-28T03:00:00Z')
     assert TimezoneUtil.rfc3339_range_to_utc(query.begin_time, query.end_time) == (
         datetime(2026, 8, 28, 2, tzinfo=UTC),
@@ -68,7 +73,17 @@ def test_instant_query_compares_instants_instead_of_offset_strings() -> None:
 async def test_date_query_filters_only_provided_boundaries_in_business_timezone(
     monkeypatch: pytest.MonkeyPatch, boundaries: dict[str, str], expected_times: list[datetime]
 ) -> None:
+    """日期查询按业务时区仅过滤指定的边界。"""
+
     async def capture_query(_db: object, query: Select, *args: object) -> Select:
+        """
+        向调用方返回 ``query``。
+
+        :param _db: 回调签名接收的数据库会话
+        :param query: 限制查询结果的条件
+        :param args: 传给被调用对象的位置参数
+        :return: 限制查询结果的条件
+        """
         return query
 
     monkeypatch.setattr(PageUtil, 'paginate', capture_query)

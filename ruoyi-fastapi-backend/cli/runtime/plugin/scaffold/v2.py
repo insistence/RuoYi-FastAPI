@@ -15,6 +15,10 @@ from .payload import PluginScaffoldPlanPayload
 class PluginV2ScaffoldBuilder:
     """
     独立 v2 插件源码工程模板构建器。
+
+    :ivar backend_root: 宿主后端项目根目录
+    :ivar frontend_root: 宿主前端项目根目录，用于读取桥接 SDK
+    :ivar frontend_framework_resolver: 宿主框架解析函数，仅 bundle 复制 SDK 时调用
     """
 
     def __init__(
@@ -29,7 +33,6 @@ class PluginV2ScaffoldBuilder:
         :param backend_root: 宿主后端项目根目录
         :param frontend_root: 宿主前端项目根目录，用于读取桥接 SDK
         :param frontend_framework_resolver: 宿主框架解析函数，仅 bundle 复制 SDK 时调用
-        :return: None
         """
         self.backend_root = backend_root
         self.frontend_root = frontend_root
@@ -48,6 +51,7 @@ class PluginV2ScaffoldBuilder:
         :param test: 是否生成本地合约测试
         :param frontend_framework: 宿主前端框架选项，v2 模板仅接受 auto
         :return: 包含生成文件、目标目录与冲突信息的计划
+        :raises ValueError: v2 ASGI 模板需要后端，不能使用 --frontend-only；bundle 模板不能使用 --backend-only；仅 API 请使用 python-asgi 或 rust-asgi；v2 模板的 --frontend-framework 仅接受 auto；独立 bundle 与宿主前端框架无关
         """
         native = template.startswith('rust-')
         bundle = template.endswith('-bundle')

@@ -28,7 +28,7 @@ class DashboardScreenSupport:
     首页屏幕支持对象。
 
     该对象负责首页摘要文本、信号带文本和状态轨迹构建，
-    使 `DashboardScreen` 本体主要保留 Textual 生命周期与界面编排。
+    使 ``DashboardScreen`` 本体主要保留 Textual 生命周期与界面编排。
     """
 
     @staticmethod
@@ -112,7 +112,14 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
     """
     TUI 首页巡检屏幕。
 
-    :param snapshot: 首页聚合快照
+    :cvar BINDINGS: 终端界面的快捷键和对应动作
+    :ivar snapshot: 首页聚合快照
+    :ivar env: 当前运行环境
+    :ivar active_view: 当前激活视图
+    :ivar navigation_items: 导航项列表
+    :ivar refreshed_at: 本次刷新时间
+    :ivar support: 首页屏幕支持对象
+    :ivar focus_service: 首页焦点服务
     """
 
     BINDINGS = [
@@ -146,7 +153,6 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
         :param refreshed_at: 本次刷新时间
         :param support: 首页屏幕支持对象
         :param focus_service: 首页焦点服务
-        :return: None
         """
         self.snapshot = snapshot
         self.env = env
@@ -177,7 +183,7 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
         """
         构建首页界面结构。
 
-        :return: Textual 组件结果
+        :yield: Textual 组件结果
         """
         yield WorkspaceHeader(self.env, self.active_view)
         with Horizontal(id='workspace-shell'):
@@ -211,11 +217,7 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
         yield Footer()
 
     def on_mount(self) -> None:
-        """
-        首页挂载后默认将焦点停留在左侧导航。
-
-        :return: None
-        """
+        """首页挂载后默认将焦点停留在左侧导航。"""
         self.call_after_refresh(self.query_one(WorkspaceSidebar).focus)
 
     def _open_sidebar_item(self, event: WorkspaceSidebar.Highlighted | WorkspaceSidebar.Selected) -> None:
@@ -223,7 +225,6 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
         根据侧边栏事件打开对应视图，并避免重复打开当前页面。
 
         :param event: 侧边栏高亮或选中事件
-        :return: None
         """
         item = getattr(event.item, 'item', None)
         if not isinstance(item, NavigationItem):
@@ -240,7 +241,6 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
         响应左侧导航选中事件并切换视图。
 
         :param event: 导航选中事件
-        :return: None
         """
         self._open_sidebar_item(event)
 
@@ -250,6 +250,5 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
         响应左侧导航高亮变更并立即切换视图。
 
         :param event: 导航高亮事件
-        :return: None
         """
         self._open_sidebar_item(event)

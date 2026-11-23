@@ -12,12 +12,12 @@ class TuiCapability:
     """
     TUI 页面能力定义。
 
-    :param kind: 能力类型
-    :param slot: 绑定的动作槽位
-    :param key: 绑定的快捷键
-    :param label: 展示标签
-    :param hint_label: 用于顶部提示的简洁标签
-    :param scope: 能力所在页面范围
+    :ivar kind: 能力类型
+    :ivar slot: 绑定的动作槽位
+    :ivar key: 绑定的快捷键
+    :ivar label: 展示标签
+    :ivar hint_label: 用于顶部提示的简洁标签
+    :ivar scope: 能力所在页面范围
     """
 
     kind: CapabilityKind
@@ -33,10 +33,10 @@ class TuiCapabilitySpec:
     """
     TUI 页面能力规格定义。
 
-    :param capability_key: 能力标识
-    :param kind: 能力类型
-    :param slot: 绑定动作槽位
-    :param key: 绑定快捷键
+    :ivar capability_key: 能力标识
+    :ivar kind: 能力类型
+    :ivar slot: 绑定动作槽位
+    :ivar key: 绑定快捷键
     """
 
     capability_key: str
@@ -91,8 +91,8 @@ class TuiCapabilityRegistry:
     该对象集中维护浏览页与详情页的能力描述，避免模块级散落
     的字典常量在后续扩展时继续增长。
 
-    :param browser_capabilities: 浏览页能力映射
-    :param detail_capabilities: 详情页能力映射
+    :ivar browser_capabilities: 浏览页能力映射
+    :ivar detail_capabilities: 详情页能力映射
     """
 
     browser_capabilities: dict[str, tuple[TuiCapability, ...]]

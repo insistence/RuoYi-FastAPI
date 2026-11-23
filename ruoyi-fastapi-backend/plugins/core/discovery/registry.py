@@ -10,6 +10,11 @@ from plugins.core.types import PluginStateRecord
 class RegisteredPlugin:
     """
     已注册插件运行时快照。
+
+    :ivar discovered_plugin: 扫描插件目录后得到的插件描述
+    :ivar database_plugin: 数据库插件状态
+    :ivar enabled: 是否启用
+    :ivar status: 操作或记录所处的状态
     """
 
     discovered_plugin: DiscoveredPlugin
@@ -41,6 +46,8 @@ class PluginRegistry:
     插件运行时注册表。
 
     使用 Registry 模式维护已发现插件与数据库状态合并后的运行时快照。
+
+    :ivar _registered_plugins: 已注册插件运行时快照列表
     """
 
     def __init__(self, registered_plugins: list[RegisteredPlugin]) -> None:

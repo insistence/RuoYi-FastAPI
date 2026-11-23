@@ -12,7 +12,15 @@ _REUSED_TOKEN_COUNT = 2
 
 
 def _token(token_id: str, status: str, now: datetime, idle_expires_at: datetime) -> SysOAuthRefreshToken:
-    """构造测试用 Refresh Token 元数据。"""
+    """
+    构造测试用 Refresh Token 元数据。
+
+    :param token_id: 会话编号
+    :param status: 操作或记录所处的状态
+    :param now: 用于设置签发和过期时间的基准时刻
+    :param idle_expires_at: 闲置过期时间
+    :return: 测试用 Refresh Token 元数据
+    """
     return SysOAuthRefreshToken(
         token_id=token_id,
         token_hash=f'{token_id:0<64}',

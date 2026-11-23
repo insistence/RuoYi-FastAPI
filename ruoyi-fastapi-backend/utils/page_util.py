@@ -9,14 +9,12 @@ from utils.common_util import CamelCaseUtil
 
 
 class PageUtil:
-    """
-    分页工具类
-    """
+    """分页工具类。"""
 
     @classmethod
     def get_page_obj(cls, data_list: list, page_num: int, page_size: int) -> PageModel:
         """
-        输入数据列表data_list和分页信息，返回分页数据列表结果
+        输入数据列表data_list和分页信息，返回分页数据列表结果。
 
         :param data_list: 原始数据列表
         :param page_num: 当前页码
@@ -42,7 +40,7 @@ class PageUtil:
         cls, db: AsyncSession, query: Select, page_num: int, page_size: int, is_page: bool = False
     ) -> PageModel | list[dict[str, Any] | list[dict[Any, Any]]]:
         """
-        输入查询语句和分页信息，返回分页数据列表结果
+        输入查询语句和分页信息，返回分页数据列表结果。
 
         :param db: orm对象
         :param query: sqlalchemy查询语句
@@ -83,7 +81,7 @@ class PageUtil:
 
 def get_page_obj(data_list: list, page_num: int, page_size: int) -> PageModel:
     """
-    输入数据列表data_list和分页信息，返回分页数据列表结果
+    输入数据列表data_list和分页信息，返回分页数据列表结果。
 
     :param data_list: 原始数据列表
     :param page_num: 当前页码

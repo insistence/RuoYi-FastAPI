@@ -42,6 +42,14 @@ async def test_stream_error_uses_captured_locale_after_request_context_changes()
     """验证请求语言改变后，流式错误仍使用创建时的快照。"""
 
     async def broken_stream(*args: object, **kwargs: object) -> AsyncIterator[object]:
+        """
+        模拟读取模型响应流期间发生错误。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模型提供方内部错误
+        :yield: 上下文就绪后将控制权交给调用方
+        """
         raise RuntimeError('模型提供方内部错误')
         yield
 

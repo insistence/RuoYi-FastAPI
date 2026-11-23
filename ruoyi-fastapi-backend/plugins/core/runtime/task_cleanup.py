@@ -24,7 +24,6 @@ def _finish_task(task: asyncio.Task[Any]) -> None:
     回收延迟退出的任务及其异常，避免丢失后台任务引用。
 
     :param task: 已经结束的插件任务
-    :return: None
     """
     _unfinished_tasks.discard(task)
     with suppress(asyncio.CancelledError, Exception):
@@ -42,6 +41,7 @@ async def cancel_plugin_tasks(
     :param tasks: 本次需要回收的任务，不取消调用者自身
     :param grace_seconds: 整批任务允许的取消等待秒数
     :return: 等待结束后仍未退出的任务
+    :raises ValueError: 任务取消等待时间必须大于零
     """
     if not math.isfinite(grace_seconds) or grace_seconds <= 0:
         raise ValueError('任务取消等待时间必须大于零')

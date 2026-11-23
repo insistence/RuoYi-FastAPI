@@ -9,7 +9,7 @@ class TuiKeymapRegistry:
     该对象集中维护页面切换快捷键和派生提示文案，避免模块级
     常量散落并在后续扩展时继续增长。
 
-    :param navigation_shortcuts: 页面导航快捷键映射
+    :ivar navigation_shortcuts: 页面导航快捷键映射
     """
 
     navigation_shortcuts: dict[str, str] = field(default_factory=dict)

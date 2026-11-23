@@ -20,7 +20,9 @@ from utils.time_util import TimezoneUtil
 
 class JobRuntimeDao:
     """
-    在业务事务内维护版本、删除记录和手动执行请求
+    在业务事务内维护版本、删除记录和手动执行请求。
+
+    :cvar LEASE_SECONDS: 工作租约保持有效的秒数
     """
 
     LEASE_SECONDS = 30
@@ -28,11 +30,11 @@ class JobRuntimeDao:
     @staticmethod
     async def ensure_state(db: AsyncSession, job_id: int) -> None:
         """
-        原子建立状态行，避免两个事务首次接触同一任务时重复插入
+        原子建立状态行，避免两个事务首次接触同一任务时重复插入。
 
         :param db: orm对象
         :param job_id: 任务ID
-        :return: None
+        :raises ValueError: 数据库方言不支持任务状态初始化
         """
         values = {
             'job_id': job_id,
@@ -56,7 +58,7 @@ class JobRuntimeDao:
     @classmethod
     async def lock_job(cls, db: AsyncSession, job_id: int) -> tuple[SysJob | None, SysJobSync | None]:
         """
-        按同步状态、任务记录的固定顺序加锁，并为已有任务建立初始状态
+        按同步状态、任务记录的固定顺序加锁，并为已有任务建立初始状态。
 
         :param db: orm对象
         :param job_id: 任务ID
@@ -73,7 +75,7 @@ class JobRuntimeDao:
     @classmethod
     async def record_configuration(cls, db: AsyncSession, job_id: int, job: JobModel | None) -> SysJobSync:
         """
-        在业务提交前记录最新配置版本，任务删除后仍保留同步状态
+        在业务提交前记录最新配置版本，任务删除后仍保留同步状态。
 
         :param db: orm对象
         :param job_id: 任务ID
@@ -109,7 +111,7 @@ class JobRuntimeDao:
     @staticmethod
     def state_result(state: SysJobSync) -> dict[str, Any]:
         """
-        构造可供接口返回的同步状态，避免暴露 ORM 对象
+        构造可供接口返回的同步状态，避免暴露 ORM 对象。
 
         :param state: 任务同步状态对象
         :return: 任务同步状态字典
@@ -129,7 +131,7 @@ class JobRuntimeDao:
     @classmethod
     async def get_states(cls, db: AsyncSession, job_ids: list[int]) -> dict[int, dict[str, Any]]:
         """
-        批量读取任务同步状态，供列表和变更响应使用
+        批量读取任务同步状态，供列表和变更响应使用。
 
         :param db: orm对象
         :param job_ids: 任务ID集合
@@ -151,7 +153,7 @@ class JobRuntimeDao:
     @classmethod
     async def all_sync_ids(cls, db: AsyncSession) -> set[int]:
         """
-        收集任务与删除记录，支持完整校准和删除同步重试
+        收集任务与删除记录，支持完整校准和删除同步重试。
 
         :param db: orm对象
         :return: 需要校准的任务ID集合
@@ -165,7 +167,7 @@ class JobRuntimeDao:
     @staticmethod
     async def pending_sync_ids(db: AsyncSession) -> set[int]:
         """
-        读取需要重试的同步状态，包括已经删除的任务
+        读取需要重试的同步状态，包括已经删除的任务。
 
         :param db: orm对象
         :return: 待同步任务ID集合
@@ -177,11 +179,10 @@ class JobRuntimeDao:
     @staticmethod
     async def cancel_unstarted(db: AsyncSession, job_ids: list[int]) -> None:
         """
-        删除任务时取消未开始的手动请求，保留运行中的执行记录
+        删除任务时取消未开始的手动请求，保留运行中的执行记录。
 
         :param db: orm对象
         :param job_ids: 任务ID集合
-        :return: None
         """
         await db.execute(
             update(SysJobExecution)
@@ -198,7 +199,7 @@ class JobRuntimeDao:
     @classmethod
     async def create_request(cls, db: AsyncSession, job: JobModel, requested_by: str | None) -> SysJobExecution:
         """
-        在事务内保存手动请求及配置快照，派发必须发生在提交之后
+        在事务内保存手动请求及配置快照，派发必须发生在提交之后。
 
         :param db: orm对象
         :param job: 任务对象信息
@@ -220,7 +221,7 @@ class JobRuntimeDao:
     @staticmethod
     async def get_execution(db: AsyncSession, execution_id: str) -> SysJobExecution | None:
         """
-        按执行 ID 查询手动或定时执行结果
+        按执行 ID 查询手动或定时执行结果。
 
         :param db: orm对象
         :param execution_id: 执行ID
@@ -231,7 +232,7 @@ class JobRuntimeDao:
     @staticmethod
     async def execution_page(db: AsyncSession, query: JobExecutionQueryModel) -> PageModel:
         """
-        分页查询执行状态，排除配置参数和内部占用凭据
+        分页查询执行状态，排除配置参数和内部占用凭据。
 
         :param db: orm对象
         :param query: 查询参数对象
@@ -268,7 +269,7 @@ class JobRuntimeDao:
     @staticmethod
     async def sync_page(db: AsyncSession, query: JobSyncQueryModel) -> PageModel:
         """
-        分页查询同步状态，删除任务后仍能查看结果和发起重试
+        分页查询同步状态，删除任务后仍能查看结果和发起重试。
 
         :param db: orm对象
         :param query: 查询参数对象
@@ -300,7 +301,7 @@ class JobRuntimeDao:
     @staticmethod
     def execution_result(execution: SysJobExecution) -> dict[str, Any]:
         """
-        返回执行状态和必要的时间信息，不返回调用参数快照
+        返回执行状态和必要的时间信息，不返回调用参数快照。
 
         :param execution: 执行记录对象
         :return: 执行状态及时间信息
@@ -323,10 +324,9 @@ class JobRuntimeDao:
     @staticmethod
     async def recover_expired(db: AsyncSession) -> None:
         """
-        重试尚未开始的过期派发；已开始的过期执行标记未知，禁止自动重放
+        重试尚未开始的过期派发；已开始的过期执行标记未知，禁止自动重放。
 
         :param db: orm对象
-        :return: None
         """
         now = TimezoneUtil.utc_now()
         await db.execute(
@@ -343,7 +343,7 @@ class JobRuntimeDao:
     @staticmethod
     async def pending_ids(db: AsyncSession, limit: int = 50) -> list[tuple[str, int]]:
         """
-        按提交顺序读取一批待派发执行，不持有跨任务的行锁
+        按提交顺序读取一批待派发执行，不持有跨任务的行锁。
 
         :param db: orm对象
         :param limit: 本次读取的最大请求数
@@ -362,7 +362,7 @@ class JobRuntimeDao:
     @classmethod
     async def claim_request(cls, db: AsyncSession, execution_id: str, job_id: int) -> SysJobExecution | None:
         """
-        原子领取尚未开始的手动请求，并绑定本次派发凭据
+        原子领取尚未开始的手动请求，并绑定本次派发凭据。
 
         :param db: orm对象
         :param execution_id: 执行ID
@@ -391,13 +391,12 @@ class JobRuntimeDao:
     @staticmethod
     async def fail_dispatch(db: AsyncSession, execution_id: str, token: str, message: str) -> None:
         """
-        记录确定未成功注册的派发失败，保留错误供用户查询
+        记录确定未成功注册的派发失败，保留错误供用户查询。
 
         :param db: orm对象
         :param execution_id: 执行ID
         :param token: 当前执行占用凭据
         :param message: 执行结果或未执行原因
-        :return: None
         """
         await db.execute(
             update(SysJobExecution)

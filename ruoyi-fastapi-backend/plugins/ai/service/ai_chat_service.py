@@ -43,14 +43,12 @@ if TYPE_CHECKING:
 
 
 class AiChatService:
-    """
-    AI对话服务层
-    """
+    """AI对话服务层。"""
 
     @classmethod
     def _resolve_temperature(cls, user_config: AiChatConfigModel, model_config: AiModelModel) -> float:
         """
-        解析温度配置，优先级为 用户配置 > 模型配置
+        解析温度配置，优先级为 用户配置 > 模型配置。
 
         :param user_config: 用户配置对象
         :param model_config: 模型配置对象
@@ -62,7 +60,7 @@ class AiChatService:
     @classmethod
     def _resolve_is_reasoning(cls, chat_req: AiChatRequestModel, model_config: AiModelModel) -> bool:
         """
-        解析深度思考开关，结合请求参数与模型配置确定最终是否开启
+        解析深度思考开关，结合请求参数与模型配置确定最终是否开启。
 
         :param chat_req: 对话请求对象
         :param model_config: 模型配置对象
@@ -75,7 +73,7 @@ class AiChatService:
     @classmethod
     def _resolve_history_config(cls, user_config: AiChatConfigModel) -> tuple[bool, int]:
         """
-        解析历史消息配置，确定是否附带历史以及轮数
+        解析历史消息配置，确定是否附带历史以及轮数。
 
         :param user_config: 用户配置对象
         :return: (是否附带历史, 历史轮数)
@@ -97,7 +95,7 @@ class AiChatService:
         num_history: int,
     ) -> Agent:
         """
-        构建对话Agent对象
+        构建对话Agent对象。
 
         :param model_config: 模型配置对象
         :param temperature: 对话温度
@@ -139,7 +137,7 @@ class AiChatService:
         user_config: AiChatConfigModel,
     ) -> dict[str, Any]:
         """
-        构造Agent运行参数
+        构造Agent运行参数。
 
         :param chat_req: 对话请求对象
         :param user_config: 用户配置对象
@@ -184,7 +182,7 @@ class AiChatService:
     @classmethod
     def _convert_images_to_upload_paths(cls, images: list[Image] | None) -> list[str] | None:
         """
-        将Agno Image对象列表转换为前端可访问的上传路径列表
+        将Agno Image对象列表转换为前端可访问的上传路径列表。
 
         :param images: Image对象列表
         :return: 上传路径列表
@@ -229,7 +227,7 @@ class AiChatService:
         locale_context: LocaleContext | None = None,
     ) -> AsyncGenerator[str, None]:
         """
-        将Agent输出流式转换为前端SSE消息
+        将Agent输出流式转换为前端SSE消息。
 
         :param agent: Agent实例
         :param chat_req: 对话请求对象
@@ -237,7 +235,7 @@ class AiChatService:
         :param is_reasoning: 是否输出推理内容
         :param session_id: 会话ID
         :param locale_context: 流创建时的语言上下文
-        :return: SSE消息生成器
+        :yield: SSE消息生成器
         """
         locale_context = locale_context or RequestContext.get_current_locale()
         full_response = ''
@@ -280,7 +278,7 @@ class AiChatService:
     @staticmethod
     def _stream_error(error: Exception, context: LocaleContext) -> str:
         """
-        使用流创建时的语言快照生成错误事件，保留原有事件类型
+        使用流创建时的语言快照生成错误事件，保留原有事件类型。
 
         :param error: 平台或模型调用异常
         :param context: 流创建时的语言上下文
@@ -307,13 +305,13 @@ class AiChatService:
         locale_context: LocaleContext | None = None,
     ) -> AsyncGenerator[str, None]:
         """
-        在流生命周期内固定语言，并将初始化错误转换为平台错误事件
+        在流生命周期内固定语言，并将初始化错误转换为平台错误事件。
 
         :param query_db: orm对象
         :param chat_req: 对话请求对象
         :param user_id: 用户ID
         :param locale_context: 请求创建流时捕获的语言上下文
-        :return: 对话响应流
+        :yield: 对话响应流
         """
         snapshot = locale_context or RequestContext.get_current_locale()
         try:
@@ -327,13 +325,14 @@ class AiChatService:
         cls, query_db: AsyncSession, chat_req: AiChatRequestModel, user_id: int, locale_context: LocaleContext
     ) -> AsyncGenerator[str, None]:
         """
-        流式对话
+        流式对话。
 
         :param query_db: orm对象
         :param chat_req: 对话请求对象
         :param user_id: 用户ID
         :param locale_context: 流创建时的语言上下文
-        :return: 对话响应流
+        :yield: 对话响应流
+        :raises ServiceException: 模型不存在；模型已停用
         """
         ai_model = await AiModelDao.get_ai_model_detail_by_id(query_db, chat_req.model_id)
         if ai_model is None:
@@ -378,7 +377,7 @@ class AiChatService:
     @classmethod
     async def ai_chat_config_detail_services(cls, query_db: AsyncSession, user_id: int) -> AiChatConfigModel:
         """
-        获取用户配置
+        获取用户配置。
 
         :param query_db: orm对象
         :param user_id: 用户ID
@@ -396,12 +395,13 @@ class AiChatService:
         cls, query_db: AsyncSession, user_id: int, page_object: AiChatConfigModel
     ) -> CrudResponseModel:
         """
-        保存用户配置
+        保存用户配置。
 
         :param query_db: orm对象
         :param user_id: 用户ID
         :param page_object: AI对话配置对象
         :return: 更新后的配置模型
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         chat_config = await AiChatConfigDao.get_chat_config_detail_by_user_id(query_db, user_id)
         if page_object.user_id is None:
@@ -431,7 +431,7 @@ class AiChatService:
     @classmethod
     async def get_chat_session_list_services(cls, user_id: int) -> list[AiChatSessionBaseModel]:
         """
-        获取用户会话列表
+        获取用户会话列表。
 
         :param user_id: 用户ID
         :return: 用户会话列表
@@ -472,6 +472,7 @@ class AiChatService:
         :param session_id: 会话ID
         :param user_id: 用户ID
         :return: 会话对象
+        :raises ServiceException: 会话不存在；无权访问该会话
         """
         session: Session | None = await storage.get_session(session_id=session_id, session_type=SessionType.AGENT)
         if not session:
@@ -484,11 +485,12 @@ class AiChatService:
     @classmethod
     async def delete_chat_session_services(cls, session_id: str, user_id: int) -> CrudResponseModel:
         """
-        删除会话
+        删除会话。
 
         :param session_id: 会话ID
         :param user_id: 用户ID
         :return: 删除结果
+        :raises ServiceException: 删除会话失败
         """
         storage = AiUtil.get_storage_engine()
         await cls._get_owned_session(storage, session_id, user_id)
@@ -500,7 +502,7 @@ class AiChatService:
     @classmethod
     async def get_chat_session_detail_services(cls, session_id: str, user_id: int) -> AiChatSessionModel:
         """
-        获取会话消息详情
+        获取会话消息详情。
 
         :param session_id: 会话ID
         :param user_id: 用户ID
@@ -569,11 +571,12 @@ class AiChatService:
     @classmethod
     async def cancel_run_services(cls, run_id: str, user_id: int) -> CrudResponseModel:
         """
-        取消运行
+        取消运行。
 
         :param run_id: 运行ID
         :param user_id: 用户ID
         :return: 取消结果
+        :raises ServiceException: 无权取消该运行；取消运行失败
         """
         if not await cls._user_owns_run(run_id, user_id):
             raise ServiceException(message='无权取消该运行', msg_key='ai.run.cancelForbidden', domain='plugin.ai')

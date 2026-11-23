@@ -3,9 +3,7 @@ from .options import PluginScaffoldOptions
 
 
 class PluginBackendScaffoldTemplateBuilder:
-    """
-    后端插件模板内容构建器。
-    """
+    """后端插件模板内容构建器。"""
 
     @staticmethod
     def build_manifest(plugin_id: str, options: PluginScaffoldOptions) -> str:

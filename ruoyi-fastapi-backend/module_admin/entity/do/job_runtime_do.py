@@ -6,9 +6,7 @@ from config.database import Base
 
 
 class SysJobSync(AuditTimeMixin, Base):
-    """
-    任务配置版本和应用状态，删除任务后保留删除同步记录
-    """
+    """任务配置版本和应用状态，删除任务后保留删除同步记录。"""
 
     __tablename__ = 'sys_job_sync'
     __table_args__ = (
@@ -21,7 +19,9 @@ class SysJobSync(AuditTimeMixin, Base):
     applied_version = Column(BigInteger, nullable=False, default=0, comment='已应用版本')
     config_hash = Column(String(64), nullable=False, comment='最新配置摘要')
     deleted = Column(Boolean, nullable=False, default=False, comment='任务是否已删除')
-    sync_status = Column(String(16), nullable=False, default='pending', comment='pending/applied/failed')
+    sync_status = Column(
+        String(16), nullable=False, default='pending', comment='应用状态（pending、applied 或 failed）'
+    )
     sync_error = Column(String(2000), nullable=True, comment='最近同步错误')
     applied_time = Column(DbUtcDateTime(), nullable=True, comment='最近应用时刻')
     next_run_time = Column(DbUtcDateTime(), nullable=True, comment='最近观测的实际下次调度时刻')
@@ -29,9 +29,7 @@ class SysJobSync(AuditTimeMixin, Base):
 
 
 class SysJobExecution(AuditTimeMixin, Base):
-    """
-    手动执行请求及定时执行记录，运行记录同时承担跨进程并发占用
-    """
+    """手动执行请求及定时执行记录，运行记录同时承担跨进程并发占用。"""
 
     __tablename__ = 'sys_job_execution'
     __table_args__ = (
@@ -42,7 +40,7 @@ class SysJobExecution(AuditTimeMixin, Base):
 
     execution_id = Column(String(32), primary_key=True, comment='执行ID')
     job_id = Column(BigInteger, nullable=False, comment='逻辑任务ID')
-    source = Column(String(10), nullable=False, comment='manual/cron')
+    source = Column(String(10), nullable=False, comment='触发方式（手动或定时）')
     status = Column(String(16), nullable=False, default='pending', comment='执行状态')
     job_snapshot = Column(JSON, nullable=False, comment='提交时任务配置快照')
     owner_token = Column(String(64), nullable=True, comment='派发或执行占用凭据')

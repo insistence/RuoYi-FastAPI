@@ -12,7 +12,10 @@ BaseModelVar = TypeVar('BaseModelVar', bound=BaseModel)
 
 def as_query(cls: type[BaseModelVar]) -> type[BaseModelVar]:
     """
-    pydantic模型查询参数装饰器，将pydantic模型用于接收查询参数
+    pydantic模型查询参数装饰器，将pydantic模型用于接收查询参数。
+
+    :param cls: 将查询参数转换到的模型类
+    :return: 将查询参数转换到的模型类
     """
     new_parameters = []
 
@@ -39,6 +42,12 @@ def as_query(cls: type[BaseModelVar]) -> type[BaseModelVar]:
             )
 
     async def as_query_func(**data) -> type[BaseModelVar]:
+        """
+        用解析出的查询参数构建模型实例。
+
+        :param data: 调用方按名称传入的附加选项
+        :return: 由查询参数创建的模型实例
+        """
         return cls(**data)
 
     sig = inspect.signature(as_query_func)
@@ -50,7 +59,10 @@ def as_query(cls: type[BaseModelVar]) -> type[BaseModelVar]:
 
 def as_form(cls: type[BaseModelVar]) -> type[BaseModelVar]:
     """
-    pydantic模型表单参数装饰器，将pydantic模型用于接收表单参数
+    pydantic模型表单参数装饰器，将pydantic模型用于接收表单参数。
+
+    :param cls: 将表单字段转换到的模型类
+    :return: 将表单字段转换到的模型类
     """
     new_parameters = []
 
@@ -77,6 +89,12 @@ def as_form(cls: type[BaseModelVar]) -> type[BaseModelVar]:
             )
 
     async def as_form_func(**data) -> type[BaseModelVar]:
+        """
+        用解析出的表单字段构建模型实例。
+
+        :param data: 调用方按名称传入的附加选项
+        :return: 由表单字段创建的模型实例
+        """
         return cls(**data)
 
     sig = inspect.signature(as_form_func)

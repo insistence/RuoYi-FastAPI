@@ -19,6 +19,8 @@ from .plan import ActionPayload, VersionStatePayload
 class SupportsOk(Protocol):
     """
     支持 ok 属性的检查结果协议。
+
+    :ivar ok: 操作或检查是否成功
     """
 
     ok: bool
@@ -27,6 +29,15 @@ class SupportsOk(Protocol):
 class PluginRuntimePrecheckProtocol(Protocol):
     """
     runtime payload 所需的预检上下文协议。
+
+    :ivar ok: 操作或检查是否成功
+    :ivar dependency_result: 依赖检查结果
+    :ivar manifest_result: manifest 非阻断检查结果
+    :ivar plugin_dependency_result: 插件间依赖检查结果
+    :ivar structure_result: 插件结构检查结果
+    :ivar menu_conflict_result: 菜单冲突检查结果
+    :ivar operation_payload: 描述当前操作的结构化数据
+    :ivar check_payload: 插件检查负载
     """
 
     ok: bool
@@ -42,6 +53,15 @@ class PluginRuntimePrecheckProtocol(Protocol):
 class PluginHealthResultProtocol(Protocol):
     """
     runtime 健康检查结果协议。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar ok: 操作或检查是否成功
+    :ivar status: 操作或记录所处的状态
+    :ivar message: 与当前结果一起返回的说明
+    :ivar checker: 用于取得或验证健康状态的检查器
+    :ivar duration_ms: 健康检查实际耗用的毫秒数
+    :ivar details: 用于诊断健康状态的详情
+    :ivar error: 异常对象
     """
 
     plugin_id: str
@@ -55,150 +75,162 @@ class PluginHealthResultProtocol(Protocol):
 
 
 class PluginRuntimeDiagnosePayload(PluginPayloadModel):
-    """
-    插件诊断包 payload。
-    """
+    """插件诊断包 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    info: object
-    check: dict[str, object]
-    menu_plan: dict[str, object] = Field(alias='menuPlan')
-    config: dict[str, object]
-    audit: dict[str, object]
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    info: object = Field(description='插件的基本信息')
+    check: dict[str, object] = Field(description='插件检查结果')
+    menu_plan: dict[str, object] = Field(alias='menuPlan', description='注册插件菜单的计划')
+    config: dict[str, object] = Field(description='插件配置信息')
+    audit: dict[str, object] = Field(description='插件的操作审计信息')
 
 
 class PluginRuntimeHealthPayload(PluginPayloadModel):
-    """
-    插件健康检查 payload。
-    """
+    """插件健康检查 payload。"""
 
-    plugin_id: str = Field(alias='pluginId')
-    ok: bool
-    status: str
-    message: str
-    checker: str | None
-    duration_ms: float = Field(alias='durationMs')
-    details: object
-    error: str | None
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    ok: bool = Field(description='本次操作是否成功')
+    status: str = Field(description='当前状态')
+    message: str = Field(description='面向调用方的结果说明')
+    checker: str | None = Field(description='执行健康检查的组件')
+    duration_ms: float = Field(alias='durationMs', description='本次操作耗时（毫秒）')
+    details: object = Field(description='健康检查的详细结果')
+    error: str | None = Field(description='失败原因')
 
 
 class PluginRuntimeHealthResponsePayload(PluginPayloadModel):
-    """
-    插件健康检查响应 payload。
-    """
+    """插件健康检查响应 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    health: dict[str, object]
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    health: dict[str, object] = Field(description='插件健康状态和诊断结果')
 
 
 class PluginRuntimePrecheckPayload(PluginPayloadModel):
-    """
-    插件操作预检 payload。
-    """
+    """插件操作预检 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    operation: str
-    database_available: bool = Field(alias='databaseAvailable')
-    database_error: str | None = Field(alias='databaseError')
-    purge_plan_error: str | None = Field(default=None, alias='purgePlanError')
-    installed: bool | None = None
-    installed_version: str | None = Field(default=None, alias='installedVersion')
-    current_version: str | None = Field(default=None, alias='currentVersion')
-    needs_upgrade: bool | None = Field(default=None, alias='needsUpgrade')
-    manifest_ok: bool | None = Field(default=None, alias='manifestOk')
-    dependency_ok: bool | None = Field(default=None, alias='dependencyOk')
-    plugin_dependency_ok: bool | None = Field(default=None, alias='pluginDependencyOk')
-    structure_ok: bool | None = Field(default=None, alias='structureOk')
-    menu_conflict_ok: bool | None = Field(default=None, alias='menuConflictOk')
-    manifest_issues: list[dict[str, object]] | None = Field(default=None, alias='manifestIssues')
-    manifest_warnings: list[dict[str, object]] | None = Field(default=None, alias='manifestWarnings')
-    plugin_dependency_errors: list[dict[str, object]] | None = Field(default=None, alias='pluginDependencyErrors')
-    structure_errors: list[dict[str, object]] | None = Field(default=None, alias='structureErrors')
-    menu_conflicts: list[dict[str, object]] | None = Field(default=None, alias='menuConflicts')
-    dependencies: list[dict[str, object]] | None = None
-    plugin_dependencies: list[dict[str, object]] | None = Field(default=None, alias='pluginDependencies')
-    actions: list[dict[str, object]]
-    precheck: dict[str, object]
-    plan: dict[str, object] | None = None
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    operation: str = Field(description='执行的操作类型')
+    database_available: bool = Field(alias='databaseAvailable', description='数据库是否可用')
+    database_error: str | None = Field(alias='databaseError', description='数据库访问失败的原因')
+    purge_plan_error: str | None = Field(default=None, alias='purgePlanError', description='无法生成清理计划的原因')
+    installed: bool | None = Field(default=None, description='是否已经安装')
+    installed_version: str | None = Field(default=None, alias='installedVersion', description='已安装的版本')
+    current_version: str | None = Field(default=None, alias='currentVersion', description='当前发现的插件版本')
+    needs_upgrade: bool | None = Field(default=None, alias='needsUpgrade', description='是否需要升级已安装版本')
+    manifest_ok: bool | None = Field(default=None, alias='manifestOk', description='插件清单是否通过校验')
+    dependency_ok: bool | None = Field(default=None, alias='dependencyOk', description='软件包依赖是否满足要求')
+    plugin_dependency_ok: bool | None = Field(
+        default=None, alias='pluginDependencyOk', description='依赖的其他插件是否满足要求'
+    )
+    structure_ok: bool | None = Field(default=None, alias='structureOk', description='插件文件结构是否通过校验')
+    menu_conflict_ok: bool | None = Field(default=None, alias='menuConflictOk', description='插件是否通过菜单冲突检查')
+    manifest_issues: list[dict[str, object]] | None = Field(
+        default=None, alias='manifestIssues', description='插件清单中的错误'
+    )
+    manifest_warnings: list[dict[str, object]] | None = Field(
+        default=None, alias='manifestWarnings', description='插件清单中的警告'
+    )
+    plugin_dependency_errors: list[dict[str, object]] | None = Field(
+        default=None, alias='pluginDependencyErrors', description='插件之间的依赖检查错误'
+    )
+    structure_errors: list[dict[str, object]] | None = Field(
+        default=None, alias='structureErrors', description='插件目录或文件结构检查错误'
+    )
+    menu_conflicts: list[dict[str, object]] | None = Field(
+        default=None, alias='menuConflicts', description='检测到的菜单冲突'
+    )
+    dependencies: list[dict[str, object]] | None = Field(default=None, description='软件包依赖及其检查结果')
+    plugin_dependencies: list[dict[str, object]] | None = Field(
+        default=None, alias='pluginDependencies', description='插件之间的依赖及其状态'
+    )
+    actions: list[dict[str, object]] = Field(description='待执行或已执行的操作明细')
+    precheck: dict[str, object] = Field(description='操作开始前的检查结果')
+    plan: dict[str, object] | None = Field(default=None, description='预定执行的操作计划')
 
 
 class PluginRuntimeExceptionPayload(PluginPayloadModel):
-    """
-    插件运行时异常 payload。
-    """
+    """插件运行时异常 payload。"""
 
-    ok: bool
-    message: str
-    error: str
-    plugin_id: str | None = Field(default=None, alias='pluginId')
-    failed_step: str | None = Field(default=None, alias='failedStep')
-    migration_recovery: object | None = Field(default=None, alias='migrationRecovery')
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    error: str = Field(description='失败原因')
+    plugin_id: str | None = Field(default=None, alias='pluginId', description='插件标识')
+    failed_step: str | None = Field(default=None, alias='failedStep', description='发生错误的操作步骤')
+    migration_recovery: object | None = Field(
+        default=None, alias='migrationRecovery', description='迁移失败后的恢复信息'
+    )
 
 
 class PluginRuntimeInvalidOperationPayload(PluginPayloadModel):
-    """
-    插件非法操作 payload。
-    """
+    """插件非法操作 payload。"""
 
-    ok: bool
-    message: str
-    operation: str
-    plugin_id: str | None = Field(default=None, alias='pluginId')
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    operation: str = Field(description='执行的操作类型')
+    plugin_id: str | None = Field(default=None, alias='pluginId', description='插件标识')
 
 
 class PluginRuntimeBatchItemUnsupportedPayload(PluginPayloadModel):
-    """
-    插件批量单项不支持 payload。
-    """
+    """插件批量单项不支持 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
 
 
 class PluginRuntimeDiagnoseFailurePayload(PluginPayloadModel):
-    """
-    插件诊断包失败 payload。
-    """
+    """插件诊断包失败 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    info: dict[str, object]
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    info: dict[str, object] = Field(description='插件的基本信息')
 
 
 class PluginRuntimeUpgradeBlockerPayload(PluginPayloadModel):
-    """
-    插件升级前置阻断 payload。
-    """
+    """插件升级前置阻断 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    dry_run: bool = Field(alias='dryRun')
-    installed: bool
-    installed_version: str | None = Field(alias='installedVersion')
-    current_version: str = Field(alias='currentVersion')
-    needs_upgrade: bool = Field(alias='needsUpgrade')
-    manifest_ok: bool = Field(alias='manifestOk')
-    dependency_ok: bool = Field(alias='dependencyOk')
-    plugin_dependency_ok: bool | None = Field(default=None, alias='pluginDependencyOk')
-    structure_ok: bool | None = Field(default=None, alias='structureOk')
-    menu_conflict_ok: bool | None = Field(default=None, alias='menuConflictOk')
-    manifest_issues: list[dict[str, object]] | None = Field(default=None, alias='manifestIssues')
-    manifest_warnings: list[dict[str, object]] | None = Field(default=None, alias='manifestWarnings')
-    plugin_dependency_errors: list[dict[str, object]] | None = Field(default=None, alias='pluginDependencyErrors')
-    structure_errors: list[dict[str, object]] | None = Field(default=None, alias='structureErrors')
-    menu_conflicts: list[dict[str, object]] | None = Field(default=None, alias='menuConflicts')
-    dependencies: list[dict[str, object]] | None = None
-    plugin_dependencies: list[dict[str, object]] | None = Field(default=None, alias='pluginDependencies')
-    actions: list[dict[str, object]]
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    dry_run: bool = Field(alias='dryRun', description='是否仅预演本次操作')
+    installed: bool = Field(description='是否已经安装')
+    installed_version: str | None = Field(alias='installedVersion', description='已安装的版本')
+    current_version: str = Field(alias='currentVersion', description='当前发现的插件版本')
+    needs_upgrade: bool = Field(alias='needsUpgrade', description='是否需要升级已安装版本')
+    manifest_ok: bool = Field(alias='manifestOk', description='插件清单是否通过校验')
+    dependency_ok: bool = Field(alias='dependencyOk', description='软件包依赖是否满足要求')
+    plugin_dependency_ok: bool | None = Field(
+        default=None, alias='pluginDependencyOk', description='依赖的其他插件是否满足要求'
+    )
+    structure_ok: bool | None = Field(default=None, alias='structureOk', description='插件文件结构是否通过校验')
+    menu_conflict_ok: bool | None = Field(default=None, alias='menuConflictOk', description='插件是否通过菜单冲突检查')
+    manifest_issues: list[dict[str, object]] | None = Field(
+        default=None, alias='manifestIssues', description='插件清单中的错误'
+    )
+    manifest_warnings: list[dict[str, object]] | None = Field(
+        default=None, alias='manifestWarnings', description='插件清单中的警告'
+    )
+    plugin_dependency_errors: list[dict[str, object]] | None = Field(
+        default=None, alias='pluginDependencyErrors', description='插件之间的依赖检查错误'
+    )
+    structure_errors: list[dict[str, object]] | None = Field(
+        default=None, alias='structureErrors', description='插件目录或文件结构检查错误'
+    )
+    menu_conflicts: list[dict[str, object]] | None = Field(
+        default=None, alias='menuConflicts', description='检测到的菜单冲突'
+    )
+    dependencies: list[dict[str, object]] | None = Field(default=None, description='软件包依赖及其检查结果')
+    plugin_dependencies: list[dict[str, object]] | None = Field(
+        default=None, alias='pluginDependencies', description='插件之间的依赖及其状态'
+    )
+    actions: list[dict[str, object]] = Field(description='待执行或已执行的操作明细')
 
 
 PluginRuntimeDiagnosePayloadDict: TypeAlias = dict[str, object]
@@ -213,9 +245,7 @@ PluginRuntimeUpgradeBlockerPayloadDict: TypeAlias = dict[str, object]
 
 
 class PluginRuntimePayloadBuilder:
-    """
-    插件运行时通用负载构建器。
-    """
+    """插件运行时通用负载构建器。"""
 
     @staticmethod
     def build_exception_payload(

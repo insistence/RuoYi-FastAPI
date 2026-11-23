@@ -8,9 +8,7 @@ from utils.common_util import SqlalchemyUtil
 
 
 class GenTable(AuditTimeMixin, Base):
-    """
-    代码生成业务表
-    """
+    """代码生成业务表。"""
 
     __tablename__ = 'gen_table'
     __table_args__ = {'comment': '代码生成业务表'}
@@ -65,9 +63,7 @@ class GenTable(AuditTimeMixin, Base):
 
 
 class GenTableColumn(AuditTimeMixin, Base):
-    """
-    代码生成业务表字段
-    """
+    """代码生成业务表字段。"""
 
     __tablename__ = 'gen_table_column'
     __table_args__ = {'comment': '代码生成业务表字段'}

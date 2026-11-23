@@ -54,7 +54,7 @@ _NOT_FOUND = 404
 
 def _invalid_userinfo_response() -> JSONResponse:
     """
-    构造不泄露原因的 UserInfo 401 响应
+    构造不泄露原因的 UserInfo 401 响应。
 
     :return: 不泄露校验细节的 UserInfo 401 响应
     """
@@ -68,13 +68,12 @@ def _invalid_userinfo_response() -> JSONResponse:
 
 def _request_redis(request: Request) -> Redis:
     """
-    读取应用 Redis 客户端
+    读取应用 Redis 客户端。
 
     :param request: 当前 HTTP 请求
     :return: Redis 客户端
     :raises OAuthProtocolException: Redis 客户端不可用时抛出
     """
-
     redis = getattr(request.app.state, 'redis', None)
     if redis is None:
         raise OAuthProtocolException('server_error', 'Token endpoint is unavailable', 503)
@@ -83,13 +82,12 @@ def _request_redis(request: Request) -> Redis:
 
 async def _pre_auth_rate_limit(request: Request, redis: Redis, form: dict[str, str], endpoint: str) -> None:
     """
-    在 Client Secret 校验前按可见 Client ID 限流
+    在 Client Secret 校验前按可见 Client ID 限流。
 
     :param request: 当前 HTTP 请求
     :param redis: Redis 客户端
     :param form: 已解析的协议表单
     :param endpoint: 当前协议端点标识
-    :return: 无返回值
     :raises RateLimitExceeded: 请求超过限流阈值时抛出
     :raises RateLimitUnavailable: 限流服务不可用时抛出
     """
@@ -117,11 +115,10 @@ async def _pre_auth_rate_limit(request: Request, redis: Redis, form: dict[str, s
 
 def _validate_protocol_form(form: dict[str, str], allowed: set[str]) -> None:
     """
-    校验协议表单字段白名单和长度
+    校验协议表单字段白名单和长度。
 
     :param form: 已解析的协议表单
     :param allowed: 当前端点允许的字段集合
-    :return: 无返回值
     :raises OAuthProtocolException: 包含未知字段或超长字段时抛出
     """
     # 拒绝未知或超长的协议表单字段
@@ -133,7 +130,7 @@ def _validate_protocol_form(form: dict[str, str], allowed: set[str]) -> None:
 
 def _rate_limit_error(error: RateLimitExceeded | RateLimitUnavailable) -> JSONResponse:
     """
-    构造协议限流错误响应
+    构造协议限流错误响应。
 
     :param error: 限流异常
     :return: 裸标准限流错误响应
@@ -148,14 +145,12 @@ def _rate_limit_error(error: RateLimitExceeded | RateLimitUnavailable) -> JSONRe
 
 async def _record_independent_audit(db: AsyncSession, event_type: str, **fields: object) -> None:
     """
-    尝试记录协议失败审计，审计异常不改变标准错误响应
+    尝试记录协议失败审计，审计异常不改变标准错误响应。
 
     :param db: 异步数据库会话
     :param event_type: 审计事件类型
     :param fields: 审计字段
-    :return: 无返回值
     """
-
     try:
         await AuditService.record_independent(db, event_type, 'failure', **fields)
     except Exception:
@@ -164,7 +159,7 @@ async def _record_independent_audit(db: AsyncSession, event_type: str, **fields:
 
 async def _verification_key_or_none(token: str, query_db: AsyncSession) -> object:
     """
-    为 JWT 撤销和内省加载本地公钥
+    为 JWT 撤销和内省加载本地公钥。
 
     :param token: 待读取的访问令牌
     :param query_db: 异步数据库会话
@@ -181,24 +176,22 @@ async def _verification_key_or_none(token: str, query_db: AsyncSession) -> objec
 
 async def _verification_key_loader(query_db: AsyncSession, token: str) -> object:
     """
-    提供给 Service 事务入口的本地公钥加载回调
+    提供给 Service 事务入口的本地公钥加载回调。
 
     :param query_db: 异步数据库会话
     :param token: 待读取的访问令牌
     :return: 本地公钥或 None
     """
-
     return await _verification_key_or_none(token, query_db)
 
 
 def _oauth_error(error: OAuthProtocolException) -> JSONResponse:
     """
-    生成裸标准 OAuth 错误响应
+    生成裸标准 OAuth 错误响应。
 
     :param error: OAuth 协议异常
     :return: 裸标准 OAuth 错误响应
     """
-
     content = {'error': error.error}
     if error.error_description:
         content['error_description'] = error.error_description
@@ -212,12 +205,11 @@ def _oauth_error(error: OAuthProtocolException) -> JSONResponse:
 
 def _http_error(error: HTTPException) -> JSONResponse:
     """
-    将输入边界 HTTP 错误转换为裸 JSON 响应
+    将输入边界 HTTP 错误转换为裸 JSON 响应。
 
     :param error: 输入边界 HTTP 异常
     :return: 裸 JSON 错误响应
     """
-
     code = 'not_found' if error.status_code == _NOT_FOUND else 'invalid_request'
 
     return JSONResponse(content={'error': code}, status_code=error.status_code, headers=_NO_STORE)

@@ -25,7 +25,9 @@ from utils.time_util import TimezoneUtil
 
 class JobService:
     """
-    定时任务管理模块服务层
+    定时任务管理模块服务层。
+
+    :cvar RUNTIME_FIELDS: 来自调度运行时的字段集合
     """
 
     RUNTIME_FIELDS = {
@@ -42,11 +44,12 @@ class JobService:
     @staticmethod
     def _validate_job(job: JobModel, *, check_target_permission: bool = True) -> JobModel:
         """
-        在业务事务提交前完成与调度注册相同的配置校验
+        在业务事务提交前完成与调度注册相同的配置校验。
 
         :param job: 任务对象信息
         :param check_target_permission: 是否校验管理接口的调用目标白名单
         :return: 校验后的任务对象
+        :raises ServiceException: 任务配置未通过调度器的注册校验
         """
         job = JobAdapter.normalize(job)
         try:
@@ -62,7 +65,7 @@ class JobService:
     @classmethod
     async def _after_commit(cls, states: list[dict[str, Any]], action: str) -> CrudResponseModel:
         """
-        反馈已提交修改的同步结果，后续同步失败不伪装成事务回滚
+        反馈已提交修改的同步结果，后续同步失败不伪装成事务回滚。
 
         :param states: 已提交的任务同步状态
         :param action: 任务操作类型
@@ -92,7 +95,7 @@ class JobService:
         cls, query_db: AsyncSession, query_object: JobPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取定时任务列表信息service
+        获取定时任务列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -112,7 +115,7 @@ class JobService:
     @staticmethod
     def _get_observed_next_run_time(row: dict[str, Any]) -> datetime | None:
         """
-        只展示已生效且近期被Leader观测到的实际调度时刻
+        只展示已生效且近期被Leader观测到的实际调度时刻。
 
         :param row: 包含任务状态与调度观测数据的字典
         :return: 实际下次调度时刻，停用、同步未完成或观测过期时返回None
@@ -127,7 +130,7 @@ class JobService:
     @staticmethod
     def _get_next_valid_time(cron_expression: str | None, time_zone: str | None) -> datetime | None:
         """
-        根据任务时区计算Cron理论预览，不代表调度器已安排执行
+        根据任务时区计算Cron理论预览，不代表调度器已安排执行。
 
         :param cron_expression: 任务Cron表达式
         :param time_zone: 任务IANA时区名称
@@ -144,7 +147,7 @@ class JobService:
     @classmethod
     async def check_job_unique_services(cls, query_db: AsyncSession, page_object: JobModel) -> bool:
         """
-        校验定时任务是否存在service
+        校验定时任务是否存在service。
 
         :param query_db: orm对象
         :param page_object: 定时任务对象
@@ -159,11 +162,13 @@ class JobService:
     @classmethod
     async def add_job_services(cls, query_db: AsyncSession, page_object: JobModel) -> CrudResponseModel:
         """
-        新增定时任务信息service
+        新增定时任务信息service。
 
         :param query_db: orm对象
         :param page_object: 新增定时任务对象
         :return: 新增定时任务校验结果
+        :raises ServiceException: 同一任务组内已有同名任务
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         page_object = cls._validate_job(page_object.model_copy(update={'job_id': None}))
         if not await cls.check_job_unique_services(query_db, page_object):
@@ -186,7 +191,7 @@ class JobService:
     @classmethod
     def _deal_edit_job(cls, page_object: EditJobModel, edit_job: dict[str, Any]) -> None:
         """
-        处理编辑定时任务字典
+        处理编辑定时任务字典。
 
         :param page_object: 编辑定时任务对象
         :param edit_job: 编辑定时任务字典
@@ -200,11 +205,12 @@ class JobService:
     @classmethod
     async def edit_job_services(cls, query_db: AsyncSession, page_object: EditJobModel) -> CrudResponseModel:
         """
-        编辑定时任务信息service
+        编辑定时任务信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑定时任务对象
         :return: 编辑定时任务校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         edit_job = page_object.model_dump(
             exclude_unset=True,
@@ -244,12 +250,13 @@ class JobService:
         requested_by: str | None = None,
     ) -> CrudResponseModel:
         """
-        执行一次定时任务service
+        执行一次定时任务service。
 
         :param query_db: orm对象
         :param page_object: 定时任务对象
         :param requested_by: 手动执行提交者
         :return: 执行一次定时任务结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         try:
             db_job, _state = await JobRuntimeDao.lock_job(query_db, page_object.job_id)
@@ -270,11 +277,13 @@ class JobService:
     @classmethod
     async def delete_job_services(cls, query_db: AsyncSession, page_object: DeleteJobModel) -> CrudResponseModel:
         """
-        删除定时任务信息service
+        删除定时任务信息service。
 
         :param query_db: orm对象
         :param page_object: 删除定时任务对象
         :return: 删除定时任务校验结果
+        :raises ServiceException: 任务ID必须为正整数；传入定时任务id为空
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if page_object.job_ids:
             try:
@@ -301,11 +310,12 @@ class JobService:
     @classmethod
     async def job_detail_services(cls, query_db: AsyncSession, job_id: int) -> JobModel:
         """
-        获取定时任务详细信息service
+        获取定时任务详细信息service。
 
         :param query_db: orm对象
         :param job_id: 定时任务id
         :return: 定时任务id对应的信息
+        :raises ServiceException: 定时任务不存在
         """
         job = await JobDao.get_job_detail_by_id(query_db, job_id=job_id)
         if job is None:
@@ -330,11 +340,12 @@ class JobService:
     @classmethod
     async def execution_detail_services(cls, query_db: AsyncSession, execution_id: str) -> dict[str, Any]:
         """
-        查询执行结果，任务删除后仍可按执行 ID 追踪
+        查询执行结果，任务删除后仍可按执行 ID 追踪。
 
         :param query_db: orm对象
         :param execution_id: 执行ID
         :return: 执行状态及时间信息
+        :raises ServiceException: 执行记录不存在
         """
         execution = await JobRuntimeDao.get_execution(query_db, execution_id)
         if execution is None:
@@ -344,7 +355,7 @@ class JobService:
     @staticmethod
     async def execution_list_services(query_db: AsyncSession, query: JobExecutionQueryModel) -> PageModel:
         """
-        查询任务执行记录及未执行原因
+        查询任务执行记录及未执行原因。
 
         :param query_db: orm对象
         :param query: 查询参数对象
@@ -355,7 +366,7 @@ class JobService:
     @staticmethod
     async def sync_list_services(query_db: AsyncSession, query: JobSyncQueryModel) -> PageModel:
         """
-        查询配置和删除操作的调度应用状态
+        查询配置和删除操作的调度应用状态。
 
         :param query_db: orm对象
         :param query: 查询参数对象
@@ -366,11 +377,12 @@ class JobService:
     @classmethod
     async def retry_sync_services(cls, query_db: AsyncSession, job_id: int) -> CrudResponseModel:
         """
-        重试指定任务的最新配置或删除记录，不重复保存业务修改
+        重试指定任务的最新配置或删除记录，不重复保存业务修改。
 
         :param query_db: orm对象
         :param job_id: 任务ID
         :return: 调度同步结果
+        :raises ServiceException: 调度同步记录不存在
         """
         states = await JobRuntimeDao.get_states(query_db, [job_id])
         if job_id not in states:
@@ -380,7 +392,7 @@ class JobService:
     @staticmethod
     async def export_job_list_services(request: Request, job_list: list) -> bytes:
         """
-        导出定时任务信息service
+        导出定时任务信息service。
 
         :param request: Request对象
         :param job_list: 定时任务信息列表

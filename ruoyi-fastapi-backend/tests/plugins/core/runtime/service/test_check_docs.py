@@ -20,26 +20,38 @@ from tests.plugins.core.runtime.fakes import (
 
 
 class PrecheckStateQueryGateway:
-    """
-    仅提供预检所需插件状态查询能力的测试网关。
-    """
+    """仅提供预检所需插件状态查询能力的测试网关。"""
 
     async def get_plugin_state(self, plugin_id: str) -> object | None:
-        """获取插件状态。"""
+        """
+        获取插件状态。
+
+        :param plugin_id: 插件清单中的唯一标识
+        """
         return None
 
     async def list_plugin_states(self) -> list[object]:
-        """获取插件状态列表。"""
+        """
+        获取插件状态列表。
+
+        :return: 插件状态列表
+        """
         return []
 
     def get_plugin_service(self) -> object:
-        """禁止预检状态读取回退到管理服务胖接口。"""
+        """
+        禁止预检状态读取回退到管理服务胖接口。
+
+        :raises AssertionError: 预检状态读取不应依赖 PluginManagementServiceProtocol
+        """
         raise AssertionError('预检状态读取不应依赖 PluginManagementServiceProtocol')
 
 
 class PurgePlanOnlyGateway:
     """
     仅提供插件清理计划能力的测试网关。
+
+    :ivar calls: 测试替身记录的调用信息
     """
 
     def __init__(self) -> None:
@@ -47,7 +59,12 @@ class PurgePlanOnlyGateway:
         self.calls: list[str] = []
 
     async def build_plugin_purge_plan(self, discovered_plugin: object) -> object:
-        """构建测试清理计划。"""
+        """
+        构建测试清理计划。
+
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :return: 测试清理计划
+        """
         self.calls.append(discovered_plugin.manifest.id)
         return PluginPurgePlanner.build_plan(
             discovered_plugin,
@@ -58,7 +75,11 @@ class PurgePlanOnlyGateway:
         )
 
     def get_plugin_service(self) -> object:
-        """禁止清理计划链路回退到管理服务胖接口。"""
+        """
+        禁止清理计划链路回退到管理服务胖接口。
+
+        :raises AssertionError: 清理计划不应依赖 PluginManagementServiceProtocol
+        """
         raise AssertionError('清理计划不应依赖 PluginManagementServiceProtocol')
 
 

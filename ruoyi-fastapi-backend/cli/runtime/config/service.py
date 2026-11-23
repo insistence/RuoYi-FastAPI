@@ -13,8 +13,8 @@ class ConfigRuntimeService:
     该服务作为参数配置运行时 facade，对外统一暴露参数配置列表、详情、
     写入、缓存刷新与一致性诊断入口。
 
-    :param infrastructure_gateway: 参数配置基础设施网关
-    :param domain_support: 参数配置领域支持对象
+    :ivar infrastructure_gateway: 参数配置基础设施网关
+    :ivar domain_support: 参数配置领域支持对象
     """
 
     def __init__(
@@ -28,7 +28,6 @@ class ConfigRuntimeService:
 
         :param infrastructure_gateway: 参数配置基础设施网关
         :param domain_support: 参数配置领域支持对象
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway or ConfigInfrastructureGateway()
         self.domain_support = domain_support or ConfigDomainSupport(self.infrastructure_gateway)
@@ -38,7 +37,7 @@ class ConfigRuntimeService:
         """
         将 ORM 配置记录显式转换为 CLI 可用的配置模型。
 
-        `ConfigModel` 当前未统一开启 `populate_by_name`，因此 CLI 侧在处理
+        ``ConfigModel`` 当前未统一开启 ``populate_by_name``，因此 CLI 侧在处理
         ORM 蛇形字段对象时，需要主动映射为驼峰 alias 输入，避免详情查询结果
         被静默序列化为空。
 

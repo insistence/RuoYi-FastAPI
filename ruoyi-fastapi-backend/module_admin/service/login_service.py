@@ -51,16 +51,16 @@ from utils.time_util import TimezoneUtil
 
 
 class PreAuthOAuth2PasswordBearer(OAuth2PasswordBearer):
-    """
-    支持公开路由排除的登录令牌依赖
-    """
+    """支持公开路由排除的登录令牌依赖。"""
 
     async def __call__(self, request: Request) -> str | None:
         """
-        根据路由认证要求读取登录令牌
+        根据路由认证要求读取登录令牌。
 
         :param request: 当前请求对象
         :return: 登录令牌，公开路由返回None
+        :raises AuthException: 用户未登录，请先完成登录；用户token已失效，请重新登录
+        :raises HTTPException: 当前路由要求认证且请求未提供有效凭据
         """
         mode = AuthPolicy.get_auth_mode(request, (LoginService.get_current_user, oauth2_scheme))
         if mode == 'excluded':
@@ -94,7 +94,12 @@ return redis.call('del', KEYS[1])
 
 class CustomOAuth2PasswordRequestForm(OAuth2PasswordRequestForm):
     """
-    自定义OAuth2PasswordRequestForm类，增加验证码、会话编号及语言偏好参数
+    自定义OAuth2PasswordRequestForm类，增加验证码、会话编号及语言偏好参数。
+
+    :ivar code: 与当前结果对应的编码
+    :ivar uuid: 验证码请求的唯一标识
+    :ivar login_info: 登录信息，前端无需传递
+    :ivar locale: 当前使用的语言区域标识
     """
 
     def __init__(
@@ -112,6 +117,20 @@ class CustomOAuth2PasswordRequestForm(OAuth2PasswordRequestForm):
             default=None, max_length=63, description='登录页显式选择的语言偏好'
         ),
     ) -> None:
+        """
+        解析密码授权表单以及验证码和登录扩展字段。
+
+        :param grant_type: 产生该 Access Token 的 OAuth Grant Type 字符串
+        :param username: 登录账号名称
+        :param password: 用户密码
+        :param scope: 当前操作使用的作用域
+        :param client_id: 客户端标识
+        :param client_secret: 仅在创建或轮换时返回的客户端密钥明文
+        :param code: 与当前结果对应的编码
+        :param uuid: 验证码请求的唯一标识
+        :param login_info: 登录信息，前端无需传递
+        :param locale: 当前使用的语言区域标识
+        """
         super().__init__(
             grant_type=grant_type,
             username=username,
@@ -127,21 +146,20 @@ class CustomOAuth2PasswordRequestForm(OAuth2PasswordRequestForm):
 
 
 class LoginService:
-    """
-    登录模块服务层
-    """
+    """登录模块服务层。"""
 
     @classmethod
     async def authenticate_user(
         cls, request: Request, query_db: AsyncSession, login_user: UserLogin
     ) -> Row[tuple[SysUser, SysDept]]:
         """
-        根据用户名密码校验用户登录
+        根据用户名密码校验用户登录。
 
         :param request: Request对象
         :param query_db: orm对象
         :param login_user: 登录用户对象
         :return: 校验结果
+        :raises LoginException: 凭据校验失败，向登录入口返回对应的业务异常
         """
         referer = request.headers.get('referer')
         request_from_docs = bool(referer and referer.endswith(('docs', 'redoc')))
@@ -162,12 +180,13 @@ class LoginService:
         cls, query_db: AsyncSession, current_user: CurrentUserModel, password: str | None
     ) -> bool:
         """
-        校验当前登录用户的密码并解锁屏幕
+        校验当前登录用户的密码并解锁屏幕。
 
         :param query_db: orm对象
         :param current_user: 当前登录用户
         :param password: 用户密码
         :return: 解锁结果
+        :raises ServiceException: 密码不能为空；服务器超时，请重新登录；密码错误，请重新输入
         """
         if not password:
             raise ServiceException(message='密码不能为空', msg_key='auth.passwordRequired')
@@ -182,11 +201,11 @@ class LoginService:
     @classmethod
     async def create_access_token(cls, data: dict, expires_delta: timedelta | None = None) -> str:
         """
-        根据登录信息创建当前用户token
+        根据登录信息创建当前用户token。
 
         :param data: 登录信息
         :param expires_delta: token有效期
-        :return: token
+        :return: 签发的令牌
         """
         to_encode = data.copy()
         expire = (
@@ -203,13 +222,13 @@ class LoginService:
         query_db: AsyncSession = DBSessionDependency(),
     ) -> CurrentUserModel | None:
         """
-        根据token获取当前用户信息
+        根据token获取当前用户信息。
 
         :param request: Request对象
         :param token: 用户token
         :param query_db: orm对象
         :return: 当前用户信息对象，公开路由返回None
-        :raise: 令牌异常AuthException
+        :raises AuthException: 用户未登录或令牌无效
         """
         if token is None:
             if AuthPolicy.get_auth_mode(request, (cls.get_current_user, oauth2_scheme)) == 'excluded':
@@ -243,6 +262,7 @@ class LoginService:
         :param query_db: 用于查询用户及权限的数据库会话
         :param refresh_session: 是否续期宿主主登录会话
         :return: 通过宿主身份及权限校验的当前用户
+        :raises AuthException: 用户token不合法；用户token已失效，请重新登录
         """
         try:
             if token.startswith('Bearer '):
@@ -296,7 +316,7 @@ class LoginService:
     @classmethod
     async def _get_current_user_snapshot(cls, redis: Redis, query_db: AsyncSession, user_id: int) -> CurrentUserModel:
         """
-        获取当前用户快照，已有事务继续使用调用方的查询语义
+        获取当前用户快照，已有事务继续使用调用方的查询语义。
 
         :param redis: Redis连接对象
         :param query_db: orm对象
@@ -338,11 +358,12 @@ class LoginService:
     @classmethod
     async def _get_current_user_from_db(cls, query_db: AsyncSession, user_id: int) -> CurrentUserModel:
         """
-        查询当前用户资料和权限
+        查询当前用户资料和权限。
 
         :param query_db: orm对象
         :param user_id: 用户id
         :return: 当前用户信息对象
+        :raises AuthException: 用户token不合法
         """
         query_user = await UserDao.get_user_by_id(query_db, user_id=user_id, for_auth=True)
         basic_info = query_user.get('user_basic_info')
@@ -371,7 +392,7 @@ class LoginService:
     @classmethod
     async def get_sys_account_chrtype(cls, request: Request) -> str:
         """
-        获取用户密码字符范围配置
+        获取用户密码字符范围配置。
 
         :param request: Request对象
         :return: 密码字符范围配置
@@ -383,7 +404,7 @@ class LoginService:
     @classmethod
     async def __init_password_is_modify(cls, request: Request, pwd_update_date: datetime) -> bool:
         """
-        判断当前用户是否初始密码登录
+        判断当前用户是否初始密码登录。
 
         :param request: Request对象
         :param pwd_update_date: 密码最后更新时间
@@ -397,7 +418,7 @@ class LoginService:
     @classmethod
     async def __password_is_expired(cls, request: Request, pwd_update_date: datetime) -> bool:
         """
-        判断当前用户密码是否过期
+        判断当前用户密码是否过期。
 
         :param request: Request对象
         :param pwd_update_date: 密码最后更新时间
@@ -417,7 +438,7 @@ class LoginService:
     @classmethod
     async def get_current_user_routers(cls, user_id: int, query_db: AsyncSession) -> list[dict[str, Any]]:
         """
-        根据用户id获取当前用户路由信息
+        根据用户id获取当前用户路由信息。
 
         :param user_id: 用户id
         :param query_db: orm对象
@@ -440,7 +461,7 @@ class LoginService:
     @classmethod
     def __generate_menus(cls, pid: int, permission_list: list[SysMenu]) -> list[MenuTreeModel]:
         """
-        工具方法：根据菜单信息生成菜单信息树形嵌套数据
+        工具方法：根据菜单信息生成菜单信息树形嵌套数据。
 
         :param pid: 菜单id
         :param permission_list: 菜单列表信息
@@ -464,7 +485,7 @@ class LoginService:
         plugin_menu_ids: dict[int, str] | None = None,
     ) -> list[RouterModel]:
         """
-        工具方法：根据菜单树信息生成路由信息树形嵌套数据
+        工具方法：根据菜单树信息生成路由信息树形嵌套数据。
 
         :param permission_list: 菜单树列表信息
         :param plugin_menu_ids: 当前用户页面菜单的可信插件归属
@@ -546,12 +567,13 @@ class LoginService:
         cls, request: Request, query_db: AsyncSession, user_register: UserRegister
     ) -> CrudResponseModel:
         """
-        用户注册services
+        用户注册services。
 
         :param request: Request对象
         :param query_db: orm对象
         :param user_register: 注册用户对象
         :return: 注册结果
+        :raises ServiceException: 验证码已失效；验证码错误；注册程序已关闭，禁止注册；两次输入的密码不一致
         """
         register_enabled = (
             await request.app.state.redis.get(f'{RedisInitKeyConfig.SYS_CONFIG.key}:sys.account.registerUser') == 'true'
@@ -587,7 +609,7 @@ class LoginService:
     @classmethod
     async def get_sms_code_services(cls, request: Request, query_db: AsyncSession, user: ResetUserModel) -> SmsCode:
         """
-        获取短信验证码service
+        获取短信验证码service。
 
         :param request: Request对象
         :param query_db: orm对象
@@ -616,7 +638,7 @@ class LoginService:
         cls, request: Request, query_db: AsyncSession, forget_user: ResetUserModel
     ) -> CrudResponseModel:
         """
-        用户忘记密码services
+        用户忘记密码services。
 
         :param request: Request对象
         :param query_db: orm对象
@@ -645,7 +667,7 @@ class LoginService:
     @classmethod
     async def logout_services(cls, request: Request, token_id: str, token: str) -> bool:
         """
-        退出登录services
+        退出登录services。
 
         :param request: Request对象
         :param token_id: 令牌编号
@@ -661,14 +683,12 @@ class LoginService:
 
 
 class RouterUtil:
-    """
-    路由处理工具类
-    """
+    """路由处理工具类。"""
 
     @classmethod
     def get_router_name(cls, menu: MenuTreeModel) -> str:
         """
-        获取路由名称
+        获取路由名称。
 
         :param menu: 菜单数对象
         :return: 路由名称
@@ -682,7 +702,7 @@ class RouterUtil:
     @classmethod
     def get_route_name(cls, name: str, path: str) -> str:
         """
-        获取路由名称，如没有配置路由名称则取路由地址
+        获取路由名称，如没有配置路由名称则取路由地址。
 
         :param name: 路由名称
         :param path: 路由地址
@@ -694,7 +714,7 @@ class RouterUtil:
     @classmethod
     def get_router_path(cls, menu: MenuTreeModel) -> str | None:
         """
-        获取路由地址
+        获取路由地址。
 
         :param menu: 菜单数对象
         :return: 路由地址
@@ -718,7 +738,7 @@ class RouterUtil:
     @classmethod
     def get_component(cls, menu: MenuTreeModel) -> str:
         """
-        获取组件信息
+        获取组件信息。
 
         :param menu: 菜单数对象
         :return: 组件信息
@@ -739,7 +759,7 @@ class RouterUtil:
     @classmethod
     def is_menu_frame(cls, menu: MenuTreeModel) -> bool:
         """
-        判断是否为菜单内部跳转
+        判断是否为菜单内部跳转。
 
         :param menu: 菜单数对象
         :return: 是否为菜单内部跳转
@@ -753,7 +773,7 @@ class RouterUtil:
     @classmethod
     def is_inner_link(cls, menu: MenuTreeModel) -> bool:
         """
-        判断是否为内链组件
+        判断是否为内链组件。
 
         :param menu: 菜单数对象
         :return: 是否为内链组件
@@ -763,7 +783,7 @@ class RouterUtil:
     @classmethod
     def is_parent_view(cls, menu: MenuTreeModel) -> bool:
         """
-        判断是否为parent_view组件
+        判断是否为parent_view组件。
 
         :param menu: 菜单数对象
         :return: 是否为parent_view组件
@@ -773,7 +793,7 @@ class RouterUtil:
     @classmethod
     def is_http(cls, link: str) -> bool:
         """
-        判断是否为http(s)://开头
+        判断是否为http(s)://开头。
 
         :param link: 链接
         :return: 是否为http(s)://开头
@@ -783,7 +803,7 @@ class RouterUtil:
     @classmethod
     def inner_link_replace_each(cls, path: str) -> str:
         """
-        内链域名特殊字符替换
+        内链域名特殊字符替换。
 
         :param path: 内链域名
         :return: 替换后的内链域名

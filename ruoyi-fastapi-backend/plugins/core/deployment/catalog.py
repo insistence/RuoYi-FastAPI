@@ -34,6 +34,11 @@ def artifact_payload(artifact: Any) -> dict[str, Any]:
 class PluginArtifactCatalog:
     """
     已验证制品文件与数据库索引之间的访问服务。
+
+    :ivar config: 制品发布配置快照
+    :ivar session_factory: 异步数据库会话工厂，未提供时使用宿主数据源
+    :ivar dao: 制品、发布目标及进程报告的数据访问接口
+    :ivar lifecycle_lock: 与维护、清理和轮换共用的全局生命周期锁
     """
 
     def __init__(
@@ -51,7 +56,6 @@ class PluginArtifactCatalog:
         :param session_factory: 异步数据库会话工厂，未提供时使用宿主数据源
         :param dao: 制品、发布目标及进程报告的数据访问接口
         :param lifecycle_lock: 与维护、清理和轮换共用的全局生命周期锁
-        :return: None
         """
         self.config = config
         self.session_factory = session_factory or DataSourceRegistry.session
@@ -62,7 +66,7 @@ class PluginArtifactCatalog:
         """
         拒绝在文件与索引尚未完成恢复时导入或加载制品。
 
-        :return: None
+        :raises ValueError: 存在未完成的制品维护，请先执行 artifact reconcile
         """
         pending = self.config.store_root / '.maintenance'
         ArtifactStore._assert_real_path(pending)
@@ -84,7 +88,6 @@ class PluginArtifactCatalog:
         检查目标插件ID是否与已有源码目录冲突。
 
         :param plugin_id: 插件ID
-        :return: None
         :raises ValueError: 源码插件目录与制品插件ID冲突
         """
         if (self.config.backend_root / 'plugins' / plugin_id).exists():
@@ -106,7 +109,6 @@ class PluginArtifactCatalog:
         校验候选制品的交付协议、发布者授权及静态平台兼容性。
 
         :param artifact: 已完成签名和文件校验的制品对象
-        :return: None
         :raises ValueError: 协议、信任授权、源码目录或运行平台校验失败
         """
         if (
@@ -165,6 +167,7 @@ class PluginArtifactCatalog:
         :param keys: 当前可信公钥
         :param actor: 操作者
         :return: 导入后的制品身份
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
         work = asyncio.create_task(
             asyncio.to_thread(self.store.import_artifact, path, keys, validate_candidate=self.validate_candidate)

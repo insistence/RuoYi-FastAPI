@@ -5,7 +5,7 @@ from typing import Any
 @dataclass(frozen=True)
 class ProdCheckPayloadSupport:
     """
-    `wizard prod-check` 结果提取支持对象。
+    ``wizard prod-check`` 结果提取支持对象。
 
     该对象负责从多路只读结果中提取 runtime、doctor、config
     片段，避免聚合器本体继续堆叠细碎字段判定逻辑。
@@ -45,7 +45,7 @@ class ProdCheckPayloadSupport:
 @dataclass(frozen=True)
 class ProdCheckStatusEvaluator:
     """
-    `wizard prod-check` 状态评估器。
+    ``wizard prod-check`` 状态评估器。
 
     该对象负责统一计算聚合结果的成功状态和标准消息。
     """
@@ -83,13 +83,13 @@ class ProdCheckStatusEvaluator:
 @dataclass(frozen=True)
 class ProdCheckAggregator:
     """
-    `wizard prod-check` 聚合器。
+    ``wizard prod-check`` 聚合器。
 
     该对象负责聚合运行环境、应用检查和配置快照结果，
     让 flow 本体只保留交互编排职责。
 
-    :param payload_support: 结果提取支持对象
-    :param status_evaluator: 状态评估器
+    :ivar payload_support: 结果提取支持对象
+    :ivar status_evaluator: 状态评估器
     """
 
     payload_support: ProdCheckPayloadSupport = ProdCheckPayloadSupport()

@@ -7,9 +7,11 @@ from plugins.core.runtime.task_cleanup import _unfinished_tasks, cancel_plugin_t
 
 @pytest.mark.asyncio
 async def test_batch_cancellation_releases_cooperative_tasks_and_ignores_caller() -> None:
+    """批量取消释放可协作的任务并跳过调用方。"""
     stopped = []
 
     async def work() -> None:
+        """模拟受清理流程管理的异步工作。"""
         try:
             await asyncio.Event().wait()
         finally:
@@ -25,9 +27,15 @@ async def test_batch_cancellation_releases_cooperative_tasks_and_ignores_caller(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('cancel_waiter', [False, True])
 async def test_uncooperative_task_is_retained_even_when_waiter_is_cancelled(cancel_waiter: bool) -> None:
+    """等待方被取消后仍跟踪未响应取消的任务。"""
     opened, interrupted, release = (asyncio.Event() for _ in range(3))
 
     async def work() -> None:
+        """
+        模拟受清理流程管理的异步工作。
+
+        :raises ValueError: 模拟任务延迟报告失败
+        """
         opened.set()
         try:
             await asyncio.Event().wait()
@@ -61,6 +69,7 @@ async def test_uncooperative_task_is_retained_even_when_waiter_is_cancelled(canc
 @pytest.mark.asyncio
 @pytest.mark.parametrize('grace_seconds', [0, -1, float('inf'), float('nan')])
 async def test_invalid_timeout_is_rejected_before_any_cancellation(grace_seconds: float) -> None:
+    """取消任何任务前先拒绝无效超时。"""
     task = asyncio.create_task(asyncio.sleep(10))
     try:
         with pytest.raises(ValueError, match='大于零'):

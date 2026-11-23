@@ -10,9 +10,7 @@ from plugins.core.management.entity.vo.schemas import PluginMigrationModel, Plug
 
 @runtime_checkable
 class PluginStartupManagementGateway(Protocol):
-    """
-    插件启动期依赖的管理端口。
-    """
+    """插件启动期依赖的管理端口。"""
 
     async def list_plugins(self, query_db: AsyncSession) -> list[Any]:
         """
@@ -35,7 +33,6 @@ class PluginStartupManagementGateway(Protocol):
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
         :param enabled: 插件资源是否启用
-        :return: None
         """
 
     async def mark_plugin_error(
@@ -137,6 +134,8 @@ class PluginStartupManagementGateway(Protocol):
         """
         构建插件 migration 执行历史对象。
 
+        :param status: 操作或记录所处的状态
+        :param error_message: 错误信息
         :param plugin_id: 插件ID
         :param migration_path: migration 相对路径
         :param checksum: 内容校验值
@@ -147,16 +146,13 @@ class PluginStartupManagementGateway(Protocol):
 
 
 class UnavailablePluginStartupManagementGateway:
-    """
-    不可用的插件启动期管理端口。
-    """
+    """不可用的插件启动期管理端口。"""
 
     @staticmethod
     def _raise_unavailable() -> NoReturn:
         """
         抛出启动期管理端口不可用异常。
 
-        :return: NoReturn
         :raises RuntimeError: 默认端口不提供管理服务能力
         """
         raise RuntimeError('插件启动期缺少管理服务适配器')
@@ -183,7 +179,6 @@ class UnavailablePluginStartupManagementGateway:
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
         :param enabled: 插件资源是否启用
-        :return: None
         """
         self._raise_unavailable()
 
@@ -292,6 +287,8 @@ class UnavailablePluginStartupManagementGateway:
         """
         构建插件 migration 执行历史对象。
 
+        :param status: 操作或记录所处的状态
+        :param error_message: 错误信息
         :param plugin_id: 插件ID
         :param migration_path: migration 相对路径
         :param checksum: 内容校验值

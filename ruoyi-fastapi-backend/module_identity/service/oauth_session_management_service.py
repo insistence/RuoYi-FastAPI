@@ -24,19 +24,16 @@ from utils.time_util import TimezoneUtil
 
 
 class OAuthSessionManagementService:
-    """
-    OAuth Session 管理模块服务层
-    """
+    """OAuth Session 管理模块服务层。"""
 
     @staticmethod
     def session_view(row: SysSsoSession) -> SsoSessionModel:
         """
-        将 SSO Session ORM 记录转换为 SsoSessionModel
+        将 SSO Session ORM 记录转换为 SsoSessionModel。
 
         :param row: SSO Session ORM 记录
         :return: Session 管理视图
         """
-
         status = row.status
         if (
             status == 'active'
@@ -66,14 +63,13 @@ class OAuthSessionManagementService:
     @staticmethod
     def grant_view(row: SysOAuthGrant, client_id: str | None, policy: SysOAuthAccessPolicy | None = None) -> GrantModel:
         """
-        将 OAuth Grant ORM 记录转换为 GrantModel
+        将 OAuth Grant ORM 记录转换为 GrantModel。
 
         :param row: OAuth Grant ORM 记录
         :param client_id: 客户端标识
         :param policy: 当前用户对应用的独立访问策略
         :return: Grant 管理视图
         """
-
         status = row.status
         if (
             status == 'active'
@@ -103,13 +99,12 @@ class OAuthSessionManagementService:
     @staticmethod
     async def list_sessions(db: AsyncSession, query: SessionPageQueryModel) -> tuple[list[SsoSessionModel], int]:
         """
-        分页查询 SSO Session
+        分页查询 SSO Session。
 
         :param db: 异步数据库会话
         :param query: Session 分页查询参数
         :return: Session 管理视图列表和总数
         """
-
         rows = await SsoSessionDao.list_page(
             db,
             user_id=query.user_id,
@@ -140,13 +135,12 @@ class OAuthSessionManagementService:
     @staticmethod
     async def get_session(db: AsyncSession, sid: str) -> SsoSessionModel | None:
         """
-        按 sid 查询 SSO Session
+        按 sid 查询 SSO Session。
 
         :param db: 异步数据库会话
         :param sid: Session 标识
         :return: Session 管理视图，不存在时返回 None
         """
-
         row = await SsoSessionDao.get_by_sid(db, sid)
         if row is None:
             return None
@@ -157,13 +151,12 @@ class OAuthSessionManagementService:
     @staticmethod
     async def list_grants(db: AsyncSession, query: GrantPageQueryModel) -> tuple[list[GrantModel], int]:
         """
-        分页查询 OAuth Grant
+        分页查询 OAuth Grant。
 
         :param db: 异步数据库会话
         :param query: Grant 分页查询参数
         :return: Grant 管理视图列表和总数
         """
-
         rows = await OAuthGrantDao.list_page(
             db,
             user_id=query.user_id,
@@ -195,13 +188,12 @@ class OAuthSessionManagementService:
         db: AsyncSession, query: AccessPolicyPageQueryModel
     ) -> tuple[list[AccessPolicyModel], int]:
         """
-        查询独立访问策略，包含尚未授权过的用户与应用
+        查询独立访问策略，包含尚未授权过的用户与应用。
 
         :param db: 异步数据库会话
         :param query: 访问策略分页查询参数
         :return: 访问策略管理视图列表和总数
         """
-
         rows = await OAuthAccessPolicyDao.list_page(db, query)
         total = await OAuthAccessPolicyDao.count(db, query)
         return [
@@ -221,13 +213,12 @@ class OAuthSessionManagementService:
     @staticmethod
     async def get_grant(db: AsyncSession, grant_id: str) -> GrantModel | None:
         """
-        按 grant_id 查询 OAuth Grant
+        按 grant_id 查询 OAuth Grant。
 
         :param db: 异步数据库会话
         :param grant_id: Grant 标识
         :return: Grant 管理视图，不存在时返回 None
         """
-
         row = await OAuthGrantDao.get_by_grant_id(db, grant_id)
         if row is None:
             return None
@@ -239,7 +230,7 @@ class OAuthSessionManagementService:
     @staticmethod
     async def revoke_user(db: AsyncSession, redis: Redis, user_id: int, actor: str, reason: str) -> int:
         """
-        撤销用户全部在线及自然过期的 SSO Session
+        撤销用户全部在线及自然过期的 SSO Session。
 
         :param db: 异步数据库会话
         :param redis: SSO Session 热缓存客户端
@@ -249,7 +240,6 @@ class OAuthSessionManagementService:
         :return: 实际发生状态变更的 Session 数量
         :raises ServiceException: 撤销用户 Session 事务失败
         """
-
         coordinator = AfterCommitCoordinator()
         try:
             count = await SsoSessionService.revoke_user(db, redis, user_id, reason=reason, coordinator=coordinator)
@@ -269,7 +259,7 @@ class OAuthSessionManagementService:
     @staticmethod
     async def revoke_sessions(db: AsyncSession, redis: Redis, sids: list[str], actor: str, reason: str) -> int:
         """
-        按 sid 集合撤销 SSO Session
+        按 sid 集合撤销 SSO Session。
 
         :param db: 异步数据库会话
         :param redis: SSO Session 热缓存客户端
@@ -279,7 +269,6 @@ class OAuthSessionManagementService:
         :return: 实际发生状态变更的 Session 数量
         :raises ServiceException: 批量撤销指定 Session 事务失败
         """
-
         coordinator, count = AfterCommitCoordinator(), 0
         try:
             for sid in sids:
@@ -302,7 +291,7 @@ class OAuthSessionManagementService:
     @staticmethod
     async def revoke_grants(db: AsyncSession, grant_ids: list[str], actor: str, reason: str) -> int:
         """
-        撤销选中记录所属用户对应用的全部现有授权
+        撤销选中记录所属用户对应用的全部现有授权。
 
         :param db: 异步数据库会话
         :param grant_ids: 用于确定用户和应用的 Grant 标识集合
@@ -311,7 +300,6 @@ class OAuthSessionManagementService:
         :return: 实际撤销的 Grant 数量
         :raises ServiceException: 批量撤销 Grant 事务失败
         """
-
         try:
             count = 0
             for client_pk, user_id in await OAuthGrantDao.targets(db, grant_ids):
@@ -338,7 +326,7 @@ class OAuthSessionManagementService:
     @staticmethod
     async def set_access(db: AsyncSession, user_id: int, client_id: str, blocked: bool, actor: str, reason: str) -> int:
         """
-        更新用户对应用的访问策略，禁止时撤销全部授权，解除时保留撤销状态
+        更新用户对应用的访问策略，禁止时撤销全部授权，解除时保留撤销状态。
 
         :param db: 异步数据库会话
         :param user_id: 用户编号
@@ -349,7 +337,6 @@ class OAuthSessionManagementService:
         :return: 本次撤销的授权数量
         :raises ServiceException: 用户或应用不存在，或事务失败
         """
-
         try:
             client = await OAuthClientDao.get_by_client_id(db, client_id)
             user = await IdentityUserDao.get_user(db, user_id)

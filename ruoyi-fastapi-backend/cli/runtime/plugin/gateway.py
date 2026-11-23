@@ -7,7 +7,7 @@ class PluginRuntimeGateway:
     插件 CLI 运行时网关。
 
     该对象负责延迟加载插件核心运行时与管理适配器，避免导入
-    `cli.runtime.plugin` 时立即加载 `plugins.core`。
+    ``cli.runtime.plugin`` 时立即加载 ``plugins.core``。
     """
 
     @staticmethod

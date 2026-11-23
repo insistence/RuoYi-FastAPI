@@ -27,7 +27,11 @@ _SERVICE_UNAVAILABLE = 503
 
 @pytest_asyncio.fixture
 async def audit_session() -> AsyncSession:
-    """创建只包含审计表的真实 SQLite 会话。"""
+    """
+    创建只包含审计表的真实 SQLite 会话。
+
+    :yield: 只包含审计表的真实 SQLite 会话
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     async with engine.begin() as connection:
         await connection.run_sync(
@@ -149,10 +153,24 @@ async def test_audit_admin_reads_project_safe_models_and_export(monkeypatch: pyt
     calls: list[dict[str, object]] = []
 
     async def list_admin_page(*args: object, **kwargs: object) -> list[object]:
+        """
+        记录审计分页查询参数并返回样例记录。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 样例记录
+        """
         calls.append(kwargs)
         return [row]
 
     async def count_admin(*args: object, **kwargs: object) -> int:
+        """
+        返回固定值 ``1``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``1``
+        """
         return 1
 
     monkeypatch.setattr(OAuthAuditDao, 'list_admin_page', list_admin_page)
@@ -213,13 +231,28 @@ async def test_interaction_failure_audit_rolls_back_and_wraps_failure(monkeypatc
     """交互失败审计保持双重回滚和统一异常包装语义。"""
 
     class _Db:
+        """
+        模拟当前测试所需的数据库操作。
+
+        :ivar rollbacks: 测试中记录的回滚次数
+        """
+
         def __init__(self) -> None:
+            """初始化测试夹具的 ``rollbacks``。"""
             self.rollbacks = 0
 
         async def rollback(self) -> None:
+            """累加 ``rollbacks`` 供后续断言检查。"""
             self.rollbacks += 1
 
     async def fail(*args: object, **kwargs: object) -> object:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟审计服务不可用
+        """
         raise RuntimeError('audit unavailable')
 
     monkeypatch.setattr(AuditService, 'record_independent', fail)

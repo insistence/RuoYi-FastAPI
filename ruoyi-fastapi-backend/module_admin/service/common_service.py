@@ -27,9 +27,7 @@ from utils.upload_util import FilePathUtil, UploadUtil
 
 
 class CommonService:
-    """
-    通用模块服务层
-    """
+    """通用模块服务层。"""
 
     @classmethod
     async def upload_service(
@@ -41,7 +39,7 @@ class CommonService:
         access_type: Literal['public', 'private'] = 'public',
     ) -> CrudResponseModel:
         """
-        通用上传service
+        通用上传service。
 
         :param request: Request对象
         :param query_db: orm对象
@@ -49,6 +47,8 @@ class CommonService:
         :param file: 上传文件对象
         :param access_type: 文件访问类型
         :return: 上传结果
+        :raises ServiceException: 文件访问类型不合法；文件类型不合法；文件名生成冲突，请重新上传；无法获取当前用户信息
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if access_type not in {'public', 'private'}:
             raise ServiceException(message='文件访问类型不合法', msg_key='file.invalidAccessType')
@@ -158,11 +158,12 @@ class CommonService:
     @classmethod
     async def _write_uploaded_file(cls, file: UploadFile, filepath: Path) -> tuple[int, str]:
         """
-        将上传文件写入目标路径并计算摘要
+        将上传文件写入目标路径并计算摘要。
 
         :param file: 上传文件对象
         :param filepath: 文件目标路径
         :return: 文件大小和SHA-256
+        :raises Exception: 底层操作失败时向调用方传播异常
         """
         total_size = 0
         file_hasher = hashlib.sha256()
@@ -198,7 +199,7 @@ class CommonService:
         range_header: str | None = None,
     ) -> FileDownloadResult:
         """
-        下载已登记文件service
+        下载已登记文件service。
 
         :param request: Request对象
         :param query_db: orm对象
@@ -208,6 +209,8 @@ class CommonService:
         :param file_data_scope_sql: 文件数据权限对应的查询sql语句
         :param range_header: Range请求头
         :return: 文件下载结果
+        :raises ServiceException: 文件不存在或无权访问
+        :raises FileRangeNotSatisfiableException: 事务失败并回滚后重新抛出原异常
         """
         file_info = await FileInfoDao.get_file_info_by_id(query_db, file_id, file_data_scope_sql)
         user = current_user.user
@@ -315,7 +318,7 @@ class CommonService:
         current_time: datetime,
     ) -> bool:
         """
-        校验私有文件下载权限
+        校验私有文件下载权限。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -359,7 +362,7 @@ class CommonService:
     @staticmethod
     def _get_current_user_role_ids(user: object) -> set[int]:
         """
-        获取当前用户角色ID集合
+        获取当前用户角色ID集合。
 
         :param user: 当前用户对象
         :return: 角色ID集合
@@ -377,7 +380,7 @@ class CommonService:
     @staticmethod
     def _get_current_user_dept_ids(user: object) -> tuple[int | None, set[int]]:
         """
-        获取当前用户部门及祖级部门ID
+        获取当前用户部门及祖级部门ID。
 
         :param user: 当前用户对象
         :return: 当前部门ID和祖级部门ID集合
@@ -398,14 +401,16 @@ class CommonService:
         byte_range: FileByteRange,
     ) -> AsyncGenerator[bytes, None]:
         """
-        生成带有完成审计的文件流
+        生成带有完成审计的文件流。
 
         :param request: Request对象
         :param current_user: 当前用户对象
         :param file_id: 文件ID
         :param filepath: 文件路径
         :param byte_range: 文件字节范围
-        :yield: 文件二进制数据
+        :yield: 逐块产生文件二进制数据并记录下载审计的异步迭代器
+        :raises asyncio.CancelledError: 异步操作被取消时
+        :raises Exception: 底层操作失败时向调用方传播异常
         """
         bytes_sent = 0
         audit_result: Literal['completed', 'failed'] = 'failed'
@@ -454,7 +459,7 @@ class CommonService:
         operation_detail: dict[str, object] | None = None,
     ) -> None:
         """
-        将文件访问审计写入日志队列
+        将文件访问审计写入日志队列。
 
         :param request: Request对象
         :param current_user: 当前用户对象
@@ -464,7 +469,6 @@ class CommonService:
         :param bytes_sent: 已发送字节数
         :param error_message: 失败原因
         :param operation_detail: 操作详情
-        :return: None
         """
         await FileAuditService.enqueue_file_audit(
             request,
@@ -480,7 +484,7 @@ class CommonService:
     @staticmethod
     def _build_download_operation_detail(byte_range: FileByteRange) -> dict[str, object] | None:
         """
-        构造分段下载审计详情
+        构造分段下载审计详情。
 
         :param byte_range: 文件字节范围
         :return: 分段下载审计详情
@@ -502,13 +506,14 @@ class CommonService:
         range_header: str | None = None,
     ) -> FileDownloadResult:
         """
-        下载下载目录文件service
+        下载下载目录文件service。
 
         :param background_tasks: 后台任务对象
         :param file_name: 下载的文件名称
         :param delete: 是否在下载完成后删除文件
         :param range_header: Range请求头
         :return: 文件下载结果
+        :raises ServiceException: 文件名称不合法或文件不存在
         """
         try:
             filepath = FilePathUtil.resolve_file_within_root(UploadConfig.DOWNLOAD_PATH, file_name)
@@ -536,11 +541,12 @@ class CommonService:
         range_header: str | None = None,
     ) -> FileDownloadResult:
         """
-        下载上传目录文件service
+        下载上传目录文件service。
 
         :param resource: 下载的文件名称
         :param range_header: Range请求头
         :return: 文件下载结果
+        :raises ServiceException: 资源路径不合法；资源路径不合法或文件不存在；资源文件名称不合法
         """
         resource_prefix = f'{UploadConfig.UPLOAD_PREFIX.rstrip("/")}/'
         if not resource.startswith(resource_prefix):

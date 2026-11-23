@@ -9,16 +9,33 @@ from module_identity.service.runtime_service import OidcRuntimeService
 
 @pytest.mark.asyncio
 async def test_registered_cors_changes_reach_other_workers_and_fail_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """注册的跨域规则变更传达到其他进程且失败时拒绝访问。"""
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', True)
     state = {'version': '0', 'origins': ('https://old.example',)}
 
     async def get(_key: str) -> str:
+        """
+        读取测试存储中的指定键。
+
+        :param _key: 回调接收的查找键
+        :return: 测试存储中的指定键
+        """
         return state['version']
 
     async def incr(_key: str) -> None:
+        """
+        增加测试缓存键的计数。
+
+        :param _key: 回调接收的查找键
+        """
         state['version'] = str(int(state['version']) + 1)
 
     async def load() -> tuple[str, ...]:
+        """
+        捕获加载请求并提供测试密钥。
+
+        :return: 为当前测试准备的密钥
+        """
         return state['origins']
 
     redis = SimpleNamespace(get=get, incr=incr)

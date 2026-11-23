@@ -17,12 +17,14 @@ from utils.common_util import CamelCaseUtil
 
 @pytest.mark.parametrize('value', ['auto', 'UTC', 'Asia/Shanghai', 'America/New_York', ' Asia/Kathmandu '])
 def test_timezone_preference_validation(value: str) -> None:
+    """校验用户的时区偏好。"""
     assert UserTimezoneModel(timeZone=value).time_zone == value.strip()
     assert UserModel(timeZone=value).time_zone == value.strip()
 
 
 @pytest.mark.parametrize('value', ['', None, 'Mars/Olympus', 'UTC+8', '../UTC', 'a' * 65])
 def test_invalid_timezone_preference_rejected(value: object) -> None:
+    """拒绝无效的时区偏好。"""
     with pytest.raises(ValidationError):
         UserTimezoneModel(timeZone=value)
     with pytest.raises(ValidationError):
@@ -30,6 +32,7 @@ def test_invalid_timezone_preference_rejected(value: object) -> None:
 
 
 def test_timezone_endpoint_rejects_identity_and_management_fields() -> None:
+    """时区接口拒绝身份及管理字段。"""
     with pytest.raises(ValidationError):
         UserTimezoneModel(timeZone='UTC', userId=2)
     with pytest.raises(ValidationError):
@@ -38,6 +41,7 @@ def test_timezone_endpoint_rejects_identity_and_management_fields() -> None:
 
 @pytest.mark.asyncio
 async def test_timezone_update_persists_only_current_account() -> None:
+    """更新时区只写入当前账号。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     try:
         async with engine.begin() as connection:
@@ -73,6 +77,7 @@ async def test_timezone_update_persists_only_current_account() -> None:
 
 @pytest.mark.asyncio
 async def test_timezone_update_rolls_back_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """时区更新失败时回滚。"""
     db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
     monkeypatch.setattr(UserDao, 'edit_user_dao', AsyncMock(side_effect=RuntimeError('database unavailable')))
     with pytest.raises(RuntimeError):

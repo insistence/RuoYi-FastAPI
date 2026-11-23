@@ -21,7 +21,12 @@ pytestmark = pytest.mark.e2e
 
 
 async def successful_payload(response: APIResponse | Response) -> dict[str, Any]:
-    """验证真实接口的 HTTP 与业务状态，避免仅凭成功提示判断保存结果。"""
+    """
+    验证真实接口的 HTTP 与业务状态，避免仅凭成功提示判断保存结果。
+
+    :param response: 当前调用产生的响应
+    :return: 随调用传入或返回的结构化数据
+    """
     assert response.ok, f'账户 API HTTP 状态异常：{response.status}'
     payload = await response.json()
     assert payload['code'] == HTTPStatus.OK, payload.get('msg')
@@ -29,7 +34,13 @@ async def successful_payload(response: APIResponse | Response) -> dict[str, Any]
 
 
 def profile_input(form: Locator, label: str) -> Locator:
-    """用用户看到的表单标签兼容 Element UI 和 Element Plus。"""
+    """
+    用用户看到的表单标签兼容 Element UI 和 Element Plus。
+
+    :param form: 当前正在填充的表单
+    :param label: 显示给用户的标签
+    :return: 用户资料中指定标签的输入框定位器
+    """
     return form.locator('.el-form-item, .ant-form-item').filter(has_text=label).locator('input')
 
 

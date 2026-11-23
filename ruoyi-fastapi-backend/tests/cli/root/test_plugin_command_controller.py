@@ -13,9 +13,7 @@ from cli.groups.plugin.options import (
 
 
 class FakeContextFactory:
-    """
-    测试用 CLI 上下文工厂。
-    """
+    """测试用 CLI 上下文工厂。"""
 
     def build_dangerous(
         self,
@@ -27,7 +25,17 @@ class FakeContextFactory:
         *,
         command_name: str,
     ) -> Any:
-        """构造危险命令上下文。"""
+        """
+        构造危险命令上下文。
+
+        :param env: 当前运行环境
+        :param output: 命令或操作的输出
+        :param allow_prod: 是否允许生产环境危险命令
+        :param yes: 是否跳过交互确认
+        :param dry_run: 是否只预览操作结果
+        :param command_name: 命令唯一标识
+        :return: 危险命令上下文
+        """
         return type('FakeContext', (), {'env': env, 'output': output})()
 
     def build_regular(
@@ -38,7 +46,16 @@ class FakeContextFactory:
         yes: bool,
         dry_run: bool,
     ) -> Any:
-        """构造普通命令上下文。"""
+        """
+        构造普通命令上下文。
+
+        :param env: 当前运行环境
+        :param output: 命令或操作的输出
+        :param allow_prod: 是否允许生产环境危险命令
+        :param yes: 是否跳过交互确认
+        :param dry_run: 是否只预览操作结果
+        :return: 普通命令上下文
+        """
         return type(
             'FakeContext',
             (),
@@ -46,13 +63,22 @@ class FakeContextFactory:
         )()
 
     def build_readonly(self, env: str, output: str) -> Any:
-        """构造只读命令上下文。"""
+        """
+        构造只读命令上下文。
+
+        :param env: 当前运行环境
+        :param output: 命令或操作的输出
+        :return: 只读命令上下文
+        """
         return type('FakeContext', (), {'env': env, 'output': output})()
 
 
 class FakeExecutionService:
     """
     测试用 CLI 执行服务。
+
+    :ivar completed_payload: 命令成功结束时返回的结果
+    :ivar default_exit_code: 默认退出码
     """
 
     def __init__(self) -> None:
@@ -61,7 +87,12 @@ class FakeExecutionService:
         self.default_exit_code: int | None = None
 
     def run_async(self, value: Any) -> Any:
-        """直接返回测试中的 awaitable 结果。"""
+        """
+        直接返回测试中的 awaitable 结果。
+
+        :param value: 待处理的输入值
+        :return: 可等待对象执行完毕后的值
+        """
         if inspect.isawaitable(value):
             return asyncio.run(value)
         return value
@@ -74,65 +105,119 @@ class FakeExecutionService:
         text_builder: Any,
         default_exit_code: int,
     ) -> None:
-        """记录完成参数。"""
+        """
+        记录完成参数。
+
+        :param ctx: 当前命令的执行上下文
+        :param payload: 随调用传入或返回的结构化数据
+        :param text_builder: 文本结果构建函数
+        :param default_exit_code: 默认退出码
+        """
         self.completed_payload = payload
         self.default_exit_code = default_exit_code
 
 
 class FakePresenter:
-    """
-    测试用 presenter。
-    """
+    """测试用 presenter。"""
 
     @staticmethod
     def build_list_text(payload: dict[str, Any]) -> str:
-        """构造列表文本。"""
+        """
+        构造列表文本。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 列表文本
+        """
         return str(payload)
 
     @staticmethod
     def build_info_text(payload: dict[str, Any]) -> str:
-        """构造详情文本。"""
+        """
+        构造详情文本。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 详情文本
+        """
         return str(payload)
 
     @staticmethod
     def build_enabled_text(payload: dict[str, Any]) -> str:
-        """构造启停文本。"""
+        """
+        构造启停文本。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 启停文本
+        """
         return str(payload)
 
     @staticmethod
     def build_install_text(payload: dict[str, Any]) -> str:
-        """构造安装文本。"""
+        """
+        构造安装文本。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 安装文本
+        """
         return str(payload)
 
     @staticmethod
     def build_check_text(payload: dict[str, Any]) -> str:
-        """构造检查文本。"""
+        """
+        构造检查文本。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 检查文本
+        """
         return str(payload)
 
     @staticmethod
     def build_config_text(payload: dict[str, Any]) -> str:
-        """构造配置文本。"""
+        """
+        构造配置文本。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 配置文本
+        """
         return str(payload)
 
     @staticmethod
     def build_dependency_install_text(payload: dict[str, Any]) -> str:
-        """构造依赖安装文本。"""
+        """
+        构造依赖安装文本。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 依赖安装文本
+        """
         return str(payload)
 
     @staticmethod
     def build_dependency_lock_text(payload: dict[str, Any]) -> str:
-        """构造依赖锁文件文本。"""
+        """
+        构造依赖锁文件文本。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 依赖锁文件文本
+        """
         return str(payload)
 
     @staticmethod
     def build_dependency_allowlist_example_text(payload: dict[str, Any]) -> str:
-        """构造允许列表示例文本。"""
+        """
+        构造允许列表示例文本。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :return: 允许列表示例文本
+        """
         return str(payload)
 
 
 class FakeCoreRuntime:
     """
     测试用核心插件运行时。
+
+    :ivar dependency_install_calls: 记录 ``dependency_install`` 的调用情况
+    :ivar config_set_calls: 记录 ``config_set`` 的调用情况
+    :ivar list_with_state_called: 记录 ``list_with_state`` 的调用情况
     """
 
     def __init__(self) -> None:
@@ -142,7 +227,11 @@ class FakeCoreRuntime:
         self.list_with_state_called = False
 
     async def list_plugins_with_state(self) -> dict[str, Any]:
-        """返回合并状态后的插件列表。"""
+        """
+        返回合并状态后的插件列表。
+
+        :return: 合并状态后的插件列表
+        """
         self.list_with_state_called = True
         return {
             'ok': True,
@@ -159,16 +248,33 @@ class FakeCoreRuntime:
         }
 
     async def install_plugin(self, plugin_id: str, *, dry_run: bool = False) -> dict[str, Any]:
-        """返回失败安装结果。"""
+        """
+        返回失败安装结果。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param dry_run: 是否只预览操作结果
+        :return: 失败安装结果
+        """
         return {'ok': False, 'message': '插件安装失败', 'pluginId': plugin_id}
 
     @staticmethod
     def check_plugin(plugin_id: str | None = None) -> dict[str, Any]:
-        """返回缺失 ok 字段的检查结果。"""
+        """
+        返回缺失 ok 字段的检查结果。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :return: 缺失 ok 字段的检查结果
+        """
         return {'message': '插件检查结果缺失 ok', 'pluginId': plugin_id}
 
     async def set_plugin_config(self, plugin_id: str, values: dict[str, Any]) -> dict[str, Any]:
-        """返回失败配置更新结果。"""
+        """
+        返回失败配置更新结果。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param values: 当前处理的值集合
+        :return: 失败配置更新结果
+        """
         self.config_set_calls.append({'plugin_id': plugin_id, 'values': values})
         return {'ok': False, 'message': '插件配置更新失败', 'pluginId': plugin_id, 'values': values}
 
@@ -181,7 +287,16 @@ class FakeCoreRuntime:
         confirmed: bool = False,
         output_callback: object | None = None,
     ) -> dict[str, Any]:
-        """返回 CLI 依赖安装测试结果。"""
+        """
+        返回 CLI 依赖安装测试结果。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param dry_run: 是否只预览操作结果
+        :param policy_config: 依赖安装策略配置
+        :param confirmed: 是否已确认该操作
+        :param output_callback: 依赖安装实时输出回调
+        :return: CLI 依赖安装测试结果
+        """
         self.dependency_install_calls.append(
             {
                 'plugin_id': plugin_id,
@@ -204,6 +319,10 @@ class FakeCoreRuntime:
 class FakePluginRuntime:
     """
     测试用插件 CLI 运行时。
+
+    :ivar core_runtime: 被测命令使用的核心运行时
+    :ivar dependency_lock_calls: 记录 ``dependency_lock`` 的调用情况
+    :ivar dependency_allowlist_example_calls: 记录 ``dependency_allowlist_example`` 的调用情况
     """
 
     def __init__(self) -> None:
@@ -221,7 +340,16 @@ class FakePluginRuntime:
         dry_run: bool = False,
         overwrite: bool = False,
     ) -> dict[str, Any]:
-        """返回依赖锁文件测试结果。"""
+        """
+        返回依赖锁文件测试结果。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param output_path: 写入命令结果的目标路径
+        :param offline_dir: 保存离线依赖包的目录
+        :param dry_run: 是否只预览操作结果
+        :param overwrite: 是否允许替换已有文件
+        :return: 依赖锁文件测试结果
+        """
         self.dependency_lock_calls.append(
             {
                 'plugin_id': plugin_id,
@@ -248,7 +376,14 @@ class FakePluginRuntime:
         dry_run: bool = False,
         overwrite: bool = False,
     ) -> dict[str, Any]:
-        """返回允许列表示例测试结果。"""
+        """
+        返回允许列表示例测试结果。
+
+        :param output_path: 写入命令结果的目标路径
+        :param dry_run: 是否只预览操作结果
+        :param overwrite: 是否允许替换已有文件
+        :return: 允许列表示例测试结果
+        """
         self.dependency_allowlist_example_calls.append(
             {
                 'output_path': output_path,

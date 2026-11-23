@@ -9,9 +9,7 @@ from cli.runtime.db.support import DatabaseRevisionSupport
 
 
 class FakeRuntimeEnvironment(RuntimeEnvironmentService):
-    """
-    模拟运行时环境服务。
-    """
+    """模拟运行时环境服务。"""
 
     @staticmethod
     def get_backend_dir() -> str:
@@ -24,15 +22,18 @@ class FakeRuntimeEnvironment(RuntimeEnvironmentService):
 
 
 def test_database_revision_support_serializes_revision() -> None:
-    """
-    校验数据库迁移版本支持对象会序列化 Alembic revision。
-
-    :return: None
-    """
+    """校验数据库迁移版本支持对象会序列化 Alembic revision。"""
 
     class FakeRevision:
         """
         模拟 Alembic revision 对象。
+
+        :cvar revision: 当前数据库迁移的版本标识
+        :cvar down_revision: 此次迁移的父版本标识
+        :cvar branch_labels: Alembic 迁移分支的标签
+        :cvar dependencies: 执行当前步骤所需的依赖
+        :cvar doc: 迁移脚本的说明
+        :cvar path: 要读取或处理的路径
         """
 
         revision = '202605110001'
@@ -57,11 +58,7 @@ def test_database_revision_support_serializes_revision() -> None:
 
 
 def test_database_runtime_service_upgrade_dry_run_returns_command_payload() -> None:
-    """
-    校验数据库运行时 dry-run 升级会返回命令预览结果。
-
-    :return: None
-    """
+    """校验数据库运行时 dry-run 升级会返回命令预览结果。"""
     service = DatabaseRuntimeService(runtime_environment=FakeRuntimeEnvironment())
 
     payload = service.upgrade_database('head', dry_run=True)
@@ -74,18 +71,17 @@ def test_database_runtime_service_upgrade_dry_run_returns_command_payload() -> N
 
 @pytest.mark.asyncio
 async def test_database_runtime_service_ping_database_returns_failure() -> None:
-    """
-    校验数据库运行时在连接异常时会返回失败结果。
-
-    :return: None
-    """
+    """校验数据库运行时在连接异常时会返回失败结果。"""
 
     class FakeConnection:
-        """
-        模拟数据库连接对象。
-        """
+        """模拟数据库连接对象。"""
 
         async def __aenter__(self) -> 'FakeConnection':
+            """
+            模拟此操作抛出 RuntimeError 的情形。
+
+            :raises RuntimeError: 模拟打开数据库连接失败
+            """
             raise RuntimeError('db boom')
 
         async def __aexit__(
@@ -94,12 +90,17 @@ async def test_database_runtime_service_ping_database_returns_failure() -> None:
             exc: BaseException | None,
             tb: object,
         ) -> None:
+            """
+            结束测试资源的异步上下文。
+
+            :param exc_type: 退出上下文时的异常类型
+            :param exc: 捕获到的异常实例
+            :param tb: 异常发生时的回溯信息
+            """
             del exc_type, exc, tb
 
     class FakeEngine:
-        """
-        模拟数据库引擎。
-        """
+        """模拟数据库引擎。"""
 
         @staticmethod
         def connect() -> FakeConnection:
@@ -112,11 +113,7 @@ async def test_database_runtime_service_ping_database_returns_failure() -> None:
 
         @staticmethod
         async def dispose() -> None:
-            """
-            释放引擎资源。
-
-            :return: None
-            """
+            """释放引擎资源。"""
 
     gateway = DatabaseInfrastructureGateway()
     service = DatabaseRuntimeService(
@@ -125,13 +122,30 @@ async def test_database_runtime_service_ping_database_returns_failure() -> None:
     )
 
     def _fake_get_async_db_engine_factory() -> object:
+        """
+        提供异步数据库引擎工厂的测试替身。
+
+        :return: 异步数据库引擎工厂的测试替身
+        """
+
         def _factory(*, echo: bool = False) -> FakeEngine:
+            """
+            提供测试使用的数据库引擎。
+
+            :param echo: 是否回显执行内容
+            :return: 测试使用的数据库引擎
+            """
             del echo
             return FakeEngine()
 
         return _factory
 
     def _fake_get_sqlalchemy_text() -> object:
+        """
+        提供 SQLAlchemy 文本表达式的测试替身。
+
+        :return: SQLAlchemy 文本表达式的测试替身
+        """
         return lambda sql: sql
 
     object.__setattr__(gateway, 'get_async_db_engine_factory', _fake_get_async_db_engine_factory)

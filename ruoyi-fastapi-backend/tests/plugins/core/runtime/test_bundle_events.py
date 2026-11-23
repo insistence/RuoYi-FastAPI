@@ -35,7 +35,6 @@ async def test_authenticated_events_are_incremental_and_disconnect_stops_respons
         保存实际 ASGI 响应片段并通知首条事件已到达。
 
         :param message: ASGI 响应消息
-        :return: None
         """
         if message['type'] == 'http.response.body' and message.get('body'):
             chunks.append(message['body'])

@@ -18,9 +18,7 @@ from cli.utils import SHELL_TEXT_FORMATTER
 
 
 class TuiActionCopyMixin:
-    """
-    TUI 动作与能力文案混入。
-    """
+    """TUI 动作与能力文案混入。"""
 
     @staticmethod
     def build_action_confirm_hint() -> str:

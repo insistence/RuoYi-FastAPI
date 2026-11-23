@@ -34,16 +34,14 @@ from utils.log_util import LogSanitizer, logger
 
 
 class OperationLogService:
-    """
-    操作日志管理模块服务层
-    """
+    """操作日志管理模块服务层。"""
 
     @classmethod
     async def get_operation_log_list_services(
         cls, query_db: AsyncSession, query_object: OperLogPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取操作日志列表信息service
+        获取操作日志列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -57,11 +55,12 @@ class OperationLogService:
     @classmethod
     async def add_operation_log_services(cls, query_db: AsyncSession, page_object: OperLogModel) -> CrudResponseModel:
         """
-        新增操作日志service
+        新增操作日志service。
 
         :param query_db: orm对象
         :param page_object: 新增操作日志对象
         :return: 新增操作日志校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         try:
             await OperationLogDao.add_operation_log_dao(query_db, page_object)
@@ -76,11 +75,13 @@ class OperationLogService:
         cls, query_db: AsyncSession, page_object: DeleteOperLogModel
     ) -> CrudResponseModel:
         """
-        删除操作日志信息service
+        删除操作日志信息service。
 
         :param query_db: orm对象
         :param page_object: 删除操作日志对象
         :return: 删除操作日志校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入操作日志id为空
         """
         if page_object.oper_ids:
             oper_id_list = page_object.oper_ids.split(',')
@@ -98,10 +99,11 @@ class OperationLogService:
     @classmethod
     async def clear_operation_log_services(cls, query_db: AsyncSession) -> CrudResponseModel:
         """
-        清除操作日志信息service
+        清除操作日志信息service。
 
         :param query_db: orm对象
         :return: 清除操作日志校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         try:
             await OperationLogDao.clear_operation_log_dao(query_db)
@@ -114,7 +116,7 @@ class OperationLogService:
     @classmethod
     async def export_operation_log_list_services(cls, request: Request, operation_log_list: list) -> bytes:
         """
-        导出操作日志信息service
+        导出操作日志信息service。
 
         :param request: Request对象
         :param operation_log_list: 操作日志信息列表
@@ -165,16 +167,14 @@ class OperationLogService:
 
 
 class LoginLogService:
-    """
-    登录日志管理模块服务层
-    """
+    """登录日志管理模块服务层。"""
 
     @classmethod
     async def get_login_log_list_services(
         cls, query_db: AsyncSession, query_object: LoginLogPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取登录日志列表信息service
+        获取登录日志列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -188,11 +188,12 @@ class LoginLogService:
     @classmethod
     async def add_login_log_services(cls, query_db: AsyncSession, page_object: LogininforModel) -> CrudResponseModel:
         """
-        新增登录日志service
+        新增登录日志service。
 
         :param query_db: orm对象
         :param page_object: 新增登录日志对象
         :return: 新增登录日志校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         try:
             await LoginLogDao.add_login_log_dao(query_db, page_object)
@@ -207,11 +208,13 @@ class LoginLogService:
         cls, query_db: AsyncSession, page_object: DeleteLoginLogModel
     ) -> CrudResponseModel:
         """
-        删除操作日志信息service
+        删除操作日志信息service。
 
         :param query_db: orm对象
         :param page_object: 删除操作日志对象
         :return: 删除操作日志校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入登录日志id为空
         """
         if page_object.info_ids:
             info_id_list = page_object.info_ids.split(',')
@@ -229,10 +232,11 @@ class LoginLogService:
     @classmethod
     async def clear_login_log_services(cls, query_db: AsyncSession) -> CrudResponseModel:
         """
-        清除操作日志信息service
+        清除操作日志信息service。
 
         :param query_db: orm对象
         :return: 清除操作日志校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         try:
             await LoginLogDao.clear_login_log_dao(query_db)
@@ -244,6 +248,14 @@ class LoginLogService:
 
     @classmethod
     async def unlock_user_services(cls, request: Request, unlock_user: UnlockUser) -> CrudResponseModel:
+        """
+        解除用户因登录失败触发的锁定。
+
+        :param request: 当前 HTTP 请求
+        :param unlock_user: 解锁用户模型
+        :return: ``CrudResponseModel`` 实例
+        :raises ServiceException: 该用户未锁定
+        """
         locked_user = await request.app.state.redis.get(f'account_lock:{unlock_user.user_name}')
         if locked_user:
             await request.app.state.redis.delete(f'account_lock:{unlock_user.user_name}')
@@ -253,7 +265,7 @@ class LoginLogService:
     @staticmethod
     async def export_login_log_list_services(login_log_list: list) -> bytes:
         """
-        导出登录日志信息service
+        导出登录日志信息service。
 
         :param login_log_list: 登录日志信息列表
         :return: 登录日志信息对应excel的二进制数据
@@ -282,14 +294,12 @@ class LoginLogService:
 
 
 class LogQueueService:
-    """
-    日志队列服务
-    """
+    """日志队列服务。"""
 
     @classmethod
     def _build_event_id(cls, request_id: str, log_type: str, source: str) -> str:
         """
-        生成日志事件唯一标识
+        生成日志事件唯一标识。
 
         :param request_id: 请求唯一标识
         :param log_type: 日志类型
@@ -304,13 +314,12 @@ class LogQueueService:
     @classmethod
     async def _xadd_event(cls, redis: aioredis.Redis, event_type: str, payload: dict, source: str) -> None:
         """
-        写入日志事件到Redis Streams
+        写入日志事件到Redis Streams。
 
         :param redis: Redis连接对象
         :param event_type: 事件类型
         :param payload: 事件负载
         :param source: 日志来源
-        :return: None
         """
         request_id = TraceCtx.get_request_id()
         trace_id = TraceCtx.get_trace_id()
@@ -333,12 +342,11 @@ class LogQueueService:
     @classmethod
     async def enqueue_login_log(cls, request: Request, login_log: LogininforModel, source: str) -> None:
         """
-        登录日志入队
+        登录日志入队。
 
         :param request: Request对象
         :param login_log: 登录日志模型
         :param source: 日志来源
-        :return: None
         """
         payload = LogSanitizer.sanitize_data(login_log.model_dump(mode='json', by_alias=True, exclude_none=True))
         await cls._xadd_event(request.app.state.redis, 'login', payload, source)
@@ -346,12 +354,11 @@ class LogQueueService:
     @classmethod
     async def enqueue_operation_log(cls, request: Request, operation_log: OperLogModel, source: str) -> None:
         """
-        操作日志入队
+        操作日志入队。
 
         :param request: Request对象
         :param operation_log: 操作日志模型
         :param source: 日志来源
-        :return: None
         """
         payload = LogSanitizer.sanitize_data(operation_log.model_dump(mode='json', by_alias=True, exclude_none=True))
         await cls._xadd_event(request.app.state.redis, 'operation', payload, source)
@@ -359,29 +366,26 @@ class LogQueueService:
     @classmethod
     async def enqueue_file_access_log(cls, request: Request, file_access_log: FileAccessLogModel, source: str) -> None:
         """
-        文件访问审计日志入队
+        文件访问审计日志入队。
 
         :param request: Request对象
         :param file_access_log: 文件访问审计日志模型
         :param source: 日志来源
-        :return: None
         """
         payload = LogSanitizer.sanitize_data(file_access_log.model_dump(mode='json', by_alias=True, exclude_none=True))
         await cls._xadd_event(request.app.state.redis, 'file_access', payload, source)
 
 
 class LogAggregatorService:
-    """
-    日志聚合消费服务
-    """
+    """日志聚合消费服务。"""
 
     @classmethod
     async def _ensure_group(cls, redis: aioredis.Redis) -> None:
         """
-        初始化消费组
+        初始化消费组。
 
         :param redis: Redis连接对象
-        :return: None
+        :raises Exception: 创建 Redis 消费组失败且原因不是消费组已存在
         """
         try:
             await redis.xgroup_create(
@@ -397,7 +401,7 @@ class LogAggregatorService:
     @classmethod
     async def _acquire_dedup(cls, redis: aioredis.Redis, event_id: str) -> bool:
         """
-        获取去重锁
+        获取去重锁。
 
         :param redis: Redis连接对象
         :param event_id: 事件唯一标识
@@ -411,11 +415,10 @@ class LogAggregatorService:
     @classmethod
     async def _release_dedup(cls, redis: aioredis.Redis, event_id: str) -> None:
         """
-        释放去重锁
+        释放去重锁。
 
         :param redis: Redis连接对象
         :param event_id: 事件唯一标识
-        :return: None
         """
         if not event_id:
             return
@@ -424,11 +427,10 @@ class LogAggregatorService:
     @classmethod
     async def _claim_pending(cls, redis: aioredis.Redis, consumer_name: str) -> None:
         """
-        认领并处理超时未确认的消息
+        认领并处理超时未确认的消息。
 
         :param redis: Redis连接对象
         :param consumer_name: 消费者名称
-        :return: None
         """
         if LogConfig.log_stream_claim_idle_ms <= 0:
             return
@@ -454,10 +456,10 @@ class LogAggregatorService:
     @classmethod
     async def consume_stream(cls, redis: aioredis.Redis) -> None:
         """
-        消费日志队列
+        消费日志队列。
 
         :param redis: Redis连接对象
-        :return: None
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
         await cls._ensure_group(redis)
         consumer_name = f'{LogConfig.log_stream_consumer_prefix}-{os.getpid()}-{uuid.uuid4().hex[:6]}'
@@ -488,12 +490,12 @@ class LogAggregatorService:
     @classmethod
     async def _process_messages(cls, redis: aioredis.Redis, stream_name: str, messages: list[tuple[str, dict]]) -> None:
         """
-        处理消息并落库
+        处理消息并落库。
 
         :param redis: Redis连接对象
         :param stream_name: Stream名称
         :param messages: 消息列表
-        :return: None
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if not messages:
             return

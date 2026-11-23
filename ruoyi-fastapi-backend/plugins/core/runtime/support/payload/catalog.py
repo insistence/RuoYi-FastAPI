@@ -18,118 +18,104 @@ from .base import PluginPayloadModel
 
 
 class PluginCatalogSummaryPayload(PluginPayloadModel):
-    """
-    插件目录摘要 payload。
-    """
+    """插件目录摘要 payload。"""
 
-    plugin_id: str = Field(alias='pluginId')
-    name: str
-    version: str
-    enabled: bool
-    status: str
-    description: str
-    backend_path: str = Field(alias='backendPath')
-    menu_count: int = Field(alias='menuCount')
-    permission_count: int = Field(alias='permissionCount')
-    capability: dict[str, object] | None
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    name: str = Field(description='插件名称')
+    version: str = Field(description='插件版本')
+    enabled: bool = Field(description='是否启用')
+    status: str = Field(description='当前状态')
+    description: str = Field(description='插件功能说明')
+    backend_path: str = Field(alias='backendPath', description='插件后端所在路径')
+    menu_count: int = Field(alias='menuCount', description='插件菜单数')
+    permission_count: int = Field(alias='permissionCount', description='插件权限数')
+    capability: dict[str, object] | None = Field(description='当前环境对该操作的支持情况')
 
 
 class PluginCatalogDatabaseStatePayload(PluginPayloadModel):
-    """
-    插件目录数据库状态 payload。
-    """
+    """插件目录数据库状态 payload。"""
 
-    available: bool
-    installed: bool
-    error: str | None = None
-    installed_version: str | None = Field(default=None, alias='installedVersion')
-    enabled: str | None
-    status: str | None
-    last_error: str | None = Field(default=None, alias='lastError')
+    available: bool = Field(description='数据是否可用')
+    installed: bool = Field(description='是否已经安装')
+    error: str | None = Field(default=None, description='失败原因')
+    installed_version: str | None = Field(default=None, alias='installedVersion', description='已安装的版本')
+    enabled: str | None = Field(description='是否启用')
+    status: str | None = Field(description='当前状态')
+    last_error: str | None = Field(default=None, alias='lastError', description='最近一次错误的信息')
 
 
 class PluginManifestConfigItemPayload(PluginPayloadModel):
-    """
-    manifest 配置声明 payload。
-    """
+    """manifest 配置声明 payload。"""
 
-    key: str
-    label: str | None
-    type: str
-    default: object
-    required: bool
-    secret: bool
-    group: str
-    order: int
-    placeholder: str
-    min_value: float | None = Field(alias='min')
-    max_value: float | None = Field(alias='max')
-    pattern: str | None
-    description: str
-    options: list[dict[str, object]]
+    key: str = Field(description='配置项的键')
+    label: str | None = Field(description='面向用户的显示名称')
+    type: str = Field(description='配置项的数据类型')
+    default: object = Field(description='配置项的默认值')
+    required: bool = Field(description='是否为必填配置')
+    secret: bool = Field(description='是否包含敏感值')
+    group: str = Field(description='配置项所属分组')
+    order: int = Field(description='排列顺序')
+    placeholder: str = Field(description='输入配置值时显示的提示')
+    min_value: float | None = Field(alias='min', description='允许的最小数值')
+    max_value: float | None = Field(alias='max', description='允许的最大数值')
+    pattern: str | None = Field(description='配置值必须匹配的正则表达式')
+    description: str = Field(description='配置项的用途说明')
+    options: list[dict[str, object]] = Field(description='可供选择的配置值及标签')
 
 
 class PluginManifestPermissionItemPayload(PluginPayloadModel):
-    """
-    manifest 权限声明 payload。
-    """
+    """manifest 权限声明 payload。"""
 
-    code: str
-    name: str | None
-    description: str
+    code: str = Field(description='权限标识')
+    name: str | None = Field(description='权限名称')
+    description: str = Field(description='权限允许执行的操作')
 
 
 class PluginMenuDiagnosticPlanItemPayload(PluginPayloadModel):
-    """
-    菜单诊断计划项 payload。
-    """
+    """菜单诊断计划项 payload。"""
 
-    name: str
-    path: str
-    component: str
-    perms: str
-    type: str
-    query: str | None
-    route_name: str | None = Field(alias='routeName')
-    is_frame: int = Field(alias='isFrame')
-    is_cache: int = Field(alias='isCache')
-    visible: str
-    status: str
-    children: int
+    name: str = Field(description='菜单名称')
+    path: str = Field(description='菜单路由路径')
+    component: str = Field(description='菜单对应的前端组件')
+    perms: str = Field(description='访问菜单所需的权限码')
+    type: str = Field(description='菜单类型')
+    query: str | None = Field(description='菜单路由的查询参数')
+    route_name: str | None = Field(alias='routeName', description='前端路由名称')
+    is_frame: int = Field(alias='isFrame', description='菜单的外链标志')
+    is_cache: int = Field(alias='isCache', description='页面缓存标志')
+    visible: str = Field(description='菜单显示状态')
+    status: str = Field(description='当前状态')
+    children: int = Field(description='直接子菜单的数量')
 
 
 class PluginMenuDiagnosticPlanPayload(PluginPayloadModel):
-    """
-    菜单诊断计划 payload。
-    """
+    """菜单诊断计划 payload。"""
 
-    total: int
-    permission_count: int = Field(alias='permissionCount')
-    enabled_count: int = Field(alias='enabledCount')
-    visible_count: int = Field(alias='visibleCount')
-    items: list[dict[str, object]]
+    total: int = Field(description='条目总数')
+    permission_count: int = Field(alias='permissionCount', description='插件权限数')
+    enabled_count: int = Field(alias='enabledCount', description='已启用的条目数')
+    visible_count: int = Field(alias='visibleCount', description='可见条目数')
+    items: list[dict[str, object]] = Field(description='结果条目列表')
 
 
 class PluginManifestJobItemPayload(PluginPayloadModel):
-    """
-    manifest 定时任务声明 payload。
-    """
+    """manifest 定时任务声明 payload。"""
 
-    id: str
-    name: str | None
-    callable: str
-    trigger: str
-    cron_expression: str = Field(alias='cronExpression')
-    time_zone: str = Field(alias='timeZone')
-    args: list[object]
-    kwargs: dict[str, object]
-    enabled: bool
-    description: str
-    misfire_grace_time: int | None = Field(alias='misfireGraceTime')
-    coalesce: bool
-    max_instances: int = Field(alias='maxInstances')
-    job_store: str = Field(alias='jobStore')
-    executor: str
+    id: str = Field(description='调度任务标识')
+    name: str | None = Field(description='调度任务名称')
+    callable: str = Field(description='调度任务调用的函数路径')
+    trigger: str = Field(description='调度触发器类型')
+    cron_expression: str = Field(alias='cronExpression', description='调度使用的 Cron 表达式')
+    time_zone: str = Field(alias='timeZone', description='解析调度时间的时区')
+    args: list[object] = Field(description='传给任务的位置参数')
+    kwargs: dict[str, object] = Field(description='传给任务的关键字参数')
+    enabled: bool = Field(description='是否启用')
+    description: str = Field(description='调度任务的用途说明')
+    misfire_grace_time: int | None = Field(alias='misfireGraceTime', description='错过计划时间后仍允许执行的宽限秒数')
+    coalesce: bool = Field(description='是否合并积压的任务执行')
+    max_instances: int = Field(alias='maxInstances', description='同一任务允许同时运行的最大实例数')
+    job_store: str = Field(alias='jobStore', description='保存任务定义的调度存储')
+    executor: str = Field(description='调度任务使用的执行器')
 
 
 PluginCatalogSummaryPayloadDict: TypeAlias = dict[str, object]
@@ -137,9 +123,7 @@ PluginCatalogDatabaseStatePayloadDict: TypeAlias = dict[str, object]
 
 
 class PluginCatalogPayloadMixin:
-    """
-    插件目录、详情和 manifest 基础信息负载构建能力。
-    """
+    """插件目录、详情和 manifest 基础信息负载构建能力。"""
 
     @classmethod
     def build_plugin_list_payload(cls, plugins: list[RegisteredPlugin]) -> dict[str, object]:
@@ -166,6 +150,7 @@ class PluginCatalogPayloadMixin:
         """
         构建插件详情响应负载。
 
+        :param capability: 插件运行时管理能力及操作限制
         :param plugin: 已注册插件运行时快照或已发现插件
         :param dependency_items: 依赖检查项列表
         :param database_error: 数据库状态读取错误信息
@@ -192,6 +177,7 @@ class PluginCatalogPayloadMixin:
         """
         构建插件摘要负载。
 
+        :param capability: 插件运行时管理能力及操作限制
         :param plugin: 已发现插件
         :param enabled: 是否启用
         :param status: 插件状态

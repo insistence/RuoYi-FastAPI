@@ -68,9 +68,12 @@ class PowerShellComplete(ShellComplete):
     """
     PowerShell shell completion 支持。
 
-    基于 PowerShell `Register-ArgumentCompleter -Native` 协议，将当前
+    基于 PowerShell ``Register-ArgumentCompleter -Native`` 协议，将当前
     命令行和光标位置传回 Click completion 分发器，再把返回的候选项转换为
-    `CompletionResult` 对象。
+    ``CompletionResult`` 对象。
+
+    :cvar name: 用于查找或标识当前对象的名称
+    :cvar source_template: 用于生成目标文件的模板
     """
 
     name = 'powershell'
@@ -104,11 +107,7 @@ class PowerShellComplete(ShellComplete):
 
 
 def ensure_custom_completion_classes_registered() -> None:
-    """
-    确保自定义 shell completion 类已注册到 Click。
-
-    :return: None
-    """
+    """确保自定义 shell completion 类已注册到 Click。"""
     # Click 8.5 新增同名实现，但其数字索引协议与本项目脚本的文本参数协议不同。
     if get_completion_class(PowerShellComplete.name) is not PowerShellComplete:
         add_completion_class(PowerShellComplete)

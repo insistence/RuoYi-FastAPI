@@ -12,12 +12,13 @@ class GenCommandController:
     """
     代码生成命令控制器。
 
-    该控制器负责组织 `gen` 命令组的上下文准备、runtime 调用、
+    该控制器负责组织 ``gen`` 命令组的上下文准备、runtime 调用、
     payload 注入，以及基于输出格式选择 presenter 或直接返回 JSON。
 
-    :param context_factory: CLI 上下文工厂
-    :param execution_service: CLI 执行服务
-    :param presenter: 代码生成命令文本渲染器
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar presenter: 代码生成命令文本渲染器
+    :ivar runtime_service: 代码生成运行时服务
     """
 
     def __init__(
@@ -35,7 +36,6 @@ class GenCommandController:
         :param execution_service: CLI 执行服务
         :param presenter: 代码生成命令文本渲染器
         :param runtime_service: 代码生成运行时服务
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
@@ -60,7 +60,6 @@ class GenCommandController:
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
         :param dry_run: 是否演练执行
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -95,7 +94,6 @@ class GenCommandController:
         :param paged: 是否启用分页
         :param page_num: 页码
         :param page_size: 每页数量
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(
@@ -136,7 +134,6 @@ class GenCommandController:
         :param paged: 是否启用分页
         :param page_num: 页码
         :param page_size: 每页数量
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(
@@ -163,7 +160,6 @@ class GenCommandController:
         :param table_id: 业务表 ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.runtime_service.get_gen_table_detail(table_id))
@@ -196,7 +192,6 @@ class GenCommandController:
         :param dry_run: 是否演练执行
         :param sql: 直接传入的 SQL 文本
         :param sql_file: SQL 文件路径
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -217,7 +212,6 @@ class GenCommandController:
         :param table_id: 业务表 ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.runtime_service.preview_code(table_id))
@@ -252,7 +246,6 @@ class GenCommandController:
         :param dry_run: 是否演练执行
         :param mode: 导出模式
         :param output_file: zip 导出目标文件路径
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -289,7 +282,6 @@ class GenCommandController:
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,

@@ -9,7 +9,12 @@ from plugins.core.validation.manifest import PluginManifestChecker
 
 
 def write_project_versions(backend_root: Path, frontend_root: Path) -> None:
-    """写入测试项目版本文件。"""
+    """
+    写入测试项目版本文件。
+
+    :param backend_root: 后端项目的根目录
+    :param frontend_root: 前端项目的根目录
+    """
     backend_root.mkdir(parents=True)
     frontend_root.mkdir(parents=True)
     (backend_root / 'pyproject.toml').write_text('[project]\nversion = "1.10.0"\n', encoding='utf-8')
@@ -253,7 +258,13 @@ def test_manifest_checker_caches_resolved_node_version(tmp_path: Path, monkeypat
     calls = []
 
     def fake_run(*args: object, **kwargs: object) -> SimpleNamespace:
-        """记录 node 版本命令调用。"""
+        """
+        记录 node 版本命令调用。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: ``SimpleNamespace`` 实例
+        """
         calls.append((args, kwargs))
         return SimpleNamespace(returncode=0, stdout='v20.0.0\n')
 

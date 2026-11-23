@@ -5,9 +5,7 @@ from common.types import ApiUtcDateTime
 
 
 class TransportCryptoFrontendConfigModel(BaseModel):
-    """
-    传输层加解密前端运行配置模型
-    """
+    """传输层加解密前端运行配置模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -26,9 +24,7 @@ class TransportCryptoFrontendConfigModel(BaseModel):
 
 
 class TransportCryptoPublicKeyModel(BaseModel):
-    """
-    传输层加解密公钥下发模型
-    """
+    """传输层加解密公钥下发模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -41,9 +37,7 @@ class TransportCryptoPublicKeyModel(BaseModel):
 
 
 class TransportCryptoKidStatModel(BaseModel):
-    """
-    传输层加解密按密钥版本统计模型
-    """
+    """传输层加解密按密钥版本统计模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -55,9 +49,7 @@ class TransportCryptoKidStatModel(BaseModel):
 
 
 class TransportCryptoFailureRecordModel(BaseModel):
-    """
-    传输层加解密最近失败记录模型
-    """
+    """传输层加解密最近失败记录模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
@@ -69,9 +61,7 @@ class TransportCryptoFailureRecordModel(BaseModel):
 
 
 class TransportCryptoMonitorModel(BaseModel):
-    """
-    传输层加解密监控模型
-    """
+    """传输层加解密监控模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 

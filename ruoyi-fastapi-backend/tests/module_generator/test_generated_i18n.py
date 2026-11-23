@@ -23,12 +23,24 @@ from utils.template_util import TemplateInitializer, TemplateUtils
 
 
 def render_info(table: GenTableModel) -> list[Any]:
+    """
+    根据表定义生成模板预览内容。
+
+    :param table: 代码生成业务表模型
+    :return: 模板清单、对应的文件名及渲染上下文
+    """
     context = TemplateUtils.prepare_context(table)
     templates = TemplateUtils.get_template_list(table)
     return [templates, [TemplateUtils.get_file_name(name, table) for name in templates], context, table]
 
 
 def render_files(table: GenTableModel) -> tuple[list[Any], dict[str, str]]:
+    """
+    使用测试上下文渲染代码生成文件。
+
+    :param table: 代码生成业务表模型
+    :return: 预览信息及渲染得到的文件
+    """
     info = render_info(table)
     env = TemplateInitializer.init_jinja2()
     env.undefined = StrictUndefined
@@ -36,6 +48,13 @@ def render_files(table: GenTableModel) -> tuple[list[Any], dict[str, str]]:
 
 
 def flatten(value: dict, prefix: str = '') -> dict:
+    """
+    将嵌套翻译资源展开为键值映射。
+
+    :param value: 待处理的输入值
+    :param prefix: 路径或键的公共前缀
+    :return: 执行当前操作得到的结果
+    """
     result = {}
     for key, entry in value.items():
         full = f'{prefix}.{key}' if prefix else key
@@ -51,6 +70,7 @@ def flatten(value: dict, prefix: str = '') -> dict:
 def test_generated_sources_register_literal_module_keys_and_compile(
     web_type: str, category: str, tmp_path: Path
 ) -> None:
+    """生成代码注册字面模块键并可编译。"""
     table = make_table('mysql', category, web_type)
     table.columns[1].is_required = '1'
     table.columns[1].column_comment = '名称“业务”'
@@ -111,6 +131,7 @@ for (const [name, source] of Object.entries(files)) {
 
 
 def test_generator_uses_configured_locales_and_reports_unknown_translations() -> None:
+    """生成器采用配置的语言并报告未知译文。"""
     table = make_table('mysql', 'crud', 'element-ui')
     options = json.loads(table.options)
     options.update(
@@ -135,6 +156,7 @@ def test_generator_uses_configured_locales_and_reports_unknown_translations() ->
 def test_backend_only_generation_needs_no_frontend_checkout(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, explicit: bool
 ) -> None:
+    """仅生成后端代码无需前端工作目录。"""
     monkeypatch.setattr(GenI18nUtil, 'PROJECT_ROOT', tmp_path)
     table = make_table('mysql', 'crud', 'element-plus')
     if explicit:
@@ -150,6 +172,7 @@ def test_backend_only_generation_needs_no_frontend_checkout(
 def test_explicit_languages_do_not_require_reading_target_metadata(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """显式指定语言后无需读取目标元数据。"""
     monkeypatch.setattr(GenI18nUtil, 'PROJECT_ROOT', tmp_path)
     meta = tmp_path / 'ruoyi-fastapi-frontend/vue3/web/src/i18n/locale-meta.json'
     meta.parent.mkdir(parents=True)
@@ -165,6 +188,7 @@ def test_explicit_languages_do_not_require_reading_target_metadata(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('locale', ['zh-CN', 'en-US'])
 async def test_generation_failure_keeps_internal_paths_out_of_messages(locale: str) -> None:
+    """生成失败的消息不泄露内部路径。"""
     table = make_table('mysql', 'crud', 'element-ui')
     secret = 'C:/private/application/secrets.py'
     with (
@@ -195,6 +219,7 @@ async def test_generation_failure_keeps_internal_paths_out_of_messages(locale: s
     ],
 )
 def test_generator_rejects_conflicting_sources_and_invalid_locale_options(options: dict[str, Any]) -> None:
+    """生成器拒绝冲突的数据源和无效语言选项。"""
     table = make_table('mysql', 'crud', 'element-ui')
     table.options = json.dumps({**json.loads(table.options), **options})
     with pytest.raises(ServiceWarning):
@@ -202,6 +227,7 @@ def test_generator_rejects_conflicting_sources_and_invalid_locale_options(option
 
 
 def test_generator_parameter_model_keeps_explicit_language_options() -> None:
+    """生成参数模型保留显式语言选项。"""
     value = GenTableParamsModel(
         i18nSourceLocale='zh-CN', i18nLocales=['en-US', 'fr-FR'], i18nTranslations={'fr-FR': {'title': 'Titre'}}
     ).model_dump(by_alias=True, exclude_unset=True)
@@ -211,6 +237,7 @@ def test_generator_parameter_model_keeps_explicit_language_options() -> None:
 
 
 def test_field_keys_are_stable_when_comments_change() -> None:
+    """修改注释后字段键保持稳定。"""
     table = make_table('mysql', 'crud', 'element-ui')
     first, first_files = render_files(table)
     table.function_name = '另一个显示名称'
@@ -223,6 +250,7 @@ def test_field_keys_are_stable_when_comments_change() -> None:
 
 @pytest.mark.asyncio
 async def test_preview_zip_and_disk_include_resources_without_overwriting_translations(tmp_path: Path) -> None:
+    """预览、压缩包及磁盘输出均含资源且保留已有译文。"""
     table = make_table('mysql', 'crud', 'element-ui')
     table.gen_path = str(tmp_path)
     info = render_info(table)
@@ -297,6 +325,7 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
 async def test_invalid_existing_catalog_stops_before_overwriting_generated_source(
     tmp_path: Path, relative_path: str, invalid: str
 ) -> None:
+    """已有翻译目录无效时停止覆盖生成的源码。"""
     table = make_table('mysql', 'crud', 'element-ui')
     table.gen_path = str(tmp_path)
     source = tmp_path / 'frontend/src/views/test/item/index.vue'
@@ -318,6 +347,7 @@ async def test_invalid_existing_catalog_stops_before_overwriting_generated_sourc
 
 
 def test_invalid_po_is_rejected_and_unreviewed_translations_stay_pending() -> None:
+    """拒绝无效 PO 文件并将未审核译文保留为待审。"""
     path = 'backend/i18n/catalogs/en-US/LC_MESSAGES/core/generated.test.item.po'
     table = make_table('mysql', 'crud', 'element-ui')
     info, files = render_files(table)
@@ -338,6 +368,7 @@ def test_invalid_po_is_rejected_and_unreviewed_translations_stay_pending() -> No
 
 @pytest.mark.asyncio
 async def test_batch_generation_writes_one_backend_catalog_per_business_module() -> None:
+    """批量生成对每个业务模块只写一份后端翻译目录。"""
     first = make_table('mysql', 'crud', 'element-ui')
     second = first.model_copy(deep=True)
     second.table_name = 'second_table'
@@ -368,6 +399,7 @@ async def test_batch_generation_writes_one_backend_catalog_per_business_module()
 
 
 def test_generated_output_does_not_write_directly_into_an_existing_application() -> None:
+    """生成文件不会直接写入已有应用。"""
     table = make_table('mysql', 'crud', 'element-ui')
     table.gen_path = str(GenI18nUtil.PROJECT_ROOT / 'ruoyi-fastapi-frontend/vue2/web/src')
     with pytest.raises(ServiceWarning) as caught:
@@ -379,6 +411,7 @@ def test_generated_output_does_not_write_directly_into_an_existing_application()
 def test_pinned_x18n_rejects_pending_translations_and_accepts_reviewed_generated_keys(
     web_type: str, tmp_path: Path
 ) -> None:
+    """锁定版本的 x18n 拒绝待审译文并接受已审核的生成键。"""
     table = make_table('mysql', 'crud', web_type)
     info, files = render_files(table)
     app = info[2]['generatedI18n'].app_root

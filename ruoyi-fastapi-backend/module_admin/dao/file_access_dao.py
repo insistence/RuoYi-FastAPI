@@ -18,9 +18,7 @@ from utils.time_util import TimezoneUtil
 
 
 class FileAclDao:
-    """
-    文件访问控制数据操作层
-    """
+    """文件访问控制数据操作层。"""
 
     @classmethod
     async def get_effective_file_acl_list(
@@ -30,7 +28,7 @@ class FileAclDao:
         current_time: datetime,
     ) -> list[SysFileAcl]:
         """
-        获取文件有效访问控制列表
+        获取文件有效访问控制列表。
 
         :param db: orm对象
         :param file_id: 文件ID
@@ -55,7 +53,7 @@ class FileAclDao:
     @classmethod
     async def get_file_acl_list(cls, db: AsyncSession, file_id: str) -> list[SysFileAcl]:
         """
-        获取文件访问控制列表
+        获取文件访问控制列表。
 
         :param db: orm对象
         :param file_id: 文件ID
@@ -76,7 +74,7 @@ class FileAclDao:
     @classmethod
     async def get_acl_dept_list(cls, db: AsyncSession, dept_data_scope_sql: ColumnElement) -> list[SysDept]:
         """
-        获取文件授权可选部门列表
+        获取文件授权可选部门列表。
 
         :param db: orm对象
         :param dept_data_scope_sql: 部门数据权限对应的查询sql语句
@@ -97,12 +95,11 @@ class FileAclDao:
     @classmethod
     async def replace_file_acl_list(cls, db: AsyncSession, file_id: str, file_acl_list: list[SysFileAcl]) -> None:
         """
-        替换文件访问控制列表
+        替换文件访问控制列表。
 
         :param db: orm对象
         :param file_id: 文件ID
         :param file_acl_list: 文件访问控制列表
-        :return: None
         """
         await db.execute(delete(SysFileAcl).where(SysFileAcl.file_id == file_id))
         if file_acl_list:
@@ -117,12 +114,11 @@ class FileAclDao:
         file_acl_list: list[SysFileAcl],
     ) -> None:
         """
-        批量替换文件访问控制列表
+        批量替换文件访问控制列表。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
         :param file_acl_list: 文件访问控制列表
-        :return: None
         """
         await db.execute(delete(SysFileAcl).where(SysFileAcl.file_id.in_(file_ids)))
         if file_acl_list:
@@ -138,7 +134,7 @@ class FileAclDao:
         dept_data_scope_sql: ColumnElement,
     ) -> dict[tuple[str, int], str]:
         """
-        获取访问控制主体名称映射
+        获取访问控制主体名称映射。
 
         :param db: orm对象
         :param subject_ids: 按主体类型分组的主体ID
@@ -205,7 +201,7 @@ class FileAclDao:
         dept_data_scope_sql: ColumnElement,
     ) -> list[dict[str, Any]]:
         """
-        查询访问控制主体选项
+        查询访问控制主体选项。
 
         :param db: orm对象
         :param subject_type: 主体类型
@@ -265,7 +261,7 @@ class FileAclDao:
         user_data_scope_sql: ColumnElement,
     ) -> list[Any]:
         """
-        过滤包含数据权限范围外成员的角色
+        过滤包含数据权限范围外成员的角色。
 
         :param db: orm对象
         :param role_rows: 候选角色列表
@@ -313,14 +309,12 @@ class FileAclDao:
 
 
 class FileAccessLogDao:
-    """
-    文件访问审计数据操作层
-    """
+    """文件访问审计数据操作层。"""
 
     @classmethod
     async def add_file_access_log_dao(cls, db: AsyncSession, file_access_log: FileAccessLogModel) -> SysFileAccessLog:
         """
-        新增文件访问审计记录
+        新增文件访问审计记录。
 
         :param db: orm对象
         :param file_access_log: 文件访问审计对象
@@ -340,7 +334,7 @@ class FileAccessLogDao:
         is_page: bool = False,
     ) -> PageModel | list[dict[str, Any]]:
         """
-        根据查询参数获取文件访问审计列表
+        根据查询参数获取文件访问审计列表。
 
         :param db: orm对象
         :param file_id: 文件ID

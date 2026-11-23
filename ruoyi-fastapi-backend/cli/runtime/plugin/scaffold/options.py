@@ -6,14 +6,14 @@ class PluginScaffoldOptions:
     """
     插件模板生成选项。
 
-    :param backend: 是否生成后端模板
-    :param frontend: 是否生成前端模板
-    :param migration: 是否生成 migration 示例
-    :param seed: 是否生成 seed 示例
-    :param job: 是否生成定时任务示例
-    :param config: 是否生成配置项示例
-    :param test: 是否生成测试样例
-    :param crud: 是否生成 CRUD 页面示例
+    :ivar backend: 是否生成后端模板
+    :ivar frontend: 是否生成前端模板
+    :ivar migration: 是否生成 migration 示例
+    :ivar seed: 是否生成 seed 示例
+    :ivar job: 是否生成定时任务示例
+    :ivar config: 是否生成配置项示例
+    :ivar test: 是否生成测试样例
+    :ivar crud: 是否生成 CRUD 页面示例
     """
 
     backend: bool = True
@@ -31,6 +31,10 @@ class PluginScaffoldTemplateResolver:
     插件模板预设解析器。
 
     使用 Resolver 模式将模板名称转换为稳定的模板生成选项。
+
+    :cvar V2_TEMPLATES: 第二版插件脚手架支持的模板集合
+    :cvar SUPPORTED_TEMPLATES: 脚手架允许使用的模板
+    :cvar DEFAULT_TEMPLATE: 未显式选择时使用的模板
     """
 
     V2_TEMPLATES = frozenset({'python-asgi', 'python-bundle', 'rust-asgi', 'rust-bundle'})
@@ -44,6 +48,7 @@ class PluginScaffoldTemplateResolver:
 
         :param template: 插件模板名称
         :return: 插件模板生成选项
+        :raises ValueError: 插件模板预设不受支持
         """
         normalized_template = (template or cls.DEFAULT_TEMPLATE).strip() or cls.DEFAULT_TEMPLATE
         if normalized_template in cls.V2_TEMPLATES:

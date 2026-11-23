@@ -26,7 +26,12 @@ BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _run_cold_import(script: str, *arguments: str) -> None:
-    """在独立进程中验证导入边界，避免已加载的模块掩盖循环依赖。"""
+    """
+    在独立进程中验证导入边界，避免已加载的模块掩盖循环依赖。
+
+    :param script: 需要运行的脚本
+    :param arguments: 调用方传入的其余位置参数
+    """
     result = subprocess.run(
         [sys.executable, '-c', dedent(script), *arguments],
         cwd=BACKEND_ROOT,
@@ -39,6 +44,7 @@ def _run_cold_import(script: str, *arguments: str) -> None:
 
 
 def test_auth_policy_import_does_not_load_authentication_consumers() -> None:
+    """导入认证策略时无需加载认证调用方。"""
     _run_cold_import(
         """
         import importlib.abc
@@ -64,6 +70,7 @@ def test_auth_policy_import_does_not_load_authentication_consumers() -> None:
 
 
 def test_login_service_runs_without_loading_pre_auth() -> None:
+    """登录服务可在未加载预认证模块时运行。"""
     _run_cold_import(
         """
         import asyncio
@@ -105,6 +112,7 @@ def test_login_service_runs_without_loading_pre_auth() -> None:
     ],
 )
 def test_authentication_import_order_preserves_dependency_identity(modules: tuple[str, str]) -> None:
+    """不同认证导入顺序得到同一依赖对象。"""
     _run_cold_import(
         """
         import importlib
@@ -140,6 +148,7 @@ def test_authentication_import_order_preserves_dependency_identity(modules: tupl
     ],
 )
 def test_authentication_import_direction_has_no_local_back_imports(relative_path: str, forbidden: set[str]) -> None:
+    """认证模块之间没有反向局部导入。"""
     tree = ast.parse((BACKEND_ROOT / relative_path).read_text(encoding='utf-8'))
     imported = set()
     for node in ast.walk(tree):
@@ -153,12 +162,18 @@ def test_authentication_import_direction_has_no_local_back_imports(relative_path
 
 @pytest.mark.asyncio
 async def test_registered_authentication_runs_without_importing_pre_auth_again(monkeypatch: pytest.MonkeyPatch) -> None:
+    """运行已注册的认证无需再次导入预认证模块。"""
     monkeypatch.setattr(AppConfig, 'app_root_path', '')
     app = FastAPI()
     handle_exception(app)
     add_context_cleanup_middleware(app)
 
     async def database() -> AsyncIterator[object]:
+        """
+        提供依赖注入使用的数据库替身。
+
+        :yield: 依赖注入使用的数据库替身
+        """
         yield object()
 
     user = CurrentUserModel(
@@ -168,17 +183,36 @@ async def test_registered_authentication_runs_without_importing_pre_auth_again(m
     monkeypatch.setattr(LoginService, '_resolve_current_user', resolver)
     app.dependency_overrides[get_db_session_provider(None)] = database
 
-    @app.get('/public', dependencies=[PreAuthDependency([{'path': '/public'}])])
+    @app.get(
+        '/public',
+        summary='访问公开资源',
+        description='允许匿名访问并返回公开状态。',
+        dependencies=[PreAuthDependency([{'path': '/public'}])],
+    )
     async def public() -> dict:
         return {'public': True}
 
-    @app.get('/protected', dependencies=[PreAuthDependency()])
+    @app.get(
+        '/protected',
+        summary='读取受保护用户标识',
+        description='认证成功后返回当前用户的标识。',
+        dependencies=[PreAuthDependency()],
+    )
     async def protected(current_user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict:
         return {'userId': current_user.user.user_id}
 
     original_import = builtins.__import__
 
     def import_without_pre_auth(name: str, *args: object, **kwargs: object) -> object:
+        """
+        模拟预认证模块不可导入时的依赖解析。
+
+        :param name: 用于查找或标识当前对象的名称
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises AssertionError: 登录服务不应在执行时反向导入前置依赖
+        :return: 按原导入机制取得的模块
+        """
         if name == 'common.aspect.pre_auth':
             raise AssertionError('登录服务不应在执行时反向导入前置依赖')
         return original_import(name, *args, **kwargs)
@@ -201,9 +235,17 @@ async def test_registered_authentication_runs_without_importing_pre_auth_again(m
 
 @pytest.mark.asyncio
 async def test_auth_policy_accepts_independent_authentication_dependencies() -> None:
+    """认证策略接受独立的认证依赖。"""
     calls = []
 
     async def authenticate(request: Request) -> str | None:
+        """
+        按测试场景提供请求认证结果。
+
+        :param request: 当前 HTTP 请求
+        :raises HTTPException: 模拟认证失败并返回未授权状态
+        :return: 此分支的固定值 ``'independent'``
+        """
         mode = AuthPolicy.get_auth_mode(request, (authenticate,))
         calls.append(mode)
         if mode == 'excluded':
@@ -213,14 +255,24 @@ async def test_auth_policy_accepts_independent_authentication_dependencies() -> 
         return 'independent'
 
     class IndependentPreAuth(AuthRule):
+        """将认证结果作为独立的预认证依赖提供。"""
+
         async def __call__(self, user: Annotated[str | None, Depends(authenticate)]) -> str | None:
+            """
+            向调用方返回 ``user``。
+
+            :param user: 当前操作对应的用户
+            :return: 当前操作对应的用户
+            """
             return user
 
     app = FastAPI()
     rule = IndependentPreAuth([{'path': '/plain/public'}, {'path': '/required/public'}])
     router = APIRouter(dependencies=[Depends(rule)])
 
-    @router.get('/public')
+    @router.get(
+        '/public', summary='访问独立认证示例', description='返回公开状态，用于验证单独注册的依赖所采用的认证策略。'
+    )
     async def public() -> dict:
         return {'public': True}
 
@@ -239,6 +291,7 @@ async def test_auth_policy_accepts_independent_authentication_dependencies() -> 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('public', [False, True])
 async def test_dependency_override_preserves_function_scope(public: bool, monkeypatch: pytest.MonkeyPatch) -> None:
+    """覆盖依赖时保留函数作用域。"""
     app = FastAPI()
     handle_exception(app)
     add_context_cleanup_middleware(app)
@@ -249,9 +302,19 @@ async def test_dependency_override_preserves_function_scope(public: bool, monkey
     events = []
 
     async def original() -> str:
+        """
+        返回固定值 ``original``。
+
+        :return: 此分支的固定值 ``'original'``
+        """
         return 'original'
 
     async def resource() -> AsyncIterator[str]:
+        """
+        跟踪请求依赖资源的打开和释放。
+
+        :yield: 此分支的固定值 ``'resource'``
+        """
         events.append('open')
         try:
             yield 'resource'
@@ -259,12 +322,23 @@ async def test_dependency_override_preserves_function_scope(public: bool, monkey
             events.append('close')
 
     async def replacement(value: Annotated[str, Depends(resource, scope='function')]) -> AsyncIterator[str]:
+        """
+        提供用于检验认证规则的替代依赖。
+
+        :param value: 待处理的输入值
+        :yield: 待处理的输入值
+        """
         try:
             yield value
         finally:
             events.append('release')
 
-    @app.get('/scope', dependencies=[PreAuthDependency([{'path': '/scope'}] if public else [])])
+    @app.get(
+        '/scope',
+        summary='读取函数作用域依赖',
+        description='返回依赖提供的值，用于检查覆盖依赖后的生命周期。',
+        dependencies=[PreAuthDependency([{'path': '/scope'}] if public else [])],
+    )
     async def endpoint(value: Annotated[str, Depends(original, scope='function')]) -> dict:
         events.append('endpoint')
         return {'value': value}

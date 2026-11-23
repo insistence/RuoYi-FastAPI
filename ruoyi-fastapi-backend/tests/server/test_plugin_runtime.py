@@ -98,7 +98,12 @@ async def test_non_leader_plugin_writer_still_runs_global_plugin_sync() -> None:
         *,
         create_tables: Callable[[], Awaitable[None]],
     ) -> None:
-        """模拟当前非leader worker获得插件生命周期锁。"""
+        """
+        模拟当前非leader worker获得插件生命周期锁。
+
+        :param _app: 回调接收的应用实例
+        :param create_tables: 数据库建表回调
+        """
         await create_tables()
 
     fake_plugin_runtime.startup = AsyncMock(side_effect=run_as_plugin_writer)
@@ -299,19 +304,32 @@ async def test_shutdown_application_runtime_preserves_cleanup_order() -> None:
     plugin_runtime = MagicMock()
 
     async def record_plugin_shutdown(_app: object) -> None:
+        """
+        记录插件关闭阶段。
+
+        :param _app: 回调接收的应用实例
+        """
         events.append('plugin')
 
     async def record_scheduler_shutdown() -> None:
+        """记录调度器关闭阶段。"""
         events.append('scheduler')
 
     async def record_redis_shutdown(_app: object) -> None:
+        """
+        记录 Redis 连接释放的顺序。
+
+        :param _app: 回调接收的应用实例
+        """
         assert DataSourceRegistry._cache_redis is None
         events.append('redis')
 
     async def record_database_shutdown() -> None:
+        """记录数据库资源的关闭顺序。"""
         events.append('database')
 
     async def record_log_complete() -> None:
+        """记录日志刷写完成的时机。"""
         events.append('logs')
 
     plugin_runtime.shutdown = AsyncMock(side_effect=record_plugin_shutdown)

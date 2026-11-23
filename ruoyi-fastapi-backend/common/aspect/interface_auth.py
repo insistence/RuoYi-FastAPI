@@ -7,12 +7,15 @@ from utils.dependency_util import DependencyUtil
 
 class CheckUserInterfaceAuth:
     """
-    校验当前用户是否具有相应的接口权限
+    校验当前用户是否具有相应的接口权限。
+
+    :ivar perm: 权限标识
+    :ivar is_strict: 当传入的权限标识是list类型时，是否开启严格模式，开启表示会校验列表中的每一个权限标识，所有的校验结果都需要为True才会通过
     """
 
     def __init__(self, perm: str | list, is_strict: bool = False) -> None:
         """
-        校验当前用户是否具有相应的接口权限
+        校验当前用户是否具有相应的接口权限。
 
         :param perm: 权限标识
         :param is_strict: 当传入的权限标识是list类型时，是否开启严格模式，开启表示会校验列表中的每一个权限标识，所有的校验结果都需要为True才会通过
@@ -21,6 +24,13 @@ class CheckUserInterfaceAuth:
         self.is_strict = is_strict
 
     def __call__(self, request: Request) -> bool:
+        """
+        校验当前用户能否使用请求接口所需的权限。
+
+        :param request: 当前 HTTP 请求
+        :return: 是否校验当前用户能否使用请求接口所需的权限
+        :raises PermissionException: 该用户无此接口权限
+        """
         DependencyUtil.check_exclude_routes(
             request, err_msg='当前路由不在认证规则内，不可使用CheckUserInterfaceAuth依赖项'
         )
@@ -41,12 +51,15 @@ class CheckUserInterfaceAuth:
 
 class CheckRoleInterfaceAuth:
     """
-    根据角色校验当前用户是否具有相应的接口权限
+    根据角色校验当前用户是否具有相应的接口权限。
+
+    :ivar role_key: 角色标识
+    :ivar is_strict: 当传入的角色标识是list类型时，是否开启严格模式，开启表示会校验列表中的每一个角色标识，所有的校验结果都需要为True才会通过
     """
 
     def __init__(self, role_key: str | list, is_strict: bool = False) -> None:
         """
-        根据角色校验当前用户是否具有相应的接口权限
+        根据角色校验当前用户是否具有相应的接口权限。
 
         :param role_key: 角色标识
         :param is_strict: 当传入的角色标识是list类型时，是否开启严格模式，开启表示会校验列表中的每一个角色标识，所有的校验结果都需要为True才会通过
@@ -55,6 +68,13 @@ class CheckRoleInterfaceAuth:
         self.is_strict = is_strict
 
     def __call__(self, request: Request) -> bool:
+        """
+        校验当前用户角色是否满足接口要求。
+
+        :param request: 当前 HTTP 请求
+        :return: 是否校验当前用户角色是否满足接口要求
+        :raises PermissionException: 该用户无此接口权限
+        """
         DependencyUtil.check_exclude_routes(
             request, err_msg='当前路由不在认证规则内，不可使用CheckRoleInterfaceAuth依赖项'
         )
@@ -74,7 +94,7 @@ class CheckRoleInterfaceAuth:
 
 def UserInterfaceAuthDependency(perm: str | list, is_strict: bool = False) -> params.Depends:  # noqa: N802
     """
-    根据权限标识校验当前用户接口权限依赖
+    根据权限标识校验当前用户接口权限依赖。
 
     :param perm: 权限标识
     :param is_strict: 当传入的权限标识是list类型时，是否开启严格模式，开启表示会校验列表中的每一个权限标识，所有的校验结果都需要为True才会通过
@@ -85,7 +105,7 @@ def UserInterfaceAuthDependency(perm: str | list, is_strict: bool = False) -> pa
 
 def RoleInterfaceAuthDependency(role_key: str | list, is_strict: bool = False) -> params.Depends:  # noqa: N802
     """
-    根据角色校验当前用户接口权限依赖
+    根据角色校验当前用户接口权限依赖。
 
     :param role_key: 角色标识
     :param is_strict: 当传入的角色标识是list类型时，是否开启严格模式，开启表示会校验列表中的每一个角色标识，所有的校验结果都需要为True才会通过

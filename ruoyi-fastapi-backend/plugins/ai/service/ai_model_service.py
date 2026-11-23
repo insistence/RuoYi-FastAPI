@@ -12,9 +12,7 @@ from utils.crypto_util import CryptoUtil
 
 
 class AiModelService:
-    """
-    AI模型管理服务层
-    """
+    """AI模型管理服务层。"""
 
     @classmethod
     async def get_ai_model_list_services(
@@ -25,7 +23,7 @@ class AiModelService:
         is_page: bool = False,
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取AI模型列表信息service
+        获取AI模型列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -50,12 +48,13 @@ class AiModelService:
         data_scope_sql: ColumnElement,
     ) -> CrudResponseModel:
         """
-        校验用户是否有AI模型数据权限service
+        校验用户是否有AI模型数据权限service。
 
         :param query_db: orm对象
         :param model_id: 模型主键
         :param data_scope_sql: 数据权限对应的查询sql语句
         :return: 校验结果
+        :raises ServiceException: 没有权限访问AI模型数据
         """
         ai_models = await AiModelDao.get_ai_model_list(
             query_db, AiModelModel(modelId=model_id), data_scope_sql, is_page=False
@@ -67,12 +66,12 @@ class AiModelService:
     @classmethod
     async def add_ai_model_services(cls, query_db: AsyncSession, page_object: AiModelModel) -> CrudResponseModel:
         """
-        新增AI模型信息service
+        新增AI模型信息service。
 
-        :param request: Request对象
         :param query_db: orm对象
         :param page_object: 新增AI模型对象
         :return: 新增AI模型校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         try:
             if page_object.api_key:
@@ -87,11 +86,13 @@ class AiModelService:
     @classmethod
     async def edit_ai_model_services(cls, query_db: AsyncSession, page_object: AiModelModel) -> CrudResponseModel:
         """
-        编辑AI模型信息service
+        编辑AI模型信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑AI模型对象
         :return: 编辑AI模型校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: AI模型不存在
         """
         edit_ai_model = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
         if page_object.api_key:
@@ -118,11 +119,13 @@ class AiModelService:
         cls, query_db: AsyncSession, page_object: DeleteAiModelModel
     ) -> CrudResponseModel:
         """
-        删除AI模型信息service
+        删除AI模型信息service。
 
         :param query_db: orm对象
         :param page_object: 删除AI模型对象
         :return: 删除AI模型校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入AI模型id为空
         """
         if page_object.model_ids:
             model_id_list = page_object.model_ids.split(',')
@@ -140,7 +143,7 @@ class AiModelService:
     @classmethod
     async def ai_model_detail_services(cls, query_db: AsyncSession, model_id: int) -> AiModelModel:
         """
-        获取AI模型详细信息service
+        获取AI模型详细信息service。
 
         :param query_db: orm对象
         :param model_id: AI模型id

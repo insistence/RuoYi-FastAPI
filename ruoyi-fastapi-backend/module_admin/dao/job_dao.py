@@ -11,14 +11,12 @@ from utils.page_util import PageUtil
 
 
 class JobDao:
-    """
-    定时任务管理模块数据库操作层
-    """
+    """定时任务管理模块数据库操作层。"""
 
     @classmethod
     async def get_job_detail_by_id(cls, db: AsyncSession, job_id: int) -> SysJob | None:
         """
-        根据定时任务id获取定时任务详细信息
+        根据定时任务id获取定时任务详细信息。
 
         :param db: orm对象
         :param job_id: 定时任务id
@@ -31,7 +29,7 @@ class JobDao:
     @classmethod
     async def get_job_detail_by_info(cls, db: AsyncSession, job: JobModel) -> SysJob | None:
         """
-        根据定时任务参数获取定时任务信息
+        根据定时任务参数获取定时任务信息。
 
         :param db: orm对象
         :param job: 定时任务参数对象
@@ -57,7 +55,7 @@ class JobDao:
         cls, db: AsyncSession, query_object: JobPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        根据查询参数获取定时任务列表信息
+        根据查询参数获取定时任务列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -82,7 +80,7 @@ class JobDao:
     @classmethod
     async def get_job_list_for_scheduler(cls, db: AsyncSession) -> Sequence[SysJob]:
         """
-        获取定时任务列表信息
+        获取定时任务列表信息。
 
         :param db: orm对象
         :return: 定时任务列表信息对象
@@ -94,7 +92,7 @@ class JobDao:
     @classmethod
     async def get_all_job_list_for_scheduler(cls, db: AsyncSession) -> Sequence[SysJob]:
         """
-        获取全部定时任务列表信息
+        获取全部定时任务列表信息。
 
         :param db: orm对象
         :return: 定时任务列表信息对象
@@ -106,11 +104,11 @@ class JobDao:
     @classmethod
     async def add_job_dao(cls, db: AsyncSession, job: JobModel) -> SysJob:
         """
-        新增定时任务数据库操作
+        新增定时任务数据库操作。
 
         :param db: orm对象
         :param job: 定时任务对象
-        :return:
+        :return: 新增的定时任务记录
         """
         db_job = SysJob(
             **job.model_dump(
@@ -136,12 +134,11 @@ class JobDao:
     @classmethod
     async def edit_job_dao(cls, db: AsyncSession, job: dict, old_job: JobModel) -> None:
         """
-        编辑定时任务数据库操作
+        编辑定时任务数据库操作。
 
         :param db: orm对象
         :param job: 需要更新的定时任务字典
         :param old_job: 原定时任务对象
-        :return:
         """
         await db.execute(
             update(SysJob)
@@ -154,10 +151,9 @@ class JobDao:
     @classmethod
     async def delete_job_dao(cls, db: AsyncSession, job: JobModel) -> None:
         """
-        删除定时任务数据库操作
+        删除定时任务数据库操作。
 
         :param db: orm对象
         :param job: 定时任务对象
-        :return:
         """
         await db.execute(delete(SysJob).where(SysJob.job_id.in_([job.job_id])))

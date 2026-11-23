@@ -29,26 +29,58 @@ RANGE_TEST_LENGTH = RANGE_TEST_END - RANGE_TEST_START + 1
 
 
 async def collect_stream(stream: AsyncGenerator[bytes, None]) -> bytes:
+    """
+    合并异步流中的数据块。
+
+    :param stream: 需要逐块读取的流
+    :return: 按顺序拼接的流内容
+    """
     return b''.join([chunk async for chunk in stream])
 
 
 async def collect_first_chunk_and_close(stream: AsyncGenerator[bytes, None]) -> bytes:
+    """
+    读取首块数据后关闭异步流。
+
+    :param stream: 需要逐块读取的流
+    :return: 首块数据后关闭异步流
+    """
     chunk = await anext(stream)
     await stream.aclose()
     return chunk
 
 
 def make_upload(filename: str, content: bytes) -> UploadFile:
+    """
+    创建测试使用的 ``UploadFile`` 实例。
+
+    :param filename: 用于保存或展示的文件名
+    :param content: 需要读取或写入的内容
+    :return: 测试使用的 ``UploadFile`` 实例
+    """
     return UploadFile(file=io.BytesIO(content), filename=filename)
 
 
 def make_current_user(user_id: int = 10, admin: bool = False, dept_id: int = 100) -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param user_id: 用户的唯一标识
+    :param admin: 是否使用管理员身份
+    :param dept_id: 部门id
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         user=SimpleNamespace(user_id=user_id, user_name=f'user{user_id}', admin=admin, dept_id=dept_id)
     )
 
 
 def make_query_db() -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
 
@@ -67,6 +99,7 @@ def test_parse_byte_range_supports_standard_single_ranges(
     range_header: str | None,
     expected: tuple[int, int, int, bool, int],
 ) -> None:
+    """解析标准单段字节范围。"""
     byte_range = FileUtil.parse_byte_range(range_header, 10)
 
     assert (
@@ -90,6 +123,7 @@ def test_parse_byte_range_supports_standard_single_ranges(
     ],
 )
 def test_parse_byte_range_rejects_invalid_or_multiple_ranges(range_header: str) -> None:
+    """拒绝无效或多段字节范围。"""
     with pytest.raises(FileRangeNotSatisfiableException) as range_error:
         FileUtil.parse_byte_range(range_header, RANGE_TEST_FILE_SIZE)
 
@@ -97,6 +131,7 @@ def test_parse_byte_range_rejects_invalid_or_multiple_ranges(range_header: str) 
 
 
 def test_parse_byte_range_allows_empty_full_download_but_rejects_empty_partial_download() -> None:
+    """空文件允许完整下载并拒绝部分下载。"""
     byte_range = FileUtil.parse_byte_range(None, 0)
 
     assert byte_range.length == 0
@@ -106,6 +141,7 @@ def test_parse_byte_range_allows_empty_full_download_but_rejects_empty_partial_d
 
 
 def test_resolve_file_within_root_accepts_nested_relative_file(tmp_path: Path) -> None:
+    """允许解析根目录内的嵌套相对文件。"""
     root = tmp_path / 'download'
     target = root / 'nested' / 'report.txt'
     target.parent.mkdir(parents=True)
@@ -129,6 +165,7 @@ def test_resolve_file_within_root_accepts_nested_relative_file(tmp_path: Path) -
     ],
 )
 def test_resolve_file_within_root_rejects_absolute_and_traversal_paths(tmp_path: Path, untrusted_path: str) -> None:
+    """拒绝绝对路径和目录穿越。"""
     root = tmp_path / 'download'
     root.mkdir()
 
@@ -137,6 +174,7 @@ def test_resolve_file_within_root_rejects_absolute_and_traversal_paths(tmp_path:
 
 
 def test_resolve_file_within_root_rejects_symlink_escape(tmp_path: Path) -> None:
+    """拒绝通过符号链接越出文件根目录。"""
     root = tmp_path / 'download'
     root.mkdir()
     outside = tmp_path / 'outside.txt'
@@ -152,6 +190,7 @@ def test_resolve_file_within_root_rejects_symlink_escape(tmp_path: Path) -> None
 
 
 def test_download_rejects_absolute_path_without_scheduling_delete(tmp_path: Path) -> None:
+    """拒绝绝对下载路径且不安排删除。"""
     download_root = tmp_path / 'download'
     download_root.mkdir()
     outside = tmp_path / 'outside.txt'
@@ -169,6 +208,7 @@ def test_download_rejects_absolute_path_without_scheduling_delete(tmp_path: Path
 
 
 def test_download_keeps_delete_compatibility_inside_download_root(tmp_path: Path) -> None:
+    """保留下载根目录内下载后删除的行为。"""
     download_root = tmp_path / 'download'
     download_root.mkdir()
     target = download_root / 'report.txt'
@@ -194,6 +234,7 @@ def test_download_keeps_delete_compatibility_inside_download_root(tmp_path: Path
 
 
 def test_resource_download_is_confined_to_upload_root(tmp_path: Path) -> None:
+    """资源下载限于上传根目录。"""
     upload_root = tmp_path / 'profile'
     target = upload_root / 'upload' / '2026' / '07' / 'report_20260719120000A001.txt'
     target.parent.mkdir(parents=True)
@@ -219,6 +260,7 @@ def test_resource_download_is_confined_to_upload_root(tmp_path: Path) -> None:
 
 
 def test_resource_download_rejects_file_without_generated_filename(tmp_path: Path) -> None:
+    """拒绝下载缺少生成文件名的资源。"""
     upload_root = tmp_path / 'profile'
     target = upload_root / 'upload' / '2026' / '07' / 'report.txt'
     target.parent.mkdir(parents=True)
@@ -232,6 +274,7 @@ def test_resource_download_rejects_file_without_generated_filename(tmp_path: Pat
 
 
 def test_upload_uses_server_generated_filename_and_stays_in_upload_root(tmp_path: Path) -> None:
+    """上传使用服务端生成的名称并写入上传根目录。"""
     upload_root = tmp_path / 'profile'
     upload = make_upload('../../attack:bad?.txt', b'safe-content')
     request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
@@ -270,6 +313,7 @@ def test_upload_uses_server_generated_filename_and_stays_in_upload_root(tmp_path
 
 @pytest.mark.parametrize('extension', ['html', 'htm'])
 def test_upload_accepts_html_as_download_only_file(tmp_path: Path, extension: str) -> None:
+    """允许上传 HTML 并仅供下载。"""
     file_content = b'<script>alert(1)</script>'
     upload = make_upload(f'attack.{extension}', file_content)
     request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
@@ -293,6 +337,7 @@ def test_upload_accepts_html_as_download_only_file(tmp_path: Path, extension: st
 
 
 def test_upload_enforces_total_size_and_removes_partial_file(tmp_path: Path) -> None:
+    """上传限制总大小并清理未完成文件。"""
     upload = make_upload('large.txt', b'12345')
     request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
     query_db = make_query_db()
@@ -309,6 +354,7 @@ def test_upload_enforces_total_size_and_removes_partial_file(tmp_path: Path) -> 
 
 
 def test_upload_rejects_unknown_access_type_before_writing(tmp_path: Path) -> None:
+    """写入前拒绝未知访问类型。"""
     upload = make_upload('report.txt', b'report-content')
     request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
 
@@ -322,6 +368,7 @@ def test_upload_rejects_unknown_access_type_before_writing(tmp_path: Path) -> No
 
 
 def test_upload_removes_file_when_metadata_write_fails(tmp_path: Path) -> None:
+    """元数据写入失败时清理已上传文件。"""
     upload = make_upload('report.txt', b'report-content')
     request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
     query_db = make_query_db()
@@ -340,6 +387,7 @@ def test_upload_removes_file_when_metadata_write_fails(tmp_path: Path) -> None:
 
 
 def test_upload_retries_name_collision_without_deleting_existing_file(tmp_path: Path) -> None:
+    """上传文件重名时重试并保留原文件。"""
     fixed_time = datetime(2026, 7, 19, 4, 0, 0, tzinfo=UTC)
     existing_file = tmp_path / 'upload' / '2026' / '07' / '19' / 'report_20260719120000A001.txt'
     existing_file.parent.mkdir(parents=True)
@@ -364,6 +412,7 @@ def test_upload_retries_name_collision_without_deleting_existing_file(tmp_path: 
 
 
 def test_private_upload_is_physically_isolated_and_owner_can_download(tmp_path: Path) -> None:
+    """私有上传文件物理隔离且所有者可下载。"""
     public_root = tmp_path / 'public'
     private_root = tmp_path / 'private'
     upload = make_upload('contract.pdf', b'private-content')
@@ -398,6 +447,7 @@ def test_private_upload_is_physically_isolated_and_owner_can_download(tmp_path: 
 
 
 def test_private_download_rejects_other_user(tmp_path: Path) -> None:
+    """拒绝其他用户下载私有文件。"""
     private_root = tmp_path / 'private'
     target = private_root / 'upload' / '2026' / '07' / 'contract_20260719120000A001.pdf'
     target.parent.mkdir(parents=True)
@@ -429,6 +479,7 @@ def test_private_download_rejects_other_user(tmp_path: Path) -> None:
 
 
 def test_file_manager_can_download_private_file_without_owner_match(tmp_path: Path) -> None:
+    """文件管理员无需匹配所有者即可下载私有文件。"""
     private_root = tmp_path / 'private'
     target = private_root / 'upload' / '2026' / '07' / 'contract_20260719120000A001.pdf'
     target.parent.mkdir(parents=True)
@@ -466,6 +517,7 @@ def test_file_manager_can_download_private_file_without_owner_match(tmp_path: Pa
 
 
 def test_file_manager_download_rejects_file_outside_data_scope() -> None:
+    """文件管理员不能下载数据范围外的文件。"""
     request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
     query_db = make_query_db()
     file_manager = make_current_user(user_id=20)
@@ -503,6 +555,7 @@ def test_managed_download_allows_administrator_or_public_file(
     access_type: str,
     current_user: SimpleNamespace,
 ) -> None:
+    """托管下载允许管理员或公开文件访问。"""
     storage_root = tmp_path / access_type
     target = storage_root / 'upload' / '2026' / '07' / 'report_20260719120000A001.txt'
     target.parent.mkdir(parents=True)
@@ -536,6 +589,7 @@ def test_managed_download_allows_administrator_or_public_file(
 
 @pytest.mark.parametrize('admin', [False, True])
 def test_private_download_rejects_expired_file(tmp_path: Path, admin: bool) -> None:
+    """拒绝下载已过期的私有文件。"""
     private_root = tmp_path / 'private'
     file_info = SimpleNamespace(
         storage_type='local',
@@ -563,6 +617,7 @@ def test_private_download_rejects_expired_file(tmp_path: Path, admin: bool) -> N
 
 
 def test_managed_download_records_interrupted_stream(tmp_path: Path) -> None:
+    """托管下载记录被中断的数据流。"""
     target = tmp_path / 'report.txt'
     target.write_bytes(b'partial-content')
     request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
@@ -579,6 +634,7 @@ def test_managed_download_records_interrupted_stream(tmp_path: Path) -> None:
 
 
 def test_managed_download_supports_range_and_records_partial_bytes(tmp_path: Path) -> None:
+    """托管下载支持范围请求并记录实际字节数。"""
     storage_root = tmp_path / 'private'
     target = storage_root / 'upload' / '2026' / '07' / 'report_20260719120000A001.txt'
     target.parent.mkdir(parents=True)
@@ -625,6 +681,7 @@ def test_managed_download_supports_range_and_records_partial_bytes(tmp_path: Pat
 
 
 def test_managed_download_audits_unsatisfied_range_without_disclosing_before_permission(tmp_path: Path) -> None:
+    """无权限时隐藏范围信息，获授权后审计不可满足的范围。"""
     storage_root = tmp_path / 'private'
     target = storage_root / 'upload' / '2026' / '07' / 'report_20260719120000A001.txt'
     target.parent.mkdir(parents=True)
@@ -662,6 +719,7 @@ def test_managed_download_audits_unsatisfied_range_without_disclosing_before_per
 
 
 def test_download_headers_force_attachment_and_disable_sniffing() -> None:
+    """下载响应强制作为附件并禁止类型嗅探。"""
     byte_range = FileUtil.parse_byte_range('bytes=2-5', 10)
     headers = UploadUtil.build_download_headers('../../report.html', byte_range)
 
@@ -676,6 +734,7 @@ def test_download_headers_force_attachment_and_disable_sniffing() -> None:
 
 
 def test_static_files_force_only_html_to_download(tmp_path: Path) -> None:
+    """静态文件中仅 HTML 强制下载。"""
     html_file = tmp_path / 'legacy.html'
     html_file.write_text('<script>alert(1)</script>', encoding='utf-8')
     image_file = tmp_path / 'safe.png'
@@ -704,6 +763,7 @@ def test_static_files_force_only_html_to_download(tmp_path: Path) -> None:
 
 
 def test_cors_exposes_download_headers() -> None:
+    """跨域响应公开下载所需的头部字段。"""
     app = FastAPI()
     add_cors_middleware(app)
 

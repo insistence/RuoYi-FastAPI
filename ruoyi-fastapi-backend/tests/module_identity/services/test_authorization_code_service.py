@@ -15,7 +15,12 @@ _LONG_CODE_TTL = 600
 
 
 def _payload(**overrides: object) -> dict[str, object]:
-    """构造服务端授权码白名单载荷。"""
+    """
+    构造服务端授权码白名单载荷。
+
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 服务端授权码白名单载荷
+    """
     value: dict[str, object] = {
         'clientPk': 1001,
         'redirectUri': 'https://portal.example/callback',

@@ -28,6 +28,16 @@ class TuiActionExecutionService:
 
     该对象将 TUI 动作直接分发到当前进程的 runtime facade，并统一
     施加超时、异常收口和结果文本渲染。动作执行不再启动嵌套 CLI。
+
+    :ivar job_runtime: 定时任务运行时服务
+    :ivar operations_runtime: 运维运行时服务
+    :ivar config_runtime: 参数配置运行时服务
+    :ivar cache_runtime: 缓存运行时服务
+    :ivar gen_runtime: 代码生成运行时服务
+    :ivar database_runtime: 数据库运行时服务
+    :ivar crypto_runtime: 传输加密运行时服务
+    :ivar completion_installer: completion 安装与脚本生成服务
+    :ivar application_builder: 根应用构建器
     """
 
     job_runtime: JobRuntimeService = field(default_factory=lambda: JOB_RUNTIME)
@@ -47,6 +57,7 @@ class TuiActionExecutionService:
         :param spec: 动作定义
         :param env: 当前运行环境
         :return: 动作执行结果
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
         try:
             payload = await asyncio.wait_for(
@@ -108,7 +119,13 @@ class TuiActionExecutionService:
         return payload
 
     async def _dispatch_job(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
-        """执行任务领域动作。"""
+        """
+        执行任务领域动作。
+
+        :param action_id: 动作唯一标识
+        :param parameters: 分派给目标命令的参数
+        :return: 所选调度任务操作的执行结果
+        """
         job_id = int(parameters.get('job_id') or 0)
         if action_id == 'job-run-once':
             return await self.job_runtime.run_job_once(job_id)
@@ -121,7 +138,13 @@ class TuiActionExecutionService:
         return self._unsupported_action(action_id)
 
     async def _dispatch_cache(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
-        """执行缓存领域动作。"""
+        """
+        执行缓存领域动作。
+
+        :param action_id: 动作唯一标识
+        :param parameters: 分派给目标命令的参数
+        :return: 缓存预热或清理的执行结果
+        """
         if action_id == 'cache-warmup':
             return await self.cache_runtime.warmup_cache()
         if action_id == 'cache-clear-dry-run':
@@ -132,7 +155,13 @@ class TuiActionExecutionService:
         return self._unsupported_action(action_id)
 
     async def _dispatch_gen(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
-        """执行代码生成领域动作。"""
+        """
+        执行代码生成领域动作。
+
+        :param action_id: 动作唯一标识
+        :param parameters: 分派给目标命令的参数
+        :return: 生成代码导出预览或表同步的执行结果
+        """
         table_name = str(parameters.get('table_name') or '')
         if action_id == 'gen-export-dry-run':
             return await self.gen_runtime.export_code([table_name], mode='zip', dry_run=True)
@@ -141,7 +170,13 @@ class TuiActionExecutionService:
         return self._unsupported_action(action_id)
 
     async def _dispatch_database(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
-        """执行数据库领域动作。"""
+        """
+        执行数据库领域动作。
+
+        :param action_id: 动作唯一标识
+        :param parameters: 分派给目标命令的参数
+        :return: 所选数据库操作的执行结果
+        """
         if action_id == 'db-upgrade-dry-run':
             return await asyncio.to_thread(
                 self.database_runtime.upgrade_database,
@@ -153,7 +188,12 @@ class TuiActionExecutionService:
         return self._unsupported_action(action_id)
 
     async def _dispatch_ops(self, action_id: str) -> dict[str, Any]:
-        """执行运维探活动作。"""
+        """
+        执行运维探活动作。
+
+        :param action_id: 动作唯一标识
+        :return: 目标服务的连接探测结果
+        """
         if action_id == 'ops-ping-db':
             return await self.database_runtime.ping_database()
         if action_id == 'ops-ping-redis':
@@ -161,7 +201,12 @@ class TuiActionExecutionService:
         return self._unsupported_action(action_id)
 
     async def _run_precheck(self, label: str) -> dict[str, Any]:
-        """并发执行启动前综合检查。"""
+        """
+        并发执行启动前综合检查。
+
+        :param label: 显示给用户的标签
+        :return: 包含 ``ok``、``message``、``database``、``redis``、``crypto`` 等字段的数据
+        """
         database, redis, crypto, config = await asyncio.gather(
             self.database_runtime.ping_database(),
             self.operations_runtime.ping_redis(),
@@ -180,7 +225,11 @@ class TuiActionExecutionService:
         }
 
     async def _install_completion(self) -> dict[str, Any]:
-        """在当前进程内安装 shell completion。"""
+        """
+        在当前进程内安装 shell completion。
+
+        :return: 补全脚本的安装结果
+        """
         return await asyncio.to_thread(
             self.completion_installer.install_completion_script,
             self.application_builder.build(),
@@ -189,7 +238,13 @@ class TuiActionExecutionService:
         )
 
     async def _dispatch_crypto(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
-        """执行传输加密领域动作。"""
+        """
+        执行传输加密领域动作。
+
+        :param action_id: 动作唯一标识
+        :param parameters: 分派给目标命令的参数
+        :return: 所选密钥操作的执行结果
+        """
         timestamp = TimezoneUtil.to_business_time(TimezoneUtil.utc_now()).strftime('%Y%m%d%H%M%S')
         key_size = int(parameters.get('key_size') or 2048)
         if action_id == 'crypto-keygen':
@@ -208,7 +263,12 @@ class TuiActionExecutionService:
 
     @staticmethod
     def _unsupported_action(action_id: str) -> dict[str, Any]:
-        """构建未知动作的失败结果，禁止隐式回退到其他操作。"""
+        """
+        构建未知动作的失败结果，禁止隐式回退到其他操作。
+
+        :param action_id: 动作唯一标识
+        :return: 未知动作的失败结果
+        """
         return {
             'ok': False,
             'message': f'不支持的 TUI 动作：{action_id}',

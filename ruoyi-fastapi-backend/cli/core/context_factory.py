@@ -18,7 +18,8 @@ class CliRuntimeState:
     """
     CLI 运行期状态。
 
-    :param logs_suppressed: 当前进程日志是否已切换为静默模式
+    :ivar logs_suppressed: 当前进程日志是否已切换为静默模式
+    :ivar sqlalchemy_logs_suppressed: 是否已关闭命令执行期间的 SQLAlchemy 日志输出
     """
 
     logs_suppressed: bool = False
@@ -33,11 +34,7 @@ class CliRuntimeState:
         return import_module('utils.log_util').logger
 
     def suppress_logs(self) -> None:
-        """
-        关闭 CLI 进程中的终端日志输出。
-
-        :return: None
-        """
+        """关闭 CLI 进程中的终端日志输出。"""
         if self.logs_suppressed:
             return
         self.get_logger().remove()
@@ -49,12 +46,10 @@ class CliRuntimeState:
 
         该逻辑同时处理两类来源：
 
-        1. 将 `config.env.DataBaseConfig.db_sources` 中全部数据源的 `db_echo` 强制关闭，避免后续新建 Engine 时
+        1. 将 ``config.env.DataBaseConfig.db_sources`` 中全部数据源的 ``db_echo`` 强制关闭，避免后续新建 Engine 时
            继续打开 SQLAlchemy echo。
         2. 将已知 SQLAlchemy logger 级别提升到 WARNING，避免已有 logger 配置把
-           `INFO sqlalchemy.engine.Engine ...` 继续打到标准输出。
-
-        :return: None
+           ``INFO sqlalchemy.engine.Engine ...`` 继续打到标准输出。
         """
         if self.sqlalchemy_logs_suppressed:
             return
@@ -80,17 +75,13 @@ class CliLogPolicy:
     该对象负责在上下文构建前应用统一的日志输出策略，
     将“是否静默日志”这一策略从上下文工厂主体中拆出。
 
-    :param runtime_state: CLI 运行期状态对象
+    :ivar runtime_state: CLI 运行期状态对象
     """
 
     runtime_state: CliRuntimeState
 
     def prepare_regular_command(self) -> None:
-        """
-        为普通 CLI 命令应用默认日志策略。
-
-        :return: None
-        """
+        """为普通 CLI 命令应用默认日志策略。"""
         self.runtime_state.suppress_logs()
         self.runtime_state.suppress_sqlalchemy_logs()
 
@@ -103,9 +94,9 @@ class DangerousCommandContextSupport:
     该对象负责危险命令规则查询、保护执行与拒绝结果收口，
     让上下文工厂本体只保留装配职责。
 
-    :param dangerous_command_rule_registry: 危险命令规则注册表
-    :param dangerous_command_guard_service: 危险命令保护执行服务
-    :param output_renderer: 输出渲染器
+    :ivar dangerous_command_rule_registry: 危险命令规则注册表
+    :ivar dangerous_command_guard_service: 危险命令保护执行服务
+    :ivar output_renderer: 输出渲染器
     """
 
     dangerous_command_rule_registry: DangerousCommandRuleRegistry
@@ -132,11 +123,13 @@ class CliContextFactory:
     """
     统一构建 CLI 命令上下文。
 
-    :param runtime_state: CLI 运行期状态对象
-    :param output_renderer: 输出渲染器
-    :param cli_context_builder: CLI 上下文构建器
-    :param dangerous_command_rule_registry: 危险命令规则注册表
-    :param dangerous_command_guard_service: 危险命令保护执行服务
+    :ivar runtime_state: CLI 运行期状态对象
+    :ivar output_renderer: 输出渲染器
+    :ivar cli_context_builder: CLI 上下文构建器
+    :ivar dangerous_command_rule_registry: 危险命令规则注册表
+    :ivar dangerous_command_guard_service: 危险命令保护执行服务
+    :ivar _log_policy: 配置命令运行期间日志输出的策略
+    :ivar _dangerous_command_support: 处理高风险命令确认流程的支持对象
     """
 
     runtime_state: CliRuntimeState = field(default_factory=CliRuntimeState)

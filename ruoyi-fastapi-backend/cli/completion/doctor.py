@@ -19,11 +19,11 @@ class CompletionDoctorService:
     completion 诊断服务。
 
     该服务负责汇总活跃 shell、目标脚本路径、rc 文件状态、推荐安装命令
-    与环境候选列表，生成 `completion doctor` 所需的结构化结果。
+    与环境候选列表，生成 ``completion doctor`` 所需的结构化结果。
 
-    :param installer_service: completion 安装服务
-    :param shell_spec_registry: shell 元数据注册表
-    :param environment_option_service: 环境选项服务
+    :ivar installer_service: completion 安装服务
+    :ivar shell_spec_registry: shell 元数据注册表
+    :ivar environment_option_service: 环境选项服务
     """
 
     def __init__(
@@ -39,7 +39,6 @@ class CompletionDoctorService:
         :param installer_service: completion 安装服务
         :param shell_spec_registry: shell 元数据注册表
         :param environment_option_service: 环境选项服务
-        :return: None
         """
         self.installer_service = installer_service or COMPLETION_INSTALLER
         self.shell_spec_registry = shell_spec_registry or COMPLETION_SHELL_SPEC_REGISTRY

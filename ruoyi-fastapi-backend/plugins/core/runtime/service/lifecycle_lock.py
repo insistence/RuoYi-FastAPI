@@ -19,6 +19,9 @@ from utils.log_util import logger
 class PluginLifecycleLockResult:
     """
     插件生命周期操作锁获取结果。
+
+    :ivar acquired: 是否成功取得锁或租约
+    :ivar message: 与当前结果一起返回的说明
     """
 
     acquired: bool
@@ -26,9 +29,7 @@ class PluginLifecycleLockResult:
 
 
 class PluginLifecycleLockLost(ServiceException):
-    """
-    插件生命周期锁在操作期间丢失。
-    """
+    """插件生命周期锁在操作期间丢失。"""
 
     def __str__(self) -> str:
         """
@@ -40,9 +41,7 @@ class PluginLifecycleLockLost(ServiceException):
 
 
 class PluginLifecycleLock(Protocol):
-    """
-    插件生命周期操作锁接口。
-    """
+    """插件生命周期操作锁接口。"""
 
     def lock(self, plugin_id: str, operation: str) -> AbstractAsyncContextManager[PluginLifecycleLockResult]:
         """
@@ -55,9 +54,7 @@ class PluginLifecycleLock(Protocol):
 
 
 class NoopPluginLifecycleLock:
-    """
-    空插件生命周期锁，用于测试和离线运行时。
-    """
+    """空插件生命周期锁，用于测试和离线运行时。"""
 
     @asynccontextmanager
     async def lock(self, plugin_id: str, operation: str) -> AsyncGenerator[PluginLifecycleLockResult, None]:
@@ -66,7 +63,7 @@ class NoopPluginLifecycleLock:
 
         :param plugin_id: 插件ID
         :param operation: 操作类型
-        :return: 锁获取结果上下文
+        :yield: 锁获取结果上下文
         """
         yield PluginLifecycleLockResult(acquired=True)
 
@@ -77,6 +74,10 @@ class RedisPluginLifecycleLock:
 
     插件生命周期操作会写入菜单、任务、配置等共享资源，因此生产环境使用全局锁串行化
     写操作，避免不同插件并发安装/升级时绕过应用层幂等检查。
+
+    :cvar _RELEASE_SCRIPT: 仅在令牌匹配时释放 Redis 锁的脚本
+    :cvar _RENEW_SCRIPT: 验证锁所有权并延长有效期的 Redis 脚本
+    :ivar expire_seconds: 锁自动过期时间
     """
 
     _RELEASE_SCRIPT = """
@@ -97,7 +98,6 @@ class RedisPluginLifecycleLock:
         初始化 Redis 插件生命周期锁。
 
         :param expire_seconds: 锁自动过期时间
-        :return: None
         """
         self.expire_seconds = expire_seconds or LockConstant.PLUGIN_LIFECYCLE_LOCK_EXPIRE_SECONDS
 
@@ -108,7 +108,10 @@ class RedisPluginLifecycleLock:
 
         :param plugin_id: 插件ID
         :param operation: 操作类型
-        :return: 锁获取结果上下文
+        :yield: 锁获取结果上下文
+        :raises Exception: 执行期间无法为持有的锁续期
+        :raises asyncio.CancelledError: 异步操作被取消时
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         redis: aioredis.Redis | None = None
         lock_key = self._build_lock_key()
@@ -194,7 +197,7 @@ class RedisPluginLifecycleLock:
         :param lock_key: 锁 key
         :param lock_value: 锁值
         :param owner_task: 持锁执行生命周期操作的任务
-        :return: None
+        :raises PluginLifecycleLockLost: 续期时已失去插件生命周期锁
         """
         interval_seconds = self._renew_interval_seconds()
         while True:

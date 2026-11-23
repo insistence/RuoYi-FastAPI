@@ -10,9 +10,7 @@ from utils.time_util import TimezoneUtil
 
 
 class SysNotice(AuditTimeMixin, Base):
-    """
-    通知公告表
-    """
+    """通知公告表。"""
 
     __tablename__ = 'sys_notice'
     __table_args__ = {'comment': '通知公告表'}
@@ -38,9 +36,7 @@ class SysNotice(AuditTimeMixin, Base):
 
 
 class SysNoticeRead(Base):
-    """
-    公告已读记录表
-    """
+    """公告已读记录表。"""
 
     __tablename__ = 'sys_notice_read'
     __table_args__ = (

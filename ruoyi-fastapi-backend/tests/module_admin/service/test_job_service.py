@@ -19,6 +19,7 @@ from tests.scheduler_helpers import Runtime, job_info
 async def test_job_mutations_only_request_targeted_sync_after_commit(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch, action: str, commit_fails: bool
 ) -> None:
+    """任务变更仅在提交后请求定向同步。"""
     if action != 'add':
         await runtime.save()
         await SchedulerManager._sync_jobs_from_database()
@@ -28,6 +29,11 @@ async def test_job_mutations_only_request_targeted_sync_after_commit(
         commit = db.commit
 
         async def committing() -> None:
+            """
+            在调度状态变更前验证提交顺序。
+
+            :raises RuntimeError: 模拟测试事务提交失败
+            """
             assert runtime.scheduler.get_job('42') is original
             events.append('commit')
             if commit_fails:
@@ -35,6 +41,13 @@ async def test_job_mutations_only_request_targeted_sync_after_commit(
             await commit()
 
         async def sync(job_ids: set[int], *, immediate: bool) -> dict:
+            """
+            验证提交顺序后执行调度同步。
+
+            :param job_ids: 需要删除的定时任务ID
+            :param immediate: 是否立即触发操作
+            :return: 提交后的调度同步结果
+            """
             assert immediate
             assert events == ['commit']
             events.append('sync')
@@ -81,6 +94,7 @@ async def test_job_mutations_only_request_targeted_sync_after_commit(
 async def test_sync_failure_after_commit_reports_saved_and_keeps_retryable_state(
     runtime: Runtime, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """提交后同步失败时报告已保存并保留重试状态。"""
     await runtime.save()
     monkeypatch.setattr(
         SchedulerManager, 'request_scheduler_sync', AsyncMock(side_effect=RuntimeError('sync unavailable'))
@@ -99,6 +113,7 @@ async def test_sync_failure_after_commit_reports_saved_and_keeps_retryable_state
 
 @pytest.mark.asyncio
 async def test_disable_broken_target_remains_possible_but_enable_is_rejected(runtime: Runtime) -> None:
+    """允许停用损坏的任务目标并拒绝启用。"""
     await runtime.save(job_info(invokeTarget='module_task.scheduler_test.missing'))
     async with runtime.sessions() as db:
         result = await JobService.edit_job_services(db, EditJobModel(jobId=42, status='1', type='status'))
@@ -111,11 +126,7 @@ async def test_disable_broken_target_remains_possible_but_enable_is_rejected(run
 
 @pytest.mark.asyncio
 async def test_add_job_rejects_plugin_invoke_target_from_system_job_form() -> None:
-    """
-    校验系统定时任务入口不会放开到整个 plugins 包。
-
-    :return: None
-    """
+    """校验系统定时任务入口不会放开到整个 plugins 包。"""
     job = JobModel(
         jobName='plugin-core-task',
         jobGroup='default',

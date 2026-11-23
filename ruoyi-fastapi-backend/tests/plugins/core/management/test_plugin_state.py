@@ -89,7 +89,11 @@ async def test_plugin_table_rejects_invalid_state_domains() -> None:
 
 
 async def create_sqlite_sys_job_table(connection: object) -> None:
-    """创建适配 SQLite 的测试用 sys_job 表。"""
+    """
+    创建适配 SQLite 的测试用 sys_job 表。
+
+    :param connection: 当前操作使用的连接
+    """
     await connection.execute(
         text(
             """
@@ -120,7 +124,11 @@ async def create_sqlite_sys_job_table(connection: object) -> None:
 
 
 async def create_sqlite_sys_menu_table(connection: object) -> None:
-    """创建适配 SQLite 的测试用 sys_menu 表。"""
+    """
+    创建适配 SQLite 的测试用 sys_menu 表。
+
+    :param connection: 当前操作使用的连接
+    """
     await connection.execute(
         text(
             """
@@ -153,7 +161,14 @@ async def create_sqlite_sys_menu_table(connection: object) -> None:
 
 
 def build_discovered_plugin(tmp_path: Path, enabled: bool = True, version: str = '1.0.0') -> DiscoveredPlugin:
-    """构造测试用已发现插件对象。"""
+    """
+    构造测试用已发现插件对象。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param enabled: 是否启用该项功能
+    :param version: 当前记录的版本
+    :return: 测试用已发现插件对象
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True)
@@ -182,7 +197,13 @@ backend:
 
 
 def build_discovered_plugin_with_menu(tmp_path: Path, perms: str) -> DiscoveredPlugin:
-    """构造带菜单权限声明的测试插件。"""
+    """
+    构造带菜单权限声明的测试插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param perms: 调用主体所拥有的权限集合
+    :return: 带菜单权限声明的测试插件
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True, exist_ok=True)
@@ -211,7 +232,12 @@ def build_discovered_plugin_with_menu(tmp_path: Path, perms: str) -> DiscoveredP
 
 
 def build_discovered_plugin_with_permission_buttons(tmp_path: Path) -> DiscoveredPlugin:
-    """构造带页面菜单和顶层按钮权限声明的测试插件。"""
+    """
+    构造带页面菜单和顶层按钮权限声明的测试插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 带页面菜单和顶层按钮权限声明的测试插件
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True, exist_ok=True)
@@ -248,7 +274,12 @@ def build_discovered_plugin_with_permission_buttons(tmp_path: Path) -> Discovere
 
 
 def build_discovered_plugin_with_config(tmp_path: Path) -> DiscoveredPlugin:
-    """构造带配置声明的测试插件。"""
+    """
+    构造带配置声明的测试插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 带配置声明的测试插件
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True, exist_ok=True)
@@ -300,7 +331,12 @@ def build_discovered_plugin_with_config(tmp_path: Path) -> DiscoveredPlugin:
 
 
 def build_discovered_plugin_with_job(tmp_path: Path) -> DiscoveredPlugin:
-    """构造带定时任务声明的测试插件。"""
+    """
+    构造带定时任务声明的测试插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 带定时任务声明的测试插件
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True, exist_ok=True)
@@ -1693,7 +1729,13 @@ async def test_get_plugin_config_services_reuses_bulk_config_lookup(
         await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.__table__])
 
     async def fail_get_config_by_key(*_args: object, **_kwargs: object) -> None:
-        """模拟读取插件配置失败。"""
+        """
+        模拟读取插件配置失败。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :raises AssertionError: 计算默认配置差异时意外执行了逐键查询
+        """
         raise AssertionError('get_plugin_config_by_key should not be used for default config diff')
 
     try:
@@ -1726,7 +1768,11 @@ async def test_plugin_config_gateway_rejects_uninstalled_plugin_updates(tmp_path
 
         @staticmethod
         def get_async_session_local() -> object:
-            """获取测试数据库会话工厂。"""
+            """
+            获取测试数据库会话工厂。
+
+            :return: 测试数据库会话工厂
+            """
             return session_maker
 
     try:

@@ -16,28 +16,52 @@ from .conftest import (
 class LazyPluginGateway:
     """
     测试用 CLI 插件网关，验证测试命令可懒解析运行时依赖。
+
+    :ivar backend_root: 后端项目的根目录
+    :ivar runtime_gateway: 封装运行时调用的测试网关
+    :ivar runtime_environment_requested: 是否已请求创建运行环境
+    :ivar runtime_gateway_requested: 是否已请求运行时网关
     """
 
     def __init__(self, backend_root: Path, runtime_gateway: FakePluginRuntimeGateway) -> None:
-        """初始化测试用 CLI 插件网关。"""
+        """
+        初始化测试用 CLI 插件网关。
+
+        :param backend_root: 后端项目的根目录
+        :param runtime_gateway: 测试用插件运行时适配器
+        """
         self.backend_root = backend_root
         self.runtime_gateway = runtime_gateway
         self.runtime_environment_requested = False
         self.runtime_gateway_requested = False
 
     def get_core_runtime_environment(self) -> FakeRuntimeEnvironment:
-        """获取测试运行时环境。"""
+        """
+        获取测试运行时环境。
+
+        :return: 测试运行时环境
+        """
         self.runtime_environment_requested = True
         return FakeRuntimeEnvironment(self.backend_root)
 
     def get_management_runtime_gateway(self) -> FakePluginRuntimeGateway:
-        """获取测试运行时适配器。"""
+        """
+        获取测试运行时适配器。
+
+        :return: 测试运行时适配器
+        """
         self.runtime_gateway_requested = True
         return self.runtime_gateway
 
     @staticmethod
     def build_exception_payload(message: str, exc: Exception) -> dict[str, object]:
-        """构建测试异常负载。"""
+        """
+        构建测试异常负载。
+
+        :param message: 与当前结果一起返回的说明
+        :param exc: 捕获到的异常实例
+        :return: 测试异常负载
+        """
         return {'ok': False, 'message': message, 'error': str(exc)}
 
 

@@ -13,6 +13,11 @@ PAYLOAD = '<p>正文<strong>重点</strong><img src="/safe.png" onerror="alert(1
 
 
 def assert_safe(content: str) -> None:
+    """
+    校验净化后的公告保留允许的内容和属性。
+
+    :param content: 需要读取或写入的内容
+    """
     assert '<strong>重点</strong>' in content
     assert 'src="/safe.png"' in content
     assert 'onerror' not in content
@@ -21,9 +26,10 @@ def assert_safe(content: str) -> None:
 
 
 def test_direct_api_input_is_cleaned_before_persistence() -> None:
+    """直接调用 API 写入前清理输入。"""
     app = FastAPI()
 
-    @app.post('/notice')
+    @app.post('/notice', summary='提交通知内容', description='返回通过模型校验的通知内容，用于验证写入前的 HTML 清理。')
     def notice(payload: NoticeModel) -> NoticeModel:
         assert_safe(payload.notice_content.decode())
         return payload
@@ -34,6 +40,7 @@ def test_direct_api_input_is_cleaned_before_persistence() -> None:
 
 @pytest.mark.asyncio
 async def test_legacy_notice_detail_and_list_are_sanitized(monkeypatch: pytest.MonkeyPatch) -> None:
+    """清理旧公告详情和列表的内容。"""
     monkeypatch.setattr(
         NoticeDao,
         'get_notice_detail_by_id',
@@ -54,6 +61,7 @@ async def test_legacy_notice_detail_and_list_are_sanitized(monkeypatch: pytest.M
 
 @pytest.mark.parametrize('url', ['javascript:alert(1)', 'jav&#x61;script:alert(1)', 'data:text/html,x', 'vbscript:x'])
 def test_rejects_dangerous_urls_and_embedded_content(url: str) -> None:
+    """拒绝危险链接及嵌入内容。"""
     result = NoticeModel(noticeContent=f'<a href="{url}">x</a><img src="{url}"><svg onload="alert(1)"></svg>')
     content = result.notice_content.decode()
     assert 'href=' not in content
@@ -62,6 +70,7 @@ def test_rejects_dangerous_urls_and_embedded_content(url: str) -> None:
 
 
 def test_legal_rich_text_and_partial_updates_are_preserved() -> None:
+    """保留合法富文本并支持部分更新。"""
     content = '<h2>标题</h2><ul><li><em>正文</em></li></ul><table><tr><td colspan="2">表格</td></tr></table>'
     result = NoticeModel(noticeContent=content).notice_content.decode()
     assert '<h2>标题</h2>' in result and '<em>正文</em>' in result and 'colspan="2"' in result
@@ -69,6 +78,7 @@ def test_legal_rich_text_and_partial_updates_are_preserved() -> None:
 
 
 def test_quill_text_styles_are_preserved_without_layout_styles() -> None:
+    """保留 Quill 文本样式并剔除布局样式。"""
     content = NoticeModel(
         noticeContent='<p class="ql-align-center"><span style="color: red; background-color: yellow; position: fixed">正文</span></p>'
     ).notice_content.decode()
@@ -78,6 +88,7 @@ def test_quill_text_styles_are_preserved_without_layout_styles() -> None:
 
 
 def test_quill_video_is_sandboxed_and_cannot_embed_inline_script() -> None:
+    """Quill 视频在沙箱中播放且不能嵌入内联脚本。"""
     content = NoticeModel(
         noticeContent='<iframe class="ql-video" src="https://video.example/embed/1" sandbox="allow-same-origin" srcdoc="<script>alert(1)</script>"></iframe>'
     ).notice_content.decode()

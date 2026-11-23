@@ -10,11 +10,11 @@ class PluginMenuConflictItem:
     """
     插件菜单冲突检查项。
 
-    :param kind: 冲突类型
-    :param plugin_id: 当前插件 ID
-    :param value: 冲突值
-    :param message: 冲突说明
-    :param conflict_plugin_id: 冲突插件 ID
+    :ivar kind: 冲突类型
+    :ivar plugin_id: 当前插件 ID
+    :ivar value: 冲突值
+    :ivar message: 冲突说明
+    :ivar conflict_plugin_id: 冲突插件 ID
     """
 
     kind: str
@@ -29,8 +29,8 @@ class PluginMenuConflictResult:
     """
     插件菜单冲突检查结果。
 
-    :param plugin_id: 插件 ID
-    :param items: 冲突检查项列表
+    :ivar plugin_id: 插件 ID
+    :ivar items: 冲突检查项列表
     """
 
     plugin_id: str
@@ -51,9 +51,9 @@ class PluginMenuSnapshot:
     """
     插件菜单快照。
 
-    :param plugin_id: 插件 ID
-    :param menu: 插件菜单声明
-    :param menu_key: 插件内菜单自然键
+    :ivar plugin_id: 插件 ID
+    :ivar menu: 插件菜单声明
+    :ivar menu_key: 插件内菜单自然键
     """
 
     plugin_id: str

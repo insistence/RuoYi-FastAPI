@@ -23,43 +23,75 @@ from module_identity.service.oauth_management_service import (
 
 
 class _FakeSession:
-    """记录 Controller 提交和回滚次数。"""
+    """
+    记录 Controller 提交和回滚次数。
+
+    :ivar commits: 测试中记录的提交次数
+    :ivar rollbacks: 测试中记录的回滚次数
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
         self.commits = 0
         self.rollbacks = 0
 
     async def commit(self) -> None:
+        """累加 ``commits`` 供后续断言检查。"""
         self.commits += 1
 
     async def rollback(self) -> None:
+        """累加 ``rollbacks`` 供后续断言检查。"""
         self.rollbacks += 1
 
 
 @pytest.fixture(autouse=True)
 def _request_context(monkeypatch: pytest.MonkeyPatch) -> None:
-    """为日志装饰器提供当前用户上下文。"""
+    """
+    为日志装饰器提供当前用户上下文。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     monkeypatch.setattr(RequestContext, 'get_current_user', staticmethod(_user))
 
     async def enqueue_operation_log(*args: object, **kwargs: object) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
+        return
 
     monkeypatch.setattr(LogQueueService, 'enqueue_operation_log', enqueue_operation_log)
 
 
 def _user() -> SimpleNamespace:
-    """构造最小当前用户对象。"""
+    """
+    构造最小当前用户对象。
+
+    :return: 最小当前用户对象
+    """
     return SimpleNamespace(user=SimpleNamespace(user_name='admin', dept=SimpleNamespace(dept_name='测试部门')))
 
 
 def _route_map(router: object) -> dict[tuple[str, str], APIRoute]:
-    """构造路由路径和方法索引。"""
+    """
+    构造路由路径和方法索引。
+
+    :param router: 注册端点所用的路由器
+    :return: 路由路径和方法索引
+    """
     routes = [route for route in router.routes if isinstance(route, APIRoute)]
     return {(route.path, method): route for route in routes for method in route.methods}
 
 
 def _assert_routes(router: object, expected: dict[tuple[str, str], str]) -> None:
-    """断言路由路径、方法和权限依赖。"""
+    """
+    断言路由路径、方法和权限依赖。
+
+    :param router: 注册端点所用的路由器
+    :param expected: 断言使用的预期结果
+    """
     routes = _route_map(router)
     assert set(routes) == set(expected)
     for key, permission in expected.items():
@@ -105,6 +137,14 @@ async def test_resource_batch_failure_rolls_back_without_partial_commit(
     calls: list[str] = []
 
     async def fake_disable(*args: object, **kwargs: object) -> object:
+        """
+        模拟批量禁用客户端时的逐项结果。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises OAuthClientManagementError: 模拟待停用的资源不存在
+        :return: ``SimpleNamespace`` 实例
+        """
         resource_id = args[1]
         calls.append(resource_id)
         if resource_id == 'resource-bad':
@@ -153,9 +193,23 @@ async def test_resource_scope_lists_use_real_total_and_actor_failure_is_mapped(
     session = _FakeSession()
 
     async def fake_rows(*args: object, **kwargs: object) -> list[str]:
+        """
+        返回查询使用的固定测试行。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 查询使用的固定测试行
+        """
         return ['row-1', 'row-2']
 
     async def fake_count(*args: object, **kwargs: object) -> int:
+        """
+        返回固定值 ``37``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``37``
+        """
         return 37
 
     monkeypatch.setattr(OAuthResourceManagementService, 'list_resources', fake_rows)

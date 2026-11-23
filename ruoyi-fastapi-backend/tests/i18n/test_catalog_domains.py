@@ -37,7 +37,11 @@ from utils.response_util import ResponseUtil
 
 @pytest.fixture(autouse=True)
 def isolate_catalogs() -> Generator[None, None, None]:
-    """为每个用例编译核心词库，并在结束后恢复注册表和指纹。"""
+    """
+    为每个用例编译核心词库，并在结束后恢复注册表和指纹。
+
+    :yield: 上下文就绪后将控制权交给调用方
+    """
     compile_catalogs()
     original = CatalogRegistry._snapshots.copy()
     yield
@@ -46,7 +50,14 @@ def isolate_catalogs() -> Generator[None, None, None]:
 
 
 def write_plugin(root: Path, plugin_id: str = 'counts', english: str = 'Plugin ready') -> CatalogSpec:
-    """创建真实 PO/MO，俄语三种复数用于验证 ngettext 的实际选择。"""
+    """
+    创建真实 PO/MO，俄语三种复数用于验证 ngettext 的实际选择。
+
+    :param root: 路径解析的基准目录
+    :param plugin_id: 插件清单中的唯一标识
+    :param english: 英文翻译或预期显示的英文文本
+    :return: 真实 PO/MO
+    """
     directory = root / 'i18n'
     directory.mkdir(parents=True, exist_ok=True)
     (directory / 'locale-meta.json').write_text(
@@ -171,6 +182,12 @@ async def test_refresh_and_unload_change_cache_partition_without_request_file_re
     assert t('common.success', domain='plugin.counts', locale='en-US') == 'New release'
 
     def unexpected_read(path: Path) -> bytes:
+        """
+        模拟此操作抛出 AssertionError 的情形。
+
+        :param path: 要读取或处理的路径
+        :raises AssertionError: 请求处理期间意外访问了词库文件
+        """
         raise AssertionError(f'Request read catalog: {path}')
 
     monkeypatch.setattr(Path, 'read_bytes', unexpected_read)
@@ -290,6 +307,12 @@ async def test_catalog_refresh_during_request_does_not_write_old_release_cache(t
 
     @ApiCache('catalog-refresh', vary_by_user=False)
     async def endpoint(request: Request) -> object:
+        """
+        处理请求并提供供路由断言使用的响应。
+
+        :param request: 当前 HTTP 请求
+        :return: 路由测试读取的 HTTP 响应
+        """
         write_plugin(tmp_path, english='New version')
         CatalogRegistry.refresh('plugin.counts')
         return ResponseUtil.success(msg=t('common.success', domain='plugin.counts', locale='en-US'))

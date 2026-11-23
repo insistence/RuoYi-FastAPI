@@ -21,13 +21,13 @@ class AppDetailSourcePayloads:
     """
     应用详情页原始数据源快照。
 
-    :param env_payload: `app env` 结果
-    :param config_payload: `app config` 结果
-    :param doctor_payload: `app doctor` 结果
-    :param routes_payload: `app routes` 结果
-    :param completion_payload: `completion doctor` 结果
-    :param completion_preview_result: `completion show` 命令结果
-    :param preview_shell: 当前补全脚本预览 shell
+    :ivar env_payload: ``app env`` 结果
+    :ivar config_payload: ``app config`` 结果
+    :ivar doctor_payload: ``app doctor`` 结果
+    :ivar routes_payload: ``app routes`` 结果
+    :ivar completion_payload: ``completion doctor`` 结果
+    :ivar completion_preview_result: ``completion show`` 命令结果
+    :ivar preview_shell: 当前补全脚本预览 shell
     """
 
     env_payload: dict[str, Any] | None
@@ -44,9 +44,10 @@ class AppDetailSnapshotCollector:
     应用详情页数据采集器。
 
     该对象负责拉取应用详情页所需的多路 CLI 原始结果，
-    让 `AppDetailAdapter` 保持详情页编排职责。
+    让 ``AppDetailAdapter`` 保持详情页编排职责。
 
-    :param section_builder: 应用详情分区构建器
+    :ivar section_builder: 应用详情分区构建器
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(
@@ -57,8 +58,8 @@ class AppDetailSnapshotCollector:
         """
         初始化应用详情页数据采集器。
 
+        :param query_service: TUI 进程内查询服务
         :param section_builder: 应用详情分区构建器
-        :return: None
         """
         self.section_builder = section_builder
         self.query_service = query_service or TUI_RUNTIME_QUERIES
@@ -103,7 +104,7 @@ class AppSectionBuilder:
         """
         解析补全脚本预览应使用的 shell。
 
-        :param payload: `completion doctor` JSON 负载
+        :param payload: ``completion doctor`` JSON 负载
         :return: shell 名称
         """
         if not isinstance(payload, dict):
@@ -123,7 +124,7 @@ class AppSectionBuilder:
         """
         构建应用环境解析分区。
 
-        :param payload: `app env` JSON 负载
+        :param payload: ``app env`` JSON 负载
         :return: 分区快照
         """
         runtime = payload.get('runtime') if isinstance(payload, dict) else None
@@ -157,7 +158,7 @@ class AppSectionBuilder:
         """
         构建应用基础配置分区。
 
-        :param payload: `app config` JSON 负载
+        :param payload: ``app config`` JSON 负载
         :return: 分区快照
         """
         config = payload.get('config') if isinstance(payload, dict) else None
@@ -192,7 +193,7 @@ class AppSectionBuilder:
         """
         构建应用依赖配置分区。
 
-        :param payload: `app config` JSON 负载
+        :param payload: ``app config`` JSON 负载
         :return: 分区快照
         """
         config = payload.get('config') if isinstance(payload, dict) else None
@@ -224,7 +225,7 @@ class AppSectionBuilder:
         """
         构建应用路由摘要分区。
 
-        :param payload: `app routes` JSON 负载
+        :param payload: ``app routes`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -290,7 +291,7 @@ class AppSectionBuilder:
         """
         构建 shell completion 诊断分区。
 
-        :param payload: `completion doctor` JSON 负载
+        :param payload: ``completion doctor`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -356,7 +357,7 @@ class AppSectionBuilder:
         构建补全脚本预览分区。
 
         :param shell: 当前预览 shell
-        :param preview_result: `completion show` 调用结果
+        :param preview_result: ``completion show`` 调用结果
         :return: 分区快照
         """
         stdout = str(getattr(preview_result, 'stdout', '') or '').strip()
@@ -404,7 +405,7 @@ class AppSectionBuilder:
         """
         构建应用启动前检查分区。
 
-        :param payload: `app doctor` JSON 负载
+        :param payload: ``app doctor`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict):
@@ -479,11 +480,11 @@ class AppSectionBuilder:
         """
         构建应用页总览判断分区。
 
-        :param env_payload: `app env` JSON 负载
-        :param config_payload: `app config` JSON 负载
-        :param doctor_payload: `app doctor` JSON 负载
-        :param routes_payload: `app routes` JSON 负载
-        :param completion_payload: `completion doctor` JSON 负载
+        :param env_payload: ``app env`` JSON 负载
+        :param config_payload: ``app config`` JSON 负载
+        :param doctor_payload: ``app doctor`` JSON 负载
+        :param routes_payload: ``app routes`` JSON 负载
+        :param completion_payload: ``completion doctor`` JSON 负载
         :return: 分区快照
         """
         env_ok = bool(isinstance(env_payload, dict) and env_payload.get('ok', False))
@@ -556,12 +557,12 @@ class AppSectionBuilder:
         """
         构建应用页全部详情分区。
 
-        :param env_payload: `app env` 结果负载
-        :param config_payload: `app config` 结果负载
-        :param doctor_payload: `app doctor` 结果负载
-        :param routes_payload: `app routes` 结果负载
-        :param completion_payload: `completion doctor` 结果负载
-        :param completion_preview_result: `completion show` 命令结果
+        :param env_payload: ``app env`` 结果负载
+        :param config_payload: ``app config`` 结果负载
+        :param doctor_payload: ``app doctor`` 结果负载
+        :param routes_payload: ``app routes`` 结果负载
+        :param completion_payload: ``completion doctor`` 结果负载
+        :param completion_preview_result: ``completion show`` 命令结果
         :param preview_shell: 当前预览 shell
         :return: 详情分区列表
         """
@@ -591,6 +592,9 @@ class AppDetailAdapter(BaseDetailAdapter):
 
     该适配器负责采集应用相关 CLI 结果，并委托分区构建器组装为
     TUI 详情页快照。
+
+    :ivar section_builder: 应用详情分区构建器
+    :ivar snapshot_collector: 应用详情页数据采集器
     """
 
     def __init__(
@@ -603,7 +607,6 @@ class AppDetailAdapter(BaseDetailAdapter):
 
         :param section_builder: 应用详情分区构建器
         :param snapshot_collector: 应用详情页数据采集器
-        :return: None
         """
         super().__init__(
             page_title='应用',

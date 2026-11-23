@@ -68,15 +68,15 @@ CredentialReason = Literal[
 @dataclass(frozen=True)
 class CredentialAuthenticationResult:
     """
-    凭据校验成功后的稳定结果，不包含任何 Token
+    凭据校验成功后的稳定结果，不包含任何 Token。
 
-    :param user: 已通过密码检查的本地用户对象
-    :param dept: 用户所属的部门对象或 None
-    :param acr: 密码认证上下文引用
-    :param amr: 实际使用的认证方法集合
-    :param remember_me: 后续 SSO 服务处理的记住登录选择
-    :param password_change_required: 是否必须修改初始或过期密码
-    :param password_change_reason: 修改密码原因
+    :ivar user: 已通过密码检查的本地用户对象
+    :ivar dept: 用户所属的部门对象或 None
+    :ivar acr: 密码认证上下文引用
+    :ivar amr: 实际使用的认证方法集合
+    :ivar remember_me: 后续 SSO 服务处理的记住登录选择
+    :ivar password_change_required: 是否必须修改初始或过期密码
+    :ivar password_change_reason: 修改密码原因
     """
 
     user: SysUser
@@ -90,21 +90,19 @@ class CredentialAuthenticationResult:
 
 class CredentialAuthenticationError(Exception):
     """
-    凭据校验失败的内部分类异常
+    凭据校验失败的内部分类异常。
 
-    :param reason: 脱敏后的失败原因分类
-    :param legacy_message: Legacy 登录必须保持的中文错误消息
+    :ivar reason: 脱敏后的失败原因分类
+    :ivar legacy_message: Legacy 登录必须保持的中文错误消息
     """
 
     def __init__(self, reason: CredentialReason, legacy_message: str) -> None:
         """
-        初始化对象状态
+        初始化对象状态。
 
         :param reason: 凭据校验失败原因
         :param legacy_message: Legacy 登录错误消息
-        :return: None
         """
-
         self.reason = reason
         self.legacy_message = legacy_message
         super().__init__(legacy_message)
@@ -112,7 +110,9 @@ class CredentialAuthenticationError(Exception):
 
 class CredentialAuthenticationService:
     """
-    凭据认证模块服务层
+    凭据认证模块服务层。
+
+    :cvar ACR_PASSWORD: 表示密码认证的认证上下文类别
     """
 
     ACR_PASSWORD = 'urn:ruoyi:acr:pwd'
@@ -128,7 +128,7 @@ class CredentialAuthenticationService:
         skip_captcha: bool = False,
     ) -> Row[tuple[SysUser, SysDept]]:
         """
-        执行 Legacy 登录的原有凭据检查，不签发 JWT
+        执行 Legacy 登录的原有凭据检查，不签发 JWT。
 
         :param redis: Legacy 登录使用的 Redis 客户端
         :param query_db: 异步数据库会话
@@ -138,7 +138,6 @@ class CredentialAuthenticationService:
         :return: 通过检查的用户和部门行
         :raises CredentialAuthenticationError: 使用 Legacy 中文语义分类失败
         """
-
         await cls._check_ip(client_ip, redis)
         user_name = login_user.user_name
         lock_key = f'{RedisInitKeyConfig.ACCOUNT_LOCK.key}:{user_name}'
@@ -179,7 +178,7 @@ class CredentialAuthenticationService:
         remember_me: bool = False,
     ) -> CredentialAuthenticationResult:
         """
-        执行 OIDC 交互的本地凭据校验，不触发 Legacy Token 流程
+        执行 OIDC 交互的本地凭据校验，不触发 Legacy Token 流程。
 
         用户不存在和密码错误共享 ``invalid_credentials`` 分类；用户名只用于
         HMAC 计算，OIDC 错误计数与锁定键不会包含用户名原文
@@ -196,7 +195,6 @@ class CredentialAuthenticationService:
         :return: 凭据成功结果，不含 Token
         :raises CredentialAuthenticationError: 脱敏分类的凭据失败
         """
-
         await cls._check_ip(client_ip, redis)
         username_digest = OidcUtil.hash_sensitive_identifier(user_name, OidcConfig.oidc_token_hash_pepper)
         failure_key = OidcRedisKey.login_user_rate_limit(username_digest)
@@ -237,13 +235,12 @@ class CredentialAuthenticationService:
     @staticmethod
     def _verify(password: str, stored_hash: str | None) -> bool:
         """
-        使用项目 PwdUtil 验证密码，异常哈希按失败处理
+        使用项目 PwdUtil 验证密码，异常哈希按失败处理。
 
         :param password: 用户密码
         :param stored_hash: 已存储的密码摘要
         :return: 密码是否匹配
         """
-
         try:
             return bool(PwdUtil.verify_password(password, stored_hash or _DUMMY_PASSWORD_HASH))
         except (TypeError, ValueError):
@@ -252,13 +249,12 @@ class CredentialAuthenticationService:
     @classmethod
     async def _check_ip(cls, client_ip: str | None, redis: Redis) -> None:
         """
-        拒绝系统配置黑名单中的客户端 IP
+        拒绝系统配置黑名单中的客户端 IP。
 
         :param client_ip: 客户端 IP 地址
         :param redis: Redis 客户端
-        :return: None
+        :raises CredentialAuthenticationError: 客户端 IP 命中禁止登录名单
         """
-
         value = await redis.get(f'{RedisInitKeyConfig.SYS_CONFIG.key}:sys.login.blackIPList')
         if client_ip in (value.split(',') if value else []):
             raise CredentialAuthenticationError('ip_blocked', I18nMessage('当前IP禁止登录', msg_key='auth.ipBlocked'))
@@ -266,13 +262,12 @@ class CredentialAuthenticationService:
     @classmethod
     async def _check_legacy_captcha(cls, redis: Redis, login_user: UserLogin) -> None:
         """
-        按原有非消费语义校验 Legacy 验证码
+        按原有非消费语义校验 Legacy 验证码。
 
         :param redis: Redis 客户端
         :param login_user: Legacy 登录请求
-        :return: None
+        :raises CredentialAuthenticationError: 验证码缺失、已失效或不匹配
         """
-
         value = await redis.get(f'{RedisInitKeyConfig.CAPTCHA_CODES.key}:{login_user.uuid}')
         if not value:
             raise CredentialAuthenticationError(
@@ -286,14 +281,13 @@ class CredentialAuthenticationService:
     @classmethod
     async def _check_oidc_captcha(cls, redis: Redis, code: str | None, uuid: str | None) -> None:
         """
-        原子消费 OIDC 验证码，阻止验证码重放
+        原子消费 OIDC 验证码，阻止验证码重放。
 
         :param redis: Redis 客户端
         :param code: OIDC 验证码
         :param uuid: 验证码标识
-        :return: None
+        :raises CredentialAuthenticationError: 验证码标识缺失、验证码已失效或不匹配
         """
-
         if not uuid:
             raise CredentialAuthenticationError(
                 'captcha_missing', I18nMessage('验证码已失效或不存在', msg_key='auth.captchaMissing')
@@ -313,13 +307,12 @@ class CredentialAuthenticationService:
     @classmethod
     async def _record_legacy_password_error(cls, redis: Redis, user_name: str) -> None:
         """
-        保持 Legacy 错误计数、阈值和十分钟 TTL 完全不变
+        保持 Legacy 错误计数、阈值和十分钟 TTL 完全不变。
 
         :param redis: Redis 客户端
         :param user_name: 用户名
-        :return: None
+        :raises CredentialAuthenticationError: 密码错误或连续失败次数已触发账号锁定
         """
-
         key = f'{RedisInitKeyConfig.PASSWORD_ERROR_COUNT.key}:{user_name}'
         cached = await redis.get(key)
         count = int(cached or 0) + 1
@@ -338,14 +331,13 @@ class CredentialAuthenticationService:
     @classmethod
     async def _record_oidc_password_error(cls, redis: Redis, failure_key: str, lock_key: str) -> None:
         """
-        记录 OIDC 摘要命名空间错误状态，不写入用户名
+        记录 OIDC 摘要命名空间错误状态，不写入用户名。
 
         :param redis: Redis 客户端
         :param failure_key: OIDC 失败计数 Key
         :param lock_key: OIDC 锁定 Key
-        :return: None
+        :raises CredentialAuthenticationError: 失败次数达到限制，账号已锁定
         """
-
         result = await redis.eval(
             _OIDC_FAILURE_SCRIPT,
             2,
@@ -362,13 +354,12 @@ class CredentialAuthenticationService:
     @classmethod
     async def _password_policy(cls, redis: Redis, user: SysUser) -> tuple[bool, str | None]:
         """
-        复用系统初始密码和密码有效期配置，处理 naive/aware 时间
+        复用系统初始密码和密码有效期配置，处理 naive/aware 时间。
 
         :param redis: Redis 客户端
         :param user: 系统用户对象
         :return: 密码修改要求及原因
         """
-
         init_modify = await redis.get(f'{RedisInitKeyConfig.SYS_CONFIG.key}:sys.account.initPasswordModify')
         update_time = getattr(user, 'pwd_update_date', None)
         if init_modify == '1' and update_time is None:
@@ -390,7 +381,10 @@ class CredentialAuthenticationService:
 
 class ClaimService:
     """
-    OIDC Claim 模块服务层
+    OIDC Claim 模块服务层。
+
+    :cvar SCOPE_CLAIMS: 按权限范围允许返回的身份声明
+    :cvar FORBIDDEN_CLAIMS: 禁止由客户端指定的身份声明
     """
 
     SCOPE_CLAIMS = {
@@ -420,12 +414,11 @@ class ClaimService:
     @classmethod
     def _claim_set(cls, value: Any) -> set[str]:
         """
-        规范化策略或白名单中的 Claim 名称
+        规范化策略或白名单中的 Claim 名称。
 
         :param value: 待规范化的 Claim 名称集合
         :return: 规范化 Claim 集合
         """
-
         if value is True:
             return set(cls.SCOPE_CLAIMS['openid'] | cls.SCOPE_CLAIMS['profile'])
         if isinstance(value, str):
@@ -439,13 +432,12 @@ class ClaimService:
     @classmethod
     def _client_claims_for_scope(cls, scope: str, policy: Any) -> set[str]:
         """
-        取得 Client 对某一 Scope 的 Claim 策略
+        取得 Client 对某一 Scope 的 Claim 策略。
 
         :param scope: 待读取策略的 Scope 名称
         :param policy: Scope Claim 策略
         :return: Scope 对应 Claim 集合
         """
-
         if isinstance(policy, Mapping):
             if scope in policy:
                 value = policy[scope]
@@ -468,14 +460,13 @@ class ClaimService:
         resource_allowed_claims: Any,
     ) -> set[str]:
         """
-        计算请求 Scope、Client 策略和 Resource 白名单的三重交集
+        计算请求 Scope、Client 策略和 Resource 白名单的三重交集。
 
         :param requested_scopes: 请求的空格分隔 Scope 或 Scope 集合
         :param client_scope_policy: Client 的 Scope 到 Claim 策略映射
         :param resource_allowed_claims: Resource 允许的 Claim 列表
         :return: 可安全生成的 Claim 名称集合
         """
-
         requested = OidcUtil.scope_set(requested_scopes)
         client_claims = set().union(*(cls._client_claims_for_scope(scope, client_scope_policy) for scope in requested))
         resource_claims = cls._claim_set(resource_allowed_claims)
@@ -485,7 +476,7 @@ class ClaimService:
     @classmethod
     def _safe_values(cls, user: Any, subject_id: str | None, roles: Any, department: Any) -> dict[str, Any]:
         """
-        抽取允许的用户属性，明确排除本地 ID 和密码
+        抽取允许的用户属性，明确排除本地 ID 和密码。
 
         :param user: SysUser ORM 记录或用户 Claim 字段映射
         :param subject_id: 稳定身份主体 ID
@@ -493,7 +484,6 @@ class ClaimService:
         :param department: 部门对象或部门映射
         :return: 安全 Claim 字段映射
         """
-
         values = {
             'sub': subject_id or OidcUtil.read_field(user, 'subject_id'),
             'name': OidcUtil.read_field(user, 'name', OidcUtil.read_field(user, 'nick_name')),
@@ -537,7 +527,7 @@ class ClaimService:
         department: Any = None,
     ) -> dict[str, Any]:
         """
-        为用户构建经过三重授权和敏感字段过滤的 OIDC Claims
+        为用户构建经过三重授权和敏感字段过滤的 OIDC Claims。
 
         :param user: 已加载的用户 ORM 对象或安全字段映射
         :param requested_scopes: 请求 Scope
@@ -547,8 +537,8 @@ class ClaimService:
         :param roles: 已按项目角色 DAO 查询的角色 key 集合
         :param department: 已按项目部门 DAO 查询的部门对象或映射
         :return: 最小 OIDC Claim 映射
+        :raises OAuthProtocolException: 用户身份映射不可用或缺少 OpenID 所需的主体声明
         """
-
         requested = OidcUtil.scope_set(requested_scopes)
         allowed = cls.effective_claims(requested, client_scope_policy, resource_allowed_claims)
         stable_subject = subject_id or OidcUtil.read_field(user, 'subject_id')
@@ -577,13 +567,12 @@ class ClaimService:
     @classmethod
     async def load_roles_and_department(cls, db: AsyncSession, user_id: int) -> tuple[list[str], SysDept | None]:
         """
-        按现有 ORM DAO 使用的启用状态规则加载角色和部门
+        按现有 ORM DAO 使用的启用状态规则加载角色和部门。
 
         :param db: 异步数据库会话
         :param user_id: 本地用户 ID，仅用于内部查询，不会进入 Claim
         :return: 角色名称列表和部门对象
         """
-
         return await IdentityUserDao.get_claim_attributes(db, user_id)
 
     @classmethod
@@ -596,7 +585,7 @@ class ClaimService:
         resource_allowed_claims: Iterable[str] | None = None,
     ) -> tuple[dict[str, Any], set[str]]:
         """
-        解析 Client Scope 策略及最终 Claim 白名单
+        解析 Client Scope 策略及最终 Claim 白名单。
 
         :param db: 异步数据库会话
         :param client_pk: Client 内部主键
@@ -604,7 +593,6 @@ class ClaimService:
         :param resource_allowed_claims: 可选 Resource Claim 白名单
         :return: Scope 策略映射和可用 Claim 集合
         """
-
         requested = set(scopes)
         bindings = await OAuthClientDao.list_scope_bindings(db, client_pk)
         definitions = await OAuthClientDao.list_scope_definitions(db)
@@ -623,9 +611,7 @@ class ClaimService:
 
 
 class IdentitySubjectService:
-    """
-    身份主体模块服务层
-    """
+    """身份主体模块服务层。"""
 
     @classmethod
     async def require_by_user_id(
@@ -637,18 +623,17 @@ class IdentitySubjectService:
         audit_writer: Callable[[int], Awaitable[object]] | None = None,
     ) -> SysIdentitySubject:
         """
-        获取用户的稳定 Subject，缺失时拒绝继续签发
+        获取用户的稳定 Subject，缺失时拒绝继续签发。
 
         :param db: 与当前业务事务相同的异步数据库会话
         :param user_id: 本地用户 ID
         :param audit_db: 可选独立审计会话，避免主事务回滚时丢失完整性告警
         :param audit_writer: 可选外部审计写入器，提交边界由写入器负责
-        生产签发链路必须提供其中之一；两者均省略时审计仅随当前事务 flush，
-        主事务回滚会一并回滚，不能作为持久化告警
+            生产签发链路必须提供其中之一；两者均省略时审计仅随当前事务 flush，
+            主事务回滚会一并回滚，不能作为持久化告警
         :return: 已存在的主体关联
         :raises OAuthProtocolException: 主体关联缺失或用户标识无效时抛出
         """
-
         if not isinstance(user_id, int) or isinstance(user_id, bool) or user_id <= 0:
             await cls._write_missing_audit(db, user_id, audit_db=audit_db, audit_writer=audit_writer)
             raise OAuthProtocolException('server_error', 'User identity mapping is unavailable', 500)
@@ -668,7 +653,7 @@ class IdentitySubjectService:
         audit_writer: Callable[[int], Awaitable[object]] | None = None,
     ) -> None:
         """
-        写入主体完整性审计；审计失败不能把缺失主体变成可签发状态
+        写入主体完整性审计；审计失败不能把缺失主体变成可签发状态。
 
         未传入独立会话或写入器时只在调用方事务中 flush，调用方必须自行承担
         回滚丢失告警的后果；持久化安全告警应使用 ``audit_writer``
@@ -677,9 +662,7 @@ class IdentitySubjectService:
         :param user_id: 本地用户 ID
         :param audit_db: 独立审计数据库会话
         :param audit_writer: 外部审计写入器
-        :return: None
         """
-
         try:
             if audit_writer is not None:
                 await audit_writer(user_id)
@@ -707,7 +690,7 @@ class IdentitySubjectService:
         subject_id: str | None = None,
     ) -> SysIdentitySubject:
         """
-        在用户创建事务中建立稳定 Subject，不提交调用方事务
+        在用户创建事务中建立稳定 Subject，不提交调用方事务。
 
         :param db: 用户创建事务使用的异步数据库会话
         :param user_id: 已创建的本地用户 ID
@@ -716,7 +699,6 @@ class IdentitySubjectService:
         :return: 已存在或新建的主体关联
         :raises ValueError: 用户 ID 无效时抛出
         """
-
         if not isinstance(user_id, int) or isinstance(user_id, bool) or user_id <= 0:
             raise ValueError('身份用户编号 identity_user_id 必须为正整数')
         return await IdentitySubjectDao.create_for_user(db, user_id, create_by, subject_id)
@@ -726,15 +708,15 @@ class IdentitySubjectService:
         cls, db: AsyncSession, user_id: int, create_by: str = 'identity-repair'
     ) -> SysIdentitySubject:
         """
-        幂等修复单个用户的缺失 Subject
+        幂等修复单个用户的缺失 Subject。
 
         :param db: 异步数据库会话
         :param user_id: 待修复的本地用户 ID
         :param create_by: 回填记录的创建者标识
         :return: 已存在或本次创建的主体关联
         :raises ValueError: 用户 ID 无效时抛出
+        :raises IntegrityError: 无法通过重读已有映射解决身份主体的完整性冲突
         """
-
         if not isinstance(user_id, int) or isinstance(user_id, bool) or user_id <= 0:
             raise ValueError('身份用户编号 identity_user_id 必须为正整数')
         try:
@@ -753,14 +735,14 @@ class IdentitySubjectService:
         create_by: str = 'identity-repair',
     ) -> Sequence[SysIdentitySubject]:
         """
-        幂等批量修复缺失 Subject，不提交调用方事务
+        幂等批量修复缺失 Subject，不提交调用方事务。
 
         :param db: 异步数据库会话
         :param user_ids: 可选用户 ID 集合；省略时检查所有未删除用户
         :param create_by: 回填记录的创建者标识
         :return: 本次调用新建的主体记录集合
+        :raises ValueError: 身份用户编号 identity_user_id 必须为正整数
         """
-
         if user_ids is not None:
             values = list(user_ids)
             if any(not isinstance(item, int) or isinstance(item, bool) or item <= 0 for item in values):
@@ -774,7 +756,7 @@ class IdentitySubjectService:
         cls, db: AsyncSession, user_id: int, expected_version: int | None = None
     ) -> SysIdentitySubject:
         """
-        原子递增用户认证版本并返回最新主体
+        原子递增用户认证版本并返回最新主体。
 
         :param db: 异步数据库会话
         :param user_id: 本地用户 ID
@@ -782,7 +764,6 @@ class IdentitySubjectService:
         :return: 更新后的主体关联
         :raises OAuthProtocolException: 主体不存在或版本竞争失败时抛出
         """
-
         if not await IdentitySubjectDao.increment_auth_version(db, user_id, expected_version):
             raise OAuthProtocolException('server_error', 'User identity version could not be updated', 500)
         subject = await IdentitySubjectDao.get_by_user_id(db, user_id)
@@ -793,13 +774,12 @@ class IdentitySubjectService:
     @classmethod
     async def get_by_subject_id(cls, db: AsyncSession, subject_id: str) -> SysIdentitySubject | None:
         """
-        按稳定 Subject 查询主体关联
+        按稳定 Subject 查询主体关联。
 
         :param db: 异步数据库会话
         :param subject_id: 稳定 OIDC Subject
         :return: 主体关联，不存在时返回 None
         """
-
         return await IdentitySubjectDao.get_by_subject_id(db, subject_id)
 
 
@@ -816,15 +796,17 @@ IdentitySecurityEvent = Literal[
 
 
 class IdentitySecurityEventError(ValueError):
-    """
-    身份安全事件缺少主体映射或输入不满足事务约束
-    """
+    """身份安全事件缺少主体映射或输入不满足事务约束。"""
 
 
 @dataclass(frozen=True, slots=True)
 class IdentitySecurityEventResult:
     """
-    一次身份安全失效操作的不可变结果
+    一次身份安全失效操作的不可变结果。
+
+    :ivar affected_users: 受本次安全事件影响的用户
+    :ivar revoked_sessions: 本次撤销的登录会话
+    :ivar revoked_refresh_tokens: 本次撤销的刷新令牌
     """
 
     affected_users: tuple[int, ...]
@@ -834,7 +816,14 @@ class IdentitySecurityEventResult:
 
 class IdentitySecurityEventService:
     """
-    身份安全事件模块服务层
+    身份安全事件模块服务层。
+
+    :cvar _EVENTS: 可识别的身份安全事件类型
+    :cvar _ALWAYS_REVOKE_SSO: 必须撤销单点登录会话的安全事件
+    :cvar _CLAIM_EVENTS: 会影响令牌身份声明的事件
+    :cvar _TERMINAL_REFRESH_STATUSES: 刷新令牌不再可用的终止状态集合
+    :cvar _MAX_BATCH_USERS: 一批安全事件允许处理的最大用户数
+    :cvar _MAX_SID_LENGTH: 会话标识允许的最大长度
     """
 
     _EVENTS = frozenset(
@@ -870,7 +859,7 @@ class IdentitySecurityEventService:
         now: datetime | None = None,
     ) -> IdentitySecurityEventResult:
         """
-        处理单个用户事件，但不提交调用方事务
+        处理单个用户事件，但不提交调用方事务。
 
         :param db: 与用户或角色变更共用的数据库会话
         :param user_id: 本地用户 ID
@@ -881,7 +870,6 @@ class IdentitySecurityEventService:
         :param now: 可注入的 项目当前时间
         :return: 版本递增及凭据撤销数量
         """
-
         return await cls.handle_users_event(
             db,
             (user_id,),
@@ -905,7 +893,7 @@ class IdentitySecurityEventService:
         now: datetime | None = None,
     ) -> IdentitySecurityEventResult:
         """
-        按固定锁顺序批量处理身份安全事件，不提交事务
+        按固定锁顺序批量处理身份安全事件，不提交事务。
 
         :param db: 异步数据库会话
         :param user_ids: 本地用户 ID 集合
@@ -917,7 +905,6 @@ class IdentitySecurityEventService:
         :return: 安全事件处理结果
         :raises IdentitySecurityEventError: 事件、用户或主体映射不完整
         """
-
         try:
             ids = OidcUtil.normalize_user_ids(user_ids, max_size=cls._MAX_BATCH_USERS)
         except ValueError as exc:
@@ -978,7 +965,7 @@ class IdentitySecurityEventService:
         now: datetime | None = None,
     ) -> IdentitySecurityEventResult:
         """
-        查询角色当前成员并批量触发身份安全失效
+        查询角色当前成员并批量触发身份安全失效。
 
         :param db: 异步数据库会话
         :param role_id: 角色 ID
@@ -987,8 +974,8 @@ class IdentitySecurityEventService:
         :param revoke_sso_on_claim_change: Claim 变化时是否撤销 SSO
         :param now: 当前时间
         :return: 安全事件处理结果
+        :raises IdentitySecurityEventError: 角色编号 role_id 必须为正整数；角色安全事件无效
         """
-
         if not isinstance(role_id, int) or isinstance(role_id, bool) or role_id <= 0:
             raise IdentitySecurityEventError('角色编号 role_id 必须为正整数')
         if event not in {'role_claim_changed', 'role_disabled', 'role_deleted'}:

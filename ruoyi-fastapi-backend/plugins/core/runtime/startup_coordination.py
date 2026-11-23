@@ -17,6 +17,9 @@ class PluginStartupGenerationResolver:
     生产部署可通过 ``APP_RELEASE_ID`` 显式提供发布代际。未配置时，对应用版本和插件
     后端源码生成稳定指纹，使同一发布的多个 worker 共享代际，而源码变化后的滚动发布
     不会复用旧版本 ready 状态。
+
+    :ivar backend_root: 后端项目根目录
+    :ivar release_id: 显式发布标识
     """
 
     def __init__(self, backend_root: Path | str, *, release_id: str | None = None) -> None:

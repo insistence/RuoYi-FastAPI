@@ -14,16 +14,14 @@ from utils.common_util import CamelCaseUtil
 
 
 class DeptService:
-    """
-    部门管理模块服务层
-    """
+    """部门管理模块服务层。"""
 
     @classmethod
     async def get_dept_tree_services(
         cls, query_db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement
     ) -> list[dict[str, Any]]:
         """
-        获取部门树信息service
+        获取部门树信息service。
 
         :param query_db: orm对象
         :param page_object: 查询参数对象
@@ -41,7 +39,7 @@ class DeptService:
         cls, query_db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement
     ) -> list[dict[str, Any]]:
         """
-        获取部门编辑部门树信息service
+        获取部门编辑部门树信息service。
 
         :param query_db: orm对象
         :param page_object: 查询参数对象
@@ -57,7 +55,7 @@ class DeptService:
         cls, query_db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement
     ) -> list[dict[str, Any]]:
         """
-        获取部门列表信息service
+        获取部门列表信息service。
 
         :param query_db: orm对象
         :param page_object: 分页查询参数对象
@@ -73,12 +71,13 @@ class DeptService:
         cls, query_db: AsyncSession, dept_id: int, data_scope_sql: ColumnElement
     ) -> CrudResponseModel:
         """
-        校验部门是否有数据权限service
+        校验部门是否有数据权限service。
 
         :param query_db: orm对象
         :param dept_id: 部门id
         :param data_scope_sql: 数据权限对应的查询sql语句
         :return: 校验结果
+        :raises ServiceException: 没有权限访问部门数据
         """
         depts = await DeptDao.get_dept_list(query_db, DeptModel(deptId=dept_id), data_scope_sql)
         if depts:
@@ -88,7 +87,7 @@ class DeptService:
     @classmethod
     async def check_dept_name_unique_services(cls, query_db: AsyncSession, page_object: DeptModel) -> bool:
         """
-        校验部门名称是否唯一service
+        校验部门名称是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 部门对象
@@ -105,11 +104,13 @@ class DeptService:
     @classmethod
     async def add_dept_services(cls, query_db: AsyncSession, page_object: DeptModel) -> CrudResponseModel:
         """
-        新增部门信息service
+        新增部门信息service。
 
         :param query_db: orm对象
         :param page_object: 新增部门对象
         :return: 新增部门校验结果
+        :raises ServiceException: 上级部门不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if not await cls.check_dept_name_unique_services(query_db, page_object):
             raise ServiceException(
@@ -138,11 +139,13 @@ class DeptService:
     @classmethod
     async def edit_dept_services(cls, query_db: AsyncSession, page_object: DeptModel) -> CrudResponseModel:
         """
-        编辑部门信息service
+        编辑部门信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑部门对象
         :return: 编辑部门校验结果
+        :raises ServiceException: 部门不存在；上级部门不存在；上级部门不能是当前部门的子部门
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         old_dept = await DeptDao.get_dept_detail_by_id(query_db, page_object.dept_id)
         if not old_dept:
@@ -206,12 +209,13 @@ class DeptService:
         data_scope_sql: ColumnElement | None = None,
     ) -> CrudResponseModel:
         """
-        批量保存部门显示顺序
+        批量保存部门显示顺序。
 
         :param query_db: orm对象
         :param page_object: 部门排序参数
         :param data_scope_sql: 数据权限对应的查询sql语句
         :return: 保存结果
+        :raises ServiceException: 事务失败并回滚后重新抛出原异常；保存排序异常，请联系管理员
         """
         dept_sort_list = cls.parse_dept_sort_items(page_object)
         try:
@@ -231,10 +235,11 @@ class DeptService:
     @classmethod
     def parse_dept_sort_items(cls, page_object: DeptSortModel) -> list[dict[str, int]]:
         """
-        解析并校验部门排序参数
+        解析并校验部门排序参数。
 
         :param page_object: 部门排序参数
         :return: 部门id与显示顺序列表
+        :raises ServiceException: 部门排序参数不正确
         """
         dept_id_values = [value.strip() for value in page_object.dept_ids.split(',') if value.strip()]
         order_num_values = [value.strip() for value in page_object.order_nums.split(',') if value.strip()]
@@ -258,11 +263,13 @@ class DeptService:
     @classmethod
     async def delete_dept_services(cls, query_db: AsyncSession, page_object: DeleteDeptModel) -> CrudResponseModel:
         """
-        删除部门信息service
+        删除部门信息service。
 
         :param query_db: orm对象
         :param page_object: 删除部门对象
         :return: 删除部门校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入部门id为空
         """
         if page_object.dept_ids:
             dept_id_list = page_object.dept_ids.split(',')
@@ -285,7 +292,7 @@ class DeptService:
     @classmethod
     async def dept_detail_services(cls, query_db: AsyncSession, dept_id: int) -> DeptModel:
         """
-        获取部门详细信息service
+        获取部门详细信息service。
 
         :param query_db: orm对象
         :param dept_id: 部门id
@@ -299,7 +306,7 @@ class DeptService:
     @classmethod
     def list_to_tree(cls, permission_list: Sequence[SysDept]) -> list[DeptTreeModel]:
         """
-        工具方法：根据部门列表信息生成树形嵌套数据
+        工具方法：根据部门列表信息生成树形嵌套数据。
 
         :param permission_list: 部门列表信息
         :return: 部门树形嵌套数据
@@ -330,7 +337,7 @@ class DeptService:
     @classmethod
     async def replace_first(cls, original_str: str, old_str: str, new_str: str) -> str:
         """
-        工具方法：替换字符串
+        工具方法：替换字符串。
 
         :param original_str: 需要替换的原始字符串
         :param old_str: 用于匹配的字符串
@@ -344,11 +351,10 @@ class DeptService:
     @classmethod
     async def update_parent_dept_status_normal(cls, query_db: AsyncSession, dept: DeptModel) -> None:
         """
-        更新父部门状态为正常
+        更新父部门状态为正常。
 
         :param query_db: orm对象
         :param dept: 部门对象
-        :return:
         """
         dept_id_list = dept.ancestors.split(',')
         await DeptDao.update_dept_status_normal_dao(query_db, list(map(int, dept_id_list)))
@@ -358,13 +364,12 @@ class DeptService:
         cls, query_db: AsyncSession, dept_id: int, new_ancestors: str, old_ancestors: str
     ) -> None:
         """
-        更新子部门信息
+        更新子部门信息。
 
         :param query_db: orm对象
         :param dept_id: 部门id
         :param new_ancestors: 新的祖先
         :param old_ancestors: 旧的祖先
-        :return:
         """
         children = await DeptDao.get_children_dept_dao(query_db, dept_id)
         update_children = []

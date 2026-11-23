@@ -41,10 +41,9 @@ CALLS: list[str] = []
 
 def init_execution_process(database_url: str) -> None:
     """
-    子进程只使用测试库，禁止回退到项目开发数据源
+    子进程只使用测试库，禁止回退到项目开发数据源。
 
     :param database_url: 隔离测试数据库连接地址
-    :return: None
     """
     engine = create_engine(database_url)
     JobExecutionStore.session = staticmethod(lambda: Session(engine, expire_on_commit=False))
@@ -52,10 +51,11 @@ def init_execution_process(database_url: str) -> None:
 
 def held_process_job(directory: str) -> int:
     """
-    通过临时文件协调真实进程任务，带超时避免失败后遗留任务
+    通过临时文件协调真实进程任务，带超时避免失败后遗留任务。
 
     :param directory: 进程测试使用的临时目录
     :return: 执行任务的进程ID
+    :raises TimeoutError: 等待测试释放进程任务超时
     """
     Path(directory, 'started.json').write_text(json.dumps({'pid': os.getpid()}), encoding='utf-8')
     deadline = time.monotonic() + 20
@@ -68,7 +68,7 @@ def held_process_job(directory: str) -> int:
 
 def claim_in_process(execution_id: str, job: dict) -> bool:
     """
-    不同进程同时尝试占用同一任务，保留占用供父进程断言
+    不同进程同时尝试占用同一任务，保留占用供父进程断言。
 
     :param execution_id: 执行ID
     :param job: 任务对象信息
@@ -79,7 +79,7 @@ def claim_in_process(execution_id: str, job: dict) -> bool:
 
 def harmless_job(value: str = 'done') -> str:
     """
-    隔离测试任务，只记录调用并返回参数
+    隔离测试任务，只记录调用并返回参数。
 
     :param value: 用于记录调用和返回的测试参数
     :return: 任务输入参数
@@ -89,11 +89,7 @@ def harmless_job(value: str = 'done') -> str:
 
 
 async def held_job() -> None:
-    """
-    保持一次异步执行，用于验证手动与 Cron 共享并发上限
-
-    :return: None
-    """
+    """保持一次异步执行，用于验证手动与 Cron 共享并发上限。"""
     CALLS.append('held')
     STARTED.set()
     await RELEASE.wait()
@@ -101,7 +97,7 @@ async def held_job() -> None:
 
 def job_info(**changes) -> JobModel:
     """
-    构造使用未来 Cron 的无业务副作用任务
+    构造使用未来 Cron 的无业务副作用任务。
 
     :param changes: 需要覆盖的任务字段
     :return: 测试任务对象
@@ -127,7 +123,13 @@ def job_info(**changes) -> JobModel:
 @dataclass
 class Runtime:
     """
-    使用文件 SQLite 和真实 APScheduler 的隔离测试环境
+    使用文件 SQLite 和真实 APScheduler 的隔离测试环境。
+
+    :ivar engine: 隔离测试数据库引擎
+    :ivar sessions: 异步数据库会话工厂
+    :ivar scheduler: 隔离测试调度器
+    :ivar started: 是否已经完成启动
+    :ivar release: 释放资源或同步等待的信号
     """
 
     engine: Engine
@@ -138,7 +140,7 @@ class Runtime:
 
     async def save(self, job: JobModel | None = None) -> JobModel:
         """
-        保存测试定义和初始同步状态
+        保存测试定义和初始同步状态。
 
         :param job: 任务对象信息
         :return: 已保存的任务对象
@@ -152,7 +154,7 @@ class Runtime:
 
     async def execution(self, execution_id: str) -> dict:
         """
-        读取当前执行状态
+        读取当前执行状态。
 
         :param execution_id: 执行ID
         :return: 当前执行状态
@@ -163,11 +165,12 @@ class Runtime:
 
     async def wait_execution(self, execution_id: str, expected: set[str]) -> dict:
         """
-        等待执行进入预期状态，失败时打印最后观察到的状态
+        等待执行进入预期状态，失败时打印最后观察到的状态。
 
         :param execution_id: 执行ID
         :param expected: 预期的执行状态集合
         :return: 符合预期的执行状态
+        :raises AssertionError: 截止时间内没有观察到预期执行状态
         """
         deadline = asyncio.get_running_loop().time() + 5
         while asyncio.get_running_loop().time() < deadline:
@@ -181,11 +184,11 @@ class Runtime:
 @pytest_asyncio.fixture
 async def runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[Runtime]:
     """
-    只访问临时 SQLite，调度器执行日志不会连接开发数据库
+    只访问临时 SQLite，调度器执行日志不会连接开发数据库。
 
     :param tmp_path: 临时目录
     :param monkeypatch: 测试替换对象
-    :return: 隔离测试运行环境
+    :yield: 隔离测试运行环境
     """
     global STARTED, RELEASE
     STARTED, RELEASE = asyncio.Event(), asyncio.Event()
@@ -202,12 +205,11 @@ async def runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
 
     def assign_sqlite_id(_mapper: object, connection: object, target: SysJob) -> None:
         """
-        为 SQLite 测试模拟真实 MySQL/PostgreSQL 的数据库任务 ID 分配
+        为 SQLite 测试模拟真实 MySQL/PostgreSQL 的数据库任务 ID 分配。
 
         :param _mapper: 任务模型映射器
         :param connection: 数据库连接
         :param target: 任务模型实例
-        :return: None
         """
         if target.job_id is None:
             target.job_id = connection.scalar(select(func.coalesce(func.max(SysJob.job_id), 0) + 1))
@@ -242,11 +244,10 @@ async def runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
 
 def patch_scheduler_components(monkeypatch: pytest.MonkeyPatch, scheduler: AsyncIOScheduler) -> None:
     """
-    为隔离调度器创建完整的功能类实例及依赖关系
+    为隔离调度器创建完整的功能类实例及依赖关系。
 
     :param monkeypatch: 测试替换对象
     :param scheduler: 隔离测试调度器
-    :return: None
     """
     resources = SchedulerResources()
     jobs = SchedulerJobs(scheduler)
@@ -268,13 +269,12 @@ def patch_runtime_globals(
     engine: Engine,
 ) -> None:
     """
-    隔离调度器单例和数据库工厂，测试结束由 monkeypatch 逐项恢复
+    隔离调度器单例和数据库工厂，测试结束由 monkeypatch 逐项恢复。
 
     :param monkeypatch: 测试替换对象
     :param scheduler: 隔离测试调度器
     :param sessions: 异步数据库会话工厂
     :param engine: 隔离测试数据库引擎
-    :return: None
     """
     monkeypatch.setattr(task_module, 'runtime_harmless', harmless_job, raising=False)
     monkeypatch.setattr(task_module, 'runtime_held', held_job, raising=False)

@@ -49,14 +49,12 @@ from common.mixin import GeneratedTimeRangeQueryMixin
 
 {% if table.sub %}
 class {{ BusinessName }}BaseModel(BaseModel):
-    """
-    {{ functionName }}表对应pydantic模型
-    """
+    """{{ functionName }}表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
     {% for column in columns %}
-    {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description={{ column.column_comment | tojson }})
+    {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description={{ column.column_comment | model_field_label | tojson }})
     {% endfor %}
 
     {% for column in columns %}
@@ -71,6 +69,11 @@ class {{ BusinessName }}BaseModel(BaseModel):
         ),
     )
     def get_{{ column.column_name }}(self) -> {{ column.vo_type }} | None:
+        """
+        校验必填字段。
+
+        :return: 当前记录的 {{ column.column_name }} 字段值
+        """
         return self.{{ column.column_name }}
     {% if not loop.last %}{{ "\n" }}{% endif %}
     {% endif %}
@@ -78,6 +81,7 @@ class {{ BusinessName }}BaseModel(BaseModel):
 
     {% if vo_field_required.has_required %}
     def validate_fields(self) -> None:
+        """校验模型的必填字段。"""
     {% for column in columns %}
     {% if column.required %}
         self.get_{{ column.column_name }}()
@@ -88,14 +92,12 @@ class {{ BusinessName }}BaseModel(BaseModel):
 
 {% endif %}
 class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% else %}BaseModel{% endif %}):
-    """
-    {{ functionName }}表对应pydantic模型
-    """
+    """{{ functionName }}表对应pydantic模型。"""
     {% if not table.sub %}
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
     {% for column in columns %}
-    {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description={{ column.column_comment | tojson }})
+    {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description={{ column.column_comment | model_field_label | tojson }})
     {% endfor %}
     {% endif %}
     {% if table.sub %}
@@ -115,6 +117,11 @@ class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% el
         ),
     )
     def get_{{ column.column_name }}(self) -> {{ column.vo_type }} | None:
+        """
+        校验必填字段。
+
+        :return: 当前记录的 {{ column.column_name }} 字段值
+        """
         return self.{{ column.column_name }}
     {% if not loop.last %}{{ "\n" }}{% endif %}
     {% endif %}
@@ -122,6 +129,7 @@ class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% el
 
     {% if vo_field_required.has_required %}
     def validate_fields(self) -> None:
+        """校验模型的必填字段。"""
     {% for column in columns %}
     {% if column.required %}
         self.get_{{ column.column_name }}()
@@ -133,14 +141,12 @@ class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% el
 
 {% if table.sub %}
 class {{ subTable.business_name | capitalize }}Model(BaseModel):
-    """
-    {{ subTable.function_name }}表对应pydantic模型
-    """
+    """{{ subTable.function_name }}表对应pydantic模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
     {% for sub_column in subTable.columns %}
-    {{ sub_column.column_name }}: {{ sub_column.vo_type }} | None = Field(default=None, description='{{ sub_column.column_comment}}')
+    {{ sub_column.column_name }}: {{ sub_column.vo_type }} | None = Field(default=None, description={{ sub_column.column_comment | model_field_label | tojson }})
     {% endfor %}
 
     {% for sub_column in subTable.columns %}
@@ -155,6 +161,11 @@ class {{ subTable.business_name | capitalize }}Model(BaseModel):
         ),
     )
     def get_{{ sub_column.column_name }}(self) -> {{ sub_column.vo_type }} | None:
+        """
+        校验子表的必填字段。
+
+        :return: 子表记录的 {{ sub_column.column_name }} 字段值
+        """
         return self.{{ sub_column.column_name }}
     {% if not loop.last %}{{ "\n" }}{% endif %}
     {% endif %}
@@ -162,6 +173,7 @@ class {{ subTable.business_name | capitalize }}Model(BaseModel):
 
     {% if sub_vo_field_required.has_required %}
     def validate_fields(self) -> None:
+        """校验模型的必填字段。"""
     {% for sub_column in subTable.columns %}
     {% if sub_column.required %}
         self.get_{{ sub_column.column_name }}()
@@ -172,9 +184,7 @@ class {{ subTable.business_name | capitalize }}Model(BaseModel):
 
 
 class {{ BusinessName }}QueryModel({% if vo_field_daterange.has_daterange %}GeneratedTimeRangeQueryMixin, {% endif %}{% if table.sub %}{{ BusinessName }}BaseModel{% else %}{{ BusinessName }}Model{% endif %}):
-    """
-    {{ functionName }}不分页查询模型
-    """
+    """{{ functionName }}不分页查询模型。"""
     {% if vo_field_daterange.has_daterange %}
     time_range_fields: ClassVar[dict[str, str]] = {
         {% for column in columns %}
@@ -186,8 +196,8 @@ class {{ BusinessName }}QueryModel({% if vo_field_daterange.has_daterange %}Gene
 
     {% for column in columns %}
     {% if column.time_kind and column.query_type == "BETWEEN" %}
-    begin_{{ column.column_name  }}: {% if column.time_kind == 'time' %}BusinessTime{% else %}BusinessDate{% endif %} | None = Field(default=None, description='开始{{ column.column_comment }}')
-    end_{{ column.column_name  }}: {% if column.time_kind == 'time' %}BusinessTime{% else %}BusinessDate{% endif %} | None = Field(default=None, description='结束{{ column.column_comment }}')
+    begin_{{ column.column_name  }}: {% if column.time_kind == 'time' %}BusinessTime{% else %}BusinessDate{% endif %} | None = Field(default=None, description={{ ('开始' ~ column.column_comment) | tojson }})
+    end_{{ column.column_name  }}: {% if column.time_kind == 'time' %}BusinessTime{% else %}BusinessDate{% endif %} | None = Field(default=None, description={{ ('结束' ~ column.column_comment) | tojson }})
     {% endif %}
     {% endfor %}
     {% else %}
@@ -196,19 +206,15 @@ class {{ BusinessName }}QueryModel({% if vo_field_daterange.has_daterange %}Gene
 
 
 class {{ BusinessName }}PageQueryModel({{ BusinessName }}QueryModel):
-    """
-    {{ functionName }}分页查询模型
-    """
+    """{{ functionName }}分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class Delete{{ BusinessName }}Model(BaseModel):
-    """
-    删除{{ functionName }}模型
-    """
+    """删除{{ functionName }}模型。"""
 
     model_config = ConfigDict(alias_generator=to_camel)
 
-    {{ pk_field }}s: str = Field(description='需要删除的{{ pk_field_comment }}')
+    {{ pk_field }}s: str = Field(description={{ ('需要删除的' ~ pk_field_comment) | tojson }})

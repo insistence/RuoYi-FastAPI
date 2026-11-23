@@ -5,6 +5,7 @@ async-lru==2.4.0
 asyncmy==0.2.18
 Babel==2.18.0
 bcrypt==5.0.0
+docutils==0.22.4
 fastapi[all]==0.165.0
 loguru==0.8.0
 nh3==0.3.8
@@ -19,6 +20,7 @@ PyJWT[crypto]==2.15.1
 PyMySQL==1.2.4
 redis==8.1.0
 ruff==0.17.6
+Sphinx==9.0.4
 SQLAlchemy[asyncio]==2.1.9
 sqlglot==30.33.0
 textual==8.2.8

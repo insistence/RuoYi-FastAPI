@@ -12,16 +12,14 @@ from utils.time_util import TimezoneUtil
 
 
 class OperationLogDao:
-    """
-    操作日志管理模块数据库操作层
-    """
+    """操作日志管理模块数据库操作层。"""
 
     @classmethod
     async def get_operation_log_list(
         cls, db: AsyncSession, query_object: OperLogPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        根据查询参数获取操作日志列表信息
+        根据查询参数获取操作日志列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -61,7 +59,7 @@ class OperationLogDao:
     @classmethod
     async def add_operation_log_dao(cls, db: AsyncSession, operation_log: OperLogModel) -> SysOperLog:
         """
-        新增操作日志数据库操作
+        新增操作日志数据库操作。
 
         :param db: orm对象
         :param operation_log: 操作日志对象
@@ -76,36 +74,32 @@ class OperationLogDao:
     @classmethod
     async def delete_operation_log_dao(cls, db: AsyncSession, operation_log: OperLogModel) -> None:
         """
-        删除操作日志数据库操作
+        删除操作日志数据库操作。
 
         :param db: orm对象
         :param operation_log: 操作日志对象
-        :return:
         """
         await db.execute(delete(SysOperLog).where(SysOperLog.oper_id.in_([operation_log.oper_id])))
 
     @classmethod
     async def clear_operation_log_dao(cls, db: AsyncSession) -> None:
         """
-        清除操作日志数据库操作
+        清除操作日志数据库操作。
 
         :param db: orm对象
-        :return:
         """
         await db.execute(delete(SysOperLog))
 
 
 class LoginLogDao:
-    """
-    登录日志管理模块数据库操作层
-    """
+    """登录日志管理模块数据库操作层。"""
 
     @classmethod
     async def get_login_log_list(
         cls, db: AsyncSession, query_object: LoginLogPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        根据查询参数获取登录日志列表信息
+        根据查询参数获取登录日志列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -146,7 +140,7 @@ class LoginLogDao:
     @classmethod
     async def add_login_log_dao(cls, db: AsyncSession, login_log: LogininforModel) -> SysLogininfor:
         """
-        新增登录日志数据库操作
+        新增登录日志数据库操作。
 
         :param db: orm对象
         :param login_log: 登录日志对象
@@ -161,20 +155,18 @@ class LoginLogDao:
     @classmethod
     async def delete_login_log_dao(cls, db: AsyncSession, login_log: LogininforModel) -> None:
         """
-        删除登录日志数据库操作
+        删除登录日志数据库操作。
 
         :param db: orm对象
         :param login_log: 登录日志对象
-        :return:
         """
         await db.execute(delete(SysLogininfor).where(SysLogininfor.info_id.in_([login_log.info_id])))
 
     @classmethod
     async def clear_login_log_dao(cls, db: AsyncSession) -> None:
         """
-        清除登录日志数据库操作
+        清除登录日志数据库操作。
 
         :param db: orm对象
-        :return:
         """
         await db.execute(delete(SysLogininfor))

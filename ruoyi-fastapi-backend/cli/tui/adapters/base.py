@@ -15,9 +15,9 @@ class BaseBrowserAdapter:
     """
     TUI 浏览页适配基类。
 
-    :param page_title: 浏览页标题
-    :param search_view_key: 搜索上下文对应的页面键
-    :param filter_options: 页面支持的筛选项
+    :ivar page_title: 浏览页标题
+    :ivar search_view_key: 搜索上下文对应的页面键
+    :ivar filter_options: 页面支持的筛选项
     """
 
     def __init__(
@@ -33,7 +33,6 @@ class BaseBrowserAdapter:
         :param page_title: 浏览页标题
         :param search_view_key: 搜索上下文对应的页面键
         :param filter_options: 页面支持的筛选项
-        :return: None
         """
         self.page_title = page_title
         self.search_view_key = search_view_key
@@ -171,9 +170,9 @@ class BaseDetailAdapter:
     """
     TUI 详情页适配基类。
 
-    :param page_title: 详情页标题
-    :param search_view_key: 搜索上下文对应的页面键
-    :param default_suggestions: 默认搜索建议
+    :ivar page_title: 详情页标题
+    :ivar search_view_key: 搜索上下文对应的页面键
+    :ivar default_suggestions: 默认搜索建议
     """
 
     def __init__(
@@ -189,7 +188,6 @@ class BaseDetailAdapter:
         :param page_title: 详情页标题
         :param search_view_key: 搜索上下文对应的页面键
         :param default_suggestions: 默认搜索建议
-        :return: None
         """
         self.page_title = page_title
         self.search_view_key = search_view_key

@@ -12,12 +12,13 @@ class CryptoCommandController:
     """
     传输加密命令控制器。
 
-    该控制器负责组织 `crypto` 命令组的上下文准备、runtime 调用、
+    该控制器负责组织 ``crypto`` 命令组的上下文准备、runtime 调用、
     payload 注入，以及基于输出格式选择 presenter 或直接返回 JSON。
 
-    :param context_factory: CLI 上下文工厂
-    :param execution_service: CLI 执行服务
-    :param presenter: 传输加密命令文本渲染器
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar presenter: 传输加密命令文本渲染器
+    :ivar runtime_service: 传输加密运行时服务
     """
 
     def __init__(
@@ -35,7 +36,6 @@ class CryptoCommandController:
         :param execution_service: CLI 执行服务
         :param presenter: 传输加密命令文本渲染器
         :param runtime_service: 传输加密运行时服务
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
@@ -48,7 +48,6 @@ class CryptoCommandController:
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         self.execution_service.complete_payload(ctx, self.runtime_service.validate_crypto_config())
@@ -61,7 +60,6 @@ class CryptoCommandController:
         :param output: 输出格式
         :param kid: 生成的密钥版本标识
         :param key_size: RSA 密钥长度
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.runtime_service.generate_crypto_key_pair(kid, key_size)
@@ -94,7 +92,6 @@ class CryptoCommandController:
         :param dry_run: 是否演练执行
         :param next_kid: 轮换后的新密钥版本标识
         :param key_size: 新密钥的 RSA 长度
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -112,7 +109,6 @@ class CryptoCommandController:
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.runtime_service.export_public_key()

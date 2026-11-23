@@ -42,7 +42,11 @@ _EXPECTED_PAGE_TOTAL = 3
 
 @pytest_asyncio.fixture
 async def resource_session() -> AsyncSession:
-    """创建只包含 Resource/Scope/Client 管理表的真实 SQLite 会话。"""
+    """
+    创建只包含 Resource/Scope/Client 管理表的真实 SQLite 会话。
+
+    :yield: 只包含 Resource/Scope/Client 管理表的真实 SQLite 会话
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [
         SysOAuthClient.__table__,
@@ -66,7 +70,12 @@ async def resource_session() -> AsyncSession:
 
 
 def _resource_payload(**changes: object) -> ResourceCreateModel:
-    """构造一个合法 Resource DTO。"""
+    """
+    构造一个合法 Resource DTO。
+
+    :param changes: 调用方按名称传入的附加选项
+    :return: 一个合法 Resource DTO
+    """
     values: dict[str, object] = {
         'resource_id': 'orders-api',
         'resource_name': '订单 API',
@@ -89,7 +98,13 @@ def test_management_identifiers_are_safe_path_segments(value: str) -> None:
 
 
 def _client_payload(resource_id: str = 'orders-api', scope_code: str | None = None) -> ClientCreateModel:
-    """构造授权码机密 Client。"""
+    """
+    构造授权码机密 Client。
+
+    :param resource_id: 资源标识
+    :param scope_code: Scope 编码
+    :return: 授权码机密 Client
+    """
     return ClientCreateModel.model_validate(
         {
             'client_name': 'Resource 管理测试 Client',
@@ -105,7 +120,13 @@ def _client_payload(resource_id: str = 'orders-api', scope_code: str | None = No
 
 
 async def _create_resource(session: AsyncSession, resource_id: str = 'orders-api') -> object:
-    """创建一个基础启用 Resource。"""
+    """
+    创建一个基础启用 Resource。
+
+    :param session: 当前操作共用的会话
+    :param resource_id: 资源标识
+    :return: 一个基础启用 Resource
+    """
     return await OAuthResourceManagementService.create_resource(
         session,
         _resource_payload(resource_id=resource_id, audience=f'https://{resource_id}.example/api'),

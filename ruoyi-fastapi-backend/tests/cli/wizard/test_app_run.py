@@ -7,6 +7,7 @@ def test_app_run_wizard_execs_nested_cli_after_confirmation(
     monkeypatch: MonkeyPatch,
     app_run_flow: ModuleType,
 ) -> None:
+    """确认启动向导后执行嵌套命令。"""
     captured: dict[str, object] = {}
     answers = iter(['dev', False, True])
     monkeypatch.setattr(

@@ -40,6 +40,7 @@ from utils.time_util import TimezoneUtil
     ],
 )
 def test_job_fields_reject_ambiguous_or_invalid_configuration(change: dict) -> None:
+    """任务字段拒绝有歧义或无效的配置。"""
     with pytest.raises(ValidationError):
         JobModel(**change)
 
@@ -61,6 +62,7 @@ async def test_real_scheduler_applies_misfire_window_and_backlog_policy(
     expected_calls: int,
     expected_events: int,
 ) -> None:
+    """真实调度器执行错过窗口和积压处理策略。"""
     await runtime.save(
         job_info(cronExpression='0 0 0 * * ?', timeZone='UTC', misfireGraceTime=grace, coalesce=coalesce)
     )
@@ -75,6 +77,11 @@ async def test_real_scheduler_applies_misfire_window_and_backlog_policy(
     complete = asyncio.Event()
 
     def collect(event: object) -> None:
+        """
+        收集测试事件并通知等待方。
+
+        :param event: 待处理的事件
+        """
         events.append(event)
         if len(events) == expected_events:
             complete.set()
@@ -90,6 +97,7 @@ async def test_real_scheduler_applies_misfire_window_and_backlog_policy(
 
 @pytest.mark.asyncio
 async def test_json_parameters_and_unlimited_delay_survive_database_roundtrip(runtime: Runtime) -> None:
+    """JSON 参数及无限延迟配置可经数据库原样读写。"""
     value = {'text': 'x' * 600, 'flags': [True, None, 3.25], 'name': 'tenant,a'}
     saved = await runtime.save(job_info(jobArgs=[value], misfireGraceTime=None))
     async with runtime.sessions() as db:
@@ -105,6 +113,7 @@ async def test_json_parameters_and_unlimited_delay_survive_database_roundtrip(ru
 
 @pytest.mark.asyncio
 async def test_group_changes_preserve_storage_and_schedule_progress(runtime: Runtime, tmp_path: Path) -> None:
+    """更改任务组时保留存储和调度进度。"""
     runtime.scheduler.add_jobstore(SQLAlchemyJobStore(url=f'sqlite:///{tmp_path / "jobstore.db"}'), 'sqlalchemy')
     await runtime.save(job_info(jobGroup='报表', jobStore='sqlalchemy'))
     await SchedulerManager._sync_jobs_from_database()
@@ -127,6 +136,7 @@ async def test_group_changes_preserve_storage_and_schedule_progress(runtime: Run
 
 @pytest.mark.asyncio
 async def test_id_is_unique_and_name_is_unique_within_business_group(runtime: Runtime) -> None:
+    """任务标识全局唯一，名称在业务组内唯一。"""
     await runtime.save()
     assert list(SysJob.__table__.primary_key.columns.keys()) == ['job_id']
     async with runtime.sessions() as db:
@@ -154,6 +164,7 @@ async def test_actual_schedule_is_observed_from_leader_and_separate_from_preview
     runtime: Runtime,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """从主节点读取实际调度并与预览区分。"""
     await runtime.save()
     await SchedulerManager._sync_jobs_from_database()
     actual = TimezoneUtil.utc_now() + timedelta(minutes=2)
@@ -186,6 +197,7 @@ async def test_log_ids_keep_history_queryable_after_rename_and_delete(
     runtime: Runtime,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """重命名或删除任务后仍可按日志标识查询历史。"""
     metadata = MetaData()
     logs = SysJobLog.__table__.to_metadata(metadata)
     logs.c.job_log_id.type = Integer()
@@ -194,6 +206,11 @@ async def test_log_ids_keep_history_queryable_after_rename_and_delete(
     logged = asyncio.Event()
 
     def record(log: object) -> None:
+        """
+        收集测试产生的事件或结果。
+
+        :param log: 记录操作过程的日志对象
+        """
         recorded.append(log)
         logged.set()
 

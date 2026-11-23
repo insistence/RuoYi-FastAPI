@@ -422,7 +422,12 @@ async def get_system_user_timezones(request: Request) -> Response:
     return ResponseUtil.success(data=sorted(available_timezones() - {'localtime'}))
 
 
-@user_controller.put('/profile/locale', summary='修改当前用户语言偏好', response_model=ResponseBaseModel)
+@user_controller.put(
+    '/profile/locale',
+    summary='修改当前用户语言偏好',
+    description='保存当前账号的界面语言，可选择受支持的语言或使用 auto 跟随设备设置。',
+    response_model=ResponseBaseModel,
+)
 @ApiCacheEvict(namespaces=ApiGroup.USER_INFO_MUTATION)
 @Log(title='语言设置', business_type=BusinessType.UPDATE)
 async def change_system_user_locale(

@@ -10,6 +10,22 @@ from cli.utils import format_cli_path
 class PluginScaffoldPlanPayload:
     """
     插件模板写入计划负载。
+
+    :ivar template: 用于生成文件的模板
+    :ivar backend: 后端部分的配置或处理对象
+    :ivar frontend: 前端部分的配置
+    :ivar migration: 插件的数据迁移配置
+    :ivar seed: 插件的种子数据配置
+    :ivar job: 插件的调度任务配置
+    :ivar config: 当前对象使用的配置
+    :ivar crud: 是否生成增删改查功能
+    :ivar test: 是否生成测试
+    :ivar backend_test: 是否包含后端测试
+    :ivar frontend_test: 是否包含前端测试
+    :ivar frontend_framework: 用于生成或构建前端的框架
+    :ivar target_dirs: 生成操作要写入的目录
+    :ivar files: 此次操作涉及的文件
+    :ivar conflicts: 生成计划与已有文件的冲突
     """
 
     template: str
@@ -57,6 +73,10 @@ class PluginScaffoldPlanPayload:
 class PluginScaffoldSuccessPayload:
     """
     插件模板创建成功负载。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar scaffold_plan: 插件模板写入计划
+    :ivar dry_run: 是否只预览操作结果
     """
 
     plugin_id: str
@@ -82,6 +102,11 @@ class PluginScaffoldSuccessPayload:
 class PluginScaffoldConflictPayload:
     """
     插件模板目录冲突负载。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar scaffold_plan: 插件模板写入计划
+    :ivar dry_run: 是否只预览操作结果
+    :ivar failure_code: 失败退出码
     """
 
     plugin_id: str
@@ -106,9 +131,7 @@ class PluginScaffoldConflictPayload:
 
 
 class PluginScaffoldPayloadBuilder:
-    """
-    插件模板创建响应负载构建器。
-    """
+    """插件模板创建响应负载构建器。"""
 
     @staticmethod
     def build_conflict_payload(

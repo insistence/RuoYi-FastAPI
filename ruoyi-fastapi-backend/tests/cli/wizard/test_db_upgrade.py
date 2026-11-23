@@ -7,6 +7,7 @@ def test_db_upgrade_wizard_executes_nested_cli_with_confirmed_inputs(
     monkeypatch: MonkeyPatch,
     db_upgrade_flow: ModuleType,
 ) -> None:
+    """数据库升级向导按确认的输入执行命令。"""
     captured: dict[str, object] = {}
     monkeypatch.setattr(
         db_upgrade_flow.DbUpgradeWizardFlow,
@@ -60,6 +61,7 @@ def test_db_upgrade_wizard_accepts_default_context_values(
     monkeypatch: MonkeyPatch,
     db_upgrade_flow: ModuleType,
 ) -> None:
+    """数据库升级向导接受上下文默认值。"""
     captured_defaults: dict[str, object] = {}
     captured_confirm_defaults: list[tuple[str, bool]] = []
     confirm_answers = iter([True, False])

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 def add_cors_middleware(app: FastAPI) -> None:
     """
-    添加跨域中间件
+    添加跨域中间件。
 
     :param app: FastAPI对象
     """

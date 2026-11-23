@@ -41,7 +41,13 @@ from utils.time_util import TimezoneUtil
 
 @pytest_asyncio.fixture
 async def deployment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[SimpleNamespace]:
-    """构造真实签名目录与临时 SQLite 发布数据库。"""
+    """
+    构造真实签名目录与临时 SQLite 发布数据库。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :yield: 真实签名目录与临时 SQLite 发布数据库
+    """
     backend = tmp_path / 'backend'
     (backend / 'plugins').mkdir(parents=True)
     key = Ed25519PrivateKey.generate()
@@ -80,7 +86,14 @@ async def deployment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIt
 
 
 async def publish(deployment: SimpleNamespace, version: str = '1.0.0', *, fail: bool = False) -> str:
-    """登记指定版本制品并建立测试需要的目标发布记录。"""
+    """
+    登记指定版本制品并建立测试需要的目标发布记录。
+
+    :param deployment: 构造真实签名目录与临时 SQLite 发布数据库
+    :param version: 当前记录的版本
+    :param fail: 是否模拟操作失败
+    :return: 已发布制品的摘要
+    """
     source = deployment.root / f'source-{version}' / 'release_demo'
     source.mkdir(parents=True)
     (source / 'plugin.yaml').write_text(
@@ -142,7 +155,13 @@ async def publish(deployment: SimpleNamespace, version: str = '1.0.0', *, fail: 
 
 
 async def activate_worker(config: PluginDeploymentConfig, sessions: Any) -> tuple[Any, Any]:
-    """创建进程发布快照并实际准备和激活插件入口。"""
+    """
+    创建进程发布快照并实际准备和激活插件入口。
+
+    :param config: 制品发布配置快照，支持为测试和维护实例注入独立目录
+    :param sessions: 创建当前测试的数据库会话的工厂
+    :return: 依次为 ``worker``、``runtime`` 的元组
+    """
     app = FastAPI()
     builder = PluginRuntimeBuilder(config.backend_root)
     app.state.plugin_runtime_builder = builder
@@ -164,7 +183,13 @@ async def activate_worker(config: PluginDeploymentConfig, sessions: Any) -> tupl
 
 
 async def summary(deployment: SimpleNamespace, plugin_id: str = 'release_demo') -> dict[str, Any]:
-    """读取发布记录和宿主报告并汇总当前集群状态。"""
+    """
+    读取发布记录和宿主报告并汇总当前集群状态。
+
+    :param deployment: 构造真实签名目录与临时 SQLite 发布数据库
+    :param plugin_id: 插件清单中的唯一标识
+    :return: 发布记录和宿主报告并汇总当前集群状态
+    """
     async with deployment.sessions() as db:
         release = await PluginReleaseDao.get_release(db, plugin_id)
         reports = await PluginReleaseDao.list_worker_reports(db)
@@ -173,8 +198,17 @@ async def summary(deployment: SimpleNamespace, plugin_id: str = 'release_demo') 
 
 @pytest.mark.asyncio
 async def test_lock_deadline_only_limits_acquisition(deployment: SimpleNamespace) -> None:
+    """锁截止时间仅限制获取锁。"""
+
     @asynccontextmanager
     async def busy_lock(_plugin_id: str, _operation: str) -> AsyncIterator[SimpleNamespace]:
+        """
+        提供未能取得的插件生命周期锁。
+
+        :param _plugin_id: 回调接收的插件标识
+        :param _operation: 回调接收的操作名称
+        :yield: 未能取得的插件生命周期锁
+        """
         yield SimpleNamespace(acquired=False)
 
     worker = PluginReleaseWorker(deployment.config, session_factory=deployment.sessions)
@@ -372,6 +406,14 @@ async def test_real_application_startup_does_not_run_artifact_install_or_resourc
     monkeypatch.setattr('config.database.DataSourceRegistry.session', deployment.sessions)
 
     class ReadOnlyGateway:
+        """
+        提供只读工作进程使用的插件查询接口。
+
+        :cvar list_plugins: 模拟查询插件列表的操作
+        :cvar install_plugin_resources: 模拟安装插件资源的操作
+        :cvar upsert_discovered_plugin: 模拟写入已发现插件记录的操作
+        """
+
         list_plugins = staticmethod(PluginDao.get_plugin_list)
         install_plugin_resources = AsyncMock(
             side_effect=AssertionError('startup must not reinstall artifact resources')
@@ -473,9 +515,21 @@ async def test_failed_artifact_stays_disabled_after_source_failure_reloads_regis
 
 
 def _run_process(config: PluginDeploymentConfig, database: str, ready: Any, stop: Any) -> None:
-    """在独立进程中实际激活制品并报告加载路径和版本。"""
+    """
+    在独立进程中实际激活制品并报告加载路径和版本。
+
+    :param config: 制品发布配置快照，支持为测试和维护实例注入独立目录
+    :param database: 测试所使用的数据库
+    :param ready: 依赖检查是否已就绪
+    :param stop: 通知正在运行的任务停止的信号
+    """
 
     async def run() -> None:
+        """
+        记录测试命令的运行参数。
+
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
+        """
         engine = create_async_engine(f'sqlite+aiosqlite:///{database}')
         sessions = async_sessionmaker(engine, expire_on_commit=False)
         worker = runtime = None
@@ -509,7 +563,13 @@ def _run_process(config: PluginDeploymentConfig, database: str, ready: Any, stop
 
 @asynccontextmanager
 async def running_processes(deployment: SimpleNamespace, count: int = 1) -> AsyncGenerator[list[dict[str, Any]], None]:
-    """启动指定数量的独立测试进程并在退出时完整回收。"""
+    """
+    启动指定数量的独立测试进程并在退出时完整回收。
+
+    :param deployment: 构造真实签名目录与临时 SQLite 发布数据库
+    :param count: 本次处理或预期的数量
+    :yield: 保存各工作进程报告的集合
+    """
     context = multiprocessing.get_context('spawn')
     ready = context.Queue()
     stop = context.Event()

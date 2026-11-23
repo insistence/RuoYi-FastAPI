@@ -20,7 +20,9 @@ from utils.security_util import SecurityUtil
 
 class NoticeService:
     """
-    通知公告管理模块服务层
+    通知公告管理模块服务层。
+
+    :cvar TOP_NOTICE_LIMIT: 首页最多展示的公告条数
     """
 
     TOP_NOTICE_LIMIT = 5
@@ -30,7 +32,7 @@ class NoticeService:
         cls, query_db: AsyncSession, query_object: NoticePageQueryModel, is_page: bool = True
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取通知公告列表信息service
+        获取通知公告列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -48,7 +50,7 @@ class NoticeService:
     @classmethod
     async def get_notice_top_services(cls, query_db: AsyncSession, user_id: int) -> NoticeTopResponseModel:
         """
-        获取首页顶部通知公告及当前用户已读状态
+        获取首页顶部通知公告及当前用户已读状态。
 
         :param query_db: orm对象
         :param user_id: 用户ID
@@ -65,7 +67,7 @@ class NoticeService:
         cls, query_db: AsyncSession, query_object: NoticeReadUserPageQueryModel, is_page: bool = True
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取公告已读用户列表
+        获取公告已读用户列表。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -79,12 +81,13 @@ class NoticeService:
         cls, query_db: AsyncSession, user_id: int, notice_ids: list[int]
     ) -> CrudResponseModel:
         """
-        标记通知公告已读
+        标记通知公告已读。
 
         :param query_db: orm对象
         :param user_id: 用户ID
         :param notice_ids: 公告ID列表
         :return: 操作结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         try:
             await NoticeDao.add_notice_reads(query_db, user_id, notice_ids)
@@ -97,10 +100,11 @@ class NoticeService:
     @classmethod
     def parse_notice_ids(cls, notice_ids: str) -> list[int]:
         """
-        解析逗号分隔的公告ID
+        解析逗号分隔的公告ID。
 
         :param notice_ids: 逗号分隔的公告ID
         :return: 去重后的公告ID列表
+        :raises ServiceException: 公告ID格式不正确
         """
         try:
             return list(
@@ -112,7 +116,7 @@ class NoticeService:
     @classmethod
     async def check_notice_unique_services(cls, query_db: AsyncSession, page_object: NoticeModel) -> bool:
         """
-        校验通知公告是否存在service
+        校验通知公告是否存在service。
 
         :param query_db: orm对象
         :param page_object: 通知公告对象
@@ -127,11 +131,13 @@ class NoticeService:
     @classmethod
     async def add_notice_services(cls, query_db: AsyncSession, page_object: NoticeModel) -> CrudResponseModel:
         """
-        新增通知公告信息service
+        新增通知公告信息service。
 
         :param query_db: orm对象
         :param page_object: 新增通知公告对象
         :return: 新增通知公告校验结果
+        :raises ServiceException: 同名通知公告已存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if not await cls.check_notice_unique_services(query_db, page_object):
             raise ServiceException(
@@ -150,11 +156,13 @@ class NoticeService:
     @classmethod
     async def edit_notice_services(cls, query_db: AsyncSession, page_object: NoticeModel) -> CrudResponseModel:
         """
-        编辑通知公告信息service
+        编辑通知公告信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑通知公告对象
         :return: 编辑通知公告校验结果
+        :raises ServiceException: 通知公告不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         edit_notice = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
         notice_info = await cls.notice_detail_services(query_db, page_object.notice_id)
@@ -178,11 +186,13 @@ class NoticeService:
     @classmethod
     async def delete_notice_services(cls, query_db: AsyncSession, page_object: DeleteNoticeModel) -> CrudResponseModel:
         """
-        删除通知公告信息service
+        删除通知公告信息service。
 
         :param query_db: orm对象
         :param page_object: 删除通知公告对象
         :return: 删除通知公告校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入通知公告id为空
         """
         if page_object.notice_ids:
             notice_id_list = cls.parse_notice_ids(page_object.notice_ids)
@@ -201,7 +211,7 @@ class NoticeService:
     @classmethod
     async def notice_detail_services(cls, query_db: AsyncSession, notice_id: int) -> NoticeModel:
         """
-        获取通知公告详细信息service
+        获取通知公告详细信息service。
 
         :param query_db: orm对象
         :param notice_id: 通知公告id

@@ -14,7 +14,6 @@ def register_developer_commands(app: typer.Typer, get_controller: Callable[[], A
 
     :param app: Typer 命令组
     :param get_controller: 插件命令控制器工厂
-    :return: None
     """
 
     @app.command('test', help='执行插件测试')
@@ -37,7 +36,6 @@ def register_developer_commands(app: typer.Typer, get_controller: Callable[[], A
         :param maxfail: 最大失败数
         :param quiet: 是否启用简洁输出
         :param frontend_build: 是否追加执行前端构建验收
-        :return: None
         """
         get_controller().test_plugin(
             plugin_id,
@@ -95,7 +93,6 @@ def register_developer_commands(app: typer.Typer, get_controller: Callable[[], A
         :param no_config: 是否不创建配置项示例
         :param no_test: 是否不创建测试样例
         :param dry_run: 是否仅预演
-        :return: None
         """
         get_controller().create_plugin(
             plugin_id,

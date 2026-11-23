@@ -19,6 +19,7 @@ from utils.log_util import logger
 
 
 def worship() -> None:
+    """将启动时的佛像字符画写入日志。"""
     logger.info(r"""
 ////////////////////////////////////////////////////////////////////
 //                          _ooOoo_                               //
@@ -46,16 +47,14 @@ def worship() -> None:
 
 
 class SqlalchemyUtil:
-    """
-    sqlalchemy工具类
-    """
+    """sqlalchemy工具类。"""
 
     @classmethod
     def base_to_dict(
         cls, obj: Base | dict, transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
     ) -> dict:
         """
-        将sqlalchemy模型对象转换为字典
+        将sqlalchemy模型对象转换为字典。
 
         :param obj: sqlalchemy模型对象或普通字典
         :param transform_case: 转换得到的结果形式，可选的有'no_case'(不转换)、'snake_to_camel'(下划线转小驼峰)、'camel_to_snake'(小驼峰转下划线)，默认为'no_case'
@@ -129,7 +128,7 @@ class SqlalchemyUtil:
         cls, result: Any, transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
     ) -> Any:
         """
-        将sqlalchemy查询结果序列化
+        将sqlalchemy查询结果序列化。
 
         :param result: sqlalchemy查询结果
         :param transform_case: 转换得到的结果形式，可选的有'no_case'(不转换)、'snake_to_camel'(下划线转小驼峰)、'camel_to_snake'(小驼峰转下划线)，默认为'no_case'
@@ -155,7 +154,7 @@ class SqlalchemyUtil:
     @classmethod
     def get_server_default_null(cls, dialect_name: str, need_explicit_null: bool = True) -> TextClause | None:
         """
-        根据数据库方言动态返回值为null的server_default
+        根据数据库方言动态返回值为null的server_default。
 
         :param dialect_name: 数据库方言名称
         :param need_explicit_null: 是否需要显式DEFAULT NULL
@@ -167,14 +166,12 @@ class SqlalchemyUtil:
 
 
 class CamelCaseUtil:
-    """
-    下划线形式(snake_case)转小驼峰形式(camelCase)工具方法
-    """
+    """下划线形式(snake_case)转小驼峰形式(camelCase)工具方法。"""
 
     @classmethod
     def snake_to_camel(cls, snake_str: str) -> str:
         """
-        下划线形式字符串(snake_case)转换为小驼峰形式字符串(camelCase)
+        下划线形式字符串(snake_case)转换为小驼峰形式字符串(camelCase)。
 
         :param snake_str: 下划线形式字符串
         :return: 小驼峰形式字符串
@@ -219,7 +216,7 @@ class CamelCaseUtil:
     @classmethod
     def transform_result(cls, result: Any) -> Any:
         """
-        针对不同类型将下划线形式(snake_case)批量转换为小驼峰形式(camelCase)方法
+        针对不同类型将下划线形式(snake_case)批量转换为小驼峰形式(camelCase)方法。
 
         :param result: 输入数据
         :return: 小驼峰形式结果
@@ -228,14 +225,12 @@ class CamelCaseUtil:
 
 
 class SnakeCaseUtil:
-    """
-    小驼峰形式(camelCase)转下划线形式(snake_case)工具方法
-    """
+    """小驼峰形式(camelCase)转下划线形式(snake_case)工具方法。"""
 
     @classmethod
     def camel_to_snake(cls, camel_str: str) -> str:
         """
-        小驼峰形式字符串(camelCase)转换为下划线形式字符串(snake_case)
+        小驼峰形式字符串(camelCase)转换为下划线形式字符串(snake_case)。
 
         :param camel_str: 小驼峰形式字符串
         :return: 下划线形式字符串
@@ -279,7 +274,7 @@ class SnakeCaseUtil:
     @classmethod
     def transform_result(cls, result: Any) -> Any:
         """
-        针对不同类型将小驼峰形式(camelCase)批量转换为下划线形式(snake_case)方法
+        针对不同类型将小驼峰形式(camelCase)批量转换为下划线形式(snake_case)方法。
 
         :param result: 输入数据
         :return: 下划线形式结果
@@ -288,13 +283,19 @@ class SnakeCaseUtil:
 
 
 def bytes2human(n: int, format_str: str = '%(value).1f%(symbol)s') -> str:
-    """Used by various scripts. See:
-    http://goo.gl/zeJZl
+    """
+    将字节数格式化为易读的容量单位。
+
+    原始实现见 http://goo.gl/zeJZl 。
 
     >>> bytes2human(10000)
     '9.8K'
     >>> bytes2human(100001221)
     '95.4M'
+
+    :param n: 待格式化的字节数
+    :param format_str: 插入大小和单位的输出格式
+    :return: 附带容量单位的字节数文本
     """
     symbols = ('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB')
     prefix = {}
@@ -308,12 +309,18 @@ def bytes2human(n: int, format_str: str = '%(value).1f%(symbol)s') -> str:
 
 
 def bytes2file_response(bytes_info: bytes) -> Generator[bytes]:
+    """
+    将内存中的文件内容作为响应数据块输出。
+
+    :param bytes_info: 作为下载响应发送的二进制内容
+    :yield: 供下载响应发送的二进制内容
+    """
     yield bytes_info
 
 
 def export_list2excel(list_data: list) -> bytes:
     """
-    工具方法：将需要导出的list数据转化为对应excel的二进制数据
+    工具方法：将需要导出的list数据转化为对应excel的二进制数据。
 
     :param list_data: 数据列表
     :return: 字典信息对应excel的二进制数据
@@ -328,7 +335,7 @@ def export_list2excel(list_data: list) -> bytes:
 
 def get_excel_template(header_list: list, selector_header_list: list, option_list: list[dict]) -> bytes:
     """
-    工具方法：将需要导出的list数据转化为对应excel的二进制数据
+    工具方法：将需要导出的list数据转化为对应excel的二进制数据。
 
     :param header_list: 表头数据列表
     :param selector_header_list: 需要设置为选择器格式的表头数据列表
@@ -389,7 +396,7 @@ def get_excel_template(header_list: list, selector_header_list: list, option_lis
 
 def get_filepath_from_url(url: str) -> str:
     """
-    工具方法：根据请求参数获取文件路径
+    工具方法：根据请求参数获取文件路径。
 
     :param url: 请求参数中的url参数
     :return: 文件路径

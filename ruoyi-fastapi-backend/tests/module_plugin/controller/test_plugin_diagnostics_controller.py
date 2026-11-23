@@ -12,6 +12,7 @@ from module_plugin.controller.plugin_controller import diagnose_system_plugin
 
 @pytest.mark.asyncio
 async def test_diagnose_api_attaches_runtime_without_changing_static_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    """诊断接口追加运行信息并保留静态检查状态。"""
     app = FastAPI()
     reporter = object()
     app.state.plugin_diagnostics_reporter = reporter
@@ -53,6 +54,7 @@ async def test_diagnose_api_attaches_runtime_without_changing_static_ok(monkeypa
 async def test_failed_check_remains_visible_but_generation_failure_keeps_error_envelope(
     monkeypatch: pytest.MonkeyPatch, complete: bool
 ) -> None:
+    """保留失败检查且生成失败时使用标准错误响应。"""
     payload = {'ok': False, 'message': '插件诊断包生成完成，发现问题', 'info': {'pluginId': 'demo'}}
     if complete:
         payload.update(check={'ok': False}, config={}, menuPlan={}, audit={})

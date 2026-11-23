@@ -16,12 +16,19 @@ from utils.pwd_util import PwdUtil
 
 
 def _current_user(user_name: str = 'admin') -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param user_name: 当前用户的账号名称
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(user=SimpleNamespace(user_name=user_name))
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(('config_value', 'expected'), [(None, '0'), ('4', '4')])
 async def test_get_sys_account_chrtype_uses_config_and_default(config_value: str | None, expected: str) -> None:
+    """密码字符类型取自配置并支持默认值。"""
     redis = SimpleNamespace(get=AsyncMock(return_value=config_value))
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis)))
 
@@ -32,6 +39,7 @@ async def test_get_sys_account_chrtype_uses_config_and_default(config_value: str
 
 
 def test_current_user_model_exposes_password_character_type_alias() -> None:
+    """当前用户模型公开密码字符类型的别名。"""
     current_user = CurrentUserModel(permissions=[], roles=[], user=None, pwdChrtype='3')
 
     assert current_user.model_dump(by_alias=True)['pwdChrtype'] == '3'
@@ -39,6 +47,7 @@ def test_current_user_model_exposes_password_character_type_alias() -> None:
 
 @pytest.mark.asyncio
 async def test_get_current_user_rejects_malformed_user_id_claim() -> None:
+    """当前用户认证拒绝格式错误的用户标识声明。"""
     token = jwt.encode(
         {'user_id': 'invalid', 'session_id': 'session-id'},
         JwtConfig.jwt_secret_key,
@@ -57,6 +66,7 @@ async def test_get_current_user_rejects_malformed_user_id_claim() -> None:
 
 @pytest.mark.asyncio
 async def test_unlock_screen_rejects_empty_password() -> None:
+    """解锁屏幕拒绝空密码。"""
     with (
         patch.object(UserDao, 'get_user_by_name', new_callable=AsyncMock) as get_user,
         pytest.raises(ServiceException) as exc_info,
@@ -69,6 +79,7 @@ async def test_unlock_screen_rejects_empty_password() -> None:
 
 @pytest.mark.asyncio
 async def test_unlock_screen_rejects_missing_current_user() -> None:
+    """解锁屏幕时必须有当前用户。"""
     with (
         patch.object(UserDao, 'get_user_by_name', new=AsyncMock(return_value=None)) as get_user,
         pytest.raises(ServiceException) as exc_info,
@@ -81,6 +92,7 @@ async def test_unlock_screen_rejects_missing_current_user() -> None:
 
 @pytest.mark.asyncio
 async def test_unlock_screen_rejects_wrong_password() -> None:
+    """解锁屏幕拒绝错误密码。"""
     user = SimpleNamespace(password='hashed-password')
     with (
         patch.object(UserDao, 'get_user_by_name', new=AsyncMock(return_value=user)),
@@ -95,6 +107,7 @@ async def test_unlock_screen_rejects_wrong_password() -> None:
 
 @pytest.mark.asyncio
 async def test_unlock_screen_accepts_correct_password() -> None:
+    """正确密码可以解锁屏幕。"""
     user = SimpleNamespace(password='hashed-password')
     with (
         patch.object(UserDao, 'get_user_by_name', new=AsyncMock(return_value=user)) as get_user,
@@ -110,6 +123,7 @@ async def test_unlock_screen_accepts_correct_password() -> None:
 
 @pytest.mark.asyncio
 async def test_register_uses_front_end_default_password_rule() -> None:
+    """注册使用前端默认的密码规则。"""
     redis = SimpleNamespace(get=AsyncMock(side_effect=['true', 'false']))
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis)))
     user_register = UserRegister(

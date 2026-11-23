@@ -17,7 +17,12 @@ from utils.time_util import TimezoneUtil
 
 class LogoutConfirmationService:
     """
-    认证中心退出确认服务层
+    认证中心退出确认服务层。
+
+    :cvar COOKIE_NAME: 用于登出确认的 Cookie 名
+    :cvar TTL_SECONDS: 有效期（秒）
+    :cvar _TOKEN_LENGTH: 登出确认令牌的长度
+    :cvar _CONSUME: 原子消费登出确认记录的 Redis 脚本
     """
 
     COOKIE_NAME = '__Host-oidc_logout_confirmation'
@@ -32,7 +37,7 @@ return value
     @classmethod
     async def issue(cls, redis: Redis, parameters: dict[str, str], sso_cookie: str | None) -> tuple[str, str]:
         """
-        签发短期有效且仅可使用一次的退出确认凭据
+        签发短期有效且仅可使用一次的退出确认凭据。
 
         :param redis: Redis连接对象
         :param parameters: 已校验的退出请求参数
@@ -40,7 +45,6 @@ return value
         :return: 退出确认凭据和浏览器随机数
         :raises RuntimeError: 确认记录保存失败
         """
-
         token = secrets.token_urlsafe(32)
         nonce = secrets.token_urlsafe(32)
         record = json.dumps(
@@ -68,7 +72,7 @@ return value
         cls, redis: Redis, token: str, sso_cookie: str | None, browser_nonce: str | None
     ) -> dict[str, str]:
         """
-        消费一次性退出确认凭据并校验浏览器归属
+        消费一次性退出确认凭据并校验浏览器归属。
 
         :param redis: Redis连接对象
         :param token: 用户提交的退出确认凭据
@@ -77,7 +81,6 @@ return value
         :return: 原始退出请求参数
         :raises ValueError: 凭据无效、已使用、已过期或浏览器绑定不匹配
         """
-
         if not isinstance(token, str) or len(token) != cls._TOKEN_LENGTH or not browser_nonce:
             raise ValueError('退出确认信息无效')
         raw = await redis.eval(cls._CONSUME, 1, 'oidc:logout:confirmation:' + OidcUtil.sha256_digest(token))
@@ -97,7 +100,7 @@ return value
     @classmethod
     async def form_redirect_origin(cls, db: AsyncSession, parameters: dict[str, str]) -> str | None:
         """
-        获取退出确认页内容安全策略允许的客户端回调源
+        获取退出确认页内容安全策略允许的客户端回调源。
 
         校验ID Token提示，并精确匹配已启用的注册回调地址。
 
@@ -105,7 +108,6 @@ return value
         :param parameters: 已校验的退出请求参数
         :return: 允许的回调源地址，校验失败时返回None
         """
-
         hint = parameters.get('id_token_hint')
         uri = parameters.get('post_logout_redirect_uri')
         if not hint or not OidcUtil.is_safe_post_logout_uri(uri):

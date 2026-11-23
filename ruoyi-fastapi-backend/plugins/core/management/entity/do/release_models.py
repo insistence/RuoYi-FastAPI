@@ -6,9 +6,7 @@ from config.database import Base
 
 
 class SysPluginArtifact(CreateTimeMixin, Base):
-    """
-    已验证不可变制品索引，同一插件版本允许登记多个平台构建。
-    """
+    """已验证不可变制品索引，同一插件版本允许登记多个平台构建。"""
 
     __tablename__ = 'sys_plugin_artifact'
     __table_args__ = (
@@ -26,9 +24,7 @@ class SysPluginArtifact(CreateTimeMixin, Base):
 
 
 class SysPluginRelease(AuditTimeMixin, Base):
-    """
-    代码发布目标及维护准备证据，与数据结构安装版本分别保存。
-    """
+    """代码发布目标及维护准备证据，与数据结构安装版本分别保存。"""
 
     __tablename__ = 'sys_plugin_release'
     __table_args__ = (
@@ -54,9 +50,7 @@ class SysPluginRelease(AuditTimeMixin, Base):
 
 
 class SysPluginWorker(AuditTimeMixin, Base):
-    """
-    宿主和插件实际运行报告，__runtime__ 行记录宿主存活状态。
-    """
+    """宿主和插件实际运行报告，__runtime__ 行记录宿主存活状态。"""
 
     __tablename__ = 'sys_plugin_worker'
     __table_args__ = (

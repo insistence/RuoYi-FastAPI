@@ -24,7 +24,12 @@ _CHALLENGE = 'A' * 43
 
 
 def _request(**overrides: object) -> AuthorizeRequest:
-    """构造最小有效授权请求。"""
+    """
+    构造最小有效授权请求。
+
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 最小有效授权请求
+    """
     values: dict[str, object] = {
         'response_type': 'code',
         'client_id': 'authorization-client',
@@ -40,7 +45,12 @@ def _request(**overrides: object) -> AuthorizeRequest:
 
 
 async def _seed_authorization_data(db: AsyncSession, *, second_resource_scope: bool = False) -> None:
-    """写入授权服务测试所需的 Client、URI、Scope 和 Resource。"""
+    """
+    写入授权服务测试所需的 Client、URI、Scope 和 Resource。
+
+    :param db: 当前操作使用的数据库会话
+    :param second_resource_scope: 第二个资源要求的权限范围
+    """
     client = SysOAuthClient(
         client_pk=_CLIENT_PK,
         client_id='authorization-client',
@@ -151,7 +161,11 @@ async def _seed_authorization_data(db: AsyncSession, *, second_resource_scope: b
 
 @pytest.fixture
 def oidc_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    """为服务测试开启安全的 OIDC 配置。"""
+    """
+    为服务测试开启安全的 OIDC 配置。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', True)
     monkeypatch.setattr(OidcConfig, 'oidc_pkce_methods', 'S256')
     monkeypatch.setattr(OidcConfig, 'oidc_issuer', 'https://auth.example.com')

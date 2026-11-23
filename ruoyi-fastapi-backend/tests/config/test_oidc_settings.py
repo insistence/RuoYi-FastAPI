@@ -5,6 +5,11 @@ from config.env import OidcSettings
 
 
 def _enabled_values() -> dict[str, object]:
+    """
+    返回含 ``_env_file``, ``oidc_enabled``, ``oidc_issuer``, ``oidc_public_base_url`` 等字段 的测试数据。
+
+    :return: 含 ``_env_file``, ``oidc_enabled``, ``oidc_issuer``, ``oidc_public_base_url`` 等字段 的测试数据
+    """
     return {
         '_env_file': None,
         'oidc_enabled': True,
@@ -20,12 +25,14 @@ def _enabled_values() -> dict[str, object]:
 
 
 def test_oidc_disabled_does_not_require_runtime_secrets() -> None:
+    """关闭 OIDC 时无需运行密钥。"""
     settings = OidcSettings(_env_file=None, oidc_enabled=False, oidc_issuer='', oidc_public_base_url='')
 
     assert settings.oidc_enabled is False
 
 
 def test_oidc_enabled_accepts_secure_defaults() -> None:
+    """启用 OIDC 时接受安全默认值。"""
     settings = OidcSettings(**_enabled_values())
 
     assert settings.oidc_require_pkce is True
@@ -45,11 +52,13 @@ def test_oidc_enabled_accepts_secure_defaults() -> None:
     ],
 )
 def test_oidc_enabled_rejects_unsafe_configuration(overrides: dict[str, object]) -> None:
+    """启用 OIDC 时拒绝不安全配置。"""
     with pytest.raises(ValidationError):
         OidcSettings(**(_enabled_values() | overrides))
 
 
 def test_oidc_cors_origin_rejects_userinfo_and_non_local_http(monkeypatch: pytest.MonkeyPatch) -> None:
+    """OIDC 跨域来源拒绝用户信息和非本地 HTTP。"""
     with pytest.raises(ValidationError):
         OidcSettings(**(_enabled_values() | {'oidc_cors_allowed_origins': 'https://user:pass@client.example'}))
 
@@ -65,6 +74,7 @@ def test_oidc_cors_origin_rejects_userinfo_and_non_local_http(monkeypatch: pytes
 
 
 def test_oidc_pepper_cannot_reuse_signing_key_encryption_key() -> None:
+    """OIDC 的 pepper 不得复用签名密钥的加密密钥。"""
     values = _enabled_values()
     values['oidc_signing_key_encryption_key'] = values['oidc_token_hash_pepper']
 

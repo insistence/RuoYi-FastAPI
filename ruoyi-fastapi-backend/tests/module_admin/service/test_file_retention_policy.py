@@ -14,10 +14,16 @@ RETENTION_DAYS = 365
 
 
 def make_query_db() -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
 
 def test_get_file_retention_policy_list_maps_orm_field_names() -> None:
+    """文件保留策略列表映射 ORM 字段名。"""
     query_db = make_query_db()
     db_policy = SysFileRetentionPolicy(
         business_type='notice',
@@ -38,6 +44,7 @@ def test_get_file_retention_policy_list_maps_orm_field_names() -> None:
 
 
 def test_get_enabled_file_retention_policy_maps_orm_field_names() -> None:
+    """读取启用的文件保留策略时映射 ORM 字段名。"""
     query_db = make_query_db()
     db_policy = SysFileRetentionPolicy(
         business_type='notice',
@@ -63,6 +70,7 @@ def test_get_enabled_file_retention_policy_maps_orm_field_names() -> None:
 
 
 def test_add_file_retention_policy_commits_new_policy() -> None:
+    """新增文件保留策略后提交事务。"""
     query_db = make_query_db()
     policy = FileRetentionPolicyModel(
         businessType='notice',
@@ -98,6 +106,7 @@ def test_add_file_retention_policy_commits_new_policy() -> None:
 
 
 def test_add_file_retention_policy_rejects_duplicate_business_type() -> None:
+    """新增策略时拒绝重复的业务类型。"""
     query_db = make_query_db()
     policy = FileRetentionPolicyModel(businessType='notice', retentionDays=30)
     with (

@@ -8,7 +8,12 @@ from plugins.core.artifacts import build_artifact
 
 @pytest.fixture
 def artifact_source(tmp_path: Path) -> Path:
-    """构造包含部署文件和禁止导入哨兵的临时插件目录。"""
+    """
+    构造包含部署文件和禁止导入哨兵的临时插件目录。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 包含部署文件和禁止导入哨兵的临时插件目录
+    """
     source = tmp_path / 'artifact_demo'
     source.mkdir()
     (source / 'plugin.yaml').write_text(
@@ -35,19 +40,35 @@ def artifact_source(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def signing_key() -> Ed25519PrivateKey:
-    """生成仅用于当前测试的临时 Ed25519 私钥。"""
+    """
+    生成仅用于当前测试的临时 Ed25519 私钥。
+
+    :return: 仅用于当前测试的临时 Ed25519 私钥
+    """
     return Ed25519PrivateKey.generate()
 
 
 @pytest.fixture
 def trusted_keys(signing_key: Ed25519PrivateKey) -> dict[str, Ed25519PublicKey]:
-    """提供与临时签名私钥对应的宿主可信公钥映射。"""
+    """
+    提供与临时签名私钥对应的宿主可信公钥映射。
+
+    :param signing_key: 生成仅用于当前测试的临时 Ed25519 私钥
+    :return: 与临时签名私钥对应的宿主可信公钥映射
+    """
     return {'publisher': signing_key.public_key()}
 
 
 @pytest.fixture
 def artifact_path(tmp_path: Path, artifact_source: Path, signing_key: Ed25519PrivateKey) -> Path:
-    """构建供验证和存储测试使用的签名制品。"""
+    """
+    构建供验证和存储测试使用的签名制品。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param artifact_source: 构造包含部署文件和禁止导入哨兵的临时插件目录
+    :param signing_key: 生成仅用于当前测试的临时 Ed25519 私钥
+    :return: 供验证和存储测试使用的签名制品
+    """
     output = tmp_path / 'sample.rpk'
     build_artifact(artifact_source, output, signing_key, 'publisher')
     return output

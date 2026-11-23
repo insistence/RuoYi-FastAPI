@@ -10,11 +10,10 @@ async def init_create_table(
     log_success_enabled: bool = True,
 ) -> None:
     """
-    在默认数据源中初始化平台数据库元数据
+    在默认数据源中初始化平台数据库元数据。
 
     :param stage: 建表阶段
     :param log_success_enabled: 是否输出阶段成功摘要
-    :return: None
     """
     if log_success_enabled:
         message = '🔎 初始化平台数据库元数据...' if stage == 'platform' else '🔎 同步插件实体表...'

@@ -50,7 +50,10 @@ from utils.user_import_util import UserImportUtil
 
 class UserService:
     """
-    用户管理模块服务层
+    用户管理模块服务层。
+
+    :cvar PASSWORD_MIN_LENGTH: 密码允许的最小长度
+    :cvar PASSWORD_MAX_LENGTH: 密码允许的最大长度
     """
 
     PASSWORD_MIN_LENGTH = 6
@@ -59,7 +62,7 @@ class UserService:
     @staticmethod
     async def _current_role_ids(query_db: AsyncSession, user_id: int) -> set[int]:
         """
-        读取用户当前角色ID，用于避免无变化时递增身份版本
+        读取用户当前角色ID，用于避免无变化时递增身份版本。
 
         :param query_db: orm对象
         :param user_id: 用户id
@@ -72,12 +75,11 @@ class UserService:
         query_db: AsyncSession, user_ids: list[int], actor: str | None = None
     ) -> None:
         """
-        仅在角色关联实际变化时批量触发身份安全事件
+        仅在角色关联实际变化时批量触发身份安全事件。
 
         :param query_db: orm对象
         :param user_ids: 角色关联发生变化的用户ID列表
         :param actor: 实际执行角色分配的操作者
-        :return: None
         """
         if user_ids:
             await IdentitySecurityEventService.handle_users_event(
@@ -100,7 +102,7 @@ class UserService:
         :param redis: redis对象
         :param password: 明文密码
         :param pwd_chrtype: 指定密码字符范围，未指定时读取系统配置
-        :return: None
+        :raises ServiceException: 密码不能为空；密码长度必须介于 6 和 20 之间
         """
         if pwd_chrtype is None:
             pwd_chrtype = await ConfigService.query_config_list_from_cache_services(redis, 'sys.account.chrtype')
@@ -127,7 +129,7 @@ class UserService:
         is_page: bool = False,
     ) -> PageModel[UserRowModel] | list[dict[str, Any]]:
         """
-        获取用户列表信息service
+        获取用户列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -153,10 +155,11 @@ class UserService:
     @classmethod
     async def check_user_allowed_services(cls, check_user: UserModel) -> CrudResponseModel:
         """
-        校验用户是否允许操作service
+        校验用户是否允许操作service。
 
         :param check_user: 用户信息
         :return: 校验结果
+        :raises ServiceException: 不允许操作超级管理员用户
         """
         if check_user.admin:
             raise ServiceException(message='不允许操作超级管理员用户', msg_key='user.superAdminProtected')
@@ -167,12 +170,13 @@ class UserService:
         cls, query_db: AsyncSession, user_id: int, data_scope_sql: ColumnElement
     ) -> CrudResponseModel:
         """
-        校验用户数据权限service
+        校验用户数据权限service。
 
         :param query_db: orm对象
         :param user_id: 用户id
         :param data_scope_sql: 数据权限对应的查询sql语句
         :return: 校验结果
+        :raises ServiceException: 没有权限访问用户数据
         """
         users = await UserDao.get_user_list(query_db, UserPageQueryModel(userId=user_id), data_scope_sql, is_page=False)
         if users:
@@ -182,7 +186,7 @@ class UserService:
     @classmethod
     async def check_user_name_unique_services(cls, query_db: AsyncSession, page_object: UserModel) -> bool:
         """
-        校验用户名是否唯一service
+        校验用户名是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 用户对象
@@ -197,7 +201,7 @@ class UserService:
     @classmethod
     async def check_phonenumber_unique_services(cls, query_db: AsyncSession, page_object: UserModel) -> bool:
         """
-        校验用户手机号是否唯一service
+        校验用户手机号是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 用户对象
@@ -212,7 +216,7 @@ class UserService:
     @classmethod
     async def check_email_unique_services(cls, query_db: AsyncSession, page_object: UserModel) -> bool:
         """
-        校验用户邮箱是否唯一service
+        校验用户邮箱是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 用户对象
@@ -227,11 +231,13 @@ class UserService:
     @classmethod
     async def add_user_services(cls, query_db: AsyncSession, page_object: AddUserModel) -> CrudResponseModel:
         """
-        新增用户信息service
+        新增用户信息service。
 
         :param query_db: orm对象
         :param page_object: 新增用户对象
         :return: 新增用户校验结果
+        :raises ServiceException: 登录账号、手机号或邮箱已被使用
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         add_user = UserModel(**page_object.model_dump(by_alias=True, exclude={'create_time', 'update_time'}))
         if not await cls.check_user_name_unique_services(query_db, page_object):
@@ -275,11 +281,10 @@ class UserService:
     @classmethod
     def _deal_edit_user(cls, page_object: EditUserModel, edit_user: dict[str, Any]) -> None:
         """
-        处理编辑用户字典
+        处理编辑用户字典。
 
         :param page_object: 编辑用户对象
         :param edit_user: 编辑用户字典
-        :return: None
         """
         if page_object.type not in ['status', 'avatar', 'pwd']:
             del edit_user['role_ids']
@@ -296,12 +301,12 @@ class UserService:
         current_user: UserInfoModel,
     ) -> None:
         """
-        将用户编辑类型映射为同事务OIDC安全事件
+        将用户编辑类型映射为同事务OIDC安全事件。
 
         :param query_db: orm对象
         :param page_object: 编辑用户对象
         :param current_user: 编辑前的用户信息
-        :return: None
+        :raises ServiceException: 用户不存在
         """
         user_id = page_object.user_id
         if user_id is None:
@@ -343,11 +348,13 @@ class UserService:
     @classmethod
     async def edit_user_services(cls, query_db: AsyncSession, page_object: EditUserModel) -> CrudResponseModel:
         """
-        编辑用户信息service
+        编辑用户信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑用户对象
         :return: 编辑用户校验结果
+        :raises ServiceException: 用户不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         edit_user = page_object.model_dump(
             exclude_unset=True,
@@ -402,11 +409,13 @@ class UserService:
     @classmethod
     async def delete_user_services(cls, query_db: AsyncSession, page_object: DeleteUserModel) -> CrudResponseModel:
         """
-        删除用户信息service
+        删除用户信息service。
 
         :param query_db: orm对象
         :param page_object: 删除用户对象
         :return: 删除用户校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入用户id为空
         """
         if page_object.user_ids:
             user_id_list = page_object.user_ids.split(',')
@@ -437,7 +446,7 @@ class UserService:
     @classmethod
     async def user_detail_services(cls, query_db: AsyncSession, user_id: int | str) -> UserDetailModel:
         """
-        获取用户详细信息service
+        获取用户详细信息service。
 
         :param query_db: orm对象
         :param user_id: 用户id
@@ -473,13 +482,14 @@ class UserService:
         cls, query_db: AsyncSession, user_id: int, user_name: str, locale: str
     ) -> CrudResponseModel:
         """
-        更新当前账号的语言偏好
+        更新当前账号的语言偏好。
 
         :param query_db: 数据库会话
         :param user_id: 当前登录用户ID
         :param user_name: 当前登录用户账号
         :param locale: auto或规范化语言标识
         :return: 语言偏好更新结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         preference = LocaleRegistry.normalize_locale(locale, preference=True)
         try:
@@ -499,13 +509,14 @@ class UserService:
         cls, query_db: AsyncSession, user_id: int, user_name: str, time_zone: str
     ) -> CrudResponseModel:
         """
-        更新当前账号的显示时区
+        更新当前账号的显示时区。
 
         :param query_db: 数据库会话
         :param user_id: 当前登录用户ID
         :param user_name: 当前登录用户账号
         :param time_zone: auto或IANA时区名称
         :return: 时区更新结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         preference = TimezoneUtil.validate_timezone_preference(time_zone)
         try:
@@ -519,7 +530,7 @@ class UserService:
     @classmethod
     async def user_profile_services(cls, query_db: AsyncSession, user_id: int) -> UserProfileModel:
         """
-        获取用户个人详细信息service
+        获取用户个人详细信息service。
 
         :param query_db: orm对象
         :param user_id: 用户id
@@ -546,11 +557,13 @@ class UserService:
     @classmethod
     async def reset_user_services(cls, query_db: AsyncSession, page_object: ResetUserModel) -> CrudResponseModel:
         """
-        重置用户密码service
+        重置用户密码service。
 
         :param query_db: orm对象
         :param page_object: 重置用户对象
         :return: 重置用户校验结果
+        :raises ServiceException: 修改密码失败，旧密码错误；新密码不能与旧密码相同
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         reset_user = page_object.model_dump(
             exclude_unset=True,
@@ -584,20 +597,18 @@ class UserService:
     @classmethod
     def _set_row_sex_value(cls, row: pd.Series) -> None:
         """
-        设置行性别值
+        设置行性别值。
 
         :param row: 行数据
-        :return: None
         """
         row['sex'] = UserImportUtil.normalize_value('sex', row['sex'])
 
     @classmethod
     def _set_row_status_value(cls, row: pd.Series) -> None:
         """
-        设置行状态值
+        设置行状态值。
 
         :param row: 行数据
-        :return: None
         """
         row['status'] = UserImportUtil.normalize_value('status', row['status'])
 
@@ -613,7 +624,7 @@ class UserService:
         dept_data_scope_sql: ColumnElement,
     ) -> CrudResponseModel:
         """
-        批量导入用户service
+        批量导入用户service。
 
         :param request: Request对象
         :param query_db: orm对象
@@ -623,6 +634,8 @@ class UserService:
         :param user_data_scope_sql: 用户数据权限sql
         :param dept_data_scope_sql: 部门数据权限sql
         :return: 批量导入用户结果
+        :raises ServiceException: 导入文件为空
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         contents = await file.read()
         await file.close()
@@ -728,7 +741,7 @@ class UserService:
     @staticmethod
     async def get_user_import_template_services() -> bytes:
         """
-        获取用户导入模板service
+        获取用户导入模板service。
 
         :return: 用户导入模板excel的二进制数据
         """
@@ -769,7 +782,7 @@ class UserService:
     @staticmethod
     async def export_user_list_services(user_list: list) -> bytes:
         """
-        导出用户信息service
+        导出用户信息service。
 
         :param user_list: 用户信息列表
         :return: 用户信息对应excel的二进制数据
@@ -812,7 +825,7 @@ class UserService:
         cls, query_db: AsyncSession, page_object: UserRoleQueryModel
     ) -> UserRoleResponseModel:
         """
-        根据用户id获取已分配角色列表
+        根据用户id获取已分配角色列表。
 
         :param query_db: orm对象
         :param page_object: 用户关联角色对象
@@ -844,12 +857,14 @@ class UserService:
         cls, query_db: AsyncSession, page_object: CrudUserRoleModel, actor: str | None = None
     ) -> CrudResponseModel:
         """
-        新增用户关联角色信息service
+        新增用户关联角色信息service。
 
         :param query_db: orm对象
         :param page_object: 新增用户关联角色对象
         :param actor: 实际执行角色分配的操作者
         :return: 新增用户关联角色校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 不满足新增条件
         """
         if page_object.user_id and page_object.role_ids:
             role_id_list = page_object.role_ids.split(',')
@@ -915,12 +930,14 @@ class UserService:
         cls, query_db: AsyncSession, page_object: CrudUserRoleModel, actor: str | None = None
     ) -> CrudResponseModel:
         """
-        删除用户关联角色信息service
+        删除用户关联角色信息service。
 
         :param query_db: orm对象
         :param page_object: 删除用户关联角色对象
         :param actor: 实际执行取消分配的操作者
         :return: 删除用户关联角色校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 不满足删除条件；传入用户角色关联信息为空
         """
         if (page_object.user_id and page_object.role_id) or (page_object.user_ids and page_object.role_id):
             if page_object.user_id and page_object.role_id:
@@ -972,7 +989,7 @@ class UserService:
     @classmethod
     async def detail_user_role_services(cls, query_db: AsyncSession, page_object: UserRoleModel) -> SysUserRole | None:
         """
-        获取用户关联角色详细信息service
+        获取用户关联角色详细信息service。
 
         :param query_db: orm对象
         :param page_object: 用户关联角色对象

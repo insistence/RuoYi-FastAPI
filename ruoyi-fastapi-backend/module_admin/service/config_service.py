@@ -16,16 +16,14 @@ from utils.excel_util import ExcelUtil
 
 
 class ConfigService:
-    """
-    参数配置管理模块服务层
-    """
+    """参数配置管理模块服务层。"""
 
     @classmethod
     async def get_config_list_services(
         cls, query_db: AsyncSession, query_object: ConfigPageQueryModel, is_page: bool = False
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取参数配置列表信息service
+        获取参数配置列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -39,11 +37,10 @@ class ConfigService:
     @classmethod
     async def init_cache_sys_config_services(cls, query_db: AsyncSession, redis: aioredis.Redis) -> None:
         """
-        应用初始化：获取所有参数配置对应的键值对信息并缓存service
+        应用初始化：获取所有参数配置对应的键值对信息并缓存service。
 
         :param query_db: orm对象
         :param redis: redis对象
-        :return:
         """
         # 获取以sys_config:开头的键列表
         keys = await redis.keys(f'{RedisInitKeyConfig.SYS_CONFIG.key}:*')
@@ -60,7 +57,7 @@ class ConfigService:
     @classmethod
     async def query_config_list_from_cache_services(cls, redis: aioredis.Redis, config_key: str) -> Any:
         """
-        从缓存获取参数键名对应值service
+        从缓存获取参数键名对应值service。
 
         :param redis: redis对象
         :param config_key: 参数键名
@@ -73,7 +70,7 @@ class ConfigService:
     @classmethod
     async def check_config_key_unique_services(cls, query_db: AsyncSession, page_object: ConfigModel) -> bool:
         """
-        校验参数键名是否唯一service
+        校验参数键名是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 参数配置对象
@@ -90,12 +87,14 @@ class ConfigService:
         cls, request: Request, query_db: AsyncSession, page_object: ConfigModel
     ) -> CrudResponseModel:
         """
-        新增参数配置信息service
+        新增参数配置信息service。
 
         :param request: Request对象
         :param query_db: orm对象
         :param page_object: 新增参数配置对象
         :return: 新增参数配置校验结果
+        :raises ServiceException: 参数键名已被使用
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if not await cls.check_config_key_unique_services(query_db, page_object):
             raise ServiceException(
@@ -119,12 +118,14 @@ class ConfigService:
         cls, request: Request, query_db: AsyncSession, page_object: ConfigModel
     ) -> CrudResponseModel:
         """
-        编辑参数配置信息service
+        编辑参数配置信息service。
 
         :param request: Request对象
         :param query_db: orm对象
         :param page_object: 编辑参数配置对象
         :return: 编辑参数配置校验结果
+        :raises ServiceException: 参数配置不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         edit_config = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
         config_info = await cls.config_detail_services(query_db, page_object.config_id)
@@ -157,12 +158,14 @@ class ConfigService:
         cls, request: Request, query_db: AsyncSession, page_object: DeleteConfigModel
     ) -> CrudResponseModel:
         """
-        删除参数配置信息service
+        删除参数配置信息service。
 
         :param request: Request对象
         :param query_db: orm对象
         :param page_object: 删除参数配置对象
         :return: 删除参数配置校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入参数配置id为空
         """
         if page_object.config_ids:
             config_id_list = page_object.config_ids.split(',')
@@ -191,7 +194,7 @@ class ConfigService:
     @classmethod
     async def config_detail_services(cls, query_db: AsyncSession, config_id: int) -> ConfigModel:
         """
-        获取参数配置详细信息service
+        获取参数配置详细信息service。
 
         :param query_db: orm对象
         :param config_id: 参数配置id
@@ -205,7 +208,7 @@ class ConfigService:
     @staticmethod
     async def export_config_list_services(config_list: list) -> bytes:
         """
-        导出参数配置信息service
+        导出参数配置信息service。
 
         :param config_list: 参数配置信息列表
         :return: 参数配置信息对应excel的二进制数据
@@ -236,7 +239,7 @@ class ConfigService:
     @classmethod
     async def refresh_sys_config_services(cls, request: Request, query_db: AsyncSession) -> CrudResponseModel:
         """
-        刷新字典缓存信息service
+        刷新字典缓存信息service。
 
         :param request: Request对象
         :param query_db: orm对象

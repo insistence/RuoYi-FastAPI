@@ -168,36 +168,6 @@ async def register_user(
     return ResponseUtil.success(data=user_register_result, msg=user_register_result.message)
 
 
-# @login_controller.post("/getSmsCode", response_model=SmsCode)
-# async def get_sms_code(request: Request, user: ResetUserModel, query_db: AsyncSession = DBSessionDependency()):
-#     try:
-#         sms_result = await LoginService.get_sms_code_services(request, query_db, user)
-#         if sms_result.is_success:
-#             logger.info('获取成功')
-#             return ResponseUtil.success(data=sms_result)
-#         else:
-#             logger.warning(sms_result.message)
-#             return ResponseUtil.failure(msg=sms_result.message)
-#     except Exception as e:
-#         logger.exception(e)
-#         return ResponseUtil.error(msg=str(e))
-#
-#
-# @login_controller.post("/forgetPwd", response_model=CrudResponseModel)
-# async def forget_user_pwd(request: Request, forget_user: ResetUserModel, query_db: AsyncSession = DBSessionDependency()):
-#     try:
-#         forget_user_result = await LoginService.forget_user_services(request, query_db, forget_user)
-#         if forget_user_result.is_success:
-#             logger.info(forget_user_result.message)
-#             return ResponseUtil.success(data=forget_user_result, msg=forget_user_result.message)
-#         else:
-#             logger.warning(forget_user_result.message)
-#             return ResponseUtil.failure(msg=forget_user_result.message)
-#     except Exception as e:
-#         logger.exception(e)
-#         return ResponseUtil.error(msg=str(e))
-
-
 @login_controller.post(
     '/logout',
     summary='退出登录接口',

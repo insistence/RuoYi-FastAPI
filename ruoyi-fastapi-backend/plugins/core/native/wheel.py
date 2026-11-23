@@ -139,7 +139,6 @@ def _verify_dependency(value: str) -> None:
     要求宿主已安装满足约束的依赖，不隐式联网安装。
 
     :param value: METADATA 中的单条 Requires-Dist 依赖声明
-    :return: None
     :raises ValueError: 依赖使用未锁定 URL、尚未安装或版本不满足要求
     """
     requirement = Requirement(value)
@@ -163,7 +162,6 @@ def _verify_metadata(archive: ZipFile, metadata_root: str, wheel: Path, manifest
     :param metadata_root: wheel 内唯一的 dist-info 元数据目录名
     :param wheel: 待验证或展开的原生 wheel 文件路径
     :param manifest: 插件清单对象
-    :return: None
     :raises ValueError: 发行包元数据、平台标签或宿主依赖不匹配
     """
     metadata_path = f'{metadata_root}/METADATA'
@@ -197,7 +195,6 @@ def _verify_record(archive: ZipFile, files: dict[str, ZipInfo], record_path: str
     :param archive: 已打开的 ZIP 压缩容器
     :param files: 通过安全清单校验的 wheel 文件条目映射
     :param record_path: wheel 内 RECORD 文件的相对路径
-    :return: None
     :raises ValueError: RECORD 文件清单、大小或 SHA256 与实际内容不一致
     """
     records = {}
@@ -234,9 +231,9 @@ def install_native_wheel(wheel: Path, destination: Path, manifest: PluginManifes
     :param wheel: 待验证或展开的原生 wheel 文件路径
     :param destination: 尚不存在的原生插件安装目录
     :param manifest: 插件清单对象
-    :return: None
     :raises ValueError: wheel 类型、兼容性、文件内容或展开路径校验失败
     :raises FileExistsError: 目标目录已经存在，不能覆盖安装
+    :raises BaseException: 执行中断，清理后向调用方传播原异常
     """
     if manifest.runtime_kind != 'native':
         raise ValueError('仅 native 插件可安装 wheel')

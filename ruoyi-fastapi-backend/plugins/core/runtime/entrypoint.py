@@ -25,9 +25,9 @@ class PluginModuleLocation:
     """
     静态定位结果，不执行包初始化或原生模块代码。
 
-    :param module_name: 插件模块完整名称
-    :param path: 模块文件的绝对路径
-    :param is_package: 模块是否为 Python 包
+    :ivar module_name: 插件模块完整名称
+    :ivar path: 模块文件的绝对路径
+    :ivar is_package: 模块是否为 Python 包
     """
 
     module_name: str
@@ -38,6 +38,9 @@ class PluginModuleLocation:
 class PluginEntrypointLoader:
     """
     只加载当前插件目录下的模块，拒绝复用其他版本或其他路径的缓存。
+
+    :ivar plugin: 待加载的已发现插件
+    :ivar backend: 后端部分的配置或处理对象
     """
 
     def __init__(self, plugin: DiscoveredPlugin) -> None:
@@ -45,7 +48,7 @@ class PluginEntrypointLoader:
         初始化显式入口加载器并确认插件使用 v2 清单。
 
         :param plugin: 待加载的已发现插件
-        :return: None
+        :raises ValueError: 显式入口加载器仅用于 manifestVersion 2
         """
         self.plugin = plugin
         self.backend = plugin.manifest.backend
@@ -69,6 +72,7 @@ class PluginEntrypointLoader:
 
         :param path: 待校验的模块或资源路径
         :return: 通过目录边界校验的绝对路径
+        :raises ValueError: 模块或资源路径越出插件根目录
         """
         resolved = path.resolve()
         if not resolved.is_relative_to(self.plugin.backend_path.resolve()):
@@ -81,6 +85,8 @@ class PluginEntrypointLoader:
 
         :param module_name: 当前插件命名空间内的完整模块名
         :return: 模块文件路径及包类型信息
+        :raises ValueError: 入口或回调指向其他插件的模块
+        :raises ImportError: 插件模块不存在
         """
         prefix = self.backend.module
         if module_name != prefix and not module_name.startswith(f'{prefix}.'):
@@ -105,6 +111,7 @@ class PluginEntrypointLoader:
         执行静态来源和原生平台校验，不执行入口。
 
         :return: 通过来源及平台校验的入口模块位置
+        :raises ValueError: native entrypoint 必须位于原生 Python 扩展模块
         """
         module_name = self.backend.entrypoint.split(':', 1)[0]
         location = self.locate_module(module_name)
@@ -119,7 +126,7 @@ class PluginEntrypointLoader:
         校验原生发行包版本、平台标签及入口文件摘要。
 
         :param location: 已定位的原生入口模块
-        :return: None
+        :raises ValueError: 当前 native 运行时仅支持带 GIL 的 CPython；native.moduleRoot 必须包含唯一匹配的已安装 wheel 元数据；原生发行包版本必须与插件版本一致；原生 wheel 平台、Python 或 ABI 与当前解释器不兼容；原生入口必须包含在发行包 RECORD 中并声明 SHA256；原生入口 SHA256 与发行包 RECORD 不一致
         """
         if platform.python_implementation() != 'CPython' or sysconfig.get_config_var('Py_GIL_DISABLED'):
             raise ValueError('当前 native 运行时仅支持带 GIL 的 CPython')
@@ -155,6 +162,7 @@ class PluginEntrypointLoader:
 
         :param module_name: 当前插件命名空间内的完整模块名
         :return: 已从绑定路径加载的模块对象
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         self.locate_module(module_name)
         before = set(sys.modules)
@@ -184,6 +192,7 @@ class PluginEntrypointLoader:
 
         :param module_name: 当前插件命名空间内的完整模块名
         :return: 来源路径一致的模块对象
+        :raises ImportError: 模块已从其他位置加载或无法创建加载器
         """
         location = self.locate_module(module_name)
         cached = sys.modules.get(module_name)
@@ -214,6 +223,7 @@ class PluginEntrypointLoader:
 
         :param callable_path: 采用模块路径与函数名冒号分隔格式的入口或回调路径
         :return: 通过可调用性校验的入口或回调对象
+        :raises TypeError: 插件入口或回调不可调用
         """
         module_name, callable_name = callable_path.split(':', 1)
         module = self.import_module(module_name)
@@ -228,6 +238,8 @@ class PluginEntrypointLoader:
 
         :param host: 与当前插件身份及资源目录绑定的宿主上下文
         :return: 通过协议校验的插件能力定义
+        :raises ValueError: HostContext 与待加载插件不匹配
+        :raises TypeError: 插件入口工厂必须同步返回 PluginDefinition，资源初始化请使用生命周期；插件入口必须返回 PluginDefinition
         """
         self.check_entrypoint()
         if host.plugin_id != self.plugin.manifest.id or host.resource_root != self.plugin.backend_path.resolve():

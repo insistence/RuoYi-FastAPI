@@ -25,6 +25,12 @@ from utils.dependency_util import DependencyUtil
 
 @pytest.fixture
 def log_context(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """
+    为异常响应测试配置受控日志上下文。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: 供调用方使用的 ``diagnostic_logger``
+    """
     monkeypatch.setattr(DependencyUtil, 'check_exclude_routes', lambda *args, **kwargs: None)
     monkeypatch.setattr(Log, '_get_oper_location', AsyncMock(return_value='测试'))
     monkeypatch.setattr(
@@ -42,14 +48,23 @@ def log_context(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
 
 @pytest.mark.parametrize('decorated', [False, True])
 def test_unexpected_error_is_safe_and_correlates_with_server_log(log_context: MagicMock, decorated: bool) -> None:
+    """意外错误隐藏内部细节并能关联服务端日志。"""
     app = FastAPI()
     handle_exception(app)
     error = RuntimeError('SELECT secret FROM users; password=private-marker /srv/private/config')
 
     async def endpoint(request: Request) -> None:
+        """
+        模拟此操作抛出 error 的情形。
+
+        :param request: 当前 HTTP 请求
+        :raises Exception: 底层操作失败时向调用方传播异常
+        """
         raise error
 
-    app.get('/failure')(Log(title='测试', business_type=BusinessType.OTHER)(endpoint) if decorated else endpoint)
+    app.get('/failure', summary='触发服务端错误', description='抛出测试异常，用于核对公开错误编号与诊断日志。')(
+        Log(title='测试', business_type=BusinessType.OTHER)(endpoint) if decorated else endpoint
+    )
     response = TestClient(app, raise_server_exceptions=False).get('/failure')
     payload = response.json()
     assert payload['code'] == HttpStatusConstant.ERROR
@@ -70,6 +85,7 @@ def test_unexpected_error_is_safe_and_correlates_with_server_log(log_context: Ma
 def test_logged_known_errors_preserve_global_response(
     log_context: MagicMock, monkeypatch: pytest.MonkeyPatch, exception_kind: str, audit_fails: bool
 ) -> None:
+    """记录已知错误后仍返回统一响应。"""
     exceptions = {
         'auth': AuthException(message='令牌失效'),
         'permission': PermissionException(message='无权限'),
@@ -87,10 +103,18 @@ def test_logged_known_errors_preserve_global_response(
     handle_exception(app)
 
     async def endpoint(request: Request) -> None:
+        """
+        模拟此操作抛出 exceptions[exception_kind] 的情形。
+
+        :param request: 当前 HTTP 请求
+        :raises Exception: 底层操作失败时向调用方传播异常
+        """
         raise exceptions[exception_kind]
 
-    app.get('/plain')(endpoint)
-    app.get('/logged')(Log(title='测试', business_type=BusinessType.OTHER)(endpoint))
+    app.get('/plain', summary='获取标准错误响应', description='直接触发已知异常并返回全局异常处理器的响应。')(endpoint)
+    app.get('/logged', summary='获取审计后的错误响应', description='通过操作日志装饰器触发相同异常，以便比对响应。')(
+        Log(title='测试', business_type=BusinessType.OTHER)(endpoint)
+    )
     if audit_fails:
         monkeypatch.setattr(
             LogQueueService, 'enqueue_operation_log', AsyncMock(side_effect=RuntimeError('queue unavailable'))

@@ -15,11 +15,19 @@ _HTTP_TOO_MANY_REQUESTS = 429
 
 class PermanentBackchannelError(ValueError):
     """
-    表示 Back-Channel 请求永久失败且不应继续重试
+    表示 Back-Channel 请求永久失败且不应继续重试。
+
+    :ivar failure_code: 失败原因代码
+    :ivar message: 与当前结果一起返回的说明
     """
 
     def __init__(self, failure_code: str, message: str | None = None) -> None:
-        """分别保存稳定的审计错误码和中文异常说明。"""
+        """
+        分别保存稳定的审计错误码和中文异常说明。
+
+        :param failure_code: 失败原因代码
+        :param message: 与当前结果一起返回的说明
+        """
         self.failure_code = failure_code
         self.message = message or '后端退出通知永久失败'
         super().__init__(self.message)
@@ -27,25 +35,27 @@ class PermanentBackchannelError(ValueError):
 
 class _PinnedNetworkBackend(httpcore.AsyncNetworkBackend):
     """
-    保持注册域名的 TLS 和 SNI，同时将 TCP 连接固定到已验证 IP
+    保持注册域名的 TLS 和 SNI，同时将 TCP 连接固定到已验证 IP。
+
+    :ivar _hostname: 已验证的注册主机名
+    :ivar _addresses: 已验证的公网 IP 集合
+    :ivar _backend: 用于建立网络连接的底层实现
     """
 
     def __init__(self, hostname: str, addresses: set[str]) -> None:
         """
-        初始化固定目标地址的网络后端
+        初始化固定目标地址的网络后端。
 
         :param hostname: 已验证的注册主机名
         :param addresses: 已验证的公网 IP 集合
-        :return: None
         """
-
         self._hostname = hostname
         self._addresses = addresses
         self._backend = AutoBackend()
 
     async def connect_tcp(self, host: str, port: int, **kwargs: Any) -> httpcore.AsyncNetworkStream:
         """
-        连接已验证主机对应的固定公网地址
+        连接已验证主机对应的固定公网地址。
 
         :param host: HTTP Core 请求的原始主机名
         :param port: 目标 TCP 端口
@@ -53,7 +63,6 @@ class _PinnedNetworkBackend(httpcore.AsyncNetworkBackend):
         :return: 已建立的异步网络流
         :raises OSError: 主机未验证、地址为空或全部地址连接失败
         """
-
         if host != self._hostname or not self._addresses:
             raise OSError('网络目标未通过安全校验')
         # 逐个尝试已验证地址，网络库仍以原始 origin 处理 TLS SNI 和 Host
@@ -68,28 +77,27 @@ class _PinnedNetworkBackend(httpcore.AsyncNetworkBackend):
 
 class PinnedHttpxTransport(httpx.AsyncBaseTransport):
     """
-    单次请求使用的 IP 固定 HTTPX Transport
+    单次请求使用的 IP 固定 HTTPX Transport。
+
+    :ivar _pool: 复用底层资源的池
     """
 
     def __init__(self, hostname: str, addresses: set[str]) -> None:
         """
-        初始化使用固定网络后端的连接池
+        初始化使用固定网络后端的连接池。
 
         :param hostname: 已验证的注册主机名
         :param addresses: 已验证的公网 IP 集合
-        :return: None
         """
-
         self._pool = httpcore.AsyncConnectionPool(network_backend=_PinnedNetworkBackend(hostname, addresses))
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """
-        通过固定地址连接池发送异步 HTTP 请求
+        通过固定地址连接池发送异步 HTTP 请求。
 
         :param request: HTTPX 异步请求
         :return: 限制响应体大小的 HTTPX 响应
         """
-
         request_stream = httpcore.Request(
             method=request.method,
             url=httpcore.URL(
@@ -106,26 +114,22 @@ class PinnedHttpxTransport(httpx.AsyncBaseTransport):
 
         class ResponseStream(httpx.AsyncByteStream):
             """
-            限制 Back-Channel 响应体大小的异步字节流
+            限制 Back-Channel 响应体大小的异步字节流。
+
+            :ivar _received: 已接收的响应数据量
             """
 
             def __init__(self) -> None:
-                """
-                初始化已接收字节计数器
-
-                :return: None
-                """
-
+                """初始化已接收字节计数器。"""
                 self._received = 0
 
             async def __aiter__(self) -> Any:
                 """
-                逐块读取响应并执行大小限制
+                逐块读取响应并执行大小限制。
 
-                :return: HTTP 响应字节块异步迭代器
+                :yield: HTTP 响应字节块异步迭代器
                 :raises OSError: 响应体超过大小限制
                 """
-
                 async for chunk in response.stream:
                     self._received += len(chunk)
                     if self._received > _MAX_BACKCHANNEL_RESPONSE_BYTES:
@@ -134,12 +138,7 @@ class PinnedHttpxTransport(httpx.AsyncBaseTransport):
                     yield chunk
 
             async def aclose(self) -> None:
-                """
-                关闭底层 HTTP Core 响应流
-
-                :return: None
-                """
-
+                """关闭底层 HTTP Core 响应流。"""
                 await response.aclose()
 
         return httpx.Response(
@@ -151,12 +150,7 @@ class PinnedHttpxTransport(httpx.AsyncBaseTransport):
         )
 
     async def aclose(self) -> None:
-        """
-        关闭固定地址连接池
-
-        :return: None
-        """
-
+        """关闭固定地址连接池。"""
         await self._pool.aclose()
 
 
@@ -172,18 +166,16 @@ async def send_backchannel_once(
     addresses: set[str] | None = None,
 ) -> None:
     """
-    发送单次 Back-Channel 请求并分类永久失败
+    发送单次 Back-Channel 请求并分类永久失败。
 
     :param uri: 已验证的 Back-Channel URI
     :param token: 待发送的 Logout Token
     :param notifier: 可选的外部通知器
     :param timeout_seconds: 请求超时秒数
     :param addresses: 已验证的公网 IP 集合
-    :return: None
     :raises PermanentBackchannelError: 收到不可重试的 HTTP 客户端错误
     :raises OSError: 未提供安全地址或网络传输失败
     """
-
     if notifier is not None:
         try:
             await notifier(uri, token)
@@ -210,14 +202,12 @@ async def send_backchannel_once(
 
 def _raise_permanent_http_error(exc: httpx.HTTPStatusError) -> None:
     """
-    将不可重试的 HTTP 客户端错误转换为永久失败
+    将不可重试的 HTTP 客户端错误转换为永久失败。
 
     :param exc: HTTPX 状态码异常
-    :return: None
     :raises PermanentBackchannelError: 状态码属于不可重试的客户端错误
     :raises httpx.HTTPStatusError: 状态码仍允许调用方重试
     """
-
     status = exc.response.status_code
     if _HTTP_CLIENT_ERROR_MIN <= status < _HTTP_SERVER_ERROR_MIN and status not in {
         _HTTP_REQUEST_TIMEOUT,

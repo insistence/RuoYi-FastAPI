@@ -19,6 +19,7 @@ from utils.pwd_util import PwdUtil
 
 @pytest.mark.asyncio
 async def test_admin_reset_password_uses_front_end_default_rule() -> None:
+    """管理员重置密码使用前端默认规则。"""
     redis = SimpleNamespace()
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis)))
     reset_user = EditUserModel(userId=2, password='abcdef')
@@ -63,12 +64,14 @@ async def test_admin_reset_password_uses_front_end_default_rule() -> None:
     ],
 )
 def test_update_user_profile_model_rejects_management_fields(management_field: dict) -> None:
+    """用户资料模型拒绝管理字段。"""
     with pytest.raises(ValidationError):
         UpdateUserProfileModel(nickName='普通用户', **management_field)
 
 
 @pytest.mark.asyncio
 async def test_update_user_profile_only_forwards_editable_fields() -> None:
+    """更新用户资料仅转发可编辑字段。"""
     request = SimpleNamespace()
     user_info = UpdateUserProfileModel(
         nickName='新昵称',

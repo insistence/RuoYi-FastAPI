@@ -20,7 +20,14 @@ CoreModuleKeys = dict[str, set[tuple[str | None, str | tuple[str, str]]]]
 
 
 def _read_catalog(path: Path, code: str) -> Catalog:
-    """读取 PO 源文件，拒绝未审校、缺失和格式错误的译文。"""
+    """
+    读取 PO 源文件，拒绝未审校、缺失和格式错误的译文。
+
+    :param path: 要读取或处理的路径
+    :param code: 与当前结果对应的编码
+    :raises ValueError: PO 词库不可解析，或译文缺失、未审核或格式错误
+    :return: PO 源文件
+    """
     try:
         with path.open('rb') as source:
             catalog = read_po(source, locale=code.replace('-', '_'), abort_invalid=True)
@@ -38,7 +45,14 @@ def _read_catalog(path: Path, code: str) -> Catalog:
 
 
 def _read_core_modules(spec: CatalogSpec, code: str) -> tuple[Catalog, CoreModuleKeys]:
-    """按文件名合并核心词库，并记录各模块的消息标识、上下文和复数标识。"""
+    """
+    按文件名合并核心词库，并记录各模块的消息标识、上下文和复数标识。
+
+    :param spec: 已注册词库的资源目录和回退配置
+    :param code: 与当前结果对应的编码
+    :raises ValueError: 核心词库路径越界或源文件与语言声明不符
+    :return: 依次为 ``merged``、``modules`` 的元组
+    """
     directory = (spec.root / code / 'LC_MESSAGES' / 'core').resolve()
     if not directory.is_relative_to(spec.root):
         raise ValueError(f'Core catalog directory escapes its root: {directory}')
@@ -71,10 +85,10 @@ def _read_core_modules(spec: CatalogSpec, code: str) -> tuple[Catalog, CoreModul
 
 def _compile_specs(specs: tuple[CatalogSpec, ...]) -> None:
     """
-    校验已注册词库的复数项和审校状态，并生成 MO 文件
+    校验已注册词库的复数项和审校状态，并生成 MO 文件。
 
     :param specs: 本次编译的受信词库配置
-    :return: None
+    :raises ValueError: 不同语言的核心模块集合或消息键不一致
     """
     compiled = []
     for spec in specs:
@@ -111,11 +125,14 @@ def _compile_specs(specs: tuple[CatalogSpec, ...]) -> None:
 
 def compile_catalogs(extra_specs: tuple[CatalogSpec, ...] = (), *, isolate_plugin_errors: bool = False) -> None:
     """
-    编译核心与源码插件词库，插件域由启停流程注册
+    编译核心与源码插件词库，插件域由启停流程注册。
 
     :param extra_specs: 构建时显式指定的受信词库配置
     :param isolate_plugin_errors: 应用启动时单独报告源码插件错误，仍可启动宿主
-    :return: None
+    :raises OSError: 未隔离插件错误时，读写插件词库失败
+    :raises ValueError: 未隔离插件错误时，词库内容未通过校验
+    :raises TypeError: 未隔离插件错误时，词库声明的数据类型错误
+    :raises KeyError: 未隔离插件错误时，词库缺少所需的键
     """
     active = CatalogRegistry.specs()
     specs = {spec.domain: spec for spec in (*active, *extra_specs)}

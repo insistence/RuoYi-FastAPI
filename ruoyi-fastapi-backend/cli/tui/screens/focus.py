@@ -36,7 +36,6 @@ class BaseScreenFocusService(ABC):
 
         :param screen: 当前屏幕对象
         :param step: 焦点移动步长
-        :return: None
         """
         order = self.get_focus_order(screen)
         focused = screen.app.focused
@@ -66,6 +65,8 @@ class ScreenFocusActionsMixin:
 
     该混入负责将焦点服务暴露为屏幕上的左右移动与滚动 action，避免
     各个 Screen 类重复编写同形转发方法。
+
+    :ivar focus_service: TUI 屏幕焦点服务基类
     """
 
     focus_service: BaseScreenFocusService
@@ -75,7 +76,6 @@ class ScreenFocusActionsMixin:
         按给定方向移动当前焦点。
 
         :param step: 焦点移动步长
-        :return: None
         """
         self.focus_service.move_focus(self, step)
 
@@ -88,65 +88,33 @@ class ScreenFocusActionsMixin:
         return self.focus_service.get_scroll_target(self)
 
     def action_scroll_focus_down(self) -> None:
-        """
-        向下滚动当前焦点区域。
-
-        :return: None
-        """
+        """向下滚动当前焦点区域。"""
         self._get_scroll_target().scroll_down(animate=False)
 
     def action_scroll_focus_up(self) -> None:
-        """
-        向上滚动当前焦点区域。
-
-        :return: None
-        """
+        """向上滚动当前焦点区域。"""
         self._get_scroll_target().scroll_up(animate=False)
 
     def action_scroll_focus_page_down(self) -> None:
-        """
-        向下翻动当前焦点区域。
-
-        :return: None
-        """
+        """向下翻动当前焦点区域。"""
         self._get_scroll_target().scroll_page_down(animate=False)
 
     def action_scroll_focus_page_up(self) -> None:
-        """
-        向上翻动当前焦点区域。
-
-        :return: None
-        """
+        """向上翻动当前焦点区域。"""
         self._get_scroll_target().scroll_page_up(animate=False)
 
     def action_scroll_focus_home(self) -> None:
-        """
-        将当前焦点区域滚动到起始位置。
-
-        :return: None
-        """
+        """将当前焦点区域滚动到起始位置。"""
         self._get_scroll_target().scroll_home(animate=False)
 
     def action_scroll_focus_end(self) -> None:
-        """
-        将当前焦点区域滚动到末尾位置。
-
-        :return: None
-        """
+        """将当前焦点区域滚动到末尾位置。"""
         self._get_scroll_target().scroll_end(animate=False)
 
     def action_focus_left(self) -> None:
-        """
-        将焦点向左移动一列。
-
-        :return: None
-        """
+        """将焦点向左移动一列。"""
         self._move_focus(-1)
 
     def action_focus_right(self) -> None:
-        """
-        将焦点向右移动一列。
-
-        :return: None
-        """
+        """将焦点向右移动一列。"""
         self._move_focus(1)

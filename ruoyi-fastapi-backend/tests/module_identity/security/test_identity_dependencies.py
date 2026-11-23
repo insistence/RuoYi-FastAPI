@@ -26,10 +26,23 @@ def _request(
     declared_length: int | None = None,
     include_content_length: bool = True,
 ) -> Request:
-    """构造最小 URL encoded 请求。"""
+    """
+    构造最小 URL encoded 请求。
+
+    :param body: 请求或测试样例的正文
+    :param content_type: 内容类型
+    :param declared_length: 请求头声明的内容字节数
+    :param include_content_length: 是否添加 Content-Length 请求头
+    :return: 最小 URL encoded 请求
+    """
     sent = False
 
     async def receive() -> dict[str, object]:
+        """
+        为下游 ASGI 应用提供待接收的测试消息。
+
+        :return: 下游 ASGI 应用接收的请求消息
+        """
         nonlocal sent
         if sent:
             return {'type': 'http.disconnect'}
@@ -95,7 +108,7 @@ async def test_read_form_rejects_malformed_percent_escape(monkeypatch: pytest.Mo
 
 @pytest.mark.asyncio
 async def test_access_key_helper_rejects_remote_key_header(monkeypatch: pytest.MonkeyPatch) -> None:
-    """kid 验证只允许本地公钥，拒绝 jku/x5u/jwk/x5c。"""
+    """验证 kid 时只允许本地公钥，拒绝 jku/x5u/jwk/x5c。"""
     monkeypatch.setattr(dependencies.OidcConfig, 'oidc_enabled', True)
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     token = jwt.encode(
@@ -156,6 +169,7 @@ async def test_userinfo_accepts_case_insensitive_scheme_without_changing_token(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('prefix', ['', 'Basic ', 'BearerX ', ' Bearer ', 'Bearer\t'])
 async def test_userinfo_rejects_other_schemes_and_missing_space(monkeypatch: pytest.MonkeyPatch, prefix: str) -> None:
+    """用户信息接口拒绝其他认证方案及缺少空格的格式。"""
     monkeypatch.setattr(dependencies.OidcConfig, 'oidc_enabled', True)
     request = Request(
         {
@@ -177,6 +191,13 @@ async def test_client_dependency_invalid_client_has_basic_challenge(monkeypatch:
     monkeypatch.setattr(dependencies, 'read_form', lambda request: _async({'client_id': 'client-1'}))
 
     async def invalid(*args: object, **kwargs: object) -> object:
+        """
+        模拟此操作抛出 OAuthProtocolException 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises OAuthProtocolException: 模拟客户端认证失败
+        """
         raise OAuthProtocolException('invalid_client', 'Client authentication failed', 401)
 
     monkeypatch.setattr(dependencies.TokenService, 'authenticate_client', invalid)
@@ -225,9 +246,19 @@ def test_invalid_token_challenge_is_standard_bearer() -> None:
 
 
 def _async(value: object) -> Any:
-    """构造异步测试结果。"""
+    """
+    构造异步测试结果。
+
+    :param value: 待处理的输入值
+    :return: 异步测试结果
+    """
 
     async def result() -> object:
+        """
+        向调用方返回 ``value``。
+
+        :return: 为此调用预设的值
+        """
         return value
 
     return result()

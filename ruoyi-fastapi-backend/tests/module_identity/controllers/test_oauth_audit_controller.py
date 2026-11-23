@@ -21,12 +21,18 @@ from module_identity.service.audit_service import AuditService
 
 
 class _Session:
-    """提供只读回滚边界。"""
+    """
+    提供只读回滚边界。
+
+    :ivar rollbacks: 测试中记录的回滚次数
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``rollbacks``。"""
         self.rollbacks = 0
 
     async def rollback(self) -> None:
+        """累加 ``rollbacks`` 供后续断言检查。"""
         self.rollbacks += 1
 
 
@@ -92,9 +98,23 @@ async def test_audit_list_uses_real_total_and_safe_projection(monkeypatch: pytes
     ]
 
     async def list_page(*args: object, **kwargs: object) -> list[object]:
+        """
+        向调用方返回 ``rows``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 查询得到的记录列表
+        """
         return rows
 
     async def count(*args: object, **kwargs: object) -> int:
+        """
+        返回固定值 ``37``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``37``
+        """
         return 37
 
     monkeypatch.setattr(OAuthAuditDao, 'list_admin_page', list_page)
@@ -108,7 +128,6 @@ async def test_audit_list_uses_real_total_and_safe_projection(monkeypatch: pytes
 @pytest.mark.asyncio
 async def test_audit_export_runs_rate_limit_and_operation_log(monkeypatch: pytest.MonkeyPatch) -> None:
     """HTTP 审计导出经过完整装饰器链，保留文件响应并记录操作日志。"""
-
     query = AuditPageQueryModel()
     db = _Session()
     user = SimpleNamespace(user=SimpleNamespace(user_id=1, user_name='admin', dept=None))

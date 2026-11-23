@@ -25,14 +25,12 @@ from utils.excel_util import ExcelUtil
 
 
 class RoleService:
-    """
-    角色管理模块服务层
-    """
+    """角色管理模块服务层。"""
 
     @classmethod
     async def get_role_select_option_services(cls, query_db: AsyncSession) -> list[dict[str, Any]]:
         """
-        获取角色列表不分页信息service
+        获取角色列表不分页信息service。
 
         :param query_db: orm对象
         :return: 角色列表不分页信息对象
@@ -44,7 +42,7 @@ class RoleService:
     @classmethod
     async def get_role_dept_tree_services(cls, query_db: AsyncSession, role_id: int) -> RoleDeptQueryModel:
         """
-        根据角色id获取部门树信息service
+        根据角色id获取部门树信息service。
 
         :param query_db: orm对象
         :param role_id: 角色id
@@ -66,7 +64,7 @@ class RoleService:
         is_page: bool = False,
     ) -> PageModel | list[dict[str, Any]]:
         """
-        获取角色列表信息service
+        获取角色列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -81,10 +79,11 @@ class RoleService:
     @classmethod
     async def check_role_allowed_services(cls, check_role: RoleModel) -> CrudResponseModel:
         """
-        校验角色是否允许操作service
+        校验角色是否允许操作service。
 
         :param check_role: 角色信息
         :return: 校验结果
+        :raises ServiceException: 不允许操作超级管理员角色
         """
         if check_role.admin:
             raise ServiceException(message='不允许操作超级管理员角色', msg_key='role.superAdminProtected')
@@ -95,12 +94,12 @@ class RoleService:
         cls, query_db: AsyncSession, role_ids: str, data_scope_sql: ColumnElement
     ) -> None:
         """
-        校验角色是否有数据权限service
+        校验角色是否有数据权限service。
 
         :param query_db: orm对象
         :param role_ids: 角色id
         :param data_scope_sql: 数据权限对应的查询sql语句
-        :return: 校验结果
+        :raises ServiceException: 没有权限访问角色数据
         """
         role_id_list = role_ids.split(',') if role_ids else []
         if role_id_list:
@@ -115,7 +114,7 @@ class RoleService:
     @classmethod
     async def check_role_name_unique_services(cls, query_db: AsyncSession, page_object: RoleModel) -> bool:
         """
-        校验角色名称是否唯一service
+        校验角色名称是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 角色对象
@@ -130,7 +129,7 @@ class RoleService:
     @classmethod
     async def check_role_key_unique_services(cls, query_db: AsyncSession, page_object: RoleModel) -> bool:
         """
-        校验角色权限字符是否唯一service
+        校验角色权限字符是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 角色对象
@@ -145,11 +144,13 @@ class RoleService:
     @classmethod
     async def add_role_services(cls, query_db: AsyncSession, page_object: AddRoleModel) -> CrudResponseModel:
         """
-        新增角色信息service
+        新增角色信息service。
 
         :param query_db: orm对象
         :param page_object: 新增角色对象
         :return: 新增角色校验结果
+        :raises ServiceException: 角色名称或权限标识已存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         add_role = RoleModel(**page_object.model_dump(by_alias=True, exclude={'create_time', 'update_time'}))
         if not await cls.check_role_name_unique_services(query_db, page_object):
@@ -183,7 +184,7 @@ class RoleService:
         role_info: RoleModel,
     ) -> bool:
         """
-        比较角色保存前后的菜单授权集合
+        比较角色保存前后的菜单授权集合。
 
         :param query_db: 角色变更使用的异步数据库会话
         :param page_object: 本次角色编辑请求
@@ -203,12 +204,11 @@ class RoleService:
         role_info: RoleModel,
     ) -> None:
         """
-        在角色安全属性变化时同步失效统一认证身份状态
+        在角色安全属性变化时同步失效统一认证身份状态。
 
         :param query_db: orm对象
         :param page_object: 编辑角色对象
         :param role_info: 当前角色信息
-        :return: None
         """
         if page_object.type == 'status':
             if page_object.status == '1' and role_info.status != '1':
@@ -233,11 +233,13 @@ class RoleService:
     @classmethod
     async def edit_role_services(cls, query_db: AsyncSession, page_object: AddRoleModel) -> CrudResponseModel:
         """
-        编辑角色信息service
+        编辑角色信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑角色对象
         :return: 编辑角色校验结果
+        :raises ServiceException: 角色不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         edit_role = page_object.model_dump(
             exclude_unset=True,
@@ -283,11 +285,13 @@ class RoleService:
     @classmethod
     async def role_datascope_services(cls, query_db: AsyncSession, page_object: AddRoleModel) -> CrudResponseModel:
         """
-        分配角色数据权限service
+        分配角色数据权限service。
 
         :param query_db: orm对象
         :param page_object: 角色数据权限对象
         :return: 分配角色数据权限结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 角色不存在
         """
         edit_role = page_object.model_dump(
             exclude_unset=True,
@@ -314,11 +318,13 @@ class RoleService:
     @classmethod
     async def delete_role_services(cls, query_db: AsyncSession, page_object: DeleteRoleModel) -> CrudResponseModel:
         """
-        删除角色信息service
+        删除角色信息service。
 
         :param query_db: orm对象
         :param page_object: 删除角色对象
         :return: 删除角色校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入角色id为空
         """
         if page_object.role_ids:
             role_id_list = page_object.role_ids.split(',')
@@ -356,7 +362,7 @@ class RoleService:
     @classmethod
     async def role_detail_services(cls, query_db: AsyncSession, role_id: int) -> RoleModel:
         """
-        获取角色详细信息service
+        获取角色详细信息service。
 
         :param query_db: orm对象
         :param role_id: 角色id
@@ -370,7 +376,7 @@ class RoleService:
     @staticmethod
     async def export_role_list_services(role_list: list) -> bytes:
         """
-        导出角色列表信息service
+        导出角色列表信息service。
 
         :param role_list: 角色信息列表
         :return: 角色列表信息对象
@@ -407,7 +413,7 @@ class RoleService:
         is_page: bool = False,
     ) -> PageModel:
         """
-        根据角色id获取已分配用户列表
+        根据角色id获取已分配用户列表。
 
         :param query_db: orm对象
         :param page_object: 用户关联角色对象
@@ -436,7 +442,7 @@ class RoleService:
         is_page: bool = False,
     ) -> PageModel:
         """
-        根据角色id获取未分配用户列表
+        根据角色id获取未分配用户列表。
 
         :param query_db: orm对象
         :param page_object: 用户关联角色对象

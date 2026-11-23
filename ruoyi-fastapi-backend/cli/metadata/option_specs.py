@@ -12,7 +12,7 @@ class EnvironmentOptionService:
     该服务负责发现当前项目下可用的环境名称集合，供 completion、
     wizard 和诊断信息等场景复用。
 
-    :param default_environments: 默认内置环境名称列表
+    :ivar default_environments: 默认内置环境名称列表
     """
 
     default_environments: tuple[str, ...] = DEFAULT_ENVIRONMENTS

@@ -21,7 +21,13 @@ if TYPE_CHECKING:
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> Generator:
-    """在浏览器 fixture 回收前保存调用结果，确保断言失败仍能导出诊断。"""
+    """
+    在浏览器 fixture 回收前保存调用结果，确保断言失败仍能导出诊断。
+
+    :param item: 当前要处理的条目
+    :param call: 需要执行或验证的调用
+    :yield: 上下文就绪后将控制权交给调用方
+    """
     result = yield
     report = result.get_result()
     setattr(item, f'rep_{report.when}', report)
@@ -29,7 +35,11 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> Gener
 
 @pytest_asyncio.fixture(scope='session', loop_scope='session')
 async def e2e_browser() -> AsyncIterator[tuple[Playwright, Browser]]:
-    """一次 pytest 会话只启动一个 Chromium 进程。"""
+    """
+    一次 pytest 会话只启动一个 Chromium 进程。
+
+    :yield: 依次为 ``playwright``、``browser`` 的元组
+    """
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(
             headless=True,
@@ -46,7 +56,13 @@ async def e2e_browser() -> AsyncIterator[tuple[Playwright, Browser]]:
 async def browser_harness(
     e2e_browser: tuple[Playwright, Browser], request: pytest.FixtureRequest
 ) -> AsyncIterator[BrowserHarness]:
-    """每个用例有自己的上下文、诊断目录和 API 客户端。"""
+    """
+    每个用例有自己的上下文、诊断目录和 API 客户端。
+
+    :param e2e_browser: 执行端到端流程的浏览器
+    :param request: pytest 当前用例的请求上下文
+    :yield: 为端到端测试管理资源的夹具
+    """
     harness = BrowserHarness(*e2e_browser, artifact_directory(E2E_OUTPUT_ROOT, request.node.nodeid))
     try:
         yield harness

@@ -23,6 +23,7 @@ def _validate(model: type[BaseModel], values: dict[str, Any]) -> Any:
     :param model: 目标参数模型
     :param values: 原始参数字段
     :return: 已校验的模型；无效输入返回 HTTP 422
+    :raises HTTPException: 路径或查询参数未通过模型校验
     """
     try:
         return model.model_validate(values)
@@ -88,24 +89,48 @@ def create_plugin(host: PluginHostContext) -> PluginDefinition:
         :return: 任务管理 ASGI 子应用
         """
         app = FastAPI(title='持久化任务示例', docs_url=None, redoc_url=None, openapi_url=None)
-        app.add_api_route('/api/info', plugin_endpoint(info, permission='task_demo:view'), methods=['GET'])
-        app.add_api_route('/api/tasks', plugin_endpoint(list_tasks, permission='task_demo:view'), methods=['GET'])
         app.add_api_route(
-            '/api/tasks/{task_id}', plugin_endpoint(get_task, permission='task_demo:view'), methods=['GET']
+            '/api/info',
+            plugin_endpoint(info, permission='task_demo:view'),
+            summary='查询任务插件信息',
+            description='返回插件标识、版本，以及当前用户是否可以修改任务。',
+            methods=['GET'],
+        )
+        app.add_api_route(
+            '/api/tasks',
+            plugin_endpoint(list_tasks, permission='task_demo:view'),
+            summary='分页查询任务',
+            description='按完成状态筛选任务，并返回指定页的任务记录。',
+            methods=['GET'],
+        )
+        app.add_api_route(
+            '/api/tasks/{task_id}',
+            plugin_endpoint(get_task, permission='task_demo:view'),
+            summary='查询任务详情',
+            description='按路径中的任务标识读取单条任务记录。',
+            methods=['GET'],
         )
         app.add_api_route(
             '/api/tasks',
             plugin_endpoint(create_task, permission='task_demo:write', body_model=TaskInput, max_body_bytes=8192),
+            summary='创建任务',
+            description='校验任务标题、内容、状态与优先级，保存并返回新建的任务。',
             methods=['POST'],
             status_code=201,
         )
         app.add_api_route(
             '/api/tasks/{task_id}',
             plugin_endpoint(update_task, permission='task_demo:write', body_model=TaskInput, max_body_bytes=8192),
+            summary='更新任务',
+            description='按任务标识替换标题、内容、状态和优先级，并返回更新结果。',
             methods=['PUT'],
         )
         app.add_api_route(
-            '/api/tasks/{task_id}', plugin_endpoint(delete_task, permission='task_demo:write'), methods=['DELETE']
+            '/api/tasks/{task_id}',
+            plugin_endpoint(delete_task, permission='task_demo:write'),
+            summary='删除任务',
+            description='删除指定标识的任务并返回删除结果。',
+            methods=['DELETE'],
         )
         return app
 

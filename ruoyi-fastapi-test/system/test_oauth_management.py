@@ -19,7 +19,12 @@ SUCCESS_CODE = 200
 
 
 async def successful_json(response: APIResponse | Response) -> dict[str, Any]:
-    """同时验证 HTTP 与真实业务响应，不将错误页当成空列表。"""
+    """
+    同时验证 HTTP 与真实业务响应，不将错误页当成空列表。
+
+    :param response: 当前调用产生的响应
+    :return: 随调用传入或返回的结构化数据
+    """
     assert response.ok, f'OAuth API HTTP 状态异常：{response.status}'
     payload = await response.json()
     assert payload['code'] == SUCCESS_CODE, payload.get('msg')
@@ -27,7 +32,15 @@ async def successful_json(response: APIResponse | Response) -> dict[str, Any]:
 
 
 async def click_response(page: Page, button: Locator, path: str, method: str) -> dict[str, Any]:
-    """点击操作后等待对应业务请求完成，兼容两个框架的 API 前缀。"""
+    """
+    点击操作后等待对应业务请求完成，兼容两个框架的 API 前缀。
+
+    :param page: 浏览器页面或要查询的页码
+    :param button: 触发当前动作的按钮
+    :param path: 要读取或处理的路径
+    :param method: 当前请求的 HTTP 方法
+    :return: 业务请求完成后捕获的响应
+    """
     async with page.expect_response(
         lambda response: urlparse(response.url).path.endswith(path) and response.request.method == method
     ) as pending:
@@ -36,7 +49,15 @@ async def click_response(page: Page, button: Locator, path: str, method: str) ->
 
 
 async def find_record(page: Page, kind: str, placeholder: str, name: str) -> Locator:
-    """按唯一名称查询当前用例的记录，避开分页和其他测试的数据。"""
+    """
+    按唯一名称查询当前用例的记录，避开分页和其他测试的数据。
+
+    :param page: 浏览器页面或要查询的页码
+    :param kind: 当前条目的类别
+    :param placeholder: 输入框用于定位或提示的占位文本
+    :param name: 用于查找或标识当前对象的名称
+    :return: 需要处理的各行记录
+    """
     await page.get_by_placeholder(placeholder, exact=True).fill(name)
     await click_response(
         page, page.get_by_role('button', name=button_name('查找')), f'/system/oauth/{kind}/list', 'GET'
@@ -47,7 +68,15 @@ async def find_record(page: Page, kind: str, placeholder: str, name: str) -> Loc
 
 
 async def change_record_status(page: Page, rows: Locator, kind: str, identifier: str, *, enable: bool) -> None:
-    """从实际行菜单停用或启用，再确认弹窗提交的接口成功。"""
+    """
+    从实际行菜单停用或启用，再确认弹窗提交的接口成功。
+
+    :param page: 浏览器页面或要查询的页码
+    :param rows: 需要处理的各行记录
+    :param kind: 当前条目的类别
+    :param identifier: 在当前流程中定位记录的标识
+    :param enable: 是否启用目标功能
+    """
     await rows.get_by_role('button', name=button_name('更多')).click()
     label = '重新启用' if enable else {'client': '停用应用', 'resource': '停用服务', 'scope': '停用权限'}[kind]
     await page.locator('.el-dropdown-menu:visible, .ant-dropdown:visible').get_by_text(label, exact=True).click()
@@ -63,7 +92,14 @@ async def change_record_status(page: Page, rows: Locator, kind: str, identifier:
 
 
 async def assert_record_status(api: APIRequestContext, kind: str, identifier: str, status: str) -> None:
-    """直接读取持久化记录，验证 UI 操作确实改变后端状态。"""
+    """
+    直接读取持久化记录，验证 UI 操作确实改变后端状态。
+
+    :param api: 发起 API 请求的客户端
+    :param kind: 当前条目的类别
+    :param identifier: 在当前流程中定位记录的标识
+    :param status: 操作或记录所处的状态
+    """
     payload = await successful_json(await api.get(f'/system/oauth/{kind}/{identifier}'))
     assert payload['data']['status'] == status
 

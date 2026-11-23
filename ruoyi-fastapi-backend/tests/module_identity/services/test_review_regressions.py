@@ -30,6 +30,14 @@ PEPPER = 'regression-refresh-pepper-' + 'x' * 32
 
 
 async def seed_refresh(db: AsyncSession, monkeypatch: pytest.MonkeyPatch, *, expired: bool = False) -> str:
+    """
+    准备具有关联约束的刷新令牌数据。
+
+    :param db: 当前操作使用的数据库会话
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :param expired: 当前记录是否已过期
+    :return: 用于身份验证或授权的令牌
+    """
     # 显式确认外键校验已启用，避免SQLite默认配置掩盖原有问题
     await db.execute(text('PRAGMA foreign_keys=ON'))
     assert await db.scalar(text('PRAGMA foreign_keys')) == 1
@@ -116,6 +124,13 @@ async def seed_refresh(db: AsyncSession, monkeypatch: pytest.MonkeyPatch, *, exp
 
 
 async def refresh(db: AsyncSession, token: str) -> TokenResult:
+    """
+    使用测试授权参数请求刷新令牌。
+
+    :param db: 当前操作使用的数据库会话
+    :param token: 用于身份验证或授权的令牌
+    :return: 刷新令牌换取的新令牌响应
+    """
     return await TokenService.refresh_token(
         db,
         {'grant_type': 'refresh_token', 'client_id': 'refresh-regression', 'refresh_token': token},
@@ -130,6 +145,7 @@ async def refresh(db: AsyncSession, token: str) -> TokenResult:
 async def test_rotation_with_real_foreign_keys_and_replay_revocation(
     data_session: AsyncSession, monkeypatch: pytest.MonkeyPatch, expired: bool
 ) -> None:
+    """有真实外键约束时支持令牌轮换和重放撤销。"""
     old = await seed_refresh(data_session, monkeypatch, expired=expired)
     result = await refresh(data_session, old)
     await data_session.commit()
@@ -150,6 +166,7 @@ async def test_rotation_with_real_foreign_keys_and_replay_revocation(
 async def test_failed_signing_rolls_back_both_rotation_rows(
     data_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """签名失败时回滚两条轮换记录。"""
     old = await seed_refresh(data_session, monkeypatch)
     monkeypatch.setattr(TokenService, '_issue_access_token', AsyncMock(side_effect=RuntimeError('signer unavailable')))
     with pytest.raises(RuntimeError, match='signer unavailable'):
@@ -165,6 +182,7 @@ async def test_failed_signing_rolls_back_both_rotation_rows(
 async def test_explicit_revocation_still_blocks_offline_refresh(
     data_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """显式撤销后禁止离线刷新。"""
     old = await seed_refresh(data_session, monkeypatch, expired=True)
     assert await SsoSessionDao.revoke(
         data_session, '99010000-0000-4000-8000-000000000001', reason='rp_initiated_logout', now=NOW
@@ -176,6 +194,7 @@ async def test_explicit_revocation_still_blocks_offline_refresh(
 
 @pytest.mark.asyncio
 async def test_real_key_list_readiness_and_client_response_are_rfc3339(monkeypatch: pytest.MonkeyPatch) -> None:
+    """真实密钥列表的就绪时间和客户端响应采用 RFC 3339。"""
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', False)
     monkeypatch.setattr(
         'module_identity.controller.oidc_key_controller.OidcKeyManagementService.list_page',
@@ -195,6 +214,7 @@ async def test_real_key_list_readiness_and_client_response_are_rfc3339(monkeypat
 
 
 def test_role_values_require_an_explicit_client_allowlist() -> None:
+    """角色声明必须由客户端显式列入允许清单。"""
     user = {'subject_id': 'sub-1'}
     for policy, expected in [
         ({'roles': True}, []),
@@ -214,6 +234,7 @@ def test_role_values_require_an_explicit_client_allowlist() -> None:
 async def test_confirmed_logout_revokes_offline_grant_with_expired_owned_cookie(
     data_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """已过期的自有 Cookie 仍可在确认注销时撤销离线授权。"""
     old = await seed_refresh(data_session, monkeypatch, expired=True)
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', True)
     sid = '99010000-0000-4000-8000-000000000001'

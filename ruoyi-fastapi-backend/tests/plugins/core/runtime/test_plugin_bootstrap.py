@@ -26,7 +26,12 @@ def test_plugin_runtime_builder_resolves_frontend_plugins_root_from_backend_root
 
 
 def write_manifest(plugin_dir: Path, content: str) -> None:
-    """写入测试插件清单。"""
+    """
+    写入测试插件清单。
+
+    :param plugin_dir: 保存插件清单和资源的目录
+    :param content: 需要读取或写入的内容
+    """
     plugin_dir.mkdir(parents=True)
     (plugin_dir / 'plugin.yaml').write_text(content, encoding='utf-8')
 

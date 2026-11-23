@@ -13,7 +13,8 @@ class GenDomainSupport:
     该对象负责 CLI 当前用户构建、表名规整、记录序列化、SQL 解析
     以及导出路径处理，避免主运行时服务继续承载过多局部规则。
 
-    :param infrastructure_gateway: 代码生成基础设施网关
+    :ivar infrastructure_gateway: 代码生成基础设施网关
+    :ivar operator_service: 运行时操作者解析服务
     """
 
     def __init__(
@@ -26,7 +27,6 @@ class GenDomainSupport:
 
         :param infrastructure_gateway: 代码生成基础设施网关
         :param operator_service: 运行时操作者解析服务
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
         self.operator_service = operator_service

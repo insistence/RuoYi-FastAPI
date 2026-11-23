@@ -7,14 +7,14 @@ from cli.wizard.base import BaseCliWizardFlow
 @dataclass(frozen=True)
 class CacheClearWizardSelection:
     """
-    `wizard cache-clear` 向导采集结果。
+    ``wizard cache-clear`` 向导采集结果。
 
-    :param env: 运行环境
-    :param mode: 清理模式
-    :param cache_name: 缓存名称前缀
-    :param cache_key: 缓存键名关键字
-    :param dry_run: 是否演练执行
-    :param allow_prod: 是否允许生产环境执行
+    :ivar env: 运行环境
+    :ivar mode: 清理模式
+    :ivar cache_name: 缓存名称前缀
+    :ivar cache_key: 缓存键名关键字
+    :ivar dry_run: 是否演练执行
+    :ivar allow_prod: 是否允许生产环境执行
     """
 
     env: str
@@ -27,13 +27,16 @@ class CacheClearWizardSelection:
 
 class CacheClearWizardFlow(BaseCliWizardFlow[CacheClearWizardSelection]):
     """
-    `wizard cache-clear` 向导流程。
+    ``wizard cache-clear`` 向导流程。
 
-    :param default_env: 默认环境
-    :param default_mode: 默认清理模式
-    :param default_cache_name: 默认缓存名称前缀
-    :param default_cache_key: 默认缓存键名关键字
-    :param default_dry_run: 默认是否先执行 dry-run
+    :cvar wizard_name: 向导名称
+    :cvar preview_title: 预览标题
+    :cvar failure_message: 流程失败时显示的提示
+    :ivar default_env: 默认环境
+    :ivar default_mode: 默认清理模式
+    :ivar default_cache_name: 默认缓存名称前缀
+    :ivar default_cache_key: 默认缓存键名关键字
+    :ivar default_dry_run: 默认是否先执行 dry-run
     """
 
     wizard_name = 'wizard cache-clear'
@@ -57,7 +60,6 @@ class CacheClearWizardFlow(BaseCliWizardFlow[CacheClearWizardSelection]):
         :param default_cache_name: 默认缓存名称前缀
         :param default_cache_key: 默认缓存键名关键字
         :param default_dry_run: 默认是否先执行 dry-run
-        :return: None
         """
         self.default_env = default_env
         self.default_mode = default_mode
@@ -194,7 +196,7 @@ def run_cache_clear_wizard(
     default_dry_run: bool = True,
 ) -> None:
     """
-    执行 `wizard cache-clear` 向导。
+    执行 ``wizard cache-clear`` 向导。
 
     :param output: 输出格式
     :param default_env: 默认环境
@@ -202,7 +204,6 @@ def run_cache_clear_wizard(
     :param default_cache_name: 默认缓存名称前缀
     :param default_cache_key: 默认缓存键关键字
     :param default_dry_run: 默认是否执行 dry-run
-    :return: None
     """
     CacheClearWizardFlow(
         default_env=default_env,

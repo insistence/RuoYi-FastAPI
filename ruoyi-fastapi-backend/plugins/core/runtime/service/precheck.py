@@ -17,6 +17,9 @@ from .responses import PluginPrecheckResponse
 class PluginPrecheckUseCase:
     """
     插件预检 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(self, dependencies: PluginRuntimeDependencies, context: PluginRuntimeContextService) -> None:

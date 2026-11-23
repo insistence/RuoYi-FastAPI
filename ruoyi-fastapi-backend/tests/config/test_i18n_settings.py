@@ -32,7 +32,14 @@ def test_i18n_settings_reject_invalid_length(locale: str) -> None:
 def _load_i18n_config(
     tmp_path: Path, file_locale: str | None, external_locale: str | None
 ) -> subprocess.CompletedProcess[str]:
-    """在独立进程中读取指定环境文件和环境变量，返回配置加载结果。"""
+    """
+    在独立进程中读取指定环境文件和环境变量，返回配置加载结果。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param file_locale: 配置文件中设置的语言
+    :param external_locale: 外部环境指定的语言
+    :return: 独立进程解析出的国际化配置
+    """
     (tmp_path / '.env.i18n-test').write_text(
         '' if file_locale is None else f'I18N_DEFAULT_LOCALE={file_locale}\n', encoding='utf-8'
     )

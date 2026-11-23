@@ -63,14 +63,12 @@ _storage_class_cache: dict[str, 'type[AsyncBaseDb]'] = {}
 
 
 class AiUtil:
-    """
-    AI工具类
-    """
+    """AI工具类。"""
 
     @classmethod
     def _resolve_provider_class(cls, provider: str) -> 'type[Model] | None':
         """
-        按需加载并缓存提供商模型类
+        按需加载并缓存提供商模型类。
 
         :param provider: 提供商名称
         :return: 模型类，未找到返回None
@@ -88,7 +86,7 @@ class AiUtil:
     @classmethod
     def _resolve_storage_class(cls, db_type: str) -> 'type[AsyncBaseDb]':
         """
-        按需加载并缓存存储引擎类
+        按需加载并缓存存储引擎类。
 
         :param db_type: 数据库类型
         :return: 存储引擎类
@@ -107,7 +105,7 @@ class AiUtil:
     @classmethod
     def get_storage_engine(cls) -> 'AsyncBaseDb':
         """
-        获取存储引擎实例
+        获取存储引擎实例。
 
         :return: 存储引擎实例
         """
@@ -136,6 +134,7 @@ class AiUtil:
 
         :param base_url: 基础URL
         :return: 校验后的基础URL
+        :raises ValueError: Base URL 只支持 http/https 且必须包含主机名；Base URL 不允许指向本机或内网地址
         """
         if not base_url:
             return None
@@ -178,8 +177,9 @@ class AiUtil:
         **kwargs,
     ) -> 'Model':
         """
-        从工厂获取模型实例
+        从工厂获取模型实例。
 
+        :param kwargs: 传给被调用对象的关键字参数
         :param provider: 提供商
         :param model_code: 模型编码
         :param model_name: 模型名称
@@ -188,6 +188,7 @@ class AiUtil:
         :param temperature: 温度
         :param max_tokens: 最大令牌数
         :return: 模型实例
+        :raises ValueError: 模型提供商没有注册对应的实现
         """
         safe_base_url = cls._validate_base_url(base_url)
         params = {
