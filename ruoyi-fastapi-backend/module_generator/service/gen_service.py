@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import os
@@ -388,10 +389,7 @@ class GenTableService:
         env = TemplateInitializer.init_jinja2()
         context = TemplateUtils.prepare_context(gen_table)
         template_list = TemplateUtils.get_template_list(gen_table)
-        preview_code_result = {}
-        for template in template_list:
-            render_content = env.get_template(template).render(**context)
-            preview_code_result[template] = render_content
+        preview_code_result = await asyncio.to_thread(TemplateUtils.render_templates, env, template_list, context)
         preview_code_result.update(context['generatedI18n'].artifacts())
         return preview_code_result
 
@@ -414,7 +412,7 @@ class GenTableService:
         render_info = await cls.__get_gen_render_info(query_db, table_name, source_name)
         try:
             output_root = cls._get_output_root(render_info[3])
-            files = cls._render_files(env, render_info)
+            files = await asyncio.to_thread(cls._render_files, env, render_info)
             output_paths = {name: cls.__get_output_path(output_root, name) for name in files}
             # 全部词库解析、合并成功后才开始写入，避免无效资源造成半份产物。
             for relative_path, content in files.items():
@@ -467,7 +465,7 @@ class GenTableService:
         for table_name in table_names:
             env = TemplateInitializer.init_jinja2()
             render_info = await cls.__get_gen_render_info(query_db, table_name, source_name)
-            generated_files = cls._render_files(env, render_info)
+            generated_files = await asyncio.to_thread(cls._render_files, env, render_info)
             generators.append(render_info[2]['generatedI18n'])
             for path, content in generated_files.items():
                 files[path] = GenI18nUtil.merge_content(path, files[path], content) if path in files else content
@@ -492,8 +490,9 @@ class GenTableService:
         :param render_info: 模板、输出路径、上下文和业务表
         :return: 生成包内相对路径及内容
         """
-        files: dict[str, str] = {
-            output_file: env.get_template(template).render(**render_info[2])
+        rendered = TemplateUtils.render_templates(env, render_info[0], render_info[2])
+        files = {
+            output_file: rendered[template]
             for template, output_file in zip(render_info[0], render_info[1], strict=True)
         }
         files.update(render_info[2]['generatedI18n'].artifacts())

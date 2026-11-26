@@ -1,4 +1,3 @@
-{% set pkField = pkColumn.python_field %}
 {% set pk_field = pkColumn.python_field | camel_to_snake %}
 {% set pkParentheseIndex = pkColumn.column_comment.find("（") %}
 {% set pk_field_comment = pkColumn.column_comment[:pkParentheseIndex] if pkParentheseIndex != -1 else pkColumn.column_comment %}
@@ -9,19 +8,22 @@ from fastapi.responses import StreamingResponse
 from pydantic_validation_decorator import ValidateFields
 from sqlalchemy.ext.asyncio import AsyncSession
 
+{% set project_imports %}
 from common.annotation.log_annotation import Log
 from common.aspect.db_session import DBSessionDependency
 from common.aspect.interface_auth import UserInterfaceAuthDependency
 from common.aspect.pre_auth import CurrentUserDependency, PreAuthDependency
 from common.enums import BusinessType
 from common.router import APIRouterPro
-from common.vo import DataResponseModel, PageResponseModel, ResponseBaseModel
+from common.vo import DataResponseModel, {% if not table.tree %}PageResponseModel, {% endif %}ResponseBaseModel
 from module_admin.entity.vo.user_vo import CurrentUserModel
-from {{ packageName }}.entity.vo.{{ businessName }}_vo import Delete{{ BusinessName }}Model, {{ BusinessName }}Model, {{ BusinessName }}PageQueryModel
+from {{ packageName }}.entity.vo.{{ businessName }}_vo import {{ ['Delete' ~ BusinessName ~ 'Model', BusinessName ~ 'Key', BusinessName ~ 'Model', BusinessName ~ 'PageQueryModel'] | sort | join(', ') }}
 from {{ packageName }}.service.{{ businessName }}_service import {{ BusinessName }}Service
 from utils.common_util import bytes2file_response
 from utils.log_util import logger
 from utils.response_util import ResponseUtil
+{% endset %}
+{{ project_imports.strip().splitlines() | sort | join("\n") }}
 
 {{ businessName }}_controller = APIRouterPro(
     prefix='/{{ moduleName }}/{{ businessName }}', order_num=50, tags=['{{ functionName }}'], dependencies=[PreAuthDependency()]
@@ -30,9 +32,9 @@ from utils.response_util import ResponseUtil
 
 @{{ businessName }}_controller.get(
     '/list',
-    summary='获取{{ functionName }}分页列表接口',
-    description='用于获取{{ functionName }}分页列表',
-    response_model=PageResponseModel[{{ BusinessName }}Model],
+    summary='获取{{ functionName }}{% if not table.tree %}分页{% endif %}列表接口',
+    description='用于获取{{ functionName }}{% if not table.tree %}分页{% endif %}列表',
+    response_model={% if table.tree %}DataResponseModel[list[{{ BusinessName }}Model]]{% else %}PageResponseModel[{{ BusinessName }}Model]{% endif %},
     dependencies=[UserInterfaceAuthDependency('{{ permissionPrefix }}:list')],
 )
 async def get_{{ moduleName }}_{{ businessName }}_list(
@@ -121,7 +123,7 @@ async def delete_{{ moduleName }}_{{ businessName }}(
     {{ pk_field }}s: Annotated[str, Path(description='需要删除的{{ pk_field_comment }}')],
     query_db: Annotated[AsyncSession, {{ dbSessionDependency }}],
 ) -> Response:
-    delete_{{ businessName }} = Delete{{ BusinessName }}Model({{ pkField }}s={{ pk_field }}s)
+    delete_{{ businessName }} = Delete{{ BusinessName }}Model({{ pk_field }}s={{ pk_field }}s)
     delete_{{ businessName }}_result = await {{ BusinessName }}Service.delete_{{ businessName }}_services(query_db, delete_{{ businessName }})
     logger.info(delete_{{ businessName }}_result.message)
 
@@ -137,7 +139,7 @@ async def delete_{{ moduleName }}_{{ businessName }}(
 )
 async def query_detail_{{ moduleName }}_{{ businessName }}(
     request: Request,
-    {{ pk_field }}: Annotated[{{ pkColumn.python_type }}, Path(description='{{ pk_field_comment }}')],
+    {{ pk_field }}: Annotated[{{ BusinessName }}Key, Path(description='{{ pk_field_comment }}')],
     query_db: Annotated[AsyncSession, {{ dbSessionDependency }}],
 ) -> Response:
     {{ businessName }}_detail_result = await {{ BusinessName }}Service.{{ businessName }}_detail_services(query_db, {{ pk_field }})
@@ -169,7 +171,7 @@ async def export_{{ moduleName }}_{{ businessName }}_list(
 ) -> Response:
     # 获取全量数据
     {{ businessName }}_query_result = await {{ BusinessName }}Service.get_{{ businessName }}_list_services(query_db, {{ businessName }}_page_query, is_page=False)
-    {{ businessName }}_export_result = await {{ BusinessName }}Service.export_{{ businessName }}_list_services({% if dicts %}request, {% endif %}{{ businessName }}_query_result)
+    {{ businessName }}_export_result = await {{ BusinessName }}Service.export_{{ businessName }}_list_services({% if exportDictTypes %}request, {% endif %}{{ businessName }}_query_result)
     logger.info('导出成功')
 
     return ResponseUtil.streaming(data=bytes2file_response({{ businessName }}_export_result))

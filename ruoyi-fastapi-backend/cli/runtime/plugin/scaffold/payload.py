@@ -1,9 +1,13 @@
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from cli.exit_codes import RUNTIME_ERROR
 from cli.utils import format_cli_path
+
+if TYPE_CHECKING:
+    from utils.gen_util import GenUtils
 
 
 @dataclass(frozen=True)
@@ -50,6 +54,8 @@ class PluginScaffoldPlanPayload:
 
         :return: 插件模板写入计划负载
         """
+        gen_utils: type[GenUtils] = import_module('utils.gen_util').GenUtils
+        files = gen_utils.format_generated_python({path.as_posix(): content for path, content in self.files})
         return {
             'backend': self.backend,
             'frontend': self.frontend,
@@ -64,7 +70,7 @@ class PluginScaffoldPlanPayload:
             'frontendTest': self.frontend_test,
             'frontendFramework': self.frontend_framework,
             'targetDirs': [format_cli_path(path) for path in self.target_dirs],
-            'files': [{'path': path.as_posix(), 'content': content} for path, content in self.files],
+            'files': [{'path': path, 'content': content} for path, content in files.items()],
             'conflicts': self.conflicts,
         }
 

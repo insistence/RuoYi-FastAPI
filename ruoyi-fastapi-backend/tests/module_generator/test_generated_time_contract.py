@@ -1,6 +1,6 @@
-import ast
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from datetime import UTC, date, time
@@ -13,12 +13,13 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
+from cli.runtime.plugin.scaffold.builder import PluginScaffoldBuilder
 from config import database
 from config.env import AppConfig
 from exceptions.exception import ServiceWarning
 from module_generator.entity.vo.gen_vo import GenTableColumnModel, GenTableModel
-from scripts.check_docstrings import BACKEND, sphinx_settings, violations
-from utils import common_util
+from scripts import check_docstrings
+from scripts.check_docstrings import BACKEND
 from utils.template_util import TemplateInitializer, TemplateUtils
 
 
@@ -118,51 +119,126 @@ def make_table(db_type: str, category: str, web_type: str) -> GenTableModel:
     return table
 
 
-def render_case(db_type: str, category: str, web_type: str, *, field_constraints: bool = False) -> dict[str, str]:
+def render_table(table: GenTableModel, db_type: str) -> dict[str, str]:
+    """
+    使用指定数据库的表配置渲染所有模板。
+
+    :param table: 主表及其关联子表的配置
+    :param db_type: 生成代码使用的数据库方言
+    :return: 按模板名索引的生成代码
+    """
+    with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type=db_type)):
+        context = TemplateUtils.prepare_context(table)
+        environment = TemplateInitializer.init_jinja2()
+        return TemplateUtils.render_templates(environment, TemplateUtils.get_template_list(table), context)
+
+
+def render_case(db_type: str, category: str, web_type: str) -> dict[str, str]:
     """
     使用样表实际渲染所选模板。
 
     :param db_type: 数据库类型
     :param category: 测试的模板或记录类别
     :param web_type: 渲染模板的前端类型
-    :param field_constraints: 是否生成必填字段校验方法和唯一性检查
     :return: 按模板名索引的生成代码
     """
-    with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type=db_type)):
-        table = make_table(db_type, category, web_type)
-        if field_constraints:
-            assert table.columns
+    return render_table(make_table(db_type, category, web_type), db_type)
+
+
+def test_generated_python_quality(tmp_path: Path) -> None:
+    """按真实包路径检查生成代码的完整 ty、Ruff 和中文 reST 规则。"""
+    sources: dict[Path, str] = {}
+    for category in ('crud', 'tree', 'sub'):
+        db_type = 'postgresql' if category == 'tree' else 'mysql'
+        table = make_table(db_type, category, 'element-plus')
+        table.package_name = f'module_generated_{category}'
+        assert table.columns and table.pk_column
+        if category == 'tree':
+            table.data_source_name = 'reporting'
+            table.pk_column.column_type = table.columns[0].column_type = 'varchar(64)'
+            table.pk_column.python_type = table.columns[0].python_type = 'str'
+            table.columns.append(column('metadata_json', 'jsonb', 'dict'))
+            table.columns.append(column('amount', 'numeric(10,2)', 'Decimal'))
+        if category == 'crud':
+            table.columns = table.columns[:2]
+        else:
             table.columns[1].unique = table.columns[1].required = True
-            if table.sub_table:
-                assert table.sub_table.columns
-                table.sub_table.columns[1].required = True
-        context = TemplateUtils.prepare_context(table)
-        environment = TemplateInitializer.init_jinja2()
-        return {
-            name: environment.get_template(name).render(**context) for name in TemplateUtils.get_template_list(table)
-        }
+            table.columns[1].dict_type = 'sys_test'
+            table.columns[1].html_type = 'select'
+        if table.sub_table:
+            assert table.sub_table.columns
+            table.sub_table.columns[1].required = True
+            table.sub_table.columns.append(column('values_json', 'json', 'list'))
+        for name, source in render_table(table, db_type).items():
+            if name.endswith('.py.jinja2'):
+                path = Path(TemplateUtils.get_file_name(name, table)).relative_to('backend')
+                sources[path] = source
 
+    # 将旧版插件装入临时宿主包，让插件间的绝对导入与部署时一致。
+    shutil.copytree(BACKEND / 'plugins/core', tmp_path / 'plugins/core', ignore=shutil.ignore_patterns('__pycache__'))
+    shutil.copyfile(BACKEND / 'plugins/__init__.py', tmp_path / 'plugins/__init__.py')
+    builder = PluginScaffoldBuilder(tmp_path, tmp_path / 'frontend')
+    for template in ('scheduled-job', 'crud-page', 'python-asgi', 'rust-asgi'):
+        plan = builder.build_plan(template.replace('-', '_'), template=template, backend=True, frontend=False)
+        for entry in plan['files']:
+            path = Path(entry['path'])
+            if path.suffix == '.py':
+                sources[path.relative_to(tmp_path)] = entry['content']
 
-def test_generated_python_docstrings(tmp_path: Path) -> None:
-    """检查各类生成模板及插件脚手架输出的中文接口说明和多行摘要布局。"""
-    sources = {
-        f'{category}_{Path(name).stem}': source
-        for category in ('crud', 'tree', 'sub')
-        for name, source in render_case('mysql', category, 'element-plus', field_constraints=True).items()
-        if name.endswith('.py.jinja2')
-    }
-    assert ':raises ServiceException:' in sources['crud_service.py']
-    assert '校验子表的必填字段' in sources['sub_vo.py']
-    assets = BACKEND / 'cli/runtime/plugin/scaffold/assets'
-    for path in assets.rglob('*.py.tmpl'):
-        sources[f'{path.parent.name}_{path.stem}'] = path.read_text(encoding='utf-8')
-    with sphinx_settings() as settings:
-        for name, source in sources.items():
-            target = tmp_path / name
-            target.write_text(source, encoding='utf-8')
-            assert not list(violations(ast.parse(source), settings, target)), name
+    paths = []
+    for path, source in sources.items():
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(source, encoding='utf-8')
+        paths.append(str(target))
+    assert check_docstrings.main(paths) == 0
     subprocess.run(
-        [sys.executable, '-m', 'ruff', 'check', '--no-cache', '--select', 'D213', str(tmp_path)],
+        [
+            sys.executable,
+            '-m',
+            'ty',
+            'check',
+            '--project',
+            str(tmp_path),
+            '--config-file',
+            str(BACKEND / 'ty.toml'),
+            '--extra-search-path',
+            str(BACKEND),
+            '--python',
+            sys.executable,
+            '--python-version',
+            f'{sys.version_info.major}.{sys.version_info.minor}',
+            *paths,
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            '-m',
+            'ruff',
+            'check',
+            '--no-cache',
+            '--config',
+            str(BACKEND / 'ruff.toml'),
+            '--config',
+            f'src={json.dumps([BACKEND.as_posix(), tmp_path.as_posix()])}',
+            *paths,
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            '-m',
+            'ruff',
+            'format',
+            '--check',
+            '--no-cache',
+            '--config',
+            str(BACKEND / 'ruff.toml'),
+            *paths,
+        ],
         check=True,
     )
 
@@ -207,19 +283,21 @@ def import_generated(
         """为生成模块提供独立的 ORM 模型基类。"""
 
     monkeypatch.setattr(database, 'Base', TestBase)
-    monkeypatch.setattr(common_util, 'Base', TestBase)
     for name in [
         'module_generated_time',
         'module_generated_time.entity',
         'module_generated_time.entity.do',
         'module_generated_time.entity.vo',
         'module_generated_time.dao',
+        'module_generated_time.service',
     ]:
         package = ModuleType(name)
         package.__path__ = [str(tmp_path)]
         monkeypatch.setitem(sys.modules, name, package)
     modules = []
-    for kind, folder in [('do', 'entity.do'), ('vo', 'entity.vo'), ('dao', 'dao')]:
+    for kind, folder in [('do', 'entity.do'), ('vo', 'entity.vo'), ('dao', 'dao'), ('service', 'service')]:
+        if f'python/{kind}.py.jinja2' not in rendered:
+            continue
         name = f'module_generated_time.{folder}.item_{kind}'
         path = tmp_path / f'item_{kind}.py'
         path.write_text(rendered[f'python/{kind}.py.jinja2'], encoding='utf-8')
@@ -268,7 +346,9 @@ async def test_generated_import_crud_and_query(
     db_type: str, category: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """验证生成模块的导入、增删改查和查询。"""
-    base, _do, vo, dao = import_generated(tmp_path, monkeypatch, render_case(db_type, category, 'element-plus'))
+    base, _do, vo, dao, _service = import_generated(
+        tmp_path, monkeypatch, render_case(db_type, category, 'element-plus')
+    )
     monkeypatch.setattr(AppConfig, 'app_timezone', 'America/New_York')
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     try:
@@ -324,6 +404,40 @@ async def test_generated_import_crud_and_query(
             vo.ItemPageQueryModel(begin_birthday='2000-03-01', end_birthday='2000-02-29')
         with pytest.raises(ValidationError):
             (vo.DetailModel if category == 'sub' else vo.ItemModel)(occurred_at='2026-03-08 02:30:00')
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_generated_secondary_service_updates_children(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """验证具名数据源、字符串主键和主子表编辑的实际读写行为。"""
+    table = make_table('mysql', 'sub', 'element-plus')
+    table.data_source_name = 'generated_contract'
+    assert table.columns and table.pk_column and table.sub_table and table.sub_table.columns
+    for key in (table.columns[0], table.pk_column, table.sub_table.columns[1]):
+        key.python_type = 'str'
+        key.column_type = 'varchar(64)'
+    with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type='mysql')):
+        default_base, orm, vo, _, service = import_generated(tmp_path, monkeypatch, render_table(table, 'mysql'))
+    assert orm.TimeItem.metadata is not default_base.metadata
+    engine = create_async_engine('sqlite+aiosqlite:///:memory:')
+    try:
+        async with engine.begin() as connection:
+            await connection.run_sync(orm.TimeItem.metadata.create_all)
+        sessions = async_sessionmaker(engine)
+        async with sessions() as session:
+            await service.ItemService.add_item_services(
+                session, vo.ItemModel(item_id='A-01', timedetail_list=[vo.DetailModel(detail_id=1)])
+            )
+            await service.ItemService.edit_item_services(session, vo.ItemModel(item_id='A-01', item_name='已更新'))
+            page = await service.ItemService.get_item_list_services(session, vo.ItemPageQueryModel(), is_page=True)
+            assert page.rows[0]['itemName'] == '已更新'
+            assert page.rows[0]['timedetailList'][0]['parentItemId'] == 'A-01'
+            await service.ItemService.edit_item_services(session, vo.ItemModel(item_id='A-01', timedetail_list=[]))
+            rows = await service.ItemService.get_item_list_services(session, vo.ItemPageQueryModel())
+            assert rows[0]['timedetailList'] == []
+            await service.ItemService.delete_item_services(session, vo.DeleteItemModel(item_ids='A-01'))
+            assert await service.ItemService.get_item_list_services(session, vo.ItemPageQueryModel()) == []
     finally:
         await engine.dispose()
 

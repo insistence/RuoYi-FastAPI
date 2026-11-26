@@ -88,7 +88,7 @@ class TemplateUtils:
                     column.column_comment = {'create_time': '创建时间', 'update_time': '更新时间'}.get(
                         column.column_name, f'字段 {column.column_name}'
                     )
-        cls.prepare_time_columns(gen_table)
+        cls.prepare_column_types(gen_table)
         class_name = GenUtils.require_metadata(gen_table.class_name)
         module_name = GenUtils.require_metadata(gen_table.module_name)
         business_name = GenUtils.require_metadata(gen_table.business_name)
@@ -136,6 +136,7 @@ class TemplateUtils:
             else [],
             'table': gen_table,
             'dicts': cls.get_dicts(gen_table),
+            'exportDictTypes': sorted({col.dict_type for col in gen_table.columns or [] if col.dict_type}),
             'dbType': source_config.db_type,
             'dataSourceName': source_name,
             'defaultDataSourceName': default_source_name,
@@ -182,9 +183,9 @@ class TemplateUtils:
         return comment if re.search(r'[\u3400-\u9fff\U00020000-\U0002fa1f]', comment) else f'字段 {comment}'
 
     @classmethod
-    def prepare_time_columns(cls, gen_table: GenTableModel) -> None:
+    def prepare_column_types(cls, gen_table: GenTableModel) -> None:
         """
-        规范化模板副本中的主表和子表时间字段。
+        准备主表、子表及主键的 Python 类型和时间字段语义。
 
         只处理模板副本，不改写数据库中保存的生成配置。
 
@@ -195,13 +196,20 @@ class TemplateUtils:
         for table in [gen_table, gen_table.sub_table]:
             if table is None:
                 continue
-            for column in table.columns or []:
+            columns = list(table.columns or [])
+            if table.pk_column is not None:
+                columns.append(table.pk_column)
+            for column in columns:
                 try:
                     column_type = GenUtils.require_metadata(column.column_type)
                     semantics = GenTimeUtil.get_time_semantics(column_type, db_type)
                     GenTimeUtil.validate_time_control(column_type, db_type, column.html_type)
                 except ServiceWarning as exc:
                     raise ServiceWarning(message=f'{table.table_name}.{column.column_name}: {exc.message}') from exc
+                if column.python_type == 'dict':
+                    column.python_type = 'dict[str, object]'
+                elif column.python_type == 'list':
+                    column.python_type = 'list[object]'
                 column.vo_type = column.python_type
                 if semantics:
                     column.time_kind = semantics.kind
@@ -308,6 +316,18 @@ class TemplateUtils:
             templates.append(f'{use_web_type}/view.{extension}.jinja2')
         return templates
 
+    @staticmethod
+    def render_templates(env: Environment, templates: list[str], context: dict[str, Any]) -> dict[str, str]:
+        """
+        使用同一份上下文渲染模板，并按项目规则排版 Python 产物。
+
+        :param env: 代码生成模板环境
+        :param templates: 已选择的模板名称
+        :param context: 当前表的渲染上下文
+        :return: 按模板名索引的生成文件内容
+        """
+        return GenUtils.format_generated_python({name: env.get_template(name).render(**context) for name in templates})
+
     @classmethod
     def get_file_name(cls, template: str, gen_table: GenTableModel) -> str:
         """
@@ -372,8 +392,10 @@ class TemplateUtils:
                 semantics = GenTimeUtil.get_time_semantics(GenUtils.require_metadata(column.column_type), db_type)
                 if semantics:
                     import_list.add(f'from common.types import {semantics.vo_type}')
-                    if table is gen_table and column.query_type == 'BETWEEN':
+                    if table is gen_table and column.query_type == 'BETWEEN' and semantics.kind == 'instant':
                         import_list.add('from common.types import BusinessDate')
+                elif column.python_type == 'timedelta':
+                    import_list.add('from datetime import timedelta')
                 elif column.python_type == GenConstant.TYPE_DECIMAL:
                     import_list.add('from decimal import Decimal')
         return cls.merge_same_imports(sorted(import_list), 'from common.types import')
@@ -386,19 +408,20 @@ class TemplateUtils:
         :param gen_table: 生成表配置信息
         :return: 已合并同源导入的语句列表
         """
-        import_list = {'from sqlalchemy import Column'}
-        if gen_table.sub:
-            import_list.add('from sqlalchemy import ForeignKey')
-        for table in [gen_table, gen_table.sub_table]:
-            if table is None:
-                continue
+        import_list = {'from sqlalchemy import ForeignKey'} if gen_table.sub else set()
+        for table in filter(None, (gen_table, gen_table.sub_table)):
             for column in table.columns or []:
                 sqlalchemy_type = cls.get_sqlalchemy_type(
                     GenUtils.require_metadata(column.column_type), gen_table.data_source_name
                 )
+                if sqlalchemy_type == 'DbUtcDateTime' and column.column_name in {'create_time', 'update_time'}:
+                    continue
+                if column.python_type in [*GenConstant.TYPE_DATE, 'timedelta']:
+                    import_list.add(f'from datetime import {column.python_type}')
+                elif column.python_type == GenConstant.TYPE_DECIMAL:
+                    import_list.add('from decimal import Decimal')
                 if sqlalchemy_type == 'DbUtcDateTime':
-                    if column.column_name not in {'create_time', 'update_time'}:
-                        import_list.add('from common.types import DbUtcDateTime')
+                    import_list.add('from common.types import DbUtcDateTime')
                 elif sqlalchemy_type == 'Geometry':
                     import_list.add('from geoalchemy2 import Geometry')
                 elif sqlalchemy_type.startswith('TIME('):
@@ -408,7 +431,10 @@ class TemplateUtils:
                     import_list.add(f'from sqlalchemy.dialects.postgresql import {sqlalchemy_type}')
                 else:
                     import_list.add(f'from sqlalchemy import {sqlalchemy_type.split("(", 1)[0]}')
-        return cls.merge_same_imports(sorted(import_list), 'from sqlalchemy import')
+        imports = sorted(import_list)
+        for prefix in ('from datetime import', 'from sqlalchemy import', 'from sqlalchemy.dialects.postgresql import'):
+            imports = cls.merge_same_imports(imports, prefix)
+        return sorted(imports)
 
     @classmethod
     def get_db_type(cls, column_type: str) -> str:
@@ -439,8 +465,8 @@ class TemplateUtils:
                 merged_imports.append(import_stmt)
 
         if _imports:
-            merged_datetime_import = f'{import_start} {", ".join(_imports)}'
-            merged_imports.append(merged_datetime_import)
+            _imports.sort(key=lambda name: (not name.isupper(), name.lower()))
+            merged_imports.append(f'{import_start} {", ".join(_imports)}')
 
         return merged_imports
 

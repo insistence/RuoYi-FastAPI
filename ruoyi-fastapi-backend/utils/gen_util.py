@@ -1,4 +1,8 @@
 import re
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from common.constant import GenConstant
 from config.env import DataBaseConfig, GenConfig
@@ -16,6 +20,34 @@ class GenUtils:
     """
 
     TEXTAREA_COLUMN_LENGTH = 500
+
+    @staticmethod
+    def format_generated_python(files: dict[str, str]) -> dict[str, str]:
+        """
+        使用后端 Ruff 配置批量排版一组生成文件中的 Python 源码。
+
+        :param files: 以模板名或输出路径为键的生成内容
+        :return: 保持原有文件顺序的排版结果
+        """
+        names = [name for name, source in files.items() if name.endswith(('.py', '.py.jinja2')) and source]
+        if not names:
+            return files
+        formatted = files.copy()
+        config = Path(__file__).resolve().parents[1] / 'ruff.toml'
+        with TemporaryDirectory() as directory:
+            # 仅使用内部编号创建临时文件，生成配置中的路径不参与磁盘寻址。
+            paths = [Path(directory) / f'{index}.py' for index in range(len(names))]
+            for name, path in zip(names, paths, strict=True):
+                path.write_text(files[name], encoding='utf-8')
+            subprocess.run(
+                [sys.executable, '-m', 'ruff', 'format', '--no-cache', '--config', str(config), *paths],
+                check=True,
+                cwd=directory,
+                stdout=subprocess.DEVNULL,
+            )
+            for name, path in zip(names, paths, strict=True):
+                formatted[name] = path.read_text(encoding='utf-8')
+        return formatted
 
     @staticmethod
     def require_metadata(value: str | None) -> str:

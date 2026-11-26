@@ -1,4 +1,3 @@
-{% set pkField = pkColumn.python_field %}
 {% set pk_field = pkColumn.python_field | camel_to_snake %}
 {% set pkParentheseIndex = pkColumn.column_comment.find("（") %}
 {% set pk_field_comment = pkColumn.column_comment[:pkParentheseIndex] if pkParentheseIndex != -1 else pkColumn.column_comment %}
@@ -26,7 +25,9 @@
 {% endif %}
 {% endfor %}
 {% if vo_field_daterange.has_daterange %}
-from typing import ClassVar
+from typing import ClassVar, TypeAlias
+{% else %}
+from typing import TypeAlias
 {% endif %}
 
 from pydantic import ConfigDict, Field
@@ -47,10 +48,12 @@ from common.vo import CamelModel
 from i18n.message import I18nMessage
 {% endif %}
 
+{{ BusinessName }}Key: TypeAlias = {{ pkColumn.vo_type or pkColumn.python_type }}
+
 
 {% if table.sub %}
 class {{ BusinessName }}BaseModel(CamelModel):
-    """{{ functionName }}表对应pydantic模型。"""
+    """{{ functionName }}表对应的 Pydantic 模型。"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -93,7 +96,8 @@ class {{ BusinessName }}BaseModel(CamelModel):
 
 {% endif %}
 class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% else %}CamelModel{% endif %}):
-    """{{ functionName }}表对应pydantic模型。"""
+    """{{ functionName }}表对应的 Pydantic 模型。"""
+
     {% if not table.sub %}
     model_config = ConfigDict(from_attributes=True)
 
@@ -142,7 +146,7 @@ class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% el
 
 {% if table.sub %}
 class {{ subTable.business_name | capitalize }}Model(CamelModel):
-    """{{ subTable.function_name }}表对应pydantic模型。"""
+    """{{ subTable.function_name }}表对应的 Pydantic 模型。"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -187,6 +191,7 @@ class {{ subTable.business_name | capitalize }}Model(CamelModel):
 class {{ BusinessName }}QueryModel({% if vo_field_daterange.has_daterange %}GeneratedTimeRangeQueryMixin, {% endif %}{% if table.sub %}{{ BusinessName }}BaseModel{% else %}{{ BusinessName }}Model{% endif %}):
     """{{ functionName }}不分页查询模型。"""
     {% if vo_field_daterange.has_daterange %}
+
     time_range_fields: ClassVar[dict[str, str]] = {
         {% for column in columns %}
         {% if column.time_kind and column.query_type == 'BETWEEN' %}
@@ -201,8 +206,6 @@ class {{ BusinessName }}QueryModel({% if vo_field_daterange.has_daterange %}Gene
     end_{{ column.column_name  }}: {% if column.time_kind == 'time' %}BusinessTime{% else %}BusinessDate{% endif %} | None = Field(default=None, description={{ ('结束' ~ column.column_comment) | tojson }})
     {% endif %}
     {% endfor %}
-    {% else %}
-    pass
     {% endif %}
 
 

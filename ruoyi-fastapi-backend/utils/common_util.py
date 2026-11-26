@@ -10,10 +10,10 @@ from openpyxl.styles import Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from sqlalchemy.engine.row import Row
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm.collections import InstrumentedList
 from sqlalchemy.sql.expression import Null, null
 
-from config.database import Base
 from config.env import CachePathConfig
 from utils.log_util import logger
 
@@ -52,7 +52,7 @@ class SqlalchemyUtil:
     @classmethod
     def base_to_dict(
         cls,
-        obj: Base | dict[Any, Any],
+        obj: DeclarativeBase | dict[Any, Any],
         transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case',
     ) -> dict[Any, Any]:
         """
@@ -62,7 +62,7 @@ class SqlalchemyUtil:
         :param transform_case: 转换得到的结果形式，可选的有'no_case'(不转换)、'snake_to_camel'(下划线转小驼峰)、'camel_to_snake'(小驼峰转下划线)，默认为'no_case'
         :return: 字典结果
         """
-        if isinstance(obj, Base):
+        if isinstance(obj, DeclarativeBase):
             base_dict = obj.__dict__.copy()
             base_dict.pop('_sa_instance_state', None)
             for name, value in base_dict.items():
@@ -80,7 +80,7 @@ class SqlalchemyUtil:
     @classmethod
     @overload
     def serialize_result(
-        cls, result: Base, transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
+        cls, result: DeclarativeBase, transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
     ) -> dict[str, Any]: ...
 
     @classmethod
@@ -100,7 +100,9 @@ class SqlalchemyUtil:
     @classmethod
     @overload
     def serialize_result(
-        cls, result: Sequence[Base], transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
+        cls,
+        result: Sequence[DeclarativeBase],
+        transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case',
     ) -> list[dict[str, Any]]: ...
 
     @classmethod
@@ -142,14 +144,14 @@ class SqlalchemyUtil:
         :param transform_case: 转换得到的结果形式，可选的有'no_case'(不转换)、'snake_to_camel'(下划线转小驼峰)、'camel_to_snake'(小驼峰转下划线)，默认为'no_case'
         :return: 序列化结果
         """
-        if isinstance(result, (Base, dict)):
+        if isinstance(result, (DeclarativeBase, dict)):
             return cls.base_to_dict(result, transform_case)
         if isinstance(result, list):
             return [cls.serialize_result(row, transform_case) for row in result]
         if isinstance(result, Row):
-            if all(isinstance(row, Base) for row in result):
+            if all(isinstance(row, DeclarativeBase) for row in result):
                 return [cls.base_to_dict(row, transform_case) for row in result]
-            if any(isinstance(row, Base) for row in result):
+            if any(isinstance(row, DeclarativeBase) for row in result):
                 return [cls.serialize_result(row, transform_case) for row in result]
             result_dict = result._asdict()
             if transform_case == 'snake_to_camel':
@@ -191,7 +193,7 @@ class CamelCaseUtil:
 
     @classmethod
     @overload
-    def transform_result(cls, result: Base) -> dict[str, Any]: ...
+    def transform_result(cls, result: DeclarativeBase) -> dict[str, Any]: ...
 
     @classmethod
     @overload
@@ -203,7 +205,7 @@ class CamelCaseUtil:
 
     @classmethod
     @overload
-    def transform_result(cls, result: Sequence[Base]) -> list[dict[str, Any]]: ...
+    def transform_result(cls, result: Sequence[DeclarativeBase]) -> list[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -251,7 +253,7 @@ class SnakeCaseUtil:
 
     @classmethod
     @overload
-    def transform_result(cls, result: Base) -> dict[str, Any]: ...
+    def transform_result(cls, result: DeclarativeBase) -> dict[str, Any]: ...
 
     @classmethod
     @overload
@@ -263,7 +265,7 @@ class SnakeCaseUtil:
 
     @classmethod
     @overload
-    def transform_result(cls, result: Sequence[Base]) -> list[dict[str, Any]]: ...
+    def transform_result(cls, result: Sequence[DeclarativeBase]) -> list[dict[str, Any]]: ...
 
     @classmethod
     @overload

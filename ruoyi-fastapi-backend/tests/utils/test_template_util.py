@@ -198,7 +198,7 @@ def test_secondary_source_templates_use_named_dependency_and_isolated_metadata(
     assert 'from common.mixin import' not in entity
     compile(entity, '<generated-entity>', 'exec')
     dao = env.get_template('python/dao.py.jinja2').render(**context)
-    assert 'if key not in set()' in dao
+    assert 'await db.execute(update(GenItem), [item])' in dao
     compile(dao, '<generated-dao>', 'exec')
     compile(controller, '<generated-controller>', 'exec')
 
@@ -271,13 +271,13 @@ def test_python_templates_handle_audit_timestamps_by_exact_column_name() -> None
     dao = env.get_template('python/dao.py.jinja2').render(**context)
     controller = env.get_template('python/controller.py.jinja2').render(**context)
 
-    assert 'from datetime import datetime' not in entity
+    assert 'from datetime import datetime' in entity
     assert 'from common.mixin import AuditTimeMixin' in entity
     assert 'class GenItem(AuditTimeMixin, Base):' in entity
-    assert 'create_time = Column(' not in entity
-    assert 'update_time = Column(' not in entity
+    assert 'create_time: Mapped[' not in entity
+    assert 'update_time: Mapped[' not in entity
     assert 'from common.types import DbUtcDateTime' in entity
-    assert 'created_time = Column(DbUtcDateTime(), nullable=True, comment=' in entity
+    assert 'created_time: Mapped[datetime | None] = mapped_column(DbUtcDateTime(), nullable=True, comment=' in entity
     assert "model_dump(exclude={'create_time', 'update_time'})" in dao
     assert "if key not in {'create_time', 'update_time'}" in dao
     assert 'create_time = datetime.now()' not in controller
@@ -325,7 +325,7 @@ def test_dao_audit_filter_uses_a_set_for_a_single_timestamp() -> None:
 
     assert 'from common.mixin import CreateTimeMixin' in entity
     assert 'class GenItem(CreateTimeMixin, Base):' in entity
-    assert 'create_time = Column(' not in entity
+    assert 'create_time: Mapped[' not in entity
     assert "if key not in {'create_time'}" in dao
     compile(entity, '<generated-single-audit-entity>', 'exec')
     compile(dao, '<generated-single-audit-dao>', 'exec')
@@ -419,13 +419,13 @@ def test_sub_table_entity_template_uses_required_nullable_semantics() -> None:
     entity = env.get_template('python/do.py.jinja2').render(**context)
     dao = env.get_template('python/dao.py.jinja2').render(**context)
 
-    assert "required_value = Column(String(100), nullable=False, comment='必填值')" in entity
-    assert "optional_value = Column(String(100), nullable=True, comment='可选值')" in entity
+    assert "required_value: Mapped[str] = mapped_column(String(100), nullable=False, comment='必填值')" in entity
+    assert "optional_value: Mapped[str | None] = mapped_column(String(100), nullable=True, comment='可选值')" in entity
     assert 'from common.mixin import AuditTimeMixin' in entity
     assert 'class GenItemDetail(AuditTimeMixin, Base):' in entity
     assert '__create_time_nullable__ = False' in entity
-    assert 'create_time = Column(' not in entity
-    assert 'update_time = Column(' not in entity
+    assert 'create_time: Mapped[' not in entity
+    assert 'update_time: Mapped[' not in entity
     assert "model_dump(exclude={'create_time', 'update_time'})" in dao
     assert "if key not in {'create_time', 'update_time'}" in dao
     compile(entity, '<generated-sub-entity>', 'exec')

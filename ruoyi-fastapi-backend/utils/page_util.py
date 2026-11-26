@@ -3,14 +3,14 @@ from typing import Any, Literal, TypeVar, overload
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import DeclarativeBase
 
 from common.vo import PageModel
-from config.database import Base
 from utils.common_util import CamelCaseUtil
 
 _Item = TypeVar('_Item')
-_Entity = TypeVar('_Entity', bound=Base)
-_JoinedEntity = TypeVar('_JoinedEntity', bound=Base)
+_Entity = TypeVar('_Entity', bound=DeclarativeBase)
+_JoinedEntity = TypeVar('_JoinedEntity', bound=DeclarativeBase)
 _EntityPairs = list[list[dict[str, Any] | None]]
 _Rows = list[dict[str, Any] | list[dict[Any, Any]]] | list[dict[str, Any]] | _EntityPairs
 

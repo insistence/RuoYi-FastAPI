@@ -1,32 +1,50 @@
 {% set pk_field = pkColumn.python_field | camel_to_snake %}
 {% set pkParentheseIndex = pkColumn.column_comment.find("（") %}
 {% set pk_field_comment = pkColumn.column_comment[:pkParentheseIndex] if pkParentheseIndex != -1 else pkColumn.column_comment %}
-from typing import Any
+from typing import Any, Literal, overload
 
-{% if dicts %}
+{% if exportDictTypes %}
 from fastapi import Request
 {% endif %}
+from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
+{% set project_imports %}
+{% if columns | selectattr("unique") | list %}
 from common.constant import CommonConstant
+{% endif %}
 from common.context import RequestContext
 from common.vo import CrudResponseModel, PageModel
 from exceptions.exception import ServiceException
 from i18n.message import I18nMessage
-{% if dicts %}
+{% if exportDictTypes %}
 from i18n.translation import TranslationUtil
 {% endif %}
 from {{ packageName }}.dao.{{ businessName }}_dao import {{ BusinessName }}Dao
-from {{ packageName }}.entity.vo.{{ businessName }}_vo import Delete{{ BusinessName }}Model, {{ BusinessName }}Model, {{ BusinessName }}PageQueryModel
-{% if dicts %}
+from {{ packageName }}.entity.vo.{{ businessName }}_vo import {{ ['Delete' ~ BusinessName ~ 'Model', BusinessName ~ 'Key', BusinessName ~ 'Model', BusinessName ~ 'PageQueryModel'] | sort | join(', ') }}
+{% if exportDictTypes %}
 from module_admin.service.dict_service import DictDataService
 {% endif %}
 from utils.common_util import CamelCaseUtil
 from utils.excel_util import ExcelUtil
+{% endset %}
+{{ project_imports.strip().splitlines() | sort | join("\n") }}
 
 
 class {{ BusinessName }}Service:
     """{{ functionName }}模块服务层。"""
+
+    @classmethod
+    @overload
+    async def get_{{ businessName }}_list_services(
+        cls, query_db: AsyncSession, query_object: {{ BusinessName }}PageQueryModel, is_page: Literal[True]
+    ) -> PageModel[dict[str, Any]]: ...
+
+    @classmethod
+    @overload
+    async def get_{{ businessName }}_list_services(
+        cls, query_db: AsyncSession, query_object: {{ BusinessName }}PageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_{{ businessName }}_list_services(
@@ -57,9 +75,8 @@ class {{ BusinessName }}Service:
         :param page_object: {{ functionName }}对象
         :return: 校验结果
         """
-        {{ pk_field }} = -1 if page_object.{{ pk_field }} is None else page_object.{{ pk_field }}
         {{ businessName }} = await {{ BusinessName }}Dao.get_{{ businessName }}_detail_by_info(query_db, {{ BusinessName }}Model({{ column.python_field | camel_to_snake }}=page_object.{{ column.python_field | camel_to_snake }}))
-        if {{ businessName }} and {{ businessName }}.{{ pk_field }} != {{ pk_field }}:
+        if {{ businessName }} and {{ businessName }}.{{ pk_field }} != page_object.{{ pk_field }}:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
     {% if not loop.last %}{{ "\n" }}{% endif %}
@@ -93,10 +110,10 @@ class {{ BusinessName }}Service:
         {% endfor %}
         try:
             {% if table.sub %}
-            add_{{ businessName }} = await {{ BusinessName }}Dao.add_{{ businessName }}_dao(query_db, page_object)
-            if add_{{ businessName }}:
-                for sub_table in page_object.{{ subclassName }}_list:
-                    await {{ BusinessName }}Dao.add_{{ subTable.business_name }}_dao(query_db, sub_table)
+            parent = await {{ BusinessName }}Dao.add_{{ businessName }}_dao(query_db, page_object)
+            for sub_table in page_object.{{ subclassName }}_list or []:
+                sub_table.{{ subTableFkName }} = parent.{{ pk_field }}
+                await {{ BusinessName }}Dao.add_{{ subTable.business_name }}_dao(query_db, sub_table)
             {% else %}
             await {{ BusinessName }}Dao.add_{{ businessName }}_dao(query_db, page_object)
             {% endif %}
@@ -117,9 +134,17 @@ class {{ BusinessName }}Service:
         :raises ServiceException: 目标记录不存在或唯一字段冲突
         :raises Exception: 更新失败，事务回滚后重新抛出原异常
         """
-        edit_{{ businessName }} = page_object.model_dump(exclude_unset=True, exclude={% raw %}{{% endraw %}{% if table.sub %}'{{ subclassName }}_list', {% endif %}{% for column in columns %}{% if not column.edit and not column.pk and column.column_name not in column_not_edit_show %}'{{ column.python_field | camel_to_snake  }}'{% if not loop.last %}, {% endif %}{% endif %}{% endfor %}{% raw %}}{% endraw %})
-        {{ businessName }}_info = await cls.{{ businessName }}_detail_services(query_db, page_object.{{ pk_field }})
-        if {{ businessName }}_info.{{ pk_field }}:
+        {% set excluded = namespace(fields=[subclassName ~ '_list'] if table.sub else []) %}
+        {% for column in columns if not column.edit and not column.pk and column.column_name not in column_not_edit_show %}
+        {% set excluded.fields = excluded.fields + [column.python_field | camel_to_snake] %}
+        {% endfor %}
+        edit_{{ businessName }} = page_object.model_dump(exclude_unset=True{% if excluded.fields %}, exclude={{ '{' }}{{ excluded.fields | map('python_literal') | join(', ') }}{{ '}' }}{% endif %})
+        {{ businessName }}_info = (
+            await cls.{{ businessName }}_detail_services(query_db, page_object.{{ pk_field }})
+            if page_object.{{ pk_field }} is not None
+            else None
+        )
+        if {{ businessName }}_info is not None and {{ businessName }}_info.{{ pk_field }} is not None:
             {% for column in columns %}
             {% set parentheseIndex = column.column_comment.find("（") %}
             {% set comment = column.column_comment[:parentheseIndex] if parentheseIndex != -1 else column.column_comment %}
@@ -135,10 +160,12 @@ class {{ BusinessName }}Service:
             try:
                 await {{ BusinessName }}Dao.edit_{{ businessName }}_dao(query_db, edit_{{ businessName }})
                 {% if table.sub %}
-                for sub_table in {{ businessName }}_info.{{ subclassName }}_list:
-                    await {{ BusinessName }}Dao.delete_{{ subTable.business_name }}_dao(query_db, sub_table)
-                for sub_table in page_object.{{ subclassName }}_list:
-                    await {{ BusinessName }}Dao.add_{{ subTable.business_name }}_dao(query_db, sub_table)
+                if page_object.{{ subclassName }}_list is not None:
+                    for sub_table in {{ businessName }}_info.{{ subclassName }}_list or []:
+                        await {{ BusinessName }}Dao.delete_{{ subTable.business_name }}_dao(query_db, sub_table)
+                    for sub_table in page_object.{{ subclassName }}_list:
+                        sub_table.{{ subTableFkName }} = {{ businessName }}_info.{{ pk_field }}
+                        await {{ BusinessName }}Dao.add_{{ subTable.business_name }}_dao(query_db, sub_table)
                 {% endif %}
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='更新成功', msg_key='common.updated')
@@ -163,12 +190,12 @@ class {{ BusinessName }}Service:
         :raises Exception: 删除失败，事务回滚后重新抛出原异常
         """
         if page_object.{{ pk_field }}s:
-            {{ pk_field }}_list = page_object.{{ pk_field }}s.split(',')
+            {{ pk_field }}_list = TypeAdapter(list[{{ BusinessName }}Key]).validate_python(page_object.{{ pk_field }}s.split(','))
             try:
                 for {{ pk_field }} in {{ pk_field }}_list:
                     {% if table.sub %}
-                    {{ businessName }} = await cls.{{ businessName }}_detail_services(query_db, int({{ pk_field }}))
-                    for sub_table in {{ businessName }}.{{ subclassName }}_list:
+                    {{ businessName }} = await cls.{{ businessName }}_detail_services(query_db, {{ pk_field }})
+                    for sub_table in {{ businessName }}.{{ subclassName }}_list or []:
                         await {{ BusinessName }}Dao.delete_{{ subTable.business_name }}_dao(query_db, sub_table)
                     {% endif %}
                     await {{ BusinessName }}Dao.delete_{{ businessName }}_dao(query_db, {{ BusinessName }}Model({{ pk_field }}={{ pk_field }}))
@@ -184,7 +211,7 @@ class {{ BusinessName }}Service:
             )
 
     @classmethod
-    async def {{ businessName }}_detail_services(cls, query_db: AsyncSession, {{ pk_field }}: int) -> {{ BusinessName }}Model:
+    async def {{ businessName }}_detail_services(cls, query_db: AsyncSession, {{ pk_field }}: {{ BusinessName }}Key) -> {{ BusinessName }}Model:
         """
         获取{{ functionName }}详细信息service。
 
@@ -198,11 +225,11 @@ class {{ BusinessName }}Service:
         return result
 
     @staticmethod
-    async def export_{{ businessName }}_list_services({% if dicts %}request: Request, {% endif %}{{ businessName }}_list: list[dict[str, Any]]) -> bytes:
+    async def export_{{ businessName }}_list_services({% if exportDictTypes %}request: Request, {% endif %}{{ businessName }}_list: list[dict[str, Any]]) -> bytes:
         """
         导出{{ functionName }}信息service。
 
-        {% if dicts %}
+        {% if exportDictTypes %}
         :param request: 读取字典标签时使用的当前 HTTP 请求
         {% endif %}
         :param {{ businessName }}_list: {{ functionName }}信息列表
@@ -220,30 +247,20 @@ class {{ BusinessName }}Service:
             ),
             {% endfor %}
         }
-        {% if dicts %}
-        {% for dict_type in dicts.split(", ") %}
-        {{ dict_type[1:-1] }}_list = await DictDataService.query_dict_data_list_from_cache_services(
-            request.app.state.redis, dict_type={{ dict_type }}
-        )
-        {{ dict_type[1:-1] }}_option = [
-            {
-                'label': TranslationUtil.resolve(
-                    item.get('dictLabel'),
-                    item.get('dictLabelI18n'),
-                    locale=locale_context.locale,
-                ),
-                'value': item.get('dictValue'),
+        {% if exportDictTypes %}
+        labels_by_type = {}
+        for dict_type in {{ exportDictTypes | python_literal }}:
+            options = await DictDataService.query_dict_data_list_from_cache_services(request.app.state.redis, dict_type)
+            labels_by_type[dict_type] = {
+                option.get('dictValue'): TranslationUtil.resolve(
+                    option.get('dictLabel'), option.get('dictLabelI18n'), locale=locale_context.locale
+                )
+                for option in options
             }
-            for item in {{ dict_type[1:-1] }}_list
-        ]
-        {{ dict_type[1:-1] }}_option_dict = {item.get('value'): item for item in {{ dict_type[1:-1] }}_option}
-        {% endfor %}
         for item in {{ businessName }}_list:
-            {% for column in columns %}
-            {% if column.dict_type %}
-            if str(item.get('{{ column.python_field }}')) in {{ column.dict_type }}_option_dict:
-                item['{{ column.python_field }}'] = {{ column.dict_type }}_option_dict.get(str(item.get('{{ column.python_field }}'))).get('label')
-            {% endif %}
+            {% for column in columns if column.dict_type %}
+            if (label := labels_by_type[{{ column.dict_type | python_literal }}].get(str(item.get('{{ column.python_field }}')))) is not None:
+                item['{{ column.python_field }}'] = label
             {% endfor %}
         {% endif %}
         binary_data = ExcelUtil.export_list2excel({{ businessName }}_list, mapping_dict, locale_context=locale_context)

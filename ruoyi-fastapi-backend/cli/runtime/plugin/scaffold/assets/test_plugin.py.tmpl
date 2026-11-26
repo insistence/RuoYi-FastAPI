@@ -5,7 +5,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from fastapi import Request
+from fastapi import FastAPI, Request
 from starlette import status
 from starlette.responses import Response
 
@@ -34,7 +34,9 @@ async def test_plugin_contract_and_permission() -> None:
     )
     loader = PluginEntrypointLoader(plugin)
     definition = loader.load(host)
+    assert definition.app_factory is not None
     app = definition.app_factory(host)
+    assert isinstance(app, FastAPI)
     permissions = set()
 
     @app.middleware("http")
@@ -66,5 +68,7 @@ async def test_plugin_contract_and_permission() -> None:
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["pluginId"] == "__PLUGIN_ID__"
         assert response.json()["engine"] == "__RUNTIME__"
-    health = loader.load_callable(plugin.manifest.backend.health.checker)
+    checker = plugin.manifest.backend.health.checker
+    assert checker is not None
+    health = loader.load_callable(checker)
     assert await await_plugin_callback(health, host) is True

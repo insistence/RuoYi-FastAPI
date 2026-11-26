@@ -26,14 +26,20 @@
 {% if (main_time.update and not main_time.create) or (sub_time.update and not sub_time.create) %}
 {% set time_mixin_imports.names = time_mixin_imports.names + ['UpdateTimeMixin'] %}
 {% endif %}
-{% for do_import in doImportList | sort %}
-{% if not do_import.startswith('from common.') %}
-{{ do_import }}
+{% for stmt in doImportList if stmt.startswith(('from datetime ', 'from decimal ')) %}
+{{ stmt }}
+{% if loop.last and dataSourceName == defaultDataSourceName %}
+
 {% endif %}
 {% endfor %}
-{% if table.sub %}
-from sqlalchemy.orm import relationship
+{% if dataSourceName != defaultDataSourceName %}
+from typing import TYPE_CHECKING
+
 {% endif %}
+{% for stmt in doImportList if stmt.startswith(('from geoalchemy2 ', 'from sqlalchemy')) %}
+{{ stmt }}
+{% endfor %}
+from sqlalchemy.orm import Mapped, mapped_column{{ ', relationship' if table.sub else '' }}
 
 {% if time_mixin_imports.names %}
 from common.mixin import {{ time_mixin_imports.names | join(', ') }}
@@ -46,10 +52,13 @@ from common.mixin import {{ time_mixin_imports.names | join(', ') }}
 {% if dataSourceName == defaultDataSourceName %}
 from config.database import Base
 {% else %}
-from config.database import get_data_source_base
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import DeclarativeBase as DataSourceBase
+else:
+    from config.database import get_data_source_base
 
-DataSourceBase = get_data_source_base('{{ dataSourceName }}')
+    DataSourceBase = get_data_source_base({{ dataSourceName | python_literal }})
 {% endif %}
 
 
@@ -73,12 +82,12 @@ class {{ ClassName }}({% if main_time.create and main_time.update %}AuditTimeMix
 
     {% for column in columns %}
     {% if not (column.column_name in ["create_time", "update_time"] and column.time_kind == "instant") %}
-    {{ column.column_name }} = Column({% if column.time_kind == "instant" %}DbUtcDateTime(){% else %}{{ column.column_type | get_sqlalchemy_type(dataSourceName) }}{% endif %}, {% if column.pk %}primary_key=True, {% endif %}{% if column.increment %}autoincrement=True, {% endif %}{% if column.required or column.pk %}nullable=False{% else %}nullable=True{% endif %}, comment={{ column.column_comment | model_field_label | python_literal }})
+    {{ column.column_name }}: Mapped[{{ column.python_type }}{% if not (column.pk or column.required) %} | None{% endif %}] = mapped_column({% if column.time_kind == "instant" %}DbUtcDateTime(){% else %}{{ column.column_type | get_sqlalchemy_type(dataSourceName) }}{% endif %}, {% if column.pk %}primary_key=True, {% endif %}{% if column.increment %}autoincrement=True, {% endif %}{% if column.required or column.pk %}nullable=False{% else %}nullable=True{% endif %}, comment={{ column.column_comment | model_field_label | python_literal }})
     {% endif %}
     {% endfor %}
 
     {% if table.sub %}
-    {{ subclassName }}_list = relationship('{{ subClassName }}', back_populates='{{ businessName }}')
+    {{ subclassName }}_list: Mapped[list['{{ subClassName }}']] = relationship('{{ subClassName }}', back_populates='{{ businessName }}')
     {% endif %}
 
 
@@ -102,11 +111,11 @@ class {{ subClassName }}({% if sub_time.create and sub_time.update %}AuditTimeMi
 
     {% for column in subTable.columns %}
     {% if not (column.column_name in ["create_time", "update_time"] and column.time_kind == "instant") %}
-    {{ column.column_name }} = Column({% if column.time_kind == "instant" %}DbUtcDateTime(){% else %}{{ column.column_type | get_sqlalchemy_type(dataSourceName) }}{% endif %}, {% if column.column_name == subTableFkName %}ForeignKey('{{ tableName }}.{{ pkColumn.column_name }}'), {% endif %}{% if column.pk %}primary_key=True, {% endif %}{% if column.increment %}autoincrement=True, {% endif %}{% if column.required or column.pk %}nullable=False{% else %}nullable=True{% endif %}, comment={{ column.column_comment | model_field_label | python_literal }})
+    {{ column.column_name }}: Mapped[{{ column.python_type }}{% if not (column.pk or column.required) %} | None{% endif %}] = mapped_column({% if column.time_kind == "instant" %}DbUtcDateTime(){% else %}{{ column.column_type | get_sqlalchemy_type(dataSourceName) }}{% endif %}, {% if column.column_name == subTableFkName %}ForeignKey('{{ tableName }}.{{ pkColumn.column_name }}'), {% endif %}{% if column.pk %}primary_key=True, {% endif %}{% if column.increment %}autoincrement=True, {% endif %}{% if column.required or column.pk %}nullable=False{% else %}nullable=True{% endif %}, comment={{ column.column_comment | model_field_label | python_literal }})
     {% endif %}
     {% endfor %}
 
     {% if table.sub %}
-    {{ businessName }} = relationship('{{ ClassName }}', back_populates='{{ subclassName }}_list')
+    {{ businessName }}: Mapped[{{ ClassName }}{% if not (subTable.columns | selectattr('column_name', 'equalto', subTableFkName) | selectattr('required') | list) %} | None{% endif %}] = relationship('{{ ClassName }}', back_populates='{{ subclassName }}_list')
     {% endif %}
 {% endif %}
