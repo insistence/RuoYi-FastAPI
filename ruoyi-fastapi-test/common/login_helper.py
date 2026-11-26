@@ -5,16 +5,29 @@ from common.config import Config
 
 class LoginHelper:
     """
-    登录辅助类
+    登录辅助类。
+
+    :ivar base_url: 基础URL
+    :ivar session: 当前操作共用的会话
     """
 
     def __init__(self, base_url: str = Config.frontend_url) -> None:
+        """
+        为目标站点创建登录测试使用的 HTTP 会话。
+
+        :param base_url: 基础URL
+        """
         self.base_url = base_url
         self.session = requests.Session()
 
     def login(self, username: str = 'admin', password: str = 'admin123', max_retries: int = 3) -> str | None:
         """
-        执行登录操作（在测试环境中，验证码已禁用）
+        执行登录操作（在测试环境中，验证码已禁用）。
+
+        :param username: 登录账号名称
+        :param password: 认证使用的密码
+        :param max_retries: 允许重试的最大次数
+        :return: 用于身份验证或授权的令牌
         """
         for _attempt in range(max_retries):
             # 在测试环境中，验证码已禁用，所以直接登录
@@ -34,7 +47,7 @@ class LoginHelper:
                     if not token:
                         token = result.get('data', {}).get('token')  # 在data对象内
 
-                    if token:
+                    if isinstance(token, str) and token:
                         print('登录成功')
                         return token
                     print(f'登录失败: 响应中未找到token - {result}')

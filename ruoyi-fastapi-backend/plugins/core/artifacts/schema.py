@@ -3,15 +3,15 @@ import json
 import re
 import unicodedata
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from plugins.core.manifest.schema import PluginManifest
-from plugins.core.utils import validate_plugin_id_value
+from plugins.core.manifest.v2 import VersionedPluginManifest
+from plugins.core.utils import is_windows_reserved, validate_plugin_id_value
 
 DIGEST_PATTERN = re.compile(r'^[a-f0-9]{64}$')
 KEY_ID_PATTERN = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')
@@ -31,6 +31,16 @@ PrivateKeyInput = Ed25519PrivateKey | bytes | str
 class ArtifactLimits:
     """
     制品压缩容器、元数据和实际展开内容的独立资源上限。
+
+    :ivar max_files: 制品归档允许的最大文件数
+    :ivar max_file_bytes: 归档中单个文件允许的最大字节数
+    :ivar max_total_bytes: 解压后的内容允许占用的最大字节数
+    :ivar max_archive_bytes: 归档本身允许的最大字节数
+    :ivar max_central_directory_bytes: ZIP 中央目录允许的最大字节数
+    :ivar max_metadata_bytes: 制品元数据允许的最大字节数
+    :ivar max_signature_bytes: 签名文件允许的最大字节数
+    :ivar max_manifest_bytes: 插件清单允许的最大字节数
+    :ivar max_compression_ratio: 解压后大小与压缩大小的最大比值
     """
 
     max_files: int = 10000
@@ -65,7 +75,7 @@ def safe_artifact_path(value: str) -> PurePosixPath:
             part in {'', '.', '..'}
             or len(part) > MAX_COMPONENT_LENGTH
             or part.endswith((' ', '.'))
-            or PureWindowsPath(part).is_reserved()
+            or is_windows_reserved(part)
             or any(
                 char in '<>:"\\|?*' or ord(char) < FIRST_PRINTABLE_CHARACTER or ord(char) == DELETE_CHARACTER
                 for char in part
@@ -83,7 +93,6 @@ def validate_path_inventory(files: list[str] | tuple[str, ...], directories: set
 
     :param files: 全部文件的相对路径列表
     :param directories: 压缩容器显式声明的目录集合，可不提供
-    :return: None
     :raises ValueError: 文件或目录存在重复、大小写歧义或层级冲突
     """
     all_spellings: dict[str, str] = {}
@@ -139,7 +148,6 @@ def strict_json(data: bytes) -> dict[str, Any]:
         拒绝 JSON 中不属于标准数值范围的常量。
 
         :param value: JSON 解析器识别到的非法常量文本
-        :return: None
         :raises ValueError: 遇到 NaN、Infinity 等非标准 JSON 常量
         """
         raise ValueError(f'制品 JSON 包含非法常量：{value}')
@@ -154,15 +162,13 @@ def strict_json(data: bytes) -> dict[str, Any]:
 
 
 class ArtifactFile(BaseModel):
-    """
-    签名文件记录，路径相对于 rpk 根目录并位于自身 payload 目录中。
-    """
+    """签名文件记录，路径相对于 rpk 根目录并位于自身 payload 目录中。"""
 
     model_config = ConfigDict(strict=True, extra='forbid', frozen=True)
 
-    path: str
-    size: int = Field(ge=0)
-    sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
+    path: str = Field(description='文件或资源路径')
+    size: int = Field(ge=0, description='文件大小（字节）')
+    sha256: str = Field(pattern=r'^[a-f0-9]{64}$', description='文件内容的 SHA-256 摘要')
 
     @field_validator('path')
     @classmethod
@@ -179,16 +185,14 @@ class ArtifactFile(BaseModel):
 
 
 class ArtifactMetadata(BaseModel):
-    """
-    签名覆盖的制品元数据，字段及文件列表顺序共同确定签名内容。
-    """
+    """签名覆盖的制品元数据，字段及文件列表顺序共同确定签名内容。"""
 
     model_config = ConfigDict(strict=True, extra='forbid', frozen=True)
 
-    schema_version: Literal[1] = Field(alias='schemaVersion')
-    plugin_id: str = Field(alias='pluginId')
-    version: str = Field(min_length=1, max_length=32, pattern=r'^[0-9][a-z0-9._+\-]*$')
-    files: tuple[ArtifactFile, ...]
+    schema_version: Literal[1] = Field(alias='schemaVersion', description='数据结构的版本')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    version: str = Field(min_length=1, max_length=32, pattern=r'^[0-9][a-z0-9._+\-]*$', description='插件版本')
+    files: tuple[ArtifactFile, ...] = Field(description='制品中包含的文件及其校验信息')
 
     @field_validator('schema_version', mode='before')
     @classmethod
@@ -271,15 +275,13 @@ class ArtifactMetadata(BaseModel):
 
 
 class ArtifactSignature(BaseModel):
-    """
-    Ed25519 签名记录，密钥标识仅用于查询宿主提供的信任配置。
-    """
+    """Ed25519 签名记录，密钥标识仅用于查询宿主提供的信任配置。"""
 
     model_config = ConfigDict(strict=True, extra='forbid', frozen=True)
 
-    algorithm: Literal['Ed25519']
-    key_id: str = Field(alias='keyId', pattern=KEY_ID_PATTERN.pattern)
-    signature: str
+    algorithm: Literal['Ed25519'] = Field(description='制品签名算法')
+    key_id: str = Field(alias='keyId', pattern=KEY_ID_PATTERN.pattern, description='签名密钥标识')
+    signature: str = Field(description='对制品元数据计算的签名')
 
     def signature_bytes(self) -> bytes:
         """
@@ -363,6 +365,16 @@ def _key_bytes(value: bytes | str) -> bytes:
 class VerifiedArtifact:
     """
     完成静态校验的容器信息，不替代文件变化后的重新验证。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar version: 当前记录的版本
+    :ivar digest: 用于验证内容完整性的摘要
+    :ivar key_id: 验证签名时选择密钥的标识
+    :ivar files: 全部文件的相对路径列表
+    :ivar metadata: 签名覆盖的制品元数据，字段及文件列表顺序共同确定签名内容
+    :ivar signature: Ed25519 签名记录，密钥标识仅用于查询宿主提供的信任配置
+    :ivar manifest: 插件主清单
+    :ivar artifact_path: 插件制品在文件系统中的路径
     """
 
     plugin_id: str
@@ -372,7 +384,7 @@ class VerifiedArtifact:
     files: tuple[ArtifactFile, ...]
     metadata: ArtifactMetadata
     signature: ArtifactSignature
-    manifest: PluginManifest
+    manifest: VersionedPluginManifest
     artifact_path: Path
 
 
@@ -380,6 +392,17 @@ class VerifiedArtifact:
 class StoredArtifact:
     """
     完成验证的不可变存储信息，供平台预检与发布服务读取。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar version: 当前记录的版本
+    :ivar digest: 用于验证内容完整性的摘要
+    :ivar key_id: 验证签名时选择密钥的标识
+    :ivar files: 全部文件的相对路径列表
+    :ivar metadata: 签名覆盖的制品元数据，字段及文件列表顺序共同确定签名内容
+    :ivar signature: Ed25519 签名记录，密钥标识仅用于查询宿主提供的信任配置
+    :ivar manifest: 插件主清单
+    :ivar root_path: 应用或制品使用的根路径
+    :ivar plugin_path: 插件目录
     """
 
     plugin_id: str
@@ -389,6 +412,6 @@ class StoredArtifact:
     files: tuple[ArtifactFile, ...]
     metadata: ArtifactMetadata
     signature: ArtifactSignature
-    manifest: PluginManifest
+    manifest: VersionedPluginManifest
     root_path: Path
     plugin_path: Path

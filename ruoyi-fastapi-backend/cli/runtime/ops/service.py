@@ -17,9 +17,9 @@ class OperationsRuntimeService:
     该服务作为运维运行时 facade，对外统一暴露依赖版本检查、Redis 探活、
     调度同步以及服务器运行时信息采集入口。
 
-    :param infrastructure_gateway: 运维基础设施网关
-    :param dependency_inspector: 运维依赖检查器
-    :param server_info_support: 服务器信息支持对象
+    :ivar infrastructure_gateway: 运维基础设施网关
+    :ivar dependency_inspector: 运维依赖检查器
+    :ivar server_info_support: 服务器信息支持对象
     """
 
     def __init__(
@@ -35,7 +35,6 @@ class OperationsRuntimeService:
         :param infrastructure_gateway: 运维基础设施网关
         :param dependency_inspector: 运维依赖检查器
         :param server_info_support: 服务器信息支持对象
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway or OperationsInfrastructureGateway()
         self.dependency_inspector = dependency_inspector or OperationsDependencyInspector()

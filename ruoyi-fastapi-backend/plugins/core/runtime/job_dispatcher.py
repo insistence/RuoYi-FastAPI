@@ -1,17 +1,21 @@
 import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from middlewares.trace_middleware.ctx import CTX_REQUEST_ID
 from plugins.core.discovery.scanner import DiscoveredPlugin
+from plugins.core.manifest.v2 import PluginJobManifestV2
 from plugins.core.runtime.entrypoint import PluginEntrypointLoader
 from plugins.core.runtime.metrics import MetricOutcome, PluginRuntimeMetrics
 from plugins.core.runtime.route_guard import PluginRouteStateGateway
 from plugins.core.runtime.task_cleanup import CANCEL_TIMEOUT_SECONDS, cancel_plugin_tasks
 from plugins.core.sdk import PluginHostContext, PluginTaskContext, await_plugin_callback
 from utils.log_util import logger
+
+if TYPE_CHECKING:
+    from plugins.core.runtime.service.gateway import AsyncSessionFactoryProtocol
 
 DISPATCH_TARGET = 'plugins.core.runtime.job_dispatcher.dispatch_plugin_job'
 
@@ -21,14 +25,15 @@ class PluginJobBinding:
     """
     当前进程中已准备好的插件任务能力。
 
-    :param plugin: 任务所属的已发现插件
-    :param host: 任务使用的宿主能力上下文
-    :param gateway: 插件启用状态查询网关
-    :param ready: 查询插件是否就绪的回调
-    :param loop: 所属宿主事件循环
-    :param tasks: 当前仍在执行的插件异步任务集合
-    :param metrics: 可选的当前 worker 指标收集器
-    :param closing: 是否已停止接收新任务并正在回收旧任务
+    :ivar plugin: 任务所属的已发现插件
+    :ivar host: 任务使用的宿主能力上下文
+    :ivar gateway: 插件启用状态查询网关
+    :ivar session_factory: 绑定时选定的数据库会话工厂
+    :ivar ready: 查询插件是否就绪的回调
+    :ivar loop: 所属宿主事件循环
+    :ivar tasks: 当前仍在执行的插件异步任务集合
+    :ivar metrics: 可选的当前 worker 指标收集器
+    :ivar closing: 是否已停止接收新任务并正在回收旧任务
     """
 
     plugin: DiscoveredPlugin
@@ -36,6 +41,7 @@ class PluginJobBinding:
     gateway: PluginRouteStateGateway
     ready: Callable[[], bool]
     loop: asyncio.AbstractEventLoop
+    session_factory: 'AsyncSessionFactoryProtocol'
     tasks: set[asyncio.Task[Any]] = field(default_factory=set)
     metrics: PluginRuntimeMetrics | None = None
     closing: bool = False
@@ -44,7 +50,7 @@ class PluginJobBinding:
         """
         关闭后不再启动业务回调，也不把迟到结果报告为成功。
 
-        :return: None
+        :raises asyncio.CancelledError: 绑定已进入关闭流程
         """
         if self.closing:
             raise asyncio.CancelledError
@@ -70,6 +76,8 @@ def bind_plugin_jobs(
     :param ready: 查询插件是否就绪的回调
     :param metrics: 可选的运行指标收集器
     :return: 绑定到当前事件循环的插件任务能力
+    :raises RuntimeError: 旧任务尚未退出或运行时已绑定
+    :raises ValueError: 任务宿主身份不匹配或缺少数据库会话工厂
     """
     plugin_id = plugin.manifest.id
     existing = _bindings.get(plugin_id)
@@ -79,7 +87,9 @@ def bind_plugin_jobs(
         raise RuntimeError(f'插件任务运行时已绑定：{plugin_id}')
     if host.plugin_id != plugin_id or host.session_factory is None:
         raise ValueError('任务宿主身份不匹配或缺少数据库会话工厂')
-    binding = PluginJobBinding(plugin, host, gateway, ready, asyncio.get_running_loop(), metrics=metrics)
+    binding = PluginJobBinding(
+        plugin, host, gateway, ready, asyncio.get_running_loop(), host.session_factory, metrics=metrics
+    )
     _bindings[plugin_id] = binding
     return binding
 
@@ -89,41 +99,41 @@ def _release_binding(binding: PluginJobBinding) -> None:
     全部旧任务退出后才释放绑定，防止同进程启动重叠实例。
 
     :param binding: 已进入关闭阶段的插件任务绑定
-    :return: None
     """
     plugin_id = binding.plugin.manifest.id
     if binding.closing and not any(not task.done() for task in binding.tasks) and _bindings.get(plugin_id) is binding:
         del _bindings[plugin_id]
 
 
-async def unbind_plugin_jobs(binding: PluginJobBinding, *, timeout: float = CANCEL_TIMEOUT_SECONDS) -> None:
+async def unbind_plugin_jobs(binding: PluginJobBinding, *, grace_seconds: float = CANCEL_TIMEOUT_SECONDS) -> None:
     """
     先停止分发，再整批限时取消；未退出时保留绑定并禁止新实例覆盖。
 
     :param binding: 待解除的插件任务绑定
-    :param timeout: 整批运行任务的取消等待上限秒数
-    :return: None
+    :param grace_seconds: 整批运行任务的取消等待上限秒数
     """
     if not binding.closing:
         binding.closing = True
         for task in binding.tasks:
             task.add_done_callback(lambda _: _release_binding(binding))
     try:
-        pending = await cancel_plugin_tasks(binding.tasks, timeout=timeout)
+        pending = await cancel_plugin_tasks(binding.tasks, grace_seconds=grace_seconds)
         if pending:
             logger.warning('插件任务取消等待超时：{}，尚有 {} 个任务未退出', binding.plugin.manifest.id, len(pending))
     finally:
         _release_binding(binding)
 
 
-async def dispatch_plugin_job(plugin_id: str, job_id: str, version: str) -> Any:
+def _resolve_job(plugin_id: str, job_id: str, version: str) -> tuple[PluginJobBinding, PluginJobManifestV2]:
     """
-    APScheduler 仅保存此函数及三个字符串；不持久化上下文或原生 callable。
+    根据调度记录解析当前事件循环中可执行的插件任务。
 
     :param plugin_id: 任务所属的插件 ID
     :param job_id: 插件清单声明的任务 ID
     :param version: 调度记录绑定的插件版本
-    :return: 插件异步任务回调的执行结果
+    :return: 当前进程的任务绑定及清单中的任务声明
+    :raises RuntimeError: 插件未就绪、事件循环不匹配或插件版本已变更
+    :raises LookupError: 插件未声明指定的任务
     """
     binding = _bindings.get(plugin_id)
     if binding is None or binding.closing or not binding.ready():
@@ -134,9 +144,29 @@ async def dispatch_plugin_job(plugin_id: str, job_id: str, version: str) -> Any:
     if manifest.version != version:
         raise RuntimeError(f'插件任务版本不匹配：{plugin_id}，需重启并重新同步任务')
     job = next((item for item in manifest.backend.jobs if item.id == job_id), None)
-    if job is None:
+    if not isinstance(job, PluginJobManifestV2):
         raise LookupError(f'插件未声明任务：{plugin_id}:{job_id}')
+    return binding, job
+
+
+async def dispatch_plugin_job(plugin_id: str, job_id: str, version: str) -> Any:
+    """
+    APScheduler 仅保存此函数及三个字符串；不持久化上下文或原生 callable。
+
+    :param plugin_id: 任务所属的插件 ID
+    :param job_id: 插件清单声明的任务 ID
+    :param version: 调度记录绑定的插件版本
+    :return: 插件异步任务回调的执行结果
+    :raises RuntimeError: 插件任务必须在所属宿主事件循环执行
+    :raises LookupError: 插件未声明指定的任务
+    :raises asyncio.CancelledError: 异步操作被取消时
+    :raises PermissionError: 当前执行上下文缺少调用所需的权限
+    :raises Exception: 底层操作失败时向调用方传播异常
+    """
+    binding, job = _resolve_job(plugin_id, job_id, version)
     task = asyncio.current_task()
+    if task is None:
+        raise RuntimeError('插件任务必须由宿主异步任务执行')
     binding.tasks.add(task)
     request_id = uuid4().hex
     token = CTX_REQUEST_ID.set(request_id)
@@ -150,7 +180,7 @@ async def dispatch_plugin_job(plugin_id: str, job_id: str, version: str) -> Any:
     error_type, timed_out = None, False
     try:
         with logger.contextualize(**log_fields):
-            async with binding.host.session_factory() as db:
+            async with binding.session_factory() as db:
                 if not await binding.gateway.is_plugin_enabled(db, plugin_id):
                     raise PermissionError(f'插件未启用：{plugin_id}')
             # 数据库等待期间可能开始关闭，不能在解绑后再启动原生回调。
@@ -177,7 +207,7 @@ async def dispatch_plugin_job(plugin_id: str, job_id: str, version: str) -> Any:
         raise
     except Exception as exc:
         error_type = type(exc).__name__
-        timed_out = isinstance(exc, (TimeoutError, asyncio.TimeoutError))
+        timed_out = isinstance(exc, TimeoutError)
         raise
     finally:
         if invocation is not None:

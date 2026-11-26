@@ -1,7 +1,8 @@
 import json
+from inspect import isawaitable
 
 import pytest
-from fastapi import FastAPI, status
+from fastapi import FastAPI, Request, status
 
 from common.constant import HttpStatusConstant
 from exceptions.exception import (
@@ -23,12 +24,14 @@ from exceptions.handle import handle_exception
     ],
 )
 async def test_data_source_exceptions_use_service_exception_handler(exception: Exception) -> None:
+    """数据源异常由服务异常处理器处理。"""
     app = FastAPI()
     handle_exception(app)
 
     handler = app.exception_handlers[ServiceException]
-    response = await handler(None, exception)
-    payload = json.loads(response.body)
+    result = handler(Request({'type': 'http', 'headers': []}), exception)
+    response = await result if isawaitable(result) else result
+    payload = json.loads(bytes(response.body))
 
     assert response.status_code == status.HTTP_200_OK
     assert payload['code'] == HttpStatusConstant.ERROR

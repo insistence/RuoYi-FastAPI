@@ -15,18 +15,14 @@ from utils.log_util import logger
 
 
 class PluginEntityImportFailure(BaseModel):
-    """
-    插件实体导入失败结果。
-    """
+    """插件实体导入失败结果。"""
 
     plugin_id: str = Field(description='插件ID')
     error_message: str = Field(description='错误信息')
 
 
 class PluginEntityImportResult(BaseModel):
-    """
-    插件实体导入结果。
-    """
+    """插件实体导入结果。"""
 
     imported_count: int = Field(default=0, description='成功导入实体模块数量')
     failures: list[PluginEntityImportFailure] = Field(default_factory=list, description='实体导入失败结果列表')
@@ -38,6 +34,16 @@ class PluginRuntimeBuilder:
 
     使用 Builder 模式封装插件发现和运行时注册表构建过程，便于后续逐步加入数据库状态、
     依赖检查和生命周期处理。
+
+    :ivar backend_root: 后端项目根目录
+    :ivar plugins_root: 后端插件根目录
+    :ivar frontend_plugins_root: 存放前端插件资源的根目录
+    :ivar entity_importer: 加载插件实体模型的导入器
+    :ivar _discovered_plugins: 本次扫描发现的插件
+    :ivar _discovery_errors: 扫描插件目录时收集的错误
+    :ivar _artifact_plugins: 从制品存储发现的插件
+    :ivar _artifact_errors: 读取插件制品时遇到的错误
+    :ivar _artifact_plugin_ids: 由制品存储管理的插件标识
     """
 
     def __init__(self, backend_root: Path | str | None = None) -> None:
@@ -71,7 +77,6 @@ class PluginRuntimeBuilder:
         :param plugins: 启动时已通过验签的发布插件快照
         :param reserved_ids: 已被制品发布记录占用的插件 ID 集合
         :param errors: 制品解析过程中收集的插件发现错误列表
-        :return: None
         """
         self._artifact_plugins = list(plugins)
         self._artifact_plugin_ids = set(reserved_ids)
@@ -130,11 +135,7 @@ class PluginRuntimeBuilder:
         return PluginRegistry.build(self.discover_plugins(), database_plugins)
 
     def import_builtin_entities(self) -> None:
-        """
-        导入内置业务模块实体。
-
-        :return: None
-        """
+        """导入内置业务模块实体。"""
         self.entity_importer.import_builtin_entities()
 
     def import_plugin_entities(self, plugin_registry: PluginRegistry) -> PluginEntityImportResult:

@@ -33,6 +33,21 @@ SUPPORTED_NPM_INTEGRITY_ALGORITHMS = {'sha256', 'sha384', 'sha512'}
 class DependencyInstallPolicyConfig:
     """
     插件依赖安装策略配置。
+
+    :ivar mode: 控制执行方式的模式
+    :ivar env: 当前运行环境
+    :ivar allow_prod: 是否允许生产环境危险命令
+    :ivar allow_prod_install: 是否允许在生产环境安装依赖
+    :ivar require_yes: 是否要求显式确认安装
+    :ivar require_lockfile: 是否要求锁文件
+    :ivar require_allowlist: 是否只允许安装白名单中的依赖
+    :ivar allow_unlisted: 是否允许未命中 allowlist 的依赖仅告警
+    :ivar lockfile_path: 锁文件路径
+    :ivar offline_dir: 保存离线依赖包的目录
+    :ivar allowlist_path: 依赖允许列表路径
+    :ivar pip_index_url: Python 包索引地址
+    :ivar npm_registry: 前端依赖的 npm 注册表地址
+    :ivar install_timeout_seconds: 安装依赖时允许等待的秒数
     """
 
     mode: DependencyInstallPolicyMode | None = None
@@ -51,11 +66,7 @@ class DependencyInstallPolicyConfig:
     install_timeout_seconds: int = 600
 
     def __post_init__(self) -> None:
-        """
-        归一化路径和默认模式。
-
-        :return: None
-        """
+        """归一化路径和默认模式。"""
         object.__setattr__(self, 'env', (self.env or 'dev').strip() or 'dev')
         object.__setattr__(self, 'mode', self.mode or self._default_mode(self.env))
         for field_name in ('lockfile_path', 'offline_dir', 'allowlist_path'):
@@ -219,6 +230,7 @@ class DependencyInstallPolicyConfig:
         延迟加载统一配置入口中的插件依赖策略配置。
 
         :return: 插件依赖策略配置对象，缺失时返回 None
+        :raises ValueError: 插件依赖策略的布尔配置不合法
         """
         try:
             from config.env import get_config  # noqa: PLC0415
@@ -282,6 +294,7 @@ class DependencyInstallPolicyConfig:
         :param value: 原始模式
         :param default: 默认模式
         :return: 策略模式
+        :raises ValueError: 依赖安装策略模式不受支持
         """
         normalized_value = value.strip()
         if normalized_value in {'disabled', 'plan_only', 'explicit', 'locked', 'offline'}:
@@ -298,6 +311,7 @@ class DependencyInstallPolicyConfig:
         :param value: 原始配置值
         :param name: 配置名称
         :return: 布尔值
+        :raises ValueError: 配置值不能解析为布尔值
         """
         if isinstance(value, bool):
             return value
@@ -382,6 +396,17 @@ class DependencyInstallPolicyConfig:
 class DependencyInstallPolicyItemDecision:
     """
     单条依赖安装计划的策略判定。
+
+    :ivar kind: 依赖类型
+    :ivar name: 用于查找或标识当前对象的名称
+    :ivar requirement: 依赖声明，包括包名和版本约束
+    :ivar allowed: 策略检查是否允许该操作
+    :ivar reasons: 阻断原因
+    :ivar warnings: 告警列表
+    :ivar requirements: 满足策略需要的条件或依赖
+    :ivar locked_version: 锁文件指定的版本
+    :ivar artifact_path: 插件制品在文件系统中的路径
+    :ivar artifact_verified: 制品是否已通过完整性校验
     """
 
     kind: DependencyKind
@@ -423,6 +448,14 @@ class DependencyInstallPolicyItemDecision:
 class DependencyInstallPolicyDecision:
     """
     依赖安装策略判定结果。
+
+    :ivar allowed: 策略检查是否允许该操作
+    :ivar mode: 控制执行方式的模式
+    :ivar reasons: 阻断原因
+    :ivar warnings: 告警列表
+    :ivar requirements: 满足策略需要的条件或依赖
+    :ivar items: 字符串列表
+    :ivar install_plan_items: 依赖安装计划项列表
     """
 
     allowed: bool
@@ -453,6 +486,13 @@ class DependencyInstallPolicyDecision:
 class DependencyLockEntry:
     """
     锁文件中的单条依赖。
+
+    :ivar kind: 依赖类型
+    :ivar name: 用于查找或标识当前对象的名称
+    :ivar requirement: 依赖声明，包括包名和版本约束
+    :ivar resolved_version: 最终解析出的依赖版本
+    :ivar hashes: 用于校验依赖制品的哈希值
+    :ivar integrity: 依赖锁记录要求的制品完整性校验值
     """
 
     kind: DependencyKind
@@ -468,9 +508,9 @@ class DependencyLockfile:
     """
     插件依赖锁文件。
 
-    :param path: 锁文件路径
-    :param entries: 按依赖类型和包名索引的锁定依赖
-    :param frontend_framework: 锁文件对应的宿主前端框架，未声明时不检查框架
+    :ivar path: 锁文件路径
+    :ivar entries: 按依赖类型和包名索引的锁定依赖
+    :ivar frontend_framework: 锁文件对应的宿主前端框架，未声明时不检查框架
     """
 
     path: Path
@@ -535,6 +575,9 @@ class DependencyLockfile:
 class DependencyVersionBound:
     """
     依赖版本范围边界。
+
+    :ivar version: 版本
+    :ivar inclusive: 版本边界是否包含端点
     """
 
     version: str
@@ -545,6 +588,10 @@ class DependencyVersionBound:
 class DependencyVersionRange:
     """
     可保守比较的依赖版本范围。
+
+    :ivar lower: 允许版本的下界
+    :ivar upper: 允许版本的上界
+    :ivar exact: 必须匹配的确切版本
     """
 
     lower: DependencyVersionBound | None = None
@@ -556,6 +603,8 @@ class DependencyVersionRange:
 class DependencyAllowlist:
     """
     插件依赖允许列表。
+
+    :ivar entries: 按依赖类型和包名索引的锁定依赖
     """
 
     entries: dict[DependencyKind, dict[str, dict[str, Any]]]
@@ -620,6 +669,8 @@ class DependencyAllowlist:
 class DependencyArtifactStore:
     """
     离线依赖制品仓库。
+
+    :ivar offline_dir: 离线制品根目录
     """
 
     def __init__(self, offline_dir: Path | str | None) -> None:
@@ -627,7 +678,6 @@ class DependencyArtifactStore:
         初始化离线制品仓库。
 
         :param offline_dir: 离线制品根目录
-        :return: None
         """
         self.offline_dir = Path(offline_dir) if offline_dir is not None else None
 
@@ -743,6 +793,9 @@ class DependencyArtifactStore:
 class DependencyInstallPolicyEvaluator:
     """
     插件依赖安装策略判定器。
+
+    :ivar config: 策略配置
+    :ivar runtime_environment: 保留当前宿主显式框架选择的运行时环境
     """
 
     def __init__(
@@ -756,7 +809,6 @@ class DependencyInstallPolicyEvaluator:
 
         :param config: 策略配置
         :param runtime_environment: 保留当前宿主显式框架选择的运行时环境
-        :return: None
         """
         self.config = config or DependencyInstallPolicyConfig.from_environment()
         self.runtime_environment = runtime_environment or PLUGIN_RUNTIME_ENVIRONMENT
@@ -928,7 +980,6 @@ class DependencyInstallPolicyEvaluator:
         :param allowlist: 允许列表
         :param reasons: 阻断原因
         :param warnings: 告警列表
-        :return: None
         """
         if allowlist.is_allowed(item):
             return
@@ -1397,7 +1448,6 @@ def append_unique(items: list[str], item: str) -> None:
 
     :param items: 字符串列表
     :param item: 待追加字符串
-    :return: None
     """
     if item not in items:
         items.append(item)

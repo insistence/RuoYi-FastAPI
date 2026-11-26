@@ -11,9 +11,9 @@ class CommandRiskSpec:
     """
     CLI 命令风险元数据定义。
 
-    :param command_name: 命令唯一标识
-    :param risk_level: 风险级别
-    :param supports_dry_run: 是否支持演练执行
+    :ivar command_name: 命令唯一标识
+    :ivar risk_level: 风险级别
+    :ivar supports_dry_run: 是否支持演练执行
     """
 
     command_name: str
@@ -29,7 +29,7 @@ class CommandRiskSpecRegistry:
     该注册表负责从危险命令规则注册表派生风险元数据，供 TUI、文档、
     诊断提示等只读场景统一查询。
 
-    :param specs: 按命令名索引的风险元数据表
+    :ivar specs: 按命令名索引的风险元数据表
     """
 
     specs: dict[str, CommandRiskSpec]

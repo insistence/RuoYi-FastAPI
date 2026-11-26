@@ -7,9 +7,7 @@ from utils.response_util import ResponseUtil
 
 
 class ExceptionUtil:
-    """
-    未知异常的安全响应与诊断工具类。
-    """
+    """未知异常的安全响应与诊断工具类。"""
 
     @staticmethod
     def handle_unexpected_exception(exc: Exception) -> Response:

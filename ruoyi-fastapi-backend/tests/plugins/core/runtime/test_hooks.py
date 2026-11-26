@@ -9,7 +9,13 @@ from plugins.core.runtime.hooks import PluginHookRunner
 
 
 def write_plugin_with_hook(plugin_root: Path, hook_content: str, hook_path: str = 'hooks:on_startup') -> None:
-    """写入带生命周期钩子的测试插件。"""
+    """
+    写入带生命周期钩子的测试插件。
+
+    :param plugin_root: 插件的根目录
+    :param hook_content: 测试生命周期回调的源码
+    :param hook_path: 回调代码所在的路径
+    """
     plugin_root.mkdir(parents=True)
     (plugin_root / 'hooks.py').write_text(hook_content, encoding='utf-8')
     (plugin_root / 'plugin.yaml').write_text(

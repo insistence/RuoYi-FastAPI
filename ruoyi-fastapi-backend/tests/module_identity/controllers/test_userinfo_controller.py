@@ -2,33 +2,50 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from module_admin.entity.do.user_do import SysUser
 from module_identity.controller import token_controller as controller
 from module_identity.dependencies import AccessTokenContext
 from module_identity.service import token_protocol_service as service
+from tests.module_identity.support.http import make_request
 
 _OK = 200
 _NOT_FOUND = 404
 _UNAUTHORIZED = 401
 
 
-def _request(redis: object | None = None) -> SimpleNamespace:
-    """构造 UserInfo 请求替身。"""
-    return SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis or object())))
+def _request(redis: object | None = None) -> Request:
+    """
+    构造 UserInfo 请求替身。
+
+    :param redis: 用于缓存或发布消息的 Redis 客户端
+    :return: UserInfo 请求替身
+    """
+    return make_request(redis or object())
 
 
 class _ActiveRedis:
     """模拟未命中撤销列表的 Redis。"""
 
     async def exists(self, key: str) -> bool:
+        """
+        在此测试分支返回 False。
+
+        :param key: 查找数据时使用的键
+        :return: 此分支的固定值 ``False``
+        """
         return False
 
 
 @pytest.fixture(autouse=True)
 def _active_authorization(monkeypatch: pytest.MonkeyPatch) -> None:
-    """为 Claims 输出测试提供明确有效的授权，撤销链路由真实数据库回归覆盖。"""
+    """
+    为 Claims 输出测试提供明确有效的授权，撤销链路由真实数据库回归覆盖。
 
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     grant = SimpleNamespace(
         user_id=2,
         subject_id='subject-1',
@@ -118,7 +135,7 @@ async def test_userinfo_returns_only_minimal_claims(monkeypatch: pytest.MonkeyPa
             'exp': 1,
         },
     )
-    response = await controller.userinfo(_request(_ActiveRedis()), context, SimpleNamespace())
+    response = await controller.userinfo(_request(_ActiveRedis()), context, AsyncSession())
     assert response.status_code == _OK
     assert b'"sub":"subject-1"' in response.body
     assert '数据库用户'.encode() in response.body
@@ -183,7 +200,7 @@ async def test_userinfo_uses_current_database_claims_not_token_claims(monkeypatc
             'ver': 3,
         },
     )
-    response = await controller.userinfo(_request(_ActiveRedis()), context, SimpleNamespace())
+    response = await controller.userinfo(_request(_ActiveRedis()), context, AsyncSession())
     assert b'subject-1' in response.body
     assert b'Forged Name' not in response.body
     assert b'database-role' in response.body
@@ -203,7 +220,16 @@ async def test_userinfo_live_state_failures_are_bearer_401(monkeypatch: pytest.M
     monkeypatch.setattr(service.IdentityUserDao, 'get_user', lambda *args, **kwargs: _async(user))
 
     class _Redis:
+        """模拟测试所需的 Redis 命令。"""
+
         async def exists(self, key: str) -> bool:
+            """
+            按测试场景报告撤销记录是否存在。
+
+            :param key: 查找数据时使用的键
+            :raises RuntimeError: 模拟查询 Redis 键时连接失败
+            :return: 是否按测试场景报告撤销记录是否存在
+            """
             if failure == 'redis':
                 raise RuntimeError('redis unavailable')
             return failure == 'revoked'
@@ -223,7 +249,7 @@ async def test_userinfo_live_state_failures_are_bearer_401(monkeypatch: pytest.M
             None if failure == 'session' else SimpleNamespace(user_id=2, subject_id='subject-1', auth_version=3)
         ),
     )
-    response = await controller.userinfo(_request(_Redis()), AccessTokenContext('token', claims), SimpleNamespace())
+    response = await controller.userinfo(_request(_Redis()), AccessTokenContext('token', claims), AsyncSession())
     assert response.status_code == _UNAUTHORIZED
     assert response.headers['www-authenticate'] == 'Bearer error="invalid_token"'
     assert b'redis unavailable' not in response.body
@@ -233,15 +259,25 @@ async def test_userinfo_live_state_failures_are_bearer_401(monkeypatch: pytest.M
 async def test_userinfo_disabled_is_local_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     """OIDC 关闭时 UserInfo 返回本地 404，不进入重定向流程。"""
     monkeypatch.setattr(controller.OidcConfig, 'oidc_enabled', False)
-    response = await controller.userinfo(_request(), SimpleNamespace(), SimpleNamespace())
+    response = await controller.userinfo(_request(), AccessTokenContext('token', {}), AsyncSession())
     assert response.status_code == _NOT_FOUND
     assert b'not_found' in response.body
 
 
 def _async(value: object) -> Any:
-    """构造异步测试结果。"""
+    """
+    构造异步测试结果。
+
+    :param value: 待处理的输入值
+    :return: 异步测试结果
+    """
 
     async def result() -> object:
+        """
+        向调用方返回 ``value``。
+
+        :return: 为此调用预设的值
+        """
         return value
 
     return result()

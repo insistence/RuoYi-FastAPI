@@ -5,7 +5,7 @@ from typing import Any
 @dataclass(frozen=True)
 class ProdCheckRenderingSupport:
     """
-    `wizard prod-check` 文本渲染支持对象。
+    ``wizard prod-check`` 文本渲染支持对象。
 
     该对象负责构建 runtime、doctor、config 分区文本行，
     避免 presenter 本体继续维护全部分区细节。
@@ -61,12 +61,12 @@ class ProdCheckRenderingSupport:
 @dataclass(frozen=True)
 class ProdCheckPresenter:
     """
-    `wizard prod-check` 结果展示器。
+    ``wizard prod-check`` 结果展示器。
 
     该对象负责将聚合结果转换为文本摘要，
     避免在 flow 内继续维护文本渲染细节。
 
-    :param rendering_support: 文本渲染支持对象
+    :ivar rendering_support: 文本渲染支持对象
     """
 
     rendering_support: ProdCheckRenderingSupport = ProdCheckRenderingSupport()

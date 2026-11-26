@@ -32,7 +32,7 @@ class TuiSnapshotCollectorRegistry:
     该对象集中维护页面视图标识与其采集函数之间的映射，
     使应用层和测试层可以通过统一入口发现当前可用的采集器。
 
-    :param collectors: 视图到采集函数的映射
+    :ivar collectors: 视图到采集函数的映射
     """
 
     collectors: dict[str, SnapshotCollector]

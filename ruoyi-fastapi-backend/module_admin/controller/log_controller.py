@@ -85,7 +85,7 @@ async def delete_system_operation_log(
     oper_ids: Annotated[str, Path(description='需要删除的日志主键')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_operation_log = DeleteOperLogModel(operIds=oper_ids)
+    delete_operation_log = DeleteOperLogModel(oper_ids=oper_ids)
     delete_operation_log_result = await OperationLogService.delete_operation_log_services(
         query_db, delete_operation_log
     )
@@ -181,7 +181,7 @@ async def delete_system_login_log(
     info_ids: Annotated[str, Path(description='需要删除的访问ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_login_log = DeleteLoginLogModel(infoIds=info_ids)
+    delete_login_log = DeleteLoginLogModel(info_ids=info_ids)
     delete_login_log_result = await LoginLogService.delete_login_log_services(query_db, delete_login_log)
     logger.info(delete_login_log_result.message)
 
@@ -202,7 +202,7 @@ async def unlock_system_user(
     user_name: Annotated[str, Path(description='用户名称')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    unlock_user = UnlockUser(userName=user_name)
+    unlock_user = UnlockUser(user_name=user_name)
     unlock_user_result = await LoginLogService.unlock_user_services(request, unlock_user)
     logger.info(unlock_user_result.message)
 

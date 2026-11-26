@@ -1,6 +1,7 @@
 import json
 import re
 from pathlib import Path
+from unittest.mock import AsyncMock
 from urllib.parse import urljoin
 
 import httpx
@@ -20,6 +21,12 @@ _CONFIG_SCRIPT = re.compile(r'<script id="ruoyi-plugin-config" type="application
 
 @pytest.fixture
 def bundle_root(tmp_path: Path) -> Path:
+    """
+    准备包含静态资源及空目录的插件前端目录。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 路径解析的基准目录
+    """
     root = tmp_path / 'web' / 'dist'
     (root / 'assets').mkdir(parents=True)
     (root / 'empty').mkdir()
@@ -36,22 +43,30 @@ def bundle_root(tmp_path: Path) -> Path:
 
 
 def _mount_bundle(plugin_root: Path, *, spa_fallback: bool = True) -> FastAPI:
+    """
+    将插件前端资源包挂载到测试应用。
+
+    :param plugin_root: 插件的根目录
+    :param spa_fallback: 找不到静态资源时是否返回单页应用入口
+    :return: 用于判断路径从属关系的父目录
+    """
     child = FastAPI()
 
-    @child.get('/api/ping')
+    @child.get('/api/ping', summary='探测插件后端', description='返回子应用标识，用于区分插件 API 与静态资源。')
     async def ping() -> dict[str, str]:
         return {'source': 'child-api'}
 
     parent = FastAPI()
     parent.mount(
         '/apps/demo',
-        PluginBundleASGI(child, 'demo', plugin_root, FrontendBundleManifest(spaFallback=spa_fallback)),
+        PluginBundleASGI(child, 'demo', plugin_root, FrontendBundleManifest(spa_fallback=spa_fallback)),
     )
     return parent
 
 
 @pytest.mark.asyncio
 async def test_entry_deep_link_and_head_have_safe_injected_proxy_configuration(bundle_root: Path) -> None:
+    """入口、深层链接及 HEAD 请求安全注入代理配置。"""
     app = _mount_bundle(bundle_root.parents[1])
     transport = httpx.ASGITransport(app=app, root_path='/gateway')
     async with httpx.AsyncClient(transport=transport, base_url='https://test') as client:
@@ -83,6 +98,7 @@ async def test_entry_deep_link_and_head_have_safe_injected_proxy_configuration(b
 
 @pytest.mark.asyncio
 async def test_ui_redirect_retains_effective_mount_prefix_and_query(bundle_root: Path) -> None:
+    """界面重定向保留实际挂载前缀和查询参数。"""
     transport = httpx.ASGITransport(app=_mount_bundle(bundle_root.parents[1]), root_path='/gateway')
     async with httpx.AsyncClient(transport=transport, base_url='https://test') as client:
         response = await client.get('/gateway/apps/demo/ui?view=reports%2Fmonthly')
@@ -98,6 +114,7 @@ async def test_ui_redirect_retains_effective_mount_prefix_and_query(bundle_root:
 async def test_static_resources_have_explicit_mime_and_head_support(
     bundle_root: Path, path: str, media_type: str
 ) -> None:
+    """静态资源声明 MIME 类型并支持 HEAD。"""
     transport = httpx.ASGITransport(app=_mount_bundle(bundle_root.parents[1]))
     async with httpx.AsyncClient(transport=transport, base_url='https://test') as client:
         response = await client.get('/apps/demo/ui/' + path)
@@ -134,6 +151,7 @@ async def test_static_resources_have_explicit_mime_and_head_support(
     ],
 )
 async def test_missing_resources_directories_and_unsafe_paths_never_fall_back(bundle_root: Path, path: str) -> None:
+    """资源缺失、目录请求及不安全路径不会触发回退。"""
     transport = httpx.ASGITransport(app=_mount_bundle(bundle_root.parents[1]))
     async with httpx.AsyncClient(transport=transport, base_url='https://test') as client:
         response = await client.get('/apps/demo/ui/' + path, headers=_HTML_HEADERS)
@@ -145,6 +163,7 @@ async def test_missing_resources_directories_and_unsafe_paths_never_fall_back(bu
 @pytest.mark.asyncio
 @pytest.mark.parametrize('accept', ['*/*', 'application/json', 'text/html;q=0', 'text/html;q=invalid'])
 async def test_html_navigation_requires_explicit_acceptable_html(bundle_root: Path, accept: str) -> None:
+    """HTML 导航需要显式接受 HTML。"""
     transport = httpx.ASGITransport(app=_mount_bundle(bundle_root.parents[1]))
     async with httpx.AsyncClient(transport=transport, base_url='https://test') as client:
         entry = await client.get('/apps/demo/ui/', headers={'Accept': accept})
@@ -155,6 +174,7 @@ async def test_html_navigation_requires_explicit_acceptable_html(bundle_root: Pa
 
 @pytest.mark.asyncio
 async def test_no_fallback_mode_and_unsupported_methods_do_not_return_html(bundle_root: Path) -> None:
+    """禁用回退或请求方法不受支持时不返回 HTML。"""
     transport = httpx.ASGITransport(app=_mount_bundle(bundle_root.parents[1], spa_fallback=False))
     async with httpx.AsyncClient(transport=transport, base_url='https://test') as client:
         missing = await client.get('/apps/demo/ui/reports', headers=_HTML_HEADERS)
@@ -168,6 +188,7 @@ async def test_no_fallback_mode_and_unsupported_methods_do_not_return_html(bundl
 
 @pytest.mark.asyncio
 async def test_api_unknown_routes_and_non_http_scopes_are_delegated(bundle_root: Path) -> None:
+    """未知 API 路由和非 HTTP 作用域交给下游。"""
     transport = httpx.ASGITransport(app=_mount_bundle(bundle_root.parents[1]))
     async with httpx.AsyncClient(transport=transport, base_url='https://test') as client:
         response = await client.get('/apps/demo/api/ping', headers=_HTML_HEADERS)
@@ -178,20 +199,42 @@ async def test_api_unknown_routes_and_non_http_scopes_are_delegated(bundle_root:
     reached = []
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         reached.append(scope)
 
     bundle = PluginBundleASGI(child, 'demo', bundle_root.parents[1], FrontendBundleManifest())
     for scope in ({'type': 'lifespan'}, {'type': 'websocket', 'path': '/ui/events'}):
-        await bundle(scope, None, None)
+        await bundle(scope, AsyncMock(), AsyncMock())
         assert reached[-1] is scope
 
 
 @pytest.mark.asyncio
 async def test_outer_gateway_authentication_covers_ui_and_assets(bundle_root: Path) -> None:
+    """外层网关认证覆盖界面及静态资源。"""
+
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        若执行到此操作则立即使测试失败。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         pytest.fail('unauthorized request reached the child')
 
     async def deny(scope: Scope) -> PluginRequestContext:
+        """
+        模拟此操作抛出 LookupError 的情形。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :raises LookupError: 模拟无法解析已认证的会话
+        """
         raise LookupError('unauthenticated')
 
     manager = PluginLifespanManager(child, managed=False)
@@ -209,6 +252,7 @@ async def test_outer_gateway_authentication_covers_ui_and_assets(bundle_root: Pa
 
 @pytest.mark.asyncio
 async def test_symlink_escape_is_rejected_at_configuration_and_request_time(bundle_root: Path) -> None:
+    """在配置和请求阶段均拒绝通过符号链接越界。"""
     outside = bundle_root.parents[1] / 'private.txt'
     try:
         (bundle_root / 'leak.txt').symlink_to(outside)
@@ -227,6 +271,7 @@ async def test_symlink_escape_is_rejected_at_configuration_and_request_time(bund
 
 @pytest.mark.asyncio
 async def test_configuration_json_cannot_close_script_and_has_no_request_secrets(bundle_root: Path) -> None:
+    """注入的配置 JSON 不能闭合脚本且不含请求密钥。"""
     child = FastAPI()
     bundle = PluginBundleASGI(
         child, 'demo</script><script>alert(1)</script>', bundle_root.parents[1], FrontendBundleManifest()
@@ -234,6 +279,11 @@ async def test_configuration_json_cannot_close_script_and_has_no_request_secrets
     messages = []
 
     async def send(message: Message) -> None:
+        """
+        收集应用发送的 ASGI 消息。
+
+        :param message: 与当前结果一起返回的说明
+        """
         messages.append(message)
 
     scope = {
@@ -244,7 +294,7 @@ async def test_configuration_json_cannot_close_script_and_has_no_request_secrets
         'headers': [(b'accept', b'text/html'), (b'cookie', b'secret-session=top-secret')],
         'query_string': b'token=must-not-be-injected',
     }
-    await bundle(scope, None, send)
+    await bundle(scope, AsyncMock(), send)
     body = b''.join(message.get('body', b'') for message in messages).decode()
     match = _CONFIG_SCRIPT.search(body)
     assert match is not None
@@ -264,16 +314,20 @@ async def test_configuration_json_cannot_close_script_and_has_no_request_secrets
     ],
 )
 async def test_runtime_base_is_first_and_preserves_doctype(bundle_root: Path, html: str) -> None:
+    """运行时基址优先且保留文档类型声明。"""
     (bundle_root / 'index.html').write_text(html, encoding='utf-8')
     transport = httpx.ASGITransport(app=_mount_bundle(bundle_root.parents[1]))
     async with httpx.AsyncClient(transport=transport, base_url='https://test') as client:
         response = await client.get('/apps/demo/ui/deep/link', headers=_HTML_HEADERS)
     assert response.status_code == status.HTTP_200_OK
     assert response.text.startswith('<!doctype html>')
-    assert re.search(r'<base href="([^"]+)">', response.text).group(1) == '/apps/demo/ui/'
+    match = re.search(r'<base href="([^"]+)">', response.text)
+    assert match is not None
+    assert match[1] == '/apps/demo/ui/'
 
 
 def test_missing_bundle_or_entry_is_rejected_before_activation(tmp_path: Path) -> None:
+    """激活前拒绝缺失的资源包或入口。"""
     with pytest.raises(ValueError, match='目录不存在'):
         PluginBundleASGI(FastAPI(), 'demo', tmp_path, FrontendBundleManifest())
     (tmp_path / 'web' / 'dist').mkdir(parents=True)

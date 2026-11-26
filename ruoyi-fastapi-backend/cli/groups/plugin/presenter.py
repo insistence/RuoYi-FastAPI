@@ -2,9 +2,7 @@ from cli.utils import SHELL_TEXT_FORMATTER
 
 
 class PluginCommandPresenter:
-    """
-    插件命令文本渲染器。
-    """
+    """插件命令文本渲染器。"""
 
     def build_list_text(self, payload: dict[str, object]) -> str:
         """
@@ -609,13 +607,13 @@ class PluginCommandPresenter:
 
         structure_errors = payload.get('structureErrors')
         if isinstance(structure_errors, list) and structure_errors:
-            lines.append(f'structure_errors: {len(structure_errors)}')
+            lines.append(f'structure_errors: {structure_errors}')
         else:
             lines.append('structure_errors: none')
 
         menu_conflicts = payload.get('menuConflicts')
         if isinstance(menu_conflicts, list) and menu_conflicts:
-            lines.append(f'menu_conflicts: {len(menu_conflicts)}')
+            lines.append(f'menu_conflicts: {menu_conflicts}')
         else:
             lines.append('menu_conflicts: none')
 
@@ -653,13 +651,13 @@ class PluginCommandPresenter:
 
         structure_errors = payload.get('structureErrors')
         if isinstance(structure_errors, list) and structure_errors:
-            lines.append(f'structure_errors: {len(structure_errors)}')
+            lines.append(f'structure_errors: {structure_errors}')
         else:
             lines.append('structure_errors: none')
 
         menu_conflicts = payload.get('menuConflicts')
         if isinstance(menu_conflicts, list) and menu_conflicts:
-            lines.append(f'menu_conflicts: {len(menu_conflicts)}')
+            lines.append(f'menu_conflicts: {menu_conflicts}')
         else:
             lines.append('menu_conflicts: none')
 
@@ -863,7 +861,6 @@ class PluginCommandPresenter:
 
         :param lines: 文本行列表
         :param payload: 生命周期负载
-        :return: None
         """
         migration_recovery = payload.get('migrationRecovery')
         if isinstance(migration_recovery, dict):
@@ -914,7 +911,17 @@ class PluginCommandPresenter:
         )
 
     @staticmethod
-    def _build_plugin_plan_line(item: dict[str, object]) -> str:
+    def _list_count(value: object) -> int:
+        """
+        统计插件响应中列表字段的条目数。
+
+        :param value: 待统计的字段值
+        :return: 条目数，字段缺失或不是列表时为零
+        """
+        return len(value) if isinstance(value, list) else 0
+
+    @classmethod
+    def _build_plugin_plan_line(cls, item: dict[str, object]) -> str:
         """
         构建插件批量操作计划文本行。
 
@@ -925,7 +932,7 @@ class PluginCommandPresenter:
             f'  - #{item.get("order", "-")} {item.get("pluginId", "-")} | '
             f'ready: {str(item.get("ready", False)).lower()} | '
             f'requested: {str(item.get("requested", False)).lower()} | '
-            f'deps: {len(item.get("dependencies", []))}'
+            f'deps: {cls._list_count(item.get("dependencies"))}'
         )
 
     @staticmethod
@@ -955,22 +962,22 @@ class PluginCommandPresenter:
             f'duration_ms: {item.get("durationMs", 0)} | message: {item.get("message", "-")}'
         )
 
-    @staticmethod
-    def _build_check_summary_line(check: dict[str, object]) -> str:
+    @classmethod
+    def _build_check_summary_line(cls, check: dict[str, object]) -> str:
         """
         构建插件检查摘要文本行。
 
         :param check: 插件检查负载
         :return: 文本行
         """
-        missing_dependencies = check.get('missingDependencies', [])
-        unsatisfied_dependencies = check.get('unsatisfiedDependencies', [])
-        structure_errors = check.get('structureErrors', [])
-        menu_conflicts = check.get('menuConflicts', [])
+        missing_dependencies = cls._list_count(check.get('missingDependencies'))
+        unsatisfied_dependencies = cls._list_count(check.get('unsatisfiedDependencies'))
+        structure_errors = cls._list_count(check.get('structureErrors'))
+        menu_conflicts = cls._list_count(check.get('menuConflicts'))
         return (
             f'  - {check.get("pluginId", "-")} | ok: {str(check.get("ok", False)).lower()} | '
-            f'missing: {len(missing_dependencies)} | unsatisfied: {len(unsatisfied_dependencies)} | '
-            f'structure_errors: {len(structure_errors)} | menu_conflicts: {len(menu_conflicts)}'
+            f'missing: {missing_dependencies} | unsatisfied: {unsatisfied_dependencies} | '
+            f'structure_errors: {structure_errors} | menu_conflicts: {menu_conflicts}'
         )
 
     @staticmethod

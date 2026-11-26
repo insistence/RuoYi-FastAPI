@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from redis.asyncio import Redis
 
 from utils.server_util import StartupUtil
 
@@ -9,7 +10,12 @@ RENEWED_LEASE_SECONDS = 120
 
 
 class FakeLeaseRedis:
-    """支持Application leader租约语义的内存Redis。"""
+    """
+    支持Application leader租约语义的内存Redis。
+
+    :ivar values: 当前处理的值集合
+    :ivar expires: 记录的到期时间
+    """
 
     def __init__(self) -> None:
         """初始化内存锁状态。"""
@@ -17,7 +23,15 @@ class FakeLeaseRedis:
         self.expires: dict[str, int] = {}
 
     async def set(self, key: str, value: str, *, nx: bool, ex: int) -> bool:
-        """模拟SET NX EX。"""
+        """
+        模拟SET NX EX。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param nx: 是否只在键尚不存在时写入
+        :param ex: 捕获到的异常实例
+        :return: 是否模拟SET NX EX
+        """
         if nx and key in self.values:
             return False
         self.values[key] = value
@@ -25,11 +39,25 @@ class FakeLeaseRedis:
         return True
 
     async def get(self, key: str) -> str | None:
-        """读取锁值。"""
+        """
+        读取锁值。
+
+        :param key: 查找数据时使用的键
+        :return: 锁值
+        """
         return self.values.get(key)
 
-    async def eval(self, script: str, _key_count: int, key: str, *args: object) -> int:
-        """模拟compare-and-expire和compare-and-delete脚本。"""
+    async def eval(self, script: str, _key_count: int, key: str, *args: str | int) -> int:
+        """
+        模拟compare-and-expire和compare-and-delete脚本。
+
+        :param script: 需要运行的脚本
+        :param _key_count: Redis 脚本接收的键数
+        :param key: 查找数据时使用的键
+        :param args: 传给被调用对象的位置参数
+        :return: 比较并续期或删除操作的成功标志
+        :raises AssertionError: 执行了测试未预期的租约脚本
+        """
         owner_token = str(args[0])
         if self.values.get(key) != owner_token:
             return 0
@@ -75,7 +103,8 @@ def test_application_lock_owner_token_is_stable_in_process_and_unique_between_pr
 @pytest.mark.asyncio
 async def test_application_leader_lease_only_accepts_current_owner() -> None:
     """校验不同owner token无法同时获得同一Application leader租约。"""
-    redis = FakeLeaseRedis()
+    lease = FakeLeaseRedis()
+    redis = MagicMock(spec=Redis, wraps=lease)
 
     first_acquired = await StartupUtil.acquire_application_leader(redis, 'app:leader', 'owner-1', 60)
     repeated_acquired = await StartupUtil.acquire_application_leader(redis, 'app:leader', 'owner-1', 60)
@@ -89,9 +118,10 @@ async def test_application_leader_lease_only_accepts_current_owner() -> None:
 @pytest.mark.asyncio
 async def test_application_leader_renew_and_release_are_owner_safe() -> None:
     """校验非owner不能续期或删除已换主的Application leader租约。"""
-    redis = FakeLeaseRedis()
-    redis.values['app:leader'] = 'owner-2'
-    redis.expires['app:leader'] = 60
+    lease = FakeLeaseRedis()
+    redis = MagicMock(spec=Redis, wraps=lease)
+    lease.values['app:leader'] = 'owner-2'
+    lease.expires['app:leader'] = 60
 
     stale_renewed = await StartupUtil.renew_application_leader(
         redis,
@@ -110,19 +140,20 @@ async def test_application_leader_renew_and_release_are_owner_safe() -> None:
     assert stale_renewed is False
     assert stale_released is False
     assert owner_renewed is True
-    assert redis.expires['app:leader'] == RENEWED_LEASE_SECONDS
+    assert lease.expires['app:leader'] == RENEWED_LEASE_SECONDS
 
     owner_released = await StartupUtil.release_application_leader(redis, 'app:leader', 'owner-2')
 
     assert owner_released is True
-    assert 'app:leader' not in redis.values
+    assert 'app:leader' not in lease.values
 
 
 @pytest.mark.asyncio
 async def test_application_leader_renewal_reports_lock_loss() -> None:
     """校验owner不再匹配时续期任务会退出并通知Scheduler降级。"""
-    redis = FakeLeaseRedis()
-    redis.values['app:leader'] = 'new-owner'
+    lease = FakeLeaseRedis()
+    redis = MagicMock(spec=Redis, wraps=lease)
+    lease.values['app:leader'] = 'new-owner'
     on_lock_lost = MagicMock()
 
     renewal_task = StartupUtil.start_application_leader_renewal(

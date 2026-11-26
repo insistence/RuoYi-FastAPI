@@ -22,13 +22,25 @@ EXPECTED_ARTIFACT_FILE_COUNT = 4
 
 
 def archive_files(path: Path) -> dict[str, bytes]:
-    """读取测试容器中的全部文件，供定向篡改用例使用。"""
+    """
+    读取测试容器中的全部文件，供定向篡改用例使用。
+
+    :param path: 要读取或处理的路径
+    :return: 测试容器中的全部文件
+    """
     with ZipFile(path) as archive:
         return {name: archive.read(name) for name in archive.namelist()}
 
 
 def write_archive(path: Path, files: dict[str, bytes], compression: int = ZIP_STORED) -> Path:
-    """按测试给定内容重建 ZIP 容器。"""
+    """
+    按测试给定内容重建 ZIP 容器。
+
+    :param path: 要读取或处理的路径
+    :param files: 此次操作涉及的文件
+    :param compression: 写入归档时采用的压缩方式
+    :return: 要读取或处理的路径
+    """
     with ZipFile(path, 'w', compression=compression) as archive:
         for name, data in files.items():
             archive.writestr(name, data)
@@ -36,7 +48,14 @@ def write_archive(path: Path, files: dict[str, bytes], compression: int = ZIP_ST
 
 
 def signed_files(artifact_path: Path, signing_key: Ed25519PrivateKey, *, manifest: bytes) -> dict[str, bytes]:
-    """生成测试所需的规范元数据及有效签名文档。"""
+    """
+    生成测试所需的规范元数据及有效签名文档。
+
+    :param artifact_path: 插件制品在文件系统中的路径
+    :param signing_key: 生成仅用于当前测试的临时 Ed25519 私钥
+    :param manifest: 用于生成签名制品的插件清单
+    :return: 测试所需的规范元数据及有效签名文档
+    """
     files = archive_files(artifact_path)
     name = 'payload/artifact_demo/plugin.yaml'
     files[name] = manifest
@@ -368,6 +387,12 @@ def test_central_directory_is_bounded_before_zipfile_allocates(
     artifact_path.write_bytes(data)
 
     def allocation_forbidden(*args: object, **kwargs: object) -> None:
+        """
+        若执行到此操作则立即使测试失败。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         pytest.fail('ZipFile must not allocate an unbounded inventory before preflight')
 
     monkeypatch.setattr(artifact_package, 'ZipFile', allocation_forbidden)

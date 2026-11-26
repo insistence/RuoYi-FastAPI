@@ -13,6 +13,7 @@ from common.config import Config
 from prepare_e2e_compose import isolate_compose
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from playwright.async_api import Browser, Playwright
@@ -20,8 +21,17 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.harness
 
 
-def login_response(status: HTTPStatus, *, retry_after: str | None = None, payload: dict | None = None) -> MagicMock:
-    """构造登录协议响应，保留 HTTP 状态、响应头和异步 JSON 读取语义。"""
+def login_response(
+    status: HTTPStatus, *, retry_after: str | None = None, payload: dict[str, object] | None = None
+) -> MagicMock:
+    """
+    构造登录协议响应，保留 HTTP 状态、响应头和异步 JSON 读取语义。
+
+    :param status: 操作或记录所处的状态
+    :param retry_after: 建议重试等待秒数
+    :param payload: 随调用传入或返回的结构化数据
+    :return: 登录协议响应
+    """
     return MagicMock(
         status=status,
         ok=status == HTTPStatus.OK,
@@ -30,8 +40,14 @@ def login_response(status: HTTPStatus, *, retry_after: str | None = None, payloa
     )
 
 
-def login_harness(tmp_path: Path, responses: list[object]) -> tuple[BrowserHarness, AsyncMock]:
-    """仅替换网络边界，直接运行实际登录重试逻辑。"""
+def login_harness(tmp_path: Path, responses: Sequence[object]) -> tuple[BrowserHarness, AsyncMock]:
+    """
+    仅替换网络边界，直接运行实际登录重试逻辑。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param responses: 按 HTTP 状态码声明的响应信息
+    :return: 模拟浏览器和被测登录重试环境
+    """
     api = AsyncMock()
     api.post.side_effect = responses
     playwright = MagicMock()
@@ -40,7 +56,12 @@ def login_harness(tmp_path: Path, responses: list[object]) -> tuple[BrowserHarne
 
 
 def login_page(responses: list[MagicMock]) -> MagicMock:
-    """模拟浏览器响应事件边界，实际运行表单提交及跳转校验逻辑。"""
+    """
+    模拟浏览器响应事件边界，实际运行表单提交及跳转校验逻辑。
+
+    :param responses: 按 HTTP 状态码声明的响应信息
+    :return: 浏览器页面或要查询的页码
+    """
     page = MagicMock()
     page.get_by_placeholder.return_value.fill = AsyncMock()
     page.get_by_role.return_value.click = AsyncMock()
@@ -202,6 +223,7 @@ async def test_login_bounds_cumulative_wait(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_artifact_paths_cannot_escape_output(tmp_path: Path) -> None:
+    """产物路径不能越出输出目录。"""
     first = artifact_directory(tmp_path, '../../a/test_login.py::test_a[UTC]')
     second = artifact_directory(tmp_path, '../../b/test_login.py::test_a[UTC]')
     assert first.parent == second.parent == tmp_path
@@ -212,6 +234,7 @@ def test_artifact_paths_cannot_escape_output(tmp_path: Path) -> None:
 async def test_contexts_share_browser_but_not_authentication(
     e2e_browser: tuple[Playwright, Browser], tmp_path: Path
 ) -> None:
+    """浏览器上下文共享浏览器并隔离认证状态。"""
     first = BrowserHarness(*e2e_browser, tmp_path / 'first')
     second = BrowserHarness(*e2e_browser, tmp_path / 'second')
     try:
@@ -229,6 +252,7 @@ async def test_contexts_share_browser_but_not_authentication(
 async def test_failed_case_keeps_trace_screenshot_and_console(
     e2e_browser: tuple[Playwright, Browser], tmp_path: Path
 ) -> None:
+    """失败用例保留跟踪、截图和控制台记录。"""
     harness = BrowserHarness(*e2e_browser, tmp_path)
     page = await harness.new_page()
     await page.set_content('<h1>Failure diagnostics</h1>')
@@ -242,6 +266,7 @@ async def test_failed_case_keeps_trace_screenshot_and_console(
 
 
 def test_compose_isolation_removes_shared_resources() -> None:
+    """Compose 隔离配置移除共享资源。"""
     config = {
         'services': {
             'ruoyi-frontend': {'build': {'context': '/frontend'}, 'container_name': 'shared', 'ports': ['80:80']},
@@ -262,5 +287,6 @@ def test_compose_isolation_removes_shared_resources() -> None:
 
 
 def test_compose_requires_dedicated_project_prefix() -> None:
+    """Compose 要求独立的项目前缀。"""
     with pytest.raises(ValueError, match='ruoyi-ci-'):
         isolate_compose({'services': {}}, 'production', '3.12')

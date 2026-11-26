@@ -13,20 +13,31 @@ REDIS_PORT = 6379
 
 
 def _build_app_with_included_router() -> FastAPI:
+    """
+    构建包含待检查路由的测试应用。
+
+    :return: 包含待检查路由的测试应用
+    """
     app = FastAPI()
     router = APIRouter()
 
     @router.get(
         '/visible',
         name='visible_route',
-        summary='Visible route',
+        summary='查看公开的示例路由',
+        description='返回成功状态，用于核对路由清单中的摘要、标签和操作标识。',
         operation_id='visibleRoute',
         tags=['route'],
     )
     async def visible_route() -> dict[str, bool]:
         return {'ok': True}
 
-    @router.get('/hidden', include_in_schema=False)
+    @router.get(
+        '/hidden',
+        summary='查看隐藏的示例路由',
+        description='返回成功状态，用于核对隐藏路由在命令行清单中的可见性。',
+        include_in_schema=False,
+    )
     async def hidden_route() -> dict[str, bool]:
         return {'ok': True}
 
@@ -35,11 +46,16 @@ def _build_app_with_included_router() -> FastAPI:
 
 
 def _expected_visible_route() -> dict[str, object]:
+    """
+    返回含 ``path``, ``methods``, ``name``, ``summary`` 等字段 的测试数据。
+
+    :return: 含 ``path``, ``methods``, ``name``, ``summary`` 等字段 的测试数据
+    """
     return {
         'path': '/api/visible',
         'methods': ['GET'],
         'name': 'visible_route',
-        'summary': 'Visible route',
+        'summary': '查看公开的示例路由',
         'operationId': 'visibleRoute',
         'tags': ['included', 'route'],
         'includeInSchema': True,
@@ -47,9 +63,7 @@ def _expected_visible_route() -> dict[str, object]:
 
 
 class FakeRuntimeEnvironment(RuntimeEnvironmentService):
-    """
-    模拟运行时环境服务。
-    """
+    """模拟运行时环境服务。"""
 
     @staticmethod
     def get_backend_dir() -> str:
@@ -71,11 +85,7 @@ class FakeRuntimeEnvironment(RuntimeEnvironmentService):
 
 
 def test_app_snapshot_support_builds_config_snapshot() -> None:
-    """
-    校验应用快照支持对象会构建应用配置快照。
-
-    :return: None
-    """
+    """校验应用快照支持对象会构建应用配置快照。"""
     gateway = AppInfrastructureGateway()
     support = AppSnapshotSupport(gateway, FakeRuntimeEnvironment())
 
@@ -108,6 +118,11 @@ def test_app_snapshot_support_builds_config_snapshot() -> None:
     )
 
     def _fake_get_env_module() -> SimpleNamespace:
+        """
+        向调用方返回 ``fake_env_module``。
+
+        :return: 模拟应用环境配置的模块
+        """
         return fake_env_module
 
     object.__setattr__(gateway, 'get_env_module', _fake_get_env_module)
@@ -121,12 +136,7 @@ def test_app_snapshot_support_builds_config_snapshot() -> None:
 
 
 def test_app_snapshot_support_builds_env_snapshot(monkeypatch: MonkeyPatch) -> None:
-    """
-    校验应用快照支持对象会构建环境解析快照。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验应用快照支持对象会构建环境解析快照。"""
     gateway = AppInfrastructureGateway()
     support = AppSnapshotSupport(gateway, FakeRuntimeEnvironment())
     fake_env_module = SimpleNamespace(
@@ -134,6 +144,11 @@ def test_app_snapshot_support_builds_env_snapshot(monkeypatch: MonkeyPatch) -> N
     )
 
     def _fake_get_env_module() -> SimpleNamespace:
+        """
+        向调用方返回 ``fake_env_module``。
+
+        :return: 模拟应用环境配置的模块
+        """
         return fake_env_module
 
     object.__setattr__(gateway, 'get_env_module', _fake_get_env_module)
@@ -154,11 +169,7 @@ def test_app_snapshot_support_builds_env_snapshot(monkeypatch: MonkeyPatch) -> N
 
 
 def test_app_runtime_service_builds_app_instance() -> None:
-    """
-    校验应用运行时 facade 会通过基础设施网关构建应用实例。
-
-    :return: None
-    """
+    """校验应用运行时 facade 会通过基础设施网关构建应用实例。"""
     gateway = AppInfrastructureGateway()
     service = AppRuntimeService(
         runtime_environment=FakeRuntimeEnvironment(),
@@ -166,9 +177,7 @@ def test_app_runtime_service_builds_app_instance() -> None:
     )
 
     class FakeServerModule:
-        """
-        模拟 server 模块。
-        """
+        """模拟 server 模块。"""
 
         @staticmethod
         def create_app() -> dict[str, str]:
@@ -185,11 +194,16 @@ def test_app_runtime_service_builds_app_instance() -> None:
             模拟不存在于当前 server 模块的旧私有扩展点。
 
             :param app: 模拟应用实例
-            :return: None
+            :raises AssertionError: 不应调用私有路由注册扩展点
             """
             raise AssertionError('不应调用私有路由注册扩展点')
 
     def _fake_get_server_module() -> FakeServerModule:
+        """
+        创建测试使用的 ``FakeServerModule`` 实例。
+
+        :return: 测试使用的 ``FakeServerModule`` 实例
+        """
         return FakeServerModule()
 
     object.__setattr__(gateway, 'get_server_module', _fake_get_server_module)
@@ -200,6 +214,7 @@ def test_app_runtime_service_builds_app_instance() -> None:
 
 
 def test_app_runtime_service_expands_included_router_routes() -> None:
+    """应用运行时展开嵌入的路由。"""
     app = _build_app_with_included_router()
     gateway = AppInfrastructureGateway()
     service = AppRuntimeService(
@@ -209,6 +224,11 @@ def test_app_runtime_service_expands_included_router_routes() -> None:
     fake_server_module = SimpleNamespace(create_app=lambda: app)
 
     def _fake_get_server_module() -> SimpleNamespace:
+        """
+        向调用方返回 ``fake_server_module``。
+
+        :return: 模拟服务器运行信息的模块
+        """
         return fake_server_module
 
     object.__setattr__(gateway, 'get_server_module', _fake_get_server_module)
@@ -223,6 +243,7 @@ def test_app_runtime_service_expands_included_router_routes() -> None:
 
 
 def test_app_command_controller_serializes_included_router_routes() -> None:
+    """应用命令序列化嵌入的路由。"""
     app = _build_app_with_included_router()
 
     routes = AppCommandController._serialize_routes(app)

@@ -39,13 +39,12 @@ _MAX_BATCH_SIZE = 100
 
 def _actor(user: CurrentUserModel) -> str:
     """
-    提取管理操作者标识
+    提取管理操作者标识。
 
     :param user: 当前登录用户
     :return: 安全截断后的用户名
     :raises ServiceException: 当前用户不可用
     """
-
     try:
         return OidcUtil.actor_name(
             getattr(getattr(user, 'user', None), 'user_name', None), error_message='当前操作者不可用'

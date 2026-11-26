@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import jwt
 import pytest
@@ -18,16 +18,29 @@ from module_identity.security.jwt_profile import (
 
 
 @pytest.fixture()
-def key_pair() -> tuple[object, object]:
+def key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    """
+    生成用于令牌测试的临时 RSA 密钥对。
+
+    :return: 用于令牌测试的临时 RSA 密钥对
+    """
     private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     return private, private.public_key()
 
 
 def _now() -> int:
-    return int(datetime.now(timezone.utc).timestamp())
+    """
+    返回当前 UTC 时间戳。
+
+    :return: 当前 UTC 时间戳
+    """
+    return int(datetime.now(UTC).timestamp())
 
 
-def test_access_profile_requires_at_jwt_and_checks_audience(key_pair: tuple[object, object]) -> None:
+def test_access_profile_requires_at_jwt_and_checks_audience(
+    key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey],
+) -> None:
+    """访问令牌校验要求 at+jwt 并检查受众。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -58,7 +71,10 @@ def test_access_profile_requires_at_jwt_and_checks_audience(key_pair: tuple[obje
         decode_access_token(token, verification_key=public, issuer='https://other.example', audience='resource-a')
 
 
-def test_id_token_cannot_be_used_as_access_token_and_leeway_is_forwarded(key_pair: tuple[object, object]) -> None:
+def test_id_token_cannot_be_used_as_access_token_and_leeway_is_forwarded(
+    key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey],
+) -> None:
+    """拒绝将身份令牌当作访问令牌并传递允许的时间偏差。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -86,7 +102,10 @@ def test_id_token_cannot_be_used_as_access_token_and_leeway_is_forwarded(key_pai
         encode_id_token({key: value for key, value in claims.items() if key != 'nonce'}, private, 'key-1')
 
 
-def test_wrong_algorithm_kid_and_numeric_types_are_rejected(key_pair: tuple[object, object]) -> None:
+def test_wrong_algorithm_kid_and_numeric_types_are_rejected(
+    key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey],
+) -> None:
+    """拒绝错误的算法、密钥标识及数值类型。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -129,7 +148,8 @@ def test_wrong_algorithm_kid_and_numeric_types_are_rejected(key_pair: tuple[obje
         decode_access_token(unsafe_header, verification_key=public, issuer=claims['iss'], audience='r')
 
 
-def test_signed_non_finite_numeric_date_is_rejected(key_pair: tuple[object, object]) -> None:
+def test_signed_non_finite_numeric_date_is_rejected(key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]) -> None:
+    """拒绝签名中非有限的数值日期。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -148,7 +168,7 @@ def test_signed_non_finite_numeric_date_is_rejected(key_pair: tuple[object, obje
 
 
 def test_access_profile_requires_gty_and_rejects_machine_user_field_confusion(
-    key_pair: tuple[object, object],
+    key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey],
 ) -> None:
     """Access Profile 强制 gty，并隔离机器与用户绑定字段。"""
     private, public = key_pair
@@ -188,7 +208,10 @@ def test_access_profile_requires_gty_and_rejects_machine_user_field_confusion(
     )
 
 
-def test_logout_profile_requires_event_and_non_empty_sid_or_sub(key_pair: tuple[object, object]) -> None:
+def test_logout_profile_requires_event_and_non_empty_sid_or_sub(
+    key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey],
+) -> None:
+    """注销令牌必须含注销事件及非空的会话或主体标识。"""
     private, public = key_pair
     now = _now()
     claims = {
@@ -232,7 +255,7 @@ def test_logout_profile_requires_event_and_non_empty_sid_or_sub(key_pair: tuple[
     ],
 )
 def test_logout_profile_rejects_invalid_signed_claims(
-    key_pair: tuple[object, object], changes: dict[str, object]
+    key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey], changes: dict[str, object]
 ) -> None:
     """即使 RSA 签名有效，也必须拒绝错误的退出事件、身份绑定和时效声明。"""
     private, public = key_pair
@@ -252,9 +275,10 @@ def test_logout_profile_rejects_invalid_signed_claims(
 
 
 @pytest.mark.parametrize('expiry', [None, 'future', True, 0, -1])
-def test_logout_profile_rejects_missing_invalid_or_expired_exp(key_pair: tuple[object, object], expiry: object) -> None:
+def test_logout_profile_rejects_missing_invalid_or_expired_exp(
+    key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey], expiry: object
+) -> None:
     """接收方拒绝缺失、类型错误或过期的退出令牌。"""
-
     private, public = key_pair
     claims = {
         'iss': 'https://issuer.example',

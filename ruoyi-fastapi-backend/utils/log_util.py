@@ -6,20 +6,25 @@ import re
 import sys
 import traceback
 from collections.abc import Mapping, Sequence
-from datetime import timezone
-from typing import Any
+from datetime import UTC
+from typing import TYPE_CHECKING, Any
 
 from loguru import logger as _logger
-from loguru._logger import Logger
 
 from config.env import AppConfig, LogConfig
 from middlewares.trace_middleware import TraceCtx
 from utils.server_util import WorkerIdUtil
 
+if TYPE_CHECKING:
+    from loguru import Logger, Record
+else:
+    Logger = type(_logger)
+    Record = dict
+
 
 def _split_field_tokens(field_name: str) -> tuple[str, ...]:
     """
-    拆分字段名为文本匹配用的 token
+    拆分字段名为文本匹配用的 token。
 
     :param field_name: 原始字段名
     :return: token 元组
@@ -31,7 +36,7 @@ def _split_field_tokens(field_name: str) -> tuple[str, ...]:
 
 def _build_text_key_pattern(field_name: str) -> str:
     """
-    构建文本日志中的字段名匹配正则，自动兼容 snake_case / camelCase / kebab-case / dot.case
+    构建文本日志中的字段名匹配正则，自动兼容 snake_case / camelCase / kebab-case / dot.case。
 
     :param field_name: 原始字段名
     :return: 正则片段
@@ -44,7 +49,7 @@ def _build_text_key_pattern(field_name: str) -> str:
 
 def _build_text_assignment_patterns(key_pattern: str) -> list[re.Pattern[str]]:
     """
-    构建文本日志中的键值对匹配正则
+    构建文本日志中的键值对匹配正则。
 
     :param key_pattern: 字段名正则片段
     :return: 正则列表
@@ -67,7 +72,27 @@ def _build_text_assignment_patterns(key_pattern: str) -> list[re.Pattern[str]]:
 
 class LogSanitizer:
     """
-    日志脱敏工具
+    日志脱敏工具。
+
+    :cvar _MASK: 替换敏感内容的脱敏文本
+    :cvar _PHONE_MIN_LENGTH: 启用手机号局部脱敏的最小字符数
+    :cvar _PHONE_PREFIX_LENGTH: 手机号脱敏后保留的前缀位数
+    :cvar _PHONE_SUFFIX_LENGTH: 手机号脱敏后保留的后缀位数
+    :cvar _EMAIL_SHORT_LOCAL_LENGTH: 短邮箱用户名采用专用脱敏方式的长度阈值
+    :cvar _IPV4_PARTS: IPv4 地址预期包含的段数
+    :cvar _IPV4_VISIBLE_PARTS: 脱敏后仍显示的 IPv4 地址段数
+    :cvar _IPV6_MASK_THRESHOLD: 启用 IPv6 局部掩码的长度阈值
+    :cvar _IPV6_VISIBLE_PARTS: 脱敏后仍显示的 IPv6 地址段数
+    :cvar _SENSITIVE_FIELDS: 日志中需要完全隐藏的字段集合
+    :cvar _TEXT_SENSITIVE_FIELDS: 从非结构化文本中识别的敏感字段
+    :cvar _TEXT_SENSITIVE_KEY_PATTERN: 从文本中匹配敏感字段名的模式
+    :cvar _PARTIAL_MASK_FIELDS: 仅保留部分字符的字段集合
+    :cvar _TEXT_PARTIAL_FIELDS: 文本中需要局部脱敏的字段
+    :cvar _TEXT_PARTIAL_KEY_PATTERN: 从文本中定位局部脱敏字段的模式
+    :cvar _CONFIG_SECRET_PATTERNS: 用于识别配置项秘密值的匹配规则
+    :cvar _KV_PATTERNS: 用于识别文本中键值对的匹配规则
+    :cvar _PARTIAL_KV_PATTERNS: 匹配需要局部脱敏的键值对的模式
+    :cvar _LOGIN_CODE_PATTERN: 匹配日志中登录验证码的模式
     """
 
     _MASK = LogConfig.log_mask_placeholder
@@ -118,7 +143,7 @@ class LogSanitizer:
     @classmethod
     def sanitize_data(cls, data: Any, field_name: str | None = None) -> Any:
         """
-        对日志数据进行脱敏
+        对日志数据进行脱敏。
 
         :param data: 原始日志数据
         :param field_name: 当前字段名
@@ -143,7 +168,7 @@ class LogSanitizer:
     @classmethod
     def sanitize_text(cls, text: str) -> str:
         """
-        对普通文本日志进行脱敏
+        对普通文本日志进行脱敏。
 
         :param text: 原始文本
         :return: 脱敏后的文本
@@ -158,7 +183,7 @@ class LogSanitizer:
     @classmethod
     def _sanitize_mapping(cls, data: Mapping[Any, Any]) -> dict[Any, Any]:
         """
-        对字典类型数据进行脱敏
+        对字典类型数据进行脱敏。
 
         :param data: 字典数据
         :return: 脱敏后的字典
@@ -187,7 +212,7 @@ class LogSanitizer:
     @classmethod
     def _sanitize_string(cls, value: str, field_name: str | None = None) -> Any:
         """
-        对字符串数据进行脱敏
+        对字符串数据进行脱敏。
 
         :param value: 字符串值
         :param field_name: 当前字段名
@@ -233,7 +258,7 @@ class LogSanitizer:
     @classmethod
     def _replace_text_secret(cls, match: re.Match[str]) -> str:
         """
-        替换文本中的敏感值
+        替换文本中的敏感值。
 
         :param match: 正则匹配对象
         :return: 脱敏后的文本
@@ -247,7 +272,7 @@ class LogSanitizer:
     @classmethod
     def _replace_text_partial_secret(cls, match: re.Match[str]) -> str:
         """
-        替换文本中的部分脱敏字段值
+        替换文本中的部分脱敏字段值。
 
         :param match: 正则匹配对象
         :return: 脱敏后的文本
@@ -263,7 +288,7 @@ class LogSanitizer:
     @staticmethod
     def _dump_sanitized_structured_text(sanitized_value: Any, original_text: str) -> Any:
         """
-        将脱敏后的结构化数据恢复为文本，并尽量保持原始换行风格
+        将脱敏后的结构化数据恢复为文本，并尽量保持原始换行风格。
 
         :param sanitized_value: 脱敏后的结构化数据
         :param original_text: 原始文本
@@ -279,7 +304,7 @@ class LogSanitizer:
         cls, normalized_key: str, value: Any, full_mapping: Mapping[str, Any] | None = None
     ) -> bool:
         """
-        判断字段是否需要全量脱敏
+        判断字段是否需要全量脱敏。
 
         :param normalized_key: 标准化后的字段名
         :param value: 字段值
@@ -299,7 +324,7 @@ class LogSanitizer:
     @classmethod
     def _is_secret_config_key(cls, config_key: str) -> bool:
         """
-        判断参数键是否属于敏感配置
+        判断参数键是否属于敏感配置。
 
         :param config_key: 参数键
         :return: 是否敏感
@@ -309,7 +334,7 @@ class LogSanitizer:
     @classmethod
     def _mask_partial_value(cls, value: str, normalized_field: str) -> str:
         """
-        对部分字段进行部分脱敏
+        对部分字段进行部分脱敏。
 
         :param value: 原始值
         :param normalized_field: 标准化后的字段名
@@ -326,7 +351,7 @@ class LogSanitizer:
     @staticmethod
     def _normalize_key(field_name: str) -> str:
         """
-        标准化字段名
+        标准化字段名。
 
         :param field_name: 原始字段名
         :return: 标准化字段名
@@ -336,7 +361,7 @@ class LogSanitizer:
     @classmethod
     def _mask_phone(cls, value: str) -> str:
         """
-        手机号脱敏
+        手机号脱敏。
 
         :param value: 原始手机号
         :return: 脱敏后的手机号
@@ -349,7 +374,7 @@ class LogSanitizer:
     @classmethod
     def _mask_email(cls, value: str) -> str:
         """
-        邮箱脱敏
+        邮箱脱敏。
 
         :param value: 原始邮箱
         :return: 脱敏后的邮箱
@@ -367,7 +392,7 @@ class LogSanitizer:
     @classmethod
     def _mask_ip(cls, value: str) -> str:
         """
-        IP地址脱敏
+        IP地址脱敏。
 
         :param value: 原始IP
         :return: 脱敏后的IP
@@ -384,14 +409,19 @@ class LogSanitizer:
 
 
 class InterceptHandler(logging.Handler):
+    """
+    将标准库日志转发给应用日志处理器。
+
+    :cvar target_logger: 接收转发日志记录的记录器
+    """
+
     target_logger = _logger
 
     def emit(self, record: logging.LogRecord) -> None:
         """
-        拦截标准 logging 记录并转发到 Loguru
+        拦截标准 logging 记录并转发到 Loguru。
 
         :param record: 原生 logging 日志记录
-        :return: None
         """
         try:
             level = self.target_logger.level(record.levelname).name
@@ -405,12 +435,18 @@ class InterceptHandler(logging.Handler):
 
 
 class LoggerInitializer:
-    def __init__(self) -> None:
-        """
-        初始化日志基础配置与运行时标识
+    """
+    初始化应用的日志输出目标和格式。
 
-        :return: None
-        """
+    :ivar worker_id: 工作进程的标识
+    :ivar instance_id: 写入日志的服务实例标识
+    :ivar service_name: 写入日志的服务名称
+    :ivar _log_file_enabled: 是否将日志写入文件
+    :ivar _log_base_dir: 日志文件所在的目录
+    """
+
+    def __init__(self) -> None:
+        """初始化日志基础配置与运行时标识。"""
         self.worker_id = WorkerIdUtil.get_worker_id(LogConfig.log_worker_id)
         self.instance_id = LogConfig.log_instance_id
         self.service_name = LogConfig.log_service_name or AppConfig.app_name
@@ -419,17 +455,13 @@ class LoggerInitializer:
         self._ensure_log_directory_exists()
 
     def _ensure_log_directory_exists(self) -> None:
-        """
-        确保日志目录存在
-
-        :return: None
-        """
+        """确保日志目录存在。"""
         if not self._log_file_enabled:
             return
         if self._log_base_dir and not os.path.exists(self._log_base_dir):
             os.makedirs(self._log_base_dir, exist_ok=True)
 
-    def _filter(self, record: dict) -> bool:
+    def _filter(self, record: 'Record') -> bool:
         """
         注入 Trace 上下文并执行日志扩展字段脱敏。
 
@@ -454,7 +486,7 @@ class LoggerInitializer:
     @staticmethod
     def _get_exception_value_text(exception: Any) -> str | None:
         """
-        获取脱敏后的异常值文本
+        获取脱敏后的异常值文本。
 
         :param exception: Loguru 异常对象
         :return: 脱敏后的异常值文本
@@ -465,7 +497,7 @@ class LoggerInitializer:
 
     def _get_exception_traceback_text(self, exception: Any) -> str | None:
         """
-        获取脱敏后的异常堆栈文本
+        获取脱敏后的异常堆栈文本。
 
         :param exception: Loguru 异常对象
         :return: 脱敏后的异常堆栈文本
@@ -480,9 +512,9 @@ class LoggerInitializer:
             traceback_text = str(exception.traceback)
         return LogSanitizer.sanitize_text(traceback_text.rstrip())
 
-    def _build_plain_exception_suffix(self, record: dict) -> str:
+    def _build_plain_exception_suffix(self, record: 'Record') -> str:
         """
-        构建普通文本日志使用的异常后缀
+        构建普通文本日志使用的异常后缀。
 
         :param record: Loguru 日志记录字典
         :return: 异常后缀文本
@@ -490,9 +522,9 @@ class LoggerInitializer:
         exception_text = self._get_exception_traceback_text(record.get('exception'))
         return f'\n{exception_text}' if exception_text else ''
 
-    def _build_json_payload(self, record: dict) -> dict:
+    def _build_json_payload(self, record: 'Record') -> dict[str, object]:
         """
-        构建统一的 JSON 日志结构
+        构建统一的 JSON 日志结构。
 
         :param record: Loguru 日志记录字典
         :return: JSON 日志结构
@@ -524,9 +556,9 @@ class LoggerInitializer:
             'extra': {key: value for key, value in record['extra'].items() if key != 'json_payload'},
         }
 
-    def _json_log_formatter(self, record: dict) -> str:
+    def _json_log_formatter(self, record: 'Record') -> str:
         """
-        将 Loguru 日志记录格式化为 JSON 文本
+        将 Loguru 日志记录格式化为 JSON 文本。
 
         :param record: Loguru 日志记录字典
         :return: JSON 格式文本
@@ -534,9 +566,9 @@ class LoggerInitializer:
         record['extra']['json_payload'] = json.dumps(self._build_json_payload(record), ensure_ascii=False, default=str)
         return '{extra[json_payload]}\n'
 
-    def _plain_log_formatter(self, record: dict) -> str:
+    def _plain_log_formatter(self, record: 'Record') -> str:
         """
-        将 Loguru 日志记录格式化为普通文本，并追加脱敏后的异常堆栈
+        将 Loguru 日志记录格式化为普通文本，并追加脱敏后的异常堆栈。
 
         :param record: Loguru 日志记录字典
         :return: 普通文本格式模板
@@ -553,29 +585,27 @@ class LoggerInitializer:
             '<level>{message}</level>{extra[sanitized_exception]}\n'
         )
 
-    def _patch_record(self, record: dict) -> dict:
+    def _patch_record(self, record: 'Record') -> None:
         """
-        在日志落地前统一脱敏
+        在日志落地前统一脱敏。
 
         :param record: Loguru 日志记录字典
-        :return: 脱敏后的日志记录字典
         """
         record['message'] = LogSanitizer.sanitize_text(record['message'])
-        record['time'] = record['time'].astimezone(timezone.utc)
-        return record
+        record['time'] = record['time'].astimezone(UTC)
 
-    def _info_file_filter(self, record: dict) -> bool:
+    def _info_file_filter(self, record: 'Record') -> bool:
         """
-        仅输出 INFO 级别日志到 info 文件
+        仅输出 INFO 级别日志到 info 文件。
 
         :param record: Loguru 日志记录字典
         :return: 是否允许输出日志
         """
         return self._filter(record) and record['level'].name == 'INFO'
 
-    def _error_file_filter(self, record: dict) -> bool:
+    def _error_file_filter(self, record: 'Record') -> bool:
         """
-        输出 WARNING 及以上日志到 error 文件
+        输出 WARNING 及以上日志到 error 文件。
 
         :param record: Loguru 日志记录字典
         :return: 是否允许输出日志
@@ -583,11 +613,7 @@ class LoggerInitializer:
         return self._filter(record) and record['level'].no >= logging.WARNING
 
     def _configure_logging(self) -> None:
-        """
-        统一接管标准 logging 与第三方日志输出
-
-        :return: None
-        """
+        """统一接管标准 logging 与第三方日志输出。"""
         logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
         for logger_name in ('uvicorn', 'uvicorn.error', 'uvicorn.access', 'fastapi'):
             logging.getLogger(logger_name).handlers = [InterceptHandler()]
@@ -595,9 +621,9 @@ class LoggerInitializer:
         for logger_name in ('LiteLLM', 'litellm'):
             logging.getLogger(logger_name).setLevel(logging.WARNING)
 
-    def init_log(self) -> Logger:
+    def init_log(self) -> 'Logger':
         """
-        初始化 Loguru 输出与标准 logging 配置
+        初始化 Loguru 输出与标准 logging 配置。
 
         :return: 已配置的 Loguru Logger 实例
         """

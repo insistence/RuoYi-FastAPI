@@ -1,11 +1,14 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import BytesIO
+from typing import Any
 
 import httpx
 import pytest
 from fastapi import FastAPI, Request, status
 from openpyxl import load_workbook
+from sqlalchemy import Select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.annotation.cache_annotation import ApiCache
 from common.context import RequestContext
@@ -21,31 +24,48 @@ from utils.time_util import TimezoneUtil
 
 @pytest.fixture
 def timezone_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
-    """用真实中间件、DAO日期边界和Excel导出验证请求时区链路。"""
+    """
+    用真实中间件、DAO日期边界和Excel导出验证请求时区链路。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: 正在配置或处理请求的 ASGI 应用
+    """
     monkeypatch.setattr(AppConfig, 'app_timezone', 'Asia/Shanghai')
     app = FastAPI()
     add_context_cleanup_middleware(app)
 
-    async def capture_query(db: object, query: object, *args: object) -> dict:
-        return query.compile().params
+    async def capture_query(db: object, query: Select[*tuple[Any, ...]], *args: object) -> list[dict[str, object]]:
+        """
+        提取 SQL 语句的绑定参数。
+
+        :param db: 当前操作使用的数据库会话
+        :param query: 限制查询结果的条件
+        :param args: 传给被调用对象的位置参数
+        :return: SQL 语句的绑定参数
+        """
+        return [query.compile().params or {}]
 
     monkeypatch.setattr(PageUtil, 'paginate', capture_query)
 
-    @app.get('/range')
-    async def date_range(request: Request, preference: str = 'auto') -> dict:
+    @app.get(
+        '/range', summary='查询请求时区的日期边界', description='按本次请求的时区计算日期区间，并返回归一化的边界。'
+    )
+    async def date_range(request: Request, preference: str = 'auto') -> dict[str, object]:
         RequestContext.set_current_user(
-            CurrentUserModel(permissions=[], roles=[], user=UserInfoModel(userId=1, timeZone=preference))
+            CurrentUserModel(
+                permissions=[], roles=[], user=UserInfoModel(user_id=1, user_name='reader', time_zone=preference)
+            )
         )
         # 交错执行多个请求，以暴露进程全局时区被覆盖的问题。
         await asyncio.sleep(0)
-        params = await ConfigDao.get_config_list(
-            None, ConfigPageQueryModel(beginTime='2026-03-08', endTime='2026-03-08')
+        rows = await ConfigDao.get_config_list(
+            AsyncSession(), ConfigPageQueryModel(begin_time='2026-03-08', end_time='2026-03-08'), is_page=False
         )
+        assert isinstance(rows, list)
+        (params,) = rows
         bounds = sorted(value for value in params.values() if isinstance(value, datetime))
         workbook = load_workbook(
-            BytesIO(
-                ExcelUtil.export_list2excel([{'at': datetime(2026, 3, 8, 7, 30, tzinfo=timezone.utc)}], {'at': '时间'})
-            )
+            BytesIO(ExcelUtil.export_list2excel([{'at': datetime(2026, 3, 8, 7, 30, tzinfo=UTC)}], {'at': '时间'}))
         )
         key = await ApiCache(namespace='test')._build_cache_key(request)
         return {
@@ -58,7 +78,7 @@ def timezone_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
             'businessZone': TimezoneUtil.get_app_timezone().key,
         }
 
-    @app.get('/failure')
+    @app.get('/failure', summary='触发时区请求异常', description='模拟请求失败，用于检查异常后时区上下文的清理。')
     async def failure() -> None:
         raise RuntimeError('request failed')
 
@@ -67,6 +87,7 @@ def timezone_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
 
 @pytest.mark.asyncio
 async def test_parallel_requests_isolate_dates_exports_and_cache(timezone_app: FastAPI) -> None:
+    """并发请求隔离日期、导出和缓存。"""
     transport = httpx.ASGITransport(app=timezone_app)
     async with httpx.AsyncClient(transport=transport, base_url='http://test') as client:
         responses = await asyncio.gather(
@@ -94,6 +115,7 @@ async def test_parallel_requests_isolate_dates_exports_and_cache(timezone_app: F
 
 @pytest.mark.asyncio
 async def test_request_timezone_fallback_validation_and_exception_cleanup(timezone_app: FastAPI) -> None:
+    """请求时区支持回退、校验和异常后的清理。"""
     transport = httpx.ASGITransport(app=timezone_app, raise_app_exceptions=False)
     async with httpx.AsyncClient(transport=transport, base_url='http://test') as client:
         assert (await client.get('/range')).json()['zone'] == 'Asia/Shanghai'
@@ -115,12 +137,13 @@ async def test_request_timezone_fallback_validation_and_exception_cleanup(timezo
 
 
 def test_background_exports_can_select_business_timezone_explicitly() -> None:
+    """后台导出可显式指定业务时区。"""
     token = RequestContext.set_current_timezone('America/New_York')
     try:
         workbook = load_workbook(
             BytesIO(
                 ExcelUtil.export_list2excel(
-                    [{'at': datetime(2026, 3, 8, 7, 30, tzinfo=timezone.utc)}], {'at': '时间'}, timezone_name='UTC'
+                    [{'at': datetime(2026, 3, 8, 7, 30, tzinfo=UTC)}], {'at': '时间'}, timezone_name='UTC'
                 )
             )
         )

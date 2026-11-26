@@ -37,6 +37,7 @@ gen_controller = APIRouterPro(prefix='/tool/gen', order_num=17, tags=['代码生
 @gen_controller.get(
     '/dataSources',
     summary='获取代码生成数据源选项接口',
+    description='列出可用于代码生成的数据源名称、数据库类型，并标明默认数据源。',
     response_model=DataResponseModel[list[GenDataSourceModel]],
     dependencies=[UserInterfaceAuthDependency('tool:gen:list')],
 )
@@ -153,7 +154,7 @@ async def delete_gen_table(
     table_ids: Annotated[str, Path(description='需要删除的代码生成业务表ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_gen_table = DeleteGenTableModel(tableIds=table_ids)
+    delete_gen_table = DeleteGenTableModel(table_ids=table_ids)
     delete_gen_table_result = await GenTableService.delete_gen_table_services(query_db, delete_gen_table)
     logger.info(delete_gen_table_result.message)
 

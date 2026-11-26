@@ -1,7 +1,3 @@
-"""
-供测试使用的独立 Redis 进程和跨版本到期时间查询
-"""
-
 import os
 import secrets
 import shutil
@@ -9,7 +5,7 @@ import socket
 import subprocess
 import tempfile
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,29 +18,42 @@ from redis.exceptions import RedisError
 STARTUP_TIMEOUT_SECONDS = 5
 DEFAULT_REDIS_PORT = 6379
 ABSOLUTE_EXPIRY_SCRIPT = """
-local ttl = redis.call('PTTL', KEYS[1])
-if ttl < 0 then return ttl end
-local clock = redis.call('TIME')
-return tonumber(clock[1]) * 1000 + math.floor(tonumber(clock[2]) / 1000) + ttl
+local deadline = redis.pcall('PEXPIRETIME', KEYS[1])
+if type(deadline) == 'number' then return deadline end
+
+-- Redis 6.2 只有相对 TTL，前后两次采样一致时才能与中间的服务器时间相加。
+for attempt = 1, 10 do
+    local ttl = redis.call('PTTL', KEYS[1])
+    if ttl < 0 then return ttl end
+    local clock = redis.call('TIME')
+    if redis.call('PTTL', KEYS[1]) == ttl then
+        return tonumber(clock[1]) * 1000 + math.floor(tonumber(clock[2]) / 1000) + ttl
+    end
+end
+return redis.error_reply('无法取得同一毫秒的 TTL 和服务器时间')
 """
 
 
 @dataclass(frozen=True)
 class IsolatedRedisServer:
     """
-    保存测试子进程和 Redis 标识，防止清空其他实例
+    保存测试子进程和 Redis 标识，防止清空其他实例。
+
+    :ivar process: 本次测试创建的子进程
+    :ivar connection: 当前操作使用的连接
+    :ivar run_id: 任务ID
     """
 
-    process: subprocess.Popen
+    process: subprocess.Popen[bytes]
     connection: dict[str, Any]
     run_id: str
 
     async def reset_database(self, client: Redis) -> None:
         """
-        确认测试子进程存活且实例标识一致后清空测试库
+        确认测试子进程存活且实例标识一致后清空测试库。
 
         :param client: 测试实例的 Redis 客户端
-        :return: None
+        :raises RuntimeError: 隔离进程已退出或实例身份改变，无法安全重置数据库
         """
         if self.process.poll() is not None:
             raise RuntimeError('Isolated Redis process has exited; refusing to clear a database')
@@ -56,9 +65,10 @@ class IsolatedRedisServer:
 
 def redis_server_executable() -> str | None:
     """
-    查找显式指定或 PATH 中的测试 Redis 程序，不读取应用配置
+    查找显式指定或 PATH 中的测试 Redis 程序，不读取应用配置。
 
     :return: Redis 程序路径，未找到时返回 None
+    :raises ValueError: 环境变量指定的 Redis 服务端文件不可执行
     """
     configured = os.environ.get('RUOYI_TEST_REDIS_SERVER')
     executable = shutil.which(configured or 'redis-server')
@@ -69,24 +79,24 @@ def redis_server_executable() -> str | None:
 
 def available_loopback_port() -> int:
     """
-    由操作系统分配空闲 TCP 端口，排除 Redis 默认端口
+    由操作系统分配空闲 TCP 端口，排除 Redis 默认端口。
 
     :return: 可用于回环连接的端口
+    :raises RuntimeError: 为隔离测试分配到了 Redis 默认端口
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.bind(('127.0.0.1', 0))
-        port = listener.getsockname()[1]
+        port = int(listener.getsockname()[1])
     if port == DEFAULT_REDIS_PORT:
         raise RuntimeError('Refusing to use the default Redis port for an isolated test')
     return port
 
 
-def stop_redis_process(process: subprocess.Popen) -> None:
+def stop_redis_process(process: subprocess.Popen[bytes]) -> None:
     """
-    回收测试子进程，超时后强制结束并等待退出
+    回收测试子进程，超时后强制结束并等待退出。
 
     :param process: 本次测试创建的子进程
-    :return: None
     """
     if process.poll() is not None:
         return
@@ -99,12 +109,13 @@ def stop_redis_process(process: subprocess.Popen) -> None:
 
 
 @contextmanager
-def isolated_redis_server(executable: str) -> Iterator[IsolatedRedisServer]:
+def isolated_redis_server(executable: str) -> Generator[IsolatedRedisServer, None, None]:
     """
-    启动隔离 Redis，Linux 使用临时套接字，Windows 使用动态回环端口
+    启动隔离 Redis，Linux 使用临时套接字，Windows 使用动态回环端口。
 
     :param executable: Redis 程序路径
-    :return: 使用随机密码的测试实例
+    :yield: 使用随机密码的测试实例
+    :raises RuntimeError: 隔离的 Redis 服务未启动、未提供身份或未及时就绪
     """
     windows = os.name == 'nt'
     with tempfile.TemporaryDirectory(prefix='user-cache-', dir=None if windows else '/tmp') as directory:
@@ -168,7 +179,7 @@ def isolated_redis_server(executable: str) -> Iterator[IsolatedRedisServer]:
 
 async def absolute_expiry_ms(client: Redis, key: str) -> int:
     """
-    原子读取绝对到期时刻，兼容 Redis 6.2
+    原子读取绝对到期时刻，兼容 Redis 6.2。
 
     :param client: Redis 客户端
     :param key: 待查询的缓存键

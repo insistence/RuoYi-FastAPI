@@ -9,7 +9,7 @@ def main() -> None:
     """
     从 AI 插件清单安装测试依赖，避免 CI 维护第二份版本列表。
 
-    :return: None
+    :raises ValueError: AI 插件 Python 依赖清单无效
     """
     backend = Path(__file__).resolve().parents[2] / 'ruoyi-fastapi-backend'
     manifest = yaml.safe_load((backend / 'plugins/ai/plugin.yaml').read_text(encoding='utf-8'))

@@ -13,7 +13,7 @@ class CacheDomainSupport:
     该对象负责缓存名称列表构建、键范围解析和 TTL 结果判定等
     局部缓存规则，避免主运行时服务继续承载细碎领域判断。
 
-    :param infrastructure_gateway: 缓存基础设施网关
+    :ivar infrastructure_gateway: 缓存基础设施网关
     """
 
     def __init__(self, infrastructure_gateway: CacheInfrastructureGateway) -> None:
@@ -21,7 +21,6 @@ class CacheDomainSupport:
         初始化缓存领域支持对象。
 
         :param infrastructure_gateway: 缓存基础设施网关
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
 
@@ -119,8 +118,8 @@ class CacheRedisSupport:
     该对象负责 Redis 连接生命周期、错误结果规整和缓存键模式拼装，
     避免主运行时服务继续承载基础设施桥接细节。
 
-    :param infrastructure_gateway: 缓存基础设施网关
-    :param domain_support: 缓存领域支持对象
+    :ivar infrastructure_gateway: 缓存基础设施网关
+    :ivar domain_support: 缓存领域支持对象
     """
 
     def __init__(
@@ -133,7 +132,6 @@ class CacheRedisSupport:
 
         :param infrastructure_gateway: 缓存基础设施网关
         :param domain_support: 缓存领域支持对象
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
         self.domain_support = domain_support
@@ -143,7 +141,7 @@ class CacheRedisSupport:
         """
         创建并托管 Redis 会话。
 
-        :return: `(redis, redis_util)` 元组
+        :yield: ``(redis, redis_util)`` 元组
         """
         redis = None
         redis_util = self.infrastructure_gateway.get_redis_util()
@@ -192,7 +190,7 @@ class CacheRedisSupport:
         :param cache_name: 缓存名称
         :param cache_key: 缓存键名片段
         :param clear_all: 是否清理全部缓存
-        :return: Redis 键匹配模式；全部清理时返回 `None`
+        :return: Redis 键匹配模式；全部清理时返回 ``None``
         """
         if clear_all:
             return None

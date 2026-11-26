@@ -1,12 +1,12 @@
 import re
-from typing import Literal
+from typing import Generic, Literal, Self, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_validator
-from pydantic.alias_generators import to_camel
 from pydantic_validation_decorator import Network, NotBlank, Size, Xss
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from exceptions.exception import ModelValidatorException
 from i18n.message import I18nMessage
 from i18n.registry import LocaleRegistry
@@ -17,23 +17,23 @@ from utils.time_util import TimezoneUtil
 
 
 class TokenData(BaseModel):
-    """
-    token解析结果
-    """
+    """token解析结果。"""
 
     user_id: int | None = Field(default=None, description='用户ID')
 
 
-class UserModel(BaseModel):
-    """
-    用户表对应pydantic模型
-    """
+_UserId = TypeVar('_UserId', bound=int | None)
+_UserName = TypeVar('_UserName', bound=str | None)
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
-    user_id: int | None = Field(default=None, description='用户ID')
+class _UserFields(CamelModel, Generic[_UserId, _UserName]):
+    """用户表字段及其校验规则。"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: _UserId = Field(description='用户ID')
     dept_id: int | None = Field(default=None, description='部门ID')
-    user_name: str | None = Field(default=None, description='用户账号')
+    user_name: _UserName = Field(description='用户账号')
     nick_name: str | None = Field(default=None, description='用户昵称')
     user_type: str | None = Field(default=None, description='用户类型（00系统用户）')
     email: str | None = Field(default=None, description='用户邮箱')
@@ -59,7 +59,7 @@ class UserModel(BaseModel):
     @field_serializer('locale_revision')
     def serialize_locale_revision(self, value: int) -> str:
         """
-        将语言偏好版本输出为字符串，保留 BIGINT 精度
+        将语言偏好版本输出为字符串，保留 BIGINT 精度。
 
         :param value: 账号语言偏好版本
         :return: 十进制版本字符串
@@ -70,7 +70,7 @@ class UserModel(BaseModel):
     @classmethod
     def validate_user_locale(cls, value: str) -> str:
         """
-        校验并规范化账号语言偏好
+        校验并规范化账号语言偏好。
 
         :param value: auto或语言标识
         :return: 规范化后的语言偏好
@@ -81,7 +81,7 @@ class UserModel(BaseModel):
     @classmethod
     def validate_time_zone(cls, value: str) -> str:
         """
-        校验账号显示时区偏好
+        校验账号显示时区偏好。
 
         :param value: auto或IANA时区名称
         :return: 校验后的时区偏好
@@ -89,14 +89,25 @@ class UserModel(BaseModel):
         return TimezoneUtil.validate_timezone_preference(value)
 
     @model_validator(mode='after')
-    def check_password(self) -> 'UserModel':
+    def check_password(self) -> Self:
+        """
+        校验密码中是否包含禁止使用的字符。
+
+        :return: 当前实例
+        :raises ModelValidatorException: 密码中含有禁止使用的字符
+        """
         pattern = r"""^[^<>"'|\\]+$"""
         if self.password is None or re.match(pattern, self.password):
             return self
         raise ModelValidatorException(message='密码不能包含非法字符：< > " \' \\ |', msg_key='auth.passwordCharacters')
 
     @model_validator(mode='after')
-    def check_admin(self) -> 'UserModel':
+    def check_admin(self) -> Self:
+        """
+        根据用户编号标记管理员用户。
+
+        :return: 当前实例
+        """
         if self.user_id == 1:
             self.admin = True
         else:
@@ -112,6 +123,11 @@ class UserModel(BaseModel):
         message=I18nMessage('用户账号长度不能超过30个字符', msg_key='validation.userNameLength'),
     )
     def get_user_name(self) -> str | None:
+        """
+        校验并返回用户账号。
+
+        :return: 用户账号
+        """
         return self.user_name
 
     @Xss(field_name='nick_name', message=I18nMessage('用户昵称不能包含脚本字符', msg_key='validation.nickNameScript'))
@@ -122,6 +138,11 @@ class UserModel(BaseModel):
         message=I18nMessage('用户昵称长度不能超过30个字符', msg_key='validation.nickNameLength'),
     )
     def get_nick_name(self) -> str | None:
+        """
+        校验并返回用户昵称。
+
+        :return: 用户昵称
+        """
         return self.nick_name
 
     @Network(
@@ -136,6 +157,11 @@ class UserModel(BaseModel):
         message=I18nMessage('邮箱长度不能超过50个字符', msg_key='validation.emailLength'),
     )
     def get_email(self) -> str | None:
+        """
+        校验并返回用户邮箱。
+
+        :return: 用户邮箱
+        """
         return self.email
 
     @Size(
@@ -145,58 +171,65 @@ class UserModel(BaseModel):
         message=I18nMessage('手机号码长度不能超过11个字符', msg_key='validation.mobileLength'),
     )
     def get_phonenumber(self) -> str | None:
+        """
+        校验并返回手机号码。
+
+        :return: 手机号码
+        """
         return self.phonenumber
 
     def validate_fields(self) -> None:
+        """校验用户账号、用户昵称、用户邮箱、手机号码。"""
         self.get_user_name()
         self.get_nick_name()
         self.get_email()
         self.get_phonenumber()
 
 
+class UserModel(_UserFields[int | None, str | None]):
+    """用户查询和编辑模型，支持按需填写字段。"""
+
+    user_id: int | None = Field(default=None, description='用户ID')
+    user_name: str | None = Field(default=None, description='用户账号')
+
+
 class UserRowModel(UserModel):
-    """
-    用户列表行数据模型
-    """
+    """用户列表行数据模型。"""
 
     dept: DeptModel | None = Field(default=None, description='部门信息')
 
 
-class UserRoleModel(BaseModel):
-    """
-    用户和角色关联表对应pydantic模型
-    """
+class UserRoleModel(CamelModel):
+    """用户和角色关联表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     user_id: int | None = Field(default=None, description='用户ID')
     role_id: int | None = Field(default=None, description='角色ID')
 
 
-class UserPostModel(BaseModel):
-    """
-    用户与岗位关联表对应pydantic模型
-    """
+class UserPostModel(CamelModel):
+    """用户与岗位关联表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     user_id: int | None = Field(default=None, description='用户ID')
     post_id: int | None = Field(default=None, description='岗位ID')
 
 
-class UserInfoModel(UserModel):
-    post_ids: str | None | None = Field(default=None, description='岗位ID信息')
-    role_ids: str | None | None = Field(default=None, description='角色ID信息')
-    dept: DeptModel | None | None = Field(default=None, description='部门信息')
+class UserInfoModel(_UserFields[int, str]):
+    """用户个人资料及其部门、角色信息。"""
+
+    post_ids: str | None = Field(default=None, description='岗位ID信息')
+    role_ids: str | None = Field(default=None, description='角色ID信息')
+    dept: DeptModel | None = Field(default=None, description='部门信息')
     role: list[RoleModel | None] | None = Field(default=[], description='角色信息')
 
 
-class UpdateUserProfileModel(BaseModel):
-    """
-    修改用户个人资料模型
-    """
+class UpdateUserProfileModel(CamelModel):
+    """修改用户个人资料模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, extra='forbid')
+    model_config = ConfigDict(extra='forbid')
 
     nick_name: str | None = Field(default=None, max_length=30, description='用户昵称')
     email: str | None = Field(default=None, max_length=50, description='用户邮箱')
@@ -204,12 +237,10 @@ class UpdateUserProfileModel(BaseModel):
     sex: Literal['0', '1', '2'] | None = Field(default=None, description='用户性别（0男 1女 2未知）')
 
 
-class UserTimezoneModel(BaseModel):
-    """
-    当前用户的显示时区偏好模型
-    """
+class UserTimezoneModel(CamelModel):
+    """当前用户的显示时区偏好模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, extra='forbid')
+    model_config = ConfigDict(extra='forbid')
 
     time_zone: str = Field(max_length=64, description='auto跟随设备，或指定IANA时区')
 
@@ -217,7 +248,7 @@ class UserTimezoneModel(BaseModel):
     @classmethod
     def validate_time_zone(cls, value: str) -> str:
         """
-        校验并规范化时区偏好
+        校验并规范化时区偏好。
 
         :param value: auto或IANA时区名称
         :return: 校验后的时区偏好
@@ -226,9 +257,7 @@ class UserTimezoneModel(BaseModel):
 
 
 class UserLocaleModel(BaseModel):
-    """
-    当前用户的语言偏好模型
-    """
+    """当前用户的语言偏好模型。"""
 
     model_config = ConfigDict(extra='forbid')
     locale: str = Field(max_length=63, description='语言偏好（auto跟随设备或语言标识）')
@@ -237,7 +266,7 @@ class UserLocaleModel(BaseModel):
     @classmethod
     def validate_locale(cls, value: str) -> str:
         """
-        校验并规范化语言偏好设置
+        校验并规范化语言偏好设置。
 
         :param value: auto或语言标识
         :return: 规范化后的语言偏好
@@ -245,102 +274,84 @@ class UserLocaleModel(BaseModel):
         return LocaleRegistry.normalize_locale(value, preference=True)
 
 
-class CurrentUserModel(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel)
+class CurrentUserModel(CamelModel):
+    """当前已认证用户及其权限信息。"""
 
-    permissions: list = Field(description='权限信息')
-    roles: list = Field(description='角色信息')
-    user: UserInfoModel | None = Field(description='用户信息')
+    permissions: list[str] = Field(description='权限信息')
+    roles: list[str] = Field(description='角色信息')
+    user: UserInfoModel = Field(description='用户信息')
     app_timezone: str = Field(default='UTC', description='业务时区（IANA）')
     pwd_chrtype: str = Field(default='0', description='密码字符范围')
     is_default_modify_pwd: bool = Field(default=False, description='是否初始密码修改提醒')
     is_password_expired: bool = Field(default=False, description='密码是否过期提醒')
 
 
-class UserDetailModel(BaseModel):
-    """
-    获取用户详情信息响应模型
-    """
+class UserDetailModel(CamelModel):
+    """获取用户详情信息响应模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel)
-
-    data: UserInfoModel | None | None = Field(default=None, description='用户信息')
-    post_ids: list | None = Field(default=None, description='岗位ID信息')
+    data: UserInfoModel | None = Field(default=None, description='用户信息')
+    post_ids: list[int] | None = Field(default=None, description='岗位ID信息')
     posts: list[PostModel | None] = Field(description='岗位信息')
-    role_ids: list | None = Field(default=None, description='角色ID信息')
+    role_ids: list[int] | None = Field(default=None, description='角色ID信息')
     roles: list[RoleModel | None] = Field(description='角色信息')
 
 
-class UserProfileModel(BaseModel):
-    """
-    获取个人信息响应模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class UserProfileModel(CamelModel):
+    """获取个人信息响应模型。"""
 
     data: UserInfoModel | None = Field(description='用户信息')
     post_group: str | None = Field(description='岗位信息')
     role_group: str | None = Field(description='角色信息')
 
 
-class AvatarModel(BaseModel):
-    """
-    上传头像响应模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class AvatarModel(CamelModel):
+    """上传头像响应模型。"""
 
     img_url: str = Field(description='头像地址')
 
 
 class UserQueryModel(DateRangeQueryMixin, UserModel):
-    """
-    用户管理不分页查询模型
-    """
+    """用户管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class UserPageQueryModel(UserQueryModel):
-    """
-    用户管理分页查询模型
-    """
+    """用户管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class AddUserModel(UserModel):
-    """
-    新增用户模型
-    """
+    """新增用户模型。"""
 
-    role_ids: list | None = Field(default=[], description='角色ID信息')
-    post_ids: list | None = Field(default=[], description='岗位ID信息')
+    role_ids: list[int] | None = Field(default=[], description='角色ID信息')
+    post_ids: list[int] | None = Field(default=[], description='岗位ID信息')
     type: str | None = Field(default=None, description='操作类型')
 
 
 class EditUserModel(AddUserModel):
-    """
-    编辑用户模型
-    """
+    """编辑用户模型。"""
 
-    role: list | None = Field(default=[], description='角色信息')
+    role: list[RoleModel | None] | None = Field(default=[], description='角色信息')
 
 
-class ResetPasswordModel(BaseModel):
-    """
-    重置密码模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class ResetPasswordModel(CamelModel):
+    """重置密码模型。"""
 
     old_password: str | None = Field(default=None, description='旧密码')
     new_password: str | None = Field(default=None, description='新密码')
 
     @model_validator(mode='after')
     def check_new_password(self) -> 'ResetPasswordModel':
+        """
+        校验重置密码是否包含禁止使用的字符。
+
+        :return: 当前实例
+        :raises ModelValidatorException: 密码中含有禁止使用的字符
+        """
         pattern = r"""^[^<>"'|\\]+$"""
         if self.new_password is None or re.match(pattern, self.new_password):
             return self
@@ -348,21 +359,15 @@ class ResetPasswordModel(BaseModel):
 
 
 class ResetUserModel(UserModel):
-    """
-    重置用户密码模型
-    """
+    """重置用户密码模型。"""
 
     old_password: str | None = Field(default=None, description='旧密码')
     sms_code: str | None = Field(default=None, description='验证码')
     session_id: str | None = Field(default=None, description='会话id')
 
 
-class DeleteUserModel(BaseModel):
-    """
-    删除用户模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class DeleteUserModel(CamelModel):
+    """删除用户模型。"""
 
     user_ids: str = Field(description='需要删除的用户ID')
     update_by: str | None = Field(default=None, description='更新者')
@@ -370,47 +375,35 @@ class DeleteUserModel(BaseModel):
 
 
 class UserRoleQueryModel(UserModel):
-    """
-    用户角色关联管理不分页查询模型
-    """
+    """用户角色关联管理不分页查询模型。"""
 
     role_id: int | None = Field(default=None, description='角色ID')
+    role_name: str | None = Field(default=None, description='用于筛选已分配角色的名称')
+    role_key: str | None = Field(default=None, description='用于筛选已分配角色的权限字符')
 
 
 class UserRolePageQueryModel(UserRoleQueryModel):
-    """
-    用户角色关联管理分页查询模型
-    """
+    """用户角色关联管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
 class SelectedRoleModel(RoleModel):
-    """
-    是否选择角色模型
-    """
+    """是否选择角色模型。"""
 
     flag: bool | None = Field(default=False, description='选择标识')
 
 
-class UserRoleResponseModel(BaseModel):
-    """
-    用户角色关联管理列表返回模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class UserRoleResponseModel(CamelModel):
+    """用户角色关联管理列表返回模型。"""
 
     roles: list[SelectedRoleModel | None] = Field(default=[], description='角色信息')
-    user: UserInfoModel = Field(description='用户信息')
+    user: UserInfoModel | None = Field(description='用户信息')
 
 
-class CrudUserRoleModel(BaseModel):
-    """
-    新增、删除用户关联角色及角色关联用户模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class CrudUserRoleModel(CamelModel):
+    """新增、删除用户关联角色及角色关联用户模型。"""
 
     user_id: int | None = Field(default=None, description='用户ID')
     user_ids: str | None = Field(default=None, description='用户ID信息')

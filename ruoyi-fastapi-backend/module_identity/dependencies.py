@@ -2,12 +2,13 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any, cast
 from urllib.parse import parse_qsl
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from fastapi import Depends, HTTPException, Request, params
+from fastapi import HTTPException, Request, params
+from jwt.algorithms import RSAAlgorithm
 from jwt.exceptions import PyJWTError
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -17,6 +18,7 @@ from common.aspect.db_session import DBSessionDependency
 from config.env import OidcConfig
 from exceptions.exception import OAuthProtocolException, OidcInteractionException
 from module_identity.dao.oidc_key_dao import OidcKeyDao
+from module_identity.entity.types import InteractionRecord
 from module_identity.security.client_auth import ClientAuthenticationError
 from module_identity.security.jwt_profile import JwtProfileError, decode_access_token
 from module_identity.security.principal import OAuthClientPrincipal
@@ -32,7 +34,10 @@ _INVALID_PERCENT_ESCAPE = re.compile(r'%(?![0-9A-Fa-f]{2})')
 @dataclass(frozen=True, slots=True)
 class AccessTokenContext:
     """
-    已验签且绑定 UserInfo audience 的 Access Token 快照
+    已验签且绑定 UserInfo audience 的 Access Token 快照。
+
+    :ivar token: 待验证的 JWT；仅用于读取 header kid，不信任其中的公钥材料
+    :ivar claims: 令牌携带的身份声明
     """
 
     token: str
@@ -50,7 +55,7 @@ async def load_access_verification_key(
     now: datetime | None = None,
 ) -> RSAPublicKey:
     """
-    按 Access Token header kid 加载发布窗口内的本地公钥
+    按 Access Token header kid 加载发布窗口内的本地公钥。
 
     :param token: 待验证的 JWT；仅用于读取 header kid，不信任其中的公钥材料
     :param query_db: 异步数据库会话
@@ -58,7 +63,6 @@ async def load_access_verification_key(
     :return: 数据库记录对应的 RSA 公钥对象
     :raises JwtProfileError: Header、kid 或本地公钥不可用
     """
-
     try:
         header = jwt.get_unverified_header(token)
     except (PyJWTError, TypeError, ValueError) as exc:
@@ -73,16 +77,20 @@ async def load_access_verification_key(
     if record is None or not isinstance(record.public_jwk, dict):
         raise JwtProfileError('未知的签名密钥标识 kid')
     try:
-        return jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(record.public_jwk, separators=(',', ':')))
+        key = RSAAlgorithm.from_jwk(json.dumps(record.public_jwk, separators=(',', ':')))
+        if not isinstance(key, RSAPublicKey):
+            raise JwtProfileError('签名公钥无效')
+        return key
     except (TypeError, ValueError, KeyError) as exc:
         raise JwtProfileError('签名公钥无效') from exc
 
 
 def _disabled() -> None:
     """
-    在 OIDC 关闭时返回本地 404，不执行协议认证
-    """
+    在 OIDC 关闭时返回本地 404，不执行协议认证。
 
+    :raises HTTPException: 请求的资源不存在
+    """
     if not OidcConfig.oidc_enabled:
         raise HTTPException(
             status_code=404,
@@ -93,20 +101,18 @@ def _disabled() -> None:
 
 async def require_oidc_protocol_ready(
     request: Request,
-    query_db: AsyncSession = DBSessionDependency(),
+    query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> None:
     """
-    在 OIDC 已启用但签名能力尚未就绪时阻断公共协议端点
+    在 OIDC 已启用但签名能力尚未就绪时阻断公共协议端点。
 
     OIDC 关闭时仍由各控制器维持原有本地 404 行为；启用但缺少有效
     active 密钥时统一返回标准 OAuth 503，不影响后台管理接口。
 
     :param request: 当前 HTTP 请求
     :param query_db: 异步数据库会话
-    :return: None
     :raises OAuthProtocolException: OIDC 协议尚未具备签名能力
     """
-
     if not OidcConfig.oidc_enabled:
         return
     readiness = await OidcRuntimeService.cached_readiness(request.app, query_db)
@@ -120,27 +126,26 @@ async def require_oidc_protocol_ready(
 
 def _redis(request: Request) -> Redis:
     """
-    读取应用生命周期创建的 Redis 客户端
+    读取应用生命周期创建的 Redis 客户端。
 
     :param request: 当前HTTP请求
     :return: 应用生命周期创建的Redis客户端
+    :raises HTTPException: 认证服务暂不可用
     """
-
     value = getattr(request.app.state, 'redis', None)
     if value is None:
         raise HTTPException(status_code=503, detail='认证服务暂不可用')
-    return value
+    return cast('Redis', value)
 
 
 async def read_form(request: Request) -> dict[str, str]:
     """
-    严格读取 URL encoded 表单并拒绝重复字段
+    严格读取 URL encoded 表单并拒绝重复字段。
 
     :param request: 当前 HTTP 请求
     :return: 唯一字段映射
     :raises HTTPException: Content-Type 错误或字段重复
     """
-
     _disabled()
     content_type = request.headers.get('content-type', '').split(';', 1)[0].strip().lower()
     if content_type != 'application/x-www-form-urlencoded':
@@ -187,16 +192,16 @@ async def read_form(request: Request) -> dict[str, str]:
 
 async def get_oidc_client(
     request: Request,
-    query_db: AsyncSession = DBSessionDependency(),
+    query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> OAuthClientPrincipal:
     """
-    验证 Basic 或 Public Client 表单认证
+    验证 Basic 或 Public Client 表单认证。
 
     :param request: 当前 HTTP 请求
     :param query_db: 异步数据库会话
     :return: 已完成认证的 Client Principal
+    :raises HTTPException: 客户端认证失败
     """
-
     form = await read_form(request)
     authorization = request.headers.get('authorization')
     try:
@@ -217,13 +222,13 @@ async def get_oidc_client(
 
 async def _load_access_context(request: Request, query_db: AsyncSession) -> AccessTokenContext:
     """
-    按 JWT header kid 查询数据库公钥并验证严格 Access Token Profile
+    按 JWT header kid 查询数据库公钥并验证严格 Access Token Profile。
 
     :param request: 当前HTTP请求
     :param query_db: orm对象
     :return: 已校验的访问令牌及声明上下文
+    :raises HTTPException: Bearer 令牌格式无效或校验失败
     """
-
     _disabled()
     authorization = request.headers.get('authorization', '')
     if authorization[:7].lower() != 'bearer ' or ',' in authorization:
@@ -257,31 +262,30 @@ async def _load_access_context(request: Request, query_db: AsyncSession) -> Acce
 
 async def get_oidc_access_token(
     request: Request,
-    query_db: AsyncSession = DBSessionDependency(),
+    query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> AccessTokenContext:
     """
-    验证 UserInfo 使用的 Bearer Access Token
+    验证 UserInfo 使用的 Bearer Access Token。
 
     :param request: 当前HTTP请求
     :param query_db: orm对象
     :return: UserInfo使用的访问令牌上下文
     """
-
     return await _load_access_context(request, query_db)
 
 
 async def get_interaction_csrf(
     request: Request,
     interaction_id: str,
-) -> dict[str, Any]:
+) -> InteractionRecord:
     """
-    验证 Interaction CSRF Header，并返回内部状态记录
+    验证 Interaction CSRF Header，并返回内部状态记录。
 
     :param request: 当前 HTTP 请求
     :param interaction_id: 路径中的 Interaction 标识
     :return: 已验证的内部 Interaction 记录
+    :raises HTTPException: CSRF 校验失败，请重新发起认证；认证交互不存在
     """
-
     _disabled()
     redis = _redis(request)
     csrf_token = request.headers.get('x-csrf-token')
@@ -298,9 +302,10 @@ async def get_interaction_csrf(
 
 def _invalid_token() -> HTTPException:
     """
-    构造不泄露验证细节的 Bearer 401
-    """
+    构造不泄露验证细节的 Bearer 401。
 
+    :return: 不泄露验证细节的 Bearer 401
+    """
     return HTTPException(
         status_code=401, detail='访问令牌无效', headers={'WWW-Authenticate': 'Bearer error="invalid_token"'}
     )
@@ -308,23 +313,26 @@ def _invalid_token() -> HTTPException:
 
 def OidcClientDependency() -> params.Depends:  # noqa: N802
     """
-    返回 Client Authentication 依赖
-    """
+    返回 Client Authentication 依赖。
 
-    return Depends(get_oidc_client)
+    :return: Client Authentication 依赖
+    """
+    return params.Depends(get_oidc_client)
 
 
 def OidcAccessTokenDependency() -> params.Depends:  # noqa: N802
     """
-    返回严格 Access Token 依赖
-    """
+    返回严格 Access Token 依赖。
 
-    return Depends(get_oidc_access_token)
+    :return: 严格 Access Token 依赖
+    """
+    return params.Depends(get_oidc_access_token)
 
 
 def InteractionCsrfDependency() -> params.Depends:  # noqa: N802
     """
-    返回 Interaction CSRF 依赖
-    """
+    返回 Interaction CSRF 依赖。
 
-    return Depends(get_interaction_csrf)
+    :return: Interaction CSRF 依赖
+    """
+    return params.Depends(get_interaction_csrf)

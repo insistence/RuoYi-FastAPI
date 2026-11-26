@@ -11,6 +11,15 @@ from plugins.core.management.service.router_metadata import PluginRouterMetadata
 
 
 def _menu(menu_id: int, *, parent_id: int = 0, component: str = 'PluginFrame', menu_type: str = 'C') -> SysMenu:
+    """
+    创建测试使用的 ``SysMenu`` 实例。
+
+    :param menu_id: 菜单ID
+    :param parent_id: 父菜单ID
+    :param component: 当前检查或渲染的组件
+    :param menu_type: 菜单类型（M目录 C菜单 F按钮）
+    :return: 测试使用的 ``SysMenu`` 实例
+    """
     return SysMenu(
         menu_id=menu_id,
         parent_id=parent_id,
@@ -28,6 +37,13 @@ def _menu(menu_id: int, *, parent_id: int = 0, component: str = 'PluginFrame', m
 
 
 def _plugin(plugin_id: str, **overrides: object) -> SysPlugin:
+    """
+    根据指定的标识和覆盖项组装插件记录。
+
+    :param plugin_id: 插件清单中的唯一标识
+    :param overrides: 调用方按名称传入的附加选项
+    :return: ``SysPlugin`` 实例
+    """
     values = {
         'plugin_id': plugin_id,
         'plugin_name': plugin_id,
@@ -42,11 +58,12 @@ def _plugin(plugin_id: str, **overrides: object) -> SysPlugin:
 
 @pytest.mark.asyncio
 async def test_plugin_metadata_uses_menu_ownership_for_nested_and_root_pages() -> None:
+    """嵌套页面及根页面均按菜单归属解析插件元数据。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     try:
         async with engine.begin() as connection:
-            await connection.run_sync(SysPlugin.__table__.create)
-            await connection.run_sync(SysPluginMenu.__table__.create)
+            await connection.run_sync(SysPlugin.get_table().create)
+            await connection.run_sync(SysPluginMenu.get_table().create)
         session_factory = async_sessionmaker(engine)
         async with session_factory() as db:
             db.add(_plugin('demo'))
@@ -85,11 +102,12 @@ async def test_plugin_metadata_uses_menu_ownership_for_nested_and_root_pages() -
 
 @pytest.mark.asyncio
 async def test_menu_ownership_rejects_inactive_uninstalled_and_ambiguous_plugins() -> None:
+    """菜单归属检查拒绝未启用、未安装或有歧义的插件。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     try:
         async with engine.begin() as connection:
-            await connection.run_sync(SysPlugin.__table__.create)
-            await connection.run_sync(SysPluginMenu.__table__.create)
+            await connection.run_sync(SysPlugin.get_table().create)
+            await connection.run_sync(SysPluginMenu.get_table().create)
         session_factory = async_sessionmaker(engine)
         async with session_factory() as db:
             db.add_all(
@@ -127,6 +145,7 @@ async def test_menu_ownership_rejects_inactive_uninstalled_and_ambiguous_plugins
 
 @pytest.mark.asyncio
 async def test_ordinary_menus_do_not_query_plugin_tables() -> None:
+    """普通菜单不查询插件表。"""
     query_db = AsyncMock()
 
     assert await PluginRouterMetadataService.get_menu_plugin_ids(query_db, [_menu(1, component='system/user')]) == {}

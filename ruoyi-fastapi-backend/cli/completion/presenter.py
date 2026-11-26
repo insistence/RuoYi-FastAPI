@@ -5,7 +5,7 @@ class CompletionCommandPresenter:
     """
     completion 命令文本渲染器。
 
-    该渲染器负责将 `completion` 命令组产生的结构化 payload 转换为稳定的文本摘要，
+    该渲染器负责将 ``completion`` 命令组产生的结构化 payload 转换为稳定的文本摘要，
     同时保持 JSON 输出仍由控制器直接返回，不在此处做契约变形。
     """
 

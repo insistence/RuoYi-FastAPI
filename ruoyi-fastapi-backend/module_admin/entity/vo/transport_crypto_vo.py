@@ -1,15 +1,11 @@
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import Field
 
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 
 
-class TransportCryptoFrontendConfigModel(BaseModel):
-    """
-    传输层加解密前端运行配置模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class TransportCryptoFrontendConfigModel(CamelModel):
+    """传输层加解密前端运行配置模型。"""
 
     transport_crypto_enabled: bool = Field(description='后端是否启用传输层加解密')
     transport_crypto_mode: str = Field(description='当前传输层加解密模式')
@@ -25,12 +21,8 @@ class TransportCryptoFrontendConfigModel(BaseModel):
     config_expire_at: int = Field(description='前端配置建议刷新时间戳')
 
 
-class TransportCryptoPublicKeyModel(BaseModel):
-    """
-    传输层加解密公钥下发模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class TransportCryptoPublicKeyModel(CamelModel):
+    """传输层加解密公钥下发模型。"""
 
     kid: str = Field(description='当前启用的密钥版本标识')
     envelope_version: str = Field(description='当前传输层加密信封协议版本')
@@ -40,12 +32,8 @@ class TransportCryptoPublicKeyModel(BaseModel):
     expire_at: int = Field(description='当前公钥建议刷新时间戳')
 
 
-class TransportCryptoKidStatModel(BaseModel):
-    """
-    传输层加解密按密钥版本统计模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class TransportCryptoKidStatModel(CamelModel):
+    """传输层加解密按密钥版本统计模型。"""
 
     kid: str | None = Field(default=None, description='密钥版本标识')
     encrypted_requests: int | None = Field(default=0, description='加密请求次数')
@@ -54,12 +42,8 @@ class TransportCryptoKidStatModel(BaseModel):
     encrypted_responses: int | None = Field(default=0, description='加密响应次数')
 
 
-class TransportCryptoFailureRecordModel(BaseModel):
-    """
-    传输层加解密最近失败记录模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class TransportCryptoFailureRecordModel(CamelModel):
+    """传输层加解密最近失败记录模型。"""
 
     time: ApiUtcDateTime | None = Field(default=None, description='失败时间')
     method: str | None = Field(default=None, description='请求方法')
@@ -68,12 +52,8 @@ class TransportCryptoFailureRecordModel(BaseModel):
     kid: str | None = Field(default=None, description='密钥版本标识')
 
 
-class TransportCryptoMonitorModel(BaseModel):
-    """
-    传输层加解密监控模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class TransportCryptoMonitorModel(CamelModel):
+    """传输层加解密监控模型。"""
 
     monitor_scope: str | None = Field(default=None, description='监控统计范围，默认基于Redis聚合')
     started_at: ApiUtcDateTime | None = Field(default=None, description='当前监控统计起始时间')

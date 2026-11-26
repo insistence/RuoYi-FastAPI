@@ -11,13 +11,37 @@ from cli.tui.search import TUI_SEARCH_SERVICE, PageFilterOption, PageSearchConte
 from cli.utils import SHELL_TEXT_FORMATTER
 
 
+def get_dict_field(payload: object, key: str) -> dict[str, Any]:
+    """
+    读取命令结果中的字典字段，字段缺失或类型不符时返回空字典。
+
+    :param payload: 命令结果
+    :param key: 字段名
+    :return: 字段中的字典
+    """
+    value = payload.get(key) if isinstance(payload, dict) else None
+    return value if isinstance(value, dict) else {}
+
+
+def get_list_field(payload: object, key: str) -> list[Any]:
+    """
+    读取命令结果中的列表字段，字段缺失或类型不符时返回空列表。
+
+    :param payload: 命令结果
+    :param key: 字段名
+    :return: 字段中的列表
+    """
+    value = payload.get(key) if isinstance(payload, dict) else None
+    return value if isinstance(value, list) else []
+
+
 class BaseBrowserAdapter:
     """
     TUI 浏览页适配基类。
 
-    :param page_title: 浏览页标题
-    :param search_view_key: 搜索上下文对应的页面键
-    :param filter_options: 页面支持的筛选项
+    :ivar page_title: 浏览页标题
+    :ivar search_view_key: 搜索上下文对应的页面键
+    :ivar filter_options: 页面支持的筛选项
     """
 
     def __init__(
@@ -33,7 +57,6 @@ class BaseBrowserAdapter:
         :param page_title: 浏览页标题
         :param search_view_key: 搜索上下文对应的页面键
         :param filter_options: 页面支持的筛选项
-        :return: None
         """
         self.page_title = page_title
         self.search_view_key = search_view_key
@@ -62,7 +85,7 @@ class BaseBrowserAdapter:
         """
         return TUI_SEARCH_SERVICE.resolve_filter_option(self.filter_options, filter_key) or self.filter_options[0]
 
-    def resolve_search_context(self, query: str) -> PageSearchContext:
+    def resolve_search_context(self, query: str) -> PageSearchContext | None:
         """
         解析当前页面搜索上下文。
 
@@ -171,9 +194,9 @@ class BaseDetailAdapter:
     """
     TUI 详情页适配基类。
 
-    :param page_title: 详情页标题
-    :param search_view_key: 搜索上下文对应的页面键
-    :param default_suggestions: 默认搜索建议
+    :ivar page_title: 详情页标题
+    :ivar search_view_key: 搜索上下文对应的页面键
+    :ivar default_suggestions: 默认搜索建议
     """
 
     def __init__(
@@ -189,7 +212,6 @@ class BaseDetailAdapter:
         :param page_title: 详情页标题
         :param search_view_key: 搜索上下文对应的页面键
         :param default_suggestions: 默认搜索建议
-        :return: None
         """
         self.page_title = page_title
         self.search_view_key = search_view_key
@@ -203,9 +225,9 @@ class BaseDetailAdapter:
         :param query: 搜索词
         :return: 过滤后的分区列表
         """
-        return TUI_SEARCH_SERVICE.filter_detail_sections(list(sections), query)  # type: ignore[arg-type]
+        return TUI_SEARCH_SERVICE.filter_detail_sections(list(sections), query)
 
-    def resolve_search_context(self, query: str) -> PageSearchContext:
+    def resolve_search_context(self, query: str) -> PageSearchContext | None:
         """
         解析当前详情页搜索上下文。
 

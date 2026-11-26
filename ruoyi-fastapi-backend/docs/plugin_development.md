@@ -15,7 +15,7 @@
 
 目录插件与签名制品不能同时使用相同插件 ID。两种方式均遵守进程重启边界，不提供原生模块热替换。
 
-后端命令使用已安装项目依赖的 Python 3.10–3.14 环境；创建与激活步骤见 [CLI 环境准备](cli_usage.md#22-安装依赖)。下文的 `python` 指向已激活环境，命令默认在后端目录执行。通用命令同时适用于 Windows PowerShell、macOS 和 Linux；环境变量等 Shell 语法分别列出。
+后端命令使用已安装项目依赖的 Python 3.11–3.15 环境；创建与激活步骤见 [CLI 环境准备](cli_usage.md#22-安装依赖)。下文的 `python` 指向已激活环境，命令默认在后端目录执行。通用命令同时适用于 Windows PowerShell、macOS 和 Linux；环境变量等 Shell 语法分别列出。
 
 ## 1. 基本模型
 
@@ -516,7 +516,7 @@ dependencies:
 | `nodeVersion` | `string \| null` | `null` | Node.js 版本约束。 |
 | `databases` | `("mysql" \| "postgresql")[]` | `[]` | 插件支持的数据库类型声明，不能重复。 |
 
-版本约束可以是版本号，也可以带比较操作符，例如 `>=3.10`、`^20.0.0`。
+版本约束可以是版本号，也可以带比较操作符，例如 `>=3.11`、`^20.0.0`。
 
 `compatibility.frontendVersion` 约束前端工程的发行版本，与脚手架结果、依赖记录和锁文件中的 `frontendFramework` 不同；后者取 `vue2`、`vue3` 等框架标识，不能填入版本约束。
 
@@ -646,7 +646,7 @@ permissions:
     name: 查看报表
 compatibility:
   hostApiVersion: ^1.2.0
-  pythonVersion: '>=3.10'
+  pythonVersion: '>=3.11'
   databases: [mysql, postgresql]
 ```
 
@@ -904,7 +904,9 @@ class MessageBody(BaseModel):
     message: str = Field(min_length=1, max_length=200)
 
 
-async def echo(context: PluginRequestContext) -> dict:
+async def echo(context: PluginRequestContext) -> dict[str, object]:
+    if context.request is None:
+        raise RuntimeError('当前插件上下文缺少 HTTP 请求快照')
     return {**context.request.to_payload(), 'requestId': context.request_id}
 
 
@@ -971,7 +973,7 @@ Rust 使用 PyO3 暴露 Python 扩展，并通过 maturin 构建 wheel；Windows
 
 原生 wheel 在构建或维护环境中验证并展开到 `backend.native.moduleRoot`，默认 `native/`。宿主检查发行包名称、插件版本、Python 要求、wheel tag、已安装依赖及完整 RECORD SHA256；扩展只能从当前插件目录加载，不能覆盖宿主模块。RECORD 用于检查文件一致性，发布者信任仍需第 15 节的签名流程。
 
-构建机需安装 Rust、maturin 和目标平台编译工具：Windows 使用 MSVC Build Tools 的 C++ 工具及 Windows SDK，macOS 使用 Xcode Command Line Tools，Linux 使用 GCC 或 Clang 等编译工具。先选择 `rust-asgi` 或 `rust-bundle` 脚手架，再按第 16 节构建。`abi3` 可减少 Python ABI 构建数量，但不能跨操作系统或架构复用制品；按实际目标平台及 Python 3.10–3.14 的测试结果验证兼容性。
+构建机需安装 Rust、maturin 和目标平台编译工具：Windows 使用 MSVC Build Tools 的 C++ 工具及 Windows SDK，macOS 使用 Xcode Command Line Tools，Linux 使用 GCC 或 Clang 等编译工具。先选择 `rust-asgi` 或 `rust-bundle` 脚手架，再按第 16 节构建。`abi3` 可减少 Python ABI 构建数量，但不能跨操作系统或架构复用制品；按实际目标平台及 Python 3.11–3.15 的测试结果验证兼容性。
 
 Rust 通过 `PluginHostContext`、`plugin_endpoint`、`plugin_lifespan` 和版本化服务复用宿主能力，完整实现见 [Rust 示例](../plugins/examples/rust/rust_demo/README.md)。不要覆盖已加载的原生模块或依赖 `reload` 完成更新，发布后必须重启全部相关进程。
 
@@ -1793,9 +1795,9 @@ pnpm --dir ../ruoyi-fastapi-frontend/vue3/web run test:plugin
 
 ### 17.4 CI 覆盖
 
-统一入口为 [`ci.yml`](../../.github/workflows/ci.yml)，完整分类和本地命令见[测试说明](../../ruoyi-fastapi-test/README.md)。[`ci-backend.yml`](../../.github/workflows/ci-backend.yml) 承担 v1/v2 脚手架、SDK 溯源、离线更新及 Windows CLI/路径回归；[`ci-native.yml`](../../.github/workflows/ci-native.yml) 保留 Windows/Linux × Python 3.10–3.14 的真实原生制品测试，Rust fmt/clippy 单独运行一次。
+统一入口为 [`ci.yml`](../../.github/workflows/ci.yml)，完整分类和本地命令见[测试说明](../../ruoyi-fastapi-test/README.md)。[`ci-backend.yml`](../../.github/workflows/ci-backend.yml) 承担 v1/v2 脚手架、SDK 溯源、离线更新及 Windows CLI/路径回归；[`ci-native.yml`](../../.github/workflows/ci-native.yml) 保留 Windows/Linux × Python 3.11–3.15 的真实原生制品测试，Rust fmt/clippy 单独运行一次。
 
-[`ci-integration.yml`](../../.github/workflows/ci-integration.yml) 使用临时 MySQL、PostgreSQL 和 Redis 服务验证多 worker 发布行为，PR 使用 Python 3.12，完整运行覆盖 Python 3.10–3.14。工作流配置不代表已经执行成功；发布前应核对对应提交的实际 CI 结果，并完成目标平台的部署验收。
+[`ci-integration.yml`](../../.github/workflows/ci-integration.yml) 使用临时 MySQL、PostgreSQL 和 Redis 服务验证多 worker 发布行为，PR 使用 Python 3.12，完整运行覆盖 Python 3.11–3.15。工作流配置不代表已经执行成功；发布前应核对对应提交的实际 CI 结果，并完成目标平台的部署验收。
 
 `scripts/plugin_release_integration.py` 还检查双 worker 首次发布、升级和代码回滚后的固定目标收敛，无 worker 时单次断言不收敛，旧目标代际被拒绝、单 worker 故障立即失败，以及报告过期、缺员和遗留陈旧记录下的等待结果。足够的新 worker 全部就绪后，遗留陈旧记录不应造成永久等待；失败结果保留退出码和固定原因供流水线判断。脚本还针对两种数据库启动独立的完整 CLI 进程，验证标准输出可整体解析为一个 JSON 对象，并核对未就绪时退出 `50`、就绪后退出 `0`。
 

@@ -7,9 +7,7 @@ from .naming import PluginScaffoldNaming
 
 
 class PluginVue3FrontendScaffoldTemplateBuilder(PluginFrontendApiScaffoldTemplateBuilder):
-    """
-    前端插件模板内容构建器。
-    """
+    """前端插件模板内容构建器。"""
 
     @staticmethod
     def build_view(plugin_id: str) -> str:
@@ -250,38 +248,81 @@ console.log('{plugin_id} plugin frontend tests passed')
 
 
 class PluginFrontendScaffoldTemplateBuilder:
-    """
-    根据目标前端框架分派已实现的插件源码模板。
-    """
+    """根据目标前端框架分派已实现的插件源码模板。"""
 
     @staticmethod
     def build_api(plugin_id: str) -> str:
+        """
+        生成插件前端的 API 访问模块。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :return: 插件前端的 API 访问模块
+        """
         return PluginFrontendApiScaffoldTemplateBuilder.build_api(plugin_id)
 
     @staticmethod
     def build_crud_api(plugin_id: str) -> str:
+        """
+        生成插件前端的增删改查请求函数。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :return: 插件前端的增删改查请求函数
+        """
         return PluginFrontendApiScaffoldTemplateBuilder.build_crud_api(plugin_id)
 
     @classmethod
     def view_filename(cls, frontend_framework: FrontendFramework = 'vue3') -> str:
-        """验证框架并返回该宿主加载的页面文件名。"""
+        """
+        验证框架并返回该宿主加载的页面文件名。
+
+        :param frontend_framework: 用于生成或构建前端的框架
+        :return: 该宿主加载的页面文件名
+        """
         cls._resolve_builder(frontend_framework)
         return 'index.jsx' if frontend_framework == 'react' else 'index.vue'
 
     @classmethod
     def build_view(cls, plugin_id: str, frontend_framework: FrontendFramework = 'vue3') -> str:
+        """
+        生成插件前端入口视图。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param frontend_framework: 用于生成或构建前端的框架
+        :return: 插件前端入口视图
+        """
         return cls._resolve_builder(frontend_framework).build_view(plugin_id)
 
     @classmethod
     def build_crud_view(cls, plugin_id: str, frontend_framework: FrontendFramework = 'vue3') -> str:
+        """
+        生成插件记录列表及编辑视图。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param frontend_framework: 用于生成或构建前端的框架
+        :return: 插件记录列表及编辑视图
+        """
         return cls._resolve_builder(frontend_framework).build_crud_view(plugin_id)
 
     @classmethod
     def build_readme(cls, plugin_id: str, frontend_framework: FrontendFramework = 'vue3') -> str:
+        """
+        生成插件前端的使用说明。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param frontend_framework: 用于生成或构建前端的框架
+        :return: 插件前端的使用说明
+        """
         return cls._resolve_builder(frontend_framework).build_readme(plugin_id)
 
     @classmethod
     def build_test(cls, plugin_id: str, frontend_framework: FrontendFramework = 'vue3') -> str:
+        """
+        生成插件前端的测试文件。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param frontend_framework: 用于生成或构建前端的框架
+        :return: 插件前端的测试文件
+        """
         return cls._resolve_builder(frontend_framework).build_test(plugin_id)
 
     @staticmethod
@@ -292,6 +333,13 @@ class PluginFrontendScaffoldTemplateBuilder:
         | type[PluginVue3FrontendScaffoldTemplateBuilder]
         | type[PluginReactFrontendScaffoldTemplateBuilder]
     ):
+        """
+        按前端框架选择对应的脚手架模板构建器。
+
+        :param frontend_framework: 用于生成或构建前端的框架
+        :return: 适用于目标前端框架的模板构建器类型
+        :raises ValueError: 所选前端框架没有对应的源码模板
+        """
         if frontend_framework == 'vue2':
             return PluginVue2FrontendScaffoldTemplateBuilder
         if frontend_framework == 'vue3':

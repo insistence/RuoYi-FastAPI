@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from cli.exit_codes import RUNTIME_ERROR
@@ -8,25 +8,24 @@ from .gateway import OidcInfrastructureGateway
 
 class OidcRuntimeCliService:
     """
-    OIDC CLI 运行时服务
+    OIDC CLI 运行时服务。
 
     该服务对外统一暴露 OIDC 就绪检查和首把签名密钥初始化入口。
 
-    :param infrastructure_gateway: OIDC 基础设施网关
+    :ivar infrastructure_gateway: OIDC 基础设施网关
     """
 
     def __init__(self, infrastructure_gateway: OidcInfrastructureGateway | None = None) -> None:
         """
-        初始化 OIDC CLI 运行时服务
+        初始化 OIDC CLI 运行时服务。
 
         :param infrastructure_gateway: OIDC 基础设施网关
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway or OidcInfrastructureGateway()
 
     async def check_readiness(self) -> dict[str, Any]:
         """
-        检查部署配置中的 OIDC 是否已具备签名能力
+        检查部署配置中的 OIDC 是否已具备签名能力。
 
         :return: OIDC 就绪检查结果
         """
@@ -76,7 +75,7 @@ class OidcRuntimeCliService:
         dry_run: bool = False,
     ) -> dict[str, Any]:
         """
-        幂等创建并激活首把 OIDC 签名密钥
+        幂等创建并激活首把 OIDC 签名密钥。
 
         :param kid: 首把签名密钥标识
         :param actor: 部署操作人标识
@@ -107,7 +106,7 @@ class OidcRuntimeCliService:
                     kid=kid,
                     actor=actor,
                     redis=redis,
-                    now=datetime.now(timezone.utc),
+                    now=datetime.now(UTC),
                 )
             return {
                 'ok': True,

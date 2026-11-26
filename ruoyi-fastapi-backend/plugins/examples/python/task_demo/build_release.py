@@ -2,9 +2,25 @@ import argparse
 import json
 import shutil
 import stat
+import sys
 import unicodedata
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Any
+
+if sys.version_info >= (3, 13):
+    from ntpath import isreserved as is_windows_reserved
+else:
+    from pathlib import PureWindowsPath
+
+    def is_windows_reserved(name: str) -> bool:
+        """
+        按 Windows 规则识别保留路径名。
+
+        :param name: 用于查找或标识当前对象的名称
+        :return: 是否按 Windows 规则识别保留路径名
+        """
+        return PureWindowsPath(name).is_reserved()
+
 
 PLUGIN_ID = 'task_demo'
 BUNDLE = True
@@ -56,6 +72,7 @@ def checked_file(path: Path) -> Path:
 
     :param path: 待交付的源码文件路径
     :return: 通过检查的源码文件路径
+    :raises ValueError: 交付文件越出源码目录或路径包含不允许的链接
     """
     for part in (path, *path.parents):
         if part == SOURCE:
@@ -77,6 +94,7 @@ def checked_relative_path(value: str) -> tuple[str, ...]:
 
     :param value: 清单或 bundle 中的相对路径
     :return: 未经折叠或重写的路径组件
+    :raises ValueError: 交付路径必须为字符串
     """
     if not isinstance(value, str):
         raise ValueError('交付路径必须为字符串')
@@ -91,7 +109,7 @@ def checked_relative_path(value: str) -> tuple[str, ...]:
             or part.startswith('.')
             or part.endswith((' ', '.'))
             or len(part) > MAX_COMPONENT_LENGTH
-            or PureWindowsPath(part).is_reserved()
+            or is_windows_reserved(part)
             or any(
                 char in '<>:"\\|?*[]' or ord(char) < FIRST_PRINTABLE_CHARACTER or ord(char) == DELETE_CHARACTER
                 for char in part
@@ -108,7 +126,7 @@ def checked_inventory(names: list[str]) -> None:
     拒绝重复文件、文件与目录冲突以及任一级目录的大小写歧义。
 
     :param names: 全部交付文件的相对路径
-    :return: None
+    :raises ValueError: 交付清单存在文件与父目录冲突
     """
     spellings: dict[str, str] = {}
     files: set[str] = set()
@@ -135,6 +153,7 @@ def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
     :param pairs: JSON 对象按原始顺序出现的字段
     :return: 不包含重复字段的对象
+    :raises ValueError: 交付清单的 JSON 对象中出现重复字段
     """
     result = {}
     for key, value in pairs:
@@ -149,6 +168,7 @@ def source_resources() -> list[Path]:
     按有大小和数量上限的显式清单读取 Python、SQL 资源，不扫描业务源码。
 
     :return: 已通过路径、类型和链接检查的源码文件列表
+    :raises ValueError: release-files.json 超过 64 KiB 上限；release-files.json 必须包含 schemaVersion: 1 和 files；交付清单 files 必须为包含 1 至 1024 项的列表
     """
     path = checked_file(SOURCE / RELEASE_MANIFEST)
     with path.open('rb') as source:
@@ -186,6 +206,7 @@ def bundle_resources() -> list[Path]:
     收集已构建 bundle，保留原有静态扩展名、隐藏文件和链接限制。
 
     :return: 已通过检查的 web/dist 文件列表
+    :raises ValueError: bundle 入口必须使用准确的 index.html 文件名
     """
     dist = SOURCE / 'web' / 'dist'
     checked_file(dist / 'index.html')
@@ -204,11 +225,7 @@ def bundle_resources() -> list[Path]:
 
 
 def main() -> None:
-    """
-    按显式文件清单组装新交付目录，不安装依赖、导入插件或生成签名。
-
-    :return: None
-    """
+    """按显式文件清单组装新交付目录，不安装依赖、导入插件或生成签名。"""
     parser = argparse.ArgumentParser(
         description='按 release-files.json 组装交付文件；不安装依赖、不导入插件、不生成签名。'
     )

@@ -173,6 +173,7 @@ def test_management_detail_uses_selected_frontend_profile(tmp_path: Path, framew
         manifest_path=tmp_path / 'plugins' / 'demo' / 'plugin.yaml',
     )
     model = PluginService._build_plugin_model(plugin, tmp_path / 'plugins', root / 'plugins', None)
+    assert model.dependencies is not None
     assert model.dependencies['frontendFramework'] == framework
     assert model.dependencies['npm'] == manifest.dependencies.resolve_frontend(framework).npm
     assert set(model.dependencies['frontendProfiles']) == {'vue2', 'vue3', 'react'}
@@ -204,6 +205,7 @@ def test_lock_template_contains_only_selected_host_dependencies(tmp_path: Path, 
     payload = template.to_dict()
     assert payload['frontendFramework'] == framework
     assert 'frontendVersion' not in payload
+    assert isinstance(payload['npm'], list)
     assert {item['requirement'] for item in payload['npm']} == set(
         build_manifest().dependencies.resolve_frontend(framework).npm
     )
@@ -256,6 +258,7 @@ def test_independent_host_preserves_explicit_framework_through_dependencies(
         manifest_path=tmp_path / 'plugins' / 'demo' / 'plugin.yaml',
     )
     model = PluginService._build_plugin_model(plugin, tmp_path / 'plugins', root / 'plugins', None)
+    assert model.dependencies is not None
     assert model.dependencies['frontendFramework'] == 'react18'
     assert model.dependencies['npm'] == ['react18-renderer==1.0.0']
     for framework in ('auto', environment.get_frontend_framework()):
@@ -263,7 +266,8 @@ def test_independent_host_preserves_explicit_framework_through_dependencies(
             manifest, frontend_root=root, frontend_framework=framework
         ).to_dict()
         assert template['frontendFramework'] == 'react18'
-        assert {item['requirement'] for item in template['npm']} == {'react18-renderer==1.0.0'}
+        assert isinstance(template['npm'], list)
+    assert {item['requirement'] for item in template['npm']} == {'react18-renderer==1.0.0'}
     lock_path = tmp_path / 'react18.lock.yaml'
     lock_path.write_text('frontendFramework: react18\n', encoding='utf-8')
     evaluator = DependencyInstallPolicyEvaluator(
@@ -331,7 +335,7 @@ def test_profile_dependencies_trigger_frontend_build_and_lint(tmp_path: Path) ->
     payload['dependencies'] = {'frontend': {'vue2': {'npm': ['unpinned-package']}}}
     manifest = PluginManifest.model_validate(payload)
     assert manifest.frontend.delivery.build_required is True
-    issues = PluginManifestChecker._check_unpinned_dependencies(None, manifest)
+    issues = PluginManifestChecker._check_unpinned_dependencies(manifest)
     assert issues[0].path == 'dependencies.frontend.vue2.npm.0'
     plugin = DiscoveredPlugin(manifest=manifest, backend_path=tmp_path, manifest_path=tmp_path / 'plugin.yaml')
     capability = PluginRuntimeCapabilityResolver(frontend_mode='built', backend_runtime_mode='service').resolve(plugin)

@@ -2,9 +2,13 @@ import json
 from pathlib import Path
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
+from config.database import DataSourceRegistry
+from config.env import DataBaseConfig
 from plugins.ai.dao.ai_chat_dao import AiChatConfigDao
 from plugins.ai.dao.ai_model_dao import AiModelDao
+from plugins.ai.entity.do.ai_model_do import AiModels
 from plugins.ai.entity.vo.ai_chat_vo import AiChatConfigModel, AiChatRequestModel
 from plugins.ai.service.ai_chat_service import AiChatService
 from plugins.ai.utils.ai_util import AiUtil
@@ -25,17 +29,17 @@ EXPECTED_AI_PERMISSIONS = {
     'ai:chat:list',
 }
 EXPECTED_AI_PYTHON_DEPENDENCIES = [
-    'agno==2.8.6',
-    'anthropic==0.120.2',
+    'agno==3.2.1',
+    'anthropic==2.12.0',
     'cerebras-cloud-sdk==1.91.0',
-    'cohere==7.0.8',
-    'google-genai==2.16.0',
-    'groq==1.6.0',
-    'litellm==1.94.0',
+    'cohere==7.3.2',
+    'google-genai==3.6.1',
+    'groq==1.7.0',
+    'litellm==1.110.2',
     'llama-api-client==0.6.0',
-    'mistralai==2.10.1',
-    'ollama==0.6.2',
-    'openai==2.52.0',
+    'mistralai==3.8.0',
+    'ollama==0.6.3',
+    'openai==3.57.0',
     'portkey-ai==2.3.4',
 ]
 EXPECTED_AI_VUE2_NPM_DEPENDENCIES = [
@@ -108,10 +112,10 @@ def test_ai_plugin_runtime_paths_exist(frontend_framework: str) -> None:
         [plugin],
         [
             PluginModel(
-                pluginId='ai',
-                pluginName='AI 管理',
+                plugin_id='ai',
+                plugin_name='AI 管理',
                 version='0.1.0',
-                installedVersion='0.1.0',
+                installed_version='0.1.0',
                 enabled='0',
                 status='installed',
             )
@@ -146,7 +150,12 @@ async def test_ai_chat_config_detail_returns_vo_when_config_missing(monkeypatch:
     """校验 AI 对话配置不存在时服务返回 VO 默认模型，而不是 DO 对象。"""
 
     async def fake_get_chat_config_detail_by_user_id(*_args: object, **_kwargs: object) -> None:
-        """返回测试用 AI 聊天配置。"""
+        """
+        返回测试用 AI 聊天配置。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        """
 
     monkeypatch.setattr(
         AiChatConfigDao,
@@ -154,7 +163,7 @@ async def test_ai_chat_config_detail_returns_vo_when_config_missing(monkeypatch:
         fake_get_chat_config_detail_by_user_id,
     )
 
-    result = await AiChatService.ai_chat_config_detail_services(query_db=object(), user_id=1)
+    result = await AiChatService.ai_chat_config_detail_services(query_db=AsyncSession(), user_id=1)
 
     assert isinstance(result, AiChatConfigModel)
     assert result.num_history_runs == EXPECTED_DEFAULT_NUM_HISTORY_RUNS
@@ -166,13 +175,18 @@ async def test_ai_chat_services_rejects_missing_model(monkeypatch: pytest.Monkey
     """校验 AI 对话在模型不存在时返回带消息标识的错误事件。"""
 
     async def fake_get_ai_model_detail_by_id(*_args: object, **_kwargs: object) -> None:
-        """返回测试用 AI 模型配置。"""
+        """
+        返回测试用 AI 模型配置。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        """
 
     monkeypatch.setattr(AiModelDao, 'get_ai_model_detail_by_id', fake_get_ai_model_detail_by_id)
 
     stream = AiChatService.chat_services(
-        query_db=object(),
-        chat_req=AiChatRequestModel(modelId=404, message='hi'),
+        query_db=AsyncSession(),
+        chat_req=AiChatRequestModel(model_id=404, message='hi'),
         user_id=1,
     )
 
@@ -192,24 +206,30 @@ async def test_ai_chat_services_rejects_missing_model(monkeypatch: pytest.Monkey
 async def test_ai_chat_services_rejects_disabled_model(monkeypatch: pytest.MonkeyPatch) -> None:
     """校验 AI 对话不能使用已停用模型。"""
 
-    async def fake_get_ai_model_detail_by_id(*_args: object, **_kwargs: object) -> dict[str, object]:
-        """返回测试用 AI 模型配置。"""
-        return {
-            'model_id': 1,
-            'model_code': 'gpt-4o-mini',
-            'model_name': 'GPT',
-            'provider': 'OpenAI',
-            'api_key': 'encrypted',
-            'status': '1',
-            'support_reasoning': 'N',
-            'support_images': 'N',
-        }
+    async def fake_get_ai_model_detail_by_id(*_args: object, **_kwargs: object) -> AiModels:
+        """
+        返回测试用 AI 模型配置。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 测试用 AI 模型配置
+        """
+        return AiModels(
+            model_id=1,
+            model_code='gpt-4o-mini',
+            model_name='GPT',
+            provider='OpenAI',
+            api_key='encrypted',
+            status='1',
+            support_reasoning='N',
+            support_images='N',
+        )
 
     monkeypatch.setattr(AiModelDao, 'get_ai_model_detail_by_id', fake_get_ai_model_detail_by_id)
 
     stream = AiChatService.chat_services(
-        query_db=object(),
-        chat_req=AiChatRequestModel(modelId=1, message='hi'),
+        query_db=AsyncSession(),
+        chat_req=AiChatRequestModel(model_id=1, message='hi'),
         user_id=1,
     )
 
@@ -230,14 +250,26 @@ def test_ai_model_factory_rejects_unknown_provider(monkeypatch: pytest.MonkeyPat
     class FakeModel:
         """
         测试用模型类。
+
+        :ivar kwargs: 传给被调用对象的关键字参数
         """
 
         def __init__(self, **kwargs: object) -> None:
-            """初始化测试用 AI 模型提供者。"""
+            """
+            初始化测试用 AI 模型提供者。
+
+            :param kwargs: 传给被调用对象的关键字参数
+            """
             self.kwargs = kwargs
 
     def fake_resolve_provider_class(cls: type[AiUtil], provider: str) -> type[FakeModel] | None:
-        """返回测试用 AI 模型提供者类。"""
+        """
+        返回测试用 AI 模型提供者类。
+
+        :param cls: 调用类方法时使用的类对象
+        :param provider: 提供当前服务的实现
+        :return: 测试用 AI 模型提供者类
+        """
         return FakeModel if provider == 'OpenAI' else None
 
     monkeypatch.setattr(AiUtil, '_resolve_provider_class', classmethod(fake_resolve_provider_class))
@@ -249,6 +281,24 @@ def test_ai_model_factory_rejects_unknown_provider(monkeypatch: pytest.MonkeyPat
             model_name='Demo',
             api_key='secret',
         )
+
+
+@pytest.mark.parametrize(('db_type', 'schema'), [('mysql', 'ai_test'), ('postgresql', 'public')])
+@pytest.mark.asyncio
+async def test_ai_storage_uses_plugin_tables(db_type: str, schema: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    """两个 Agno 存储适配器均能使用宿主引擎和既有的会话表。"""
+    engine = create_async_engine('sqlite+aiosqlite://')
+    monkeypatch.setattr(DataBaseConfig.default_source, 'db_type', db_type)
+    monkeypatch.setattr(DataBaseConfig.default_source, 'db_database', 'ai_test')
+    monkeypatch.setattr(DataSourceRegistry, 'get_async_engine', lambda name: engine)
+    try:
+        storage = AiUtil.get_storage_engine()
+        assert storage.db_engine is engine
+        assert storage.db_schema == schema
+        assert storage.session_table_name == 'ai_sessions'
+        assert storage.runs_table_name == 'ai_sessions_runs'
+    finally:
+        await engine.dispose()
 
 
 def test_ai_model_factory_validates_base_url_boundary() -> None:
@@ -296,3 +346,10 @@ def test_ai_plugin_sql_assets_own_ai_schema_and_seed_data() -> None:
     assert 'comment on column' in postgres_migration
     assert 'auto_increment' not in postgres_migration
     assert 'engine=innodb' not in postgres_migration
+
+
+@pytest.mark.parametrize(('user_temperature', 'expected'), [(0.0, 0.0), (None, 0.75)])
+def test_chat_temperature_respects_zero(user_temperature: float | None, expected: float) -> None:
+    """用户设置零温度时保留该值，未设置时采用模型默认值。"""
+    config = AiChatConfigModel(temperature=user_temperature)
+    assert AiChatService._resolve_temperature(config, AiModels(temperature=0.75)) == expected

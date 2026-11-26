@@ -8,10 +8,9 @@ from cli.groups.plugin.options import (
     PluginDependencyAllowlistExampleCommandOptions,
     PluginDependencyInstallCommandOptions,
     PluginDependencyLockCommandOptions,
+    PluginPlanOperation,
+    PluginPrecheckOperation,
 )
-
-PluginPrecheckOperation = Literal['install', 'enable', 'upgrade', 'uninstall', 'purge']
-PluginPlanOperation = Literal['install', 'enable', 'upgrade']
 
 
 def register_dependency_commands(app: typer.Typer, get_controller: Callable[[], Any]) -> None:
@@ -20,7 +19,6 @@ def register_dependency_commands(app: typer.Typer, get_controller: Callable[[], 
 
     :param app: Typer 命令组
     :param get_controller: 插件命令控制器工厂
-    :return: None
     """
 
     @app.command('check-deps', help='检查插件依赖')
@@ -35,7 +33,6 @@ def register_dependency_commands(app: typer.Typer, get_controller: Callable[[], 
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().check_plugin_dependencies(plugin_id, env, output)
 
@@ -56,7 +53,6 @@ def register_dependency_commands(app: typer.Typer, get_controller: Callable[[], 
         :param plugin_id: 插件ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().precheck_plugin(operation, plugin_id, env, output)
 
@@ -74,7 +70,6 @@ def register_dependency_commands(app: typer.Typer, get_controller: Callable[[], 
         :param plugin_ids: 插件ID列表
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().plan_plugins(operation, plugin_ids or [], env, output)
 
@@ -118,7 +113,6 @@ def register_dependency_commands(app: typer.Typer, get_controller: Callable[[], 
         :param allowlist: 依赖允许列表路径
         :param offline_dir: 离线制品目录
         :param require_lockfile: 是否要求锁文件
-        :return: None
         """
         get_controller().install_plugin_dependencies(
             plugin_id,
@@ -162,7 +156,6 @@ def register_dependency_commands(app: typer.Typer, get_controller: Callable[[], 
         :param output_path: 输出锁文件路径
         :param offline_dir: 离线制品目录
         :param overwrite: 是否覆盖已有锁文件
-        :return: None
         """
         get_controller().lock_plugin_dependencies(
             plugin_id,
@@ -195,7 +188,6 @@ def register_dependency_commands(app: typer.Typer, get_controller: Callable[[], 
         :param dry_run: 是否仅预演
         :param output_path: 输出允许列表路径
         :param overwrite: 是否覆盖已有允许列表文件
-        :return: None
         """
         get_controller().generate_plugin_dependency_allowlist_example(
             env,

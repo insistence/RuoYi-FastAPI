@@ -25,7 +25,6 @@ def check(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _DB_COMMAND_CONTROLLER.check(env, output)
 
@@ -40,7 +39,6 @@ def current(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _DB_COMMAND_CONTROLLER.current(env, output)
 
@@ -70,7 +68,6 @@ def upgrade(
     :param yes: 是否跳过确认
     :param dry_run: 是否演练执行
     :param revision: 目标迁移版本
-    :return: None
     """
     _DB_COMMAND_CONTROLLER.upgrade(env, output, allow_prod, yes, dry_run, revision=revision)
 
@@ -91,7 +88,6 @@ def init(
     :param allow_prod: 是否允许生产环境危险命令
     :param yes: 是否跳过确认
     :param dry_run: 是否演练执行
-    :return: None
     """
     _DB_COMMAND_CONTROLLER.init(env, output, allow_prod, yes, dry_run)
 
@@ -121,7 +117,6 @@ def downgrade(
     :param yes: 是否跳过确认
     :param dry_run: 是否演练执行
     :param revision: 目标回退版本
-    :return: None
     """
     _DB_COMMAND_CONTROLLER.downgrade(env, output, allow_prod, yes, dry_run, revision=revision)
 
@@ -146,7 +141,6 @@ def revision(
     :param yes: 是否跳过确认
     :param dry_run: 是否演练执行
     :param autogenerate: 是否自动生成迁移内容
-    :return: None
     """
     _DB_COMMAND_CONTROLLER.revision(
         message,
@@ -169,7 +163,6 @@ def heads(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _DB_COMMAND_CONTROLLER.heads(env, output)
 
@@ -186,6 +179,5 @@ def history(
     :param env: 当前命令运行环境
     :param output: 输出格式
     :param limit: 输出的最大历史记录数量
-    :return: None
     """
     _DB_COMMAND_CONTROLLER.history(env, output, limit=limit)

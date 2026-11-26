@@ -11,27 +11,27 @@ from plugins.core.validation.plugin_deps import PluginBatchOperation
 
 
 class BatchOperationResult(PluginPayloadModel):
-    """
-    批量单项运行时结果 payload。
-    """
+    """批量单项运行时结果 payload。"""
 
-    ok: bool | None = None
-    message: str | None = None
-    plugin_dependency_errors: object | None = Field(default=None, alias='pluginDependencyErrors')
-    structure_errors: object | None = Field(default=None, alias='structureErrors')
-    menu_conflicts: object | None = Field(default=None, alias='menuConflicts')
-    error: object | None = None
+    ok: bool | None = Field(default=None, description='本次操作是否成功')
+    message: str | None = Field(default=None, description='面向调用方的结果说明')
+    plugin_dependency_errors: object | None = Field(
+        default=None, alias='pluginDependencyErrors', description='插件之间的依赖检查错误'
+    )
+    structure_errors: object | None = Field(
+        default=None, alias='structureErrors', description='插件目录或文件结构检查错误'
+    )
+    menu_conflicts: object | None = Field(default=None, alias='menuConflicts', description='检测到的菜单冲突')
+    error: object | None = Field(default=None, description='失败原因')
 
 
 class BatchSummary(PluginPayloadModel):
-    """
-    批量执行汇总 payload。
-    """
+    """批量执行汇总 payload。"""
 
-    total: int
-    succeeded: int
-    failed: int
-    skipped: int
+    total: int = Field(description='条目总数')
+    succeeded: int = Field(description='成功的操作数')
+    failed: int = Field(description='失败的操作数')
+    skipped: int = Field(description='跳过的条目数')
 
 
 @dataclass(frozen=True)
@@ -39,13 +39,13 @@ class PluginBatchItemReport:
     """
     插件批量执行单项报告。
 
-    :param plugin_id: 插件ID
-    :param operation: 批量操作类型
-    :param ok: 是否执行成功
-    :param status: 执行状态
-    :param message: 执行消息
-    :param duration_ms: 耗时毫秒数
-    :param suggestion: 失败建议
+    :ivar plugin_id: 插件ID
+    :ivar operation: 批量操作类型
+    :ivar ok: 是否执行成功
+    :ivar status: 执行状态
+    :ivar message: 执行消息
+    :ivar duration_ms: 耗时毫秒数
+    :ivar suggestion: 失败建议
     """
 
     plugin_id: str
@@ -58,36 +58,32 @@ class PluginBatchItemReport:
 
 
 class BatchFailedItem(PluginPayloadModel):
-    """
-    批量失败项 payload。
-    """
+    """批量失败项 payload。"""
 
-    plugin_id: str = Field(alias='pluginId')
-    operation: str | None = None
-    ok: bool | None = None
-    status: str | None = None
-    message: str | None = None
-    duration_ms: int | None = Field(default=None, alias='durationMs')
-    suggestion: str | None = None
-    result: dict[str, object]
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    operation: str | None = Field(default=None, description='执行的操作类型')
+    ok: bool | None = Field(default=None, description='本次操作是否成功')
+    status: str | None = Field(default=None, description='当前状态')
+    message: str | None = Field(default=None, description='面向调用方的结果说明')
+    duration_ms: int | None = Field(default=None, alias='durationMs', description='本次操作耗时（毫秒）')
+    suggestion: str | None = Field(default=None, description='建议的后续处理方式')
+    result: dict[str, object] = Field(description='单项操作的详细结果')
 
 
 class PluginBatchRunPayload(PluginPayloadModel):
-    """
-    插件批量执行响应 payload。
-    """
+    """插件批量执行响应 payload。"""
 
-    ok: bool | None = None
-    message: str
-    operation: str | None = None
-    database_available: bool | None = Field(default=None, alias='databaseAvailable')
-    database_error: str | None = Field(default=None, alias='databaseError')
-    plan: dict[str, object] | None = None
-    dry_run: bool = Field(alias='dryRun')
-    continue_on_error: bool = Field(alias='continueOnError')
-    executed: list[dict[str, object]]
-    failed: dict[str, object] | None
-    summary: dict[str, object]
+    ok: bool | None = Field(default=None, description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    operation: str | None = Field(default=None, description='执行的操作类型')
+    database_available: bool | None = Field(default=None, alias='databaseAvailable', description='数据库是否可用')
+    database_error: str | None = Field(default=None, alias='databaseError', description='数据库访问失败的原因')
+    plan: dict[str, object] | None = Field(default=None, description='预定执行的操作计划')
+    dry_run: bool = Field(alias='dryRun', description='是否仅预演本次操作')
+    continue_on_error: bool = Field(alias='continueOnError', description='遇到单项错误时是否继续处理')
+    executed: list[dict[str, object]] = Field(description='已执行的插件操作明细')
+    failed: dict[str, object] | None = Field(description='导致批处理失败的操作明细')
+    summary: dict[str, object] = Field(description='操作结果摘要')
 
 
 BatchOperationResultPayload: TypeAlias = dict[str, object]
@@ -192,13 +188,16 @@ class PluginBatchReportBuilder:
             return []
         requested_plugin_ids = plan.get('requestedPluginIds')
         ordered_plugin_ids = plan.get('orderedPluginIds')
-        if not isinstance(requested_plugin_ids, list) or not requested_plugin_ids:
-            return ordered_plugin_ids if isinstance(ordered_plugin_ids, list) else []
         if not isinstance(ordered_plugin_ids, list):
-            return requested_plugin_ids
-
-        requested_plugin_id_set = set(requested_plugin_ids)
-        return [plugin_id for plugin_id in ordered_plugin_ids if plugin_id in requested_plugin_id_set]
+            ordered_plugin_ids = requested_plugin_ids
+        if not isinstance(ordered_plugin_ids, list):
+            return []
+        requested = set(requested_plugin_ids) if isinstance(requested_plugin_ids, list) else set()
+        return [
+            plugin_id
+            for plugin_id in ordered_plugin_ids
+            if isinstance(plugin_id, str) and (not requested or plugin_id in requested)
+        ]
 
     @classmethod
     def build_plan_blocked_payload(

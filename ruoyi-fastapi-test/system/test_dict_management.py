@@ -11,7 +11,13 @@ pytestmark = pytest.mark.e2e
 
 
 async def verify_dictionary_data(view: SystemPage, resource: str, kind: str) -> None:
-    """创建两条数据，修改英文译文，并逐条核对原文、业务值及回显样式。"""
+    """
+    创建两条数据，修改英文译文，并逐条核对原文、业务值及回显样式。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param resource: 当前授权或管理的资源
+    :param kind: 当前条目的类别
+    """
     label_field, value_field = ('标签', '键值') if Config.frontend_framework == 'vue2' else ('数据标签', '数据键值')
     entries = []
     for label, english_label, value, style, style_value in [

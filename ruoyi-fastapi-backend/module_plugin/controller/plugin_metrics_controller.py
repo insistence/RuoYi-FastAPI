@@ -23,7 +23,7 @@ plugin_metrics_controller = APIRouterPro(
     '/runtime/metrics',
     summary='获取插件运行指标接口',
     description='用于查询显式插件的请求与任务累计指标，按实际加载版本和可观测worker分组',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
 )
 async def get_plugin_runtime_metrics(
     request: Request,
@@ -43,16 +43,17 @@ async def get_plugin_runtime_metrics(
     '/{plugin_id}/config/status',
     summary='获取插件配置生效状态接口',
     description='比较数据库配置与已观测进程的启动快照；按需读取版本仅表示读取完成，不代表业务设置已经应用',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
 )
 async def get_plugin_config_status(
     request: Request,
     plugin_id: Annotated[str, Path(description='插件ID', pattern=r'^[a-z][a-z0-9_]{1,63}$')],
 ) -> Response:
     payload = await get_plugin_runtime_service().get_plugin_config(plugin_id, reveal_secret=True)
-    if not payload.get('ok'):
+    configs = payload.get('configs', [])
+    if not payload.get('ok') or not isinstance(configs, list):
         return ResponseUtil.failure(msg_key='plugin.config.statusReadFailed')
-    values = {item['key']: item.get('value') for item in payload.get('configs', [])}
+    values = {item['key']: item.get('value') for item in configs}
     reporter = getattr(request.app.state, 'plugin_metrics_reporter', None)
     report = await reporter.read(plugin_id) if isinstance(reporter, PluginMetricsReporter) else {'scope': 'unavailable'}
     return ResponseUtil.success(data=build_config_status(plugin_id, config_revision(plugin_id, values), report))

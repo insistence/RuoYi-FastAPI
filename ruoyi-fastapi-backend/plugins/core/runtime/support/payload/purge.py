@@ -10,19 +10,17 @@ from .base import PluginPayloadModel
 
 
 class PluginPurgeStatePayload(PluginPayloadModel):
-    """
-    插件物理清理状态 payload。
-    """
+    """插件物理清理状态 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    operation: str
-    dry_run: bool = Field(alias='dryRun')
-    safe_mode: bool = Field(alias='safeMode')
-    removes_source: bool = Field(alias='removesSource')
-    plan: dict[str, object]
-    hooks: list[dict[str, object]] | None = None
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    operation: str = Field(description='执行的操作类型')
+    dry_run: bool = Field(alias='dryRun', description='是否仅预演本次操作')
+    safe_mode: bool = Field(alias='safeMode', description='是否使用安全操作模式')
+    removes_source: bool = Field(alias='removesSource', description='本次操作是否移除插件源码')
+    plan: dict[str, object] = Field(description='预定执行的操作计划')
+    hooks: list[dict[str, object]] | None = Field(default=None, description='插件生命周期钩子的执行信息')
 
 
 PluginPurgeStatePayloadDict: TypeAlias = dict[str, object]

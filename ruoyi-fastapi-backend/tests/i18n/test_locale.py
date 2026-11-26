@@ -76,7 +76,7 @@ def test_negotiation(header: str, expected: str) -> None:
 
 def test_disabled_locales_are_excluded_from_negotiation_catalogs_and_names(monkeypatch: pytest.MonkeyPatch) -> None:
     """验证停用语言从协商结果、发布词库和显示名称的回退链中移除。"""
-    monkeypatch.setitem(LOCALES['en-US'], 'enabled', False)
+    monkeypatch.setitem(LOCALES, 'en-US', {**LOCALES['en-US'], 'enabled': False})
     monkeypatch.setitem(LOCALES, 'en-GB', {'aliases': (), 'fallback': ('en-US',)})
     assert LocaleRegistry.enabled_locales() == ('zh-CN', 'en-GB')
     assert all(LocaleRegistry.match_locale(tag) is None for tag in ('en-US', 'en', 'en-AU'))
@@ -120,7 +120,7 @@ def test_preferences_are_extensible(value: str) -> None:
     """验证账号偏好可保存合法的扩展语言标签。"""
     assert UserLocaleModel(locale=value).locale == value
     with pytest.raises(ValueError):
-        UserLocaleModel(locale=value, userId=2)
+        UserLocaleModel.model_validate({'locale': value, 'userId': 2})
 
 
 def test_locale_normalization() -> None:
@@ -160,12 +160,12 @@ async def test_concurrent_requests_negotiate_language_and_set_exception_headers(
         add_context_cleanup_middleware(app)
     add_locale_middleware(app)
 
-    @app.get('/message')
+    @app.get('/message', summary='获取本地化响应', description='返回按请求语言生成的成功消息及协商响应头。')
     async def message() -> Response:
         await asyncio.sleep(0.001)
         return ResponseUtil.success(headers={'Vary': 'Origin'})
 
-    @app.get('/boom')
+    @app.get('/boom', summary='触发本地化错误', description='模拟服务异常，用于检查错误消息的语言和响应头。')
     async def boom() -> None:
         raise RuntimeError('secret-detail')
 
@@ -215,6 +215,11 @@ async def test_transport_key_errors_keep_retry_keys(
     )
 
     async def decrypt_request(*args: object) -> None:
+        """
+        尝试使用指定密钥标识解析请求密钥。
+
+        :param args: 传给被调用对象的位置参数
+        """
         TransportCryptoUtil.decrypt_request_key({'kid': kid, 'ek': ''})
 
     monkeypatch.setattr(TransportCryptoMiddleware, '_decrypt_request', decrypt_request)
@@ -254,6 +259,13 @@ async def test_context_cleanup_preserves_outer_locale(raise_error: bool) -> None
     token = RequestContext.set_current_locale(context)
 
     async def call_next(request: Request) -> Response:
+        """
+        模拟经过中间件后的下游响应。
+
+        :param request: 当前 HTTP 请求
+        :raises RuntimeError: 模拟下游请求处理失败
+        :return: 由下游模拟的业务响应
+        """
         assert RequestContext.get_current_locale() == context
         if raise_error:
             raise RuntimeError('request failed')
@@ -267,7 +279,7 @@ async def test_context_cleanup_preserves_outer_locale(raise_error: bool) -> None
                 await middleware.dispatch(request, call_next)
         else:
             response = await middleware.dispatch(request, call_next)
-            assert json.loads(response.body)['msg'] == 'Operation successful'
+            assert json.loads(bytes(response.body))['msg'] == 'Operation successful'
         assert RequestContext.get_current_locale() == context
     finally:
         RequestContext.reset_current_locale(token)
@@ -300,7 +312,7 @@ def test_explicit_message_key_takes_precedence_in_both_languages() -> None:
     token = RequestContext.set_current_locale(LocaleContext('en-US'))
     try:
         response = ResponseUtil.success('旧文案', msg_key='profile.localeSaved')
-        assert json.loads(response.body)['msg'] == 'Language preference saved'
+        assert json.loads(bytes(response.body))['msg'] == 'Language preference saved'
         assert I18nUtil.message_fields('custom original')['msg'] == 'custom original'
         assert I18nUtil.translate('missing.internal.key') != 'missing.internal.key'
     finally:
@@ -313,6 +325,12 @@ async def test_t_uses_call_time_context_and_keeps_explicit_locale_local() -> Non
     original = RequestContext.get_current_locale()
 
     async def render(locale: str) -> tuple[str, str, str]:
+        """
+        在指定语言上下文中渲染测试消息。
+
+        :param locale: 当前使用的语言区域标识
+        :return: 渲染文本及用于对照的期望值
+        """
         context = LocaleContext(locale)
         token = RequestContext.set_current_locale(context)
         try:
@@ -334,6 +352,13 @@ def test_t_interpolates_parameters_and_preserves_safe_fallback(monkeypatch: pyte
     """验证参数插值、缺词回退和通用提示。"""
 
     def load_catalog(code: str, domain: str = 'core') -> gettext.GNUTranslations:
+        """
+        构建指定语言的测试消息目录。
+
+        :param code: 与当前结果对应的编码
+        :param domain: 用于查找翻译消息的域
+        :return: 指定语言的测试消息目录
+        """
         catalog = Catalog(locale=code.replace('-', '_'))
         if code == 'zh-CN':
             catalog.add('example.greeting', '你好，%(name)s')
@@ -358,6 +383,11 @@ async def test_api_cache_uses_effective_language() -> None:
     """验证相同有效语言共享缓存，不同语言分别缓存。"""
 
     async def receive() -> Message:
+        """
+        提供下游 ASGI 应用读取的 HTTP 请求体消息。
+
+        :return: 下游 ASGI 应用读取的 HTTP 请求体消息
+        """
         return {'type': 'http.request', 'body': b''}
 
     request = Request(
@@ -382,7 +412,7 @@ async def test_locale_endpoint_only_changes_current_account() -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     try:
         async with engine.begin() as connection:
-            await connection.run_sync(SysUser.__table__.create)
+            await connection.run_sync(SysUser.get_table().create)
         sessions = async_sessionmaker(engine, expire_on_commit=False)
         async with sessions() as db:
             db.add_all(
@@ -396,7 +426,7 @@ async def test_locale_endpoint_only_changes_current_account() -> None:
             response = await inspect.unwrap(change_system_user_locale)(
                 SimpleNamespace(), UserLocaleModel(locale='ja-JP'), db, current
             )
-            assert json.loads(response.body)['data']['locale'] == 'ja-JP'
+            assert json.loads(bytes(response.body))['data']['locale'] == 'ja-JP'
         async with sessions() as db:
             users = (await db.scalars(select(SysUser).order_by(SysUser.user_id))).all()
             assert [user.locale for user in users] == ['ja-JP', 'zh-CN']

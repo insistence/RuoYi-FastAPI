@@ -11,20 +11,18 @@ from utils.log_util import logger
 
 
 class RedisUtil:
-    """
-    Redis相关方法
-    """
+    """Redis相关方法。"""
 
     @classmethod
     async def create_redis_pool(cls, log_enabled: bool = True, log_start_enabled: bool | None = None) -> aioredis.Redis:
         """
-        应用启动时初始化redis连接
+        应用启动时初始化redis连接。
 
         :param log_enabled: 是否输出日志
         :param log_start_enabled: 是否输出开始连接日志
         :return: Redis连接对象
         """
-        redis = await aioredis.from_url(
+        redis = aioredis.Redis.from_url(
             url=f'redis://{RedisConfig.redis_host}',
             port=RedisConfig.redis_port,
             username=RedisConfig.redis_username,
@@ -33,6 +31,7 @@ class RedisUtil:
             encoding='utf-8',
             decode_responses=True,
         )
+        await redis.initialize()
         if log_start_enabled is None:
             log_start_enabled = log_enabled
         if log_enabled or log_start_enabled:
@@ -48,13 +47,12 @@ class RedisUtil:
         log_error_enabled: bool | None = None,
     ) -> None:
         """
-        检查redis连接状态
+        检查redis连接状态。
 
         :param redis: redis对象
         :param log_enabled: 是否输出成功日志
         :param log_start_enabled: 是否输出开始连接日志
         :param log_error_enabled: 是否输出错误日志，未指定时沿用log_enabled
-        :return: None
         """
         if log_start_enabled is None:
             log_start_enabled = log_enabled
@@ -82,21 +80,19 @@ class RedisUtil:
     @classmethod
     async def close_redis_pool(cls, app: FastAPI) -> None:
         """
-        应用关闭时关闭redis连接
+        应用关闭时关闭redis连接。
 
         :param app: fastapi对象
-        :return:
         """
         await app.state.redis.close()
         logger.debug('✅️ 关闭redis连接成功')
 
     @classmethod
-    async def init_sys_dict(cls, redis: FastAPI) -> None:
+    async def init_sys_dict(cls, redis: aioredis.Redis) -> None:
         """
-        应用启动时缓存字典表
+        应用启动时缓存字典表。
 
         :param redis: redis对象
-        :return:
         """
         async with DataSourceRegistry.session() as session:
             await DictDataService.init_cache_sys_dict_services(session, redis)
@@ -104,10 +100,9 @@ class RedisUtil:
     @classmethod
     async def init_sys_config(cls, redis: aioredis.Redis) -> None:
         """
-        应用启动时缓存参数配置表
+        应用启动时缓存参数配置表。
 
         :param redis: redis对象
-        :return:
         """
         async with DataSourceRegistry.session() as session:
             await ConfigService.init_cache_sys_config_services(session, redis)

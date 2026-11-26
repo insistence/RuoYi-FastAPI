@@ -1,11 +1,12 @@
 import json
 from collections.abc import AsyncIterator
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 import yaml
+from agno.agent import Agent
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from cli.runtime.plugin.support import PluginDependencyLockfileTemplateBuilder
 from common.context import LocaleContext, RequestContext
@@ -42,12 +43,20 @@ async def test_stream_error_uses_captured_locale_after_request_context_changes()
     """验证请求语言改变后，流式错误仍使用创建时的快照。"""
 
     async def broken_stream(*args: object, **kwargs: object) -> AsyncIterator[object]:
+        """
+        模拟读取模型响应流期间发生错误。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模型提供方内部错误
+        :yield: 上下文就绪后将控制权交给调用方
+        """
         raise RuntimeError('模型提供方内部错误')
         yield
 
     stream = AiChatService._stream_agent(
-        agent=SimpleNamespace(arun=broken_stream),
-        chat_req=AiChatRequestModel(modelId=1, message='请保留这段用户输入'),
+        agent=Mock(spec=Agent, arun=broken_stream),
+        chat_req=AiChatRequestModel(model_id=1, message='请保留这段用户输入'),
         run_kwargs={},
         is_reasoning=False,
         session_id='session',
@@ -75,7 +84,7 @@ async def test_stream_setup_failure_is_a_localized_event(monkeypatch: pytest.Mon
     """验证流初始化失败时返回本地化错误事件。"""
     monkeypatch.setattr(AiModelDao, 'get_ai_model_detail_by_id', AsyncMock(return_value=None))
     stream = AiChatService.chat_services(
-        object(), AiChatRequestModel(modelId=1, message='Hello'), 1, locale_context=LocaleContext('en-US')
+        AsyncSession(), AiChatRequestModel(model_id=1, message='Hello'), 1, locale_context=LocaleContext('en-US')
     )
     events = [json.loads(frame) async for frame in stream]
     assert events == [

@@ -1,18 +1,19 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ruoyi-fastapi-backend-cli"
 version = "2.0.0"
 description = "RuoYi-FastAPI backend internal CLI entrypoint"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.scripts]
 ruoyi = "cli.main:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+asyncio_default_fixture_loop_scope = "fixture-scope"
 markers = [
     "browser: requires a real browser and the frontend network test host",
     "native: requires a prebuilt native plugin artifact",

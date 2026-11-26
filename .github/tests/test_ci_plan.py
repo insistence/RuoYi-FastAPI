@@ -5,6 +5,7 @@ import pytest
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'scripts' / 'ci_plan.py'
 SPEC = importlib.util.spec_from_file_location('ci_plan', SCRIPT)
+assert SPEC is not None and SPEC.loader is not None, SCRIPT
 ci = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ci)
 FRONTEND_PROJECT_COUNT = 6
@@ -160,14 +161,17 @@ def test_full_run_preserves_python_database_and_framework_combinations() -> None
     plan = ci.build_plan([], full=True)
     assert all(plan['required'].values())
     assert len(plan['e2e_matrix']['include']) == FULL_E2E_COMBINATION_COUNT
-    assert {row['python'] for row in plan['e2e_matrix']['include']} == {'3.10', '3.11', '3.12', '3.13', '3.14'}
+    assert {row['python'] for row in plan['e2e_matrix']['include']} == {'3.11', '3.12', '3.13', '3.14', '3.15'}
 
 
 @pytest.mark.parametrize('result', ['failure', 'cancelled', 'skipped', None])
 def test_gate_rejects_unsuccessful_required_job(result: str | None) -> None:
     """必跑任务失败、取消、跳过或缺失均不能通过门禁。"""
     plan = ci.build_plan(['README.md'])
-    needs = {'plan': {'result': 'success'}, **{name: {'result': 'skipped'} for name in ci.CATEGORIES}}
+    needs: dict[str, dict[str, str | None]] = {
+        'plan': {'result': 'success'},
+        **{name: {'result': 'skipped'} for name in ci.CATEGORIES},
+    }
     needs['quality']['result'] = result
     assert ci.check_results(plan, needs)
 

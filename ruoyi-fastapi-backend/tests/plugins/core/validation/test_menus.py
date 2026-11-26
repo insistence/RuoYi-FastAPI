@@ -5,7 +5,13 @@ from plugins.core.validation.menus import PluginMenuConflictChecker
 
 
 def write_manifest(plugin_dir: Path, content: str) -> Path:
-    """写入测试插件清单。"""
+    """
+    写入测试插件清单。
+
+    :param plugin_dir: 保存插件清单和资源的目录
+    :param content: 需要读取或写入的内容
+    :return: 供调用方使用的 ``manifest_path``
+    """
     plugin_dir.mkdir(parents=True)
     manifest_path = plugin_dir / 'plugin.yaml'
     manifest_path.write_text(content, encoding='utf-8')
@@ -13,7 +19,13 @@ def write_manifest(plugin_dir: Path, content: str) -> Path:
 
 
 def load_plugin(backend_root: Path, plugin_id: str) -> DiscoveredPlugin:
-    """加载测试插件。"""
+    """
+    加载测试插件。
+
+    :param backend_root: 后端项目的根目录
+    :param plugin_id: 插件清单中的唯一标识
+    :return: 测试插件
+    """
     return PluginScanner(backend_root / 'plugins').load_manifest(backend_root / 'plugins' / plugin_id / 'plugin.yaml')
 
 

@@ -1,6 +1,6 @@
 line-length = 120
 show-fixes = true
-target-version = "py310"
+target-version = "py311"
 unsafe-fixes = true
 
 [lint]
@@ -12,6 +12,8 @@ select = [
     "A",      # flake8-builtins
     "COM",    # flake8-commas
     "C4",     # flake8-comprehensions
+    "D",      # pydocstyle
+    "D213",   # Start multiline docstring summaries on the second line.
     "ISC",    # flake8-implicit-str-concat
     "ICN",    # flake8-import-conventions
     "PIE",    # flake8-pie
@@ -37,6 +39,11 @@ ignore = [
     "ANN401", # dynamically typed expressions (typing.Any) are disallowed in {name}
     "B008",   # do not perform function calls in argument defaults
     "COM812", # trailing comma missing
+    "D100",   # The project forbids module docstrings.
+    "D102",   # The project checks method docstrings and exempts route handlers.
+    "D103",   # The project checks function docstrings and exempts route handlers.
+    "D104",   # The module docstring ban also applies to package __init__.py files.
+    "D400",   # dev lint checks terminal punctuation in both Chinese and English
     "RET504", # unnecessary assignment to {name} before return statement
     "SIM105", # use contextlib.suppress({exception}) instead of try-except-pass
     "C901",   # too complex
@@ -49,11 +56,19 @@ ignore = [
     "RUF012", # mutable class attributes should be annotated with typing.ClassVar
 ]
 
+[lint.per-file-ignores]
+"alembic/env.py" = ["D"]  # Preserve Alembic's original documentation.
+"common/router.py" = ["D107", "D205"]  # Preserve the original APIRouterPro constructor and documentation.
+
 [lint.flake8-type-checking]
 runtime-evaluated-base-classes = ["pydantic.BaseModel", "sqlalchemy.orm.DeclarativeBase"]
 
 [lint.isort]
 known-third-party = ["alembic"]
+
+[lint.pydocstyle]
+# Use general layout rules; parameters and return values use reST fields.
+convention = "pep257"
 
 [lint.pylint]
 max-args = 10

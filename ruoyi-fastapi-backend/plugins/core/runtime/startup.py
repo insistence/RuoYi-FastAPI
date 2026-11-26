@@ -45,6 +45,9 @@ from utils.log_util import logger
 class PluginStartupMigrationHistoryStore(PluginMigrationHistoryStore):
     """
     启动期插件 migration 历史存储适配器。
+
+    :ivar management_gateway: 插件启动期管理端口
+    :ivar async_session_local: 独立数据库会话工厂
     """
 
     def __init__(self, management_gateway: PluginStartupManagementGateway, async_session_local: Any = None) -> None:
@@ -53,7 +56,6 @@ class PluginStartupMigrationHistoryStore(PluginMigrationHistoryStore):
 
         :param management_gateway: 插件启动期管理端口
         :param async_session_local: 独立数据库会话工厂
-        :return: None
         """
         self.management_gateway = management_gateway
         self.async_session_local = async_session_local
@@ -99,7 +101,6 @@ class PluginStartupMigrationHistoryStore(PluginMigrationHistoryStore):
         :param checksum: 内容校验值
         :param version: 执行时插件版本
         :param statement_count: SQL 语句数量
-        :return: None
         """
         await self._add_plugin_migration(
             query_db,
@@ -131,7 +132,6 @@ class PluginStartupMigrationHistoryStore(PluginMigrationHistoryStore):
         :param checksum: 内容校验值
         :param version: 执行时插件版本
         :param statement_count: SQL 语句数量
-        :return: None
         """
         await self._add_plugin_migration(
             query_db,
@@ -164,7 +164,6 @@ class PluginStartupMigrationHistoryStore(PluginMigrationHistoryStore):
         :param version: 执行时插件版本
         :param statement_count: SQL 语句数量
         :param error_message: 失败错误信息
-        :return: None
         """
         await self._add_plugin_migration(
             query_db,
@@ -185,7 +184,6 @@ class PluginStartupMigrationHistoryStore(PluginMigrationHistoryStore):
 
         :param query_db: 当前启动期 orm对象
         :param plugin_migration: migration 历史模型
-        :return: None
         """
         if self.async_session_local is None:
             await self.management_gateway.add_plugin_migration(query_db, plugin_migration)
@@ -202,6 +200,14 @@ class PluginRuntimeStartupManager:
 
     将插件发现、实体导入、资源安装、路由注册和生命周期钩子从应用入口中隔离出来，
     让 server.py 只保留高层启动顺序。
+
+    :ivar builder: 插件运行时构建器
+    :ivar management_gateway: 插件启动期管理端口
+    :ivar route_state_gateway: 插件路由状态读取端口
+    :ivar python_dependency_inspector_factory: Python 依赖检查器工厂
+    :ivar python_dependency_inspector: Python 依赖检查器
+    :ivar command_runner_gateway: 插件命令执行网关
+    :ivar default_enabled_builtin_plugin_ids: 首次启动默认安装启用的内置插件 ID 集合
     """
 
     def __init__(
@@ -224,7 +230,6 @@ class PluginRuntimeStartupManager:
         :param python_dependency_inspector_factory: Python 依赖检查器工厂
         :param command_runner_gateway: 插件命令执行网关
         :param default_enabled_builtin_plugin_ids: 首次启动默认安装启用的内置插件 ID 集合
-        :return: None
         """
         self.builder = builder or PluginRuntimeBuilder()
         self.management_gateway = management_gateway or UnavailablePluginStartupManagementGateway()
@@ -243,7 +248,6 @@ class PluginRuntimeStartupManager:
         绑定插件运行时对象到 FastAPI state。
 
         :param app: FastAPI对象
-        :return: None
         """
         app.state.plugin_runtime_startup = self
         app.state.plugin_runtime_builder = self.builder
@@ -253,11 +257,7 @@ class PluginRuntimeStartupManager:
             app.state.plugin_routes_registered = False
 
     def import_builtin_entities(self) -> None:
-        """
-        导入内置业务模块实体。
-
-        :return: None
-        """
+        """导入内置业务模块实体。"""
         self.builder.import_builtin_entities()
 
     @staticmethod
@@ -276,7 +276,6 @@ class PluginRuntimeStartupManager:
 
         :param app: FastAPI对象
         :param startup_write_enabled: 是否允许执行启动期写库操作
-        :return: None
         """
         default_dependency_failed_plugin_ids: set[str] = set()
         if startup_write_enabled:
@@ -300,11 +299,10 @@ class PluginRuntimeStartupManager:
 
     async def prepare_enabled_plugin_catalogs(self, app: FastAPI, *, startup_write_enabled: bool) -> None:
         """
-        为当前工作进程加载插件词库，失败时仅隔离相应插件
+        为当前工作进程加载插件词库，失败时仅隔离相应插件。
 
         :param app: 宿主 FastAPI 应用
         :param startup_write_enabled: 是否允许执行启动期全局写入
-        :return: None
         """
         registry = getattr(app.state, 'plugin_registry', None)
         if not isinstance(registry, PluginRegistry):
@@ -313,7 +311,7 @@ class PluginRuntimeStartupManager:
         for plugin in registry.list_enabled_plugins():
             try:
                 CatalogRegistry.register_plugin(plugin.plugin_id, plugin.discovered_plugin.backend_path)
-            except (OSError, ValueError, KeyError, TypeError) as exc:  # noqa: PERF203 - 启动时逐插件隔离失败。
+            except (OSError, ValueError, KeyError, TypeError) as exc:
                 failures.add(plugin.plugin_id)
                 logger.error(f'插件词库加载失败：{plugin.plugin_id}，{exc}')
                 if startup_write_enabled:
@@ -326,7 +324,6 @@ class PluginRuntimeStartupManager:
 
         :param app: 宿主 FastAPI 应用
         :param startup_write_enabled: 当前 worker 是否允许执行启动期全局写入
-        :return: None
         """
         registry = getattr(app.state, 'plugin_registry', None)
         if not isinstance(registry, PluginRegistry):
@@ -377,12 +374,12 @@ class PluginRuntimeStartupManager:
 
         :param app: 宿主 FastAPI 应用
         :param startup_write_enabled: 当前 worker 是否允许执行启动期全局写入
-        :return: None
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         runtime = getattr(app.state, 'plugin_explicit_runtime', None)
         if not isinstance(runtime, ExplicitPluginRuntime):
             return
-        registry = getattr(app.state, 'plugin_registry', None)
+        registry: PluginRegistry = app.state.plugin_registry
         enabled = {plugin.plugin_id for plugin in registry.list_enabled_plugins()}
         failures: set[str] = set()
         try:
@@ -518,7 +515,7 @@ class PluginRuntimeStartupManager:
         database_plugin = plugin.database_plugin
         last_error = getattr(database_plugin, 'last_error', None) if database_plugin else None
         return (
-            getattr(database_plugin, 'status', None) == 'error'
+            bool(getattr(database_plugin, 'status', None) == 'error')
             and isinstance(last_error, str)
             and last_error.startswith(PLUGIN_STARTUP_DEPENDENCY_ERROR_PREFIX)
         )
@@ -536,7 +533,6 @@ class PluginRuntimeStartupManager:
 
         :param app: FastAPI对象
         :param plugins: 依赖已恢复的插件列表
-        :return: None
         """
         recovered = False
         async with DataSourceRegistry.session() as query_db:
@@ -655,7 +651,6 @@ class PluginRuntimeStartupManager:
         安装插件 Python 依赖。
 
         :param dependency_result: 依赖检查结果
-        :return: None
         """
         install_plan = PluginDependencyInstallPlanner().build_plan(dependency_result)
         for item in install_plan.items:
@@ -680,7 +675,6 @@ class PluginRuntimeStartupManager:
 
         :param app: FastAPI对象
         :param startup_write_enabled: 是否允许执行启动期写库操作
-        :return: None
         """
         if startup_write_enabled:
             await self.sync_enabled_plugin_install_states(app)
@@ -695,7 +689,6 @@ class PluginRuntimeStartupManager:
 
         :param app: FastAPI对象
         :param startup_write_enabled: 是否允许执行启动期写库操作
-        :return: None
         """
         runtime = getattr(app.state, 'plugin_explicit_runtime', None)
         try:
@@ -715,7 +708,6 @@ class PluginRuntimeStartupManager:
         从数据库插件状态构建运行时插件注册表。
 
         :param app: FastAPI对象
-        :return: None
         """
         async with DataSourceRegistry.session() as query_db:
             plugin_list = await self.management_gateway.list_plugins(query_db)
@@ -767,7 +759,6 @@ class PluginRuntimeStartupManager:
         不再回滚其他插件或阻断宿主应用启动。
 
         :param app: FastAPI对象
-        :return: None
         """
         plugin_registry = getattr(app.state, 'plugin_registry', None)
         if plugin_registry is None:
@@ -789,7 +780,6 @@ class PluginRuntimeStartupManager:
 
         :param app: FastAPI对象
         :param plugin: 插件运行时快照
-        :return: None
         """
         with logger.contextualize(
             plugin_id=plugin.plugin_id,
@@ -821,7 +811,6 @@ class PluginRuntimeStartupManager:
         将默认启用且尚未持久化安装状态的插件标记为已安装。
 
         :param app: FastAPI对象
-        :return: None
         """
         plugin_registry = getattr(app.state, 'plugin_registry', None)
         if plugin_registry is None:
@@ -850,7 +839,6 @@ class PluginRuntimeStartupManager:
 
         :param app: FastAPI对象
         :param plugin: 插件运行时快照
-        :return: None
         """
         try:
             await self.sync_plugin_install(plugin.discovered_plugin, enabled=True)
@@ -869,7 +857,7 @@ class PluginRuntimeStartupManager:
 
         :param discovered_plugin: 已发现插件对象
         :param enabled: 插件资源是否启用
-        :return: None
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         plugin_id = discovered_plugin.manifest.id
         with logger.contextualize(
@@ -908,7 +896,6 @@ class PluginRuntimeStartupManager:
 
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
-        :return: None
         """
         await PluginHookRunner(discovered_plugin).run('on_install', query_db=query_db)
 
@@ -917,7 +904,6 @@ class PluginRuntimeStartupManager:
         校验启动期首次安装插件的目录和声明引用。
 
         :param discovered_plugin: 已发现插件对象
-        :return: None
         :raises ValueError: 插件结构校验失败
         """
         result = PluginStructureChecker(
@@ -943,9 +929,8 @@ class PluginRuntimeStartupManager:
         database_plugin = plugin.database_plugin
         if database_plugin is None:
             return True
-        return (
-            not getattr(database_plugin, 'installed_version', None)
-            and getattr(database_plugin, 'status', None) == 'discovered'
+        return not getattr(database_plugin, 'installed_version', None) and bool(
+            getattr(database_plugin, 'status', None) == 'discovered'
         )
 
     async def run_plugin_install_scripts(self, query_db: Any, discovered_plugin: Any) -> None:
@@ -954,7 +939,6 @@ class PluginRuntimeStartupManager:
 
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
-        :return: None
         """
         async with DataSourceRegistry.session() as migration_session:
             await PluginMigrationRunner(
@@ -971,7 +955,6 @@ class PluginRuntimeStartupManager:
 
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
-        :return: None
         """
         await PluginSeedRunner(discovered_plugin).run(query_db)
 
@@ -986,7 +969,6 @@ class PluginRuntimeStartupManager:
 
         :param app: FastAPI对象
         :param startup_write_enabled: 当前worker是否为插件启动writer
-        :return: None
         """
         if getattr(app.state, 'plugin_routes_registered', False):
             return
@@ -1072,7 +1054,6 @@ class PluginRuntimeStartupManager:
         :param app: FastAPI对象
         :param hook_name: 钩子名称
         :param startup_write_enabled: 是否允许执行启动期写库操作
-        :return: None
         """
         plugin_registry = getattr(app.state, 'plugin_registry', None)
         if plugin_registry is None:
@@ -1101,7 +1082,6 @@ class PluginRuntimeStartupManager:
         :param plugin: 插件运行时快照
         :param hook_name: 钩子名称
         :param startup_write_enabled: 是否允许执行启动期写库操作
-        :return: None
         """
         try:
             await PluginHookRunner(plugin.discovered_plugin).run(
@@ -1130,7 +1110,6 @@ class PluginRuntimeStartupManager:
         :param app: FastAPI对象
         :param plugin_id: 插件ID
         :param error_message: 错误信息
-        :return: None
         """
         registered_plugin = self.get_registered_plugin(app, plugin_id)
         if registered_plugin and is_artifact_plugin(registered_plugin.discovered_plugin):
@@ -1223,7 +1202,6 @@ class PluginRuntimeStartupManager:
 
         :param discovered_plugin: 已发现插件对象
         :param error_message: 错误信息
-        :return: None
         """
         plugin_id = discovered_plugin.manifest.id
         async with DataSourceRegistry.session() as query_db:
@@ -1270,8 +1248,8 @@ class PluginRuntimeStartupManager:
             return True
         return (
             not getattr(database_plugin, 'installed_version', None)
-            and getattr(database_plugin, 'status', None) == 'discovered'
-            and getattr(database_plugin, 'enabled', None) == '0'
+            and bool(getattr(database_plugin, 'status', None) == 'discovered')
+            and bool(getattr(database_plugin, 'enabled', None) == '0')
         )
 
     @staticmethod
@@ -1281,7 +1259,6 @@ class PluginRuntimeStartupManager:
 
         :param app: FastAPI对象
         :param plugin_ids: 需要在当前 worker 跳过的插件 ID 集合
-        :return: None
         """
         if not plugin_ids:
             return
@@ -1313,7 +1290,7 @@ class PluginRuntimeStartupManager:
         :param plugin_id: 插件ID
         :return: 插件运行时快照
         """
-        plugin_registry = getattr(app.state, 'plugin_registry', None)
+        plugin_registry: PluginRegistry | None = getattr(app.state, 'plugin_registry', None)
         if plugin_registry is None:
             return None
 

@@ -1,5 +1,14 @@
+from __future__ import annotations
+
 from importlib import import_module
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from plugins.core.environment import PluginRuntimeEnvironmentService
+    from plugins.core.management.service.gateway import PluginManagementRuntimeGateway
+    from plugins.core.runtime.service import PluginRuntimeService
+    from plugins.core.runtime.service.dependency_container import PluginRuntimeGatewayOverrides
+    from plugins.core.runtime.service.lifecycle_lock import PluginLifecycleLock
 
 
 class PluginRuntimeGateway:
@@ -7,11 +16,11 @@ class PluginRuntimeGateway:
     插件 CLI 运行时网关。
 
     该对象负责延迟加载插件核心运行时与管理适配器，避免导入
-    `cli.runtime.plugin` 时立即加载 `plugins.core`。
+    ``cli.runtime.plugin`` 时立即加载 ``plugins.core``。
     """
 
     @staticmethod
-    def get_core_runtime_service_class() -> Any:
+    def get_core_runtime_service_class() -> type[PluginRuntimeService]:
         """
         获取插件核心运行时服务类。
 
@@ -20,7 +29,7 @@ class PluginRuntimeGateway:
         return import_module('plugins.core.runtime.service').PluginRuntimeService
 
     @staticmethod
-    def get_core_runtime_gateway_overrides_class() -> Any:
+    def get_core_runtime_gateway_overrides_class() -> type[PluginRuntimeGatewayOverrides]:
         """
         获取插件核心运行时窄端口覆盖项类。
 
@@ -29,7 +38,7 @@ class PluginRuntimeGateway:
         return import_module('plugins.core.runtime.service.dependency_container').PluginRuntimeGatewayOverrides
 
     @staticmethod
-    def get_management_runtime_gateway() -> Any:
+    def get_management_runtime_gateway() -> PluginManagementRuntimeGateway:
         """
         获取插件管理运行时适配器。
 
@@ -39,7 +48,7 @@ class PluginRuntimeGateway:
         return gateway_class()
 
     @staticmethod
-    def get_core_runtime_environment() -> Any:
+    def get_core_runtime_environment() -> PluginRuntimeEnvironmentService:
         """
         获取插件核心运行时环境服务。
 
@@ -48,7 +57,7 @@ class PluginRuntimeGateway:
         return import_module('plugins.core.environment').PLUGIN_RUNTIME_ENVIRONMENT
 
     @staticmethod
-    def get_core_lifecycle_lock() -> Any:
+    def get_core_lifecycle_lock() -> PluginLifecycleLock:
         """
         获取插件核心生命周期分布式锁。
 

@@ -1,6 +1,6 @@
 import base64
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -70,12 +70,7 @@ def rotated_archive(deployment_config: Any, deployment_source: Path, tmp_path: P
 
 @pytest.mark.asyncio
 async def test_prune_defaults_are_readonly_and_keep_recent(maintenance: Any) -> None:
-    """
-    验证默认预演保留最近导入对象。
-
-    :param maintenance: 维护服务与制品
-    :return: None
-    """
+    """验证默认预演保留最近导入对象。"""
     service, stored = maintenance
     plan = await service.prune()
     assert plan['dryRun'] and not plan['candidates']
@@ -86,13 +81,7 @@ async def test_prune_defaults_are_readonly_and_keep_recent(maintenance: Any) -> 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('reference', ['target_digest', 'previous_digest', 'prepared_digest', 'worker'])
 async def test_prune_protects_release_and_stale_worker_references(maintenance: Any, reference: str) -> None:
-    """
-    验证发布、回滚和过期但未停止的进程引用均阻止清理。
-
-    :param maintenance: 维护服务与制品
-    :param reference: 受保护引用类型
-    :return: None
-    """
+    """验证发布、回滚和过期但未停止的进程引用均阻止清理。"""
     service, stored = maintenance
     async with service.session_factory() as db:
         if reference == 'worker':
@@ -116,13 +105,7 @@ async def test_prune_protects_release_and_stale_worker_references(maintenance: A
 @pytest.mark.asyncio
 @pytest.mark.parametrize('orphan', [False, True])
 async def test_prune_removes_only_reviewed_objects_and_audits(maintenance: Any, orphan: bool) -> None:
-    """
-    验证已登记和孤儿对象均须按计划清理，并写入审计。
-
-    :param maintenance: 维护服务与制品
-    :param orphan: 是否模拟索引未提交的孤儿对象
-    :return: None
-    """
+    """验证已登记和孤儿对象均须按计划清理，并写入审计。"""
     service, stored = maintenance
     if orphan:
         async with service.session_factory() as db:
@@ -143,13 +126,7 @@ async def test_prune_removes_only_reviewed_objects_and_audits(maintenance: Any, 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('failure', ['changed-plan', 'missing-maintenance', 'live-worker'])
 async def test_prune_guards_before_mutating(maintenance: Any, failure: str) -> None:
-    """
-    验证计划、维护确认和存活进程检查均早于文件变更。
-
-    :param maintenance: 维护服务与制品
-    :param failure: 待验证的拒绝原因
-    :return: None
-    """
+    """验证计划、维护确认和存活进程检查均早于文件变更。"""
     service, stored = maintenance
     plan = await service.prune(keep_last=0, min_age_days=0)
     if failure == 'live-worker':
@@ -173,12 +150,7 @@ async def test_prune_guards_before_mutating(maintenance: Any, failure: str) -> N
 
 @pytest.mark.asyncio
 async def test_tampered_objects_are_reported_and_never_pruned(maintenance: Any) -> None:
-    """
-    验证损坏内容不会自动获得删除资格。
-
-    :param maintenance: 维护服务与制品
-    :return: None
-    """
+    """验证损坏内容不会自动获得删除资格。"""
     service, stored = maintenance
     (stored.plugin_path / '__init__.py').write_text('tampered')
     plan = await service.prune(keep_last=0, min_age_days=0)
@@ -191,13 +163,7 @@ async def test_interrupted_prune_restores_before_commit_and_finishes_after_commi
     maintenance: Any,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """
-    验证事务失败后恢复原目录，提交成功后恢复继续清理。
-
-    :param maintenance: 维护服务与制品
-    :param monkeypatch: 故障注入工具
-    :return: None
-    """
+    """验证事务失败后恢复原目录，提交成功后恢复继续清理。"""
     service, stored = maintenance
     plan = await service.prune(keep_last=0, min_age_days=0)
     with monkeypatch.context() as patcher:
@@ -230,14 +196,7 @@ async def test_rotation_preserves_content_digest_and_accepts_revoked_old_key(
     rotated_archive: Path,
     revoke_old: bool,
 ) -> None:
-    """
-    验证新签名可独立证明现有内容，旧密钥撤销不阻止恢复可信签名。
-
-    :param maintenance: 维护服务与制品
-    :param rotated_archive: 新密钥签名制品
-    :param revoke_old: 是否撤销旧密钥
-    :return: None
-    """
+    """验证新签名可独立证明现有内容，旧密钥撤销不阻止恢复可信签名。"""
     service, stored = maintenance
     original = (stored.plugin_path / '__init__.py').read_bytes()
     if revoke_old:
@@ -256,14 +215,7 @@ async def test_rotation_preserves_content_digest_and_accepts_revoked_old_key(
 async def test_rotation_refuses_invalid_content_or_identity(
     maintenance: Any, rotated_archive: Path, failure: str
 ) -> None:
-    """
-    验证内容、索引 CAS 和发布者授权均在签名替换前检查。
-
-    :param maintenance: 维护服务与制品
-    :param rotated_archive: 新签名制品
-    :param failure: 故障类型
-    :return: None
-    """
+    """验证内容、索引 CAS 和发布者授权均在签名替换前检查。"""
     service, stored = maintenance
     signature = (stored.root_path / 'signature.json').read_bytes()
     if failure == 'tampered':
@@ -286,14 +238,7 @@ async def test_failed_rotation_reconciles_to_committed_key(
     rotated_archive: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """
-    验证签名替换后事务失败可恢复旧签名并再次成功轮换。
-
-    :param maintenance: 维护服务与制品
-    :param rotated_archive: 新签名制品
-    :param monkeypatch: 故障注入工具
-    :return: None
-    """
+    """验证签名替换后事务失败可恢复旧签名并再次成功轮换。"""
     service, stored = maintenance
     with monkeypatch.context() as patcher:
         patcher.setattr(service, '_audit', AsyncMock(side_effect=RuntimeError('audit failed')))
@@ -308,12 +253,7 @@ async def test_failed_rotation_reconciles_to_committed_key(
 
 @pytest.mark.asyncio
 async def test_reconcile_rejects_path_escape(maintenance: Any) -> None:
-    """
-    验证篡改维护日志不能指向存储外路径。
-
-    :param maintenance: 维护服务与制品
-    :return: None
-    """
+    """验证篡改维护日志不能指向存储外路径。"""
     service, stored = maintenance
     service._write_journal({'digest': stored.digest, 'relativePath': '../outside', 'action': 'prune'})
     with pytest.raises(ValueError, match='路径'):
@@ -323,29 +263,21 @@ async def test_reconcile_rejects_path_escape(maintenance: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_import_holds_lifecycle_lock_until_index_commit(maintenance: Any, deployment_archive: Path) -> None:
-    """
-    验证导入在写索引和提交完成前不会释放与清理共用的生命周期锁。
-
-    :param maintenance: 维护服务与制品
-    :param deployment_archive: 已验证测试制品
-    :return: None
-    """
+    """验证导入在写索引和提交完成前不会释放与清理共用的生命周期锁。"""
     service, stored = maintenance
     events = []
 
     class TrackingLock:
-        """
-        记录文件发布和索引写入是否在同一锁范围内。
-        """
+        """记录文件发布和索引写入是否在同一锁范围内。"""
 
         @asynccontextmanager
-        async def lock(self, plugin_id: str, operation: str) -> AsyncIterator[PluginLifecycleLockResult]:
+        async def lock(self, plugin_id: str, operation: str) -> AsyncGenerator[PluginLifecycleLockResult, None]:
             """
             记录导入锁进入与退出顺序。
 
             :param plugin_id: 生命周期操作命名空间
             :param operation: 操作类型
-            :return: 已获取锁的上下文
+            :yield: 已获取锁的上下文
             """
             assert (plugin_id, operation) == ('__artifacts__', 'artifact_import')
             events.append('locked')
@@ -355,9 +287,7 @@ async def test_import_holds_lifecycle_lock_until_index_commit(maintenance: Any, 
             events.append('released')
 
     class TrackingDao(PluginReleaseDao):
-        """
-        记录索引登记时锁仍有效。
-        """
+        """记录索引登记时锁仍有效。"""
 
         @classmethod
         async def register_artifact(cls, db: Any, **values: Any) -> SysPluginArtifact:

@@ -7,11 +7,18 @@ class StatusCarrier(Protocol):
     """
     状态载体协议。
 
-    该协议用于描述首页面板、详情分区和浏览记录这类具备 `status`
+    该协议用于描述首页面板、详情分区和浏览记录这类具备 ``status``
     属性的摘要统计对象。
     """
 
-    status: str
+    @property
+    def status(self) -> str:
+        """
+        获取面板、分区或记录的状态。
+
+        :return: 当前状态
+        """
+        ...
 
 
 @dataclass(frozen=True)
@@ -19,10 +26,10 @@ class StatusSummary:
     """
     状态摘要统计结果。
 
-    :param total_count: 总数量
-    :param ok_count: 正常数量
-    :param warn_count: 警告数量
-    :param fail_count: 失败数量
+    :ivar total_count: 总数量
+    :ivar ok_count: 正常数量
+    :ivar warn_count: 警告数量
+    :ivar fail_count: 失败数量
     """
 
     total_count: int
@@ -35,7 +42,7 @@ class StatusSummaryBuilder:
     """
     状态摘要构建器。
 
-    该对象负责对带 `status` 属性的集合做统一计数，供 dashboard、
+    该对象负责对带 ``status`` 属性的集合做统一计数，供 dashboard、
     detail、browser 三类 screen support 复用。
     """
 

@@ -3,7 +3,7 @@ import logging
 import sys
 import time
 import traceback
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from concurrent.futures import Future
 from concurrent.futures.process import BrokenProcessPool
 from contextlib import contextmanager
@@ -23,7 +23,7 @@ from utils.time_util import TimezoneUtil
 
 def _missed_event(job: Job, run_time: datetime, snapshot: JobSnapshot) -> TimedJobExecutionEvent | None:
     """
-    判断本次计划是否已超过允许的延迟执行时限
+    判断本次计划是否已超过允许的延迟执行时限。
 
     :param job: 调度器任务对象
     :param run_time: 本次计划执行时刻
@@ -46,9 +46,9 @@ def _execution(
     logger_name: str,
     *,
     event: TimedJobExecutionEvent | None = None,
-) -> Iterator[TimedJobExecutionEvent]:
+) -> Generator[TimedJobExecutionEvent, None, None]:
     """
-    在实际调用边界记录任务起止时刻和单调耗时
+    在实际调用边界记录任务起止时刻和单调耗时。
 
     保留APScheduler对BaseException的捕获行为，异常通过执行事件回传。
 
@@ -58,7 +58,7 @@ def _execution(
     :param events: 接收执行事件的结果列表
     :param logger_name: 调度器日志名称
     :param event: 已创建的执行事件，未指定时自动创建
-    :return: 供调用方写入任务返回值的执行事件
+    :yield: 供调用方写入任务返回值的执行事件
     """
     logger = logging.getLogger(logger_name)
     event = event or TimedJobExecutionEvent(EVENT_JOB_EXECUTED, job, run_time, snapshot)
@@ -88,7 +88,7 @@ def _execution(
 
 def _claim_execution(event: TimedJobExecutionEvent) -> str | None:
     """
-    在实际调用前检查持久化并发约束，失败时生成未执行事件
+    在实际调用前检查持久化并发约束，失败时生成未执行事件。
 
     :param event: 任务执行事件
     :return: 执行占用凭据，未获得占用时返回None
@@ -97,7 +97,7 @@ def _claim_execution(event: TimedJobExecutionEvent) -> str | None:
     try:
         claim = JobExecutionStore.claim(
             event.execution_id,
-            snapshot.job_id,
+            snapshot.require_job_id(),
             snapshot.execution_snapshot(),
             event.scheduled_run_time,
             dispatch_token=snapshot.dispatch_token,
@@ -117,13 +117,14 @@ def _claim_execution(event: TimedJobExecutionEvent) -> str | None:
 
 def _finish_execution(event: TimedJobExecutionEvent, token: str) -> None:
     """
-    保存已执行任务的终态，存储故障保留未确认占用供恢复流程处理
+    保存已执行任务的终态，存储故障保留未确认占用供恢复流程处理。
 
     :param event: 任务执行事件
     :param token: 当前执行占用凭据
-    :return: None
     """
     try:
+        if event.start_time is None or event.end_time is None or event.run_duration_ms is None:
+            raise ValueError('任务执行计时信息不完整')
         JobExecutionStore.finish(
             event.execution_id,
             token,
@@ -139,17 +140,16 @@ def _finish_execution(event: TimedJobExecutionEvent, token: str) -> None:
 
 def _record_unstarted_execution(event: TimedJobExecutionEvent) -> None:
     """
-    保存过期和执行器拒绝记录，不覆盖已经开始的执行
+    保存过期和执行器拒绝记录，不覆盖已经开始的执行。
 
     :param event: 任务执行事件
-    :return: None
     """
     if not event.snapshot.managed:
         return
     try:
         JobExecutionStore.record_unstarted(
             event.execution_id,
-            event.snapshot.job_id,
+            event.snapshot.require_job_id(),
             event.snapshot.execution_snapshot(),
             event.scheduled_run_time,
             'missed' if event.code == EVENT_JOB_MISSED else 'rejected',
@@ -164,7 +164,7 @@ def run_timed_job(
     job: Job, run_times: list[datetime], snapshot: JobSnapshot, logger_name: str
 ) -> list[TimedJobExecutionEvent]:
     """
-    执行同步任务并收集带测时信息的事件
+    执行同步任务并收集带测时信息的事件。
 
     :param job: 调度器任务对象
     :param run_times: 本次提交需要处理的计划执行时刻列表
@@ -201,7 +201,7 @@ async def run_timed_coroutine_job(
     job: Job, run_times: list[datetime], snapshot: JobSnapshot, logger_name: str
 ) -> list[TimedJobExecutionEvent]:
     """
-    执行异步任务并收集带测时信息的事件
+    执行异步任务并收集带测时信息的事件。
 
     :param job: 调度器任务对象
     :param run_times: 本次提交需要处理的计划执行时刻列表
@@ -236,7 +236,10 @@ async def run_timed_coroutine_job(
 
 class JobSubmission:
     """
-    任务提交和并发拒绝事件处理
+    任务提交和并发拒绝事件处理。
+
+    :ivar _on_rejected: 并发拒绝事件回调
+    :ivar manage_executions: 是否启用持久化执行管理
     """
 
     def __init__(
@@ -245,11 +248,10 @@ class JobSubmission:
         manage_executions: bool = False,
     ) -> None:
         """
-        初始化提交配置和拒绝事件回调
+        初始化提交配置和拒绝事件回调。
 
         :param on_rejected: 并发拒绝事件回调
         :param manage_executions: 是否启用持久化执行管理
-        :return: None
         """
         self._on_rejected = on_rejected
         self.manage_executions = manage_executions
@@ -262,13 +264,13 @@ class JobSubmission:
         job_logger: logging.Logger,
     ) -> None:
         """
-        调用执行器提交任务，达到并发上限时记录未执行事件
+        调用执行器提交任务，达到并发上限时记录未执行事件。
 
         :param submit: 执行器的原始提交方法
         :param job: 调度器任务对象
         :param run_times: 本次提交的计划执行时刻
         :param job_logger: 执行器日志对象
-        :return: None
+        :raises MaxInstancesReachedError: 任务已达到同时执行的实例数上限
         """
         try:
             submit(job, run_times)
@@ -289,7 +291,9 @@ class JobSubmission:
 
 class TimedAsyncIOExecutor(AsyncIOExecutor):
     """
-    记录真实执行耗时的异步及线程执行器
+    记录真实执行耗时的异步及线程执行器。
+
+    :ivar _submission: 关联调度提交与执行结果的状态
     """
 
     def __init__(
@@ -300,43 +304,39 @@ class TimedAsyncIOExecutor(AsyncIOExecutor):
         **kwargs,
     ) -> None:
         """
-        初始化执行器和任务提交处理对象
+        初始化执行器和任务提交处理对象。
 
         :param args: 执行器的位置参数
         :param on_rejected: 并发拒绝事件回调
         :param manage_executions: 是否启用持久化执行管理
         :param kwargs: 执行器的关键字参数
-        :return: None
         """
         super().__init__(*args, **kwargs)
         self._submission = JobSubmission(on_rejected, manage_executions)
 
     def submit_job(self, job: Job, run_times: list[datetime]) -> None:
         """
-        通过提交处理对象执行原始提交并记录并发拒绝事件
+        通过提交处理对象执行原始提交并记录并发拒绝事件。
 
         :param job: 调度器任务对象
         :param run_times: 本次提交的计划执行时刻
-        :return: None
         """
         self._submission.submit_job(super().submit_job, job, run_times, self._logger)
 
     def _do_submit_job(self, job: Job, run_times: list[datetime]) -> None:
         """
-        提交携带配置快照的任务并注册完成回调
+        提交携带配置快照的任务并注册完成回调。
 
         :param job: 调度器任务对象
         :param run_times: 本次提交需要处理的计划执行时刻列表
-        :return: None
         """
         snapshot = JobSnapshot.from_job(job, managed=self._submission.manage_executions)
 
-        def callback(future: Future) -> None:
+        def callback(future: Future[list[TimedJobExecutionEvent]]) -> None:
             """
-            将任务执行结果交回APScheduler处理
+            将任务执行结果交回APScheduler处理。
 
             :param future: 任务执行产生的Future对象
-            :return: None
             """
             self._pending_futures.discard(future)
             try:
@@ -356,7 +356,10 @@ class TimedAsyncIOExecutor(AsyncIOExecutor):
 
 class TimedProcessPoolExecutor(ProcessPoolExecutor):
     """
-    记录真实执行耗时的进程池执行器
+    记录真实执行耗时的进程池执行器。
+
+    :ivar _submission: 关联调度提交与执行结果的状态
+    :ivar _pool: 复用底层资源的池
     """
 
     def __init__(
@@ -367,43 +370,39 @@ class TimedProcessPoolExecutor(ProcessPoolExecutor):
         **kwargs,
     ) -> None:
         """
-        初始化执行器和任务提交处理对象
+        初始化执行器和任务提交处理对象。
 
         :param args: 执行器的位置参数
         :param on_rejected: 并发拒绝事件回调
         :param manage_executions: 是否启用持久化执行管理
         :param kwargs: 执行器的关键字参数
-        :return: None
         """
         super().__init__(*args, **kwargs)
         self._submission = JobSubmission(on_rejected, manage_executions)
 
     def submit_job(self, job: Job, run_times: list[datetime]) -> None:
         """
-        通过提交处理对象执行原始提交并记录并发拒绝事件
+        通过提交处理对象执行原始提交并记录并发拒绝事件。
 
         :param job: 调度器任务对象
         :param run_times: 本次提交的计划执行时刻
-        :return: None
         """
         self._submission.submit_job(super().submit_job, job, run_times, self._logger)
 
     def _do_submit_job(self, job: Job, run_times: list[datetime]) -> None:
         """
-        提交携带配置快照的任务并注册完成回调
+        提交携带配置快照的任务并注册完成回调。
 
         :param job: 调度器任务对象
         :param run_times: 本次提交需要处理的计划执行时刻列表
-        :return: None
         """
         snapshot = JobSnapshot.from_job(job, managed=self._submission.manage_executions)
 
-        def callback(future: Future) -> None:
+        def callback(future: Future[list[TimedJobExecutionEvent]]) -> None:
             """
-            将任务执行结果交回APScheduler处理
+            将任务执行结果交回APScheduler处理。
 
             :param future: 任务执行产生的Future对象
-            :return: None
             """
             exc = future.exception()
             if exc:

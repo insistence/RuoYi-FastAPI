@@ -1,6 +1,6 @@
-from typing import Protocol, runtime_checkable
+from typing import Annotated, Protocol, runtime_checkable
 
-from fastapi import Depends, params
+from fastapi import params
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.aspect.db_session import DBSessionDependency
@@ -9,11 +9,9 @@ from exceptions.exception import PermissionException
 
 @runtime_checkable
 class PluginRouteStateGateway(Protocol):
-    """
-    插件路由状态读取端口。
-    """
+    """插件路由状态读取端口。"""
 
-    async def is_plugin_enabled(self, db: AsyncSession, plugin_id: str) -> bool:
+    async def is_plugin_enabled(self, db: AsyncSession, plugin_id: str, /) -> bool:
         """
         判断插件路由是否允许访问。
 
@@ -24,9 +22,7 @@ class PluginRouteStateGateway(Protocol):
 
 
 class UnavailablePluginRouteStateGateway:
-    """
-    不可用的插件路由状态读取端口。
-    """
+    """不可用的插件路由状态读取端口。"""
 
     @staticmethod
     async def is_plugin_enabled(db: AsyncSession, plugin_id: str) -> bool:
@@ -44,6 +40,9 @@ class UnavailablePluginRouteStateGateway:
 class CheckPluginEnabled:
     """
     校验插件路由运行时启用状态。
+
+    :ivar plugin_id: 插件ID
+    :ivar state_gateway: 插件路由状态读取端口
     """
 
     def __init__(self, plugin_id: str, state_gateway: PluginRouteStateGateway | None = None) -> None:
@@ -56,12 +55,13 @@ class CheckPluginEnabled:
         self.plugin_id = plugin_id
         self.state_gateway = state_gateway or UnavailablePluginRouteStateGateway()
 
-    async def __call__(self, db: AsyncSession = DBSessionDependency()) -> bool:
+    async def __call__(self, db: Annotated[AsyncSession, DBSessionDependency()]) -> bool:
         """
         执行插件启用状态校验。
 
         :param db: orm对象
         :return: 是否通过
+        :raises PermissionException: 插件未启用，接口不可访问
         """
         if not await self.state_gateway.is_plugin_enabled(db, self.plugin_id):
             raise PermissionException(data='', message='插件未启用，接口不可访问', msg_key='plugin.disabled')
@@ -79,4 +79,4 @@ def PluginEnabledDependency(  # noqa: N802
     :param state_gateway: 插件路由状态读取端口
     :return: 插件启用状态依赖
     """
-    return Depends(CheckPluginEnabled(plugin_id, state_gateway))
+    return params.Depends(CheckPluginEnabled(plugin_id, state_gateway))

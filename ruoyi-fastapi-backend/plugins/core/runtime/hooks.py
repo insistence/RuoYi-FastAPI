@@ -15,14 +15,14 @@ class PluginHookContext:
     """
     插件生命周期钩子上下文。
 
-    :param plugin_id: 插件 ID
-    :param hook_name: 钩子名称
-    :param discovered_plugin: 已发现插件对象
-    :param app: FastAPI 应用对象
-    :param query_db: orm对象
-    :param startup_write_enabled: 当前 worker 是否允许执行启动期全局写入
-    :param startup_generation: 插件启动代际
-    :param plugin_startup_role_at_creation: Hook 创建时的插件启动角色
+    :ivar plugin_id: 插件 ID
+    :ivar hook_name: 钩子名称
+    :ivar discovered_plugin: 已发现插件对象
+    :ivar app: FastAPI 应用对象
+    :ivar query_db: orm对象
+    :ivar startup_write_enabled: 当前 worker 是否允许执行启动期全局写入
+    :ivar startup_generation: 插件启动代际
+    :ivar plugin_startup_role_at_creation: Hook 创建时的插件启动角色
     """
 
     plugin_id: str
@@ -40,9 +40,9 @@ class PluginHookResult:
     """
     插件生命周期钩子执行结果。
 
-    :param hook_name: 钩子名称
-    :param hook_path: 钩子声明路径
-    :param module_name: 钩子模块名
+    :ivar hook_name: 钩子名称
+    :ivar hook_path: 钩子声明路径
+    :ivar module_name: 钩子模块名
     """
 
     hook_name: str
@@ -54,11 +54,14 @@ class PluginHookRunner:
     """
     插件生命周期钩子运行器。
 
-    使用 Command Runner 模式解析并执行 `plugin.yaml` 中声明的生命周期钩子。
-    钩子必须使用 async def 声明，签名支持 `hook()` 或 `hook(context)`。
+    使用 Command Runner 模式解析并执行 ``plugin.yaml`` 中声明的生命周期钩子。
+    钩子必须使用 async def 声明，签名支持 ``hook()`` 或 ``hook(context)``。
 
     同步函数在线程池超时后无法被 Python 安全终止，可能在生命周期事务已经回滚后
     继续产生副作用，因此平台拒绝执行同步生命周期钩子。
+
+    :ivar discovered_plugin: 已发现插件对象
+    :ivar timeout_seconds: 钩子执行超时时间
     """
 
     def __init__(
@@ -87,11 +90,12 @@ class PluginHookRunner:
         """
         执行指定生命周期钩子。
 
-        :param hook_name: 钩子名称，例如 `on_install`
+        :param hook_name: 钩子名称，例如 ``on_install``
         :param app: FastAPI 应用对象
         :param query_db: orm对象
         :param startup_write_enabled: 当前 worker 是否允许执行启动期全局写入
         :return: 钩子执行结果，未声明时返回 None
+        :raises TimeoutError: 等待操作超过时限时
         """
         hook_path = getattr(self.discovered_plugin.manifest.backend.hooks, hook_name, None)
         if not hook_path:
@@ -124,7 +128,7 @@ class PluginHookRunner:
             logger.debug('🔄 开始执行插件生命周期钩子')
             try:
                 await self._invoke_hook_with_timeout(hook_callable, context)
-            except asyncio.TimeoutError as exc:
+            except TimeoutError as exc:
                 raise TimeoutError(f'生命周期钩子执行超时：{hook_name}，超过 {self.timeout_seconds} 秒') from exc
             logger.debug('✅ 插件生命周期钩子执行完成')
 
@@ -149,7 +153,7 @@ class PluginHookRunner:
 
         :param hook_callable: 已加载的钩子函数
         :param context: 钩子上下文
-        :return: None
+        :raises TypeError: 生命周期钩子必须使用 async def 声明，平台不会在线程中执行不可终止的同步钩子
         """
         callable_object = hook_callable.callable_object
         if self.discovered_plugin.manifest.uses_entrypoint:

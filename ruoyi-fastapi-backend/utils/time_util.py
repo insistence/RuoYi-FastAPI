@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from functools import cache
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -9,7 +9,10 @@ from exceptions.exception import ServiceWarning
 
 class TimezoneUtil:
     """
-    时区工具类
+    时区工具类。
+
+    :cvar RFC3339_PATTERN: 匹配 RFC 3339 时间戳的模式
+    :cvar ISO_DATE_PATTERN: 匹配 ISO 日历日期的模式
     """
 
     RFC3339_PATTERN = re.compile(
@@ -21,10 +24,11 @@ class TimezoneUtil:
     @classmethod
     def get_timezone(cls, timezone_name: str) -> ZoneInfo:
         """
-        获取并缓存有效的IANA时区对象
+        获取并缓存有效的IANA时区对象。
 
         :param timezone_name: IANA时区名称
         :return: 时区对象
+        :raises ValueError: IANA时区不能为空
         """
         if not isinstance(timezone_name, str) or not timezone_name.strip():
             raise ValueError('IANA时区不能为空')
@@ -34,10 +38,11 @@ class TimezoneUtil:
     @cache
     def _load_timezone(cls, timezone_name: str) -> ZoneInfo:
         """
-        加载时区对象，仅缓存校验成功的名称
+        加载时区对象，仅缓存校验成功的名称。
 
         :param timezone_name: IANA时区名称
         :return: 时区对象
+        :raises ValueError: 名称不能解析为有效的 IANA 时区
         """
         try:
             return ZoneInfo(timezone_name)
@@ -47,7 +52,7 @@ class TimezoneUtil:
     @classmethod
     def validate_timezone_name(cls, timezone_name: str) -> str:
         """
-        校验并返回规范化的IANA时区名称
+        校验并返回规范化的IANA时区名称。
 
         :param timezone_name: IANA时区名称
         :return: 去除首尾空白后的有效时区名称
@@ -57,7 +62,7 @@ class TimezoneUtil:
     @classmethod
     def validate_timezone_preference(cls, value: str) -> str:
         """
-        校验账号时区偏好，auto表示由客户端提供设备时区
+        校验账号时区偏好，auto表示由客户端提供设备时区。
 
         :param value: auto或IANA时区名称
         :return: 校验后的账号偏好
@@ -67,7 +72,7 @@ class TimezoneUtil:
     @classmethod
     def get_request_timezone(cls) -> str:
         """
-        获取当前请求的显示时区，未指定时回退到业务时区
+        获取当前请求的显示时区，未指定时回退到业务时区。
 
         :return: 当前请求使用的IANA时区名称
         """
@@ -78,12 +83,13 @@ class TimezoneUtil:
     @classmethod
     def parse_business_date(cls, value: str | date) -> date:
         """
-        解析纯业务日期
+        解析纯业务日期。
 
         仅接受date对象或YYYY-MM-DD字符串，拒绝日期时间和数字。
 
         :param value: 待校验的输入值
         :return: 不含时间和时区的日期对象
+        :raises ValueError: 业务日期必须是有效的YYYY-MM-DD
         """
         if isinstance(value, date) and not isinstance(value, datetime):
             return value
@@ -97,18 +103,19 @@ class TimezoneUtil:
     @classmethod
     def parse_rfc3339(cls, value: str | datetime) -> datetime:
         """
-        解析带时区的RFC 3339时刻并归一化为UTC毫秒
+        解析带时区的RFC 3339时刻并归一化为UTC毫秒。
 
-        兼容Python 3.10的ISO格式解析，不接受无时区的日期时间。
+        接受带 UTC 标记或数字偏移量的日期时间。
 
         :param value: 待校验的输入值
         :return: 携带UTC时区的毫秒精度时刻
+        :raises ValueError: 时刻必须是有效的带offset的RFC 3339字符串或aware datetime
         """
         if isinstance(value, datetime):
             return cls.to_utc_milliseconds(value)
         if isinstance(value, str) and cls.RFC3339_PATTERN.fullmatch(value):
             try:
-                return cls.to_utc_milliseconds(datetime.fromisoformat(value.upper().replace('Z', '+00:00')))
+                return cls.to_utc_milliseconds(datetime.fromisoformat(value.upper()))
             except ValueError:
                 pass
         raise ValueError('时刻必须是有效的带offset的RFC 3339字符串或aware datetime')
@@ -116,7 +123,7 @@ class TimezoneUtil:
     @classmethod
     def get_app_timezone(cls) -> ZoneInfo:
         """
-        获取应用配置的业务时区
+        获取应用配置的业务时区。
 
         :return: APP_TIMEZONE对应的时区对象
         """
@@ -128,20 +135,21 @@ class TimezoneUtil:
     @classmethod
     def utc_now(cls) -> datetime:
         """
-        获取当前UTC时刻
+        获取当前UTC时刻。
 
         :return: 携带UTC时区的当前时刻
         """
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     @classmethod
     def ensure_aware(cls, value: datetime, *, field_name: str = 'datetime') -> datetime:
         """
-        校验时刻是否携带有效时区信息
+        校验时刻是否携带有效时区信息。
 
         :param value: 待校验时刻
         :param field_name: 校验错误中使用的字段名称
         :return: 校验通过的原时刻
+        :raises ValueError: 日期时间没有可用的时区偏移
         """
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError(f'{field_name}必须携带时区信息')
@@ -150,12 +158,12 @@ class TimezoneUtil:
     @classmethod
     def to_utc(cls, value: datetime) -> datetime:
         """
-        将带时区的时刻转换为UTC
+        将带时区的时刻转换为UTC。
 
         :param value: 携带时区信息的时刻
         :return: 携带UTC时区的时刻
         """
-        return cls.ensure_aware(value).astimezone(timezone.utc)
+        return cls.ensure_aware(value).astimezone(UTC)
 
     @classmethod
     def to_optional_utc(cls, value: datetime | None) -> datetime | None:
@@ -170,7 +178,7 @@ class TimezoneUtil:
     @classmethod
     def to_utc_milliseconds(cls, value: datetime) -> datetime:
         """
-        将带时区的时刻转换为毫秒精度UTC
+        将带时区的时刻转换为毫秒精度UTC。
 
         :param value: 携带时区信息的时刻
         :return: 截断微秒尾数后的UTC时刻
@@ -181,7 +189,7 @@ class TimezoneUtil:
     @classmethod
     def to_business_time(cls, value: datetime, timezone_name: str | None = None) -> datetime:
         """
-        将时刻转换为指定业务时区
+        将时刻转换为指定业务时区。
 
         :param value: 携带时区信息的时刻
         :param timezone_name: 目标IANA时区名称，省略时使用APP_TIMEZONE
@@ -198,19 +206,20 @@ class TimezoneUtil:
         timezone_name: str | None = None,
     ) -> tuple[datetime, datetime]:
         """
-        将包含首尾日期的业务日期范围转换为UTC半开区间
+        将包含首尾日期的业务日期范围转换为UTC半开区间。
 
         :param begin_date: 起始业务日期
         :param end_date: 结束业务日期，包含当天
         :param timezone_name: 业务IANA时区名称，省略时使用APP_TIMEZONE
         :return: UTC半开区间[start, end)
+        :raises ValueError: 结束日期不能早于开始日期
         """
         if end_date < begin_date:
             raise ValueError('结束日期不能早于开始日期')
         business_timezone = cls.get_timezone(timezone_name) if timezone_name else cls.get_app_timezone()
         start = datetime.combine(begin_date, time.min, tzinfo=business_timezone)
         end = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=business_timezone)
-        return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+        return start.astimezone(UTC), end.astimezone(UTC)
 
     @classmethod
     def local_date_strings_to_utc(
@@ -220,12 +229,13 @@ class TimezoneUtil:
         timezone_name: str | None = None,
     ) -> tuple[datetime | None, datetime | None] | None:
         """
-        将可选业务日期边界转换为UTC半开区间
+        将可选业务日期边界转换为UTC半开区间。
 
         :param begin_date: 起始业务日期，为空时不限制下界
         :param end_date: 结束业务日期，包含当天，为空时不限制上界
         :param timezone_name: 业务IANA时区名称，省略时使用APP_TIMEZONE
         :return: UTC起止边界；缺失的边界为None，两边均缺失时返回None
+        :raises ValueError: 结束日期不能早于开始日期；结束日期必须早于9999-12-31
         """
         if not begin_date and not end_date:
             return None
@@ -236,9 +246,9 @@ class TimezoneUtil:
         if end == date.max:
             raise ValueError('结束日期必须早于9999-12-31')
         business_timezone = cls.get_timezone(timezone_name) if timezone_name else cls.get_app_timezone()
-        start = datetime.combine(begin, time.min, tzinfo=business_timezone).astimezone(timezone.utc) if begin else None
+        start = datetime.combine(begin, time.min, tzinfo=business_timezone).astimezone(UTC) if begin else None
         stop = (
-            datetime.combine(end + timedelta(days=1), time.min, tzinfo=business_timezone).astimezone(timezone.utc)
+            datetime.combine(end + timedelta(days=1), time.min, tzinfo=business_timezone).astimezone(UTC)
             if end
             else None
         )
@@ -251,11 +261,12 @@ class TimezoneUtil:
         end_time: str | datetime | None,
     ) -> tuple[datetime | None, datetime | None] | None:
         """
-        解析可选的RFC 3339时刻范围
+        解析可选的RFC 3339时刻范围。
 
         :param begin_time: 起始时刻，为空时不限制下界
         :param end_time: 结束时刻，为空时不限制上界
         :return: UTC起止时刻；缺失的边界为None，两边均缺失时返回None
+        :raises ValueError: 结束时间不能早于开始时间
         """
         if not begin_time and not end_time:
             return None
@@ -268,7 +279,7 @@ class TimezoneUtil:
     @classmethod
     def format_rfc3339(cls, value: datetime) -> str:
         """
-        将时刻格式化为固定毫秒精度的UTC字符串
+        将时刻格式化为固定毫秒精度的UTC字符串。
 
         :param value: 携带时区信息的时刻
         :return: 以Z结尾的RFC 3339字符串
@@ -280,7 +291,13 @@ class TimezoneUtil:
 @dataclass(frozen=True)
 class TimeSemantics:
     """
-    时间字段在Python、ORM、API和页面控件间的类型映射
+    时间字段在Python、ORM、API和页面控件间的类型映射。
+
+    :ivar kind: 当前条目的类别
+    :ivar python_type: PYTHON类型
+    :ivar sqlalchemy_type: 生成数据库列时使用的 SQLAlchemy 类型
+    :ivar vo_type: 生成 Pydantic 字段时使用的类型
+    :ivar control: 代码生成器配置的显示类型
     """
 
     kind: str
@@ -292,7 +309,11 @@ class TimeSemantics:
 
 class GenTimeUtil:
     """
-    代码生成器时间字段工具类
+    代码生成器时间字段工具类。
+
+    :cvar DATE: 表示日历日期的生成器类型
+    :cvar TIME: 表示一天内时刻的生成器类型
+    :cvar INSTANT: 表示 UTC 时间点的生成器类型
     """
 
     DATE = TimeSemantics(
@@ -312,7 +333,7 @@ class GenTimeUtil:
     @classmethod
     def normalize_db_type(cls, column_type: str) -> str:
         """
-        规范化数据库类型名称，保留PostgreSQL时区限定
+        规范化数据库类型名称，保留PostgreSQL时区限定。
 
         :param column_type: 包含精度等修饰的数据库列类型
         :return: 去除精度和unsigned修饰后的类型名称
@@ -323,11 +344,12 @@ class GenTimeUtil:
     @classmethod
     def get_time_semantics(cls, column_type: str, db_type: str) -> TimeSemantics | None:
         """
-        根据数据库列类型获取时间字段语义
+        根据数据库列类型获取时间字段语义。
 
         :param column_type: 数据库列类型
         :param db_type: 数据源类型
         :return: 时间字段的类型映射，非时间字段返回None
+        :raises ServiceWarning: PostgreSQL 无时区 timestamp 含义不明确，请将真实时刻列改为 TIMESTAMP(3) WITH TIME ZONE 后重新导入生成配置；带时区的 time 不能作为一天内时间生成，请使用 TIME WITHOUT TIME ZONE；真实时刻请使用 TIMESTAMP(3) WITH TIME ZONE
         """
         data_type = cls.normalize_db_type(column_type)
         if data_type == 'date':
@@ -354,11 +376,12 @@ class GenTimeUtil:
     @classmethod
     def validate_time_control(cls, column_type: str, db_type: str, control: str | None) -> None:
         """
-        校验MySQL TIME字段是否已确认表示一天内时间
+        校验MySQL TIME字段是否已确认表示一天内时间。
 
         :param column_type: 数据库列类型
         :param db_type: 数据源类型
         :param control: 代码生成器配置的显示类型
+        :raises ServiceWarning: MySQL TIME 也可表示时长。确认字段表示一天内时间后，将显示类型设为“时间（一天内）”；时长请使用明确单位的数值列后重新导入
         """
         if db_type == 'mysql' and cls.normalize_db_type(column_type) == 'time' and control != 'time':
             raise ServiceWarning(

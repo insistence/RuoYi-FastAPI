@@ -9,13 +9,13 @@ class PluginValidationIssue:
     """
     插件校验问题项。
 
-    :param level: 校验等级
-    :param category: 校验分类
-    :param kind: 校验项类型
-    :param path: 问题路径或目标
-    :param message: 问题说明
-    :param suggestion: 修复建议
-    :param ok: 当前校验项是否通过
+    :ivar level: 校验等级
+    :ivar category: 校验分类
+    :ivar kind: 校验项类型
+    :ivar path: 问题路径或目标
+    :ivar message: 问题说明
+    :ivar suggestion: 修复建议
+    :ivar ok: 当前校验项是否通过
     """
 
     level: ValidationLevel

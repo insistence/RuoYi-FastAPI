@@ -9,7 +9,13 @@ from plugins.core.lifecycle.seed import PluginSeedRunner
 
 
 def write_plugin_with_seed(plugin_root: Path, seed_content: str, seed_name: str = 'demo_seed.py') -> None:
-    """写入带 seed 的测试插件。"""
+    """
+    写入带 seed 的测试插件。
+
+    :param plugin_root: 插件的根目录
+    :param seed_content: 测试种子脚本的内容
+    :param seed_name: 种子脚本的文件名
+    """
     (plugin_root / 'seeds').mkdir(parents=True)
     (plugin_root / 'seeds' / seed_name).write_text(seed_content, encoding='utf-8')
     (plugin_root / 'plugin.yaml').write_text(

@@ -42,7 +42,7 @@ async def get_ai_model_list(
     request: Request,
     ai_model_page_query: Annotated[AiModelPageQueryModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(AiModels)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(AiModels)],
 ) -> Response:
     # 获取分页数据
     result = await AiModelService.get_ai_model_list_services(
@@ -63,7 +63,7 @@ async def get_ai_model_list(
 async def get_ai_model_all(
     request: Request,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(AiModels)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(AiModels)],
 ) -> Response:
     # 获取不分页数据
     ai_model_page_query = AiModelPageQueryModel(status='0')
@@ -126,7 +126,7 @@ async def edit_ai_model(
     edit_ai_model: AiModelModel,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(AiModels)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(AiModels)],
 ) -> Response:
     if not current_user.user.admin:
         await AiModelService.check_ai_model_data_scope_services(query_db, edit_ai_model.model_id, data_scope_sql)
@@ -151,13 +151,13 @@ async def delete_ai_model(
     model_ids: Annotated[str, Path(description='需要删除的模型ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(AiModels)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(AiModels)],
 ) -> Response:
     model_id_list = model_ids.split(',')
     for model_id in model_id_list:
         if not current_user.user.admin:
             await AiModelService.check_ai_model_data_scope_services(query_db, int(model_id), data_scope_sql)
-    delete_ai_model = DeleteAiModelModel(modelIds=model_ids)
+    delete_ai_model = DeleteAiModelModel(model_ids=model_ids)
     delete_ai_model_result = await AiModelService.delete_ai_model_services(query_db, delete_ai_model)
     logger.info(delete_ai_model_result.message)
 
@@ -177,7 +177,7 @@ async def get_ai_model_detail(
     model_id: Annotated[int, Path(description='模型ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(AiModels)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(AiModels)],
 ) -> Response:
     if not current_user.user.admin:
         await AiModelService.check_ai_model_data_scope_services(query_db, model_id, data_scope_sql)

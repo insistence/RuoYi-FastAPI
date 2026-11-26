@@ -1,6 +1,6 @@
 import json
 import re
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -18,6 +18,7 @@ def _require_request(context: PluginRequestContext, plugin_id: str, capability: 
     :param plugin_id: 服务绑定的插件 ID
     :param capability: 当前服务要求的插件权限后缀
     :return: 当前登录用户 ID
+    :raises PermissionError: 请求上下文不属于当前插件；缺少有效的当前用户身份
     """
     if not isinstance(context, PluginRequestContext) or context.host.plugin_id != plugin_id:
         raise PermissionError('请求上下文不属于当前插件')
@@ -29,13 +30,13 @@ def _require_request(context: PluginRequestContext, plugin_id: str, capability: 
 
 
 @asynccontextmanager
-async def _request_session(context: PluginRequestContext, factory: Callable[..., Any]) -> AsyncIterator[Any]:
+async def _request_session(context: PluginRequestContext, factory: Callable[..., Any]) -> AsyncGenerator[Any, None]:
     """
     复用当前任务的显式事务；未开启事务时为单次只读服务创建独立会话。
 
     :param context: 当前插件请求上下文
     :param factory: 宿主数据库会话工厂
-    :return: 当前服务允许使用的数据库会话
+    :yield: 当前服务允许使用的数据库会话
     """
     transaction = context.transaction_session()
     if transaction is not None:
@@ -63,6 +64,7 @@ def build_host_services(
 
         :param context: 宿主鉴权层建立的插件请求上下文
         :return: 仅包含允许向插件公开字段的当前用户资料
+        :raises LookupError: 当前用户不存在
         """
         user_id = _require_request(context, plugin_id, 'profile')
 
@@ -89,6 +91,7 @@ def build_host_services(
         :param context: 当前插件请求上下文
         :param dict_type: 非空字典类型标识
         :return: 按宿主字典顺序排列的选项数据
+        :raises ValueError: 字典类型必须是有效的非空标识
         """
         _require_request(context, plugin_id, 'dict')
         if not isinstance(dict_type, str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,99}', dict_type):
@@ -116,6 +119,8 @@ def build_host_services(
         :param context: 当前插件请求上下文
         :param key: 当前插件内的缓存键
         :return: 带有插件前缀的完整 Redis 键
+        :raises ValueError: 插件缓存键必须是 1 至 128 位字母、数字或 _ . : -
+        :raises RuntimeError: 宿主未提供 Redis 缓存能力
         """
         _require_request(context, plugin_id, 'cache')
         if not isinstance(key, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}', key):
@@ -131,6 +136,7 @@ def build_host_services(
         :param context: 当前插件请求上下文
         :param key: 当前插件内的缓存键
         :return: 已解码的 JSON 数据或 None
+        :raises ValueError: 插件缓存内容超过大小限制；插件缓存内容不是有效 JSON
         """
         name = cache_key(context, key)
         value = await redis.get(name)
@@ -154,7 +160,7 @@ def build_host_services(
         :param key: 当前插件内的缓存键
         :param value: 可序列化的 JSON 数据
         :param ttl_seconds: 有效期秒数，范围为 1 至 86400
-        :return: None
+        :raises ValueError: 插件缓存有效期必须在 1 至 86400 秒之间；插件缓存内容超过大小限制
         """
         name = cache_key(context, key)
         if type(ttl_seconds) is not int or not 1 <= ttl_seconds <= MAX_CACHE_TTL_SECONDS:

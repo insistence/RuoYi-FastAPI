@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -23,6 +23,8 @@ from module_admin.service.file_business_service import (
     FileRetentionPolicyService,
 )
 from module_admin.service.file_service import FileLifecycleService, FileRetentionDispositionService
+from tests.module_admin.service.file_helpers import make_file_request
+from tests.module_admin.service.helpers import make_current_user, make_query_db
 from utils.file_util import FileUtil
 from utils.time_util import TimezoneUtil
 
@@ -30,18 +32,17 @@ FILE_ID = '11111111-1111-4111-8111-111111111111'
 PURGE_COMMIT_COUNT = 2
 
 
-def make_query_db() -> SimpleNamespace:
-    return SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
-
-
-def make_current_user() -> SimpleNamespace:
-    return SimpleNamespace(user=SimpleNamespace(user_id=1, user_name='admin', admin=True))
-
-
 def make_file_info(
     access_type: str = 'private',
     expire_time: datetime | None = None,
 ) -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param access_type: 文件访问类型
+    :param expire_time: 文件当前到期时间
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         file_id=FILE_ID,
         original_name='private.txt',
@@ -58,6 +59,7 @@ def make_file_info(
 
 
 def test_purge_file_removes_recycle_content_and_metadata(tmp_path: Path) -> None:
+    """彻底删除文件时清理回收内容和元数据。"""
     public_root = tmp_path / 'public'
     trash_root = tmp_path / 'trash'
     trash_file = trash_root / FILE_ID / 'private.txt'
@@ -86,7 +88,7 @@ def test_purge_file_removes_recycle_content_and_metadata(tmp_path: Path) -> None
         result = asyncio.run(
             FileLifecycleService.purge_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 FILE_ID,
                 true(),
             )
@@ -97,10 +99,11 @@ def test_purge_file_removes_recycle_content_and_metadata(tmp_path: Path) -> None
     mark_purging.assert_awaited_once()
     purge_file_infos.assert_awaited_once_with(query_db, [FILE_ID])
     assert query_db.commit.await_count == PURGE_COMMIT_COUNT
-    assert enqueue_file_audit.await_args.args[2:5] == (FILE_ID, 'purge', 'completed')
+    assert enqueue_file_audit.await_args_list[-1].args[2:5] == (FILE_ID, 'purge', 'completed')
 
 
 def test_purge_file_rejects_business_reference(tmp_path: Path) -> None:
+    """仍有业务引用的文件不能彻底删除。"""
     file_info = make_file_info()
     query_db = make_query_db()
 
@@ -121,7 +124,7 @@ def test_purge_file_rejects_business_reference(tmp_path: Path) -> None:
         asyncio.run(
             FileLifecycleService.purge_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 FILE_ID,
                 true(),
             )
@@ -133,7 +136,8 @@ def test_purge_file_rejects_business_reference(tmp_path: Path) -> None:
 
 
 def test_retention_scan_creates_expiring_and_expired_notices() -> None:
-    current_time = datetime.now(timezone.utc)
+    """保留期扫描生成即将过期和已过期通知。"""
+    current_time = datetime.now(UTC)
     expired_file = make_file_info(expire_time=current_time - timedelta(days=1))
     expiring_file = SimpleNamespace(
         **{
@@ -173,7 +177,7 @@ def test_retention_scan_creates_expiring_and_expired_notices() -> None:
     assert result.expiring_count == 1
     assert result.expired_count == 1
     invalidate_notices.assert_awaited_once_with(query_db, [FILE_ID])
-    notice_list = add_notices.await_args.args[1]
+    notice_list = add_notices.await_args_list[-1].args[1]
     assert [(notice.file_id, notice.notice_type) for notice in notice_list] == [
         (FILE_ID, 'expired'),
         (expiring_file.file_id, 'expiring'),
@@ -182,6 +186,7 @@ def test_retention_scan_creates_expiring_and_expired_notices() -> None:
 
 
 def test_mark_retention_notice_read_checks_data_scope() -> None:
+    """标记保留期通知已读时检查数据范围。"""
     query_db = make_query_db()
     query_object = FileRetentionNoticePageQueryModel()
 
@@ -220,13 +225,14 @@ def test_mark_retention_notice_read_checks_data_scope() -> None:
         )
 
     assert result == []
-    assert get_notice_list.await_args.args[3] is True
+    assert get_notice_list.await_args_list[-1].args[3] is True
     assert read_result.is_success is True
-    assert mark_notices_read.await_args.args[1] == [1, 2]
+    assert mark_notices_read.await_args_list[-1].args[1] == [1, 2]
     query_db.commit.assert_awaited_once()
 
 
 def test_retention_policy_rejects_public_business_file() -> None:
+    """保留策略拒绝公开业务文件。"""
     query_db = make_query_db()
     public_file = make_file_info(access_type='public')
 
@@ -264,7 +270,8 @@ def test_retention_policy_rejects_public_business_file() -> None:
 
 
 def test_extend_file_retention_updates_terminal_references() -> None:
-    current_time = datetime.now(timezone.utc)
+    """延长文件保留期时更新终止状态的引用。"""
+    current_time = datetime.now(UTC)
     previous_expire_time = current_time + timedelta(days=1)
     new_expire_time = current_time + timedelta(days=31)
     file_info = make_file_info(expire_time=previous_expire_time)
@@ -295,11 +302,11 @@ def test_extend_file_retention_updates_terminal_references() -> None:
         result = asyncio.run(
             FileRetentionDispositionService.extend_file_retention_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 1,
-                ExtendFileRetentionModel(expireTime=new_expire_time, reason='业务继续留存'),
+                ExtendFileRetentionModel(expire_time=new_expire_time, reason='业务继续留存'),
                 true(),
-                request=SimpleNamespace(),
+                request=make_file_request(),
             )
         )
 
@@ -309,11 +316,12 @@ def test_extend_file_retention_updates_terminal_references() -> None:
     assert reference.retention_expire_time == expected_expire_time
     invalidate_notices.assert_awaited_once_with(query_db, FILE_ID)
     query_db.commit.assert_awaited_once()
-    assert enqueue_file_audit.await_args.args[3:5] == ('retention_extend', 'completed')
+    assert enqueue_file_audit.await_args_list[-1].args[3:5] == ('retention_extend', 'completed')
 
 
 def test_dispose_expired_file_releases_expired_references() -> None:
-    current_time = datetime.now(timezone.utc)
+    """处置过期文件时释放过期引用。"""
+    current_time = datetime.now(UTC)
     expire_time = current_time - timedelta(days=1)
     file_info = make_file_info(expire_time=expire_time)
     reference = SimpleNamespace(
@@ -344,11 +352,11 @@ def test_dispose_expired_file_releases_expired_references() -> None:
         result = asyncio.run(
             FileRetentionDispositionService.dispose_expired_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 1,
                 DisposeExpiredFileModel(reason='保留期已结束'),
                 true(),
-                request=SimpleNamespace(),
+                request=make_file_request(),
             )
         )
 
@@ -356,12 +364,13 @@ def test_dispose_expired_file_releases_expired_references() -> None:
     delete_references.assert_awaited_once_with(query_db, FILE_ID)
     soft_delete_file_infos.assert_awaited_once()
     query_db.commit.assert_awaited_once()
-    assert enqueue_file_audit.await_args.args[3:5] == ('retention_dispose', 'completed')
-    assert enqueue_file_audit.await_args.kwargs['operation_detail']['releasedReferenceCount'] == 1
+    assert enqueue_file_audit.await_args_list[-1].args[3:5] == ('retention_dispose', 'completed')
+    assert enqueue_file_audit.await_args_list[-1].kwargs['operation_detail']['releasedReferenceCount'] == 1
 
 
 def test_dispose_expired_file_rejects_active_reference() -> None:
-    expire_time = datetime.now(timezone.utc) - timedelta(days=1)
+    """处置过期文件时拒绝仍然有效的引用。"""
+    expire_time = datetime.now(UTC) - timedelta(days=1)
     file_info = make_file_info(expire_time=expire_time)
     reference = SimpleNamespace(
         reference_id=1,
@@ -387,7 +396,7 @@ def test_dispose_expired_file_rejects_active_reference() -> None:
         asyncio.run(
             FileRetentionDispositionService.dispose_expired_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 1,
                 DisposeExpiredFileModel(reason='保留期已结束'),
                 true(),

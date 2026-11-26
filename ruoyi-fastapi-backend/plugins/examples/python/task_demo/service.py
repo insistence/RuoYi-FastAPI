@@ -75,6 +75,7 @@ async def get_task(context: PluginRequestContext, task_id: str) -> dict[str, Any
     :param context: 宿主提供的请求身份
     :param task_id: 已校验的任务标识
     :return: 任务对象；不存在时返回 HTTP 404
+    :raises HTTPException: 任务不存在
     """
     async with context.transaction() as transaction:
         result = await transaction.transaction_session().execute(select(tasks).where(tasks.c.id == task_id))
@@ -107,6 +108,7 @@ async def update_task(context: PluginRequestContext, task_id: str, values: dict[
     :param task_id: 已校验的任务标识
     :param values: 已校验的任务输入
     :return: 更新后的任务对象；不存在时返回 HTTP 404
+    :raises HTTPException: 任务不存在
     """
     async with context.transaction() as transaction:
         db = transaction.transaction_session()
@@ -126,6 +128,7 @@ async def delete_task(context: PluginRequestContext, task_id: str) -> dict[str, 
     :param context: 宿主提供的请求身份
     :param task_id: 已校验的任务标识
     :return: 删除确认；不存在时返回 HTTP 404
+    :raises HTTPException: 任务不存在
     """
     async with context.transaction() as transaction:
         result = await transaction.transaction_session().execute(delete(tasks).where(tasks.c.id == task_id))

@@ -16,13 +16,13 @@ from utils.response_util import ResponseUtil
 def test_plugin_payload_preserves_semantics_until_response_rendering(locale: str) -> None:
     """验证插件操作消息在响应阶段按当前语言翻译。"""
     message = I18nMessage('插件安装完成', msg_key='plugin.runtime.install.completed')
-    payload = PluginRuntimeInvalidOperationPayload(ok=False, operation='install', pluginId='demo', message=message)
+    payload = PluginRuntimeInvalidOperationPayload(ok=False, operation='install', plugin_id='demo', message=message)
     data = payload.to_payload()
     assert data['message'] is message
     assert PluginOperationResult.from_payload(data).message is message
     token = RequestContext.set_current_locale(LocaleContext(locale))
     try:
-        response = json.loads(_plugin_operation_response(data, '操作完成').body)
+        response = json.loads(bytes(_plugin_operation_response(data, '操作完成').body))
         expected = 'Plugin installation completed' if locale == 'en-US' else '插件安装完成'
         assert response['msg'] == response['data']['message'] == expected
         assert response['msgKey'] == 'plugin.runtime.install.completed'
@@ -38,7 +38,7 @@ def test_batch_feedback_preserves_message_metadata_and_user_data() -> None:
     assert report.message is message
     token = RequestContext.set_current_locale(LocaleContext('en-US'))
     try:
-        response = json.loads(ResponseUtil.success(data={'report': report, 'customName': '用户插件'}).body)
+        response = json.loads(bytes(ResponseUtil.success(data={'report': report, 'customName': '用户插件'}).body))
         assert response['data']['report']['message'] == 'Plugin installation completed'
         assert response['data']['customName'] == '用户插件'
     finally:

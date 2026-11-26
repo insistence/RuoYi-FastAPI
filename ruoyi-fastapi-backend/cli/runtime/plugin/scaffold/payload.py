@@ -1,15 +1,35 @@
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from cli.exit_codes import RUNTIME_ERROR
 from cli.utils import format_cli_path
+
+if TYPE_CHECKING:
+    from utils.gen_util import GenUtils
 
 
 @dataclass(frozen=True)
 class PluginScaffoldPlanPayload:
     """
     插件模板写入计划负载。
+
+    :ivar template: 用于生成文件的模板
+    :ivar backend: 后端部分的配置或处理对象
+    :ivar frontend: 前端部分的配置
+    :ivar migration: 插件的数据迁移配置
+    :ivar seed: 插件的种子数据配置
+    :ivar job: 插件的调度任务配置
+    :ivar config: 当前对象使用的配置
+    :ivar crud: 是否生成增删改查功能
+    :ivar test: 是否生成测试
+    :ivar backend_test: 是否包含后端测试
+    :ivar frontend_test: 是否包含前端测试
+    :ivar frontend_framework: 用于生成或构建前端的框架
+    :ivar target_dirs: 生成操作要写入的目录
+    :ivar files: 此次操作涉及的文件
+    :ivar conflicts: 生成计划与已有文件的冲突
     """
 
     template: str
@@ -28,12 +48,14 @@ class PluginScaffoldPlanPayload:
     files: list[tuple[Path, str]]
     conflicts: list[str]
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
         :return: 插件模板写入计划负载
         """
+        gen_utils: type[GenUtils] = import_module('utils.gen_util').GenUtils
+        files = gen_utils.format_generated_python({path.as_posix(): content for path, content in self.files})
         return {
             'backend': self.backend,
             'frontend': self.frontend,
@@ -48,7 +70,7 @@ class PluginScaffoldPlanPayload:
             'frontendTest': self.frontend_test,
             'frontendFramework': self.frontend_framework,
             'targetDirs': [format_cli_path(path) for path in self.target_dirs],
-            'files': [{'path': path.as_posix(), 'content': content} for path, content in self.files],
+            'files': [{'path': path, 'content': content} for path, content in files.items()],
             'conflicts': self.conflicts,
         }
 
@@ -57,13 +79,17 @@ class PluginScaffoldPlanPayload:
 class PluginScaffoldSuccessPayload:
     """
     插件模板创建成功负载。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar scaffold_plan: 插件模板写入计划
+    :ivar dry_run: 是否只预览操作结果
     """
 
     plugin_id: str
     scaffold_plan: dict[str, Any]
     dry_run: bool
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -82,6 +108,11 @@ class PluginScaffoldSuccessPayload:
 class PluginScaffoldConflictPayload:
     """
     插件模板目录冲突负载。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar scaffold_plan: 插件模板写入计划
+    :ivar dry_run: 是否只预览操作结果
+    :ivar failure_code: 失败退出码
     """
 
     plugin_id: str
@@ -89,7 +120,7 @@ class PluginScaffoldConflictPayload:
     dry_run: bool
     failure_code: int = RUNTIME_ERROR
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -106,9 +137,7 @@ class PluginScaffoldConflictPayload:
 
 
 class PluginScaffoldPayloadBuilder:
-    """
-    插件模板创建响应负载构建器。
-    """
+    """插件模板创建响应负载构建器。"""
 
     @staticmethod
     def build_conflict_payload(
@@ -117,7 +146,7 @@ class PluginScaffoldPayloadBuilder:
         *,
         dry_run: bool,
         failure_code: int = RUNTIME_ERROR,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         构建插件模板目录冲突负载。
 
@@ -135,7 +164,7 @@ class PluginScaffoldPayloadBuilder:
         ).to_payload()
 
     @staticmethod
-    def build_success_payload(plugin_id: str, scaffold_plan: dict[str, Any], *, dry_run: bool) -> dict[str, Any]:
+    def build_success_payload(plugin_id: str, scaffold_plan: dict[str, Any], *, dry_run: bool) -> dict[str, object]:
         """
         构建插件模板创建成功负载。
 

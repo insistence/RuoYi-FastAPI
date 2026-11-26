@@ -10,7 +10,13 @@ from scripts.compile_i18n import compile_catalogs
 
 @pytest.fixture
 def core_modules(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """创建独立的核心词库，包含不同上下文的同名消息和按语言变化的复数。"""
+    """
+    创建独立的核心词库，包含不同上下文的同名消息和按语言变化的复数。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: pytest 为当前用例创建的临时目录
+    """
     monkeypatch.setattr('i18n.catalogs.CATALOG_ROOT', tmp_path)
     monkeypatch.setattr('scripts.compile_i18n.SOURCE_PLUGINS', tmp_path / 'plugins')
     monkeypatch.setattr(CatalogRegistry, '_snapshots', {})

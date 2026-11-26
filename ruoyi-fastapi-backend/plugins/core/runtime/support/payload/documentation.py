@@ -10,16 +10,14 @@ from .base import PluginPayloadModel
 
 
 class PluginDocumentationPayload(PluginPayloadModel):
-    """
-    插件文档生成 payload。
-    """
+    """插件文档生成 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    format: Literal['markdown']
-    markdown: str
-    length: int
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    format: Literal['markdown'] = Field(description='文档内容格式')
+    markdown: str = Field(description='插件文档的 Markdown 正文')
+    length: int = Field(description='文档内容长度')
 
 
 PluginDocumentationPayloadDict: TypeAlias = dict[str, object]

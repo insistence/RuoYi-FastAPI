@@ -14,7 +14,6 @@ def register_configuration_commands(app: typer.Typer, get_controller: Callable[[
 
     :param app: Typer 命令组
     :param get_controller: 插件命令控制器工厂
-    :return: None
     """
 
     @app.command('config', help='查看或设置插件配置')
@@ -43,7 +42,6 @@ def register_configuration_commands(app: typer.Typer, get_controller: Callable[[
         :param reveal_secret: 是否导出敏感配置明文
         :param output_file: 配置导出 JSON 文件路径
         :param input_file: 配置导入 JSON 文件路径
-        :return: None
         """
         get_controller().plugin_config(
             plugin_id,

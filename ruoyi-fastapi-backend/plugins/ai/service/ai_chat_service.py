@@ -1,16 +1,16 @@
 import json
 import os
 import uuid
-from collections.abc import AsyncGenerator, AsyncIterator
-from datetime import datetime, timezone
+from collections.abc import AsyncGenerator, AsyncIterator, Sequence
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from agno.agent import Agent
 from agno.db.base import SessionType
 from agno.media import Image
-from agno.run.agent import RunEvent, RunOutput, RunOutputEvent
+from agno.run.agent import RunEvent, RunOutputEvent
 from agno.run.cancel import acancel_run
-from agno.session import Session
+from agno.session import AgentSession
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.context import LocaleContext, RequestContext
@@ -20,6 +20,7 @@ from exceptions.exception import ServiceException
 from i18n.translator import I18nUtil
 from plugins.ai.dao.ai_chat_dao import AiChatConfigDao
 from plugins.ai.dao.ai_model_dao import AiModelDao
+from plugins.ai.entity.do.ai_model_do import AiModels
 from plugins.ai.entity.vo.ai_chat_vo import (
     AgentDataModel,
     AiChatConfigModel,
@@ -31,38 +32,32 @@ from plugins.ai.entity.vo.ai_chat_vo import (
     SessionDataModel,
     SessionMetricsModel,
 )
-from plugins.ai.entity.vo.ai_model_vo import AiModelModel
 from plugins.ai.utils.ai_util import AiUtil
 from utils.common_util import CamelCaseUtil
 from utils.crypto_util import CryptoUtil
 
 if TYPE_CHECKING:
     from agno.models.message import Message
-    from agno.run.team import TeamRunOutput
-    from agno.run.workflow import WorkflowRunOutput
 
 
 class AiChatService:
-    """
-    AI对话服务层
-    """
+    """AI对话服务层。"""
 
     @classmethod
-    def _resolve_temperature(cls, user_config: AiChatConfigModel, model_config: AiModelModel) -> float:
+    def _resolve_temperature(cls, user_config: AiChatConfigModel, model_config: AiModels) -> float | None:
         """
-        解析温度配置，优先级为 用户配置 > 模型配置
+        解析温度配置，优先级为 用户配置 > 模型配置。
 
         :param user_config: 用户配置对象
         :param model_config: 模型配置对象
         :return: 解析后的温度值
         """
-        temperature = user_config.temperature or model_config.temperature
-        return temperature
+        return model_config.temperature if user_config.temperature is None else user_config.temperature
 
     @classmethod
-    def _resolve_is_reasoning(cls, chat_req: AiChatRequestModel, model_config: AiModelModel) -> bool:
+    def _resolve_is_reasoning(cls, chat_req: AiChatRequestModel, model_config: AiModels) -> bool:
         """
-        解析深度思考开关，结合请求参数与模型配置确定最终是否开启
+        解析深度思考开关，结合请求参数与模型配置确定最终是否开启。
 
         :param chat_req: 对话请求对象
         :param model_config: 模型配置对象
@@ -75,7 +70,7 @@ class AiChatService:
     @classmethod
     def _resolve_history_config(cls, user_config: AiChatConfigModel) -> tuple[bool, int]:
         """
-        解析历史消息配置，确定是否附带历史以及轮数
+        解析历史消息配置，确定是否附带历史以及轮数。
 
         :param user_config: 用户配置对象
         :return: (是否附带历史, 历史轮数)
@@ -88,8 +83,8 @@ class AiChatService:
     @classmethod
     def _build_agent(
         cls,
-        model_config: AiModelModel,
-        temperature: float,
+        model_config: AiModels,
+        temperature: float | None,
         system_prompt: str | None,
         user_id: int,
         session_id: str,
@@ -97,7 +92,7 @@ class AiChatService:
         num_history: int,
     ) -> Agent:
         """
-        构建对话Agent对象
+        构建对话Agent对象。
 
         :param model_config: 模型配置对象
         :param temperature: 对话温度
@@ -108,7 +103,7 @@ class AiChatService:
         :param num_history: 历史消息轮数
         :return: Agent对象
         """
-        real_api_key = CryptoUtil.decrypt(model_config.api_key)
+        real_api_key = CryptoUtil.decrypt(model_config.api_key) if model_config.api_key else model_config.api_key
 
         model = AiUtil.get_model_from_factory(
             provider=model_config.provider,
@@ -139,7 +134,7 @@ class AiChatService:
         user_config: AiChatConfigModel,
     ) -> dict[str, Any]:
         """
-        构造Agent运行参数
+        构造Agent运行参数。
 
         :param chat_req: 对话请求对象
         :param user_config: 用户配置对象
@@ -182,9 +177,9 @@ class AiChatService:
         return abs_path
 
     @classmethod
-    def _convert_images_to_upload_paths(cls, images: list[Image] | None) -> list[str] | None:
+    def _convert_images_to_upload_paths(cls, images: Sequence[Image] | None) -> list[str] | None:
         """
-        将Agno Image对象列表转换为前端可访问的上传路径列表
+        将Agno Image对象列表转换为前端可访问的上传路径列表。
 
         :param images: Image对象列表
         :return: 上传路径列表
@@ -209,9 +204,9 @@ class AiChatService:
                         full_url = f'{UploadConfig.UPLOAD_PREFIX}/{url_path}'.replace('//', '/')
                         result.append(full_url)
                     else:
-                        result.append(img.filepath)
+                        result.append(os.fspath(img.filepath))
                 except Exception:
-                    result.append(img.filepath)
+                    result.append(os.fspath(img.filepath))
             # 如果是URL
             elif hasattr(img, 'url') and img.url:
                 result.append(img.url)
@@ -229,7 +224,7 @@ class AiChatService:
         locale_context: LocaleContext | None = None,
     ) -> AsyncGenerator[str, None]:
         """
-        将Agent输出流式转换为前端SSE消息
+        将Agent输出流式转换为前端SSE消息。
 
         :param agent: Agent实例
         :param chat_req: 对话请求对象
@@ -237,11 +232,9 @@ class AiChatService:
         :param is_reasoning: 是否输出推理内容
         :param session_id: 会话ID
         :param locale_context: 流创建时的语言上下文
-        :return: SSE消息生成器
+        :yield: SSE消息生成器
         """
         locale_context = locale_context or RequestContext.get_current_locale()
-        full_response = ''
-        full_reasoning = ''
         try:
             yield json.dumps({'session_id': session_id, 'type': 'meta'}) + '\n'
 
@@ -256,23 +249,18 @@ class AiChatService:
 
                 if chunk.event == RunEvent.run_content:
                     content = chunk.content
-                    if hasattr(chunk, 'reasoning_content') and chunk.reasoning_content:
-                        reasoning = chunk.reasoning_content
+                    reasoning = getattr(chunk, 'reasoning_content', None)
 
                 if reasoning and is_reasoning:
-                    full_reasoning += reasoning
                     yield json.dumps({'content': reasoning, 'type': 'reasoning'}) + '\n'
 
-                if chunk.event == RunEvent.run_completed and chunk.metrics:
+                if chunk.event == RunEvent.run_completed and (metrics := getattr(chunk, 'metrics', None)):
                     yield (
-                        json.dumps(
-                            {'metrics': CamelCaseUtil.transform_result(chunk.metrics.to_dict()), 'type': 'metrics'}
-                        )
+                        json.dumps({'metrics': CamelCaseUtil.transform_result(metrics.to_dict()), 'type': 'metrics'})
                         + '\n'
                     )
 
                 if content:
-                    full_response += content
                     yield json.dumps({'content': content, 'type': 'content'}) + '\n'
         except Exception as e:
             yield cls._stream_error(e, locale_context)
@@ -280,7 +268,7 @@ class AiChatService:
     @staticmethod
     def _stream_error(error: Exception, context: LocaleContext) -> str:
         """
-        使用流创建时的语言快照生成错误事件，保留原有事件类型
+        使用流创建时的语言快照生成错误事件，保留原有事件类型。
 
         :param error: 平台或模型调用异常
         :param context: 流创建时的语言上下文
@@ -307,13 +295,13 @@ class AiChatService:
         locale_context: LocaleContext | None = None,
     ) -> AsyncGenerator[str, None]:
         """
-        在流生命周期内固定语言，并将初始化错误转换为平台错误事件
+        在流生命周期内固定语言，并将初始化错误转换为平台错误事件。
 
         :param query_db: orm对象
         :param chat_req: 对话请求对象
         :param user_id: 用户ID
         :param locale_context: 请求创建流时捕获的语言上下文
-        :return: 对话响应流
+        :yield: 对话响应流
         """
         snapshot = locale_context or RequestContext.get_current_locale()
         try:
@@ -327,18 +315,18 @@ class AiChatService:
         cls, query_db: AsyncSession, chat_req: AiChatRequestModel, user_id: int, locale_context: LocaleContext
     ) -> AsyncGenerator[str, None]:
         """
-        流式对话
+        流式对话。
 
         :param query_db: orm对象
         :param chat_req: 对话请求对象
         :param user_id: 用户ID
         :param locale_context: 流创建时的语言上下文
-        :return: 对话响应流
+        :yield: 对话响应流
+        :raises ServiceException: 模型不存在；模型已停用
         """
-        ai_model = await AiModelDao.get_ai_model_detail_by_id(query_db, chat_req.model_id)
-        if ai_model is None:
+        model_config = await AiModelDao.get_ai_model_detail_by_id(query_db, chat_req.model_id)
+        if model_config is None:
             raise ServiceException(message='模型不存在', msg_key='ai.model.notFound', domain='plugin.ai')
-        model_config = AiModelModel(**CamelCaseUtil.transform_result(ai_model))
         if model_config.status != '0':
             raise ServiceException(message='模型已停用', msg_key='ai.model.disabled', domain='plugin.ai')
 
@@ -378,7 +366,7 @@ class AiChatService:
     @classmethod
     async def ai_chat_config_detail_services(cls, query_db: AsyncSession, user_id: int) -> AiChatConfigModel:
         """
-        获取用户配置
+        获取用户配置。
 
         :param query_db: orm对象
         :param user_id: 用户ID
@@ -396,12 +384,13 @@ class AiChatService:
         cls, query_db: AsyncSession, user_id: int, page_object: AiChatConfigModel
     ) -> CrudResponseModel:
         """
-        保存用户配置
+        保存用户配置。
 
         :param query_db: orm对象
         :param user_id: 用户ID
         :param page_object: AI对话配置对象
         :return: 更新后的配置模型
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         chat_config = await AiChatConfigDao.get_chat_config_detail_by_user_id(query_db, user_id)
         if page_object.user_id is None:
@@ -428,17 +417,29 @@ class AiChatService:
 
         return CrudResponseModel(is_success=True, message='保存成功', msg_key='common.saved')
 
+    @staticmethod
+    def _session_title(session: AgentSession) -> str:
+        """
+        从首次运行的输入生成会话标题。
+
+        :param session: 智能体会话
+        :return: 会话标题，无输入时返回空字符串
+        """
+        if not session.runs or session.runs[0].input is None:
+            return ''
+        return session.runs[0].input.input_content_string()[:20] + '...'
+
     @classmethod
     async def get_chat_session_list_services(cls, user_id: int) -> list[AiChatSessionBaseModel]:
         """
-        获取用户会话列表
+        获取用户会话列表。
 
         :param user_id: 用户ID
         :return: 用户会话列表
         """
         # 获取Agno会话列表
         storage = AiUtil.get_storage_engine()
-        sessions: list[Session] = await storage.get_sessions(
+        sessions = await storage.get_sessions(
             user_id=str(user_id),
             component_id='chat-agent',
             session_type=SessionType.AGENT,
@@ -446,25 +447,24 @@ class AiChatService:
 
         result = []
         for s in sessions:
-            created_at = datetime.fromtimestamp(s.created_at, tz=timezone.utc) if s.created_at else None
-            updated_at = datetime.fromtimestamp(s.updated_at, tz=timezone.utc) if s.updated_at else None
-
-            title_limit = 20
-            session_title = s.runs[0].input.input_content[:title_limit] + '...' if s.runs else ''
+            if not isinstance(s, AgentSession):
+                continue
+            created_at = datetime.fromtimestamp(s.created_at, tz=UTC) if s.created_at else None
+            updated_at = datetime.fromtimestamp(s.updated_at, tz=UTC) if s.updated_at else None
 
             result.append(
                 AiChatSessionBaseModel(
-                    sessionId=s.session_id,
-                    sessionTitle=session_title if len(session_title) <= title_limit else session_title[:title_limit],
-                    userId=s.user_id,
-                    createdAt=created_at,
-                    updatedAt=updated_at,
+                    session_id=s.session_id,
+                    session_title=cls._session_title(s)[:20],
+                    user_id=s.user_id,
+                    created_at=created_at,
+                    updated_at=updated_at,
                 )
             )
         return result
 
     @classmethod
-    async def _get_owned_session(cls, storage: Any, session_id: str, user_id: int) -> Session:
+    async def _get_owned_session(cls, storage: Any, session_id: str, user_id: int) -> AgentSession:
         """
         获取并校验当前用户拥有的会话。
 
@@ -472,8 +472,9 @@ class AiChatService:
         :param session_id: 会话ID
         :param user_id: 用户ID
         :return: 会话对象
+        :raises ServiceException: 会话不存在；无权访问该会话
         """
-        session: Session | None = await storage.get_session(session_id=session_id, session_type=SessionType.AGENT)
+        session: AgentSession | None = await storage.get_session(session_id=session_id, session_type=SessionType.AGENT)
         if not session:
             raise ServiceException(message='会话不存在', msg_key='identity.session.notFound')
         if str(session.user_id) != str(user_id):
@@ -484,11 +485,12 @@ class AiChatService:
     @classmethod
     async def delete_chat_session_services(cls, session_id: str, user_id: int) -> CrudResponseModel:
         """
-        删除会话
+        删除会话。
 
         :param session_id: 会话ID
         :param user_id: 用户ID
         :return: 删除结果
+        :raises ServiceException: 删除会话失败
         """
         storage = AiUtil.get_storage_engine()
         await cls._get_owned_session(storage, session_id, user_id)
@@ -500,7 +502,7 @@ class AiChatService:
     @classmethod
     async def get_chat_session_detail_services(cls, session_id: str, user_id: int) -> AiChatSessionModel:
         """
-        获取会话消息详情
+        获取会话消息详情。
 
         :param session_id: 会话ID
         :param user_id: 用户ID
@@ -509,27 +511,22 @@ class AiChatService:
         storage = AiUtil.get_storage_engine()
         session = await cls._get_owned_session(storage, session_id, user_id)
 
-        session_data: dict[str, Any] = session.session_data
-        agent_data: dict[str, Any] = session.agent_data
-        runs: list[RunOutput | TeamRunOutput | WorkflowRunOutput] = session.runs
+        session_data = session.session_data or {}
+        agent_data = session.agent_data or {}
         messages: list[Message] = session.get_messages(skip_roles=['system'])
 
         run_metrics_map = {}
-        if runs:
-            for run in runs:
-                if run.model_provider_data and (provider_id := run.model_provider_data.get('id')):
-                    run_metrics_map[provider_id] = run.metrics
+        for run in session.runs or []:
+            if run.model_provider_data and (provider_id := run.model_provider_data.get('id')):
+                run_metrics_map[provider_id] = run.metrics
 
         chat_messages = []
         for m in messages:
-            if hasattr(m, 'provider_data') and m.provider_data:
-                provider_id = m.provider_data.get('id')
-                if provider_id and provider_id in run_metrics_map:
-                    m.metrics = run_metrics_map[provider_id]
-
+            provider_id = m.provider_data.get('id') if m.provider_data else None
+            metrics = run_metrics_map.get(provider_id, m.metrics) if provider_id else m.metrics
             metrics_model = None
-            if getattr(m, 'metrics', None) and hasattr(m.metrics, 'to_dict'):
-                metrics_dict = m.metrics.to_dict()
+            if metrics is not None:
+                metrics_dict = metrics.to_dict()
                 if metrics_dict:
                     metrics_model = MessageMetrics(**CamelCaseUtil.transform_result(metrics_dict))
 
@@ -537,30 +534,30 @@ class AiChatService:
                 ChatMessageModel(
                     id=m.id,
                     role=m.role,
-                    content=m.content,
+                    content=m.get_content_string() if isinstance(m.content, list) else m.content,
                     images=cls._convert_images_to_upload_paths(m.images),
                     metrics=metrics_model,
-                    createdAt=datetime.fromtimestamp(m.created_at, tz=timezone.utc) if m.created_at else None,
-                    reasoningContent=m.reasoning_content,
-                    fromHistory=m.from_history,
-                    stopAfterToolCall=m.stop_after_tool_call,
+                    created_at=datetime.fromtimestamp(m.created_at, tz=UTC) if m.created_at else None,
+                    reasoning_content=m.reasoning_content,
+                    from_history=m.from_history,
+                    stop_after_tool_call=m.stop_after_tool_call,
                 )
             )
 
         session_detail = AiChatSessionModel(
-            sessionId=session.session_id,
-            sessionTitle=session.runs[0].input.input_content[:20] + '...' if session.runs else '',
-            userId=session.user_id,
-            createdAt=datetime.fromtimestamp(session.created_at, tz=timezone.utc) if session.created_at else None,
-            updatedAt=datetime.fromtimestamp(session.updated_at, tz=timezone.utc) if session.updated_at else None,
-            agentId=session.agent_id,
-            sessionData=SessionDataModel(
-                sessionState=session_data.get('session_state'),
-                sessionMetrics=SessionMetricsModel(
+            session_id=session.session_id,
+            session_title=cls._session_title(session),
+            user_id=session.user_id,
+            created_at=datetime.fromtimestamp(session.created_at, tz=UTC) if session.created_at else None,
+            updated_at=datetime.fromtimestamp(session.updated_at, tz=UTC) if session.updated_at else None,
+            agent_id=session.agent_id,
+            session_data=SessionDataModel(
+                session_state=session_data.get('session_state'),
+                session_metrics=SessionMetricsModel(
                     **CamelCaseUtil.transform_result(session_data.get('session_metrics'))
                 ),
             ),
-            agentData=AgentDataModel(**CamelCaseUtil.transform_result(agent_data)),
+            agent_data=AgentDataModel(**CamelCaseUtil.transform_result(agent_data)),
             messages=chat_messages,
         )
 
@@ -569,11 +566,12 @@ class AiChatService:
     @classmethod
     async def cancel_run_services(cls, run_id: str, user_id: int) -> CrudResponseModel:
         """
-        取消运行
+        取消运行。
 
         :param run_id: 运行ID
         :param user_id: 用户ID
         :return: 取消结果
+        :raises ServiceException: 无权取消该运行；取消运行失败
         """
         if not await cls._user_owns_run(run_id, user_id):
             raise ServiceException(message='无权取消该运行', msg_key='ai.run.cancelForbidden', domain='plugin.ai')
@@ -592,11 +590,13 @@ class AiChatService:
         :return: 是否属于当前用户
         """
         storage = AiUtil.get_storage_engine()
-        sessions: list[Session] = await storage.get_sessions(
+        sessions = await storage.get_sessions(
             user_id=str(user_id),
             session_type=SessionType.AGENT,
         )
         for session in sessions:
+            if not isinstance(session, AgentSession):
+                continue
             for run in session.runs or []:
                 if str(getattr(run, 'run_id', '') or getattr(run, 'id', '')) == str(run_id):
                     return True

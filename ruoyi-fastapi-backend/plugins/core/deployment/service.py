@@ -60,6 +60,13 @@ def build_maintenance_runtime(config: PluginDeploymentConfig, plugins: list[Disc
 class PluginDeploymentService:
     """
     签名制品维护准备、发布目标选择及集群状态查询服务。
+
+    :ivar config: 制品发布配置快照
+    :ivar session_factory: 异步数据库会话工厂，未提供时使用宿主数据源
+    :ivar dao: 制品、发布目标及进程报告的数据访问接口
+    :ivar catalog: 当前运行时使用的插件目录
+    :ivar lifecycle_lock: 与插件维护发布共用的生命周期锁
+    :ivar runtime_factory: 用于创建独立维护运行时的工厂
     """
 
     def __init__(
@@ -79,7 +86,6 @@ class PluginDeploymentService:
         :param dao: 制品、发布目标及进程报告的数据访问接口
         :param lifecycle_lock: 与插件维护发布共用的生命周期锁
         :param runtime_factory: 用于创建独立维护运行时的工厂
-        :return: None
         """
         self.config = config
         self.session_factory = session_factory or DataSourceRegistry.session
@@ -176,7 +182,6 @@ class PluginDeploymentService:
 
         该检查依赖已上报的进程状态，调用方仍须先实际停止全部宿主进程。
 
-        :return: None
         :raises ValueError: 仍存在有效期内且尚未停止的宿主进程报告
         """
         cutoff = TimezoneUtil.utc_now() - timedelta(seconds=self.config.worker_ttl_seconds)
@@ -194,7 +199,6 @@ class PluginDeploymentService:
         要求调用方显式确认已进入停机维护窗口。
 
         :param maintenance: 是否已显式确认在停止全部宿主进程后执行维护
-        :return: None
         :raises ValueError: 调用方未显式确认停机维护
         """
         if not maintenance:
@@ -206,7 +210,6 @@ class PluginDeploymentService:
         拒绝已加载目标插件模块的进程继续执行制品维护准备。
 
         :param plugin: 本次拟执行维护准备的插件发现对象
-        :return: None
         :raises ValueError: 当前进程已经导入该插件的模块命名空间
         """
         namespace = plugin.manifest.backend.module
@@ -328,6 +331,7 @@ class PluginDeploymentService:
         :param dry_run: 是否只执行预检而不写入文件或数据库
         :return: 维护准备结果或只读预检计划
         :raises ValueError: 维护条件、版本顺序或生命周期准备结果不符合发布要求
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         if dry_run:
             return await self.plan(plugin_id, digest)
@@ -549,7 +553,6 @@ class PluginDeploymentService:
         :param db: 当前操作使用的数据库会话
         :param payload: 需要写入审计的操作结果数据
         :param actor: 本次操作的执行者，未提供时不记录执行者名称
-        :return: None
         """
         await PluginService.add_plugin_operation_log_services(
             db, {**payload, 'operatedBy': actor}, dry_run=False, continue_on_error=False

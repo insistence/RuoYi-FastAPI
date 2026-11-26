@@ -1,8 +1,10 @@
 from pathlib import Path
+from typing import Literal
 
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.management.entity.vo.schemas import PluginModel
 from plugins.core.manifest.schema import PluginManifest
+from plugins.core.state import PluginStatus
 from plugins.core.validation.plugin_deps import (
     PluginDependencyChecker,
     PluginDependencyPlanBuilder,
@@ -15,7 +17,15 @@ def build_discovered_plugin(
     version: str = '1.0.0',
     dependencies: list[object] | None = None,
 ) -> DiscoveredPlugin:
-    """构造测试用已发现插件。"""
+    """
+    构造测试用已发现插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param plugin_id: 插件清单中的唯一标识
+    :param version: 当前记录的版本
+    :param dependencies: 执行当前步骤所需的依赖
+    :return: 测试用已发现插件
+    """
     backend_path = tmp_path / 'plugins' / plugin_id
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True, exist_ok=True)
@@ -34,14 +44,22 @@ def build_discovered_plugin(
 
 
 def build_database_plugin(
-    plugin_id: str, version: str, *, enabled: str = '0', status: str = 'installed'
+    plugin_id: str, version: str, *, enabled: Literal['0', '1'] = '0', status: PluginStatus = 'installed'
 ) -> PluginModel:
-    """构造测试用数据库插件状态。"""
+    """
+    构造测试用数据库插件状态。
+
+    :param plugin_id: 插件清单中的唯一标识
+    :param version: 当前记录的版本
+    :param enabled: 是否启用该项功能
+    :param status: 操作或记录所处的状态
+    :return: 测试用数据库插件状态
+    """
     return PluginModel(
-        pluginId=plugin_id,
-        pluginName=plugin_id,
+        plugin_id=plugin_id,
+        plugin_name=plugin_id,
         version=version,
-        installedVersion=version,
+        installed_version=version,
         enabled=enabled,
         status=status,
     )

@@ -23,6 +23,7 @@ class PluginLifecycleScriptHelper:
 
         :param sql_content: SQL 文件内容
         :return: SQL 语句列表
+        :raises RuntimeError: 插件 SQL 脚本暂不支持 DELIMITER，请改用 Python migration 或拆分为简单 SQL 文件
         """
         for line in sql_content.splitlines():
             if SQL_DELIMITER_PATTERN.match(line):
@@ -165,6 +166,7 @@ class PluginLifecycleScriptHelper:
         :param supported_suffixes: 支持的文件后缀
         :param label: 脚本类型展示名
         :return: 脚本文件绝对路径
+        :raises RuntimeError: 脚本越出插件根目录、扩展名不受支持或文件缺失
         """
         script_file = (plugin_root / script_path).resolve()
         resolved_plugin_root = plugin_root.resolve()
@@ -186,6 +188,7 @@ class PluginLifecycleScriptHelper:
         :param script_file: 脚本文件绝对路径
         :param label: 脚本类型展示名
         :return: Python 模块
+        :raises RuntimeError: 无法为插件脚本创建模块加载器
         """
         module_spec = importlib.util.spec_from_file_location(module_name, script_file)
         if module_spec is None or module_spec.loader is None:

@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, cast
 
 from i18n.message import I18nMessage
 from plugins.core.runtime.support import PluginRuntimePayloadBuilder
@@ -15,6 +15,8 @@ MIGRATION_MANUAL_TRANSITIONS: dict[MigrationRecoveryStatus, set[str]] = {
 class PluginMigrationUseCase:
     """
     插件 migration 历史查询和人工恢复 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
     """
 
     def __init__(self, dependencies: PluginRuntimeDependencies) -> None:
@@ -147,7 +149,7 @@ class PluginMigrationUseCase:
         """
         model_dump = getattr(migration, 'model_dump', None)
         if callable(model_dump):
-            return model_dump(by_alias=True)
+            return cast('dict[str, object]', model_dump(by_alias=True))
 
         return {
             'pluginId': getattr(migration, 'plugin_id', None),

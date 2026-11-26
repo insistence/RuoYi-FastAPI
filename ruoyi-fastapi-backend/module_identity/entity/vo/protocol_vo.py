@@ -1,29 +1,37 @@
-from typing import Literal
+from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, field_validator, model_validator
 
+from module_identity.entity.types import (
+    CodeChallengeMethod,
+    ResponseMode,
+    ResponseType,
+    SigningAlgorithm,
+    SubjectType,
+    TokenEndpointAuthMethod,
+)
 from utils.oidc_util import OidcUtil
 
 
 class ProtocolModel(BaseModel):
     """
-    标准协议模型基类
+    标准协议模型基类。
 
     标准端点字段保持 snake_case，并拒绝未定义参数。
     """
 
-    model_config = ConfigDict(extra='forbid', populate_by_name=True, str_strip_whitespace=True)
+    model_config = ConfigDict(extra='forbid', validate_by_name=True, validate_by_alias=True, str_strip_whitespace=True)
 
 
 class AuthorizeRequest(ProtocolModel):
     """
-    Authorization Endpoint 请求参数
+    Authorization Endpoint 请求参数。
 
     OIDC 请求必须携带 nonce，并固定使用 PKCE S256。
     """
 
     response_type: str = Field(min_length=1, max_length=100, description='授权响应类型')
-    response_mode: Literal['query'] = Field(default='query', description='授权响应参数传递方式')
+    response_mode: ResponseMode = Field(default='query', description='授权响应参数传递方式')
     client_id: str = Field(min_length=1, max_length=64, description='客户端标识')
     redirect_uri: str = Field(min_length=1, max_length=1000, description='已注册的授权回调地址')
     scope: str = Field(min_length=1, max_length=2000, description='空格分隔的权限范围')
@@ -40,12 +48,12 @@ class AuthorizeRequest(ProtocolModel):
     @classmethod
     def validate_code_challenge(cls, value: str) -> str:
         """
-        校验未填充的 base64url SHA-256 challenge
+        校验未填充的 base64url SHA-256 challenge。
 
         :param value: 客户端提交的 code_challenge
         :return: 已校验 challenge
+        :raises ValueError: code_challenge 必须为不带填充的 Base64URL 编码 SHA-256 摘要
         """
-
         if not OidcUtil.is_s256_challenge(value):
             raise ValueError('code_challenge 必须为不带填充的 Base64URL 编码 SHA-256 摘要')
         return value
@@ -54,22 +62,21 @@ class AuthorizeRequest(ProtocolModel):
     @classmethod
     def validate_prompt(cls, value: str | None) -> str | None:
         """
-        只接受规范支持的 prompt 值，且 none 不能和其他值混用
+        只接受规范支持的 prompt 值，且 none 不能和其他值混用。
 
         :param value: 空格分隔的 prompt 列表
         :return: 规范化后的 prompt 或 None
         """
-
         return OidcUtil.normalize_prompt(value)
 
     @model_validator(mode='after')
     def validate_oidc_nonce(self) -> 'AuthorizeRequest':
         """
-        校验 OIDC 授权请求必须绑定 nonce
+        校验 OIDC 授权请求必须绑定 nonce。
 
         :return: 当前已校验请求
+        :raises ValueError: 申请 openid 权限时必须提供 nonce
         """
-
         if 'openid' in self.scope.split() and not self.nonce:
             raise ValueError('申请 openid 权限时必须提供 nonce')
         return self
@@ -77,7 +84,7 @@ class AuthorizeRequest(ProtocolModel):
 
 class TokenRequest(ProtocolModel):
     """
-    Token Endpoint 表单参数
+    Token Endpoint 表单参数。
 
     不同 grant_type 只允许携带其对应凭据。
     """
@@ -94,11 +101,11 @@ class TokenRequest(ProtocolModel):
     @model_validator(mode='after')
     def check_grant_fields(self) -> 'TokenRequest':
         """
-        拒绝与 grant type 不相符的凭据，避免跨流程混用
+        拒绝与 grant type 不相符的凭据，避免跨流程混用。
 
         :return: 当前已校验请求
+        :raises ValueError: 授权码兑换必须提供 code、redirect_uri 和 code_verifier；授权码兑换请求包含不适用的字段；刷新令牌请求必须提供 refresh_token；刷新令牌请求包含不适用的字段；客户端凭据授权请求包含不适用的字段
         """
-
         if self.grant_type == 'authorization_code':
             if not self.code or not self.code_verifier or not self.redirect_uri:
                 raise ValueError('授权码兑换必须提供 code、redirect_uri 和 code_verifier')
@@ -118,7 +125,7 @@ class TokenRequest(ProtocolModel):
 
 class TokenResponse(ProtocolModel):
     """
-    Token Endpoint 成功响应
+    Token Endpoint 成功响应。
 
     字段直接对应 OAuth 2.0 标准 JSON 响应。
     """
@@ -133,7 +140,7 @@ class TokenResponse(ProtocolModel):
 
 class ErrorResponse(ProtocolModel):
     """
-    OAuth/OIDC 标准错误响应
+    OAuth/OIDC 标准错误响应。
 
     不包含项目业务响应包装字段。
     """
@@ -144,17 +151,21 @@ class ErrorResponse(ProtocolModel):
 
     def as_dict(self) -> dict[str, str]:
         """
-        返回可直接作为标准 JSON 响应的非空字段
+        返回可直接作为标准 JSON 响应的非空字段。
 
         :return: 排除 None 字段的标准错误字典
         """
-
-        return self.model_dump(exclude_none=True)
+        fields = {'error': self.error}
+        if self.error_description is not None:
+            fields['error_description'] = self.error_description
+        if self.error_uri is not None:
+            fields['error_uri'] = self.error_uri
+        return fields
 
 
 class Jwk(ProtocolModel):
     """
-    公开 RSA JWK
+    公开 RSA JWK。
 
     模型严格拒绝 d、p、q 等私钥参数。
     """
@@ -162,14 +173,14 @@ class Jwk(ProtocolModel):
     kty: Literal['RSA'] = Field(default='RSA', description='公钥类型')
     use: Literal['sig'] = Field(default='sig', description='公钥用途')
     kid: str = Field(min_length=1, max_length=100, description='签名密钥标识')
-    alg: Literal['RS256'] = Field(default='RS256', description='签名算法')
+    alg: SigningAlgorithm = Field(default='RS256', description='签名算法')
     n: str = Field(min_length=1, description='RSA公钥模数的Base64URL编码')
     e: str = Field(min_length=1, description='RSA公钥指数的Base64URL编码')
 
 
 class JwksResponse(ProtocolModel):
     """
-    JWKS 响应
+    JWKS 响应。
 
     keys 仅包含公开签名 JWK。
     """
@@ -179,7 +190,7 @@ class JwksResponse(ProtocolModel):
 
 class DiscoveryResponse(ProtocolModel):
     """
-    OIDC Discovery 响应
+    OIDC Discovery 响应。
 
     元数据只宣称当前实现确实支持的端点和算法。
     """
@@ -193,26 +204,26 @@ class DiscoveryResponse(ProtocolModel):
     introspection_endpoint: str = Field(description='令牌内省端点地址')
     end_session_endpoint: str = Field(description='退出端点地址')
     scopes_supported: list[str] = Field(default_factory=list, description='支持的权限列表')
-    response_types_supported: list[Literal['code']] = Field(
-        default_factory=lambda: ['code'], description='支持的授权响应类型列表'
+    response_types_supported: list[ResponseType] = Field(
+        default_factory=lambda: list(get_args(ResponseType)), description='支持的授权响应类型列表'
     )
-    response_modes_supported: list[Literal['query']] = Field(
-        default_factory=lambda: ['query'], description='支持的授权响应模式列表'
+    response_modes_supported: list[ResponseMode] = Field(
+        default_factory=lambda: list(get_args(ResponseMode)), description='支持的授权响应模式列表'
     )
     grant_types_supported: list[str] = Field(
         default_factory=lambda: ['authorization_code', 'refresh_token'], description='支持的授权类型列表'
     )
-    subject_types_supported: list[Literal['public']] = Field(
-        default_factory=lambda: ['public'], description='支持的主体标识类型列表'
+    subject_types_supported: list[SubjectType] = Field(
+        default_factory=lambda: list(get_args(SubjectType)), description='支持的主体标识类型列表'
     )
-    id_token_signing_alg_values_supported: list[Literal['RS256']] = Field(
-        default_factory=lambda: ['RS256'], description='支持的ID Token签名算法列表'
+    id_token_signing_alg_values_supported: list[SigningAlgorithm] = Field(
+        default_factory=lambda: list(get_args(SigningAlgorithm)), description='支持的ID Token签名算法列表'
     )
-    token_endpoint_auth_methods_supported: list[Literal['none', 'client_secret_basic']] = Field(
-        default_factory=lambda: ['none', 'client_secret_basic'], description='支持的令牌端点认证方式列表'
+    token_endpoint_auth_methods_supported: list[TokenEndpointAuthMethod] = Field(
+        default_factory=lambda: list(get_args(TokenEndpointAuthMethod)), description='支持的令牌端点认证方式列表'
     )
-    code_challenge_methods_supported: list[Literal['S256']] = Field(
-        default_factory=lambda: ['S256'], description='支持的PKCE挑战方法列表'
+    code_challenge_methods_supported: list[CodeChallengeMethod] = Field(
+        default_factory=lambda: list(get_args(CodeChallengeMethod)), description='支持的PKCE挑战方法列表'
     )
     claims_supported: list[str] = Field(default_factory=list, description='支持的声明字段列表')
     authorization_response_iss_parameter_supported: bool = Field(
@@ -224,7 +235,7 @@ class DiscoveryResponse(ProtocolModel):
 
 class OAuthServerMetadata(ProtocolModel):
     """
-    RFC 8414 OAuth Authorization Server Metadata 子集
+    RFC 8414 OAuth Authorization Server Metadata 子集。
 
     不继承要求 OIDC 专属 userinfo_endpoint 和 end_session_endpoint 的模型。
     """
@@ -236,23 +247,23 @@ class OAuthServerMetadata(ProtocolModel):
     revocation_endpoint: str | None = Field(default=None, description='令牌撤销端点地址')
     introspection_endpoint: str | None = Field(default=None, description='令牌内省端点地址')
     scopes_supported: list[str] = Field(default_factory=list, description='支持的权限列表')
-    response_types_supported: list[Literal['code']] = Field(
-        default_factory=lambda: ['code'], description='支持的授权响应类型列表'
+    response_types_supported: list[ResponseType] = Field(
+        default_factory=lambda: list(get_args(ResponseType)), description='支持的授权响应类型列表'
     )
     grant_types_supported: list[str] = Field(
         default_factory=lambda: ['authorization_code', 'refresh_token'], description='支持的授权类型列表'
     )
-    token_endpoint_auth_methods_supported: list[Literal['none', 'client_secret_basic']] = Field(
-        default_factory=lambda: ['none', 'client_secret_basic'], description='支持的令牌端点认证方式列表'
+    token_endpoint_auth_methods_supported: list[TokenEndpointAuthMethod] = Field(
+        default_factory=lambda: list(get_args(TokenEndpointAuthMethod)), description='支持的令牌端点认证方式列表'
     )
-    code_challenge_methods_supported: list[Literal['S256']] = Field(
-        default_factory=lambda: ['S256'], description='支持的PKCE挑战方法列表'
+    code_challenge_methods_supported: list[CodeChallengeMethod] = Field(
+        default_factory=lambda: list(get_args(CodeChallengeMethod)), description='支持的PKCE挑战方法列表'
     )
 
 
 class UserInfoResponse(ProtocolModel):
     """
-    UserInfo 基础响应
+    UserInfo 基础响应。
 
     允许的扩展字段对应已授权的标准身份声明。
     """
@@ -273,7 +284,7 @@ class UserInfoResponse(ProtocolModel):
 
 class RevocationRequest(ProtocolModel):
     """
-    Token Revocation 请求
+    Token Revocation 请求。
 
     token_type_hint 只用于减少服务端查找歧义，不作为安全依据。
     """
@@ -284,7 +295,7 @@ class RevocationRequest(ProtocolModel):
 
 class IntrospectionRequest(ProtocolModel):
     """
-    Token Introspection 请求
+    Token Introspection 请求。
 
     请求方权限和 audience 绑定由服务层继续校验。
     """
@@ -295,7 +306,7 @@ class IntrospectionRequest(ProtocolModel):
 
 class IntrospectionResponse(ProtocolModel):
     """
-    Token Introspection 响应
+    Token Introspection 响应。
 
     inactive Token 只应返回 active=false。
     """
@@ -317,7 +328,7 @@ class IntrospectionResponse(ProtocolModel):
 
 class LogoutRequest(ProtocolModel):
     """
-    RP-Initiated Logout 请求
+    RP-Initiated Logout 请求。
 
     post_logout_redirect_uri 必须由服务端按 Client 注册值精确匹配。
     """

@@ -2,7 +2,7 @@ import os
 import platform
 import socket
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import anyio
 import psutil
@@ -13,12 +13,15 @@ from utils.common_util import bytes2human
 
 
 class ServerService:
-    """
-    服务监控模块服务层
-    """
+    """服务监控模块服务层。"""
 
     @staticmethod
     async def get_server_monitor_info() -> ServerMonitorModel:
+        """
+        汇总服务器的处理器、内存、运行环境和磁盘信息。
+
+        :return: 执行当前操作得到的结果
+        """
         # CPU信息
         # 获取CPU总核心数
         cpu_num = psutil.cpu_count(logical=True)
@@ -26,7 +29,7 @@ class ServerService:
         cpu_used = cpu_usage_percent.user
         cpu_sys = cpu_usage_percent.system
         cpu_free = cpu_usage_percent.idle
-        cpu = CpuInfo(cpuNum=cpu_num, used=cpu_used, sys=cpu_sys, free=cpu_free)
+        cpu = CpuInfo(cpu_num=cpu_num, used=cpu_used, sys=cpu_sys, free=cpu_free)
 
         # 内存信息
         memory_info = psutil.virtual_memory()
@@ -46,7 +49,7 @@ class ServerService:
         os_arch = platform.machine()
         user_dir = str(await anyio.Path.cwd())
         sys = SysInfo(
-            computerIp=computer_ip, computerName=computer_name, osArch=os_arch, osName=os_name, userDir=user_dir
+            computer_ip=computer_ip, computer_name=computer_name, os_arch=os_arch, os_name=os_name, user_dir=user_dir
         )
 
         # python解释器信息
@@ -56,7 +59,7 @@ class ServerService:
         python_version = platform.python_version()
         python_home = current_process.exe()
         start_time_stamp = current_process.create_time()
-        start_time = datetime.fromtimestamp(start_time_stamp, tz=timezone.utc)
+        start_time = datetime.fromtimestamp(start_time_stamp, tz=UTC)
         current_time_stamp = time.time()
         difference = current_time_stamp - start_time_stamp
         # 将时间差转换为天、小时和分钟数
@@ -71,8 +74,8 @@ class ServerService:
         py = PyInfo(
             name=python_name,
             version=python_version,
-            startTime=start_time,
-            runTime=run_time,
+            start_time=start_time,
+            run_time=run_time,
             home=python_home,
             total=bytes2human(memory_info.available),
             used=bytes2human(current_process_memory_info.rss),
@@ -83,14 +86,14 @@ class ServerService:
         # 磁盘信息
         sys_files = ServerService._get_disk_info()
 
-        result = ServerMonitorModel(cpu=cpu, mem=mem, sys=sys, py=py, sysFiles=sys_files)
+        result = ServerMonitorModel(cpu=cpu, mem=mem, sys=sys, py=py, sys_files=sys_files)
 
         return result
 
     @classmethod
     def _get_disk_info(cls) -> list[SysFiles]:
         """
-        获取可访问的磁盘信息
+        获取可访问的磁盘信息。
 
         :return: 磁盘信息列表
         """
@@ -120,7 +123,7 @@ class ServerService:
     @staticmethod
     def _read_disk_info(device: str, mountpoint: str, filesystem: str) -> SysFiles | None:
         """
-        读取指定磁盘的容量信息
+        读取指定磁盘的容量信息。
 
         :param device: 磁盘设备名称
         :param mountpoint: 磁盘挂载路径
@@ -134,9 +137,9 @@ class ServerService:
             return None
 
         return SysFiles(
-            dirName=device,
-            sysTypeName=filesystem,
-            typeName='本地固定磁盘（' + mountpoint.replace('\\', '') + '）',
+            dir_name=device,
+            sys_type_name=filesystem,
+            type_name='本地固定磁盘（' + mountpoint.replace('\\', '') + '）',
             total=bytes2human(disk_usage.total),
             used=bytes2human(disk_usage.used),
             free=bytes2human(disk_usage.free),

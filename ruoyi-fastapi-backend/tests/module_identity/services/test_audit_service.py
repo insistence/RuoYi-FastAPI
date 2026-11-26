@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from types import SimpleNamespace
 
@@ -15,6 +16,7 @@ from module_identity.dao.oauth_audit_dao import OAuthAuditDao
 from module_identity.entity.do.oauth_audit_do import SysOAuthAuditArchive, SysOAuthAuditLog
 from module_identity.entity.vo.oauth_session_vo import AuditPageQueryModel
 from module_identity.service.audit_service import AuditService
+from tests.module_identity.support.sessions import RecordingSession
 from utils.oidc_util import OidcUtil
 
 _ADMIN_EVENT_ID = 7
@@ -26,14 +28,18 @@ _SERVICE_UNAVAILABLE = 503
 
 
 @pytest_asyncio.fixture
-async def audit_session() -> AsyncSession:
-    """创建只包含审计表的真实 SQLite 会话。"""
+async def audit_session() -> AsyncIterator[AsyncSession]:
+    """
+    创建只包含审计表的真实 SQLite 会话。
+
+    :yield: 只包含审计表的真实 SQLite 会话
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     async with engine.begin() as connection:
         await connection.run_sync(
             lambda sync_connection: Base.metadata.create_all(
                 sync_connection,
-                tables=[SysOAuthAuditLog.__table__, SysOAuthAuditArchive.__table__],
+                tables=[SysOAuthAuditLog.get_table(), SysOAuthAuditArchive.get_table()],
             )
         )
     factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -114,7 +120,7 @@ async def test_audit_uses_field_whitelist_and_caller_commit_boundary(audit_sessi
 @pytest.mark.asyncio
 async def test_audit_retention_moves_old_events_to_archive(audit_session: AsyncSession) -> None:
     """超过在线保留期的审计事件必须转入归档表后再删除。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     await AuditService.record(audit_session, 'old_event', 'success', create_time=now - timedelta(days=181))
     await AuditService.record(audit_session, 'fresh_event', 'success', create_time=now)
 
@@ -144,23 +150,37 @@ async def test_audit_admin_reads_project_safe_models_and_export(monkeypatch: pyt
         sid='sid-1',
         ip_address='127.0.0.1',
         failure_code=None,
-        create_time=datetime.now(timezone.utc),
+        create_time=datetime.now(UTC),
     )
     calls: list[dict[str, object]] = []
 
     async def list_admin_page(*args: object, **kwargs: object) -> list[object]:
+        """
+        记录审计分页查询参数并返回样例记录。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 样例记录
+        """
         calls.append(kwargs)
         return [row]
 
     async def count_admin(*args: object, **kwargs: object) -> int:
+        """
+        返回固定值 ``1``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``1``
+        """
         return 1
 
     monkeypatch.setattr(OAuthAuditDao, 'list_admin_page', list_admin_page)
     monkeypatch.setattr(OAuthAuditDao, 'count_admin', count_admin)
     query = AuditPageQueryModel(page_num=2, page_size=_ADMIN_PAGE_SIZE, client_id='client-1')
 
-    rows, total = await AuditService.list_admin_page(SimpleNamespace(), query)
-    exported = await AuditService.export_admin(SimpleNamespace(), query)
+    rows, total = await AuditService.list_admin_page(AsyncSession(), query)
+    exported = await AuditService.export_admin(AsyncSession(), query)
 
     assert total == _ADMIN_TOTAL
     assert rows[0]['auditId'] == _ADMIN_EVENT_ID
@@ -189,7 +209,7 @@ async def test_audit_export_serializes_stored_utc_in_request_timezone(
         audit_session,
         'export_timezone',
         'success',
-        create_time=datetime(2026, 8, 28, 10, 30, 0, 123000, tzinfo=timezone.utc),
+        create_time=datetime(2026, 8, 28, 10, 30, 0, 123000, tzinfo=UTC),
         detail={'private_note': 'not-for-export', 'access_token': 'hidden'},
     )
     await audit_session.commit()
@@ -212,18 +232,18 @@ async def test_audit_export_serializes_stored_utc_in_request_timezone(
 async def test_interaction_failure_audit_rolls_back_and_wraps_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """交互失败审计保持双重回滚和统一异常包装语义。"""
 
-    class _Db:
-        def __init__(self) -> None:
-            self.rollbacks = 0
-
-        async def rollback(self) -> None:
-            self.rollbacks += 1
-
     async def fail(*args: object, **kwargs: object) -> object:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟审计服务不可用
+        """
         raise RuntimeError('audit unavailable')
 
     monkeypatch.setattr(AuditService, 'record_independent', fail)
-    db = _Db()
+    db = RecordingSession()
     with pytest.raises(OidcInteractionException) as raised:
         await AuditService.record_interaction_failure(db, 'login_failed', failure_code='invalid_credentials')
 

@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import Literal
 
 from packaging.requirements import InvalidRequirement
+from pydantic import TypeAdapter
 
 from i18n.message import I18nMessage
 from plugins.core.environment import PLUGIN_RUNTIME_ENVIRONMENT, PluginRuntimeEnvironmentService
-from plugins.core.manifest.schema import PluginManifest
+from plugins.core.manifest.v2 import VersionedPluginManifest
 from plugins.core.validation.python_requirements import PythonRequirementParser
 from plugins.core.validation.versioning import PluginVersionComparator, PluginVersionConstraintMatcher
 
@@ -25,6 +26,17 @@ PLUGIN_STARTUP_DEPENDENCY_ERROR_PREFIX = '插件启动依赖检查失败：'
 class DependencyCheckItem:
     """
     单条依赖检查结果。
+
+    :ivar kind: 当前条目的类别
+    :ivar requirement: 依赖声明，包括包名和版本约束
+    :ivar name: 用于查找或标识当前对象的名称
+    :ivar installed: 当前环境中已安装的版本
+    :ivar version_satisfied: 版本是否满足
+    :ivar installed_version: 已安装版本
+    :ivar required_version: 约束版本
+    :ivar message: 与当前结果一起返回的说明
+    :ivar status: 操作或记录所处的状态
+    :ivar declared_version: 插件清单声明的依赖版本
     """
 
     kind: DependencyKind
@@ -52,6 +64,9 @@ class DependencyCheckItem:
 class DependencyCheckResult:
     """
     插件依赖检查结果。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar items: 逐项记录的检查或计划明细
     """
 
     plugin_id: str
@@ -91,6 +106,13 @@ class DependencyCheckResult:
 class DependencyInstallPlanItem:
     """
     依赖安装计划项。
+
+    :ivar kind: 当前条目的类别
+    :ivar requirement: 依赖声明，包括包名和版本约束
+    :ivar name: 用于查找或标识当前对象的名称
+    :ivar command: 执行的命令及其参数
+    :ivar workdir: 命令执行时使用的工作目录
+    :ivar reason: 作出该决定或状态变化的原因
     """
 
     kind: DependencyKind
@@ -105,6 +127,9 @@ class DependencyInstallPlanItem:
 class DependencyInstallPlan:
     """
     插件依赖安装计划。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar items: 逐项记录的检查或计划明细
     """
 
     plugin_id: str
@@ -124,6 +149,10 @@ class DependencyInstallPlan:
 class ParsedDependency:
     """
     已解析依赖声明。
+
+    :ivar name: 用于查找或标识当前对象的名称
+    :ivar operator: 依赖表达式中的比较运算符
+    :ivar version: npm 版本声明
     """
 
     name: str
@@ -169,9 +198,7 @@ class DependencyRequirementParser:
 
 
 class VersionConstraintMatcher:
-    """
-    版本约束匹配器。
-    """
+    """版本约束匹配器。"""
 
     @classmethod
     def is_satisfied(cls, installed_version: str | None, parsed_dependency: ParsedDependency) -> bool:
@@ -234,6 +261,9 @@ class VersionConstraintMatcher:
 class PythonDependencyInspector:
     """
     Python 依赖检查器。
+
+    :ivar _installed_packages_overridden: 是否使用调用方提供的已安装包清单
+    :ivar installed_packages: 已安装 Python 包版本映射
     """
 
     def __init__(self, installed_packages: dict[str, str] | None = None) -> None:
@@ -255,8 +285,6 @@ class PythonDependencyInspector:
 
         显式传入 ``installed_packages`` 的检查器保持固定快照，便于测试和离线检查；
         从运行环境创建的检查器会重新读取 distribution 元数据。
-
-        :return: None
         """
         if self._installed_packages_overridden:
             return
@@ -397,6 +425,9 @@ class PythonDependencyInspector:
 class NpmDependencyInspector:
     """
     npm 依赖检查器。
+
+    :ivar frontend_root: 前端项目根目录
+    :ivar installed_packages: 已声明 npm 包版本映射
     """
 
     def __init__(
@@ -498,7 +529,7 @@ class NpmDependencyInspector:
         dependencies = package_json.get('dependencies', {})
         dev_dependencies = package_json.get('devDependencies', {})
 
-        return {**dependencies, **dev_dependencies}
+        return TypeAdapter(dict[str, str]).validate_python({**dependencies, **dev_dependencies}, strict=True)
 
     @staticmethod
     def _normalize_npm_version(version: str | None) -> str | None:
@@ -538,6 +569,11 @@ class NpmDependencyInspector:
 class PluginDependencyChecker:
     """
     插件依赖检查器。
+
+    :ivar runtime_environment: 保留当前宿主显式框架选择的运行时环境
+    :ivar python_inspector: Python 依赖检查器
+    :ivar npm_inspector: 当前宿主前端的 npm 依赖检查器
+    :ivar frontend_mode: 前端运行模式，已构建模式跳过 npm 依赖实际检查
     """
 
     def __init__(
@@ -554,7 +590,6 @@ class PluginDependencyChecker:
         :param npm_inspector: 当前宿主前端的 npm 依赖检查器
         :param frontend_mode: 前端运行模式，已构建模式跳过 npm 依赖实际检查
         :param runtime_environment: 保留当前宿主显式框架选择的运行时环境
-        :return: None
         """
         self.runtime_environment = runtime_environment or PLUGIN_RUNTIME_ENVIRONMENT
         self.python_inspector = python_inspector or PythonDependencyInspector()
@@ -563,7 +598,7 @@ class PluginDependencyChecker:
         )
         self.frontend_mode = frontend_mode
 
-    def check_manifest(self, manifest: PluginManifest) -> DependencyCheckResult:
+    def check_manifest(self, manifest: VersionedPluginManifest) -> DependencyCheckResult:
         """
         检查插件清单依赖。
 
@@ -595,6 +630,9 @@ class PluginDependencyInstallPlanner:
     插件依赖安装计划生成器。
 
     使用 Planner 模式将依赖检查结果转换为可审计、可 dry-run 的安装计划。
+
+    :ivar python_executable: Python 可执行文件路径
+    :ivar frontend_root: 前端工程根目录
     """
 
     def __init__(self, python_executable: str | None = None, frontend_root: Path | str | None = None) -> None:

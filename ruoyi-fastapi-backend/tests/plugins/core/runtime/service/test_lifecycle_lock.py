@@ -17,6 +17,8 @@ from plugins.core.runtime.service.lifecycle_lock import (
 class DeniedLifecycleLock:
     """
     测试用拒绝插件生命周期锁。
+
+    :ivar calls: 测试替身记录的调用信息
     """
 
     def __init__(self) -> None:
@@ -25,19 +27,30 @@ class DeniedLifecycleLock:
 
     @asynccontextmanager
     async def lock(self, plugin_id: str, operation: str) -> AsyncGenerator[PluginLifecycleLockResult, None]:
-        """返回未获取锁结果。"""
+        """
+        返回未获取锁结果。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param operation: 当前处理的操作
+        :yield: 未获取锁结果
+        """
         self.calls.append((plugin_id, operation))
         yield PluginLifecycleLockResult(acquired=False, message='插件正在操作中')
 
 
 class FailingLifecycleLock:
-    """
-    测试用失败插件生命周期锁。
-    """
+    """测试用失败插件生命周期锁。"""
 
     @asynccontextmanager
     async def lock(self, plugin_id: str, operation: str) -> AsyncGenerator[PluginLifecycleLockResult, None]:
-        """不应被调用的锁。"""
+        """
+        不应被调用的锁。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param operation: 当前处理的操作
+        :raises AssertionError: dry_run 不应获取生命周期锁
+        :yield: ``PluginLifecycleLockResult`` 实例
+        """
         raise AssertionError('dry_run 不应获取生命周期锁')
         yield PluginLifecycleLockResult(acquired=True)
 

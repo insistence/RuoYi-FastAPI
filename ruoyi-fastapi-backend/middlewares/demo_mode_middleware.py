@@ -8,13 +8,15 @@ from utils.response_util import ResponseUtil
 
 
 class DemoModeMiddleware(BaseHTTPMiddleware):
-    """
-    演示模式中间件
-    """
+    """演示模式中间件。"""
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """
-        演示模式下拦截指定请求
+        演示模式下拦截指定请求。
+
+        :param request: 当前 HTTP 请求
+        :param call_next: 调用下一层请求处理器的异步回调
+        :return: 演示限制提示或下游响应
         """
         url_path = str(request.url)
         method = request.method.lower()
@@ -58,7 +60,7 @@ class DemoModeMiddleware(BaseHTTPMiddleware):
 
 def add_demo_mode_middleware(app: FastAPI) -> None:
     """
-    添加演示模式中间件
+    添加演示模式中间件。
 
     :param app: FastAPI对象
     """

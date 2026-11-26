@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +14,7 @@ async def test_valid_grant_requires_active_unexpired_and_current_client_policy(
     data_session: AsyncSession,
 ) -> None:
     """验证 Grant 过期或 Client 策略版本变化后不再视为有效。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     client = SysOAuthClient(
         client_pk=4101,
         client_id='grant-policy-client',
@@ -46,6 +46,7 @@ async def test_valid_grant_requires_active_unexpired_and_current_client_policy(
     assert await OAuthGrantDao.get_valid_for_user_client(data_session, 4101, 4101) is not None
 
     grant = await OAuthGrantDao.get_active_for_user_client(data_session, 4101, 4101)
+    assert grant is not None
     grant.expires_at = now - timedelta(seconds=1)
     await data_session.flush()
     assert await OAuthGrantDao.get_valid_for_user_client(data_session, 4101, 4101) is None

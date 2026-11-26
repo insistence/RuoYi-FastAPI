@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -11,14 +11,12 @@ from utils.time_util import TimezoneUtil
 
 
 class ConfigDao:
-    """
-    参数配置管理模块数据库操作层
-    """
+    """参数配置管理模块数据库操作层。"""
 
     @classmethod
     async def get_config_detail_by_id(cls, db: AsyncSession, config_id: int) -> SysConfig | None:
         """
-        根据参数配置id获取参数配置详细信息
+        根据参数配置id获取参数配置详细信息。
 
         :param db: orm对象
         :param config_id: 参数配置id
@@ -31,7 +29,7 @@ class ConfigDao:
     @classmethod
     async def get_config_detail_by_info(cls, db: AsyncSession, config: ConfigModel) -> SysConfig | None:
         """
-        根据参数配置参数获取参数配置信息
+        根据参数配置参数获取参数配置信息。
 
         :param db: orm对象
         :param config: 参数配置参数对象
@@ -41,8 +39,8 @@ class ConfigDao:
             (
                 await db.execute(
                     select(SysConfig).where(
-                        SysConfig.config_key == config.config_key if config.config_key else True,
-                        SysConfig.config_value == config.config_value if config.config_value else True,
+                        SysConfig.config_key == config.config_key if config.config_key else true(),
+                        SysConfig.config_value == config.config_value if config.config_value else true(),
                     )
                 )
             )
@@ -55,9 +53,9 @@ class ConfigDao:
     @classmethod
     async def get_config_list(
         cls, db: AsyncSession, query_object: ConfigPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据查询参数获取参数配置列表信息
+        根据查询参数获取参数配置列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -70,16 +68,16 @@ class ConfigDao:
         query = (
             select(SysConfig)
             .where(
-                SysConfig.config_name.like(f'%{query_object.config_name}%') if query_object.config_name else True,
-                SysConfig.config_key.like(f'%{query_object.config_key}%') if query_object.config_key else True,
-                SysConfig.config_type == query_object.config_type if query_object.config_type else True,
-                SysConfig.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysConfig.create_time < time_range[1] if time_range and time_range[1] is not None else True,
+                SysConfig.config_name.like(f'%{query_object.config_name}%') if query_object.config_name else true(),
+                SysConfig.config_key.like(f'%{query_object.config_key}%') if query_object.config_key else true(),
+                SysConfig.config_type == query_object.config_type if query_object.config_type else true(),
+                SysConfig.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysConfig.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
             )
             .order_by(SysConfig.config_id)
             .distinct()
         )
-        config_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        config_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -88,11 +86,11 @@ class ConfigDao:
     @classmethod
     async def add_config_dao(cls, db: AsyncSession, config: ConfigModel) -> SysConfig:
         """
-        新增参数配置数据库操作
+        新增参数配置数据库操作。
 
         :param db: orm对象
         :param config: 参数配置对象
-        :return:
+        :return: 新增的参数配置记录
         """
         db_config = SysConfig(**config.model_dump(exclude={'create_time', 'update_time'}))
         db.add(db_config)
@@ -101,13 +99,12 @@ class ConfigDao:
         return db_config
 
     @classmethod
-    async def edit_config_dao(cls, db: AsyncSession, config: dict) -> None:
+    async def edit_config_dao(cls, db: AsyncSession, config: dict[str, Any]) -> None:
         """
-        编辑参数配置数据库操作
+        编辑参数配置数据库操作。
 
         :param db: orm对象
         :param config: 需要更新的参数配置字典
-        :return:
         """
         await db.execute(
             update(SysConfig),
@@ -117,10 +114,9 @@ class ConfigDao:
     @classmethod
     async def delete_config_dao(cls, db: AsyncSession, config: ConfigModel) -> None:
         """
-        删除参数配置数据库操作
+        删除参数配置数据库操作。
 
         :param db: orm对象
         :param config: 参数配置对象
-        :return:
         """
         await db.execute(delete(SysConfig).where(SysConfig.config_id.in_([config.config_id])))

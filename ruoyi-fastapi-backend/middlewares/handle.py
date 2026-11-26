@@ -14,7 +14,9 @@ from middlewares.transport_crypto_middleware import add_transport_crypto_middlew
 
 def handle_middleware(app: FastAPI) -> None:
     """
-    全局中间件处理
+    全局中间件处理。
+
+    :param app: 正在配置或处理请求的 ASGI 应用
     """
     # 加载上下文清理中间件
     add_context_cleanup_middleware(app)

@@ -2,7 +2,7 @@ import hmac
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Never
 from uuid import uuid4
 
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
@@ -48,7 +48,13 @@ from utils.time_util import TimezoneUtil
 @dataclass(frozen=True, slots=True)
 class TokenResult:
     """
-    记录 Token Endpoint 生成的各类令牌
+    记录 Token Endpoint 生成的各类令牌。
+
+    :ivar access_token: 用于访问资源的令牌
+    :ivar expires_in: 剩余有效时间，单位为秒
+    :ivar refresh_token: 用于换取新访问令牌的刷新令牌
+    :ivar scope: 当前操作使用的作用域
+    :ivar id_token: 包含用户身份声明的 ID 令牌
     """
 
     access_token: str
@@ -60,20 +66,18 @@ class TokenResult:
     @property
     def token_type(self) -> str:
         """
-        返回 OAuth Bearer 令牌类型
+        返回 OAuth Bearer 令牌类型。
 
         :return: 固定为 OAuth 2.0 Bearer token 类型的字符串
         """
-
         return 'Bearer'
 
     def as_dict(self) -> dict[str, Any]:
         """
-        将令牌结果转换为 Token Endpoint 响应字典
+        将令牌结果转换为 Token Endpoint 响应字典。
 
         :return: 包含协议字段的字典
         """
-
         result: dict[str, Any] = {
             'access_token': self.access_token,
             'token_type': 'Bearer',
@@ -89,35 +93,39 @@ class TokenResult:
 
     def __getitem__(self, key: str) -> Any:
         """
-        按字段名读取 Token Endpoint 响应值
+        按字段名读取 Token Endpoint 响应值。
 
         :param key: 要读取的 Token Endpoint 响应字段名
         :return: 对应字段的 Access Token、有效期或可选令牌值
         """
-
         return self.as_dict()[key]
 
 
 class RefreshTokenReuseDetected(OAuthProtocolException):
     """
-    Refresh Token 重放检测错误类型
+    Refresh Token 重放检测错误类型。
+
+    :cvar must_commit: 抛出异常后是否仍须提交状态更改
     """
 
     must_commit = True
 
     def __init__(self) -> None:
-        """
-        保存 OAuth 撤销错误代码和描述
-
-        :return: None
-        """
-
+        """保存 OAuth 撤销错误代码和描述。"""
         super().__init__('invalid_grant', 'The authorization grant is invalid or expired', 400)
 
 
 class TokenService:
     """
-    OAuth Token 模块服务层
+    OAuth Token 模块服务层。
+
+    :cvar _USERINFO_AUDIENCE_SUFFIX: 构造用户信息接口受众标识的后缀
+    :cvar _MACHINE_SCOPE_TYPE: 用于机器身份授权的权限范围类型
+    :cvar _ACTIVE_CLIENT_STATUSES: 签发令牌时允许的客户端状态
+    :cvar _ACTIVE_GRANT_STATUS: 表示授权记录可用的状态值
+    :cvar _ACTIVE_SESSION_STATUS: 表示会话有效的状态值
+    :cvar _MAX_RESOURCE_COUNT: 单次令牌请求允许的最大资源数量
+    :cvar _MIN_TOKEN_PEPPER_BYTES: 计算令牌摘要所用服务端密钥的最小字节数
     """
 
     _USERINFO_AUDIENCE_SUFFIX = '/oauth2/userinfo'
@@ -138,7 +146,7 @@ class TokenService:
         client_secret: str | None = None,
     ) -> tuple[SysOAuthClient, OAuthClientPrincipal]:
         """
-        解析凭据并验证 OAuth Client 身份
+        解析凭据并验证 OAuth Client 身份。
 
         :param db: 异步数据库会话
         :param authorization: RFC 7617 Basic Header；机密 Client 必须使用该方式
@@ -147,7 +155,6 @@ class TokenService:
         :return: 已启用 Client 行和不可伪造的 Client Principal
         :raises OAuthProtocolException: Client 凭据无效时抛出 invalid_client
         """
-
         if authorization is not None and client_secret is not None:
             cls._invalid_client()
         lookup_id = client_id
@@ -166,12 +173,10 @@ class TokenService:
 
         def capture_secret_match(secret_hash: str) -> None:
             """
-            保存认证过程中匹配的 Client Secret 哈希
+            保存认证过程中匹配的 Client Secret 哈希。
 
             :param secret_hash: 已匹配的持久化 Secret 哈希
-            :return: None
             """
-
             nonlocal matched_secret_hash
             matched_secret_hash = secret_hash
 
@@ -181,7 +186,7 @@ class TokenService:
                 authorization,
                 client_id=client_id,
                 client_secret=client_secret,
-                secret_hashes=secrets,
+                secret_hashes=(secret.secret_hash for secret in secrets),
                 secret_match_callback=capture_secret_match,
             )
         except (ClientAuthenticationError, TypeError, ValueError):
@@ -209,17 +214,15 @@ class TokenService:
         pepper: str | bytes,
     ) -> None:
         """
-        撤销重用授权码关联的 Grant 并记录高风险审计
+        撤销重用授权码关联的 Grant 并记录高风险审计。
 
         :param db: 异步数据库会话
         :param redis: Authorization Code Redis 客户端
         :param code: 被重复提交的 Authorization Code 明文
         :param client_id: 已认证 Client 公开标识
         :param pepper: Authorization Code 摘要 Pepper
-        :return: None
         :raises OAuthProtocolException: 撤销或审计无法安全持久化时抛出
         """
-
         try:
             consumed_payload = await AuthorizationCodeService.consumed_payload(redis, code, pepper=pepper)
             grant_id = consumed_payload.get('grantId') if consumed_payload else None
@@ -250,7 +253,7 @@ class TokenService:
         token_pepper: str | bytes | None = None,
     ) -> TokenResult:
         """
-        消费授权码并签发用户令牌
+        消费授权码并签发用户令牌。
 
         :param db: 异步数据库会话，调用方负责提交或回滚事务
         :param redis: Authorization Code 所在 Redis 客户端
@@ -259,11 +262,11 @@ class TokenService:
         :param signing_key: 可注入的 RSA 私钥；省略时从 KeyService 读取
         :param kid: 注入私钥对应的签名 Key ID
         :param now: 可注入 项目当前时间
-        :param token_pepper: Refresh Token HMAC Pepper
+        :param token_pepper: 计算刷新令牌 HMAC 的独立密钥
         :return: 标准 Token 结果
         :raises OAuthProtocolException: 任一授权绑定或安全状态无效时抛出统一错误
+        :raises AuthorizationCodeReuseError: 检测到已消费授权码被重用
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         parsed = cls._request(request)
         if parsed.get('grant_type') != 'authorization_code':
@@ -292,11 +295,13 @@ class TokenService:
             raise
         except (OAuthProtocolException, OpaqueTokenError, RedisError) as exc:
             cls._map_oauth_failure(exc, 'invalid_grant')
-        if code_payload.get('clientPk') != client_row.client_pk:
-            cls._invalid_grant()
-        if parsed.get('redirect_uri') != code_payload.get('redirectUri'):
+        if code_payload.get('clientPk') != client_row.client_pk or parsed.get('redirect_uri') != code_payload.get(
+            'redirectUri'
+        ):
             cls._invalid_grant()
         verifier = parsed.get('code_verifier')
+        if not isinstance(verifier, str):
+            cls._invalid_grant()
         try:
             if not verify_code_challenge(verifier, code_payload['codeChallenge'], code_payload['codeChallengeMethod']):
                 cls._invalid_grant()
@@ -399,7 +404,7 @@ class TokenService:
         token_pepper: str | bytes | None = None,
     ) -> TokenResult:
         """
-        校验 Refresh Token 并完成令牌轮换
+        校验 Refresh Token 并完成令牌轮换。
 
         :param db: 异步数据库会话，调用方负责提交或回滚事务
         :param request: Refresh Token 请求或字段映射
@@ -407,12 +412,11 @@ class TokenService:
         :param signing_key: 可注入的 RSA 私钥
         :param kid: 注入私钥对应的 Key ID
         :param now: 可注入 项目当前时间
-        :param token_pepper: Refresh Token HMAC Pepper
+        :param token_pepper: 计算刷新令牌 HMAC 的独立密钥
         :return: 新 Access Token 与轮换后的 Refresh Token
         :raises OAuthProtocolException: Token 无效、过期、重放或绑定状态失效
         :raises RefreshTokenReuseDetected: 检测到 Refresh Token 重放
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         parsed = cls._request(request)
         if parsed.get('grant_type') != 'refresh_token' or not isinstance(parsed.get('refresh_token'), str):
@@ -544,7 +548,7 @@ class TokenService:
         now: datetime | None = None,
     ) -> TokenResult:
         """
-        按 Client Credentials Grant 签发机器令牌
+        按 Client Credentials Grant 签发机器令牌。
 
         :param db: 异步数据库会话，调用方负责提交事务
         :param request: Client Credentials 请求或字段映射
@@ -555,7 +559,6 @@ class TokenService:
         :return: 不包含 Refresh/ID Token 的机器 Token 结果
         :raises OAuthProtocolException: Client、Scope 或 Resource 策略无效时抛出
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         parsed = cls._request(request)
         if parsed.get('grant_type') != 'client_credentials':
@@ -611,7 +614,7 @@ class TokenService:
         **kwargs: Any,
     ) -> TokenResult:
         """
-        根据 Grant Type 调度令牌签发流程
+        根据 Grant Type 调度令牌签发流程。
 
         :param db: 异步数据库会话
         :param redis: 异步 Redis 客户端
@@ -621,7 +624,6 @@ class TokenService:
         :return: 包含 Access Token 及有效期的 Token Endpoint 响应对象
         :raises AssertionError: 内部令牌状态不满足签发条件
         """
-
         if not isinstance(client, OAuthClientPrincipal):
             cls._invalid_client()
         grant_type = request.grant_type if isinstance(request, TokenRequest) else request.get('grant_type')
@@ -644,7 +646,7 @@ class TokenService:
         **kwargs: Any,
     ) -> TokenResult:
         """
-        在事务边界内执行令牌签发
+        在事务边界内执行令牌签发。
 
         :param db: 异步数据库会话，由本方法提交或回滚
         :param redis: Authorization Code 所在 Redis 客户端
@@ -654,8 +656,9 @@ class TokenService:
         :return: 标准 Token 领域结果
         :raises RefreshTokenReuseDetected: Family 撤销已写入但需映射为 invalid_grant
         :raises OAuthProtocolException: 业务失败且事务已回滚
+        :raises AuthorizationCodeReuseError: 事务失败并回滚后重新抛出原异常
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
-
         try:
             result = await cls.issue_token(db, redis, request, client, **kwargs)
         except (RefreshTokenReuseDetected, AuthorizationCodeReuseError):
@@ -689,18 +692,18 @@ class TokenService:
         **kwargs: Any,
     ) -> TokenResult:
         """
-        认证 Client 并处理 Token Endpoint 请求
+        认证 Client 并处理 Token Endpoint 请求。
 
         :param db: 异步数据库会话，由本方法提交或回滚
         :param redis: Authorization Code 所在 Redis 客户端
         :param request: 已解析的 Token Endpoint 字段
-        :param authorization: RFC 7617 Basic Header
+        :param authorization: 符合 RFC 7617 的 Basic 认证头
         :param client_id: 表单 Client ID
         :param client_secret: 表单 Client Secret
         :param kwargs: 传给令牌签发流程的可选参数
         :return: 标准 Token 领域结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
-
         try:
             _, principal = await cls.authenticate_client(
                 db,
@@ -732,13 +735,13 @@ class TokenService:
         now: datetime,
     ) -> tuple[str, int]:
         """
-        构造并签署 Access Token
+        构造并签署 Access Token。
 
         :param db: 异步数据库会话
-        :param client: OAuth Client ORM（SysOAuthClient）
+        :param client: OAuth 客户端的 ORM 记录
         :param user: 系统用户 ORM（SysUser）
         :param subject: 身份 Subject ORM（SysIdentitySubject）
-        :param session: SSO Session ORM（SysSsoSession）
+        :param session: 单点登录会话的 ORM 记录
         :param scopes: 已授权且经 Client 绑定校验的 Scope code 列表
         :param resources: 已校验的 Resource audience 列表
         :param resource: 与 Resource audience 对应的 OAuth Resource ORM，或 None
@@ -749,7 +752,6 @@ class TokenService:
         :param now: 生成 JWT 的 项目当前时间
         :return: 签名后的 JWT Access Token 文本及其有效秒数
         """
-
         ttl = cls._access_ttl(client, resource)
         claims = await cls._user_claims(db, client, user, subject, scopes, resource)
         auth_time = cls._numeric_time(session.auth_time)
@@ -798,13 +800,13 @@ class TokenService:
         now: datetime,
     ) -> str:
         """
-        构造包含用户声明的 ID Token
+        构造包含用户声明的 ID Token。
 
         :param db: 异步数据库会话
-        :param client: OAuth Client ORM（SysOAuthClient）
+        :param client: OAuth 客户端的 ORM 记录
         :param user: 系统用户 ORM（SysUser）
         :param subject: 身份 Subject ORM（SysIdentitySubject）
-        :param session: SSO Session ORM（SysSsoSession）
+        :param session: 单点登录会话的 ORM 记录
         :param scopes: 已授权并用于筛选 ID Token 用户声明的 Scope code 列表
         :param nonce: 授权请求绑定的 OIDC nonce 字符串
         :param access_token: 同一 Token Endpoint 响应中的 JWT Access Token 文本
@@ -813,7 +815,6 @@ class TokenService:
         :param now: 生成 JWT 的 项目当前时间
         :return: 签名后的 OIDC ID Token JWT 文本
         """
-
         ttl = cls._id_ttl(client)
         resource = None
         claims = await cls._user_claims(db, client, user, subject, scopes, resource)
@@ -849,17 +850,16 @@ class TokenService:
         resource: SysOAuthResource | None,
     ) -> dict[str, Any]:
         """
-        收集 ID Token 所需的用户声明
+        收集 ID Token 所需的用户声明。
 
         :param db: 异步数据库会话
-        :param client: OAuth Client ORM（SysOAuthClient）
+        :param client: OAuth 客户端的 ORM 记录
         :param user: 系统用户 ORM（SysUser）
         :param subject: 身份 Subject ORM（SysIdentitySubject）
         :param scopes: 用于解析声明策略的 Scope code 列表
         :param resource: 目标 OAuth Resource ORM，或 None（ID Token 不绑定资源）
         :return: 按 Scope 策略生成的 OIDC 用户声明字典
         """
-
         policy, allowed = await ClaimService.resolve_scope_policy(
             db,
             client.client_pk,
@@ -899,10 +899,10 @@ class TokenService:
         absolute_expires_at: datetime | None = None,
     ) -> str:
         """
-        创建并持久化 Refresh Token 记录
+        创建并持久化 Refresh Token 记录。
 
         :param db: 异步数据库会话
-        :param client: OAuth Client ORM（SysOAuthClient）
+        :param client: OAuth 客户端的 ORM 记录
         :param grant: 用户对该 Client 的 OAuth Grant ORM（SysOAuthGrant）
         :param user: 系统用户 ORM（SysUser）
         :param subject: 身份 Subject ORM（SysIdentitySubject）
@@ -917,7 +917,6 @@ class TokenService:
         :param absolute_expires_at: 轮换族已有的绝对过期时间，或 None
         :return: 新建 opaque Refresh Token 文本
         """
-
         raw = token or generate_refresh_token()
         parsed = parse_opaque_token(raw, 'rt1')
         pepper = cls._token_pepper(token_pepper)
@@ -957,16 +956,15 @@ class TokenService:
         machine_only: bool = False,
     ) -> tuple[list[str], list[str], SysOAuthResource | None]:
         """
-        校验 Client 请求的 Scope 和 Resource
+        校验 Client 请求的 Scope 和 Resource。
 
         :param db: 异步数据库会话
-        :param client: OAuth Client ORM（SysOAuthClient）
+        :param client: OAuth 客户端的 ORM 记录
         :param scopes: 请求或授权记录中的 Scope code 列表
         :param resources: 请求或授权记录中的 Resource audience 列表
         :param machine_only: 是否限制为 resource 类型的机器 Scope
         :return: 去重后的 Scope code 列表、Resource audience 列表及匹配的 Resource ORM
         """
-
         if len(resources) > cls._MAX_RESOURCE_COUNT or len(set(scopes)) != len(scopes):
             cls._invalid_scope()
         bindings = await OAuthClientDao.list_scope_bindings(db, client.client_pk)
@@ -1008,7 +1006,7 @@ class TokenService:
         now: datetime,
     ) -> SysOAuthGrant:
         """
-        加载并验证用户授权 Grant
+        加载并验证用户授权 Grant。
 
         :param db: 异步数据库会话
         :param grant_id: 授权记录的非空 grant_id 字符串
@@ -1020,7 +1018,6 @@ class TokenService:
         :return: 匹配请求范围的有效授权 Grant
         :raises OAuthProtocolException: 授权记录或用户访问策略无效
         """
-
         if not isinstance(grant_id, str) or not grant_id:
             cls._invalid_grant()
         if await OAuthAccessPolicyDao.is_blocked(db, user_id, client_pk, for_update=True):
@@ -1034,7 +1031,7 @@ class TokenService:
             or grant.client_pk != client_pk
             or grant.status != cls._ACTIVE_GRANT_STATUS
             or grant.client_policy_version != client.policy_version
-            or (grant.expires_at is not None and TimezoneUtil.to_optional_utc(grant.expires_at) <= now)
+            or (grant.expires_at is not None and TimezoneUtil.to_utc(grant.expires_at) <= now)
             or not set(scopes).issubset(set(grant.granted_scopes or []))
             or not set(resources).issubset(set(grant.granted_resources or []))
         ):
@@ -1046,7 +1043,7 @@ class TokenService:
         cls, db: AsyncSession, user_id: int, subject_id: str, auth_version: int
     ) -> tuple[SysUser, SysIdentitySubject]:
         """
-        验证用户与 Subject 的身份版本
+        验证用户与 Subject 的身份版本。
 
         :param db: 异步数据库会话
         :param user_id: 系统用户主键
@@ -1054,7 +1051,6 @@ class TokenService:
         :param auth_version: 必须与用户 Subject 和 SSO Session 一致的认证版本
         :return: 通过状态、删除标记及认证版本校验的系统用户 ORM 与 Subject ORM
         """
-
         user = await IdentityUserDao.get_user(db, user_id)
         try:
             subject = await IdentitySubjectService.require_by_user_id(
@@ -1094,7 +1090,7 @@ class TokenService:
         allow_offline: bool = False,
     ) -> SysSsoSession:
         """
-        加载并验证关联的 SSO Session
+        加载并验证关联的 SSO Session。
 
         :param db: 异步数据库会话
         :param sid: SSO Session 的 sid 字符串
@@ -1105,7 +1101,6 @@ class TokenService:
         :param allow_offline: 是否允许自然过期但未撤销的SSO会话继续离线续期
         :return: 与用户身份和 Token 绑定一致的 SSO Session
         """
-
         session = await SsoSessionDao.get_for_token(db, sid, now=now, allow_offline=allow_offline)
         if (
             session is None
@@ -1120,13 +1115,12 @@ class TokenService:
     @classmethod
     async def _resolve_client(cls, db: AsyncSession, client: OAuthClientPrincipal) -> SysOAuthClient:
         """
-        确认 OAuth Client 处于可用状态
+        确认 OAuth Client 处于可用状态。
 
         :param db: 异步数据库会话
         :param client: 已认证的 OAuthClientPrincipal 主体
         :return: 通过 active 状态、Client 类型及认证方式校验的 OAuth Client ORM
         """
-
         if not isinstance(client, OAuthClientPrincipal):
             cls._invalid_client()
         row = await OAuthClientDao.get_by_client_id(db, client.client_id, active_only=True)
@@ -1148,7 +1142,7 @@ class TokenService:
         now: datetime,
     ) -> tuple[RSAPrivateKey, str]:
         """
-        加载或确认 JWT 签名密钥
+        加载或确认 JWT 签名密钥。
 
         :param db: 异步数据库会话
         :param signing_key: 可注入的 RSA JWT 签名私钥，或 None
@@ -1156,7 +1150,6 @@ class TokenService:
         :param now: 读取 active OIDC 签名密钥的 项目当前时间
         :return: 用于 JWT 签名的 RSA 私钥及其 Key ID
         """
-
         if signing_key is not None:
             if not isinstance(kid, str) or not kid:
                 cls._server_error()
@@ -1177,13 +1170,12 @@ class TokenService:
         resource: SysOAuthResource | None,
     ) -> int:
         """
-        计算 Access Token 的有效秒数
+        计算 Access Token 的有效秒数。
 
-        :param client: OAuth Client ORM（SysOAuthClient）
+        :param client: OAuth 客户端的 ORM 记录
         :param resource: 目标 OAuth Resource ORM，或 None
         :return: Access Token 有效秒数（取 Client、Resource 与 OIDC 上限的最小值）
         """
-
         values: list[int] = []
         if client.access_token_ttl_seconds is not None:
             values.append(client.access_token_ttl_seconds)
@@ -1201,13 +1193,12 @@ class TokenService:
     @staticmethod
     def _id_ttl(client: SysOAuthClient) -> int:
         """
-        计算 ID Token 的有效秒数
+        计算 ID Token 的有效秒数。
 
         :param client: OAuth Client ORM（此方法仅按统一签名接收）
         :return: OIDC ID Token 的有效秒数
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
         """
-
         value = OidcConfig.oidc_id_token_ttl_seconds
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise OAuthProtocolException('server_error', 'Token policy is unavailable', 500)
@@ -1216,13 +1207,12 @@ class TokenService:
     @staticmethod
     def _refresh_idle_ttl(client: SysOAuthClient) -> int:
         """
-        计算 Refresh Token 空闲有效秒数
+        计算 Refresh Token 空闲有效秒数。
 
-        :param client: OAuth Client ORM（SysOAuthClient）
+        :param client: OAuth 客户端的 ORM 记录
         :return: Refresh Token 空闲有效秒数（不超过 OIDC 配置上限）
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
         """
-
         value = client.refresh_token_idle_seconds
         if value is None:
             value = OidcConfig.oidc_refresh_token_idle_seconds
@@ -1236,13 +1226,12 @@ class TokenService:
     @staticmethod
     def _refresh_absolute_ttl(client: SysOAuthClient) -> int:
         """
-        计算 Refresh Token 绝对有效秒数
+        计算 Refresh Token 绝对有效秒数。
 
-        :param client: OAuth Client ORM（SysOAuthClient）
+        :param client: OAuth 客户端的 ORM 记录
         :return: Refresh Token 绝对有效秒数（不超过 OIDC 配置上限）
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
         """
-
         value = client.refresh_token_absolute_seconds
         if value is None:
             value = OidcConfig.oidc_refresh_token_absolute_seconds
@@ -1256,12 +1245,11 @@ class TokenService:
     @classmethod
     def _request(cls, request: TokenRequest | Mapping[str, Any]) -> dict[str, Any]:
         """
-        将 TokenRequest 或映射转换为请求字典
+        将 TokenRequest 或映射转换为请求字典。
 
         :param request: TokenRequest 实例或包含 Token Endpoint 字段的映射
         :return: 用于 Grant Type 分派的已验证 Token Endpoint 字段字典
         """
-
         if isinstance(request, TokenRequest):
             return request.model_dump()
         if isinstance(request, Mapping):
@@ -1276,12 +1264,11 @@ class TokenService:
     @staticmethod
     def _token_pepper(override: str | bytes | None) -> str | bytes:
         """
-        选择 Token HMAC Pepper 配置
+        选择 Token HMAC Pepper 配置。
 
         :param override: 覆盖配置
         :return: 用于令牌摘要计算的 Pepper 文本或字节串
         """
-
         value = OidcConfig.oidc_token_hash_pepper if override is None else override
         if not isinstance(value, (str, bytes)):
             TokenService._server_error()
@@ -1293,13 +1280,12 @@ class TokenService:
     @classmethod
     def _requested_scopes(cls, value: Any, fallback: Sequence[str]) -> list[str]:
         """
-        解析请求中的 Scope 列表
+        解析请求中的 Scope 列表。
 
         :param value: Token Endpoint 的 scope 字符串，或已解析的 Scope code 序列
         :param fallback: 请求未提供 scope 时使用的已持久化 Scope code 序列
         :return: 去重校验后的 Scope code 字符串列表
         """
-
         raw = fallback if value is None else value.split() if isinstance(value, str) else value
         if not isinstance(raw, (list, tuple)) or not raw or any(not isinstance(item, str) or not item for item in raw):
             cls._invalid_scope()
@@ -1310,13 +1296,12 @@ class TokenService:
     @classmethod
     def _requested_resources(cls, value: Any, fallback: Sequence[str]) -> list[str]:
         """
-        解析请求中的 Resource 列表
+        解析请求中的 Resource 列表。
 
         :param value: Token Endpoint 的 resource audience 字符串或序列
         :param fallback: 请求未提供 resource 时使用的已持久化 audience 序列
         :return: 通过单 Resource 限制校验的 audience 字符串列表
         """
-
         raw = fallback if value is None else [value] if isinstance(value, str) else value
         if not isinstance(raw, (list, tuple)) or len(raw) > cls._MAX_RESOURCE_COUNT:
             cls._invalid_scope()
@@ -1327,83 +1312,70 @@ class TokenService:
     @staticmethod
     def _numeric_time(value: datetime | None) -> int:
         """
-        将时间值转换为整数时间戳
+        将时间值转换为整数时间戳。
 
         :param value: 认证时间等需要编码进 JWT claim 的 datetime，或 None
         :return: Unix 整数时间戳
         """
-
         current = TimezoneUtil.to_optional_utc(value)
         if current is None:
             TokenService._server_error()
         return int(current.timestamp())
 
     @staticmethod
-    def _map_oauth_failure(error: Exception, fallback: str) -> None:
+    def _map_oauth_failure(error: Exception, fallback: str) -> Never:
         """
-        将底层异常映射为 OAuth 协议错误
+        将底层异常映射为 OAuth 协议错误。
 
         :param error: Authorization Code 消费等底层流程抛出的异常
         :param fallback: 非 OAuthProtocolException 时使用的 OAuth error code
-        :return: None
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
         """
-
         if isinstance(error, OAuthProtocolException):
             raise OAuthProtocolException(error.error, 'The authorization grant is invalid or expired', 400) from None
         raise OAuthProtocolException(fallback, 'The authorization grant is invalid or expired', 400) from None
 
     @staticmethod
-    def _invalid_request() -> None:
+    def _invalid_request() -> Never:
         """
-        抛出 invalid_request 协议错误
+        抛出 invalid_request 协议错误。
 
-        :return: None
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
         """
-
         raise OAuthProtocolException('invalid_request', 'Invalid token request', 400)
 
     @staticmethod
-    def _invalid_client() -> None:
+    def _invalid_client() -> Never:
         """
-        抛出 invalid_client 协议错误
+        抛出 invalid_client 协议错误。
 
-        :return: None
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
         """
-
         raise OAuthProtocolException('invalid_client', 'Client authentication failed', 401)
 
     @staticmethod
-    def _invalid_grant() -> None:
+    def _invalid_grant() -> Never:
         """
-        抛出 invalid_grant 协议错误
+        抛出 invalid_grant 协议错误。
 
-        :return: None
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
         """
-
         raise OAuthProtocolException('invalid_grant', 'The authorization grant is invalid or expired', 400)
 
     @staticmethod
-    def _invalid_scope() -> None:
+    def _invalid_scope() -> Never:
         """
-        抛出 invalid_scope 协议错误
+        抛出 invalid_scope 协议错误。
 
-        :return: None
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
         """
-
         raise OAuthProtocolException('invalid_scope', 'Requested scope is not authorized', 400)
 
     @staticmethod
-    def _server_error() -> None:
+    def _server_error() -> Never:
         """
-        抛出 server_error 协议错误
+        抛出 server_error 协议错误。
 
-        :return: None
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
         """
-
         raise OAuthProtocolException('server_error', 'Token issuance is unavailable', 500)

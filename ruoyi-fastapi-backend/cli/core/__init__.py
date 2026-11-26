@@ -15,8 +15,10 @@ class CoreServiceContainer:
     该容器负责统一装配输出渲染器、运行期状态、上下文工厂与执行服务，
     作为控制器、向导和 TUI 等编排层的默认依赖入口。
 
-    :param output_renderer: 输出渲染器
-    :param runtime_state: CLI 运行期状态对象
+    :ivar output_renderer: 输出渲染器
+    :ivar runtime_state: CLI 运行期状态对象
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
     """
 
     output_renderer: OutputRenderer = field(default_factory=OutputRenderer)
@@ -25,11 +27,7 @@ class CoreServiceContainer:
     execution_service: CliExecutionService = field(init=False)
 
     def __post_init__(self) -> None:
-        """
-        初始化核心服务依赖图。
-
-        :return: None
-        """
+        """初始化核心服务依赖图。"""
         self.context_factory = CliContextFactory(
             runtime_state=self.runtime_state,
             output_renderer=self.output_renderer,

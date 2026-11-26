@@ -31,9 +31,9 @@ class TuiGeneratedOutput:
     """
     进程内生成文本结果。
 
-    :param stdout: 生成的标准文本
-    :param stderr: 生成失败信息
-    :param returncode: 生成结果码
+    :ivar stdout: 生成的标准文本
+    :ivar stderr: 生成失败信息
+    :ivar returncode: 生成结果码
     """
 
     stdout: str
@@ -48,6 +48,11 @@ class TuiQueryExecutor:
 
     该对象统一施加页面查询超时，并将短时间本地同步检查移出 Textual
     事件循环。网络查询必须通过 ``run_async`` 执行。
+
+    :ivar remote_timeout_seconds: 远程查询的超时时间（秒）
+    :ivar local_timeout_seconds: 本地查询的超时时间（秒）
+    :ivar local_executor: 执行本地查询的执行器
+    :ivar local_slots: 限制并发本地查询数量的槽位
     """
 
     remote_timeout_seconds: float = TUI_REMOTE_QUERY_TIMEOUT_SECONDS
@@ -75,10 +80,11 @@ class TuiQueryExecutor:
         :param operation: 异步查询工厂
         :param label: 查询名称
         :return: 查询结果或超时负载
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
         try:
             return await asyncio.wait_for(operation(), timeout=self.remote_timeout_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return self.build_timeout_payload(label)
         except asyncio.CancelledError:
             raise
@@ -97,6 +103,8 @@ class TuiQueryExecutor:
         :param operation: 同步查询函数
         :param label: 查询名称
         :return: 查询结果或失败负载
+        :raises Exception: 底层操作失败时向调用方传播异常
+        :raises asyncio.CancelledError: 异步操作被取消时
         """
         loop = asyncio.get_running_loop()
         deadline = loop.time() + self.local_timeout_seconds
@@ -117,7 +125,7 @@ class TuiQueryExecutor:
                 asyncio.shield(future),
                 timeout=remaining,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return self.build_timeout_payload(label)
         except asyncio.CancelledError:
             raise
@@ -163,6 +171,19 @@ class TuiRuntimeQueryService:
     TUI 进程内查询服务。
 
     所有 TUI 页面通过该服务直接调用 runtime，不再启动嵌套 CLI 进程。
+
+    :ivar app_runtime: 应用运行时服务
+    :ivar database_runtime: 数据库运行时服务
+    :ivar operations_runtime: 运维运行时服务
+    :ivar cache_runtime: 缓存运行时服务
+    :ivar job_runtime: 定时任务运行时服务
+    :ivar gen_runtime: 代码生成运行时服务
+    :ivar config_runtime: 参数配置运行时服务
+    :ivar crypto_runtime: 传输加密运行时服务
+    :ivar completion_doctor: completion 诊断服务
+    :ivar completion_installer: completion 安装与脚本生成服务
+    :ivar application_builder: 根应用构建器
+    :ivar executor: TUI 查询执行器
     """
 
     app_runtime: AppRuntimeService = field(default_factory=lambda: APP_RUNTIME)
@@ -179,6 +200,12 @@ class TuiRuntimeQueryService:
     executor: TuiQueryExecutor = field(default_factory=TuiQueryExecutor)
 
     async def get_app_env(self, env: str) -> dict[str, Any]:
+        """
+        为终端界面查询当前应用环境。
+
+        :param env: 当前运行环境
+        :return: 当前应用环境
+        """
         result = await self.executor.run_local(
             self.app_runtime.get_app_env_snapshot,
             label='读取应用环境',
@@ -193,6 +220,12 @@ class TuiRuntimeQueryService:
         return {'ok': True, 'env': env, 'runtime': result}
 
     async def get_app_config(self, env: str) -> dict[str, Any]:
+        """
+        为终端界面查询当前应用配置。
+
+        :param env: 当前运行环境
+        :return: 当前应用配置
+        """
         result = await self.executor.run_local(
             self.app_runtime.get_app_config_snapshot,
             label='读取应用配置',
@@ -202,6 +235,12 @@ class TuiRuntimeQueryService:
         return {'ok': True, 'env': env, 'config': result}
 
     async def get_app_routes(self, env: str) -> dict[str, Any]:
+        """
+        为终端界面查询已注册的应用路由。
+
+        :param env: 当前运行环境
+        :return: 已注册的应用路由
+        """
         result = await self.executor.run_local(
             lambda: self.app_runtime.get_app_routes_snapshot(env, group_by='tag'),
             label='读取应用路由',
@@ -216,6 +255,12 @@ class TuiRuntimeQueryService:
         )
 
     async def get_doctor(self, env: str) -> dict[str, Any]:
+        """
+        为终端界面查询应用诊断结果。
+
+        :param env: 当前运行环境
+        :return: 随调用传入或返回的结构化数据
+        """
         database, redis, crypto = await asyncio.gather(
             self.get_database_ping(),
             self.get_redis_ping(),
@@ -233,6 +278,11 @@ class TuiRuntimeQueryService:
         return payload
 
     async def get_completion_doctor(self) -> dict[str, Any]:
+        """
+        为终端界面查询命令补全环境的诊断结果。
+
+        :return: 命令补全环境的诊断结果
+        """
         result = await self.executor.run_local(
             self.completion_doctor.build_completion_doctor_payload,
             label='读取补全诊断',
@@ -247,7 +297,19 @@ class TuiRuntimeQueryService:
         )
 
     async def get_completion_preview(self, shell: str) -> TuiGeneratedOutput:
+        """
+        为终端界面查询指定 Shell 的补全脚本预览。
+
+        :param shell: 生成补全命令的目标 shell
+        :return: 指定 Shell 的补全脚本预览
+        """
+
         def _render() -> str:
+            """
+            捕获补全脚本的文本输出供 TUI 预览。
+
+            :return: 补全脚本或诊断命令的输出文本
+            """
             return self.completion_installer.render_completion_script(
                 self.application_builder.build(),
                 shell,
@@ -263,6 +325,11 @@ class TuiRuntimeQueryService:
         return TuiGeneratedOutput(stdout=str(result))
 
     async def get_database_ping(self) -> dict[str, Any]:
+        """
+        为终端界面查询数据库连接探测结果。
+
+        :return: 数据库连接探测结果
+        """
         result = await self.executor.run_async(
             self.database_runtime.ping_database,
             label='数据库探活',
@@ -270,6 +337,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_database_current(self) -> dict[str, Any]:
+        """
+        为终端界面查询数据库当前迁移版本。
+
+        :return: 数据库当前迁移版本
+        """
         result = await self.executor.run_async(
             self.database_runtime.get_current_revision_async,
             label='读取数据库版本',
@@ -277,6 +349,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_database_heads(self) -> dict[str, Any]:
+        """
+        为终端界面查询迁移脚本的最新版本。
+
+        :return: 迁移脚本的最新版本
+        """
         result = await self.executor.run_local(
             self.database_runtime.get_alembic_heads,
             label='读取 Alembic heads',
@@ -284,6 +361,12 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_database_history(self, *, limit: int = 8) -> dict[str, Any]:
+        """
+        为终端界面查询数据库迁移历史。
+
+        :param limit: 允许读取或返回的最大条目数
+        :return: 数据库迁移历史
+        """
         result = await self.executor.run_local(
             lambda: self.database_runtime.get_alembic_history(limit=limit),
             label='读取 Alembic 历史',
@@ -291,6 +374,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_redis_ping(self) -> dict[str, Any]:
+        """
+        为终端界面查询Redis 连接探测结果。
+
+        :return: Redis 连接探测结果
+        """
         result = await self.executor.run_async(
             self.operations_runtime.ping_redis,
             label='Redis 探活',
@@ -298,6 +386,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_dependencies(self) -> dict[str, Any]:
+        """
+        为终端界面查询服务依赖的可用性。
+
+        :return: 服务依赖的可用性
+        """
         result = await self.executor.run_local(
             self.operations_runtime.get_dependency_versions,
             label='读取依赖信息',
@@ -305,6 +398,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_server_info(self) -> dict[str, Any]:
+        """
+        为终端界面查询服务器运行信息。
+
+        :return: 服务器运行信息
+        """
         result = await self.executor.run_async(
             self.operations_runtime.get_server_info,
             label='读取服务器信息',
@@ -312,6 +410,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_crypto_validation(self) -> dict[str, Any]:
+        """
+        为终端界面查询传输加密配置的校验结果。
+
+        :return: 传输加密配置的校验结果
+        """
         result = await self.executor.run_local(
             self.crypto_runtime.validate_crypto_config,
             label='校验传输加密配置',
@@ -319,6 +422,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_crypto_public_key(self) -> dict[str, Any]:
+        """
+        为终端界面查询当前传输加密公钥。
+
+        :return: 当前传输加密公钥
+        """
         result = await self.executor.run_local(
             self.crypto_runtime.export_public_key,
             label='读取传输加密公钥',
@@ -326,6 +434,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_cache_stats(self) -> dict[str, Any]:
+        """
+        为终端界面查询缓存命名空间统计。
+
+        :return: 缓存命名空间统计
+        """
         result = await self.executor.run_async(
             self.cache_runtime.get_cache_stats,
             label='读取缓存统计',
@@ -333,6 +446,12 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_cache_keys(self, cache_name: str) -> dict[str, Any]:
+        """
+        为终端界面查询指定命名空间中的缓存键。
+
+        :param cache_name: 缓存名称
+        :return: 指定命名空间中的缓存键
+        """
         result = await self.executor.run_async(
             lambda: self.cache_runtime.list_cache_keys(cache_name),
             label='读取缓存键',
@@ -340,6 +459,13 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_cache_value(self, cache_name: str, cache_key: str) -> dict[str, Any]:
+        """
+        为终端界面查询指定缓存键的值。
+
+        :param cache_name: 缓存名称
+        :param cache_key: 缓存键名
+        :return: 指定缓存键的值
+        """
         result = await self.executor.run_async(
             lambda: self.cache_runtime.get_cache_value(cache_name, cache_key),
             label='读取缓存值',
@@ -347,6 +473,13 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_cache_ttl(self, cache_name: str, cache_key: str) -> dict[str, Any]:
+        """
+        为终端界面查询指定缓存键的剩余有效期。
+
+        :param cache_name: 缓存名称
+        :param cache_key: 缓存键名
+        :return: 指定缓存键的剩余有效期
+        """
         result = await self.executor.run_async(
             lambda: self.cache_runtime.get_cache_ttl(cache_name, cache_key),
             label='读取缓存 TTL',
@@ -354,6 +487,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_jobs(self) -> dict[str, Any]:
+        """
+        为终端界面查询调度任务列表。
+
+        :return: 调度任务列表
+        """
         result = await self.executor.run_async(
             lambda: self.job_runtime.list_jobs(paged=True, page_size=8),
             label='读取定时任务',
@@ -367,6 +505,14 @@ class TuiRuntimeQueryService:
         status: str | None = None,
         page_size: int = 20,
     ) -> dict[str, Any]:
+        """
+        为终端界面查询任务执行日志。
+
+        :param job_name: 任务名称过滤条件
+        :param status: 操作或记录所处的状态
+        :param page_size: 每页数量
+        :return: 任务执行日志
+        """
         result = await self.executor.run_async(
             lambda: self.job_runtime.list_job_logs(
                 job_name=job_name,
@@ -379,6 +525,12 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_job_detail(self, job_id: int) -> dict[str, Any]:
+        """
+        为终端界面查询指定调度任务的详情。
+
+        :param job_id: 任务ID
+        :return: 指定调度任务的详情
+        """
         result = await self.executor.run_async(
             lambda: self.job_runtime.get_job_detail(job_id),
             label='读取任务详情',
@@ -386,6 +538,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_gen_tables(self) -> dict[str, Any]:
+        """
+        为终端界面查询已导入代码生成器的表。
+
+        :return: 已导入代码生成器的表
+        """
         result = await self.executor.run_async(
             lambda: self.gen_runtime.list_gen_tables(paged=True, page_size=8),
             label='读取代码生成业务表',
@@ -393,6 +550,13 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_gen_db_tables(self, *, table_name: str = '', page_size: int = 8) -> dict[str, Any]:
+        """
+        为终端界面查询可供导入的数据库表。
+
+        :param table_name: 表名称
+        :param page_size: 每页数量
+        :return: 可供导入的数据库表
+        """
         result = await self.executor.run_async(
             lambda: self.gen_runtime.list_gen_db_tables(
                 table_name=table_name,
@@ -404,6 +568,12 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_gen_detail(self, table_id: int) -> dict[str, Any]:
+        """
+        为终端界面查询生成表的详细配置。
+
+        :param table_id: 代码生成表的记录标识
+        :return: 生成表的详细配置
+        """
         result = await self.executor.run_async(
             lambda: self.gen_runtime.get_gen_table_detail(table_id),
             label='读取代码生成详情',
@@ -411,6 +581,12 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_gen_preview(self, table_id: int) -> dict[str, Any]:
+        """
+        为终端界面查询所选表的代码预览。
+
+        :param table_id: 代码生成表的记录标识
+        :return: 所选表的代码预览
+        """
         result = await self.executor.run_async(
             lambda: self.gen_runtime.preview_code(table_id),
             label='生成代码预览',
@@ -418,6 +594,12 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_gen_export_dry_run(self, table_name: str) -> dict[str, Any]:
+        """
+        为终端界面查询生成代码导出的预演结果。
+
+        :param table_name: 表名称
+        :return: 生成代码导出的预演结果
+        """
         result = await self.executor.run_async(
             lambda: self.gen_runtime.export_code([table_name], mode='zip', dry_run=True),
             label='代码导出演练',
@@ -425,6 +607,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_configs(self) -> dict[str, Any]:
+        """
+        为终端界面查询系统参数列表。
+
+        :return: 系统参数列表
+        """
         result = await self.executor.run_async(
             lambda: self.config_runtime.list_configs(paged=True, page_size=8),
             label='读取参数配置',
@@ -432,6 +619,11 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_config_diagnostics(self) -> dict[str, Any]:
+        """
+        为终端界面查询系统配置的诊断结果。
+
+        :return: 系统配置的诊断结果
+        """
         result = await self.executor.run_async(
             lambda: self.config_runtime.diagnose_config(sample_limit=5),
             label='诊断参数配置',
@@ -439,6 +631,12 @@ class TuiRuntimeQueryService:
         return result if isinstance(result, dict) else {}
 
     async def get_config_detail(self, config_key: str) -> dict[str, Any]:
+        """
+        为终端界面查询指定系统参数的详情。
+
+        :param config_key: 用于查找配置项的键
+        :return: 指定系统参数的详情
+        """
         result = await self.executor.run_async(
             lambda: self.config_runtime.get_config(config_key, source='both'),
             label='读取参数配置详情',

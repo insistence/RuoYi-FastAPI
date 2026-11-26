@@ -17,9 +17,9 @@ class DangerousCommandRule:
     """
     危险命令保护规则。
 
-    :param command_name: 命令唯一标识
-    :param risk_level: 风险级别
-    :param supports_dry_run: 是否支持演练执行
+    :ivar command_name: 命令唯一标识
+    :ivar risk_level: 风险级别
+    :ivar supports_dry_run: 是否支持演练执行
     """
 
     command_name: str
@@ -35,7 +35,7 @@ class DangerousCommandRuleRegistry:
     该注册表负责维护 CLI 内所有危险命令的风险元数据，并提供查询与
     强制获取能力，作为上下文工厂、风险元数据与测试的统一入口。
 
-    :param rules: 按命令名索引的危险命令规则表
+    :ivar rules: 按命令名索引的危险命令规则表
     """
 
     rules: dict[str, DangerousCommandRule]
@@ -98,7 +98,7 @@ class DangerousCommandConfirmationService:
 
     该对象负责处理 TTY 检测、确认提示与交互取消异常收口。
 
-    :param result_builder: 危险命令结果构建器
+    :ivar result_builder: 危险命令结果构建器
     """
 
     result_builder: DangerousCommandResultBuilder
@@ -148,9 +148,9 @@ class DangerousCommandGuardService:
     该服务负责根据命令规则和 CLI 上下文执行生产环境保护、交互确认
     与拒绝结果收口。
 
-    :param rule_registry: 危险命令规则注册表
-    :param result_builder: 危险命令结果构建器
-    :param confirmation_service: 危险命令确认服务
+    :ivar rule_registry: 危险命令规则注册表
+    :ivar result_builder: 危险命令结果构建器
+    :ivar confirmation_service: 危险命令确认服务
     """
 
     rule_registry: DangerousCommandRuleRegistry
@@ -158,11 +158,7 @@ class DangerousCommandGuardService:
     confirmation_service: DangerousCommandConfirmationService = field(init=False)
 
     def __post_init__(self) -> None:
-        """
-        初始化危险命令保护服务依赖。
-
-        :return: None
-        """
+        """初始化危险命令保护服务依赖。"""
         self.confirmation_service = DangerousCommandConfirmationService(self.result_builder)
 
     def guard(self, ctx: CliContext, *, rule: DangerousCommandRule) -> CommandResult | None:

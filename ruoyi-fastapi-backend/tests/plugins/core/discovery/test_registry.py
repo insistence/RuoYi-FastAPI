@@ -2,8 +2,9 @@ from pathlib import Path
 
 from plugins.core.discovery.registry import PluginRegistry
 from plugins.core.discovery.scanner import DiscoveredPlugin
-from plugins.core.management.entity.vo.schemas import PluginModel
+from plugins.core.management.entity.vo.schemas import PluginEnabled, PluginModel
 from plugins.core.manifest.schema import PluginManifest
+from plugins.core.state import PluginStatus
 
 
 def build_discovered_plugin(
@@ -12,7 +13,15 @@ def build_discovered_plugin(
     auto_scan: bool = True,
     version: str = '1.0.0',
 ) -> DiscoveredPlugin:
-    """构造测试用已发现插件。"""
+    """
+    构造测试用已发现插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param plugin_id: 插件清单中的唯一标识
+    :param auto_scan: 是否自动扫描插件控制器
+    :param version: 当前记录的版本
+    :return: 测试用已发现插件
+    """
     backend_path = tmp_path / plugin_id
     backend_path.mkdir(parents=True)
     manifest_path = backend_path / 'plugin.yaml'
@@ -29,13 +38,22 @@ def build_discovered_plugin(
     return DiscoveredPlugin(manifest=manifest, backend_path=backend_path, manifest_path=manifest_path)
 
 
-def build_database_plugin(plugin_id: str = 'demo', *, enabled: str = '0', status: str = 'installed') -> PluginModel:
-    """构造测试用数据库插件状态。"""
+def build_database_plugin(
+    plugin_id: str = 'demo', *, enabled: PluginEnabled = '0', status: PluginStatus = 'installed'
+) -> PluginModel:
+    """
+    构造测试用数据库插件状态。
+
+    :param plugin_id: 插件清单中的唯一标识
+    :param enabled: 是否启用该项功能
+    :param status: 操作或记录所处的状态
+    :return: 测试用数据库插件状态
+    """
     return PluginModel(
-        pluginId=plugin_id,
-        pluginName='演示插件',
+        plugin_id=plugin_id,
+        plugin_name='演示插件',
         version='1.0.0',
-        installedVersion='1.0.0',
+        installed_version='1.0.0',
         enabled=enabled,
         status=status,
     )
@@ -72,10 +90,10 @@ def test_registry_marks_pending_upgrade_when_versions_differ(tmp_path: Path) -> 
     """校验源码版本高于已安装版本时标记待升级。"""
     discovered_plugin = build_discovered_plugin(tmp_path, version='1.1.0')
     database_plugin = PluginModel(
-        pluginId='demo',
-        pluginName='演示插件',
+        plugin_id='demo',
+        plugin_name='演示插件',
         version='1.1.0',
-        installedVersion='1.0.0',
+        installed_version='1.0.0',
         enabled='0',
         status='installed',
     )
@@ -92,10 +110,10 @@ def test_registry_keeps_installed_when_source_version_is_older(tmp_path: Path) -
     """校验源码版本低于已安装版本时不会误标记待升级。"""
     discovered_plugin = build_discovered_plugin(tmp_path, version='1.2.0')
     database_plugin = PluginModel(
-        pluginId='demo',
-        pluginName='演示插件',
+        plugin_id='demo',
+        plugin_name='演示插件',
         version='1.2.0',
-        installedVersion='1.10.0',
+        installed_version='1.10.0',
         enabled='0',
         status='installed',
     )
@@ -111,10 +129,10 @@ def test_registry_keeps_error_status(tmp_path: Path) -> None:
     """校验异常状态插件不会继续进入启用运行时列表。"""
     discovered_plugin = build_discovered_plugin(tmp_path)
     database_plugin = PluginModel(
-        pluginId='demo',
-        pluginName='演示插件',
+        plugin_id='demo',
+        plugin_name='演示插件',
         version='1.0.0',
-        installedVersion='1.0.0',
+        installed_version='1.0.0',
         enabled='0',
         status='error',
     )

@@ -6,22 +6,20 @@ from exceptions.exception import PermissionException
 
 
 class DependencyUtil:
-    """
-    依赖项工具类
-    """
+    """依赖项工具类。"""
 
     @classmethod
     def get_request_path(cls, request: Request) -> str:
         """
-        获取不含部署前缀的应用内请求路径
+        获取不含部署前缀的应用内请求路径。
 
         :param request: 当前请求对象
         :return: 应用内请求路径
         """
         scope = getattr(request, 'scope', {})
         # 使用路由匹配的ASGI路径，避免URL解析截断或丢弃路径字符。
-        path = scope.get('path')
-        if path is None:
+        path: object = scope.get('path')
+        if not isinstance(path, str):
             path = request.url.path
         root_path = (scope.get('root_path') or '').rstrip('/')
         if not root_path and scope.get('route') is None:
@@ -34,11 +32,11 @@ class DependencyUtil:
     @classmethod
     def check_exclude_routes(cls, request: Request, err_msg: str = '当前路由不在认证规则内，不可使用该依赖项') -> None:
         """
-        检查路径和方法是否匹配排除路由模式
+        检查路径和方法是否匹配排除路由模式。
 
         :param request: 请求对象
         :param err_msg: 错误信息
-        :return: None
+        :raises PermissionException: 当前路径和 HTTP 方法命中需要拒绝的路由规则
         """
         # 获取当前请求路径和方法
         path = cls.get_request_path(request)

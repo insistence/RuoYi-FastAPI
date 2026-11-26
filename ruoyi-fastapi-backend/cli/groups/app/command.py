@@ -22,7 +22,6 @@ def run_app(
     启动当前 FastAPI 应用。
 
     :param env: 当前命令运行环境
-    :return: None
     """
     _APP_COMMAND_CONTROLLER.run_app(env)
 
@@ -37,7 +36,6 @@ def doctor(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _APP_COMMAND_CONTROLLER.doctor(env, output)
 
@@ -52,7 +50,6 @@ def app_config(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _APP_COMMAND_CONTROLLER.show_config(env, output)
 
@@ -67,7 +64,6 @@ def app_env(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _APP_COMMAND_CONTROLLER.show_env(env, output)
 
@@ -90,7 +86,6 @@ def routes(
     :param method: 请求方法过滤条件
     :param group_by: 路由分组方式
     :param include_hidden: 是否包含隐藏路由
-    :return: None
     """
     _APP_COMMAND_CONTROLLER.show_routes(
         env,

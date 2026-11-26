@@ -7,13 +7,15 @@ from utils.time_util import TimezoneUtil
 
 
 class ContextCleanupMiddleware(BaseHTTPMiddleware):
-    """
-    上下文清理中间件
-    """
+    """上下文清理中间件。"""
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """
-        在每个请求处理完成后清理上下文信息
+        在每个请求处理完成后清理上下文信息。
+
+        :param request: 当前 HTTP 请求
+        :param call_next: 调用下一层请求处理器的异步回调
+        :return: 下游处理结果或请求上下文错误响应
         """
         timezone_name = request.headers.get('X-Timezone')
         try:
@@ -37,7 +39,7 @@ class ContextCleanupMiddleware(BaseHTTPMiddleware):
 
 def add_context_cleanup_middleware(app: FastAPI) -> None:
     """
-    添加上下文清理中间件
+    添加上下文清理中间件。
 
     :param app: FastAPI对象
     """

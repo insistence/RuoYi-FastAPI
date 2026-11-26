@@ -10,8 +10,8 @@ class DiagnosticPagePolicy:
     """
     TUI 页面诊断策略定义。
 
-    :param focus_terms: 页面聚焦词
-    :param subtitle_builder: 页面摘要构建函数
+    :ivar focus_terms: 页面聚焦词
+    :ivar subtitle_builder: 页面摘要构建函数
     """
 
     focus_terms: tuple[str, ...]
@@ -23,7 +23,7 @@ class DiagnosticPagePolicyRegistry:
     """
     TUI 页面诊断策略注册表。
 
-    :param policies: 页面诊断策略映射
+    :ivar policies: 页面诊断策略映射
     """
 
     policies: dict[str, DiagnosticPagePolicy]
@@ -46,7 +46,7 @@ class TuiDiagnosticService:
     该服务通过页面级诊断策略注册表管理各页面的聚焦词和 subtitle 规则，
     供 adapter、dashboard 等对象复用。
 
-    :param page_policy_registry: 页面诊断策略注册表
+    :ivar page_policy_registry: 页面诊断策略注册表
     """
 
     def __init__(self, page_policy_registry: DiagnosticPagePolicyRegistry) -> None:
@@ -54,7 +54,6 @@ class TuiDiagnosticService:
         初始化诊断服务。
 
         :param page_policy_registry: 页面诊断策略注册表
-        :return: None
         """
         self.page_policy_registry = page_policy_registry
 
@@ -154,11 +153,11 @@ class TuiDiagnosticService:
         """
         构建应用页诊断摘要。
 
-        :param env_payload: `app env` 结果
-        :param config_payload: `app config` 结果
-        :param doctor_payload: `app doctor` 结果
-        :param routes_payload: `app routes` 结果
-        :param completion_payload: `completion doctor` 结果
+        :param env_payload: ``app env`` 结果
+        :param config_payload: ``app config`` 结果
+        :param doctor_payload: ``app doctor`` 结果
+        :param routes_payload: ``app routes`` 结果
+        :param completion_payload: ``completion doctor`` 结果
         :param focus_hint: 聚焦提示
         :return: 页面摘要
         """
@@ -193,9 +192,9 @@ class TuiDiagnosticService:
         """
         构建数据库页诊断摘要。
 
-        :param revision_payload: `db current` 结果
-        :param check_payload: `db check` 结果
-        :param heads_payload: `db heads` 结果
+        :param revision_payload: ``db current`` 结果
+        :param check_payload: ``db check`` 结果
+        :param heads_payload: ``db heads`` 结果
         :param focus_hint: 聚焦提示
         :return: 页面摘要
         """
@@ -224,9 +223,9 @@ class TuiDiagnosticService:
         """
         构建运维页诊断摘要。
 
-        :param health_payload: `ops health` 结果
-        :param deps_payload: `ops deps` 结果
-        :param server_payload: `ops server-info` 结果
+        :param health_payload: ``ops health`` 结果
+        :param deps_payload: ``ops deps`` 结果
+        :param server_payload: ``ops server-info`` 结果
         :param focus_hint: 聚焦提示
         :return: 页面摘要
         """
@@ -252,7 +251,7 @@ class TuiDiagnosticService:
         """
         构建缓存页诊断摘要。
 
-        :param stats_payload: `cache stats` 结果
+        :param stats_payload: ``cache stats`` 结果
         :param matched_count: 当前筛选后缓存名数量
         :param focus_hint: 聚焦提示
         :return: 页面摘要
@@ -349,8 +348,8 @@ class TuiDiagnosticService:
         """
         构建加密页诊断摘要。
 
-        :param validate_payload: `crypto validate` 结果
-        :param public_payload: `crypto export-public` 结果
+        :param validate_payload: ``crypto validate`` 结果
+        :param public_payload: ``crypto export-public`` 结果
         :param focus_hint: 聚焦提示
         :return: 页面摘要
         """
@@ -381,11 +380,11 @@ class TuiDiagnosticService:
         """
         构建应用页统一诊断摘要。
 
-        :param env_payload: `app env` 结果
-        :param config_payload: `app config` 结果
-        :param doctor_payload: `app doctor` 结果
-        :param routes_payload: `app routes` 结果
-        :param completion_payload: `completion doctor` 结果
+        :param env_payload: ``app env`` 结果
+        :param config_payload: ``app config`` 结果
+        :param doctor_payload: ``app doctor`` 结果
+        :param routes_payload: ``app routes`` 结果
+        :param completion_payload: ``completion doctor`` 结果
         :return: 页面摘要
         """
         return self.page_policy_registry.get('app').subtitle_builder(
@@ -406,9 +405,9 @@ class TuiDiagnosticService:
         """
         构建数据库页统一诊断摘要。
 
-        :param revision_payload: `db current` 结果
-        :param check_payload: `db check` 结果
-        :param heads_payload: `db heads` 结果
+        :param revision_payload: ``db current`` 结果
+        :param check_payload: ``db check`` 结果
+        :param heads_payload: ``db heads`` 结果
         :return: 页面摘要
         """
         return self.page_policy_registry.get('database').subtitle_builder(
@@ -427,9 +426,9 @@ class TuiDiagnosticService:
         """
         构建运维页统一诊断摘要。
 
-        :param health_payload: `ops health` 结果
-        :param deps_payload: `ops deps` 结果
-        :param server_payload: `ops server-info` 结果
+        :param health_payload: ``ops health`` 结果
+        :param deps_payload: ``ops deps`` 结果
+        :param server_payload: ``ops server-info`` 结果
         :return: 页面摘要
         """
         return self.page_policy_registry.get('ops').subtitle_builder(
@@ -447,7 +446,7 @@ class TuiDiagnosticService:
         """
         构建缓存页统一诊断摘要。
 
-        :param stats_payload: `cache stats` 结果
+        :param stats_payload: ``cache stats`` 结果
         :param matched_count: 当前筛选后缓存名数量
         :return: 页面摘要
         """
@@ -531,8 +530,8 @@ class TuiDiagnosticService:
         """
         构建加密页统一诊断摘要。
 
-        :param validate_payload: `crypto validate` 结果
-        :param public_payload: `crypto export-public` 结果
+        :param validate_payload: ``crypto validate`` 结果
+        :param public_payload: ``crypto export-public`` 结果
         :return: 页面摘要
         """
         return self.page_policy_registry.get('crypto').subtitle_builder(

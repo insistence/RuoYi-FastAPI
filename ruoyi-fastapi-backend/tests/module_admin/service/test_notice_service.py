@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import func, select, text
@@ -21,6 +21,11 @@ EXPECTED_VISIBLE_READ_USER_COUNT = 2
 
 
 async def _create_notice_tables() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    """
+    为通知测试创建数据库表及会话。
+
+    :return: 依次为 ``engine``、``session_maker`` 的元组
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
@@ -44,12 +49,19 @@ async def _create_notice_tables() -> tuple[AsyncEngine, async_sessionmaker[Async
         )
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysDept.__table__, SysUser.__table__, SysNoticeRead.__table__],
+            tables=[SysDept.get_table(), SysUser.get_table(), SysNoticeRead.get_table()],
         )
     return engine, session_maker
 
 
 def _notice(notice_id: int, status: str = '0') -> SysNotice:
+    """
+    创建测试使用的 ``SysNotice`` 实例。
+
+    :param notice_id: 公告ID
+    :param status: 操作或记录所处的状态
+    :return: 测试使用的 ``SysNotice`` 实例
+    """
     return SysNotice(
         notice_id=notice_id,
         notice_title=f'公告{notice_id}',
@@ -57,12 +69,13 @@ def _notice(notice_id: int, status: str = '0') -> SysNotice:
         notice_content=f'内容{notice_id}'.encode(),
         status=status,
         create_by='admin',
-        create_time=datetime(2026, 3, notice_id, tzinfo=timezone.utc),
+        create_time=datetime(2026, 3, notice_id, tzinfo=UTC),
     )
 
 
 @pytest.mark.asyncio
 async def test_get_notice_top_returns_latest_normal_notices_with_read_status() -> None:
+    """置顶公告返回最新正常公告及阅读状态。"""
     engine, session_maker = await _create_notice_tables()
     try:
         async with session_maker() as session:
@@ -83,6 +96,7 @@ async def test_get_notice_top_returns_latest_normal_notices_with_read_status() -
 
 @pytest.mark.asyncio
 async def test_mark_notice_read_is_idempotent_for_single_and_batch_requests() -> None:
+    """单个及批量标记已读均支持重复请求。"""
     engine, session_maker = await _create_notice_tables()
     try:
         async with session_maker() as session:
@@ -101,6 +115,7 @@ async def test_mark_notice_read_is_idempotent_for_single_and_batch_requests() ->
 
 @pytest.mark.asyncio
 async def test_get_notice_read_user_list_supports_search_and_pagination() -> None:
+    """公告阅读用户列表支持搜索和分页。"""
     engine, session_maker = await _create_notice_tables()
     try:
         async with session_maker() as session:
@@ -135,21 +150,21 @@ async def test_get_notice_read_user_list_supports_search_and_pagination() -> Non
             )
             session.add_all(
                 [
-                    SysNoticeRead(notice_id=1, user_id=1, read_time=datetime(2026, 7, 30, 10, 0, tzinfo=timezone.utc)),
-                    SysNoticeRead(notice_id=1, user_id=2, read_time=datetime(2026, 7, 30, 11, 0, tzinfo=timezone.utc)),
-                    SysNoticeRead(notice_id=1, user_id=3, read_time=datetime(2026, 7, 30, 12, 0, tzinfo=timezone.utc)),
-                    SysNoticeRead(notice_id=2, user_id=1, read_time=datetime(2026, 7, 30, 13, 0, tzinfo=timezone.utc)),
+                    SysNoticeRead(notice_id=1, user_id=1, read_time=datetime(2026, 7, 30, 10, 0, tzinfo=UTC)),
+                    SysNoticeRead(notice_id=1, user_id=2, read_time=datetime(2026, 7, 30, 11, 0, tzinfo=UTC)),
+                    SysNoticeRead(notice_id=1, user_id=3, read_time=datetime(2026, 7, 30, 12, 0, tzinfo=UTC)),
+                    SysNoticeRead(notice_id=2, user_id=1, read_time=datetime(2026, 7, 30, 13, 0, tzinfo=UTC)),
                 ]
             )
             await session.commit()
 
             page = await NoticeService.get_notice_read_user_list_services(
                 session,
-                NoticeReadUserPageQueryModel(noticeId=1, pageNum=1, pageSize=1),
+                NoticeReadUserPageQueryModel(notice_id=1, page_num=1, page_size=1),
             )
             search_page = await NoticeService.get_notice_read_user_list_services(
                 session,
-                NoticeReadUserPageQueryModel(noticeId=1, searchValue='ali'),
+                NoticeReadUserPageQueryModel(notice_id=1, search_value='ali'),
             )
 
         assert page.total == EXPECTED_VISIBLE_READ_USER_COUNT
@@ -163,6 +178,7 @@ async def test_get_notice_read_user_list_supports_search_and_pagination() -> Non
 
 @pytest.mark.asyncio
 async def test_delete_notice_removes_read_records_in_same_transaction() -> None:
+    """删除公告时在同一事务清理阅读记录。"""
     engine, session_maker = await _create_notice_tables()
     try:
         async with session_maker() as session:
@@ -170,7 +186,7 @@ async def test_delete_notice_removes_read_records_in_same_transaction() -> None:
             await NoticeDao.add_notice_reads(session, CURRENT_USER_ID, [1])
             await session.commit()
 
-            result = await NoticeService.delete_notice_services(session, DeleteNoticeModel(noticeIds='1'))
+            result = await NoticeService.delete_notice_services(session, DeleteNoticeModel(notice_ids='1'))
             notice_count = (await session.execute(select(func.count()).select_from(SysNotice))).scalar_one()
             read_count = (await session.execute(select(func.count()).select_from(SysNoticeRead))).scalar_one()
 
@@ -182,6 +198,7 @@ async def test_delete_notice_removes_read_records_in_same_transaction() -> None:
 
 
 def test_parse_notice_ids_deduplicates_values_and_rejects_invalid_input() -> None:
+    """解析公告标识时去重并拒绝无效输入。"""
     assert NoticeService.parse_notice_ids('1, 2,1,,3') == [1, 2, 3]
 
     with pytest.raises(ServiceException) as exc_info:

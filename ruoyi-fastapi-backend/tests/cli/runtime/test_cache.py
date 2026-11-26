@@ -8,11 +8,7 @@ EXPECTED_MATCHED_KEY_COUNT = 2
 
 
 def test_cache_domain_support_extracts_scoped_keys() -> None:
-    """
-    校验缓存领域支持对象会提取指定缓存名前缀下的相对键名。
-
-    :return: None
-    """
+    """校验缓存领域支持对象会提取指定缓存名前缀下的相对键名。"""
     support = CacheDomainSupport(CacheInfrastructureGateway())
 
     key_items = support.extract_cache_key_items(
@@ -24,11 +20,7 @@ def test_cache_domain_support_extracts_scoped_keys() -> None:
 
 
 def test_cache_domain_support_builds_missing_cache_result() -> None:
-    """
-    校验缓存领域支持对象会生成统一的缓存不存在结果。
-
-    :return: None
-    """
+    """校验缓存领域支持对象会生成统一的缓存不存在结果。"""
     support = CacheDomainSupport(CacheInfrastructureGateway())
 
     payload = support.build_missing_cache_result('sys_config', 'site_name')
@@ -40,16 +32,10 @@ def test_cache_domain_support_builds_missing_cache_result() -> None:
 
 @pytest.mark.asyncio
 async def test_cache_runtime_service_ttl_returns_missing_result() -> None:
-    """
-    校验缓存运行时在 TTL 返回不存在标记时会输出统一缺失结果。
-
-    :return: None
-    """
+    """校验缓存运行时在 TTL 返回不存在标记时会输出统一缺失结果。"""
 
     class FakeRedis:
-        """
-        模拟 Redis 客户端。
-        """
+        """模拟 Redis 客户端。"""
 
         @staticmethod
         async def ttl(full_cache_key: str) -> int:
@@ -64,16 +50,10 @@ async def test_cache_runtime_service_ttl_returns_missing_result() -> None:
 
         @staticmethod
         async def close() -> None:
-            """
-            关闭客户端。
-
-            :return: None
-            """
+            """关闭客户端。"""
 
     class FakeRedisUtil:
-        """
-        模拟 Redis 工具类。
-        """
+        """模拟 Redis 工具类。"""
 
         @staticmethod
         async def create_redis_pool(*, log_enabled: bool = False) -> FakeRedis:
@@ -90,6 +70,11 @@ async def test_cache_runtime_service_ttl_returns_missing_result() -> None:
     service = CacheRuntimeService(infrastructure_gateway=gateway)
 
     def _fake_get_redis_util() -> FakeRedisUtil:
+        """
+        创建测试使用的 ``FakeRedisUtil`` 实例。
+
+        :return: 测试使用的 ``FakeRedisUtil`` 实例
+        """
         return FakeRedisUtil()
 
     object.__setattr__(gateway, 'get_redis_util', _fake_get_redis_util)
@@ -102,16 +87,10 @@ async def test_cache_runtime_service_ttl_returns_missing_result() -> None:
 
 @pytest.mark.asyncio
 async def test_cache_runtime_service_clear_cache_dry_run_reports_scope() -> None:
-    """
-    校验缓存运行时 dry-run 清理会返回匹配键与清理范围。
-
-    :return: None
-    """
+    """校验缓存运行时 dry-run 清理会返回匹配键与清理范围。"""
 
     class FakeRedis:
-        """
-        模拟 Redis 客户端。
-        """
+        """模拟 Redis 客户端。"""
 
         @staticmethod
         async def keys(pattern: str) -> list[str]:
@@ -126,16 +105,10 @@ async def test_cache_runtime_service_clear_cache_dry_run_reports_scope() -> None
 
         @staticmethod
         async def close() -> None:
-            """
-            关闭客户端。
-
-            :return: None
-            """
+            """关闭客户端。"""
 
     class FakeRedisUtil:
-        """
-        模拟 Redis 工具类。
-        """
+        """模拟 Redis 工具类。"""
 
         @staticmethod
         async def create_redis_pool(*, log_enabled: bool = False) -> FakeRedis:
@@ -152,6 +125,11 @@ async def test_cache_runtime_service_clear_cache_dry_run_reports_scope() -> None
     service = CacheRuntimeService(infrastructure_gateway=gateway)
 
     def _fake_get_redis_util() -> FakeRedisUtil:
+        """
+        创建测试使用的 ``FakeRedisUtil`` 实例。
+
+        :return: 测试使用的 ``FakeRedisUtil`` 实例
+        """
         return FakeRedisUtil()
 
     object.__setattr__(gateway, 'get_redis_util', _fake_get_redis_util)

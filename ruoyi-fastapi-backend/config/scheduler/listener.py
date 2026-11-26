@@ -12,24 +12,24 @@ from utils.time_util import TimezoneUtil
 
 class SchedulerJobListener:
     """
-    调度事件转换和任务执行日志持久化
+    调度事件转换和任务执行日志持久化。
+
+    :ivar resources: 调度数据库资源
     """
 
     def __init__(self, resources: SchedulerResources) -> None:
         """
-        绑定执行日志使用的独立数据库会话资源
+        绑定执行日志使用的独立数据库会话资源。
 
         :param resources: 调度数据库资源
-        :return: None
         """
         self.resources = resources
 
     def handle_event(self, event: SchedulerEvent) -> None:
         """
-        调度器事件监听器，记录任务执行日志
+        调度器事件监听器，记录任务执行日志。
 
         :param event: APScheduler分发的任务执行事件
-        :return: None
         """
         if not isinstance(event, TimedJobExecutionEvent) or (
             str(event.job_id).startswith('_') and not str(event.job_id).startswith('_manual:')
@@ -46,25 +46,25 @@ class SchedulerJobListener:
             if event.run_duration_ms is not None:
                 message += f', 耗时：{event.run_duration_ms}毫秒'
             job_log = JobLogModel(
-                jobId=info.job_id,
-                executionId=event.execution_id,
-                jobName=info.name,
-                jobGroup=info.job_group,
-                jobStore=info.jobstore,
-                jobExecutor=info.executor,
-                invokeTarget=info.invoke_target,
-                jobArgs=json.loads(info.args) if info.args else [],
-                jobKwargs=json.loads(info.kwargs),
-                jobTrigger=info.trigger,
-                jobMessage=message,
+                job_id=info.job_id,
+                execution_id=event.execution_id,
+                job_name=info.name,
+                job_group=info.job_group,
+                job_store=info.jobstore,
+                job_executor=info.executor,
+                invoke_target=info.invoke_target,
+                job_args=json.loads(info.args) if info.args else [],
+                job_kwargs=json.loads(info.kwargs),
+                job_trigger=info.trigger,
+                job_message=message,
                 status='1' if reason else '0',
-                exceptionInfo=str(event.exception) if event.exception else (reason or ''),
-                scheduledTime=event.scheduled_run_time,
-                startTime=event.start_time,
-                endTime=event.end_time,
-                runDurationMs=event.run_duration_ms,
-                timeZone=info.time_zone,
-                createTime=TimezoneUtil.utc_now(),
+                exception_info=str(event.exception) if event.exception else (reason or ''),
+                scheduled_time=event.scheduled_run_time,
+                start_time=event.start_time,
+                end_time=event.end_time,
+                run_duration_ms=event.run_duration_ms,
+                time_zone=info.time_zone,
+                create_time=TimezoneUtil.utc_now(),
             )
             self.persist_log(job_log)
         except Exception:
@@ -72,10 +72,9 @@ class SchedulerJobListener:
 
     def persist_log(self, job_log: JobLogModel) -> None:
         """
-        使用独立同步会话保存任务执行日志
+        使用独立同步会话保存任务执行日志。
 
         :param job_log: 待保存的任务执行日志
-        :return: None
         """
         session = self.resources.log_session_factory()()
         try:

@@ -14,6 +14,7 @@ from plugins.core.runtime.support.batch_report import PluginBatchReportBuilder
 from plugins.core.runtime.support.payload.validation import PluginValidationPayloadMixin
 from plugins.core.validation.manifest import PluginManifestChecker
 from scripts.compile_i18n import compile_catalogs
+from tests.module_admin.service.helpers import make_redis_request
 from utils.response_util import ResponseUtil
 
 
@@ -34,10 +35,10 @@ def test_authentication_error_helpers_keep_status_and_translate(locale: str) -> 
     assert invalid.status_code == status.HTTP_400_BAD_REQUEST
     assert disabled.status_code == status.HTTP_404_NOT_FOUND
     assert invalid.headers['cache-control'] == 'no-store'
-    assert json.loads(invalid.body)['msg'] == (
+    assert json.loads(bytes(invalid.body))['msg'] == (
         'Invalid authentication interaction request' if locale == 'en-US' else '认证交互请求无效'
     )
-    assert json.loads(disabled.body)['msg'] == (
+    assert json.loads(bytes(disabled.body))['msg'] == (
         'The authentication service is not enabled' if locale == 'en-US' else '认证服务未启用'
     )
 
@@ -54,11 +55,8 @@ async def test_captcha_failure_keeps_http_contract_and_localizes(
         'captcha',
         AsyncMock(return_value=SimpleNamespace(rate_limited=limited, unavailable=not limited, retry_after=17)),
     )
-    request = SimpleNamespace(
-        app=SimpleNamespace(state=SimpleNamespace(redis=object())),
-        client=SimpleNamespace(host='127.0.0.1'),
-        headers={},
-    )
+    request = make_redis_request(object())
+    request.scope['client'] = ('127.0.0.1', 8080)
     token = RequestContext.set_current_locale(LocaleContext('en-US'))
     try:
         response = await captcha(request, 'interaction')
@@ -67,10 +65,10 @@ async def test_captcha_failure_keeps_http_contract_and_localizes(
     if limited:
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         assert response.headers['retry-after'] == '17'
-        assert json.loads(response.body)['msg'] == 'Too many requests. Please try again later'
+        assert json.loads(bytes(response.body))['msg'] == 'Too many requests. Please try again later'
     else:
         assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-        assert json.loads(response.body)['msg'] == 'The authentication service is temporarily unavailable'
+        assert json.loads(bytes(response.body))['msg'] == 'The authentication service is temporarily unavailable'
 
 
 @pytest.mark.parametrize('locale', ['zh-CN', 'en-US'])
@@ -89,11 +87,11 @@ def test_plugin_precheck_suggestion_survives_payload_and_response(locale: str) -
     payload = PluginValidationPayloadMixin.build_validation_issue(issue)
     token = RequestContext.set_current_locale(LocaleContext(locale))
     try:
-        response = json.loads(ResponseUtil.success(data=payload).body)
+        response = json.loads(bytes(ResponseUtil.success(data=payload).body))
         batch = PluginBatchReportBuilder.build_item_report(
             'install', 'demo', {'ok': False, 'structureErrors': ['invalid']}, 1
         )
-        batch_response = json.loads(ResponseUtil.success(data=batch).body)
+        batch_response = json.loads(bytes(ResponseUtil.success(data=batch).body))
     finally:
         RequestContext.reset_current_locale(token)
     assert response['data']['suggestion'] == (

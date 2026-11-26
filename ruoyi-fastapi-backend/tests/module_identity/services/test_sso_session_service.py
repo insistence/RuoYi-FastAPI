@@ -1,15 +1,17 @@
 import asyncio
 import builtins
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from unittest.mock import Mock
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi import Response
+from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config.env import OidcConfig
+from config.env import OidcConfig, OidcSettings
 from module_admin.entity.do.user_do import SysUser
 from module_identity.dao.sso_session_dao import SsoSessionDao
 from module_identity.entity.do.identity_subject_do import SysIdentitySubject
@@ -20,15 +22,27 @@ from module_identity.service.session_service import SsoSessionError, SsoSessionS
 from utils.oidc_util import OidcUtil
 
 _PEPPER = 's' * 32
-_NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
+_NOW = datetime(2026, 1, 1, tzinfo=UTC)
 _COOKIE_SECRET_TEXT_LENGTH = 43
 _SUBJECT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 
 
 class SessionFakeRedis:
-    """覆盖 Session 服务所需字符串、Set 和 publish 语义的 FakeRedis。"""
+    """
+    覆盖 Session 服务所需字符串、Set 和 publish 语义的 FakeRedis。
+
+    :ivar client: 供被测服务调用的异步 Redis 客户端替身
+    :ivar values: 当前处理的值集合
+    :ivar sets: 模拟 Redis 保存的集合数据
+    :ivar set_expiries: 为模拟键设置的到期时间
+    :ivar expire_seconds: 有效期（秒）
+    :ivar published: 记录已发布的消息
+    :ivar lock: 用于串行访问共享资源的锁
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``values``, ``sets``, ``set_expiries``, ``expire_seconds``。"""
+        self.client: Redis = Mock(spec_set=Redis, wraps=self)
         self.values: dict[str, tuple[str, float | None]] = {}
         self.sets: dict[str, set[str]] = {}
         self.set_expiries: dict[str, float] = {}
@@ -37,11 +51,26 @@ class SessionFakeRedis:
         self.lock = asyncio.Lock()
 
     async def set(self, key: str, value: str, ex: int | None = None, **kwargs: object) -> bool:
+        """
+        写入测试缓存键并设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``True``
+        """
         async with self.lock:
             self.values[key] = (value, None if ex is None else asyncio.get_running_loop().time() + ex)
             return True
 
     async def get(self, key: str) -> str | None:
+        """
+        读取测试存储中的指定键。
+
+        :param key: 查找数据时使用的键
+        :return: 测试存储中的指定键
+        """
         async with self.lock:
             value = self.values.get(key)
             if value is not None and value[1] is not None and value[1] <= asyncio.get_running_loop().time():
@@ -50,10 +79,23 @@ class SessionFakeRedis:
             return value[0] if value else None
 
     async def delete(self, *keys: str) -> int:
+        """
+        删除测试缓存项及其过期状态。
+
+        :param keys: 调用方传入的其余位置参数
+        :return: 实际删除的键数
+        """
         async with self.lock:
             return sum(self.values.pop(key, None) is not None for key in keys)
 
     async def sadd(self, key: str, *members: str) -> int:
+        """
+        向测试 Redis 集合添加成员。
+
+        :param key: 查找数据时使用的键
+        :param members: 调用方传入的其余位置参数
+        :return: 新添加的集合成员数
+        """
         self._expire_set_if_needed(key)
         current = self.sets.setdefault(key, set())
         before = len(current)
@@ -61,6 +103,13 @@ class SessionFakeRedis:
         return len(current) - before
 
     async def srem(self, key: str, *members: str) -> int:
+        """
+        从测试 Redis 集合中删除成员。
+
+        :param key: 查找数据时使用的键
+        :param members: 调用方传入的其余位置参数
+        :return: 供调用方使用的 ``removed``
+        """
         self._expire_set_if_needed(key)
         current = self.sets.setdefault(key, set())
         removed = sum(member in current for member in members)
@@ -68,11 +117,23 @@ class SessionFakeRedis:
         return removed
 
     async def smembers(self, key: str) -> builtins.set[str]:
+        """
+        返回测试 Redis 集合中的成员。
+
+        :param key: 查找数据时使用的键
+        :return: 测试 Redis 集合中的成员
+        """
         self._expire_set_if_needed(key)
         return builtins.set(self.sets.get(key, builtins.set()))
 
     async def expire(self, key: str, seconds: int) -> bool:
-        """设置 Set 的剩余 TTL。"""
+        """
+        设置 Set 的剩余 TTL。
+
+        :param key: 查找数据时使用的键
+        :param seconds: 以秒计的时间值
+        :return: 是否设置 Set 的剩余 TTL
+        """
         if key not in self.sets:
             return False
         self.set_expiries[key] = asyncio.get_running_loop().time() + seconds
@@ -80,7 +141,12 @@ class SessionFakeRedis:
         return True
 
     async def ttl(self, key: str) -> int:
-        """返回 Set 的 Redis 风格剩余 TTL。"""
+        """
+        返回 Set 的 Redis 风格剩余 TTL。
+
+        :param key: 查找数据时使用的键
+        :return: Set 的 Redis 风格剩余 TTL
+        """
         self._expire_set_if_needed(key)
         expiry = self.set_expiries.get(key)
         if key not in self.sets:
@@ -90,20 +156,35 @@ class SessionFakeRedis:
         return max(0, int(expiry - asyncio.get_running_loop().time()))
 
     def _expire_set_if_needed(self, key: str) -> None:
+        """
+        清除测试时钟下已经过期的集合。
+
+        :param key: 查找数据时使用的键
+        """
         expiry = self.set_expiries.get(key)
         if expiry is not None and expiry <= asyncio.get_running_loop().time():
             self.sets.pop(key, None)
             self.set_expiries.pop(key, None)
 
     async def publish(self, channel: str, message: str) -> int:
+        """
+        记录发布的频道及消息。
+
+        :param channel: Redis 发布或订阅使用的频道
+        :param message: 与当前结果一起返回的说明
+        :return: 此分支的固定值 ``1``
+        """
         self.published.append((channel, message))
         return 1
 
 
 @pytest.fixture(autouse=True)
 def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
-    """将全局 OIDC 配置固定为 Session 测试所需的基线。"""
+    """
+    将全局 OIDC 配置固定为 Session 测试所需的基线。
 
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     values = {
         'oidc_enabled': True,
         'oidc_sso_absolute_seconds': 8 * 60 * 60,
@@ -118,32 +199,51 @@ def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(OidcConfig, name, value)
 
 
-def _config() -> OidcConfig:
-    """返回当前测试使用的全局 OIDC 配置。"""
+def _config() -> OidcSettings:
+    """
+    返回当前测试使用的全局 OIDC 配置。
 
+    :return: 当前测试使用的全局 OIDC 配置
+    """
     return OidcConfig
 
 
-def _config_with_long_remember() -> OidcConfig:
-    """创建超过协议上限的 remember-me 配置。"""
+def _config_with_long_remember() -> OidcSettings:
+    """
+    创建超过协议上限的 remember-me 配置。
+
+    :return: 超过协议上限的 remember-me 配置
+    """
     config = _config()
     config.oidc_sso_remember_absolute_seconds = 8 * 24 * 60 * 60
     return config
 
 
 async def _seed_identity(db: AsyncSession, *, auth_version: int = 2) -> None:
-    """写入真实用户和 Subject 事实。"""
+    """
+    写入真实用户和 Subject 事实。
+
+    :param db: 当前操作使用的数据库会话
+    :param auth_version: 用户认证安全版本
+    """
     db.add(SysUser(user_id=1, user_name='session-user', nick_name='Session User', status='0', del_flag='0'))
     db.add(SysIdentitySubject(user_id=1, subject_id=_SUBJECT_ID, auth_version=auth_version, create_by='test'))
     await db.flush()
 
 
 async def _create(db: AsyncSession, redis: SessionFakeRedis, *, remember: bool = False) -> tuple[str, SysSsoSession]:
-    """创建测试 Session。"""
+    """
+    创建测试 Session。
+
+    :param db: 当前操作使用的数据库会话
+    :param redis: 覆盖 Session 服务所需字符串、Set 和 publish 语义的 FakeRedis
+    :param remember: 是否记住本次选择
+    :return: 测试 Session
+    """
     queue = AfterCommitCoordinator()
     result = await SsoSessionService.create(
         db,
-        redis,
+        redis.client,
         1,
         _SUBJECT_ID,
         2,
@@ -178,7 +278,7 @@ async def test_create_validate_and_remember_absolute_ttl(data_session: AsyncSess
     assert 'session_secret_hash' not in session_payload
     queue = AfterCommitCoordinator()
     validated = await SsoSessionService.validate(
-        data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
     )
     await queue.commit(data_session)
     assert validated.subject_id == _SUBJECT_ID
@@ -190,7 +290,7 @@ async def test_create_validate_and_remember_absolute_ttl(data_session: AsyncSess
     queue = AfterCommitCoordinator()
     capped = await SsoSessionService.create(
         data_session,
-        redis,
+        redis.client,
         1,
         _SUBJECT_ID,
         2,
@@ -226,7 +326,7 @@ async def test_stale_cookie_index_does_not_reject_valid_database_session(data_se
     await redis.set(OidcRedisKey.sso_cookie(digest), str(uuid4()), ex=3600)
     coordinator = AfterCommitCoordinator()
     validated = await SsoSessionService.validate(
-        data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=coordinator
+        data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=coordinator
     )
     await coordinator.commit(data_session)
     assert validated.sid == sid == row.sid
@@ -240,10 +340,16 @@ async def test_coordinator_runs_all_callbacks_after_first_failure(data_session: 
     called: list[str] = []
 
     async def fail() -> None:
+        """
+        记录操作尝试并触发预期故障。
+
+        :raises RuntimeError: 副作用失败
+        """
         called.append('first')
         raise RuntimeError('副作用失败')
 
     async def succeed() -> None:
+        """记录后续回调已成功执行。"""
         called.append('second')
 
     await coordinator.register(fail)
@@ -264,17 +370,20 @@ async def test_wrong_secret_and_security_version_fail_closed(data_session: Async
     wrong = f'ss1.{sid}.{wrong_secret}'
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, wrong, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(data_session, redis.client, wrong, pepper=_PEPPER, now=_NOW, coordinator=queue)
     await queue.commit(data_session)
     assert row.status == 'active'
 
     cookie, row = await _create(data_session, redis)
     subject = await data_session.scalar(select(SysIdentitySubject).where(SysIdentitySubject.user_id == 1))
+    assert subject is not None
     subject.auth_version = 3
     await data_session.flush()
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
     assert row.status == 'revoked'
 
@@ -290,7 +399,7 @@ async def test_touch_never_crosses_absolute_and_rotation_invalidates_old(data_se
     queue = AfterCommitCoordinator()
     touched = await SsoSessionService.touch(
         data_session,
-        redis,
+        redis.client,
         cookie,
         pepper=_PEPPER,
         now=_NOW + timedelta(seconds=90),
@@ -300,16 +409,20 @@ async def test_touch_never_crosses_absolute_and_rotation_invalidates_old(data_se
     assert touched.idle_expires_at == _NOW + timedelta(seconds=100)
     queue = AfterCommitCoordinator()
     rotated = await SsoSessionService.rotate_cookie(
-        data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
     )
     await queue.commit(data_session)
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
     queue = AfterCommitCoordinator()
     assert (
-        await SsoSessionService.validate(data_session, redis, rotated, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, rotated, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     ).sid == row.sid
     await queue.commit(data_session)
 
@@ -324,7 +437,7 @@ async def test_expired_session_is_marked_expired(data_session: AsyncSession) -> 
     with pytest.raises(SsoSessionError):
         await SsoSessionService.validate(
             data_session,
-            redis,
+            redis.client,
             cookie,
             pepper=_PEPPER,
             now=_NOW + timedelta(seconds=8 * 60 * 60 + 1),
@@ -344,14 +457,16 @@ async def test_db_revocation_invalidates_cached_hit_and_after_commit_order(data_
     await data_session.commit()
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
 
     cookie, row = await _create(data_session, redis)
     coordinator = AfterCommitCoordinator()
 
     assert await SsoSessionService.revoke(
-        data_session, redis, row.sid, reason='admin', now=_NOW, coordinator=coordinator
+        data_session, redis.client, row.sid, reason='admin', now=_NOW, coordinator=coordinator
     )
     assert row.status == 'revoked'
     assert redis.values
@@ -370,12 +485,19 @@ async def test_revoke_db_failure_does_not_clear_cache(
     _, row = await _create(data_session, redis)
 
     async def fail(*args: object, **kwargs: object) -> bool:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟数据库不可用
+        """
         raise RuntimeError('database unavailable')
 
     monkeypatch.setattr(SsoSessionDao, 'revoke', fail)
     queue = AfterCommitCoordinator()
     with pytest.raises(RuntimeError):
-        await SsoSessionService.revoke(data_session, redis, row.sid, now=_NOW, coordinator=queue)
+        await SsoSessionService.revoke(data_session, redis.client, row.sid, now=_NOW, coordinator=queue)
     assert redis.values
 
 
@@ -389,7 +511,7 @@ async def test_revoke_rollback_keeps_cache_until_after_commit(data_session: Asyn
     sid = row.sid
     coordinator = AfterCommitCoordinator()
 
-    assert await SsoSessionService.revoke(data_session, redis, sid, now=_NOW, coordinator=coordinator)
+    assert await SsoSessionService.revoke(data_session, redis.client, sid, now=_NOW, coordinator=coordinator)
     await coordinator.rollback(data_session)
     assert redis.values
     assert coordinator.pending_count == 0
@@ -406,9 +528,14 @@ async def test_commit_failure_does_not_run_registered_cleanup(
     redis = SessionFakeRedis()
     _, row = await _create(data_session, redis)
     queue = AfterCommitCoordinator()
-    assert await SsoSessionService.revoke(data_session, redis, row.sid, now=_NOW, coordinator=queue)
+    assert await SsoSessionService.revoke(data_session, redis.client, row.sid, now=_NOW, coordinator=queue)
 
     async def fail_commit() -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :raises RuntimeError: 模拟事务提交失败
+        """
         raise RuntimeError('commit failed')
 
     monkeypatch.setattr(data_session, 'commit', fail_commit)
@@ -428,7 +555,9 @@ async def test_inactive_validation_only_cleans_cache_without_event(data_session:
     await data_session.commit()
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
     assert not redis.published
 
@@ -444,7 +573,7 @@ async def test_create_requires_uuid_and_positive_integer_ttls(data_session: Asyn
     with pytest.raises(SsoSessionError):
         await SsoSessionService.create(
             data_session,
-            redis,
+            redis.client,
             1,
             _SUBJECT_ID,
             2,
@@ -458,7 +587,7 @@ async def test_create_requires_uuid_and_positive_integer_ttls(data_session: Asyn
     with pytest.raises(SsoSessionError):
         await SsoSessionService.create(
             data_session,
-            redis,
+            redis.client,
             1,
             _SUBJECT_ID,
             2,
@@ -478,7 +607,7 @@ async def test_create_rotate_touch_cache_writes_wait_for_commit(data_session: As
     queue = AfterCommitCoordinator()
     await SsoSessionService.create(
         data_session,
-        redis,
+        redis.client,
         1,
         _SUBJECT_ID,
         2,
@@ -495,7 +624,9 @@ async def test_create_rotate_touch_cache_writes_wait_for_commit(data_session: As
     await _seed_identity(data_session)
     cookie, _ = await _create(data_session, redis)
     queue = AfterCommitCoordinator()
-    await SsoSessionService.rotate_cookie(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+    await SsoSessionService.rotate_cookie(
+        data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+    )
     assert redis.values
     await data_session.rollback()
     assert redis.values
@@ -503,12 +634,12 @@ async def test_create_rotate_touch_cache_writes_wait_for_commit(data_session: As
 
 @pytest.mark.asyncio
 async def test_touch_cache_write_waits_for_commit(data_session: AsyncSession) -> None:
-    """touch 的缓存刷新在事务回滚时不执行。"""
+    """验证事务回滚时不会执行 touch 的缓存刷新。"""
     await _seed_identity(data_session)
     redis = SessionFakeRedis()
     cookie, _ = await _create(data_session, redis)
     queue = AfterCommitCoordinator()
-    await SsoSessionService.touch(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+    await SsoSessionService.touch(data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
     await data_session.rollback()
     assert redis.values
 
@@ -523,7 +654,7 @@ async def test_after_commit_uses_snapshot_and_publishes_when_cache_clear_fails(
     coordinator = AfterCommitCoordinator()
     cookie, row = await SsoSessionService.create(
         data_session,
-        redis,
+        redis.client,
         1,
         _SUBJECT_ID,
         2,
@@ -542,10 +673,17 @@ async def test_after_commit_uses_snapshot_and_publishes_when_cache_clear_fails(
     snapshot = SsoSessionService._snapshot(row)
 
     async def fail_clear(*args: object, **kwargs: object) -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟清除 Redis 缓存失败
+        """
         raise RuntimeError('redis clear failed')
 
     monkeypatch.setattr(SsoSessionService, '_clear_cache', fail_clear)
-    await SsoSessionService._best_effort_cleanup(redis, snapshot, reason='logout')
+    await SsoSessionService._best_effort_cleanup(redis.client, snapshot, reason='logout')
     assert redis.published
 
 
@@ -556,11 +694,14 @@ async def test_user_status_and_cookie_response_security(data_session: AsyncSessi
     redis = SessionFakeRedis()
     cookie, _ = await _create(data_session, redis)
     user = await data_session.scalar(select(SysUser).where(SysUser.user_id == 1))
+    assert user is not None
     user.status = '1'
     await data_session.flush()
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
     response = Response()
     OidcUtil.parse_sso_cookie(cookie)
@@ -614,7 +755,7 @@ async def test_session_entry_points_preserve_domain_errors_for_invalid_credentia
         else:
             await SsoSessionService.validate(
                 data_session,
-                SessionFakeRedis(),
+                SessionFakeRedis().client,
                 cookie,
                 pepper=pepper,
                 now=_NOW,

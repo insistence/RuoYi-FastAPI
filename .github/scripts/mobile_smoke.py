@@ -20,10 +20,11 @@ ROOT = Path(__file__).resolve().parents[2]
 TOKEN = 'isolated-mobile-smoke-token'
 LOGIN_BUTTON_MIN_WIDTH = 250
 LOGIN_BUTTON_MIN_HEIGHT = 44
+NICKNAME = '移动端 CI'
 USER = {
     'userId': 7,
     'userName': 'ci-user',
-    'nickName': '移动端 CI',
+    'nickName': NICKNAME,
     'avatar': '',
     'phonenumber': '13800000000',
     'email': 'mobile-ci@example.test',
@@ -48,7 +49,6 @@ def create_api_handler(errors: list[str], observed: list[dict[str, Any]]) -> Cal
         隔离 API 边界，记录真实构建发出的认证和时区请求。
 
         :param route: 当前浏览器 API 请求
-        :return: None
         """
         request = route.request
         path = urlparse(request.url).path.removeprefix('/dev-api')
@@ -109,7 +109,14 @@ def create_api_handler(errors: list[str], observed: list[dict[str, Any]]) -> Cal
 
 
 async def check_login_styles(framework: str, page: Page, login_button: Locator) -> dict[str, Any]:
-    """验证移动端构建确实生成了布局、渐变和图标样式。"""
+    """
+    验证移动端构建确实生成了布局、渐变和图标样式。
+
+    :param framework: 目标前端框架
+    :param page: 浏览器页面或要查询的页码
+    :param login_button: 提交登录表单的按钮
+    :return: 供调用方使用的 ``styles``
+    """
     styles = await login_button.evaluate(
         """element => {
             const style = getComputedStyle(element)
@@ -148,7 +155,6 @@ def check_profile_requests(observed: list[dict[str, Any]]) -> None:
     验证账号恢复后的认证、时区、语言与初始化请求头。
 
     :param observed: 实际发出的 API 请求记录
-    :return: None
     """
     profile_requests = [request for request in observed if request['path'] == '/system/user/profile']
     assert profile_requests, '个人资料页未发送真实 API 请求'
@@ -165,7 +171,7 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
     :param framework: vue2、vue3 或 react
     :param base_url: 本次测试的开发服务器或静态文件服务器
     :param output: 浏览器报告目录
-    :return: None
+    :raises BaseException: 执行中断，清理后向调用方传播原异常
     """
     logs: list[str] = []
     errors: list[str] = []
@@ -174,9 +180,7 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
 
     async with async_playwright() as playwright:
         executable = os.environ.get('RUOYI_SMOKE_BROWSER_EXECUTABLE')
-        browser = await playwright.chromium.launch(
-            headless=True, **({'executable_path': executable} if executable else {})
-        )
+        browser = await playwright.chromium.launch(headless=True, executable_path=executable or None)
         context = await browser.new_context(viewport={'width': 390, 'height': 844}, timezone_id='UTC')
         await context.tracing.start(screenshots=True, snapshots=True, sources=True)
         await context.route('http://localhost:9099/**', api)
@@ -198,7 +202,7 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
             await login_button.click()
             await expect(page).to_have_url(re.compile(r'/pages/index'), timeout=30000)
             await page.goto(f'{base_url}/#/pages/mine/info/index')
-            await expect(page.get_by_text(USER['nickName'], exact=True)).to_be_visible(timeout=30000)
+            await expect(page.get_by_text(NICKNAME, exact=True)).to_be_visible(timeout=30000)
             await expect(page.get_by_text('Nickname', exact=True)).to_be_visible(timeout=15000)
             created_at = await page.evaluate(
                 """({locale, timeZone, createTime}) => new Intl.DateTimeFormat(locale, {
@@ -234,7 +238,8 @@ def main() -> None:
     """
     验证现有开发服务器或临时 H5 静态服务，结束后关闭自身创建的资源。
 
-    :return: None
+    :raises TimeoutError: H5 服务未能在截止时间前就绪
+    :raises SystemExit: 缺少预先构建的 H5 产物
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--framework', choices=('vue2', 'vue3', 'react'), required=True)

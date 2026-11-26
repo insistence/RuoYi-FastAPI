@@ -1,25 +1,93 @@
+from contextlib import AbstractAsyncContextManager
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import TypeVar
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.support import PluginPrecheckContext
 
 from ..context import PluginRuntimeContextService
+from ..gateway import PluginLifecycleUnitOfWork
 from ..responses import PluginLifecycleResponse, PluginRuntimeBlockedPayloadDict
 
+_T = TypeVar('_T')
 
-class PluginLifecycleSessionContext(Protocol):
+
+def require_step_result(value: _T | None, step: str) -> _T:
     """
-    带数据库会话的生命周期上下文。
+    读取前置生命周期步骤已经产生的结果。
+
+    :param value: 上下文中保存的步骤结果
+    :param step: 应当产生该结果的步骤名
+    :return: 前置步骤产生的值
+    :raises RuntimeError: 前置步骤尚未提供所需结果
+    """
+    if value is None:
+        raise RuntimeError(f'缺少插件生命周期步骤 {step} 的结果')
+    return value
+
+
+class PluginDiscoveryContext:
+    """
+    为依赖插件发现和预检的步骤提供已完成的结果。
+
+    :ivar discovered_plugin: 发现步骤匹配的插件
+    :ivar precheck: 插件预检结果
+    :ivar session_context: 负责打开和关闭会话的上下文
+    :ivar session: 当前步骤共享的数据库会话
     """
 
-    session_context: Any | None
-    session: Any | None
+    __slots__ = ('discovered_plugin', 'precheck', 'session', 'session_context')
+    discovered_plugin: DiscoveredPlugin | None
+    precheck: PluginPrecheckContext | None
+    session_context: AbstractAsyncContextManager[PluginLifecycleUnitOfWork] | None
+    session: AsyncSession | None
+
+    @property
+    def resolved_plugin(self) -> DiscoveredPlugin:
+        """
+        获取发现步骤匹配的插件。
+
+        :return: 已发现的目标插件
+        """
+        return require_step_result(self.discovered_plugin, 'discover_plugin')
+
+    @property
+    def precheck_result(self) -> PluginPrecheckContext:
+        """
+        获取预检步骤生成的结果。
+
+        :return: 插件预检结果
+        """
+        return require_step_result(self.precheck, 'build_precheck')
+
+
+class PluginTransactionContext(PluginDiscoveryContext):
+    """
+    为需要主事务的生命周期步骤提供工作单元。
+
+    :ivar lifecycle_uow: 打开会话步骤创建的事务工作单元
+    """
+
+    __slots__ = ('lifecycle_uow',)
+    lifecycle_uow: PluginLifecycleUnitOfWork | None
+
+    @property
+    def active_transaction(self) -> PluginLifecycleUnitOfWork:
+        """
+        获取本次操作使用的事务工作单元。
+
+        :return: 已打开的事务工作单元
+        """
+        return require_step_result(self.lifecycle_uow, '打开主事务')
 
 
 class PluginLifecycleUseCaseSupport:
     """
     生命周期 use case 公共协作能力。
+
+    :ivar context: 生命周期上下文
     """
 
     context: PluginRuntimeContextService
@@ -101,22 +169,21 @@ class PluginLifecycleUseCaseSupport:
         :param discovered_plugin: 已发现插件
         :return: 附加能力后的响应负载
         """
-        return cast(
-            'PluginLifecycleResponse',
-            self.context.with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-        )
+        return self.context.with_plugin_capability(payload, discovered_plugin)
 
-    async def _close_lifecycle_session(self, context: object) -> None:
+    async def _close_lifecycle_session(self, context: PluginDiscoveryContext) -> None:
         """
         关闭生命周期上下文中的数据库会话。
 
         :param context: 生命周期上下文
-        :return: None
         """
-        lifecycle_context = cast('PluginLifecycleSessionContext', context)
-        session_context = lifecycle_context.session_context
+        session_context = context.session_context
         if session_context is None:
             return
-        await session_context.__aexit__(None, None, None)
-        lifecycle_context.session_context = None
-        lifecycle_context.session = None
+        try:
+            await session_context.__aexit__(None, None, None)
+        finally:
+            context.session_context = None
+            context.session = None
+            if isinstance(context, PluginTransactionContext):
+                context.lifecycle_uow = None

@@ -5,7 +5,7 @@ import mimetypes
 import stat
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import aiofiles
@@ -27,7 +27,13 @@ CONTENT_TYPE_MAX_LENGTH = 255
 @dataclass(frozen=True)
 class FileSignature:
     """
-    文件稳定性签名
+    文件稳定性签名。
+
+    :ivar file_size: 文件大小
+    :ivar modified_time_ns: 文件内容最后修改的时间戳（纳秒）
+    :ivar changed_time_ns: 文件元数据最后变更的时间戳（纳秒）
+    :ivar device_id: 文件所在存储设备的标识
+    :ivar inode: 操作系统为文件分配的 inode 编号
     """
 
     file_size: int
@@ -40,7 +46,16 @@ class FileSignature:
 @dataclass(frozen=True)
 class LegacyFileInfo:
     """
-    历史文件信息
+    历史文件信息。
+
+    :ivar filepath: 文件路径
+    :ivar storage_key: 存储相对路径
+    :ivar filename: 存储文件名
+    :ivar extension: 文件扩展名
+    :ivar content_type: 文件内容类型
+    :ivar file_size: 文件大小
+    :ivar file_time: 旧版路径信息中记录的文件时间
+    :ivar signature: 文件稳定性签名
     """
 
     filepath: Path
@@ -55,10 +70,11 @@ class LegacyFileInfo:
 
 def get_file_signature(filepath: Path) -> FileSignature:
     """
-    获取普通文件的稳定性签名
+    获取普通文件的稳定性签名。
 
     :param filepath: 文件路径
     :return: 文件稳定性签名
+    :raises ValueError: 文件不是普通文件
     """
     file_stat = filepath.lstat()
     if not stat.S_ISREG(file_stat.st_mode):
@@ -80,7 +96,7 @@ def get_legacy_file_skip_reason(
     file_size: int,
 ) -> str | None:
     """
-    获取历史文件跳过原因
+    获取历史文件跳过原因。
 
     :param storage_key: 存储相对路径
     :param filename: 存储文件名
@@ -106,7 +122,7 @@ def get_legacy_file_skip_reason(
 
 def collect_legacy_files() -> tuple[list[LegacyFileInfo], int]:
     """
-    收集待迁移的历史文件
+    收集待迁移的历史文件。
 
     :return: 符合要求的文件信息和跳过数量
     """
@@ -147,7 +163,7 @@ def collect_legacy_files() -> tuple[list[LegacyFileInfo], int]:
                 extension=extension,
                 content_type=content_type,
                 file_size=signature.file_size,
-                file_time=datetime.fromtimestamp(signature.modified_time_ns / 1_000_000_000, tz=timezone.utc),
+                file_time=datetime.fromtimestamp(signature.modified_time_ns / 1_000_000_000, tz=UTC),
                 signature=signature,
             )
         )
@@ -156,11 +172,12 @@ def collect_legacy_files() -> tuple[list[LegacyFileInfo], int]:
 
 async def calculate_file_hash(filepath: Path, expected_signature: FileSignature | None = None) -> str:
     """
-    计算稳定文件的SHA-256
+    计算稳定文件的SHA-256。
 
     :param filepath: 文件路径
     :param expected_signature: 扫描阶段记录的文件签名
     :return: 文件SHA-256
+    :raises ValueError: 文件在扫描后发生变化；文件在哈希计算期间发生变化
     """
     before_signature = await asyncio.to_thread(get_file_signature, filepath)
     if expected_signature is not None and before_signature != expected_signature:
@@ -179,25 +196,25 @@ async def calculate_file_hash(filepath: Path, expected_signature: FileSignature 
 
 async def build_legacy_file_info(legacy_file: LegacyFileInfo) -> FileInfoModel:
     """
-    构造历史文件信息模型
+    构造历史文件信息模型。
 
     :param legacy_file: 历史文件信息
     :return: 文件信息模型
     """
     return FileInfoModel(
-        fileId=str(uuid.uuid4()),
-        originalName=legacy_file.filename,
-        storedName=legacy_file.filename,
-        storageKey=legacy_file.storage_key,
-        accessType='public',
+        file_id=str(uuid.uuid4()),
+        original_name=legacy_file.filename,
+        stored_name=legacy_file.filename,
+        storage_key=legacy_file.storage_key,
+        access_type='public',
         extension=legacy_file.extension,
-        contentType=legacy_file.content_type,
-        fileSize=legacy_file.file_size,
-        fileHash=await calculate_file_hash(legacy_file.filepath, legacy_file.signature),
-        createBy='migration',
-        createTime=legacy_file.file_time,
-        updateBy='migration',
-        updateTime=legacy_file.file_time,
+        content_type=legacy_file.content_type,
+        file_size=legacy_file.file_size,
+        file_hash=await calculate_file_hash(legacy_file.filepath, legacy_file.signature),
+        create_by='migration',
+        create_time=legacy_file.file_time,
+        update_by='migration',
+        update_time=legacy_file.file_time,
     )
 
 
@@ -207,12 +224,13 @@ async def migrate_legacy_files(
     maintenance_confirmed: bool = False,
 ) -> tuple[int, int]:
     """
-    将公开目录中的历史文件登记到文件信息表
+    将公开目录中的历史文件登记到文件信息表。
 
     :param dry_run: 是否仅扫描不写入数据库
     :param batch_size: 每批提交数量
     :param maintenance_confirmed: 是否已确认停止公开文件上传
     :return: 新增数量和跳过数量
+    :raises ValueError: 每批提交数量必须大于0；正式迁移前必须停止公开文件上传并确认维护窗口
     """
     if batch_size < 1:
         raise ValueError('每批提交数量必须大于0')
@@ -258,7 +276,7 @@ async def migrate_legacy_files(
 
 def parse_args() -> argparse.Namespace:
     """
-    解析命令行参数
+    解析命令行参数。
 
     :return: 命令行参数
     """

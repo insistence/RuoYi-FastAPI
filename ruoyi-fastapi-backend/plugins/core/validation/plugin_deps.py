@@ -3,7 +3,8 @@ from typing import Literal
 
 from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
-from plugins.core.manifest.schema import PluginDependencyManifest, PluginManifest
+from plugins.core.manifest.schema import PluginDependencyManifest
+from plugins.core.manifest.v2 import VersionedPluginManifest
 from plugins.core.state import PluginStateResolver
 from plugins.core.types import PluginStateRecord
 from plugins.core.validation.dependencies import DependencyRequirementParser, ParsedDependency
@@ -76,6 +77,13 @@ class PluginDependencyVersionMatcher:
 class PluginDependencyCheckItem:
     """
     插件间依赖检查项。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar dependency_id: 依赖插件ID
+    :ivar required_version: 约束版本
+    :ivar installed_version: 已安装版本
+    :ivar status: 操作或记录所处的状态
+    :ivar message: 与当前结果一起返回的说明
     """
 
     plugin_id: str
@@ -99,6 +107,9 @@ class PluginDependencyCheckItem:
 class PluginDependencyCheckResult:
     """
     插件间依赖检查结果。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar items: 逐项记录的检查或计划明细
     """
 
     plugin_id: str
@@ -127,6 +138,11 @@ class PluginDependencyCheckResult:
 class PluginDependencyPlanBlocker:
     """
     插件批量操作计划阻塞项。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar dependency_id: 依赖插件ID
+    :ivar status: 操作或记录所处的状态
+    :ivar message: 与当前结果一起返回的说明
     """
 
     plugin_id: str
@@ -139,6 +155,18 @@ class PluginDependencyPlanBlocker:
 class PluginDependencyPlanItem:
     """
     插件批量操作计划项。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar name: 用于查找或标识当前对象的名称
+    :ivar version: 当前记录的版本
+    :ivar operation: 批量操作类型
+    :ivar order: 执行顺序
+    :ivar requested: 是否为用户显式指定插件
+    :ivar dependencies: 执行当前步骤所需的依赖
+    :ivar installed_version: 已安装版本
+    :ivar enabled: 是否启用该项功能
+    :ivar status: 操作或记录所处的状态
+    :ivar blockers: 阻塞项列表
     """
 
     plugin_id: str
@@ -167,6 +195,12 @@ class PluginDependencyPlanItem:
 class PluginDependencyPlan:
     """
     插件批量操作拓扑计划。
+
+    :ivar operation: 批量操作类型
+    :ivar requested_plugin_ids: 请求的插件ID列表
+    :ivar ordered_plugin_ids: 按依赖顺序排列的插件标识
+    :ivar items: 逐项记录的检查或计划明细
+    :ivar blockers: 阻塞项列表
     """
 
     operation: PluginBatchOperation
@@ -190,6 +224,9 @@ class PluginDependencyChecker:
     插件间依赖检查器。
 
     使用 Checker 模式校验插件之间的存在性、安装状态、启用状态、版本约束和循环依赖。
+
+    :ivar discovered_plugin_map: 已发现插件映射
+    :ivar database_plugin_map: 按插件标识索引的数据库记录
     """
 
     def __init__(
@@ -202,12 +239,11 @@ class PluginDependencyChecker:
 
         :param discovered_plugins: 已发现插件列表
         :param database_plugins: 数据库插件状态列表
-        :return: None
         """
         self.discovered_plugin_map = {plugin.manifest.id: plugin for plugin in discovered_plugins}
         self.database_plugin_map = {plugin.plugin_id: plugin for plugin in database_plugins or []}
 
-    def check_manifest(self, manifest: PluginManifest) -> PluginDependencyCheckResult:
+    def check_manifest(self, manifest: VersionedPluginManifest) -> PluginDependencyCheckResult:
         """
         检查单个插件清单的插件间依赖。
 
@@ -344,7 +380,7 @@ class PluginDependencyChecker:
         :param database_plugin: 数据库插件状态
         :return: 已安装版本
         """
-        installed_version = getattr(database_plugin, 'installed_version', None)
+        installed_version = database_plugin.installed_version if database_plugin else None
         if installed_version:
             return installed_version
         return discovered_plugin.manifest.version if discovered_plugin else None
@@ -382,6 +418,8 @@ class PluginDependencyGraph:
     插件依赖图。
 
     使用 Graph 模式为插件间依赖提供循环检测，并为后续拓扑排序保留扩展点。
+
+    :ivar discovered_plugin_map: 已发现插件映射
     """
 
     def __init__(self, discovered_plugin_map: dict[str, DiscoveredPlugin]) -> None:
@@ -389,7 +427,6 @@ class PluginDependencyGraph:
         初始化插件依赖图。
 
         :param discovered_plugin_map: 已发现插件映射
-        :return: None
         """
         self.discovered_plugin_map = discovered_plugin_map
 
@@ -448,6 +485,9 @@ class PluginDependencyPlanBuilder:
     插件批量操作拓扑计划生成器。
 
     使用 Planner 模式为批量安装、启用和升级生成依赖优先的执行顺序，并输出阻塞原因。
+
+    :ivar discovered_plugin_map: 已发现插件映射
+    :ivar database_plugin_map: 按插件标识索引的数据库记录
     """
 
     def __init__(
@@ -460,7 +500,6 @@ class PluginDependencyPlanBuilder:
 
         :param discovered_plugins: 已发现插件列表
         :param database_plugins: 数据库插件状态列表
-        :return: None
         """
         self.discovered_plugin_map = {plugin.manifest.id: plugin for plugin in discovered_plugins}
         self.database_plugin_map = {plugin.plugin_id: plugin for plugin in database_plugins or []}
@@ -519,6 +558,12 @@ class PluginDependencyPlanBuilder:
         visiting: list[str] = []
 
         def visit(plugin_id: str, requested_by: str) -> None:
+            """
+            递归收集插件的传递依赖并检查循环引用。
+
+            :param plugin_id: 插件清单中的唯一标识
+            :param requested_by: 手动执行提交者
+            """
             if plugin_id in visiting:
                 blockers.extend(self._build_cycle_blockers([*visiting[visiting.index(plugin_id) :], plugin_id]))
                 return
@@ -566,6 +611,11 @@ class PluginDependencyPlanBuilder:
         visited: set[str] = set()
 
         def visit(plugin_id: str) -> None:
+            """
+            遍历依赖图并按依赖优先的顺序加入插件。
+
+            :param plugin_id: 插件清单中的唯一标识
+            """
             if plugin_id in visited:
                 return
             if plugin_id in visiting:
@@ -653,7 +703,7 @@ class PluginDependencyPlanBuilder:
 
     def _build_dependency_blockers(
         self,
-        manifest: PluginManifest,
+        manifest: VersionedPluginManifest,
         operation: PluginBatchOperation,
     ) -> list[PluginDependencyPlanBlocker]:
         """
@@ -671,7 +721,7 @@ class PluginDependencyPlanBuilder:
 
     def _build_single_dependency_blocker(
         self,
-        manifest: PluginManifest,
+        manifest: VersionedPluginManifest,
         dependency: PluginDependencyManifest,
         operation: PluginBatchOperation,
     ) -> list[PluginDependencyPlanBlocker]:

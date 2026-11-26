@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import and_, case, delete, func, or_, select, update
+from sqlalchemy import and_, case, delete, func, or_, select, true, update
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -16,14 +16,12 @@ from utils.time_util import TimezoneUtil
 
 
 class NoticeDao:
-    """
-    通知公告管理模块数据库操作层
-    """
+    """通知公告管理模块数据库操作层。"""
 
     @classmethod
     async def get_notice_detail_by_id(cls, db: AsyncSession, notice_id: int) -> SysNotice | None:
         """
-        根据通知公告id获取通知公告详细信息
+        根据通知公告id获取通知公告详细信息。
 
         :param db: orm对象
         :param notice_id: 通知公告id
@@ -36,7 +34,7 @@ class NoticeDao:
     @classmethod
     async def get_notice_detail_by_info(cls, db: AsyncSession, notice: NoticeModel) -> SysNotice | None:
         """
-        根据通知公告参数获取通知公告信息
+        根据通知公告参数获取通知公告信息。
 
         :param db: orm对象
         :param notice: 通知公告参数对象
@@ -61,9 +59,9 @@ class NoticeDao:
     @classmethod
     async def get_notice_list(
         cls, db: AsyncSession, query_object: NoticePageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据查询参数获取通知公告列表信息
+        根据查询参数获取通知公告列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -76,16 +74,16 @@ class NoticeDao:
         query = (
             select(SysNotice)
             .where(
-                SysNotice.notice_title.like(f'%{query_object.notice_title}%') if query_object.notice_title else True,
-                SysNotice.create_by.like(f'%{query_object.create_by}%') if query_object.create_by else True,
-                SysNotice.notice_type == query_object.notice_type if query_object.notice_type else True,
-                SysNotice.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysNotice.create_time < time_range[1] if time_range and time_range[1] is not None else True,
+                SysNotice.notice_title.like(f'%{query_object.notice_title}%') if query_object.notice_title else true(),
+                SysNotice.create_by.like(f'%{query_object.create_by}%') if query_object.create_by else true(),
+                SysNotice.notice_type == query_object.notice_type if query_object.notice_type else true(),
+                SysNotice.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysNotice.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
             )
             .order_by(SysNotice.notice_id.desc())
             .distinct()
         )
-        notice_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        notice_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -94,7 +92,7 @@ class NoticeDao:
     @classmethod
     async def get_notice_list_with_read_status(cls, db: AsyncSession, user_id: int, limit: int) -> list[dict[str, Any]]:
         """
-        查询带当前用户已读状态的正常公告列表
+        查询带当前用户已读状态的正常公告列表。
 
         :param db: orm对象
         :param user_id: 用户ID
@@ -126,7 +124,7 @@ class NoticeDao:
     @classmethod
     async def get_unread_count(cls, db: AsyncSession, user_id: int) -> int:
         """
-        查询当前用户未读的正常公告数量
+        查询当前用户未读的正常公告数量。
 
         :param db: orm对象
         :param user_id: 用户ID
@@ -146,9 +144,9 @@ class NoticeDao:
     @classmethod
     async def get_notice_read_user_list(
         cls, db: AsyncSession, query_object: NoticeReadUserPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        查询已阅读指定公告的用户列表
+        查询已阅读指定公告的用户列表。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -174,22 +172,23 @@ class NoticeDao:
                     SysUser.nick_name.like(f'%{search_value}%'),
                 )
                 if search_value
-                else True,
+                else true(),
             )
             .order_by(SysNoticeRead.read_time.desc())
         )
 
-        return await PageUtil.paginate(db, query, query_object.page_num, query_object.page_size, is_page)
+        return await PageUtil.paginate(
+            db, query, query_object.page_num, query_object.page_size, is_page, as_mappings=True
+        )
 
     @classmethod
     async def add_notice_reads(cls, db: AsyncSession, user_id: int, notice_ids: list[int]) -> None:
         """
-        幂等新增公告已读记录
+        幂等新增公告已读记录。
 
         :param db: orm对象
         :param user_id: 用户ID
         :param notice_ids: 公告ID列表
-        :return:
         """
         unique_notice_ids = list(dict.fromkeys(notice_ids))
         if not unique_notice_ids:
@@ -239,11 +238,10 @@ class NoticeDao:
     @classmethod
     async def delete_notice_reads(cls, db: AsyncSession, notice_ids: list[int]) -> None:
         """
-        根据公告ID列表删除已读记录
+        根据公告ID列表删除已读记录。
 
         :param db: orm对象
         :param notice_ids: 公告ID列表
-        :return:
         """
         if notice_ids:
             await db.execute(delete(SysNoticeRead).where(SysNoticeRead.notice_id.in_(notice_ids)))
@@ -251,11 +249,11 @@ class NoticeDao:
     @classmethod
     async def add_notice_dao(cls, db: AsyncSession, notice: NoticeModel) -> SysNotice:
         """
-        新增通知公告数据库操作
+        新增通知公告数据库操作。
 
         :param db: orm对象
         :param notice: 通知公告对象
-        :return:
+        :return: 新增的通知公告记录
         """
         db_notice = SysNotice(**notice.model_dump(exclude={'create_time', 'update_time'}))
         db.add(db_notice)
@@ -264,13 +262,12 @@ class NoticeDao:
         return db_notice
 
     @classmethod
-    async def edit_notice_dao(cls, db: AsyncSession, notice: dict) -> None:
+    async def edit_notice_dao(cls, db: AsyncSession, notice: dict[str, Any]) -> None:
         """
-        编辑通知公告数据库操作
+        编辑通知公告数据库操作。
 
         :param db: orm对象
         :param notice: 需要更新的通知公告字典
-        :return:
         """
         await db.execute(
             update(SysNotice),
@@ -280,10 +277,9 @@ class NoticeDao:
     @classmethod
     async def delete_notice_dao(cls, db: AsyncSession, notice: NoticeModel) -> None:
         """
-        删除通知公告数据库操作
+        删除通知公告数据库操作。
 
         :param db: orm对象
         :param notice: 通知公告对象
-        :return:
         """
         await db.execute(delete(SysNotice).where(SysNotice.notice_id.in_([notice.notice_id])))

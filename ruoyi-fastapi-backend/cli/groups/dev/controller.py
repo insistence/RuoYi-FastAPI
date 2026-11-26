@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -12,12 +13,13 @@ class DevCommandController:
     """
     开发命令控制器。
 
-    该控制器负责组织 `dev` 命令组的上下文准备、runtime 调用、
+    该控制器负责组织 ``dev`` 命令组的上下文准备、runtime 调用、
     payload 注入，以及基于输出格式选择 presenter 或直接返回 JSON。
 
-    :param context_factory: CLI 上下文工厂
-    :param execution_service: CLI 执行服务
-    :param presenter: 开发命令文本渲染器
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar presenter: 开发命令文本渲染器
+    :ivar runtime_service: 开发运行时服务
     """
 
     def __init__(
@@ -35,7 +37,6 @@ class DevCommandController:
         :param execution_service: CLI 执行服务
         :param presenter: 开发命令文本渲染器
         :param runtime_service: 开发运行时服务
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
@@ -46,14 +47,14 @@ class DevCommandController:
         self,
         targets: list[str] | None,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         check_only: bool,
         fix: bool,
         unsafe_fixes: bool,
     ) -> None:
         """
-        执行 Ruff 格式化与静态检查。
+        执行 Ruff 格式化、静态检查、文档规范和 ty 类型检查。
 
         :param targets: 待检查路径列表
         :param env: 当前命令运行环境
@@ -61,7 +62,6 @@ class DevCommandController:
         :param check_only: 是否仅检查不写回
         :param fix: 是否自动修复可修复问题
         :param unsafe_fixes: 是否允许不安全修复
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.runtime_service.run_lint(targets, check_only=check_only, fix=fix, unsafe_fixes=unsafe_fixes)
@@ -76,7 +76,7 @@ class DevCommandController:
         self,
         targets: list[str] | None,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         keyword: str,
         maxfail: int,
@@ -91,7 +91,6 @@ class DevCommandController:
         :param keyword: pytest 关键字过滤表达式
         :param maxfail: 最大失败数
         :param quiet: 是否启用简洁输出
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.runtime_service.run_tests(targets, keyword=keyword, maxfail=maxfail, quiet=quiet)

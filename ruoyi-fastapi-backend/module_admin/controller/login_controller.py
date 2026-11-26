@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Annotated
 
 from fastapi import Depends, Request, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.annotation.cache_annotation import ApiCache, ApiCacheEvict
@@ -15,6 +16,7 @@ from common.enums import BusinessType, RedisInitKeyConfig
 from common.router import APIRouterPro
 from common.vo import CrudResponseModel, DataResponseModel, DynamicResponseModel, ResponseBaseModel
 from config.env import AppConfig, JwtConfig
+from exceptions.exception import AuthException
 from module_admin.entity.vo.login_vo import (
     LoginToken,
     RouterModel,
@@ -52,12 +54,12 @@ async def login(
         await request.app.state.redis.get(f'{RedisInitKeyConfig.SYS_CONFIG.key}:sys.account.captchaEnabled') == 'true'
     )
     user = UserLogin(
-        userName=form_data.username,
+        user_name=form_data.username,
         password=form_data.password,
         code=form_data.code,
         uuid=form_data.uuid,
-        loginInfo=form_data.login_info,
-        captchaEnabled=captcha_enabled,
+        login_info=form_data.login_info,
+        captcha_enabled=captcha_enabled,
     )
     result = await LoginService.authenticate_user(request, query_db, user)
     access_token_expires = timedelta(minutes=JwtConfig.jwt_expire_minutes)
@@ -85,16 +87,14 @@ async def login(
             access_token,
             ex=timedelta(minutes=JwtConfig.jwt_redis_expire_minutes),
         )
-    login_update = EditUserModel(userId=result[0].user_id, loginDate=TimezoneUtil.utc_now(), type='status')
+    login_update = EditUserModel(user_id=result[0].user_id, login_date=TimezoneUtil.utc_now(), type='status')
     if form_data.locale is not None:
         login_update.locale = form_data.locale
     await UserService.edit_user_services(query_db, login_update)
     logger.info('登录成功')
     # 判断请求是否来自于api文档，如果是返回指定格式的结果，用于修复api文档认证成功后token显示undefined的bug
-    request_from_swagger = request.headers.get('referer').endswith('docs') if request.headers.get('referer') else False
-    request_from_redoc = request.headers.get('referer').endswith('redoc') if request.headers.get('referer') else False
-    if request_from_swagger or request_from_redoc:
-        return {'access_token': access_token, 'token_type': 'Bearer'}
+    if request.headers.get('referer', '').endswith(('docs', 'redoc')):
+        return JSONResponse({'access_token': access_token, 'token_type': 'Bearer'})
     return ResponseUtil.success(msg_key='auth.signedIn', dict_content={'token': access_token})
 
 
@@ -168,36 +168,6 @@ async def register_user(
     return ResponseUtil.success(data=user_register_result, msg=user_register_result.message)
 
 
-# @login_controller.post("/getSmsCode", response_model=SmsCode)
-# async def get_sms_code(request: Request, user: ResetUserModel, query_db: AsyncSession = DBSessionDependency()):
-#     try:
-#         sms_result = await LoginService.get_sms_code_services(request, query_db, user)
-#         if sms_result.is_success:
-#             logger.info('获取成功')
-#             return ResponseUtil.success(data=sms_result)
-#         else:
-#             logger.warning(sms_result.message)
-#             return ResponseUtil.failure(msg=sms_result.message)
-#     except Exception as e:
-#         logger.exception(e)
-#         return ResponseUtil.error(msg=str(e))
-#
-#
-# @login_controller.post("/forgetPwd", response_model=CrudResponseModel)
-# async def forget_user_pwd(request: Request, forget_user: ResetUserModel, query_db: AsyncSession = DBSessionDependency()):
-#     try:
-#         forget_user_result = await LoginService.forget_user_services(request, query_db, forget_user)
-#         if forget_user_result.is_success:
-#             logger.info(forget_user_result.message)
-#             return ResponseUtil.success(data=forget_user_result, msg=forget_user_result.message)
-#         else:
-#             logger.warning(forget_user_result.message)
-#             return ResponseUtil.failure(msg=forget_user_result.message)
-#     except Exception as e:
-#         logger.exception(e)
-#         return ResponseUtil.error(msg=str(e))
-
-
 @login_controller.post(
     '/logout',
     summary='退出登录接口',
@@ -206,12 +176,13 @@ async def register_user(
 )
 @ApiCacheEvict(namespaces=ApiGroup.LOGOUT_MUTATION)
 async def logout(request: Request, token: Annotated[str | None, Depends(oauth2_scheme)]) -> Response:
+    if not token:
+        raise AuthException(data='', message='用户未登录，请先完成登录', msg_key='auth.signInRequired')
     payload = JwtUtil.decode(token, options={'verify_exp': False})
-    if AppConfig.app_same_time_login:
-        token_id: str = payload.get('session_id')
-    else:
-        token_id: str = payload.get('user_id')
-    await LoginService.logout_services(request, token_id, token)
+    token_id = payload.get('session_id' if AppConfig.app_same_time_login else 'user_id')
+    if not isinstance(token_id, (str, int)) or not token_id:
+        raise AuthException(data='', message='用户token不合法', msg_key='auth.invalidToken')
+    await LoginService.logout_services(request, str(token_id), token)
     logger.info('退出成功')
 
     return ResponseUtil.success(msg_key='auth.signedOut')

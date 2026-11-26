@@ -43,7 +43,7 @@ def test_current_user_cache_environment_configuration(monkeypatch: pytest.Monkey
 def test_environment_templates_include_current_user_cache_settings(environment: str) -> None:
     """各部署环境明确提供缓存开关及默认硬过期时间。"""
     environment_file = Path(__file__).resolve().parents[2] / f'.env.{environment}'
-    content = environment_file.read_text()
+    content = environment_file.read_text(encoding='utf-8')
 
     assert 'APP_CURRENT_USER_CACHE_ENABLED = true' in content
     assert 'APP_CURRENT_USER_CACHE_TTL_SECONDS = 5' in content

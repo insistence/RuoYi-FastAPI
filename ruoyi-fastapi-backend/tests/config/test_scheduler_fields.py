@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from sqlalchemy import Integer, MetaData, select, update
 from sqlalchemy.exc import IntegrityError
 
+from common.vo import PageModel
 from config.scheduler.manager import SchedulerManager
 from exceptions.exception import ServiceException
 from module_admin.dao.job_log_dao import JobLogDao
@@ -39,9 +40,10 @@ from utils.time_util import TimezoneUtil
         {'concurrent': '0'},
     ],
 )
-def test_job_fields_reject_ambiguous_or_invalid_configuration(change: dict) -> None:
+def test_job_fields_reject_ambiguous_or_invalid_configuration(change: dict[str, object]) -> None:
+    """任务字段拒绝有歧义或无效的配置。"""
     with pytest.raises(ValidationError):
-        JobModel(**change)
+        JobModel.model_validate(change)
 
 
 @pytest.mark.asyncio
@@ -61,6 +63,7 @@ async def test_real_scheduler_applies_misfire_window_and_backlog_policy(
     expected_calls: int,
     expected_events: int,
 ) -> None:
+    """真实调度器执行错过窗口和积压处理策略。"""
     await runtime.save(
         job_info(cronExpression='0 0 0 * * ?', timeZone='UTC', misfireGraceTime=grace, coalesce=coalesce)
     )
@@ -75,6 +78,11 @@ async def test_real_scheduler_applies_misfire_window_and_backlog_policy(
     complete = asyncio.Event()
 
     def collect(event: object) -> None:
+        """
+        收集测试事件并通知等待方。
+
+        :param event: 待处理的事件
+        """
         events.append(event)
         if len(events) == expected_events:
             complete.set()
@@ -90,14 +98,17 @@ async def test_real_scheduler_applies_misfire_window_and_backlog_policy(
 
 @pytest.mark.asyncio
 async def test_json_parameters_and_unlimited_delay_survive_database_roundtrip(runtime: Runtime) -> None:
+    """JSON 参数及无限延迟配置可经数据库原样读写。"""
     value = {'text': 'x' * 600, 'flags': [True, None, 3.25], 'name': 'tenant,a'}
     saved = await runtime.save(job_info(jobArgs=[value], misfireGraceTime=None))
     async with runtime.sessions() as db:
+        assert saved.job_id is not None
         result = await JobService.job_detail_services(db, saved.job_id)
     assert result.job_args == [value]
     assert result.misfire_grace_time is None
     async with runtime.sessions() as db:
         submitted = await JobService.execute_job_once_services(db, saved)
+        assert isinstance(submitted.result, dict)
     runtime.scheduler.resume()
     await runtime.wait_execution(submitted.result['executionId'], {'success'})
     assert [value] == CALLS
@@ -105,20 +116,21 @@ async def test_json_parameters_and_unlimited_delay_survive_database_roundtrip(ru
 
 @pytest.mark.asyncio
 async def test_group_changes_preserve_storage_and_schedule_progress(runtime: Runtime, tmp_path: Path) -> None:
+    """更改任务组时保留存储和调度进度。"""
     runtime.scheduler.add_jobstore(SQLAlchemyJobStore(url=f'sqlite:///{tmp_path / "jobstore.db"}'), 'sqlalchemy')
     await runtime.save(job_info(jobGroup='报表', jobStore='sqlalchemy'))
     await SchedulerManager._sync_jobs_from_database()
     previous_time = TimezoneUtil.utc_now() - timedelta(minutes=5)
     runtime.scheduler.modify_job('42', jobstore='sqlalchemy', next_run_time=previous_time)
     async with runtime.sessions() as db:
-        await JobService.edit_job_services(db, EditJobModel(jobId=42, jobGroup='财务', coalesce=True))
+        await JobService.edit_job_services(db, EditJobModel(job_id=42, job_group='财务', coalesce=True))
     current = runtime.scheduler.get_job('42', jobstore='sqlalchemy')
     assert current.next_run_time == previous_time
     assert current.trigger.task_job_group == '财务'
     assert pickle.loads(pickle.dumps(current.trigger)).task_job_group == '财务'
     assert runtime.scheduler.get_job('42', jobstore='default') is None
     async with runtime.sessions() as db:
-        await JobService.edit_job_services(db, EditJobModel(jobId=42, jobStore='default'))
+        await JobService.edit_job_services(db, EditJobModel(job_id=42, job_store='default'))
     current = runtime.scheduler.get_job('42', jobstore='default')
     assert current.next_run_time == previous_time
     assert current.trigger.task_job_group == '财务'
@@ -127,17 +139,18 @@ async def test_group_changes_preserve_storage_and_schedule_progress(runtime: Run
 
 @pytest.mark.asyncio
 async def test_id_is_unique_and_name_is_unique_within_business_group(runtime: Runtime) -> None:
+    """任务标识全局唯一，名称在业务组内唯一。"""
     await runtime.save()
-    assert list(SysJob.__table__.primary_key.columns.keys()) == ['job_id']
+    assert list(SysJob.get_table().primary_key.columns.keys()) == ['job_id']
     async with runtime.sessions() as db:
         with pytest.raises(ServiceException) as error:
             await JobService.add_job_services(db, job_info(jobArgs=['different']))
-        assert '已存在' in error.value.message
+        assert error.value.message is not None and '已存在' in error.value.message
     async with runtime.sessions() as db:
         db.add(
             SysJob(
                 **job_info(jobName='another', jobGroup='another').model_dump(
-                    include=set(SysJob.__table__.columns.keys())
+                    include=set(SysJob.get_table().columns.keys())
                 )
             )
         )
@@ -146,6 +159,7 @@ async def test_id_is_unique_and_name_is_unique_within_business_group(runtime: Ru
         await db.rollback()
     async with runtime.sessions() as db:
         result = await JobService.add_job_services(db, job_info(jobGroup='another'))
+        assert isinstance(result.result, dict)
     assert result.result['saved']
 
 
@@ -154,6 +168,7 @@ async def test_actual_schedule_is_observed_from_leader_and_separate_from_preview
     runtime: Runtime,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """从主节点读取实际调度并与预览区分。"""
     await runtime.save()
     await SchedulerManager._sync_jobs_from_database()
     actual = TimezoneUtil.utc_now() + timedelta(minutes=2)
@@ -164,7 +179,7 @@ async def test_actual_schedule_is_observed_from_leader_and_separate_from_preview
     async with runtime.sessions() as db:
         result = await JobService.job_detail_services(db, 42)
     assert result.next_run_time == actual
-    assert result.cron_next_time > actual
+    assert result.cron_next_time is not None and result.cron_next_time > actual
     async with runtime.sessions() as db:
         await db.execute(
             update(SysJobSync).values(schedule_observed_time=TimezoneUtil.utc_now() - timedelta(minutes=1))
@@ -175,7 +190,7 @@ async def test_actual_schedule_is_observed_from_leader_and_separate_from_preview
     assert stale.cron_next_time is not None
     monkeypatch.setattr(SchedulerManager, '_is_leader', True)
     async with runtime.sessions() as db:
-        await JobService.edit_job_services(db, EditJobModel(jobId=42, status='1', type='status'))
+        await JobService.edit_job_services(db, EditJobModel(job_id=42, status='1', type='status'))
         disabled = await JobService.job_detail_services(db, 42)
     assert disabled.next_run_time is None
     assert disabled.cron_next_time is not None
@@ -186,14 +201,20 @@ async def test_log_ids_keep_history_queryable_after_rename_and_delete(
     runtime: Runtime,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """重命名或删除任务后仍可按日志标识查询历史。"""
     metadata = MetaData()
-    logs = SysJobLog.__table__.to_metadata(metadata)
+    logs = SysJobLog.get_table().to_metadata(metadata)
     logs.c.job_log_id.type = Integer()
     metadata.create_all(runtime.engine)
     recorded = []
     logged = asyncio.Event()
 
     def record(log: object) -> None:
+        """
+        收集测试产生的事件或结果。
+
+        :param log: 记录操作过程的日志对象
+        """
         recorded.append(log)
         logged.set()
 
@@ -202,6 +223,7 @@ async def test_log_ids_keep_history_queryable_after_rename_and_delete(
     job = await runtime.save(job_info(jobGroup='业务分组', jobArgs=['tenant,a']))
     async with runtime.sessions() as db:
         submitted = await JobService.execute_job_once_services(db, job)
+        assert isinstance(submitted.result, dict)
     runtime.scheduler.resume()
     await runtime.wait_execution(submitted.result['executionId'], {'success'})
     # 执行结果先提交、事件随后分发，等待事件循环完成日志通知。
@@ -216,13 +238,15 @@ async def test_log_ids_keep_history_queryable_after_rename_and_delete(
     async with runtime.sessions() as db:
         db.add(SysJobLog(**log.model_dump(exclude={'job_log_id'})))
         await db.commit()
-        await JobService.edit_job_services(db, EditJobModel(jobId=42, jobName='改名后'))
-        await JobService.delete_job_services(db, DeleteJobModel(jobIds='42'))
-        result = await JobLogDao.get_job_log_list(db, JobLogPageQueryModel(jobId=42), is_page=True)
+        await JobService.edit_job_services(db, EditJobModel(job_id=42, job_name='改名后'))
+        await JobService.delete_job_services(db, DeleteJobModel(job_ids='42'))
+        result = await JobLogDao.get_job_log_list(db, JobLogPageQueryModel(job_id=42), is_page=True)
+        assert isinstance(result, PageModel)
         assert result.total == 1
         assert result.rows[0]['jobName'] == job.job_name
         by_execution = await JobLogDao.get_job_log_list(
-            db, JobLogPageQueryModel(executionId=log.execution_id), is_page=True
+            db, JobLogPageQueryModel(execution_id=log.execution_id), is_page=True
         )
+        assert isinstance(by_execution, PageModel)
         assert by_execution.rows[0]['jobId'] == job.job_id
         assert (await db.scalars(select(SysJob))).first() is None

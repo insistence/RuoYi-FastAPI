@@ -5,7 +5,7 @@ class ConfigCommandPresenter:
     """
     参数配置命令文本渲染器。
 
-    该渲染器负责将 `config` 命令组产生的结构化 payload 转换为稳定的文本摘要，
+    该渲染器负责将 ``config`` 命令组产生的结构化 payload 转换为稳定的文本摘要，
     同时保持 JSON 输出仍由控制器直接返回，不在此处做契约变形。
     """
 
@@ -139,7 +139,7 @@ class ConfigCommandPresenter:
         ]
 
     @staticmethod
-    def _build_config_detail_section(title: str, config_item: dict[str, object] | None) -> list[str]:
+    def _build_config_detail_section(title: str, config_item: object) -> list[str]:
         """
         构建单个配置来源的详情文本段落。
 

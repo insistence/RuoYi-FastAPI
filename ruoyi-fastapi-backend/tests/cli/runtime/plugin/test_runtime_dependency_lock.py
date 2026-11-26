@@ -10,7 +10,11 @@ EXPECTED_LOCK_ENTRY_COUNT = 2
 
 
 def write_demo_dependency_manifest(backend_root: Path) -> None:
-    """为 demo 插件补充外部依赖声明。"""
+    """
+    为 demo 插件补充外部依赖声明。
+
+    :param backend_root: 后端项目的根目录
+    """
     manifest_path = backend_root / 'plugins' / 'demo' / 'plugin.yaml'
     manifest = yaml.safe_load(manifest_path.read_text(encoding='utf-8'))
     manifest['dependencies'] = {
@@ -36,6 +40,7 @@ def test_plugin_runtime_lock_dependencies_dry_run_returns_lockfile_template(tmp_
     assert payload['outputFile'] == str(backend_root / 'plugins' / 'demo' / 'plugin.lock.yaml')
     assert payload['written'] is False
     assert payload['entryCount'] == EXPECTED_LOCK_ENTRY_COUNT
+    assert isinstance(payload['warnings'], list)
     assert 'resolvedVersion' in payload['warnings'][0]
     assert not (backend_root / 'plugins' / 'demo' / 'plugin.lock.yaml').exists()
 
@@ -83,6 +88,7 @@ def test_plugin_runtime_lock_dependencies_rejects_existing_file_without_overwrit
     assert payload['ok'] is False
     assert payload['written'] is False
     assert payload['outputFile'] == str(lockfile_path)
+    assert isinstance(payload['message'], str)
     assert '已存在' in payload['message']
     assert lockfile_path.read_text(encoding='utf-8') == 'plugin: existing\n'
 
@@ -168,6 +174,7 @@ def test_plugin_runtime_lock_dependencies_warns_when_offline_artifact_missing(tm
 
     assert payload['ok'] is True
     assert payload['artifactCount'] == 0
+    assert isinstance(payload['warnings'], list)
     assert any('未找到离线制品：python openai' in warning for warning in payload['warnings'])
     assert any('未找到离线制品：npm dayjs' in warning for warning in payload['warnings'])
     lockfile = yaml.safe_load(payload['lockfile'])

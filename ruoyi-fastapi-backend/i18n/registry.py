@@ -1,13 +1,29 @@
 import re
 from pathlib import Path
+from typing import NotRequired, TypedDict
 
 from config.env import I18nConfig
+
+
+class _LocaleDefinition(TypedDict):
+    """
+    单个语言标签的启用状态、别名和回退顺序。
+
+    :ivar enabled: 当前语言是否启用
+    :ivar aliases: 可匹配此语言的其他标签
+    :ivar fallback: 译文缺失时依次尝试的语言标签
+    """
+
+    enabled: NotRequired[bool]
+    aliases: tuple[str, ...]
+    fallback: tuple[str, ...]
+
 
 MAX_LOCALE_LENGTH = 63
 _SCRIPT_SUBTAG_LENGTH = 4
 _REGION_SUBTAG_LENGTH = 2
 CATALOG_ROOT = Path(__file__).parent / 'catalogs'
-LOCALES = {
+LOCALES: dict[str, _LocaleDefinition] = {
     'zh-CN': {'enabled': True, 'aliases': ('zh', 'zh-Hans'), 'fallback': ()},
     'en-US': {'enabled': True, 'aliases': ('en',), 'fallback': ('zh-CN',)},
 }
@@ -25,14 +41,12 @@ _TAG = re.compile(
 
 
 class LocaleRegistry:
-    """
-    语言注册与规范化工具类
-    """
+    """语言注册与规范化工具类。"""
 
     @staticmethod
     def enabled_locales() -> tuple[str, ...]:
         """
-        获取协商和编译时使用的已启用语言
+        获取协商和编译时使用的已启用语言。
 
         :return: 按注册顺序排列的语言标签
         :raises ValueError: 默认语言或基准语言未注册或已停用
@@ -47,11 +61,12 @@ class LocaleRegistry:
     @staticmethod
     def normalize_locale(value: str, *, preference: bool = False) -> str:
         """
-        校验并规范化语言标识
+        校验并规范化语言标识。
 
         :param value: 原始语言标识，兼容下划线分隔形式
         :param preference: 是否允许表示跟随设备的 auto 偏好
         :return: 规范化后的语言标识或 auto
+        :raises ValueError: 语言标记无效或包含重复扩展
         """
         if not isinstance(value, str) or not value or len(value) > MAX_LOCALE_LENGTH:
             raise ValueError('Invalid locale')
@@ -84,7 +99,7 @@ class LocaleRegistry:
     @classmethod
     def match_locale(cls, value: str) -> str | None:
         """
-        按语言标识或显式别名匹配已注册语言
+        按语言标识或显式别名匹配已注册语言。
 
         :param value: 待匹配的语言标识
         :return: 已注册的语言标识，无法匹配时返回 None
@@ -105,14 +120,21 @@ class LocaleRegistry:
     @staticmethod
     def fallback_chain(code: str) -> tuple[str, ...]:
         """
-        生成去重后的语言回退链并校验循环配置
+        生成去重后的语言回退链并校验循环配置。
 
         :param code: 已注册的语言标识
         :return: 包含基准语言的回退链
         """
-        result = []
+        result: list[str] = []
 
         def visit(item: str, stack: tuple[str, ...] = ()) -> None:
+            """
+            遍历已启用语言的回退配置并去重。
+
+            :param item: 当前要处理的条目
+            :param stack: 当前递归路径上已访问的节点
+            :raises ValueError: 语言回退链含有未知语言或循环
+            """
             if item in stack or item not in LOCALES:
                 raise ValueError('Invalid locale fallback configuration')
             if item not in result and LOCALES[item].get('enabled', True):

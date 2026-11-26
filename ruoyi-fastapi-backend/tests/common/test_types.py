@@ -1,7 +1,7 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta, timezone
 
 import pytest
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 from sqlalchemy.dialects import mysql, postgresql, sqlite
 from sqlalchemy.engine import Dialect
 
@@ -9,7 +9,9 @@ from common.types import ApiUtcDateTime, BusinessDate, BusinessTime, DbUtcDateTi
 
 
 class TimestampModel(BaseModel):
-    occurred_at: ApiUtcDateTime
+    """校验 API 的 UTC 时间字段。"""
+
+    occurred_at: ApiUtcDateTime = Field(description='事件发生的时刻')
 
 
 class TestApiUtcDateTime:
@@ -24,10 +26,11 @@ class TestApiUtcDateTime:
         ],
     )
     def test_aware_inputs_keep_the_same_instant(self, value: object) -> None:
-        model = TimestampModel(occurred_at=value)
+        """带时区的输入保留同一时刻。"""
+        model = TimestampModel.model_validate({'occurred_at': value})
 
-        assert model.occurred_at == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=timezone.utc)
-        assert model.occurred_at.tzinfo is timezone.utc
+        assert model.occurred_at == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=UTC)
+        assert model.occurred_at.tzinfo is UTC
         assert model.model_dump(mode='json')['occurred_at'] == '2026-08-28T02:30:00.123Z'
         assert model.model_dump_json() == '{"occurred_at":"2026-08-28T02:30:00.123Z"}'
 
@@ -46,8 +49,9 @@ class TestApiUtcDateTime:
         ],
     )
     def test_datetime_requires_a_complete_valid_rfc3339_instant(self, value: object) -> None:
+        """日期时间必须是完整有效的 RFC 3339 时刻。"""
         with pytest.raises(ValidationError, match='RFC 3339'):
-            TimestampModel(occurred_at=value)
+            TimestampModel.model_validate({'occurred_at': value})
 
 
 class TestDbUtcDateTime:
@@ -55,6 +59,7 @@ class TestDbUtcDateTime:
 
     @pytest.mark.parametrize('dialect', [mysql.dialect(), postgresql.dialect(), sqlite.dialect()])
     def test_null_values_round_trip(self, dialect: Dialect) -> None:
+        """空值可原样读写。"""
         column_type = DbUtcDateTime()
 
         assert column_type.process_bind_param(None, dialect) is None
@@ -69,26 +74,31 @@ class TestDbUtcDateTime:
         ],
     )
     def test_column_uses_the_database_time_representation(self, dialect: Dialect, expected: str) -> None:
+        """列使用数据库的时间表示。"""
         assert DbUtcDateTime().compile(dialect=dialect) == expected
 
     @pytest.mark.parametrize(
         ('dialect', 'stored_timezone'),
-        [(mysql.dialect(), None), (postgresql.dialect(), timezone.utc), (sqlite.dialect(), None)],
+        [(mysql.dialect(), None), (postgresql.dialect(), UTC), (sqlite.dialect(), None)],
     )
     def test_database_roundtrip_preserves_utc_and_millisecond_precision(
         self, dialect: Dialect, stored_timezone: timezone | None
     ) -> None:
+        """数据库读写保留 UTC 和毫秒精度。"""
         column_type = DbUtcDateTime()
         value = datetime(2026, 8, 28, 10, 30, 0, 123456, tzinfo=timezone(timedelta(hours=8)))
         stored = column_type.process_bind_param(value, dialect)
 
+        assert stored is not None
         assert stored == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=stored_timezone)
         assert stored.tzinfo is stored_timezone
         restored = column_type.process_result_value(stored, dialect)
-        assert restored == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=timezone.utc)
-        assert restored.tzinfo is timezone.utc
+        assert restored is not None
+        assert restored == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=UTC)
+        assert restored.tzinfo is UTC
 
     def test_rejects_naive_values(self) -> None:
+        """拒绝未指定时区的时间值。"""
         with pytest.raises(ValueError, match='只接受携带时区信息'):
             DbUtcDateTime().process_bind_param(datetime(2026, 8, 28, 10, 30), sqlite.dialect())
 
@@ -98,6 +108,7 @@ class TestBusinessDate:
 
     @pytest.mark.parametrize('value', ['2000-02-29', date(2000, 2, 29)])
     def test_valid_date_keeps_its_calendar_value(self, value: object) -> None:
+        """有效日期保留原日历值。"""
         adapter = TypeAdapter(BusinessDate)
         result = adapter.validate_python(value)
 
@@ -111,11 +122,12 @@ class TestBusinessDate:
             '2026-02-29',
             '20000229',
             '2000-02-29T00:00:00Z',
-            datetime(2000, 2, 29, tzinfo=timezone.utc),
+            datetime(2000, 2, 29, tzinfo=UTC),
             951782400,
         ],
     )
     def test_invalid_dates_and_instants_are_rejected(self, value: object) -> None:
+        """拒绝无效日期和时刻。"""
         with pytest.raises(ValidationError, match='YYYY-MM-DD'):
             TypeAdapter(BusinessDate).validate_python(value)
 
@@ -125,6 +137,7 @@ class TestBusinessTime:
 
     @pytest.mark.parametrize('value', ['09:15:00.123456', time(9, 15, 0, 123456)])
     def test_valid_time_keeps_fractional_seconds(self, value: object) -> None:
+        """有效时间保留小数秒。"""
         adapter = TypeAdapter(BusinessTime)
         result = adapter.validate_python(value)
 
@@ -132,9 +145,8 @@ class TestBusinessTime:
         assert result.tzinfo is None
         assert adapter.dump_json(result) == b'"09:15:00.123456"'
 
-    @pytest.mark.parametrize(
-        'value', ['09:15', '24:00:00', '36:00:00', '09:15:00Z', time(9, tzinfo=timezone.utc), 3600]
-    )
+    @pytest.mark.parametrize('value', ['09:15', '24:00:00', '36:00:00', '09:15:00Z', time(9, tzinfo=UTC), 3600])
     def test_incomplete_times_offsets_and_durations_are_rejected(self, value: object) -> None:
+        """拒绝不完整的时间、偏移和时长。"""
         with pytest.raises(ValidationError, match='一天内时间'):
             TypeAdapter(BusinessTime).validate_python(value)

@@ -12,6 +12,12 @@ from module_identity.service.runtime_service import OidcRuntimeService
 class OidcCorsMiddleware:
     """
     为 OIDC 协议和认证交互接口提供独立的 CORS 边界。
+
+    :cvar _OIDC_PREFIXES: 适用 OIDC 跨域策略的路径前缀
+    :cvar _INTERACTION_PREFIX: 用户交互端点的路径前缀
+    :cvar _NO_CORS_PATHS: 不接受跨域访问的端点路径
+    :cvar _PUBLIC_METADATA_PATHS: 公开协议元数据端点的路径
+    :ivar app: FastAPI 对象
     """
 
     _OIDC_PREFIXES = ('/oauth2/', '/.well-known/')
@@ -24,6 +30,11 @@ class OidcCorsMiddleware:
     )
 
     def __init__(self, app: ASGIApp) -> None:
+        """
+        绑定接收 OIDC 跨域请求的下游应用。
+
+        :param app: FastAPI 对象
+        """
         self.app = app
 
     @classmethod
@@ -158,7 +169,6 @@ class OidcCorsMiddleware:
         :param scope: 当前 ASGI 请求作用域
         :param receive: 接收 ASGI 消息的可调用对象
         :param send: 发送 ASGI 消息的可调用对象
-        :return: None
         """
         # 注册层已经按 OIDC_ENABLED 控制是否挂载；这里保留运行时保护，
         # 避免测试或动态配置场景下开关关闭后仍处理协议请求。
@@ -225,7 +235,6 @@ class OidcCorsMiddleware:
             在下游响应开始消息中应用 OIDC CORS 策略。
 
             :param message: 下游 ASGI 消息
-            :return: None
             """
             if message.get('type') != 'http.response.start':
                 await send(message)

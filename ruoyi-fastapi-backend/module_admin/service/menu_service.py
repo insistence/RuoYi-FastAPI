@@ -18,16 +18,14 @@ from utils.string_util import StringUtil
 
 
 class MenuService:
-    """
-    菜单管理模块服务层
-    """
+    """菜单管理模块服务层。"""
 
     @classmethod
     async def get_menu_tree_services(
-        cls, query_db: AsyncSession, current_user: CurrentUserModel | None = None
+        cls, query_db: AsyncSession, current_user: CurrentUserModel
     ) -> list[dict[str, Any]]:
         """
-        获取菜单树信息service
+        获取菜单树信息service。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -43,10 +41,10 @@ class MenuService:
 
     @classmethod
     async def get_role_menu_tree_services(
-        cls, query_db: AsyncSession, role_id: int, current_user: CurrentUserModel | None = None
+        cls, query_db: AsyncSession, role_id: int, current_user: CurrentUserModel
     ) -> RoleMenuQueryModel:
         """
-        根据角色id获取菜单树信息service
+        根据角色id获取菜单树信息service。
 
         :param query_db: orm对象
         :param role_id: 角色id
@@ -58,18 +56,18 @@ class MenuService:
         )
         menu_tree_result = cls.list_to_tree(menu_list_result)
         role = await RoleDao.get_role_detail_by_id(query_db, role_id)
-        role_menu_list = await RoleDao.get_role_menu_dao(query_db, role)
+        role_menu_list = await RoleDao.get_role_menu_dao(query_db, role) if role is not None else []
         checked_keys = [row.menu_id for row in role_menu_list]
-        result = RoleMenuQueryModel(menus=menu_tree_result, checkedKeys=checked_keys)
+        result = RoleMenuQueryModel(menus=menu_tree_result, checked_keys=checked_keys)
 
         return result
 
     @classmethod
     async def get_menu_list_services(
-        cls, query_db: AsyncSession, page_object: MenuQueryModel, current_user: CurrentUserModel | None = None
+        cls, query_db: AsyncSession, page_object: MenuQueryModel, current_user: CurrentUserModel
     ) -> list[dict[str, Any]]:
         """
-        获取菜单列表信息service
+        获取菜单列表信息service。
 
         :param query_db: orm对象
         :param page_object: 分页查询参数对象
@@ -87,14 +85,14 @@ class MenuService:
     @classmethod
     async def check_menu_name_unique_services(cls, query_db: AsyncSession, page_object: MenuModel) -> bool:
         """
-        校验菜单名称是否唯一service
+        校验菜单名称是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 菜单对象
         :return: 校验结果
         """
         menu_id = -1 if page_object.menu_id is None else page_object.menu_id
-        menu = await MenuDao.get_menu_detail_by_info(query_db, MenuModel(menuName=page_object.menu_name))
+        menu = await MenuDao.get_menu_detail_by_info(query_db, MenuModel(menu_name=page_object.menu_name))
         if menu and menu.menu_id != menu_id:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
@@ -102,7 +100,7 @@ class MenuService:
     @classmethod
     async def check_route_config_unique_services(cls, query_db: AsyncSession, page_object: MenuModel) -> bool:
         """
-        校验路由名称和地址是否唯一service
+        校验路由名称和地址是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 菜单对象
@@ -139,11 +137,13 @@ class MenuService:
     @classmethod
     async def add_menu_services(cls, query_db: AsyncSession, page_object: MenuModel) -> CrudResponseModel:
         """
-        新增菜单信息service
+        新增菜单信息service。
 
         :param query_db: orm对象
         :param page_object: 新增菜单对象
         :return: 新增菜单校验结果
+        :raises ServiceException: 菜单名称或路由地址冲突，或外链缺少有效协议
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if not await cls.check_menu_name_unique_services(query_db, page_object):
             raise ServiceException(
@@ -174,11 +174,13 @@ class MenuService:
     @classmethod
     async def edit_menu_services(cls, query_db: AsyncSession, page_object: MenuModel) -> CrudResponseModel:
         """
-        编辑菜单信息service
+        编辑菜单信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑菜单对象
         :return: 编辑菜单校验结果
+        :raises ServiceException: 上级菜单存在循环关系；上级菜单不存在；菜单不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         menu_info = await cls.menu_detail_services(query_db, page_object.menu_id)
         if menu_info.menu_id:
@@ -209,6 +211,8 @@ class MenuService:
                 if parent_id in visited_ids:
                     raise ServiceException(message='上级菜单存在循环关系', msg_key='menu.parentCycle')
                 visited_ids.add(parent_id)
+                if parent_id is None:
+                    raise ServiceException(message='上级菜单不存在', msg_key='menu.parentNotFound')
                 parent_menu = await MenuDao.get_menu_detail_by_id(query_db, parent_id)
                 if not parent_menu:
                     raise ServiceException(message='上级菜单不存在', msg_key='menu.parentNotFound')
@@ -237,11 +241,12 @@ class MenuService:
         page_object: MenuSortModel,
     ) -> CrudResponseModel:
         """
-        批量保存菜单显示顺序
+        批量保存菜单显示顺序。
 
         :param query_db: orm对象
         :param page_object: 菜单排序参数
         :return: 保存结果
+        :raises ServiceException: 保存排序异常，请联系管理员
         """
         menu_sort_list = cls.parse_menu_sort_items(page_object)
         try:
@@ -255,10 +260,11 @@ class MenuService:
     @classmethod
     def parse_menu_sort_items(cls, page_object: MenuSortModel) -> list[dict[str, int]]:
         """
-        解析并校验菜单排序参数
+        解析并校验菜单排序参数。
 
         :param page_object: 菜单排序参数
         :return: 菜单ID与显示顺序列表
+        :raises ServiceException: 菜单排序参数不正确
         """
         menu_id_values = [value.strip() for value in page_object.menu_ids.split(',') if value.strip()]
         order_num_values = [value.strip() for value in page_object.order_nums.split(',') if value.strip()]
@@ -282,11 +288,13 @@ class MenuService:
     @classmethod
     async def delete_menu_services(cls, query_db: AsyncSession, page_object: DeleteMenuModel) -> CrudResponseModel:
         """
-        删除菜单信息service
+        删除菜单信息service。
 
         :param query_db: orm对象
         :param page_object: 删除菜单对象
         :return: 删除菜单校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入菜单id为空
         """
         if page_object.menu_ids:
             menu_id_list = page_object.menu_ids.split(',')
@@ -296,7 +304,7 @@ class MenuService:
                         raise ServiceWarning(message='存在子菜单,不允许删除', msg_key='menu.childrenPreventDelete')
                     if (await MenuDao.check_menu_exist_role_dao(query_db, int(menu_id))) > 0:
                         raise ServiceWarning(message='菜单已分配,不允许删除', msg_key='menu.assigned')
-                    await MenuDao.delete_menu_dao(query_db, MenuModel(menuId=menu_id))
+                    await MenuDao.delete_menu_dao(query_db, MenuModel(menu_id=menu_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
@@ -306,14 +314,16 @@ class MenuService:
             raise ServiceException(message='传入菜单id为空', msg_key='menu.idRequired')
 
     @classmethod
-    async def menu_detail_services(cls, query_db: AsyncSession, menu_id: int) -> MenuModel:
+    async def menu_detail_services(cls, query_db: AsyncSession, menu_id: int | None) -> MenuModel:
         """
-        获取菜单详细信息service
+        获取菜单详细信息service。
 
         :param query_db: orm对象
         :param menu_id: 菜单id
         :return: 菜单id对应的信息
         """
+        if menu_id is None:
+            return MenuModel()
         menu = await MenuDao.get_menu_detail_by_id(query_db, menu_id=menu_id)
         result = MenuModel(**CamelCaseUtil.transform_result(menu)) if menu else MenuModel()
 
@@ -322,19 +332,22 @@ class MenuService:
     @classmethod
     def list_to_tree(cls, permission_list: Sequence[SysMenu]) -> list[MenuTreeModel]:
         """
-        工具方法：根据菜单列表信息生成树形嵌套数据
+        工具方法：根据菜单列表信息生成树形嵌套数据。
 
         :param permission_list: 菜单列表信息
         :return: 菜单树形嵌套数据
         """
         _permission_list = [
             MenuTreeModel(
-                id=item.menu_id, label=item.menu_name, labelI18n=item.menu_name_i18n or {}, parentId=item.parent_id
+                id=item.menu_id,
+                label=item.menu_name,
+                label_i18n=item.menu_name_i18n or {},
+                parent_id=item.parent_id or 0,
             )
             for item in permission_list
         ]
         # 转成id为key的字典
-        mapping: dict[int, MenuTreeModel] = dict(zip([i.id for i in _permission_list], _permission_list, strict=False))
+        mapping = {node.id: node for node in _permission_list}
 
         # 树容器
         container: list[MenuTreeModel] = []
@@ -345,10 +358,8 @@ class MenuService:
             if parent is None:
                 container.append(d)
             else:
-                children: list[MenuTreeModel] = parent.children
-                if not children:
-                    children = []
-                children.append(d)
-                parent.children = children
+                if parent.children is None:
+                    parent.children = []
+                parent.children.append(d)
 
         return container

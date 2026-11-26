@@ -33,6 +33,7 @@ async def test_import_indexes_immutable_object_without_installing_or_selecting(
     assert (await catalog.list_artifacts('artifact_demo'))['artifacts'][0]['digest'] == stored.digest
     async with deployment_sessions() as db:
         record = await db.get(SysPluginArtifact, stored.digest)
+        assert record is not None
         assert record.created_by == 'publisher-test'
         assert record.relative_path == f'artifact_demo/1.0.0/{stored.digest}'
         assert (await db.scalars(select(SysPlugin))).all() == []
@@ -127,8 +128,17 @@ async def test_database_failure_leaves_valid_object_for_idempotent_retry(
     """验证索引写入失败后保留完整对象以支持幂等重试。"""
 
     class FailingDao(PluginReleaseDao):
+        """在制品登记流程中模拟数据访问失败。"""
+
         @classmethod
         async def register_artifact(cls, db: AsyncSession, **kwargs: Any) -> SysPluginArtifact:
+            """
+            在制品登记后注入索引事务故障。
+
+            :param db: 当前操作使用的数据库会话
+            :param kwargs: 传给被调用对象的关键字参数
+            :raises RuntimeError: 模拟制品索引事务失败
+            """
             await super().register_artifact(db, **kwargs)
             raise RuntimeError('index transaction failed')
 

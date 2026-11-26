@@ -18,6 +18,7 @@ def load_script(name: str) -> ModuleType:
     :return: 已执行模块顶层定义的脚本模块
     """
     spec = importlib.util.spec_from_file_location(name, ROOT / '.github/scripts' / f'{name}.py')
+    assert spec is not None and spec.loader is not None, name
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -29,7 +30,11 @@ reports = load_script('check_test_report')
 
 @pytest.fixture
 def configuration() -> dict[str, Any]:
-    """提供前端、nginx 和后端框架一致的 Compose 配置。"""
+    """
+    提供前端、nginx 和后端框架一致的 Compose 配置。
+
+    :return: 前端、nginx 和后端框架一致的 Compose 配置
+    """
     frontend = ROOT / 'ruoyi-fastapi-frontend/vue2/web'
     return {
         'services': {

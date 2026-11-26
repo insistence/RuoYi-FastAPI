@@ -1,6 +1,6 @@
 import json
 from collections.abc import Mapping
-from typing import cast
+from typing import Any, cast
 
 from plugins.core.management.entity.vo.schemas import PluginOperationLogDetailModel, PluginOperationLogModel
 from utils.log_util import logger
@@ -16,7 +16,7 @@ class PluginOperationLogBuilder:
     @staticmethod
     def build_export_row(
         operation_log: PluginOperationLogDetailModel,
-        operation_dict: dict[str, str] | None = None,
+        operation_dict: Mapping[str, str | None] | None = None,
     ) -> dict[str, object]:
         """
         构建插件批量操作审计日志导出行。
@@ -40,7 +40,7 @@ class PluginOperationLogBuilder:
         }
 
     @classmethod
-    def build_detail(cls, operation_log: Mapping[str, object]) -> PluginOperationLogDetailModel:
+    def build_detail(cls, operation_log: Mapping[str, Any]) -> PluginOperationLogDetailModel:
         """
         构建插件批量操作审计日志详情。
 
@@ -48,15 +48,15 @@ class PluginOperationLogBuilder:
         :return: 插件批量操作审计日志详情
         """
         return PluginOperationLogDetailModel(
-            operationId=operation_log.get('operationId'),
+            operation_id=operation_log.get('operationId'),
             operation=operation_log.get('operation') or '-',
-            pluginIds=cls.deserialize_json_list(operation_log.get('pluginIds')),
-            dryRun=operation_log.get('dryRun') == '0',
-            continueOnError=operation_log.get('continueOnError') == '0',
+            plugin_ids=cls.deserialize_json_list(operation_log.get('pluginIds')),
+            dry_run=operation_log.get('dryRun') == '0',
+            continue_on_error=operation_log.get('continueOnError') == '0',
             status=operation_log.get('status') or '-',
             summary=cls.deserialize_json_dict(operation_log.get('summary')),
             result=cls.deserialize_json_dict(operation_log.get('result')),
-            createTime=operation_log.get('createTime'),
+            create_time=operation_log.get('createTime'),
             remark=operation_log.get('remark'),
         )
 
@@ -121,9 +121,9 @@ class PluginOperationLogBuilder:
 
         return PluginOperationLogModel(
             operation=str(payload.get('operation', 'unknown')),
-            pluginIds=json.dumps(plugin_ids, ensure_ascii=False),
-            dryRun='0' if dry_run else '1',
-            continueOnError='0' if continue_on_error else '1',
+            plugin_ids=json.dumps(plugin_ids, ensure_ascii=False),
+            dry_run='0' if dry_run else '1',
+            continue_on_error='0' if continue_on_error else '1',
             status=cls.resolve_status(payload),
             summary=json.dumps(summary, ensure_ascii=False),
             result=json.dumps(dict(payload), ensure_ascii=False, default=str),
@@ -140,8 +140,8 @@ class PluginOperationLogBuilder:
         """
         plan_value = payload.get('plan')
         plan = cast('dict[str, object]', plan_value) if isinstance(plan_value, dict) else {}
-        ordered_plugin_ids = plan.get('orderedPluginIds') if isinstance(plan.get('orderedPluginIds'), list) else []
-        if ordered_plugin_ids:
+        ordered_plugin_ids = plan.get('orderedPluginIds')
+        if isinstance(ordered_plugin_ids, list) and ordered_plugin_ids:
             return [str(plugin_id) for plugin_id in ordered_plugin_ids]
         plugin_id = payload.get('pluginId')
         if plugin_id:

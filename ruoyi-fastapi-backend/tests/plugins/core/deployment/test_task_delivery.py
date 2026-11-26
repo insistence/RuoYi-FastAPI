@@ -24,22 +24,14 @@ async def test_task_signed_delivery_preserves_data_and_exercises_crud(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """
-    在 SQLite 中适配时间类型后执行 DDL，验证真实维护流程及交付包业务接口。
-
-    :param deployment_sessions: 临时宿主表的数据库会话工厂
-    :param deployment_config: 临时制品存储和信任配置
-    :param tmp_path: 本次测试的独立目录
-    :param monkeypatch: pytest 环境隔离工具
-    :return: None
-    """
+    """在 SQLite 中适配时间类型后执行 DDL，验证真实维护流程及交付包业务接口。"""
     import shutil  # noqa: PLC0415
 
     # SQLite 只有 INTEGER PRIMARY KEY 才会生成自增值，宿主生产表使用 BIGINT。
-    sqlite_menu = SysMenu.__table__.to_metadata(MetaData())
+    sqlite_menu = SysMenu.get_table().to_metadata(MetaData())
     sqlite_menu.c.menu_id.type = Integer()
     async with deployment_sessions.kw['bind'].begin() as connection:
-        await connection.run_sync(SysMenu.__table__.drop)
+        await connection.run_sync(SysMenu.get_table().drop)
         await connection.run_sync(sqlite_menu.create)
     # SQLite 不能同时持有生命周期 UoW 与迁移历史的两个写事务；只对宿主维护会话使用自动提交。
     # 业务 CRUD 保留下面传入的常规事务会话，真实数据库 CI 不使用此适配。

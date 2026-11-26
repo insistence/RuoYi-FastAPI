@@ -6,7 +6,7 @@ from typing import Literal
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import MetaData, create_engine, text
+from sqlalchemy import Engine, MetaData, create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,12 @@ from module_admin.entity.do.job_runtime_do import SysJobExecution, SysJobSync
 
 
 def _sql_logs(caplog: pytest.LogCaptureFixture) -> str:
+    """
+    提取 SQLAlchemy 日志供语句断言使用。
+
+    :param caplog: 用于捕获并断言日志记录的 pytest 夹具
+    :return: SQLAlchemy 日志供语句断言使用
+    """
     return '\n'.join(record.getMessage() for record in caplog.records if record.name.startswith('sqlalchemy.engine.'))
 
 
@@ -24,6 +30,14 @@ def _sql_logs(caplog: pytest.LogCaptureFixture) -> str:
 async def sql_engine(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
 ) -> AsyncGenerator[AsyncEngine, None]:
+    """
+    提供独立的 SQLite 调度测试引擎。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :param request: pytest 当前用例的请求上下文
+    :yield: 独立的 SQLite 调度测试引擎
+    """
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "scheduler.sqlite"}', logging_name=request.node.name)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     registry = _DataSourceRegistry()
@@ -33,8 +47,8 @@ async def sql_engine(
     runtime.available = True
     monkeypatch.setattr('config.scheduler.resources.DataSourceRegistry', registry)
     metadata = MetaData()
-    SysJobExecution.__table__.to_metadata(metadata)
-    SysJobSync.__table__.to_metadata(metadata)
+    SysJobExecution.get_table().to_metadata(metadata)
+    SysJobSync.get_table().to_metadata(metadata)
     async with engine.begin() as connection:
         await connection.run_sync(metadata.create_all)
     try:
@@ -50,6 +64,7 @@ async def test_dispatch_poll_suppresses_sql_parameters_and_transactions(
     caplog: pytest.LogCaptureFixture,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    """调度轮询隐藏 SQL 参数和事务日志。"""
     sql_engine.echo = 'debug'
     monkeypatch.setattr(SchedulerManager, '_is_leader', True)
     monkeypatch.setattr(SchedulerManager._dispatcher, 'lock', asyncio.Lock())
@@ -71,9 +86,11 @@ async def test_dispatch_poll_suppresses_sql_parameters_and_transactions(
 async def test_business_task_spawned_during_internal_session_keeps_sql_logging(
     sql_engine: AsyncEngine, caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """内部会话派生的业务任务保留 SQL 日志。"""
     sql_engine.echo = 'debug'
 
     async def business_query() -> None:
+        """在独立会话中执行用于对照的业务查询。"""
         async with async_sessionmaker(sql_engine)() as db:
             assert await db.scalar(text("SELECT 'business_sql_visible'")) == 'business_sql_visible'
             await db.commit()
@@ -81,6 +98,7 @@ async def test_business_task_spawned_during_internal_session_keeps_sql_logging(
     caplog.clear()
     capsys.readouterr()
     async with SchedulerManager._resources.session() as db:
+        assert isinstance(db.bind, AsyncEngine)
         assert db.bind.pool is sql_engine.pool
         assert await db.scalar(text("SELECT 'internal_sql_hidden'")) == 'internal_sql_hidden'
         await asyncio.create_task(business_query())
@@ -104,11 +122,13 @@ async def test_failed_or_cancelled_internal_session_keeps_errors_and_subsequent_
     caplog: pytest.LogCaptureFixture,
     exception_type: type[BaseException],
 ) -> None:
+    """内部会话失败或取消后保留错误和后续 SQL 日志。"""
     sql_engine.echo = 'debug'
     caplog.clear()
     with pytest.raises(exception_type):
         async with SchedulerManager._resources.session() as db:
             await db.execute(text("SELECT 'failed_internal_sql_hidden'"))
+            assert isinstance(db.bind, AsyncEngine)
             token = db.bind.get_execution_options()['logging_token']
             engine_logger = logging.getLogger(f'sqlalchemy.engine.Engine.{sql_engine.sync_engine.logging_name}')
             engine_logger.warning('[%s] internal_warning_visible', token)
@@ -135,11 +155,12 @@ def test_execution_lease_sql_is_quiet_without_muting_shared_engine(
     echo: bool | Literal['debug'],
     logging_name: str | None,
 ) -> None:
+    """执行租约 SQL 保持静默且不影响共享引擎。"""
     logger_name = 'sqlalchemy.engine.Engine' + (f'.{logging_name}' if logging_name else '')
     engine_logger = logging.getLogger(logger_name)
     original_handlers = engine_logger.handlers[:]
     engine = create_engine(f'sqlite:///{tmp_path / "lease.sqlite"}', logging_name=logging_name)
-    SysJobExecution.__table__.create(engine)
+    SysJobExecution.get_table().create(engine)
     engine.echo = echo
     monkeypatch.setattr(DataSourceRegistry, 'get_sync_engine', lambda _name: engine)
     caplog.clear()
@@ -150,6 +171,7 @@ def test_execution_lease_sql_is_quiet_without_muting_shared_engine(
         assert caplog.records == []
         assert capsys.readouterr().out == ''
         with JobExecutionStore.session() as db:
+            assert isinstance(db.bind, Engine)
             assert db.bind.pool is engine.pool
         with Session(engine) as db:
             db.execute(text("SELECT 'sync_business_sql_visible'"))
@@ -165,6 +187,7 @@ def test_execution_lease_sql_is_quiet_without_muting_shared_engine(
 
 
 def test_sql_filter_is_idempotent_and_retains_tagged_warnings(caplog: pytest.LogCaptureFixture) -> None:
+    """重复应用 SQL 过滤器不会改变结果并保留已标记警告。"""
     engine = create_engine('sqlite://', logging_name='quiet_filter')
     engine_logger = logging.getLogger('sqlalchemy.engine.Engine.quiet_filter')
     try:

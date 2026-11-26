@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -13,21 +14,26 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from common.constant import OidcAuditEvent
 from config.database import Base
-from config.env import OidcConfig
+from config.env import OidcConfig, OidcSettings
 from module_identity.dao.oidc_key_dao import OidcKeyDao
 from module_identity.entity.do.oauth_audit_do import SysOAuthAuditLog
 from module_identity.entity.do.oidc_key_do import SysOidcSigningKey
 from module_identity.service.key_service import KeyService, KeyServiceError, OidcKeyManagementService
+from tests.module_identity.support.sessions import RecordingSession
 from utils.oidc_util import OidcUtil
 
 _MIN_TEST_RSA_BITS = 2048
 
 
 @pytest_asyncio.fixture
-async def data_session() -> AsyncSession:
-    """仅创建密钥和审计表，隔离项目其他 ORM 的 SQLite 方言差异。"""
+async def data_session() -> AsyncIterator[AsyncSession]:
+    """
+    仅创建密钥和审计表，隔离项目其他 ORM 的 SQLite 方言差异。
+
+    :yield: 当前操作共用的会话
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
-    tables = [SysOidcSigningKey.__table__, SysOAuthAuditLog.__table__]
+    tables = [SysOidcSigningKey.get_table(), SysOAuthAuditLog.get_table()]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync_connection: Base.metadata.create_all(sync_connection, tables=tables))
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -38,8 +44,11 @@ async def data_session() -> AsyncSession:
 
 @pytest.fixture(autouse=True)
 def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
-    """将全局 OIDC 配置固定为密钥服务测试所需的基线。"""
+    """
+    将全局 OIDC 配置固定为密钥服务测试所需的基线。
 
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     values = {
         'oidc_enabled': True,
         'oidc_active_kid': 'k1',
@@ -57,14 +66,24 @@ def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(OidcConfig, name, value)
 
 
-def _config() -> OidcConfig:
-    """返回当前测试使用的全局 OIDC 配置。"""
+def _config() -> OidcSettings:
+    """
+    返回当前测试使用的全局 OIDC 配置。
 
+    :return: 当前测试使用的全局 OIDC 配置
+    """
     return OidcConfig
 
 
 def _record(tmp_path: Path, *, status: str = 'active', matching: bool = True) -> SimpleNamespace:
-    """生成带文件私钥和公开 JWK 的内存记录。"""
+    """
+    生成带文件私钥和公开 JWK 的内存记录。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param status: 操作或记录所处的状态
+    :param matching: 是否提供与当前记录匹配的值
+    :return: 带文件私钥和公开 JWK 的内存记录
+    """
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     numbers = key.public_key().public_numbers()
     n = base64url_encode(numbers.n.to_bytes((numbers.n.bit_length() + 7) // 8, 'big')).decode()
@@ -76,7 +95,7 @@ def _record(tmp_path: Path, *, status: str = 'active', matching: bool = True) ->
         key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
     )
 
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     return SimpleNamespace(
         kid='k1',
         alg='RS256',
@@ -99,7 +118,7 @@ async def test_key_lifecycle_rejects_unsafe_kid_before_database_access(kid: str)
     """激活、退役和删除入口统一拒绝无法安全放入路径的 kid。"""
     for operation in (KeyService.activate_key, KeyService.retire_key, KeyService.delete_key):
         with pytest.raises(KeyServiceError, match='包含不允许的字符'):
-            await operation(object(), kid)
+            await operation(AsyncSession(), kid)
 
 
 @pytest.mark.asyncio
@@ -107,25 +126,29 @@ async def test_activate_due_processes_only_scheduled_keys_and_rolls_back_failure
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """后台只处理到期 pending，并在单项失败时回滚该项事务。"""
-
-    class _Session:
-        commits = 0
-        rollbacks = 0
-
-        async def commit(self) -> None:
-            self.commits += 1
-
-        async def rollback(self) -> None:
-            self.rollbacks += 1
-
-    session = _Session()
+    session = RecordingSession()
     due = SimpleNamespace(kid='due-key')
     scheduled: list[str] = []
 
     async def due_keys(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回到期可处理的测试密钥。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 到期可处理的测试密钥
+        """
         return [due]
 
     async def activate(*args: object, **kwargs: object) -> bool:
+        """
+        记录目标密钥的激活调用。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``True``
+        """
+        assert isinstance(args[1], str)
         scheduled.append(args[1])
         return True
 
@@ -137,11 +160,24 @@ async def test_activate_due_processes_only_scheduled_keys_and_rolls_back_failure
     assert session.rollbacks == 0
 
     async def fail(*args: object, **kwargs: object) -> bool:
+        """
+        模拟此操作抛出 KeyServiceError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises KeyServiceError: 模拟私钥与公开 JWK 不匹配
+        """
         raise KeyServiceError('private key does not match public JWK')
 
     audit_events: list[tuple[object, ...]] = []
 
     async def audit_writer(*args: object, **kwargs: object) -> None:
+        """
+        为测试事务写入审计事件。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         audit_events.append(args)
 
     monkeypatch.setattr(KeyService, 'activate_key', fail)
@@ -153,30 +189,41 @@ async def test_activate_due_processes_only_scheduled_keys_and_rolls_back_failure
 @pytest.mark.asyncio
 async def test_activate_due_audits_first_failure_and_continues_next_key(monkeypatch: pytest.MonkeyPatch) -> None:
     """首把激活失败必须独立审计，且不得阻断后续到期密钥。"""
-
-    class _Session:
-        commits = 0
-        rollbacks = 0
-
-        async def commit(self) -> None:
-            self.commits += 1
-
-        async def rollback(self) -> None:
-            self.rollbacks += 1
-
-    session = _Session()
+    session = RecordingSession()
     pending = [SimpleNamespace(kid='first'), SimpleNamespace(kid='second')]
     audit_events: list[dict[str, object]] = []
 
     async def due_keys(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        向调用方返回 ``pending``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 仍在等待处理的记录
+        """
         return pending
 
     async def activate(db: object, kid: str, **kwargs: object) -> bool:
+        """
+        记录目标密钥的激活调用。
+
+        :param db: 当前操作使用的数据库会话
+        :param kid: 用于定位签名密钥的标识
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises KeyServiceError: 模拟激活时私钥与公开 JWK 不匹配
+        :return: 此分支的固定值 ``True``
+        """
         if kid == 'first':
             raise KeyServiceError('private key does not match public JWK')
         return True
 
     async def audit_writer(*args: object, **kwargs: object) -> None:
+        """
+        为测试事务写入审计事件。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
         audit_events.append(kwargs)
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_due_pending', due_keys)
@@ -192,23 +239,39 @@ async def test_activate_due_continues_when_failure_audit_writer_fails(monkeypatc
     pending = [SimpleNamespace(kid='first'), SimpleNamespace(kid='second')]
     activated: list[str] = []
 
-    class _Session:
-        async def commit(self) -> None:
-            pass
-
-        async def rollback(self) -> None:
-            pass
-
     async def due_keys(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        向调用方返回 ``pending``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 仍在等待处理的记录
+        """
         return pending
 
     async def activate(db: object, kid: str, **kwargs: object) -> bool:
+        """
+        记录目标密钥的激活调用。
+
+        :param db: 当前操作使用的数据库会话
+        :param kid: 用于定位签名密钥的标识
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises KeyServiceError: 模拟激活时私钥与公开 JWK 不匹配
+        :return: 此分支的固定值 ``True``
+        """
         if kid == 'first':
             raise KeyServiceError('activation failed')
         activated.append(kid)
         return True
 
     async def failed_audit(*args: object, **kwargs: object) -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :raises RuntimeError: 模拟审计数据库不可用
+        """
         raise RuntimeError('audit database unavailable')
 
     warnings: list[str] = []
@@ -218,7 +281,7 @@ async def test_activate_due_continues_when_failure_audit_writer_fails(monkeypatc
     )
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_due_pending', due_keys)
     monkeypatch.setattr(KeyService, 'activate_key', activate)
-    assert await KeyService.activate_due(_Session(), audit_writer=failed_audit) == 1
+    assert await KeyService.activate_due(RecordingSession(), audit_writer=failed_audit) == 1
     assert activated == ['second']
     assert warnings == [
         'OIDC 签名密钥激活审计记录写入失败，密钥标识=first',
@@ -229,7 +292,7 @@ async def test_activate_due_continues_when_failure_audit_writer_fails(monkeypatc
 @pytest.mark.asyncio
 async def test_list_due_pending_filters_schedule_and_algorithm(data_session: AsyncSession) -> None:
     """到期查询只返回 RS256、pending 且两个时间点均已到达的密钥。"""
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     rows = [
         SysOidcSigningKey(
             kid='due',
@@ -293,15 +356,39 @@ async def test_rotation_lock_is_cross_instance_exclusive_and_releases_atomically
     """轮换锁在 Redis 中互斥，并只允许持有者删除自己的锁。"""
 
     class _Redis:
+        """
+        模拟测试所需的 Redis 命令。
+
+        :cvar value: 待处理的输入值
+        """
+
         value: str | None = None
 
         async def set(self, key: str, value: str, *, nx: bool, ex: int) -> bool:
+            """
+            写入测试缓存键并设置过期时间。
+
+            :param key: 查找数据时使用的键
+            :param value: 待处理的输入值
+            :param nx: 是否只在键尚不存在时写入
+            :param ex: 捕获到的异常实例
+            :return: 是否写入测试缓存键并设置过期时间
+            """
             if nx and self.value is not None:
                 return False
             self.value = value
             return True
 
         async def eval(self, script: str, count: int, key: str, token: str) -> int:
+            """
+            按测试约定模拟 Redis 脚本的执行。
+
+            :param script: 需要运行的脚本
+            :param count: 本次处理或预期的数量
+            :param key: 查找数据时使用的键
+            :param token: 用于身份验证或授权的令牌
+            :return: 表示模拟脚本执行状态的整数
+            """
             if self.value == token:
                 self.value = None
                 return 1
@@ -326,7 +413,7 @@ async def test_private_key_must_match_public_jwk(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_private_key_requires_active_signing_window(tmp_path: Path) -> None:
-    """pending 或已停止签名的密钥不能用于签名。"""
+    """验证处于 pending 状态或已停止签名的密钥不能用于签名。"""
     with pytest.raises(KeyServiceError, match='预期状态为 active'):
         await KeyService.load_private_key_async(_record(tmp_path, status='pending'))
 
@@ -346,11 +433,18 @@ async def test_imported_database_kid_is_validated_before_jwks_and_signing(
         OidcUtil.normalize_public_jwk(record)
 
     async def published(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已发布的测试密钥记录。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已发布的测试密钥记录
+        """
         return [record]
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_published', published)
     with pytest.raises(KeyServiceError, match='包含不允许的字符'):
-        await KeyService.build_jwks(object())
+        await KeyService.build_jwks(AsyncSession())
 
 
 @pytest.mark.asyncio
@@ -362,10 +456,11 @@ async def test_management_key_bootstrap_is_available_when_oidc_disabled(data_ses
     row = await KeyService.create_pending_key(
         data_session,
         kid='bootstrap-1',
-        publish_at=datetime.now(timezone.utc) + timedelta(minutes=1),
+        publish_at=datetime.now(UTC) + timedelta(minutes=1),
         actor='admin',
     )
     assert row.status == 'pending'
+    assert row.private_key_ciphertext is not None
     assert row.private_key_ciphertext.startswith('v2.')
 
 
@@ -377,20 +472,20 @@ async def test_pending_key_times_are_stored_and_returned_in_utc(data_session: As
     await KeyService.create_pending_key(
         data_session,
         kid='timezone-normalized',
-        publish_at=datetime(2026, 8, 27, 17, 37, 37, tzinfo=timezone.utc),
-        activate_at=datetime(2026, 8, 27, 17, 38, 31, tzinfo=timezone.utc),
+        publish_at=datetime(2026, 8, 27, 17, 37, 37, tzinfo=UTC),
+        activate_at=datetime(2026, 8, 27, 17, 38, 31, tzinfo=UTC),
         actor='admin',
-        now=datetime(2026, 8, 27, 17, 30, tzinfo=timezone.utc),
+        now=datetime(2026, 8, 27, 17, 30, tzinfo=UTC),
     )
     await data_session.commit()
     data_session.expunge_all()
 
     row = (await data_session.execute(select(SysOidcSigningKey))).scalar_one()
-    assert row.publish_at == datetime(2026, 8, 27, 17, 37, 37, tzinfo=timezone.utc)
-    assert row.signing_start_at == datetime(2026, 8, 27, 17, 38, 31, tzinfo=timezone.utc)
+    assert row.publish_at == datetime(2026, 8, 27, 17, 37, 37, tzinfo=UTC)
+    assert row.signing_start_at == datetime(2026, 8, 27, 17, 38, 31, tzinfo=UTC)
     view = OidcKeyManagementService.view(row)
-    assert view['publishAt'] == datetime(2026, 8, 27, 17, 37, 37, tzinfo=timezone.utc)
-    assert view['signingStartAt'] == datetime(2026, 8, 27, 17, 38, 31, tzinfo=timezone.utc)
+    assert view['publishAt'] == datetime(2026, 8, 27, 17, 37, 37, tzinfo=UTC)
+    assert view['signingStartAt'] == datetime(2026, 8, 27, 17, 38, 31, tzinfo=UTC)
 
 
 @pytest.mark.asyncio
@@ -399,7 +494,7 @@ async def test_management_bootstrap_is_idempotent_and_activates_first_key(data_s
     config = _config()
     config.oidc_enabled = False
     config.oidc_signing_key_encryption_key = 'e' * 32
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     first, first_created = await OidcKeyManagementService.bootstrap(
         data_session,
@@ -436,7 +531,13 @@ async def test_runtime_active_key_uses_database_state_not_bootstrap_kid(tmp_path
 
 
 def _orm_key(record: SimpleNamespace, status: str) -> SysOidcSigningKey:
-    """把内存密钥记录转换为真实 ORM 密钥。"""
+    """
+    把内存密钥记录转换为真实 ORM 密钥。
+
+    :param record: 当前操作使用的记录
+    :param status: 操作或记录所处的状态
+    :return: ``SysOidcSigningKey`` 实例
+    """
     return SysOidcSigningKey(
         kid=record.kid,
         alg=record.alg,
@@ -457,7 +558,7 @@ async def test_real_session_rotation_persists_state_and_injected_time(
     data_session: AsyncSession, tmp_path: Path
 ) -> None:
     """真实 AsyncSession 轮换后恰有一个 active 且窗口和时间准确。"""
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     old = _record(tmp_path)
     new = _record(tmp_path)
     new.kid = 'new'
@@ -492,7 +593,7 @@ async def test_manual_activation_can_override_future_signing_schedule(
     data_session: AsyncSession, tmp_path: Path
 ) -> None:
     """管理员明确确认后可提前启用已公开的 pending 密钥。"""
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     target = _record(tmp_path, status='pending')
     target.publish_at = now - timedelta(minutes=5)
     target.signing_start_at = now + timedelta(hours=1)
@@ -510,7 +611,7 @@ async def test_manual_activation_can_override_future_signing_schedule(
 @pytest.mark.asyncio
 async def test_real_session_rotation_rolls_back_on_key_mismatch(data_session: AsyncSession, tmp_path: Path) -> None:
     """候选私钥失败时真实事务回滚，旧 active 状态保持不变。"""
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     old = _record(tmp_path)
     new = _record(tmp_path, matching=False)
     new.kid = 'new'
@@ -534,16 +635,23 @@ async def test_real_session_rotation_rolls_back_on_key_mismatch(data_session: As
 @pytest.mark.asyncio
 async def test_jwks_filters_private_jwk_fields(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """JWKS 始终只输出公开字段，即使数据库 JSON 被污染。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     record = _record(tmp_path)
     record.publish_at = now - timedelta(seconds=1)
     record.public_jwk['d'] = 'secret'
 
     async def published(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已发布的测试密钥记录。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已发布的测试密钥记录
+        """
         return [record]
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_published', published)
-    payload = await KeyService.build_jwks(object(), now=now)
+    payload = await KeyService.build_jwks(AsyncSession(), now=now)
     assert payload == {
         'keys': [
             {
@@ -562,7 +670,7 @@ async def test_jwks_filters_private_jwk_fields(monkeypatch: pytest.MonkeyPatch, 
 @pytest.mark.asyncio
 async def test_jwks_excludes_keys_outside_publish_window(monkeypatch: pytest.MonkeyPatch) -> None:
     """JWKS 不发布尚未到 publish_at 或已过 remove_from_jwks_at 的密钥。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     base = {
         'kty': 'RSA',
         'use': 'sig',
@@ -592,26 +700,40 @@ async def test_jwks_excludes_keys_outside_publish_window(monkeypatch: pytest.Mon
     ]
 
     async def published(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        向调用方返回 ``records``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 匹配查询的记录集合
+        """
         return records
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_published', published)
-    assert await KeyService.build_jwks(object(), now=now) == {'keys': []}
+    assert await KeyService.build_jwks(AsyncSession(), now=now) == {'keys': []}
 
 
 @pytest.mark.asyncio
 async def test_jwks_rejects_malformed_rsa_jwk(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """非法 RSA n/e 不能污染 JWKS，服务选择 fail-closed。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     record = _record(tmp_path)
     record.publish_at = now - timedelta(seconds=1)
     record.public_jwk['n'] = 'not-a-rsa-modulus'
 
     async def published(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已发布的测试密钥记录。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已发布的测试密钥记录
+        """
         return [record]
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.list_published', published)
     with pytest.raises(KeyServiceError, match=r'Base64URL|RSA 参数'):
-        await KeyService.build_jwks(object(), now=now)
+        await KeyService.build_jwks(AsyncSession(), now=now)
 
 
 @pytest.mark.asyncio
@@ -620,20 +742,48 @@ async def test_activation_validates_pending_private_key_before_state_change(
 ) -> None:
     """候选密钥公私钥不匹配时不得调用状态切换。"""
     target = _record(tmp_path, status='pending', matching=False)
-    target.publish_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    target.publish_at = datetime.now(UTC) - timedelta(seconds=1)
     old = SimpleNamespace(kid='old', status='active')
     changed = False
 
     async def lock_algorithm(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已锁定的旧密钥与目标密钥。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已锁定的旧密钥与目标密钥
+        """
         return [old, target]
 
     async def get_target(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``target``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 当前操作的目标记录
+        """
         return target
 
     async def get_old(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``old``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 更新前的记录
+        """
         return old
 
     async def activate(*args: object, **kwargs: object) -> bool:
+        """
+        记录目标密钥的激活调用。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``True``
+        """
         nonlocal changed
         changed = True
         return True
@@ -643,7 +793,7 @@ async def test_activation_validates_pending_private_key_before_state_change(
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.get_active', get_old)
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.activate', activate)
     with pytest.raises(KeyServiceError, match='不匹配'):
-        await KeyService.activate_key(object(), 'k1')
+        await KeyService.activate_key(AsyncSession(), 'k1')
     assert changed is False
 
 
@@ -652,7 +802,7 @@ async def test_activation_retains_old_key_for_max_overlap_window(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """轮换将旧 active 置为 retiring，并覆盖 overlap 与 Token 安全窗口的较大值。"""
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     target = _record(tmp_path, status='pending')
     target.publish_at = now - timedelta(seconds=1)
     old = SimpleNamespace(kid='old', status='active', remove_from_jwks_at=None)
@@ -662,20 +812,54 @@ async def test_activation_retains_old_key_for_max_overlap_window(
     config.oidc_allowed_clock_skew_seconds = 60
 
     async def audit(*args: object, **kwargs: object) -> None:
-        return None
+        """
+        完成无需返回值的回调。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        """
+        return
 
     monkeypatch.setattr('module_identity.service.key_service.AuditService.record', audit)
 
     async def lock_algorithm(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        返回已锁定的旧密钥与目标密钥。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 已锁定的旧密钥与目标密钥
+        """
         return [old, target]
 
     async def get_target(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``target``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 当前操作的目标记录
+        """
         return target
 
     async def get_old(*args: object, **kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``old``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 更新前的记录
+        """
         return old
 
     async def activate(*args: object, **kwargs: object) -> bool:
+        """
+        在此测试分支返回 True。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``True``
+        """
         return True
 
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.lock_algorithm_for_update', lock_algorithm)
@@ -684,9 +868,9 @@ async def test_activation_retains_old_key_for_max_overlap_window(
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.activate', activate)
     set_retiring = AsyncMock(return_value=True)
     monkeypatch.setattr('module_identity.service.key_service.OidcKeyDao.set_retiring', set_retiring)
-    assert await KeyService.activate_key(object(), 'k1', now=now)
+    assert await KeyService.activate_key(AsyncSession(), 'k1', now=now)
     set_retiring.assert_awaited_once()
-    assert set_retiring.await_args.args[1:] == ('old', now + timedelta(seconds=7200), now)
+    assert set_retiring.await_args_list[-1].args[1:] == ('old', now + timedelta(seconds=7200), now)
 
 
 def test_etag_is_stable_and_private_fields_are_not_serialized() -> None:

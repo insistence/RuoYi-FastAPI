@@ -21,6 +21,7 @@ from module_identity.service.token_protocol_service import RevocationError
 def test_protocol_exception_has_chinese_diagnostics_and_compatible_wire_description(
     error: str, description: str, message: str
 ) -> None:
+    """协议异常提供中文诊断并保留兼容的协议描述。"""
     exception = OAuthProtocolException(error, description)
 
     assert str(exception) == exception.message == message
@@ -28,6 +29,7 @@ def test_protocol_exception_has_chinese_diagnostics_and_compatible_wire_descript
 
 
 def test_code_only_exception_keeps_optional_protocol_description_absent() -> None:
+    """只有错误码的异常省略可选的协议描述。"""
     exception = OAuthProtocolException('invalid_scope')
 
     assert str(exception) == '请求的权限范围无效'
@@ -35,6 +37,7 @@ def test_code_only_exception_keeps_optional_protocol_description_absent() -> Non
 
 
 def test_chinese_interaction_message_keeps_redirect_protocol_ascii_and_state_unchanged() -> None:
+    """中文交互消息保留跳转参数的 ASCII 编码和原始状态。"""
     app = FastAPI()
     handle_exception(app)
     interaction = OidcInteractionException(
@@ -46,7 +49,9 @@ def test_chinese_interaction_message_keeps_redirect_protocol_ascii_and_state_unc
         redirect_uri_verified=True,
     )
 
-    @app.get('/authorize')
+    @app.get(
+        '/authorize', summary='模拟需要交互的授权', description='返回认证交互的协议错误，用于验证跳转参数与状态编码。'
+    )
     async def authorize() -> None:
         raise interaction.as_protocol_exception()
 
@@ -68,10 +73,11 @@ def test_chinese_interaction_message_keeps_redirect_protocol_ascii_and_state_unc
 
 @pytest.mark.parametrize('description', ['内部诊断：private-marker', 'dependency\nprivate-marker'])
 def test_unknown_diagnostic_is_not_exposed_as_protocol_description(description: str) -> None:
+    """未知诊断信息不会作为协议描述公开。"""
     app = FastAPI()
     handle_exception(app)
 
-    @app.get('/token')
+    @app.get('/token', summary='模拟令牌服务错误', description='触发服务端协议错误，用于验证对外返回的诊断信息。')
     async def token() -> None:
         raise OAuthProtocolException('server_error', description, status_code=503)
 
@@ -85,6 +91,7 @@ def test_unknown_diagnostic_is_not_exposed_as_protocol_description(description: 
 
 
 def test_revocation_exception_localizes_diagnostics_without_changing_protocol_fields() -> None:
+    """撤销异常本地化诊断并保留协议字段。"""
     exception = RevocationError('invalid_client', 'Client authentication failed')
 
     assert str(exception) == exception.message == '客户端认证失败'
@@ -93,6 +100,7 @@ def test_revocation_exception_localizes_diagnostics_without_changing_protocol_fi
 
 
 def test_backchannel_exception_keeps_audit_code_independent_from_chinese_diagnostics() -> None:
+    """后通道异常的审计码独立于中文诊断。"""
     exception = PermanentBackchannelError('invalid retry payload', '后端退出通知重试载荷无效')
 
     assert str(exception) == exception.message == '后端退出通知重试载荷无效'

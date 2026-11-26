@@ -18,6 +18,7 @@ _V2_CIPHERTEXT = (
 
 
 def test_query_replacement_preserves_unrelated_duplicates_blank_values_and_fragment() -> None:
+    """替换查询参数时保留无关重复项、空值和片段。"""
     location = OidcUtil.replace_query_parameters(
         'https://rp.example/cb?keep=one&keep=two&empty=&state=old&error=old#part',
         [('code', 'a+/='), ('state', '中文 +&')],
@@ -29,12 +30,14 @@ def test_query_replacement_preserves_unrelated_duplicates_blank_values_and_fragm
 
 
 def test_logout_state_distinguishes_missing_and_empty_state() -> None:
+    """注销流程区分缺少状态和空状态。"""
     uri = 'https://rp.example/cb?state=old&keep=1&state=older'
     assert OidcUtil.append_state(uri, None) == uri
     assert OidcUtil.append_state(uri, '') == 'https://rp.example/cb?keep=1&state='
 
 
 def test_interaction_csrf_is_only_in_fragment() -> None:
+    """交互 CSRF 令牌仅出现在 URL 片段中。"""
     assert OidcUtil.interaction_url('https://id.example/login?lang=zh#old', 'i-1', 's+/=') == (
         'https://id.example/login?lang=zh&interaction=i-1#csrf=s+/='
     )
@@ -42,17 +45,20 @@ def test_interaction_csrf_is_only_in_fragment() -> None:
 
 @pytest.mark.parametrize(('validate_all_first', 'message'), [(False, '参数重复'), (True, '参数无效')])
 def test_batch_validation_preserves_each_callers_error_precedence(validate_all_first: bool, message: str) -> None:
+    """批量校验保留各调用方的错误优先级。"""
     with pytest.raises(ValueError, match=message):
         OidcUtil.split_batch('one,one,bad/path', 'ids', max_size=100, validate_all_first=validate_all_first)
 
 
 @pytest.mark.parametrize('value', ['one,,two', 'one,%2Ftwo', 'one,t wo', 'one,t\\wo'])
 def test_batch_rejects_ambiguous_path_identifiers(value: str) -> None:
+    """批量请求拒绝有歧义的路径标识。"""
     with pytest.raises(ValueError, match='参数无效'):
         OidcUtil.split_batch(value, 'ids', max_size=100)
 
 
 def test_json_keeps_unicode_and_key_order_without_accepting_duplicate_input_keys() -> None:
+    """JSON 保留 Unicode 和键顺序并拒绝重复输入键。"""
     assert OidcUtil.serialize_json({'z': [1], 'a': '中文'}, error_message='载荷无效') == '{"a":"中文","z":[1]}'
     with pytest.raises(ValueError, match='重复字段'):
         json.loads('{"nested":{"scope":"openid","scope":"admin"}}', object_pairs_hook=OidcUtil.json_object_pairs)
@@ -60,11 +66,13 @@ def test_json_keeps_unicode_and_key_order_without_accepting_duplicate_input_keys
 
 @pytest.mark.parametrize('value', [float('nan'), float('inf'), float('-inf'), object()])
 def test_cache_json_rejects_nonfinite_numbers_and_nonserializable_objects(value: object) -> None:
+    """缓存 JSON 拒绝非有限数值及不可序列化对象。"""
     with pytest.raises(ValueError, match='载荷无效'):
         OidcUtil.serialize_json({'value': value}, error_message='载荷无效')
 
 
 def test_digest_vectors_preserve_existing_wire_and_browser_binding_formats() -> None:
+    """摘要测试向量与原传输及浏览器绑定格式一致。"""
     assert OidcUtil.sha256_digest('abc') == 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
     assert OidcUtil.hmac_sha256('Hi There', b'\x0b' * 20) == (
         'b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7'
@@ -78,10 +86,12 @@ def test_digest_vectors_preserve_existing_wire_and_browser_binding_formats() -> 
 
 @pytest.mark.parametrize('ciphertext', [_V1_CIPHERTEXT, _V2_CIPHERTEXT], ids=['legacy-v1', 'salted-v2'])
 def test_decrypt_accepts_persisted_private_key_formats(ciphertext: str) -> None:
+    """解密支持已持久化的私钥格式。"""
     assert OidcUtil.decrypt_signing_private_key(ciphertext, b'm' * 32) == b'private-key-regression-fixture'
 
 
 def test_encrypt_preserves_v2_envelope_and_rejects_wrong_decryption_key() -> None:
+    """加密保留第二版封装并拒绝错误解密密钥。"""
     ciphertext = OidcUtil.encrypt_signing_private_key(
         b'private-key-regression-fixture', b'm' * 32, salt=bytes(range(16)), nonce=bytes(range(12))
     )
@@ -92,11 +102,17 @@ def test_encrypt_preserves_v2_envelope_and_rejects_wrong_decryption_key() -> Non
 
 @pytest.fixture(scope='module')
 def public_jwk() -> dict[str, str]:
+    """
+    生成测试使用的 RSA 公钥 JWK。
+
+    :return: 测试使用的 RSA 公钥 JWK
+    """
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     return OidcUtil.rsa_public_jwk(key.public_key(), 'k1')
 
 
 def test_public_jwk_strips_private_fields_without_mutating_input(public_jwk: dict[str, str]) -> None:
+    """公开 JWK 移除私有字段且保留原输入。"""
     record = SimpleNamespace(kid='k1', public_jwk={**public_jwk, 'd': 'private-material'})
     actual = OidcUtil.normalize_public_jwk(record, min_rsa_bits=2048, min_exponent=3, max_exponent=2**32)
     assert actual == public_jwk
@@ -108,6 +124,7 @@ def test_public_jwk_strips_private_fields_without_mutating_input(public_jwk: dic
 
 @pytest.mark.parametrize(('field', 'value'), [('n', 'AQ'), ('e', 'Ag'), ('e', 'AQAB=')])
 def test_public_jwk_rejects_weak_or_noncanonical_parameters(public_jwk: dict[str, str], field: str, value: str) -> None:
+    """公开 JWK 拒绝弱参数及非规范参数。"""
     with pytest.raises(ValueError):
         OidcUtil.normalize_public_jwk(
             {**public_jwk, field: value}, min_rsa_bits=2048, min_exponent=3, max_exponent=2**32
@@ -127,10 +144,12 @@ def test_public_jwk_rejects_weak_or_noncanonical_parameters(public_jwk: dict[str
     ],
 )
 def test_backchannel_parser_rejects_unsafe_structures_and_literal_private_ips(uri: str) -> None:
+    """后通道解析器拒绝不安全结构及字面私有 IP。"""
     assert OidcUtil.parse_backchannel_uri(uri) is None
 
 
 def test_uri_helpers_preserve_different_registration_policies() -> None:
+    """URI 工具分别保留不同注册策略。"""
     localhost = 'http://localhost:5173/callback'
     assert OidcUtil.validate_registered_uri('redirect', localhost) == localhost
     assert OidcUtil.is_safe_post_logout_uri(localhost)
@@ -148,6 +167,7 @@ def test_uri_helpers_preserve_different_registration_policies() -> None:
     ],
 )
 def test_utilities_and_exceptions_import_without_cycles_or_loading_application_state(modules: list[str]) -> None:
+    """导入工具和异常模块无需加载应用状态且无循环依赖。"""
     script = (
         'import importlib, sys\n'
         f'for name in {modules!r}: importlib.import_module(name)\n'

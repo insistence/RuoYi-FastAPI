@@ -94,8 +94,9 @@ class WorkspaceRenderingSupport:
         将结构化文本行渲染为适合终端展示的块文本。
 
         支持以下轻量约定：
-        - `## ` 开头：区块标题
-        - `> ` 开头：说明或子项
+
+        - ``##`` 后跟空格：区块标题
+        - ``>`` 后跟空格：说明或子项
         - 空字符串：保留空行
 
         :param lines: 原始文本行列表
@@ -139,10 +140,10 @@ class NavigationItem:
     """
     工作台导航项定义。
 
-    :param view_key: 视图唯一标识
-    :param label: 导航显示名称
-    :param shortcut: 快捷键
-    :param description: 导航说明
+    :ivar view_key: 视图唯一标识
+    :ivar label: 导航显示名称
+    :ivar shortcut: 快捷键
+    :ivar description: 导航说明
     """
 
     view_key: str
@@ -155,7 +156,8 @@ class NavigationListItem(ListItem):
     """
     工作台导航列表项。
 
-    :param item: 导航项定义
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar item: 导航项定义
     """
 
     DEFAULT_CSS = """
@@ -195,8 +197,9 @@ class NavigationListItem(ListItem):
         """
         初始化导航列表项。
 
+        :param index: 分区索引
+        :param active: 当前选中的项目
         :param item: 导航项定义
-        :return: None
         """
         self.item = item
         super().__init__(
@@ -213,9 +216,11 @@ class WorkspaceSidebar(ListView):
     """
     工作台左侧导航组件。
 
-    :param env: 当前运行环境
-    :param items: 导航项列表
-    :param active_view: 当前激活视图
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar env: 当前运行环境
+    :ivar items: 导航项列表
+    :ivar active_view: 当前激活视图
+    :ivar navigation_ready: 导航组件是否已可接受交互
     """
 
     DEFAULT_CSS = """
@@ -240,7 +245,6 @@ class WorkspaceSidebar(ListView):
         :param env: 当前运行环境
         :param items: 导航项列表
         :param active_view: 当前激活视图
-        :return: None
         """
         self.env = env
         self.items = items
@@ -282,12 +286,15 @@ class WorkspaceHero(Static):
     """
     工作台顶部摘要组件。
 
-    :param title: 页面标题
-    :param subtitle: 页面副标题
-    :param env: 当前运行环境
-    :param active_view: 当前激活视图
-    :param summary: 状态摘要文本
-    :param refreshed_at: 本次刷新时间
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :cvar _BORDER_PHASES: 边框动画各帧使用的阶段序列
+    :cvar _TITLE_GLOW_PALETTE: 标题发光效果使用的颜色
+    :ivar title: 页面标题
+    :ivar subtitle: 页面副标题
+    :ivar env: 当前运行环境
+    :ivar active_view: 当前激活视图
+    :ivar summary: 状态摘要文本
+    :ivar refreshed_at: 本次刷新时间
     """
 
     DEFAULT_CSS = """
@@ -315,12 +322,12 @@ class WorkspaceHero(Static):
         """
         初始化工作台顶部摘要组件。
 
+        :param env: 当前运行环境
         :param title: 页面标题
         :param subtitle: 页面副标题
         :param active_view: 当前激活视图
         :param summary: 状态摘要文本
         :param refreshed_at: 本次刷新时间
-        :return: None
         """
         self.title = title
         self.subtitle = subtitle
@@ -331,20 +338,12 @@ class WorkspaceHero(Static):
         super().__init__(self._build_render_text(), id='workspace-hero', markup=False)
 
     def on_mount(self) -> None:
-        """
-        在组件挂载后启动低频边框呼吸动效。
-
-        :return: None
-        """
+        """在组件挂载后启动低频边框呼吸动效。"""
         if not TUI_PLATFORM_POLICY.reduced_motion:
             self.set_interval(0.9, self._pulse_border, name='pulse workspace hero border')
 
     def _pulse_border(self) -> None:
-        """
-        以低频节奏切换 Hero 边框颜色。
-
-        :return: None
-        """
+        """以低频节奏切换 Hero 边框颜色。"""
         phase_index = int(monotonic() * 1.1) % len(self._BORDER_PHASES)
         self.styles.border = ('double', self._BORDER_PHASES[phase_index])
 
@@ -393,8 +392,15 @@ class WorkspaceHeader(Static):
     """
     工作台顶部状态栏。
 
-    :param env: 当前运行环境
-    :param active_view: 当前激活视图
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :cvar _HEADER_LINE_COUNT: 标题区域占用的行数
+    :cvar _SCANLINE_WIDTH: 扫描高亮区域的宽度
+    :cvar _HEADER_HORIZONTAL_PADDING: 标题两侧保留的空白宽度
+    :cvar _HEADER_FALLBACK_WIDTH: 无法取得布局宽度时使用的默认宽度
+    :cvar _SCANLINE_BASE_STYLE: 扫描线的基础样式
+    :cvar _SCANLINE_GLOW_STYLES: 扫描高亮各阶段的样式
+    :ivar env: 当前运行环境
+    :ivar active_view: 当前激活视图
     """
 
     DEFAULT_CSS = """
@@ -449,18 +455,13 @@ class WorkspaceHeader(Static):
 
         :param env: 当前运行环境
         :param active_view: 当前激活视图
-        :return: None
         """
         self.env = env
         self.active_view = active_view
         super().__init__(id='workspace-header', markup=False)
 
     def on_mount(self) -> None:
-        """
-        在组件挂载后启动时钟刷新。
-
-        :return: None
-        """
+        """在组件挂载后启动时钟刷新。"""
         if not TUI_PLATFORM_POLICY.reduced_motion:
             self.set_interval(0.18, self.refresh, name='update workspace header')
 
@@ -542,8 +543,11 @@ class SectionListItem(ListItem):
     """
     详情页分区导航列表项。
 
-    :param section: 分区快照
-    :param index: 分区索引
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar section: 分区快照
+    :ivar index: 分区索引
+    :ivar search_query: 当前搜索词
+    :ivar rendering: 工作台组件渲染支持对象
     """
 
     DEFAULT_CSS = """
@@ -599,10 +603,10 @@ class SectionListItem(ListItem):
         """
         初始化详情页分区导航项。
 
+        :param query: 搜索词
         :param section: 分区快照
         :param index: 分区索引
         :param rendering: 工作台组件渲染支持对象
-        :return: None
         """
         self.section = section
         self.index = index
@@ -629,7 +633,11 @@ class SectionNavigator(ListView):
     """
     详情页分区导航组件。
 
-    :param sections: 分区快照列表
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar sections: 分区快照列表
+    :ivar search_query: 当前搜索词
+    :ivar rendering: 工作台组件渲染支持对象
+    :ivar index: 当前条目在序列中的位置
     :param initial_index: 初始高亮索引
     """
 
@@ -651,9 +659,20 @@ class SectionNavigator(ListView):
     class Changed(Message):
         """
         分区导航高亮变更消息。
+
+        :ivar navigator: 协调界面和选中项切换的导航器
+        :ivar index: 当前条目在序列中的位置
+        :ivar item: 导航项定义
         """
 
         def __init__(self, navigator: 'SectionNavigator', index: int, item: SectionListItem) -> None:
+            """
+            保存触发选择变更的控件、索引和所选项。
+
+            :param navigator: 协调界面和选中项切换的导航器
+            :param index: 分区索引
+            :param item: 导航项定义
+            """
             super().__init__()
             self.navigator = navigator
             self.index = index
@@ -661,6 +680,11 @@ class SectionNavigator(ListView):
 
         @property
         def control(self) -> 'SectionNavigator':
+            """
+            返回发出选择变更消息的导航控件。
+
+            :return: 发出选择变更消息的导航控件
+            """
             return self.navigator
 
     def __init__(
@@ -673,10 +697,10 @@ class SectionNavigator(ListView):
         """
         初始化详情页分区导航。
 
+        :param query: 搜索词
         :param sections: 分区快照列表
         :param initial_index: 初始高亮索引
         :param rendering: 工作台组件渲染支持对象
-        :return: None
         """
         self.sections = sections
         self.search_query = query
@@ -693,7 +717,6 @@ class SectionNavigator(ListView):
 
         :param old_index: 旧索引
         :param new_index: 新索引
-        :return: None
         """
         super().watch_index(old_index, new_index)
         if new_index is None or not 0 <= new_index < len(self._nodes):
@@ -708,9 +731,9 @@ class SectionNavigator(ListView):
         """
         刷新分区导航内容并恢复高亮位置。
 
+        :param query: 搜索词
         :param sections: 最新分区快照列表
         :param initial_index: 目标高亮索引
-        :return: None
         """
         self.sections = sections
         self.search_query = query
@@ -730,7 +753,11 @@ class SectionDetailView(Static):
     """
     详情页分区内容展示组件。
 
-    :param section: 当前展示的分区快照
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar section: 当前展示的分区快照
+    :ivar search_query: 当前搜索词
+    :ivar rendering: 工作台组件渲染支持对象
+    :ivar can_focus: 组件是否可以接收键盘焦点
     """
 
     DEFAULT_CSS = """
@@ -780,9 +807,9 @@ class SectionDetailView(Static):
         """
         初始化详情页分区内容展示组件。
 
+        :param query: 搜索词
         :param section: 当前展示的分区快照
         :param rendering: 工作台组件渲染支持对象
-        :return: None
         """
         self.section = section
         self.search_query = query
@@ -795,19 +822,15 @@ class SectionDetailView(Static):
         """
         切换并渲染当前展示的分区内容。
 
+        :param query: 搜索词
         :param section: 待展示的分区快照
-        :return: None
         """
         self.section = section
         self.search_query = query
         self._render_section()
 
     def _render_section(self) -> None:
-        """
-        渲染当前分区内容。
-
-        :return: None
-        """
+        """渲染当前分区内容。"""
         self.remove_class('is-ok', 'is-fail', 'is-warn', 'is-info')
         self.add_class(self.rendering.resolve_status_class(self.section.status))
         highlighted_lines = [
@@ -833,8 +856,11 @@ class RecordListItem(ListItem):
     """
     浏览页记录导航列表项。
 
-    :param record: 记录快照
-    :param index: 记录索引
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar record: 记录快照
+    :ivar index: 记录索引
+    :ivar search_query: 当前搜索词
+    :ivar rendering: 工作台组件渲染支持对象
     """
 
     DEFAULT_CSS = """
@@ -890,10 +916,10 @@ class RecordListItem(ListItem):
         """
         初始化浏览页记录导航项。
 
+        :param query: 搜索词
         :param record: 记录快照
         :param index: 记录索引
         :param rendering: 工作台组件渲染支持对象
-        :return: None
         """
         self.record = record
         self.index = index
@@ -919,7 +945,10 @@ class RecordNavigator(ListView):
     """
     浏览页记录导航组件。
 
-    :param records: 记录快照列表
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar records: 记录快照列表
+    :ivar search_query: 当前搜索词
+    :ivar rendering: 工作台组件渲染支持对象
     :param initial_index: 初始高亮索引
     """
 
@@ -941,9 +970,20 @@ class RecordNavigator(ListView):
     class Changed(Message):
         """
         记录导航高亮变更消息。
+
+        :ivar navigator: 协调界面和选中项切换的导航器
+        :ivar index: 当前条目在序列中的位置
+        :ivar item: 导航项定义
         """
 
         def __init__(self, navigator: 'RecordNavigator', index: int, item: RecordListItem) -> None:
+            """
+            保存触发选择变更的控件、索引和所选项。
+
+            :param navigator: 协调界面和选中项切换的导航器
+            :param index: 分区索引
+            :param item: 导航项定义
+            """
             super().__init__()
             self.navigator = navigator
             self.index = index
@@ -951,6 +991,11 @@ class RecordNavigator(ListView):
 
         @property
         def control(self) -> 'RecordNavigator':
+            """
+            返回发出选择变更消息的导航控件。
+
+            :return: 发出选择变更消息的导航控件
+            """
             return self.navigator
 
     def __init__(
@@ -963,10 +1008,10 @@ class RecordNavigator(ListView):
         """
         初始化浏览页记录导航。
 
+        :param query: 搜索词
         :param records: 记录快照列表
         :param initial_index: 初始高亮索引
         :param rendering: 工作台组件渲染支持对象
-        :return: None
         """
         self.records = records
         self.search_query = query
@@ -982,7 +1027,6 @@ class RecordNavigator(ListView):
 
         :param old_index: 旧索引
         :param new_index: 新索引
-        :return: None
         """
         super().watch_index(old_index, new_index)
         if new_index is None or not 0 <= new_index < len(self._nodes):
@@ -996,8 +1040,12 @@ class RecordDetailView(Static):
     """
     浏览页记录详情展示组件。
 
-    :param record: 当前展示的记录快照
-    :param shared_sections: 页面共享分区列表
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar record: 当前展示的记录快照
+    :ivar shared_sections: 页面共享分区列表
+    :ivar search_query: 当前搜索词
+    :ivar rendering: 工作台组件渲染支持对象
+    :ivar can_focus: 组件是否可以接收键盘焦点
     """
 
     DEFAULT_CSS = """
@@ -1044,10 +1092,10 @@ class RecordDetailView(Static):
         """
         初始化浏览页记录详情展示组件。
 
+        :param query: 搜索词
         :param record: 当前展示的记录快照
         :param shared_sections: 页面共享分区列表
         :param rendering: 工作台组件渲染支持对象
-        :return: None
         """
         self.record = record
         self.shared_sections = shared_sections
@@ -1066,9 +1114,9 @@ class RecordDetailView(Static):
         """
         切换并渲染当前展示的记录内容。
 
+        :param query: 搜索词
         :param record: 待展示的记录快照
         :param shared_sections: 页面共享分区列表
-        :return: None
         """
         self.record = record
         self.shared_sections = shared_sections
@@ -1076,11 +1124,7 @@ class RecordDetailView(Static):
         self._render_record()
 
     def _render_record(self) -> None:
-        """
-        渲染当前记录内容。
-
-        :return: None
-        """
+        """渲染当前记录内容。"""
         self.remove_class('is-ok', 'is-fail', 'is-warn', 'is-info')
         self.add_class(self.rendering.resolve_status_class(self.record.status))
         lines = [
@@ -1131,7 +1175,13 @@ class RecordSummaryView(Static):
     """
     浏览页记录摘要展示组件。
 
-    :param record: 当前展示的记录快照
+    :cvar DEFAULT_CSS: 组件默认使用的 Textual 样式规则
+    :ivar record: 当前展示的记录快照
+    :ivar section: 需要展示的详情分区
+    :ivar action_lines: 动作摘要文本
+    :ivar search_query: 当前搜索词
+    :ivar rendering: 工作台组件渲染支持对象
+    :ivar can_focus: 组件是否可以接收键盘焦点
     """
 
     DEFAULT_CSS = """
@@ -1197,7 +1247,6 @@ class RecordSummaryView(Static):
 
         :param record: 当前展示的记录快照
         :param rendering: 工作台组件渲染支持对象
-        :return: None
         """
         self.record = record
         self.section: DetailSectionSnapshot | None = None
@@ -1218,10 +1267,10 @@ class RecordSummaryView(Static):
         """
         更新当前展示的记录摘要。
 
+        :param query: 搜索词
         :param record: 待展示的记录快照
         :param selected_section: 当前联动分区
         :param action_lines: 动作摘要文本
-        :return: None
         """
         self.record = record
         self.section = selected_section
@@ -1230,11 +1279,7 @@ class RecordSummaryView(Static):
         self._render_record()
 
     def _render_record(self) -> None:
-        """
-        渲染当前记录摘要。
-
-        :return: None
-        """
+        """渲染当前记录摘要。"""
         self.remove_class('is-ok', 'is-fail', 'is-warn', 'is-info')
         self.remove_class('section-ok', 'section-fail', 'section-warn', 'section-info')
         self.add_class(self.rendering.resolve_status_class(self.record.status))

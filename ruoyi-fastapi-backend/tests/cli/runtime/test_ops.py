@@ -9,12 +9,7 @@ from cli.runtime.ops.support import OperationsDependencyInspector, OperationsSer
 
 
 def test_operations_dependency_inspector_reports_missing_required(monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    校验运维依赖检查器会报告缺失的必需依赖。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验运维依赖检查器会报告缺失的必需依赖。"""
     inspector = OperationsDependencyInspector()
     monkeypatch.setattr(
         inspector,
@@ -30,17 +25,10 @@ def test_operations_dependency_inspector_reports_missing_required(monkeypatch: p
 
 
 def test_operations_server_info_support_resolves_non_loopback_ip(monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    校验服务器信息支持对象会在主机名解析失败时回退到网卡地址。
-
-    :param monkeypatch: pytest monkeypatch 工具
-    :return: None
-    """
+    """校验服务器信息支持对象会在主机名解析失败时回退到网卡地址。"""
 
     class FakePsutil:
-        """
-        模拟 psutil 模块。
-        """
+        """模拟 psutil 模块。"""
 
         @staticmethod
         def net_if_addrs() -> dict[str, list[SimpleNamespace]]:
@@ -60,9 +48,20 @@ def test_operations_server_info_support_resolves_non_loopback_ip(monkeypatch: py
     support = OperationsServerInfoSupport(gateway)
 
     def _fake_get_psutil_module() -> FakePsutil:
+        """
+        创建测试使用的 ``FakePsutil`` 实例。
+
+        :return: 测试使用的 ``FakePsutil`` 实例
+        """
         return FakePsutil()
 
     def _fake_gethostbyname(hostname: str) -> str:
+        """
+        模拟主机名解析失败。
+
+        :param hostname: 要解析或检查的主机名
+        :raises OSError: 模拟解析主机名失败
+        """
         del hostname
         raise OSError('boom')
 
@@ -76,31 +75,19 @@ def test_operations_server_info_support_resolves_non_loopback_ip(monkeypatch: py
 
 @pytest.mark.asyncio
 async def test_operations_runtime_service_sync_jobs_closes_resources_on_success() -> None:
-    """
-    校验运维运行时在同步调度成功后会关闭调度器和 Redis 资源。
-
-    :return: None
-    """
+    """校验运维运行时在同步调度成功后会关闭调度器和 Redis 资源。"""
     close_events: list[str] = []
 
     class FakeRedis:
-        """
-        模拟 Redis 客户端。
-        """
+        """模拟 Redis 客户端。"""
 
         @staticmethod
         async def close() -> None:
-            """
-            记录关闭事件。
-
-            :return: None
-            """
+            """记录关闭事件。"""
             close_events.append('redis')
 
     class FakeRedisUtil:
-        """
-        模拟 Redis 工具。
-        """
+        """模拟 Redis 工具。"""
 
         @staticmethod
         async def create_redis_pool(*, log_enabled: bool = False) -> FakeRedis:
@@ -116,6 +103,8 @@ async def test_operations_runtime_service_sync_jobs_closes_resources_on_success(
     class FakeSchedulerManager:
         """
         模拟调度器管理类。
+
+        :cvar _is_leader: 当前进程是否持有调度器主锁
         """
 
         _is_leader = True
@@ -126,34 +115,35 @@ async def test_operations_runtime_service_sync_jobs_closes_resources_on_success(
             初始化调度器。
 
             :param redis: Redis 客户端
-            :return: None
             """
             assert isinstance(redis, FakeRedis)
 
         @staticmethod
         async def request_scheduler_sync() -> None:
-            """
-            发送调度同步请求。
-
-            :return: None
-            """
+            """发送调度同步请求。"""
 
         @staticmethod
         async def close_system_scheduler() -> None:
-            """
-            记录调度器关闭事件。
-
-            :return: None
-            """
+            """记录调度器关闭事件。"""
             close_events.append('scheduler')
 
     gateway = OperationsInfrastructureGateway()
     service = OperationsRuntimeService(infrastructure_gateway=gateway)
 
     def _fake_get_redis_util() -> FakeRedisUtil:
+        """
+        创建测试使用的 ``FakeRedisUtil`` 实例。
+
+        :return: 测试使用的 ``FakeRedisUtil`` 实例
+        """
         return FakeRedisUtil()
 
     def _fake_get_scheduler_manager() -> FakeSchedulerManager:
+        """
+        创建测试使用的 ``FakeSchedulerManager`` 实例。
+
+        :return: 测试使用的 ``FakeSchedulerManager`` 实例
+        """
         return FakeSchedulerManager()
 
     object.__setattr__(gateway, 'get_redis_util', _fake_get_redis_util)

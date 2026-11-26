@@ -11,15 +11,14 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.database import execute_rowcount
 from plugins.core.management.entity.do.models import SysPlugin
 from plugins.core.management.entity.do.release_models import SysPluginArtifact, SysPluginRelease, SysPluginWorker
 from utils.time_util import TimezoneUtil
 
 
 class PluginReleaseConflictError(ValueError):
-    """
-    发布代际或维护证据发生并发变化，需要调用方重新读取并确认目标。
-    """
+    """发布代际或维护证据发生并发变化，需要调用方重新读取并确认目标。"""
 
 
 def _check_digest(value: str) -> None:
@@ -27,7 +26,6 @@ def _check_digest(value: str) -> None:
     校验制品摘要是否为64位小写 SHA256 字符串。
 
     :param value: 待校验的制品摘要
-    :return: None
     :raises ValueError: 摘要不是64位小写十六进制字符串
     """
     if not re.fullmatch(r'[0-9a-f]{64}', value):
@@ -39,7 +37,6 @@ def _check_generation(value: str) -> None:
     校验发布代际或进程标识是否为32位小写 UUID 十六进制字符串。
 
     :param value: 待校验的发布代际或宿主进程标识
-    :return: None
     :raises ValueError: 标识不是32位小写十六进制字符串
     """
     if not re.fullmatch(r'[0-9a-f]{32}', value):
@@ -55,7 +52,6 @@ async def _insert_if_missing(db: AsyncSession, model: Any, values: dict[str, Any
     :param db: 当前操作使用的数据库会话
     :param model: 待插入记录的 ORM 模型类
     :param values: 字段名与待插入值组成的字典
-    :return: None
     :raises ValueError: 当前数据库方言不受制品发布模块支持
     """
     dialect = db.get_bind().dialect.name
@@ -73,9 +69,7 @@ async def _insert_if_missing(db: AsyncSession, model: Any, values: dict[str, Any
 
 
 class PluginReleaseDao:
-    """
-    制品、发布目标及进程报告的数据访问层，事务提交由调用方负责。
-    """
+    """制品、发布目标及进程报告的数据访问层，事务提交由调用方负责。"""
 
     @classmethod
     async def register_artifact(
@@ -262,8 +256,8 @@ class PluginReleaseDao:
                 update_by=actor,
             )
         )
-        result = await db.execute(statement.execution_options(synchronize_session=False))
-        if result.rowcount != 1:
+        matched = await execute_rowcount(db, statement.execution_options(synchronize_session=False))
+        if matched != 1:
             raise PluginReleaseConflictError('发布代际已变化，维护准备结果未写入')
         await db.flush()
         await db.refresh(release)
@@ -333,8 +327,8 @@ class PluginReleaseDao:
                 last_error=None,
             )
         )
-        result = await db.execute(statement.execution_options(synchronize_session=False))
-        if result.rowcount != 1:
+        matched = await execute_rowcount(db, statement.execution_options(synchronize_session=False))
+        if matched != 1:
             raise PluginReleaseConflictError('发布代际或维护准备状态已变化，目标未切换')
         await db.flush()
         await db.refresh(release)

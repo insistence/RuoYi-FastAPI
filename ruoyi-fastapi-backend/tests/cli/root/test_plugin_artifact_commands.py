@@ -5,8 +5,8 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
+from unittest.mock import create_autospec
 
 import pytest
 import typer
@@ -16,6 +16,7 @@ from typer.testing import CliRunner
 
 from cli.context import CliContext
 from cli.core import CliContextFactory, CliExecutionService
+from cli.core.context_factory import CliRuntimeState
 from cli.exit_codes import ARGUMENT_ERROR, GUARD_REJECTED
 from cli.groups.plugin.artifact_controller import PluginArtifactCommandController
 from cli.groups.plugin.commands.artifact import register_artifact_commands
@@ -31,6 +32,8 @@ EXPECTED_WORKERS = 3
 def preserve_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     隔离测试对当前应用环境的修改。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
     """
     monkeypatch.setenv('APP_ENV', os.environ.get('APP_ENV', 'dev'))
 
@@ -38,13 +41,29 @@ def preserve_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 class CapturingController:
     """
     记录命令转发参数的控制器替身。
+
+    :ivar calls: 测试替身记录的调用信息
     """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``calls``。"""
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
 
     def __getattr__(self, name: str) -> Any:
+        """
+        处理测试替身上的动态属性访问。
+
+        :param name: 用于查找或标识当前对象的名称
+        :return: 供调用方使用的 ``capture``
+        """
+
         def capture(*args: Any, **kwargs: Any) -> None:
+            """
+            保存调用参数供断言使用。
+
+            :param args: 传给被调用对象的位置参数
+            :param kwargs: 传给被调用对象的关键字参数
+            """
             self.calls.append((name, args, kwargs))
 
         return capture
@@ -53,6 +72,9 @@ class CapturingController:
 def app_for(controller: Any) -> typer.Typer:
     """
     构建仅包含被测插件命令的 Typer 应用。
+
+    :param controller: 接受请求的控制器
+    :return: 仅包含被测插件命令的 Typer 应用
     """
     app = typer.Typer()
     register_artifact_commands(app, lambda: controller)
@@ -193,9 +215,7 @@ def app_for(controller: Any) -> typer.Typer:
 def test_cli_dispatches_artifact_and_release_parameters(
     arguments: list[str], method: str, options: dict[str, Any]
 ) -> None:
-    """
-    验证制品与发布命令将参数完整转交控制器。
-    """
+    """验证制品与发布命令将参数完整转交控制器。"""
     controller = CapturingController()
     result = CliRunner().invoke(app_for(controller), [*arguments, '--env', 'test', '--output', 'json'])
     assert result.exit_code == 0, result.output
@@ -218,9 +238,7 @@ def test_cli_dispatches_artifact_and_release_parameters(
     ],
 )
 def test_cli_rejects_missing_concurrency_token_and_unsupported_flags(arguments: list[str]) -> None:
-    """
-    验证缺失发布代际和不支持的选项会被拒绝。
-    """
+    """验证缺失发布代际和不支持的选项会被拒绝。"""
     controller = CapturingController()
     result = CliRunner().invoke(app_for(controller), arguments)
     assert result.exit_code == ARGUMENT_ERROR
@@ -238,9 +256,7 @@ def test_cli_rejects_missing_concurrency_token_and_unsupported_flags(arguments: 
     ],
 )
 def test_help_keeps_config_crypto_database_and_plugin_code_unloaded(help_arguments: list[str]) -> None:
-    """
-    验证帮助查询不加载配置、加密、数据库或插件代码。
-    """
+    """验证帮助查询不加载配置、加密、数据库或插件代码。"""
     observed = (
         'config.env',
         'config.database',
@@ -265,60 +281,103 @@ def test_help_keeps_config_crypto_database_and_plugin_code_unloaded(help_argumen
     assert not any(payload['loaded'].values())
 
 
-class RecordingContextFactory:
+class RecordingContextFactory(CliContextFactory):
     """
     记录上下文创建顺序的工厂替身。
+
+    :ivar events: 保存已发出事件的序列
     """
 
     def __init__(self, events: list[str]) -> None:
+        """
+        初始化测试夹具的 ``events``。
+
+        :param events: 保存已发出事件的序列
+        """
         self.events = events
 
     def build_regular(self, env: str, output: str, allow_prod: bool, yes: bool, dry_run: bool) -> CliContext:
+        """
+        保存上下文创建顺序和 CLI 选项。
+
+        :param env: 当前运行环境
+        :param output: 命令或操作的输出
+        :param allow_prod: 是否允许生产环境危险命令
+        :param yes: 是否跳过交互确认
+        :param dry_run: 是否只预览操作结果
+        :return: ``CliContext`` 实例
+        """
         self.events.append('context')
+        assert output in {'text', 'json'}
         return CliContext(env=env, output=output, allow_prod=allow_prod, yes=yes, dry_run=dry_run)
 
     def build_dangerous(
         self, env: str, output: str, allow_prod: bool, yes: bool, dry_run: bool, *, command_name: str
     ) -> CliContext:
+        """
+        捕获危险命令名称并构建测试上下文。
+
+        :param env: 当前运行环境
+        :param output: 命令或操作的输出
+        :param allow_prod: 是否允许生产环境危险命令
+        :param yes: 是否跳过交互确认
+        :param dry_run: 是否只预览操作结果
+        :param command_name: 命令唯一标识
+        :return: 带危险操作名称的测试上下文
+        """
         self.events.append(command_name)
         return self.build_regular(env, output, allow_prod, yes, dry_run)
 
 
-class RecordingExecution:
+class RecordingExecution(CliExecutionService):
     """
     记录命令结果的执行服务替身。
+
+    :ivar payload: 随调用传入或返回的结构化数据
     """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``payload``。"""
         self.payload: dict[str, Any] = {}
 
     @staticmethod
     def run_async(coroutine: Any) -> Any:
+        """
+        在事件循环中执行传入的协程。
+
+        :param coroutine: 需要调度的协程
+        :return: 协程执行完毕后的返回值
+        """
         return asyncio.run(coroutine)
 
-    def complete_payload(self, ctx: CliContext, payload: dict[str, Any]) -> None:
+    def complete_payload(self, ctx: CliContext, payload: dict[str, Any], *, default_exit_code: int = 0) -> None:
+        """
+        保存 CLI 命令最终输出的结果。
+
+        :param ctx: CLI 运行上下文
+        :param default_exit_code: 默认退出码
+        :param payload: 随调用传入或返回的结构化数据
+        """
         self.payload = payload
 
 
 def quiet_context_factory() -> CliContextFactory:
     """
     创建不初始化日志输出的测试上下文工厂。
+
+    :return: 不初始化日志输出的测试上下文工厂
     """
-    return CliContextFactory(
-        runtime_state=SimpleNamespace(suppress_logs=lambda: None, suppress_sqlalchemy_logs=lambda: None)
-    )
+    return CliContextFactory(runtime_state=create_autospec(CliRuntimeState, instance=True, spec_set=True))
 
 
 def test_production_mutations_are_guarded_before_loading_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    验证生产写入保护先于运行时加载执行。
-    """
-
+    """验证生产写入保护先于运行时加载执行。"""
     env_module = importlib.import_module('config.env')
     monkeypatch.setattr(env_module.get_config, 'run_env', 'prod')
     monkeypatch.setattr(env_module.AppConfig, 'app_env', 'prod')
 
     def forbidden_config() -> None:
+        """若执行到此操作则立即使测试失败。"""
         pytest.fail('rejected CLI must not construct runtime')
 
     controller = PluginArtifactCommandController(
@@ -344,21 +403,34 @@ def test_production_mutations_are_guarded_before_loading_runtime(monkeypatch: py
 
 
 def test_dry_run_is_readonly_and_environment_precedes_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    验证预演保持只读，且不会用配置选择名覆盖外部应用环境。
-    """
+    """验证预演保持只读，且不会用配置选择名覆盖外部应用环境。"""
     monkeypatch.setenv('APP_ENV', 'dev')
     events: list[str] = []
     execution = RecordingExecution()
 
     def config() -> object:
+        """
+        记录配置加载期间使用的环境和调用顺序。
+
+        :return: 代表已加载配置的测试对象
+        """
         assert events == ['context']
         assert os.environ['APP_ENV'] == 'dev'
         events.append('config')
         return object()
 
     class Catalog:
+        """提供插件制品目录的测试替身。"""
+
         async def import_artifact(self, path: Path, *, actor: str, dry_run: bool) -> dict[str, Any]:
+            """
+            校验制品导入参数并返回预演结果。
+
+            :param path: 要读取或处理的路径
+            :param actor: 发起操作的主体
+            :param dry_run: 是否只预览操作结果
+            :return: 预演结果
+            """
             assert actor
             assert dry_run
             return {'ok': True, 'dryRun': dry_run}
@@ -375,16 +447,30 @@ def test_dry_run_is_readonly_and_environment_precedes_runtime(monkeypatch: pytes
 
 
 def test_controller_forwards_maintenance_cas_and_schema_compatibility() -> None:
-    """
-    验证维护、并发校验与数据兼容选项完整传递。
-    """
+    """验证维护、并发校验与数据兼容选项完整传递。"""
     events: list[str] = []
     execution = RecordingExecution()
     calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
 
     class Service:
+        """捕获发往插件服务的动态方法调用。"""
+
         def __getattr__(self, name: str) -> Any:
+            """
+            处理测试替身上的动态属性访问。
+
+            :param name: 用于查找或标识当前对象的名称
+            :return: 需要执行或验证的调用
+            """
+
             async def call(*args: Any, **kwargs: Any) -> dict[str, Any]:
+                """
+                记录动态方法名及参数，并返回成功结果。
+
+                :param args: 传给被调用对象的位置参数
+                :param kwargs: 传给被调用对象的关键字参数
+                :return: 成功结果
+                """
                 calls.append((name, args, kwargs))
                 return {'ok': True}
 
@@ -431,9 +517,7 @@ def test_controller_forwards_maintenance_cas_and_schema_compatibility() -> None:
 def test_offline_build_encrypted_key_never_imports_plugin_or_requires_feature_config(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """
-    验证离线构建使用加密私钥且不导入插件或部署配置。
-    """
+    """验证离线构建使用加密私钥且不导入插件或部署配置。"""
     source = tmp_path / 'artifact_demo'
     source.mkdir()
     (source / 'plugin.yaml').write_text(
@@ -455,6 +539,7 @@ def test_offline_build_encrypted_key_never_imports_plugin_or_requires_feature_co
     execution = RecordingExecution()
 
     def forbidden_config() -> None:
+        """若执行到此操作则立即使测试失败。"""
         pytest.fail('offline build must not require feature config')
 
     controller = PluginArtifactCommandController(
@@ -488,14 +573,21 @@ def test_offline_build_encrypted_key_never_imports_plugin_or_requires_feature_co
 
 @pytest.mark.parametrize('enabled', [True, False])
 def test_controller_enablement_forwards_maintenance_and_cas(enabled: bool) -> None:
-    """
-    验证制品启停传递维护确认与发布代际。
-    """
+    """验证制品启停传递维护确认与发布代际。"""
     recorded: dict[str, Any] = {}
 
     class Enablement:
+        """模拟插件启用状态的更新。"""
+
         @staticmethod
         async def set_enabled(plugin_id: str, **kwargs: Any) -> dict[str, Any]:
+            """
+            捕获插件启用状态的变更请求。
+
+            :param plugin_id: 插件清单中的唯一标识
+            :param kwargs: 传给被调用对象的关键字参数
+            :return: 包含 ``ok``、``restartRequired`` 的数据
+            """
             recorded.update(pluginId=plugin_id, **kwargs)
             return {'ok': True, 'restartRequired': True}
 

@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import pytest
 
 from module_identity.redis_keys import OidcRedisKey
@@ -7,6 +9,7 @@ _SHA256_HEX_LENGTH = 64
 
 
 def test_oidc_keys_are_isolated_from_legacy_access_token_namespace() -> None:
+    """OIDC 密钥与旧访问令牌的命名空间隔离。"""
     keys = [
         OidcRedisKey.interaction('interaction-id'),
         OidcRedisKey.authorization_code('code-id'),
@@ -19,6 +22,7 @@ def test_oidc_keys_are_isolated_from_legacy_access_token_namespace() -> None:
 
 
 def test_sensitive_identifiers_use_independent_32_byte_pepper() -> None:
+    """敏感标识使用独立的 32 字节 pepper。"""
     pepper = 'independent-pepper-value-' + 'x' * 8
     digest = OidcUtil.hash_sensitive_identifier('user@example.com', pepper)
 
@@ -28,18 +32,26 @@ def test_sensitive_identifiers_use_independent_32_byte_pepper() -> None:
 
     with pytest.raises(ValueError):
         OidcUtil.hash_sensitive_identifier('user@example.com', 'short')
-    with pytest.raises(TypeError):
-        OidcUtil.hash_sensitive_identifier('user@example.com', 123)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize('value', ['../escape', 'space value', 'a' * 129])
 def test_unsafe_key_components_are_rejected(value: str) -> None:
+    """拒绝不安全的键组成部分。"""
     with pytest.raises(ValueError):
         OidcRedisKey.interaction(value)
 
 
 def test_digest_components_must_be_sha256_hex() -> None:
+    """摘要组件必须使用 SHA-256 十六进制格式。"""
     with pytest.raises(ValueError):
         OidcRedisKey.sso_cookie('not-a-digest')
+
+
+@pytest.mark.parametrize(
+    ('operation', 'args'),
+    [(OidcUtil.hash_sensitive_identifier, ('user@example.com', 123)), (OidcRedisKey.sso_cookie, (123,))],
+)
+def test_identifier_helpers_reject_non_string_input(operation: Callable[..., str], args: tuple[object, ...]) -> None:
+    """敏感标识和摘要键遇到类型错误的输入时抛出类型异常。"""
     with pytest.raises(TypeError):
-        OidcRedisKey.sso_cookie(123)  # type: ignore[arg-type]
+        operation(*args)

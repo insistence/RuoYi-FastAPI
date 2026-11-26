@@ -4,14 +4,14 @@ import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
 TASK_PLUGIN_ID = 'task_demo'
 LEGACY_TASK_ID = '0123456789abcdef0123456789abcdef'
-LEGACY_CREATED_AT = datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+LEGACY_CREATED_AT = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
 EXPECTED_MIGRATIONS = 2
 
 
@@ -23,6 +23,8 @@ def build_task_artifacts(source: Path, root: Path, trust_file: Path) -> tuple[Pa
     :param root: 本次验收专用且尚不存在的输出目录
     :param trust_file: 本次验收使用的临时发布者公钥文件
     :return: 旧结构夹具和当前业务插件的签名制品路径
+    :raises ValueError: 交付构建输出目录已存在
+    :raises RuntimeError: 任务包构建子进程失败
     """
     import yaml  # noqa: PLC0415
     from cryptography.hazmat.primitives import serialization  # noqa: PLC0415
@@ -86,6 +88,7 @@ async def exercise_task_delivery(service: Any, sessions: Any, source: Path, root
     :param source: 包含已构建页面的 task_demo 源码目录
     :param root: 当前任务验收专用的新输出目录
     :return: 可用于 CI 输出的验收结果摘要
+    :raises AssertionError: 迁移执行次数不符或不可变制品出现写入
     """
     from sqlalchemy import select, text  # noqa: PLC0415
 
@@ -150,8 +153,9 @@ async def exercise_task_api(plugin: Any, sessions: Any) -> None:
 
     :param plugin: 从签名制品目录发现的任务插件
     :param sessions: 隔离数据库会话工厂
-    :return: None
+    :raises AssertionError: 迁移改变原业务数据、权限边界失效或 CRUD 结果不符
     """
+    from fastapi import FastAPI  # noqa: PLC0415
     from httpx import ASGITransport, AsyncClient  # noqa: PLC0415
 
     from plugins.core.runtime.entrypoint import PluginEntrypointLoader  # noqa: PLC0415
@@ -159,11 +163,20 @@ async def exercise_task_api(plugin: Any, sessions: Any) -> None:
 
     host = PluginHostContext(TASK_PLUGIN_ID, plugin.backend_path, session_factory=sessions)
     definition = PluginEntrypointLoader(plugin).load(host)
+    assert definition.app_factory is not None, '任务插件缺少应用工厂'
     app = definition.app_factory(host)
+    assert isinstance(app, FastAPI), '任务插件必须提供 FastAPI 子应用'
     permissions = frozenset({'task_demo:view', 'task_demo:write'})
 
     @app.middleware('http')
     async def authenticated_fixture(request: Any, call_next: Any) -> Any:
+        """
+        为任务插件的集成检查提供已认证请求上下文。
+
+        :param request: 当前 HTTP 请求
+        :param call_next: 调用下一层请求处理器的异步回调
+        :return: 带有插件请求上下文的下游响应
+        """
         request.state.plugin_context = PluginRequestContext(host, user=None, permissions=permissions)
         return await call_next(request)
 

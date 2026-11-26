@@ -17,7 +17,6 @@ def register_artifact_maintenance_commands(app: typer.Typer, get_controller: Cal
 
     :param app: 制品命令组
     :param get_controller: 延迟获取命令控制器的工厂
-    :return: None
     """
 
     @app.command('inspect', help='核对存储和索引，列出保护引用、孤儿对象与无效制品')
@@ -34,7 +33,6 @@ def register_artifact_maintenance_commands(app: typer.Typer, get_controller: Cal
         :param min_age_days: 最短保留天数
         :param env: 当前命令环境
         :param output: 输出格式
-        :return: None
         """
         get_controller().maintain_artifacts(
             'inspect',
@@ -70,7 +68,6 @@ def register_artifact_maintenance_commands(app: typer.Typer, get_controller: Cal
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境变更
         :param yes: 是否跳过交互确认
-        :return: None
         """
         get_controller().maintain_artifacts(
             'prune',
@@ -107,7 +104,6 @@ def register_artifact_maintenance_commands(app: typer.Typer, get_controller: Cal
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境变更
         :param yes: 是否跳过交互确认
-        :return: None
         """
         get_controller().maintain_artifacts(
             'rotate-signature',
@@ -138,7 +134,6 @@ def register_artifact_maintenance_commands(app: typer.Typer, get_controller: Cal
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境变更
         :param yes: 是否跳过交互确认
-        :return: None
         """
         get_controller().maintain_artifacts(
             'reconcile',

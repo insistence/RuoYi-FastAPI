@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import FastAPI, Request
+from fastapi.routing import APIRoute
 
 from common.aspect.interface_auth import CheckUserInterfaceAuth
 from module_plugin.controller.plugin_metrics_controller import (
@@ -18,6 +19,7 @@ from plugins.core.runtime.metrics_store import PluginMetricsReporter
 def test_runtime_metrics_endpoint_is_readonly_and_permission_gated() -> None:
     """运行指标仅通过受插件查询权限保护的 GET 接口公开。"""
     route = plugin_metrics_controller.routes[0]
+    assert isinstance(route, APIRoute)
     assert route.path == '/system/plugin/runtime/metrics'
     assert route.methods == {'GET'}
     assert any(
@@ -31,7 +33,7 @@ def test_runtime_metrics_endpoint_is_readonly_and_permission_gated() -> None:
 async def test_metrics_endpoint_without_explicit_runtime_reports_unsupported() -> None:
     """未加载显式插件时不可用状态不能伪装成全部指标为零。"""
     response = await get_plugin_runtime_metrics(Request({'type': 'http', 'app': FastAPI()}))
-    payload = json.loads(response.body)['data']
+    payload = json.loads(bytes(response.body))['data']
     assert payload['supported'] is False
     assert payload['scope'] == 'unavailable'
 
@@ -44,14 +46,18 @@ async def test_metrics_endpoint_forwards_plugin_filter() -> None:
     reporter.read = AsyncMock(return_value={'ok': True, 'scope': 'current_worker', 'series': []})
     app.state.plugin_metrics_reporter = reporter
     response = await get_plugin_runtime_metrics(Request({'type': 'http', 'app': app}), 'metric_demo')
-    assert json.loads(response.body)['data']['scope'] == 'current_worker'
+    assert json.loads(bytes(response.body))['data']['scope'] == 'current_worker'
     reporter.read.assert_awaited_once_with('metric_demo')
 
 
 @pytest.mark.asyncio
 async def test_config_status_is_query_gated_and_never_exposes_config_values(monkeypatch: pytest.MonkeyPatch) -> None:
     """读取敏感配置只用于计算版本，API 与无指标场景均不回显明文。"""
-    route = next(route for route in plugin_metrics_controller.routes if route.path.endswith('/config/status'))
+    route = next(
+        route
+        for route in plugin_metrics_controller.routes
+        if isinstance(route, APIRoute) and route.path.endswith('/config/status')
+    )
     assert route.methods == {'GET'}
     assert any(
         isinstance(dependency.dependency, CheckUserInterfaceAuth)
@@ -71,10 +77,10 @@ async def test_config_status_is_query_gated_and_never_exposes_config_values(monk
         lambda: runtime,
     )
     response = await get_plugin_config_status(Request({'type': 'http', 'app': FastAPI()}), 'config_demo')
-    data = json.loads(response.body)['data']
+    data = json.loads(bytes(response.body))['data']
     assert data['state'] == 'unobserved' and data['scope'] == 'unavailable'
-    assert 'private-config-secret' not in response.body.decode() and 'api_key' not in response.body.decode()
+    assert b'private-config-secret' not in bytes(response.body) and b'api_key' not in bytes(response.body)
     runtime.get_plugin_config.assert_awaited_once_with('config_demo', reveal_secret=True)
     runtime.get_plugin_config.return_value = {'ok': False, 'message': 'private exception value'}
     failure = await get_plugin_config_status(Request({'type': 'http', 'app': FastAPI()}), 'config_demo')
-    assert 'private exception value' not in failure.body.decode()
+    assert b'private exception value' not in bytes(failure.body)

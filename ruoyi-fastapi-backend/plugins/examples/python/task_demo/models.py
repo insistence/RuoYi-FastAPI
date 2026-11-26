@@ -10,13 +10,13 @@ metadata = MetaData()
 tasks = Table(
     'ruoyi_plugin_task_demo',
     metadata,
-    Column('id', String(32), primary_key=True),
-    Column('title', String(120), nullable=False),
-    Column('description', String(500), nullable=False, server_default=''),
-    Column('status', String(4), nullable=False, server_default='todo'),
-    Column('created_at', DbUtcDateTime, nullable=False),
-    Column('updated_at', DbUtcDateTime, nullable=False),
-    Column('priority', String(6), nullable=False, server_default='normal'),
+    Column('id', String(32), primary_key=True, comment='任务标识'),
+    Column('title', String(120), nullable=False, comment='任务标题'),
+    Column('description', String(500), nullable=False, server_default='', comment='任务内容说明'),
+    Column('status', String(4), nullable=False, server_default='todo', comment='任务完成状态'),
+    Column('created_at', DbUtcDateTime, nullable=False, comment='任务创建时间'),
+    Column('updated_at', DbUtcDateTime, nullable=False, comment='任务更新时间'),
+    Column('priority', String(6), nullable=False, server_default='normal', comment='任务优先级'),
     CheckConstraint("status IN ('todo', 'done')", name='ck_task_demo_status'),
     CheckConstraint("priority IN ('normal', 'high')", name='ck_task_demo_priority'),
 )
@@ -27,10 +27,12 @@ class TaskInput(BaseModel):
 
     model_config = ConfigDict(extra='forbid')
 
-    title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
-    description: str = Field(default='', max_length=500)
-    status: Literal['todo', 'done'] = 'todo'
-    priority: Literal['normal', 'high'] = 'normal'
+    title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)] = Field(
+        description='任务标题'
+    )
+    description: str = Field(default='', max_length=500, description='任务内容说明')
+    status: Literal['todo', 'done'] = Field(default='todo', description='当前状态')
+    priority: Literal['normal', 'high'] = Field(default='normal', description='任务优先级')
 
     @field_validator('title', 'description')
     @classmethod
@@ -40,6 +42,7 @@ class TaskInput(BaseModel):
 
         :param value: 标题或描述文本
         :return: 已校验的文本
+        :raises ValueError: 文本不能包含不可显示的控制字符
         """
         if any(ord(character) < MIN_PRINTABLE_CODEPOINT and character not in '\n\r\t' for character in value):
             raise ValueError('文本不能包含不可显示的控制字符')
@@ -51,12 +54,12 @@ class TaskQuery(BaseModel):
 
     model_config = ConfigDict(extra='forbid')
 
-    page: int = Field(default=1, ge=1, le=1_000_000)
-    page_size: int = Field(default=10, ge=1, le=20, alias='pageSize')
-    status: Literal['todo', 'done'] | None = None
+    page: int = Field(default=1, ge=1, le=1_000_000, description='查询页码')
+    page_size: int = Field(default=10, ge=1, le=20, alias='pageSize', description='每页返回的记录数')
+    status: Literal['todo', 'done'] | None = Field(default=None, description='当前状态')
 
 
 class TaskIdentifier(BaseModel):
     """用于路径参数的插件任务标识。"""
 
-    id: str = Field(pattern=r'^[0-9a-f]{32}$')
+    id: str = Field(pattern=r'^[0-9a-f]{32}$', description='任务标识')

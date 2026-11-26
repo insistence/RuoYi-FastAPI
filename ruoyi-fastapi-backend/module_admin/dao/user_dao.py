@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, TypedDict
 
-from sqlalchemy import ColumnElement, and_, delete, desc, func, or_, select, update
+from sqlalchemy import ColumnElement, and_, delete, desc, func, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -24,15 +24,31 @@ from utils.page_util import PageUtil
 from utils.time_util import TimezoneUtil
 
 
+class UserDetailRecord(TypedDict):
+    """
+    用户详情查询返回的资料和关联记录。
+
+    :ivar user_basic_info: 用户基本资料，未找到时为空
+    :ivar user_dept_info: 用户所属部门
+    :ivar user_role_info: 用户角色
+    :ivar user_post_info: 用户岗位
+    :ivar user_menu_info: 用户可访问的菜单
+    """
+
+    user_basic_info: SysUser | None
+    user_dept_info: SysDept | None
+    user_role_info: Sequence[SysRole]
+    user_post_info: Sequence[SysPost]
+    user_menu_info: Sequence[SysMenu]
+
+
 class UserDao:
-    """
-    用户管理模块数据库操作层
-    """
+    """用户管理模块数据库操作层。"""
 
     @classmethod
     async def get_user_by_name(cls, db: AsyncSession, user_name: str) -> SysUser | None:
         """
-        根据用户名获取用户信息
+        根据用户名获取用户信息。
 
         :param db: orm对象
         :param user_name: 用户名
@@ -56,7 +72,7 @@ class UserDao:
     @classmethod
     async def get_role_ids(cls, db: AsyncSession, user_id: int) -> set[int]:
         """
-        查询用户当前关联的角色ID
+        查询用户当前关联的角色ID。
 
         :param db: orm对象
         :param user_id: 用户id
@@ -68,7 +84,7 @@ class UserDao:
     @classmethod
     async def get_user_by_info(cls, db: AsyncSession, user: UserModel) -> SysUser | None:
         """
-        根据用户参数获取用户信息
+        根据用户参数获取用户信息。
 
         :param db: orm对象
         :param user: 用户参数
@@ -80,9 +96,9 @@ class UserDao:
                     select(SysUser)
                     .where(
                         SysUser.del_flag == '0',
-                        SysUser.user_name == user.user_name if user.user_name else True,
-                        SysUser.phonenumber == user.phonenumber if user.phonenumber else True,
-                        SysUser.email == user.email if user.email else True,
+                        SysUser.user_name == user.user_name if user.user_name else true(),
+                        SysUser.phonenumber == user.phonenumber if user.phonenumber else true(),
+                        SysUser.email == user.email if user.email else true(),
                     )
                     .order_by(desc(SysUser.create_time))
                     .distinct()
@@ -97,7 +113,7 @@ class UserDao:
     @classmethod
     async def get_user_by_id(cls, db: AsyncSession, user_id: int, *, for_auth: bool = False) -> dict[str, Any]:
         """
-        根据user_id获取用户信息
+        根据user_id获取用户信息。
 
         :param db: orm对象
         :param user_id: 用户id
@@ -192,9 +208,9 @@ class UserDao:
         return results
 
     @classmethod
-    async def get_user_detail_by_id(cls, db: AsyncSession, user_id: int) -> dict[str, Any]:
+    async def get_user_detail_by_id(cls, db: AsyncSession, user_id: int) -> UserDetailRecord:
         """
-        根据user_id获取用户详细信息
+        根据user_id获取用户详细信息。
 
         :param db: orm对象
         :param user_id: 用户id
@@ -272,7 +288,7 @@ class UserDao:
             .scalars()
             .all()
         )
-        results = {
+        return {
             'user_basic_info': query_user_basic_info,
             'user_dept_info': query_user_dept_info,
             'user_role_info': query_user_role_info,
@@ -280,14 +296,16 @@ class UserDao:
             'user_menu_info': query_user_menu_info,
         }
 
-        return results
-
     @classmethod
     async def get_user_list(
-        cls, db: AsyncSession, query_object: UserPageQueryModel, data_scope_sql: ColumnElement, is_page: bool = False
-    ) -> PageModel | list[list[dict[str, Any]]]:
+        cls,
+        db: AsyncSession,
+        query_object: UserPageQueryModel,
+        data_scope_sql: ColumnElement[bool],
+        is_page: bool = False,
+    ) -> PageModel[list[dict[str, Any] | None]] | list[list[dict[str, Any] | None]]:
         """
-        根据查询参数获取用户列表信息
+        根据查询参数获取用户列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -309,16 +327,16 @@ class UserDao:
                     ),
                 )
                 if query_object.dept_id
-                else True,
-                SysUser.user_id == query_object.user_id if query_object.user_id is not None else True,
-                SysUser.user_name.like(f'%{query_object.user_name}%') if query_object.user_name else True,
-                SysUser.nick_name.like(f'%{query_object.nick_name}%') if query_object.nick_name else True,
-                SysUser.email.like(f'%{query_object.email}%') if query_object.email else True,
-                SysUser.phonenumber.like(f'%{query_object.phonenumber}%') if query_object.phonenumber else True,
-                SysUser.status == query_object.status if query_object.status else True,
-                SysUser.sex == query_object.sex if query_object.sex else True,
-                SysUser.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysUser.create_time < time_range[1] if time_range and time_range[1] is not None else True,
+                else true(),
+                SysUser.user_id == query_object.user_id if query_object.user_id is not None else true(),
+                SysUser.user_name.like(f'%{query_object.user_name}%') if query_object.user_name else true(),
+                SysUser.nick_name.like(f'%{query_object.nick_name}%') if query_object.nick_name else true(),
+                SysUser.email.like(f'%{query_object.email}%') if query_object.email else true(),
+                SysUser.phonenumber.like(f'%{query_object.phonenumber}%') if query_object.phonenumber else true(),
+                SysUser.status == query_object.status if query_object.status else true(),
+                SysUser.sex == query_object.sex if query_object.sex else true(),
+                SysUser.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysUser.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
                 data_scope_sql,
             )
             .join(
@@ -329,7 +347,7 @@ class UserDao:
             .order_by(SysUser.user_id)
             .distinct()
         )
-        user_list: PageModel | list[list[dict[str, Any]]] = await PageUtil.paginate(
+        user_list: PageModel[list[dict[str, Any] | None]] | list[list[dict[str, Any] | None]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -338,7 +356,7 @@ class UserDao:
     @classmethod
     async def add_user_dao(cls, db: AsyncSession, user: UserModel) -> SysUser:
         """
-        新增用户数据库操作
+        新增用户数据库操作。
 
         :param db: orm对象
         :param user: 用户对象
@@ -351,13 +369,14 @@ class UserDao:
         return db_user
 
     @classmethod
-    async def edit_user_dao(cls, db: AsyncSession, user: dict) -> dict[str, str] | None:
+    async def edit_user_dao(cls, db: AsyncSession, user: dict[str, Any]) -> dict[str, str] | None:
         """
-        编辑用户数据库操作
+        编辑用户数据库操作。
 
         :param db: orm对象
         :param user: 需要更新的用户字典
         :return: 写入语言偏好时返回该事务的偏好和版本，其他修改返回 None
+        :raises ServiceException: 用户不存在
         """
         values = {
             key: value for key, value in user.items() if key not in {'create_time', 'update_time', 'locale_revision'}
@@ -382,11 +401,10 @@ class UserDao:
     @classmethod
     async def delete_user_dao(cls, db: AsyncSession, user: UserModel) -> None:
         """
-        删除用户数据库操作
+        删除用户数据库操作。
 
         :param db: orm对象
         :param user: 用户对象
-        :return:
         """
         await db.execute(
             update(SysUser).where(SysUser.user_id == user.user_id).values(del_flag='2', update_by=user.update_by)
@@ -397,7 +415,7 @@ class UserDao:
         cls, db: AsyncSession, query_object: UserRoleQueryModel
     ) -> Sequence[SysRole]:
         """
-        根据用户id获取用户已分配的角色列表信息数据库操作
+        根据用户id获取用户已分配的角色列表信息数据库操作。
 
         :param db: orm对象
         :param query_object: 用户角色查询对象
@@ -410,8 +428,8 @@ class UserDao:
                     .where(
                         SysRole.del_flag == '0',
                         SysRole.role_id != 1,
-                        SysRole.role_name == query_object.role_name if query_object.role_name else True,
-                        SysRole.role_key == query_object.role_key if query_object.role_key else True,
+                        SysRole.role_name == query_object.role_name if query_object.role_name else true(),
+                        SysRole.role_key == query_object.role_key if query_object.role_key else true(),
                         SysRole.role_id.in_(
                             select(SysUserRole.role_id).where(SysUserRole.user_id == query_object.user_id)
                         ),
@@ -430,11 +448,11 @@ class UserDao:
         cls,
         db: AsyncSession,
         query_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据角色id获取已分配的用户列表信息
+        根据角色id获取已分配的用户列表信息。
 
         :param db: orm对象
         :param query_object: 用户角色查询对象
@@ -449,14 +467,14 @@ class UserDao:
             .join(SysRole, SysRole.role_id == SysUserRole.role_id, isouter=True)
             .where(
                 SysUser.del_flag == '0',
-                SysUser.user_name == query_object.user_name if query_object.user_name else True,
-                SysUser.phonenumber == query_object.phonenumber if query_object.phonenumber else True,
+                SysUser.user_name == query_object.user_name if query_object.user_name else true(),
+                SysUser.phonenumber == query_object.phonenumber if query_object.phonenumber else true(),
                 SysRole.role_id == query_object.role_id,
                 data_scope_sql,
             )
             .distinct()
         )
-        allocated_user_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        allocated_user_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -467,11 +485,11 @@ class UserDao:
         cls,
         db: AsyncSession,
         query_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据角色id获取未分配的用户列表信息
+        根据角色id获取未分配的用户列表信息。
 
         :param db: orm对象
         :param query_object: 用户角色查询对象
@@ -486,8 +504,8 @@ class UserDao:
             .join(SysRole, SysRole.role_id == SysUserRole.role_id, isouter=True)
             .where(
                 SysUser.del_flag == '0',
-                SysUser.user_name == query_object.user_name if query_object.user_name else True,
-                SysUser.phonenumber == query_object.phonenumber if query_object.phonenumber else True,
+                SysUser.user_name == query_object.user_name if query_object.user_name else true(),
+                SysUser.phonenumber == query_object.phonenumber if query_object.phonenumber else true(),
                 or_(SysRole.role_id != query_object.role_id, SysRole.role_id.is_(None)),
                 ~SysUser.user_id.in_(
                     select(SysUser.user_id)
@@ -501,7 +519,7 @@ class UserDao:
             )
             .distinct()
         )
-        unallocated_user_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        unallocated_user_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -510,11 +528,10 @@ class UserDao:
     @classmethod
     async def add_user_role_dao(cls, db: AsyncSession, user_role: UserRoleModel) -> None:
         """
-        新增用户角色关联信息数据库操作
+        新增用户角色关联信息数据库操作。
 
         :param db: orm对象
         :param user_role: 用户角色关联对象
-        :return:
         """
         db_user_role = SysUserRole(**user_role.model_dump())
         db.add(db_user_role)
@@ -522,34 +539,32 @@ class UserDao:
     @classmethod
     async def delete_user_role_dao(cls, db: AsyncSession, user_role: UserRoleModel) -> None:
         """
-        删除用户角色关联信息数据库操作
+        删除用户角色关联信息数据库操作。
 
         :param db: orm对象
         :param user_role: 用户角色关联对象
-        :return:
         """
         await db.execute(delete(SysUserRole).where(SysUserRole.user_id.in_([user_role.user_id])))
 
     @classmethod
     async def delete_user_role_by_user_and_role_dao(cls, db: AsyncSession, user_role: UserRoleModel) -> None:
         """
-        根据用户id及角色id删除用户角色关联信息数据库操作
+        根据用户id及角色id删除用户角色关联信息数据库操作。
 
         :param db: orm对象
         :param user_role: 用户角色关联对象
-        :return:
         """
         await db.execute(
             delete(SysUserRole).where(
-                SysUserRole.user_id == user_role.user_id if user_role.user_id else True,
-                SysUserRole.role_id == user_role.role_id if user_role.role_id else True,
+                SysUserRole.user_id == user_role.user_id if user_role.user_id else true(),
+                SysUserRole.role_id == user_role.role_id if user_role.role_id else true(),
             )
         )
 
     @classmethod
     async def get_user_role_detail(cls, db: AsyncSession, user_role: UserRoleModel) -> SysUserRole | None:
         """
-        根据用户角色关联获取用户角色关联详细信息
+        根据用户角色关联获取用户角色关联详细信息。
 
         :param db: orm对象
         :param user_role: 用户角色关联对象
@@ -572,11 +587,10 @@ class UserDao:
     @classmethod
     async def add_user_post_dao(cls, db: AsyncSession, user_post: UserPostModel) -> None:
         """
-        新增用户岗位关联信息数据库操作
+        新增用户岗位关联信息数据库操作。
 
         :param db: orm对象
         :param user_post: 用户岗位关联对象
-        :return:
         """
         db_user_post = SysUserPost(**user_post.model_dump())
         db.add(db_user_post)
@@ -584,16 +598,22 @@ class UserDao:
     @classmethod
     async def delete_user_post_dao(cls, db: AsyncSession, user_post: UserPostModel) -> None:
         """
-        删除用户岗位关联信息数据库操作
+        删除用户岗位关联信息数据库操作。
 
         :param db: orm对象
         :param user_post: 用户岗位关联对象
-        :return:
         """
         await db.execute(delete(SysUserPost).where(SysUserPost.user_id.in_([user_post.user_id])))
 
     @classmethod
     async def get_user_dept_info(cls, db: AsyncSession, dept_id: int) -> SysDept | None:
+        """
+        查询用户关联的部门信息。
+
+        :param db: 当前操作使用的数据库会话
+        :param dept_id: 部门id
+        :return: 用户关联的部门信息
+        """
         dept_basic_info = (
             (
                 await db.execute(

@@ -1,5 +1,9 @@
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TypeVar
+
+from typer import Typer
 
 from cli.core import (
     DEFAULT_CORE_SERVICES,
@@ -8,22 +12,24 @@ from cli.core import (
     ProjectRuntimeLocator,
 )
 
+ResultT = TypeVar('ResultT')
+
 
 @dataclass(frozen=True)
 class CliImportArgvScope:
     """
     CLI 导入期参数作用域。
 
-    该对象负责在根应用构建阶段暂时切换 `sys.argv`，只保留导入期
-    需要的最小参数集，避免该过程继续以内联 `try/finally` 形式散落
+    该对象负责在根应用构建阶段暂时切换 ``sys.argv``，只保留导入期
+    需要的最小参数集，避免该过程继续以内联 ``try/finally`` 形式散落
     在入口运行器中。
 
-    :param project_runtime_locator: CLI 项目运行时定位器
+    :ivar project_runtime_locator: CLI 项目运行时定位器
     """
 
     project_runtime_locator: ProjectRuntimeLocator
 
-    def run(self, callback: object) -> object:
+    def run(self, callback: Callable[[], ResultT]) -> ResultT:
         """
         在导入期参数作用域内执行回调。
 
@@ -44,12 +50,13 @@ class CliMainRunner:
     CLI 根入口运行器。
 
     该运行器负责串联项目目录定位、导入期参数裁剪、根应用构建、
-    completion 分发与 Typer 应用启动，避免 `main.py` 继续停留在
+    completion 分发与 Typer 应用启动，避免 ``main.py`` 继续停留在
     模块级散乱编排状态。
 
-    :param project_runtime_locator: CLI 项目运行时定位器
-    :param completion_dispatcher: shell completion 分发器
-    :param application_builder: 根应用构建器
+    :ivar project_runtime_locator: CLI 项目运行时定位器
+    :ivar completion_dispatcher: shell completion 分发器
+    :ivar application_builder: 根应用构建器
+    :ivar import_argv_scope: CLI 导入期参数作用域
     """
 
     project_runtime_locator: ProjectRuntimeLocator
@@ -57,7 +64,7 @@ class CliMainRunner:
     application_builder: CliApplicationBuilder
     import_argv_scope: CliImportArgvScope
 
-    def build_cli(self) -> object:
+    def build_cli(self) -> Typer:
         """
         构建 CLI 根应用，并在导入期仅保留最小化参数集。
 
@@ -67,11 +74,7 @@ class CliMainRunner:
         return self.import_argv_scope.run(self.application_builder.build)
 
     def run(self) -> None:
-        """
-        执行 Typer CLI 根应用。
-
-        :return: None
-        """
+        """执行 Typer CLI 根应用。"""
         cli = self.build_cli()
         self.completion_dispatcher.dispatch(cli)
         cli(prog_name='ruoyi')
@@ -88,11 +91,7 @@ CLI_MAIN_RUNNER = CliMainRunner(
 
 
 def main() -> None:
-    """
-    执行 CLI 根入口运行器。
-
-    :return: None
-    """
+    """执行 CLI 根入口运行器。"""
     CLI_MAIN_RUNNER.run()
 
 

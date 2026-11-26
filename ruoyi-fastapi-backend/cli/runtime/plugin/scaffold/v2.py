@@ -1,6 +1,7 @@
 import json
 from collections.abc import Callable
 from importlib.resources import files
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,10 @@ from .payload import PluginScaffoldPlanPayload
 class PluginV2ScaffoldBuilder:
     """
     独立 v2 插件源码工程模板构建器。
+
+    :ivar backend_root: 宿主后端项目根目录
+    :ivar frontend_root: 宿主前端项目根目录，用于读取桥接 SDK
+    :ivar frontend_framework_resolver: 宿主框架解析函数，仅 bundle 复制 SDK 时调用
     """
 
     def __init__(
@@ -29,7 +34,6 @@ class PluginV2ScaffoldBuilder:
         :param backend_root: 宿主后端项目根目录
         :param frontend_root: 宿主前端项目根目录，用于读取桥接 SDK
         :param frontend_framework_resolver: 宿主框架解析函数，仅 bundle 复制 SDK 时调用
-        :return: None
         """
         self.backend_root = backend_root
         self.frontend_root = frontend_root
@@ -48,6 +52,7 @@ class PluginV2ScaffoldBuilder:
         :param test: 是否生成本地合约测试
         :param frontend_framework: 宿主前端框架选项，v2 模板仅接受 auto
         :return: 包含生成文件、目标目录与冲突信息的计划
+        :raises ValueError: v2 ASGI 模板需要后端，不能使用 --frontend-only；bundle 模板不能使用 --backend-only；仅 API 请使用 python-asgi 或 rust-asgi；v2 模板的 --frontend-framework 仅接受 auto；独立 bundle 与宿主前端框架无关
         """
         native = template.startswith('rust-')
         bundle = template.endswith('-bundle')
@@ -195,7 +200,8 @@ class PluginV2ScaffoldBuilder:
                     }
                 ],
             )
-        return yaml.safe_dump(
+        stream = StringIO()
+        yaml.safe_dump(
             {
                 'manifestVersion': 2,
                 'id': plugin_id,
@@ -205,11 +211,13 @@ class PluginV2ScaffoldBuilder:
                 'backend': backend,
                 'frontend': frontend,
                 'permissions': [{'code': f'{plugin_id}:view', 'name': '访问插件'}],
-                'compatibility': {'hostApiVersion': '^1.2.0', 'pythonVersion': '>=3.10'},
+                'compatibility': {'hostApiVersion': '^1.2.0', 'pythonVersion': '>=3.11'},
             },
+            stream,
             allow_unicode=True,
             sort_keys=False,
         )
+        return stream.getvalue()
 
     @staticmethod
     def _readme(plugin_id: str, *, native: bool, bundle: bool, test: bool) -> str:
@@ -248,7 +256,7 @@ class PluginV2ScaffoldBuilder:
             else ''
         )
         native_steps = (
-            '需预先安装 Rust 工具链和匹配目标平台的编译工具，以及 `maturin>=1.15,<2`。'
+            '需预先安装 Rust 工具链和匹配目标平台的编译工具，以及 `maturin>=1.16.0,<2`。'
             '模板包含 Cargo.lock，构建使用 `--locked`。二进制必须匹配部署系统、架构、Python ABI。\n\n'
             if native
             else 'Python 交付目录包含业务 Python 源码；签名验证不提供源码保护。\n\n'
@@ -318,7 +326,7 @@ class PluginV2ScaffoldBuilder:
 这是 manifest v2 的 {'Rust native' if native else 'Python'} ASGI 源码工程{'，包含独立前端 bundle' if bundle else ''}。
 源码位于 `{root}`，创建工程不会安装、启用或导入插件。下面的命令均在宿主后端根目录执行。
 
-先创建并激活 Python 3.10–3.14 环境；已有宿主环境可直接激活并使用，无需重复创建。
+先创建并激活 Python 3.11–3.15 环境；已有宿主环境可直接激活并使用，无需重复创建。
 
 Windows PowerShell：
 

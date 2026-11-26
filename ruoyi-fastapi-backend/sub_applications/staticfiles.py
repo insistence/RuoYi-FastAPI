@@ -11,14 +11,16 @@ from config.env import UploadConfig
 
 class SecureStaticFiles(StaticFiles):
     """
-    安全静态文件服务类
+    安全静态文件服务类。
+
+    :cvar DOWNLOAD_ONLY_EXTENSIONS: 仅允许以附件形式下载的文件扩展名
     """
 
     DOWNLOAD_ONLY_EXTENSIONS = {'.html', '.htm'}
 
     async def get_response(self, path: str, scope: Scope) -> Response:
         """
-        获取带有安全响应头的静态文件响应
+        获取带有安全响应头的静态文件响应。
 
         :param path: 静态文件路径
         :param scope: ASGI连接作用域
@@ -39,7 +41,9 @@ class SecureStaticFiles(StaticFiles):
 
 def mount_staticfiles(app: FastAPI) -> None:
     """
-    挂载静态文件
+    挂载静态文件。
+
+    :param app: 正在配置或处理请求的 ASGI 应用
     """
     app.mount(
         f'{UploadConfig.UPLOAD_PREFIX}',

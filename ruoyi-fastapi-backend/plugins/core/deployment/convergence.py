@@ -47,7 +47,14 @@ REASONS = {
 
 @dataclass(frozen=True)
 class _ReleaseTarget:
-    """调用方固定的插件、制品、代际和预期容量，轮询期间不跟随数据库目标变化。"""
+    """
+    调用方固定的插件、制品、代际和预期容量，轮询期间不跟随数据库目标变化。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar digest: 固定验收的制品 SHA256 摘要
+    :ivar generation: 当前发布或部署的代次
+    :ivar expected_workers: 必须与发布记录一致的预期 worker 数量
+    """
 
     plugin_id: str
     digest: str
@@ -58,7 +65,6 @@ class _ReleaseTarget:
         """
         校验固定发布身份及容量，拒绝布尔值冒充预期 worker 数量。
 
-        :return: None
         :raises ValueError: 插件 ID、摘要、代际或预期数量不合法
         """
         validate_plugin_id_value(self.plugin_id)
@@ -163,7 +169,7 @@ def _valid_summary(summary: Mapping[str, Any]) -> bool:
     else:
         expected_status = 'pending_restart'
     expected_restart = summary['targetDigest'] is not None and expected_status not in {'active', 'disabled'}
-    return (
+    return bool(
         summary['status'] == expected_status
         and summary['restartRequired'] == expected_restart
         and (expected_status not in {'active', 'disabled'} or summary['missingWorkers'] == 0)

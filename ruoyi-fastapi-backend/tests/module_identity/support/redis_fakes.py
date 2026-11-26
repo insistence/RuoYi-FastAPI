@@ -2,24 +2,53 @@ import asyncio
 import json
 import time
 from typing import Any
+from unittest.mock import Mock
+
+from redis.asyncio import Redis
 
 
 class FakeRedis:
-    """实现本轮服务所用 SET NX、TTL、GET/DEL 和 Lua 等效语义的 FakeRedis。"""
+    """
+    实现本轮服务所用 SET NX、TTL、GET/DEL 和 Lua 等效语义的 FakeRedis。
+
+    :ivar client: 供被测服务调用的异步 Redis 客户端替身
+    :ivar values: 当前处理的值集合
+    :ivar lists: 模拟 Redis 保存的列表数据
+    :ivar lock: 用于串行访问共享资源的锁
+    :ivar set_calls: 记录 ``set`` 的调用情况
+    :ivar eval_calls: 记录 ``eval`` 的调用情况
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``values``, ``lists``, ``lock``, ``set_calls``。"""
+        self.client: Redis = Mock(spec_set=Redis, wraps=self)
         self.values: dict[str, tuple[str, float | None]] = {}
-        self.lists: dict[str, list[str]] = {}
+        self.lists: dict[str, list[str | bytes]] = {}
         self.lock = asyncio.Lock()
         self.set_calls: list[tuple[str, dict[str, Any]]] = []
         self.eval_calls: list[tuple[str, tuple[Any, ...]]] = []
 
     def _purge(self, key: str) -> None:
+        """
+        清除到期的测试缓存值。
+
+        :param key: 查找数据时使用的键
+        """
         item = self.values.get(key)
         if item is not None and item[1] is not None and item[1] <= time.monotonic():
             self.values.pop(key, None)
 
     async def set(self, key: str, value: str, ex: int | None = None, nx: bool = False, **kwargs: Any) -> bool:
+        """
+        写入测试缓存键并设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        :param nx: 是否只在键尚不存在时写入
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 是否写入测试缓存键并设置过期时间
+        """
         async with self.lock:
             self._purge(key)
             self.set_calls.append((key, {'ex': ex, 'nx': nx, **kwargs}))
@@ -29,36 +58,71 @@ class FakeRedis:
             return True
 
     async def get(self, key: str) -> str | None:
+        """
+        读取测试存储中的指定键。
+
+        :param key: 查找数据时使用的键
+        :return: 测试存储中的指定键
+        """
         async with self.lock:
             self._purge(key)
             value = self.values.get(key)
             return value[0] if value else None
 
     async def exists(self, key: str) -> int:
-        """按 Redis EXISTS 语义返回键数量。"""
+        """
+        按 Redis EXISTS 语义返回键数量。
+
+        :param key: 查找数据时使用的键
+        :return: 键存在时为一，否则为零
+        """
         async with self.lock:
             self._purge(key)
             return int(key in self.values)
 
     async def delete(self, key: str) -> int:
+        """
+        删除测试缓存项及其过期状态。
+
+        :param key: 查找数据时使用的键
+        :return: 实际删除的键数
+        """
         async with self.lock:
             self._purge(key)
             return int(self.values.pop(key, None) is not None)
 
-    async def rpush(self, key: str, value: str) -> int:
-        """追加队列元素。"""
+    async def rpush(self, key: str, value: str | bytes) -> int:
+        """
+        追加队列元素。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :return: 追加后的队列长度
+        """
         async with self.lock:
             self.lists.setdefault(key, []).append(value)
             return len(self.lists[key])
 
-    async def lpop(self, key: str) -> str | None:
-        """原子弹出队首元素。"""
+    async def lpop(self, key: str) -> str | bytes | None:
+        """
+        原子弹出队首元素。
+
+        :param key: 查找数据时使用的键
+        :return: 队首元素，队列为空时返回空值
+        """
         async with self.lock:
             values = self.lists.get(key, [])
             return values.pop(0) if values else None
 
     async def ltrim(self, key: str, start: int, end: int) -> bool:
-        """按 Redis 负索引语义裁剪列表。"""
+        """
+        按 Redis 负索引语义裁剪列表。
+
+        :param key: 查找数据时使用的键
+        :param start: 选取范围的起始位置
+        :param end: 选取范围的结束位置
+        :return: 此分支的固定值 ``True``
+        """
         async with self.lock:
             values = self.lists.get(key, [])
             size = len(values)
@@ -68,6 +132,12 @@ class FakeRedis:
             return True
 
     async def ttl(self, key: str) -> int:
+        """
+        查询测试缓存键的剩余生存时间。
+
+        :param key: 查找数据时使用的键
+        :return: 测试缓存键的剩余生存时间
+        """
         async with self.lock:
             self._purge(key)
             value = self.values.get(key)
@@ -76,6 +146,14 @@ class FakeRedis:
             return max(0, int(value[1] - time.monotonic()))
 
     async def eval(self, script: str, numkeys: int, *args: Any) -> Any:  # noqa: PLR0911, PLR0912
+        """
+        按测试约定模拟 Redis 脚本的执行。
+
+        :param script: 需要运行的脚本
+        :param numkeys: 传给 Redis 脚本的键数量
+        :param args: 传给被调用对象的位置参数
+        :return: 对应脚本分支的记录、有效期或状态码
+        """
         async with self.lock:
             self.eval_calls.append((script, args))
             key = args[0]

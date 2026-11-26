@@ -43,6 +43,7 @@ async def test_server_disks_sample_each_mountpoint_once(
 
     partitions.assert_called_once_with()
     assert usage.call_args_list == [call(mountpoint) for mountpoint in mountpoints]
+    assert result.sys_files is not None
     assert [disk.model_dump(by_alias=True) for disk in result.sys_files] == [
         {
             'dirName': devices[0],
@@ -136,6 +137,7 @@ def test_missing_mount_metadata_still_reads_real_root_disk(monkeypatch: pytest.M
     assert disks[0].total == bytes2human(expected.total)
     assert disks[0].used
     assert disks[0].free
+    assert disks[0].usage is not None
     assert disks[0].usage.endswith('%')
 
 
@@ -154,9 +156,13 @@ async def test_server_monitor_retains_other_metrics_when_all_disks_are_unreadabl
     result = await ServerService.get_server_monitor_info()
 
     assert result.sys_files == []
+    assert result.cpu is not None and result.cpu.cpu_num is not None
     assert result.cpu.cpu_num > 0
+    assert result.mem is not None
     assert result.mem.total
+    assert result.sys is not None
     assert result.sys.os_name
+    assert result.py is not None
     assert result.py.version
     usage.assert_called_once_with(root)
 

@@ -18,6 +18,7 @@ from module_identity.security.opaque_token import (
     ((generate_authorization_code, 'ac1'), (generate_refresh_token, 'rt1'), (generate_sso_cookie, 'ss1')),
 )
 def test_typed_tokens_are_random_and_verifiable(factory: Callable[[], str], prefix: str) -> None:
+    """按类型签发的令牌具有随机性且可验证。"""
     pepper = 'p' * 32
     token = factory()
     parsed = parse_opaque_token(token, expected_prefix=prefix)
@@ -29,6 +30,7 @@ def test_typed_tokens_are_random_and_verifiable(factory: Callable[[], str], pref
 
 
 def test_token_id_alone_is_not_a_credential() -> None:
+    """仅凭令牌标识不能进行认证。"""
     token = generate_refresh_token()
     parsed = parse_opaque_token(token)
     pepper = 'p' * 32

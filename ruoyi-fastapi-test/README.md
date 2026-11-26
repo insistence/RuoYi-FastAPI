@@ -9,13 +9,13 @@
 | 分类 | 工作流 | 主要检查 |
 | --- | --- | --- |
 | Quality | [ci-quality.yml](../.github/workflows/ci-quality.yml) | Python/六个前端工程格式、actionlint、选路与失败门禁测试、三框架 × 四份 Compose 配置 |
-| Backend | [ci-backend.yml](../.github/workflows/ci-backend.yml) | Python 3.10–3.14 单元与契约、Windows CLI/路径、三种宿主时区 |
+| Backend | [ci-backend.yml](../.github/workflows/ci-backend.yml) | Python 3.11–3.15 单元与契约、Windows CLI/路径、三种宿主时区 |
 | Frontend | [ci-frontend.yml](../.github/workflows/ci-frontend.yml) | Node 22/24 × 六工程单元测试、三时区契约、Web prod/docker、移动端 H5/微信及 H5 登录；React Mobile 的 Android/iOS JS bundle，完整模式增加其他小程序与鸿蒙构建 |
 | Integration | [ci-integration.yml](../.github/workflows/ci-integration.yml) | 双数据库时间持久化、插件发布、Vue2/Vue3/React HTTPS 代理与 SSE/WebSocket |
 | E2E | [ci-e2e.yml](../.github/workflows/ci-e2e.yml) | 三框架的独立数据库和应用容器、Chromium 登录/权限/29 个菜单页面/时区，以及全部业务操作用例 |
-| Native | [ci-native.yml](../.github/workflows/ci-native.yml) | Rust fmt/clippy、Windows/Linux × Python 3.10–3.14 的真实原生制品 |
+| Native | [ci-native.yml](../.github/workflows/ci-native.yml) | Rust fmt/clippy、Windows/Linux × Python 3.11–3.15 的真实原生制品 |
 
-PR 按 `.github/scripts/ci_plan.py` 的变更影响规则选择分类与前端工程，框架包含 `vue2`、`vue3`、`react`。单个移动端的改动只运行对应前端工程，不触发 Web E2E 或 Rust Native。共享依赖和 CI 变更触发全部分类；仅文档变更运行 Quality。PR E2E 使用 Python 3.12，受影响的每个 Web 框架分别测试 MySQL 和 PostgreSQL。`master` 推送、每天 UTC 18:21（北京时间次日 02:21）及手动 `full=true` 扩展为五个 Python 版本（3.10–3.14），共 30 个 E2E 组合；插件发布集成测试也覆盖这五个版本，并增加 React Mobile 的支付宝、百度、抖音、QQ、京东、快手、飞书、小红书和鸿蒙构建。手动 `full=false` 运行所有分类的 PR 规模矩阵。
+PR 按 `.github/scripts/ci_plan.py` 的变更影响规则选择分类与前端工程，框架包含 `vue2`、`vue3`、`react`。单个移动端的改动只运行对应前端工程，不触发 Web E2E 或 Rust Native。共享依赖和 CI 变更触发全部分类；仅文档变更运行 Quality。PR E2E 使用 Python 3.12，受影响的每个 Web 框架分别测试 MySQL 和 PostgreSQL。`master` 推送、每天 UTC 18:21（北京时间次日 02:21）及手动 `full=true` 扩展为五个 Python 版本（3.11–3.15），共 30 个 E2E 组合；插件发布集成测试也覆盖这五个版本，并增加 React Mobile 的支付宝、百度、抖音、QQ、京东、快手、飞书、小红书和鸿蒙构建。手动 `full=false` 运行所有分类的 PR 规模矩阵。
 
 Vue2、Vue3、React 执行相同的全部 `e2e` 用例，当前每个框架收集 109 项。覆盖账号资料与锁屏、系统管理 CRUD 与授权、文件上传下载、插件和 OAuth 管理、缓存与服务监控、强退、任务执行及日志、代码生成和表单构建。选择器按实际 Element / Ant Design 组件适配，保留真实 API 响应、保存值与清理断言；React 导出用例校验 JSX 内容。完整模式与 PR 模式使用同一套业务用例。
 
@@ -54,7 +54,7 @@ pnpm run build:h5
 pnpm run build:mp-weixin
 
 # 返回仓库根目录，安装 Chromium 后验证实际 H5 构建
-python -m pip install playwright==1.64.0
+python -m pip install playwright==1.65.2
 python -m playwright install chromium
 python .github/scripts/mobile_smoke.py --framework vue2
 python .github/scripts/mobile_smoke.py --framework vue3

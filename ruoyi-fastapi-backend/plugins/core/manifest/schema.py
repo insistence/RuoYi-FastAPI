@@ -1,11 +1,13 @@
 import re
 from collections import Counter
-from typing import Any, Literal
+from typing import Annotated, Any, Generic, Literal, Self
 
 from packaging.requirements import InvalidRequirement
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
+from typing_extensions import TypeVar
 
 from i18n.translation import TranslationUtil
+from plugins.core import manifest as manifest_models
 from plugins.core.frontend import validate_frontend_framework
 from plugins.core.manifest.menu_tree import PluginMenuTree
 from plugins.core.types import PluginConfigValue
@@ -33,7 +35,7 @@ CORE_FRONTEND_COMPONENTS = {'Layout', 'ParentView', 'InnerLink'}
 
 def get_default_job_timezone() -> str:
     """
-    获取插件任务默认使用的业务时区
+    获取插件任务默认使用的业务时区。
 
     :return: 应用配置的IANA时区名称
     """
@@ -48,27 +50,21 @@ EXPLICIT_MANIFEST_VERSION = 2
 
 
 class PluginManifestError(ValueError):
-    """
-    插件清单校验异常。
-    """
+    """插件清单校验异常。"""
 
 
 class RouterManifest(BaseModel):
-    """
-    插件路由声明。
-    """
+    """插件路由声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     auto_scan: bool = Field(default=True, alias='autoScan', description='是否自动扫描插件控制器')
 
 
 class HealthManifest(BaseModel):
-    """
-    插件健康检查声明。
-    """
+    """插件健康检查声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     checker: str | None = Field(default=None, description='插件健康检查 callable，格式为 <module_path>:<callable_name>')
 
@@ -80,6 +76,7 @@ class HealthManifest(BaseModel):
 
         :param value: 健康检查 callable 声明
         :return: 校验后的健康检查 callable 声明
+        :raises ValueError: 健康检查 checker 必须使用 <module_path>:<callable_name> 格式
         """
         if value is None or HOOK_PATTERN.match(value):
             return value
@@ -87,11 +84,9 @@ class HealthManifest(BaseModel):
 
 
 class HookManifest(BaseModel):
-    """
-    插件生命周期钩子声明。
-    """
+    """插件生命周期钩子声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     on_install: str | None = Field(default=None, alias='onInstall', description='插件安装钩子')
     on_upgrade: str | None = Field(default=None, alias='onUpgrade', description='插件升级钩子')
@@ -107,18 +102,20 @@ class HookManifest(BaseModel):
 
         :param value: 钩子声明字符串
         :return: 校验后的钩子声明字符串
+        :raises ValueError: 生命周期钩子必须使用 <module_path>:<callable_name> 格式
         """
         if value is None or HOOK_PATTERN.match(value):
             return value
         raise ValueError('生命周期钩子必须使用 <module_path>:<callable_name> 格式')
 
 
-class PluginJobManifest(BaseModel):
-    """
-    插件定时任务声明。
-    """
+_ExecutorT = TypeVar('_ExecutorT', bound=Literal['default', 'processpool'], default=Literal['default', 'processpool'])
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+
+class PluginJobManifest(BaseModel, Generic[_ExecutorT]):
+    """插件定时任务声明。"""
+
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     id: str = Field(description='插件内定时任务唯一标识')
     name: str | None = Field(default=None, description='定时任务展示名称')
@@ -140,7 +137,7 @@ class PluginJobManifest(BaseModel):
     job_store: Literal['default', 'sqlalchemy', 'redis'] = Field(
         default='default', alias='jobStore', description='调度存储'
     )
-    executor: Literal['default', 'processpool'] = Field(default='default', description='任务执行器')
+    executor: Annotated[_ExecutorT, Field(default='default', description='任务执行器')]
 
     @field_validator('id')
     @classmethod
@@ -150,6 +147,7 @@ class PluginJobManifest(BaseModel):
 
         :param value: 插件任务 ID
         :return: 校验后的插件任务 ID
+        :raises ValueError: 插件任务 id 只能包含小写字母、数字、下划线和中划线，并且必须以小写字母开头
         """
         if not JOB_ID_PATTERN.match(value):
             raise ValueError('插件任务 id 只能包含小写字母、数字、下划线和中划线，并且必须以小写字母开头')
@@ -163,6 +161,7 @@ class PluginJobManifest(BaseModel):
 
         :param value: 任务调用目标
         :return: 校验后的任务调用目标
+        :raises ValueError: 插件任务 callable 必须使用 <module_path>.<callable_name> 格式
         """
         if not JOB_CALLABLE_PATTERN.match(value):
             raise ValueError('插件任务 callable 必须使用 <module_path>.<callable_name> 格式')
@@ -176,6 +175,7 @@ class PluginJobManifest(BaseModel):
 
         :param value: 任务展示名称
         :return: 校验后的任务展示名称
+        :raises ValueError: 插件任务 name 不能为空白字符串
         """
         if value is not None and not value.strip():
             raise ValueError('插件任务 name 不能为空白字符串')
@@ -189,6 +189,7 @@ class PluginJobManifest(BaseModel):
 
         :param value: cron 表达式
         :return: 校验后的 cron 表达式
+        :raises ValueError: 插件任务 cronExpression 不能为空
         """
         if not value.strip():
             raise ValueError('插件任务 cronExpression 不能为空')
@@ -198,7 +199,7 @@ class PluginJobManifest(BaseModel):
     @classmethod
     def validate_time_zone(cls, value: str) -> str:
         """
-        校验插件任务的IANA时区名称
+        校验插件任务的IANA时区名称。
 
         :param value: 插件任务时区名称
         :return: 去除首尾空白后的有效时区名称
@@ -206,7 +207,7 @@ class PluginJobManifest(BaseModel):
         return TimezoneUtil.validate_timezone_name(value)
 
     @model_validator(mode='after')
-    def fill_name(self) -> 'PluginJobManifest':
+    def fill_name(self) -> Self:
         """
         填充任务展示名称默认值。
 
@@ -217,12 +218,13 @@ class PluginJobManifest(BaseModel):
         return self
 
 
-class BackendManifest(BaseModel):
-    """
-    插件后端声明。
-    """
+_JobT = TypeVar('_JobT', bound='PluginJobManifest | manifest_models.v2.PluginJobManifestV2', default=PluginJobManifest)
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+
+class BackendManifest(BaseModel, Generic[_JobT]):
+    """插件后端声明。"""
+
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     module: str = Field(description='插件后端 Python 模块路径')
     routers: RouterManifest = Field(default_factory=RouterManifest, description='插件路由声明')
@@ -230,7 +232,7 @@ class BackendManifest(BaseModel):
     migrations: list[str] = Field(default_factory=list, description='数据库迁移脚本列表')
     seeds: list[str] = Field(default_factory=list, description='初始化数据脚本列表')
     hooks: HookManifest = Field(default_factory=HookManifest, description='生命周期钩子声明')
-    jobs: list[PluginJobManifest] = Field(default_factory=list, description='插件定时任务声明列表')
+    jobs: list[_JobT] = Field(default_factory=list, description='插件定时任务声明列表')
 
     @field_validator('module')
     @classmethod
@@ -240,17 +242,19 @@ class BackendManifest(BaseModel):
 
         :param value: 后端模块路径
         :return: 校验后的后端模块路径
+        :raises ValueError: backend.module 不能为空
         """
         if not value.strip():
             raise ValueError('backend.module 不能为空')
         return value
 
     @model_validator(mode='after')
-    def validate_unique_jobs(self) -> 'BackendManifest':
+    def validate_unique_jobs(self) -> Self:
         """
         校验插件定时任务 ID 唯一性。
 
         :return: 校验后的后端声明
+        :raises ValueError: 插件声明了重复的任务标识
         """
         job_id_counts = Counter(job.id for job in self.jobs)
         duplicated_job_ids = {job_id for job_id, count in job_id_counts.items() if count > 1}
@@ -260,11 +264,9 @@ class BackendManifest(BaseModel):
 
 
 class PluginDependencyManifest(BaseModel):
-    """
-    插件间依赖声明。
-    """
+    """插件间依赖声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     id: str = Field(description='依赖插件ID')
     version: str | None = Field(default=None, description='依赖插件版本约束，例如 >=1.0.0')
@@ -278,6 +280,7 @@ class PluginDependencyManifest(BaseModel):
 
         :param value: 原始插件依赖声明
         :return: 规范化后的插件依赖声明
+        :raises ValueError: 插件依赖字符串必须使用 <plugin_id><version_constraint> 格式；插件依赖必须是字符串或对象
         """
         if isinstance(value, str):
             matched_dependency = PLUGIN_DEPENDENCY_PATTERN.match(value)
@@ -308,6 +311,7 @@ class PluginDependencyManifest(BaseModel):
 
         :param value: 版本约束
         :return: 校验后的版本约束
+        :raises ValueError: 依赖插件 version 必须是版本号或带操作符的版本约束
         """
         if value is None:
             return value
@@ -317,11 +321,9 @@ class PluginDependencyManifest(BaseModel):
 
 
 class FrontendDependencyManifest(BaseModel):
-    """
-    指定前端框架的宿主前端依赖声明。
-    """
+    """指定前端框架的宿主前端依赖声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     npm: list[str] = Field(default_factory=list, description='前端 npm 依赖声明')
     npm_dev: list[str] = Field(default_factory=list, alias='npmDev', description='前端 npm 开发依赖声明')
@@ -334,7 +336,7 @@ class DependencyManifest(BaseModel):
     前端依赖按宿主前端框架在 frontend 中分类声明，各分类独立维护完整依赖列表。
     """
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     python: list[str] = Field(default_factory=list, description='Python 依赖声明')
     frontend: dict[str, FrontendDependencyManifest] = Field(
@@ -397,7 +399,7 @@ class DependencyManifest(BaseModel):
         校验单条 Python 依赖声明。
 
         :param requirement: Python 依赖声明
-        :return: None
+        :raises ValueError: Python 依赖声明无法按要求解析
         """
         try:
             PythonRequirementParser.parse(requirement)
@@ -410,6 +412,7 @@ class DependencyManifest(BaseModel):
         校验依赖插件 ID 唯一性。
 
         :return: 校验后的依赖声明
+        :raises ValueError: 依赖清单中出现重复的插件标识
         """
         plugin_id_counts = Counter(plugin.id for plugin in self.plugins)
         duplicated_plugin_ids = {plugin_id for plugin_id, count in plugin_id_counts.items() if count > 1}
@@ -419,11 +422,9 @@ class DependencyManifest(BaseModel):
 
 
 class PluginMetadataManifest(BaseModel):
-    """
-    插件展示元数据声明。
-    """
+    """插件展示元数据声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     category: str = Field(default='', description='插件分类')
     tags: list[str] = Field(default_factory=list, description='插件标签')
@@ -453,6 +454,7 @@ class PluginMetadataManifest(BaseModel):
         :param value: 原始地址
         :param info: 字段信息
         :return: 校验后的地址
+        :raises ValueError: 元数据地址缺少 HTTP 或 HTTPS 协议
         """
         value = value.strip()
         if value and not EXTERNAL_URL_PATTERN.match(value):
@@ -467,6 +469,7 @@ class PluginMetadataManifest(BaseModel):
 
         :param value: 原始标签列表
         :return: 清理后的标签列表
+        :raises ValueError: 插件标签重复
         """
         tags = [tag.strip() for tag in value if tag.strip()]
         tag_counts = Counter(tags)
@@ -477,11 +480,9 @@ class PluginMetadataManifest(BaseModel):
 
 
 class CompatibilityManifest(BaseModel):
-    """
-    插件平台兼容性声明。
-    """
+    """插件平台兼容性声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     backend_version: str | None = Field(default=None, alias='backendVersion', description='后端版本约束')
     frontend_version: str | None = Field(default=None, alias='frontendVersion', description='前端版本约束')
@@ -497,6 +498,7 @@ class CompatibilityManifest(BaseModel):
 
         :param value: 版本约束
         :return: 校验后的版本约束
+        :raises ValueError: compatibility 版本约束必须是版本号或带操作符的版本约束
         """
         if value is None:
             return value
@@ -514,6 +516,7 @@ class CompatibilityManifest(BaseModel):
 
         :param value: 数据库类型列表
         :return: 校验后的数据库类型列表
+        :raises ValueError: 兼容数据库清单含有重复项
         """
         database_counts = Counter(value)
         duplicated_databases = {database for database, count in database_counts.items() if count > 1}
@@ -523,11 +526,9 @@ class CompatibilityManifest(BaseModel):
 
 
 class PluginResourceManifest(BaseModel):
-    """
-    插件资源声明。
-    """
+    """插件资源声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     static: list[str] = Field(default_factory=list, description='插件静态资源相对路径列表')
     uploads: list[str] = Field(default_factory=list, description='插件上传资源相对路径列表')
@@ -541,6 +542,7 @@ class PluginResourceManifest(BaseModel):
 
         :param value: 资源相对路径列表
         :return: 校验后的资源相对路径列表
+        :raises ValueError: 资源路径重复、越界或不是安全的相对路径
         """
         path_counts = Counter(value)
         duplicated_paths = {path for path, count in path_counts.items() if count > 1}
@@ -553,11 +555,9 @@ class PluginResourceManifest(BaseModel):
 
 
 class PluginPermissionManifest(BaseModel):
-    """
-    插件权限声明。
-    """
+    """插件权限声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     code: str = Field(validation_alias=AliasChoices('code', 'perms', 'permission'), description='权限标识')
     name: str | None = Field(default=None, description='权限展示名称')
@@ -568,7 +568,7 @@ class PluginPermissionManifest(BaseModel):
     @classmethod
     def validate_name_i18n(cls, value: object) -> dict[str, str | None]:
         """
-        校验名称译文，允许声明宿主尚未启用的语言
+        校验名称译文，允许声明宿主尚未启用的语言。
 
         :param value: 名称译文映射
         :return: 语言标识规范化后的名称译文
@@ -596,6 +596,7 @@ class PluginPermissionManifest(BaseModel):
 
         :param value: 权限标识
         :return: 校验后的权限标识
+        :raises ValueError: 权限码格式无效
         """
         if not PERMISSION_PATTERN.match(value):
             raise ValueError(f'插件权限格式无效：{value}')
@@ -609,6 +610,7 @@ class PluginPermissionManifest(BaseModel):
 
         :param value: 权限展示名称
         :return: 校验后的权限展示名称
+        :raises ValueError: 插件权限 name 不能为空白字符串
         """
         if value is None:
             return value
@@ -630,22 +632,18 @@ class PluginPermissionManifest(BaseModel):
 
 
 class PluginConfigOptionManifest(BaseModel):
-    """
-    插件配置选项声明。
-    """
+    """插件配置选项声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     label: str = Field(description='配置选项展示名称')
     value: PluginConfigValue = Field(description='配置选项值')
 
 
 class PluginConfigItemManifest(BaseModel):
-    """
-    插件配置项声明。
-    """
+    """插件配置项声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     key: str = Field(description='配置键名')
     label: str | None = Field(default=None, description='配置展示名称')
@@ -691,6 +689,7 @@ class PluginConfigItemManifest(BaseModel):
 
         :param value: 配置键名
         :return: 校验后的配置键名
+        :raises ValueError: 配置 key 只能包含小写字母、数字、下划线、中划线和点号，并且必须以小写字母开头
         """
         if not CONFIG_KEY_PATTERN.match(value):
             raise ValueError('配置 key 只能包含小写字母、数字、下划线、中划线和点号，并且必须以小写字母开头')
@@ -735,7 +734,7 @@ class PluginConfigItemManifest(BaseModel):
         """
         校验 select 配置选项。
 
-        :return: None
+        :raises ValueError: 下拉配置没有选项、选项值重复或默认值不在选项中
         """
         if self.type != 'select':
             return
@@ -753,14 +752,12 @@ class PluginConfigItemManifest(BaseModel):
         """
         校验配置默认值类型。
 
-        :return: None
+        :raises ValueError: 默认值与声明的配置类型不符
         """
         if self.default is None:
             return
         if self.type == 'boolean' and not isinstance(self.default, bool):
             raise ValueError(f'配置 {self.key} 的 default 必须是布尔值')
-        if self.type == 'number' and (not isinstance(self.default, int | float) or isinstance(self.default, bool)):
-            raise ValueError(f'配置 {self.key} 的 default 必须是数字')
         if self.type == 'json' and not isinstance(self.default, dict | list):
             raise ValueError(f'配置 {self.key} 的 default 必须是对象或数组')
 
@@ -768,12 +765,14 @@ class PluginConfigItemManifest(BaseModel):
         """
         校验数字配置范围。
 
-        :return: None
+        :raises ValueError: 上下限互相矛盾，或数字配置的默认值类型、取值范围有误
         """
         if self.min_value is not None and self.max_value is not None and self.min_value > self.max_value:
             raise ValueError(f'配置 {self.key} 的 min 不能大于 max')
         if self.default is None or self.type != 'number':
             return
+        if not isinstance(self.default, int | float) or isinstance(self.default, bool):
+            raise ValueError(f'配置 {self.key} 的 default 必须是数字')
         if self.min_value is not None and self.default < self.min_value:
             raise ValueError(f'配置 {self.key} 的 default 不能小于 min')
         if self.max_value is not None and self.default > self.max_value:
@@ -783,7 +782,7 @@ class PluginConfigItemManifest(BaseModel):
         """
         校验字符串配置正则表达式。
 
-        :return: None
+        :raises ValueError: 正则表达式无效或默认值未匹配规则
         """
         if not self.pattern:
             return
@@ -800,11 +799,9 @@ class PluginConfigItemManifest(BaseModel):
 
 
 class PluginConfigManifest(BaseModel):
-    """
-    插件配置声明。
-    """
+    """插件配置声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     items: list[PluginConfigItemManifest] = Field(default_factory=list, description='插件配置项列表')
 
@@ -816,6 +813,7 @@ class PluginConfigManifest(BaseModel):
 
         :param value: 原始配置声明
         :return: 规范化后的配置声明
+        :raises ValueError: 插件 config 必须是对象或配置项列表
         """
         if value is None:
             return {'items': []}
@@ -839,6 +837,7 @@ class PluginConfigManifest(BaseModel):
         校验配置键名唯一性。
 
         :return: 校验后的配置声明
+        :raises ValueError: 插件配置键重复
         """
         key_counts = Counter(item.key for item in self.items)
         duplicated_keys = {key for key, count in key_counts.items() if count > 1}
@@ -848,11 +847,9 @@ class PluginConfigManifest(BaseModel):
 
 
 class PluginMenuManifest(BaseModel):
-    """
-    插件菜单声明。
-    """
+    """插件菜单声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     name: str = Field(description='菜单名称')
     name_i18n: dict[str, str] = Field(default_factory=dict, alias='nameI18n', description='多语言名称')
@@ -874,7 +871,7 @@ class PluginMenuManifest(BaseModel):
     @classmethod
     def validate_name_i18n(cls, value: object) -> dict[str, str | None]:
         """
-        校验名称译文，允许声明宿主尚未启用的语言
+        校验名称译文，允许声明宿主尚未启用的语言。
 
         :param value: 名称译文映射
         :return: 语言标识规范化后的名称译文
@@ -889,6 +886,7 @@ class PluginMenuManifest(BaseModel):
 
         :param value: 菜单文本
         :return: 校验后的菜单文本
+        :raises ValueError: 菜单 name 和 path 不能为空
         """
         if not value.strip():
             raise ValueError('菜单 name 和 path 不能为空')
@@ -915,6 +913,7 @@ class PluginMenuManifest(BaseModel):
 
         :param value: 菜单权限标识
         :return: 校验后的菜单权限标识
+        :raises ValueError: 菜单 perms 必须使用小写冒号分隔格式，例如 demo:list
         """
         if not value:
             return value
@@ -930,6 +929,7 @@ class PluginMenuManifest(BaseModel):
 
         :param value: 菜单路径
         :return: 校验后的菜单路径
+        :raises ValueError: 菜单 path 必须是插件路由路径或 http/https 外链地址
         """
         if not ROUTE_PATH_PATTERN.match(value) and not EXTERNAL_URL_PATTERN.match(value):
             raise ValueError('菜单 path 必须是插件路由路径或 http/https 外链地址')
@@ -941,6 +941,7 @@ class PluginMenuManifest(BaseModel):
         校验菜单组件和菜单类型的基础关系。
 
         :return: 校验后的菜单声明
+        :raises ValueError: 非按钮菜单 component 不能为空；外链菜单 path 必须是 http/https 地址；非外链菜单 path 不能是 http/https 地址
         """
         if self.type != 'F' and not self.component.strip():
             raise ValueError('非按钮菜单 component 不能为空')
@@ -951,29 +952,35 @@ class PluginMenuManifest(BaseModel):
         return self
 
 
-class FrontendDeliveryManifest(BaseModel):
-    """
-    插件前端交付声明。
-    """
+_DeliveryKindT = TypeVar('_DeliveryKindT', bound=Literal['none', 'source', 'bundle'], default=Literal['none', 'source'])
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
-    type: Literal['none', 'source'] = Field(default='none', description='前端交付类型')
+class FrontendDeliveryManifest(BaseModel, Generic[_DeliveryKindT]):
+    """插件前端交付声明。"""
+
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
+
+    type: Annotated[_DeliveryKindT, Field(default='none', description='前端交付类型')]
     build_required: bool = Field(default=False, alias='buildRequired', description='前端资源是否需要构建后生效')
 
 
-class FrontendManifest(BaseModel):
-    """
-    插件前端声明。
-    """
+_DeliveryT = TypeVar(
+    '_DeliveryT',
+    bound='FrontendDeliveryManifest | manifest_models.v2.FrontendDeliveryManifestV2',
+    default=FrontendDeliveryManifest,
+)
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+
+class FrontendManifest(BaseModel, Generic[_DeliveryT]):
+    """插件前端声明。"""
+
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     plugin_id: str | None = Field(default=None, alias='pluginId', description='前端插件目录名')
     base_path: str | None = Field(default=None, alias='basePath', description='前端基础路径')
     views_path: str = Field(default='views', alias='viewsPath', description='前端视图目录')
     api_path: str = Field(default='api', alias='apiPath', description='前端 API 目录')
-    delivery: FrontendDeliveryManifest = Field(default_factory=FrontendDeliveryManifest, description='前端交付声明')
+    delivery: Annotated[_DeliveryT, Field(default_factory=FrontendDeliveryManifest, description='前端交付声明')]
     menus: list[PluginMenuManifest] = Field(default_factory=list, description='菜单声明列表')
 
     @field_validator('plugin_id')
@@ -995,6 +1002,7 @@ class FrontendManifest(BaseModel):
 
         :param value: 前端基础路径
         :return: 校验后的前端基础路径
+        :raises ValueError: frontend.basePath 只能包含小写字母、数字、下划线、中划线和正斜杠
         """
         if value is not None and not FRONTEND_RELATIVE_PATH_PATTERN.match(value):
             raise ValueError('frontend.basePath 只能包含小写字母、数字、下划线、中划线和正斜杠')
@@ -1008,34 +1016,48 @@ class FrontendManifest(BaseModel):
 
         :param value: 前端相对目录路径
         :return: 校验后的前端相对目录路径
+        :raises ValueError: frontend viewsPath/apiPath 只能包含小写字母、数字、下划线、中划线和正斜杠
         """
         if not FRONTEND_RELATIVE_PATH_PATTERN.match(value):
             raise ValueError('frontend viewsPath/apiPath 只能包含小写字母、数字、下划线、中划线和正斜杠')
         return value
 
 
-class PluginManifest(BaseModel):
-    """
-    插件主清单。
-    """
+_VersionT = TypeVar('_VersionT', bound=Literal[1, 2], default=Literal[1])
+_BackendT = TypeVar(
+    '_BackendT', bound='BackendManifest | manifest_models.v2.BackendManifestV2', default=BackendManifest
+)
+_FrontendT = TypeVar(
+    '_FrontendT', bound='FrontendManifest | manifest_models.v2.FrontendManifestV2', default=FrontendManifest
+)
+_CompatibilityT = TypeVar('_CompatibilityT', bound=CompatibilityManifest, default=CompatibilityManifest)
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
-    manifest_version: Literal[1] = Field(
-        default=SUPPORTED_MANIFEST_VERSION,
-        alias='manifestVersion',
-        description='插件清单版本',
-    )
+class PluginManifest(BaseModel, Generic[_VersionT, _BackendT, _FrontendT, _CompatibilityT]):
+    """插件主清单。"""
+
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
+
+    manifest_version: Annotated[
+        _VersionT,
+        Field(
+            default=SUPPORTED_MANIFEST_VERSION,
+            alias='manifestVersion',
+            description='插件清单版本',
+        ),
+    ]
     id: str = Field(description='插件唯一标识')
     name: str = Field(description='插件名称')
     version: str = Field(description='插件版本')
     description: str = Field(default='', description='插件说明')
     metadata: PluginMetadataManifest = Field(default_factory=PluginMetadataManifest, description='插件展示元数据')
-    backend: BackendManifest = Field(description='后端声明')
-    frontend: FrontendManifest = Field(default_factory=FrontendManifest, description='前端声明')
+    backend: _BackendT = Field(description='后端声明')
+    frontend: Annotated[_FrontendT, Field(default_factory=FrontendManifest, description='前端声明')]
     permissions: list[PluginPermissionManifest] = Field(default_factory=list, description='权限声明列表')
     dependencies: DependencyManifest = Field(default_factory=DependencyManifest, description='依赖声明')
-    compatibility: CompatibilityManifest = Field(default_factory=CompatibilityManifest, description='平台兼容性声明')
+    compatibility: Annotated[
+        _CompatibilityT, Field(default_factory=CompatibilityManifest, description='平台兼容性声明')
+    ]
     resources: PluginResourceManifest = Field(default_factory=PluginResourceManifest, description='插件资源声明')
     config: PluginConfigManifest = Field(default_factory=PluginConfigManifest, description='插件配置声明')
 
@@ -1047,6 +1069,7 @@ class PluginManifest(BaseModel):
 
         :param value: 插件 ID
         :return: 校验后的插件 ID
+        :raises ValueError: 插件标识使用了保留名称
         """
         validate_plugin_id_value(value, field_name='插件 id')
         if value in RESERVED_PLUGIN_IDS:
@@ -1061,6 +1084,7 @@ class PluginManifest(BaseModel):
 
         :param value: 插件文本
         :return: 校验后的插件文本
+        :raises ValueError: 插件 name 和 version 不能为空
         """
         if not value.strip():
             raise ValueError('插件 name 和 version 不能为空')
@@ -1074,6 +1098,7 @@ class PluginManifest(BaseModel):
 
         :param value: 权限声明列表
         :return: 校验后的权限声明列表
+        :raises ValueError: 插件声明了重复的权限码
         """
         permission_code_counts = Counter(permission.code for permission in value)
         duplicated_permissions = {permission for permission, count in permission_code_counts.items() if count > 1}
@@ -1097,7 +1122,7 @@ class PluginManifest(BaseModel):
 
         :return: 插件后端交付类型
         """
-        return getattr(self.backend, 'runtime', 'python')
+        return self.backend.runtime if isinstance(self.backend, manifest_models.v2.BackendManifestV2) else 'python'
 
     @property
     def integration_kind(self) -> str:
@@ -1106,7 +1131,7 @@ class PluginManifest(BaseModel):
 
         :return: 插件 Web 接入类型
         """
-        return getattr(self.backend, 'integration', 'router')
+        return self.backend.integration if isinstance(self.backend, manifest_models.v2.BackendManifestV2) else 'router'
 
     @property
     def uses_entrypoint(self) -> bool:
@@ -1127,7 +1152,7 @@ class PluginManifest(BaseModel):
         return {permission.code: permission.name for permission in self.permissions if permission.name}
 
     @model_validator(mode='after')
-    def fill_frontend_defaults(self) -> 'PluginManifest':
+    def fill_frontend_defaults(self) -> Self:
         """
         填充前端声明默认值并执行跨字段校验。
 
@@ -1152,7 +1177,7 @@ class PluginManifest(BaseModel):
         """
         校验后端模块路径与插件 ID 一致。
 
-        :return: None
+        :raises ValueError: 后端模块名称与按插件标识约定的名称不一致
         """
         expected_module = f'plugins.{self.id}'
         if self.backend.module != expected_module:
@@ -1162,7 +1187,7 @@ class PluginManifest(BaseModel):
         """
         校验前端插件目录名与插件 ID 一致。
 
-        :return: None
+        :raises ValueError: 前端标识与插件标识不一致
         """
         if self.frontend.plugin_id != self.id:
             raise ValueError(f'frontend.pluginId 必须与插件 id 一致：{self.id}')
@@ -1171,7 +1196,7 @@ class PluginManifest(BaseModel):
         """
         校验插件权限标识必须使用插件 ID 前缀。
 
-        :return: None
+        :raises ValueError: 权限码没有使用当前插件的前缀
         """
         expected_prefix = f'{self.id}:'
         permission_set = set(self.permission_codes) | PluginMenuTree.collect_permissions(self.frontend.menus)
@@ -1182,11 +1207,7 @@ class PluginManifest(BaseModel):
             raise ValueError(f'插件权限必须使用 {expected_prefix} 前缀：{"、".join(invalid_permissions)}')
 
     def _fill_frontend_delivery_defaults(self) -> None:
-        """
-        根据前端声明和 npm 依赖补全前端交付默认值。
-
-        :return: None
-        """
+        """根据前端声明和 npm 依赖补全前端交付默认值。"""
         has_frontend_resources = bool(self.frontend.menus or self.dependencies.has_frontend_dependencies)
         if has_frontend_resources and self.frontend.delivery.type == 'none':
             self.frontend.delivery.type = 'source'
@@ -1197,7 +1218,7 @@ class PluginManifest(BaseModel):
         """
         校验插件间依赖声明。
 
-        :return: None
+        :raises ValueError: 插件不能依赖自身
         """
         if any(plugin.id == self.id for plugin in self.dependencies.plugins):
             raise ValueError('插件不能依赖自身')
@@ -1206,7 +1227,7 @@ class PluginManifest(BaseModel):
         """
         校验菜单权限已在顶层 permissions 中声明。
 
-        :return: None
+        :raises ValueError: 菜单引用了未在清单中声明的权限
         """
         menu_permissions = PluginMenuTree.collect_permissions(self.frontend.menus)
         undeclared_permissions = sorted(menu_permissions - set(self.permission_codes))
@@ -1217,7 +1238,7 @@ class PluginManifest(BaseModel):
         """
         校验菜单组件路径符合插件前端视图或核心布局组件约定。
 
-        :return: None
+        :raises ValueError: 菜单引用了不支持的组件
         """
         for menu in PluginMenuTree.flatten(self.frontend.menus):
             if menu.type == 'F' and not menu.component:
@@ -1233,7 +1254,7 @@ class PluginManifest(BaseModel):
         校验插件视图组件路径。
 
         :param component: 菜单组件路径
-        :return: None
+        :raises ValueError: 插件组件路径格式无效、跨插件或含有非法路径段
         """
         parts = component.split('/')
         if len(parts) < MIN_PLUGIN_COMPONENT_PARTS or parts[0] != 'plugin':
@@ -1248,7 +1269,7 @@ class PluginManifest(BaseModel):
         """
         校验菜单路由路径在当前插件内不重复。
 
-        :return: None
+        :raises ValueError: 清单中的菜单路径重复
         """
         route_paths = PluginMenuTree.collect_route_paths(self.frontend.menus)
         route_path_counts = Counter(route_paths)
@@ -1263,7 +1284,7 @@ class PluginManifest(BaseModel):
         定时任务由系统调度器直接 importlib 导入执行，不经过 PluginCallableLoader 的模块归属
         校验，因此必须在清单校验阶段限制 callable 模块前缀，防止插件执行任意模块的函数。
 
-        :return: None
+        :raises ValueError: 任务回调路径没有使用当前插件的模块前缀
         """
         expected_prefix = f'plugins.{self.id}.'
         invalid_callables = [job.callable for job in self.backend.jobs if not job.callable.startswith(expected_prefix)]
@@ -1278,12 +1299,12 @@ class PluginManifestFactory:
     """
     插件清单工厂。
 
-    使用工厂模式集中处理从原始字典到 `PluginManifest` 的构造，避免发现器直接依赖
+    使用工厂模式集中处理从原始字典到 ``PluginManifest`` 的构造，避免发现器直接依赖
     Pydantic 的创建细节。
     """
 
     @classmethod
-    def create(cls, raw_manifest: dict[str, Any]) -> PluginManifest:
+    def create(cls, raw_manifest: dict[str, Any]) -> 'manifest_models.v2.VersionedPluginManifest':
         """
         从原始字典创建插件清单。
 
@@ -1291,7 +1312,5 @@ class PluginManifestFactory:
         :return: 插件清单模型
         """
         if raw_manifest.get('manifestVersion', raw_manifest.get('manifest_version', 1)) == EXPLICIT_MANIFEST_VERSION:
-            from plugins.core.manifest.v2 import PluginManifestV2  # noqa: PLC0415
-
-            return PluginManifestV2.model_validate(raw_manifest)
+            return manifest_models.v2.PluginManifestV2.model_validate(raw_manifest)
         return PluginManifest.model_validate(raw_manifest)

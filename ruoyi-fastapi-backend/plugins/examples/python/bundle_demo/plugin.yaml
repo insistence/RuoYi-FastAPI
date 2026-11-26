@@ -27,7 +27,7 @@ permissions:
     name: 访问独立前端示例
 compatibility:
   hostApiVersion: ^1.4.0
-  pythonVersion: '>=3.10'
+  pythonVersion: '>=3.11'
 config:
   items:
     - key: greeting

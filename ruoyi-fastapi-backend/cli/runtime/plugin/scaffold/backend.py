@@ -3,9 +3,7 @@ from .options import PluginScaffoldOptions
 
 
 class PluginBackendScaffoldTemplateBuilder:
-    """
-    后端插件模板内容构建器。
-    """
+    """后端插件模板内容构建器。"""
 
     @staticmethod
     def build_manifest(plugin_id: str, options: PluginScaffoldOptions) -> str:
@@ -110,13 +108,12 @@ dependencies:
         """
         service_class_name = PluginScaffoldNaming.to_class_name(plugin_id)
         return f"""from common.router import APIRouterPro
-
 from plugins.{plugin_id}.service.{plugin_id}_service import {service_class_name}Service
 
 router = APIRouterPro(prefix='/{plugin_id}', tags=['{plugin_id}'])
 
 
-@router.get('/ping')
+@router.get('/ping', summary='插件探活', description='检查插件服务能否正常响应')
 async def ping() -> dict[str, str]:
     return {service_class_name}Service.ping()
 """
@@ -130,34 +127,35 @@ async def ping() -> dict[str, str]:
         :return: 后端 CRUD 控制器模板内容
         """
         service_class_name = PluginScaffoldNaming.to_class_name(plugin_id)
-        return f"""from common.router import APIRouterPro
+        return f"""from collections.abc import Mapping
 
+from common.router import APIRouterPro
 from plugins.{plugin_id}.service.{plugin_id}_service import {service_class_name}Service
 
 router = APIRouterPro(prefix='/{plugin_id}', tags=['{plugin_id}'])
 
 
-@router.get('/ping')
+@router.get('/ping', summary='插件探活', description='检查插件服务能否正常响应')
 async def ping() -> dict[str, str]:
     return {service_class_name}Service.ping()
 
 
-@router.get('/items')
-async def list_items(keyword: str = '') -> dict[str, object]:
+@router.get('/items', summary='查询示例数据', description='按名称关键字查询插件示例数据')
+async def list_items(keyword: str = '') -> Mapping[str, object]:
     return {service_class_name}Service.list_items(keyword)
 
 
-@router.post('/items')
-async def create_item(payload: dict[str, object]) -> dict[str, object]:
+@router.post('/items', summary='创建示例数据', description='创建并返回插件示例记录')
+async def create_item(payload: dict[str, object]) -> Mapping[str, object]:
     return {service_class_name}Service.create_item(payload)
 
 
-@router.put('/items/{{item_id}}')
-async def update_item(item_id: int, payload: dict[str, object]) -> dict[str, object]:
+@router.put('/items/{{item_id}}', summary='修改示例数据', description='按编号更新插件示例记录')
+async def update_item(item_id: int, payload: dict[str, object]) -> Mapping[str, object]:
     return {service_class_name}Service.update_item(item_id, payload)
 
 
-@router.delete('/items/{{item_id}}')
+@router.delete('/items/{{item_id}}', summary='删除示例数据', description='按编号删除插件示例记录')
 async def delete_item(item_id: int) -> dict[str, object]:
     return {service_class_name}Service.delete_item(item_id)
 """
@@ -172,9 +170,7 @@ async def delete_item(item_id: int) -> dict[str, object]:
         """
         service_class_name = PluginScaffoldNaming.to_class_name(plugin_id)
         return f"""class {service_class_name}Service:
-    \"\"\"
-    {plugin_id} 插件服务。
-    \"\"\"
+    \"\"\"{plugin_id} 插件服务。\"\"\"
 
     @classmethod
     def ping(cls) -> dict[str, str]:
@@ -195,14 +191,45 @@ async def delete_item(item_id: int) -> dict[str, object]:
         :return: 后端 CRUD 服务模板内容
         """
         service_class_name = PluginScaffoldNaming.to_class_name(plugin_id)
-        return f"""class {service_class_name}Service:
+        return f"""from typing import TypedDict
+
+
+class PluginItem(TypedDict):
+    \"\"\"
+    插件示例记录。
+
+    :ivar itemId: 记录编号
+    :ivar itemName: 名称
+    :ivar status: 状态
+    :ivar remark: 备注
+    \"\"\"
+
+    itemId: int
+    itemName: str
+    status: str
+    remark: str
+
+
+class ItemPage(TypedDict):
+    \"\"\"
+    插件示例分页结果。
+
+    :ivar rows: 当前页的示例记录
+    :ivar total: 符合条件的记录数
+    \"\"\"
+
+    rows: list[PluginItem]
+    total: int
+
+
+class {service_class_name}Service:
     \"\"\"
     {plugin_id} 插件 CRUD 示例服务。
 
-    第一版模板使用内存数据演示 controller/service 分层，实际业务可替换为 dao/entity 实现。
+    :cvar _items: 当前插件的内存示例记录
     \"\"\"
 
-    _items = [
+    _items: list[PluginItem] = [
         {{'itemId': 1, 'itemName': '{plugin_id} 示例', 'status': '0', 'remark': '插件 CRUD 模板数据'}},
     ]
 
@@ -216,7 +243,7 @@ async def delete_item(item_id: int) -> dict[str, object]:
         return {{'message': '{plugin_id} plugin ok'}}
 
     @classmethod
-    def list_items(cls, keyword: str = '') -> dict[str, object]:
+    def list_items(cls, keyword: str = '') -> ItemPage:
         \"\"\"
         查询示例数据列表。
 
@@ -231,15 +258,15 @@ async def delete_item(item_id: int) -> dict[str, object]:
         return {{'rows': rows, 'total': len(rows)}}
 
     @classmethod
-    def create_item(cls, payload: dict[str, object]) -> dict[str, object]:
+    def create_item(cls, payload: dict[str, object]) -> PluginItem:
         \"\"\"
         创建示例数据。
 
         :param payload: 示例数据负载
         :return: 创建后的示例数据
         \"\"\"
-        next_id = max([int(item['itemId']) for item in cls._items], default=0) + 1
-        item = {{
+        next_id = max((item['itemId'] for item in cls._items), default=0) + 1
+        item: PluginItem = {{
             'itemId': next_id,
             'itemName': str(payload.get('itemName') or '未命名'),
             'status': str(payload.get('status') or '0'),
@@ -249,7 +276,7 @@ async def delete_item(item_id: int) -> dict[str, object]:
         return item
 
     @classmethod
-    def update_item(cls, item_id: int, payload: dict[str, object]) -> dict[str, object]:
+    def update_item(cls, item_id: int, payload: dict[str, object]) -> PluginItem:
         \"\"\"
         更新示例数据。
 
@@ -300,7 +327,6 @@ async def on_install(context: PluginHookContext) -> None:
     插件安装生命周期钩子。
 
     :param context: 插件生命周期钩子上下文
-    :return: None
     \"\"\"
     logger.info('{plugin_id} plugin install hook executed')
 
@@ -310,7 +336,6 @@ async def on_upgrade(context: PluginHookContext) -> None:
     插件升级生命周期钩子。
 
     :param context: 插件生命周期钩子上下文
-    :return: None
     \"\"\"
     logger.info('{plugin_id} plugin upgrade hook executed')
 
@@ -320,7 +345,6 @@ async def on_startup(context: PluginHookContext) -> None:
     插件启动生命周期钩子。
 
     :param context: 插件生命周期钩子上下文
-    :return: None
     \"\"\"
     logger.info('{plugin_id} plugin startup hook executed')
 
@@ -330,7 +354,6 @@ async def on_shutdown(context: PluginHookContext) -> None:
     插件关闭生命周期钩子。
 
     :param context: 插件生命周期钩子上下文
-    :return: None
     \"\"\"
     logger.info('{plugin_id} plugin shutdown hook executed')
 
@@ -340,7 +363,6 @@ async def on_purge(context: PluginHookContext) -> None:
     插件物理清理生命周期钩子。
 
     :param context: 插件生命周期钩子上下文
-    :return: None
     \"\"\"
     logger.info('{plugin_id} plugin purge hook executed')
 """
@@ -357,11 +379,7 @@ async def on_purge(context: PluginHookContext) -> None:
 
 
 def heartbeat() -> None:
-    \"\"\"
-    插件心跳定时任务。
-
-    :return: None
-    \"\"\"
+    \"\"\"插件心跳定时任务。\"\"\"
     logger.info('{plugin_id} plugin heartbeat job executed')
 """
 
@@ -402,11 +420,7 @@ def heartbeat() -> None:
 
 
 def test_{plugin_id}_service_ping() -> None:
-    \"\"\"
-    校验插件服务探活返回稳定负载。
-
-    :return: None
-    \"\"\"
+    \"\"\"校验插件服务探活返回稳定负载。\"\"\"
     assert {service_class_name}Service.ping() == {{'message': '{plugin_id} plugin ok'}}
 """
 
@@ -423,20 +437,12 @@ def test_{plugin_id}_service_ping() -> None:
 
 
 def test_{plugin_id}_service_ping() -> None:
-    \"\"\"
-    校验插件服务探活返回稳定负载。
-
-    :return: None
-    \"\"\"
+    \"\"\"校验插件服务探活返回稳定负载。\"\"\"
     assert {service_class_name}Service.ping() == {{'message': '{plugin_id} plugin ok'}}
 
 
 def test_{plugin_id}_service_crud_flow() -> None:
-    \"\"\"
-    校验插件 CRUD 示例服务返回稳定负载。
-
-    :return: None
-    \"\"\"
+    \"\"\"校验插件 CRUD 示例服务返回稳定负载。\"\"\"
     created = {service_class_name}Service.create_item({{'itemName': '测试数据', 'status': '0'}})
     listed = {service_class_name}Service.list_items('测试')
     updated = {service_class_name}Service.update_item(created['itemId'], {{'itemName': '测试数据2'}})

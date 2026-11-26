@@ -16,7 +16,12 @@ from plugins.core.sdk import PluginHostContext, PluginRequestContext
 
 @pytest_asyncio.fixture
 async def sdk_sessions(tmp_path: Path) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
-    """使用独立 SQLite 验证提交、回滚和会话所有权。"""
+    """
+    使用独立 SQLite 验证提交、回滚和会话所有权。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :yield: 连接独立 SQLite 数据库的会话工厂
+    """
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "sdk.sqlite"}')
     async with engine.begin() as db:
         await db.execute(text('CREATE TABLE sdk_effect (value INTEGER NOT NULL)'))
@@ -27,7 +32,13 @@ async def sdk_sessions(tmp_path: Path) -> AsyncIterator[async_sessionmaker[Async
 
 
 def request_context(tmp_path: Path, sessions: async_sessionmaker[AsyncSession]) -> PluginRequestContext:
-    """构建只授予示例业务权限的宿主身份。"""
+    """
+    构建只授予示例业务权限的宿主身份。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param sessions: 创建当前测试的数据库会话的工厂
+    :return: 只授予示例业务权限的宿主身份
+    """
     host = PluginHostContext('sdk_demo', tmp_path, session_factory=sessions)
     return PluginRequestContext(host, SimpleNamespace(user=SimpleNamespace(user_id=7)), frozenset({'sdk_demo:profile'}))
 
@@ -71,6 +82,11 @@ async def test_failed_or_cancelled_transaction_rolls_back(
     captured = []
 
     async def write() -> None:
+        """
+        在插件事务中执行测试写入。
+
+        :raises ValueError: 模拟业务写入失败
+        """
         async with context.transaction() as transaction:
             captured.append(transaction)
             await transaction.query_db.execute(text('INSERT INTO sdk_effect VALUES (2)'))
@@ -99,6 +115,11 @@ async def test_transaction_rejects_nested_and_parallel_session_use(
     context = request_context(tmp_path, sdk_sessions)
 
     async def foreign_task(transaction: PluginRequestContext) -> None:
+        """
+        从另一个异步任务访问事务会话。
+
+        :param transaction: 由宿主鉴权层建立的请求身份，不能由客户端字段直接构造
+        """
         transaction.transaction_session()
 
     async with context.transaction() as transaction:

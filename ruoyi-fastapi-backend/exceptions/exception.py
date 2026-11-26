@@ -4,7 +4,12 @@ from utils.oidc_util import OidcUtil
 
 class LoginException(Exception):
     """
-    自定义登录异常LoginException
+    自定义登录异常LoginException。
+
+    :ivar data: 随异常返回的业务数据
+    :ivar message: 异常消息原文
+    :ivar msg_key: 响应阶段使用的消息标识
+    :ivar msg_params: 可在响应中公开的插值参数
     """
 
     def __init__(
@@ -13,13 +18,13 @@ class LoginException(Exception):
         message: str | None = None,
         *,
         msg_key: str | None = None,
-        msg_params: dict | None = None,
+        msg_params: dict[str, object] | None = None,
         domain: str | None = None,
         count: int | None = None,
         plural_key: str | None = None,
     ) -> None:
         """
-        保存登录校验失败时的消息原文和翻译参数
+        保存登录校验失败时的消息原文和翻译参数。
 
         :param data: 随异常返回的业务数据
         :param message: 异常消息原文
@@ -46,7 +51,12 @@ class LoginException(Exception):
 
 class AuthException(Exception):
     """
-    自定义令牌异常AuthException
+    自定义令牌异常AuthException。
+
+    :ivar data: 随异常返回的业务数据
+    :ivar message: 异常消息原文
+    :ivar msg_key: 响应阶段使用的消息标识
+    :ivar msg_params: 可在响应中公开的插值参数
     """
 
     def __init__(
@@ -55,13 +65,13 @@ class AuthException(Exception):
         message: str | None = None,
         *,
         msg_key: str | None = None,
-        msg_params: dict | None = None,
+        msg_params: dict[str, object] | None = None,
         domain: str | None = None,
         count: int | None = None,
         plural_key: str | None = None,
     ) -> None:
         """
-        保存令牌认证失败时的消息原文和翻译参数
+        保存令牌认证失败时的消息原文和翻译参数。
 
         :param data: 随异常返回的业务数据
         :param message: 异常消息原文
@@ -92,6 +102,17 @@ class OAuthProtocolException(Exception):
 
     异常 message 和字符串表示使用中文，error_description 保持 OAuth 要求的 ASCII 格式。
     统一异常处理器仅返回标准协议字段和经过验证的重定向状态，不回传内部诊断详情。
+
+    :cvar _DEFAULT_BAD_REQUEST_STATUS: 无其他协议状态时返回的 HTTP 错误码
+    :ivar error: 发生错误时返回的错误信息
+    :ivar error_description: 返回给调用方的错误说明
+    :ivar message: 异常消息原文
+    :ivar status_code: 响应使用的 HTTP 状态码
+    :ivar redirect_uri: 已注册的授权回调地址
+    :ivar state: 当前流程的状态
+    :ivar redirect_uri_verified: 重定向地址是否已通过客户端注册信息校验
+    :ivar issuer: 签发令牌的身份提供方标识
+    :ivar headers: 响应或请求携带的 HTTP 头
     """
 
     _DEFAULT_BAD_REQUEST_STATUS = 400
@@ -108,6 +129,18 @@ class OAuthProtocolException(Exception):
         issuer: str | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
+        """
+        保存 OAuth 错误码、协议描述及本地化消息。
+
+        :param error: 发生错误时返回的错误信息
+        :param error_description: 返回给调用方的错误说明
+        :param status_code: 响应使用的 HTTP 状态码
+        :param redirect_uri: 已注册的授权回调地址
+        :param state: 当前流程的状态
+        :param redirect_uri_verified: 重定向地址是否已通过客户端注册信息校验
+        :param issuer: 签发令牌的身份提供方标识
+        :param headers: 响应或请求携带的 HTTP 头
+        """
         self.error = error
         self.error_description = OidcUtil.protocol_error_description(error, error_description)
         self.message = OidcUtil.localized_oauth_message(error, error_description)
@@ -160,6 +193,14 @@ class OidcInteractionException(Exception):
 
     交互异常不默认跳转到外部地址；只有 Interaction 已绑定并验证了 Client
     Redirect URI 时，调用方才可将其转换为 ``OAuthProtocolException``。
+
+    :ivar interaction_id: 认证交互标识
+    :ivar message: 异常消息原文
+    :ivar error: 发生错误时返回的错误信息
+    :ivar status_code: 响应使用的 HTTP 状态码
+    :ivar redirect_uri: 已注册的授权回调地址
+    :ivar state: 当前流程的状态
+    :ivar redirect_uri_verified: 重定向地址是否已通过客户端注册信息校验
     """
 
     def __init__(
@@ -173,6 +214,17 @@ class OidcInteractionException(Exception):
         state: str | None = None,
         redirect_uri_verified: bool = False,
     ) -> None:
+        """
+        保存交互错误及继续处理所需的重定向状态。
+
+        :param interaction_id: 认证交互标识
+        :param message: 异常消息原文
+        :param error: 发生错误时返回的错误信息
+        :param status_code: 响应使用的 HTTP 状态码
+        :param redirect_uri: 已注册的授权回调地址
+        :param state: 当前流程的状态
+        :param redirect_uri_verified: 重定向地址是否已通过客户端注册信息校验
+        """
         self.interaction_id = interaction_id
         self.message = message or '认证交互无效或已过期'
         self.error = error
@@ -209,7 +261,12 @@ class OidcInteractionException(Exception):
 
 class PermissionException(Exception):
     """
-    自定义权限异常PermissionException
+    自定义权限异常PermissionException。
+
+    :ivar data: 随异常返回的业务数据
+    :ivar message: 异常消息原文
+    :ivar msg_key: 响应阶段使用的消息标识
+    :ivar msg_params: 可在响应中公开的插值参数
     """
 
     def __init__(
@@ -218,13 +275,13 @@ class PermissionException(Exception):
         message: str | None = None,
         *,
         msg_key: str | None = None,
-        msg_params: dict | None = None,
+        msg_params: dict[str, object] | None = None,
         domain: str | None = None,
         count: int | None = None,
         plural_key: str | None = None,
     ) -> None:
         """
-        保存权限校验失败时的消息原文和翻译参数
+        保存权限校验失败时的消息原文和翻译参数。
 
         :param data: 随异常返回的业务数据
         :param message: 异常消息原文
@@ -251,7 +308,12 @@ class PermissionException(Exception):
 
 class ServiceException(Exception):
     """
-    自定义服务异常ServiceException
+    自定义服务异常ServiceException。
+
+    :ivar data: 随异常返回的业务数据
+    :ivar message: 异常消息原文
+    :ivar msg_key: 响应阶段使用的消息标识
+    :ivar msg_params: 可在响应中公开的插值参数
     """
 
     def __init__(
@@ -260,13 +322,13 @@ class ServiceException(Exception):
         message: str | None = None,
         *,
         msg_key: str | None = None,
-        msg_params: dict | None = None,
+        msg_params: dict[str, object] | None = None,
         domain: str | None = None,
         count: int | None = None,
         plural_key: str | None = None,
     ) -> None:
         """
-        保存业务处理失败时的消息原文和翻译参数
+        保存业务处理失败时的消息原文和翻译参数。
 
         :param data: 随异常返回的业务数据
         :param message: 异常消息原文
@@ -293,7 +355,12 @@ class ServiceException(Exception):
 
 class ServiceWarning(Exception):
     """
-    自定义服务警告ServiceWarning
+    自定义服务警告ServiceWarning。
+
+    :ivar data: 随异常返回的业务数据
+    :ivar message: 异常消息原文
+    :ivar msg_key: 响应阶段使用的消息标识
+    :ivar msg_params: 可在响应中公开的插值参数
     """
 
     def __init__(
@@ -302,13 +369,13 @@ class ServiceWarning(Exception):
         message: str | None = None,
         *,
         msg_key: str | None = None,
-        msg_params: dict | None = None,
+        msg_params: dict[str, object] | None = None,
         domain: str | None = None,
         count: int | None = None,
         plural_key: str | None = None,
     ) -> None:
         """
-        保存需要提示用户的业务情况时的消息原文和翻译参数
+        保存需要提示用户的业务情况时的消息原文和翻译参数。
 
         :param data: 随异常返回的业务数据
         :param message: 异常消息原文
@@ -335,16 +402,28 @@ class ServiceWarning(Exception):
 
 class FileRangeNotSatisfiableException(Exception):
     """
-    文件Range范围不可满足异常
+    文件Range范围不可满足异常。
+
+    :ivar file_size: 文件大小
     """
 
     def __init__(self, file_size: int) -> None:
+        """
+        记录无法满足范围请求的文件大小。
+
+        :param file_size: 文件大小
+        """
         self.file_size = file_size
 
 
 class ModelValidatorException(Exception):
     """
-    自定义模型校验异常ModelValidatorException
+    自定义模型校验异常ModelValidatorException。
+
+    :ivar data: 随异常返回的业务数据
+    :ivar message: 异常消息原文
+    :ivar msg_key: 响应阶段使用的消息标识
+    :ivar msg_params: 可在响应中公开的插值参数
     """
 
     def __init__(
@@ -353,13 +432,13 @@ class ModelValidatorException(Exception):
         message: str | None = None,
         *,
         msg_key: str | None = None,
-        msg_params: dict | None = None,
+        msg_params: dict[str, object] | None = None,
         domain: str | None = None,
         count: int | None = None,
         plural_key: str | None = None,
     ) -> None:
         """
-        保存模型校验失败时的消息原文和翻译参数
+        保存模型校验失败时的消息原文和翻译参数。
 
         :param data: 随异常返回的业务数据
         :param message: 异常消息原文
@@ -386,9 +465,13 @@ class ModelValidatorException(Exception):
 
 class DataSourceException(ServiceException):
     """
-    自定义数据源异常DataSourceException
+    自定义数据源异常DataSourceException。
 
     对外异常信息仅包含数据源名称，内部诊断字段仅保留异常类型和数字错误码。
+
+    :ivar source_name: 数据源名称
+    :ivar error_type: 用于区分失败原因的类型
+    :ivar error_code: 数字错误码
     """
 
     def __init__(
@@ -399,6 +482,14 @@ class DataSourceException(ServiceException):
         error_type: str | None = None,
         error_code: int | None = None,
     ) -> None:
+        """
+        保存发生异常的数据源名称及错误详情。
+
+        :param source_name: 数据源名称
+        :param message: 异常消息原文
+        :param error_type: 用于区分失败原因的类型
+        :param error_code: 数字错误码
+        """
         self.source_name = source_name
         self.error_type = error_type
         self.error_code = error_code
@@ -406,18 +497,19 @@ class DataSourceException(ServiceException):
 
 
 class DataSourceNotFoundException(DataSourceException):
-    """
-    自定义数据源未配置异常DataSourceNotFoundException
-    """
+    """自定义数据源未配置异常DataSourceNotFoundException。"""
 
     def __init__(self, source_name: str) -> None:
+        """
+        记录缺少配置的数据源名称。
+
+        :param source_name: 数据源名称
+        """
         super().__init__(source_name, message=f'数据源未配置：{source_name}')
 
 
 class DataSourceUnavailableException(DataSourceException):
-    """
-    自定义数据源不可用异常DataSourceUnavailableException
-    """
+    """自定义数据源不可用异常DataSourceUnavailableException。"""
 
     def __init__(
         self,
@@ -426,6 +518,13 @@ class DataSourceUnavailableException(DataSourceException):
         error_type: str | None = None,
         error_code: int | None = None,
     ) -> None:
+        """
+        记录不可用的数据源及其错误类型。
+
+        :param source_name: 数据源名称
+        :param error_type: 用于区分失败原因的类型
+        :param error_code: 数字错误码
+        """
         super().__init__(
             source_name,
             message=f'数据源暂不可用：{source_name}',
@@ -435,9 +534,7 @@ class DataSourceUnavailableException(DataSourceException):
 
 
 class DataSourceInitializationException(DataSourceException):
-    """
-    自定义数据源初始化异常DataSourceInitializationException
-    """
+    """自定义数据源初始化异常DataSourceInitializationException。"""
 
     def __init__(
         self,
@@ -446,6 +543,13 @@ class DataSourceInitializationException(DataSourceException):
         error_type: str | None = None,
         error_code: int | None = None,
     ) -> None:
+        """
+        记录初始化失败的数据源及其错误类型。
+
+        :param source_name: 数据源名称
+        :param error_type: 用于区分失败原因的类型
+        :param error_code: 数字错误码
+        """
         super().__init__(
             source_name,
             message=f'数据源初始化失败：{source_name}',

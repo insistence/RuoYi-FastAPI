@@ -21,6 +21,10 @@ MIGRATION_ERROR_MESSAGE_MAX_LENGTH = 1000
 class PluginMigrationError(RuntimeError):
     """
     插件 migration 可恢复错误。
+
+    :ivar migration_path: migration 相对插件根目录路径
+    :ivar status: 当前 migration 状态
+    :ivar recovery_suggestion: 恢复建议
     """
 
     def __init__(
@@ -62,9 +66,9 @@ class PluginMigrationHistoryRecord:
     """
     插件 migration 历史记录。
 
-    :param checksum: migration 内容校验值
-    :param status: 执行状态
-    :param error_message: 失败错误信息
+    :ivar checksum: migration 内容校验值
+    :ivar status: 执行状态
+    :ivar error_message: 失败错误信息
     """
 
     checksum: str
@@ -77,14 +81,14 @@ class PluginMigrationResult:
     """
     插件 migration 执行结果。
 
-    :param migration_path: migration 相对插件根目录路径
-    :param module_name: migration 模块名
-    :param statement_count: SQL 语句数量
-    :param checksum: migration 内容校验值
-    :param skipped: 是否跳过执行
-    :param status: 执行状态
-    :param duration_ms: 执行耗时，单位毫秒
-    :param recovery_suggestion: 恢复建议
+    :ivar migration_path: migration 相对插件根目录路径
+    :ivar module_name: migration 模块名
+    :ivar statement_count: SQL 语句数量
+    :ivar checksum: migration 内容校验值
+    :ivar skipped: 是否跳过执行
+    :ivar status: 执行状态
+    :ivar duration_ms: 执行耗时，单位毫秒
+    :ivar recovery_suggestion: 恢复建议
     """
 
     migration_path: str
@@ -98,9 +102,7 @@ class PluginMigrationResult:
 
 
 class PluginMigrationHistoryStore:
-    """
-    插件 migration 历史存储接口。
-    """
+    """插件 migration 历史存储接口。"""
 
     async def get_record(
         self,
@@ -115,6 +117,7 @@ class PluginMigrationHistoryStore:
         :param plugin_id: 插件ID
         :param migration_path: migration 相对路径
         :return: migration 执行历史，不存在时返回 None
+        :raises NotImplementedError: 调用尚未实现的接口时
         """
         raise NotImplementedError
 
@@ -150,7 +153,7 @@ class PluginMigrationHistoryStore:
         :param checksum: 内容校验值
         :param version: 执行时插件版本
         :param statement_count: SQL 语句数量
-        :return: None
+        :raises NotImplementedError: 调用尚未实现的接口时
         """
         raise NotImplementedError
 
@@ -172,7 +175,7 @@ class PluginMigrationHistoryStore:
         :param checksum: 内容校验值
         :param version: 执行时插件版本
         :param statement_count: SQL 语句数量
-        :return: None
+        :raises NotImplementedError: 调用尚未实现的接口时
         """
         raise NotImplementedError
 
@@ -196,7 +199,7 @@ class PluginMigrationHistoryStore:
         :param version: 执行时插件版本
         :param statement_count: 已解析 SQL 语句数量
         :param error_message: 失败错误信息
-        :return: None
+        :raises NotImplementedError: 调用尚未实现的接口时
         """
         raise NotImplementedError
 
@@ -206,7 +209,11 @@ class PluginMigrationRunner:
     插件 migration 运行器。
 
     使用 Command Runner 模式按 manifest 声明顺序执行插件结构迁移脚本。
-    Python migration 模块需要暴露 `run(query_db)` 函数，SQL migration 会按分号拆分并逐条执行。
+    Python migration 模块需要暴露 ``run(query_db)`` 函数，SQL migration 会按分号拆分并逐条执行。
+
+    :ivar discovered_plugin: 已发现插件对象
+    :ivar history_store: migration 执行历史存储
+    :ivar manage_execution_transaction: 是否由 runner 提交或回滚执行 session
     """
 
     def __init__(
@@ -222,7 +229,6 @@ class PluginMigrationRunner:
         :param discovered_plugin: 已发现插件对象
         :param history_store: migration 执行历史存储
         :param manage_execution_transaction: 是否由 runner 提交或回滚执行 session
-        :return: None
         """
         self.discovered_plugin = discovered_plugin
         self.history_store = history_store
@@ -249,6 +255,7 @@ class PluginMigrationRunner:
         :param migration_path: migration 相对插件根目录路径
         :param query_db: orm对象
         :return: migration 执行结果
+        :raises PluginMigrationError: 迁移记录的状态或已执行脚本的校验值阻止再次执行
         """
         migration_file = self._resolve_migration_file(migration_path)
         checksum = await asyncio.to_thread(self._calculate_checksum, migration_file)
@@ -352,7 +359,6 @@ class PluginMigrationRunner:
         提交 migration 执行事务。
 
         :param query_db: migration 执行 session
-        :return: None
         """
         if not self.manage_execution_transaction:
             return
@@ -364,7 +370,6 @@ class PluginMigrationRunner:
         回滚 migration 执行事务。
 
         :param query_db: migration 执行 session
-        :return: None
         """
         if not self.manage_execution_transaction:
             return
@@ -377,7 +382,7 @@ class PluginMigrationRunner:
 
         :param query_db: migration 执行 session
         :param method_name: 事务方法名
-        :return: None
+        :raises RuntimeError: 执行迁移的会话缺少所需的事务方法
         """
         method = getattr(query_db, method_name, None)
         if not callable(method):
@@ -402,6 +407,7 @@ class PluginMigrationRunner:
         :param query_db: orm对象
         :param checksum: migration 内容校验值
         :return: migration 执行结果
+        :raises RuntimeError: Python 迁移脚本未提供 run 入口
         """
         migration_module = self._load_migration_module(migration_file)
         migration_runner = getattr(migration_module, 'run', None)
@@ -465,7 +471,6 @@ class PluginMigrationRunner:
         :param query_db: orm对象
         :param migration_path: migration 相对路径
         :param checksum: migration 内容校验值
-        :return: None
         """
         if not self.history_store:
             return
@@ -485,7 +490,6 @@ class PluginMigrationRunner:
 
         :param query_db: orm对象
         :param result: migration 执行结果
-        :return: None
         """
         if not self.history_store or not result.checksum:
             return
@@ -513,7 +517,6 @@ class PluginMigrationRunner:
         :param migration_path: migration 相对路径
         :param checksum: migration 内容校验值
         :param error_message: 失败错误信息
-        :return: None
         """
         if not self.history_store:
             return

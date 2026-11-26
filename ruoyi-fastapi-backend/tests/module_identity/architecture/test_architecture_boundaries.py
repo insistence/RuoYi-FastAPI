@@ -9,17 +9,32 @@ _HTTP_ROUTE_METHODS = {'api_route', 'delete', 'get', 'head', 'options', 'patch',
 
 
 def _python_files(directory: str) -> list[Path]:
-    """返回指定认证模块目录下的生产 Python 文件。"""
+    """
+    返回指定认证模块目录下的生产 Python 文件。
+
+    :param directory: 要查找或写入文件的目录
+    :return: 指定认证模块目录下的生产 Python 文件
+    """
     return sorted((_IDENTITY_ROOT / directory).glob('*.py'))
 
 
 def _parse(path: Path) -> ast.Module:
-    """将生产文件解析为抽象语法树。"""
+    """
+    将生产文件解析为抽象语法树。
+
+    :param path: 要读取或处理的路径
+    :return: 被检查模块的抽象语法树
+    """
     return ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
 
 
 def _imported_modules(tree: ast.Module) -> set[str]:
-    """收集语法树中的完整导入模块路径。"""
+    """
+    收集语法树中的完整导入模块路径。
+
+    :param tree: 待校验源码的抽象语法树
+    :return: 语法树中的完整导入模块路径
+    """
     modules: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -95,7 +110,12 @@ def test_controller_dependencies_use_annotated_style() -> None:
 
 
 def _route_decorators(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.Call]:
-    """返回函数上的 HTTP 路由装饰器。"""
+    """
+    返回函数上的 HTTP 路由装饰器。
+
+    :param node: 当前检查的语法或结构节点
+    :return: 函数上的 HTTP 路由装饰器
+    """
     return [
         decorator
         for decorator in node.decorator_list
@@ -106,7 +126,12 @@ def _route_decorators(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.
 
 
 def _doc_param_names(docstring: str) -> set[str]:
-    """提取 Sphinx 文档字符串中的参数名称。"""
+    """
+    提取 Sphinx 文档字符串中的参数名称。
+
+    :param docstring: 要检查的文档字符串
+    :return: Sphinx 文档字符串中的参数名称
+    """
     return {
         line.removeprefix(':param ').split(':', 1)[0].strip()
         for line in docstring.splitlines()
@@ -115,11 +140,21 @@ def _doc_param_names(docstring: str) -> set[str]:
 
 
 def _block_docstring(path: Path, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-    """检查函数文档字符串是否采用项目统一的独占行格式。"""
+    """
+    检查函数文档字符串是否采用项目统一的独占行格式。
+
+    :param path: 要读取或处理的路径
+    :param node: 当前检查的语法或结构节点
+    :return: 是否函数文档字符串是否采用项目统一的独占行格式
+    """
     if not node.body or not isinstance(node.body[0], ast.Expr):
         return False
     expression = node.body[0].value
-    if not isinstance(expression, ast.Constant) or not isinstance(expression.value, str):
+    if (
+        not isinstance(expression, ast.Constant)
+        or not isinstance(expression.value, str)
+        or expression.end_lineno is None
+    ):
         return False
     lines = path.read_text(encoding='utf-8').splitlines()
     opening_index = expression.lineno - 1
@@ -136,7 +171,14 @@ def _internal_doc_violations(
     node: ast.FunctionDef | ast.AsyncFunctionDef,
     first_route_lineno: int | None,
 ) -> list[str]:
-    """返回内部函数的顺序和文档违规信息。"""
+    """
+    返回内部函数的顺序和文档违规信息。
+
+    :param path: 要读取或处理的路径
+    :param node: 当前检查的语法或结构节点
+    :param first_route_lineno: 第一个路由声明在源码中的行号
+    :return: 内部函数的顺序和文档违规信息
+    """
     violations: list[str] = []
     docstring = ast.get_docstring(node)
     if node.col_offset != 0:
@@ -167,7 +209,14 @@ def _route_doc_violations(
     node: ast.FunctionDef | ast.AsyncFunctionDef,
     route_decorators: list[ast.Call],
 ) -> list[str]:
-    """返回路由函数文档和 OpenAPI 文案违规信息。"""
+    """
+    返回路由函数文档和 OpenAPI 文案违规信息。
+
+    :param path: 要读取或处理的路径
+    :param node: 当前检查的语法或结构节点
+    :param route_decorators: 当前端点的路由装饰器
+    :return: 路由函数文档和 OpenAPI 文案违规信息
+    """
     violations: list[str] = []
     if ast.get_docstring(node) is not None:
         violations.append(f'{path.name}:{node.lineno}: 路由函数不得使用 docstring')

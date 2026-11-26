@@ -1,18 +1,16 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 
 
-class OperLogModel(BaseModel):
-    """
-    操作日志表对应pydantic模型
-    """
+class OperLogModel(CamelModel):
+    """操作日志表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     oper_id: int | None = Field(default=None, description='日志主键')
     title: str | None = Field(default=None, description='模块标题')
@@ -37,12 +35,10 @@ class OperLogModel(BaseModel):
     cost_time: int | None = Field(default=None, description='消耗时间')
 
 
-class LogininforModel(BaseModel):
-    """
-    登录日志表对应pydantic模型
-    """
+class LogininforModel(CamelModel):
+    """登录日志表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     info_id: int | None = Field(default=None, description='访问ID')
     user_name: str | None = Field(default=None, description='用户账号')
@@ -56,9 +52,7 @@ class LogininforModel(BaseModel):
 
 
 class OperLogQueryModel(DateRangeQueryMixin, OperLogModel):
-    """
-    操作日志管理不分页查询模型
-    """
+    """操作日志管理不分页查询模型。"""
 
     order_by_column: str | None = Field(default=None, description='排序的字段名称')
     is_asc: Literal['ascending', 'descending'] | None = Field(
@@ -69,28 +63,20 @@ class OperLogQueryModel(DateRangeQueryMixin, OperLogModel):
 
 
 class OperLogPageQueryModel(OperLogQueryModel):
-    """
-    操作日志管理分页查询模型
-    """
+    """操作日志管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteOperLogModel(BaseModel):
-    """
-    删除操作日志模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class DeleteOperLogModel(CamelModel):
+    """删除操作日志模型。"""
 
     oper_ids: str = Field(description='需要删除的日志主键')
 
 
 class LoginLogQueryModel(DateRangeQueryMixin, LogininforModel):
-    """
-    登录日志管理不分页查询模型
-    """
+    """登录日志管理不分页查询模型。"""
 
     order_by_column: str | None = Field(default=None, description='排序的字段名称')
     is_asc: Literal['ascending', 'descending'] | None = Field(
@@ -101,29 +87,19 @@ class LoginLogQueryModel(DateRangeQueryMixin, LogininforModel):
 
 
 class LoginLogPageQueryModel(LoginLogQueryModel):
-    """
-    登录日志管理分页查询模型
-    """
+    """登录日志管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteLoginLogModel(BaseModel):
-    """
-    删除登录日志模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class DeleteLoginLogModel(CamelModel):
+    """删除登录日志模型。"""
 
     info_ids: str = Field(description='需要删除的访问ID')
 
 
-class UnlockUser(BaseModel):
-    """
-    解锁用户模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class UnlockUser(CamelModel):
+    """解锁用户模型。"""
 
     user_name: str = Field(description='用户名称')

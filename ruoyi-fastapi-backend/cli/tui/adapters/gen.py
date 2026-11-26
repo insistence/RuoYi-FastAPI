@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any
 
-from cli.tui.adapters.base import BaseBrowserAdapter
+from cli.tui.adapters.base import BaseBrowserAdapter, get_dict_field, get_list_field
 from cli.tui.adapters.models import (
     TUI_ADAPTER_MODEL_RENDERER,
     BrowserPageSnapshot,
@@ -39,8 +39,9 @@ class GenSectionBuilder:
 
     该构建器负责构建代码生成页共享分区，以及单条业务表详情分区。
 
-    :param page_adapter: 代码生成浏览页适配器
-    :param rendering: 代码生成浏览页渲染支持对象
+    :ivar page_adapter: 代码生成浏览页适配器
+    :ivar rendering: 代码生成浏览页渲染支持对象
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(
@@ -52,9 +53,9 @@ class GenSectionBuilder:
         """
         初始化代码生成浏览页分区构建器。
 
+        :param query_service: TUI 进程内查询服务
         :param page_adapter: 代码生成浏览页适配器
         :param rendering: 代码生成浏览页渲染支持对象
-        :return: None
         """
         self.page_adapter = page_adapter
         self.rendering = rendering
@@ -64,12 +65,11 @@ class GenSectionBuilder:
         """
         构建业务表概览分区。
 
-        :param payload: `gen detail` JSON 负载
+        :param payload: ``gen detail`` JSON 负载
         :return: 分区快照
         """
-        detail = payload.get('detail') if isinstance(payload, dict) else None
-        info = detail.get('info') if isinstance(detail, dict) else None
-        if not isinstance(info, dict):
+        detail = get_dict_field(payload, 'detail')
+        if not isinstance(payload, dict) or not isinstance(detail.get('info'), dict):
             return DetailSectionSnapshot(
                 title='业务表摘要',
                 status='fail',
@@ -89,12 +89,11 @@ class GenSectionBuilder:
         """
         构建代码生成配置分区。
 
-        :param payload: `gen detail` JSON 负载
+        :param payload: ``gen detail`` JSON 负载
         :return: 分区快照
         """
-        detail = payload.get('detail') if isinstance(payload, dict) else None
-        info = detail.get('info') if isinstance(detail, dict) else None
-        if not isinstance(info, dict):
+        detail = get_dict_field(payload, 'detail')
+        if not isinstance(payload, dict) or not isinstance(info := detail.get('info'), dict):
             return DetailSectionSnapshot(
                 title='生成配置',
                 status='fail',
@@ -120,12 +119,11 @@ class GenSectionBuilder:
         """
         构建字段概览分区。
 
-        :param payload: `gen detail` JSON 负载
+        :param payload: ``gen detail`` JSON 负载
         :return: 分区快照
         """
-        detail = payload.get('detail') if isinstance(payload, dict) else None
-        rows = detail.get('rows') if isinstance(detail, dict) else None
-        if not isinstance(rows, list):
+        detail = get_dict_field(payload, 'detail')
+        if not isinstance(payload, dict) or not isinstance(rows := detail.get('rows'), list):
             return DetailSectionSnapshot(
                 title='字段摘要',
                 status='fail',
@@ -151,12 +149,11 @@ class GenSectionBuilder:
         """
         构建业务表字段分区。
 
-        :param payload: `gen detail` JSON 负载
+        :param payload: ``gen detail`` JSON 负载
         :return: 分区快照
         """
-        detail = payload.get('detail') if isinstance(payload, dict) else None
-        rows = detail.get('rows') if isinstance(detail, dict) else None
-        if not isinstance(rows, list) or not rows:
+        detail = get_dict_field(payload, 'detail')
+        if not isinstance(payload, dict) or not isinstance(rows := detail.get('rows'), list) or not rows:
             return DetailSectionSnapshot(
                 title='字段列表',
                 status='fail',
@@ -197,13 +194,13 @@ class GenSectionBuilder:
         """
         构建代码生成前校验分区。
 
-        :param detail_payload: `gen detail` JSON 负载
-        :param preview_payload: `gen preview` JSON 负载
+        :param detail_payload: ``gen detail`` JSON 负载
+        :param preview_payload: ``gen preview`` JSON 负载
         :return: 分区快照
         """
         detail = detail_payload.get('detail') if isinstance(detail_payload, dict) else None
         info = detail.get('info') if isinstance(detail, dict) else None
-        rows = detail.get('rows') if isinstance(detail, dict) and isinstance(detail.get('rows'), list) else []
+        rows = get_list_field(detail, 'rows')
         preview = preview_payload.get('preview') if isinstance(preview_payload, dict) else None
         preview_templates = preview if isinstance(preview, dict) else {}
         row_dicts = [row for row in rows if isinstance(row, dict)]
@@ -256,7 +253,7 @@ class GenSectionBuilder:
         构建数据库表结构同步前检查分区。
 
         :param table_name: 业务表名称
-        :param payload: `gen db-list --table-name=...` JSON 负载
+        :param payload: ``gen db-list --table-name=...`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -305,7 +302,7 @@ class GenSectionBuilder:
         """
         构建代码预览分区。
 
-        :param payload: `gen preview` JSON 负载
+        :param payload: ``gen preview`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -316,7 +313,7 @@ class GenSectionBuilder:
                     payload, empty_label='代码预览', empty_value='不可用'
                 ),
             )
-        preview_payload = payload.get('preview') if isinstance(payload.get('preview'), dict) else {}
+        preview_payload = get_dict_field(payload, 'preview')
         lines = [
             '## 模板规模',
             f'模板数量: {payload.get("templateCount", len(preview_payload))}',
@@ -352,7 +349,7 @@ class GenSectionBuilder:
         """
         构建代码导出预演分区。
 
-        :param payload: `gen export --dry-run` JSON 负载
+        :param payload: ``gen export --dry-run`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -364,7 +361,7 @@ class GenSectionBuilder:
                 ),
             )
 
-        results = payload.get('results') if isinstance(payload.get('results'), list) else []
+        results = get_list_field(payload, 'results')
         lines = [
             '## 预演结果',
             f'执行模式: {payload.get("mode", "-")}',
@@ -398,7 +395,7 @@ class GenSectionBuilder:
         """
         构建数据库可导入表共享分区。
 
-        :param payload: `gen db-list` JSON 负载
+        :param payload: ``gen db-list`` JSON 负载
         :return: 分区快照
         """
         if not isinstance(payload, dict) or not payload.get('ok', False):
@@ -578,8 +575,8 @@ class GenRecordBuilder:
 
     该对象负责构建代码生成页单条业务表浏览记录与失败兜底记录。
 
-    :param page_adapter: 代码生成浏览页适配器
-    :param section_builder: 代码生成浏览页分区构建器
+    :ivar page_adapter: 代码生成浏览页适配器
+    :ivar section_builder: 代码生成浏览页分区构建器
     """
 
     def __init__(
@@ -592,7 +589,6 @@ class GenRecordBuilder:
 
         :param page_adapter: 代码生成浏览页适配器
         :param section_builder: 代码生成浏览页分区构建器
-        :return: None
         """
         self.page_adapter = page_adapter
         self.section_builder = section_builder
@@ -651,6 +647,11 @@ class GenBrowserAdapter(BaseBrowserAdapter):
 
     该适配器负责采集业务表列表、详情、预览与可导入表清单，并委托
     协作对象完成共享分区、详情分区和记录构建。
+
+    :ivar rendering: 代码生成浏览页渲染支持对象
+    :ivar query_service: TUI 进程内查询服务
+    :ivar section_builder: 代码生成浏览页分区构建器
+    :ivar record_builder: 代码生成浏览记录构建器
     """
 
     def __init__(
@@ -663,10 +664,10 @@ class GenBrowserAdapter(BaseBrowserAdapter):
         """
         初始化代码生成浏览页适配器。
 
+        :param query_service: TUI 进程内查询服务
         :param rendering: 代码生成浏览页渲染支持对象
         :param section_builder: 代码生成浏览页分区构建器
         :param record_builder: 代码生成浏览记录构建器
-        :return: None
         """
         super().__init__(
             page_title='代码生成',

@@ -5,8 +5,10 @@ import os
 import runpy
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -24,12 +26,20 @@ PLUGIN_ID = 'invoice_ops_27'
 TEMPLATES = ('python-asgi', 'python-bundle', 'rust-asgi', 'rust-bundle')
 
 
-def generate(tmp_path: Path, template: str, **kwargs: object) -> tuple[dict, Path]:
+def generate(tmp_path: Path, template: str, *, dry_run: bool = False, test: bool = True) -> tuple[dict[str, Any], Path]:
     """
     在临时宿主目录中生成指定 v2 模板。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param template: 用于生成文件的模板
+    :param dry_run: 是否只预览生成结果
+    :param test: 是否包含测试文件
+    :return: 生成结果及生成的插件目录
     """
     backend = tmp_path / 'backend'
-    payload = build_runtime(backend, frontend_root=FRONTEND_ROOT).create_plugin(PLUGIN_ID, template=template, **kwargs)
+    payload = build_runtime(backend, frontend_root=FRONTEND_ROOT).create_plugin(
+        PLUGIN_ID, template=template, dry_run=dry_run, test=test
+    )
     assert payload['ok'], payload
     return payload, backend / 'plugin-projects' / PLUGIN_ID
 
@@ -37,6 +47,10 @@ def generate(tmp_path: Path, template: str, **kwargs: object) -> tuple[dict, Pat
 def run_builder(source: Path, output: Path) -> subprocess.CompletedProcess[str]:
     """
     通过独立 Python 进程执行生成的交付构建脚本。
+
+    :param source: 隔离插件工程根目录
+    :param output: 命令或操作的输出
+    :return: 交付构建子进程的退出码及输出
     """
     return subprocess.run(
         [sys.executable, '-X', 'utf8', str(source / 'build_release.py'), '--output', str(output)],
@@ -52,6 +66,8 @@ def run_builder(source: Path, output: Path) -> subprocess.CompletedProcess[str]:
 def write_bundle(source: Path) -> None:
     """
     写入最小已构建前端资源，供离线交付测试使用。
+
+    :param source: 隔离插件工程根目录
     """
     dist = source / 'web' / 'dist'
     (dist / 'assets').mkdir(parents=True)
@@ -59,16 +75,15 @@ def write_bundle(source: Path) -> None:
     (dist / 'assets' / 'app.js').write_text('export const built = true\n', encoding='utf-8')
 
 
-def write_release_files(source: Path, names: list[object]) -> None:
+def write_release_files(source: Path, names: Sequence[object]) -> None:
     """
     为隔离工程写入受控交付清单，允许传入非法项供拒绝路径测试。
 
     :param source: 隔离插件工程根目录
     :param names: 清单中的完整文件列表
-    :return: None
     """
     (source / 'release-files.json').write_text(
-        json.dumps({'schemaVersion': 1, 'files': names}, ensure_ascii=False), encoding='utf-8'
+        json.dumps({'schemaVersion': 1, 'files': list(names)}, ensure_ascii=False), encoding='utf-8'
     )
 
 
@@ -76,9 +91,7 @@ def write_release_files(source: Path, names: list[object]) -> None:
 def test_v2_templates_create_independent_projects_without_importing_or_installing(
     tmp_path: Path, template: str
 ) -> None:
-    """
-    验证四类模板生成独立工程且不安装或导入插件。
-    """
+    """验证四类模板生成独立工程且不安装或导入插件。"""
     payload, source = generate(tmp_path, template)
     plugin = PluginScanner(source.parent).load_manifest(source / 'plugin.yaml')
     native = template.startswith('rust-')
@@ -90,6 +103,7 @@ def test_v2_templates_create_independent_projects_without_importing_or_installin
     assert plugin.manifest.id == PLUGIN_ID
     serialized = plugin.manifest.model_dump_json(by_alias=True)
     assert type(plugin.manifest).model_validate_json(serialized) == plugin.manifest
+    assert plugin.manifest.backend.asgi is not None
     assert plugin.manifest.backend.asgi.mount_path == f'/apps/{PLUGIN_ID}'
     assert payload['sourceDir'] == source.as_posix()
     assert payload['frontendFramework'] is None
@@ -133,9 +147,7 @@ def test_v2_templates_create_independent_projects_without_importing_or_installin
 
 @pytest.mark.parametrize('template', ['python-bundle', 'rust-bundle'])
 def test_bundle_templates_record_sdk_identity_and_source_hashes(tmp_path: Path, template: str) -> None:
-    """
-    验证 bundle 工程包含独立 SDK 版本、协议能力及与实际副本一致的来源摘要。
-    """
+    """验证 bundle 工程包含独立 SDK 版本、协议能力及与实际副本一致的来源摘要。"""
     _, source = generate(tmp_path, template)
     vendor = source / 'web' / 'vendor'
     sdk = json.loads((vendor / 'pluginBridge.sdk.json').read_text(encoding='utf-8'))
@@ -168,6 +180,7 @@ def test_bundle_template_preserves_independent_host_framework_with_auto_option(t
 
     assert payload['ok'] is True
     assert payload['frontendFramework'] is None
+    assert isinstance(payload['files'], list)
     metadata = next(item for item in payload['files'] if item['path'].endswith('/pluginBridge.sdk.json'))
     assert json.loads(metadata['content'])['source']['directory'] == (
         'ruoyi-fastapi-frontend/custom_ui-1/web/src/utils'
@@ -187,9 +200,7 @@ def test_api_template_does_not_resolve_unknown_independent_host_framework(tmp_pa
 
 
 def test_bundle_sdk_source_hashes_are_stable_across_crlf_checkout(tmp_path: Path) -> None:
-    """
-    验证使用 CRLF 的宿主源码副本生成工程后，SDK 溯源摘要仍与规范化内容一致。
-    """
+    """验证使用 CRLF 的宿主源码副本生成工程后，SDK 溯源摘要仍与规范化内容一致。"""
     frontend = tmp_path / 'frontend'
     sdk_source = frontend / 'src' / 'utils'
     sdk_source.mkdir(parents=True)
@@ -210,9 +221,7 @@ def test_bundle_sdk_source_hashes_are_stable_across_crlf_checkout(tmp_path: Path
 
 @pytest.mark.parametrize('template', TEMPLATES)
 def test_v2_template_readme_matches_browser_capabilities(tmp_path: Path, template: str) -> None:
-    """
-    验证生成说明区分浏览器 SDK 能力与模板自带接口，并保留协商和传输限制。
-    """
+    """验证生成说明区分浏览器 SDK 能力与模板自带接口，并保留协商和传输限制。"""
     _, source = generate(tmp_path, template)
     readme = (source / 'README.md').read_text(encoding='utf-8')
     assert (
@@ -252,9 +261,7 @@ def test_v2_template_readme_matches_browser_capabilities(tmp_path: Path, templat
 
 @pytest.mark.parametrize('template', TEMPLATES)
 def test_v2_template_dry_run_and_conflict_never_overwrite(tmp_path: Path, template: str) -> None:
-    """
-    验证预演不写文件，目录冲突时不覆盖已有内容。
-    """
+    """验证预演不写文件，目录冲突时不覆盖已有内容。"""
     payload, source = generate(tmp_path, template, dry_run=True)
     assert payload['dryRun'] is True
     assert not source.exists()
@@ -271,13 +278,7 @@ def test_v2_template_dry_run_and_conflict_never_overwrite(tmp_path: Path, templa
 
 @pytest.mark.parametrize('template', TEMPLATES)
 def test_v2_python_templates_describe_explicit_release_files(tmp_path: Path, template: str) -> None:
-    """
-    验证仅 Python 模板生成受控交付清单，并说明模块和迁移的扩展方法。
-
-    :param tmp_path: 隔离宿主目录
-    :param template: 待检查的 v2 模板
-    :return: None
-    """
+    """验证仅 Python 模板生成受控交付清单，并说明模块和迁移的扩展方法。"""
     _, source = generate(tmp_path, template)
     config = source / 'release-files.json'
     readme = (source / 'README.md').read_text(encoding='utf-8')
@@ -301,25 +302,23 @@ def test_v2_python_templates_describe_explicit_release_files(tmp_path: Path, tem
     ],
 )
 def test_v2_templates_reject_incompatible_legacy_options(
-    tmp_path: Path, template: str, options: dict, error: str
+    tmp_path: Path, template: str, options: dict[str, Any], error: str
 ) -> None:
-    """
-    验证 v2 模板拒绝不兼容的旧版选项。
-    """
+    """验证 v2 模板拒绝不兼容的旧版选项。"""
     payload = build_runtime(tmp_path / 'backend', frontend_root=FRONTEND_ROOT).create_plugin(
         PLUGIN_ID, template=template, **options
     )
     assert payload['ok'] is False
+    assert isinstance(payload['error'], str)
     assert error in payload['error']
     assert not (tmp_path / 'backend' / 'plugin-projects').exists()
 
 
 def test_bundle_template_requires_verified_host_sdk_and_no_test_is_honored(tmp_path: Path) -> None:
-    """
-    验证 bundle 需要宿主桥接 SDK，且遵守不生成测试的选项。
-    """
+    """验证 bundle 需要宿主桥接 SDK，且遵守不生成测试的选项。"""
     missing = build_runtime(tmp_path / 'backend').create_plugin(PLUGIN_ID, template='python-bundle')
     assert missing['ok'] is False
+    assert isinstance(missing['error'], str)
     assert '桥接 SDK' in missing['error']
     assert not (tmp_path / 'backend' / 'plugin-projects').exists()
     payload, source = generate(tmp_path, 'python-bundle', test=False)
@@ -329,9 +328,7 @@ def test_bundle_template_requires_verified_host_sdk_and_no_test_is_honored(tmp_p
 
 @pytest.mark.parametrize('template', ['python-asgi', 'python-bundle'])
 def test_generated_python_release_passes_structure_and_generated_contract_tests(tmp_path: Path, template: str) -> None:
-    """
-    验证生成的 Python 交付通过结构检查与其自身合约测试。
-    """
+    """验证生成的 Python 交付通过结构检查与其自身合约测试。"""
     _, source = generate(tmp_path, template)
     if template.endswith('-bundle'):
         write_bundle(source)
@@ -380,9 +377,7 @@ def test_generated_python_release_passes_structure_and_generated_contract_tests(
     'invalid_file', ['assets/app.js.map', 'assets/private.pem', '.env', 'assets/entry.ts', 'assets/.private.js']
 )
 def test_python_bundle_packaging_rejects_nonrelease_content(tmp_path: Path, invalid_file: str) -> None:
-    """
-    验证 Python 交付拒绝源码、密钥和其他非交付资源。
-    """
+    """验证 Python 交付拒绝源码、密钥和其他非交付资源。"""
     _, source = generate(tmp_path, 'python-bundle')
     write_bundle(source)
     (source / 'web' / 'dist' / invalid_file).write_text('must not package', encoding='utf-8')
@@ -392,9 +387,7 @@ def test_python_bundle_packaging_rejects_nonrelease_content(tmp_path: Path, inva
 
 
 def test_python_bundle_packaging_rejects_missing_build_and_overlapping_output(tmp_path: Path) -> None:
-    """
-    验证 Python 交付拒绝缺失前端构建及输出目录重叠。
-    """
+    """验证 Python 交付拒绝缺失前端构建及输出目录重叠。"""
     _, source = generate(tmp_path, 'python-bundle')
     output = tmp_path / 'missing-build'
     assert run_builder(source, output).returncode != 0
@@ -405,9 +398,7 @@ def test_python_bundle_packaging_rejects_missing_build_and_overlapping_output(tm
 
 
 def test_python_release_rejects_hardlinked_resources(tmp_path: Path) -> None:
-    """
-    验证 Python 交付拒绝硬链接资源。
-    """
+    """验证 Python 交付拒绝硬链接资源。"""
     _, source = generate(tmp_path, 'python-asgi')
     os.link(source / '__init__.py', tmp_path / 'entry-copy.py')
     output = tmp_path / 'hardlink-release'
@@ -417,13 +408,7 @@ def test_python_release_rejects_hardlinked_resources(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize('template', ['python-asgi', 'python-bundle'])
 def test_python_release_copies_declared_modules_and_sql_without_importing(tmp_path: Path, template: str) -> None:
-    """
-    验证新增模块和 SQL 按清单交付，未声明的私有文件不会混入且业务入口不会执行。
-
-    :param tmp_path: 隔离构建目录
-    :param template: Python API 或 bundle 模板
-    :return: None
-    """
+    """验证新增模块和 SQL 按清单交付，未声明的私有文件不会混入且业务入口不会执行。"""
     _, source = generate(tmp_path, template)
     names = ['__init__.py', 'models.py', 'api/__init__.py', 'api/reports.py', 'migrations/mysql/001_init.sql']
     for name in names:
@@ -478,14 +463,7 @@ def test_python_release_copies_declared_modules_and_sql_without_importing(tmp_pa
     ],
 )
 def test_python_release_rejects_unsafe_declared_paths_before_output(tmp_path: Path, name: object, reason: str) -> None:
-    """
-    验证显式声明仍不能绕过路径、资源类型和开发目录限制。
-
-    :param tmp_path: 隔离源码及输出目录
-    :param name: 清单中的非法资源路径
-    :param reason: 预期的拒绝原因片段
-    :return: None
-    """
+    """验证显式声明仍不能绕过路径、资源类型和开发目录限制。"""
     _, source = generate(tmp_path, 'python-asgi')
     write_release_files(source, ['__init__.py', name])
     output = tmp_path / 'unsafe-release'
@@ -505,13 +483,7 @@ def test_python_release_rejects_unsafe_declared_paths_before_output(tmp_path: Pa
     ],
 )
 def test_python_release_rejects_duplicate_and_conflicting_inventory(tmp_path: Path, names: list[str]) -> None:
-    """
-    验证重复文件、大小写目录歧义及文件目录冲突在访问资源前被拒绝。
-
-    :param tmp_path: 隔离源码及输出目录
-    :param names: 存在重复或冲突的完整清单
-    :return: None
-    """
+    """验证重复文件、大小写目录歧义及文件目录冲突在访问资源前被拒绝。"""
     _, source = generate(tmp_path, 'python-asgi')
     write_release_files(source, names)
     output = tmp_path / 'collision-release'
@@ -549,13 +521,7 @@ def test_python_release_rejects_duplicate_and_conflicting_inventory(tmp_path: Pa
     ],
 )
 def test_python_release_rejects_invalid_or_oversized_config(tmp_path: Path, content: str) -> None:
-    """
-    验证清单结构、重复字段和资源上限，拒绝时不创建输出目录。
-
-    :param tmp_path: 隔离源码及输出目录
-    :param content: 非法交付清单文本
-    :return: None
-    """
+    """验证清单结构、重复字段和资源上限，拒绝时不创建输出目录。"""
     _, source = generate(tmp_path, 'python-asgi')
     (source / 'release-files.json').write_text(content, encoding='utf-8')
     output = tmp_path / 'invalid-config-release'
@@ -565,13 +531,7 @@ def test_python_release_rejects_invalid_or_oversized_config(tmp_path: Path, cont
 
 @pytest.mark.parametrize('missing', ['release-files.json', 'module.py', 'directory.py'])
 def test_python_release_requires_existing_config_and_regular_declared_files(tmp_path: Path, missing: str) -> None:
-    """
-    验证缺失清单、缺失资源及伪装为 .py 的目录均不会留下半成品输出。
-
-    :param tmp_path: 隔离源码及输出目录
-    :param missing: 缺失清单或不可用的声明资源
-    :return: None
-    """
+    """验证缺失清单、缺失资源及伪装为 .py 的目录均不会留下半成品输出。"""
     _, source = generate(tmp_path, 'python-asgi')
     if missing == 'release-files.json':
         (source / missing).unlink()
@@ -586,13 +546,7 @@ def test_python_release_requires_existing_config_and_regular_declared_files(tmp_
 
 @pytest.mark.parametrize('kind', ['file', 'directory'])
 def test_python_release_rejects_linked_declared_resources(tmp_path: Path, kind: str) -> None:
-    """
-    验证文件或父目录符号链接不能将工程外内容引入交付。
-
-    :param tmp_path: 隔离源码、外部文件及输出目录
-    :param kind: 文件链接或目录链接
-    :return: None
-    """
+    """验证文件或父目录符号链接不能将工程外内容引入交付。"""
     _, source = generate(tmp_path, 'python-asgi')
     outside = tmp_path / 'outside'
     outside.mkdir()
@@ -613,13 +567,7 @@ def test_python_release_rejects_linked_declared_resources(tmp_path: Path, kind: 
 
 
 def test_python_release_rejects_reparse_resource_before_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    验证 Windows 重解析标志独立于符号链接权限，且校验失败发生在输出创建之前。
-
-    :param tmp_path: 隔离源码及输出目录
-    :param monkeypatch: 模拟文件系统重解析标志和命令参数
-    :return: None
-    """
+    """验证 Windows 重解析标志独立于符号链接权限，且校验失败发生在输出创建之前。"""
     _, source = generate(tmp_path, 'python-asgi')
     namespace = runpy.run_path(str(source / 'build_release.py'))
     original_lstat = Path.lstat
@@ -646,11 +594,7 @@ def test_python_release_rejects_reparse_resource_before_output(tmp_path: Path, m
 
 
 def test_task_demo_release_builder_matches_scaffold_template() -> None:
-    """
-    验证任务示例和 Python 脚手架共用同一独立构建逻辑，防止安全约束漂移。
-
-    :return: None
-    """
+    """验证任务示例和 Python 脚手架共用同一独立构建逻辑，防止安全约束漂移。"""
     example = BACKEND_ROOT / 'plugins' / 'examples' / 'python' / 'task_demo'
     template = BACKEND_ROOT / 'cli' / 'runtime' / 'plugin' / 'scaffold' / 'assets' / 'python' / 'build_release.py.tmpl'
     expected = template.read_text(encoding='utf-8').replace('__PLUGIN_ID__', 'task_demo').replace('__BUNDLE__', 'True')

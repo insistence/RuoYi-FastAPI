@@ -9,12 +9,17 @@ from starlette.convertors import Convertor, FloatConvertor, IntegerConvertor, St
 from starlette.routing import BaseRoute
 
 from common.auth_policy import AuthPolicy, AuthRule
+from common.context import CompiledExcludeRoute
 from module_admin.service.login_service import LoginService, oauth2_scheme
 
 
 class OpenAPIUtil:
     """
-    OpenAPI认证声明工具类
+    OpenAPI认证声明工具类。
+
+    :cvar _MAX_PATH_STATES: 展开路由认证条件时允许探索的最大状态数
+    :cvar _CONDITIONAL_DESCRIPTION: 路由认证取决于路径条件时显示的说明
+    :cvar _UNRESOLVED_DESCRIPTION: 无法完全展开认证条件时使用的文档说明
     """
 
     _MAX_PATH_STATES = 4096
@@ -27,17 +32,23 @@ class OpenAPIUtil:
     @classmethod
     def adjust_security(cls, schema: dict[str, Any], routes: Sequence[BaseRoute]) -> dict[str, Any]:
         """
-        根据前置认证规则调整各接口的登录安全声明
+        根据前置认证规则调整各接口的登录安全声明。
 
         :param schema: 可修改的OpenAPI文档副本
         :param routes: 应用路由列表
         :return: 调整后的OpenAPI文档
         """
         for route, method in cls._iter_auth_routes(routes):
-            requirements = list(
-                AuthPolicy.iter_auth_dependencies(route.dependant, (LoginService.get_current_user, oauth2_scheme))
-            )
-            if not requirements or any(item is None for item in requirements):
+            requirements: list[AuthRule] = []
+            for rule in AuthPolicy.iter_auth_dependencies(
+                route.dependant, (LoginService.get_current_user, oauth2_scheme)
+            ):
+                if rule is None:
+                    # 显式登录依赖要求认证，保留原有安全声明。
+                    requirements.clear()
+                    break
+                requirements.append(rule)
+            if not requirements:
                 continue
             # 同名的其他安全依赖仍可能要求凭证，不能随宿主登录声明一起移除。
             if cls._has_external_login_scheme(route.dependant):
@@ -79,10 +90,10 @@ class OpenAPIUtil:
     @staticmethod
     def _iter_auth_routes(routes: Sequence[BaseRoute]) -> Iterator[tuple[Any, str]]:
         """
-        获取不存在重复声明的路由
+        获取不存在重复声明的路由。
 
         :param routes: 应用路由列表
-        :return: 唯一路由及HTTP方法
+        :yield: 唯一路由及HTTP方法
         """
         first_routes = {}
         conflicting_operations = set()
@@ -104,7 +115,7 @@ class OpenAPIUtil:
     @classmethod
     def _has_external_login_scheme(cls, dependency: Any) -> bool:
         """
-        判断是否存在与宿主登录同名的其他安全依赖
+        判断是否存在与宿主登录同名的其他安全依赖。
 
         :param dependency: 路由依赖声明
         :return: 是否需要保留同名安全声明
@@ -121,11 +132,10 @@ class OpenAPIUtil:
     @classmethod
     def _adjust_operation_security(cls, operation: dict[str, Any], *, conditional: bool) -> None:
         """
-        调整宿主登录要求并保留其他安全方案
+        调整宿主登录要求并保留其他安全方案。
 
         :param operation: 接口文档
         :param conditional: 是否仅部分路径需要登录
-        :return: None
         """
         security = operation.get('security', [])
         scheme = oauth2_scheme.scheme_name
@@ -153,7 +163,7 @@ class OpenAPIUtil:
     @classmethod
     def _get_auth_mode(cls, route: Any, method: str, requirements: list[AuthRule]) -> str:
         """
-        判断接口是否始终、从不或按路径参数要求登录
+        判断接口是否始终、从不或按路径参数要求登录。
 
         :param route: 包含最终路径和依赖的路由
         :param method: HTTP方法
@@ -202,7 +212,7 @@ class OpenAPIUtil:
     @classmethod
     def _has_template_coverage(cls, route: Any, method: str, pre_auth: AuthRule) -> bool:
         """
-        判断同一模板的排除规则是否覆盖全部参数值
+        判断同一模板的排除规则是否覆盖全部参数值。
 
         :param route: 接口路由
         :param method: HTTP方法
@@ -223,9 +233,9 @@ class OpenAPIUtil:
         return any(re.sub(r'\{[^}]+\}', '{}', rule['original_path']) == skeleton for rule in rules)
 
     @staticmethod
-    def _method_rules(pre_auth: AuthRule, method: str) -> list[dict[str, Any]]:
+    def _method_rules(pre_auth: AuthRule, method: str) -> list[CompiledExcludeRoute]:
         """
-        获取适用于当前HTTP方法的排除规则
+        获取适用于当前HTTP方法的排除规则。
 
         :param pre_auth: 前置认证依赖
         :param method: HTTP方法
@@ -234,9 +244,9 @@ class OpenAPIUtil:
         return [rule for rule in pre_auth.exclude_patterns if not rule['methods'] or method in rule['methods']]
 
     @staticmethod
-    def _get_path_shape(route: Any) -> tuple[tuple[str | None, ...], dict[int, Convertor]] | None:
+    def _get_path_shape(route: Any) -> tuple[tuple[str | None, ...], dict[int, Convertor[Any]]] | None:
         """
-        将普通路径模板拆分为固定段和单段参数
+        将普通路径模板拆分为固定段和单段参数。
 
         :param route: 接口路由
         :return: 路径段及参数转换器，复杂模板返回None
@@ -264,10 +274,10 @@ class OpenAPIUtil:
         pre_auth: AuthRule,
         method: str,
         segments: tuple[str | None, ...],
-        convertors: dict[int, Convertor],
+        convertors: dict[int, Convertor[Any]],
     ) -> tuple[list[tuple[str | None, ...]], bool]:
         """
-        将排除规则转换为路径参数的取值约束
+        将排除规则转换为路径参数的取值约束。
 
         :param pre_auth: 前置认证依赖
         :param method: HTTP方法
@@ -305,14 +315,14 @@ class OpenAPIUtil:
     def _has_public_path(
         cls,
         segments: tuple[str | None, ...],
-        convertors: dict[int, Convertor],
+        convertors: dict[int, Convertor[Any]],
         groups: list[tuple[list[tuple[str | None, ...]], bool]],
         ignored_paths: set[str],
         requirements: list[AuthRule],
         method: str,
     ) -> bool | None:
         """
-        判断各前置认证分支的公开路径是否存在交集
+        判断各前置认证分支的公开路径是否存在交集。
 
         :param segments: 路径模板
         :param convertors: 参数转换器
@@ -329,6 +339,13 @@ class OpenAPIUtil:
         has_unknown_rules = any(unknown for _, unknown in groups)
 
         def visit(index: int, values: tuple[str | None, ...]) -> bool:
+            """
+            在路由约束中搜索无需认证的路径组合。
+
+            :param index: 当前条目在序列中的位置
+            :param values: 当前处理的值集合
+            :return: 是否在路由约束中搜索无需认证的路径组合
+            """
             nonlocal limited, unresolved
             state = (index, values)
             if state in visited:
@@ -362,22 +379,24 @@ class OpenAPIUtil:
 
     @staticmethod
     def _get_candidate_path(
-        segments: tuple[str | None, ...], convertors: dict[int, Convertor], ignored_paths: set[str]
+        segments: tuple[str | None, ...], convertors: dict[int, Convertor[Any]], ignored_paths: set[str]
     ) -> str:
         """
-        为未固定的参数选择不落入有限例外列表的值
+        为未固定的参数选择不落入有限例外列表的值。
 
         :param segments: 已合并的路径参数约束
         :param convertors: 参数转换器
         :param ignored_paths: 例外路径
         :return: 用于检查规则交集的实际路径
         """
-        values = list(segments)
+        values: list[str] = []
         ignored_segments = [path.split('/') for path in ignored_paths]
-        for index, convertor in convertors.items():
-            if values[index] is not None:
+        for index, segment in enumerate(segments):
+            if segment is not None:
+                values.append(segment)
                 continue
-            excluded = {parts[index] for parts in ignored_segments if len(parts) == len(values)}
+            convertor = convertors[index]
+            excluded = {parts[index] for parts in ignored_segments if len(parts) == len(segments)}
             for number in range(len(excluded) + 1):
                 if convertor.regex == StringConvertor.regex:
                     candidate = f'__openapi_{number}__'
@@ -386,6 +405,6 @@ class OpenAPIUtil:
                 else:
                     candidate = str(number)
                 if candidate not in excluded:
-                    values[index] = candidate
+                    values.append(candidate)
                     break
         return '/'.join(values)

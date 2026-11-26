@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, and_, delete, exists, func, or_, select, update
+from sqlalchemy import ColumnElement, and_, delete, exists, func, literal, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -19,14 +19,12 @@ from utils.time_util import TimezoneUtil
 
 
 class FileReferenceDao:
-    """
-    文件业务引用数据操作层
-    """
+    """文件业务引用数据操作层。"""
 
     @classmethod
     async def get_file_reference_list(cls, db: AsyncSession, file_id: str) -> list[SysFileReference]:
         """
-        获取文件业务引用列表
+        获取文件业务引用列表。
 
         :param db: orm对象
         :param file_id: 文件ID
@@ -51,7 +49,7 @@ class FileReferenceDao:
     @classmethod
     async def get_file_reference_list_for_update(cls, db: AsyncSession, file_id: str) -> list[SysFileReference]:
         """
-        锁定文件业务引用列表
+        锁定文件业务引用列表。
 
         :param db: orm对象
         :param file_id: 文件ID
@@ -73,18 +71,17 @@ class FileReferenceDao:
     @classmethod
     async def delete_file_references(cls, db: AsyncSession, file_id: str) -> None:
         """
-        删除文件的全部业务引用
+        删除文件的全部业务引用。
 
         :param db: orm对象
         :param file_id: 文件ID
-        :return: None
         """
         await db.execute(delete(SysFileReference).where(SysFileReference.file_id == file_id))
 
     @classmethod
     async def get_file_reference_count_map(cls, db: AsyncSession, file_ids: list[str]) -> dict[str, int]:
         """
-        获取文件业务引用数量映射
+        获取文件业务引用数量映射。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
@@ -117,13 +114,12 @@ class FileReferenceDao:
         file_reference_list: list[SysFileReference],
     ) -> None:
         """
-        替换业务对象的文件引用
+        替换业务对象的文件引用。
 
         :param db: orm对象
         :param business_type: 业务类型
         :param business_id: 业务ID
         :param file_reference_list: 文件业务引用列表
-        :return: None
         """
         old_reference_list = list(
             (
@@ -180,7 +176,12 @@ class FileReferenceDao:
         old_reference_list: list[SysFileReference],
         new_reference_list: list[SysFileReference],
     ) -> None:
-        """保留同一业务引用已经延长的更晚到期时间。"""
+        """
+        保留同一业务引用已经延长的更晚到期时间。
+
+        :param old_reference_list: 更新前的文件引用集合
+        :param new_reference_list: 更新后的文件引用集合
+        """
         old_reference_map = {reference.file_id: reference for reference in old_reference_list}
         for reference in new_reference_list:
             old_reference = old_reference_map.get(reference.file_id)
@@ -199,7 +200,13 @@ class FileReferenceDao:
         file_ids: list[str],
         file_info_map: dict[str, SysFileInfo],
     ) -> None:
-        """根据业务引用重新计算文件过期时间。"""
+        """
+        根据业务引用重新计算文件过期时间。
+
+        :param db: 当前操作使用的数据库会话
+        :param file_ids: 文件ID列表
+        :param file_info_map: 按文件标识索引的元数据
+        """
         if not file_ids:
             return
         rows = (
@@ -210,7 +217,7 @@ class FileReferenceDao:
                 ).where(SysFileReference.file_id.in_(file_ids))
             )
         ).all()
-        retention_map: dict[str, list] = {file_id: [] for file_id in file_ids}
+        retention_map: dict[str, list[datetime | None]] = {file_id: [] for file_id in file_ids}
         for file_id, retention_expire_time in rows:
             retention_map[str(file_id)].append(retention_expire_time)
 
@@ -223,7 +230,9 @@ class FileReferenceDao:
             if has_legacy_reference or any(expire_time is None for expire_time in retention_expire_times):
                 file_info.expire_time = None
             else:
-                file_info.expire_time = max(retention_expire_times, default=None)
+                file_info.expire_time = max(
+                    (expiry for expiry in retention_expire_times if expiry is not None), default=None
+                )
             await FileRetentionNoticeDao.invalidate_changed_expire_time_notices(
                 db,
                 file_id,
@@ -232,14 +241,12 @@ class FileReferenceDao:
 
 
 class FileRetentionPolicyDao:
-    """
-    文件业务保留策略数据操作层
-    """
+    """文件业务保留策略数据操作层。"""
 
     @classmethod
     async def get_file_retention_policy_list(cls, db: AsyncSession) -> list[SysFileRetentionPolicy]:
         """
-        获取文件业务保留策略列表
+        获取文件业务保留策略列表。
 
         :param db: orm对象
         :return: 文件业务保留策略列表
@@ -258,7 +265,7 @@ class FileRetentionPolicyDao:
         enabled_only: bool = False,
     ) -> SysFileRetentionPolicy | None:
         """
-        根据业务类型获取文件业务保留策略
+        根据业务类型获取文件业务保留策略。
 
         :param db: orm对象
         :param business_type: 业务类型
@@ -270,7 +277,7 @@ class FileRetentionPolicyDao:
                 await db.execute(
                     select(SysFileRetentionPolicy).where(
                         SysFileRetentionPolicy.business_type == business_type,
-                        SysFileRetentionPolicy.status == '0' if enabled_only else True,
+                        SysFileRetentionPolicy.status == '0' if enabled_only else true(),
                     )
                 )
             )
@@ -285,11 +292,10 @@ class FileRetentionPolicyDao:
         policy: SysFileRetentionPolicy,
     ) -> None:
         """
-        新增文件业务保留策略
+        新增文件业务保留策略。
 
         :param db: orm对象
         :param policy: 文件业务保留策略
-        :return: None
         """
         db.add(policy)
         await db.flush()
@@ -299,15 +305,14 @@ class FileRetentionPolicyDao:
         cls,
         db: AsyncSession,
         business_type: str,
-        policy: dict,
+        policy: dict[str, object],
     ) -> None:
         """
-        修改文件业务保留策略
+        修改文件业务保留策略。
 
         :param db: orm对象
         :param business_type: 业务类型
         :param policy: 文件业务保留策略
-        :return: None
         """
         await db.execute(
             update(SysFileRetentionPolicy)
@@ -318,19 +323,16 @@ class FileRetentionPolicyDao:
     @classmethod
     async def delete_file_retention_policy(cls, db: AsyncSession, business_type: str) -> None:
         """
-        删除文件业务保留策略
+        删除文件业务保留策略。
 
         :param db: orm对象
         :param business_type: 业务类型
-        :return: None
         """
         await db.execute(delete(SysFileRetentionPolicy).where(SysFileRetentionPolicy.business_type == business_type))
 
 
 class FileRetentionNoticeDao:
-    """
-    文件保留期限提醒数据操作层
-    """
+    """文件保留期限提醒数据操作层。"""
 
     @classmethod
     async def get_missing_notice_candidates(
@@ -340,10 +342,10 @@ class FileRetentionNoticeDao:
         current_time: datetime,
         reminder_deadline: datetime,
         batch_size: int,
-        file_data_scope_sql: ColumnElement | bool = True,
+        file_data_scope_sql: ColumnElement[bool] | bool = True,
     ) -> list[SysFileInfo]:
         """
-        获取尚未生成当前到期提醒的文件
+        获取尚未生成当前到期提醒的文件。
 
         :param db: orm对象
         :param notice_type: 提醒类型
@@ -380,7 +382,7 @@ class FileRetentionNoticeDao:
                         SysFileInfo.expire_time.is_not(None),
                         expire_condition,
                         ~current_notice_exists,
-                        file_data_scope_sql,
+                        literal(file_data_scope_sql) if isinstance(file_data_scope_sql, bool) else file_data_scope_sql,
                     )
                     .order_by(SysFileInfo.expire_time, SysFileInfo.file_id)
                     .limit(batch_size)
@@ -398,11 +400,10 @@ class FileRetentionNoticeDao:
         notice_list: list[SysFileRetentionNotice],
     ) -> None:
         """
-        批量新增文件保留期限提醒
+        批量新增文件保留期限提醒。
 
         :param db: orm对象
         :param notice_list: 提醒对象列表
-        :return: None
         """
         if notice_list:
             db.add_all(notice_list)
@@ -411,11 +412,10 @@ class FileRetentionNoticeDao:
     @classmethod
     async def invalidate_expiring_notices(cls, db: AsyncSession, file_ids: list[str]) -> None:
         """
-        将已经到期文件的即将到期提醒标记为失效
+        将已经到期文件的即将到期提醒标记为失效。
 
         :param db: orm对象
         :param file_ids: 文件ID列表
-        :return: None
         """
         if not file_ids:
             return
@@ -437,15 +437,14 @@ class FileRetentionNoticeDao:
         expire_time: datetime | None,
     ) -> None:
         """
-        将与文件当前到期时间不一致的未读提醒标记为失效
+        将与文件当前到期时间不一致的未读提醒标记为失效。
 
         :param db: orm对象
         :param file_id: 文件ID
         :param expire_time: 文件当前到期时间
-        :return: None
         """
         expire_condition = (
-            True
+            true()
             if expire_time is None
             else or_(
                 SysFileRetentionNotice.expire_time != expire_time,
@@ -467,11 +466,11 @@ class FileRetentionNoticeDao:
         cls,
         db: AsyncSession,
         query_object: FileRetentionNoticePageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        获取文件保留期限提醒列表
+        获取文件保留期限提醒列表。
 
         :param db: orm对象
         :param query_object: 查询参数
@@ -521,9 +520,9 @@ class FileRetentionNoticeDao:
                 file_data_scope_sql,
                 SysFileInfo.original_name.like(f'%{query_object.original_name}%')
                 if query_object.original_name
-                else True,
-                SysFileRetentionNotice.notice_type == query_object.notice_type if query_object.notice_type else True,
-                SysFileRetentionNotice.status == query_object.status if query_object.status else True,
+                else true(),
+                SysFileRetentionNotice.notice_type == query_object.notice_type if query_object.notice_type else true(),
+                SysFileRetentionNotice.status == query_object.status if query_object.status else true(),
             )
             .order_by(
                 SysFileRetentionNotice.status,
@@ -538,10 +537,10 @@ class FileRetentionNoticeDao:
         cls,
         db: AsyncSession,
         notice_id: int,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> tuple[SysFileRetentionNotice, SysFileInfo] | None:
         """
-        锁定数据权限范围内的有效提醒和文件
+        锁定数据权限范围内的有效提醒和文件。
 
         :param db: orm对象
         :param notice_id: 提醒ID
@@ -571,10 +570,10 @@ class FileRetentionNoticeDao:
         cls,
         db: AsyncSession,
         notice_ids: list[int],
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> list[int]:
         """
-        锁定数据权限范围内的有效提醒
+        锁定数据权限范围内的有效提醒。
 
         :param db: orm对象
         :param notice_ids: 提醒ID列表
@@ -612,13 +611,12 @@ class FileRetentionNoticeDao:
         read_time: datetime,
     ) -> None:
         """
-        标记文件保留期限提醒为已读
+        标记文件保留期限提醒为已读。
 
         :param db: orm对象
         :param notice_ids: 提醒ID列表
         :param read_by: 读取者
         :param read_time: 读取时间
-        :return: None
         """
         await db.execute(
             update(SysFileRetentionNotice)
@@ -632,11 +630,10 @@ class FileRetentionNoticeDao:
     @classmethod
     async def invalidate_file_retention_notices(cls, db: AsyncSession, file_id: str) -> None:
         """
-        将文件当前有效的保留期限提醒标记为失效
+        将文件当前有效的保留期限提醒标记为失效。
 
         :param db: orm对象
         :param file_id: 文件ID
-        :return: None
         """
         await db.execute(
             update(SysFileRetentionNotice)

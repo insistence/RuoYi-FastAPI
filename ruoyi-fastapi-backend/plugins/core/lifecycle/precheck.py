@@ -11,6 +11,8 @@ from plugins.core.validation.result import PluginValidationIssue
 class PluginLifecycleScriptPrecheckResult:
     """
     插件生命周期脚本预检结果。
+
+    :ivar issues: 预检发现的脚本问题
     """
 
     issues: list[PluginValidationIssue]
@@ -46,6 +48,9 @@ class PluginLifecycleScriptPrecheckResult:
 class PluginLifecycleScriptPrechecker:
     """
     插件生命周期脚本执行前预检器。
+
+    :ivar discovered_plugin: 已发现插件对象
+    :ivar migration_runner: migration 运行器
     """
 
     def __init__(self, discovered_plugin: DiscoveredPlugin, migration_runner: PluginMigrationRunner) -> None:
@@ -54,7 +59,6 @@ class PluginLifecycleScriptPrechecker:
 
         :param discovered_plugin: 已发现插件对象
         :param migration_runner: migration 运行器
-        :return: None
         """
         self.discovered_plugin = discovered_plugin
         self.migration_runner = migration_runner

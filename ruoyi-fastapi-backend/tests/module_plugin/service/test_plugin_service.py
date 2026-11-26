@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import create_autospec
 
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -12,6 +13,7 @@ from module_plugin.service.plugin_service import (
 )
 from plugins.core.management.entity.do.models import SysPluginOperationLog
 from plugins.core.management.service.service import PluginService
+from plugins.core.runtime.service import PluginRuntimeService
 
 
 def test_get_plugin_operation_service_reuses_singleton() -> None:
@@ -38,7 +40,7 @@ async def test_plugin_diagnose_with_audit_filters_recent_logs(tmp_path: Path) ->
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.get_table()])
 
     try:
         async with session_maker() as session:
@@ -68,24 +70,19 @@ async def test_plugin_diagnose_with_audit_filters_recent_logs(tmp_path: Path) ->
             )
             await session.commit()
 
-            class FakeRuntimeService:
-                """
-                测试用插件运行时服务。
-                """
+            runtime = create_autospec(PluginRuntimeService, instance=True, spec_set=True)
+            runtime.diagnose_plugin.return_value = {
+                'ok': True,
+                'message': '插件诊断包生成完成',
+                'pluginId': 'demo',
+                'audit': {'available': False, 'items': []},
+            }
+            payload = await PluginOperationService(runtime_service=runtime).diagnose_plugin_with_audit_services(
+                session, 'demo'
+            )
 
-                async def diagnose_plugin(self, plugin_id: str) -> dict[str, object]:
-                    """返回测试用插件诊断结果。"""
-                    return {
-                        'ok': True,
-                        'message': '插件诊断包生成完成',
-                        'pluginId': plugin_id,
-                        'audit': {'available': False, 'items': []},
-                    }
-
-            payload = await PluginOperationService(
-                runtime_service=FakeRuntimeService()
-            ).diagnose_plugin_with_audit_services(session, 'demo')
-
+        runtime.diagnose_plugin.assert_awaited_once_with('demo')
+        assert isinstance(payload['audit'], dict)
         assert payload['audit']['available'] is True
         assert payload['audit']['count'] == 1
         assert payload['audit']['items'][0]['pluginIds'] == ['demo']

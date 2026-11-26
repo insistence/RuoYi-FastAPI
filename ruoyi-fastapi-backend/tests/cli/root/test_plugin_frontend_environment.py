@@ -21,11 +21,8 @@ def test_cold_cli_preserves_frontend_framework_across_scaffold_sdk_and_dependenc
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
     framework: str,
 ) -> None:
-    """
-    校验独立进程从框架环境变量启动后，模板、SDK 与依赖锁选择相同工程。
-
-    所有宿主文件位于临时目录；创建和锁定只预演，SDK 更新仅修改测试副本。
-    """
+    """校验独立进程从框架环境变量启动后，模板、SDK 与依赖锁选择相同工程。"""
+    # 所有宿主文件位于临时目录，创建和锁定只预演，SDK 更新仅修改测试副本。
     backend = tmp_path / 'backend'
     frontend_container = tmp_path / 'ruoyi-fastapi-frontend'
     for host_framework in ('vue2', 'vue3', 'react'):

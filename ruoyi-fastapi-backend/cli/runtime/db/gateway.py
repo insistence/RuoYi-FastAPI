@@ -31,9 +31,9 @@ class DatabaseInfrastructureGateway:
     @staticmethod
     def get_sqlalchemy_text() -> Any:
         """
-        获取 SQLAlchemy `text` 构造函数。
+        获取 SQLAlchemy ``text`` 构造函数。
 
-        :return: SQLAlchemy `text` 函数
+        :return: SQLAlchemy ``text`` 函数
         """
         return import_module('sqlalchemy').text
 

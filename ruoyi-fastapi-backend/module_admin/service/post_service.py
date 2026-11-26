@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal, overload
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,16 +13,26 @@ from utils.excel_util import ExcelUtil
 
 
 class PostService:
-    """
-    岗位管理模块服务层
-    """
+    """岗位管理模块服务层。"""
+
+    @classmethod
+    @overload
+    async def get_post_list_services(
+        cls, query_db: AsyncSession, query_object: PostPageQueryModel, is_page: Literal[True]
+    ) -> PageModel[dict[str, Any]]: ...
+
+    @classmethod
+    @overload
+    async def get_post_list_services(
+        cls, query_db: AsyncSession, query_object: PostPageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_post_list_services(
         cls, query_db: AsyncSession, query_object: PostPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        获取岗位列表信息service
+        获取岗位列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -36,14 +46,14 @@ class PostService:
     @classmethod
     async def check_post_name_unique_services(cls, query_db: AsyncSession, page_object: PostModel) -> bool:
         """
-        检查岗位名称是否唯一service
+        检查岗位名称是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 岗位对象
         :return: 校验结果
         """
         post_id = -1 if page_object.post_id is None else page_object.post_id
-        post = await PostDao.get_post_detail_by_info(query_db, PostModel(postName=page_object.post_name))
+        post = await PostDao.get_post_detail_by_info(query_db, PostModel(post_name=page_object.post_name))
         if post and post.post_id != post_id:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
@@ -51,14 +61,14 @@ class PostService:
     @classmethod
     async def check_post_code_unique_services(cls, query_db: AsyncSession, page_object: PostModel) -> bool:
         """
-        检查岗位编码是否唯一service
+        检查岗位编码是否唯一service。
 
         :param query_db: orm对象
         :param page_object: 岗位对象
         :return: 校验结果
         """
         post_id = -1 if page_object.post_id is None else page_object.post_id
-        post = await PostDao.get_post_detail_by_info(query_db, PostModel(postCode=page_object.post_code))
+        post = await PostDao.get_post_detail_by_info(query_db, PostModel(post_code=page_object.post_code))
         if post and post.post_id != post_id:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
@@ -66,11 +76,13 @@ class PostService:
     @classmethod
     async def add_post_services(cls, query_db: AsyncSession, page_object: PostModel) -> CrudResponseModel:
         """
-        新增岗位信息service
+        新增岗位信息service。
 
         :param query_db: orm对象
         :param page_object: 新增岗位对象
         :return: 新增岗位校验结果
+        :raises ServiceException: 岗位名称或编码已存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         if not await cls.check_post_name_unique_services(query_db, page_object):
             raise ServiceException(
@@ -95,11 +107,13 @@ class PostService:
     @classmethod
     async def edit_post_services(cls, query_db: AsyncSession, page_object: PostModel) -> CrudResponseModel:
         """
-        编辑岗位信息service
+        编辑岗位信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑岗位对象
         :return: 编辑岗位校验结果
+        :raises ServiceException: 岗位不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         edit_post = page_object.model_dump(exclude_unset=True, exclude={'create_time', 'update_time'})
         post_info = await cls.post_detail_services(query_db, page_object.post_id)
@@ -129,11 +143,13 @@ class PostService:
     @classmethod
     async def delete_post_services(cls, query_db: AsyncSession, page_object: DeletePostModel) -> CrudResponseModel:
         """
-        删除岗位信息service
+        删除岗位信息service。
 
         :param query_db: orm对象
         :param page_object: 删除岗位对象
         :return: 删除岗位校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入岗位id为空
         """
         if page_object.post_ids:
             post_id_list = page_object.post_ids.split(',')
@@ -146,7 +162,7 @@ class PostService:
                             msg_key='post.assigned',
                             msg_params={'post_name': str(post.post_name)},
                         )
-                    await PostDao.delete_post_dao(query_db, PostModel(postId=post_id))
+                    await PostDao.delete_post_dao(query_db, PostModel(post_id=post_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
@@ -156,23 +172,25 @@ class PostService:
             raise ServiceException(message='传入岗位id为空', msg_key='post.idRequired')
 
     @classmethod
-    async def post_detail_services(cls, query_db: AsyncSession, post_id: int) -> PostModel:
+    async def post_detail_services(cls, query_db: AsyncSession, post_id: int | None) -> PostModel:
         """
-        获取岗位详细信息service
+        获取岗位详细信息service。
 
         :param query_db: orm对象
         :param post_id: 岗位id
         :return: 岗位id对应的信息
         """
+        if post_id is None:
+            return PostModel()
         post = await PostDao.get_post_detail_by_id(query_db, post_id=post_id)
         result = PostModel(**CamelCaseUtil.transform_result(post)) if post else PostModel()
 
         return result
 
     @staticmethod
-    async def export_post_list_services(post_list: list) -> bytes:
+    async def export_post_list_services(post_list: list[dict[str, Any]]) -> bytes:
         """
-        导出岗位信息service
+        导出岗位信息service。
 
         :param post_list: 岗位信息列表
         :return: 岗位信息对应excel的二进制数据

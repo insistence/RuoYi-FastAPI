@@ -14,14 +14,26 @@ from exceptions.handle import handle_exception
 
 @pytest.fixture
 def oauth_management_client(monkeypatch: pytest.MonkeyPatch) -> Callable[[APIRouter, object, object], AsyncClient]:
-    """构造使用真实路由和全局异常处理器的管理端 HTTP 客户端。"""
+    """
+    构造使用真实路由和全局异常处理器的管理端 HTTP 客户端。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: 使用真实路由和全局异常处理器的管理端 HTTP 客户端
+    """
     monkeypatch.setattr(Log, '_get_oper_location', AsyncMock(return_value='测试'))
     monkeypatch.setattr(
         ApiRateLimit, '_acquire_rate_limit', AsyncMock(return_value={'allowed': True, 'remaining': 1, 'reset_at': 0})
     )
 
     def create_client(router: APIRouter, session: object, current_user: object) -> AsyncClient:
-        """替换数据库和认证依赖，保留控制器、装饰器及异常响应链。"""
+        """
+        替换数据库和认证依赖，保留控制器、装饰器及异常响应链。
+
+        :param router: 注册端点所用的路由器
+        :param session: 当前操作共用的会话
+        :param current_user: 当前登录用户及其权限信息
+        :return: ``AsyncClient`` 实例
+        """
         app = FastAPI()
         app.state.redis = SimpleNamespace()
         app.state.oidc_registered_cors_origins = ('https://old.example',)
@@ -31,6 +43,8 @@ def oauth_management_client(monkeypatch: pytest.MonkeyPatch) -> Callable[[APIRou
             if not isinstance(route, APIRoute):
                 continue
             for dependency in route.dependant.dependencies:
+                if dependency.call is None:
+                    continue
                 if dependency.name == 'query_db':
                     app.dependency_overrides[dependency.call] = lambda: session
                 elif dependency.name == 'current_user':

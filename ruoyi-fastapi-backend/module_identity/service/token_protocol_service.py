@@ -32,7 +32,16 @@ from utils.time_util import TimezoneUtil
 
 class IntrospectionService:
     """
-    OAuth Token 内省模块服务层
+    OAuth Token 内省模块服务层。
+
+    :cvar _USERINFO_SUFFIX: 用户信息端点的路径后缀
+    :cvar _ACTIVE_CLIENT_STATUS: 表示客户端可用的状态值
+    :cvar _ACTIVE_USER_STATUS: 表示用户可用的状态值
+    :cvar _ACTIVE_GRANT_STATUS: 表示授权记录可用的状态值
+    :cvar _ACTIVE_SESSION_STATUS: 表示会话有效的状态值
+    :cvar _ACTIVE_TOKEN_STATUS: 表示令牌可用的状态值
+    :cvar _REFRESH_PREFIX: 标识刷新令牌的前缀
+    :cvar _STANDARD_CLAIMS: 协议定义的标准令牌声明
     """
 
     _USERINFO_SUFFIX = '/oauth2/userinfo'
@@ -59,9 +68,9 @@ class IntrospectionService:
         now: datetime | None = None,
         token_type_hint: str | None = None,
         pepper: str | bytes | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
-        验证 Token 并生成 OAuth Introspection 响应
+        验证 Token 并生成 OAuth Introspection 响应。
 
         :param db: 异步数据库会话
         :param redis: 统一认证中心 Redis 客户端
@@ -74,7 +83,6 @@ class IntrospectionService:
         :param pepper: 可选 Token HMAC Pepper 覆盖值
         :return: 有效 Token 的声明，或严格的 ``{'active': False}``
         """
-
         try:
             current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
             client = await cls._resolve_caller(db, caller)
@@ -109,9 +117,9 @@ class IntrospectionService:
         now: datetime | None = None,
         token_type_hint: str | None = None,
         pepper: str | bytes | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
-        在事务边界内执行 Token 内省
+        在事务边界内执行 Token 内省。
 
         :param db: 异步数据库会话，由本方法提交或回滚
         :param redis: 认证中心 Redis 客户端
@@ -121,10 +129,10 @@ class IntrospectionService:
         :param verification_key: 当前 Token 对应的公钥
         :param now: 可注入的 项目当前时间
         :param token_type_hint: Token 类型提示
-        :param pepper: Refresh Token HMAC Pepper
+        :param pepper: 计算刷新令牌 HMAC 的独立密钥
         :return: OAuth Introspection 响应
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
-
         try:
             result = await cls.introspect(
                 db,
@@ -156,14 +164,14 @@ class IntrospectionService:
         verification_key: Any = None,
         verification_key_loader: Callable[[AsyncSession, str], Awaitable[Any]] | None = None,
         token_type_hint: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
-        认证调用 Client 并处理内省请求
+        认证调用 Client 并处理内省请求。
 
         :param db: 异步数据库会话，由本方法提交或回滚
         :param redis: 认证中心 Redis 客户端
         :param token: 待内省的 OAuth Access Token 或 Refresh Token
-        :param authorization: RFC 7617 Basic Header
+        :param authorization: 符合 RFC 7617 的 Basic 认证头
         :param client_id: 表单 Client ID
         :param client_secret: 表单 Client Secret
         :param verification_key: 当前 Access Token 的本地公钥
@@ -171,8 +179,8 @@ class IntrospectionService:
         :param token_type_hint: Token 类型提示
         :return: OAuth Introspection 响应
         :raises OAuthProtocolException: 请求不符合 OAuth 协议约束
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
-
         try:
             client_row, principal = await TokenService.authenticate_client(
                 db,
@@ -199,13 +207,12 @@ class IntrospectionService:
     @classmethod
     async def _resolve_caller(cls, db: AsyncSession, caller: OAuthClientPrincipal) -> Any:
         """
-        确认内省调用方 Client 处于有效状态
+        确认内省调用方 Client 处于有效状态。
 
         :param db: 异步数据库会话
         :param caller: 已认证的 OAuth Client 主体
         :return: 已启用且认证方式匹配的 OAuth Client ORM 对象，不满足条件时返回 None
         """
-
         if not isinstance(caller, OAuthClientPrincipal) or caller.auth_method != 'client_secret_basic':
             return None
         client = await OAuthClientDao.get_by_client_id(db, caller.client_id, active_only=True)
@@ -230,9 +237,9 @@ class IntrospectionService:
         now: datetime,
         verification_keys: Any,
         verification_key: Any,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
-        验证 Access Token 并生成内省声明
+        验证 Access Token 并生成内省声明。
 
         :param db: 异步数据库会话
         :param redis: 异步 Redis 客户端
@@ -243,7 +250,6 @@ class IntrospectionService:
         :param verification_key: 验证密钥
         :return: 有效 Access Token 的 Introspection 声明，或严格的 ``{'active': False}``
         """
-
         claims = decode_access_token(
             token,
             verification_keys,
@@ -281,7 +287,7 @@ class IntrospectionService:
             user_state = await cls._access_user_state(db, claims, issuer_client, resources, now)
             if user_state is None:
                 return {'active': False}
-        result: dict[str, Any] = {'active': True, 'token_type': 'Bearer'}
+        result: dict[str, object] = {'active': True, 'token_type': 'Bearer'}
         for name in cls._STANDARD_CLAIMS:
             if name in claims:
                 result[name] = claims[name]
@@ -297,7 +303,7 @@ class IntrospectionService:
         cls, db: AsyncSession, claims: dict[str, Any], client: Any, resources: list[str], now: datetime
     ) -> Any:
         """
-        验证 Access Token 对应的用户、Session 和授权来源
+        验证 Access Token 对应的用户、Session 和授权来源。
 
         :param db: 异步数据库会话
         :param claims: 令牌声明
@@ -306,7 +312,6 @@ class IntrospectionService:
         :param now: 当前时间
         :return: 当前身份对应的启用用户 ORM 对象，安全状态或授权来源不匹配时返回 None
         """
-
         subject_id = claims.get('sub')
         version = claims.get('ver')
         sid = claims.get('sid')
@@ -364,7 +369,7 @@ class IntrospectionService:
         cls, db: AsyncSession, client: Any, claims: dict[str, Any], resources: list[str]
     ) -> bool:
         """
-        检查当前 Client 策略是否仍允许令牌中的 Scope 和 Resource
+        检查当前 Client 策略是否仍允许令牌中的 Scope 和 Resource。
 
         :param db: 异步数据库会话
         :param client: 签发该 Access Token 的 OAuth Client ORM
@@ -372,7 +377,6 @@ class IntrospectionService:
         :param resources: 待检查的 Resource Audience 列表
         :return: 策略版本及 Scope、Resource 绑定均有效时为 True
         """
-
         scope = claims.get('scope')
         if not isinstance(scope, str) or not scope.strip():
             return False
@@ -396,9 +400,9 @@ class IntrospectionService:
         caller: Any,
         now: datetime,
         pepper: str | bytes | None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
-        验证 Refresh Token 并生成内省声明
+        验证 Refresh Token 并生成内省声明。
 
         :param db: 异步数据库会话
         :param token: 待内省的 Refresh Token
@@ -407,7 +411,6 @@ class IntrospectionService:
         :param pepper: 摘要 Pepper
         :return: 有效 Refresh Token 的 Introspection 声明，或严格的 ``{'active': False}``
         """
-
         parsed = parse_opaque_token(token, cls._REFRESH_PREFIX)
         secret_pepper = OidcConfig.oidc_token_hash_pepper if pepper is None else pepper
         digest = token_digest(token, secret_pepper)
@@ -417,10 +420,7 @@ class IntrospectionService:
         issuer_client = await OAuthClientDao.get_by_pk(db, row.client_pk, active_only=True)
         if issuer_client is None or issuer_client.status != cls._ACTIVE_CLIENT_STATUS:
             return {'active': False}
-        if (
-            TimezoneUtil.to_optional_utc(row.idle_expires_at) <= now
-            or TimezoneUtil.to_optional_utc(row.absolute_expires_at) <= now
-        ):
+        if TimezoneUtil.to_utc(row.idle_expires_at) <= now or TimezoneUtil.to_utc(row.absolute_expires_at) <= now:
             return {'active': False}
         if not await cls._refresh_family_active(db, row.family_id):
             return {'active': False}
@@ -459,7 +459,7 @@ class IntrospectionService:
         resources = OidcUtil.normalize_audiences(row.resources)
         if not resources or not await cls._resources_owned_by_caller(db, resources, caller.client_pk):
             return {'active': False}
-        result: dict[str, Any] = {
+        result: dict[str, object] = {
             'active': True,
             'client_id': issuer_client.client_id,
             'token_type': 'refresh_token',
@@ -478,13 +478,12 @@ class IntrospectionService:
     @classmethod
     async def _refresh_family_active(cls, db: AsyncSession, family_id: str) -> bool:
         """
-        检查 Refresh Token Family 是否仍处于活动状态
+        检查 Refresh Token Family 是否仍处于活动状态。
 
         :param db: 异步数据库会话
         :param family_id: Refresh Family 标识
         :return: 仅在存在记录且没有全族终止状态时返回真
         """
-
         return await OAuthTokenDao.family_is_active(db, family_id)
 
     @classmethod
@@ -499,7 +498,7 @@ class IntrospectionService:
         now: datetime,
     ) -> bool:
         """
-        检查 Grant 是否匹配当前身份、Client 和授权范围
+        检查 Grant 是否匹配当前身份、Client 和授权范围。
 
         :param grant: Grant 对象
         :param user_id: 用户标识
@@ -510,7 +509,6 @@ class IntrospectionService:
         :param now: 当前时间
         :return: Grant 匹配用户、Subject、OAuth Client、Scope、Resource 且未过期时为 True
         """
-
         return bool(
             grant is not None
             and grant.user_id == user_id
@@ -518,7 +516,7 @@ class IntrospectionService:
             and grant.client_pk == client.client_pk
             and grant.status == cls._ACTIVE_GRANT_STATUS
             and grant.client_policy_version == client.policy_version
-            and (grant.expires_at is None or TimezoneUtil.to_optional_utc(grant.expires_at) > now)
+            and (grant.expires_at is None or TimezoneUtil.to_utc(grant.expires_at) > now)
             and set(scopes).issubset(set(OidcUtil.json_list(grant.granted_scopes)))
             and set(resources).issubset(set(OidcUtil.json_list(grant.granted_resources)))
         )
@@ -526,14 +524,13 @@ class IntrospectionService:
     @classmethod
     async def _resources_owned_by_caller(cls, db: AsyncSession, audiences: list[str], client_pk: int) -> bool:
         """
-        检查调用方是否拥有资源的内省权限
+        检查调用方是否拥有资源的内省权限。
 
         :param db: 异步数据库会话
         :param audiences: Token 声明中的 Audience 列表
         :param client_pk: 已认证 OAuth Client 的主键
         :return: 所有业务 Resource Audience 均归属于该 OAuth Client 的内省权限时为 True
         """
-
         userinfo = f'{OidcConfig.oidc_issuer.rstrip("/")}{cls._USERINFO_SUFFIX}'
         resource_audiences = [value for value in audiences if value != userinfo]
         if not resource_audiences:
@@ -547,12 +544,11 @@ class IntrospectionService:
     @classmethod
     def _resource_audiences(cls, audiences: list[str]) -> list[str]:
         """
-        移除 UserInfo audience 并保留业务资源
+        移除 UserInfo audience 并保留业务资源。
 
         :param audiences: Token 声明中的 Audience 列表
         :return: 移除 UserInfo Audience 后的业务 Resource Audience 列表
         """
-
         userinfo = f'{OidcConfig.oidc_issuer.rstrip("/")}{cls._USERINFO_SUFFIX}'
 
         return [value for value in audiences if value != userinfo]
@@ -560,30 +556,31 @@ class IntrospectionService:
     @staticmethod
     async def _redis_key_exists(redis: Redis, key: str) -> bool:
         """
-        检查 Redis 撤销键是否存在
+        检查 Redis 撤销键是否存在。
 
         :param redis: Redis 异步客户端
         :param key: 待检查的 Redis 撤销键
         :return: 键存在时返回 True
         """
-
         return bool(await redis.exists(key))
 
 
 class RevocationError(ValueError):
     """
-    令牌撤销参数错误类型
+    令牌撤销参数错误类型。
+
+    :ivar message: 与当前结果一起返回的说明
+    :ivar error: OAuth 错误代码
+    :ivar description: 可向上层映射的安全错误描述
     """
 
     def __init__(self, error: str, description: str) -> None:
         """
-        保存 OAuth 撤销错误代码和描述
+        保存 OAuth 撤销错误代码和描述。
 
         :param error: OAuth 错误代码
         :param description: 可向上层映射的安全错误描述
-        :return: None
         """
-
         self.message = OidcUtil.localized_oauth_message(error, description)
         super().__init__(self.message)
         self.error = error
@@ -592,7 +589,9 @@ class RevocationError(ValueError):
 
 class RevocationService:
     """
-    OAuth Token 撤销模块服务层
+    OAuth Token 撤销模块服务层。
+
+    :cvar _REFRESH_PREFIX: 标识刷新令牌的前缀
     """
 
     _REFRESH_PREFIX = 'rt1'
@@ -613,7 +612,7 @@ class RevocationService:
         coordinator: AfterCommitCoordinator | None = None,
     ) -> None:
         """
-        按 Token 类型撤销 Access Token 或 Refresh Token
+        按 Token 类型撤销 Access Token 或 Refresh Token。
 
         :param db: 异步数据库会话；事务由提交协调器或调用方管理
         :param redis: 统一认证中心 Redis 客户端
@@ -625,10 +624,8 @@ class RevocationService:
         :param token_type_hint: 可选 Token 类型提示
         :param pepper: 可选 Token HMAC Pepper 覆盖值
         :param coordinator: 提交后副作用协调器；Access 撤销必须提供
-        :return: None
         :raises RevocationError: Client 未认证或副作用边界不可用
         """
-
         current = TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now()
         client = await cls._resolve_caller(db, caller)
         if client is None:
@@ -667,7 +664,7 @@ class RevocationService:
         pepper: str | bytes | None = None,
     ) -> bool:
         """
-        在事务边界内执行 Token 撤销
+        在事务边界内执行 Token 撤销。
 
         :param db: 异步数据库会话，由本方法提交或回滚
         :param redis: 认证中心 Redis 客户端
@@ -677,11 +674,11 @@ class RevocationService:
         :param verification_key: 当前 Token 对应的公钥
         :param now: 可注入的 项目当前时间
         :param token_type_hint: Token 类型提示
-        :param pepper: Refresh Token HMAC Pepper
+        :param pepper: 计算刷新令牌 HMAC 的独立密钥
         :return: 提交后副作用全部成功时为 True
         :raises RevocationError: 令牌撤销失败且事务已回滚
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
-
         coordinator = AfterCommitCoordinator()
         try:
             await cls.revoke(
@@ -717,20 +714,20 @@ class RevocationService:
         token_type_hint: str | None = None,
     ) -> bool:
         """
-        认证调用 Client 并处理撤销请求
+        认证调用 Client 并处理撤销请求。
 
         :param db: 异步数据库会话，由本方法提交或回滚
         :param redis: 认证中心 Redis 客户端
         :param token: 待撤销的完整 Token
-        :param authorization: RFC 7617 Basic Header
+        :param authorization: 符合 RFC 7617 的 Basic 认证头
         :param client_id: 表单 Client ID
         :param client_secret: 表单 Client Secret
         :param verification_key: 当前 Access Token 的本地公钥
         :param verification_key_loader: 验证密钥加载回调
         :param token_type_hint: Token 类型提示
         :return: 提交后副作用全部成功时为 True
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
-
         try:
             _, principal = await TokenService.authenticate_client(
                 db,
@@ -755,13 +752,12 @@ class RevocationService:
     @staticmethod
     async def _resolve_caller(db: AsyncSession, caller: OAuthClientPrincipal) -> Any:
         """
-        确认内省调用方 Client 处于有效状态
+        确认内省调用方 Client 处于有效状态。
 
         :param db: 异步数据库会话
         :param caller: 已认证的 OAuth Client 主体
         :return: 已通过认证和资源校验的 OAuth Client ORM 对象，不满足条件时返回 None
         """
-
         if not isinstance(caller, OAuthClientPrincipal):
             return None
         client = await OAuthClientDao.get_by_client_id(db, caller.client_id, active_only=True)
@@ -797,16 +793,14 @@ class RevocationService:
         pepper: str | bytes | None,
     ) -> None:
         """
-        撤销 Refresh Token 及其 Family
+        撤销 Refresh Token 及其 Family。
 
         :param db: 异步数据库会话
         :param token: 待撤销的 Refresh Token
         :param client: 发起撤销请求的 OAuth Client ORM
         :param now: 当前时间
         :param pepper: 摘要 Pepper
-        :return: None
         """
-
         try:
             parsed = parse_opaque_token(token, cls._REFRESH_PREFIX)
             secret_pepper = OidcConfig.oidc_token_hash_pepper if pepper is None else pepper
@@ -845,7 +839,7 @@ class RevocationService:
         coordinator: AfterCommitCoordinator | None,
     ) -> None:
         """
-        验证并撤销 Access Token
+        验证并撤销 Access Token。
 
         :param db: 异步数据库会话
         :param redis: 异步 Redis 客户端
@@ -855,10 +849,8 @@ class RevocationService:
         :param verification_keys: 验证密钥集合
         :param verification_key: 验证密钥
         :param coordinator: 事务提交协调器
-        :return: None
         :raises RevocationError: 令牌撤销操作失败
         """
-
         try:
             claims = decode_access_token(
                 token,
@@ -884,12 +876,7 @@ class RevocationService:
         key = OidcRedisKey.revoked_jti(jti)
 
         async def write_revocation() -> None:
-            """
-            执行 write_revocation 的校验和转换
-
-            :return: None
-            """
-
+            """执行 write_revocation 的校验和转换。"""
             await redis.set(key, '1', ex=ttl)
             await AuditService.record_independent(
                 db,
@@ -905,14 +892,12 @@ class RevocationService:
 
 
 class UserInfoService:
-    """
-    OIDC UserInfo 模块服务层
-    """
+    """OIDC UserInfo 模块服务层。"""
 
     @classmethod
     async def build(cls, db: AsyncSession, claims: dict[str, Any], redis: Redis | None) -> dict[str, Any]:
         """
-        验证 Access Token 声明并构造 UserInfo 响应
+        验证 Access Token 声明并构造 UserInfo 响应。
 
         :param db: 异步数据库会话
         :param claims: 令牌声明
@@ -920,7 +905,6 @@ class UserInfoService:
         :return: 包含协议字段的字典
         :raises ValueError: 输入值不符合约束
         """
-
         client = await OAuthClientDao.get_by_client_id(db, claims['client_id'], active_only=True)
         if client is None or client.status != '0':
             raise ValueError('客户端已停用')
@@ -949,14 +933,12 @@ class UserInfoService:
     @staticmethod
     async def _check_revocation(redis: Redis | None, jti: str) -> None:
         """
-        检查 Access Token 是否已被撤销
+        检查 Access Token 是否已被撤销。
 
         :param redis: 异步 Redis 客户端
         :param jti: 令牌 JTI
-        :return: None
         :raises ValueError: 输入值不符合约束
         """
-
         if redis is None:
             raise ValueError('令牌已撤销')
         try:

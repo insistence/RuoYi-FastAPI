@@ -15,13 +15,13 @@ from i18n.registry import CATALOG_ROOT, LANGUAGE_FALLBACKS, LOCALES, LocaleRegis
 @dataclass(frozen=True)
 class CatalogSpec:
     """
-    已注册词库的资源目录和回退配置
+    已注册词库的资源目录和回退配置。
 
-    :param domain: 核心或插件独占的 gettext 域名
-    :param root: 已校验的词库根目录
-    :param default_locale: 请求语言无法匹配时使用的默认语言
-    :param fallbacks: 各已发布语言及其回退语言列表
-    :param policy: 计算发布指纹时使用的额外配置
+    :ivar domain: 核心或插件独占的 gettext 域名
+    :ivar root: 已校验的词库根目录
+    :ivar default_locale: 请求语言无法匹配时使用的默认语言
+    :ivar fallbacks: 各已发布语言及其回退语言列表
+    :ivar policy: 计算发布指纹时使用的额外配置
     """
 
     domain: str
@@ -33,7 +33,7 @@ class CatalogSpec:
     @property
     def locales(self) -> tuple[str, ...]:
         """
-        获取当前词库域已交付的语言
+        获取当前词库域已交付的语言。
 
         :return: 已交付的语言标识
         """
@@ -41,11 +41,12 @@ class CatalogSpec:
 
     def path(self, code: str, suffix: str) -> Path:
         """
-        从受信配置构造资源路径，拒绝越界符号链接
+        从受信配置构造资源路径，拒绝越界符号链接。
 
         :param code: 已注册的语言标识
         :param suffix: 词库文件扩展名，仅支持 .po 和 .mo
         :return: 校验后的词库资源路径
+        :raises ValueError: 语言或文件后缀未注册，或路径越出词库根目录
         """
         if code not in self.locales or suffix not in ('.po', '.mo'):
             raise ValueError('Unregistered catalog resource')
@@ -56,7 +57,7 @@ class CatalogSpec:
 
     def chain(self, locale: str) -> tuple[str, ...]:
         """
-        按当前词库域解析语言回退链，插件词库不回退到核心域
+        按当前词库域解析语言回退链，插件词库不回退到核心域。
 
         :param locale: 请求的语言标识
         :return: 按优先级排列的语言回退链
@@ -65,6 +66,13 @@ class CatalogSpec:
         fallbacks = dict(self.fallbacks)
 
         def visit(code: str, stack: tuple[str, ...] = ()) -> None:
+            """
+            递归展开消息目录的回退链并避免循环。
+
+            :param code: 已注册的语言标识
+            :param stack: 当前递归路径上已访问的节点
+            :raises ValueError: 回退链含有循环或引用未登记的语言
+            """
             if code in stack or code not in fallbacks:
                 raise ValueError('Invalid domain locale fallback')
             if code not in result:
@@ -82,11 +90,11 @@ class CatalogSpec:
 @dataclass(frozen=True)
 class CatalogSnapshot:
     """
-    同一发布版本的词库配置、译文和指纹
+    同一发布版本的词库配置、译文和指纹。
 
-    :param spec: 加载本版本时使用的配置
-    :param translations: 按语言保存的 gettext 词库实例
-    :param fingerprint: 根据配置和编译产物内容计算的发布指纹
+    :ivar spec: 加载本版本时使用的配置
+    :ivar translations: 按语言保存的 gettext 词库实例
+    :ivar fingerprint: 根据配置和编译产物内容计算的发布指纹
     """
 
     spec: CatalogSpec
@@ -96,7 +104,11 @@ class CatalogSnapshot:
 
 class CatalogRegistry:
     """
-    进程内受信词库注册表，在启动或生命周期操作中计算内容指纹
+    进程内受信词库注册表，在启动或生命周期操作中计算内容指纹。
+
+    :cvar _snapshots: 已加载的消息目录快照
+    :cvar _fingerprint: 检测消息目录变更的指纹
+    :cvar _lock: 协调并发访问共享状态的锁
     """
 
     _snapshots: dict[str, CatalogSnapshot] = {}
@@ -106,7 +118,7 @@ class CatalogRegistry:
     @staticmethod
     def core_spec() -> CatalogSpec:
         """
-        使用项目固定目录和后端语言配置构造核心词库配置
+        使用项目固定目录和后端语言配置构造核心词库配置。
 
         :return: 核心词库配置
         """
@@ -125,10 +137,11 @@ class CatalogRegistry:
     @staticmethod
     def plugin_domain(plugin_id: str) -> str:
         """
-        校验插件标识并生成独立的插件词库域
+        校验插件标识并生成独立的插件词库域。
 
         :param plugin_id: 插件标识
         :return: plugin.<id> 格式的词库域
+        :raises ValueError: 插件标识不能作为词库所有者
         """
         if not isinstance(plugin_id, str) or not re.fullmatch(r'[a-z][a-z0-9_-]{0,63}', plugin_id):
             raise ValueError('Invalid plugin catalog owner')
@@ -137,11 +150,12 @@ class CatalogRegistry:
     @classmethod
     def plugin_spec(cls, plugin_id: str, plugin_root: Path) -> CatalogSpec | None:
         """
-        读取已验证插件目录中的 i18n/locale-meta.json 声明
+        读取已验证插件目录中的 i18n/locale-meta.json 声明。
 
         :param plugin_id: 插件标识
         :param plugin_root: 已验证的插件根目录
         :return: 插件词库配置，未提供词库资源时返回 None
+        :raises ValueError: 插件词库路径越界，或声明的语言为空、重复或不规范
         """
         domain = cls.plugin_domain(plugin_id)
         trusted_root = Path(plugin_root).resolve()
@@ -167,7 +181,7 @@ class CatalogRegistry:
     @staticmethod
     def load(spec: CatalogSpec) -> CatalogSnapshot:
         """
-        校验并加载 MO 资源，不使用 gettext 的全局路径缓存
+        校验并加载 MO 资源，不使用 gettext 的全局路径缓存。
 
         :param spec: 受信词库配置
         :return: 已加载的词库快照
@@ -187,10 +201,11 @@ class CatalogRegistry:
     @staticmethod
     def parse(payload: bytes) -> gettext.GNUTranslations:
         """
-        解析 MO 资源，将二进制或复数规则异常统一转换为词库错误
+        解析 MO 资源，将二进制或复数规则异常统一转换为词库错误。
 
         :param payload: MO 资源内容
         :return: gettext 翻译对象
+        :raises ValueError: 编译后的 gettext 词库或复数规则损坏
         """
         try:
             return gettext.GNUTranslations(io.BytesIO(payload))
@@ -200,10 +215,9 @@ class CatalogRegistry:
     @classmethod
     def install(cls, snapshot: CatalogSnapshot) -> None:
         """
-        提交已验证的快照，整体替换当前词库域
+        提交已验证的快照，整体替换当前词库域。
 
         :param snapshot: 已验证的词库快照
-        :return: None
         """
         with cls._lock:
             cls._snapshots = {**cls._snapshots, snapshot.spec.domain: snapshot}
@@ -212,18 +226,17 @@ class CatalogRegistry:
     @classmethod
     def register_plugin(cls, plugin_id: str, plugin_root: Path) -> None:
         """
-        加载插件发布资源，无声明时清除上一版本遗留的词库域
+        加载插件发布资源，无声明时清除上一版本遗留的词库域。
 
         :param plugin_id: 插件标识
         :param plugin_root: 已验证的插件根目录
-        :return: None
         """
         cls.commit_plugin(plugin_id, cls.prepare_plugin(plugin_id, plugin_root))
 
     @classmethod
     def prepare_plugin(cls, plugin_id: str, plugin_root: Path) -> CatalogSnapshot | None:
         """
-        在安装写入前验证新资源，保留当前已激活版本
+        在安装写入前验证新资源，保留当前已激活版本。
 
         :param plugin_id: 插件标识
         :param plugin_root: 已验证的插件根目录
@@ -235,12 +248,12 @@ class CatalogRegistry:
     @classmethod
     def commit_plugin(cls, plugin_id: str, snapshot: CatalogSnapshot | None, *, enabled: bool = True) -> None:
         """
-        生命周期持久化成功后提交资源，禁用或无资源时清除旧词库域
+        生命周期持久化成功后提交资源，禁用或无资源时清除旧词库域。
 
         :param plugin_id: 插件标识
         :param snapshot: 待提交的词库快照
         :param enabled: 插件是否启用
-        :return: None
+        :raises ValueError: 词库快照声明的域不属于当前插件
         """
         if snapshot is None or not enabled:
             cls.unregister_plugin(plugin_id)
@@ -252,10 +265,9 @@ class CatalogRegistry:
     @classmethod
     def unregister_plugin(cls, plugin_id: str) -> None:
         """
-        移除当前插件的词库资源并清除发布指纹缓存
+        移除当前插件的词库资源并清除发布指纹缓存。
 
         :param plugin_id: 插件标识
-        :return: None
         """
         domain = cls.plugin_domain(plugin_id)
         with cls._lock:
@@ -265,10 +277,9 @@ class CatalogRegistry:
     @classmethod
     def refresh(cls, domain: str | None = None) -> None:
         """
-        重新加载发布产物，失败时保留旧快照和指纹
+        重新加载发布产物，失败时保留旧快照和指纹。
 
         :param domain: 需要刷新的词库域，未指定时刷新全部已注册域
-        :return: None
         """
         with cls._lock:
             specs = {key: snapshot.spec for key, snapshot in cls._snapshots.items()}
@@ -282,7 +293,7 @@ class CatalogRegistry:
     @classmethod
     def snapshot(cls, domain: str = 'core') -> CatalogSnapshot:
         """
-        获取已注册词库域的快照
+        获取已注册词库域的快照。
 
         :param domain: 已注册的词库域
         :return: 当前词库快照
@@ -295,7 +306,7 @@ class CatalogRegistry:
     @classmethod
     def specs(cls) -> tuple[CatalogSpec, ...]:
         """
-        获取核心域和已注册插件域的词库配置
+        获取核心域和已注册插件域的词库配置。
 
         :return: 供编译工具使用的词库配置
         """
@@ -305,7 +316,7 @@ class CatalogRegistry:
     @classmethod
     def fingerprint(cls) -> str:
         """
-        从内存获取词库内容和域配置的发布指纹
+        从内存获取词库内容和域配置的发布指纹。
 
         :return: 用于响应缓存隔离的词库指纹
         """

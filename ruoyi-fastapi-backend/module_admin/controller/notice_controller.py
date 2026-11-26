@@ -186,7 +186,7 @@ async def delete_system_notice(
     notice_ids: Annotated[str, Path(description='需要删除的公告ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_notice = DeleteNoticeModel(noticeIds=notice_ids)
+    delete_notice = DeleteNoticeModel(notice_ids=notice_ids)
     delete_notice_result = await NoticeService.delete_notice_services(query_db, delete_notice)
     logger.info(delete_notice_result.message)
 

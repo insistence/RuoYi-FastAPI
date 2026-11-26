@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -11,14 +11,12 @@ from utils.page_util import PageUtil
 
 
 class PostDao:
-    """
-    岗位管理模块数据库操作层
-    """
+    """岗位管理模块数据库操作层。"""
 
     @classmethod
     async def get_post_by_id(cls, db: AsyncSession, post_id: int) -> SysPost | None:
         """
-        根据岗位id获取在用岗位详细信息
+        根据岗位id获取在用岗位详细信息。
 
         :param db: orm对象
         :param post_id: 岗位id
@@ -35,7 +33,7 @@ class PostDao:
     @classmethod
     async def get_post_detail_by_id(cls, db: AsyncSession, post_id: int) -> SysPost | None:
         """
-        根据岗位id获取岗位详细信息
+        根据岗位id获取岗位详细信息。
 
         :param db: orm对象
         :param post_id: 岗位id
@@ -48,7 +46,7 @@ class PostDao:
     @classmethod
     async def get_post_detail_by_info(cls, db: AsyncSession, post: PostModel) -> SysPost | None:
         """
-        根据岗位参数获取岗位信息
+        根据岗位参数获取岗位信息。
 
         :param db: orm对象
         :param post: 岗位参数对象
@@ -58,9 +56,9 @@ class PostDao:
             (
                 await db.execute(
                     select(SysPost).where(
-                        SysPost.post_name == post.post_name if post.post_name else True,
-                        SysPost.post_code == post.post_code if post.post_code else True,
-                        SysPost.post_sort == post.post_sort if post.post_sort else True,
+                        SysPost.post_name == post.post_name if post.post_name else true(),
+                        SysPost.post_code == post.post_code if post.post_code else true(),
+                        SysPost.post_sort == post.post_sort if post.post_sort else true(),
                     )
                 )
             )
@@ -73,9 +71,9 @@ class PostDao:
     @classmethod
     async def get_post_list(
         cls, db: AsyncSession, query_object: PostPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据查询参数获取岗位列表信息
+        根据查询参数获取岗位列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -85,14 +83,14 @@ class PostDao:
         query = (
             select(SysPost)
             .where(
-                SysPost.post_code.like(f'%{query_object.post_code}%') if query_object.post_code else True,
-                SysPost.post_name.like(f'%{query_object.post_name}%') if query_object.post_name else True,
-                SysPost.status == query_object.status if query_object.status else True,
+                SysPost.post_code.like(f'%{query_object.post_code}%') if query_object.post_code else true(),
+                SysPost.post_name.like(f'%{query_object.post_name}%') if query_object.post_name else true(),
+                SysPost.status == query_object.status if query_object.status else true(),
             )
             .order_by(SysPost.post_sort)
             .distinct()
         )
-        post_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        post_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -101,11 +99,11 @@ class PostDao:
     @classmethod
     async def add_post_dao(cls, db: AsyncSession, post: PostModel) -> SysPost:
         """
-        新增岗位数据库操作
+        新增岗位数据库操作。
 
         :param db: orm对象
         :param post: 岗位对象
-        :return:
+        :return: 新增的岗位记录
         """
         db_post = SysPost(**post.model_dump(exclude={'create_time', 'update_time'}))
         db.add(db_post)
@@ -114,13 +112,12 @@ class PostDao:
         return db_post
 
     @classmethod
-    async def edit_post_dao(cls, db: AsyncSession, post: dict) -> None:
+    async def edit_post_dao(cls, db: AsyncSession, post: dict[str, Any]) -> None:
         """
-        编辑岗位数据库操作
+        编辑岗位数据库操作。
 
         :param db: orm对象
         :param post: 需要更新的岗位字典
-        :return:
         """
         await db.execute(
             update(SysPost),
@@ -130,18 +127,17 @@ class PostDao:
     @classmethod
     async def delete_post_dao(cls, db: AsyncSession, post: PostModel) -> None:
         """
-        删除岗位数据库操作
+        删除岗位数据库操作。
 
         :param db: orm对象
         :param post: 岗位对象
-        :return:
         """
         await db.execute(delete(SysPost).where(SysPost.post_id.in_([post.post_id])))
 
     @classmethod
-    async def count_user_post_dao(cls, db: AsyncSession, post_id: int) -> int | None:
+    async def count_user_post_dao(cls, db: AsyncSession, post_id: int) -> int:
         """
-        根据岗位id查询岗位关联的用户数量
+        根据岗位id查询岗位关联的用户数量。
 
         :param db: orm对象
         :param post_id: 岗位id
@@ -149,6 +145,6 @@ class PostDao:
         """
         user_post_count = (
             await db.execute(select(func.count('*')).select_from(SysUserPost).where(SysUserPost.post_id == post_id))
-        ).scalar()
+        ).scalar_one()
 
         return user_post_count

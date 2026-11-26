@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, TypeVar
+from typing import Annotated, TypeVar, cast
 
 from fastapi import Depends, Header, Request
 from fastapi.responses import Response
@@ -45,49 +45,45 @@ _NO_STORE = {'Cache-Control': 'no-store', 'Pragma': 'no-cache'}
 
 def _redis(request: Request) -> Redis:
     """
-    读取应用生命周期创建的 Redis 客户端
+    读取应用生命周期创建的 Redis 客户端。
 
     :param request: 当前 HTTP 请求
     :return: 应用 Redis 客户端
     :raises OidcInteractionException: Redis 客户端不可用
     """
-
     value = getattr(request.app.state, 'redis', None)
     if value is None:
         raise OidcInteractionException(error='server_error', status_code=503, message='认证服务不可用')
-    return value
+    return cast('Redis', value)
 
 
 def _not_found() -> Response:
     """
-    构造认证中心未启用时的响应
+    构造认证中心未启用时的响应。
 
     :return: 认证中心未启用的 404 响应
     """
-
     return _failure_response(I18nMessage('认证服务未启用', msg_key='identity.interaction.disabled'), 404)
 
 
 def _invalid_body() -> Response:
     """
-    构造认证交互请求无效时的响应
+    构造认证交互请求无效时的响应。
 
     :return: 请求无效的 400 响应
     """
-
     return _failure_response(I18nMessage('认证交互请求无效', msg_key='identity.interaction.invalidRequest'), 400)
 
 
 def _failure_response(msg: str, status_code: int, headers: dict[str, str] | None = None) -> Response:
     """
-    构造项目统一错误响应并保留安全 HTTP 状态码
+    构造项目统一错误响应并保留安全 HTTP 状态码。
 
     :param msg: 错误消息
     :param status_code: HTTP 状态码
     :param headers: 可选响应头
     :return: 统一错误响应
     """
-
     response = ResponseUtil.failure(msg=msg, headers=headers or _NO_STORE)
     response.status_code = status_code
 
@@ -96,12 +92,12 @@ def _failure_response(msg: str, status_code: int, headers: dict[str, str] | None
 
 def _login_response(outcome: InteractionLoginOutcome) -> Response:
     """
-    构造认证登录或改密响应
+    构造认证登录或改密响应。
 
     :param outcome: 登录流程结果
     :return: 统一认证响应
+    :raises SsoSessionError: 无法为登录结果建立有效的单点登录会话
     """
-
     if outcome.failure_message is not None:
         return ResponseUtil.failure(msg=outcome.failure_message, headers=_NO_STORE)
     response = ResponseUtil.success(data=outcome.result, headers=_NO_STORE)
@@ -116,7 +112,7 @@ def _login_response(outcome: InteractionLoginOutcome) -> Response:
 
 async def _safe_json_body(request: Request, model: type[_MODEL]) -> _MODEL:
     """
-    读取并校验认证交互 JSON 请求体
+    读取并校验认证交互 JSON 请求体。
 
     :param request: 当前 HTTP 请求
     :param model: 请求体模型类型

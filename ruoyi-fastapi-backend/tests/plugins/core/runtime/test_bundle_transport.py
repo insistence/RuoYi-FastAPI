@@ -4,6 +4,7 @@ import os
 import secrets
 import time
 from types import SimpleNamespace
+from typing import Any
 
 import httpx
 import pytest
@@ -18,20 +19,44 @@ from utils.transport_crypto_util import TransportCryptoMonitorUtil, TransportKey
 
 
 def _encode(value: bytes) -> str:
+    """
+    生成省略填充的 URL 安全 Base64 数据。
+
+    :param value: 待处理的输入值
+    :return: 省略填充的 URL 安全 Base64 数据
+    """
     return base64.urlsafe_b64encode(value).decode().rstrip('=')
 
 
 def _decode(value: str) -> bytes:
+    """
+    解码省略填充的 URL 安全 Base64 数据。
+
+    :param value: 待处理的输入值
+    :return: 解码后的原始字节
+    """
     return base64.urlsafe_b64decode(value + '=' * (-len(value) % 4))
 
 
 def _json_bytes(value: object) -> bytes:
+    """
+    将测试数据编码为紧凑的 UTF-8 JSON。
+
+    :param value: 待处理的输入值
+    :return: 紧凑 JSON 的 UTF-8 字节
+    """
     return json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode()
 
 
 @pytest.fixture
 def crypto(browser: SimpleNamespace, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:  # noqa: F811
-    """只替换配置密钥和监控存储；保留真实解密、重放校验、Cookie 认证和加密响应。"""
+    """
+    只替换配置密钥和监控存储；保留真实解密、重放校验、Cookie 认证和加密响应。
+
+    :param browser: 执行页面操作的浏览器实例
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: ``SimpleNamespace`` 实例
+    """
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     private_pem = private_key.private_bytes(
         serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
@@ -61,8 +86,16 @@ def crypto(browser: SimpleNamespace, monkeypatch: pytest.MonkeyPatch) -> SimpleN
     return SimpleNamespace(public_key=public_key, kid=settings['transport_crypto_kid'])
 
 
-def _envelope(crypto: SimpleNamespace, method: str, path: str, payload: object) -> tuple[dict, bytes]:
-    """按浏览器协议构造信封，每个请求使用独立 AES key、IV 和防重放 nonce。"""
+def _envelope(crypto: SimpleNamespace, method: str, path: str, payload: object) -> tuple[dict[str, Any], bytes]:
+    """
+    按浏览器协议构造信封，每个请求使用独立 AES key、IV 和防重放 nonce。
+
+    :param crypto: 测试传输加密使用的密钥和配置
+    :param method: 当前请求的 HTTP 方法
+    :param path: 要读取或处理的路径
+    :param payload: 随调用传入或返回的结构化数据
+    :return: 加密信封及验证响应所需的密钥材料
+    """
     aes_key = os.urandom(32)
     iv = os.urandom(12)
     aad = {'method': method, 'path': path}
@@ -82,7 +115,16 @@ def _envelope(crypto: SimpleNamespace, method: str, path: str, payload: object) 
     }, aes_key
 
 
-def _decrypt_response(response: httpx.Response, aes_key: bytes, *, method: str, path: str) -> dict:
+def _decrypt_response(response: httpx.Response, aes_key: bytes, *, method: str, path: str) -> dict[str, Any]:
+    """
+    校验并解密测试响应的传输信封。
+
+    :param response: 当前调用产生的响应
+    :param aes_key: 请求协商出的AES会话密钥
+    :param method: 当前请求的 HTTP 方法
+    :param path: 要读取或处理的路径
+    :return: 解密并解析后的业务响应数据
+    """
     assert response.headers['x-body-encrypted'] == '1', response.text
     envelope = response.json()
     expected_aad = {'method': method, 'path': path, 'direction': 'response'}
@@ -90,6 +132,19 @@ def _decrypt_response(response: httpx.Response, aes_key: bytes, *, method: str, 
     assert envelope['alg'] == 'AES_256_GCM'
     plaintext = AESGCM(aes_key).decrypt(_decode(envelope['iv']), _decode(envelope['ct']), _json_bytes(expected_aad))
     return json.loads(plaintext)
+
+
+def _assert_session_cookie(issued: httpx.Response, root_path: str) -> None:
+    """
+    检查插件会话 Cookie 的作用路径和浏览器安全属性。
+
+    :param issued: 已签发的令牌或凭证
+    :param root_path: 应用或制品使用的根路径
+    """
+    cookies = issued.headers.get_list('set-cookie')
+    assert len(cookies) == 1
+    assert f'Path={root_path}/apps/browser_test/' in cookies[0]
+    assert all(attribute in cookies[0] for attribute in ('HttpOnly', 'Secure', 'SameSite=strict'))
 
 
 @pytest.mark.asyncio
@@ -100,6 +155,7 @@ async def test_encrypted_session_cookie_and_plugin_api_keep_outer_aad(
     monkeypatch: pytest.MonkeyPatch,
     root_path: str,
 ) -> None:
+    """加密会话 Cookie 和插件接口保留外层关联数据。"""
     monkeypatch.setattr(AppConfig, 'app_root_path', root_path)
     transport = httpx.ASGITransport(app=browser.app, root_path=root_path)
     async with httpx.AsyncClient(transport=transport, base_url='https://test') as client:
@@ -120,10 +176,7 @@ async def test_encrypted_session_cookie_and_plugin_api_keep_outer_aad(
         assert data['apiBase'] == f'{root_path}/apps/browser_test/api/'
         assert browser.token not in issued.text
         assert issued.headers['cache-control'] == 'no-store'
-        cookies = issued.headers.get_list('set-cookie')
-        assert len(cookies) == 1
-        assert f'Path={root_path}/apps/browser_test/' in cookies[0]
-        assert all(attribute in cookies[0] for attribute in ('HttpOnly', 'Secure', 'SameSite=strict'))
+        _assert_session_cookie(issued, root_path)
 
         info_path = '/apps/browser_test/api/info'
         envelope, aes_key = _envelope(crypto, 'GET', info_path, {'query': '仅存在于密文'})
@@ -193,6 +246,7 @@ async def test_plugin_api_rejects_aad_without_its_full_namespace(
     crypto: SimpleNamespace,
     wrong_path: str,
 ) -> None:
+    """插件接口拒绝缺少完整命名空间的关联数据。"""
     envelope, _ = _envelope(crypto, 'GET', wrong_path, {})
     response = await browser.client.get(
         '/apps/browser_test/api/info',

@@ -52,7 +52,7 @@ class RuntimeOperatorService:
     CLI 运行时操作者解析服务。
 
     该服务集中提供当前 CLI 进程的操作者名称解析能力，
-    避免各领域运行时对象继续复制相同的 `getpass.getuser()` 回退逻辑。
+    避免各领域运行时对象继续复制相同的 ``getpass.getuser()`` 回退逻辑。
     """
 
     @staticmethod

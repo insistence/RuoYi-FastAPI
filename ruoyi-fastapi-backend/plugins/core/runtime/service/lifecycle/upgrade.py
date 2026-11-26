@@ -1,6 +1,6 @@
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,27 +9,50 @@ from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.migration import PluginMigrationError, PluginMigrationResult
 from plugins.core.lifecycle.seed import PluginSeedResult, PluginSeedRunner
+from plugins.core.management.entity.vo.schemas import PluginConfigModel, PluginModel
 from plugins.core.runtime.hooks import PluginHookResult, PluginHookRunner
 from plugins.core.runtime.support import (
     PluginLifecyclePayloadBuilder,
     PluginPayloadBuilder,
     PluginPrecheckContext,
     PluginRuntimePayloadBuilder,
+    UpgradeDryRunPayloadContext,
 )
 from plugins.core.types import PluginStateRecord
 
 from ..context import PluginRuntimeContextService
 from ..dependency_container import PluginRuntimeDependencies
+from ..gateway import PluginLifecycleUnitOfWork
 from ..responses import PluginLifecycleResponse
-from .common import PluginLifecycleUseCaseSupport
+from .common import PluginLifecycleUseCaseSupport, PluginTransactionContext, require_step_result
 from .operations import PluginLifecycleRuntimeOperations
 from .runner import PluginLifecycleStep, PluginLifecycleStepFailed, PluginLifecycleStepRunner
 
 
 @dataclass(slots=True)
-class PluginUpgradeLifecycleContext:
+class PluginUpgradeLifecycleContext(PluginTransactionContext):
     """
     插件升级声明式生命周期上下文。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar dry_run: 是否只预览操作结果
+    :ivar backend_root: 后端项目的根目录
+    :ivar discovered_plugins: 已发现插件列表
+    :ivar discovered_plugin: 扫描插件目录后得到的插件描述
+    :ivar precheck: 插件预检上下文
+    :ivar actions: 即将执行或已记录的操作步骤
+    :ivar database_plugin: 数据库插件状态
+    :ivar database_error: 执行数据库操作时捕获的异常
+    :ivar version_state: 插件升级版本状态
+    :ivar plugin: 当前处理的插件
+    :ivar installed_configs: 已安装配置列表
+    :ivar migration_results: migration 执行结果列表
+    :ivar seed_results: seed 执行结果列表
+    :ivar hook_result: 清理钩子执行结果
+    :ivar session: 当前操作共用的会话
+    :ivar lifecycle_uow: 当前生命周期操作共享的事务工作单元
+    :ivar session_context: 当前会话的上下文
+    :ivar catalog_snapshot: 操作开始时捕获的插件目录快照
     """
 
     plugin_id: str
@@ -42,20 +65,24 @@ class PluginUpgradeLifecycleContext:
     database_plugin: PluginStateRecord | None = None
     database_error: str | None = None
     version_state: dict[str, object] | None = None
-    plugin: object | None = None
-    installed_configs: list[object] | None = None
+    plugin: PluginModel | None = None
+    installed_configs: list[PluginConfigModel] | None = None
     migration_results: list[PluginMigrationResult] | None = None
     seed_results: list[PluginSeedResult] | None = None
     hook_result: PluginHookResult | None = None
     session: AsyncSession | None = None
-    lifecycle_uow: object | None = None
-    session_context: object | None = None
+    lifecycle_uow: PluginLifecycleUnitOfWork | None = None
+    session_context: AbstractAsyncContextManager[PluginLifecycleUnitOfWork] | None = None
     catalog_snapshot: CatalogSnapshot | None = None
 
 
 class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
     """
     插件升级 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar runtime_operations: 生命周期工作流所需的运行时协作能力
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(
@@ -105,7 +132,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         if blocked:
             return blocked
         payload = await self._upgrade_plugin(plugin_id, dry_run=dry_run)
-        payload_view = cast('dict[str, object]', payload)
+        payload_view = payload
         payload_view['operation'] = 'upgrade'
         if not dry_run:
             await self.runtime_operations.record_plugin_failure_state(payload_view, '插件升级失败')
@@ -227,7 +254,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         :return: dry-run payload 或 None
         """
         context.catalog_snapshot = CatalogRegistry.prepare_plugin(
-            context.plugin_id, context.discovered_plugin.backend_path
+            context.plugin_id, context.resolved_plugin.backend_path
         )
         precheck = await self._build_upgrade_precheck(context)
         self._refresh_upgrade_actions(precheck, context)
@@ -236,7 +263,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
 
         context.database_plugin, context.database_error = await self._load_database_plugin_state(context.plugin_id)
         context.version_state = PluginPayloadBuilder.build_upgrade_version_state(
-            context.discovered_plugin,
+            context.resolved_plugin,
             context.database_plugin,
         )
         payload = PluginPayloadBuilder.build_upgrade_dry_run_payload(
@@ -255,11 +282,10 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         读取已安装插件状态。
 
         :param context: 插件升级上下文
-        :return: None
         """
         context.database_plugin = await self.dependencies.state_query_gateway.get_plugin_state(context.plugin_id)
         context.version_state = PluginPayloadBuilder.build_upgrade_version_state(
-            context.discovered_plugin,
+            context.resolved_plugin,
             context.database_plugin,
         )
 
@@ -273,10 +299,10 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         打开升级生命周期主事务工作单元。
 
         :param context: 插件升级上下文
-        :return: None
         """
-        context.session_context = self.dependencies.lifecycle_uow_gateway.open_lifecycle_unit_of_work()
-        context.lifecycle_uow = await context.session_context.__aenter__()
+        session_context = self.dependencies.lifecycle_uow_gateway.open_lifecycle_unit_of_work()
+        context.lifecycle_uow = await session_context.__aenter__()
+        context.session_context = session_context
         context.session = context.lifecycle_uow.session
 
         return None
@@ -295,7 +321,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
             context.plugin_id,
             context.version_state or {},
             context.actions or [],
-            cast('PluginPrecheckContext', context.precheck),
+            context.precheck_result,
         )
         if blocker_payload:
             return blocker_payload
@@ -303,7 +329,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
             payload = PluginLifecyclePayloadBuilder.build_upgrade_latest_payload(
                 context.plugin_id,
                 context.version_state or {},
-                cast('PluginPrecheckContext', context.precheck),
+                context.precheck_result,
             )
             payload['operation'] = 'upgrade'
             return self._with_plugin_capability(payload, context.discovered_plugin)
@@ -312,7 +338,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
             context.plugin_id,
             operation='upgrade',
             actions=context.actions or [],
-            precheck=cast('PluginPrecheckContext', context.precheck),
+            precheck=context.precheck_result,
             extra_payload=context.version_state or {},
         )
 
@@ -326,8 +352,8 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         :param context: 插件升级上下文
         :return: 菜单冲突 payload 或 None
         """
-        installed_menu_conflicts = await context.lifecycle_uow.check_installed_menu_conflicts(
-            context.discovered_plugin,
+        installed_menu_conflicts = await context.active_transaction.check_installed_menu_conflicts(
+            context.resolved_plugin,
         )
         if not installed_menu_conflicts:
             return None
@@ -338,7 +364,7 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
                 '插件菜单与已安装菜单存在冲突，升级已中止', msg_key='plugin.runtime.upgrade.menuConflict'
             ),
             actions=context.actions or [],
-            precheck=cast('PluginPrecheckContext', context.precheck),
+            precheck=context.precheck_result,
             installed_menu_conflicts=installed_menu_conflicts,
             extra_payload=context.version_state or {},
         )
@@ -351,10 +377,9 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         更新插件基础状态。
 
         :param context: 插件升级上下文
-        :return: None
         """
-        await context.lifecycle_uow.upsert_discovered_plugin(
-            context.discovered_plugin,
+        await context.active_transaction.upsert_discovered_plugin(
+            context.resolved_plugin,
             Path(self.dependencies.runtime_environment.get_backend_plugins_dir()),
             Path(self.dependencies.runtime_environment.get_frontend_plugins_dir()),
         )
@@ -369,11 +394,10 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         安装已启用插件菜单。
 
         :param context: 插件升级上下文
-        :return: None
         """
         plugin_enabled = getattr(context.database_plugin, 'enabled', '1') == '0'
-        await context.lifecycle_uow.install_plugin_menu(
-            context.discovered_plugin,
+        await context.active_transaction.install_plugin_menu(
+            context.resolved_plugin,
             enabled=plugin_enabled,
         )
 
@@ -387,10 +411,9 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         安装新增默认配置。
 
         :param context: 插件升级上下文
-        :return: None
         """
-        context.installed_configs = await context.lifecycle_uow.install_plugin_default_config(
-            context.discovered_plugin,
+        context.installed_configs = await context.active_transaction.install_plugin_default_config(
+            context.resolved_plugin,
         )
 
         return None
@@ -403,11 +426,10 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         同步升级后插件定时任务。
 
         :param context: 插件升级上下文
-        :return: None
         """
         plugin_enabled = getattr(context.database_plugin, 'enabled', '1') == '0'
-        await context.lifecycle_uow.install_plugin_jobs(
-            context.discovered_plugin,
+        await context.active_transaction.install_plugin_jobs(
+            context.resolved_plugin,
             enabled=plugin_enabled,
         )
 
@@ -421,10 +443,9 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         执行升级 migration。
 
         :param context: 插件升级上下文
-        :return: None
         """
         context.migration_results = await self.dependencies.migration_execution_gateway.run_plugin_migrations(
-            context.discovered_plugin,
+            context.resolved_plugin,
         )
 
         return None
@@ -437,9 +458,8 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         执行升级 seed。
 
         :param context: 插件升级上下文
-        :return: None
         """
-        context.seed_results = await PluginSeedRunner(context.discovered_plugin).run(context.session)
+        context.seed_results = await PluginSeedRunner(context.resolved_plugin).run(context.session)
 
         return None
 
@@ -451,9 +471,8 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         执行升级钩子。
 
         :param context: 插件升级上下文
-        :return: None
         """
-        context.hook_result = await PluginHookRunner(context.discovered_plugin).run(
+        context.hook_result = await PluginHookRunner(context.resolved_plugin).run(
             'on_upgrade',
             query_db=context.session,
         )
@@ -468,10 +487,9 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         标记插件已安装。
 
         :param context: 插件升级上下文
-        :return: None
         """
-        context.plugin = await context.lifecycle_uow.mark_plugin_installed(
-            context.discovered_plugin,
+        context.plugin = await context.active_transaction.mark_plugin_installed(
+            context.resolved_plugin,
         )
 
         return None
@@ -484,9 +502,8 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         提交升级事务。
 
         :param context: 插件升级上下文
-        :return: None
         """
-        await context.lifecycle_uow.commit()
+        await context.active_transaction.commit()
         CatalogRegistry.commit_plugin(
             context.plugin_id, context.catalog_snapshot, enabled=getattr(context.plugin, 'enabled', '0') == '0'
         )
@@ -501,7 +518,6 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         关闭升级数据库会话。
 
         :param context: 插件升级上下文
-        :return: None
         """
         await self._close_upgrade_session(context)
 
@@ -518,8 +534,8 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         :return: 插件预检上下文
         """
         return await self._build_precheck_context(
-            cast('Path', context.backend_root),
-            cast('DiscoveredPlugin', context.discovered_plugin),
+            require_step_result(context.backend_root, 'discover_plugin'),
+            context.resolved_plugin,
             context.discovered_plugins or [],
         )
 
@@ -533,11 +549,10 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
 
         :param precheck: 插件预检上下文
         :param context: 插件升级上下文
-        :return: None
         """
         context.precheck = precheck
         context.actions = PluginPayloadBuilder.build_upgrade_actions(
-            cast('DiscoveredPlugin', context.discovered_plugin),
+            context.resolved_plugin,
             precheck.dependency_result.ok,
             precheck.plugin_dependency_result.ok,
             precheck.structure_result.ok,
@@ -547,14 +562,14 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
     def _build_upgrade_operation_payload(
         self,
         context: PluginUpgradeLifecycleContext,
-    ) -> dict[str, object]:
+    ) -> UpgradeDryRunPayloadContext:
         """
         构建升级预检操作 payload。
 
         :param context: 插件升级上下文
         :return: 升级操作 payload
         """
-        precheck = cast('PluginPrecheckContext', context.precheck)
+        precheck = context.precheck_result
         return {
             'versionState': context.version_state or {},
             'dependencyResult': precheck.dependency_result,
@@ -584,11 +599,11 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
             context.plugin_id,
             message=I18nMessage('插件升级完成', msg_key='plugin.runtime.upgrade.completed'),
             actions=context.actions or [],
-            precheck=cast('PluginPrecheckContext', context.precheck),
-            plugin=context.plugin,
-            installed_configs=context.installed_configs,
-            migration_results=context.migration_results,
-            seed_results=context.seed_results,
+            precheck=context.precheck_result,
+            plugin=require_step_result(context.plugin, 'mark_installed'),
+            installed_configs=require_step_result(context.installed_configs, 'install_configs'),
+            migration_results=require_step_result(context.migration_results, 'run_migrations'),
+            seed_results=require_step_result(context.seed_results, 'run_seeds'),
             hook_result=context.hook_result,
             extra_payload=context.version_state or {},
         )
@@ -598,6 +613,5 @@ class PluginUpgradeUseCase(PluginLifecycleUseCaseSupport):
         关闭升级数据库会话。
 
         :param context: 插件升级上下文
-        :return: None
         """
         await self._close_lifecycle_session(context)

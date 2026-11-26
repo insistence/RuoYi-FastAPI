@@ -14,10 +14,10 @@ class DatabaseRuntimeService:
     该服务作为数据库运行时 facade，对外统一暴露数据库连通性检查、
     Alembic 版本读取与迁移命令执行入口。
 
-    :param runtime_environment: 运行时环境服务
-    :param infrastructure_gateway: 数据库基础设施网关
-    :param revision_support: 数据库迁移版本支持对象
-    :param alembic_command_support: 数据库 Alembic 命令支持对象
+    :ivar runtime_environment: 运行时环境服务
+    :ivar infrastructure_gateway: 数据库基础设施网关
+    :ivar revision_support: 数据库迁移版本支持对象
+    :ivar alembic_command_support: 数据库 Alembic 命令支持对象
     """
 
     def __init__(
@@ -35,7 +35,6 @@ class DatabaseRuntimeService:
         :param infrastructure_gateway: 数据库基础设施网关
         :param revision_support: 数据库迁移版本支持对象
         :param alembic_command_support: 数据库 Alembic 命令支持对象
-        :return: None
         """
         self.runtime_environment = runtime_environment or RUNTIME_ENVIRONMENT
         self.infrastructure_gateway = infrastructure_gateway or DatabaseInfrastructureGateway()
@@ -110,7 +109,7 @@ class DatabaseRuntimeService:
         """
         执行数据库迁移升级。
 
-        :param revision: 目标迁移版本，默认为 `head`
+        :param revision: 目标迁移版本，默认为 ``head``
         :param dry_run: 是否仅演练执行
         :return: 数据库迁移执行结果
         """
@@ -141,7 +140,7 @@ class DatabaseRuntimeService:
         """
         执行数据库回退。
 
-        :param revision: 目标回退版本，默认为 `-1`
+        :param revision: 目标回退版本，默认为 ``-1``
         :param dry_run: 是否仅演练执行
         :return: 数据库回退结果
         """

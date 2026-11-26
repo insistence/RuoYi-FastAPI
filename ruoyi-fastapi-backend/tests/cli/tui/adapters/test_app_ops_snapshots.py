@@ -9,9 +9,18 @@ from pytest import MonkeyPatch
 async def test_collect_app_page_snapshot_builds_env_config_and_route_sections(
     monkeypatch: MonkeyPatch,
     app_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
+    """应用快照包含环境、配置和路由分区。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``app env``、``app config``、``app routes`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('app', 'env'):
             return SimpleNamespace(
@@ -172,9 +181,18 @@ async def test_collect_app_page_snapshot_builds_env_config_and_route_sections(
 async def test_collect_app_page_snapshot_applies_query_filter(
     monkeypatch: MonkeyPatch,
     app_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
+    """应用快照按查询条件过滤。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``app env``、``app config``、``completion doctor`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('app', 'env'):
             return SimpleNamespace(payload={'ok': True, 'runtime': {'cliEnv': 'dev', 'configEnv': 'dev'}})
@@ -232,9 +250,18 @@ async def test_collect_app_page_snapshot_applies_query_filter(
 async def test_collect_ops_page_snapshot_builds_health_dependency_and_server_sections(
     monkeypatch: MonkeyPatch,
     ops_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
+    """运维快照包含健康、依赖和服务器分区。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``ops health``、``ops ping-db``、``ops ping-redis`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('ops', 'health'):
             return SimpleNamespace(
@@ -256,7 +283,7 @@ async def test_collect_ops_page_snapshot_builds_health_dependency_and_server_sec
                     'message': '核心运行依赖已安装',
                     'missingRequired': [],
                     'packages': {
-                        'python': {'installed': True, 'version': '3.10.0'},
+                        'python': {'installed': True, 'version': '3.11.0'},
                         'fastapi': {'installed': True, 'version': '0.111.0'},
                         'sqlalchemy': {'installed': True, 'version': '2.0.0'},
                         'redis': {'installed': True, 'version': '5.0.0'},
@@ -277,7 +304,7 @@ async def test_collect_ops_page_snapshot_builds_health_dependency_and_server_sec
                     },
                     'cpu': {'cpuNum': 8, 'used': 21.5},
                     'mem': {'total': '16 GB', 'usage': 48.2},
-                    'py': {'version': '3.10.0', 'runTime': '2天4小时', 'used': '256 MB', 'total': '1 GB'},
+                    'py': {'version': '3.11.0', 'runTime': '2天4小时', 'used': '256 MB', 'total': '1 GB'},
                     'sysFiles': [
                         {
                             'dirName': '/',
@@ -327,9 +354,18 @@ async def test_collect_ops_page_snapshot_builds_health_dependency_and_server_sec
 async def test_collect_ops_page_snapshot_surfaces_health_risk_subtitle(
     monkeypatch: MonkeyPatch,
     ops_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
+    """运维快照在副标题显示健康风险。"""
+
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``ops health``、``ops ping-db``、``ops ping-redis`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 指定子命令在此测试场景的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('ops', 'health'):
             return SimpleNamespace(
@@ -357,3 +393,12 @@ async def test_collect_ops_page_snapshot_surfaces_health_risk_subtitle(
         snapshot.subtitle
         == '聚焦：数据库连通性 / Redis 连通性 / 依赖版本 | 运维探活存在异常，优先核对数据库/Redis 连通性与依赖版本'
     )
+
+
+def test_app_sections_handle_malformed_payloads(app_adapter: ModuleType) -> None:
+    """环境分区区分缺失与空字典，补全分区在 shell 元数据无效时使用默认值。"""
+    builder = app_adapter.AppSectionBuilder
+    assert builder.build_env_section(None).status == 'fail'
+    assert builder.build_env_section({'ok': True, 'runtime': []}).status == 'fail'
+    assert builder.build_env_section({'ok': True, 'runtime': {}}).status == 'ok'
+    assert builder.resolve_completion_preview_shell({'activeShell': 'fish', 'shells': []}) == 'bash'

@@ -4,12 +4,15 @@ import importlib
 import json
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from dotenv import dotenv_values
-from sqlalchemy import Column, Integer, MetaData, Table, inspect, select, text
+from sqlalchemy import Column, Integer, MetaData, String, Table, inspect, select, text
+from sqlalchemy.dialects.mysql import DATETIME
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 
 from common.types import DbUtcDateTime
 from config.database import Base, create_async_db_engine, create_sync_db_engine
@@ -27,21 +30,25 @@ ASYNC_PROBE_ID = 99
 
 def load_source(args: argparse.Namespace) -> DataSourceSettings:
     """
-    从本地配置读取待验证数据源
+    从本地配置读取待验证数据源。
 
     :param args: 命令行参数
     :return: 数据源连接配置
+    :raises ValueError: DB_SOURCES 缺少数据库配置
     """
     if args.config:
         return DataSourceSettings.model_validate_json(Path(args.config).read_text(encoding='utf-8'))
     values = dotenv_values(args.env_file)
-    sources = json.loads(values['DB_SOURCES'])
+    raw_sources = values.get('DB_SOURCES')
+    if raw_sources is None:
+        raise ValueError('DB_SOURCES 缺少数据库配置')
+    sources = json.loads(raw_sources)
     return DataSourceSettings.model_validate(sources[args.source or values['DB_DEFAULT_SOURCE']])
 
 
-def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings:  # noqa: PLR0915
+def initialize(source: DataSourceSettings, report: dict[str, Any]) -> DataSourceSettings:  # noqa: PLR0915
     """
-    创建隔离测试库并验证UTC种子数据
+    创建隔离测试库并验证UTC种子数据。
 
     :param source: 具备建库权限的源连接配置
     :param report: 原地补充数据库版本和初始化结果的报告字典
@@ -70,14 +77,14 @@ def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings: 
     }
     before = TimezoneUtil.utc_now() - timedelta(seconds=1)
     if target.db_type == 'mysql':
-        import pymysql  # noqa: PLC0415 - load only the selected driver
+        import pymysql  # noqa: PLC0415 - 只加载选定的驱动
         from pymysql.constants import CLIENT  # noqa: PLC0415
 
         connection = pymysql.connect(
             **connection_args, charset='utf8mb4', autocommit=True, client_flag=CLIENT.MULTI_STATEMENTS
         )
     else:
-        import psycopg2  # noqa: PLC0415 - load only the selected driver
+        import psycopg2  # noqa: PLC0415 - 只加载选定的驱动
 
         connection = psycopg2.connect(**connection_args)
         connection.autocommit = True
@@ -106,7 +113,7 @@ def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings: 
         with engine.connect() as connection:
             value = connection.execute(text('SELECT create_time FROM sys_dept WHERE dept_id=100')).scalar_one()
             if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
+                value = value.replace(tzinfo=UTC)
             assert before <= value <= TimezoneUtil.utc_now() + timedelta(seconds=1), 'Seed time is not UTC'
             report['seed_time_utc'] = value.isoformat()
             preferences = connection.execute(text('SELECT time_zone FROM sys_user')).scalars().all()
@@ -117,9 +124,9 @@ def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings: 
     return target
 
 
-def inspect_schema(source: DataSourceSettings, report: dict) -> None:
+def inspect_schema(source: DataSourceSettings, report: dict[str, Any]) -> None:
     """
-    逐列核对实际数据库和ORM的时间类型约定
+    逐列核对实际数据库和ORM的时间类型约定。
 
     :param source: 隔离测试库的数据源配置
     :param report: 原地补充验证结果的报告字典
@@ -136,6 +143,7 @@ def inspect_schema(source: DataSourceSettings, report: dict) -> None:
     try:
         catalog = inspect(engine)
         columns = []
+        plugin_count = 0
         for table in Base.metadata.tables.values():
             instants = [column for column in table.columns if isinstance(column.type, DbUtcDateTime)]
             if not instants:
@@ -144,14 +152,18 @@ def inspect_schema(source: DataSourceSettings, report: dict) -> None:
             for column in instants:
                 found = actual[column.name]
                 assert found['nullable'] == column.nullable, f'{table.name}.{column.name}: nullable mismatch'
+                column_type = found['type']
                 if source.db_type == 'mysql':
-                    assert type(found['type']).__name__ == 'DATETIME' and found['type'].fsp == MILLISECOND_PRECISION
+                    assert isinstance(column_type, DATETIME) and column_type.fsp == MILLISECOND_PRECISION
                 else:
-                    assert found['type'].timezone is True and found['type'].precision == MILLISECOND_PRECISION
+                    assert isinstance(column_type, TIMESTAMP) and column_type.timezone is True
+                    assert column_type.precision == MILLISECOND_PRECISION
                 default = found['default']
                 assert default is None or re.fullmatch(r'NULL(?:::[\w ()]+)?', default), (
                     f'{table.name}.{column.name}: unexpected server default'
                 )
+                if table.name.startswith('ai_'):
+                    plugin_count += 1
                 columns.append(
                     {
                         'table': table.name,
@@ -163,22 +175,22 @@ def inspect_schema(source: DataSourceSettings, report: dict) -> None:
                         'server_default': found['default'],
                     }
                 )
-        main = [column for column in columns if not column['table'].startswith('ai_')]
-        plugin = [column for column in columns if column['table'].startswith('ai_')]
-        assert len(main) == MAIN_INSTANT_COLUMNS and len(plugin) == PLUGIN_INSTANT_COLUMNS, (len(main), len(plugin))
+        main_count = len(columns) - plugin_count
+        assert (main_count, plugin_count) == (MAIN_INSTANT_COLUMNS, PLUGIN_INSTANT_COLUMNS), (main_count, plugin_count)
         logs = {column['name']: column for column in catalog.get_columns('sys_job_log')}
         assert type(logs['run_duration_ms']['type']).__name__ == 'BIGINT'
         assert logs['run_duration_ms']['nullable'] and logs['time_zone']['nullable']
-        assert logs['time_zone']['type'].length == TIMEZONE_LENGTH
+        zone_type = logs['time_zone']['type']
+        assert isinstance(zone_type, String) and zone_type.length == TIMEZONE_LENGTH
         report['schema_columns'] = columns
-        report['main_instant_columns'], report['plugin_instant_columns'] = len(main), len(plugin)
+        report['main_instant_columns'], report['plugin_instant_columns'] = main_count, plugin_count
     finally:
         engine.dispose()
 
 
-async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
+async def verify_drivers(source: DataSourceSettings, report: dict[str, Any]) -> None:
     """
-    验证同步和异步驱动的UTC会话、精度及重连行为
+    验证同步和异步驱动的UTC会话、精度及重连行为。
 
     :param source: 隔离测试库的数据源配置
     :param report: 原地补充验证结果的报告字典
@@ -187,7 +199,10 @@ async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
     async_engine = create_async_db_engine(config=source, echo=False)
     metadata = MetaData()
     probe = Table(
-        'timezone_verify_probe', metadata, Column('id', Integer, primary_key=True), Column('instant', DbUtcDateTime())
+        'timezone_verify_probe',
+        metadata,
+        Column('id', Integer, primary_key=True, comment='验证记录标识'),
+        Column('instant', DbUtcDateTime(), comment='用于验证 UTC 转换的时刻'),
     )
     metadata.create_all(engine)
     values = [
@@ -204,7 +219,7 @@ async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
             assert (await connection.execute(text(timezone_query))).scalar_one() in {'UTC', '+00:00'}
             actual = (await connection.execute(select(probe.c.instant).order_by(probe.c.id))).scalars().all()
             assert actual == [TimezoneUtil.to_utc_milliseconds(value) for value in values]
-            assert all(value.tzinfo == timezone.utc for value in actual)
+            assert all(value.tzinfo == UTC for value in actual)
             await connection.execute(probe.insert().values(id=ASYNC_PROBE_ID, instant=values[-1]))
         await async_engine.dispose()
         async with async_engine.connect() as connection:
@@ -223,9 +238,9 @@ async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
         await async_engine.dispose()
 
 
-async def verify_generator(source: DataSourceSettings, report: dict) -> None:
+async def verify_generator(source: DataSourceSettings, report: dict[str, Any]) -> None:
     """
-    使用真实数据库验证普通表、树表和主子表生成代码
+    使用真实数据库验证普通表、树表和主子表生成代码。
 
     :param source: 隔离测试库的数据源配置
     :param report: 原地补充验证结果的报告字典
@@ -253,9 +268,9 @@ async def verify_generator(source: DataSourceSettings, report: dict) -> None:
         engine.dispose()
 
 
-async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict) -> None:
+async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict[str, Any]) -> None:
     """
-    验证数据库元数据时间及持久化调度行为
+    验证数据库元数据时间及持久化调度行为。
 
     :param source: 隔离测试库的数据源配置
     :param report: 原地补充验证结果的报告字典
@@ -272,7 +287,7 @@ async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict
     try:
         async with async_sessionmaker(async_engine)() as session:
             rows = await GenTableDao.get_gen_db_table_list(session, GenTablePageQueryModel(), source_config=source)
-            assert rows
+            assert isinstance(rows, list) and rows
             for row in rows:
                 for key in ['createTime', 'updateTime']:
                     value = row.get(key)
@@ -282,7 +297,7 @@ async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict
                         assert TimezoneUtil.parse_rfc3339(value) <= TimezoneUtil.utc_now() + timedelta(seconds=1)
             if source.db_type == 'mysql':
                 filtered = await GenTableDao.get_gen_db_table_list(
-                    session, GenTablePageQueryModel(beginTime='2000-01-01'), source_config=source
+                    session, GenTablePageQueryModel(begin_time='2000-01-01'), source_config=source
                 )
                 assert filtered
         report['metadata_time_contract'] = 'passed'
@@ -297,9 +312,7 @@ async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict
 
 
 def main() -> None:
-    """
-    运行真实数据库的时区契约验收并输出报告
-    """
+    """运行真实数据库的时区契约验收并输出报告。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--env-file', default='.env.dev')
     parser.add_argument('--source')

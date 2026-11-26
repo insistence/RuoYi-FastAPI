@@ -16,7 +16,11 @@ from plugins.core.sdk import PluginHostContext, await_plugin_callback
 
 @pytest.fixture(autouse=True)
 def isolate_modules() -> Generator[None, None, None]:
-    """测试模块使用独立 ID，避免影响现有插件测试。"""
+    """
+    测试模块使用独立 ID，避免影响现有插件测试。
+
+    :yield: 上下文就绪后将控制权交给调用方
+    """
     yield
     for name in list(sys.modules):
         if name == 'plugins.entry_test' or name.startswith('plugins.entry_test.'):
@@ -26,6 +30,14 @@ def isolate_modules() -> Generator[None, None, None]:
 
 
 def make_plugin(tmp_path: Path, source: str, *, native: bool = False) -> DiscoveredPlugin:
+    """
+    组装测试所需的插件描述。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param source: 写入测试插件入口模块的 Python 源码
+    :param native: 是否使用原生插件
+    :return: 测试所需的插件描述
+    """
     root = tmp_path / 'plugins' / 'entry_test'
     root.mkdir(parents=True, exist_ok=True)
     module = 'ruoyi_plugin_entry_test' if native else 'plugins.entry_test'
@@ -41,6 +53,7 @@ def make_plugin(tmp_path: Path, source: str, *, native: bool = False) -> Discove
 
 
 def test_python_factory_can_call_host_service(tmp_path: Path) -> None:
+    """Python 工厂可调用宿主服务。"""
     calls = []
     plugin = make_plugin(
         tmp_path,
@@ -56,6 +69,7 @@ def test_python_factory_can_call_host_service(tmp_path: Path) -> None:
 
 
 def test_loader_rejects_other_version_in_module_cache(tmp_path: Path) -> None:
+    """加载器拒绝模块缓存中的其他版本。"""
     source = 'from plugins.core.sdk import PluginDefinition\ndef create_plugin(host): return PluginDefinition()\n'
     first = make_plugin(tmp_path / 'first', source)
     second = make_plugin(tmp_path / 'second', source)
@@ -65,6 +79,7 @@ def test_loader_rejects_other_version_in_module_cache(tmp_path: Path) -> None:
 
 
 def test_failed_import_removes_new_modules(tmp_path: Path) -> None:
+    """导入失败时清理新增模块。"""
     plugin = make_plugin(tmp_path, 'raise RuntimeError("broken import")\n')
     with pytest.raises(RuntimeError, match='broken import'):
         PluginEntrypointLoader(plugin).load(PluginHostContext(plugin.manifest.id, plugin.backend_path))
@@ -81,12 +96,14 @@ def test_failed_import_removes_new_modules(tmp_path: Path) -> None:
     ],
 )
 def test_factory_protocol_is_checked(tmp_path: Path, source: str) -> None:
+    """校验插件工厂协议。"""
     plugin = make_plugin(tmp_path, source)
     with pytest.raises((ValueError, TypeError)):
         PluginEntrypointLoader(plugin).load(PluginHostContext(plugin.manifest.id, plugin.backend_path))
 
 
 def test_native_precheck_validates_tags_record_and_hash_without_importing(tmp_path: Path) -> None:
+    """原生预检在不导入模块时校验标签、记录和哈希。"""
     plugin = make_plugin(tmp_path, '', native=True)
     native_root = plugin.backend_path / 'native'
     package = native_root / 'ruoyi_plugin_entry_test'
@@ -114,11 +131,27 @@ def test_native_precheck_validates_tags_record_and_hash_without_importing(tmp_pa
 
 @pytest.mark.asyncio
 async def test_native_style_callable_returns_awaitable() -> None:
+    """原生可调用对象可返回可等待的结果。"""
+
     async def calculate(value: int) -> int:
+        """
+        返回输入值加一的回调结果。
+
+        :param value: 待处理的输入值
+        :return: 输入值加一的回调结果
+        """
         return value + 1
 
     class NativeStyleCallback:
+        """用同步调用入口模拟原生插件回调。"""
+
         def __call__(self, value: int) -> object:
+            """
+            执行测试替身的回调。
+
+            :param value: 待处理的输入值
+            :return: 传入数值经回调计算后的结果
+            """
             return calculate(value)
 
     result = await await_plugin_callback(NativeStyleCallback(), 4)
@@ -128,6 +161,7 @@ async def test_native_style_callable_returns_awaitable() -> None:
 
 
 def test_context_rejects_resource_escape_and_unknown_service(tmp_path: Path) -> None:
+    """上下文拒绝资源越界及未知服务。"""
     host = PluginHostContext('entry_test', tmp_path)
     with pytest.raises(ValueError, match='根目录'):
         host.resource('../outside')

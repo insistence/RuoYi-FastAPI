@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -12,12 +13,13 @@ class CacheCommandController:
     """
     缓存命令控制器。
 
-    该控制器负责组织 `cache` 命令组的上下文准备、runtime 调用、
+    该控制器负责组织 ``cache`` 命令组的上下文准备、runtime 调用、
     payload 注入，以及基于输出格式选择 presenter 或直接返回 JSON。
 
-    :param context_factory: CLI 上下文工厂
-    :param execution_service: CLI 执行服务
-    :param presenter: 缓存命令文本渲染器
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar presenter: 缓存命令文本渲染器
+    :ivar runtime_service: 缓存运行时服务
     """
 
     def __init__(
@@ -35,20 +37,18 @@ class CacheCommandController:
         :param execution_service: CLI 执行服务
         :param presenter: 缓存命令文本渲染器
         :param runtime_service: 缓存运行时服务
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
         self.presenter = presenter or CacheCommandPresenter()
         self.runtime_service = runtime_service or CACHE_RUNTIME
 
-    def stats(self, env: str, output: str) -> None:
+    def stats(self, env: str, output: OutputFormat) -> None:
         """
         查看缓存统计信息。
 
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.runtime_service.get_cache_stats())
@@ -59,14 +59,13 @@ class CacheCommandController:
             text_condition=lambda result_data: bool(result_data.get('ok', False)),
         )
 
-    def keys(self, cache_name: str, env: str, output: str) -> None:
+    def keys(self, cache_name: str, env: str, output: OutputFormat) -> None:
         """
         查看指定缓存名称下的键名列表。
 
         :param cache_name: 缓存名称
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.runtime_service.list_cache_keys(cache_name))
@@ -77,7 +76,7 @@ class CacheCommandController:
             text_condition=lambda result_data: bool(result_data.get('ok', False)),
         )
 
-    def get(self, cache_name: str, cache_key: str, env: str, output: str) -> None:
+    def get(self, cache_name: str, cache_key: str, env: str, output: OutputFormat) -> None:
         """
         查看指定缓存内容。
 
@@ -85,7 +84,6 @@ class CacheCommandController:
         :param cache_key: 缓存键名
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.runtime_service.get_cache_value(cache_name, cache_key))
@@ -99,7 +97,7 @@ class CacheCommandController:
     def clear(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -119,7 +117,6 @@ class CacheCommandController:
         :param cache_name: 缓存名称前缀
         :param cache_key: 缓存键名
         :param clear_all: 是否清理全部缓存
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -141,7 +138,7 @@ class CacheCommandController:
             ),
         )
 
-    def ttl(self, cache_name: str, cache_key: str, env: str, output: str) -> None:
+    def ttl(self, cache_name: str, cache_key: str, env: str, output: OutputFormat) -> None:
         """
         查看指定缓存键的剩余过期时间。
 
@@ -149,7 +146,6 @@ class CacheCommandController:
         :param cache_key: 缓存键名
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.runtime_service.get_cache_ttl(cache_name, cache_key))
@@ -160,7 +156,7 @@ class CacheCommandController:
             text_condition=lambda result_data: 'error' not in result_data,
         )
 
-    def warmup(self, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def warmup(self, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         执行系统缓存预热。
 
@@ -168,7 +164,6 @@ class CacheCommandController:
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,

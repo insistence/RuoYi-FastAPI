@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from sqlalchemy import delete, update
+from sqlalchemy import Alias, delete, update
 from sqlalchemy.orm import aliased
 
 from common.constant import HttpStatusConstant
@@ -42,6 +42,7 @@ async def test_user_dao_updates_refresh_profile_without_invalidating_other_users
     changes: dict[str, Any],
     expected: dict[str, Any],
 ) -> None:
+    """通过 DAO 更新用户资料不影响其他用户缓存。"""
     for user_id in (ADMIN_ID, USER_ID):
         await cache_env.client.get('/profile', headers=cache_env.headers[user_id])
     async with cache_env.sessions.begin() as db:
@@ -60,6 +61,7 @@ async def test_user_dao_updates_refresh_profile_without_invalidating_other_users
 
 @pytest.mark.asyncio
 async def test_timezone_service_commit_refreshes_cached_preference(cache_env: SimpleNamespace) -> None:  # noqa: F811
+    """提交时区变更后刷新偏好缓存。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     async with cache_env.sessions() as db:
         result = await UserService.update_user_timezone_services(db, USER_ID, 'reader', 'Europe/London')
@@ -77,6 +79,7 @@ async def test_password_changes_refresh_policy_without_caching_hash(
     cache_env: SimpleNamespace,  # noqa: F811
     mutation: str,
 ) -> None:
+    """修改密码后刷新策略且不缓存密码哈希。"""
     await cache_env.redis.set('sys_config:sys.account.initPasswordModify', '1')
     first = await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     assert first.json()['isDefaultModifyPwd']
@@ -107,8 +110,9 @@ async def test_password_changes_refresh_policy_without_caching_hash(
 async def test_user_role_assignment_and_revocation_refresh_admin_permission(
     cache_env: SimpleNamespace,  # noqa: F811
 ) -> None:
+    """分配或撤销用户角色后刷新管理员权限。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
-    assignment = UserRoleModel(userId=USER_ID, roleId=ADMIN_ID)
+    assignment = UserRoleModel(user_id=USER_ID, role_id=ADMIN_ID)
     async with cache_env.sessions.begin() as db:
         await UserDao.add_user_role_dao(db, assignment)
 
@@ -125,8 +129,9 @@ async def test_user_role_assignment_and_revocation_refresh_admin_permission(
 
 @pytest.mark.asyncio
 async def test_user_post_removal_and_assignment_refresh_cached_post_ids(cache_env: SimpleNamespace) -> None:  # noqa: F811
+    """删除或分配用户岗位后刷新缓存的岗位标识。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
-    assignment = UserPostModel(userId=USER_ID, postId=USER_ID)
+    assignment = UserPostModel(user_id=USER_ID, post_id=USER_ID)
     async with cache_env.sessions.begin() as db:
         await UserDao.delete_user_post_dao(db, assignment)
 
@@ -145,6 +150,7 @@ async def test_plugin_menu_mutations_revoke_cached_permission(
     cache_env: SimpleNamespace,  # noqa: F811
     mutation: str,
 ) -> None:
+    """修改插件菜单后撤销已缓存的权限。"""
     await cache_env.client.get('/permitted', headers=cache_env.headers[USER_ID])
     async with cache_env.sessions.begin() as db:
         if mutation == 'edit':
@@ -170,12 +176,20 @@ async def test_aliased_mutations_refresh_cached_user_and_permissions(
     target_name: str,
     mutation: str,
 ) -> None:
+    """通过别名修改数据后刷新用户及权限缓存。"""
     first = await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     assert first.json()['permissions'] == ['demo:read']
-    model = SysUser if target_name == 'user' else SysMenu
-    target = aliased(model, name='cache_target') if alias_type == 'orm' else model.__table__.alias('cache_target')
-    columns = target if alias_type == 'orm' else target.c
-    target_id = columns.user_id if target_name == 'user' else columns.menu_id
+    if alias_type == 'core':
+        table = SysUser.__table__ if target_name == 'user' else SysMenu.__table__
+        target = table.alias('cache_target')
+        assert isinstance(target, Alias)
+        target_id = target.c.user_id if target_name == 'user' else target.c.menu_id
+    elif target_name == 'user':
+        target = aliased(SysUser, name='cache_target')
+        target_id = target.user_id
+    else:
+        target = aliased(SysMenu, name='cache_target')
+        target_id = target.menu_id
     if mutation == 'update':
         values = {'nick_name': 'Alias updated reader'} if target_name == 'user' else {'perms': 'demo:updated'}
         statement = update(target).where(target_id == USER_ID).values(**values)
@@ -204,10 +218,13 @@ async def test_aliased_mutations_refresh_cached_user_and_permissions(
 async def test_alias_update_with_original_table_condition_refreshes_all_affected_users(
     cache_env: SimpleNamespace,  # noqa: F811
 ) -> None:
+    """使用原表条件更新别名时刷新全部受影响用户。"""
     for user_id in (ADMIN_ID, USER_ID):
         response = await cache_env.client.get('/profile', headers=cache_env.headers[user_id])
         assert response.json()['user']['userId'] == user_id
-    target = SysUser.__table__.alias('cache_target')
+    table = SysUser.__table__
+    target = table.alias('cache_target')
+    assert isinstance(target, Alias)
     async with cache_env.sessions.begin() as db:
         # 条件引用原表，匹配管理员时会更新别名目标中的全部用户。
         await db.execute(

@@ -14,11 +14,7 @@ MISSING_JOB_ID = 99
 
 
 def test_job_domain_support_builds_operation_metadata() -> None:
-    """
-    校验任务领域支持对象会返回统一的任务操作元数据。
-
-    :return: None
-    """
+    """校验任务领域支持对象会返回统一的任务操作元数据。"""
     support = JobDomainSupport(JobInfrastructureGateway())
 
     payload = support.build_job_operation_metadata('pause')
@@ -30,16 +26,10 @@ def test_job_domain_support_builds_operation_metadata() -> None:
 
 
 def test_job_domain_support_serializes_model_dump_items() -> None:
-    """
-    校验任务领域支持对象会序列化带 `model_dump` 的任务项。
-
-    :return: None
-    """
+    """校验任务领域支持对象会序列化带 ``model_dump`` 的任务项。"""
 
     class FakeJobModel:
-        """
-        模拟任务模型。
-        """
+        """模拟任务模型。"""
 
         @staticmethod
         def model_dump(*, by_alias: bool = False, exclude_none: bool = False) -> dict[str, object]:
@@ -63,45 +53,34 @@ def test_job_domain_support_serializes_model_dump_items() -> None:
 
 @pytest.mark.asyncio
 async def test_job_scheduler_support_closes_scheduler_and_redis() -> None:
-    """
-    校验任务调度支持对象会关闭调度器和 Redis 资源。
-
-    :return: None
-    """
+    """校验任务调度支持对象会关闭调度器和 Redis 资源。"""
     close_events: list[str] = []
 
     class FakeRedis:
-        """
-        模拟 Redis 客户端。
-        """
+        """模拟 Redis 客户端。"""
 
         @staticmethod
         async def close() -> None:
-            """
-            记录 Redis 关闭事件。
-
-            :return: None
-            """
+            """记录 Redis 关闭事件。"""
             close_events.append('redis')
 
     class FakeSchedulerManager:
-        """
-        模拟调度器管理类。
-        """
+        """模拟调度器管理类。"""
 
         @staticmethod
         async def close_system_scheduler() -> None:
-            """
-            记录调度器关闭事件。
-
-            :return: None
-            """
+            """记录调度器关闭事件。"""
             close_events.append('scheduler')
 
     gateway = JobInfrastructureGateway()
     support = JobSchedulerSupport(gateway)
 
     def _fake_get_scheduler_manager() -> FakeSchedulerManager:
+        """
+        创建测试使用的 ``FakeSchedulerManager`` 实例。
+
+        :return: 测试使用的 ``FakeSchedulerManager`` 实例
+        """
         return FakeSchedulerManager()
 
     object.__setattr__(gateway, 'get_scheduler_manager', _fake_get_scheduler_manager)
@@ -113,18 +92,17 @@ async def test_job_scheduler_support_closes_scheduler_and_redis() -> None:
 
 @pytest.mark.asyncio
 async def test_job_runtime_service_reports_missing_job_detail() -> None:
-    """
-    校验任务运行时在任务详情不存在时会返回统一结果。
-
-    :return: None
-    """
+    """校验任务运行时在任务详情不存在时会返回统一结果。"""
 
     class FakeSession:
-        """
-        模拟异步会话。
-        """
+        """模拟异步会话。"""
 
         async def __aenter__(self) -> 'FakeSession':
+            """
+            向调用方返回 ``self``。
+
+            :return: 当前测试对象
+            """
             return self
 
         async def __aexit__(
@@ -133,20 +111,28 @@ async def test_job_runtime_service_reports_missing_job_detail() -> None:
             exc: BaseException | None,
             tb: object,
         ) -> None:
+            """
+            结束测试资源的异步上下文。
+
+            :param exc_type: 退出上下文时的异常类型
+            :param exc: 捕获到的异常实例
+            :param tb: 异常发生时的回溯信息
+            """
             del exc_type, exc, tb
 
     class FakeSessionFactory:
-        """
-        模拟异步会话工厂。
-        """
+        """模拟异步会话工厂。"""
 
         def __call__(self) -> FakeSession:
+            """
+            创建测试使用的 ``FakeSession`` 实例。
+
+            :return: 测试使用的 ``FakeSession`` 实例
+            """
             return FakeSession()
 
     class FakeJobService:
-        """
-        模拟任务服务。
-        """
+        """模拟任务服务。"""
 
         @staticmethod
         async def job_detail_services(session: FakeSession, job_id: int) -> dict[str, object]:
@@ -165,9 +151,19 @@ async def test_job_runtime_service_reports_missing_job_detail() -> None:
     service = JobRuntimeService(infrastructure_gateway=gateway)
 
     def _fake_get_async_session_local() -> FakeSessionFactory:
+        """
+        创建测试使用的 ``FakeSessionFactory`` 实例。
+
+        :return: 测试使用的 ``FakeSessionFactory`` 实例
+        """
         return FakeSessionFactory()
 
     def _fake_get_job_service() -> FakeJobService:
+        """
+        创建测试使用的 ``FakeJobService`` 实例。
+
+        :return: 测试使用的 ``FakeJobService`` 实例
+        """
         return FakeJobService()
 
     object.__setattr__(gateway, 'get_async_session_local', _fake_get_async_session_local)
@@ -185,6 +181,7 @@ async def test_job_runtime_service_reports_missing_job_detail() -> None:
 async def test_job_operation_retains_execution_and_sync_results(
     operation: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """任务操作保留执行结果和同步结果。"""
     result = (
         {'executionId': 'execution-123', 'status': 'pending'}
         if operation == 'run-once'
@@ -200,7 +197,7 @@ async def test_job_operation_retains_execution_and_sync_results(
     gateway.get_redis_util.return_value.create_redis_pool = AsyncMock()
     gateway.get_scheduler_manager.return_value.init_system_scheduler = AsyncMock()
     gateway.get_job_service.return_value = job_service
-    scheduler_support = SimpleNamespace(close_scheduler_context=AsyncMock())
+    scheduler_support = MagicMock(spec=JobSchedulerSupport, close_scheduler_context=AsyncMock())
     service = JobRuntimeService(infrastructure_gateway=gateway, scheduler_support=scheduler_support)
     payload = await service.run_with_scheduler_context(operation, 7)
     assert payload['result'] == result

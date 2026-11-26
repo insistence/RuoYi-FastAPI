@@ -8,12 +8,12 @@ class PluginPurgePlanItem:
     """
     插件物理清理计划项。
 
-    :param name: 计划项名称
-    :param label: 计划项展示名称
-    :param enabled: 是否启用该计划项
-    :param destructive: 是否为破坏性操作
-    :param count: 计划项数量
-    :param target: 计划项目标
+    :ivar name: 计划项名称
+    :ivar label: 计划项展示名称
+    :ivar enabled: 是否启用该计划项
+    :ivar destructive: 是否为破坏性操作
+    :ivar count: 计划项数量
+    :ivar target: 计划项目标
     """
 
     name: str
@@ -29,10 +29,10 @@ class PluginPurgePlan:
     """
     插件物理清理计划。
 
-    :param plugin_id: 插件ID
-    :param items: 清理计划项列表
-    :param removes_source: 是否删除源码目录
-    :param requires_hook: 是否需要执行清理钩子
+    :ivar plugin_id: 插件ID
+    :ivar items: 清理计划项列表
+    :ivar removes_source: 是否删除源码目录
+    :ivar requires_hook: 是否需要执行清理钩子
     """
 
     plugin_id: str

@@ -72,14 +72,22 @@ def plugin_endpoint(
     :param body_model: 可选的请求体校验模型，设置后自动读取 JSON 请求体
     :param max_body_bytes: JSON 请求体最大字节数，默认 1 MiB
     :return: 具有固定 Request 参数的 FastAPI 端点函数
+    :raises ValueError: 插件请求体大小限制必须是正整数
+    :raises TypeError: 插件请求体模型必须是 Pydantic BaseModel 子类
     """
-
     if type(max_body_bytes) is not int or max_body_bytes <= 0:
         raise ValueError('插件请求体大小限制必须是正整数')
     if body_model is not None and (not isinstance(body_model, type) or not issubclass(body_model, BaseModel)):
         raise TypeError('插件请求体模型必须是 Pydantic BaseModel 子类')
 
     async def endpoint(request: Request) -> Any:
+        """
+        将 ASGI 请求适配为插件端点上下文并返回处理结果。
+
+        :param request: 当前 HTTP 请求
+        :raises HTTPException: 缺少宿主插件请求上下文；插件调用超时
+        :return: 处理结果
+        """
         context = getattr(request.state, 'plugin_context', None)
         if not isinstance(context, PluginRequestContext):
             raise HTTPException(status_code=401, detail='缺少宿主插件请求上下文')
@@ -103,7 +111,7 @@ def plugin_endpoint(
             return await await_plugin_callback(callback, context, timeout=timeout)
         except PermissionError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             raise HTTPException(status_code=504, detail='插件调用超时') from exc
 
     return endpoint
@@ -135,7 +143,8 @@ def plugin_lifespan(
         执行插件启动和关闭回调，并在请求期间提供共享状态。
 
         :param app: 使用该生命周期管理器的 FastAPI 子应用
-        :return: 供子应用请求使用的共享状态字典迭代器
+        :yield: 供子应用请求使用的共享状态字典迭代器
+        :raises TypeError: 插件启动回调必须返回状态字典或 None
         """
         try:
             state = await await_plugin_callback(on_startup, host, timeout=timeout)

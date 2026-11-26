@@ -2,6 +2,7 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any
 
+from cli.tui.adapters.base import get_dict_field, get_list_field
 from cli.tui.copy import TUI_COPY
 from cli.tui.diagnostics import TUI_DIAGNOSTIC_SERVICE
 from cli.tui.keymaps import TUI_KEYMAP_REGISTRY
@@ -19,9 +20,9 @@ class DashboardPanelSnapshot:
     """
     TUI 首页单个面板快照。
 
-    :param title: 面板标题
-    :param status: 面板状态
-    :param lines: 面板正文文本行
+    :ivar title: 面板标题
+    :ivar status: 面板状态
+    :ivar lines: 面板正文文本行
     """
 
     title: str
@@ -34,10 +35,10 @@ class DashboardMetricSnapshot:
     """
     TUI 首页单个指标卡快照。
 
-    :param title: 指标标题
-    :param value: 指标主值
-    :param status: 指标状态
-    :param hint: 指标补充说明
+    :ivar title: 指标标题
+    :ivar value: 指标主值
+    :ivar status: 指标状态
+    :ivar hint: 指标补充说明
     """
 
     title: str
@@ -51,8 +52,9 @@ class DashboardSnapshot:
     """
     TUI 首页聚合快照。
 
-    :param env: 当前运行环境
-    :param panels: 面板列表
+    :ivar env: 当前运行环境
+    :ivar panels: 面板列表
+    :ivar metrics: 当前运行状态的指标
     """
 
     env: str
@@ -65,13 +67,13 @@ class DashboardSourcePayloads:
     """
     TUI 首页聚合数据源快照。
 
-    :param app_env_payload: 应用环境结果
-    :param app_routes_payload: 应用路由结果
-    :param doctor_payload: 应用检查结果
-    :param database_payload: 数据库版本结果
-    :param cache_payload: 缓存统计结果
-    :param deps_payload: 依赖检查结果
-    :param server_payload: 服务器摘要结果
+    :ivar app_env_payload: 应用环境结果
+    :ivar app_routes_payload: 应用路由结果
+    :ivar doctor_payload: 应用检查结果
+    :ivar database_payload: 数据库版本结果
+    :ivar cache_payload: 缓存统计结果
+    :ivar deps_payload: 依赖检查结果
+    :ivar server_payload: 服务器摘要结果
     """
 
     app_env_payload: dict[str, Any] | None
@@ -88,10 +90,17 @@ class DashboardSnapshotCollector:
     TUI 首页聚合数据采集器。
 
     该对象负责从多路 CLI 命令收集 dashboard 所需原始结果，
-    让 `DashboardAdapter` 保持首页装配职责，而不继续承载所有采集细节。
+    让 ``DashboardAdapter`` 保持首页装配职责，而不继续承载所有采集细节。
+
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(self, query_service: TuiRuntimeQueryService | None = None) -> None:
+        """
+        保存仪表盘使用的运行时查询服务。
+
+        :param query_service: TUI 进程内查询服务
+        """
         self.query_service = query_service or TUI_RUNTIME_QUERIES
 
     async def collect(self, env: str) -> DashboardSourcePayloads:
@@ -294,7 +303,7 @@ class DashboardPanelCompressor:
 
     该对象负责将原始多行面板压缩为适合首页展示的统一密度摘要卡。
 
-    :param formatting: 首页仪表盘格式化支持对象
+    :ivar formatting: 首页仪表盘格式化支持对象
     """
 
     def __init__(self, formatting: DashboardFormattingSupport) -> None:
@@ -302,7 +311,6 @@ class DashboardPanelCompressor:
         初始化首页面板压缩器。
 
         :param formatting: 首页仪表盘格式化支持对象
-        :return: None
         """
         self.formatting = formatting
 
@@ -360,7 +368,7 @@ class DashboardPanelBuilder:
     该对象负责根据各个 CLI 结果负载构建首页展示面板，并统一风险热区与
     建议入口逻辑。
 
-    :param formatting: 首页仪表盘格式化支持对象
+    :ivar formatting: 首页仪表盘格式化支持对象
     """
 
     def __init__(self, formatting: DashboardFormattingSupport) -> None:
@@ -368,7 +376,6 @@ class DashboardPanelBuilder:
         初始化首页面板构建器。
 
         :param formatting: 首页仪表盘格式化支持对象
-        :return: None
         """
         self.formatting = formatting
 
@@ -382,15 +389,14 @@ class DashboardPanelBuilder:
         构建应用环境总览面板。
 
         :param env: 当前运行环境
-        :param env_payload: `app env` JSON 负载
-        :param routes_payload: `app routes` JSON 负载
+        :param env_payload: ``app env`` JSON 负载
+        :param routes_payload: ``app routes`` JSON 负载
         :return: 面板快照
         """
-        runtime = env_payload.get('runtime') if isinstance(env_payload, dict) else None
         route_count = routes_payload.get('count', 0) if isinstance(routes_payload, dict) else 0
         grouped_routes = routes_payload.get('groupedRoutes') if isinstance(routes_payload, dict) else None
         group_count = len(grouped_routes) if isinstance(grouped_routes, dict) else 0
-        if not isinstance(runtime, dict):
+        if not isinstance(env_payload, dict) or not isinstance(runtime := env_payload.get('runtime'), dict):
             return DashboardPanelSnapshot(
                 title='应用摘要',
                 status='fail',
@@ -420,7 +426,7 @@ class DashboardPanelBuilder:
         """
         构建健康检查面板。
 
-        :param payload: `app doctor` JSON 负载
+        :param payload: ``app doctor`` JSON 负载
         :return: 面板快照
         """
         if not isinstance(payload, dict):
@@ -435,9 +441,9 @@ class DashboardPanelBuilder:
                 ),
             )
 
-        database = payload.get('database') if isinstance(payload.get('database'), dict) else {}
-        redis = payload.get('redis') if isinstance(payload.get('redis'), dict) else {}
-        crypto = payload.get('crypto') if isinstance(payload.get('crypto'), dict) else {}
+        database = get_dict_field(payload, 'database')
+        redis = get_dict_field(payload, 'redis')
+        crypto = get_dict_field(payload, 'crypto')
         return DashboardPanelSnapshot(
             title='系统摘要',
             status='ok' if payload.get('ok', False) else 'fail',
@@ -602,7 +608,7 @@ class DashboardPanelBuilder:
         """
         构建数据库状态面板。
 
-        :param payload: `db current` JSON 负载
+        :param payload: ``db current`` JSON 负载
         :return: 面板快照
         """
         current_revision = payload.get('currentRevision', '-') if isinstance(payload, dict) else '-'
@@ -633,7 +639,7 @@ class DashboardPanelBuilder:
         """
         构建缓存状态面板。
 
-        :param payload: `cache stats` JSON 负载
+        :param payload: ``cache stats`` JSON 负载
         :return: 面板快照
         """
         if not isinstance(payload, dict):
@@ -647,8 +653,8 @@ class DashboardPanelBuilder:
                     suggestion=TUI_COPY.build_dashboard_page_suggestion('缓存', '查看 Redis 状态'),
                 ),
             )
-        info = payload.get('info') if isinstance(payload.get('info'), dict) else {}
-        cache_names = payload.get('cacheNames') if isinstance(payload.get('cacheNames'), list) else []
+        info = get_dict_field(payload, 'info')
+        cache_names = get_list_field(payload, 'cacheNames')
         return DashboardPanelSnapshot(
             title='缓存摘要',
             status='ok' if payload.get('ok', False) else 'fail',
@@ -667,7 +673,7 @@ class DashboardPanelBuilder:
         """
         构建首页依赖版本摘要面板。
 
-        :param payload: `ops deps` JSON 负载
+        :param payload: ``ops deps`` JSON 负载
         :return: 面板快照
         """
         if not isinstance(payload, dict):
@@ -681,8 +687,8 @@ class DashboardPanelBuilder:
                     suggestion=TUI_COPY.build_dashboard_page_suggestion('运维', '检查依赖详情'),
                 ),
             )
-        packages = payload.get('packages') if isinstance(payload.get('packages'), dict) else {}
-        missing_required = payload.get('missingRequired') if isinstance(payload.get('missingRequired'), list) else []
+        packages = get_dict_field(payload, 'packages')
+        missing_required = get_list_field(payload, 'missingRequired')
         lines = [
             '## 依赖结论',
             f'检查结果: {"通过" if payload.get("ok", False) else "异常"}',
@@ -706,11 +712,10 @@ class DashboardPanelBuilder:
         """
         构建首页服务器概况面板。
 
-        :param payload: `ops server-info` JSON 负载
+        :param payload: ``ops server-info`` JSON 负载
         :return: 面板快照
         """
-        server = payload.get('server') if isinstance(payload, dict) else None
-        if not isinstance(server, dict):
+        if not isinstance(payload, dict) or not isinstance(server := payload.get('server'), dict):
             return DashboardPanelSnapshot(
                 title='服务器摘要',
                 status='fail',
@@ -721,9 +726,9 @@ class DashboardPanelBuilder:
                     suggestion=TUI_COPY.build_dashboard_page_suggestion('运维', '重新采集服务器摘要'),
                 ),
             )
-        sys_info = server.get('sys') if isinstance(server.get('sys'), dict) else {}
-        cpu_info = server.get('cpu') if isinstance(server.get('cpu'), dict) else {}
-        mem_info = server.get('mem') if isinstance(server.get('mem'), dict) else {}
+        sys_info = get_dict_field(server, 'sys')
+        cpu_info = get_dict_field(server, 'cpu')
+        mem_info = get_dict_field(server, 'mem')
         return DashboardPanelSnapshot(
             title='服务器摘要',
             status='ok' if payload.get('ok', False) else 'fail',
@@ -832,7 +837,7 @@ class DashboardMetricBuilder:
 
     该对象负责根据健康检查、数据库和缓存状态构建首页驾驶舱指标卡。
 
-    :param formatting: 首页仪表盘格式化支持对象
+    :ivar formatting: 首页仪表盘格式化支持对象
     """
 
     def __init__(self, formatting: DashboardFormattingSupport) -> None:
@@ -840,7 +845,6 @@ class DashboardMetricBuilder:
         初始化首页指标卡构建器。
 
         :param formatting: 首页仪表盘格式化支持对象
-        :return: None
         """
         self.formatting = formatting
 
@@ -920,6 +924,12 @@ class DashboardAdapter:
 
     该适配器负责采集应用、健康检查、数据库、缓存与运维只读快照，
     并委托面板构建器、指标构建器和压缩器组装首页结果。
+
+    :ivar formatting: 首页仪表盘格式化支持对象
+    :ivar panel_builder: 首页面板构建器
+    :ivar metric_builder: 首页指标卡构建器
+    :ivar panel_compressor: 首页面板压缩器
+    :ivar snapshot_collector: 首页聚合数据采集器
     """
 
     def __init__(
@@ -938,7 +948,6 @@ class DashboardAdapter:
         :param metric_builder: 首页指标卡构建器
         :param panel_compressor: 首页面板压缩器
         :param snapshot_collector: 首页聚合数据采集器
-        :return: None
         """
         self.formatting = formatting or DashboardFormattingSupport()
         self.panel_builder = panel_builder or DashboardPanelBuilder(self.formatting)

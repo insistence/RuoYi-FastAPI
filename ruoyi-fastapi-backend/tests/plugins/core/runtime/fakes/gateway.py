@@ -1,102 +1,51 @@
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from subprocess import CompletedProcess
-from types import SimpleNamespace
 
-from plugins.core.lifecycle.migration import PluginMigrationRunner
+from common.vo import CrudResponseModel
+from plugins.core.discovery.scanner import DiscoveredPlugin
+from plugins.core.lifecycle.migration import PluginMigrationResult, PluginMigrationRunner
+from plugins.core.lifecycle.purge import PluginPurgePlan
+from plugins.core.management.entity.vo.schemas import (
+    PluginConfigUpdateModel,
+    PluginConfigValueModel,
+    PluginMigrationModel,
+    PluginOperationLogDetailModel,
+    PluginOperationLogExportQueryModel,
+)
+from plugins.core.management.service.gateway import PluginManagementLifecycleUnitOfWork
 from plugins.core.runtime.service.gateway import PluginCommandOutputCallback
 from plugins.core.runtime.service.migration_store import PluginDatabaseMigrationHistoryStore
 from plugins.core.runtime.support import PluginConfigPayloadBuilder
+from plugins.core.types import PluginConfigValue, PluginStateRecord
 
 from .management import FakePluginService
-from .session import FakeSession, FakeSessionLocal
+from .session import FakeSessionLocal
 
 MIN_NPM_INSTALL_COMMAND_LENGTH = 3
 
 
-class FakePluginLifecycleUnitOfWork:
-    """
-    测试用插件生命周期主事务工作单元。
-    """
+class FakePluginLifecycleUnitOfWork(PluginManagementLifecycleUnitOfWork):
+    """使用内存管理服务和记录型会话验证生命周期事务。"""
 
     def __init__(self, gateway: 'FakePluginRuntimeGateway') -> None:
-        """初始化测试生命周期 UoW。"""
-        self.gateway = gateway
-        self.session_context: FakeSession | None = None
-        self.session: FakeSession | None = None
+        """
+        将工作单元连接到测试网关的会话工厂。
 
-    async def __aenter__(self) -> 'FakePluginLifecycleUnitOfWork':
-        """打开测试生命周期主事务会话。"""
-        self.session_context = self.gateway.session_local()
-        self.session = await self.session_context.__aenter__()
-        return self
-
-    async def __aexit__(self, exc_type: object, exc: object, traceback: object) -> None:
-        """关闭测试生命周期主事务会话。"""
-        if self.session_context is None:
-            return
-        await self.session_context.__aexit__(exc_type, exc, traceback)
-        self.session_context = None
-        self.session = None
-
-    async def check_installed_menu_conflicts(self, discovered_plugin: object) -> list[SimpleNamespace]:
-        """检查已安装菜单冲突。"""
-        return await FakePluginService.check_installed_menu_conflict_services(self.session, discovered_plugin)
-
-    async def upsert_discovered_plugin(
-        self,
-        discovered_plugin: object,
-        backend_root: Path,
-        frontend_root: Path | None = None,
-    ) -> SimpleNamespace:
-        """写入或更新已发现插件。"""
-        return await FakePluginService.upsert_discovered_plugin_services(
-            self.session,
-            discovered_plugin,
-            backend_root,
-            frontend_root,
-        )
-
-    async def install_plugin_menu(self, discovered_plugin: object, *, enabled: bool) -> None:
-        """安装插件菜单。"""
-        await FakePluginService.install_plugin_menu_services(self.session, discovered_plugin, enabled=enabled)
-
-    async def install_plugin_default_config(self, discovered_plugin: object) -> list[SimpleNamespace]:
-        """安装插件默认配置。"""
-        return await FakePluginService.install_plugin_default_config_services(self.session, discovered_plugin)
-
-    async def install_plugin_jobs(self, discovered_plugin: object, *, enabled: bool) -> None:
-        """同步插件任务。"""
-        await FakePluginService.install_plugin_job_services(self.session, discovered_plugin, enabled=enabled)
-
-    async def mark_plugin_installed(self, discovered_plugin: object) -> SimpleNamespace:
-        """标记插件已安装。"""
-        return await FakePluginService.mark_plugin_installed_services(self.session, discovered_plugin)
-
-    async def build_plugin_purge_plan(self, discovered_plugin: object) -> object:
-        """构建插件物理清理计划。"""
-        return await FakePluginService.build_plugin_purge_plan_services(self.session, discovered_plugin)
-
-    async def purge_plugin_metadata(self, discovered_plugin: object) -> object:
-        """清理插件平台元数据。"""
-        return await FakePluginService.purge_plugin_services(self.session, discovered_plugin)
-
-    async def build_plugin_purge_plan_by_id(self, plugin_id: str) -> object:
-        """按插件 ID 构建孤儿元数据清理计划。"""
-        return await FakePluginService.build_plugin_purge_plan_by_id_services(self.session, plugin_id)
-
-    async def purge_plugin_metadata_by_id(self, plugin_id: str) -> object:
-        """按插件 ID 清理孤儿元数据。"""
-        return await FakePluginService.purge_plugin_metadata_by_id_services(self.session, plugin_id)
-
-    async def commit(self) -> None:
-        """提交测试生命周期主事务。"""
-        await self.session.commit()
+        :param gateway: 提供记录型会话工厂的测试网关
+        """
+        super().__init__(gateway.session_local, FakePluginService)
 
 
 class FakePluginRuntimeGateway:
     """
     测试用插件运行时适配器。
+
+    :ivar session_local: 为测试创建本地数据库会话的工厂
+    :ivar lifecycle_uows: 已创建的生命周期事务工作单元
+    :ivar completed_process: 用于模拟子进程执行结果的对象
+    :ivar commands: 测试替身收到的命令
     """
 
     def __init__(self) -> None:
@@ -107,45 +56,82 @@ class FakePluginRuntimeGateway:
         self.commands: list[tuple[list[str], str, int | None]] = []
 
     def open_lifecycle_unit_of_work(self) -> FakePluginLifecycleUnitOfWork:
-        """打开测试生命周期主事务工作单元。"""
+        """
+        打开测试生命周期主事务工作单元。
+
+        :return: 供调用方使用的 ``unit_of_work``
+        """
         unit_of_work = FakePluginLifecycleUnitOfWork(self)
         self.lifecycle_uows.append(unit_of_work)
         return unit_of_work
 
     def get_async_session_local(self) -> FakeSessionLocal:
-        """获取测试会话工厂。"""
+        """
+        获取测试会话工厂。
+
+        :return: 测试会话工厂
+        """
         return self.session_local
 
     def get_plugin_service(self) -> type[FakePluginService]:
-        """获取测试插件服务。"""
+        """
+        获取测试插件服务。
+
+        :return: 测试插件服务
+        """
         return FakePluginService
 
-    async def list_plugin_states(self) -> list[SimpleNamespace]:
-        """获取测试插件状态列表。"""
-        async with self.session_local() as session:
-            return await FakePluginService.get_plugin_list_services(session)
+    async def list_plugin_states(self) -> list[PluginStateRecord]:
+        """
+        获取测试插件状态列表。
 
-    async def get_plugin_state(self, plugin_id: str) -> SimpleNamespace | None:
-        """读取内存状态，不在生命周期事务记录中创建只读会话。"""
+        :return: 测试插件状态列表
+        """
+        async with self.session_local() as session:
+            return list(await FakePluginService.get_plugin_list_services(session))
+
+    async def get_plugin_state(self, plugin_id: str) -> PluginStateRecord | None:
+        """
+        读取内存状态，不在生命周期事务记录中创建只读会话。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :return: 内存状态
+        """
         return await FakePluginService.plugin_detail_services(None, plugin_id)
 
     @staticmethod
-    def build_operation_log_export_query(export_limit: int) -> SimpleNamespace:
-        """构建测试用插件操作日志导出查询对象。"""
-        return SimpleNamespace(export_limit=export_limit, exportLimit=export_limit)
+    def build_operation_log_export_query(export_limit: int) -> PluginOperationLogExportQueryModel:
+        """
+        构建测试用插件操作日志导出查询对象。
+
+        :param export_limit: 导出数量上限
+        :return: 测试用插件操作日志导出查询对象
+        """
+        return PluginOperationLogExportQueryModel(export_limit=export_limit)
 
     @staticmethod
-    def build_config_update(values: dict[str, object]) -> SimpleNamespace:
-        """构建测试用插件配置更新对象。"""
-        return SimpleNamespace(values=values)
+    def build_config_update(values: dict[str, PluginConfigValue]) -> PluginConfigUpdateModel:
+        """
+        构建测试用插件配置更新对象。
+
+        :param values: 当前处理的值集合
+        :return: 测试用插件配置更新对象
+        """
+        return PluginConfigUpdateModel(values=values)
 
     async def get_plugin_config(
         self,
-        discovered_plugin: object,
+        discovered_plugin: DiscoveredPlugin,
         *,
         reveal_secret: bool = False,
-    ) -> list[SimpleNamespace]:
-        """获取测试插件配置。"""
+    ) -> list[PluginConfigValueModel]:
+        """
+        获取测试插件配置。
+
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :param reveal_secret: 是否在返回结果中显示敏感值
+        :return: 测试插件配置
+        """
         async with self.session_local() as session:
             configs = await FakePluginService.get_plugin_config_services(
                 session,
@@ -156,10 +142,16 @@ class FakePluginRuntimeGateway:
 
     async def update_plugin_config(
         self,
-        discovered_plugin: object,
-        values: dict[str, object],
-    ) -> list[SimpleNamespace]:
-        """更新测试插件配置。"""
+        discovered_plugin: DiscoveredPlugin,
+        values: dict[str, PluginConfigValue],
+    ) -> list[PluginConfigValueModel]:
+        """
+        更新测试插件配置。
+
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :param values: 当前处理的值集合
+        :return: 供调用方使用的 ``configs``
+        """
         async with self.session_local() as session:
             configs = await FakePluginService.update_plugin_config_services(
                 session,
@@ -171,13 +163,21 @@ class FakePluginRuntimeGateway:
 
     async def set_plugin_config(
         self,
-        discovered_plugin: object,
-        values: dict[str, object],
+        discovered_plugin: DiscoveredPlugin,
+        values: dict[str, PluginConfigValue],
         *,
         audit_operation: str,
         success_message: str,
-    ) -> list[SimpleNamespace]:
-        """在同一事务中更新测试插件配置并记录审计日志。"""
+    ) -> list[PluginConfigValueModel]:
+        """
+        在同一事务中更新测试插件配置并记录审计日志。
+
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :param values: 当前处理的值集合
+        :param audit_operation: 审计操作类型
+        :param success_message: 操作成功提示
+        :return: 供调用方使用的 ``configs``
+        """
         async with self.session_local() as session:
             before_configs = await FakePluginService.get_plugin_config_services(
                 session,
@@ -208,23 +208,34 @@ class FakePluginRuntimeGateway:
 
     async def add_plugin_operation_log(
         self,
-        payload: dict[str, object],
+        payload: Mapping[str, object],
         *,
         dry_run: bool,
         continue_on_error: bool,
     ) -> None:
-        """记录测试插件操作日志。"""
+        """
+        记录测试插件操作日志。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :param dry_run: 是否只预览操作结果
+        :param continue_on_error: 单项操作失败后是否继续执行
+        """
         async with self.session_local() as session:
             await FakePluginService.add_plugin_operation_log_services(
                 session,
-                payload,
+                dict(payload),
                 dry_run=dry_run,
                 continue_on_error=continue_on_error,
             )
             await session.commit()
 
-    async def list_plugin_operation_logs(self, *, export_limit: int) -> list[SimpleNamespace]:
-        """获取测试插件操作审计日志列表。"""
+    async def list_plugin_operation_logs(self, *, export_limit: int) -> list[PluginOperationLogDetailModel]:
+        """
+        获取测试插件操作审计日志列表。
+
+        :param export_limit: 导出数量上限
+        :return: 测试插件操作审计日志列表
+        """
         async with self.session_local() as session:
             return await FakePluginService.get_plugin_operation_log_export_list_services(
                 session,
@@ -232,7 +243,13 @@ class FakePluginRuntimeGateway:
             )
 
     async def mark_plugin_error(self, plugin_id: str, error_message: str) -> bool:
-        """标记测试插件错误状态。"""
+        """
+        标记测试插件错误状态。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param error_message: 记录到结果或审计日志中的错误详情
+        :return: 是否标记测试插件错误状态
+        """
         async with self.session_local() as session:
             result = await FakePluginService.mark_plugin_error_services(session, plugin_id, error_message)
             if getattr(result, 'is_success', False):
@@ -244,13 +261,25 @@ class FakePluginRuntimeGateway:
         self,
         plugin_id: str,
         status: str | None = None,
-    ) -> list[SimpleNamespace]:
-        """查询测试插件 migration 历史。"""
+    ) -> list[PluginMigrationModel]:
+        """
+        查询测试插件 migration 历史。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param status: 操作或记录所处的状态
+        :return: 测试插件 migration 历史
+        """
         async with self.session_local() as session:
             return await FakePluginService.get_plugin_migration_list_services(session, plugin_id, status)
 
-    async def get_plugin_migration(self, plugin_id: str, migration_path: str) -> SimpleNamespace | None:
-        """获取测试插件 migration 历史。"""
+    async def get_plugin_migration(self, plugin_id: str, migration_path: str) -> PluginMigrationModel | None:
+        """
+        获取测试插件 migration 历史。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :return: 测试插件 migration 历史
+        """
         async with self.session_local() as session:
             return await FakePluginService.get_plugin_migration_services(session, plugin_id, migration_path)
 
@@ -260,8 +289,16 @@ class FakePluginRuntimeGateway:
         migration_path: str,
         status: str,
         error_message: str | None = None,
-    ) -> SimpleNamespace | None:
-        """人工标记测试插件 migration 历史状态。"""
+    ) -> PluginMigrationModel | None:
+        """
+        人工标记测试插件 migration 历史状态。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param status: 操作或记录所处的状态
+        :param error_message: 记录到结果或审计日志中的错误详情
+        :return: 插件的数据迁移配置
+        """
         async with self.session_local() as session:
             migration = await FakePluginService.mark_plugin_migration_status_services(
                 session,
@@ -274,13 +311,23 @@ class FakePluginRuntimeGateway:
                 await session.commit()
             return migration
 
-    async def build_plugin_purge_plan(self, discovered_plugin: object) -> object:
-        """构建测试插件物理清理计划。"""
+    async def build_plugin_purge_plan(self, discovered_plugin: DiscoveredPlugin) -> PluginPurgePlan:
+        """
+        构建测试插件物理清理计划。
+
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :return: 测试插件物理清理计划
+        """
         async with self.session_local() as session:
             return await FakePluginService.build_plugin_purge_plan_services(session, discovered_plugin)
 
-    async def run_plugin_migrations(self, discovered_plugin: object) -> list[object]:
-        """使用独立测试 session 执行插件 migration。"""
+    async def run_plugin_migrations(self, discovered_plugin: DiscoveredPlugin) -> list[PluginMigrationResult]:
+        """
+        使用独立测试 session 执行插件 migration。
+
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :return: 独立会话中执行迁移得到的结果
+        """
         async with self.session_local() as migration_session:
             return await PluginMigrationRunner(
                 discovered_plugin,
@@ -296,9 +343,16 @@ class FakePluginRuntimeGateway:
         self,
         plugin_id: str,
         enabled: bool,
-        discovered_plugin: object | None = None,
-    ) -> SimpleNamespace:
-        """更新测试插件启停状态，并在启用时同步菜单。"""
+        discovered_plugin: DiscoveredPlugin | None = None,
+    ) -> CrudResponseModel:
+        """
+        更新测试插件启停状态，并在启用时同步菜单。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param enabled: 是否启用该项功能
+        :param discovered_plugin: 扫描插件目录后得到的插件描述
+        :return: 当前调用产生的响应
+        """
         async with self.session_local() as session:
             response = await FakePluginService.update_plugin_enabled_services(
                 session,
@@ -312,8 +366,13 @@ class FakePluginRuntimeGateway:
                 await session.commit()
             return response
 
-    async def mark_plugin_uninstalled_state(self, plugin_id: str) -> SimpleNamespace:
-        """标记测试插件安全卸载。"""
+    async def mark_plugin_uninstalled_state(self, plugin_id: str) -> CrudResponseModel:
+        """
+        标记测试插件安全卸载。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :return: 当前调用产生的响应
+        """
         async with self.session_local() as session:
             response = await FakePluginService.mark_plugin_uninstalled_services(session, plugin_id)
             if getattr(response, 'is_success', False):
@@ -329,9 +388,20 @@ class FakePluginRuntimeGateway:
         statement_count: int,
         status: str = 'success',
         error_message: str | None = None,
-    ) -> SimpleNamespace:
-        """构建测试用插件 migration 执行历史对象。"""
-        return SimpleNamespace(
+    ) -> PluginMigrationModel:
+        """
+        构建测试用插件 migration 执行历史对象。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param checksum: 校验内容完整性使用的校验和
+        :param version: 当前记录的版本
+        :param statement_count: SQL 语句数量
+        :param status: 操作或记录所处的状态
+        :param error_message: 记录到结果或审计日志中的错误详情
+        :return: 测试用插件 migration 执行历史对象
+        """
+        return PluginMigrationModel(
             plugin_id=plugin_id,
             migration_path=migration_path,
             migration_checksum=checksum,
@@ -354,7 +424,15 @@ class FakePluginRuntimeGateway:
         timeout: int | None = None,
         output_callback: PluginCommandOutputCallback | None = None,
     ) -> CompletedProcess[str]:
-        """记录测试用系统命令。"""
+        """
+        记录测试用系统命令。
+
+        :param command: 执行的命令及其参数
+        :param workdir: 命令执行时使用的工作目录
+        :param timeout: 等待操作完成的超时限制
+        :param output_callback: 依赖安装实时输出回调
+        :return: 供调用方使用的 ``self.completed_process``
+        """
         self.commands.append((command, workdir, timeout))
         self._simulate_npm_package_json_update(command, workdir)
         if output_callback is not None:
@@ -365,7 +443,12 @@ class FakePluginRuntimeGateway:
         return self.completed_process
 
     def _simulate_npm_package_json_update(self, command: list[str], workdir: str) -> None:
-        """模拟 npm install 对 package.json 根依赖声明的改写。"""
+        """
+        模拟 npm install 对 package.json 根依赖声明的改写。
+
+        :param command: 执行的命令及其参数
+        :param workdir: 命令执行时使用的工作目录
+        """
         if (
             self.completed_process.returncode != 0
             or len(command) < MIN_NPM_INSTALL_COMMAND_LENGTH

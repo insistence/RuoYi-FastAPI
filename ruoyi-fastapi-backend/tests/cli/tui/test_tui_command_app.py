@@ -13,10 +13,18 @@ def test_tui_command_returns_dependency_error_when_textual_missing(
     monkeypatch: MonkeyPatch,
     tui_base_modules: SimpleNamespace,
 ) -> None:
+    """缺少 Textual 时终端界面命令报告依赖错误。"""
     runner = CliRunner()
     monkeypatch.chdir(tui_base_modules.BACKEND_DIR)
 
     def raise_missing_textual(module_name: str) -> Any:
+        """
+        模拟缺少终端界面依赖。
+
+        :param module_name: 生成模块名
+        :raises ModuleNotFoundError: 模拟未安装 Textual
+        :return: 可正常导入的模块，缺少 Textual 时抛出导入异常
+        """
         if module_name == 'cli.tui.app':
             raise ModuleNotFoundError("No module named 'textual'", name='textual')
         return importlib.import_module(module_name)
@@ -37,9 +45,20 @@ async def test_tui_app_mount_pushes_first_workspace_screen(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """终端应用挂载后打开首个工作区。"""
     recorded_calls: list[tuple[str, object]] = []
 
     class FakeDashboardScreen:
+        """
+        捕获仪表盘的初始快照和导航选项。
+
+        :ivar snapshot: 用于比较状态的快照
+        :ivar env: 当前运行环境
+        :ivar active_view: 当前激活视图
+        :ivar navigation_items: 导航项列表
+        :ivar refreshed_at: 本次刷新时间
+        """
+
         def __init__(
             self,
             snapshot: object,
@@ -48,6 +67,15 @@ async def test_tui_app_mount_pushes_first_workspace_screen(
             navigation_items: list[object],
             refreshed_at: str,
         ) -> None:
+            """
+            初始化测试夹具的 ``snapshot``, ``env``, ``active_view``, ``navigation_items``。
+
+            :param snapshot: 用于比较状态的快照
+            :param env: 当前运行环境
+            :param active_view: 当前激活视图
+            :param navigation_items: 导航项列表
+            :param refreshed_at: 本次刷新时间
+            """
             self.snapshot = snapshot
             self.env = env
             self.active_view = active_view
@@ -55,6 +83,12 @@ async def test_tui_app_mount_pushes_first_workspace_screen(
             self.refreshed_at = refreshed_at
 
     async def collect_dashboard(env: str) -> object:
+        """
+        返回仪表盘视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :return: 仪表盘视图使用的测试快照
+        """
         return tui_modules.cli_tui_app.DashboardSnapshot(env=env, panels=[])
 
     monkeypatch.setitem(
@@ -83,10 +117,16 @@ async def test_tui_app_mount_pushes_first_workspace_screen(
 
 
 def test_open_view_switches_to_expected_action(tui_modules: SimpleNamespace) -> None:
+    """打开视图时切换到对应操作。"""
     calls: list[str] = []
     app = tui_modules.cli_tui_app.RuoyiTuiApp('dev')
 
     def fake_show_view(view_key: str) -> None:
+        """
+        记录界面切换后的视图键。
+
+        :param view_key: 选择视图所用的标识
+        """
         calls.append(tui_modules.cli_tui_app.TUI_VIEW_REGISTRY.resolve_view_key(view_key))
 
     app.show_view = fake_show_view  # type: ignore[method-assign]
@@ -101,6 +141,7 @@ def test_open_view_switches_to_expected_action(tui_modules: SimpleNamespace) -> 
 
 
 def test_workspace_header_render_includes_particle_line(tui_modules: SimpleNamespace) -> None:
+    """工作区标题栏包含粒子装饰行。"""
     header = tui_modules.cli_tui_widgets.WorkspaceHeader('dev', 'dashboard')
 
     rendered = header.render()
@@ -113,6 +154,7 @@ def test_workspace_header_render_includes_particle_line(tui_modules: SimpleNames
 
 
 def test_workspace_header_centers_title_using_runtime_width(tui_modules: SimpleNamespace) -> None:
+    """工作区标题按运行时宽度居中。"""
     header = tui_modules.cli_tui_widgets.WorkspaceHeader('dev', 'dashboard')
     header.styles.width = 140
 
@@ -126,6 +168,7 @@ def test_workspace_header_keeps_title_alignment_stable_across_frames(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """工作区标题在不同帧间保持对齐。"""
     header = tui_modules.cli_tui_widgets.WorkspaceHeader('dev', 'dashboard')
     monotonic_values = iter([10.0, 10.0, 11.0, 11.0])
     workspace_module = importlib.import_module('cli.tui.widgets.workspace')
@@ -141,6 +184,7 @@ def test_workspace_hero_pulses_border_with_expected_palette(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """工作区主面板边框使用约定配色闪动。"""
     hero = tui_modules.cli_tui_widgets.WorkspaceHero(
         title='标题',
         subtitle='副标题',
@@ -162,6 +206,7 @@ def test_workspace_hero_pulses_border_with_expected_palette(
 
 
 def test_workspace_hero_render_uses_rich_text_for_title_glow(tui_modules: SimpleNamespace) -> None:
+    """工作区主面板以富文本渲染标题光效。"""
     hero = tui_modules.cli_tui_widgets.WorkspaceHero(
         title='标题',
         subtitle='副标题',
@@ -180,14 +225,23 @@ def test_workspace_hero_render_uses_rich_text_for_title_glow(tui_modules: Simple
 
 
 def test_tui_app_runner_runs_created_application(tui_modules: SimpleNamespace) -> None:
+    """终端运行器启动创建好的应用。"""
     recorded_envs: list[str] = []
     recorded_runs: list[str] = []
 
     class FakeApp:
+        """记录终端应用使用的运行环境。"""
+
         def __init__(self, env: str) -> None:
+            """
+            记录构造测试对象时收到的参数。
+
+            :param env: 当前运行环境
+            """
             recorded_envs.append(env)
 
         def run(self) -> None:
+            """记录测试命令的运行参数。"""
             recorded_runs.append('run')
 
     runner = tui_modules.cli_tui_app.TuiAppRunner(FakeApp)
@@ -203,12 +257,21 @@ async def test_tui_app_show_jobs_uses_remembered_filter(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """任务视图使用上次的筛选条件。"""
     recorded_filter_keys: list[tuple[str, str]] = []
     app = tui_modules.cli_tui_app.RuoyiTuiApp('dev')
     app.remember_browser_filter('jobs', 'failed')
     app.remember_browser_query('jobs', 'sync')
 
     async def collect_jobs(env: str, filter_key: str = 'all', query: str = '') -> object:
+        """
+        返回调度任务视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param filter_key: 当前筛选键
+        :param query: 限制查询结果的条件
+        :return: 调度任务视图使用的测试快照
+        """
         del env
         recorded_filter_keys.append((filter_key, query))
         return tui_modules.cli_tui_app.BrowserPageSnapshot(
@@ -238,12 +301,21 @@ async def test_tui_app_show_configs_uses_remembered_filter(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """配置视图使用上次的筛选条件。"""
     recorded_filter_keys: list[tuple[str, str]] = []
     app = tui_modules.cli_tui_app.RuoyiTuiApp('dev')
     app.remember_browser_filter('configs', 'cache-drift')
     app.remember_browser_query('configs', 'site')
 
     async def collect_configs(env: str, filter_key: str = 'all', query: str = '') -> object:
+        """
+        返回配置视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param filter_key: 当前筛选键
+        :param query: 限制查询结果的条件
+        :return: 配置视图使用的测试快照
+        """
         del env
         recorded_filter_keys.append((filter_key, query))
         return tui_modules.cli_tui_app.BrowserPageSnapshot(
@@ -273,6 +345,7 @@ async def test_tui_app_show_cache_and_gen_use_remembered_query(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """缓存和生成器视图沿用上次查询。"""
     cache_queries: list[str] = []
     gen_queries: list[str] = []
     app = tui_modules.cli_tui_app.RuoyiTuiApp('dev')
@@ -280,6 +353,13 @@ async def test_tui_app_show_cache_and_gen_use_remembered_query(
     app.remember_browser_query('gen', 'user')
 
     async def collect_cache(env: str, query: str = '') -> object:
+        """
+        返回缓存视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 缓存视图使用的测试快照
+        """
         del env
         cache_queries.append(query)
         return tui_modules.cli_tui_app.BrowserPageSnapshot(
@@ -293,6 +373,13 @@ async def test_tui_app_show_cache_and_gen_use_remembered_query(
         )
 
     async def collect_gen(env: str, query: str = '') -> object:
+        """
+        返回代码生成视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 代码生成视图使用的测试快照
+        """
         del env
         gen_queries.append(query)
         return tui_modules.cli_tui_app.BrowserPageSnapshot(
@@ -330,6 +417,7 @@ async def test_tui_app_detail_views_use_remembered_query(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """终端详情视图沿用上次查询。"""
     database_queries: list[str] = []
     app_queries: list[str] = []
     ops_queries: list[str] = []
@@ -341,21 +429,49 @@ async def test_tui_app_detail_views_use_remembered_query(
     app.remember_browser_query('crypto', 'kid')
 
     async def collect_database(env: str, query: str = '') -> object:
+        """
+        返回数据库视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 数据库视图使用的测试快照
+        """
         del env
         database_queries.append(query)
         return tui_modules.cli_tui_app.DetailPageSnapshot(title='数据库', subtitle='subtitle', sections=[])
 
     async def collect_app(env: str, query: str = '') -> object:
+        """
+        返回应用视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 应用视图使用的测试快照
+        """
         del env
         app_queries.append(query)
         return tui_modules.cli_tui_app.DetailPageSnapshot(title='应用', subtitle='subtitle', sections=[])
 
     async def collect_ops(env: str, query: str = '') -> object:
+        """
+        返回运维视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 运维视图使用的测试快照
+        """
         del env
         ops_queries.append(query)
         return tui_modules.cli_tui_app.DetailPageSnapshot(title='运维', subtitle='subtitle', sections=[])
 
     async def collect_crypto(env: str, query: str = '') -> object:
+        """
+        返回加密配置视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 加密配置视图使用的测试快照
+        """
         del env
         crypto_queries.append(query)
         return tui_modules.cli_tui_app.DetailPageSnapshot(title='传输加密', subtitle='subtitle', sections=[])
@@ -401,10 +517,25 @@ async def test_tui_app_open_view_updates_screen_across_multiple_switches(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """多次切换视图时终端应用更新画面。"""
+
     async def collect_dashboard(env: str) -> object:
+        """
+        返回仪表盘视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :return: 仪表盘视图使用的测试快照
+        """
         return tui_modules.cli_tui_app.DashboardSnapshot(env=env, panels=[])
 
     async def collect_app(env: str, query: str = '') -> object:
+        """
+        返回应用视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 应用视图使用的测试快照
+        """
         del env
         return tui_modules.cli_tui_app.DetailPageSnapshot(
             title='应用详情',
@@ -419,6 +550,13 @@ async def test_tui_app_open_view_updates_screen_across_multiple_switches(
         )
 
     async def collect_ops(env: str, query: str = '') -> object:
+        """
+        返回运维视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 运维视图使用的测试快照
+        """
         del env
         return tui_modules.cli_tui_app.DetailPageSnapshot(
             title='运维详情',
@@ -478,10 +616,25 @@ async def test_tui_sidebar_highlight_updates_screen_across_multiple_switches(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """多次切换侧栏高亮时更新画面。"""
+
     async def collect_dashboard(env: str) -> object:
+        """
+        返回仪表盘视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :return: 仪表盘视图使用的测试快照
+        """
         return tui_modules.cli_tui_app.DashboardSnapshot(env=env, panels=[])
 
     async def collect_app(env: str, query: str = '') -> object:
+        """
+        返回应用视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 应用视图使用的测试快照
+        """
         del env, query
         return tui_modules.cli_tui_app.DetailPageSnapshot(
             title='应用详情',
@@ -496,6 +649,13 @@ async def test_tui_sidebar_highlight_updates_screen_across_multiple_switches(
         )
 
     async def collect_ops(env: str, query: str = '') -> object:
+        """
+        返回运维视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 运维视图使用的测试快照
+        """
         del env, query
         return tui_modules.cli_tui_app.DetailPageSnapshot(
             title='运维详情',
@@ -533,6 +693,13 @@ async def test_tui_sidebar_highlight_updates_screen_across_multiple_switches(
         assert type(app.screen).__name__ == 'DashboardScreen'
         assert app.current_view == 'dashboard'
 
+        sidebar = app.screen.query_one(tui_modules.cli_tui_widgets.WorkspaceSidebar)
+        assert app.focused is sidebar
+        app.screen.focus_next()
+        assert app.focused is not sidebar
+        app.screen.focus_previous()
+        assert app.focused is sidebar
+
         await pilot.press('down')
         await app._view_task
         await pilot.pause()
@@ -555,13 +722,27 @@ async def test_navigation_cancels_stale_load_and_only_renders_latest_view(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """导航取消过期加载并只渲染最新视图。"""
     app_started = asyncio.Event()
     app_cancelled = asyncio.Event()
 
     async def collect_dashboard(env: str) -> object:
+        """
+        返回仪表盘视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :return: 仪表盘视图使用的测试快照
+        """
         return tui_modules.cli_tui_app.DashboardSnapshot(env=env, panels=[])
 
     async def collect_app(env: str, query: str = '') -> object:
+        """
+        返回应用视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 应用视图使用的测试快照
+        """
         del env, query
         app_started.set()
         try:
@@ -571,6 +752,13 @@ async def test_navigation_cancels_stale_load_and_only_renders_latest_view(
         return tui_modules.cli_tui_app.DetailPageSnapshot(title='过期应用页', subtitle='', sections=[])
 
     async def collect_ops(env: str, query: str = '') -> object:
+        """
+        返回运维视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 运维视图使用的测试快照
+        """
         del env, query
         return tui_modules.cli_tui_app.DetailPageSnapshot(title='最新运维页', subtitle='', sections=[])
 
@@ -611,12 +799,26 @@ async def test_navigation_reuses_fresh_snapshot_cache(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """导航复用尚未过期的快照。"""
     app_collect_count = 0
 
     async def collect_dashboard(env: str) -> object:
+        """
+        返回仪表盘视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :return: 仪表盘视图使用的测试快照
+        """
         return tui_modules.cli_tui_app.DashboardSnapshot(env=env, panels=[])
 
     async def collect_app(env: str, query: str = '') -> object:
+        """
+        返回应用视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :param query: 限制查询结果的条件
+        :return: 应用视图使用的测试快照
+        """
         nonlocal app_collect_count
         del env, query
         app_collect_count += 1

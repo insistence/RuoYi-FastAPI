@@ -49,9 +49,9 @@ class OperationsInfrastructureGateway:
     @staticmethod
     def get_psutil_module() -> Any:
         """
-        获取 `psutil` 模块。
+        获取 ``psutil`` 模块。
 
-        :return: `psutil` 模块
+        :return: ``psutil`` 模块
         """
         return import_module('psutil')
 
@@ -60,6 +60,6 @@ class OperationsInfrastructureGateway:
         """
         获取字节数转可读文本函数。
 
-        :return: `bytes2human` 函数
+        :return: ``bytes2human`` 函数
         """
         return import_module('utils.common_util').bytes2human

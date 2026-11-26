@@ -17,8 +17,8 @@ class DatabaseRevisionSupport:
     该对象负责 Alembic script directory 构建、修订版本规整和
     版本对象序列化，避免主运行时服务继续承载迁移元数据细节。
 
-    :param infrastructure_gateway: 数据库基础设施网关
-    :param runtime_environment: 运行时环境服务
+    :ivar infrastructure_gateway: 数据库基础设施网关
+    :ivar runtime_environment: 运行时环境服务
     """
 
     def __init__(
@@ -31,7 +31,6 @@ class DatabaseRevisionSupport:
 
         :param infrastructure_gateway: 数据库基础设施网关
         :param runtime_environment: 运行时环境服务
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
         self.runtime_environment = runtime_environment
@@ -85,7 +84,7 @@ class DatabaseAlembicCommandSupport:
     该对象负责 Alembic 命令组装与子进程执行，
     避免主运行时服务继续承载命令行桥接细节。
 
-    :param runtime_environment: 运行时环境服务
+    :ivar runtime_environment: 运行时环境服务
     """
 
     def __init__(self, runtime_environment: RuntimeEnvironmentService) -> None:
@@ -93,7 +92,6 @@ class DatabaseAlembicCommandSupport:
         初始化数据库 Alembic 命令支持对象。
 
         :param runtime_environment: 运行时环境服务
-        :return: None
         """
         self.runtime_environment = runtime_environment
 

@@ -6,6 +6,7 @@ from pytest import MonkeyPatch
 
 
 def test_browser_screen_builds_sections_from_selected_record(tui_modules: SimpleNamespace) -> None:
+    """浏览界面按选中记录生成分区。"""
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='Jobs',
         subtitle='subtitle',
@@ -43,6 +44,7 @@ def test_browser_screen_builds_sections_from_selected_record(tui_modules: Simple
 
 
 def test_browser_screen_resolves_job_actions(tui_modules: SimpleNamespace) -> None:
+    """浏览界面解析任务操作。"""
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='Jobs',
         subtitle='subtitle',
@@ -79,6 +81,7 @@ def test_browser_screen_resolves_job_actions(tui_modules: SimpleNamespace) -> No
 
 
 def test_browser_screen_builds_action_panel_with_feedback(tui_modules: SimpleNamespace) -> None:
+    """浏览界面的操作面板显示反馈。"""
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='Jobs',
         subtitle='subtitle',
@@ -116,6 +119,7 @@ async def test_browser_screen_executes_action_without_suspending_app(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """浏览界面执行操作时保持应用运行。"""
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='代码生成',
         subtitle='subtitle',
@@ -147,7 +151,7 @@ async def test_browser_screen_executes_action_without_suspending_app(
     assert action is not None
 
     def refresh_current_view() -> None:
-        pass
+        """记录当前视图的刷新请求。"""
 
     fake_app = SimpleNamespace(
         action_refresh_current_view=refresh_current_view,
@@ -171,7 +175,8 @@ async def test_browser_screen_executes_action_without_suspending_app(
     monkeypatch.setattr(screen, 'notify', lambda *args, **kwargs: None)
 
     async def fake_render_record_detail() -> None:
-        return None
+        """完成无需返回值的回调。"""
+        return
 
     monkeypatch.setattr(screen, '_render_record_detail', fake_render_record_detail)
 
@@ -184,6 +189,7 @@ def test_browser_screen_filter_shortcut_remembers_and_refreshes(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """筛选快捷键记住选择并刷新视图。"""
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='任务',
         subtitle='subtitle',
@@ -227,7 +233,14 @@ def test_browser_screen_filter_shortcut_remembers_and_refreshes(
 async def test_browser_screen_detail_loader_failure_falls_back_to_failure_section(
     tui_modules: SimpleNamespace,
 ) -> None:
+    """详情加载失败时浏览界面显示错误分区。"""
+
     async def failing_loader() -> list[object]:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :raises RuntimeError: 模拟加载详情失败
+        """
         raise RuntimeError('boom')
 
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
@@ -257,6 +270,7 @@ async def test_browser_screen_detail_loader_failure_falls_back_to_failure_sectio
     rendered_calls: list[bool] = []
 
     async def fake_render_record_detail() -> None:
+        """记录详情渲染请求并返回测试指定的内容。"""
         rendered_calls.append(True)
 
     screen._render_record_detail = fake_render_record_detail  # type: ignore[method-assign]
@@ -278,6 +292,7 @@ def test_browser_screen_search_submit_remembers_and_refreshes(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """提交搜索时记住查询并刷新视图。"""
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='任务',
         subtitle='subtitle',
@@ -316,6 +331,7 @@ def test_browser_screen_search_submit_remembers_and_refreshes(
 def test_browser_screen_support_builds_summary_actions_and_fallbacks(
     tui_modules: SimpleNamespace,
 ) -> None:
+    """浏览界面生成摘要操作及后备选项。"""
     support = tui_modules.cli_tui_browser.BrowserScreenSupport()
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='任务',
@@ -369,6 +385,7 @@ def test_browser_screen_support_builds_summary_actions_and_fallbacks(
 def test_browser_screen_focus_service_moves_and_scrolls_between_focus_targets(
     tui_modules: SimpleNamespace,
 ) -> None:
+    """浏览界面在焦点目标间移动并滚动。"""
     focus_service = tui_modules.cli_tui_browser.BrowserScreenFocusService()
     focused: list[str] = []
     sidebar = SimpleNamespace(focus=lambda: focused.append('sidebar'))
@@ -404,6 +421,7 @@ def test_browser_screen_clear_search_remembers_empty_and_refreshes(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """清空搜索时保存空查询并刷新视图。"""
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='任务',
         subtitle='subtitle',
@@ -440,6 +458,7 @@ def test_browser_screen_clear_search_remembers_empty_and_refreshes(
 
 
 def test_browser_screen_unmount_cancels_background_tasks(tui_modules: SimpleNamespace) -> None:
+    """卸载浏览界面时取消后台任务。"""
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='缓存',
         subtitle='subtitle',
@@ -457,13 +476,30 @@ def test_browser_screen_unmount_cancels_background_tasks(tui_modules: SimpleName
     cancelled: list[str] = []
 
     class DummyTask:
+        """
+        保存任务名称并记录取消操作。
+
+        :ivar name: 用于查找或标识当前对象的名称
+        """
+
         def __init__(self, name: str) -> None:
+            """
+            初始化测试夹具的 ``name``。
+
+            :param name: 用于查找或标识当前对象的名称
+            """
             self.name = name
 
         def done(self) -> bool:
+            """
+            在此测试分支返回 False。
+
+            :return: 此分支的固定值 ``False``
+            """
             return False
 
         def cancel(self) -> None:
+            """记录任务的取消请求。"""
             cancelled.append(self.name)
 
     screen._record_detail_task = DummyTask('detail')  # type: ignore[assignment]
@@ -477,6 +513,7 @@ def test_browser_screen_unmount_cancels_background_tasks(tui_modules: SimpleName
 
 
 def test_browser_screen_failure_sections_use_current_snapshot_title(tui_modules: SimpleNamespace) -> None:
+    """错误分区使用当前快照标题。"""
     snapshot = tui_modules.cli_tui_adapters.BrowserPageSnapshot(
         title='缓存',
         subtitle='subtitle',
@@ -498,6 +535,7 @@ def test_browser_screen_failure_sections_use_current_snapshot_title(tui_modules:
 
 @pytest.mark.asyncio
 async def test_browser_screen_scrolls_in_small_viewport(tui_modules: SimpleNamespace) -> None:
+    """小视口中的浏览界面可以滚动。"""
     thin_scrollbar_size = 1
     app = tui_modules.cli_tui_app.RuoyiTuiApp('dev')
     app.action_show_dashboard = lambda: None  # type: ignore[method-assign]

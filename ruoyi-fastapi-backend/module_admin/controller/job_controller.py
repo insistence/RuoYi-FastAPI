@@ -63,9 +63,9 @@ job_controller = APIRouterPro(
 async def preview_system_job(request: Request, preview: JobPreviewRequest) -> Response:
     start_time = preview.start_time or TimezoneUtil.utc_now()
     result = JobPreviewResult(
-        timeZone=preview.time_zone,
-        startTime=start_time,
-        nextRunTimes=CronUtil.next_run_times(preview.cron_expression, preview.time_zone, start_time, preview.count),
+        time_zone=preview.time_zone,
+        start_time=start_time,
+        next_run_times=CronUtil.next_run_times(preview.cron_expression, preview.time_zone, start_time, preview.count),
     )
     return ResponseUtil.success(data=result)
 
@@ -152,9 +152,9 @@ async def change_system_job_status(
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
 ) -> Response:
     edit_job = EditJobModel(
-        jobId=change_job.job_id,
+        job_id=change_job.job_id,
         status=change_job.status,
-        updateBy=current_user.user.user_name,
+        update_by=current_user.user.user_name,
         type='status',
     )
     edit_job_result = await JobService.edit_job_services(query_db, edit_job)
@@ -283,7 +283,7 @@ async def delete_system_job(
     job_ids: Annotated[str, Path(description='需要删除的定时任务ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_job = DeleteJobModel(jobIds=job_ids)
+    delete_job = DeleteJobModel(job_ids=job_ids)
     delete_job_result = await JobService.delete_job_services(query_db, delete_job)
     logger.info(delete_job_result.message)
 
@@ -392,7 +392,7 @@ async def delete_system_job_log(
     job_log_ids: Annotated[str, Path(description='需要删除的定时任务日志ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_job_log = DeleteJobLogModel(jobLogIds=job_log_ids)
+    delete_job_log = DeleteJobLogModel(job_log_ids=job_log_ids)
     delete_job_log_result = await JobLogService.delete_job_log_services(query_db, delete_job_log)
     logger.info(delete_job_log_result.message)
 

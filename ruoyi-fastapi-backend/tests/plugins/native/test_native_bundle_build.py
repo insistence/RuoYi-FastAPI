@@ -7,12 +7,19 @@ import pytest
 import yaml
 
 from plugins.core.artifacts import package
-from plugins.core.manifest.schema import PluginManifest, PluginManifestFactory
+from plugins.core.manifest.schema import PluginManifestFactory
+from plugins.core.manifest.v2 import PluginManifestV2
 from scripts import build_native_plugin
 
 
 @pytest.fixture
 def source(tmp_path: Path) -> Path:
+    """
+    创建构建原生插件所需的源目录。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 构建原生插件所需的源目录
+    """
     root = tmp_path / 'native_bundle'
     (root / 'web' / 'dist' / 'assets').mkdir(parents=True)
     (root / 'web' / 'dist' / 'index.html').write_text('<html></html>', encoding='utf-8')
@@ -24,7 +31,13 @@ def source(tmp_path: Path) -> Path:
     return root
 
 
-def manifest(**overrides: object) -> PluginManifest:
+def manifest(**overrides: object) -> PluginManifestV2:
+    """
+    构建原生插件包使用的测试清单。
+
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 原生插件包使用的测试清单
+    """
     data = {
         'manifestVersion': 2,
         'id': 'native_bundle',
@@ -40,10 +53,13 @@ def manifest(**overrides: object) -> PluginManifest:
         'frontend': {'delivery': {'type': 'bundle'}, 'bundle': {'directory': 'web/dist'}},
     }
     data.update(overrides)
-    return PluginManifestFactory.create(data)
+    result = PluginManifestFactory.create(data)
+    assert isinstance(result, PluginManifestV2)
+    return result
 
 
 def test_collects_only_built_bundle_and_declared_resource_directories(source: Path, tmp_path: Path) -> None:
+    """仅收集构建后的包及声明的资源目录。"""
     migrations = source / 'migrations' / 'mysql'
     migrations.mkdir(parents=True)
     (migrations / '001_init.sql').write_text('SELECT 1;', encoding='utf-8')
@@ -62,6 +78,7 @@ def test_collects_only_built_bundle_and_declared_resource_directories(source: Pa
 def test_missing_bundle_entry_fails_before_compilation(
     source: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """编译前报告缺失的资源包入口。"""
     (source / 'web' / 'dist' / 'index.html').unlink()
     (source / 'plugin.yaml').write_text(yaml.safe_dump(manifest().model_dump(by_alias=True)), encoding='utf-8')
     output = tmp_path / 'output'
@@ -76,6 +93,7 @@ def test_missing_bundle_entry_fails_before_compilation(
 
 @pytest.mark.parametrize('name', ['.env.production', 'package.json', 'secret.rs', 'src/private.ts'])
 def test_rejects_development_or_secret_files_in_dist(source: Path, tmp_path: Path, name: str) -> None:
+    """发行目录拒绝开发文件和秘密文件。"""
     path = source / 'web' / 'dist' / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text('not a deployment asset', encoding='utf-8')
@@ -84,11 +102,13 @@ def test_rejects_development_or_secret_files_in_dist(source: Path, tmp_path: Pat
 
 
 def test_rejects_output_inside_bundle(source: Path) -> None:
+    """拒绝将输出目录置于资源包内。"""
     with pytest.raises(ValueError, match='输出目录'):
         build_native_plugin.collect_deployment_resources(source, manifest(), source / 'web' / 'dist' / 'package')
 
 
 def test_rejects_hardlinked_assets(source: Path, tmp_path: Path) -> None:
+    """拒绝带硬链接的资源。"""
     external = tmp_path / 'private.txt'
     external.write_text('private', encoding='utf-8')
     os.link(external, source / 'web' / 'dist' / 'private.txt')
@@ -99,6 +119,7 @@ def test_rejects_hardlinked_assets(source: Path, tmp_path: Path) -> None:
 def test_rejects_reparse_points_before_descending(
     source: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """遍历子目录前拒绝重解析点。"""
     original = package.is_link_or_reparse
     resource = source / 'web' / 'dist' / 'assets'
     inode = resource.lstat().st_ino
@@ -109,6 +130,7 @@ def test_rejects_reparse_points_before_descending(
 
 @pytest.mark.parametrize('relative', ['plugin.yaml', 'native/data.json'])
 def test_resources_cannot_overwrite_manifest_or_native_package(source: Path, tmp_path: Path, relative: str) -> None:
+    """资源不能覆盖清单或原生包。"""
     path = source / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text('reserved', encoding='utf-8')

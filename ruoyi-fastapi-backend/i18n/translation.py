@@ -1,23 +1,24 @@
-from typing import Any
+from typing import Any, TypeVar
 
 from common.context import RequestContext
 from config.env import I18nConfig
 from i18n.registry import LocaleRegistry
 
+_SourceText = TypeVar('_SourceText', bound=str | None)
+
 
 class TranslationUtil:
-    """
-    菜单和字典译文工具类
-    """
+    """菜单和字典译文工具类。"""
 
     @staticmethod
     def validate(value: Any, max_length: int) -> dict[str, str | None]:
         """
-        校验译文补丁，允许保存尚未启用的语言
+        校验译文补丁，允许保存尚未启用的语言。
 
         :param value: 语言标识到译文的映射，空值表示没有译文补丁
         :param max_length: 单个译文的最大长度
         :return: 规范化语言标识后的译文补丁
+        :raises ValueError: 译文结构、目标语言或文本内容不符合翻译要求
         """
         if value is None:
             return {}
@@ -42,13 +43,13 @@ class TranslationUtil:
     @staticmethod
     def merge(current: dict[str, str] | None, patch: dict[str, str | None]) -> dict[str, str]:
         """
-        合并语言补丁，空映射保留已有译文，单项空值删除对应语言
+        合并语言补丁，空映射保留已有译文，单项空值删除对应语言。
 
         :param current: 数据库中的最新译文
         :param patch: 本次提交的语言补丁
         :return: 合并后的新映射，不修改输入对象
         """
-        result = dict(current or {})
+        result: dict[str, str] = dict(current or {})
         for locale, translation in patch.items():
             if translation is None:
                 result.pop(locale, None)
@@ -57,9 +58,11 @@ class TranslationUtil:
         return result
 
     @staticmethod
-    def resolve(original: str, translations: dict[str, str] | None, *, locale: str | None = None) -> str:
+    def resolve(
+        original: _SourceText, translations: dict[str, str] | None, *, locale: str | None = None
+    ) -> str | _SourceText:
         """
-        按当前请求语言和回退链解析数据库译文
+        按当前请求语言和回退链解析数据库译文。
 
         :param original: 基准语言名称
         :param translations: 数据库译文

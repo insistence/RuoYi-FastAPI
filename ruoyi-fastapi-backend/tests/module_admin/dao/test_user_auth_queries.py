@@ -37,17 +37,30 @@ ADMIN_QUERY_COUNT = 3
 
 @compiles(TINYINT, 'sqlite')
 def _compile_tinyint(_type: TINYINT, _compiler: object, **kwargs: object) -> str:
+    """
+    返回固定值 ``SMALLINT``。
+
+    :param _type: 传递给编译器的类型对象
+    :param _compiler: 编译数据库表达式的对象
+    :param kwargs: 传给被调用对象的关键字参数
+    :return: 此分支的固定值 ``'SMALLINT'``
+    """
     return 'SMALLINT'
 
 
 @pytest_asyncio.fixture
 async def user_query_env() -> AsyncIterator[SimpleNamespace]:
+    """
+    为用户权限查询准备独立数据库。
+
+    :yield: ``SimpleNamespace`` 实例
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [SysUser, SysDept, SysRole, SysPost, SysMenu, SysUserRole, SysUserPost, SysRoleMenu]
     sessions = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
     async with engine.begin() as connection:
         await connection.run_sync(
-            lambda conn: Base.metadata.create_all(conn, tables=[model.__table__ for model in tables])
+            lambda conn: Base.metadata.create_all(conn, tables=[model.get_table() for model in tables])
         )
     async with sessions.begin() as db:
         db.add_all(
@@ -109,6 +122,16 @@ async def user_query_env() -> AsyncIterator[SimpleNamespace]:
     def record_query(
         connection: object, cursor: object, statement: str, parameters: object, context: object, executemany: bool
     ) -> None:
+        """
+        捕获 SQL 查询以检查访问次数。
+
+        :param connection: 当前操作使用的连接
+        :param cursor: 执行当前 SQL 的数据库游标
+        :param statement: 即将执行的数据库语句
+        :param parameters: 分派给目标命令的参数
+        :param context: 当前操作所需的上下文
+        :param executemany: 是否批量执行同一条语句
+        """
         if statement.lstrip().upper().startswith('SELECT'):
             statements.append(statement)
 
@@ -120,6 +143,7 @@ async def user_query_env() -> AsyncIterator[SimpleNamespace]:
 
 @pytest.mark.asyncio
 async def test_user_auth_preserves_profile_roles_posts_and_permissions(user_query_env: SimpleNamespace) -> None:
+    """用户认证保留资料、角色、岗位和权限。"""
     async with user_query_env.sessions() as db:
         result = await UserDao.get_user_by_id(db, USER_ID, for_auth=True)
     assert len(user_query_env.statements) == USER_QUERY_COUNT
@@ -137,6 +161,7 @@ async def test_user_auth_preserves_profile_roles_posts_and_permissions(user_quer
 
 @pytest.mark.asyncio
 async def test_admin_auth_skips_menus_but_keeps_roles_and_profile(user_query_env: SimpleNamespace) -> None:
+    """管理员认证跳过菜单并保留角色和资料。"""
     async with user_query_env.sessions() as db:
         result = await UserDao.get_user_by_id(db, ADMIN_ID, for_auth=True)
     assert len(user_query_env.statements) == ADMIN_QUERY_COUNT
@@ -153,6 +178,7 @@ async def test_admin_auth_skips_menus_but_keeps_roles_and_profile(user_query_env
 async def test_invalid_user_returns_after_one_query(
     user_query_env: SimpleNamespace, for_auth: bool, condition: str
 ) -> None:
+    """无效用户仅查询一次。"""
     async with user_query_env.sessions.begin() as db:
         if condition == 'missing':
             await db.execute(delete(SysUser).where(SysUser.user_id == USER_ID))
@@ -174,6 +200,7 @@ async def test_invalid_user_returns_after_one_query(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('condition', ['disabled', 'deleted', 'missing', 'unassigned'])
 async def test_invalid_department_does_not_hide_valid_user(user_query_env: SimpleNamespace, condition: str) -> None:
+    """无效部门不会隐藏有效用户。"""
     async with user_query_env.sessions.begin() as db:
         if condition == 'unassigned':
             await db.execute(update(SysUser).where(SysUser.user_id == USER_ID).values(dept_id=None))
@@ -193,6 +220,7 @@ async def test_invalid_department_does_not_hide_valid_user(user_query_env: Simpl
 @pytest.mark.asyncio
 @pytest.mark.parametrize('user_id', [USER_ID, ADMIN_ID])
 async def test_route_query_keeps_complete_menu_models(user_query_env: SimpleNamespace, user_id: int) -> None:
+    """路由查询保留完整菜单模型。"""
     async with user_query_env.sessions() as db:
         result = await UserDao.get_user_by_id(db, user_id)
     assert len(user_query_env.statements) == USER_QUERY_COUNT
@@ -213,6 +241,7 @@ async def test_route_query_keeps_complete_menu_models(user_query_env: SimpleName
 
 @pytest.mark.asyncio
 async def test_new_request_observes_committed_permission_changes(user_query_env: SimpleNamespace) -> None:
+    """新请求读取已提交的权限变更。"""
     async with user_query_env.sessions() as db:
         before = await UserDao.get_user_by_id(db, USER_ID, for_auth=True)
     async with user_query_env.sessions.begin() as db:

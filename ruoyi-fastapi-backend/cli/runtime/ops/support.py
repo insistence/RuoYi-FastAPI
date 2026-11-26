@@ -3,7 +3,7 @@ import platform
 import socket
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib import metadata
 from typing import Any
 
@@ -18,10 +18,10 @@ class OperationsDependencySpec:
     """
     运维依赖检查项定义。
 
-    :param package_name: CLI 展示用包名
-    :param distribution: Python 分发名称
-    :param required: 是否为必需依赖
-    :param version: 显式版本，存在时跳过环境读取
+    :ivar package_name: CLI 展示用包名
+    :ivar distribution: Python 分发名称
+    :ivar required: 是否为必需依赖
+    :ivar version: 显式版本，存在时跳过环境读取
     """
 
     package_name: str
@@ -44,7 +44,7 @@ class OperationsDependencyInspector:
         读取指定 Python 包的已安装版本号。
 
         :param distribution_name: Python 包分发名称
-        :return: 已安装版本号，未安装时返回 `None`
+        :return: 已安装版本号，未安装时返回 ``None``
         """
         try:
             return metadata.version(distribution_name)
@@ -128,7 +128,7 @@ class OperationsServerInfoSupport:
     该对象负责 CLI 兜底服务器信息构建与 IP 解析逻辑，
     避免主运行时服务继续承载大量平台采集细节。
 
-    :param infrastructure_gateway: 运维基础设施网关
+    :ivar infrastructure_gateway: 运维基础设施网关
     """
 
     def __init__(self, infrastructure_gateway: OperationsInfrastructureGateway) -> None:
@@ -136,7 +136,6 @@ class OperationsServerInfoSupport:
         初始化服务器信息支持对象。
 
         :param infrastructure_gateway: 运维基础设施网关
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway
 
@@ -157,12 +156,14 @@ class OperationsServerInfoSupport:
 
         for interface_addresses in psutil.net_if_addrs().values():
             for address_info in interface_addresses:
+                address: object = address_info.address
                 if (
                     address_info.family == socket.AF_INET
-                    and address_info.address
-                    and not address_info.address.startswith('127.')
+                    and isinstance(address, str)
+                    and address
+                    and not address.startswith('127.')
                 ):
-                    return address_info.address
+                    return address
 
         return '127.0.0.1'
 
@@ -231,9 +232,9 @@ class OperationsServerInfoSupport:
             'py': {
                 'name': current_process.name(),
                 'version': platform.python_version(),
-                'startTime': TimezoneUtil.to_business_time(
-                    datetime.fromtimestamp(start_time_stamp, tz=timezone.utc)
-                ).strftime('%Y-%m-%d %H:%M:%S'),
+                'startTime': TimezoneUtil.to_business_time(datetime.fromtimestamp(start_time_stamp, tz=UTC)).strftime(
+                    '%Y-%m-%d %H:%M:%S'
+                ),
                 'runTime': f'{days}天{hours}小时{minutes}分钟',
                 'home': current_process.exe(),
                 'total': bytes2human(memory_info.available),

@@ -7,7 +7,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 FRAMEWORKS = ('vue2', 'vue3', 'react')
-PYTHON_VERSIONS = ('3.10', '3.11', '3.12', '3.13', '3.14')
+PYTHON_VERSIONS = ('3.11', '3.12', '3.13', '3.14', '3.15')
 CATEGORIES = ('quality', 'backend', 'frontend', 'integration', 'e2e', 'native')
 FRONTEND_FILE_PATH_PARTS = 4
 
@@ -198,7 +198,6 @@ def write_outputs(plan: dict[str, Any]) -> None:
     输出 GitHub 任务参数及可审阅的执行摘要。
 
     :param plan: 本次运行计划
-    :return: None
     """
     payload = {
         **plan['required'],
@@ -222,7 +221,7 @@ def main() -> None:
     """
     执行变更选路或最终结果校验。
 
-    :return: None
+    :raises SystemExit: 变更选路或最终结果校验失败
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=('plan', 'gate'))

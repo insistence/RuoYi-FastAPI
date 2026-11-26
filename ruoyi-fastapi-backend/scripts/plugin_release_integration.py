@@ -10,14 +10,17 @@ import re
 import sys
 import tempfile
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from unittest.mock import patch
 from uuid import uuid4
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Generator
+
+    from redis.asyncio import Redis
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_ID = 'release_it_demo'
@@ -30,6 +33,10 @@ EXPECTED_WORKER_COUNT = 2
 class RunSpec:
     """
     可跨进程序列化的隔离运行信息，不包含连接密码。
+
+    :ivar engine: 执行当前任务的引擎
+    :ivar run_id: 任务ID
+    :ivar root: 路径解析的基准目录
     """
 
     engine: str
@@ -58,7 +65,7 @@ class RunSpec:
         """
         校验数据库类型、运行标识和绝对输出路径。
 
-        :return: None
+        :raises ValueError: 运行标识无效或输出根目录不是绝对路径
         """
         if self.engine not in {'mysql', 'postgresql'} or not re.fullmatch(r'[0-9a-f]{32}', self.run_id):
             raise ValueError('Invalid isolated integration run identity')
@@ -71,7 +78,7 @@ def require_opt_in(engine: str) -> None:
     在导入服务依赖前检查显式授权和连接凭据环境变量。
 
     :param engine: 验收使用的数据库引擎
-    :return: None
+    :raises ValueError: 未显式启用真实服务测试、选择数据库或提供凭据
     """
     if os.environ.get(OPT_IN) != '1':
         raise ValueError(f'Real-service tests are disabled; explicitly set {OPT_IN}=1')
@@ -103,7 +110,7 @@ def check(condition: bool, message: str) -> None:
 
     :param condition: 预期成立的验收条件
     :param message: 条件不成立时的错误说明
-    :return: None
+    :raises AssertionError: 验收条件未满足
     """
     if not condition:
         raise AssertionError(message)
@@ -115,7 +122,6 @@ def emit(phase: str, **details: Any) -> None:
 
     :param phase: 验收阶段标识
     :param details: 当前阶段的结构化结果
-    :return: None
     """
     print(json.dumps({'phase': phase, **details}, ensure_ascii=False), flush=True)
 
@@ -125,7 +131,6 @@ def configure_process(spec: RunSpec) -> None:
     配置隔离环境并禁用默认应用连接，避免意外使用业务配置。
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
-    :return: None
     """
     require_opt_in(spec.engine)
     spec.validate()
@@ -190,7 +195,7 @@ def database_engine(spec: RunSpec, *, admin: bool = False) -> Any:
     )
 
 
-def redis_client() -> Any:
+def redis_client() -> Redis:
     """
     从验收专用环境变量创建异步 Redis 客户端。
 
@@ -210,20 +215,21 @@ def redis_client() -> Any:
     )
 
 
-def wire_runtime(spec: RunSpec, engine: Any) -> tuple[Any, Any]:
+@contextmanager
+def wire_runtime(spec: RunSpec, engine: Any) -> Generator[tuple[Any, Any], None, None]:
     """
     替换资源工厂和 Redis 命名空间，保留真实 DAO、锁与续租逻辑。
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param engine: 隔离数据库的异步连接池
-    :return: 制品部署配置和异步会话工厂
+    :yield: 制品部署配置和异步会话工厂
     """
     from sqlalchemy.ext.asyncio import async_sessionmaker  # noqa: PLC0415
 
+    from common.constant import LockConstant  # noqa: PLC0415
     from config.database import DataSourceRegistry  # noqa: PLC0415
     from config.get_redis import RedisUtil  # noqa: PLC0415
     from plugins.core.deployment.config import PluginDeploymentConfig  # noqa: PLC0415
-    from plugins.core.runtime.service.lifecycle_lock import RedisPluginLifecycleLock  # noqa: PLC0415
 
     sessions = async_sessionmaker(engine, expire_on_commit=False)
 
@@ -234,7 +240,8 @@ def wire_runtime(spec: RunSpec, engine: Any) -> tuple[Any, Any]:
 
         :param args: 宿主会话工厂的位置参数，验收时禁止指定命名数据源
         :param kwargs: 宿主会话工厂的关键字参数
-        :return: 异步上下文中的隔离数据库会话
+        :yield: 异步上下文中的隔离数据库会话
+        :raises ValueError: 尝试在隔离验收中使用具名应用数据源
         """
         if args or kwargs.get('name') is not None:
             raise ValueError('Named application data sources are forbidden in integration acceptance')
@@ -251,14 +258,16 @@ def wire_runtime(spec: RunSpec, engine: Any) -> tuple[Any, Any]:
         """
         return redis_client()
 
-    DataSourceRegistry.session = isolated_session
-    RedisUtil.create_redis_pool = staticmethod(isolated_redis)
-    RedisPluginLifecycleLock._build_lock_key = staticmethod(lambda: f'{spec.redis_prefix}lifecycle:global')
     root = Path(spec.root)
     config = PluginDeploymentConfig(
         root / 'host', root / 'store', root / 'trusted.json', heartbeat_seconds=1, worker_ttl_seconds=TTL_SECONDS
     )
-    return config, sessions
+    with (
+        patch.object(DataSourceRegistry, 'session', staticmethod(isolated_session)),
+        patch.object(RedisUtil, 'create_redis_pool', staticmethod(isolated_redis)),
+        patch.object(LockConstant, 'PLUGIN_LIFECYCLE_LOCK_PREFIX', f'{spec.redis_prefix}lifecycle'),
+    ):
+        yield config, sessions
 
 
 async def create_isolated_database(spec: RunSpec, admin: Any) -> None:
@@ -267,7 +276,6 @@ async def create_isolated_database(spec: RunSpec, admin: Any) -> None:
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param admin: 用于创建和删除隔离数据库的管理连接池
-    :return: None
     """
     spec.validate()
     quote = '`' if spec.engine == 'mysql' else '"'
@@ -283,7 +291,6 @@ async def drop_isolated_database(spec: RunSpec, admin: Any) -> None:
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param admin: 用于创建和删除隔离数据库的管理连接池
-    :return: None
     """
     spec.validate()
     quote = '`' if spec.engine == 'mysql' else '"'
@@ -317,7 +324,6 @@ async def prepare_schema(spec: RunSpec, engine: Any) -> None:
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param engine: 隔离数据库的异步连接池
-    :return: None
     """
     from sqlalchemy import select  # noqa: PLC0415
 
@@ -452,7 +458,6 @@ async def test_real_lock(spec: RunSpec) -> None:
     验证真实 Redis 锁的互斥、自动续租和按所有者释放行为。
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
-    :return: None
     """
     from plugins.core.runtime.service.lifecycle_lock import RedisPluginLifecycleLock  # noqa: PLC0415
 
@@ -485,39 +490,41 @@ async def maintenance_process(spec: RunSpec, action: str, digest: str | None) ->
     :param action: 当前命令需要执行的操作
     :param digest: 已导入制品的 SHA256 摘要
     :return: 维护操作结果
+    :raises ValueError: 请求的隔离维护操作不受支持
     """
     from plugins.core.deployment.service import PluginDeploymentService  # noqa: PLC0415
     from plugins.core.management.dao.release_dao import PluginReleaseDao  # noqa: PLC0415
 
     engine = database_engine(spec)
-    config, sessions = wire_runtime(spec, engine)
-    service = PluginDeploymentService(config, session_factory=sessions)
-    try:
-        if action == 'prepare':
-            return await service.prepare(PLUGIN_ID, str(digest), maintenance=True, actor='real-service-it')
-        async with sessions() as db:
-            release = await PluginReleaseDao.get_release(db, PLUGIN_ID)
-            generation = release.generation
-        if action == 'select':
-            return await service.select(
-                PLUGIN_ID,
-                str(digest),
-                expected_generation=generation,
-                expected_workers=2,
-                maintenance=True,
-                actor='real-service-it',
-            )
-        if action == 'rollback':
-            return await service.rollback(
-                PLUGIN_ID,
-                expected_generation=generation,
-                schema_compatible=True,
-                maintenance=True,
-                actor='real-service-it',
-            )
-        raise ValueError('Unknown isolated maintenance action')
-    finally:
-        await engine.dispose()
+    with wire_runtime(spec, engine) as (config, sessions):
+        service = PluginDeploymentService(config, session_factory=sessions)
+        try:
+            if action == 'prepare':
+                return await service.prepare(PLUGIN_ID, str(digest), maintenance=True, actor='real-service-it')
+            async with sessions() as db:
+                release = await PluginReleaseDao.get_release(db, PLUGIN_ID)
+                assert release is not None, '未找到待维护的插件发布记录'
+                generation = release.generation
+            if action == 'select':
+                return await service.select(
+                    PLUGIN_ID,
+                    str(digest),
+                    expected_generation=generation,
+                    expected_workers=2,
+                    maintenance=True,
+                    actor='real-service-it',
+                )
+            if action == 'rollback':
+                return await service.rollback(
+                    PLUGIN_ID,
+                    expected_generation=generation,
+                    schema_compatible=True,
+                    maintenance=True,
+                    actor='real-service-it',
+                )
+            raise ValueError('Unknown isolated maintenance action')
+        finally:
+            await engine.dispose()
 
 
 async def worker_process(spec: RunSpec, queue: Any, stop: Any, launch: str, fail: bool) -> None:
@@ -529,7 +536,6 @@ async def worker_process(spec: RunSpec, queue: Any, stop: Any, launch: str, fail
     :param stop: 当前 worker 独享的停止事件
     :param launch: 本轮 worker 启动标识
     :param fail: 是否让当前 worker 在插件启动时主动失败
-    :return: None
     """
     from fastapi import FastAPI  # noqa: PLC0415
 
@@ -545,66 +551,62 @@ async def worker_process(spec: RunSpec, queue: Any, stop: Any, launch: str, fail
 
     os.environ['RUOYI_PLUGIN_IT_FAIL_WORKER'] = '1' if fail else '0'
     engine = database_engine(spec)
-    config, sessions = wire_runtime(spec, engine)
-    client = redis_client()
-    app = FastAPI()
-    app.state.redis = client
-    builder = PluginRuntimeBuilder(config.backend_root)
-    manager = PluginRuntimeStartupManager(
-        builder,
-        management_gateway=PluginManagementStartupGateway(),
-        route_state_gateway=PluginManagementRouteStateGateway(),
-        default_enabled_builtin_plugin_ids=set(),
-    )
-    worker = PluginReleaseWorker(config, session_factory=sessions)
-    runtime = PluginApplicationRuntime(
-        manager,
-        ready_key=f'{spec.redis_prefix}ready',
-        startup_generation=launch,
-        lifecycle_lock=RedisPluginLifecycleLock(expire_seconds=6),
-        release_worker=worker,
-        ready_wait_timeout_seconds=60,
-        ready_wait_interval_seconds=0.1,
-    )
-    runtime.bind_app(app)
-
-    async def create_tables() -> None:
-        # 表结构已经准备完成，此处只通过真实 Redis 统计启动写入回调的执行次数。
-        """
-        通过 Redis 计数验证只有启动写入进程执行此回调。
-
-        :return: None
-        """
-        await client.incr(f'{spec.redis_prefix}writer:{launch}')
-
-    started = False
-    try:
-        await runtime.startup(app, create_tables=create_tables)
-        started = True
-        target = worker.targets[0]
-        module = sys.modules[f'plugins.{PLUGIN_ID}']
-        loaded = app.state.plugin_explicit_runtime.loaded[PLUGIN_ID]
-        await app.state.plugin_diagnostics_reporter.publish()
-        queue.put(
-            {
-                'ok': True,
-                'workerId': worker.worker_id,
-                'version': module.LOADED_VERSION,
-                'modulePath': module.__file__,
-                'active': loaded.active,
-                'digest': target.digest,
-                'artifactGeneration': target.generation,
-                'writer': bool(app.state.plugin_startup_write_enabled),
-                'failed': fail,
-                'generation': app.state.plugin_startup_generation,
-            }
+    with wire_runtime(spec, engine) as (config, sessions):
+        client = redis_client()
+        app = FastAPI()
+        app.state.redis = client
+        builder = PluginRuntimeBuilder(config.backend_root)
+        manager = PluginRuntimeStartupManager(
+            builder,
+            management_gateway=PluginManagementStartupGateway(),
+            route_state_gateway=PluginManagementRouteStateGateway(),
+            default_enabled_builtin_plugin_ids=set(),
         )
-        await asyncio.to_thread(stop.wait)
-    finally:
-        if started:
-            await runtime.shutdown(app)
-        await client.aclose()
-        await engine.dispose()
+        worker = PluginReleaseWorker(config, session_factory=sessions)
+        runtime = PluginApplicationRuntime(
+            manager,
+            ready_key=f'{spec.redis_prefix}ready',
+            startup_generation=launch,
+            lifecycle_lock=RedisPluginLifecycleLock(expire_seconds=6),
+            release_worker=worker,
+            ready_wait_timeout_seconds=60,
+            ready_wait_interval_seconds=0.1,
+        )
+        runtime.bind_app(app)
+
+        async def create_tables() -> None:
+            # 表结构已经准备完成，此处只通过真实 Redis 统计启动写入回调的执行次数。
+            """通过 Redis 计数验证只有启动写入进程执行此回调。"""
+            await client.execute_command('INCR', f'{spec.redis_prefix}writer:{launch}')
+
+        started = False
+        try:
+            await runtime.startup(app, create_tables=create_tables)
+            started = True
+            target = worker.targets[0]
+            module = sys.modules[f'plugins.{PLUGIN_ID}']
+            loaded = app.state.plugin_explicit_runtime.loaded[PLUGIN_ID]
+            await app.state.plugin_diagnostics_reporter.publish()
+            queue.put(
+                {
+                    'ok': True,
+                    'workerId': worker.worker_id,
+                    'version': module.LOADED_VERSION,
+                    'modulePath': module.__file__,
+                    'active': loaded.active,
+                    'digest': target.digest,
+                    'artifactGeneration': target.generation,
+                    'writer': bool(app.state.plugin_startup_write_enabled),
+                    'failed': fail,
+                    'generation': app.state.plugin_startup_generation,
+                }
+            )
+            await asyncio.to_thread(stop.wait)
+        finally:
+            if started:
+                await runtime.shutdown(app)
+            await client.aclose()
+            await engine.dispose()
 
 
 def child_entry(spec: RunSpec, queue: Any, action: str, payload: Any, stop: Any = None) -> None:
@@ -616,7 +618,7 @@ def child_entry(spec: RunSpec, queue: Any, action: str, payload: Any, stop: Any 
     :param action: 当前命令需要执行的操作
     :param payload: 当前子进程操作需要的参数
     :param stop: 当前 worker 独享的停止事件
-    :return: None
+    :raises SystemExit: 命令行校验失败或需要终止进程时
     """
     try:
         configure_process(spec)
@@ -660,6 +662,16 @@ async def run_maintenance(spec: RunSpec, action: str, digest: str | None = None)
 class Workers:
     """
     负责全部验收 worker 的启动与回收，包括启动未完成的进程组。
+
+    :ivar spec: 当前验收的隔离运行信息，不包含连接密码
+    :ivar retired_worker_ids: 已确认退出但其诊断快照仍可能保留的本轮 worker 身份
+    :ivar launch: 本轮 worker 启动标识
+    :ivar context: 当前操作所需的上下文
+    :ivar queue: 仅传递结果和脱敏错误的进程队列
+    :ivar stops: 用于通知各子进程退出的信号
+    :ivar processes: 由当前实例管理的子进程
+    :ivar reports: 保存各工作进程报告的集合
+    :ivar killed: 已强制终止的工作进程
     """
 
     def __init__(
@@ -671,7 +683,6 @@ class Workers:
         :param spec: 当前验收的隔离运行信息，不包含连接密码
         :param one_fails: 是否让第二个 worker 主动触发启动失败
         :param retired_worker_ids: 已确认退出但其诊断快照仍可能保留的本轮 worker 身份
-        :return: None
         """
         self.spec = spec
         self.retired_worker_ids = retired_worker_ids
@@ -702,6 +713,7 @@ class Workers:
         启动全部 worker，并验证身份、发布代际和单写入进程约束。
 
         :return: 已启动并收集上报结果的 worker 管理器
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         from plugins.core.runtime.diagnostics_store import (  # noqa: PLC0415
             diagnostics_namespace,
@@ -760,11 +772,7 @@ class Workers:
 
     async def kill_failed_worker(self) -> None:
         # 预设失败的是第二个进程，不能根据队列上报顺序判断进程身份。
-        """
-        终止预设失败的第二个 worker，供心跳过期验收使用。
-
-        :return: None
-        """
+        """终止预设失败的第二个 worker，供心跳过期验收使用。"""
         process = self.processes[1]
         self.killed.add(1)
         process.terminate()
@@ -772,11 +780,7 @@ class Workers:
         check(not process.is_alive(), 'Failed worker did not terminate')
 
     async def close(self) -> None:
-        """
-        停止仍存活的 worker 并关闭队列，异常退出时给出验收错误。
-
-        :return: None
-        """
+        """停止仍存活的 worker 并关闭队列，异常退出时给出验收错误。"""
         for index, process in enumerate(self.processes):
             if index not in self.killed and process.pid is not None and process.is_alive():
                 self.stops[index].set()
@@ -800,7 +804,6 @@ class Workers:
         离开上下文时回收全部 worker 和队列。
 
         :param args: 异步上下文管理协议传入的异常信息
-        :return: None
         """
         await self.close()
 
@@ -910,7 +913,7 @@ async def verify_release_wait_cli(spec: RunSpec, selected: dict[str, Any], scena
     :param selected: 选择操作返回的固定制品摘要和发布代际
     :param scenario: 本次验收场景的输出标识
     :param reason: 预期的机器可读结果原因
-    :return: None
+    :raises AssertionError: 冷启动的等待命令未按约定返回单份 JSON
     """
     child_env = cli_wait_environment(spec)
     command = [
@@ -983,7 +986,7 @@ async def expect_maintenance_blocked(service: Any, digest: str) -> None:
 
     :param service: 连接到隔离数据库的发布服务
     :param digest: 已导入制品的 SHA256 摘要
-    :return: None
+    :raises AssertionError: 仍有在线工作进程时维护操作被错误放行
     """
     try:
         await service.prepare(PLUGIN_ID, digest, maintenance=True)
@@ -1000,7 +1003,6 @@ async def verify_migrations(sessions: Any, installed: str, rows: int) -> None:
     :param sessions: 隔离数据库的异步会话工厂
     :param installed: 预期数据库安装版本
     :param rows: 预期迁移探针数据和迁移历史的记录数
-    :return: None
     """
     from sqlalchemy import select, text  # noqa: PLC0415
 
@@ -1009,6 +1011,7 @@ async def verify_migrations(sessions: Any, installed: str, rows: int) -> None:
 
     async with sessions() as db:
         plugin = await PluginDao.get_plugin_by_id(db, PLUGIN_ID)
+        assert plugin is not None, '未找到已安装的插件记录'
         check(plugin.installed_version == installed, f'Unexpected installedVersion: {plugin.installed_version}')
         check(await db.scalar(text('SELECT COUNT(*) FROM plugin_it_probe')) == rows, 'Migration probe rows changed')
         migrations = (await db.scalars(select(SysPluginMigration))).all()
@@ -1029,7 +1032,6 @@ async def exercise_release_recovery(spec: RunSpec, service: Any, target: dict[st
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param service: 连接到隔离数据库的发布服务
     :param target: 回滚后固定的制品摘要和新发布代际
-    :return: None
     """
     async with Workers(spec, one_fails=True) as workers:
         state = await release_state(service)
@@ -1073,75 +1075,76 @@ async def exercise_release(spec: RunSpec, engine: Any) -> None:
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
     :param engine: 隔离数据库的异步连接池
-    :return: None
     """
     from plugins.core.deployment.service import PluginDeploymentService  # noqa: PLC0415
 
-    config, sessions = wire_runtime(spec, engine)
-    service = PluginDeploymentService(config, session_factory=sessions)
-    archive1, archive2 = make_artifacts(spec)
-    digest1 = (await service.catalog.import_artifact(archive1))['digest']
-    digest2 = (await service.catalog.import_artifact(archive2))['digest']
-    await test_real_lock(spec)
-    await run_maintenance(spec, 'prepare', digest1)
-    await verify_migrations(sessions, '1.0.0', 1)
-    initial_target = await run_maintenance(spec, 'select', digest1)
-    await verify_release_wait(service, initial_target, 'before_workers', 'not_converged')
-    await verify_release_wait(service, initial_target, 'before_workers_timeout', 'timeout', timeout_seconds=0.3)
-    await verify_release_wait_cli(spec, initial_target, 'before_workers', 'not_converged')
-    async with Workers(spec) as workers:
-        await verify_release_wait(service, initial_target, 'initial_active', 'converged', timeout_seconds=3)
-        await verify_release_wait_cli(spec, initial_target, 'initial_active', 'converged')
-        state = await release_state(service)
-        check(
-            state['status'] == 'active' and state['healthyWorkers'] == EXPECTED_WORKER_COUNT,
-            f'Initial release not active: {state}',
-        )
-        check(
-            all(
-                item['version'] == '1.0.0' and item['digest'] == digest1 and item['active'] for item in workers.reports
-            ),
-            'Wrong initial runtime code',
-        )
-        check(
-            all(Path(item['modulePath']).is_relative_to(config.store_root) for item in workers.reports),
-            'Worker loaded outside artifact store',
-        )
-        await expect_maintenance_blocked(service, digest2)
-        emit('initial_active', workers=2, writer=1, reader=1, maintenanceBlocked=True)
-    await run_maintenance(spec, 'prepare', digest2)
-    await verify_migrations(sessions, '2.0.0', 2)
-    upgrade_target = await run_maintenance(spec, 'select', digest2)
-    await verify_release_wait(service, initial_target, 'upgrade_rejects_previous_target', 'target_changed')
-    async with Workers(spec) as workers:
-        await verify_release_wait(service, upgrade_target, 'upgrade_active', 'converged', timeout_seconds=3)
-        state = await release_state(service)
-        check(state['status'] == 'active', f'Upgrade did not converge: {state}')
-        check(
-            all(item['version'] == '2.0.0' and item['digest'] == digest2 for item in workers.reports),
-            'Upgrade reused old code',
-        )
-        emit('upgrade_active', codeVersion='2.0.0', installedVersion=state['installedVersion'])
-    rollback_target = await run_maintenance(spec, 'rollback')
-    await verify_migrations(sessions, '2.0.0', 2)
-    async with Workers(spec) as workers:
-        await verify_release_wait(service, rollback_target, 'rollback_active', 'converged', timeout_seconds=3)
-        await verify_release_wait(service, upgrade_target, 'rollback_rejects_upgrade_target', 'target_changed')
-        await verify_release_wait(service, initial_target, 'rollback_rejects_old_generation', 'target_changed')
-        state = await release_state(service)
-        check(
-            state['status'] == 'active' and state['installedVersion'] == '2.0.0', f'Rollback lost schema state: {state}'
-        )
-        check(
-            all(item['version'] == '1.0.0' and item['digest'] == digest1 for item in workers.reports),
-            'Rollback did not load prior artifact',
-        )
-        emit('rollback_active', codeVersion='1.0.0', installedVersion='2.0.0', migrationRows=2)
-    await exercise_release_recovery(spec, service, rollback_target)
-    await service.catalog.get(digest1)
-    await service.catalog.get(digest2)
-    check(not list(config.store_root.rglob('*.pyc')), 'Artifact runtime produced bytecode inside immutable store')
-    check(f'plugins.{PLUGIN_ID}' not in sys.modules, 'Supervisor imported plugin runtime code')
+    with wire_runtime(spec, engine) as (config, sessions):
+        service = PluginDeploymentService(config, session_factory=sessions)
+        archive1, archive2 = make_artifacts(spec)
+        digest1 = (await service.catalog.import_artifact(archive1))['digest']
+        digest2 = (await service.catalog.import_artifact(archive2))['digest']
+        await test_real_lock(spec)
+        await run_maintenance(spec, 'prepare', digest1)
+        await verify_migrations(sessions, '1.0.0', 1)
+        initial_target = await run_maintenance(spec, 'select', digest1)
+        await verify_release_wait(service, initial_target, 'before_workers', 'not_converged')
+        await verify_release_wait(service, initial_target, 'before_workers_timeout', 'timeout', timeout_seconds=0.3)
+        await verify_release_wait_cli(spec, initial_target, 'before_workers', 'not_converged')
+        async with Workers(spec) as workers:
+            await verify_release_wait(service, initial_target, 'initial_active', 'converged', timeout_seconds=3)
+            await verify_release_wait_cli(spec, initial_target, 'initial_active', 'converged')
+            state = await release_state(service)
+            check(
+                state['status'] == 'active' and state['healthyWorkers'] == EXPECTED_WORKER_COUNT,
+                f'Initial release not active: {state}',
+            )
+            check(
+                all(
+                    item['version'] == '1.0.0' and item['digest'] == digest1 and item['active']
+                    for item in workers.reports
+                ),
+                'Wrong initial runtime code',
+            )
+            check(
+                all(Path(item['modulePath']).is_relative_to(config.store_root) for item in workers.reports),
+                'Worker loaded outside artifact store',
+            )
+            await expect_maintenance_blocked(service, digest2)
+            emit('initial_active', workers=2, writer=1, reader=1, maintenanceBlocked=True)
+        await run_maintenance(spec, 'prepare', digest2)
+        await verify_migrations(sessions, '2.0.0', 2)
+        upgrade_target = await run_maintenance(spec, 'select', digest2)
+        await verify_release_wait(service, initial_target, 'upgrade_rejects_previous_target', 'target_changed')
+        async with Workers(spec) as workers:
+            await verify_release_wait(service, upgrade_target, 'upgrade_active', 'converged', timeout_seconds=3)
+            state = await release_state(service)
+            check(state['status'] == 'active', f'Upgrade did not converge: {state}')
+            check(
+                all(item['version'] == '2.0.0' and item['digest'] == digest2 for item in workers.reports),
+                'Upgrade reused old code',
+            )
+            emit('upgrade_active', codeVersion='2.0.0', installedVersion=state['installedVersion'])
+        rollback_target = await run_maintenance(spec, 'rollback')
+        await verify_migrations(sessions, '2.0.0', 2)
+        async with Workers(spec) as workers:
+            await verify_release_wait(service, rollback_target, 'rollback_active', 'converged', timeout_seconds=3)
+            await verify_release_wait(service, upgrade_target, 'rollback_rejects_upgrade_target', 'target_changed')
+            await verify_release_wait(service, initial_target, 'rollback_rejects_old_generation', 'target_changed')
+            state = await release_state(service)
+            check(
+                state['status'] == 'active' and state['installedVersion'] == '2.0.0',
+                f'Rollback lost schema state: {state}',
+            )
+            check(
+                all(item['version'] == '1.0.0' and item['digest'] == digest1 for item in workers.reports),
+                'Rollback did not load prior artifact',
+            )
+            emit('rollback_active', codeVersion='1.0.0', installedVersion='2.0.0', migrationRows=2)
+        await exercise_release_recovery(spec, service, rollback_target)
+        await service.catalog.get(digest1)
+        await service.catalog.get(digest2)
+        check(not list(config.store_root.rglob('*.pyc')), 'Artifact runtime produced bytecode inside immutable store')
+        check(f'plugins.{PLUGIN_ID}' not in sys.modules, 'Supervisor imported plugin runtime code')
 
 
 async def run(spec: RunSpec) -> None:
@@ -1149,7 +1152,8 @@ async def run(spec: RunSpec) -> None:
     创建隔离资源并执行完整验收，结束时回收本轮资源。
 
     :param spec: 当前验收的隔离运行信息，不包含连接密码
-    :return: None
+    :raises ValueError: 请先按 task_demo/README.md 安装前端依赖并构建 web/dist，再运行真实发布验收
+    :raises RuntimeError: 隔离资源清理失败
     """
     task_source = BACKEND_ROOT / 'plugins' / 'examples' / 'python' / 'task_demo'
     if not (task_source / 'web' / 'dist' / 'index.html').is_file():
@@ -1169,14 +1173,14 @@ async def run(spec: RunSpec) -> None:
         from plugins.core.deployment.service import PluginDeploymentService  # noqa: PLC0415
         from scripts.plugin_task_integration import exercise_task_delivery  # noqa: PLC0415
 
-        config, sessions = wire_runtime(spec, engine)
-        task_result = await exercise_task_delivery(
-            PluginDeploymentService(config, session_factory=sessions),
-            sessions,
-            task_source,
-            Path(spec.root) / 'task-delivery',
-        )
-        emit('task_delivery', **task_result)
+        with wire_runtime(spec, engine) as (config, sessions):
+            task_result = await exercise_task_delivery(
+                PluginDeploymentService(config, session_factory=sessions),
+                sessions,
+                task_source,
+                Path(spec.root) / 'task-delivery',
+            )
+            emit('task_delivery', **task_result)
     finally:
         if engine is not None:
             try:

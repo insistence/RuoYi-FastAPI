@@ -4,6 +4,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 from textwrap import dedent
+from typing import Any
 
 import pytest
 
@@ -16,8 +17,9 @@ FRONTEND_ROOT = Path(__file__).resolve().parents[4] / 'ruoyi-fastapi-frontend' /
 
 def test_app_config_json_output_is_pure_json(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """应用配置命令只输出 JSON。"""
     completed = run_cli_command('app', 'config', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -34,6 +36,7 @@ def test_app_config_json_output_is_pure_json(
 def test_app_config_text_output_has_stable_section_structure(
     run_text_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> None:
+    """应用配置文本按约定分节。"""
     completed = run_text_cli_command('app', 'config', '--env=dev', '--output=text')
 
     assert completed.returncode == SUCCESS
@@ -51,6 +54,7 @@ def test_app_config_text_output_has_stable_section_structure(
 def test_app_env_text_output_has_stable_section_structure(
     run_text_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> None:
+    """环境信息文本按约定分节。"""
     completed = run_text_cli_command('app', 'env', '--env=dev', '--output=text')
 
     assert completed.returncode == SUCCESS
@@ -69,6 +73,7 @@ def test_app_env_text_output_has_stable_section_structure(
 def test_app_doctor_text_output_has_stable_check_structure(
     run_text_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> None:
+    """应用诊断文本按检查项组织。"""
     completed = run_text_cli_command('app', 'doctor', '--env=dev', '--output=text')
 
     assert completed.returncode in {SUCCESS, DEPENDENCY_ERROR}
@@ -85,9 +90,10 @@ def test_app_doctor_text_output_has_stable_check_structure(
 
 def test_app_doctor_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
-    assert_check_payload_contract: Callable[[dict, bool], None],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
+    assert_check_payload_contract: Callable[[dict[str, Any], bool], None],
 ) -> None:
+    """应用诊断按约定输出 JSON。"""
     completed = run_cli_command('app', 'doctor', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -104,8 +110,9 @@ def test_app_doctor_json_output_has_stable_contract(
 
 def test_app_env_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """环境信息按约定输出 JSON。"""
     completed = run_cli_command('app', 'env', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -132,8 +139,9 @@ def test_app_env_json_output_has_stable_contract(
 
 def test_app_routes_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """路由列表按约定输出 JSON。"""
     completed = run_cli_command('app', 'routes', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -177,6 +185,7 @@ def test_app_routes_json_output_has_stable_contract(
 def test_server_info_text_output_has_stable_section_structure(
     run_text_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> None:
+    """服务器信息文本按约定分节。"""
     completed = run_text_cli_command('ops', 'server-info', '--env=dev')
 
     assert completed.returncode == 0
@@ -193,6 +202,7 @@ def test_server_info_text_output_has_stable_section_structure(
 def test_ops_health_text_output_has_stable_check_structure(
     run_text_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> None:
+    """健康检查文本按检查项组织。"""
     completed = run_text_cli_command('ops', 'health', '--env=dev', '--output=text')
 
     assert completed.returncode in {SUCCESS, DEPENDENCY_ERROR}
@@ -208,6 +218,7 @@ def test_ops_health_text_output_has_stable_check_structure(
 def test_ops_deps_text_output_has_stable_structure(
     run_text_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> None:
+    """依赖检查文本按约定组织。"""
     completed = run_text_cli_command('ops', 'deps', '--env=dev', '--output=text')
 
     assert completed.returncode in {SUCCESS, DEPENDENCY_ERROR}
@@ -223,9 +234,10 @@ def test_ops_deps_text_output_has_stable_structure(
 
 def test_ops_health_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
-    assert_check_payload_contract: Callable[[dict, bool], None],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
+    assert_check_payload_contract: Callable[[dict[str, Any], bool], None],
 ) -> None:
+    """健康检查按约定输出 JSON。"""
     completed = run_cli_command('ops', 'health', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -240,8 +252,9 @@ def test_ops_health_json_output_has_stable_contract(
 
 def test_ops_deps_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """依赖检查按约定输出 JSON。"""
     completed = run_cli_command('ops', 'deps', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -264,8 +277,9 @@ def test_ops_deps_json_output_has_stable_contract(
 
 def test_ops_server_info_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """服务器信息按约定输出 JSON。"""
     completed = run_cli_command('ops', 'server-info', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -325,8 +339,9 @@ def test_ops_server_info_json_output_has_stable_contract(
 
 def test_plugin_list_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """插件列表按约定输出 JSON。"""
     completed = run_cli_command('plugin', 'list', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -343,8 +358,9 @@ def test_plugin_list_json_output_has_stable_contract(
 
 def test_plugin_check_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """插件检查按约定输出 JSON。"""
     completed = run_cli_command('plugin', 'check', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -371,8 +387,9 @@ def test_plugin_check_json_output_has_stable_contract(
 
 def test_plugin_check_deps_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """插件依赖检查按约定输出 JSON。"""
     completed = run_cli_command('plugin', 'check-deps', 'ai', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -392,8 +409,9 @@ def test_plugin_check_deps_json_output_has_stable_contract(
 
 def test_plugin_install_deps_dry_run_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """插件依赖安装预演按约定输出 JSON。"""
     completed = run_cli_command('plugin', 'install-deps', 'ai', '--dry-run', '--yes', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -407,8 +425,9 @@ def test_plugin_install_deps_dry_run_json_output_has_stable_contract(
 
 def test_plugin_plan_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """插件操作计划按约定输出 JSON。"""
     completed = run_cli_command('plugin', 'plan', 'install', 'ai', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -424,6 +443,7 @@ def test_plugin_plan_json_output_has_stable_contract(
 def test_plugin_plan_rejects_invalid_operation_at_cli_boundary(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> None:
+    """命令行拒绝无效的插件计划操作。"""
     completed = run_cli_command('plugin', 'plan', 'remove', 'ai', '--env=dev', '--output=json')
 
     assert completed.returncode != SUCCESS
@@ -432,8 +452,9 @@ def test_plugin_plan_rejects_invalid_operation_at_cli_boundary(
 
 def test_plugin_batch_dry_run_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """批量插件操作预演按约定输出 JSON。"""
     completed = run_cli_command('plugin', 'batch', 'install', 'ai', '--dry-run', '--yes', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -451,6 +472,7 @@ def test_plugin_batch_dry_run_json_output_has_stable_contract(
 def test_plugin_list_text_output_has_stable_structure(
     run_text_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> None:
+    """插件列表文本按约定组织。"""
     completed = run_text_cli_command('plugin', 'list', '--env=dev', '--output=text')
 
     assert completed.returncode == SUCCESS
@@ -461,8 +483,9 @@ def test_plugin_list_text_output_has_stable_structure(
 
 def test_plugin_create_dry_run_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """创建插件的预演按约定输出 JSON。"""
     completed = run_cli_command('plugin', 'create', 'contract_demo', '--dry-run', '--env=dev', '--output=json')
     payload = parse_json_stdout(completed)
 
@@ -484,8 +507,9 @@ def test_plugin_create_dry_run_json_output_has_stable_contract(
 
 def test_plugin_create_optional_parts_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """创建插件时在 JSON 中列出可选组件。"""
     completed = run_cli_command(
         'plugin',
         'create',
@@ -513,8 +537,9 @@ def test_plugin_create_optional_parts_json_output_has_stable_contract(
 
 def test_plugin_create_frontend_framework_override_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """创建插件时在 JSON 中反映指定的前端框架。"""
     completed = run_cli_command(
         'plugin',
         'create',
@@ -564,8 +589,9 @@ def test_plugin_create_rejects_removed_frontend_version_option(
 
 def test_plugin_install_dry_run_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """安装插件的预演按约定输出 JSON。"""
     completed = run_cli_command(
         'plugin', 'install', 'missing_plugin', '--dry-run', '--yes', '--env=dev', '--output=json'
     )
@@ -579,8 +605,9 @@ def test_plugin_install_dry_run_json_output_has_stable_contract(
 
 def test_plugin_upgrade_dry_run_json_output_has_stable_contract(
     backend_dir: Path,
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
+    """升级插件的预演按约定输出 JSON。"""
     # 成功契约需要已确认的目录插件来源；CI 不应连接宿主数据库来决定测试结果。
     script = dedent(
         """

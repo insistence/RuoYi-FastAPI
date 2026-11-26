@@ -4,7 +4,7 @@ import os
 import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import TypeGuard
 
 from sqlalchemy import inspect as sa_inspect
 
@@ -12,10 +12,12 @@ from config.database import Base
 
 
 class ImportUtil:
+    """加载可选模块和指定的 Python 对象。"""
+
     @classmethod
     def find_project_root(cls) -> Path:
         """
-        查找项目根目录
+        查找项目根目录。
 
         :return: 项目根目录路径
         """
@@ -27,9 +29,9 @@ class ImportUtil:
         return Path(__file__).resolve().parent
 
     @classmethod
-    def is_valid_model(cls, obj: Any, base_class: Base) -> bool:
+    def is_valid_model(cls, obj: object, base_class: type[Base]) -> TypeGuard[type[Base]]:
         """
-        验证是否为有效的SQLAlchemy模型类
+        验证是否为有效的SQLAlchemy模型类。
 
         :param obj: 待验证的对象
         :param base_class: SQLAlchemy的Base类
@@ -51,9 +53,9 @@ class ImportUtil:
 
     @classmethod
     @lru_cache(maxsize=256)
-    def find_models(cls, base_class: Base) -> list[Base]:
+    def find_models(cls, base_class: type[Base]) -> list[type[Base]]:
         """
-        查找并过滤有效的模型类，避免重复和无效定义
+        查找并过滤有效的模型类，避免重复和无效定义。
 
         :param base_class: SQLAlchemy的Base类，用于验证模型类
         :return: 有效模型类列表

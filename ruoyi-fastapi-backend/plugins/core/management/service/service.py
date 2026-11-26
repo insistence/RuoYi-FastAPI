@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Mapping
 from datetime import timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from plugins.core.environment import PLUGIN_RUNTIME_ENVIRONMENT
 from plugins.core.lifecycle.jobs import PluginJobInstaller, PluginJobRepository
 from plugins.core.lifecycle.purge import PluginPurgePlan, PluginPurgePlanner
 from plugins.core.management.dao.dao import PluginDao
+from plugins.core.management.entity.do.models import SysPlugin
 from plugins.core.management.entity.vo.schemas import (
     PluginConfigModel,
     PluginConfigUpdateModel,
@@ -45,6 +46,8 @@ from utils.time_util import TimezoneUtil
 class PluginService:
     """
     插件系统服务层。
+
+    :cvar ORPHAN_PLUGIN_REASON: 缺少插件资源时记录的原因
     """
 
     ORPHAN_PLUGIN_REASON = '插件源码不存在，仅允许物理清理平台元数据'
@@ -74,6 +77,30 @@ class PluginService:
         return PluginModel(**CamelCaseUtil.transform_result(plugin)) if plugin is not None else None
 
     @classmethod
+    @overload
+    async def get_plugin_page_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: PluginPageQueryModel,
+        is_page: Literal[True] = True,
+        *,
+        backend_root: Path | None = None,
+        frontend_root: Path | None = None,
+    ) -> PageModel[dict[str, Any]]: ...
+
+    @classmethod
+    @overload
+    async def get_plugin_page_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: PluginPageQueryModel,
+        is_page: Literal[False],
+        *,
+        backend_root: Path | None = None,
+        frontend_root: Path | None = None,
+    ) -> list[dict[str, Any]]: ...
+
+    @classmethod
     async def get_plugin_page_list_services(
         cls,
         query_db: AsyncSession,
@@ -82,7 +109,7 @@ class PluginService:
         *,
         backend_root: Path | None = None,
         frontend_root: Path | None = None,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取插件分页列表。
 
@@ -157,7 +184,7 @@ class PluginService:
 
     @classmethod
     async def _build_artifact_plugin_models(
-        cls, query_db: AsyncSession, plugins: Iterable[object], backend_root: Path, frontend_root: Path | None
+        cls, query_db: AsyncSession, plugins: Iterable[SysPlugin], backend_root: Path, frontend_root: Path | None
     ) -> dict[str, PluginModel]:
         """
         筛选制品来源的插件记录，并构建包含发布状态的展示模型。
@@ -286,16 +313,16 @@ class PluginService:
             plugin = await PluginDao.get_plugin_by_id(query_db, manifest.id)
 
         return PluginModel(
-            pluginId=manifest.id,
-            pluginName=manifest.name,
+            plugin_id=manifest.id,
+            plugin_name=manifest.name,
             version=manifest.version,
-            installedVersion=manifest.version,
+            installed_version=manifest.version,
             enabled=enabled,
             status=status,
             source='local',
-            backendPath=str(discovered_plugin.backend_path),
+            backend_path=str(discovered_plugin.backend_path),
             description=manifest.description,
-            updateTime=getattr(plugin, 'update_time', None),
+            update_time=getattr(plugin, 'update_time', None),
         )
 
     @classmethod
@@ -343,7 +370,6 @@ class PluginService:
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
         :param enabled: 插件菜单是否启用
-        :return: None
         """
         menu_installer = PluginMenuInstaller(query_db)
         await menu_installer.install_manifest_menus(discovered_plugin.manifest)
@@ -408,7 +434,6 @@ class PluginService:
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
         :param enabled: 插件任务是否允许启用
-        :return: None
         """
         await PluginJobInstaller(query_db).install_plugin_jobs(discovered_plugin, enabled=enabled)
 
@@ -466,6 +491,7 @@ class PluginService:
         :param discovered_plugin: 已发现插件对象
         :param update_model: 插件配置更新模型
         :return: 更新后的插件配置值列表
+        :raises ValueError: 待更新的配置键未在插件清单声明
         """
         await cls.install_plugin_default_config_services(query_db, discovered_plugin)
         manifest_items = {item.key: item for item in discovered_plugin.manifest.config.items}
@@ -515,12 +541,30 @@ class PluginService:
         return PluginOperationLogModel(**CamelCaseUtil.transform_result(db_operation_log))
 
     @classmethod
+    @overload
+    async def get_plugin_operation_log_page_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: PluginOperationLogPageQueryModel,
+        is_page: Literal[True] = True,
+    ) -> PageModel[PluginOperationLogDetailModel]: ...
+
+    @classmethod
+    @overload
+    async def get_plugin_operation_log_page_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: PluginOperationLogPageQueryModel,
+        is_page: Literal[False],
+    ) -> list[dict[str, Any]]: ...
+
+    @classmethod
     async def get_plugin_operation_log_page_list_services(
         cls,
         query_db: AsyncSession,
         query_object: PluginOperationLogPageQueryModel,
         is_page: bool = True,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[PluginOperationLogDetailModel] | list[dict[str, Any]]:
         """
         获取插件批量操作审计日志分页列表。
 
@@ -533,9 +577,13 @@ class PluginService:
         if not isinstance(page_result, PageModel):
             return page_result
 
-        page_result.rows = [PluginOperationLogBuilder.build_detail(row) for row in page_result.rows]
-
-        return page_result
+        return PageModel[PluginOperationLogDetailModel](
+            rows=[PluginOperationLogBuilder.build_detail(row) for row in page_result.rows],
+            page_num=page_result.page_num,
+            page_size=page_result.page_size,
+            total=page_result.total,
+            has_next=page_result.has_next,
+        )
 
     @classmethod
     async def get_plugin_operation_log_export_list_services(
@@ -558,7 +606,7 @@ class PluginService:
     def export_plugin_operation_log_list_services(
         cls,
         operation_log_list: list[PluginOperationLogDetailModel],
-        operation_dict: dict[str, str] | None = None,
+        operation_dict: Mapping[str, str | None] | None = None,
     ) -> bytes:
         """
         导出插件批量操作审计日志。
@@ -605,11 +653,11 @@ class PluginService:
             deleted_count = await PluginDao.delete_plugin_operation_logs_before(query_db, cutoff_time)
 
         return PluginOperationLogRetentionResultModel(
-            retentionDays=retention_model.retention_days,
-            cutoffTime=cutoff_time,
-            matchedCount=matched_count,
-            deletedCount=deleted_count,
-            dryRun=retention_model.dry_run,
+            retention_days=retention_model.retention_days,
+            cutoff_time=cutoff_time,
+            matched_count=matched_count,
+            deleted_count=deleted_count,
+            dry_run=retention_model.dry_run,
         )
 
     @classmethod
@@ -832,6 +880,7 @@ class PluginService:
         :param query_db: orm对象
         :param plugin_id: 插件ID
         :return: 插件物理清理计划
+        :raises ValueError: 制品插件不能通过孤儿元数据清理入口删除，请使用维护发布流程
         """
         plugin = await PluginDao.get_plugin_by_id(query_db, plugin_id)
         if getattr(plugin, 'source', None) == 'artifact':
@@ -875,7 +924,7 @@ class PluginService:
 
         :param query_db: orm对象
         :param plugin_id: 插件ID
-        :return: None
+        :raises ValueError: 制品插件不能通过普通purge删除平台状态，请使用维护发布流程
         """
         plugin = await PluginDao.get_plugin_by_id(query_db, plugin_id)
         if getattr(plugin, 'source', None) == 'artifact':
@@ -906,7 +955,7 @@ class PluginService:
         :return: 插件菜单关联对象
         """
         existing_plugin_menu = await PluginDao.get_plugin_menu_by_key(query_db, plugin_id, menu_key)
-        plugin_menu_model = PluginMenuModel(pluginId=plugin_id, menuId=menu_id, menuKey=menu_key)
+        plugin_menu_model = PluginMenuModel(plugin_id=plugin_id, menu_id=menu_id, menu_key=menu_key)
 
         if existing_plugin_menu and existing_plugin_menu.menu_id != menu_id:
             await PluginDao.update_plugin_menu_by_key(query_db, plugin_menu_model)
@@ -1034,7 +1083,9 @@ class PluginService:
         status = PluginService._resolve_status(manifest.version, installed_version, enabled, current_status)
         if is_artifact_plugin(discovered_plugin) and current_status is not None:
             status = current_status
-        frontend_path = frontend_root / manifest.frontend.plugin_id if frontend_root else None
+        frontend_path = (
+            frontend_root / manifest.frontend.plugin_id if frontend_root and manifest.frontend.plugin_id else None
+        )
         frontend_menus = PluginMenuTree.flatten(manifest.frontend.menus)
         frontend_framework = (
             PLUGIN_RUNTIME_ENVIRONMENT.get_frontend_framework(
@@ -1046,22 +1097,22 @@ class PluginService:
         frontend_dependencies = manifest.dependencies.resolve_frontend(frontend_framework or 'vue3')
 
         return PluginModel(
-            pluginId=manifest.id,
-            pluginName=manifest.name,
+            plugin_id=manifest.id,
+            plugin_name=manifest.name,
             version=manifest.version,
-            installedVersion=installed_version,
+            installed_version=installed_version,
             enabled=enabled,
             status=status,
             source='artifact' if is_artifact_plugin(discovered_plugin) else 'local',
-            backendPath=(
+            backend_path=(
                 f'artifact:{discovered_plugin.artifact_digest}'
                 if is_artifact_plugin(discovered_plugin)
                 else str(discovered_plugin.backend_path.relative_to(backend_root))
             ),
-            frontendPath=str(frontend_path.relative_to(frontend_root)) if frontend_path and frontend_root else None,
-            lastError=last_error,
+            frontend_path=str(frontend_path.relative_to(frontend_root)) if frontend_path and frontend_root else None,
+            last_error=last_error,
             description=manifest.description,
-            updateTime=TimezoneUtil.utc_now(),
+            update_time=TimezoneUtil.utc_now(),
             capability=capability.to_payload(),
             metadata=manifest.metadata.model_dump(by_alias=True),
             backend={
@@ -1097,7 +1148,7 @@ class PluginService:
                     else {}
                 ),
             },
-            pluginDependencies=[dependency.model_dump(by_alias=True) for dependency in manifest.dependencies.plugins],
+            plugin_dependencies=[dependency.model_dump(by_alias=True) for dependency in manifest.dependencies.plugins],
         )
 
     @classmethod
@@ -1171,6 +1222,13 @@ class PluginService:
         """
 
         def contains(value: object, keyword: str | None) -> bool:
+            """
+            检查插件字段是否匹配列表过滤条件。
+
+            :param value: 待处理的输入值
+            :param keyword: 要匹配的关键字
+            :return: 是否插件字段是否匹配列表过滤条件
+            """
             return keyword is None or keyword in str(value or '')
 
         return [

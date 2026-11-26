@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, model_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, NonNegativeInt, model_validator
 from starlette import status
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from common.vo import CamelModel
 from middlewares.trace_middleware.ctx import CTX_REQUEST_ID
 from plugins.core.runtime.configuration import PluginConfigObservation
 from plugins.core.runtime.connections import CONNECTION_OUTCOME_KEY, ConnectionClosure
@@ -22,35 +22,34 @@ MAX_METRIC_SERIES = 1024
 MetricOutcome = Literal['succeeded', 'rejected', 'failed', 'cancelled']
 
 
-class PluginMetricSeries(BaseModel):
-    """
-    一个 worker 上某插件和操作的累计指标，不包含请求参数、路径或用户数据。
-    """
+class PluginMetricSeries(CamelModel):
+    """一个 worker 上某插件和操作的累计指标，不包含请求参数、路径或用户数据。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra='forbid', strict=True)
+    model_config = ConfigDict(extra='forbid', strict=True)
 
-    plugin_id: str = Field(pattern=r'^[a-z][a-z0-9_]{1,63}$')
-    version: str = Field(max_length=128)
-    digest: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
-    generation: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$')
-    operation: str = Field(pattern=r'^(http|websocket|job:[a-z][a-z0-9_-]{0,63})$')
-    started: NonNegativeInt = 0
-    active: NonNegativeInt = 0
-    succeeded: NonNegativeInt = 0
-    rejected: NonNegativeInt = 0
-    failed: NonNegativeInt = 0
-    cancelled: NonNegativeInt = 0
-    timed_out: NonNegativeInt = 0
-    duration_sum_ms: float = Field(default=0.0, ge=0, allow_inf_nan=False)
-    duration_max_ms: float = Field(default=0.0, ge=0, allow_inf_nan=False)
+    plugin_id: str = Field(pattern=r'^[a-z][a-z0-9_]{1,63}$', description='插件标识')
+    version: str = Field(max_length=128, description='插件版本')
+    digest: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$', description='已加载制品的内容摘要')
+    generation: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$', description='当前插件发布代次')
+    operation: str = Field(pattern=r'^(http|websocket|job:[a-z][a-z0-9_-]{0,63})$', description='执行的操作类型')
+    started: NonNegativeInt = Field(default=0, description='已开始执行的操作总数')
+    active: NonNegativeInt = Field(default=0, description='正在执行的操作数')
+    succeeded: NonNegativeInt = Field(default=0, description='成功的操作数')
+    rejected: NonNegativeInt = Field(default=0, description='被拒绝的操作数')
+    failed: NonNegativeInt = Field(default=0, description='失败的操作数')
+    cancelled: NonNegativeInt = Field(default=0, description='被取消的操作数')
+    timed_out: NonNegativeInt = Field(default=0, description='超时的操作数')
+    duration_sum_ms: float = Field(default=0.0, ge=0, allow_inf_nan=False, description='操作耗时总和（毫秒）')
+    duration_max_ms: float = Field(default=0.0, ge=0, allow_inf_nan=False, description='最长单次操作耗时（毫秒）')
     latency_buckets: list[NonNegativeInt] = Field(
         default_factory=lambda: [0] * (len(LATENCY_BUCKETS_MS) + 1),
         min_length=len(LATENCY_BUCKETS_MS) + 1,
         max_length=len(LATENCY_BUCKETS_MS) + 1,
+        description='按延迟区间统计的操作次数',
     )
-    last_error_type: str | None = Field(default=None, max_length=80)
-    last_error_request_id: str | None = Field(default=None, max_length=128)
-    last_error_at: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    last_error_type: str | None = Field(default=None, max_length=80, description='最近一次错误的异常类型')
+    last_error_request_id: str | None = Field(default=None, max_length=128, description='最近一次错误的关联请求标识')
+    last_error_at: float | None = Field(default=None, ge=0, allow_inf_nan=False, description='最近一次错误的时间戳')
 
     @model_validator(mode='after')
     def validate_counters(self) -> 'PluginMetricSeries':
@@ -58,6 +57,7 @@ class PluginMetricSeries(BaseModel):
         拒绝损坏或不一致的跨 worker 计数，避免将错误快照混入汇总。
 
         :return: 校验通过的指标序列
+        :raises ValueError: 插件运行指标计数不一致；插件超时次数不能大于失败次数
         """
         completed = self.succeeded + self.rejected + self.failed + self.cancelled
         if self.started != self.active + completed or sum(self.latency_buckets) != completed:
@@ -90,19 +90,19 @@ class PluginMetricSeries(BaseModel):
         }
 
 
-class PluginMetricSnapshot(BaseModel):
-    """
-    带采样时间和进程标识的有界指标快照。
-    """
+class PluginMetricSnapshot(CamelModel):
+    """带采样时间和进程标识的有界指标快照。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra='forbid', strict=True)
+    model_config = ConfigDict(extra='forbid', strict=True)
 
-    schema_version: Literal[1] = 1
-    worker_id: str = Field(pattern=r'^[0-9a-f]{32}$')
-    collected_at: float = Field(ge=0, allow_inf_nan=False)
-    dropped_series: NonNegativeInt = 0
-    series: list[PluginMetricSeries] = Field(max_length=MAX_METRIC_SERIES)
-    configurations: list[PluginConfigObservation] = Field(default_factory=list, max_length=MAX_METRIC_SERIES)
+    schema_version: Literal[1] = Field(default=1, description='数据结构的版本')
+    worker_id: str = Field(pattern=r'^[0-9a-f]{32}$', description='工作进程标识')
+    collected_at: float = Field(ge=0, allow_inf_nan=False, description='采集快照的时间戳')
+    dropped_series: NonNegativeInt = Field(default=0, description='因容量限制而舍弃的指标序列数')
+    series: list[PluginMetricSeries] = Field(max_length=MAX_METRIC_SERIES, description='按插件和操作维度聚合的指标序列')
+    configurations: list[PluginConfigObservation] = Field(
+        default_factory=list, max_length=MAX_METRIC_SERIES, description='各插件的配置观测记录'
+    )
 
 
 @dataclass
@@ -110,11 +110,11 @@ class PluginMetricInvocation:
     """
     单次调用的计时记录，结束方法幂等，避免异常分支重复计数。
 
-    :param series: 当前操作的可变指标序列
-    :param request_id: 本次调用的追踪标识
-    :param clock: 单调计时函数
-    :param started_at: 本次调用的开始时间
-    :param finished: 是否已记录结束结果
+    :ivar series: 当前操作的可变指标序列
+    :ivar request_id: 本次调用的追踪标识
+    :ivar clock: 单调计时函数
+    :ivar started_at: 本次调用的开始时间
+    :ivar finished: 是否已记录结束结果
     """
 
     series: PluginMetricSeries
@@ -130,7 +130,6 @@ class PluginMetricInvocation:
         :param outcome: 成功、客户端拒绝、失败或取消
         :param error_type: 可选的错误类型名称
         :param timed_out: 是否为超时失败
-        :return: None
         """
         if self.finished:
             return
@@ -157,12 +156,12 @@ class PluginRuntimeMetrics:
     """
     当前事件循环内的插件指标收集器，操作标签仅来自宿主和已声明任务。
 
-    :param worker_id: 当前 worker 唯一标识
-    :param clock: 单调计时函数
-    :param identities: 插件加载版本、摘要和发布代际
-    :param series: 按插件及操作索引的计数器
-    :param dropped_series: 超出容量而未采集的调用数
-    :param configurations: 当前进程的配置版本观测，不保存配置明文
+    :ivar worker_id: 当前 worker 唯一标识
+    :ivar clock: 单调计时函数
+    :ivar identities: 插件加载版本、摘要和发布代际
+    :ivar series: 按插件及操作索引的计数器
+    :ivar dropped_series: 超出容量而未采集的调用数
+    :ivar configurations: 当前进程的配置版本观测，不保存配置明文
     """
 
     worker_id: str = field(default_factory=lambda: uuid4().hex)
@@ -180,7 +179,6 @@ class PluginRuntimeMetrics:
         :param version: 实际加载版本
         :param digest: 签名制品摘要，源码插件为 None
         :param generation: 实际加载的发布代际
-        :return: None
         """
         if plugin_id in self.identities:
             return
@@ -266,6 +264,10 @@ class PluginRuntimeMetrics:
 class PluginObservedASGI:
     """
     统计完整 HTTP 请求与 WebSocket 生命周期，并为插件日志关联宿主追踪上下文。
+
+    :ivar app: 包含权限门禁的插件应用或路由
+    :ivar metrics: 当前 worker 的指标收集器
+    :ivar plugin_id: 当前插件 ID
     """
 
     def __init__(self, app: ASGIApp, metrics: PluginRuntimeMetrics, plugin_id: str) -> None:
@@ -275,7 +277,6 @@ class PluginObservedASGI:
         :param app: 包含权限门禁的插件应用或路由
         :param metrics: 当前 worker 的指标收集器
         :param plugin_id: 当前插件 ID
-        :return: None
         """
         self.app = app
         self.metrics = metrics
@@ -288,7 +289,8 @@ class PluginObservedASGI:
         :param scope: 当前请求作用域
         :param receive: 请求消息接收器
         :param send: 响应消息发送器
-        :return: None
+        :raises asyncio.CancelledError: 异步操作被取消时
+        :raises Exception: 底层操作失败时向调用方传播异常
         """
         if scope['type'] not in {'http', 'websocket'}:
             await self.app(scope, receive, send)
@@ -307,7 +309,6 @@ class PluginObservedASGI:
             观察状态码及 WebSocket 握手结果，不读取或复制响应体。
 
             :param message: 应用输出的 ASGI 消息
-            :return: None
             """
             nonlocal status_code
             if message['type'] == 'http.response.start':
@@ -341,7 +342,7 @@ class PluginObservedASGI:
             raise
         except Exception as exc:
             error_type = type(exc).__name__
-            timed_out = isinstance(exc, (TimeoutError, asyncio.TimeoutError))
+            timed_out = isinstance(exc, TimeoutError)
             raise
         finally:
             closure = scope.get(CONNECTION_OUTCOME_KEY)

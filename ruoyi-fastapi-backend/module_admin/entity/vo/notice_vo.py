@@ -1,21 +1,19 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, field_validator
 from pydantic_validation_decorator import NotBlank, Size, Xss
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 from utils.security_util import SecurityUtil
 
 
-class NoticeModel(BaseModel):
-    """
-    通知公告表对应pydantic模型
-    """
+class NoticeModel(CamelModel):
+    """通知公告表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     notice_id: int | None = Field(default=None, description='公告ID')
     notice_title: str | None = Field(default=None, description='公告标题')
@@ -54,36 +52,36 @@ class NoticeModel(BaseModel):
         message=I18nMessage('公告标题不能超过50个字符', msg_key='validation.noticeTitleLength'),
     )
     def get_notice_title(self) -> str | None:
+        """
+        校验并返回公告标题。
+
+        :return: 公告标题
+        """
         return self.notice_title
 
     def validate_fields(self) -> None:
+        """校验公告标题。"""
         self.get_notice_title()
 
 
 class NoticeQueryModel(DateRangeQueryMixin, NoticeModel):
-    """
-    通知公告管理不分页查询模型
-    """
+    """通知公告管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class NoticePageQueryModel(NoticeQueryModel):
-    """
-    通知公告管理分页查询模型
-    """
+    """通知公告管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class NoticeReadUserModel(BaseModel):
-    """
-    公告已读用户模型
-    """
+class NoticeReadUserModel(CamelModel):
+    """公告已读用户模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     user_id: int = Field(description='用户ID')
     user_name: str = Field(description='用户账号')
@@ -93,12 +91,8 @@ class NoticeReadUserModel(BaseModel):
     read_time: ApiUtcDateTime = Field(description='阅读时间')
 
 
-class NoticeReadUserPageQueryModel(BaseModel):
-    """
-    公告已读用户分页查询模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class NoticeReadUserPageQueryModel(CamelModel):
+    """公告已读用户分页查询模型。"""
 
     notice_id: int = Field(description='公告ID')
     search_value: str | None = Field(default=None, description='登录名称或用户名称')
@@ -106,22 +100,14 @@ class NoticeReadUserPageQueryModel(BaseModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteNoticeModel(BaseModel):
-    """
-    删除通知公告模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class DeleteNoticeModel(CamelModel):
+    """删除通知公告模型。"""
 
     notice_ids: str = Field(description='需要删除的公告ID')
 
 
-class NoticeTopModel(BaseModel):
-    """
-    首页顶部通知公告模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class NoticeTopModel(CamelModel):
+    """首页顶部通知公告模型。"""
 
     notice_id: int = Field(description='公告ID')
     notice_title: str = Field(description='公告标题')
@@ -132,12 +118,8 @@ class NoticeTopModel(BaseModel):
     is_read: bool = Field(default=False, description='是否已读')
 
 
-class NoticeTopResponseModel(BaseModel):
-    """
-    首页顶部通知公告响应模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class NoticeTopResponseModel(CamelModel):
+    """首页顶部通知公告响应模型。"""
 
     data: list[NoticeTopModel] = Field(description='通知公告列表')
     unread_count: int = Field(description='未读数量')

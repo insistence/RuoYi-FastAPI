@@ -20,10 +20,10 @@ class PluginStateTransition:
     """
     插件状态流转规则。
 
-    :param source: 来源状态，None 表示数据库中尚无插件状态
-    :param operation: 状态流转操作
-    :param target: 目标状态
-    :param description: 流转说明
+    :ivar source: 来源状态，None 表示数据库中尚无插件状态
+    :ivar operation: 状态流转操作
+    :ivar target: 目标状态
+    :ivar description: 流转说明
     """
 
     source: PluginStatus | None
@@ -37,10 +37,10 @@ class PluginStateSnapshot:
     """
     插件状态输入快照。
 
-    :param source_version: 当前源码版本
-    :param installed_version: 已安装版本
-    :param enabled: 是否启用
-    :param current_status: 当前持久化状态
+    :ivar source_version: 当前源码版本
+    :ivar installed_version: 已安装版本
+    :ivar enabled: 是否启用
+    :ivar current_status: 当前持久化状态
     """
 
     source_version: str | None
@@ -88,7 +88,7 @@ class PluginStateResolver:
             return False
         database_enabled = getattr(database_plugin, 'enabled', None) if database_plugin else None
         if database_enabled is not None:
-            return database_enabled == '0'
+            return bool(database_enabled == '0')
         return False
 
     @staticmethod
@@ -97,7 +97,7 @@ class PluginStateResolver:
         将布尔启停状态转换为数据库枚举值。
 
         :param enabled: 是否启用
-        :return: 数据库启停枚举值，`0` 表示启用，`1` 表示停用
+        :return: 数据库启停枚举值，``0`` 表示启用，``1`` 表示停用
         """
         return '0' if enabled else '1'
 
@@ -150,6 +150,8 @@ class PluginStateTransitionTable:
     插件状态流转表。
 
     使用 Table Driven 模式集中维护可观察的插件状态流转，供文档、测试和后续预检复用。
+
+    :cvar _TRANSITIONS: 允许的源状态和目标状态组合
     """
 
     _TRANSITIONS = (

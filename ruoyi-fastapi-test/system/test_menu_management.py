@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -9,8 +10,15 @@ from system.page import SystemPage
 pytestmark = pytest.mark.e2e
 
 
-async def add_menu_button(view: SystemPage, parent_name: str, expected: dict) -> dict:
-    """在真实父菜单下创建按钮，并校验其原文、译文与权限的保存结果。"""
+async def add_menu_button(view: SystemPage, parent_name: str, expected: dict[str, Any]) -> dict[str, Any]:
+    """
+    在真实父菜单下创建按钮，并校验其原文、译文与权限的保存结果。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param parent_name: 父级记录的显示名称
+    :param expected: 断言使用的预期结果
+    :return: 供调用方使用的 ``leaf``
+    """
     resource = '/system/menu'
     await view.button(view.row(parent_name), '新增').click()
     dialog = view.dialog

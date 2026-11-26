@@ -229,7 +229,12 @@ def test_update_previews_then_backs_up_exact_bytes_and_writes_metadata_last(
     replace = os.replace
 
     def record_replace(source: Path, target: Path) -> None:
-        """记录原子替换顺序以验证元数据只在代码之后发布。"""
+        """
+        记录原子替换顺序以验证元数据只在代码之后发布。
+
+        :param source: 本次文件操作的源路径
+        :param target: 本次操作的目标
+        """
         calls.append(target.name)
         replace(source, target)
 
@@ -389,7 +394,13 @@ def test_failed_update_restores_originals_and_keeps_backup(
     failed = False
 
     def fail_once(source: Path, target: Path) -> None:
-        """模拟磁盘替换失败一次，使后续回滚仍可写回原内容。"""
+        """
+        模拟磁盘替换失败一次，使后续回滚仍可写回原内容。
+
+        :param source: 本次文件操作的源路径
+        :param target: 本次操作的目标
+        :raises OSError: 模拟替换文件失败
+        """
         nonlocal failed
         if target.name == failure_file and not failed:
             failed = True
@@ -417,7 +428,12 @@ def test_final_content_verification_failure_rolls_back(
     corrupted = False
 
     def corrupt_once(source: Path, target: Path) -> None:
-        """模拟元数据发布后发现实际文件字节不同。"""
+        """
+        模拟元数据发布后发现实际文件字节不同。
+
+        :param source: 本次文件操作的源路径
+        :param target: 本次操作的目标
+        """
         nonlocal corrupted
         replace(source, target)
         if target.name == SDK_METADATA and not corrupted:
@@ -443,7 +459,13 @@ def test_untracked_creation_failure_removes_new_files(
     replace = os.replace
 
     def fail_metadata(source: Path, target: Path) -> None:
-        """模拟首次创建副本时发布元数据失败。"""
+        """
+        模拟首次创建副本时发布元数据失败。
+
+        :param source: 本次文件操作的源路径
+        :param target: 本次操作的目标
+        :raises OSError: 模拟写入元数据失败
+        """
         if target.name == SDK_METADATA:
             raise OSError('metadata write failed')
         replace(source, target)
@@ -465,7 +487,13 @@ def test_rollback_failure_reports_backup_and_continues_other_files(
     replace = os.replace
 
     def fail_types(source: Path, target: Path) -> None:
-        """模拟类型声明文件持续无法替换。"""
+        """
+        模拟类型声明文件持续无法替换。
+
+        :param source: 本次文件操作的源路径
+        :param target: 本次操作的目标
+        :raises OSError: 模拟类型声明文件不可用
+        """
         if target.name == SDK_FILES[1]:
             raise OSError('type file unavailable')
         replace(source, target)
@@ -492,7 +520,12 @@ def test_windows_reparse_components_are_rejected(
     lstat = Path.lstat
 
     def reparse_lstat(path: Path) -> Any:
-        """将指定路径模拟为 Windows 重解析点。"""
+        """
+        将指定路径模拟为 Windows 重解析点。
+
+        :param path: 要读取或处理的路径
+        :return: 具有模拟重解析点属性的文件状态
+        """
         if path == rejected:
             return SimpleNamespace(st_mode=stat.S_IFDIR, st_file_attributes=0x400)
         return lstat(path)

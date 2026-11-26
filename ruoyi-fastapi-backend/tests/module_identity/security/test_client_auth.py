@@ -13,6 +13,7 @@ from utils.oidc_util import OidcUtil
 
 @pytest.mark.parametrize('scheme', ['Basic', 'basic', 'BASIC', 'bAsIc'])
 def test_basic_credentials_decode_both_form_sides_and_colon(scheme: str) -> None:
+    """解析 Basic 凭据时解码两侧表单及冒号。"""
     raw = 'client+id:secret%2Bvalue%3A2'
     header = scheme + ' ' + base64.b64encode(raw.encode()).decode()
 
@@ -20,12 +21,14 @@ def test_basic_credentials_decode_both_form_sides_and_colon(scheme: str) -> None
 
 
 def test_basic_requires_strict_standard_base64() -> None:
+    """Basic 凭据必须使用严格的标准 Base64 编码。"""
     with pytest.raises(ValueError):
         OidcUtil.parse_basic_credentials('Basic !!!not-base64!!!')
 
 
 @pytest.mark.parametrize('prefix', ['', 'Bearer ', 'BasicX ', ' Basic ', 'Basic\t'])
 def test_basic_rejects_other_schemes_and_missing_space(prefix: str) -> None:
+    """Basic 认证拒绝其他方案及缺少空格的格式。"""
     header = prefix + base64.b64encode(b'client:SecretCase').decode()
     with pytest.raises(ValueError):
         OidcUtil.parse_basic_credentials(header)
@@ -40,6 +43,7 @@ def test_authentication_preserves_domain_error_for_malformed_basic(authorization
 
 
 def test_public_and_confidential_client_policy() -> None:
+    """验证公开和机密客户端的访问策略。"""
     public = {
         'client_id': 'public-app',
         'client_type': 'public',
@@ -71,6 +75,7 @@ def test_public_and_confidential_client_policy() -> None:
 
 
 def test_client_pkce_grant_and_uri_policy() -> None:
+    """验证客户端的 PKCE、授权类型及 URI 策略。"""
     with pytest.raises(ValueError):
         ClientCreateModel(
             client_name='public',
@@ -134,7 +139,7 @@ def test_client_pkce_grant_and_uri_policy() -> None:
         'backchannel_logout_uris': ['https://client.example/backchannel'],
         'cors_origins': ['https://client.example:8443'],
     }
-    assert ClientCreateModel(**valid).cors_origins == ['https://client.example:8443']
+    assert ClientCreateModel.model_validate(valid).cors_origins == ['https://client.example:8443']
     for field in ('redirect_uris', 'post_logout_redirect_uris', 'backchannel_logout_uris', 'cors_origins'):
         with pytest.raises(ValueError):
-            ClientCreateModel(**{**valid, field: ['https://user:password@client.example/callback']})
+            ClientCreateModel.model_validate({**valid, field: ['https://user:password@client.example/callback']})

@@ -16,6 +16,9 @@ from .dependency_container import PluginRuntimeDependencies
 class PluginToolUseCase:
     """
     插件运行时工具 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(self, dependencies: PluginRuntimeDependencies, context: PluginRuntimeContextService) -> None:

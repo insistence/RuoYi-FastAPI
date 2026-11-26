@@ -1,12 +1,12 @@
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, TypeVar
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 
 from plugins.core.runtime.health import PluginHealthContext
-from plugins.core.sdk import PluginDefinition, PluginHostContext, PluginRequestContext
+from plugins.core.sdk import PluginDefinition, PluginHostContext, PluginHttpRequest, PluginRequestContext
 from plugins.core.sdk.asgi import plugin_endpoint
 
 from . import service
@@ -16,13 +16,17 @@ VERSION = '1.1.0'
 _runtime = SimpleNamespace(session_factory=None)
 
 
-def _validate(model: type[BaseModel], values: dict[str, Any]) -> Any:
+_Model = TypeVar('_Model', bound=BaseModel)
+
+
+def _validate(model: type[_Model], values: dict[str, Any]) -> _Model:
     """
     校验 SDK 请求快照中的路径和查询参数。
 
     :param model: 目标参数模型
     :param values: 原始参数字段
     :return: 已校验的模型；无效输入返回 HTTP 422
+    :raises HTTPException: 路径或查询参数未通过模型校验
     """
     try:
         return model.model_validate(values)
@@ -33,14 +37,27 @@ def _validate(model: type[BaseModel], values: dict[str, Any]) -> Any:
         ) from exc
 
 
-def _task_id(context: PluginRequestContext) -> str:
+def _request(context: PluginRequestContext) -> PluginHttpRequest:
+    """
+    读取任务接口的请求快照。
+
+    :param context: 宿主传入的插件上下文
+    :return: 接口适配器填入的 HTTP 请求快照
+    :raises RuntimeError: 插件上下文缺少请求快照
+    """
+    if context.request is None:
+        raise RuntimeError('当前插件上下文缺少 HTTP 请求快照')
+    return context.request
+
+
+def _task_id(request: PluginHttpRequest) -> str:
     """
     读取 SDK 已提取的任务路径参数。
 
-    :param context: 含 HTTP 请求快照的宿主上下文
+    :param request: 含任务标识的 HTTP 请求快照
     :return: 已校验的任务标识
     """
-    return _validate(TaskIdentifier, {'id': context.request.path_params['task_id']}).id
+    return _validate(TaskIdentifier, {'id': request.path_params['task_id']}).id
 
 
 async def info(context: PluginRequestContext) -> dict[str, Any]:
@@ -48,26 +65,28 @@ async def info(context: PluginRequestContext) -> dict[str, Any]:
 
 
 async def list_tasks(context: PluginRequestContext) -> dict[str, Any]:
-    if any(len(values) != 1 for values in context.request.query.values()):
+    params = _request(context).query
+    if any(len(values) != 1 for values in params.values()):
         raise HTTPException(status_code=422, detail='查询参数不能重复')
-    query = _validate(TaskQuery, {key: values[0] for key, values in context.request.query.items()})
+    query = _validate(TaskQuery, {key: values[0] for key, values in params.items()})
     return await service.list_tasks(context, query)
 
 
 async def get_task(context: PluginRequestContext) -> dict[str, Any]:
-    return await service.get_task(context, _task_id(context))
+    return await service.get_task(context, _task_id(_request(context)))
 
 
 async def create_task(context: PluginRequestContext) -> dict[str, Any]:
-    return await service.create_task(context, context.request.body)
+    return await service.create_task(context, _request(context).body)
 
 
 async def update_task(context: PluginRequestContext) -> dict[str, Any]:
-    return await service.update_task(context, _task_id(context), context.request.body)
+    request = _request(context)
+    return await service.update_task(context, _task_id(request), request.body)
 
 
 async def delete_task(context: PluginRequestContext) -> dict[str, bool]:
-    return await service.delete_task(context, _task_id(context))
+    return await service.delete_task(context, _task_id(_request(context)))
 
 
 def create_plugin(host: PluginHostContext) -> PluginDefinition:
@@ -88,24 +107,48 @@ def create_plugin(host: PluginHostContext) -> PluginDefinition:
         :return: 任务管理 ASGI 子应用
         """
         app = FastAPI(title='持久化任务示例', docs_url=None, redoc_url=None, openapi_url=None)
-        app.add_api_route('/api/info', plugin_endpoint(info, permission='task_demo:view'), methods=['GET'])
-        app.add_api_route('/api/tasks', plugin_endpoint(list_tasks, permission='task_demo:view'), methods=['GET'])
         app.add_api_route(
-            '/api/tasks/{task_id}', plugin_endpoint(get_task, permission='task_demo:view'), methods=['GET']
+            '/api/info',
+            plugin_endpoint(info, permission='task_demo:view'),
+            summary='查询任务插件信息',
+            description='返回插件标识、版本，以及当前用户是否可以修改任务。',
+            methods=['GET'],
+        )
+        app.add_api_route(
+            '/api/tasks',
+            plugin_endpoint(list_tasks, permission='task_demo:view'),
+            summary='分页查询任务',
+            description='按完成状态筛选任务，并返回指定页的任务记录。',
+            methods=['GET'],
+        )
+        app.add_api_route(
+            '/api/tasks/{task_id}',
+            plugin_endpoint(get_task, permission='task_demo:view'),
+            summary='查询任务详情',
+            description='按路径中的任务标识读取单条任务记录。',
+            methods=['GET'],
         )
         app.add_api_route(
             '/api/tasks',
             plugin_endpoint(create_task, permission='task_demo:write', body_model=TaskInput, max_body_bytes=8192),
+            summary='创建任务',
+            description='校验任务标题、内容、状态与优先级，保存并返回新建的任务。',
             methods=['POST'],
             status_code=201,
         )
         app.add_api_route(
             '/api/tasks/{task_id}',
             plugin_endpoint(update_task, permission='task_demo:write', body_model=TaskInput, max_body_bytes=8192),
+            summary='更新任务',
+            description='按任务标识替换标题、内容、状态和优先级，并返回更新结果。',
             methods=['PUT'],
         )
         app.add_api_route(
-            '/api/tasks/{task_id}', plugin_endpoint(delete_task, permission='task_demo:write'), methods=['DELETE']
+            '/api/tasks/{task_id}',
+            plugin_endpoint(delete_task, permission='task_demo:write'),
+            summary='删除任务',
+            description='删除指定标识的任务并返回删除结果。',
+            methods=['DELETE'],
         )
         return app
 

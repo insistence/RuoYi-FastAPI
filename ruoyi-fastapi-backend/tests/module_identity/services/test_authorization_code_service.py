@@ -15,7 +15,12 @@ _LONG_CODE_TTL = 600
 
 
 def _payload(**overrides: object) -> dict[str, object]:
-    """构造服务端授权码白名单载荷。"""
+    """
+    构造服务端授权码白名单载荷。
+
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 服务端授权码白名单载荷
+    """
     value: dict[str, object] = {
         'clientPk': 1001,
         'redirectUri': 'https://portal.example/callback',
@@ -39,7 +44,7 @@ def _payload(**overrides: object) -> dict[str, object]:
 async def test_issue_uses_ac_key_nx_ttl_and_never_stores_plain_code() -> None:
     """验证授权码使用独立 key、NX/TTL，并只保存摘要。"""
     redis = FakeRedis()
-    code = await AuthorizationCodeService.issue(redis, _payload(), ttl_seconds=90, pepper=_PEPPER)
+    code = await AuthorizationCodeService.issue(redis.client, _payload(), ttl_seconds=90, pepper=_PEPPER)
     assert code.startswith('ac1.')
     key = OidcRedisKey.authorization_code(code.split('.')[1])
     stored = redis.values[key][0]
@@ -50,11 +55,11 @@ async def test_issue_uses_ac_key_nx_ttl_and_never_stores_plain_code() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('ttl', [0, False, -1])
-async def test_issue_rejects_explicit_invalid_ttl(ttl: object) -> None:
+async def test_issue_rejects_explicit_invalid_ttl(ttl: int) -> None:
     """验证显式零值、布尔值和负数不会回退到默认 Code TTL。"""
     redis = FakeRedis()
     with pytest.raises(ValueError):
-        await AuthorizationCodeService.issue(redis, _payload(), ttl_seconds=ttl, pepper=_PEPPER)  # type: ignore[arg-type]
+        await AuthorizationCodeService.issue(redis.client, _payload(), ttl_seconds=ttl, pepper=_PEPPER)
     assert not redis.values
 
 
@@ -62,21 +67,23 @@ async def test_issue_rejects_explicit_invalid_ttl(ttl: object) -> None:
 async def test_wrong_secret_does_not_consume_and_correct_secret_consumes_once() -> None:
     """验证错误 Secret 不删除 Code，正确消费具备一次性语义。"""
     redis = FakeRedis()
-    code = await AuthorizationCodeService.issue(redis, _payload(), pepper=_PEPPER)
+    code = await AuthorizationCodeService.issue(redis.client, _payload(), pepper=_PEPPER)
     parts = code.split('.')
     replacement = 'A' if parts[2][0] != 'A' else 'B'
     wrong = f'{parts[0]}.{parts[1]}.{replacement}{parts[2][1:]}'
     with pytest.raises(OAuthProtocolException) as raised:
-        await AuthorizationCodeService.consume(redis, wrong, pepper=_PEPPER)
+        await AuthorizationCodeService.consume(redis.client, wrong, pepper=_PEPPER)
     assert raised.value.error == 'invalid_grant'
     assert await redis.get(OidcRedisKey.authorization_code(parts[1])) is not None
     assert await redis.get(OidcRedisKey.authorization_code_consumed(parts[1])) is None
-    consumed = await AuthorizationCodeService.consume(redis, code, pepper=_PEPPER)
+    consumed = await AuthorizationCodeService.consume(redis.client, code, pepper=_PEPPER)
     assert consumed['clientPk'] == _CLIENT_PK
     assert await redis.get(OidcRedisKey.authorization_code_consumed(parts[1])) == 'consumed'
-    assert (await AuthorizationCodeService.consumed_payload(redis, code, pepper=_PEPPER))['grantId'] == 'grant-2001'
+    payload = await AuthorizationCodeService.consumed_payload(redis.client, code, pepper=_PEPPER)
+    assert payload is not None
+    assert payload['grantId'] == 'grant-2001'
     with pytest.raises(OAuthProtocolException) as reused:
-        await AuthorizationCodeService.consume(redis, code, pepper=_PEPPER)
+        await AuthorizationCodeService.consume(redis.client, code, pepper=_PEPPER)
     assert isinstance(reused.value, AuthorizationCodeReuseError)
 
 
@@ -87,9 +94,9 @@ async def test_reuse_tombstone_ttl_covers_long_authorization_code_ttl(
     """验证授权码 TTL 超过最小墓碑 TTL 时，重用墓碑覆盖完整 Code 生命周期。"""
     monkeypatch.setattr(OidcConfig, 'oidc_authorization_code_ttl_seconds', _LONG_CODE_TTL)
     redis = FakeRedis()
-    code = await AuthorizationCodeService.issue(redis, _payload(), pepper=_PEPPER)
+    code = await AuthorizationCodeService.issue(redis.client, _payload(), pepper=_PEPPER)
 
-    await AuthorizationCodeService.consume(redis, code, pepper=_PEPPER)
+    await AuthorizationCodeService.consume(redis.client, code, pepper=_PEPPER)
 
     assert redis.eval_calls[-1][1][-1] == _LONG_CODE_TTL
 
@@ -98,10 +105,10 @@ async def test_reuse_tombstone_ttl_covers_long_authorization_code_ttl(
 async def test_concurrent_correct_consumption_only_succeeds_once() -> None:
     """验证两个并发正确消费请求只有一个能取得载荷。"""
     redis = FakeRedis()
-    code = await AuthorizationCodeService.issue(redis, _payload(), pepper=_PEPPER)
+    code = await AuthorizationCodeService.issue(redis.client, _payload(), pepper=_PEPPER)
     results = await asyncio.gather(
-        AuthorizationCodeService.consume(redis, code, pepper=_PEPPER),
-        AuthorizationCodeService.consume(redis, code, pepper=_PEPPER),
+        AuthorizationCodeService.consume(redis.client, code, pepper=_PEPPER),
+        AuthorizationCodeService.consume(redis.client, code, pepper=_PEPPER),
         return_exceptions=True,
     )
     assert sum(isinstance(result, dict) for result in results) == 1
@@ -114,11 +121,13 @@ async def test_invalid_payload_and_format_fail_closed_without_redis_write() -> N
     """验证缺失、未知对象和畸形 Code 均 fail closed。"""
     redis = FakeRedis()
     with pytest.raises(ValueError):
-        await AuthorizationCodeService.issue(redis, _payload(extra='unknown'), pepper=_PEPPER)
+        await AuthorizationCodeService.issue(redis.client, _payload(extra='unknown'), pepper=_PEPPER)
     with pytest.raises(ValueError):
-        await AuthorizationCodeService.issue(redis, _payload(scopes=['openid'], codeChallenge='short'), pepper=_PEPPER)
+        await AuthorizationCodeService.issue(
+            redis.client, _payload(scopes=['openid'], codeChallenge='short'), pepper=_PEPPER
+        )
     with pytest.raises(OAuthProtocolException) as raised:
-        await AuthorizationCodeService.consume(redis, 'ac1.invalid.short', pepper=_PEPPER)
+        await AuthorizationCodeService.consume(redis.client, 'ac1.invalid.short', pepper=_PEPPER)
     assert raised.value.error == 'invalid_grant'
     assert not redis.values
 
@@ -127,11 +136,11 @@ async def test_invalid_payload_and_format_fail_closed_without_redis_write() -> N
 async def test_expired_code_is_invalid_grant() -> None:
     """验证 Redis TTL 到期后返回统一 invalid_grant。"""
     redis = FakeRedis()
-    code = await AuthorizationCodeService.issue(redis, _payload(), ttl_seconds=1, pepper=_PEPPER)
+    code = await AuthorizationCodeService.issue(redis.client, _payload(), ttl_seconds=1, pepper=_PEPPER)
     key = OidcRedisKey.authorization_code(code.split('.')[1])
     redis.values[key] = (redis.values[key][0], 0)
     with pytest.raises(OAuthProtocolException) as raised:
-        await AuthorizationCodeService.consume(redis, code, pepper=_PEPPER)
+        await AuthorizationCodeService.consume(redis.client, code, pepper=_PEPPER)
     assert raised.value.error == 'invalid_grant'
     assert await redis.get(OidcRedisKey.authorization_code_consumed(code.split('.')[1])) is None
 
@@ -141,21 +150,21 @@ async def test_invalid_auth_time_and_duplicate_lists_are_rejected() -> None:
     """验证授权码时间必须为 UTC，Scope/Resource 列表不得重复。"""
     redis = FakeRedis()
     with pytest.raises(ValueError):
-        await AuthorizationCodeService.issue(redis, _payload(authTime='2026-08-24T04:00:00'), pepper=_PEPPER)
+        await AuthorizationCodeService.issue(redis.client, _payload(authTime='2026-08-24T04:00:00'), pepper=_PEPPER)
     with pytest.raises(ValueError):
-        await AuthorizationCodeService.issue(redis, _payload(scopes=['openid', 'openid']), pepper=_PEPPER)
+        await AuthorizationCodeService.issue(redis.client, _payload(scopes=['openid', 'openid']), pepper=_PEPPER)
     with pytest.raises(ValueError):
-        await AuthorizationCodeService.issue(redis, _payload(resources=['api', 'api']), pepper=_PEPPER)
+        await AuthorizationCodeService.issue(redis.client, _payload(resources=['api', 'api']), pepper=_PEPPER)
 
 
 @pytest.mark.asyncio
 async def test_consumed_corrupt_payload_is_invalid_grant() -> None:
     """验证 Lua 已删除但载荷校验失败仍返回统一 OAuth 错误。"""
     redis = FakeRedis()
-    code = await AuthorizationCodeService.issue(redis, _payload(), pepper=_PEPPER)
+    code = await AuthorizationCodeService.issue(redis.client, _payload(), pepper=_PEPPER)
     key = OidcRedisKey.authorization_code(code.split('.')[1])
     value, expiry = redis.values[key]
     redis.values[key] = (value.replace('"authTime":"2026-08-24T04:00:00+00:00"', '"authTime":"bad"'), expiry)
     with pytest.raises(OAuthProtocolException) as raised:
-        await AuthorizationCodeService.consume(redis, code, pepper=_PEPPER)
+        await AuthorizationCodeService.consume(redis.client, code, pepper=_PEPPER)
     assert raised.value.error == 'invalid_grant'

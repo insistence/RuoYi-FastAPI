@@ -26,7 +26,12 @@ def test_plugin_runtime_builder_resolves_frontend_plugins_root_from_backend_root
 
 
 def write_manifest(plugin_dir: Path, content: str) -> None:
-    """写入测试插件清单。"""
+    """
+    写入测试插件清单。
+
+    :param plugin_dir: 保存插件清单和资源的目录
+    :param content: 需要读取或写入的内容
+    """
     plugin_dir.mkdir(parents=True)
     (plugin_dir / 'plugin.yaml').write_text(content, encoding='utf-8')
 
@@ -74,10 +79,10 @@ backend:
 """,
     )
     database_plugin = PluginModel(
-        pluginId='demo',
-        pluginName='演示插件',
+        plugin_id='demo',
+        plugin_name='演示插件',
         version='1.0.0',
-        installedVersion='1.0.0',
+        installed_version='1.0.0',
         enabled='1',
         status='installed',
     )
@@ -111,10 +116,10 @@ backend:
     registry = builder.build_registry(
         [
             PluginModel(
-                pluginId='sample_entity',
-                pluginName='演示插件',
+                plugin_id='sample_entity',
+                plugin_name='演示插件',
                 version='1.0.0',
-                installedVersion='1.0.0',
+                installed_version='1.0.0',
                 enabled='0',
                 status='installed',
             )
@@ -149,10 +154,10 @@ backend:
     registry = builder.build_registry(
         [
             PluginModel(
-                pluginId='broken_entity',
-                pluginName='异常插件',
+                plugin_id='broken_entity',
+                plugin_name='异常插件',
                 version='1.0.0',
-                installedVersion='1.0.0',
+                installed_version='1.0.0',
                 enabled='0',
                 status='installed',
             )

@@ -1,11 +1,11 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import WebSocket
+from fastapi import FastAPI, WebSocket
 from starlette import status
 from starlette.types import Message
 
@@ -36,7 +36,11 @@ async def start_stream(runtime_browser: SimpleNamespace, *, bearer: bool = False
     await result.incoming.put({'type': 'http.request', 'body': b'', 'more_body': False})
 
     async def send(message: Message) -> None:
-        """保留流输出并在首个响应片段到达时继续测试。"""
+        """
+        保留流输出并在首个响应片段到达时继续测试。
+
+        :param message: 与当前结果一起返回的说明
+        """
         result.messages.append(message)
         if message['type'] == 'http.response.body' and message.get('body'):
             result.chunks.append(message['body'])
@@ -68,7 +72,11 @@ async def start_stream(runtime_browser: SimpleNamespace, *, bearer: bool = False
 
 
 async def finish_stream(stream: SimpleNamespace) -> None:
-    """回收测试连接，保证失败分支也不会遗留请求任务。"""
+    """
+    回收测试连接，保证失败分支也不会遗留请求任务。
+
+    :param stream: 需要逐块读取的流
+    """
     await stream.incoming.put({'type': 'http.disconnect'})
     if not stream.task.done():
         stream.task.cancel()
@@ -84,12 +92,19 @@ async def test_websocket_cookie_origin_and_live_login_revocation(
     """WebSocket 保留精确 Origin 门禁，已握手的连接在主登录失效后关闭。"""
     loaded = browser.runtime.loaded['browser_test']
     loaded.gateway.connections.recheck_interval = 0.01
+    plugin_app = loaded.lifespan.app
+    assert isinstance(plugin_app, FastAPI)
     opened = asyncio.Event()
     messages = []
-    incoming: asyncio.Queue = asyncio.Queue()
+    incoming: asyncio.Queue[Message] = asyncio.Queue()
 
-    @loaded.lifespan.app.websocket('/ws/events')
+    @plugin_app.websocket('/ws/events')
     async def events(websocket: WebSocket) -> None:
+        """
+        接受插件事件连接并处理测试消息。
+
+        :param websocket: 当前 WebSocket 连接
+        """
         websocket.state.plugin_context.require_permission('browser_test:view')
         await websocket.accept()
         opened.set()
@@ -100,7 +115,11 @@ async def test_websocket_cookie_origin_and_live_login_revocation(
     await incoming.put({'type': 'websocket.connect'})
 
     async def send(message: Message) -> None:
-        """保留 WebSocket 接受及关闭消息。"""
+        """
+        保留 WebSocket 接受及关闭消息。
+
+        :param message: 与当前结果一起返回的说明
+        """
         messages.append(message)
 
     task = asyncio.create_task(
@@ -207,8 +226,12 @@ async def test_recheck_uses_fresh_closed_db_sessions_and_does_not_refresh_bearer
     checked = asyncio.Event()
 
     @asynccontextmanager
-    async def session() -> AsyncIterator[object]:
-        """统计独立数据库会话在复核之间全部关闭。"""
+    async def session() -> AsyncGenerator[object, None]:
+        """
+        统计独立数据库会话在复核之间全部关闭。
+
+        :yield: 用于本次复核的独立会话
+        """
         sessions.active += 1
         sessions.opened += 1
         try:
@@ -217,7 +240,12 @@ async def test_recheck_uses_fresh_closed_db_sessions_and_does_not_refresh_bearer
             sessions.active -= 1
 
     async def read_user(**kwargs: object) -> object:
-        """记录只读登录验证并返回固定账号。"""
+        """
+        记录只读登录验证并返回固定账号。
+
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 固定账号
+        """
         checked.set()
         return browser.user
 
@@ -233,6 +261,6 @@ async def test_recheck_uses_fresh_closed_db_sessions_and_does_not_refresh_bearer
         assert sessions.active == 0 and sessions.opened > 1
         initial.assert_awaited_once()
         assert readonly.await_count > 0
-        assert readonly.await_args.kwargs['token'] == browser.token
+        assert readonly.await_args_list[-1].kwargs['token'] == browser.token
     finally:
         await finish_stream(stream)

@@ -39,7 +39,6 @@ def import_table(
     :param allow_prod: 是否允许生产环境危险命令
     :param yes: 是否跳过确认
     :param dry_run: 是否演练执行
-    :return: None
     """
     _GEN_COMMAND_CONTROLLER.import_table(
         table_names,
@@ -76,7 +75,6 @@ def list_command(
     :param paged: 是否启用分页
     :param page_num: 页码
     :param page_size: 每页数量
-    :return: None
     """
     _GEN_COMMAND_CONTROLLER.list_tables(
         env,
@@ -114,7 +112,6 @@ def db_list(
     :param paged: 是否启用分页
     :param page_num: 页码
     :param page_size: 每页数量
-    :return: None
     """
     _GEN_COMMAND_CONTROLLER.list_db_tables(
         env,
@@ -139,7 +136,6 @@ def detail(
     :param table_id: 业务表 ID
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _GEN_COMMAND_CONTROLLER.show_detail(table_id, env, output)
 
@@ -169,7 +165,6 @@ def create_table(
     :param dry_run: 是否演练执行
     :param sql: 直接传入的 SQL 文本
     :param sql_file: SQL 文件路径
-    :return: None
     """
     _GEN_COMMAND_CONTROLLER.create_table(
         env,
@@ -194,7 +189,6 @@ def preview(
     :param table_id: 业务表 ID
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _GEN_COMMAND_CONTROLLER.preview(table_id, env, output)
 
@@ -232,7 +226,6 @@ def export(
     :param dry_run: 是否演练执行
     :param mode: 导出模式
     :param output_file: zip 导出目标文件路径
-    :return: None
     """
     _GEN_COMMAND_CONTROLLER.export(
         table_names,
@@ -268,6 +261,5 @@ def sync_db(
     :param output: 输出格式
     :param allow_prod: 是否允许生产环境危险命令
     :param yes: 是否跳过确认
-    :return: None
     """
     _GEN_COMMAND_CONTROLLER.sync_db(table_name, env, output, allow_prod, yes)

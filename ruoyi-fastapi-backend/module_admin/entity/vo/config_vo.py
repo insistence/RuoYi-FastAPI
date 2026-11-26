@@ -1,20 +1,18 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 from pydantic_validation_decorator import NotBlank, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 
 
-class ConfigModel(BaseModel):
-    """
-    参数配置表对应pydantic模型
-    """
+class ConfigModel(CamelModel):
+    """参数配置表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     config_id: int | None = Field(default=None, description='参数主键')
     config_name: str | None = Field(default=None, description='参数名称')
@@ -35,6 +33,11 @@ class ConfigModel(BaseModel):
         message=I18nMessage('参数名称长度不能超过100个字符', msg_key='validation.configNameLength'),
     )
     def get_config_key(self) -> str | None:
+        """
+        校验并返回参数键名。
+
+        :return: 参数键名
+        """
         return self.config_key
 
     @NotBlank(field_name='config_name', message=I18nMessage('参数键名不能为空', msg_key='validation.configKeyRequired'))
@@ -45,6 +48,11 @@ class ConfigModel(BaseModel):
         message=I18nMessage('参数键名长度不能超过100个字符', msg_key='validation.configKeyLength'),
     )
     def get_config_name(self) -> str | None:
+        """
+        校验并返回参数名称。
+
+        :return: 参数名称
+        """
         return self.config_name
 
     @NotBlank(
@@ -57,37 +65,35 @@ class ConfigModel(BaseModel):
         message=I18nMessage('参数键值长度不能超过500个字符', msg_key='validation.configValueLength'),
     )
     def get_config_value(self) -> str | None:
+        """
+        校验并返回参数键值。
+
+        :return: 参数键值
+        """
         return self.config_value
 
     def validate_fields(self) -> None:
+        """校验参数键名、参数名称、参数键值。"""
         self.get_config_key()
         self.get_config_name()
         self.get_config_value()
 
 
 class ConfigQueryModel(DateRangeQueryMixin, ConfigModel):
-    """
-    参数配置管理不分页查询模型
-    """
+    """参数配置管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class ConfigPageQueryModel(ConfigQueryModel):
-    """
-    参数配置管理分页查询模型
-    """
+    """参数配置管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteConfigModel(BaseModel):
-    """
-    删除参数配置模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class DeleteConfigModel(CamelModel):
+    """删除参数配置模型。"""
 
     config_ids: str = Field(description='需要删除的参数主键')

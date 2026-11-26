@@ -1,10 +1,9 @@
 import inspect
 from collections.abc import Awaitable, Callable, Sequence
-from typing import TypeVar
+from typing import ParamSpec, TypeVar, cast
 
 from fastapi import Request
 from redis import asyncio as aioredis
-from typing_extensions import ParamSpec
 
 from common.enums import HttpMethod
 from utils.log_util import logger
@@ -14,14 +13,12 @@ R = TypeVar('R')
 
 
 class ApiAnnotationUtil:
-    """
-    接口装饰器通用工具类
-    """
+    """接口装饰器通用工具类。"""
 
     @classmethod
     def get_request(cls, func: Callable[P, Awaitable[R]], *args: P.args, **kwargs: P.kwargs) -> Request | None:
         """
-        从被装饰函数的入参中提取Request对象
+        从被装饰函数的入参中提取Request对象。
 
         :param func: 被装饰的异步接口函数
         :param args: 位置参数
@@ -32,14 +29,14 @@ class ApiAnnotationUtil:
         bound_arguments = signature.bind_partial(*args, **kwargs)
         for argument in bound_arguments.arguments.values():
             if isinstance(argument, Request):
-                return argument
+                return cast('Request', argument)
 
         return None
 
     @classmethod
     def get_redis_client(cls, request: Request, skip_message: str) -> aioredis.Redis | None:
         """
-        从应用状态中获取Redis连接
+        从应用状态中获取Redis连接。
 
         :param request: 当前请求对象
         :param skip_message: 未初始化Redis连接时的日志信息
@@ -49,7 +46,7 @@ class ApiAnnotationUtil:
         if redis is None:
             logger.warning(skip_message)
 
-        return redis
+        return cast('aioredis.Redis | None', redis)
 
     @classmethod
     def resolve_request_redis(
@@ -60,7 +57,7 @@ class ApiAnnotationUtil:
         **kwargs: P.kwargs,
     ) -> tuple[Request | None, aioredis.Redis | None]:
         """
-        从被装饰函数入参中同时解析Request与Redis连接
+        从被装饰函数入参中同时解析Request与Redis连接。
 
         :param func: 被装饰的异步接口函数
         :param skip_message: 未初始化Redis连接时的日志信息
@@ -81,11 +78,12 @@ class ApiAnnotationUtil:
         default_methods: Sequence[HttpMethod] | None = None,
     ) -> tuple[str, ...]:
         """
-        标准化HTTP请求方法配置
+        标准化HTTP请求方法配置。
 
         :param methods: 显式配置的HTTP请求方法
         :param default_methods: methods为空时使用的默认HTTP请求方法
         :return: 去重且标准化后的HTTP请求方法元组
+        :raises TypeError: methods参数仅支持HttpMethod枚举
         """
         target_methods = methods if methods is not None else default_methods
         if not target_methods:

@@ -3,9 +3,12 @@ import json
 import os
 import threading
 from collections.abc import AsyncGenerator, AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from fnmatch import fnmatchcase
 from importlib import import_module
+from multiprocessing.context import SpawnProcess
+from multiprocessing.queues import Queue
+from multiprocessing.synchronize import Event
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -13,11 +16,20 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from config.database import DataSourceRegistry
+from config.get_redis import RedisUtil
+from plugins.core.runtime.service.lifecycle_lock import RedisPluginLifecycleLock
 from scripts import plugin_release_integration as harness
 
 
 @pytest.fixture
 def run_spec(tmp_path: Path) -> harness.RunSpec:
+    """
+    生成当前测试目录对应的运行配置。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 当前测试目录对应的运行配置
+    """
     return harness.RunSpec('mysql', '0123456789abcdef' * 2, str(tmp_path))
 
 
@@ -28,7 +40,6 @@ def built_task_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
     :param tmp_path: pytest 临时目录
     :param monkeypatch: 测试内属性替换工具
-    :return: None
     """
     backend = tmp_path / 'backend'
     entry = backend / 'plugins' / 'examples' / 'python' / 'task_demo' / 'web' / 'dist' / 'index.html'
@@ -41,6 +52,7 @@ def built_task_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 def test_main_without_opt_in_never_opens_database_or_redis(
     engine: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """未显式启用时主程序不连接数据库或 Redis。"""
     monkeypatch.delenv(harness.OPT_IN, raising=False)
     database_engine = Mock(side_effect=AssertionError('Database access is forbidden'))
     redis_client = Mock(side_effect=AssertionError('Redis access is forbidden'))
@@ -61,6 +73,7 @@ def test_main_without_opt_in_never_opens_database_or_redis(
 def test_opt_in_requires_explicit_password_environment(
     engine: str, password: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """显式启用时必须通过环境变量提供密码。"""
     monkeypatch.setenv(harness.OPT_IN, '1')
     monkeypatch.delenv(password, raising=False)
     monkeypatch.delenv('RUOYI_IT_REDIS_PASSWORD', raising=False)
@@ -77,6 +90,7 @@ def test_opt_in_requires_explicit_password_environment(
 def test_cli_wait_environment_targets_only_the_isolated_database_without_mutating_parent(
     engine: str, run_spec: harness.RunSpec, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """等待命令仅使用隔离数据库且不修改父进程环境。"""
     spec = harness.RunSpec(engine, run_spec.run_id, run_spec.root)
     prefix = 'RUOYI_IT_MYSQL' if engine == 'mysql' else 'RUOYI_IT_PG'
     monkeypatch.setenv(harness.OPT_IN, '1')
@@ -106,11 +120,13 @@ def test_cli_wait_environment_targets_only_the_isolated_database_without_mutatin
     ['', 'a' * 31, 'a' * 33, 'A' * 32, 'g' * 32, '../production', 'a' * 31 + ';', 'a' * 31 + "'", 'a' * 32 + '\n'],
 )
 def test_run_spec_rejects_unsafe_database_and_redis_identity(run_id: str, tmp_path: Path) -> None:
+    """运行规格拒绝不安全的数据库或 Redis 标识。"""
     with pytest.raises(ValueError, match='identity'):
         harness.RunSpec('mysql', run_id, str(tmp_path)).validate()
 
 
 def test_run_spec_rejects_other_engine_or_relative_root(tmp_path: Path, run_spec: harness.RunSpec) -> None:
+    """运行规格拒绝其他引擎或相对根路径。"""
     with pytest.raises(ValueError, match='identity'):
         harness.RunSpec('sqlite', run_spec.run_id, str(tmp_path)).validate()
     with pytest.raises(ValueError, match='absolute'):
@@ -124,11 +140,17 @@ def test_run_spec_rejects_other_engine_or_relative_root(tmp_path: Path, run_spec
 async def test_prepare_schema_uses_initial_sql_without_drop_or_seed_data(
     engine: str, initial_filename: str, run_spec: harness.RunSpec
 ) -> None:
+    """使用初始 SQL 准备结构且不删库或导入种子数据。"""
     spec = harness.RunSpec(engine, run_spec.run_id, run_spec.root)
     connection = SimpleNamespace(exec_driver_sql=AsyncMock(), execute=AsyncMock(return_value=SimpleNamespace(all=list)))
 
     @asynccontextmanager
     async def begin() -> AsyncGenerator[Any, None]:
+        """
+        提供受测试状态控制的事务上下文。
+
+        :yield: 受测试状态控制的事务上下文
+        """
         yield connection
 
     await harness.prepare_schema(spec, SimpleNamespace(begin=begin))
@@ -174,6 +196,7 @@ async def test_prepare_schema_uses_initial_sql_without_drop_or_seed_data(
 async def test_prepare_schema_rejects_incomplete_or_duplicate_host_ddl_before_execution(
     invalid_schema: str, table_name: str, run_spec: harness.RunSpec, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """执行前拒绝不完整或重复的宿主建表语句。"""
     initial_sql = (harness.BACKEND_ROOT / 'sql' / 'ruoyi-fastapi.sql').read_text('utf-8')
     if invalid_schema == 'missing':
         initial_sql = initial_sql.replace(f'{table_name} (', f'unused_{table_name} (')
@@ -196,11 +219,17 @@ async def test_prepare_schema_rejects_incomplete_or_duplicate_host_ddl_before_ex
 async def test_database_ddl_only_addresses_validated_run_database(
     engine: str, quote: str, run_spec: harness.RunSpec
 ) -> None:
+    """数据库 DDL 仅操作已校验的本次运行数据库。"""
     spec = harness.RunSpec(engine, run_spec.run_id, run_spec.root)
     connection = SimpleNamespace(exec_driver_sql=AsyncMock())
 
     @asynccontextmanager
     async def connect() -> AsyncGenerator[Any, None]:
+        """
+        在上下文内提供测试连接。
+
+        :yield: 当前操作使用的连接
+        """
         yield connection
 
     admin = SimpleNamespace(connect=Mock(side_effect=connect))
@@ -225,6 +254,7 @@ async def test_database_ddl_only_addresses_validated_run_database(
 async def test_run_drops_database_only_after_successful_create(
     created: bool, run_spec: harness.RunSpec, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """仅清理本次成功创建的数据库。"""
     admin = SimpleNamespace(dispose=AsyncMock())
     engine = SimpleNamespace(dispose=AsyncMock())
     factory = Mock(side_effect=[admin, engine])
@@ -260,6 +290,7 @@ async def test_run_drops_database_only_after_successful_create(
 async def test_run_continues_owned_cleanup_after_engine_dispose_error(
     run_spec: harness.RunSpec, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """释放引擎失败后仍继续清理自有资源。"""
     admin = SimpleNamespace(dispose=AsyncMock())
     engine = SimpleNamespace(dispose=AsyncMock(side_effect=RuntimeError('engine disposal failed')))
     clear = AsyncMock(return_value=0)
@@ -269,11 +300,10 @@ async def test_run_continues_owned_cleanup_after_engine_dispose_error(
     monkeypatch.setattr(harness, 'create_isolated_database', AsyncMock())
     monkeypatch.setattr(harness, 'prepare_schema', AsyncMock())
     monkeypatch.setattr(harness, 'exercise_release', AsyncMock())
-    monkeypatch.setattr(harness, 'wire_runtime', Mock(return_value=(object(), object())))
+    monkeypatch.setattr(harness, 'wire_runtime', Mock(return_value=nullcontext((object(), object()))))
     monkeypatch.setattr(import_module('plugins.core.deployment.service'), 'PluginDeploymentService', Mock())
-    monkeypatch.setattr(
-        import_module('scripts.plugin_task_integration'), 'exercise_task_delivery', AsyncMock(return_value={})
-    )
+    deliver_task = AsyncMock(return_value={})
+    monkeypatch.setattr(import_module('scripts.plugin_task_integration'), 'exercise_task_delivery', deliver_task)
     monkeypatch.setattr(harness, 'clear_own_redis_keys', clear)
     monkeypatch.setattr(harness, 'drop_isolated_database', drop)
     monkeypatch.setattr(harness, 'emit', Mock())
@@ -281,6 +311,7 @@ async def test_run_continues_owned_cleanup_after_engine_dispose_error(
     with pytest.raises(RuntimeError, match='engine disposal failed'):
         await harness.run(run_spec)
 
+    deliver_task.assert_awaited_once()
     clear.assert_awaited_once_with(run_spec)
     drop.assert_awaited_once_with(run_spec, admin)
     admin.dispose.assert_awaited_once()
@@ -290,18 +321,31 @@ async def test_run_continues_owned_cleanup_after_engine_dispose_error(
 async def test_redis_cleanup_scans_and_deletes_only_its_run_prefix(
     run_spec: harness.RunSpec, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Redis 清理只扫描和删除本次运行前缀。"""
     own_keys = {f'{run_spec.redis_prefix}ready:generation', f'{run_spec.redis_prefix}lifecycle:global'}
     foreign_keys = {'plugin:lifecycle:lock:global', f'ruoyi_plugin_it:{"f" * 32}:ready:generation'}
     keys = own_keys | foreign_keys
     scans = []
 
     async def scan_iter(**kwargs: Any) -> AsyncIterator[str]:
+        """
+        逐个返回匹配模式的缓存键。
+
+        :param kwargs: 传给被调用对象的关键字参数
+        :yield: 匹配模式的缓存键
+        """
         scans.append(kwargs['match'])
         for key in sorted(keys):
             if fnmatchcase(key, kwargs['match']):
                 yield key
 
     async def delete(key: str) -> int:
+        """
+        删除测试缓存项及其过期状态。
+
+        :param key: 查找数据时使用的键
+        :return: 此分支的固定值 ``1``
+        """
         keys.remove(key)
         return 1
 
@@ -319,7 +363,15 @@ async def test_redis_cleanup_scans_and_deletes_only_its_run_prefix(
 async def test_redis_cleanup_refuses_foreign_key_even_if_scan_returns_it(
     run_spec: harness.RunSpec, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """即使扫描返回其他键也拒绝删除。"""
+
     async def scan_iter(**kwargs: Any) -> AsyncIterator[str]:
+        """
+        逐个返回匹配模式的缓存键。
+
+        :param kwargs: 传给被调用对象的关键字参数
+        :yield: 此分支的固定值 ``'plugin:lifecycle:lock:global'``
+        """
         yield 'plugin:lifecycle:lock:global'
 
     client = SimpleNamespace(scan_iter=scan_iter, delete=AsyncMock(), aclose=AsyncMock())
@@ -331,6 +383,7 @@ async def test_redis_cleanup_refuses_foreign_key_even_if_scan_returns_it(
 
 
 def test_safe_error_redacts_explicit_credentials_and_bounds_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """错误输出隐藏显式凭据并限制长度。"""
     password = 'db-password-unique-92ab'
     secret = 'redis-secret-unique-57ef'
     monkeypatch.setenv('RUOYI_IT_MYSQL_PASSWORD', password)
@@ -347,6 +400,7 @@ def test_safe_error_redacts_explicit_credentials_and_bounds_output(monkeypatch: 
 def test_workers_pass_independent_stop_events_to_spawned_processes(
     run_spec: harness.RunSpec, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """每个派生工作进程使用独立的停止事件。"""
     events = [SimpleNamespace(set=Mock()), SimpleNamespace(set=Mock())]
     queue = SimpleNamespace(close=Mock(), join_thread=Mock())
     context = SimpleNamespace(
@@ -373,21 +427,30 @@ def test_workers_pass_independent_stop_events_to_spawned_processes(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('second_state', ['killed', 'dead'])
 async def test_workers_close_skips_killed_or_dead_stop_event_but_stops_healthy_worker(second_state: str) -> None:
-    healthy_stop = SimpleNamespace(set=Mock())
-    unusable_stop = SimpleNamespace(set=Mock(side_effect=AssertionError('Terminated waiter poisoned this event')))
-    healthy = SimpleNamespace(pid=101, exitcode=0, is_alive=Mock(return_value=True), terminate=Mock())
-    second = SimpleNamespace(
-        pid=102,
-        exitcode=-15 if second_state == 'killed' else 0,
-        is_alive=Mock(return_value=second_state == 'killed'),
-        terminate=Mock(),
-    )
+    """关闭时跳过已终止进程的事件并停止健康进程。"""
+    healthy_stop = Mock(spec_set=Event)
+    unusable_stop = Mock(spec_set=Event)
+    unusable_stop.set.side_effect = AssertionError('Terminated waiter poisoned this event')
+    healthy = Mock(spec_set=SpawnProcess, pid=101, exitcode=0)
+    healthy.is_alive.return_value = True
+    second = Mock(spec_set=SpawnProcess, pid=102, exitcode=-15 if second_state == 'killed' else 0)
+    second.is_alive.return_value = second_state == 'killed'
 
     def join_healthy(timeout: float) -> None:
+        """
+        模拟健康工作线程正常停止。
+
+        :param timeout: 等待操作完成的超时限制
+        """
         healthy_stop.set.assert_called_once()
         healthy.is_alive.return_value = False
 
     def join_second(timeout: float) -> None:
+        """
+        标记第二个工作线程已退出。
+
+        :param timeout: 等待操作完成的超时限制
+        """
         second.is_alive.return_value = False
 
     healthy.join = Mock(side_effect=join_healthy)
@@ -396,7 +459,8 @@ async def test_workers_close_skips_killed_or_dead_stop_event_but_stops_healthy_w
     workers.stops = [healthy_stop, unusable_stop]
     workers.processes = [healthy, second]
     workers.killed = {1} if second_state == 'killed' else set()
-    workers.queue = SimpleNamespace(close=Mock(), join_thread=Mock())
+    queue = Mock(spec_set=Queue)
+    workers.queue = queue
 
     await workers.close()
 
@@ -406,18 +470,26 @@ async def test_workers_close_skips_killed_or_dead_stop_event_but_stops_healthy_w
     second.join.assert_called_once()
     healthy.terminate.assert_not_called()
     second.terminate.assert_not_called()
-    workers.queue.close.assert_called_once()
-    workers.queue.join_thread.assert_called_once()
+    queue.close.assert_called_once()
+    queue.join_thread.assert_called_once()
 
 
 def _wait_for_isolated_stop(stop: Any, ready: Any, index: int) -> None:
-    """子进程入口不导入应用模块，也不访问外部服务。"""
+    """
+    子进程入口不导入应用模块，也不访问外部服务。
+
+    :param stop: 通知正在运行的任务停止的信号
+    :param ready: 依赖检查是否已就绪
+    :param index: 当前条目在序列中的位置
+    :raises RuntimeError: 隔离的停止事件等待超过安全时限
+    """
     ready.put(index)
     if not stop.wait(30):
         raise RuntimeError('Offline event waiter exceeded its safety timeout')
 
 
 def test_real_spawn_terminated_waiter_does_not_block_other_worker_shutdown() -> None:
+    """实际派生的等待进程被终止后不阻塞其他进程关闭。"""
     context = harness.multiprocessing.get_context('spawn')
     workers = harness.Workers.__new__(harness.Workers)
     workers.stops = [context.Event(), context.Event()]
@@ -430,10 +502,12 @@ def test_real_spawn_terminated_waiter_does_not_block_other_worker_shutdown() -> 
     failures: list[BaseException] = []
 
     async def stop_group() -> None:
+        """停止工作进程组并等待清理。"""
         await workers.kill_failed_worker()
         await workers.close()
 
     def close_in_guarded_thread() -> None:
+        """在线程内执行关闭操作并记录结果。"""
         try:
             asyncio.run(stop_group())
         except BaseException as exc:
@@ -472,6 +546,7 @@ def test_real_spawn_terminated_waiter_does_not_block_other_worker_shutdown() -> 
 async def test_run_requires_built_bundle_before_opening_any_resource(
     tmp_path: Path, run_spec: harness.RunSpec, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """运行前确认资源包已构建才打开外部资源。"""
     monkeypatch.setattr(harness, 'BACKEND_ROOT', tmp_path / 'unbuilt-backend')
     configure = Mock(side_effect=AssertionError('Configuration must remain untouched'))
     factory = Mock(side_effect=AssertionError('Database access is forbidden'))
@@ -486,3 +561,24 @@ async def test_run_requires_built_bundle_before_opening_any_resource(
     configure.assert_not_called()
     factory.assert_not_called()
     redis.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_wire_runtime_restores_host_factories_after_failure(
+    run_spec: harness.RunSpec, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """隔离验收失败后恢复宿主会话工厂、Redis 工厂和生命周期锁命名空间。"""
+    client = Mock()
+    monkeypatch.setattr(harness, 'redis_client', lambda: client)
+    original_session = DataSourceRegistry.session
+    original_pool = RedisUtil.create_redis_pool
+    original_key = RedisPluginLifecycleLock._build_lock_key()
+
+    with pytest.raises(RuntimeError, match='中止验收'), harness.wire_runtime(run_spec, None):
+        assert await RedisUtil.create_redis_pool() is client
+        assert RedisPluginLifecycleLock._build_lock_key() == f'{run_spec.redis_prefix}lifecycle:global'
+        raise RuntimeError('中止验收')
+
+    assert DataSourceRegistry.session == original_session
+    assert RedisUtil.create_redis_pool == original_pool
+    assert RedisPluginLifecycleLock._build_lock_key() == original_key

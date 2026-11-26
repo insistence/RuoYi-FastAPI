@@ -1,24 +1,24 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from plugins.core.state import PluginStatus
 from plugins.core.types import PluginConfigValue
 
 PluginEnabled = Literal['0', '1']
 
 
-class PluginModel(BaseModel):
+class PluginModel(CamelModel):
     """
     插件信息表对应 pydantic 模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     plugin_id: str = Field(description='插件ID')
     plugin_name: str | None = Field(default=None, description='插件名称')
@@ -47,14 +47,14 @@ class PluginModel(BaseModel):
     release: dict[str, Any] | None = Field(default=None, description='制品目标发布及各worker实际加载状态')
 
 
-class PluginQueryModel(BaseModel):
+class PluginQueryModel(CamelModel):
     """
     插件管理不分页查询模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     plugin_id: str | None = Field(default=None, description='插件ID')
     plugin_name: str | None = Field(default=None, description='插件名称')
@@ -74,14 +74,14 @@ class PluginPageQueryModel(PluginQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class PluginBatchActionModel(BaseModel):
+class PluginBatchActionModel(CamelModel):
     """
     插件批量执行请求体模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     operation: Literal['install', 'enable', 'upgrade'] = Field(description='批量操作类型：install、enable 或 upgrade')
     plugin_ids: list[str] | None = Field(default=None, description='插件ID列表')
@@ -89,14 +89,14 @@ class PluginBatchActionModel(BaseModel):
     continue_on_error: bool = Field(default=False, description='失败后是否继续执行后续插件')
 
 
-class PluginOperationLogModel(BaseModel):
+class PluginOperationLogModel(CamelModel):
     """
     插件批量操作审计日志表对应 pydantic 模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     operation_id: int | None = Field(default=None, description='操作日志ID')
     operation: str = Field(description='操作类型')
@@ -110,14 +110,14 @@ class PluginOperationLogModel(BaseModel):
     remark: str | None = Field(default=None, description='备注')
 
 
-class PluginOperationLogQueryModel(DateRangeQueryMixin, BaseModel):
+class PluginOperationLogQueryModel(DateRangeQueryMixin, CamelModel):
     """
     插件批量操作审计日志不分页查询模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     plugin_id: str | None = Field(default=None, description='插件ID')
     operation: str | None = Field(default=None, description='操作类型')
@@ -147,14 +147,14 @@ class PluginOperationLogExportQueryModel(PluginOperationLogQueryModel):
     export_limit: int = Field(default=5000, ge=1, le=50000, description='导出最大记录数')
 
 
-class PluginOperationLogDetailModel(BaseModel):
+class PluginOperationLogDetailModel(CamelModel):
     """
     插件批量操作审计日志详情模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     operation_id: int | None = Field(default=None, description='操作日志ID')
     operation: str = Field(description='操作类型')
@@ -168,27 +168,27 @@ class PluginOperationLogDetailModel(BaseModel):
     remark: str | None = Field(default=None, description='备注')
 
 
-class PluginOperationLogRetentionModel(BaseModel):
+class PluginOperationLogRetentionModel(CamelModel):
     """
     插件批量操作审计日志保留策略模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     retention_days: int = Field(default=180, ge=0, description='审计日志保留天数，0表示清理当前时间之前的全部日志')
     dry_run: bool = Field(default=True, description='是否仅预览清理结果')
 
 
-class PluginOperationLogRetentionResultModel(BaseModel):
+class PluginOperationLogRetentionResultModel(CamelModel):
     """
     插件批量操作审计日志保留策略执行结果模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     retention_days: int = Field(description='审计日志保留天数')
     cutoff_time: ApiUtcDateTime = Field(description='清理截止时间')
@@ -197,14 +197,14 @@ class PluginOperationLogRetentionResultModel(BaseModel):
     dry_run: bool = Field(description='是否仅预览清理结果')
 
 
-class PluginMenuModel(BaseModel):
+class PluginMenuModel(CamelModel):
     """
     插件和菜单关联表对应 pydantic 模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     plugin_id: str = Field(description='插件ID')
     menu_id: int = Field(description='菜单ID')
@@ -212,14 +212,14 @@ class PluginMenuModel(BaseModel):
     create_time: ApiUtcDateTime | None = Field(default=None, description='创建时间')
 
 
-class PluginMigrationModel(BaseModel):
+class PluginMigrationModel(CamelModel):
     """
     插件 migration 执行历史表对应 pydantic 模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     plugin_id: str = Field(description='插件ID')
     migration_path: str = Field(description='migration 相对路径')
@@ -235,27 +235,27 @@ class PluginMigrationModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
 
 
-class PluginMigrationRecoveryModel(BaseModel):
+class PluginMigrationRecoveryModel(CamelModel):
     """
     插件 migration 人工恢复请求模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     migration_path: str = Field(description='migration 相对路径')
     note: str | None = Field(default=None, description='人工恢复备注')
 
 
-class PluginConfigModel(BaseModel):
+class PluginConfigModel(CamelModel):
     """
     插件配置表对应 pydantic 模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     plugin_id: str = Field(description='插件ID')
     config_key: str = Field(description='配置键名')
@@ -271,14 +271,14 @@ class PluginConfigModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
 
 
-class PluginConfigValueModel(BaseModel):
+class PluginConfigValueModel(CamelModel):
     """
     插件配置值模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     key: str = Field(description='配置键名')
     label: str | None = Field(default=None, description='配置展示名称')
@@ -297,25 +297,25 @@ class PluginConfigValueModel(BaseModel):
     description: str | None = Field(default=None, description='配置说明')
 
 
-class PluginConfigUpdateModel(BaseModel):
+class PluginConfigUpdateModel(CamelModel):
     """
     插件配置更新模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     values: dict[str, PluginConfigValue] = Field(default_factory=dict, description='待更新的插件配置键值')
 
 
-class PluginConfigImportModel(BaseModel):
+class PluginConfigImportModel(CamelModel):
     """
     插件配置导入模型。
 
     模型字段说明通过 Field 的 description 声明。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     values: dict[str, PluginConfigValue] = Field(default_factory=dict, description='待导入的插件配置键值')

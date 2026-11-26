@@ -7,20 +7,17 @@ from module_admin.entity.do.user_do import SysUser, SysUserRole
 
 
 class IdentityUserDao:
-    """
-    Identity User 数据库操作层
-    """
+    """Identity User 数据库操作层。"""
 
     @classmethod
     async def get_active_user(cls, db: AsyncSession, user_id: int) -> SysUser | None:
         """
-        按用户编号查询活跃用户
+        按用户编号查询活跃用户。
 
         :param db: orm对象
         :param user_id: 用户编号
         :return: SysUser，不存在时返回 None
         """
-
         result = await db.execute(
             select(SysUser).where(SysUser.status == '0', SysUser.del_flag == '0', SysUser.user_id == user_id)
         )
@@ -30,25 +27,23 @@ class IdentityUserDao:
     @classmethod
     async def get_user(cls, db: AsyncSession, user_id: int) -> SysUser | None:
         """
-        按用户编号查询用户
+        按用户编号查询用户。
 
         :param db: orm对象
         :param user_id: 用户编号
         :return: SysUser，不存在时返回 None
         """
-
         return await db.scalar(select(SysUser).where(SysUser.user_id == user_id))
 
     @classmethod
     async def list_user_ids_by_role_id(cls, db: AsyncSession, role_id: int) -> list[int]:
         """
-        按角色编号查询用户编号
+        按角色编号查询用户编号。
 
         :param db: orm对象
         :param role_id: 角色编号
         :return: 用户编号列表
         """
-
         result = await db.execute(
             select(SysUserRole.user_id).where(SysUserRole.role_id == role_id).order_by(SysUserRole.user_id)
         )
@@ -58,13 +53,12 @@ class IdentityUserDao:
     @classmethod
     async def get_claim_attributes(cls, db: AsyncSession, user_id: int) -> tuple[list[str], SysDept | None]:
         """
-        查询用户声明属性和部门
+        查询用户声明属性和部门。
 
         :param db: orm对象
         :param user_id: 用户编号
         :return: 声明名称列表和 SysDept，部门不存在时为 None
         """
-
         role_result = await db.execute(
             select(SysRole.role_key)
             .join(SysUserRole, SysUserRole.role_id == SysRole.role_id)

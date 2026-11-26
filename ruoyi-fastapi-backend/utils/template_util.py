@@ -11,21 +11,21 @@ from exceptions.exception import ServiceWarning
 from module_generator.entity.vo.gen_vo import GenTableColumnModel, GenTableModel
 from utils.common_util import CamelCaseUtil, SnakeCaseUtil
 from utils.gen_i18n_util import GenI18nUtil
+from utils.gen_util import GenUtils
 from utils.string_util import StringUtil
 from utils.time_util import GenTimeUtil, TimezoneUtil
 
 
 class TemplateInitializer:
-    """
-    模板引擎初始化类
-    """
+    """模板引擎初始化类。"""
 
     @classmethod
     def init_jinja2(cls) -> Environment:
         """
-        初始化 Jinja2 模板引擎
+        初始化 Jinja2 模板引擎。
 
         :return: Jinja2 环境对象
+        :raises RuntimeError: Jinja2 环境初始化失败
         """
         try:
             template_dir = os.path.join(os.getcwd(), 'module_generator', 'templates')
@@ -35,14 +35,16 @@ class TemplateInitializer:
                 trim_blocks=True,
                 lstrip_blocks=True,
             )
-            # Generated source and previews should keep readable Unicode labels.
-            # tojson still escapes quotes, backslashes and HTML-sensitive characters.
+            # 生成源码和预览时保留可读的 Unicode 标签。
+            # tojson 仍会转义引号、反斜杠及 HTML 敏感字符。
             env.policies['json.dumps_kwargs'] = {**env.policies['json.dumps_kwargs'], 'ensure_ascii': False}
             env.filters.update(
                 {
                     'camel_to_snake': SnakeCaseUtil.camel_to_snake,
                     'snake_to_camel': CamelCaseUtil.snake_to_camel,
                     'get_sqlalchemy_type': TemplateUtils.get_sqlalchemy_type,
+                    'model_field_label': TemplateUtils.model_field_label,
+                    'python_literal': repr,
                 }
             )
             return env
@@ -52,7 +54,12 @@ class TemplateInitializer:
 
 class TemplateUtils:
     """
-    模板工具类
+    模板工具类。
+
+    :cvar FRONTEND_PROJECT_PATH: 生成器定位前端资源使用的项目路径
+    :cvar BACKEND_PROJECT_PATH: 生成器定位后端资源使用的项目路径
+    :cvar DEFAULT_PARENT_MENU_ID: 生成菜单时使用的默认上级菜单标识
+    :cvar FORM_COL_SPAN_MAP: 表单列数到栅格宽度的映射
     """
 
     # 项目路径
@@ -64,19 +71,28 @@ class TemplateUtils:
     @classmethod
     def prepare_context(cls, gen_table: GenTableModel) -> dict[str, Any]:
         """
-        准备模板变量
+        准备模板变量。
 
         :param gen_table: 生成表的配置信息
         :return: 模板上下文字典
+        :raises ServiceWarning: 请先完善生成配置信息
         """
         if not gen_table.options:
             raise ServiceWarning(message='请先完善生成配置信息', msg_key='generator.configurationRequired')
         gen_table = gen_table.model_copy(deep=True)
-        cls.prepare_time_columns(gen_table)
-        class_name = gen_table.class_name
-        module_name = gen_table.module_name
-        business_name = gen_table.business_name
-        package_name = gen_table.package_name
+        for table in (gen_table, gen_table.sub_table):
+            if table is None:
+                continue
+            for column in [*(table.columns or []), table.pk_column]:
+                if column and not (column.column_comment or '').strip():
+                    column.column_comment = {'create_time': '创建时间', 'update_time': '更新时间'}.get(
+                        column.column_name, f'字段 {column.column_name}'
+                    )
+        cls.prepare_column_types(gen_table)
+        class_name = GenUtils.require_metadata(gen_table.class_name)
+        module_name = GenUtils.require_metadata(gen_table.module_name)
+        business_name = GenUtils.require_metadata(gen_table.business_name)
+        package_name = GenUtils.require_metadata(gen_table.package_name)
         tpl_category = gen_table.tpl_category
         function_name = gen_table.function_name
 
@@ -87,7 +103,7 @@ class TemplateUtils:
             'tplCategory': tpl_category,
             'tableName': gen_table.table_name,
             'tableComment': gen_table.table_comment,
-            'functionName': function_name if StringUtil.is_not_empty(function_name) else '【请填写功能名称】',
+            'functionName': function_name or '【请填写功能名称】',
             'ClassName': class_name,
             'className': class_name.lower(),
             'moduleName': module_name,
@@ -120,6 +136,7 @@ class TemplateUtils:
             else [],
             'table': gen_table,
             'dicts': cls.get_dicts(gen_table),
+            'exportDictTypes': sorted({col.dict_type for col in gen_table.columns or [] if col.dict_type}),
             'dbType': source_config.db_type,
             'dataSourceName': source_name,
             'defaultDataSourceName': default_source_name,
@@ -155,25 +172,44 @@ class TemplateUtils:
 
         return context
 
-    @classmethod
-    def prepare_time_columns(cls, gen_table: GenTableModel) -> None:
+    @staticmethod
+    def model_field_label(comment: str) -> str:
         """
-        规范化模板副本中的主表和子表时间字段
+        保留列的原始说明，并为外语标签补充中文字段标识。
+
+        :param comment: 生成配置中的列说明
+        :return: 写入数据库模型和接口模型的字段说明
+        """
+        return comment if re.search(r'[\u3400-\u9fff\U00020000-\U0002fa1f]', comment) else f'字段 {comment}'
+
+    @classmethod
+    def prepare_column_types(cls, gen_table: GenTableModel) -> None:
+        """
+        准备主表、子表及主键的 Python 类型和时间字段语义。
 
         只处理模板副本，不改写数据库中保存的生成配置。
 
         :param gen_table: 用于渲染的生成表配置副本
+        :raises ServiceWarning: 生成表的时间列不能映射为明确的时间语义
         """
         db_type = DataBaseConfig.get_source(gen_table.data_source_name).db_type
         for table in [gen_table, gen_table.sub_table]:
             if table is None:
                 continue
-            for column in table.columns or []:
+            columns = list(table.columns or [])
+            if table.pk_column is not None:
+                columns.append(table.pk_column)
+            for column in columns:
                 try:
-                    semantics = GenTimeUtil.get_time_semantics(column.column_type, db_type)
-                    GenTimeUtil.validate_time_control(column.column_type, db_type, column.html_type)
+                    column_type = GenUtils.require_metadata(column.column_type)
+                    semantics = GenTimeUtil.get_time_semantics(column_type, db_type)
+                    GenTimeUtil.validate_time_control(column_type, db_type, column.html_type)
                 except ServiceWarning as exc:
                     raise ServiceWarning(message=f'{table.table_name}.{column.column_name}: {exc.message}') from exc
+                if column.python_type == 'dict':
+                    column.python_type = 'dict[str, object]'
+                elif column.python_type == 'list':
+                    column.python_type = 'list[object]'
                 column.vo_type = column.python_type
                 if semantics:
                     column.time_kind = semantics.kind
@@ -182,9 +218,9 @@ class TemplateUtils:
                     column.html_type = semantics.control
 
     @classmethod
-    def set_extensions_context(cls, context: dict, gen_table: GenTableModel) -> None:
+    def set_extensions_context(cls, context: dict[str, Any], gen_table: GenTableModel) -> None:
         """
-        设置扩展功能上下文
+        设置扩展功能上下文。
 
         :param context: 模板上下文字典
         :param gen_table: 生成表的配置信息
@@ -193,47 +229,47 @@ class TemplateUtils:
         context['genView'] = cls.get_gen_view(params_obj)
 
     @classmethod
-    def set_menu_context(cls, context: dict, gen_table: GenTableModel) -> None:
+    def set_menu_context(cls, context: dict[str, Any], gen_table: GenTableModel) -> None:
         """
-        设置菜单上下文
+        设置菜单上下文。
 
         :param context: 模板上下文字典
         :param gen_table: 生成表的配置信息
-        :return: 新的模板上下文字典
         """
-        options = gen_table.options
-        params_obj = json.loads(options)
+        params_obj = json.loads(gen_table.options or '{}')
         context['parentMenuId'] = cls.get_parent_menu_id(params_obj)
 
     @classmethod
-    def set_tree_context(cls, context: dict, gen_table: GenTableModel) -> None:
+    def set_tree_context(cls, context: dict[str, Any], gen_table: GenTableModel) -> None:
         """
-        设置树形结构上下文
+        设置树形结构上下文。
 
         :param context: 模板上下文字典
         :param gen_table: 生成表的配置信息
-        :return: 新的模板上下文字典
         """
-        options = gen_table.options
-        params_obj = json.loads(options)
+        params_obj = json.loads(gen_table.options or '{}')
         context['treeCode'] = cls.get_tree_code(params_obj)
         context['treeParentCode'] = cls.get_tree_parent_code(params_obj)
         context['treeName'] = cls.get_tree_name(params_obj)
         context['expandColumn'] = cls.get_expand_column(gen_table)
 
     @classmethod
-    def set_sub_context(cls, context: dict, gen_table: GenTableModel) -> None:
+    def set_sub_context(cls, context: dict[str, Any], gen_table: GenTableModel) -> None:
         """
-        设置子表上下文
+        设置子表上下文。
 
         :param context: 模板上下文字典
         :param gen_table: 生成表的配置信息
-        :return: 新的模板上下文字典
+        :raises ServiceWarning: 缺少关联子表或外键名
         """
         sub_table = gen_table.sub_table
         sub_table_name = gen_table.sub_table_name
+        if sub_table is None:
+            raise ServiceWarning(message='关联子表的表名不能为空', msg_key='generator.childTableRequired')
         sub_table_fk_name = gen_table.sub_table_fk_name
-        sub_class_name = sub_table.class_name
+        if not sub_table_fk_name:
+            raise ServiceWarning(message='子表关联的外键名不能为空', msg_key='generator.childForeignKeyRequired')
+        sub_class_name = GenUtils.require_metadata(sub_table.class_name)
         sub_table_fk_class_name = StringUtil.convert_to_camel_case(sub_table_fk_name)
         context['subTable'] = sub_table
         context['subTableName'] = sub_table_name
@@ -246,7 +282,7 @@ class TemplateUtils:
     @classmethod
     def get_template_list(cls, gen_table: GenTableModel) -> list[str]:
         """
-        获取模板列表
+        获取模板列表。
 
         :param gen_table: 生成表的配置信息
         :return: 模板列表
@@ -275,23 +311,35 @@ class TemplateUtils:
             templates.append(f'{use_web_type}/index-tree.{extension}.jinja2')
         elif tpl_category == GenConstant.TPL_SUB:
             templates.append(f'{use_web_type}/index.{extension}.jinja2')
-            # templates.append('python/sub-domain.python.jinja2')
+
         if cls.get_gen_view(params_obj):
             templates.append(f'{use_web_type}/view.{extension}.jinja2')
         return templates
 
+    @staticmethod
+    def render_templates(env: Environment, templates: list[str], context: dict[str, Any]) -> dict[str, str]:
+        """
+        使用同一份上下文渲染模板，并按项目规则排版 Python 产物。
+
+        :param env: 代码生成模板环境
+        :param templates: 已选择的模板名称
+        :param context: 当前表的渲染上下文
+        :return: 按模板名索引的生成文件内容
+        """
+        return GenUtils.format_generated_python({name: env.get_template(name).render(**context) for name in templates})
+
     @classmethod
     def get_file_name(cls, template: str, gen_table: GenTableModel) -> str:
         """
-        根据模板生成文件名
+        根据模板生成文件名。
 
         :param template: 模板路径
         :param gen_table: 生成表的配置信息
         :return: 模板生成文件名
         """
-        package_name = gen_table.package_name
-        module_name = gen_table.module_name
-        business_name = gen_table.business_name
+        package_name = GenUtils.require_metadata(gen_table.package_name)
+        module_name = GenUtils.require_metadata(gen_table.module_name)
+        business_name = GenUtils.require_metadata(gen_table.business_name)
 
         vue_path = cls.FRONTEND_PROJECT_PATH
         python_path = f'{cls.BACKEND_PROJECT_PATH}/{package_name.replace(".", "/")}'
@@ -320,7 +368,7 @@ class TemplateUtils:
     @classmethod
     def get_package_prefix(cls, package_name: str) -> str:
         """
-        获取包前缀
+        获取包前缀。
 
         :param package_name: 包名
         :return: 包前缀
@@ -330,7 +378,7 @@ class TemplateUtils:
     @classmethod
     def get_vo_import_list(cls, gen_table: GenTableModel) -> list[str]:
         """
-        获取vo模板导入包列表
+        获取vo模板导入包列表。
 
         :param gen_table: 生成表的配置信息
         :return: 导入包列表
@@ -341,37 +389,39 @@ class TemplateUtils:
             if table is None:
                 continue
             for column in table.columns or []:
-                semantics = GenTimeUtil.get_time_semantics(column.column_type, db_type)
+                semantics = GenTimeUtil.get_time_semantics(GenUtils.require_metadata(column.column_type), db_type)
                 if semantics:
                     import_list.add(f'from common.types import {semantics.vo_type}')
+                    if table is gen_table and column.query_type == 'BETWEEN' and semantics.kind == 'instant':
+                        import_list.add('from common.types import BusinessDate')
+                elif column.python_type == 'timedelta':
+                    import_list.add('from datetime import timedelta')
                 elif column.python_type == GenConstant.TYPE_DECIMAL:
                     import_list.add('from decimal import Decimal')
-        if any(
-            column.query_type == 'BETWEEN' and GenTimeUtil.get_time_semantics(column.column_type, db_type)
-            for column in gen_table.columns or []
-        ):
-            import_list.add('from common.types import BusinessDate')
         return cls.merge_same_imports(sorted(import_list), 'from common.types import')
 
     @classmethod
     def get_do_import_list(cls, gen_table: GenTableModel) -> list[str]:
         """
-        根据实际ORM列类型构建生成模型的导入列表
+        根据实际ORM列类型构建生成模型的导入列表。
 
         :param gen_table: 生成表配置信息
         :return: 已合并同源导入的语句列表
         """
-        import_list = {'from sqlalchemy import Column'}
-        if gen_table.sub:
-            import_list.add('from sqlalchemy import ForeignKey')
-        for table in [gen_table, gen_table.sub_table]:
-            if table is None:
-                continue
+        import_list = {'from sqlalchemy import ForeignKey'} if gen_table.sub else set()
+        for table in filter(None, (gen_table, gen_table.sub_table)):
             for column in table.columns or []:
-                sqlalchemy_type = cls.get_sqlalchemy_type(column.column_type, gen_table.data_source_name)
+                sqlalchemy_type = cls.get_sqlalchemy_type(
+                    GenUtils.require_metadata(column.column_type), gen_table.data_source_name
+                )
+                if sqlalchemy_type == 'DbUtcDateTime' and column.column_name in {'create_time', 'update_time'}:
+                    continue
+                if column.python_type in [*GenConstant.TYPE_DATE, 'timedelta']:
+                    import_list.add(f'from datetime import {column.python_type}')
+                elif column.python_type == GenConstant.TYPE_DECIMAL:
+                    import_list.add('from decimal import Decimal')
                 if sqlalchemy_type == 'DbUtcDateTime':
-                    if column.column_name not in {'create_time', 'update_time'}:
-                        import_list.add('from common.types import DbUtcDateTime')
+                    import_list.add('from common.types import DbUtcDateTime')
                 elif sqlalchemy_type == 'Geometry':
                     import_list.add('from geoalchemy2 import Geometry')
                 elif sqlalchemy_type.startswith('TIME('):
@@ -381,12 +431,15 @@ class TemplateUtils:
                     import_list.add(f'from sqlalchemy.dialects.postgresql import {sqlalchemy_type}')
                 else:
                     import_list.add(f'from sqlalchemy import {sqlalchemy_type.split("(", 1)[0]}')
-        return cls.merge_same_imports(sorted(import_list), 'from sqlalchemy import')
+        imports = sorted(import_list)
+        for prefix in ('from datetime import', 'from sqlalchemy import', 'from sqlalchemy.dialects.postgresql import'):
+            imports = cls.merge_same_imports(imports, prefix)
+        return sorted(imports)
 
     @classmethod
     def get_db_type(cls, column_type: str) -> str:
         """
-        获取规范化的数据库列类型
+        获取规范化的数据库列类型。
 
         :param column_type: 数据库列类型
         :return: 保留时区限定的规范化类型名称
@@ -396,7 +449,7 @@ class TemplateUtils:
     @classmethod
     def merge_same_imports(cls, imports: list[str], import_start: str) -> list[str]:
         """
-        合并相同的导入语句
+        合并相同的导入语句。
 
         :param imports: 导入语句列表
         :param import_start: 导入语句的起始字符串
@@ -412,39 +465,38 @@ class TemplateUtils:
                 merged_imports.append(import_stmt)
 
         if _imports:
-            merged_datetime_import = f'{import_start} {", ".join(_imports)}'
-            merged_imports.append(merged_datetime_import)
+            _imports.sort(key=lambda name: (not name.isupper(), name.lower()))
+            merged_imports.append(f'{import_start} {", ".join(_imports)}')
 
         return merged_imports
 
     @classmethod
     def get_dicts(cls, gen_table: GenTableModel) -> str:
         """
-        获取字典列表
+        获取字典列表。
 
         :param gen_table: 生成表的配置信息
         :return: 字典列表
         """
         columns = gen_table.columns or []
-        dicts = set()
+        dicts: set[str] = set()
         cls.add_dicts(dicts, columns)
         if gen_table.sub_table is not None:
-            cls.add_dicts(dicts, gen_table.sub_table.columns)
+            cls.add_dicts(dicts, gen_table.sub_table.columns or [])
         return ', '.join(dicts)
 
     @classmethod
     def add_dicts(cls, dicts: set[str], columns: list[GenTableColumnModel]) -> None:
         """
-        添加字典列表
+        添加字典列表。
 
         :param dicts: 字典列表
         :param columns: 字段列表
-        :return: 新的字典列表
         """
         for column in columns:
             if (
                 not column.super_column
-                and StringUtil.is_not_empty(column.dict_type)
+                and column.dict_type
                 and StringUtil.equals_any_ignore_case(
                     column.html_type, [GenConstant.HTML_SELECT, GenConstant.HTML_RADIO, GenConstant.HTML_CHECKBOX]
                 )
@@ -454,7 +506,7 @@ class TemplateUtils:
     @classmethod
     def get_permission_prefix(cls, module_name: str, business_name: str) -> str:
         """
-        获取权限前缀
+        获取权限前缀。
 
         :param module_name: 模块名
         :param business_name: 业务名
@@ -465,7 +517,7 @@ class TemplateUtils:
     @classmethod
     def get_col_span(cls, form_col_num: int | None) -> str:
         """
-        根据表单列数获取栅格跨度
+        根据表单列数获取栅格跨度。
 
         :param form_col_num: 表单列数
         :return: 栅格跨度
@@ -473,21 +525,22 @@ class TemplateUtils:
         return cls.FORM_COL_SPAN_MAP.get(form_col_num, '24')
 
     @classmethod
-    def get_parent_menu_id(cls, params_obj: dict) -> str:
+    def get_parent_menu_id(cls, params_obj: dict[str, Any]) -> int | str:
         """
-        获取上级菜单ID
+        获取上级菜单ID。
 
         :param params_obj: 菜单参数字典
         :return: 上级菜单ID
         """
-        if params_obj and params_obj.get(GenConstant.PARENT_MENU_ID):
-            return params_obj.get(GenConstant.PARENT_MENU_ID)
+        parent_id = params_obj.get(GenConstant.PARENT_MENU_ID)
+        if isinstance(parent_id, (int, str)) and parent_id:
+            return parent_id
         return cls.DEFAULT_PARENT_MENU_ID
 
     @classmethod
-    def get_gen_view(cls, params_obj: dict | None) -> bool:
+    def get_gen_view(cls, params_obj: dict[str, Any] | None) -> bool:
         """
-        获取是否生成详情页
+        获取是否生成详情页。
 
         :param params_obj: 生成选项
         :return: 是否生成详情页
@@ -502,51 +555,50 @@ class TemplateUtils:
         return str(value).lower() in {'1', 'true', 'yes', 'y'}
 
     @classmethod
-    def get_tree_code(cls, params_obj: dict) -> str:
+    def get_tree_code(cls, params_obj: dict[str, Any]) -> str:
         """
-        获取树编码
+        获取树编码。
 
         :param params_obj: 菜单参数字典
         :return: 树编码
         """
-        if GenConstant.TREE_CODE in params_obj:
-            return cls.to_camel_case(params_obj.get(GenConstant.TREE_CODE))
+        if value := params_obj.get(GenConstant.TREE_CODE):
+            return cls.to_camel_case(value)
         return ''
 
     @classmethod
-    def get_tree_parent_code(cls, params_obj: dict) -> str:
+    def get_tree_parent_code(cls, params_obj: dict[str, Any]) -> str:
         """
-        获取树父编码
+        获取树父编码。
 
         :param params_obj: 菜单参数字典
         :return: 树父编码
         """
-        if GenConstant.TREE_PARENT_CODE in params_obj:
-            return cls.to_camel_case(params_obj.get(GenConstant.TREE_PARENT_CODE))
+        if value := params_obj.get(GenConstant.TREE_PARENT_CODE):
+            return cls.to_camel_case(value)
         return ''
 
     @classmethod
-    def get_tree_name(cls, params_obj: dict) -> str:
+    def get_tree_name(cls, params_obj: dict[str, Any]) -> str:
         """
-        获取树名称
+        获取树名称。
 
         :param params_obj: 菜单参数字典
         :return: 树名称
         """
-        if GenConstant.TREE_NAME in params_obj:
-            return cls.to_camel_case(params_obj.get(GenConstant.TREE_NAME))
+        if value := params_obj.get(GenConstant.TREE_NAME):
+            return cls.to_camel_case(value)
         return ''
 
     @classmethod
     def get_expand_column(cls, gen_table: GenTableModel) -> int:
         """
-        获取展开列
+        获取展开列。
 
         :param gen_table: 生成表的配置信息
         :return: 展开列
         """
-        options = gen_table.options
-        params_obj = json.loads(options)
+        params_obj = json.loads(gen_table.options or '{}')
         tree_name = params_obj.get(GenConstant.TREE_NAME)
         num = 0
         for column in gen_table.columns or []:
@@ -559,7 +611,7 @@ class TemplateUtils:
     @classmethod
     def to_camel_case(cls, text: str) -> str:
         """
-        将字符串转换为驼峰命名
+        将字符串转换为驼峰命名。
 
         :param text: 待转换的字符串
         :return: 转换后的驼峰命名字符串
@@ -570,7 +622,7 @@ class TemplateUtils:
     @classmethod
     def get_sqlalchemy_type(cls, column_type: str, source_name: str | None = None) -> str:
         """
-        获取SQLAlchemy类型
+        获取SQLAlchemy类型。
 
         :param column_type: 列类型
         :param source_name: 数据源名称
@@ -588,7 +640,8 @@ class TemplateUtils:
             return semantics.sqlalchemy_type
         type_mapping = GenConstant.DB_TO_SQLALCHEMY_TYPE_MAPPING[source_config.db_type]
         sqlalchemy_type = StringUtil.get_mapping_value_by_key_ignore_case(type_mapping, base) or 'String'
-        if '(' in normalized and sqlalchemy_type in {'String', 'CHAR', 'Numeric', 'DECIMAL'}:
-            precision = re.search(r'\(([^)]*)\)', normalized).group(1)
-            return f'{sqlalchemy_type}({precision})'
+        if sqlalchemy_type in {'String', 'CHAR', 'Numeric', 'DECIMAL'} and (
+            precision := re.search(r'\(([^)]*)\)', normalized)
+        ):
+            return f'{sqlalchemy_type}({precision[1]})'
         return sqlalchemy_type

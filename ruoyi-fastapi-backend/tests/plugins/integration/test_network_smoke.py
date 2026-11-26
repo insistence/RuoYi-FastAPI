@@ -5,9 +5,9 @@ import os
 import shutil
 import socket
 import subprocess
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager, suppress
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -19,7 +19,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-from fastapi import WebSocket
+from fastapi import FastAPI, WebSocket
 from starlette import status
 
 from plugins.examples.python.bundle_demo.events import register_event_routes
@@ -37,26 +37,33 @@ PREFIX = '/gateway/apps/browser_test/'
 
 
 def frontend_root() -> Path:
-    """选择本次验收的真实 Web 工程，明确拒绝尚无对应宿主的框架。"""
+    """
+    选择本次验收的真实 Web 工程，明确拒绝尚无对应宿主的框架。
+
+    :raises ValueError: 插件网络验收仅支持 RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2、vue3 或 react
+    :return: 当前框架的真实前端工程目录
+    """
     framework = os.environ.get('RUOYI_PLUGIN_FRONTEND_FRAMEWORK', 'vue3').strip().lower()
     if framework not in {'vue2', 'vue3', 'react'}:
         raise ValueError('插件网络验收仅支持 RUOYI_PLUGIN_FRONTEND_FRAMEWORK=vue2、vue3 或 react')
     return Path(__file__).resolve().parents[4] / 'ruoyi-fastapi-frontend' / framework / 'web'
 
 
-async def wait_until(predicate: Callable[[], bool], timeout: float = 15) -> None:
+async def wait_until(predicate: Callable[[], bool], wait_seconds: float = 15) -> None:
     """
     有界等待服务器启动或连接回收，不使用固定长睡眠。
 
     :param predicate: 待满足的状态条件
-    :param timeout: 最长等待秒数
-    :return: None
+    :param wait_seconds: 最长等待秒数
+    :raises TimeoutError: 网络验收等待状态超时
     """
-    deadline = asyncio.get_running_loop().time() + timeout
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + wait_seconds
     while not predicate():
-        if asyncio.get_running_loop().time() >= deadline:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
             raise TimeoutError('网络验收等待状态超时')
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(min(0.05, remaining))
 
 
 def certificate_files(directory: Path) -> tuple[Path, Path]:
@@ -68,7 +75,7 @@ def certificate_files(directory: Path) -> tuple[Path, Path]:
     """
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, 'localhost')])
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     certificate = (
         x509.CertificateBuilder()
         .subject_name(subject)
@@ -93,25 +100,37 @@ def prepare_network_host(fixture: SimpleNamespace) -> None:
     为现有隔离鉴权夹具添加宿主导航与真实插件流端点。
 
     :param fixture: 使用生产门禁及会话协议的隔离运行时
-    :return: None
     """
     app = fixture.app
+    assert isinstance(app, FastAPI)
     loaded = fixture.runtime.loaded['browser_test']
     loaded.gateway.connections.recheck_interval = 0.1
-    register_event_routes(loaded.lifespan.app, permission='browser_test:view', interval=1.0)
+    plugin_app = loaded.lifespan.app
+    assert isinstance(plugin_app, FastAPI)
+    register_event_routes(plugin_app, permission='browser_test:view', interval=1.0)
     bundle = fixture.plugin.backend_path / 'web' / 'dist'
     shutil.copyfile(Path(__file__).with_name('network_bundle.html'), bundle / 'index.html')
     shutil.copyfile(frontend_root() / 'src/utils/pluginBridge.js', bundle / 'assets/bridge.js')
 
-    @loaded.lifespan.app.websocket('/ws/events')
+    @plugin_app.websocket('/ws/events')
     async def events(websocket: WebSocket) -> None:
+        """
+        接受插件事件连接并处理测试消息。
+
+        :param websocket: 当前 WebSocket 连接
+        """
         websocket.state.plugin_context.require_permission('browser_test:view')
         await websocket.accept()
         await websocket.send_text('connected')
         await websocket.receive_text()
 
-    @app.get('/getInfo')
+    @app.get('/getInfo', summary='读取验收用户资料', description='返回网络验收账号的用户资料及权限。')
     async def info() -> dict[str, Any]:
+        """
+        返回含 ``code``, ``user``, ``roles``, ``permissions`` 等字段 的测试数据。
+
+        :return: 含 ``code``, ``user``, ``roles``, ``permissions`` 等字段 的测试数据
+        """
         return {
             'code': 200,
             'user': {
@@ -127,8 +146,13 @@ def prepare_network_host(fixture: SimpleNamespace) -> None:
             'appTimezone': 'Asia/Shanghai',
         }
 
-    @app.get('/getRouters')
+    @app.get('/getRouters', summary='读取验收导航菜单', description='返回用于验证插件页面访问的宿主路由树。')
     async def routers() -> dict[str, Any]:
+        """
+        返回含 ``code``, ``data`` 的测试数据。
+
+        :return: 含 ``code``, ``data`` 的测试数据
+        """
         return {
             'code': 200,
             'data': [
@@ -147,8 +171,17 @@ def prepare_network_host(fixture: SimpleNamespace) -> None:
             ],
         }
 
-    @app.get('/transport/crypto/frontend-config')
+    @app.get(
+        '/transport/crypto/frontend-config',
+        summary='读取前端传输加密策略',
+        description='返回验收环境使用的传输加密配置。',
+    )
     async def crypto_policy() -> dict[str, Any]:
+        """
+        返回含 ``code``, ``data`` 的测试数据。
+
+        :return: 含 ``code``, ``data`` 的测试数据
+        """
         return {
             'code': 200,
             'data': {
@@ -159,24 +192,38 @@ def prepare_network_host(fixture: SimpleNamespace) -> None:
             },
         }
 
-    @app.get('/system/config/configKey/{key}')
+    @app.get(
+        '/system/config/configKey/{key}', summary='按键读取验收配置', description='模拟按配置键查询系统参数的响应。'
+    )
     async def config(key: str) -> dict[str, Any]:
+        """
+        返回含 ``code``, ``msg`` 的测试数据。
+
+        :param key: 查找数据时使用的键
+        :return: 含 ``code``, ``msg`` 的测试数据
+        """
         return {'code': 200, 'msg': '30'}
 
-    @app.get('/system/notice/listTop')
+    @app.get('/system/notice/listTop', summary='读取置顶通知', description='返回验收环境的置顶通知列表。')
     async def notices() -> dict[str, Any]:
+        """
+        返回含 ``code``, ``data`` 的测试数据。
+
+        :return: 含 ``code``, ``data`` 的测试数据
+        """
         return {'code': 200, 'data': []}
 
 
 @asynccontextmanager
-async def network_servers(fixture: SimpleNamespace, directory: Path, output: Path) -> AsyncIterator[str]:
+async def network_servers(fixture: SimpleNamespace, directory: Path, output: Path) -> AsyncGenerator[str, None]:
     """
     启动真实 Uvicorn socket 与对应前端框架的 TLS 代理，并在失败时一并回收。
 
     :param fixture: 隔离宿主应用
     :param directory: 证书及就绪文件目录
     :param output: 诊断日志目录
-    :return: 代理 HTTPS 来源地址
+    :yield: 代理 HTTPS 来源地址
+    :raises AssertionError: 前端代理服务启动失败
     """
     frontend = frontend_root()
     cert_path, key_path = certificate_files(directory)
@@ -221,7 +268,7 @@ async def network_servers(fixture: SimpleNamespace, directory: Path, output: Pat
             )
             await wait_until(
                 lambda: ready.exists() or process.returncode is not None,
-                timeout=180 if frontend.parent.name == 'vue2' else 60,
+                wait_seconds=180 if frontend.parent.name == 'vue2' else 60,
             )
             if not ready.exists():
                 log.flush()
@@ -254,7 +301,6 @@ async def open_socket(page: Any, origin: str) -> None:
 
     :param page: 宿主浏览器页面
     :param origin: HTTPS 代理来源
-    :return: None
     """
     await page.evaluate(
         """url => new Promise((resolve, reject) => {
@@ -325,7 +371,6 @@ async def start_browser_streams(page: Any, frame: Any, origin: str) -> None:
     :param page: 宿主浏览器页面
     :param frame: 已连接的插件 iframe 定位器
     :param origin: HTTPS 代理地址
-    :return: None
     """
     await frame.locator('#reset').click()
     await frame.locator('#start').click()
@@ -341,7 +386,6 @@ async def verify_browser_streams(fixture: SimpleNamespace, page: Any, frame: Any
     :param page: 宿主浏览器页面
     :param frame: 已连接的插件 iframe 定位器
     :param origin: HTTPS 代理地址
-    :return: None
     """
     loaded = fixture.runtime.loaded['browser_test']
     connections = loaded.gateway.connections.connections
@@ -391,7 +435,7 @@ async def verify_browser(fixture: SimpleNamespace, origin: str, output: Path) ->
     :param fixture: 隔离宿主运行时和可控账号状态
     :param origin: HTTPS 代理地址
     :param output: 失败截图与 Playwright trace 目录
-    :return: None
+    :raises BaseException: 执行中断，清理后向调用方传播原异常
     """
     async with async_playwright() as playwright:
         executable = os.environ.get('RUOYI_SMOKE_BROWSER_EXECUTABLE')

@@ -16,6 +16,9 @@ class TuiActionPresentationService:
 
     该对象负责动作提示、动作列表和动作结果通知等展示层文本构建，
     避免继续保留模块级桥接函数。
+
+    :ivar capability_registry: TUI 页面能力注册表
+    :ivar action_registry: TUI 动作注册表
     """
 
     capability_registry: TuiCapabilityRegistry
@@ -78,10 +81,9 @@ class TuiActionPresentationService:
         """
         lines: list[str] = []
         for capability in self.capability_registry.get_browser_capabilities(view_key):
-            slot = capability.slot  # type: ignore[assignment]
             action = self.action_registry.resolve_browser_action(
                 view_key=view_key,
-                slot=slot,
+                slot=capability.slot,
                 record=record,
                 env=env,
             )

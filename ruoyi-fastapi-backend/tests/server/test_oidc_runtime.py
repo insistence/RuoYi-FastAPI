@@ -1,10 +1,13 @@
 import asyncio
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Coroutine
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from fastapi import FastAPI
+from redis.asyncio import Redis
 
 from module_identity.service.key_service import KeyServiceError
 from module_identity.service.runtime_service import OidcRuntimeService
@@ -31,7 +34,8 @@ async def test_oidc_runtime_validation_is_a_noop_when_disabled() -> None:
 @pytest.mark.asyncio
 async def test_cors_snapshot_callback_fails_closed_without_raising() -> None:
     """管理提交后的 CORS 刷新失败时运行时快照必须进入拒绝态。"""
-    app = SimpleNamespace(state=SimpleNamespace(oidc_registered_cors_origins=('https://old.example',)))
+    app = FastAPI()
+    app.state.oidc_registered_cors_origins = ('https://old.example',)
     with patch.object(OidcRuntimeService, 'refresh_cors_snapshot', new=AsyncMock(side_effect=RuntimeError('db down'))):
         await OidcRuntimeService.cors_snapshot_callback(app)()
     assert app.state.oidc_registered_cors_origins == ()
@@ -44,6 +48,11 @@ async def test_oidc_runtime_validation_loads_database_active_key() -> None:
 
     @asynccontextmanager
     async def session() -> AsyncGenerator[object, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         yield db
 
     with (
@@ -57,15 +66,21 @@ async def test_oidc_runtime_validation_loads_database_active_key() -> None:
         await OidcRuntimeService.validate_runtime()
 
     get_signing_key.assert_awaited_once()
+    assert get_signing_key.await_args is not None
     assert get_signing_key.await_args.args == (db,)
 
 
 @pytest.mark.asyncio
 async def test_oidc_runtime_validation_fails_closed_without_usable_key() -> None:
-    """active 元数据或私钥不可用时后台继续启动，但 OIDC 标记为未就绪。"""
+    """验证 active 元数据或私钥不可用时后台继续启动，但 OIDC 标记为未就绪。"""
 
     @asynccontextmanager
     async def session() -> AsyncGenerator[object, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         yield object()
 
     with (
@@ -86,12 +101,20 @@ async def test_oidc_runtime_validation_fails_closed_without_usable_key() -> None
 @pytest.mark.asyncio
 async def test_background_loops_wait_in_both_leader_and_follower() -> None:
     """Leader 和 Follower 都启动循环，由每轮当前租约决定是否执行业务。"""
-    app = SimpleNamespace(state=SimpleNamespace(redis=object(), application_leader=True))
+    app = FastAPI()
+    app.state.redis = object()
+    app.state.application_leader = True
     fake_key_task = object()
     fake_retry_task = object()
     created: list[object] = []
 
-    def create_task(coro: object) -> object:
+    def create_task(coro: Coroutine[Any, Any, None]) -> object:
+        """
+        创建测试任务并将其交给调用方。
+
+        :param coro: 需要执行的协程对象
+        :return: 测试任务并将其交给调用方
+        """
         created.append(coro)
         coro.close()
         return (fake_key_task, fake_retry_task)[len(created) - 1]
@@ -120,10 +143,16 @@ async def test_background_loops_wait_in_both_leader_and_follower() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize('loop', ['key', 'retry'])
 async def test_background_loops_resume_after_lease_reacquisition(loop: str) -> None:
+    """重新获得租约后恢复后台循环。"""
     db = SimpleNamespace(commit=AsyncMock())
 
     @asynccontextmanager
     async def session() -> AsyncGenerator[SimpleNamespace, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         yield db
 
     with (
@@ -148,9 +177,11 @@ async def test_background_loops_resume_after_lease_reacquisition(loop: str) -> N
         pytest.raises(asyncio.CancelledError),
     ):
         if loop == 'key':
-            await OidcRuntimeService.key_lifecycle_loop(SimpleNamespace(state=SimpleNamespace(redis=object())))
+            app = FastAPI()
+            app.state.redis = object()
+            await OidcRuntimeService.key_lifecycle_loop(app)
         else:
-            await OidcRuntimeService.backchannel_retry_loop(object())
+            await OidcRuntimeService.backchannel_retry_loop(AsyncMock(spec=Redis))
     expected_leader_periods = 2
     assert (activate if loop == 'key' else consume).await_count == expected_leader_periods
 
@@ -158,10 +189,17 @@ async def test_background_loops_resume_after_lease_reacquisition(loop: str) -> N
 @pytest.mark.asyncio
 async def test_server_background_task_setup_delegates_oidc_runtime() -> None:
     """应用入口只负责装配通用任务和认证中心运行时。"""
-    app = SimpleNamespace(state=SimpleNamespace(redis=object()))
+    app = FastAPI()
+    app.state.redis = object()
     log_task = object()
 
-    def create_task(coro: object) -> object:
+    def create_task(coro: Coroutine[Any, Any, None]) -> object:
+        """
+        创建测试任务并将其交给调用方。
+
+        :param coro: 需要执行的协程对象
+        :return: 测试任务并将其交给调用方
+        """
         coro.close()
         return log_task
 

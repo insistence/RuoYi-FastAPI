@@ -3,6 +3,7 @@ import json
 import re
 from http import HTTPStatus
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 from zipfile import ZipFile
@@ -19,17 +20,32 @@ pytestmark = pytest.mark.e2e
 
 
 class GenTableTest(SystemPage):
-    """只操作本用例导入的生成配置，验证编辑、代码预览及下载。"""
+    """
+    只操作本用例导入的生成配置，验证编辑、代码预览及下载。
+
+    :cvar table_id: 代码生成表的记录标识
+    :cvar table_name: 表名称
+    :cvar table_comment: 表描述过滤条件
+    """
 
     table_id: int | None = None
     table_name: str = ''
     table_comment: str = ''
 
     def table_row(self) -> Locator:
+        """
+        定位代码生成列表中的目标表。
+
+        :return: 匹配目标表名的数据行定位器
+        """
         return self.row(self.table_name)
 
-    async def search_table(self) -> dict:
-        """等待搜索接口与表格完成，避免初始响应覆盖查询结果。"""
+    async def search_table(self) -> dict[str, Any]:
+        """
+        等待搜索接口与表格完成，避免初始响应覆盖查询结果。
+
+        :return: 随调用传入或返回的结构化数据
+        """
         form = self.page.locator('form').first
         await (
             form.locator('.el-form-item, .ant-form-item')
@@ -104,6 +120,7 @@ class GenTableTest(SystemPage):
             await self.page.get_by_role('button', name=button_name('提交')).click()
         response = await pending.value
         submitted = response.request.post_data_json
+        assert isinstance(submitted, dict), submitted
         assert submitted['tableComment'] == self.table_comment, submitted
         await self.payload(response)
         await self.page.wait_for_url(re.compile(r'/tool/gen(?:\?.*)?$'))
@@ -112,7 +129,12 @@ class GenTableTest(SystemPage):
         await expect(self.table_row()).to_contain_text(self.table_comment)
 
     async def select_preview_file(self, dialog: Locator, name: str) -> None:
-        """通过预览标签或弹窗内的溢出菜单切换到指定文件。"""
+        """
+        通过预览标签或弹窗内的溢出菜单切换到指定文件。
+
+        :param dialog: 测试正在操作的对话框
+        :param name: 用于查找或标识当前对象的名称
+        """
         tab = dialog.get_by_role('tab', name=name, exact=True)
         target = tab
         menu = dialog.get_by_role('listbox')
@@ -166,6 +188,11 @@ class GenTableTest(SystemPage):
         zip_path = Path(await download.path())
 
         def read_generated_code() -> tuple[list[str], str]:
+            """
+            从导出压缩包读取生成的源码。
+
+            :return: 压缩包内的文件名及拼接后的源码
+            """
             with ZipFile(zip_path) as archive:
                 names = archive.namelist()
                 return names, '\n'.join(archive.read(name).decode('utf-8') for name in names if name.endswith('.py'))
@@ -195,7 +222,7 @@ class GenTableTest(SystemPage):
         available = await api.get('/tool/gen/db/list', params={'tableName': self.table_name})
         assert any(row['tableName'] == self.table_name for row in (await available.json())['rows'])
 
-    async def cleanup(self) -> None:
+    async def cleanup_imported_table(self) -> None:
         """失败时仍只清理由本次导入取得 ID 的元数据。"""
         if self.table_id is not None:
             api = await self.harness.api_context(self.token)
@@ -216,4 +243,4 @@ async def test_gen_table_page(browser_harness: BrowserHarness) -> None:
         await test.preview_and_download()
         await test.delete_table()
     finally:
-        await test.cleanup()
+        await test.cleanup_imported_table()

@@ -4,7 +4,7 @@ import secrets
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, TypeVar, cast
 
 from anyio import Path as AsyncPath
 from cryptography.hazmat.primitives import serialization
@@ -41,14 +41,14 @@ T = TypeVar('T')
 
 
 class KeyServiceError(ValueError):
-    """
-    表示 OIDC 签名密钥管理错误
-    """
+    """表示 OIDC 签名密钥管理错误。"""
 
 
 class KeyService:
     """
-    OIDC 签名密钥模块服务层
+    OIDC 签名密钥模块服务层。
+
+    :cvar CACHE_MAX_AGE: 密钥集响应允许的缓存时长
     """
 
     CACHE_MAX_AGE = 300
@@ -56,13 +56,11 @@ class KeyService:
     @classmethod
     def _require_enabled(cls, *, management: bool = False) -> None:
         """
-        校验 OIDC 签名密钥功能是否可用
+        校验 OIDC 签名密钥功能是否可用。
 
         :param management: 是否允许管理模式
-        :return: None
         :raises KeyServiceError: OIDC 未启用
         """
-
         if not OidcConfig.oidc_enabled and not management:
             raise KeyServiceError('统一认证中心未启用')
 
@@ -70,13 +68,12 @@ class KeyService:
     @asynccontextmanager
     async def _rotation_lock(redis: Any) -> AsyncGenerator[None, None]:
         """
-        获取密钥轮换锁
+        获取密钥轮换锁。
 
         :param redis: 应用共享 Redis 客户端；离线数据库单元测试可传 ``None``
-        :return: 异步上下文管理器
+        :yield: 异步上下文管理器
         :raises KeyServiceError: 锁已被其他实例持有
         """
-
         if redis is None:
             yield
             return
@@ -102,14 +99,13 @@ class KeyService:
         decrypt_private_key: Callable[[str], bytes | str | Awaitable[bytes | str]] | None,
     ) -> bytes:
         """
-        异步读取私钥材料
+        异步读取私钥材料。
 
         :param record: 数据库密钥记录
         :param decrypt_private_key: 可同步或异步的解密回调
         :return: PEM 编码私钥字节
         :raises KeyServiceError: 私钥来源不合法或无法解密
         """
-
         reference = getattr(record, 'private_key_ref', None)
         ciphertext = getattr(record, 'private_key_ciphertext', None)
         if bool(reference) == bool(ciphertext):
@@ -153,15 +149,13 @@ class KeyService:
     @classmethod
     def _validate_record_window(cls, record: Any, now: datetime, *, require_active: bool = True) -> None:
         """
-        校验签名密钥状态、算法和时间窗口
+        校验签名密钥状态、算法和时间窗口。
 
         :param record: 数据库密钥记录
         :param now: 当前项目时间
         :param require_active: 是否要求密钥处于 active 状态
-        :return: None
         :raises KeyServiceError: 记录不能用于签名
         """
-
         expected_status = 'active' if require_active else 'pending'
         if getattr(record, 'status', None) != expected_status:
             raise KeyServiceError(f'签名密钥状态不符合要求，预期状态为 {expected_status}')
@@ -185,7 +179,7 @@ class KeyService:
         management: bool = False,
     ) -> RSAPrivateKey:
         """
-        异步加载并校验签名密钥 RSA 私钥
+        异步加载并校验签名密钥 RSA 私钥。
 
         :param record: 数据库中的签名密钥记录
         :param now: 可注入的当前时间
@@ -195,9 +189,8 @@ class KeyService:
         :return: 已验证且不会被序列化的 RSA 私钥
         :raises KeyServiceError: 状态、来源、格式或公私钥不匹配
         """
-
         cls._require_enabled(management=management)
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         cls._validate_record_window(record, current, require_active=require_active)
         material = await cls._private_material_async(record, decrypt_private_key)
         try:
@@ -226,7 +219,7 @@ class KeyService:
         require_active: bool = True,
     ) -> RSAPrivateKey:
         """
-        同步加载签名密钥 RSA 私钥
+        同步加载签名密钥 RSA 私钥。
 
         :param record: 数据库中的签名密钥记录
         :param now: 可注入的当前时间
@@ -234,7 +227,6 @@ class KeyService:
         :return: 已验证的 RSA 私钥
         :raises KeyServiceError: 私钥不合法或无法同步加载
         """
-
         try:
             asyncio.get_running_loop()
         except RuntimeError:
@@ -250,7 +242,7 @@ class KeyService:
         decrypt_private_key: Callable[[str], bytes | str | Awaitable[bytes | str]] | None = None,
     ) -> RSAPrivateKey:
         """
-        获取当前 active 签名密钥的 RSA 私钥
+        获取当前 active 签名密钥的 RSA 私钥。
 
         :param db: 异步数据库会话
         :param now: 可注入当前时间
@@ -258,7 +250,6 @@ class KeyService:
         :return: 已验证 RSA 私钥
         :raises KeyServiceError: 没有匹配的 active 密钥
         """
-
         cls._require_enabled()
         record = await OidcKeyDao.get_active(db, alg=RS256)
         if record is None:
@@ -268,16 +259,15 @@ class KeyService:
     @classmethod
     async def build_jwks(cls, db: AsyncSession, *, now: datetime | None = None) -> dict[str, list[dict[str, str]]]:
         """
-        构造发布中的签名公钥 JWKS
+        构造发布中的签名公钥 JWKS。
 
         :param db: 异步数据库会话
         :param now: 可注入当前时间
         :return: 标准 ``{'keys': [...]}`` JSON 结构
         :raises KeyServiceError: OIDC 关闭或公开密钥记录不合法
         """
-
         cls._require_enabled()
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         records = await OidcKeyDao.list_published(db, now=current)
         keys: list[dict[str, str]] = []
         for record in records:
@@ -311,7 +301,7 @@ class KeyService:
         redis: Any = None,
     ) -> bool:
         """
-        激活 pending 签名密钥并安排旧密钥退役
+        激活 pending 签名密钥并安排旧密钥退役。
 
         :param db: 异步数据库会话，调用方负责提交事务
         :param kid: 待激活的 pending 密钥 kid
@@ -322,12 +312,11 @@ class KeyService:
         :return: 成功完成切换时返回 True
         :raises KeyServiceError: 目标密钥未到发布时间或算法不符
         """
-
         cls._require_enabled(management=True)
         if not OidcUtil.is_valid_kid(kid):
             raise KeyServiceError('签名密钥标识 kid 包含不允许的字符')
         async with cls._rotation_lock(redis):
-            current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+            current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
             await OidcKeyDao.lock_algorithm_for_update(db, alg=RS256)
             target = await OidcKeyDao.get_by_kid_for_update(db, kid)
             if target is None or target.alg != RS256 or target.status != 'pending':
@@ -381,7 +370,7 @@ class KeyService:
         now: datetime | None = None,
     ) -> SysOidcSigningKey:
         """
-        创建加密保存的 pending 签名密钥记录
+        创建加密保存的 pending 签名密钥记录。
 
         :param db: 异步数据库会话，提交边界由调用方控制
         :param kid: 新密钥标识
@@ -393,7 +382,6 @@ class KeyService:
         :return: 不含私钥明文的数据库实体
         :raises KeyServiceError: 配置、标识或密钥加密条件不满足
         """
-
         cls._require_enabled(management=True)
         if not isinstance(actor, str) or not actor.strip():
             raise KeyServiceError('签名密钥标识 kid 和操作者不能为空')
@@ -402,8 +390,8 @@ class KeyService:
         encryption_material = str(OidcConfig.oidc_signing_key_encryption_key or '').encode()
         if len(encryption_material) < _MIN_ENCRYPTION_KEY_BYTES:
             raise KeyServiceError('签名私钥加密密钥不能为空')
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
-        publish_at = TimezoneUtil.to_optional_utc(publish_at)
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
+        publish_at = TimezoneUtil.to_utc(publish_at)
         activate_at = TimezoneUtil.to_optional_utc(activate_at)
         if activate_at is not None and activate_at < publish_at:
             raise KeyServiceError('密钥生效时间不得早于发布时间')
@@ -455,7 +443,7 @@ class KeyService:
         now: datetime | None = None,
     ) -> tuple[SysOidcSigningKey, bool]:
         """
-        幂等创建并激活首把 OIDC 签名密钥
+        幂等创建并激活首把 OIDC 签名密钥。
 
         已存在可用 active 密钥时只校验并返回；否则在 Redis 轮换锁与
         数据库行锁保护下创建和激活密钥。事务提交由调用方统一处理。
@@ -468,8 +456,7 @@ class KeyService:
         :return: 签名密钥记录与本次是否创建新密钥
         :raises KeyServiceError: 密钥配置、状态或材料不可用
         """
-
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         async with cls._rotation_lock(redis):
             records = await OidcKeyDao.lock_algorithm_for_update(db, alg=RS256)
             active = next(
@@ -477,8 +464,8 @@ class KeyService:
                     row
                     for row in reversed(records)
                     if row.status == 'active'
-                    and TimezoneUtil.to_optional_utc(row.signing_start_at) is not None
-                    and TimezoneUtil.to_optional_utc(row.signing_start_at) <= current
+                    and row.signing_start_at is not None
+                    and TimezoneUtil.to_utc(row.signing_start_at) <= current
                 ),
                 None,
             )
@@ -527,7 +514,7 @@ class KeyService:
         actor: str = 'system:lifecycle',
     ) -> bool:
         """
-        将 active 签名密钥转为 retiring 状态
+        将 active 签名密钥转为 retiring 状态。
 
         :param db: 异步数据库会话
         :param kid: 密钥标识
@@ -536,11 +523,10 @@ class KeyService:
         :return: 本次是否将签名密钥转为退役中状态
         :raises KeyServiceError: 签名密钥状态、材料或配置不符合要求
         """
-
         cls._require_enabled(management=True)
         if not OidcUtil.is_valid_kid(kid):
             raise KeyServiceError('签名密钥标识 kid 包含不允许的字符')
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         record = await OidcKeyDao.get_by_kid_for_update(db, kid)
         if record is None or record.status not in {'active', 'retiring'}:
             raise KeyServiceError('签名密钥未处于活动状态')
@@ -570,12 +556,11 @@ class KeyService:
     @classmethod
     async def retire_due(cls, db: AsyncSession) -> int:
         """
-        退役已结束 JWKS 保留期的签名密钥
+        退役已结束 JWKS 保留期的签名密钥。
 
         :param db: 异步数据库会话
         :return: 更新的记录数量
         """
-
         cls._require_enabled()
 
         return await OidcKeyDao.retire_due(db)
@@ -590,7 +575,7 @@ class KeyService:
         audit_writer: Callable[..., Awaitable[Any]] | None = None,
     ) -> int:
         """
-        批量激活已到签名开始时间的 pending 密钥
+        批量激活已到签名开始时间的 pending 密钥。
 
         :param db: 异步数据库会话；每次状态推进由调用方提交
         :param redis: 应用共享 Redis 轮换锁客户端
@@ -598,9 +583,8 @@ class KeyService:
         :param audit_writer: 可注入的独立审计写入器，生产默认使用独立提交事务
         :return: 本次成功激活的密钥数量
         """
-
         cls._require_enabled()
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         pending = await OidcKeyDao.list_due_pending(db, now=current)
         activated = 0
         for record in pending:
@@ -614,7 +598,7 @@ class KeyService:
                 ):
                     await db.commit()
                     activated += 1
-            except Exception:  # noqa: PERF203
+            except Exception:
                 await db.rollback()
                 safe_kid = (
                     record.kid if isinstance(record.kid, str) and OidcUtil.is_valid_kid(record.kid) else 'invalid'
@@ -642,7 +626,7 @@ class KeyService:
         actor: str = 'system:lifecycle',
     ) -> bool:
         """
-        删除已退役且超过 JWKS 保留期的签名密钥
+        删除已退役且超过 JWKS 保留期的签名密钥。
 
         :param db: 异步数据库会话
         :param kid: 待删除的 kid
@@ -650,7 +634,6 @@ class KeyService:
         :return: 删除成功时返回 True
         :raises KeyServiceError: 密钥仍可能用于验签或不存在
         """
-
         cls._require_enabled(management=True)
         if not OidcUtil.is_valid_kid(kid):
             raise KeyServiceError('签名密钥标识 kid 包含不允许的字符')
@@ -674,7 +657,9 @@ class KeyService:
 
 class OidcKeyManagementService:
     """
-    OIDC 签名密钥管理模块服务层
+    OIDC 签名密钥管理模块服务层。
+
+    :cvar _ERROR_MESSAGES: 按错误类型查找的提示文本
     """
 
     _ERROR_MESSAGES = {
@@ -686,24 +671,13 @@ class OidcKeyManagementService:
     @staticmethod
     def view(row: SysOidcSigningKey) -> dict[str, object]:
         """
-        将签名密钥 ORM 记录转换为管理视图
+        将签名密钥 ORM 记录转换为管理视图。
 
         :param row: 签名密钥 ORM 记录
         :return: 签名密钥管理视图字段映射
         """
-
-        return OidcKeyViewModel(
-            kid=row.kid,
-            key_use=row.key_use,
-            alg=row.alg,
-            public_jwk=row.public_jwk,
-            status=row.status,
-            publish_at=TimezoneUtil.to_optional_utc(row.publish_at),
-            signing_start_at=TimezoneUtil.to_optional_utc(row.signing_start_at),
-            signing_stop_at=TimezoneUtil.to_optional_utc(row.signing_stop_at),
-            remove_from_jwks_at=TimezoneUtil.to_optional_utc(row.remove_from_jwks_at),
-            create_time=TimezoneUtil.to_optional_utc(row.create_time),
-        ).model_dump(by_alias=True)
+        model = OidcKeyViewModel.model_validate(row)
+        return cast('dict[str, object]', model.model_dump(by_alias=True))
 
     @classmethod
     async def bootstrap(
@@ -716,7 +690,7 @@ class OidcKeyManagementService:
         now: datetime | None = None,
     ) -> tuple[dict[str, object], bool]:
         """
-        幂等创建并激活首把 OIDC 签名密钥
+        幂等创建并激活首把 OIDC 签名密钥。
 
         已存在可用 active 密钥时只校验并返回；否则在 Redis 轮换锁与
         数据库行锁保护下创建、激活并提交，适合部署流水线并发调用。
@@ -729,7 +703,6 @@ class OidcKeyManagementService:
         :return: 管理视图与本次是否创建新密钥
         :raises ServiceException: 签名密钥初始化失败
         """
-
         row, created = await cls._execute(
             db,
             lambda: KeyService.bootstrap_signing_key(
@@ -753,7 +726,7 @@ class OidcKeyManagementService:
         page_size: int,
     ) -> tuple[list[dict[str, object]], int]:
         """
-        分页查询签名密钥管理视图
+        分页查询签名密钥管理视图。
 
         :param db: 异步数据库会话
         :param status: 密钥状态筛选值
@@ -761,7 +734,6 @@ class OidcKeyManagementService:
         :param page_size: 页大小
         :return: 管理视图列表和总数
         """
-
         rows = await OidcKeyDao.list_admin(db, status=status, offset=(page_num - 1) * page_size, limit=page_size)
         total = await OidcKeyDao.count_admin(db, status=status)
 
@@ -770,14 +742,13 @@ class OidcKeyManagementService:
     @staticmethod
     async def rotate(db: AsyncSession, payload: OidcKeyRotateModel, actor: str) -> dict[str, object]:
         """
-        创建 pending 签名密钥并返回管理视图
+        创建 pending 签名密钥并返回管理视图。
 
         :param db: 异步数据库会话
         :param payload: 签名密钥轮换参数
         :param actor: 操作人标识
         :return: 新建签名密钥的管理视图字段映射
         """
-
         result = await OidcKeyManagementService._execute(
             db,
             lambda: KeyService.create_pending_key(
@@ -795,7 +766,7 @@ class OidcKeyManagementService:
     @staticmethod
     async def activate(db: AsyncSession, kid: str, actor: str, redis: object) -> bool:
         """
-        激活指定签名密钥并提交事务
+        激活指定签名密钥并提交事务。
 
         :param db: 异步数据库会话
         :param kid: 密钥标识
@@ -804,7 +775,6 @@ class OidcKeyManagementService:
         :return: 本次是否激活签名密钥
         :raises ServiceException: 签名密钥无法开始使用
         """
-
         return await OidcKeyManagementService._execute(
             db, lambda: KeyService.activate_key(db, kid, actor=actor, redis=redis)
         )
@@ -812,40 +782,37 @@ class OidcKeyManagementService:
     @staticmethod
     async def retire(db: AsyncSession, kid: str, actor: str) -> bool:
         """
-        退役指定签名密钥并提交事务
+        退役指定签名密钥并提交事务。
 
         :param db: 异步数据库会话
         :param kid: 密钥标识
         :param actor: 操作人标识
         :return: 本次是否将签名密钥转为退役中状态
         """
-
         return await OidcKeyManagementService._execute(db, lambda: KeyService.retire_key(db, kid, actor=actor))
 
     @staticmethod
     async def delete(db: AsyncSession, kid: str, actor: str) -> bool:
         """
-        删除指定已退役签名密钥并提交事务
+        删除指定已退役签名密钥并提交事务。
 
         :param db: 异步数据库会话
         :param kid: 密钥标识
         :param actor: 操作人标识
         :return: 本次是否删除签名密钥
         """
-
         return await OidcKeyManagementService._execute(db, lambda: KeyService.delete_key(db, kid, actor=actor))
 
     @staticmethod
     async def _execute(db: AsyncSession, operation: Callable[[], Awaitable[T]]) -> T:
         """
-        执行签名密钥管理事务并统一处理回滚
+        执行签名密钥管理事务并统一处理回滚。
 
         :param db: 异步数据库会话
         :param operation: 事务操作回调
         :return: operation 回调的返回值
         :raises ServiceException: 签名密钥管理事务失败时抛出
         """
-
         try:
             result = await operation()
             await db.commit()

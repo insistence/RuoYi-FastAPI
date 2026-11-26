@@ -27,7 +27,12 @@ from module_admin.entity.vo.role_vo import (
     RoleModel,
     RolePageQueryModel,
 )
-from module_admin.entity.vo.user_vo import CrudUserRoleModel, CurrentUserModel, UserInfoModel, UserRolePageQueryModel
+from module_admin.entity.vo.user_vo import (
+    CrudUserRoleModel,
+    CurrentUserModel,
+    UserInfoModel,
+    UserRolePageQueryModel,
+)
 from module_admin.service.dept_service import DeptService
 from module_admin.service.role_service import RoleService
 from module_admin.service.user_service import UserService
@@ -52,7 +57,7 @@ async def get_system_role_dept_tree(
     request: Request,
     role_id: Annotated[int, Path(description='角色ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     dept_query_result = await DeptService.get_dept_tree_services(query_db, DeptModel(), data_scope_sql)
     role_dept_query_result = await RoleService.get_role_dept_tree_services(query_db, role_id)
@@ -74,7 +79,7 @@ async def get_system_role_list(
     request: Request,
     role_page_query: Annotated[RolePageQueryModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     role_page_query_result = await RoleService.get_role_list_services(
         query_db, role_page_query, data_scope_sql, is_page=True
@@ -123,7 +128,7 @@ async def edit_system_role(
     edit_role: AddRoleModel,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     await RoleService.check_role_allowed_services(edit_role)
     if not current_user.user.admin:
@@ -149,17 +154,17 @@ async def edit_system_role_datascope(
     role_data_scope: AddRoleModel,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     await RoleService.check_role_allowed_services(role_data_scope)
     if not current_user.user.admin:
         await RoleService.check_role_data_scope_services(query_db, str(role_data_scope.role_id), data_scope_sql)
     edit_role = AddRoleModel(
-        roleId=role_data_scope.role_id,
-        dataScope=role_data_scope.data_scope,
-        deptIds=role_data_scope.dept_ids,
-        deptCheckStrictly=role_data_scope.dept_check_strictly,
-        updateBy=current_user.user.user_name,
+        role_id=role_data_scope.role_id,
+        data_scope=role_data_scope.data_scope,
+        dept_ids=role_data_scope.dept_ids,
+        dept_check_strictly=role_data_scope.dept_check_strictly,
+        update_by=current_user.user.user_name,
     )
     role_data_scope_result = await RoleService.role_datascope_services(query_db, edit_role)
     logger.info(role_data_scope_result.message)
@@ -181,15 +186,15 @@ async def delete_system_role(
     role_ids: Annotated[str, Path(description='需要删除的角色ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     role_id_list = role_ids.split(',') if role_ids else []
     if role_id_list:
         for role_id in role_id_list:
-            await RoleService.check_role_allowed_services(RoleModel(roleId=int(role_id)))
+            await RoleService.check_role_allowed_services(RoleModel(role_id=int(role_id)))
             if not current_user.user.admin:
                 await RoleService.check_role_data_scope_services(query_db, role_id, data_scope_sql)
-    delete_role = DeleteRoleModel(roleIds=role_ids, updateBy=current_user.user.user_name)
+    delete_role = DeleteRoleModel(role_ids=role_ids, update_by=current_user.user.user_name)
     delete_role_result = await RoleService.delete_role_services(query_db, delete_role)
     logger.info(delete_role_result.message)
 
@@ -209,7 +214,7 @@ async def query_detail_system_role(
     role_id: Annotated[int, Path(description='角色ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     if not current_user.user.admin:
         await RoleService.check_role_data_scope_services(query_db, str(role_id), data_scope_sql)
@@ -240,7 +245,7 @@ async def export_system_role_list(
     request: Request,
     role_page_query: Annotated[RolePageQueryModel, Form()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     # 获取全量数据
     role_query_result = await RoleService.get_role_list_services(
@@ -266,15 +271,15 @@ async def reset_system_role_status(
     change_role: AddRoleModel,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     await RoleService.check_role_allowed_services(change_role)
     if not current_user.user.admin:
         await RoleService.check_role_data_scope_services(query_db, str(change_role.role_id), data_scope_sql)
     edit_role = AddRoleModel(
-        roleId=change_role.role_id,
+        role_id=change_role.role_id,
         status=change_role.status,
-        updateBy=current_user.user.user_name,
+        update_by=current_user.user.user_name,
         type='status',
     )
     edit_role_result = await RoleService.edit_role_services(query_db, edit_role)
@@ -295,7 +300,7 @@ async def get_system_allocated_user_list(
     request: Request,
     user_role: Annotated[UserRolePageQueryModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysUser)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysUser)],
 ) -> Response:
     role_user_allocated_page_query_result = await RoleService.get_role_user_allocated_list_services(
         query_db, user_role, data_scope_sql, is_page=True
@@ -317,7 +322,7 @@ async def get_system_unallocated_user_list(
     request: Request,
     user_role: Annotated[UserRolePageQueryModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysUser)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysUser)],
 ) -> Response:
     role_user_unallocated_page_query_result = await RoleService.get_role_user_unallocated_list_services(
         query_db, user_role, data_scope_sql, is_page=True
@@ -342,7 +347,7 @@ async def add_system_role_user(
     add_role_user: Annotated[CrudUserRoleModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     if not current_user.user.admin:
         await RoleService.check_role_data_scope_services(query_db, str(add_role_user.role_id), data_scope_sql)

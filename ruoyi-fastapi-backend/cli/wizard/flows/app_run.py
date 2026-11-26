@@ -8,10 +8,10 @@ from cli.wizard.base import BaseLiveExecCliWizardFlow
 @dataclass(frozen=True)
 class AppRunWizardSelection:
     """
-    `wizard app-run` 向导采集结果。
+    ``wizard app-run`` 向导采集结果。
 
-    :param env: 运行环境
-    :param run_doctor: 启动前是否先执行应用检查
+    :ivar env: 运行环境
+    :ivar run_doctor: 启动前是否先执行应用检查
     """
 
     env: str
@@ -20,9 +20,12 @@ class AppRunWizardSelection:
 
 class AppRunWizardFlow(BaseLiveExecCliWizardFlow[AppRunWizardSelection]):
     """
-    `wizard app-run` 向导流程。
+    ``wizard app-run`` 向导流程。
 
-    :param doctor_payload: 启动前检查结果缓存
+    :cvar wizard_name: 向导名称
+    :cvar preview_title: 预览标题
+    :cvar failure_message: 流程失败时显示的提示
+    :ivar doctor_payload: 启动前检查结果缓存
     """
 
     wizard_name = 'wizard app-run'
@@ -117,11 +120,7 @@ class AppRunWizardFlow(BaseLiveExecCliWizardFlow[AppRunWizardSelection]):
         return ['app', 'run', f'--env={selection.env}']
 
     def __init__(self) -> None:
-        """
-        初始化应用启动向导流程。
-
-        :return: None
-        """
+        """初始化应用启动向导流程。"""
         super().__init__()
         self.doctor_payload: dict[str, Any] | None = None
 
@@ -131,7 +130,6 @@ class AppRunWizardFlow(BaseLiveExecCliWizardFlow[AppRunWizardSelection]):
 
         :param selection: 向导采集结果
         :param output: 输出格式
-        :return: None
         """
         del output
         self.doctor_payload = None
@@ -144,9 +142,5 @@ class AppRunWizardFlow(BaseLiveExecCliWizardFlow[AppRunWizardSelection]):
 
 
 def run_app_run_wizard() -> None:
-    """
-    执行 `wizard app-run` 向导。
-
-    :return: None
-    """
+    """执行 ``wizard app-run`` 向导。"""
     AppRunWizardFlow().run('text')

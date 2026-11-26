@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -13,12 +14,14 @@ class JobCommandController:
     """
     定时任务命令控制器。
 
-    该控制器负责组织 `job` 命令组的上下文准备、runtime 调用、
+    该控制器负责组织 ``job`` 命令组的上下文准备、runtime 调用、
     payload 注入，以及基于输出格式选择 presenter 或直接返回 JSON。
 
-    :param context_factory: CLI 上下文工厂
-    :param execution_service: CLI 执行服务
-    :param presenter: 定时任务命令文本渲染器
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar presenter: 定时任务命令文本渲染器
+    :ivar operations_runtime: 运维运行时服务
+    :ivar job_runtime: 定时任务运行时服务
     """
 
     def __init__(
@@ -38,7 +41,6 @@ class JobCommandController:
         :param presenter: 定时任务命令文本渲染器
         :param operations_runtime: 运维运行时服务
         :param job_runtime: 定时任务运行时服务
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
@@ -49,7 +51,7 @@ class JobCommandController:
     def list(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         job_name: str,
         job_group: str,
@@ -69,7 +71,6 @@ class JobCommandController:
         :param paged: 是否启用分页
         :param page_num: 页码
         :param page_size: 每页数量
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(
@@ -89,7 +90,7 @@ class JobCommandController:
             text_condition=lambda result_data: bool(result_data.get('ok', False)),
         )
 
-    def run_once(self, job_id: int, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def run_once(self, job_id: int, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         执行一次定时任务。
 
@@ -98,21 +99,19 @@ class JobCommandController:
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(env, output, allow_prod, yes, False, command_name='job run-once')
         self.execution_service.complete_payload(
             ctx, self.execution_service.run_async(self.job_runtime.run_job_once(job_id))
         )
 
-    def detail(self, job_id: int, env: str, output: str) -> None:
+    def detail(self, job_id: int, env: str, output: OutputFormat) -> None:
         """
         查看单个定时任务详情。
 
         :param job_id: 任务ID
         :param env: 当前命令运行环境
         :param output: 输出格式
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.job_runtime.get_job_detail(job_id))
@@ -126,7 +125,7 @@ class JobCommandController:
     def logs(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         job_name: str,
         job_group: str,
@@ -150,7 +149,6 @@ class JobCommandController:
         :param paged: 是否启用分页
         :param page_num: 页码
         :param page_size: 每页数量
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(
@@ -172,7 +170,7 @@ class JobCommandController:
             text_condition=lambda result_data: bool(result_data.get('ok', False)),
         )
 
-    def pause(self, job_id: int, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def pause(self, job_id: int, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         暂停定时任务。
 
@@ -181,14 +179,13 @@ class JobCommandController:
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(env, output, allow_prod, yes, False, command_name='job pause')
         self.execution_service.complete_payload(
             ctx, self.execution_service.run_async(self.job_runtime.pause_job(job_id))
         )
 
-    def resume(self, job_id: int, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def resume(self, job_id: int, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         恢复定时任务。
 
@@ -197,14 +194,13 @@ class JobCommandController:
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(env, output, allow_prod, yes, False, command_name='job resume')
         self.execution_service.complete_payload(
             ctx, self.execution_service.run_async(self.job_runtime.resume_job(job_id))
         )
 
-    def sync(self, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def sync(self, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         同步调度任务配置。
 
@@ -212,7 +208,6 @@ class JobCommandController:
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(env, output, allow_prod, yes, False, command_name='job sync')
         self.execution_service.complete_payload(

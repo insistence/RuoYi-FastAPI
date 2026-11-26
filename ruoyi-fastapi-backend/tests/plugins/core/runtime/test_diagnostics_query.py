@@ -1,5 +1,6 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -13,8 +14,14 @@ OTHER = 'b' * 32
 DIGEST = 'd' * 64
 
 
-def snapshot(worker_id: str = WORKER, **overrides: object) -> dict:
-    """构造真正加载但尚无请求的运行快照。"""
+def snapshot(worker_id: str = WORKER, **overrides: object) -> dict[str, Any]:
+    """
+    构造真正加载但尚无请求的运行快照。
+
+    :param worker_id: 工作进程的标识
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 真正加载但尚无请求的运行快照
+    """
     return {
         'workerId': worker_id,
         'collectedAt': NOW,
@@ -39,8 +46,14 @@ def snapshot(worker_id: str = WORKER, **overrides: object) -> dict:
     }
 
 
-def report(*workers: dict, **overrides: object) -> dict:
-    """构造已通过报告器校验的集群观测结果。"""
+def report(*workers: dict[str, Any], **overrides: object) -> dict[str, Any]:
+    """
+    构造已通过报告器校验的集群观测结果。
+
+    :param workers: 调用方传入的其余位置参数
+    :param overrides: 调用方按名称传入的附加选项
+    :return: 已通过报告器校验的集群观测结果
+    """
     return {
         'scope': 'reporting_workers',
         'clusterAvailable': True,
@@ -55,8 +68,14 @@ def report(*workers: dict, **overrides: object) -> dict:
     }
 
 
-def release(*worker_ids: str, expected: int = 1) -> dict:
-    """构造当前发布目标，故意与实际运行摘要不同以检验身份边界。"""
+def release(*worker_ids: str, expected: int = 1) -> dict[str, Any]:
+    """
+    构造当前发布目标，故意与实际运行摘要不同以检验身份边界。
+
+    :param worker_ids: 调用方传入的其余位置参数
+    :param expected: 断言使用的预期结果
+    :return: 当前发布目标
+    """
     return {
         'available': True,
         'supported': True,
@@ -69,7 +88,7 @@ def release(*worker_ids: str, expected: int = 1) -> dict:
                 'state': 'ready',
                 'digest': 'f' * 64,
                 'generation': 'e' * 32,
-                'heartbeatTime': datetime.fromtimestamp(NOW, timezone.utc).isoformat(),
+                'heartbeatTime': datetime.fromtimestamp(NOW, UTC).isoformat(),
             }
             for worker_id in worker_ids
             for plugin_id in ('__runtime__', 'demo')
@@ -78,6 +97,7 @@ def release(*worker_ids: str, expected: int = 1) -> dict:
 
 
 def test_diagnostics_preserves_actual_identity_and_marks_missing_worker_unknown() -> None:
+    """诊断保留实际身份并将缺失进程标记为未知。"""
     result = query.build_runtime_diagnostics('demo', report(snapshot()), release(WORKER, OTHER, expected=2), now=NOW)
     first, second = result['workers']
     assert result['state'] == 'partial'
@@ -92,6 +112,7 @@ def test_diagnostics_preserves_actual_identity_and_marks_missing_worker_unknown(
 
 
 def test_stale_and_invalid_workers_never_contribute_zero_or_old_actual_values() -> None:
+    """过期或无效进程不贡献旧值或虚构的零值。"""
     result = query.build_runtime_diagnostics(
         'demo',
         report(staleWorkerIds=[WORKER], staleSnapshots=1, invalidWorkerIds=[OTHER], invalidSnapshots=1),
@@ -105,6 +126,7 @@ def test_stale_and_invalid_workers_never_contribute_zero_or_old_actual_values() 
 
 
 def test_empty_fresh_worker_and_truncated_worker_are_distinct() -> None:
+    """区分新鲜的空进程快照和被截断的快照。"""
     result = query.build_runtime_diagnostics('demo', report(snapshot(plugins=[])), release(WORKER), now=NOW)
     assert result['workers'][0]['observation'] == 'not_loaded'
     assert result['workers'][0]['actual'] is None
@@ -117,10 +139,11 @@ def test_empty_fresh_worker_and_truncated_worker_are_distinct() -> None:
 
 
 def test_replaced_stale_host_does_not_make_current_coverage_incomplete() -> None:
+    """已被替换的过期主机不会使当前覆盖统计不完整。"""
     deployment = release(WORKER, OTHER)
     for row in deployment['workers']:
         if row['workerId'] == OTHER:
-            row['heartbeatTime'] = datetime.fromtimestamp(NOW - 61, timezone.utc).isoformat()
+            row['heartbeatTime'] = datetime.fromtimestamp(NOW - 61, UTC).isoformat()
     result = query.build_runtime_diagnostics('demo', report(snapshot()), deployment, now=NOW)
     assert result['state'] == 'observed' and result['missingWorkers'] == 0
     assert result['workers'][1]['actual'] is None
@@ -128,6 +151,7 @@ def test_replaced_stale_host_does_not_make_current_coverage_incomplete() -> None
 
 @pytest.mark.asyncio
 async def test_unavailable_runtime_and_release_keep_independent_failure_states(monkeypatch: pytest.MonkeyPatch) -> None:
+    """运行时与发布分别保留各自的不可用状态。"""
     monkeypatch.setattr(query, '_read_release_status', AsyncMock(return_value={'supported': True, 'available': False}))
     reporter = SimpleNamespace(read=AsyncMock(side_effect=RuntimeError('private-password')))
     result = await query.read_plugin_runtime_diagnostics('demo', reporter=reporter)
@@ -139,6 +163,7 @@ async def test_unavailable_runtime_and_release_keep_independent_failure_states(m
 
 @pytest.mark.asyncio
 async def test_cli_reads_and_closes_redis_without_publishing_local_snapshot(monkeypatch: pytest.MonkeyPatch) -> None:
+    """命令行只读取并关闭 Redis 且不发布本地快照。"""
     redis = SimpleNamespace(aclose=AsyncMock())
     create = AsyncMock(return_value=redis)
     read = AsyncMock(return_value={'state': 'unobserved'})
@@ -151,6 +176,7 @@ async def test_cli_reads_and_closes_redis_without_publishing_local_snapshot(monk
 
 
 def test_current_worker_scope_is_explicitly_partial() -> None:
+    """明确标记当前进程的数据范围为局部。"""
     result = query.build_runtime_diagnostics(
         'demo', report(snapshot(), scope='current_worker', clusterAvailable=False), release(WORKER), now=NOW
     )
@@ -159,6 +185,7 @@ def test_current_worker_scope_is_explicitly_partial() -> None:
 
 
 def test_release_errors_are_not_copied_into_runtime_diagnostics() -> None:
+    """发布错误不会混入运行时诊断。"""
     deployment = release(WORKER)
     deployment['releases'][0].update(prepareStatus='failed', lastError='fake-secret-in-preparation')
     for row in deployment['workers']:
@@ -170,11 +197,12 @@ def test_release_errors_are_not_copied_into_runtime_diagnostics() -> None:
 
 
 def test_fresh_runtime_cache_of_stale_host_does_not_fill_expected_capacity() -> None:
+    """过期主机的新缓存无法补足预期容量。"""
     deployment = release(WORKER, OTHER, expected=2)
     deployment['workerTtlSeconds'] = 15
     for row in deployment['workers']:
         if row['workerId'] == OTHER:
-            row['heartbeatTime'] = datetime.fromtimestamp(NOW - 20, timezone.utc).isoformat()
+            row['heartbeatTime'] = datetime.fromtimestamp(NOW - 20, UTC).isoformat()
     result = query.build_runtime_diagnostics(
         'demo', report(snapshot(), snapshot(OTHER, collectedAt=NOW - 20)), deployment, now=NOW
     )
@@ -185,12 +213,14 @@ def test_fresh_runtime_cache_of_stale_host_does_not_fill_expected_capacity() -> 
 
 
 def test_no_expected_baseline_does_not_claim_zero_missing_workers() -> None:
+    """无预期基线时不宣称缺失进程数为零。"""
     result = query.build_runtime_diagnostics('demo', report(), {'supported': True, 'available': True}, now=NOW)
     assert result['missingWorkers'] is None
     assert result['observedTotals'] is None
 
 
 def test_snapshot_expiring_during_release_query_is_not_counted_as_fresh() -> None:
+    """发布查询期间过期的快照不计入新鲜快照。"""
     cached = snapshot(collectedAt=NOW - 59)
     cached['plugins'][0]['activeJobs'] = 7
     incoming = report(cached)
@@ -214,6 +244,7 @@ def test_snapshot_expiring_during_release_query_is_not_counted_as_fresh() -> Non
 
 @pytest.mark.parametrize('already_stale', [True, False])
 def test_new_expiration_updates_stale_count_without_counting_existing_ids_twice(already_stale: bool) -> None:
+    """重新计数过期快照时不重复计算已有标识。"""
     old_stale_ids = [WORKER, OTHER] if already_stale else [OTHER]
     result = query.build_runtime_diagnostics(
         'demo',
@@ -231,6 +262,7 @@ def test_new_expiration_updates_stale_count_without_counting_existing_ids_twice(
     ('age', 'ttl', 'fresh'), [(60, 60, True), (60.001, 60, False), (31, 30, False), (-5, 60, True), (-5.001, 60, False)]
 )
 def test_aggregation_rechecks_report_ttl_and_future_clock_skew(age: float, ttl: float, fresh: bool) -> None:
+    """聚合时复核报告有效期和未来时钟偏差。"""
     result = query.build_runtime_diagnostics(
         'demo', report(snapshot(collectedAt=NOW - age), sampleTtlSeconds=ttl), release(WORKER), now=NOW
     )

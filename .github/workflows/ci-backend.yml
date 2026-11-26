@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python: ['3.11', '3.12', '3.13', '3.14', '3.15']
     defaults:
       run:
         working-directory: ruoyi-fastapi-backend
@@ -31,6 +31,7 @@ jobs:
           cache-dependency-path: |
             ruoyi-fastapi-backend/requirements*.txt
             ruoyi-fastapi-backend/plugins/ai/plugin.yaml
+            ruoyi-fastapi-test/requirements.txt
       - name: Install MySQL, PostgreSQL and test dependencies
         run: python -m pip install -r requirements.txt -r requirements-pg.txt -r requirements-test.txt
       - name: Compile and validate gettext catalogs
@@ -64,6 +65,10 @@ jobs:
         run: python ../.github/scripts/install_ai_test_dependencies.py
       - name: Check dependency consistency
         run: python -m pip check
+      - name: Type-check backend, plugins and tests
+        run: |
+          python -m pip install -c ../ruoyi-fastapi-test/requirements.txt playwright
+          python scripts/check_types.py --python-version ${{ matrix.python }} .
       - name: Run backend unit and contract tests
         run: python -m pytest tests -q -m 'not browser and not native and not integration' --strict-markers --durations=20 --junitxml=target/ci/backend.xml
       - name: Verify tests were executed

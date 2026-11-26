@@ -1,6 +1,7 @@
-playwright==1.64.0
-pytest==9.1.1
-pytest-asyncio==1.4.0
+playwright==1.65.2
+pytest==9.2.0
+pytest-asyncio==1.5.0
 pytest-playwright==0.10.0
 requests==2.34.2
-ruff==0.17.1
+ruff==0.17.6
+ty==0.0.108

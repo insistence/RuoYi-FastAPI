@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -7,36 +7,41 @@ from utils.time_util import GenTimeUtil, TimezoneUtil
 
 
 def test_utc_now_returns_aware_utc_datetime() -> None:
+    """获取当前 UTC 时间时返回带时区对象。"""
     now = TimezoneUtil.utc_now()
 
-    assert now.tzinfo is timezone.utc
-    assert now.utcoffset().total_seconds() == 0
+    assert now.tzinfo is UTC
+    assert now.utcoffset() == timedelta(0)
 
 
 def test_naive_datetime_is_rejected() -> None:
+    """拒绝未带时区的日期时间。"""
     with pytest.raises(ValueError, match='必须携带时区信息'):
         TimezoneUtil.ensure_aware(datetime(2026, 8, 28, 10, 0, 0))
 
 
 def test_datetime_is_normalized_to_utc_and_business_timezone() -> None:
+    """日期时间可转换为 UTC 和业务时区。"""
     shanghai_time = datetime.fromisoformat('2026-08-28T10:30:00+08:00')
 
-    assert TimezoneUtil.to_utc(shanghai_time) == datetime(2026, 8, 28, 2, 30, tzinfo=timezone.utc)
+    assert TimezoneUtil.to_utc(shanghai_time) == datetime(2026, 8, 28, 2, 30, tzinfo=UTC)
     assert TimezoneUtil.to_business_time(TimezoneUtil.to_utc(shanghai_time), 'Asia/Shanghai') == shanghai_time
 
 
 def test_optional_utc_preserves_none_and_rejects_naive_datetime() -> None:
+    """可选 UTC 转换保留空值并拒绝无时区时间。"""
     assert TimezoneUtil.to_optional_utc(None) is None
     value = datetime.fromisoformat('2026-08-28T10:30:00+08:00')
-    assert TimezoneUtil.to_optional_utc(value) == datetime(2026, 8, 28, 2, 30, tzinfo=timezone.utc)
+    assert TimezoneUtil.to_optional_utc(value) == datetime(2026, 8, 28, 2, 30, tzinfo=UTC)
     with pytest.raises(ValueError, match='必须携带时区信息'):
         TimezoneUtil.to_optional_utc(datetime(2026, 8, 28, 10, 30))
 
 
 def test_to_utc_milliseconds_truncates_sub_millisecond_precision() -> None:
+    """转换 UTC 毫秒时间时截去亚毫秒精度。"""
     value = datetime.fromisoformat('2026-08-28T10:30:00.123999+08:00')
 
-    assert TimezoneUtil.to_utc_milliseconds(value) == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=timezone.utc)
+    assert TimezoneUtil.to_utc_milliseconds(value) == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=UTC)
 
 
 @pytest.mark.parametrize(
@@ -51,6 +56,7 @@ def test_to_utc_milliseconds_truncates_sub_millisecond_precision() -> None:
 def test_local_date_range_uses_utc_half_open_interval(
     day: date, zone: str, expected_start: str, expected_end: str
 ) -> None:
+    """本地日期范围转换为左闭右开的 UTC 区间。"""
     start, end = TimezoneUtil.local_date_range_to_utc(day, day, zone)
 
     assert start == datetime.fromisoformat(expected_start)
@@ -58,6 +64,7 @@ def test_local_date_range_uses_utc_half_open_interval(
 
 
 def test_format_rfc3339_uses_utc_and_millisecond_precision() -> None:
+    """RFC 3339 输出采用 UTC 并保留毫秒精度。"""
     value = datetime.fromisoformat('2026-08-28T10:30:00.123456+08:00')
 
     assert TimezoneUtil.format_rfc3339(value) == '2026-08-28T02:30:00.123Z'
@@ -76,15 +83,19 @@ class TestGenTimeUtil:
         ],
     )
     def test_normalization_preserves_timezone_qualifiers(self, column_type: str, expected: str) -> None:
+        """规范化时间类型时保留时区限定。"""
         assert GenTimeUtil.normalize_db_type(column_type) == expected
 
     @pytest.mark.parametrize('column_type', ['TIME(3) WITH TIME ZONE', 'timetz'])
     def test_time_with_timezone_requires_an_explicit_storage_decision(self, column_type: str) -> None:
+        """带时区的时间类型必须明确存储方式。"""
         with pytest.raises(ServiceWarning) as error:
             GenTimeUtil.get_time_semantics(column_type, 'postgresql')
 
+        assert error.value.message is not None
         assert 'TIME WITHOUT TIME ZONE' in error.value.message
 
     @pytest.mark.parametrize('db_type', ['mysql', 'postgresql'])
     def test_non_time_columns_do_not_receive_time_semantics(self, db_type: str) -> None:
+        """非时间列不附加时间语义。"""
         assert GenTimeUtil.get_time_semantics('varchar(64)', db_type) is None

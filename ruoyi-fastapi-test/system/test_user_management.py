@@ -12,7 +12,13 @@ pytestmark = pytest.mark.e2e
 
 
 async def verify_auth_role(view: SystemPage, user_id: int, *, assigned: bool) -> None:
-    """每次授权变更后重读真实后端，普通角色选中状态必须一致。"""
+    """
+    每次授权变更后重读真实后端，普通角色选中状态必须一致。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param user_id: 用户的唯一标识
+    :param assigned: 分配给目标的记录或权限
+    """
     response = await view.api.get(f'/system/user/authRole/{user_id}')
     payload = await response.json()
     assert response.ok and payload['code'] == HTTPStatus.OK, payload
@@ -22,7 +28,13 @@ async def verify_auth_role(view: SystemPage, user_id: int, *, assigned: bool) ->
 
 
 async def reset_password(view: SystemPage, name: str, browser_harness: BrowserHarness) -> None:
-    """通过界面重置密码，并使用新密码实际登录验证。"""
+    """
+    通过界面重置密码，并使用新密码实际登录验证。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param name: 用于查找或标识当前对象的名称
+    :param browser_harness: 管理浏览器上下文、页面和登录状态的端到端测试夹具
+    """
     await view.row_action(name, '重置密码')
     prompt = view.page.locator('.el-message-box:visible, .ant-modal:visible')
     await prompt.locator('input').fill('Updated123456!')
@@ -40,7 +52,11 @@ async def reset_password(view: SystemPage, name: str, browser_harness: BrowserHa
 
 
 async def verify_optional_date_keyboard(view: SystemPage) -> None:
-    """验证用户管理的空日期筛选支持双向 Tab 导航和键盘开闭日历。"""
+    """
+    验证用户管理的空日期筛选支持双向 Tab 导航和键盘开闭日历。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    """
     start = view.page.get_by_placeholder('开始日期', exact=True)
     end = view.page.get_by_placeholder('结束日期', exact=True)
     await start.focus()

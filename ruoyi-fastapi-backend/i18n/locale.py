@@ -22,14 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 class LocaleUtil:
-    """
-    请求语言协商与响应头工具类
-    """
+    """请求语言协商与响应头工具类。"""
 
     @staticmethod
     def negotiate_language(header: str) -> str:
         """
-        根据请求头权重协商有效语言
+        根据请求头权重协商有效语言。
 
         :param header: Accept-Language 请求头原始值
         :return: 匹配到的已注册语言，无法匹配时返回默认语言
@@ -68,7 +66,7 @@ class LocaleUtil:
     @staticmethod
     def _match_range(language: str, enabled: tuple[str, ...], *, excluded: bool) -> tuple[tuple[str, ...], int]:
         """
-        匹配 Accept-Language 中的单个语言范围
+        匹配 Accept-Language 中的单个语言范围。
 
         :param language: 请求头中的语言标签或通配符
         :param enabled: 按注册顺序排列的已启用语言
@@ -92,7 +90,7 @@ class LocaleUtil:
     @staticmethod
     def _report_limit(reason: str, total: int) -> None:
         """
-        在累计次数为 2 的整数次幂时记录摘要，限制重复告警的频率
+        在累计次数为 2 的整数次幂时记录摘要，限制重复告警的频率。
 
         :param reason: 超限类别，对应请求头长度或语言范围数量
         :param total: 当前进程中该类别累计超限的次数
@@ -103,7 +101,7 @@ class LocaleUtil:
     @classmethod
     def context_from_headers(cls, headers: Mapping[str, str]) -> LocaleContext:
         """
-        根据 Accept-Language 请求头构造语言上下文
+        根据 Accept-Language 请求头构造语言上下文。
 
         :param headers: 支持按小写名称读取的请求头集合
         :return: 当前请求的语言上下文
@@ -113,7 +111,7 @@ class LocaleUtil:
     @staticmethod
     def add_locale_headers(headers: MutableHeaders, context: LocaleContext) -> None:
         """
-        追加语言响应头并保留原有 Vary 配置
+        追加语言响应头并保留原有 Vary 配置。
 
         :param headers: 可修改的响应头集合
         :param context: 当前请求的语言上下文

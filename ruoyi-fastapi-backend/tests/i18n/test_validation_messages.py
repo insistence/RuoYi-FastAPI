@@ -51,7 +51,7 @@ def catalogs() -> None:
     ],
 )
 def test_explicit_type_messages_preserve_only_public_constraints(
-    error: dict[str, Any], key: str, params: dict, text: str
+    error: dict[str, Any], key: str, params: dict[str, object], text: str
 ) -> None:
     """验证错误类型映射仅公开该类型声明的约束参数。"""
     token = RequestContext.set_current_locale(LocaleContext('en-US'))
@@ -69,12 +69,20 @@ def test_explicit_type_messages_preserve_only_public_constraints(
 
 
 class ValidationBody(BaseModel):
-    name: str = Field(min_length=3)
+    """通过字段长度和校验器触发请求体验证。"""
+
+    name: str = Field(min_length=3, description='待校验的名称')
 
     @field_validator('name')
     @classmethod
     def validate_name(cls, value: str) -> str:
-        """构造含内部错误详情的校验失败，用于验证响应脱敏。"""
+        """
+        构造含内部错误详情的校验失败，用于验证响应脱敏。
+
+        :param value: 待处理的输入值
+        :raises ValueError: 模拟数据校验产生内部数据库错误
+        :return: 待处理的输入值
+        """
         if value == 'invalid':
             raise ValueError('private database detail')
         return value
@@ -87,11 +95,15 @@ async def test_real_422_handles_json_and_custom_validation_without_echoing_input
     handle_exception(app)
     add_locale_middleware(app)
 
-    @app.post('/validate')
-    async def validate(body: ValidationBody, count: Annotated[int, Query(ge=1)]) -> dict:
+    @app.post('/validate', summary='校验请求字段', description='校验请求体中的名称和查询参数中的数量，并返回有效值。')
+    async def validate(body: ValidationBody, count: Annotated[int, Query(ge=1)]) -> dict[str, object]:
         return {'name': body.name, 'count': count}
 
-    @app.get('/non-json-input')
+    @app.get(
+        '/non-json-input',
+        summary='模拟不可序列化的校验输入',
+        description='构造含特殊输入值的校验异常，验证错误响应的字段和脱敏行为。',
+    )
     async def non_json_input() -> None:
         raise RequestValidationError(
             [

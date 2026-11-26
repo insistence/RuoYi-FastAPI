@@ -24,20 +24,18 @@ SAFE_METHODS = frozenset({'GET', 'HEAD', 'OPTIONS'})
 
 
 class PluginBrowserSession(BaseModel):
-    """
-    Redis 内部记录；不作为 API 响应或日志字段。
-    """
+    """Redis 内部记录；不作为 API 响应或日志字段。"""
 
     model_config = ConfigDict(extra='forbid', frozen=True)
 
-    plugin_id: str
-    version: str
-    main_key: str
-    main_digest: str = Field(pattern=r'^[a-f0-9]{64}$')
-    user_id: int = Field(gt=0)
-    origin: str
-    nonce: str = Field(pattern=r'^[A-Za-z0-9_-]{43}$')
-    csrf: str = Field(pattern=r'^[A-Za-z0-9_-]{43}$')
+    plugin_id: str = Field(description='插件标识')
+    version: str = Field(description='插件版本')
+    main_key: str = Field(description='当前登录会话的缓存键')
+    main_digest: str = Field(pattern=r'^[a-f0-9]{64}$', description='主登录凭据的绑定摘要')
+    user_id: int = Field(gt=0, description='用户标识')
+    origin: str = Field(description='会话绑定的浏览器来源')
+    nonce: str = Field(pattern=r'^[A-Za-z0-9_-]{43}$', description='绑定该会话的随机数')
+    csrf: str = Field(pattern=r'^[A-Za-z0-9_-]{43}$', description='防止跨站请求伪造的令牌')
 
 
 def _digest(value: str) -> str:
@@ -68,6 +66,7 @@ def plugin_browser_base(request: Request, plugin_id: str) -> str:
     :param request: 签发插件会话的宿主请求
     :param plugin_id: 插件 ID
     :return: 包含宿主部署前缀的插件浏览器入口路径
+    :raises ValueError: 插件浏览器入口需要安全的部署 root_path
     """
     root = str(request.scope.get('root_path', '')).rstrip('/')
     if not SAFE_ROOT_PATTERN.fullmatch(root):
@@ -81,6 +80,7 @@ def _parse_record(raw: str | bytes | None) -> PluginBrowserSession:
 
     :param raw: Redis 返回的会话 JSON 字符串或字节串
     :return: 验证后的插件浏览器会话记录
+    :raises LookupError: 插件浏览器会话缺失、过期或内容无效
     """
     if not raw:
         raise LookupError(I18nMessage('插件会话已过期', msg_key='plugin.session.expired'))
@@ -105,6 +105,8 @@ async def issue_browser_session(
     :param main_token: 当前用户的宿主登录凭证
     :param user_id: 已认证的用户 ID
     :return: 插件 Cookie 值、CSRF 凭证和有效秒数
+    :raises PermissionError: 请求来源与宿主不同源或用户身份不匹配
+    :raises LookupError: 主会话缺少标识、已失效或已过期
     """
     origin = request_origin(request)
     if request.headers.get('origin') not in (None, origin):
@@ -175,6 +177,8 @@ async def authenticate_browser_session(
     :param query_db: 用于查询用户及权限的数据库会话
     :param websocket: 是否按 WebSocket 请求执行来源校验
     :return: 通过宿主身份及权限校验的当前用户
+    :raises LookupError: 缺少插件会话；插件会话无效；主登录会话已失效
+    :raises PermissionError: 插件会话不适用于此插件或版本；插件会话来源不匹配；插件请求缺少同源 Origin；插件请求 CSRF 校验失败；插件会话用户身份不匹配
     """
     cookie = request.cookies.get(f'{COOKIE_NAME_PREFIX}{plugin_id}', '')
     matched = COOKIE_PATTERN.fullmatch(cookie)

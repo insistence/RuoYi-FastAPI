@@ -1,8 +1,9 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.env import OidcConfig
 from module_identity.security.opaque_token import generate_refresh_token, token_digest
@@ -15,8 +16,11 @@ _PEPPER = 'revocation-test-pepper-' + 'x' * 32
 
 
 def _config() -> SimpleNamespace:
-    """构造撤销所需的最小配置。"""
+    """
+    构造撤销所需的最小配置。
 
+    :return: 撤销所需的最小配置
+    """
     return SimpleNamespace(
         oidc_issuer='https://auth.example.com',
         oidc_allowed_clock_skew_seconds=60,
@@ -26,16 +30,23 @@ def _config() -> SimpleNamespace:
 
 @pytest.fixture(autouse=True)
 def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
-    """将全局 OIDC 配置固定为本文件测试所需的协议值。"""
+    """
+    将全局 OIDC 配置固定为本文件测试所需的协议值。
 
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     monkeypatch.setattr(OidcConfig, 'oidc_issuer', 'https://auth.example.com')
     monkeypatch.setattr(OidcConfig, 'oidc_allowed_clock_skew_seconds', 60)
     monkeypatch.setattr(OidcConfig, 'oidc_token_hash_pepper', _PEPPER)
 
 
 def _client(client_type: str = 'public') -> SimpleNamespace:
-    """构造启用的撤销 Client。"""
+    """
+    构造启用的撤销 Client。
 
+    :param client_type: 客户端类型（public公开客户端 confidential机密客户端）
+    :return: 启用的撤销 Client
+    """
     return SimpleNamespace(
         client_pk=10,
         client_id='client-a',
@@ -48,7 +59,6 @@ def _client(client_type: str = 'public') -> SimpleNamespace:
 @pytest.mark.asyncio
 async def test_public_client_can_revoke_only_its_own_refresh_family(monkeypatch: pytest.MonkeyPatch) -> None:
     """Public Client 只能撤销自己签发的 Refresh Token Family。"""
-
     monkeypatch.setattr('module_identity.service.token_protocol_service.AuditService.record', AsyncMock())
     client = _client()
     token = generate_refresh_token('token-0001')
@@ -65,11 +75,11 @@ async def test_public_client_can_revoke_only_its_own_refresh_family(monkeypatch:
     revoke_family = AsyncMock()
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthTokenDao.get_by_token_id', get_by_token_id)
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthTokenDao.revoke_family', revoke_family)
-    db = object()
+    db = AsyncSession()
 
     await RevocationService.revoke(
         db,
-        FakeRedis(),
+        FakeRedis().client,
         token,
         OAuthClientPrincipal('client-a', 'public', 'none'),
     )
@@ -99,7 +109,6 @@ async def test_revocation_auth_method_pair_is_exact(
     expected: bool,
 ) -> None:
     """Revocation 对 Public/none 与 Confidential/Basic 组合逐项 fail closed。"""
-
     client = _client(client_type)
     client.token_endpoint_auth_method = db_method
     monkeypatch.setattr(
@@ -107,7 +116,7 @@ async def test_revocation_auth_method_pair_is_exact(
     )
 
     result = await RevocationService._resolve_caller(
-        object(), OAuthClientPrincipal('client-a', principal_type, principal_method)
+        AsyncSession(), OAuthClientPrincipal('client-a', principal_type, principal_method)
     )
 
     assert (result is not None) is expected
@@ -116,7 +125,6 @@ async def test_revocation_auth_method_pair_is_exact(
 @pytest.mark.asyncio
 async def test_unknown_refresh_is_idempotent_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """未知或错误 Secret 不得暴露存在性，且 RFC7009 仍返回成功。"""
-
     client = _client()
     monkeypatch.setattr(
         'module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', _client_lookup(client)
@@ -126,8 +134,8 @@ async def test_unknown_refresh_is_idempotent_success(monkeypatch: pytest.MonkeyP
     )
 
     result = await RevocationService.revoke(
-        object(),
-        FakeRedis(),
+        AsyncSession(),
+        FakeRedis().client,
         generate_refresh_token('token-0002'),
         OAuthClientPrincipal('client-a', 'public', 'none'),
     )
@@ -138,7 +146,6 @@ async def test_unknown_refresh_is_idempotent_success(monkeypatch: pytest.MonkeyP
 @pytest.mark.asyncio
 async def test_access_revocation_is_written_only_after_commit(monkeypatch: pytest.MonkeyPatch) -> None:
     """Access JTI 撤销必须在数据库提交成功后写入 Redis。"""
-
     client = _client('confidential')
     monkeypatch.setattr(
         'module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', _client_lookup(client)
@@ -158,12 +165,12 @@ async def test_access_revocation_is_written_only_after_commit(monkeypatch: pytes
     )
     redis = FakeRedis()
     coordinator = AfterCommitCoordinator()
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
-    now = datetime.fromtimestamp(200, timezone.utc)
+    db = AsyncMock(spec=AsyncSession)
+    now = datetime.fromtimestamp(200, UTC)
 
     await RevocationService.revoke(
         db,
-        redis,
+        redis.client,
         'signed-access',
         OAuthClientPrincipal('client-a', 'confidential', 'client_secret_basic'),
         coordinator=coordinator,
@@ -177,7 +184,6 @@ async def test_access_revocation_is_written_only_after_commit(monkeypatch: pytes
 @pytest.mark.asyncio
 async def test_public_client_can_revoke_its_own_access_after_commit(monkeypatch: pytest.MonkeyPatch) -> None:
     """Public Client 可撤销自己通过 PKCE 获得的 Access JWT。"""
-
     client = _client('public')
     monkeypatch.setattr(
         'module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', _client_lookup(client)
@@ -198,15 +204,15 @@ async def test_public_client_can_revoke_its_own_access_after_commit(monkeypatch:
     )
     redis = FakeRedis()
     coordinator = AfterCommitCoordinator()
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = AsyncMock(spec=AsyncSession)
 
     await RevocationService.revoke(
         db,
-        redis,
+        redis.client,
         'signed-public-access',
         OAuthClientPrincipal('client-a', 'public', 'none'),
         coordinator=coordinator,
-        now=datetime.fromtimestamp(200, timezone.utc),
+        now=datetime.fromtimestamp(200, UTC),
     )
     await coordinator.commit(db)
 
@@ -216,7 +222,6 @@ async def test_public_client_can_revoke_its_own_access_after_commit(monkeypatch:
 @pytest.mark.asyncio
 async def test_public_client_cannot_revoke_other_client_access(monkeypatch: pytest.MonkeyPatch) -> None:
     """Public Client 不能撤销其他业务 Client 的 Access JWT。"""
-
     client = _client('public')
     monkeypatch.setattr(
         'module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', _client_lookup(client)
@@ -237,16 +242,28 @@ async def test_public_client_cannot_revoke_other_client_access(monkeypatch: pyte
     )
     redis = FakeRedis()
     await RevocationService.revoke(
-        object(), redis, 'foreign-access', OAuthClientPrincipal('client-a', 'public', 'none')
+        AsyncSession(), redis.client, 'foreign-access', OAuthClientPrincipal('client-a', 'public', 'none')
     )
 
     assert not redis.values
 
 
 def _client_lookup(client: SimpleNamespace) -> object:
-    """返回指定 Client 的异步 DAO 查询桩。"""
+    """
+    返回指定 Client 的异步 DAO 查询桩。
+
+    :param client: 发起当前调用的客户端
+    :return: 指定 Client 的异步 DAO 查询桩
+    """
 
     async def lookup(*_args: object, **_kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``client``。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 为当前请求选择的客户端
+        """
         return client
 
     return lookup

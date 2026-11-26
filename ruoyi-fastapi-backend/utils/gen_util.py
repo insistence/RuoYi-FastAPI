@@ -1,7 +1,12 @@
 import re
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from common.constant import GenConstant
 from config.env import DataBaseConfig, GenConfig
+from exceptions.exception import ServiceWarning
 from module_generator.entity.vo.gen_vo import GenTableColumnModel, GenTableModel
 from utils.string_util import StringUtil
 from utils.time_util import GenTimeUtil
@@ -9,24 +14,68 @@ from utils.time_util import GenTimeUtil
 
 class GenUtils:
     """
-    代码生成器工具类
+    代码生成器工具类。
+
+    :cvar TEXTAREA_COLUMN_LENGTH: 选择多行输入框时使用的列长度阈值
     """
 
     TEXTAREA_COLUMN_LENGTH = 500
 
+    @staticmethod
+    def format_generated_python(files: dict[str, str]) -> dict[str, str]:
+        """
+        使用后端 Ruff 配置批量排版一组生成文件中的 Python 源码。
+
+        :param files: 以模板名或输出路径为键的生成内容
+        :return: 保持原有文件顺序的排版结果
+        """
+        names = [name for name, source in files.items() if name.endswith(('.py', '.py.jinja2')) and source]
+        if not names:
+            return files
+        formatted = files.copy()
+        config = Path(__file__).resolve().parents[1] / 'ruff.toml'
+        with TemporaryDirectory() as directory:
+            # 仅使用内部编号创建临时文件，生成配置中的路径不参与磁盘寻址。
+            paths = [Path(directory) / f'{index}.py' for index in range(len(names))]
+            for name, path in zip(names, paths, strict=True):
+                path.write_text(files[name], encoding='utf-8')
+            subprocess.run(
+                [sys.executable, '-m', 'ruff', 'format', '--no-cache', '--config', str(config), *paths],
+                check=True,
+                cwd=directory,
+                stdout=subprocess.DEVNULL,
+            )
+            for name, path in zip(names, paths, strict=True):
+                formatted[name] = path.read_text(encoding='utf-8')
+        return formatted
+
+    @staticmethod
+    def require_metadata(value: str | None) -> str:
+        """
+        获取代码生成所需的非空元数据。
+
+        :param value: 表、字段或生成配置中的元数据值
+        :return: 已填写的元数据值
+        :raises ServiceWarning: 缺少生成所需的元数据
+        """
+        if not value:
+            raise ServiceWarning(message='请先完善生成配置信息', msg_key='generator.configurationRequired')
+        return value
+
     @classmethod
     def init_table(cls, gen_table: GenTableModel, oper_name: str) -> None:
         """
-        初始化表信息
+        初始化表信息。
 
         :param gen_table: 业务表对象
         :param oper_name: 操作人
         """
-        gen_table.class_name = cls.convert_class_name(gen_table.table_name)
+        table_name = cls.require_metadata(gen_table.table_name)
+        gen_table.class_name = cls.convert_class_name(table_name)
         gen_table.package_name = GenConfig.package_name
         gen_table.module_name = cls.get_module_name(GenConfig.package_name)
-        gen_table.business_name = cls.get_business_name(gen_table.table_name)
-        gen_table.function_name = cls.replace_text(gen_table.table_comment)
+        gen_table.business_name = cls.get_business_name(table_name)
+        gen_table.function_name = cls.replace_text(gen_table.table_comment or '')
         gen_table.function_author = GenConfig.author
         gen_table.create_by = oper_name
         gen_table.update_by = oper_name
@@ -34,12 +83,13 @@ class GenUtils:
     @classmethod
     def init_column_field(cls, column: GenTableColumnModel, table: GenTableModel) -> None:
         """
-        初始化列属性字段
+        初始化列属性字段。
 
         :param column: 业务表字段对象
         :param table: 业务表对象
         """
-        data_type = cls.get_db_type(column.column_type).lower()
+        column_type = cls.require_metadata(column.column_type)
+        data_type = cls.get_db_type(column_type).lower()
         source_config = DataBaseConfig.get_source(table.data_source_name)
         db_type = source_config.db_type
         python_mapping = GenConstant.DB_TO_PYTHON_TYPE_MAPPING[db_type]
@@ -47,7 +97,7 @@ class GenUtils:
         text_types = GenConstant.COLUMNTYPE_TEXT[db_type]
         time_types = GenConstant.COLUMNTYPE_TIME[db_type]
         number_types = GenConstant.COLUMNTYPE_NUMBER[db_type]
-        column_name = column.column_name
+        column_name = cls.require_metadata(column.column_name)
         column.table_id = table.table_id
         column.create_by = table.create_by
         # 设置Python字段名
@@ -58,7 +108,7 @@ class GenUtils:
 
         if data_type in string_types or data_type in text_types:
             # 字符串长度超过500设置为文本域
-            column_length = cls.get_column_length(column.column_type)
+            column_length = cls.get_column_length(column_type)
             html_type = (
                 GenConstant.HTML_TEXTAREA
                 if column_length >= cls.TEXTAREA_COLUMN_LENGTH or data_type in text_types
@@ -114,7 +164,7 @@ class GenUtils:
     @classmethod
     def arrays_contains(cls, arr: list[str], target_value: str) -> bool:
         """
-        校验数组是否包含指定值
+        校验数组是否包含指定值。
 
         :param arr: 数组
         :param target_value: 需要校验的值
@@ -125,7 +175,7 @@ class GenUtils:
     @classmethod
     def get_module_name(cls, package_name: str) -> str:
         """
-        获取模块名
+        获取模块名。
 
         :param package_name: 包名
         :return: 模块名
@@ -135,7 +185,7 @@ class GenUtils:
     @classmethod
     def get_business_name(cls, table_name: str) -> str:
         """
-        获取业务名
+        获取业务名。
 
         :param table_name: 业务表名
         :return: 业务名
@@ -145,7 +195,7 @@ class GenUtils:
     @classmethod
     def convert_class_name(cls, table_name: str) -> str:
         """
-        表名转换成Python类名
+        表名转换成Python类名。
 
         :param table_name: 业务表名
         :return: Python类名
@@ -160,7 +210,7 @@ class GenUtils:
     @classmethod
     def replace_first(cls, replacement: str, search_list: list[str]) -> str:
         """
-        批量替换前缀
+        批量替换前缀。
 
         :param replacement: 需要被替换的字符串
         :param search_list: 可替换的字符串列表
@@ -174,7 +224,7 @@ class GenUtils:
     @classmethod
     def replace_text(cls, text: str) -> str:
         """
-        关键字替换
+        关键字替换。
 
         :param text: 需要被替换的字符串
         :return: 替换后的字符串
@@ -184,7 +234,7 @@ class GenUtils:
     @classmethod
     def get_db_type(cls, column_type: str) -> str:
         """
-        获取数据库类型字段
+        获取数据库类型字段。
 
         :param column_type: 字段类型
         :return: 数据库类型
@@ -194,7 +244,7 @@ class GenUtils:
     @classmethod
     def get_column_length(cls, column_type: str) -> int:
         """
-        获取字段长度
+        获取字段长度。
 
         :param column_type: 字段类型
         :return: 字段长度
@@ -207,7 +257,7 @@ class GenUtils:
     @classmethod
     def split_column_type(cls, column_type: str) -> list[str]:
         """
-        拆分列类型
+        拆分列类型。
 
         :param column_type: 字段类型
         :return: 拆分结果
@@ -219,7 +269,7 @@ class GenUtils:
     @classmethod
     def to_camel_case(cls, text: str) -> str:
         """
-        将字符串转换为驼峰命名
+        将字符串转换为驼峰命名。
 
         :param text: 需要转换的字符串
         :return: 驼峰命名

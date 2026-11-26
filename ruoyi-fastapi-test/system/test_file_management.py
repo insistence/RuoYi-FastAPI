@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 from http import HTTPStatus
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -14,7 +15,13 @@ pytestmark = pytest.mark.e2e
 
 
 async def file_action_row(view: SystemPage, name: str) -> Locator:
-    """Element UI 的固定操作列另有一张可见表格。"""
+    """
+    Element UI 的固定操作列另有一张可见表格。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param name: 用于查找或标识当前对象的名称
+    :return: 带可见文件操作按钮的表格行
+    """
     fixed = view.page.locator('.el-table__fixed-right:visible .el-table__row').filter(
         has=view.page.get_by_text(name, exact=True)
     )
@@ -22,14 +29,25 @@ async def file_action_row(view: SystemPage, name: str) -> Locator:
 
 
 async def select_file(view: SystemPage, name: str) -> None:
-    """点击可见复选框外层，核验隐藏原生控件的选择状态。"""
+    """
+    点击可见复选框外层，核验隐藏原生控件的选择状态。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param name: 用于查找或标识当前对象的名称
+    """
     selection = view.row(name).locator('.el-checkbox, .ant-checkbox-wrapper')
     await selection.click()
     await expect(selection.locator('input')).to_be_checked()
 
 
 async def cleanup_file(view: SystemPage, file_id: str, name: str) -> None:
-    """只清理本次上传文件，兼容用例已将其永久删除的情况。"""
+    """
+    只清理本次上传文件，兼容用例已将其永久删除的情况。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param file_id: 文件ID
+    :param name: 用于查找或标识当前对象的名称
+    """
     response = await view.api.get('/system/file/list', params={'originalName': name, 'pageNum': 1, 'pageSize': 1000})
     assert response.ok
     payload = await response.json()
@@ -46,7 +64,14 @@ async def cleanup_file(view: SystemPage, file_id: str, name: str) -> None:
 
 
 async def verify_file_details_and_download(view: SystemPage, name: str, file_id: str, contents: bytes) -> None:
-    """详情校验持久化摘要，浏览器下载校验原始文件名和真实字节。"""
+    """
+    详情校验持久化摘要，浏览器下载校验原始文件名和真实字节。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param name: 用于查找或标识当前对象的名称
+    :param file_id: 文件ID
+    :param contents: 需要写入或校验的文件内容
+    """
     action_row = await file_action_row(view, name)
     detail = await view.action(action_row.get_by_role('button').nth(0).click, f'/system/file/{file_id}')
     assert detail['data']['fileHash'] == hashlib.sha256(contents).hexdigest()
@@ -65,8 +90,14 @@ async def verify_file_details_and_download(view: SystemPage, name: str, file_id:
     assert await asyncio.to_thread(Path(download_path).read_bytes) == contents
 
 
-async def upload_fixture(view: SystemPage, access_type: str) -> tuple[dict, str, bytes]:
-    """文件管理页没有上传控件，使用真实公共上传接口准备唯一文件。"""
+async def upload_fixture(view: SystemPage, access_type: str) -> tuple[dict[str, Any], str, bytes]:
+    """
+    文件管理页没有上传控件，使用真实公共上传接口准备唯一文件。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param access_type: 文件访问类型
+    :return: 依次为 ``payload``、``name``、``contents`` 的元组
+    """
     name = f'e2e_{access_type}_{uuid4().hex[:8]}.txt'
     contents = f'{name}\n真实文件下载与恢复校验\n'.encode()
     upload_path = '/common/upload' if access_type == 'public' else '/common/files/upload'

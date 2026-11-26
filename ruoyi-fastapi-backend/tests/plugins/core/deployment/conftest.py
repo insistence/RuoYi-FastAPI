@@ -31,20 +31,24 @@ def isolate_catalog_lifecycle_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     为临时数据库测试显式替换导入锁，避免连接开发环境 Redis。
 
     :param monkeypatch: pytest 替换工具
-    :return: None
     """
     monkeypatch.setattr('plugins.core.deployment.catalog.RedisPluginLifecycleLock', NoopPluginLifecycleLock)
 
 
 @pytest_asyncio.fixture
 async def deployment_sessions(tmp_path: Path) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
-    """创建包含发布及必要宿主表的临时 SQLite 会话工厂。"""
+    """
+    创建包含发布及必要宿主表的临时 SQLite 会话工厂。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :yield: 包含发布及必要宿主表的临时 SQLite 会话工厂
+    """
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "deployment.sqlite"}')
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
             tables=[
-                item.__table__
+                item.get_table()
                 for item in (
                     SysPlugin,
                     SysPluginArtifact,
@@ -67,13 +71,23 @@ async def deployment_sessions(tmp_path: Path) -> AsyncIterator[async_sessionmake
 
 @pytest.fixture
 def deployment_key() -> Ed25519PrivateKey:
-    """生成发布测试使用的临时签名私钥。"""
+    """
+    生成发布测试使用的临时签名私钥。
+
+    :return: 发布测试使用的临时签名私钥
+    """
     return Ed25519PrivateKey.generate()
 
 
 @pytest.fixture
 def deployment_config(tmp_path: Path, deployment_key: Ed25519PrivateKey) -> PluginDeploymentConfig:
-    """构造独立存储目录与受限发布者公钥配置。"""
+    """
+    构造独立存储目录与受限发布者公钥配置。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param deployment_key: 生成发布测试使用的临时签名私钥
+    :return: 独立存储目录与受限发布者公钥配置
+    """
     backend = tmp_path / 'host'
     (backend / 'plugins').mkdir(parents=True)
     trust_file = tmp_path / 'trusted-publishers.json'
@@ -98,7 +112,12 @@ def deployment_config(tmp_path: Path, deployment_key: Ed25519PrivateKey) -> Plug
 
 @pytest.fixture
 def deployment_source(tmp_path: Path) -> Path:
-    """创建用于验证静态维护边界的临时部署目录。"""
+    """
+    创建用于验证静态维护边界的临时部署目录。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 用于验证静态维护边界的临时部署目录
+    """
     source = tmp_path / 'artifact_demo'
     source.mkdir()
     (source / 'plugin.yaml').write_text(
@@ -125,7 +144,14 @@ def deployment_source(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def deployment_archive(tmp_path: Path, deployment_source: Path, deployment_key: Ed25519PrivateKey) -> Path:
-    """构建发布服务测试使用的签名制品。"""
+    """
+    构建发布服务测试使用的签名制品。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param deployment_source: 创建用于验证静态维护边界的临时部署目录
+    :param deployment_key: 生成发布测试使用的临时签名私钥
+    :return: 发布服务测试使用的签名制品
+    """
     path = tmp_path / 'deployment.rpk'
     build_artifact(deployment_source, path, deployment_key, 'publisher')
     return path

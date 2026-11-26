@@ -9,7 +9,13 @@ EXPECTED_CONFIG_ORDER = 10
 
 
 def write_manifest(plugin_dir: Path, content: str) -> Path:
-    """写入测试插件清单。"""
+    """
+    写入测试插件清单。
+
+    :param plugin_dir: 保存插件清单和资源的目录
+    :param content: 需要读取或写入的内容
+    :return: 供调用方使用的 ``manifest_path``
+    """
     plugin_dir.mkdir(parents=True)
     manifest_path = plugin_dir / 'plugin.yaml'
     manifest_path.write_text(content, encoding='utf-8')

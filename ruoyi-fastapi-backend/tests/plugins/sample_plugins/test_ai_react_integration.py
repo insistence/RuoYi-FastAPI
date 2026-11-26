@@ -2,8 +2,10 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
+from unittest.mock import Mock
 
 import pytest
+from agno.agent import Agent
 from agno.run.agent import RunEvent
 
 from cli.runtime.plugin.support import PluginDependencyLockfileTemplateBuilder
@@ -21,14 +23,18 @@ from plugins.core.validation.dependencies import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from plugins.core.manifest.schema import PluginManifest
+    from plugins.core.manifest.v2 import VersionedPluginManifest
 
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 REACT_ROOT = BACKEND_ROOT.parent / 'ruoyi-fastapi-frontend' / 'react' / 'web'
 
 
-def load_ai_manifest() -> 'PluginManifest':
-    """加载实际 AI 插件清单，避免用测试清单掩盖发布遗漏。"""
+def load_ai_manifest() -> 'VersionedPluginManifest':
+    """
+    加载实际 AI 插件清单，避免用测试清单掩盖发布遗漏。
+
+    :return: 实际 AI 插件清单
+    """
     return (
         PluginScanner(BACKEND_ROOT / 'plugins').load_manifest(BACKEND_ROOT / 'plugins' / 'ai' / 'plugin.yaml').manifest
     )
@@ -65,6 +71,7 @@ def test_ai_react_dependencies_match_host_and_install_plan(tmp_path: Path) -> No
     assert any(expected_markstream in item.command for item in plan.items)
     lockfile = PluginDependencyLockfileTemplateBuilder.build(manifest, frontend_root=root).to_dict()
     assert lockfile['frontendFramework'] == 'react'
+    assert isinstance(lockfile['npm'], list)
     assert {item['name'] for item in lockfile['npm']} == expected_packages
     assert lockfile['npmDev'] == []
 
@@ -82,25 +89,27 @@ async def test_ai_stream_preserves_react_markdown_and_existing_vue_protocol(reas
         SimpleNamespace(event=RunEvent.run_completed, metrics=SimpleNamespace(to_dict=lambda: {'input_tokens': 3})),
     ]
 
-    class FakeAgent:
-        """离线流式 Agent，不请求模型或数据库。"""
+    async def stream_chunks() -> 'AsyncIterator[SimpleNamespace]':
+        """
+        按原始顺序提供测试中的模型事件。
 
-        async def arun(self, message: str, **kwargs) -> 'AsyncIterator[SimpleNamespace]':
-            """逐段返回测试模型事件。"""
-            assert message == '你好'
-            assert kwargs == {'stream': True, 'stream_events': True}
-            for chunk in chunks:
-                yield chunk
+        :yield: 单个模型事件
+        """
+        for chunk in chunks:
+            yield chunk
 
+    agent = Mock(spec_set=Agent)
+    agent.arun.return_value = stream_chunks()
     request = AiChatRequestModel.model_validate(
         {'modelId': 1, 'sessionId': 'session-test', 'message': '你好', 'isReasoning': reasoning_enabled}
     )
     frames = [
         frame
         async for frame in AiChatService._stream_agent(
-            FakeAgent(), request, {'stream': True, 'stream_events': True}, reasoning_enabled, 'session-test'
+            agent, request, {'stream': True, 'stream_events': True}, reasoning_enabled, 'session-test'
         )
     ]
+    agent.arun.assert_called_once_with('你好', stream=True, stream_events=True)
     assert all(frame.endswith('\n') for frame in frames)
     events = [json.loads(frame) for frame in frames]
     assert events[0] == {'type': 'meta', 'session_id': 'session-test'}

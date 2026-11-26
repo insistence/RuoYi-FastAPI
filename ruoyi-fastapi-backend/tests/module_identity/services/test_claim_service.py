@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -56,14 +56,14 @@ def test_claim_builder_does_not_leak_local_identity_or_unapproved_contact() -> N
 def test_openid_fails_closed_when_subject_or_sub_policy_is_missing(
     user: dict[str, object], policy: dict[str, object], resource: list[str]
 ) -> None:
-    """openid 请求缺少稳定 Subject 或 sub 策略时不得静默生成 Claims。"""
+    """验证 openid 请求缺少稳定 Subject 或 sub 策略时不得静默生成 Claims。"""
     with pytest.raises(OAuthProtocolException):
         ClaimService.build_claims(user, {'openid'}, policy, resource)
 
 
 def test_updated_at_is_numeric_date_and_roles_are_role_keys() -> None:
     """本地更新时间输出 NumericDate，角色查询语句使用 role_key。"""
-    user = {'subject_id': 'stable-sub', 'update_time': datetime(1970, 1, 1, 0, 0, 1, tzinfo=timezone.utc)}
+    user = {'subject_id': 'stable-sub', 'update_time': datetime(1970, 1, 1, 0, 0, 1, tzinfo=UTC)}
     claims = ClaimService.build_claims(
         user,
         {'openid', 'profile', 'roles'},
@@ -75,5 +75,5 @@ def test_updated_at_is_numeric_date_and_roles_are_role_keys() -> None:
         ['sub', 'updated_at', 'roles'],
         roles=['admin_key'],
     )
-    assert claims['updated_at'] == int(datetime(1970, 1, 1, 0, 0, 1, tzinfo=timezone.utc).timestamp())
+    assert claims['updated_at'] == int(datetime(1970, 1, 1, 0, 0, 1, tzinfo=UTC).timestamp())
     assert claims['roles'] == ['admin_key']

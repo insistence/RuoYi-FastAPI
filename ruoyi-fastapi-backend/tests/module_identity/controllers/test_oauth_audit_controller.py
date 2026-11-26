@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -10,6 +10,7 @@ from httpx import ASGITransport, AsyncClient
 
 from common.annotation.rate_limit_annotation import ApiRateLimit
 from common.context import RequestContext
+from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
 from module_admin.service.log_service import LogQueueService
 from module_identity.controller.oauth_audit_controller import (
     list_oauth_audit,
@@ -18,16 +19,7 @@ from module_identity.controller.oauth_audit_controller import (
 from module_identity.dao.oauth_audit_dao import OAuthAuditDao
 from module_identity.entity.vo.oauth_session_vo import AuditPageQueryModel
 from module_identity.service.audit_service import AuditService
-
-
-class _Session:
-    """提供只读回滚边界。"""
-
-    def __init__(self) -> None:
-        self.rollbacks = 0
-
-    async def rollback(self) -> None:
-        self.rollbacks += 1
+from tests.module_identity.support.sessions import RecordingSession
 
 
 def test_audit_routes_use_list_and_export_permissions() -> None:
@@ -36,7 +28,7 @@ def test_audit_routes_use_list_and_export_permissions() -> None:
         (route.path, method): route
         for route in oauth_audit_controller.routes
         if isinstance(route, APIRoute)
-        for method in route.methods
+        for method in route.methods or ()
     }
     assert 'monitor:oauthAudit:list' in [
         getattr(dep.call, 'perm', None) for dep in routes[('/monitor/oauth/audit/list', 'GET')].dependant.dependencies
@@ -72,7 +64,7 @@ async def test_audit_list_uses_real_total_and_safe_projection(monkeypatch: pytes
             subject_id='s',
             sid='sid',
             failure_code='invalid_client',
-            create_time=datetime.now(timezone.utc),
+            create_time=datetime.now(UTC),
             detail={'access_token': 'redact'},
         ),
         SimpleNamespace(
@@ -86,20 +78,34 @@ async def test_audit_list_uses_real_total_and_safe_projection(monkeypatch: pytes
             subject_id='s',
             sid='sid',
             failure_code=None,
-            create_time=datetime.now(timezone.utc),
+            create_time=datetime.now(UTC),
             detail={'password': 'redact'},
         ),
     ]
 
-    async def list_page(*args: object, **kwargs: object) -> list[object]:
+    async def list_page(*args: object, **kwargs: object) -> list[SimpleNamespace]:
+        """
+        向调用方返回 ``rows``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 查询得到的记录列表
+        """
         return rows
 
     async def count(*args: object, **kwargs: object) -> int:
+        """
+        返回固定值 ``37``。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: 此分支的固定值 ``37``
+        """
         return 37
 
     monkeypatch.setattr(OAuthAuditDao, 'list_admin_page', list_page)
     monkeypatch.setattr(OAuthAuditDao, 'count_admin', count)
-    response = await list_oauth_audit(AuditPageQueryModel(page_num=1, page_size=2), _Session())
+    response = await list_oauth_audit(AuditPageQueryModel(page_num=1, page_size=2), RecordingSession())
     assert b'"total":37' in response.body
     assert b'"detail"' not in response.body
     assert b'access_token' not in response.body
@@ -108,10 +114,9 @@ async def test_audit_list_uses_real_total_and_safe_projection(monkeypatch: pytes
 @pytest.mark.asyncio
 async def test_audit_export_runs_rate_limit_and_operation_log(monkeypatch: pytest.MonkeyPatch) -> None:
     """HTTP 审计导出经过完整装饰器链，保留文件响应并记录操作日志。"""
-
     query = AuditPageQueryModel()
-    db = _Session()
-    user = SimpleNamespace(user=SimpleNamespace(user_id=1, user_name='admin', dept=None))
+    db = RecordingSession()
+    user = CurrentUserModel(permissions=[], roles=[], user=UserInfoModel(user_id=1, user_name='admin'))
     route = next(
         route
         for route in oauth_audit_controller.routes
@@ -121,6 +126,8 @@ async def test_audit_export_runs_rate_limit_and_operation_log(monkeypatch: pytes
     app.state.redis = SimpleNamespace()
     app.include_router(oauth_audit_controller)
     for dependency in route.dependant.dependencies:
+        if dependency.call is None:
+            continue
         if dependency.name == 'query_db':
             app.dependency_overrides[dependency.call] = lambda: db
         else:

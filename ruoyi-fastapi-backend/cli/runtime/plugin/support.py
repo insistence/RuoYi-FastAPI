@@ -2,6 +2,7 @@ import base64
 import hashlib
 import re
 from dataclasses import dataclass, field
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -56,11 +57,11 @@ class PluginTestTarget:
     """
     插件测试目标。
 
-    :param kind: 测试目标类型
-    :param target_path: 测试目标路径
-    :param command: 测试执行命令
-    :param workdir: 命令工作目录
-    :param timeout: 命令超时时间
+    :ivar kind: 测试目标类型
+    :ivar target_path: 测试目标路径
+    :ivar command: 测试执行命令
+    :ivar workdir: 命令工作目录
+    :ivar timeout: 命令超时时间
     """
 
     kind: str
@@ -74,11 +75,13 @@ class PluginTestTarget:
 class PluginTestCommandResultPayload:
     """
     插件测试命令执行结果负载。
+
+    :ivar completed: 命令执行结果
     """
 
     completed: Any
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -95,12 +98,15 @@ class PluginTestCommandResultPayload:
 class PluginTestResultItemPayload:
     """
     插件测试单目标执行结果负载。
+
+    :ivar target: 插件测试目标
+    :ivar completed: 命令执行结果
     """
 
     target: PluginTestTarget
     completed: Any
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -119,12 +125,15 @@ class PluginTestResultItemPayload:
 class PluginTestMissingPayload:
     """
     插件测试目标缺失负载。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar expected_paths: 约定测试目录列表
     """
 
     plugin_id: str
     expected_paths: list[Path]
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -142,6 +151,13 @@ class PluginTestMissingPayload:
 class PluginTestExecutionPayload:
     """
     插件测试执行结果负载。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar keyword: pytest ``-k`` 过滤表达式
+    :ivar maxfail: pytest 达到该失败数量后停止
+    :ivar quiet: 是否使用精简的测试输出
+    :ivar frontend_build: 是否执行前端构建
+    :ivar results: 测试结果项列表
     """
 
     plugin_id: str
@@ -151,7 +167,7 @@ class PluginTestExecutionPayload:
     frontend_build: bool
     results: list[dict[str, Any]]
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -178,12 +194,15 @@ class PluginTestExecutionPayload:
 class CliPluginRuntimeExceptionPayload:
     """
     CLI 插件运行时异常负载。
+
+    :ivar exception_payload: 用于呈现异常的结构化信息
+    :ivar failure_code: 失败退出码
     """
 
-    exception_payload: dict[str, Any]
+    exception_payload: dict[str, object]
     failure_code: int = RUNTIME_ERROR
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -196,13 +215,17 @@ class CliPluginRuntimeExceptionPayload:
 class CliPluginRuntimeExitCodePayload:
     """
     CLI 插件运行时退出码负载。
+
+    :ivar payload: 插件测试负载
+    :ivar success_code: 成功退出码
+    :ivar failure_code: 失败退出码
     """
 
-    payload: dict[str, Any]
+    payload: dict[str, object]
     success_code: int = SUCCESS
     failure_code: int = RUNTIME_ERROR
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -216,15 +239,15 @@ class PluginDependencyLockfileTemplate:
     """
     插件依赖锁文件模板。
 
-    :param plugin_id: 插件ID
-    :param plugin_version: 插件版本
-    :param generated_at: 生成时间
-    :param python: Python 依赖锁定项
-    :param npm: npm 依赖锁定项
-    :param npm_dev: npmDev 依赖锁定项
-    :param artifact_count: 已从离线制品反填的依赖项数量
-    :param warnings: 生成过程告警
-    :param frontend_framework: 锁定的宿主前端框架，无前端依赖分类时为 None
+    :ivar plugin_id: 插件ID
+    :ivar plugin_version: 插件版本
+    :ivar generated_at: 生成时间
+    :ivar python: Python 依赖锁定项
+    :ivar npm: npm 依赖锁定项
+    :ivar npm_dev: npmDev 依赖锁定项
+    :ivar artifact_count: 已从离线制品反填的依赖项数量
+    :ivar warnings: 生成过程告警
+    :ivar frontend_framework: 锁定的宿主前端框架，无前端依赖分类时为 None
     """
 
     plugin_id: str
@@ -268,7 +291,9 @@ class PluginDependencyLockfileTemplate:
 
         :return: YAML 文本
         """
-        return yaml.safe_dump(self.to_dict(), allow_unicode=True, sort_keys=False)
+        stream = StringIO()
+        yaml.safe_dump(self.to_dict(), stream, allow_unicode=True, sort_keys=False)
+        return stream.getvalue()
 
 
 class PluginDependencyLockfileTemplateBuilder:
@@ -425,10 +450,10 @@ class PluginDependencyOfflineArtifactMatch:
     """
     离线制品匹配结果。
 
-    :param path: 制品路径
-    :param version: 制品版本
-    :param hashes: Python 制品哈希
-    :param integrity: npm 制品 SRI
+    :ivar path: 制品路径
+    :ivar version: 制品版本
+    :ivar hashes: Python 制品哈希
+    :ivar integrity: npm 制品 SRI
     """
 
     path: Path
@@ -440,6 +465,8 @@ class PluginDependencyOfflineArtifactMatch:
 class PluginDependencyOfflineArtifactResolver:
     """
     插件离线依赖制品解析器。
+
+    :ivar offline_dir: 离线制品根目录
     """
 
     def __init__(self, offline_dir: Path | str | None = None) -> None:
@@ -447,7 +474,6 @@ class PluginDependencyOfflineArtifactResolver:
         初始化离线依赖制品解析器。
 
         :param offline_dir: 离线制品根目录
-        :return: None
         """
         self.offline_dir = Path(offline_dir) if offline_dir else None
 
@@ -688,9 +714,7 @@ class PluginDependencyOfflineArtifactResolver:
 
 
 class PluginDependencyLockPayloadBuilder:
-    """
-    插件依赖锁文件模板 payload 构建器。
-    """
+    """插件依赖锁文件模板 payload 构建器。"""
 
     @staticmethod
     def build_success_payload(
@@ -711,7 +735,7 @@ class PluginDependencyLockPayloadBuilder:
         :param dry_run: 是否仅预演
         :param written: 是否已写入文件
         :param overwritten: 是否覆盖了已有文件
-        :return: payload
+        :return: 响应数据
         """
         return CliPluginRuntimeExitCodePayload(
             {
@@ -745,7 +769,7 @@ class PluginDependencyLockPayloadBuilder:
 
         :param plugin_id: 插件ID
         :param output_path: 输出路径
-        :return: payload
+        :return: 响应数据
         """
         return CliPluginRuntimeExitCodePayload(
             {
@@ -766,7 +790,7 @@ class PluginDependencyLockPayloadBuilder:
         构建插件不存在 payload。
 
         :param plugin_id: 插件ID
-        :return: payload
+        :return: 响应数据
         """
         return CliPluginRuntimeExitCodePayload(
             {
@@ -782,9 +806,7 @@ class PluginDependencyLockPayloadBuilder:
 
 
 class PluginDependencyAllowlistExamplePayloadBuilder:
-    """
-    插件依赖允许列表示例 payload 构建器。
-    """
+    """插件依赖允许列表示例 payload 构建器。"""
 
     @staticmethod
     def build_success_payload(
@@ -803,7 +825,7 @@ class PluginDependencyAllowlistExamplePayloadBuilder:
         :param dry_run: 是否仅预演
         :param written: 是否已写入文件
         :param overwritten: 是否覆盖了已有文件
-        :return: payload
+        :return: 响应数据
         """
         return CliPluginRuntimeExitCodePayload(
             {
@@ -825,7 +847,7 @@ class PluginDependencyAllowlistExamplePayloadBuilder:
         构建允许列表示例文件已存在 payload。
 
         :param output_path: 输出路径
-        :return: payload
+        :return: 响应数据
         """
         return CliPluginRuntimeExitCodePayload(
             {
@@ -845,6 +867,12 @@ class PluginTestPlanBuilder:
     插件 CLI 测试计划构建器。
 
     使用 Builder 模式发现后端 pytest 与前端 node 测试目标，并生成可执行命令。
+
+    :ivar backend_root: 后端项目根目录
+    :ivar frontend_root: 前端项目根目录
+    :ivar python_executable: Python 解释器
+    :ivar node_executable: Node.js 可执行命令
+    :ivar timeout: 命令超时时间
     """
 
     def __init__(
@@ -864,7 +892,6 @@ class PluginTestPlanBuilder:
         :param python_executable: Python 解释器
         :param node_executable: Node.js 可执行命令
         :param timeout: 命令超时时间
-        :return: None
         """
         self.backend_root = backend_root
         self.frontend_root = frontend_root
@@ -885,7 +912,7 @@ class PluginTestPlanBuilder:
         构建插件测试目标列表。
 
         :param plugin_id: 插件ID
-        :param keyword: pytest `-k` 过滤表达式
+        :param keyword: pytest ``-k`` 过滤表达式
         :param maxfail: pytest 最大失败数
         :param quiet: pytest 是否启用简洁输出
         :param frontend_build: 是否追加前端构建验收目标
@@ -961,7 +988,7 @@ class PluginTestPlanBuilder:
         构建插件 pytest 命令。
 
         :param target_path: 测试目标路径
-        :param keyword: pytest `-k` 过滤表达式
+        :param keyword: pytest ``-k`` 过滤表达式
         :param maxfail: 最大失败数
         :param quiet: 是否启用简洁输出
         :return: pytest 命令参数列表
@@ -986,7 +1013,7 @@ class PluginTestPayloadBuilder:
     """
 
     @staticmethod
-    def build_command_result(completed: Any) -> dict[str, Any]:
+    def build_command_result(completed: Any) -> dict[str, object]:
         """
         构建 CLI 系统命令执行结果负载。
 
@@ -996,7 +1023,7 @@ class PluginTestPayloadBuilder:
         return PluginTestCommandResultPayload(completed).to_payload()
 
     @staticmethod
-    def build_result_item(target: PluginTestTarget, completed: Any) -> dict[str, Any]:
+    def build_result_item(target: PluginTestTarget, completed: Any) -> dict[str, object]:
         """
         构建单个插件测试结果项。
 
@@ -1008,11 +1035,11 @@ class PluginTestPayloadBuilder:
 
     @staticmethod
     def with_exit_code(
-        payload: dict[str, Any],
+        payload: dict[str, object],
         *,
         success_code: int = SUCCESS,
         failure_code: int = RUNTIME_ERROR,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         为插件测试负载补充退出码。
 
@@ -1028,7 +1055,7 @@ class PluginTestPayloadBuilder:
         ).to_payload()
 
     @staticmethod
-    def build_missing_payload(plugin_id: str, expected_paths: list[Path]) -> dict[str, Any]:
+    def build_missing_payload(plugin_id: str, expected_paths: list[Path]) -> dict[str, object]:
         """
         构建插件测试目标缺失负载。
 
@@ -1047,12 +1074,12 @@ class PluginTestPayloadBuilder:
         quiet: bool,
         frontend_build: bool,
         results: list[dict[str, Any]],
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         构建插件测试执行结果负载。
 
         :param plugin_id: 插件ID
-        :param keyword: pytest `-k` 过滤表达式
+        :param keyword: pytest ``-k`` 过滤表达式
         :param maxfail: 最大失败数
         :param quiet: 是否启用简洁输出
         :param frontend_build: 是否执行前端构建验收

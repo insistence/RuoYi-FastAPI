@@ -1,8 +1,12 @@
 import asyncio
 from pathlib import Path
-from types import SimpleNamespace
+from typing import Never
+from unittest.mock import patch
 
+from common.vo import CrudResponseModel
+from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.migration import PluginMigrationRunner
+from plugins.core.management.entity.vo.schemas import PluginMigrationModel, PluginModel
 from plugins.core.runtime.service import PluginRuntimeService
 from plugins.core.runtime.service.dependency_container import PluginRuntimeGatewayOverrides
 from plugins.core.validation.dependencies import PluginDependencyChecker
@@ -21,12 +25,16 @@ from tests.plugins.core.runtime.fakes import (
 class MigrationOnlyGateway:
     """
     仅提供插件 migration 历史能力的测试网关。
+
+    :ivar records: 当前测试保存的记录
+    :ivar list_calls: 记录 ``list`` 的调用情况
+    :ivar mark_calls: 记录 ``mark`` 的调用情况
     """
 
     def __init__(self) -> None:
         """初始化测试 migration 历史网关。"""
         self.records = [
-            SimpleNamespace(
+            PluginMigrationModel(
                 plugin_id='demo',
                 migration_path='migrations/001.sql',
                 migration_checksum='checksum-1',
@@ -40,7 +48,7 @@ class MigrationOnlyGateway:
                 create_time=None,
                 update_time=None,
             ),
-            SimpleNamespace(
+            PluginMigrationModel(
                 plugin_id='demo',
                 migration_path='migrations/002.sql',
                 migration_checksum='checksum-2',
@@ -58,8 +66,14 @@ class MigrationOnlyGateway:
         self.list_calls: list[tuple[str, str | None]] = []
         self.mark_calls: list[tuple[str, str, str, str | None]] = []
 
-    async def list_plugin_migrations(self, plugin_id: str, status: str | None = None) -> list[object]:
-        """查询测试 migration 历史。"""
+    async def list_plugin_migrations(self, plugin_id: str, status: str | None = None) -> list[PluginMigrationModel]:
+        """
+        查询测试 migration 历史。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param status: 操作或记录所处的状态
+        :return: 测试 migration 历史
+        """
         self.list_calls.append((plugin_id, status))
         return [
             record
@@ -67,8 +81,14 @@ class MigrationOnlyGateway:
             if record.plugin_id == plugin_id and (status is None or record.status == status)
         ]
 
-    async def get_plugin_migration(self, plugin_id: str, migration_path: str) -> object | None:
-        """获取测试 migration 历史。"""
+    async def get_plugin_migration(self, plugin_id: str, migration_path: str) -> PluginMigrationModel | None:
+        """
+        获取测试 migration 历史。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :return: 测试 migration 历史
+        """
         for record in reversed(self.records):
             if record.plugin_id == plugin_id and record.migration_path == migration_path:
                 return record
@@ -80,8 +100,16 @@ class MigrationOnlyGateway:
         migration_path: str,
         status: str,
         error_message: str | None = None,
-    ) -> object | None:
-        """标记测试 migration 历史状态。"""
+    ) -> PluginMigrationModel | None:
+        """
+        标记测试 migration 历史状态。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param migration_path: migration 相对路径
+        :param status: 操作或记录所处的状态
+        :param error_message: 记录到结果或审计日志中的错误详情
+        :return: 当前操作使用的记录
+        """
         self.mark_calls.append((plugin_id, migration_path, status, error_message))
         record = await self.get_plugin_migration(plugin_id, migration_path)
         if record:
@@ -89,8 +117,12 @@ class MigrationOnlyGateway:
             record.error_message = error_message
         return record
 
-    def get_plugin_service(self) -> object:
-        """禁止 migration 链路回退到管理服务胖接口。"""
+    def get_plugin_service(self) -> Never:
+        """
+        禁止 migration 链路回退到管理服务胖接口。
+
+        :raises AssertionError: migration 历史不应依赖 PluginManagementServiceProtocol
+        """
         raise AssertionError('migration 历史不应依赖 PluginManagementServiceProtocol')
 
 
@@ -110,6 +142,7 @@ def test_plugin_runtime_lists_plugin_migration_history(tmp_path: Path) -> None:
     assert result['pluginId'] == 'demo'
     assert result['status'] == 'running'
     assert result['count'] == 1
+    assert isinstance(result['migrations'], list)
     assert result['migrations'][0]['migrationPath'] == 'migrations/002.sql'
 
 
@@ -134,6 +167,7 @@ def test_plugin_runtime_migration_uses_migration_history_port(tmp_path: Path) ->
 
     assert list_result['ok'] is True
     assert list_result['count'] == 1
+    assert isinstance(list_result['migrations'], list)
     assert list_result['migrations'][0]['migrationPath'] == 'migrations/001.sql'
     assert mark_result['ok'] is True
     assert mark_result['operation'] == 'migration_mark_failed'
@@ -211,6 +245,7 @@ def test_plugin_runtime_rejects_invalid_plugin_migration_manual_transition(tmp_p
 
     assert result['ok'] is False
     assert result['operation'] == 'migration_mark_failed'
+    assert isinstance(result['message'], str)
     assert '不能人工标记为失败' in result['message']
     assert migration.status == 'success'
     assert migration.error_message is None
@@ -243,6 +278,7 @@ backend:
     result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).install_plugin('demo'))
 
     assert result['ok'] is True
+    assert isinstance(result['hooks'], list)
     assert result['hooks'][0]['hook_name'] == 'on_install'
     assert gateway.session_local.sessions[0].install_hook_ran == 'demo'
 
@@ -275,6 +311,7 @@ backend:
     assert result['ok'] is False
     assert result['operation'] == 'install'
     assert result['failedStep'] == 'run_install_hook'
+    assert isinstance(result['error'], str)
     assert 'install hook failed' in result['error']
     assert FakePluginService.marked_errors == [('demo', '插件安装失败：install hook failed')]
 
@@ -301,7 +338,7 @@ config:
     )
     create_controller_dir(plugin_root)
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.0.0',
         enabled='0',
@@ -318,8 +355,10 @@ config:
     assert result['needsUpgrade'] is True
     assert result['databaseAvailable'] is True
     assert result['databaseError'] is None
+    assert isinstance(result['actions'], list)
     assert result['actions'][0]['name'] == 'check_installed_version'
     assert result['manifestOk'] is True
+    assert isinstance(result['manifestWarnings'], list)
     assert result['manifestWarnings'][0]['level'] == 'warning'
     assert result['manifestWarnings'][0]['kind'] == 'secret_config_default'
     assert FakePluginService.upsert_called is False
@@ -348,7 +387,7 @@ backend:
     old_checksum = PluginMigrationRunner._calculate_checksum(migration_file)
     migration_file.write_text('select 2;\n', encoding='utf-8')
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.0.0',
         enabled='0',
@@ -361,6 +400,7 @@ backend:
     assert result['ok'] is True
     assert result['message'] == '插件升级演练完成，未执行实际写入'
     assert result['manifestOk'] is False
+    assert isinstance(result['manifestIssues'], list)
     assert result['manifestIssues'][0]['kind'] == 'migration_checksum_changed'
     assert result['needsUpgrade'] is True
     assert FakePluginService.upsert_called is False
@@ -384,7 +424,7 @@ compatibility:
     )
     create_controller_dir(plugin_root)
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.0.0',
         enabled='0',
@@ -398,6 +438,7 @@ compatibility:
     assert result['installed'] is True
     assert result['needsUpgrade'] is True
     assert result['manifestOk'] is False
+    assert isinstance(result['manifestIssues'], list)
     assert result['manifestIssues'][0]['kind'] == 'compatibility_unsatisfied'
     assert FakePluginService.upsert_called is False
     assert gateway.lifecycle_uows == []
@@ -445,7 +486,7 @@ backend:
     )
     create_controller_dir(plugin_root)
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.0.0',
         enabled='0',
@@ -477,7 +518,7 @@ backend:
     )
     create_controller_dir(plugin_root)
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.10.0',
         enabled='0',
@@ -530,7 +571,7 @@ backend:
         encoding='utf-8',
     )
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.0.0',
         enabled='0',
@@ -551,7 +592,9 @@ backend:
     assert any(getattr(session, 'upgrade_seed_ran', False) is True for session in gateway.session_local.sessions)
     assert any(getattr(session, 'upgrade_hook_ran', None) == 'demo' for session in gateway.session_local.sessions)
     assert gateway.session_local.committed_session is not None
+    assert isinstance(result['migrations'], list)
     assert result['migrations'][0]['migration_path'] == 'migrations/001_upgrade.py'
+    assert isinstance(result['hooks'], list)
     assert result['hooks'][0]['hook_name'] == 'on_upgrade'
 
 
@@ -581,7 +624,7 @@ backend:
         encoding='utf-8',
     )
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.0.0',
         enabled='0',
@@ -594,6 +637,7 @@ backend:
     assert result['pluginId'] == 'demo'
     assert result['operation'] == 'upgrade'
     assert result['failedStep'] == 'run_upgrade_hook'
+    assert isinstance(result['error'], str)
     assert 'upgrade hook failed' in result['error']
     assert FakePluginService.marked_errors == [('demo', '插件升级失败：upgrade hook failed')]
     assert [record.status for record in FakePluginService.migration_records] == ['running', 'success']
@@ -624,7 +668,7 @@ backend:
     (plugin_root / 'migrations').mkdir()
     (plugin_root / 'migrations' / '001_upgrade.sql').write_text('select 3;\n', encoding='utf-8')
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.0.0',
         enabled='0',
@@ -673,12 +717,14 @@ dependencies:
     assert result['ok'] is True
     assert result['dryRun'] is True
     assert result['operation'] == 'enable'
+    assert isinstance(result['actions'], list)
     assert [action['name'] for action in result['actions']] == [
         'check_plugin_dependencies',
         'update_plugin_enabled',
         'update_plugin_menu_status',
     ]
     assert result['manifestOk'] is True
+    assert isinstance(result['precheck'], dict)
     assert result['precheck']['structureErrors'] == []
 
 
@@ -710,6 +756,7 @@ dependencies:
     assert FakePluginService.install_plugin_menu_called_with == ('demo', True)
     assert FakePluginService.update_enabled_called_with is not None
     assert FakePluginService.update_enabled_called_with[:2] == ('demo', True)
+    assert FakePluginService.update_enabled_called_with[2] is not None
     assert FakePluginService.update_enabled_called_with[2].manifest.id == 'demo'
     assert gateway.session_local.sessions[0].committed is True
     assert len(FakePluginService.operation_logs) == 1
@@ -742,28 +789,45 @@ dependencies:
     class NoFatLifecycleStateGateway(FakePluginRuntimeGateway):
         """
         禁止启用流程读取 fat state gateway 的测试适配器。
+
+        :ivar enabled_state_calls: 记录 ``enabled_state`` 的调用情况
         """
 
         def __init__(self) -> None:
             """初始化测试生命周期状态网关。"""
             super().__init__()
-            self.enabled_state_calls: list[tuple[str, bool, object | None]] = []
+            self.enabled_state_calls: list[tuple[str, bool, DiscoveredPlugin | None]] = []
 
-        def get_async_session_local(self) -> object:
-            """禁止通过 state gateway 打开数据库会话。"""
+        def get_async_session_local(self) -> Never:
+            """
+            禁止通过 state gateway 打开数据库会话。
+
+            :raises AssertionError: 启用流程不应通过 state gateway 打开数据库会话
+            """
             raise AssertionError('启用流程不应通过 state gateway 打开数据库会话')
 
-        def get_plugin_service(self) -> object:
-            """禁止通过 state gateway 获取管理服务。"""
+        def get_plugin_service(self) -> Never:
+            """
+            禁止通过 state gateway 获取管理服务。
+
+            :raises AssertionError: 启用流程不应通过 state gateway 获取管理服务
+            """
             raise AssertionError('启用流程不应通过 state gateway 获取管理服务')
 
         async def set_plugin_enabled_state(
             self,
             plugin_id: str,
             enabled: bool,
-            discovered_plugin: object | None = None,
-        ) -> object:
-            """通过窄端口更新插件启停状态。"""
+            discovered_plugin: DiscoveredPlugin | None = None,
+        ) -> CrudResponseModel:
+            """
+            通过窄端口更新插件启停状态。
+
+            :param plugin_id: 插件清单中的唯一标识
+            :param enabled: 是否启用该项功能
+            :param discovered_plugin: 扫描插件目录后得到的插件描述
+            :return: 当前调用产生的响应
+            """
             self.enabled_state_calls.append((plugin_id, enabled, discovered_plugin))
             async with self.session_local() as session:
                 response = await FakePluginService.update_plugin_enabled_services(
@@ -783,6 +847,7 @@ dependencies:
 
     assert result['ok'] is True
     assert gateway.enabled_state_calls[0][0:2] == ('demo', True)
+    assert gateway.enabled_state_calls[0][2] is not None
     assert gateway.enabled_state_calls[0][2].manifest.id == 'demo'
     assert FakePluginService.install_plugin_menu_called_with == ('demo', True)
     assert gateway.session_local.sessions[0].committed is True
@@ -805,27 +870,16 @@ backend:
     create_controller_dir(plugin_root)
     gateway = FakePluginRuntimeGateway()
 
-    async def raise_enable_failure(
-        query_db: object,
-        plugin_id: str,
-        enabled: bool,
-        discovered_plugin: object | None = None,
-    ) -> object:
-        """模拟启用插件失败。"""
-        raise RuntimeError('enable update failed')
-
-    original_update_enabled = FakePluginService.update_plugin_enabled_services
-    FakePluginService.update_plugin_enabled_services = raise_enable_failure
-
-    try:
+    with patch.object(
+        FakePluginService, 'update_plugin_enabled_services', side_effect=RuntimeError('enable update failed')
+    ):
         result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).set_plugin_enabled('demo', enabled=True))
-    finally:
-        FakePluginService.update_plugin_enabled_services = original_update_enabled
 
     assert result['ok'] is False
     assert result['pluginId'] == 'demo'
     assert result['operation'] == 'enable'
     assert result['failedStep'] == 'update_enabled_state'
+    assert isinstance(result['error'], str)
     assert 'enable update failed' in result['error']
     assert FakePluginService.marked_errors == [('demo', '更新插件启停状态失败：enable update failed')]
 
@@ -871,8 +925,8 @@ dependencies:
     create_controller_dir(app_root)
     gateway = FakePluginRuntimeGateway()
     FakePluginService.plugin_list = [
-        SimpleNamespace(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
-        SimpleNamespace(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
     ]
 
     result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).set_plugin_enabled('base', enabled=False))
@@ -880,6 +934,7 @@ dependencies:
     assert result['ok'] is False
     assert result['message'] == '插件仍被已启用插件依赖，操作已中止'
     assert result['operation'] == 'disable'
+    assert isinstance(result['pluginDependencyErrors'], list)
     assert result['pluginDependencyErrors'][0]['status'] == 'dependent'
     assert result['pluginDependencyErrors'][0]['pluginId'] == 'app'
     assert FakePluginService.update_enabled_called_with is None
@@ -926,8 +981,8 @@ dependencies:
     create_controller_dir(app_root)
     gateway = FakePluginRuntimeGateway()
     FakePluginService.plugin_list = [
-        SimpleNamespace(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
-        SimpleNamespace(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
     ]
 
     result = asyncio.run(
@@ -937,6 +992,7 @@ dependencies:
     assert result['ok'] is True
     assert result['dryRun'] is True
     assert result['pluginDependencyOk'] is False
+    assert isinstance(result['actions'], list)
     assert result['actions'][0]['name'] == 'check_plugin_dependents'
     assert FakePluginService.update_enabled_called_with is None
 
@@ -970,6 +1026,7 @@ dependencies:
     assert FakePluginService.install_plugin_menu_called_with == ('demo', True)
     assert FakePluginService.update_enabled_called_with is not None
     assert FakePluginService.update_enabled_called_with[:2] == ('demo', True)
+    assert FakePluginService.update_enabled_called_with[2] is not None
     assert FakePluginService.update_enabled_called_with[2].manifest.id == 'demo'
     assert gateway.session_local.sessions[0].committed is True
 
@@ -1000,6 +1057,7 @@ dependencies:
     payload = build_runtime(backend_root).check_plugin('demo')
 
     assert payload['ok'] is False
+    assert isinstance(payload['checks'], list)
     assert payload['checks'][0]['pluginDependencyErrors'][0]['status'] == 'missing'
     assert payload['checks'][0]['pluginDependencyErrors'][0]['level'] == 'error'
 
@@ -1032,6 +1090,7 @@ dependencies:
 
     assert result['ok'] is False
     assert result['message'] == '插件间依赖检查失败，安装已中止'
+    assert isinstance(result['pluginDependencyErrors'], list)
     assert result['pluginDependencyErrors'][0]['status'] == 'missing'
     assert FakePluginService.upsert_called is False
     assert FakePluginService.marked_errors == [('demo', '插件间依赖检查失败，安装已中止')]
@@ -1065,6 +1124,7 @@ dependencies:
 
     assert result['ok'] is False
     assert result['message'] == '插件间依赖检查失败，启用已中止'
+    assert isinstance(result['pluginDependencyErrors'], list)
     assert result['pluginDependencyErrors'][0]['status'] == 'missing'
     assert FakePluginService.update_enabled_called_with is None
     assert FakePluginService.marked_errors == [('demo', '插件间依赖检查失败，启用已中止')]
@@ -1087,29 +1147,18 @@ backend:
     create_controller_dir(plugin_root)
     gateway = FakePluginRuntimeGateway()
 
-    async def raise_disable_failure(
-        query_db: object,
-        plugin_id: str,
-        enabled: bool,
-        discovered_plugin: object | None = None,
-    ) -> object:
-        """模拟禁用插件失败。"""
-        raise RuntimeError('disable update failed')
-
-    original_update_enabled = FakePluginService.update_plugin_enabled_services
-    FakePluginService.update_plugin_enabled_services = raise_disable_failure
-
-    try:
+    with patch.object(
+        FakePluginService, 'update_plugin_enabled_services', side_effect=RuntimeError('disable update failed')
+    ):
         result = asyncio.run(
             build_runtime_with_gateway(backend_root, gateway).set_plugin_enabled('demo', enabled=False)
         )
-    finally:
-        FakePluginService.update_plugin_enabled_services = original_update_enabled
 
     assert result['ok'] is False
     assert result['pluginId'] == 'demo'
     assert result['operation'] == 'disable'
     assert result['failedStep'] == 'update_enabled_state'
+    assert isinstance(result['error'], str)
     assert 'disable update failed' in result['error']
 
 
@@ -1154,6 +1203,7 @@ dependencies:
     assert result['ok'] is True
     assert result['operation'] == 'uninstall'
     assert result['manifestOk'] is True
+    assert isinstance(result['precheck'], dict)
     assert result['precheck']['structureErrors'] == []
     assert result['safeMode'] is True
 
@@ -1199,8 +1249,8 @@ dependencies:
     create_controller_dir(app_root)
     gateway = FakePluginRuntimeGateway()
     FakePluginService.plugin_list = [
-        SimpleNamespace(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
-        SimpleNamespace(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
     ]
 
     result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).uninstall_plugin('base'))
@@ -1208,6 +1258,7 @@ dependencies:
     assert result['ok'] is False
     assert result['operation'] == 'uninstall'
     assert result['safeMode'] is True
+    assert isinstance(result['pluginDependencyErrors'], list)
     assert result['pluginDependencyErrors'][0]['status'] == 'dependent'
     assert result['pluginDependencyErrors'][0]['pluginId'] == 'app'
     assert FakePluginService.mark_uninstalled_called_with is None
@@ -1236,22 +1287,16 @@ def test_plugin_runtime_uninstall_plugin_reports_failed_lifecycle_step(tmp_path:
     backend_root.mkdir()
     gateway = FakePluginRuntimeGateway()
 
-    async def raise_uninstall_failure(query_db: object, plugin_id: str) -> object:
-        """模拟卸载插件失败。"""
-        raise RuntimeError('uninstall update failed')
-
-    original_mark_uninstalled = FakePluginService.mark_plugin_uninstalled_services
-    FakePluginService.mark_plugin_uninstalled_services = raise_uninstall_failure
-
-    try:
+    with patch.object(
+        FakePluginService, 'mark_plugin_uninstalled_services', side_effect=RuntimeError('uninstall update failed')
+    ):
         result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).uninstall_plugin('demo'))
-    finally:
-        FakePluginService.mark_plugin_uninstalled_services = original_mark_uninstalled
 
     assert result['ok'] is False
     assert result['pluginId'] == 'demo'
     assert result['operation'] == 'uninstall'
     assert result['failedStep'] == 'mark_uninstalled'
+    assert isinstance(result['error'], str)
     assert 'uninstall update failed' in result['error']
 
 
@@ -1286,6 +1331,7 @@ resources:
     assert 'precheck' in result
     assert result['safeMode'] is False
     assert result['removesSource'] is False
+    assert isinstance(result['plan'], dict)
     assert result['plan']['destructiveCount'] == EXPECTED_PURGE_DESTRUCTIVE_COUNT
     resource_items = [item for item in result['plan']['items'] if item['name'].startswith('resource_')]
     assert resource_items == [
@@ -1350,8 +1396,8 @@ dependencies:
     create_controller_dir(app_root)
     gateway = FakePluginRuntimeGateway()
     FakePluginService.plugin_list = [
-        SimpleNamespace(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
-        SimpleNamespace(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
     ]
 
     result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).purge_plugin('base'))
@@ -1359,6 +1405,7 @@ dependencies:
     assert result['ok'] is False
     assert result['operation'] == 'purge'
     assert result['message'] == '插件仍被已启用插件依赖，物理清理已中止'
+    assert isinstance(result['pluginDependencyErrors'], list)
     assert result['pluginDependencyErrors'][0]['status'] == 'dependent'
     assert result['pluginDependencyErrors'][0]['pluginId'] == 'app'
     assert FakePluginService.purge_called is False
@@ -1396,8 +1443,8 @@ dependencies:
     create_controller_dir(app_root)
     gateway = FakePluginRuntimeGateway()
     FakePluginService.plugin_list = [
-        SimpleNamespace(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
-        SimpleNamespace(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed'),
+        PluginModel(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed'),
     ]
 
     result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).purge_plugin('base', dry_run=True))
@@ -1406,7 +1453,9 @@ dependencies:
     assert result['dryRun'] is True
     assert result['operation'] == 'purge'
     assert result['pluginDependencyOk'] is False
+    assert isinstance(result['pluginDependencyErrors'], list)
     assert result['pluginDependencyErrors'][0]['pluginId'] == 'app'
+    assert isinstance(result['plan'], dict)
     assert result['plan']['destructiveCount'] == EXPECTED_PURGE_DESTRUCTIVE_COUNT
     assert FakePluginService.purge_called is False
 
@@ -1437,6 +1486,7 @@ backend:
 
     assert result['ok'] is True
     assert result['operation'] == 'purge'
+    assert isinstance(result['hooks'], list)
     assert result['hooks'][0]['hook_name'] == 'on_purge'
     assert FakePluginService.purge_called is True
     assert gateway.session_local.sessions[0].purge_hook_ran == 'demo'
@@ -1457,6 +1507,7 @@ def test_plugin_runtime_purge_orphan_metadata_without_source(tmp_path: Path) -> 
     assert result['ok'] is True
     assert result['metadataOnly'] is True
     assert result['hooks'] == []
+    assert isinstance(result['warnings'], list)
     assert '已跳过 onPurge' in result['warnings'][0]
     assert FakePluginService.purge_by_id_called_with == 'orphan'
     assert FakePluginService.purge_called is False
@@ -1479,6 +1530,7 @@ def test_plugin_runtime_purge_orphan_metadata_dry_run(tmp_path: Path) -> None:
     assert result['ok'] is True
     assert result['dryRun'] is True
     assert result['metadataOnly'] is True
+    assert isinstance(result['plan'], dict)
     assert result['plan']['requiresHook'] is False
     assert FakePluginService.purge_by_id_called_with is None
     assert gateway.session_local.sessions[0].committed is False
@@ -1503,7 +1555,7 @@ dependencies:
     )
     create_controller_dir(app_root)
     FakePluginService.plugin_list = [
-        SimpleNamespace(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed')
+        PluginModel(plugin_id='app', installed_version='1.0.0', enabled='0', status='installed')
     ]
     gateway = FakePluginRuntimeGateway()
 
@@ -1512,6 +1564,7 @@ dependencies:
     )
 
     assert result['ok'] is False
+    assert isinstance(result['pluginDependencyErrors'], list)
     assert result['pluginDependencyErrors'][0]['pluginId'] == 'app'
     assert FakePluginService.purge_by_id_called_with is None
     assert gateway.session_local.sessions[0].committed is False
@@ -1539,16 +1592,22 @@ backend:
     )
 
     class NoFatPurgeGateway(FakePluginRuntimeGateway):
-        """
-        禁止物理清理流程读取 fat state gateway 的测试适配器。
-        """
+        """禁止物理清理流程读取 fat state gateway 的测试适配器。"""
 
-        def get_async_session_local(self) -> object:
-            """禁止通过 state gateway 打开数据库会话。"""
+        def get_async_session_local(self) -> Never:
+            """
+            禁止通过 state gateway 打开数据库会话。
+
+            :raises AssertionError: 物理清理流程不应通过 state gateway 打开数据库会话
+            """
             raise AssertionError('物理清理流程不应通过 state gateway 打开数据库会话')
 
-        def get_plugin_service(self) -> object:
-            """禁止通过 state gateway 获取管理服务。"""
+        def get_plugin_service(self) -> Never:
+            """
+            禁止通过 state gateway 获取管理服务。
+
+            :raises AssertionError: 物理清理流程不应通过 state gateway 获取管理服务
+            """
             raise AssertionError('物理清理流程不应通过 state gateway 获取管理服务')
 
     gateway = NoFatPurgeGateway()
@@ -1592,6 +1651,7 @@ backend:
     assert result['pluginId'] == 'demo'
     assert result['operation'] == 'purge'
     assert result['failedStep'] == 'run_purge_hook'
+    assert isinstance(result['error'], str)
     assert 'purge hook failed' in result['error']
     assert FakePluginService.purge_called is False
 

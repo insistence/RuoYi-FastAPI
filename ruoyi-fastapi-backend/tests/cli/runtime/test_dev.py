@@ -1,14 +1,65 @@
-from cli.exit_codes import DEPENDENCY_ERROR
+from pathlib import Path
+
+from cli.exit_codes import DEPENDENCY_ERROR, RUNTIME_ERROR
 from cli.runtime.base import RuntimeEnvironmentService
 from cli.runtime.dev import DevelopmentRuntimeService
 from cli.runtime.dev.gateway import DevelopmentProcessGateway
 from cli.runtime.dev.support import DevelopmentCommandSupport, DevelopmentToolingSupport
+from scripts.check_types import BACKEND, CI, E2E, project_targets
+
+
+def test_dev_lint_rejects_new_type_error(tmp_path: Path) -> None:
+    """验证新增类型错误使 CLI 失败，修正同一文件后通过。"""
+    target = tmp_path / 'example.py'
+    target.write_text("answer: int = '42'\n", encoding='utf-8')
+    runtime = DevelopmentRuntimeService()
+    failure = runtime.run_lint([str(target)], check_only=True)
+    assert failure['docstrings']['ok']
+    assert not failure['ok']
+    assert failure['exit_code'] == RUNTIME_ERROR
+    assert 'invalid-assignment' in failure['ty']['stdout']
+    target.write_text('answer: int = 42\n', encoding='utf-8')
+    assert runtime.run_lint([str(target)], check_only=True)['ok']
+
+
+def test_ty_uses_separate_project_roots() -> None:
+    """验证整仓或混合路径检查按实际导入根目录分组。"""
+    assert project_targets([BACKEND.parent]) == {root: [root] for root in (BACKEND, E2E, CI)}
+    targets = [BACKEND / 'common', E2E / 'common', CI / 'scripts', CI / 'tests']
+    assert project_targets(targets) == {BACKEND: targets[:1], E2E: targets[1:2], CI: targets[2:]}
+
+
+def test_lint_reports_route_metadata_even_when_function_has_docstring(tmp_path: Path) -> None:
+    """验证 CLI 能报告具体注册位置及缺失的接口说明。"""
+    target = tmp_path / 'routes.py'
+    target.write_text(
+        "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get('/items', summary='查询事项')\n"
+        'def items() -> None:\n    """返回全部事项。"""\n',
+        encoding='utf-8',
+    )
+    payload = DevelopmentRuntimeService().run_lint([str(target)], check_only=True)
+    assert payload['exit_code'] == RUNTIME_ERROR
+    assert 'routes.py:6: HTTP 路由必须填写含中文的 description' in payload['docstrings']['stdout']
+
+
+def test_dev_lint_fails_for_bad_docstring(tmp_path: Path) -> None:
+    """文档违规时开发检查命令返回失败。"""
+    target = tmp_path / 'sample.py'
+    target.write_text(
+        'def sample() -> int:\n    """\n    示例。\n\n    Returns:\n        int\n    """\n    return 1\n',
+        encoding='utf-8',
+    )
+    payload = DevelopmentRuntimeService().run_lint([str(target)], check_only=True)
+    assert payload['format']['ok']
+    assert payload['check']['ok']
+    assert not payload['ok']
+    assert payload['exit_code'] == RUNTIME_ERROR
+    assert 'sample.py:5:' in payload['docstrings']['stdout']
+    assert '请改用 reST 字段或指令' in payload['docstrings']['stdout']
 
 
 class FakeRuntimeEnvironment(RuntimeEnvironmentService):
-    """
-    模拟运行时环境服务。
-    """
+    """模拟运行时环境服务。"""
 
     @staticmethod
     def get_backend_dir() -> str:
@@ -30,23 +81,17 @@ class FakeRuntimeEnvironment(RuntimeEnvironmentService):
 
 
 def test_development_runtime_service_returns_dependency_error_when_pytest_missing() -> None:
-    """
-    校验开发运行时在 pytest 缺失时会返回依赖错误结果。
-
-    :return: None
-    """
+    """校验开发运行时在 pytest 缺失时会返回依赖错误结果。"""
 
     class FakeToolingSupport(DevelopmentToolingSupport):
-        """
-        模拟开发工具支持对象。
-        """
+        """模拟开发工具支持对象。"""
 
         @staticmethod
         def is_pytest_available() -> bool:
             """
             返回 pytest 不可用状态。
 
-            :return: False
+            :return: 布尔值 False
             """
             return False
 
@@ -66,21 +111,27 @@ def test_development_runtime_service_returns_dependency_error_when_pytest_missin
 
 
 def test_development_runtime_service_run_lint_uses_command_support() -> None:
-    """
-    校验开发运行时会通过命令支持对象串联 format/check 执行流程。
-
-    :return: None
-    """
+    """校验开发运行时会通过命令支持对象串联 format/check 执行流程。"""
 
     class FakeCommandSupport(DevelopmentCommandSupport):
         """
         模拟开发命令支持对象。
+
+        :ivar recorded_commands: 按执行顺序保存的命令
         """
 
         def __init__(self) -> None:
+            """初始化测试夹具的 ``recorded_commands``。"""
             self.recorded_commands: list[list[str]] = []
 
         def build_format_command(self, normalized_targets: list[str], *, check_only: bool) -> list[str]:
+            """
+            校验格式化参数并返回测试命令。
+
+            :param normalized_targets: 已规整目标列表
+            :param check_only: 是否只报告检查结果
+            :return: 测试命令
+            """
             assert normalized_targets == ['tests/cli']
             assert check_only is True
             return ['format-command']
@@ -93,6 +144,15 @@ def test_development_runtime_service_run_lint_uses_command_support() -> None:
             fix: bool,
             unsafe_fixes: bool,
         ) -> list[str]:
+            """
+            校验检查参数并提供静态检查命令。
+
+            :param normalized_targets: 已规整目标列表
+            :param check_only: 是否只报告检查结果
+            :param fix: 是否应用可用的修复
+            :param unsafe_fixes: 是否允许不安全修复
+            :return: 供断言比对的静态检查命令
+            """
             assert normalized_targets == ['tests/cli']
             assert check_only is True
             assert fix is False
@@ -102,12 +162,21 @@ def test_development_runtime_service_run_lint_uses_command_support() -> None:
     class FakeProcessGateway(DevelopmentProcessGateway):
         """
         模拟开发子进程执行网关。
+
+        :ivar recorded_commands: 按执行顺序保存的命令
         """
 
         def __init__(self) -> None:
+            """初始化测试夹具的 ``recorded_commands``。"""
             self.recorded_commands: list[list[str]] = []
 
         def run_command(self, command: list[str]) -> dict[str, object]:
+            """
+            捕获开发命令并返回测试执行结果。
+
+            :param command: 执行的命令及其参数
+            :return: 测试执行结果
+            """
             self.recorded_commands.append(command)
             return {'ok': True, 'command': command, 'returnCode': 0}
 
@@ -123,4 +192,9 @@ def test_development_runtime_service_run_lint_uses_command_support() -> None:
 
     assert payload['ok'] is True
     assert payload['targets'] == ['tests/cli']
-    assert process_gateway.recorded_commands == [['format-command'], ['check-command']]
+    assert process_gateway.recorded_commands == [
+        ['format-command'],
+        ['check-command'],
+        ['/usr/bin/python3', 'scripts/check_docstrings.py', 'tests/cli'],
+        ['/usr/bin/python3', 'scripts/check_types.py', 'tests/cli'],
+    ]

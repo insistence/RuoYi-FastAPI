@@ -7,7 +7,7 @@ import struct
 import tempfile
 from collections.abc import Mapping
 from pathlib import Path
-from typing import BinaryIO
+from typing import IO
 from zipfile import ZIP_DEFLATED, ZIP_STORED, BadZipFile, ZipFile, ZipInfo
 
 import yaml
@@ -30,7 +30,8 @@ from plugins.core.artifacts.schema import (
 from plugins.core.artifacts.schema import (
     private_key as load_private_key,
 )
-from plugins.core.manifest.schema import EXPLICIT_MANIFEST_VERSION, PluginManifest, PluginManifestFactory
+from plugins.core.manifest.schema import EXPLICIT_MANIFEST_VERSION, PluginManifestFactory
+from plugins.core.manifest.v2 import VersionedPluginManifest
 
 CHUNK_BYTES = 1024 * 1024
 ZIP_END = struct.Struct('<4s4H2LH')
@@ -99,7 +100,6 @@ def _payload_path(name: str) -> None:
     校验部署文件路径，拒绝源码工程、环境文件和构建缓存。
 
     :param name: 制品内文件的规范相对路径
-    :return: None
     :raises ValueError: 路径不安全或包含禁止交付的文件
     """
     path = safe_artifact_path(name)
@@ -164,7 +164,7 @@ def _scan_directory(
     return files, directories
 
 
-def _read_limited(stream: BinaryIO, maximum: int) -> bytes:
+def _read_limited(stream: IO[bytes], maximum: int) -> bytes:
     """
     在指定字节上限内读取完整文档。
 
@@ -179,7 +179,7 @@ def _read_limited(stream: BinaryIO, maximum: int) -> bytes:
     return data
 
 
-def _hash_stream(stream: BinaryIO, maximum: int, output: BinaryIO | None = None) -> tuple[int, str]:
+def _hash_stream(stream: IO[bytes], maximum: int, output: IO[bytes] | None = None) -> tuple[int, str]:
     """
     分块读取内容并计算大小和 SHA256，可同时复制到输出流。
 
@@ -207,7 +207,6 @@ def _preflight_zip(path: Path, limits: ArtifactLimits) -> None:
 
     :param path: 待处理的文件路径
     :param limits: 文件数量、大小及压缩容器的资源上限
-    :return: None
     :raises ValueError: ZIP 结束记录、中央目录或容器类型不受支持
     """
     with path.open('rb') as stream:
@@ -234,7 +233,7 @@ def _preflight_zip(path: Path, limits: ArtifactLimits) -> None:
         _preflight_entries(stream, central_end, count, limits)
 
 
-def _preflight_entries(stream: BinaryIO, central_end: int, count: int, limits: ArtifactLimits) -> None:
+def _preflight_entries(stream: IO[bytes], central_end: int, count: int, limits: ArtifactLimits) -> None:
     """
     逐条检查 ZIP 中央目录记录，并核对实际数量与结束位置。
 
@@ -242,7 +241,6 @@ def _preflight_entries(stream: BinaryIO, central_end: int, count: int, limits: A
     :param central_end: 中央目录结束位置的绝对字节偏移
     :param count: ZIP 结束记录声明的条目数量
     :param limits: 文件数量、大小及压缩容器的资源上限
-    :return: None
     :raises ValueError: 中央目录记录不完整、越界或实际数量不匹配
     """
     actual_count = 0
@@ -349,7 +347,7 @@ def _verify_documents(
     return metadata, signature, hashlib.sha256(canonical).hexdigest()
 
 
-def _verify_manifest(data: bytes, metadata: ArtifactMetadata, limits: ArtifactLimits) -> PluginManifest:
+def _verify_manifest(data: bytes, metadata: ArtifactMetadata, limits: ArtifactLimits) -> VersionedPluginManifest:
     """
     静态解析插件清单，检查协议、身份、版本及前端交付类型。
 

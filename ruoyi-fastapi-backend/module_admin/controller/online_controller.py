@@ -56,7 +56,7 @@ async def delete_monitor_online(
     token_ids: Annotated[str, Path(description='需要强退的会话编号')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_online = DeleteOnlineModel(tokenIds=token_ids)
+    delete_online = DeleteOnlineModel(token_ids=token_ids)
     delete_online_result = await OnlineService.delete_online_services(request, delete_online)
     logger.info(delete_online_result.message)
 

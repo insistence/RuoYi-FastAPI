@@ -8,9 +8,7 @@ from plugins.core.management.entity.do.models import SysPlugin, SysPluginMenu
 
 
 class PluginRouterMetadataService:
-    """
-    按平台菜单关联读取插件页面归属，仅查询当前用户可见的插件页面。
-    """
+    """按平台菜单关联读取插件页面归属，仅查询当前用户可见的插件页面。"""
 
     @staticmethod
     async def get_menu_plugin_ids(query_db: AsyncSession, menus: Iterable[SysMenu]) -> dict[int, str]:

@@ -9,6 +9,8 @@ from .dependency_container import PluginRuntimeDependencies
 class PluginAuditUseCase:
     """
     插件操作审计和失败状态记录 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
     """
 
     def __init__(self, dependencies: PluginRuntimeDependencies) -> None:
@@ -34,7 +36,6 @@ class PluginAuditUseCase:
         :param payload: 插件操作结果负载
         :param dry_run: 是否预演
         :param continue_on_error: 失败后是否继续执行后续插件
-        :return: None
         """
         await self.dependencies.audit_gateway.add_plugin_operation_log(
             dict(payload),
@@ -54,7 +55,6 @@ class PluginAuditUseCase:
 
         :param payload: 插件操作返回负载
         :param default_message: 缺省失败信息
-        :return: None
         """
         if payload.get('ok') is not False:
             return

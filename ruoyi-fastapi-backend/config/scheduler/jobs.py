@@ -1,7 +1,7 @@
 import json
 from collections.abc import Callable
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
+from typing import Any, cast
 
 from apscheduler.job import Job
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -18,15 +18,17 @@ from utils.log_util import logger
 
 class SchedulerJobs:
     """
-    任务注册、配置比较和本地调度进度管理
+    任务注册、配置比较和本地调度进度管理。
+
+    :ivar scheduler: 当前进程的调度器
+    :ivar update_time_cache: 按任务标识保存的最近更新时间
     """
 
     def __init__(self, scheduler: AsyncIOScheduler) -> None:
         """
-        绑定当前进程的调度器并初始化任务更新时间缓存
+        绑定当前进程的调度器并初始化任务更新时间缓存。
 
         :param scheduler: 当前进程的调度器
-        :return: None
         """
         self.scheduler = scheduler
         self.update_time_cache: dict[str, datetime | None] = {}
@@ -54,7 +56,7 @@ class SchedulerJobs:
     @classmethod
     def import_function(cls, func_path: str) -> Callable[..., Any]:
         """
-        动态导入函数
+        动态导入函数。
 
         :param func_path: 函数字符串，如module_task.scheduler_test.job
         :return: 导入的函数对象
@@ -64,17 +66,20 @@ class SchedulerJobs:
     @classmethod
     def prepare_job(cls, job_info: JobModel) -> dict[str, Any]:
         """
-        构建调度器任务参数
+        构建调度器任务参数。
 
         :param job_info: 任务对象信息
         :return: 调度器任务参数
+        :raises ValueError: 未配置任务调用目标
         """
+        if not job_info.invoke_target:
+            raise ValueError('调用目标不能为空')
         return JobAdapter.prepare(job_info, function=cls.import_function(job_info.invoke_target))
 
     @classmethod
     def trigger_signature(cls, trigger: Any) -> tuple[Any, ...]:
         """
-        提取用于比较触发器配置的完整签名
+        提取用于比较触发器配置的完整签名。
 
         :param trigger: 待比较的触发器对象
         :return: 包含时区、起止边界和子触发器信息的签名
@@ -98,7 +103,7 @@ class SchedulerJobs:
     @classmethod
     def is_config_current(cls, scheduler_job: Job, job_info: JobModel) -> bool:
         """
-        判断任务配置是否一致
+        判断任务配置是否一致。
 
         :param scheduler_job: 调度器任务对象
         :param job_info: 数据库任务对象
@@ -136,7 +141,7 @@ class SchedulerJobs:
 
     def register_job(self, job_info: JobModel) -> bool:
         """
-        注册或更新调度任务，保留未发生变化的调度进度
+        注册或更新调度任务，保留未发生变化的调度进度。
 
         :param job_info: 任务对象信息
         :return: 是否成功注册任务
@@ -157,33 +162,29 @@ class SchedulerJobs:
 
     def get_job(self, job_id: str | int) -> Job | None:
         """
-        根据任务id获取任务对象
+        根据任务id获取任务对象。
 
         :param job_id: 任务id
         :return: 任务对象
         """
-        query_job = self.scheduler.get_job(job_id=str(job_id))
-
-        return query_job
+        return cast('Job | None', self.scheduler.get_job(job_id=str(job_id)))
 
     def add_job(self, job_info: JobModel) -> None:
         """
-        根据输入的任务对象信息添加任务
+        根据输入的任务对象信息添加任务。
 
         :param job_info: 任务对象信息
-        :return: None
         """
         self.scheduler.add_job(**self.prepare_job(job_info))
         self.record_update_time(str(job_info.job_id), job_info.update_time)
 
     def execute_once(self, job_info: JobModel, *, execution_id: str, dispatch_token: str) -> None:
         """
-        将已持久化并领取的手动请求注册为独立单次任务
+        将已持久化并领取的手动请求注册为独立单次任务。
 
         :param job_info: 任务对象信息
         :param execution_id: 已持久化的执行请求 ID
         :param dispatch_token: 本次派发持有的领取凭据
-        :return: None
         """
         options = self.prepare_job(job_info)
         options.update(
@@ -194,7 +195,7 @@ class SchedulerJobs:
                 task_job_group=job_info.job_group,
                 execution_id=execution_id,
                 dispatch_token=dispatch_token,
-                timezone=timezone.utc,
+                timezone=UTC,
             ),
             misfire_grace_time=None,
             coalesce=False,
@@ -204,10 +205,9 @@ class SchedulerJobs:
 
     def remove_job(self, job_id: str | int) -> None:
         """
-        根据任务id移除任务
+        根据任务id移除任务。
 
         :param job_id: 任务id
-        :return: None
         """
         job_id = str(job_id)
         query_job = self.get_job(job_id=job_id)
@@ -219,13 +219,12 @@ class SchedulerJobs:
         self, job_id: str, job_info: JobModel | None, scheduler_job: Job | None, job_update_time: datetime | None
     ) -> None:
         """
-        同步更新任务配置
+        同步更新任务配置。
 
         :param job_id: 任务ID
         :param job_info: 数据库任务对象
         :param scheduler_job: 调度器任务对象
         :param job_update_time: 任务更新时间
-        :return: None
         """
         if not job_info or not scheduler_job:
             return
@@ -239,7 +238,7 @@ class SchedulerJobs:
 
     def has_update_time(self, job_id: str, job_update_time: datetime | None) -> bool:
         """
-        判断是否跳过同步更新
+        判断是否跳过同步更新。
 
         :param job_id: 任务ID
         :param job_update_time: 任务更新时间
@@ -249,19 +248,17 @@ class SchedulerJobs:
 
     def record_update_time(self, job_id: str, job_update_time: datetime | None) -> None:
         """
-        刷新任务更新时间缓存
+        刷新任务更新时间缓存。
 
         :param job_id: 任务ID
         :param job_update_time: 任务更新时间
-        :return: None
         """
         self.update_time_cache[job_id] = job_update_time
 
     def forget_update_time(self, job_id: str) -> None:
         """
-        移除任务更新时间缓存
+        移除任务更新时间缓存。
 
         :param job_id: 任务ID
-        :return: None
         """
         self.update_time_cache.pop(job_id, None)

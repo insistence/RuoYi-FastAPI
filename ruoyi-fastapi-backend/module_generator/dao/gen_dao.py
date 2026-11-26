@@ -2,10 +2,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import Row, bindparam, delete, func, select, text, update
+from sqlalchemy import Row, bindparam, delete, func, select, text, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlglot.expressions import Expression
+from sqlglot.expressions import Expr
 
 from common.types import DbUtcDateTime
 from common.vo import PageModel
@@ -25,8 +25,17 @@ from utils.time_util import TimezoneUtil
 
 @dataclass(frozen=True, slots=True)
 class DatabaseMetadataAdapter:
-    """元数据时间单独定义：MySQL 的目录时间按连接会话时区返回（连接工厂固定 UTC）；
+    """
+    定义数据库元数据查询和时间字段。
+
+    MySQL 的目录时间按连接会话时区返回（连接工厂固定 UTC）。
     PostgreSQL 不提供表创建时间，list_table 返回 NULL，不能用查询时刻冒充。
+
+    :ivar table_list_query: 枚举数据库表时执行的查询
+    :ivar tables_by_name_query: 按名称筛选数据库表的查询
+    :ivar columns_query: 读取数据库列定义的查询
+    :ivar created_after_filter: 按创建时间下界筛选的条件
+    :ivar created_before_filter: 按创建时间上界筛选的条件
     """
 
     table_list_query: str
@@ -125,10 +134,11 @@ _METADATA_ADAPTERS = {
 
 def _get_database_metadata_adapter(db_type: str) -> DatabaseMetadataAdapter:
     """
-    根据数据库类型获取元数据查询适配器
+    根据数据库类型获取元数据查询适配器。
 
     :param db_type: 数据库类型
     :return: 元数据查询适配器
+    :raises ValueError: 当前数据库类型没有元数据查询适配器
     """
     try:
         return _METADATA_ADAPTERS[db_type]
@@ -137,14 +147,12 @@ def _get_database_metadata_adapter(db_type: str) -> DatabaseMetadataAdapter:
 
 
 class GenTableDao:
-    """
-    代码生成业务表模块数据库操作层
-    """
+    """代码生成业务表模块数据库操作层。"""
 
     @classmethod
     async def get_gen_table_by_id(cls, db: AsyncSession, table_id: int) -> GenTable | None:
         """
-        根据业务表id获取需要生成的业务表信息
+        根据业务表id获取需要生成的业务表信息。
 
         :param db: orm对象
         :param table_id: 业务表id
@@ -165,7 +173,7 @@ class GenTableDao:
     @classmethod
     async def get_gen_table_by_name(cls, db: AsyncSession, table_name: str, source_name: str) -> GenTable | None:
         """
-        根据业务表名称获取需要生成的业务表信息
+        根据业务表名称获取需要生成的业务表信息。
 
         :param db: orm对象
         :param table_name: 业务表名称
@@ -192,7 +200,7 @@ class GenTableDao:
     @classmethod
     async def get_gen_table_all(cls, db: AsyncSession, source_name: str | None = None) -> Sequence[GenTable]:
         """
-        获取所有业务表信息
+        获取所有业务表信息。
 
         :param db: orm对象
         :param source_name: 数据源名称
@@ -207,15 +215,14 @@ class GenTableDao:
 
     @classmethod
     async def create_table_by_sql_dao(
-        cls, db: AsyncSession, sql_statements: list[Expression], *, source_config: DataSourceSettings
+        cls, db: AsyncSession, sql_statements: list[Expr], *, source_config: DataSourceSettings
     ) -> None:
         """
-        根据sql语句创建表结构
+        根据sql语句创建表结构。
 
         :param db: orm对象
         :param sql_statements: sql语句的ast列表
         :param source_config: 目标数据源配置
-        :return:
         """
         for sql_statement in sql_statements:
             sql = sql_statement.sql(dialect=source_config.sqlglot_parse_dialect)
@@ -224,9 +231,9 @@ class GenTableDao:
     @classmethod
     async def get_gen_table_list(
         cls, db: AsyncSession, query_object: GenTablePageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据查询参数获取代码生成业务表列表信息
+        根据查询参数获取代码生成业务表列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -240,17 +247,17 @@ class GenTableDao:
             .where(
                 func.lower(GenTable.table_name).like(f'%{query_object.table_name.lower()}%')
                 if query_object.table_name
-                else True,
+                else true(),
                 func.lower(GenTable.table_comment).like(f'%{query_object.table_comment.lower()}%')
                 if query_object.table_comment
-                else True,
-                GenTable.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                GenTable.create_time < time_range[1] if time_range and time_range[1] is not None else True,
-                GenTable.data_source_name == query_object.data_source_name if query_object.data_source_name else True,
+                else true(),
+                GenTable.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                GenTable.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
+                GenTable.data_source_name == query_object.data_source_name if query_object.data_source_name else true(),
             )
             .distinct()
         )
-        gen_table_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        gen_table_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -259,7 +266,7 @@ class GenTableDao:
     @classmethod
     async def get_gen_table_names(cls, db: AsyncSession, source_name: str | None = None) -> set[str]:
         """
-        获取控制库中指定数据源已导入的业务表名称
+        获取控制库中指定数据源已导入的业务表名称。
 
         :param db: orm对象
         :param source_name: 数据源名称
@@ -279,9 +286,9 @@ class GenTableDao:
         *,
         excluded_table_names: set[str] | None = None,
         source_config: DataSourceSettings | None = None,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据查询参数获取数据库列表信息
+        根据查询参数获取数据库列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -289,6 +296,7 @@ class GenTableDao:
         :param excluded_table_names: 需要排除的已导入表名称集合
         :param source_config: 目标数据源配置
         :return: 数据库列表信息对象
+        :raises ServiceWarning: PostgreSQL 系统目录不记录建表时间，请清除建表日期筛选
         """
         source_config = source_config or DataBaseConfig.default_source
         metadata = _get_database_metadata_adapter(source_config.db_type)
@@ -309,10 +317,10 @@ class GenTableDao:
                 message='PostgreSQL 系统目录不记录建表时间，请清除建表日期筛选',
                 msg_key='generator.creationDateUnsupported',
             )
-        if query_object.begin_time:
+        if metadata_range and metadata_range[0] is not None:
             query_sql += metadata.created_after_filter
             query_params['begin_time'] = metadata_range[0]
-        if query_object.end_time:
+        if metadata_range and metadata_range[1] is not None:
             query_sql += metadata.created_before_filter
             query_params['end_time'] = metadata_range[1]
         query_sql += ' order by create_time desc'
@@ -324,7 +332,7 @@ class GenTableDao:
         if excluded_table_names:
             statement = statement.bindparams(bindparam('excluded_table_names', expanding=True))
         query = select(statement.bindparams(**query_params))
-        gen_db_table_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        gen_db_table_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -333,9 +341,9 @@ class GenTableDao:
     @classmethod
     async def get_gen_db_table_list_by_names(
         cls, db: AsyncSession, table_names: list[str], source_config: DataSourceSettings | None = None
-    ) -> Sequence[Row]:
+    ) -> Sequence[Row[*tuple[Any, ...]]]:
         """
-        根据业务表名称组获取数据库列表信息
+        根据业务表名称组获取数据库列表信息。
 
         :param db: orm对象
         :param table_names: 业务表名称组
@@ -352,16 +360,16 @@ class GenTableDao:
     @classmethod
     async def add_gen_table_dao(cls, db: AsyncSession, gen_table: GenTableModel) -> GenTable:
         """
-        新增业务表数据库操作
+        新增业务表数据库操作。
 
         :param db: orm对象
         :param gen_table: 业务表对象
-        :return:
+        :return: 新增的生成表记录
         """
         db_gen_table = GenTable(
-            **GenTableBaseModel(
-                **gen_table.model_dump(by_alias=True, exclude={'create_time', 'update_time'})
-            ).model_dump(exclude={'create_time', 'update_time'})
+            **GenTableBaseModel(**gen_table.model_dump(exclude={'create_time', 'update_time'})).model_dump(
+                exclude={'create_time', 'update_time'}
+            )
         )
         db.add(db_gen_table)
         await db.flush()
@@ -369,13 +377,12 @@ class GenTableDao:
         return db_gen_table
 
     @classmethod
-    async def edit_gen_table_dao(cls, db: AsyncSession, gen_table: dict) -> None:
+    async def edit_gen_table_dao(cls, db: AsyncSession, gen_table: dict[str, Any]) -> None:
         """
-        编辑业务表数据库操作
+        编辑业务表数据库操作。
 
         :param db: orm对象
         :param gen_table: 需要更新的业务表字典
-        :return:
         """
         await db.execute(
             update(GenTable),
@@ -385,24 +392,21 @@ class GenTableDao:
     @classmethod
     async def delete_gen_table_dao(cls, db: AsyncSession, gen_table: GenTableModel) -> None:
         """
-        删除业务表数据库操作
+        删除业务表数据库操作。
 
         :param db: orm对象
         :param gen_table: 业务表对象
-        :return:
         """
         await db.execute(delete(GenTable).where(GenTable.table_id.in_([gen_table.table_id])))
 
 
 class GenTableColumnDao:
-    """
-    代码生成业务表字段模块数据库操作层
-    """
+    """代码生成业务表字段模块数据库操作层。"""
 
     @classmethod
-    async def get_gen_table_column_list_by_table_id(cls, db: AsyncSession, table_id: int) -> GenTableColumn:
+    async def get_gen_table_column_list_by_table_id(cls, db: AsyncSession, table_id: int) -> Sequence[GenTableColumn]:
         """
-        根据业务表id获取需要生成的业务表字段列表信息
+        根据业务表id获取需要生成的业务表字段列表信息。
 
         :param db: orm对象
         :param table_id: 业务表id
@@ -423,9 +427,9 @@ class GenTableColumnDao:
     @classmethod
     async def get_gen_db_table_columns_by_name(
         cls, db: AsyncSession, table_name: str, source_config: DataSourceSettings | None = None
-    ) -> Sequence[Row]:
+    ) -> Sequence[Row[*tuple[Any, ...]]]:
         """
-        根据业务表名称获取业务表字段列表信息
+        根据业务表名称获取业务表字段列表信息。
 
         :param db: orm对象
         :param table_name: 业务表名称
@@ -442,16 +446,16 @@ class GenTableColumnDao:
     @classmethod
     async def add_gen_table_column_dao(cls, db: AsyncSession, gen_table_column: GenTableColumnModel) -> GenTableColumn:
         """
-        新增业务表字段数据库操作
+        新增业务表字段数据库操作。
 
         :param db: orm对象
         :param gen_table_column: 岗位对象
-        :return:
+        :return: 新增的生成表列记录
         """
         db_gen_table_column = GenTableColumn(
-            **GenTableColumnBaseModel(
-                **gen_table_column.model_dump(by_alias=True, exclude={'create_time', 'update_time'})
-            ).model_dump(exclude={'create_time', 'update_time'})
+            **GenTableColumnBaseModel(**gen_table_column.model_dump(exclude={'create_time', 'update_time'})).model_dump(
+                exclude={'create_time', 'update_time'}
+            )
         )
         db.add(db_gen_table_column)
         await db.flush()
@@ -459,13 +463,12 @@ class GenTableColumnDao:
         return db_gen_table_column
 
     @classmethod
-    async def edit_gen_table_column_dao(cls, db: AsyncSession, gen_table_column: dict) -> None:
+    async def edit_gen_table_column_dao(cls, db: AsyncSession, gen_table_column: dict[str, Any]) -> None:
         """
-        编辑业务表字段数据库操作
+        编辑业务表字段数据库操作。
 
         :param db: orm对象
         :param gen_table_column: 需要更新的业务表字段字典
-        :return:
         """
         await db.execute(
             update(GenTableColumn),
@@ -477,11 +480,10 @@ class GenTableColumnDao:
         cls, db: AsyncSession, gen_table_column: GenTableColumnModel
     ) -> None:
         """
-        通过业务表id删除业务表字段数据库操作
+        通过业务表id删除业务表字段数据库操作。
 
         :param db: orm对象
         :param gen_table_column: 业务表字段对象
-        :return:
         """
         await db.execute(delete(GenTableColumn).where(GenTableColumn.table_id.in_([gen_table_column.table_id])))
 
@@ -490,10 +492,9 @@ class GenTableColumnDao:
         cls, db: AsyncSession, gen_table_column: GenTableColumnModel
     ) -> None:
         """
-        通过业务字段id删除业务表字段数据库操作
+        通过业务字段id删除业务表字段数据库操作。
 
         :param db: orm对象
-        :param post: 业务表字段对象
-        :return:
+        :param gen_table_column: 业务表字段对象
         """
         await db.execute(delete(GenTableColumn).where(GenTableColumn.column_id.in_([gen_table_column.column_id])))

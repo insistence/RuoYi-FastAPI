@@ -5,19 +5,16 @@ from module_identity.dao.oauth_client_dao import OAuthClientDao
 
 
 class DiscoveryService:
-    """
-    OIDC Discovery 模块服务层
-    """
+    """OIDC Discovery 模块服务层。"""
 
     @staticmethod
     async def supported_scopes(db: AsyncSession) -> list[str]:
         """
-        读取启用 Scope 并稳定合并到协议元数据
+        读取启用 Scope 并稳定合并到协议元数据。
 
         :param db: 异步数据库会话
         :return: 启用 Scope 名称列表
         """
-
         scopes = await OAuthClientDao.list_scope_definitions(db, active_only=True)
         dynamic = tuple(
             value if isinstance(value, str) else value.scope_code
@@ -32,21 +29,19 @@ class DiscoveryService:
     @staticmethod
     def _issuer() -> str:
         """
-        读取签发者地址
+        读取签发者地址。
 
         :return: OIDC 签发者地址
         """
-
         return OidcConfig.oidc_issuer.rstrip('/')
 
     @classmethod
     def openid_metadata(cls) -> dict[str, object]:
         """
-        构建 OpenID 元数据
+        构建 OpenID 元数据。
 
         :return: 协议元数据映射
         """
-
         issuer = cls._issuer()
 
         return {
@@ -91,11 +86,10 @@ class DiscoveryService:
     @classmethod
     def oauth_metadata(cls) -> dict[str, object]:
         """
-        构建 OAuth 元数据
+        构建 OAuth 元数据。
 
         :return: 协议元数据映射
         """
-
         issuer = cls._issuer()
 
         return {
@@ -117,12 +111,11 @@ class DiscoveryService:
     @classmethod
     async def openid_metadata_with_scopes(cls, db: AsyncSession) -> dict[str, object]:
         """
-        构建带动态 Scope 的 OpenID 元数据
+        构建带动态 Scope 的 OpenID 元数据。
 
         :param db: 异步数据库会话
         :return: 协议元数据映射
         """
-
         payload = cls.openid_metadata()
         payload['scopes_supported'] = await cls.supported_scopes(db)
 
@@ -131,12 +124,11 @@ class DiscoveryService:
     @classmethod
     async def oauth_metadata_with_scopes(cls, db: AsyncSession) -> dict[str, object]:
         """
-        构建带动态 Scope 的 OAuth 元数据
+        构建带动态 Scope 的 OAuth 元数据。
 
         :param db: 异步数据库会话
         :return: 协议元数据映射
         """
-
         payload = cls.oauth_metadata()
         payload['scopes_supported'] = await cls.supported_scopes(db)
 

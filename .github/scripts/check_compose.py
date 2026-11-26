@@ -22,7 +22,7 @@ def validate_configuration(config: dict[str, Any], framework: str, engine: str, 
     :param framework: 本次选择的框架
     :param engine: my 或 pg
     :param root: 仓库根目录
-    :return: None
+    :raises ValueError: 前端构建目录、Dockerfile、nginx 配置或后端所选框架不匹配
     """
     expected = (root / 'ruoyi-fastapi-frontend' / framework / 'web').resolve()
     services = config['services']
@@ -44,11 +44,7 @@ def validate_configuration(config: dict[str, Any], framework: str, engine: str, 
 
 
 def main() -> None:
-    """
-    使用全部框架解析生产和测试 Compose，无需启动容器。
-
-    :return: None
-    """
+    """使用全部框架解析生产和测试 Compose，无需启动容器。"""
     parser = argparse.ArgumentParser()
     parser.add_argument('--docker', default='docker')
     args = parser.parse_args()

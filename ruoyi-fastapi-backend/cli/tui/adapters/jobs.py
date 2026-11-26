@@ -22,7 +22,7 @@ class JobRenderingSupport:
     该对象负责状态文本、时间线标记、成功率信号条和失败任务提取等基础
     逻辑，供筛选、分区和记录构建复用。
 
-    :param page_adapter: 任务浏览页适配器
+    :ivar page_adapter: 任务浏览页适配器
     """
 
     def __init__(self, page_adapter: BaseBrowserAdapter) -> None:
@@ -30,7 +30,6 @@ class JobRenderingSupport:
         初始化任务浏览页渲染支持对象。
 
         :param page_adapter: 任务浏览页适配器
-        :return: None
         """
         self.page_adapter = page_adapter
 
@@ -192,8 +191,9 @@ class JobSectionBuilder:
 
     该构建器负责构建任务页共享分区以及单条任务详情分区。
 
-    :param page_adapter: 任务浏览页适配器
-    :param rendering: 任务浏览页渲染支持对象
+    :ivar page_adapter: 任务浏览页适配器
+    :ivar rendering: 任务浏览页渲染支持对象
+    :ivar query_service: TUI 进程内查询服务
     """
 
     def __init__(
@@ -205,9 +205,9 @@ class JobSectionBuilder:
         """
         初始化任务浏览页分区构建器。
 
+        :param query_service: TUI 进程内查询服务
         :param page_adapter: 任务浏览页适配器
         :param rendering: 任务浏览页渲染支持对象
-        :return: None
         """
         self.page_adapter = page_adapter
         self.rendering = rendering
@@ -338,11 +338,10 @@ class JobSectionBuilder:
         """
         构建任务概览分区。
 
-        :param payload: `job detail` JSON 负载
+        :param payload: ``job detail`` JSON 负载
         :return: 分区快照
         """
-        job = payload.get('job') if isinstance(payload, dict) else None
-        if not isinstance(job, dict):
+        if not isinstance(payload, dict) or not isinstance(job := payload.get('job'), dict):
             return DetailSectionSnapshot(
                 title='任务摘要',
                 status='fail',
@@ -365,11 +364,10 @@ class JobSectionBuilder:
         """
         构建任务调度配置分区。
 
-        :param payload: `job detail` JSON 负载
+        :param payload: ``job detail`` JSON 负载
         :return: 分区快照
         """
-        job = payload.get('job') if isinstance(payload, dict) else None
-        if not isinstance(job, dict):
+        if not isinstance(payload, dict) or not isinstance(job := payload.get('job'), dict):
             return DetailSectionSnapshot(
                 title='调度配置',
                 status='fail',
@@ -393,7 +391,7 @@ class JobSectionBuilder:
         """
         构建任务日志分区。
 
-        :param payload: `job logs` JSON 负载
+        :param payload: ``job logs`` JSON 负载
         :param title: 分区标题
         :return: 分区快照
         """
@@ -523,9 +521,9 @@ class JobRecordBuilder:
 
     该对象负责构建任务页单条浏览记录与失败兜底记录。
 
-    :param page_adapter: 任务浏览页适配器
-    :param rendering: 任务浏览页渲染支持对象
-    :param section_builder: 任务浏览页分区构建器
+    :ivar page_adapter: 任务浏览页适配器
+    :ivar rendering: 任务浏览页渲染支持对象
+    :ivar section_builder: 任务浏览页分区构建器
     """
 
     def __init__(
@@ -540,7 +538,6 @@ class JobRecordBuilder:
         :param page_adapter: 任务浏览页适配器
         :param rendering: 任务浏览页渲染支持对象
         :param section_builder: 任务浏览页分区构建器
-        :return: None
         """
         self.page_adapter = page_adapter
         self.rendering = rendering
@@ -600,6 +597,12 @@ class JobsBrowserAdapter(BaseBrowserAdapter):
 
     该适配器负责采集任务列表、失败日志和单条任务详情，并委托协作对象
     完成过滤、共享分区、详情分区和记录构建。
+
+    :ivar rendering: 任务浏览页渲染支持对象
+    :ivar row_filter: 任务浏览行过滤器
+    :ivar query_service: TUI 进程内查询服务
+    :ivar section_builder: 任务浏览页分区构建器
+    :ivar record_builder: 任务浏览记录构建器
     """
 
     def __init__(
@@ -613,11 +616,11 @@ class JobsBrowserAdapter(BaseBrowserAdapter):
         """
         初始化任务浏览页适配器。
 
+        :param query_service: TUI 进程内查询服务
         :param rendering: 任务浏览页渲染支持对象
         :param row_filter: 任务浏览行过滤器
         :param section_builder: 任务浏览页分区构建器
         :param record_builder: 任务浏览记录构建器
-        :return: None
         """
         super().__init__(
             page_title='任务',

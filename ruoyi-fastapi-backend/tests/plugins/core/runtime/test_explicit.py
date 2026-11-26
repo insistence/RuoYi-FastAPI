@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
@@ -22,6 +22,8 @@ from plugins.core.discovery.scanner import PluginScanner
 from plugins.core.runtime.application import PluginApplicationRuntime
 from plugins.core.runtime.asgi import PluginLifespanManager
 from plugins.core.runtime.explicit import ExplicitPluginRuntime
+from plugins.core.runtime.job_dispatcher import PluginJobBinding
+from plugins.core.runtime.route_guard import PluginRouteStateGateway, UnavailablePluginRouteStateGateway
 from plugins.core.runtime.startup import PluginRuntimeStartupManager
 from plugins.core.runtime.startup_coordination import PluginStartupGenerationResolver
 from plugins.core.sdk import PluginDefinition
@@ -54,6 +56,11 @@ def create_plugin(host):
 
 @pytest.fixture(autouse=True)
 def clear_modules() -> Generator[None, None, None]:
+    """
+    在测试结束时清理动态导入的插件模块。
+
+    :yield: 上下文就绪后将控制权交给调用方
+    """
     yield
     for name in list(sys.modules):
         if name.startswith('plugins.runtime_test'):
@@ -73,6 +80,16 @@ def write_plugin(
     dependencies: list[str] | None = None,
     integration: str = 'asgi',
 ) -> RegisteredPlugin:
+    """
+    在临时插件目录写入测试用的清单及文件。
+
+    :param root: 路径解析的基准目录
+    :param plugin_id: 插件清单中的唯一标识
+    :param source: 写入测试插件入口模块的 Python 源码
+    :param dependencies: 执行当前步骤所需的依赖
+    :param integration: 插件与宿主的集成方式
+    :return: ``RegisteredPlugin`` 实例
+    """
     directory = root / 'plugins' / plugin_id
     directory.mkdir(parents=True, exist_ok=True)
     manifest = {
@@ -96,16 +113,22 @@ def write_plugin(
 
 @asynccontextmanager
 async def fake_session() -> AsyncGenerator[object, None]:
+    """
+    为上下文提供受控的测试会话。
+
+    :yield: 上下文中借用的测试会话
+    """
     yield object()
 
 
 @pytest.mark.asyncio
 async def test_main_runtime_mounts_authenticates_and_stops_subapplication(tmp_path: Path) -> None:
+    """主运行时挂载、认证并停止子应用。"""
     plugin = write_plugin(tmp_path)
     app = FastAPI()
     app.state.plugin_registry = PluginRegistry([plugin])
     app.state.redis = object()
-    gateway = SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True))
+    gateway = Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
     manager = PluginRuntimeStartupManager(route_state_gateway=gateway, default_enabled_builtin_plugin_ids=set())
     login = AsyncMock(return_value=SimpleNamespace(permissions=['runtime_test:view']))
     with (
@@ -153,7 +176,9 @@ def create_plugin(host):
     app = FastAPI()
     app.dependency_overrides[get_db_session_provider(None)] = object
     app.dependency_overrides[LoginService.get_current_user] = lambda: SimpleNamespace(permissions=['runtime_test:view'])
-    runtime = ExplicitPluginRuntime(SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True)))
+    runtime = ExplicitPluginRuntime(
+        Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
+    )
     runtime.prepare(plugin, app, startup_write_enabled=False)
     try:
         await runtime.activate('runtime_test', app)
@@ -174,6 +199,7 @@ def create_plugin(host):
 async def test_router_and_endpoint_share_current_user_dependency(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, override_dependency: bool
 ) -> None:
+    """路由和端点共享当前用户依赖。"""
     source = """
 from fastapi import APIRouter, Depends, Request
 from common.aspect.pre_auth import CurrentUserDependency, PreAuthDependency
@@ -200,19 +226,26 @@ def create_plugin(host):
     app = FastAPI()
     app.dependency_overrides[get_db_session_provider(None)] = object
     user = CurrentUserModel(
-        permissions=['runtime_test:view'], roles=['reader'], user=UserInfoModel(userId=7, userName='tester')
+        permissions=['runtime_test:view'], roles=['reader'], user=UserInfoModel(user_id=7, user_name='tester')
     )
     resolver = AsyncMock(return_value=user)
     monkeypatch.setattr(LoginService, '_resolve_current_user', resolver)
     override_calls = []
 
     async def current_user() -> CurrentUserModel:
+        """
+        在令牌匹配时提供测试用户。
+
+        :return: 当前操作对应的用户
+        """
         override_calls.append(user)
         return user
 
     if override_dependency:
         app.dependency_overrides[LoginService.get_current_user] = current_user
-    runtime = ExplicitPluginRuntime(SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True)))
+    runtime = ExplicitPluginRuntime(
+        Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
+    )
     runtime.prepare(plugin, app, startup_write_enabled=False)
     try:
         await runtime.activate('runtime_test', app)
@@ -236,6 +269,7 @@ def create_plugin(host):
 
 
 def test_dependency_cycle_and_missing_dependency_do_not_block_independent_plugin(tmp_path: Path) -> None:
+    """依赖循环或缺失不阻塞独立插件。"""
     first = write_plugin(tmp_path, plugin_id='runtime_test_a', dependencies=['runtime_test_b'])
     second = write_plugin(tmp_path, plugin_id='runtime_test_b', dependencies=['runtime_test_a'])
     missing = write_plugin(tmp_path, plugin_id='runtime_test_missing', dependencies=['absent'])
@@ -246,6 +280,7 @@ def test_dependency_cycle_and_missing_dependency_do_not_block_independent_plugin
 
 
 def test_dependency_order_starts_dependencies_first(tmp_path: Path) -> None:
+    """先启动被依赖的插件。"""
     consumer = write_plugin(tmp_path, plugin_id='runtime_test_consumer', dependencies=['runtime_test_base'])
     base = write_plugin(tmp_path, plugin_id='runtime_test_base')
     ordered, errors = ExplicitPluginRuntime.dependency_order(PluginRegistry([consumer, base]))
@@ -255,6 +290,7 @@ def test_dependency_order_starts_dependencies_first(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_failed_startup_leaves_no_mount_and_isolates_plugin(tmp_path: Path) -> None:
+    """启动失败时清理挂载并隔离插件。"""
     plugin = write_plugin(
         tmp_path, source=ASGI_SOURCE.replace("events.append('start')", "raise RuntimeError('broken')")
     )
@@ -270,10 +306,11 @@ async def test_failed_startup_leaves_no_mount_and_isolates_plugin(tmp_path: Path
 
 @pytest.mark.asyncio
 async def test_health_failure_after_startup_shuts_down_child(tmp_path: Path) -> None:
+    """启动后健康检查失败则关闭子应用。"""
     plugin = write_plugin(tmp_path, source=ASGI_SOURCE + '\nasync def check(context): return False\n')
     plugin.discovered_plugin.manifest.backend.health.checker = 'plugins.runtime_test:check'
     app = FastAPI()
-    runtime = ExplicitPluginRuntime(SimpleNamespace())
+    runtime = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     runtime.prepare(plugin, app, startup_write_enabled=False)
     with pytest.raises(RuntimeError, match='健康检查'):
         await runtime.activate('runtime_test', app)
@@ -287,7 +324,7 @@ async def test_shutdown_isolates_cleanup_failures_and_closes_in_reverse_order(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure_at: str
 ) -> None:
     """一个清理步骤失败后继续其余资源及依赖插件，关闭开始即拒绝全部激活。"""
-    runtime = ExplicitPluginRuntime(SimpleNamespace())
+    runtime = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     app = FastAPI()
     for plugin_id in ['runtime_test_base', 'runtime_test_consumer']:
         runtime.prepare(write_plugin(tmp_path, plugin_id=plugin_id), app, startup_write_enabled=False)
@@ -295,6 +332,13 @@ async def test_shutdown_isolates_cleanup_failures_and_closes_in_reverse_order(
     order = []
 
     async def step(name: str, *, fails: bool = False) -> None:
+        """
+        检查插件关闭过程的步骤顺序。
+
+        :param name: 用于查找或标识当前对象的名称
+        :param fails: 是否模拟执行失败
+        :raises RuntimeError: 模拟执行清理步骤失败
+        """
         assert all(not loaded.active for loaded in runtime.loaded.values())
         with pytest.raises(RuntimeError, match='关闭阶段'):
             await runtime.activate('runtime_test_base', app)
@@ -307,32 +351,42 @@ async def test_shutdown_isolates_cleanup_failures_and_closes_in_reverse_order(
         metrics_stop.side_effect = RuntimeError('metrics failed')
     monkeypatch.setattr(runtime.metrics_reporter, 'stop', metrics_stop)
     consumer = runtime.loaded['runtime_test_consumer']
+    assert consumer.lifespan is not None
     actual_shutdown = consumer.lifespan.shutdown
 
     async def consumer_lifespan() -> None:
+        """关闭消费端生命周期并记录结果。"""
         await actual_shutdown()
         await step('consumer:lifespan', fails=failure_at == 'lifespan')
 
     async def consumer_connection() -> None:
+        """记录消费端连接的关闭步骤。"""
         await step('consumer:connection', fails=failure_at == 'connection')
 
     async def consumer_jobs(binding: object) -> None:
+        """
+        记录消费端任务的关闭步骤。
+
+        :param binding: 关联资源和运行时的绑定信息
+        """
         await step('consumer:job', fails=failure_at == 'job')
 
     monkeypatch.setattr(consumer.lifespan, 'shutdown', consumer_lifespan)
     monkeypatch.setattr(consumer.gateway, 'drain', consumer_connection)
-    consumer.jobs = SimpleNamespace(tasks=set())
+    consumer.jobs = Mock(spec=PluginJobBinding, tasks=set())
     monkeypatch.setattr('plugins.core.runtime.explicit.unbind_plugin_jobs', consumer_jobs)
     try:
         await runtime.shutdown()
         assert order == ['consumer:connection', 'consumer:job', 'consumer:lifespan']
         assert sys.modules['plugins.runtime_test_base'].events == ['start', 'stop']
         assert sys.modules['plugins.runtime_test_consumer'].events == ['start', 'stop']
-        assert all(not loaded.lifespan.ready for loaded in runtime.loaded.values())
+        assert all(loaded.lifespan is not None and not loaded.lifespan.ready for loaded in runtime.loaded.values())
         metrics_stop.assert_awaited_once()
     finally:
         await actual_shutdown()
-        await runtime.loaded['runtime_test_base'].lifespan.shutdown()
+        base_lifespan = runtime.loaded['runtime_test_base'].lifespan
+        assert base_lifespan is not None
+        await base_lifespan.shutdown()
 
 
 @pytest.mark.asyncio
@@ -355,11 +409,16 @@ async def test_shutdown_during_health_check_cannot_publish_late_plugin(
     )
     plugin = write_plugin(tmp_path, source=source, integration=integration)
     app = FastAPI()
-    runtime = ExplicitPluginRuntime(SimpleNamespace())
+    runtime = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     runtime.prepare(plugin, app, startup_write_enabled=False)
     entered, release = asyncio.Event(), asyncio.Event()
 
     async def check(*args: object) -> None:
+        """
+        为源码样例提供共享的 Sphinx 检查环境。
+
+        :param args: 传给被调用对象的位置参数
+        """
         entered.set()
         await release.wait()
 
@@ -386,13 +445,21 @@ async def test_failed_activation_cannot_replace_pending_lifespan(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """显式运行时保留启动失败的管理器，旧资源退出前不能创建第二个子应用。"""
-    runtime = ExplicitPluginRuntime(SimpleNamespace())
+    runtime = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     app = FastAPI()
     runtime.prepare(write_plugin(tmp_path), app, startup_write_enabled=False)
     release = asyncio.Event()
     attempts = []
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        :raises RuntimeError: 模拟使用已经停止的旧资源
+        """
         attempts.append(scope)
         await receive()
         if len(attempts) == 1:
@@ -416,11 +483,12 @@ async def test_failed_activation_cannot_replace_pending_lifespan(
         assert activating.done()
         with pytest.raises(TimeoutError):
             await activating
-        assert loaded.lifespan.has_pending_task
+        assert loaded.lifespan is not None and loaded.lifespan.has_pending_task
         with pytest.raises(RuntimeError, match='上一次生命周期尚未退出'):
             await runtime.activate('runtime_test', app)
         assert len(attempts) == 1
         release.set()
+        assert loaded.lifespan._task is not None
         await asyncio.wait({loaded.lifespan._task}, timeout=1)
         await runtime.activate('runtime_test', app)
         assert loaded.active and loaded.lifespan.ready
@@ -436,18 +504,21 @@ async def test_failed_activation_cannot_replace_pending_lifespan(
 async def test_activation_cleanup_failure_preserves_original_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    runtime = ExplicitPluginRuntime(SimpleNamespace())
+    """激活清理失败时保留原始错误。"""
+    runtime = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     app = FastAPI()
     plugin = write_plugin(tmp_path, source=ASGI_SOURCE.replace("events.append('stop')", "raise ValueError('cleanup')"))
     runtime.prepare(plugin, app, startup_write_enabled=False)
     monkeypatch.setattr(runtime, '_check_health', AsyncMock(side_effect=LookupError('primary health failure')))
     with pytest.raises(LookupError, match='primary health failure'):
         await runtime.activate('runtime_test', app)
-    assert not runtime.loaded['runtime_test'].lifespan.has_pending_task
+    lifespan = runtime.loaded['runtime_test'].lifespan
+    assert lifespan is not None and not lifespan.has_pending_task
 
 
 @pytest.mark.asyncio
 async def test_cancelled_activation_closes_previously_started_children(tmp_path: Path) -> None:
+    """取消激活时关闭已启动的子应用。"""
     first = write_plugin(tmp_path, plugin_id='runtime_test_first')
     second = write_plugin(tmp_path, plugin_id='runtime_test_second')
     app = FastAPI()
@@ -458,6 +529,13 @@ async def test_cancelled_activation_closes_previously_started_children(tmp_path:
     activate = runtime.activate
 
     async def cancel_second(plugin_id: str, target: FastAPI) -> None:
+        """
+        在处理第二个插件时触发取消。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param target: 本次操作的目标
+        :raises asyncio.CancelledError: 模拟第二次操作被取消
+        """
         if plugin_id == second.plugin_id:
             raise asyncio.CancelledError
         await activate(plugin_id, target)
@@ -472,6 +550,7 @@ async def test_cancelled_activation_closes_previously_started_children(tmp_path:
 @pytest.mark.asyncio
 @pytest.mark.parametrize('failure', [ConnectionError('ready write failed'), asyncio.CancelledError()])
 async def test_ready_publication_failure_closes_started_children(tmp_path: Path, failure: BaseException) -> None:
+    """发布就绪状态失败时关闭已启动的子应用。"""
     plugin = write_plugin(tmp_path)
     app = FastAPI()
     app.state.plugin_registry = PluginRegistry([plugin])
@@ -493,6 +572,7 @@ async def test_ready_publication_failure_closes_started_children(tmp_path: Path,
 
 @pytest.mark.asyncio
 async def test_router_namespace_validation_is_atomic(tmp_path: Path) -> None:
+    """路由命名空间校验具有原子性。"""
     source = """
 from fastapi import APIRouter
 from plugins.core.sdk import PluginDefinition
@@ -505,7 +585,7 @@ def create_plugin(host):
 """
     plugin = write_plugin(tmp_path, source=source, integration='router')
     app = FastAPI()
-    runtime = ExplicitPluginRuntime(SimpleNamespace())
+    runtime = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     runtime.prepare(plugin, app, startup_write_enabled=False)
     with pytest.raises(ValueError, match='命名空间'):
         await runtime.activate('runtime_test', app)
@@ -513,6 +593,7 @@ def create_plugin(host):
 
 
 def test_generation_covers_native_and_bundle_content(tmp_path: Path) -> None:
+    """生成标识覆盖原生模块和资源包内容。"""
     plugin = write_plugin(tmp_path)
     root = plugin.backend_path
     resolver = PluginStartupGenerationResolver(tmp_path, release_id='')

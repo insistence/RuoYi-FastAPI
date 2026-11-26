@@ -2,6 +2,7 @@ import io
 import json
 import re
 from pathlib import Path
+from typing import Any, Never
 
 from babel import Locale, UnknownLocaleError
 from babel.messages.catalog import Catalog
@@ -15,7 +16,21 @@ from module_generator.entity.vo.gen_vo import GenTableColumnModel, GenTableModel
 
 class GenI18nUtil:
     """
-    生成模块的独立语言资源与增量合并工具
+    生成模块的独立语言资源与增量合并工具。
+
+    :cvar PROJECT_ROOT: 用于定位项目资源的根目录
+    :cvar FRAMEWORKS: 支持生成翻译资源的前端框架
+    :cvar KEY_PATTERN: 检查消息键格式的正则表达式
+    :cvar PO_LINE_PATTERN: 校验 PO 消息行语法的正则表达式
+    :ivar framework: 目标前端框架
+    :ivar app_root: 生成翻译资源时使用的应用根目录
+    :ivar source_locale: 源消息使用的语言标识
+    :ivar locales: 生成翻译资源的目标语言列表
+    :ivar translations: 按语言和消息键索引的译文
+    :ivar namespace: 隔离当前资源的命名空间
+    :ivar frontend: 前端部分的配置
+    :ivar backend: 后端部分的配置或处理对象
+    :ivar field_prefixes: 生成字段消息键时识别的前缀
     """
 
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -25,9 +40,10 @@ class GenI18nUtil:
 
     def __init__(self, table: GenTableModel) -> None:
         """
-        从目标应用配置确定语言，保留表注释作为基准文案
+        从目标应用配置确定语言，保留表注释作为基准文案。
 
         :param table: 本次生成使用的业务表副本
+        :raises ServiceWarning: 生成基准语言与目标应用或后端配置不一致
         """
         self.framework = self.FRAMEWORKS.get(table.tpl_web_type, 'vue2')
         self.app_root = self.PROJECT_ROOT / 'ruoyi-fastapi-frontend' / self.framework / 'web'
@@ -78,7 +94,7 @@ class GenI18nUtil:
         ):
             self.invalid_configuration()
         self.namespace = f'generated.{table.module_name}.{table.business_name}'
-        if not self.KEY_PATTERN.fullmatch(self.namespace):
+        if not table.module_name or not table.business_name or not self.KEY_PATTERN.fullmatch(self.namespace):
             self.invalid_configuration()
         self.frontend = {locale: {} for locale in self.locales}
         self.backend = {locale: {} for locale in self.locales}
@@ -98,9 +114,11 @@ class GenI18nUtil:
             self.text(suffix, source)
 
     @staticmethod
-    def invalid_configuration() -> None:
+    def invalid_configuration() -> Never:
         """
-        拒绝无法安全注册或插值的生成参数
+        拒绝无法安全注册或插值的生成参数。
+
+        :raises ServiceWarning: 国际化生成配置无效，请检查语言列表与译文占位符
         """
         raise ServiceWarning(
             message='国际化生成配置无效，请检查语言列表与译文占位符',
@@ -109,7 +127,7 @@ class GenI18nUtil:
 
     def key(self, suffix: str) -> str:
         """
-        生成可由静态扫描识别的完整前端消息标识
+        生成可由静态扫描识别的完整前端消息标识。
 
         :param suffix: 模块内稳定语义路径
         :return: 完整命名空间和消息标识
@@ -120,7 +138,7 @@ class GenI18nUtil:
 
     def text(self, suffix: str, source: str, english: str | None = None) -> str:
         """
-        登记模板文案，未提供的目标语言译文保持为空
+        登记模板文案，未提供的目标语言译文保持为空。
 
         :param suffix: 模块内稳定语义路径
         :param source: 基准文案
@@ -138,15 +156,28 @@ class GenI18nUtil:
             self.frontend[locale][suffix] = value
         return key
 
+    @classmethod
+    def _field_label(cls, column: GenTableColumnModel) -> str:
+        """
+        从列描述或列名提取用于翻译的字段标签。
+
+        :param column: 待生成语言资源的字段
+        :return: 去除括号说明的字段标签
+        """
+        label = column.column_comment or column.column_name
+        if not label:
+            cls.invalid_configuration()
+        return label.split('（', 1)[0]
+
     def field_key(self, column: GenTableColumnModel, suffix: str = 'label') -> str:
         """
-        根据代码字段生成标签、占位符或必填提示
+        根据代码字段生成标签、占位符或必填提示。
 
         :param column: 主表或子表字段
         :param suffix: label、input、select 或 required
         :return: 完整前端字段消息标识
         """
-        label = (column.column_comment or column.column_name).split('（')[0]
+        label = self._field_label(column)
         source = {'label': label, 'input': f'请输入{label}', 'select': f'请选择{label}', 'required': f'{label}不能为空'}
         if suffix not in source:
             self.invalid_configuration()
@@ -155,7 +186,7 @@ class GenI18nUtil:
 
     def backend_text(self, suffix: str, source: str, english: str | None = None) -> str:
         """
-        登记后端 gettext 消息，使用与前端独立的语义路径
+        登记后端 gettext 消息，使用与前端独立的语义路径。
 
         :param suffix: 模块内稳定消息路径
         :param source: 基准文案，插值使用命名百分号形式
@@ -176,13 +207,13 @@ class GenI18nUtil:
 
     def backend_field_key(self, column: GenTableColumnModel, suffix: str = 'label') -> str:
         """
-        生成后端校验与导出字段消息
+        生成后端校验与导出字段消息。
 
         :param column: 主表或子表字段
         :param suffix: label 或 required
         :return: 完整后端字段消息标识
         """
-        label = (column.column_comment or column.column_name).split('（')[0]
+        label = self._field_label(column)
         if suffix not in {'label', 'required'}:
             self.invalid_configuration()
         prefix = self.field_prefixes.get(id(column), 'fields')
@@ -190,9 +221,9 @@ class GenI18nUtil:
         return self.backend_text(f'{prefix}.{column.python_field}.{suffix}', source)
 
     @staticmethod
-    def nest(values: dict[str, str]) -> dict:
+    def nest(values: dict[str, str]) -> dict[str, Any]:
         """
-        将稳定点路径转换为独立命名空间内的嵌套字典
+        将稳定点路径转换为独立命名空间内的嵌套字典。
 
         :param values: 点路径及文案
         :return: 嵌套资源字典
@@ -207,9 +238,9 @@ class GenI18nUtil:
         return result
 
     @classmethod
-    def merge_json(cls, existing: dict, generated: dict) -> dict:
+    def merge_json(cls, existing: dict[str, Any], generated: dict[str, Any]) -> dict[str, Any]:
         """
-        只补充缺失键，不覆盖已有人工文案或删除旧键
+        只补充缺失键，不覆盖已有人工文案或删除旧键。
 
         :param existing: 已有语言资源
         :param generated: 本次生成资源
@@ -226,7 +257,7 @@ class GenI18nUtil:
     @staticmethod
     def po_content(entries: dict[str, str], locale: str) -> str:
         """
-        生成可合并到 core 域的 gettext 文本
+        生成可合并到 core 域的 gettext 文本。
 
         :param entries: 稳定消息标识和译文
         :param locale: 目标语言
@@ -245,10 +276,11 @@ class GenI18nUtil:
     @classmethod
     def read_catalog(cls, content: str) -> Catalog:
         """
-        严格解析词库，避免宽松解析器静默截断未加引号的人工译文
+        严格解析词库，避免宽松解析器静默截断未加引号的人工译文。
 
         :param content: PO 文件内容
         :return: 已校验的词库
+        :raises ValueError: 输入包含不受支持的 PO 语句
         """
         for raw_line in content.lstrip('\ufeff').splitlines():
             line = raw_line.strip()
@@ -259,7 +291,7 @@ class GenI18nUtil:
     @classmethod
     def merge_po(cls, existing: str, generated: str) -> str:
         """
-        合并模块消息，保留已有 gettext 译文和消息标志
+        合并模块消息，保留已有 gettext 译文和消息标志。
 
         :param existing: 目标目录已有 PO 内容
         :param generated: 新增模块 PO 内容
@@ -275,18 +307,24 @@ class GenI18nUtil:
         return output.getvalue().decode('utf-8')
 
     def backend_catalog_path(self, locale: str) -> str:
-        """获取当前业务模块在生成包中的后端 PO 路径。"""
+        """
+        获取当前业务模块在生成包中的后端 PO 路径。
+
+        :param locale: 目标语言
+        :return: 当前业务模块在生成包中的后端 PO 路径
+        """
         return f'backend/i18n/catalogs/{locale}/LC_MESSAGES/core/{self.namespace}.po'
 
     @classmethod
     def merge_content(cls, relative_path: str, existing: str, generated: str) -> str:
         """
-        按资源类型保留已有人工翻译
+        按资源类型保留已有人工翻译。
 
         :param relative_path: 生成包内相对路径
         :param existing: 已有内容
         :param generated: 本次生成内容
         :return: 合并后的内容，非词库文件按原有规则更新
+        :raises ServiceWarning: 已有语言资源格式无效，生成已停止以保留原文件
         """
         try:
             if relative_path.startswith('frontend/src/i18n/locales/') and relative_path.endswith('.json'):
@@ -306,7 +344,7 @@ class GenI18nUtil:
 
     def refresh_pending(self, artifacts: dict[str, str]) -> None:
         """
-        按合并后的实际词库更新待补译清单
+        按合并后的实际词库更新待补译清单。
 
         :param artifacts: 已渲染并完成增量合并的生成文件
         """
@@ -333,7 +371,7 @@ class GenI18nUtil:
 
     def artifacts(self) -> dict[str, str]:
         """
-        生成独立语言资源、待补译清单和接入说明
+        生成独立语言资源、待补译清单和接入说明。
 
         :return: 生成包内相对路径和文本内容
         """

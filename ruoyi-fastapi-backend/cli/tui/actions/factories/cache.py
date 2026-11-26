@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from cli.tui.actions.builders import TuiActionTemplate, TuiActionTemplateSupport
+from cli.tui.actions.models import ActionParameters
 from cli.tui.adapters.models import BrowserRecordSnapshot
 from cli.tui.copy import TUI_COPY
 
@@ -13,12 +14,12 @@ class CacheActionTemplateFactory:
     该对象负责生成缓存浏览页相关动作模板，统一缓存清理预演和预热动作
     的参数与预览摘要构建。
 
-    :param support: 动作模板共享构建支持
+    :ivar support: 动作模板共享构建支持
     """
 
     support: TuiActionTemplateSupport
 
-    def build_clear_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_clear_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建缓存清理预演参数。
 

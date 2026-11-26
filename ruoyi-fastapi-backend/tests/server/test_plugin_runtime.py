@@ -1,8 +1,8 @@
 from collections.abc import Awaitable, Callable
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
+from fastapi import FastAPI
 
 from config.database import DataSourceRegistry
 from config.env import AppConfig
@@ -69,6 +69,7 @@ async def test_initialize_application_runtime_delegates_plugin_steps() -> None:
             log_success_enabled=True,
         )
         startup_call = fake_plugin_runtime.startup.await_args
+        assert startup_call is not None
         assert startup_call.args == (fake_app,)
         create_plugin_entity_tables = startup_call.kwargs['create_tables']
         await create_plugin_entity_tables()
@@ -98,7 +99,12 @@ async def test_non_leader_plugin_writer_still_runs_global_plugin_sync() -> None:
         *,
         create_tables: Callable[[], Awaitable[None]],
     ) -> None:
-        """模拟当前非leader worker获得插件生命周期锁。"""
+        """
+        模拟当前非leader worker获得插件生命周期锁。
+
+        :param _app: 回调接收的应用实例
+        :param create_tables: 数据库建表回调
+        """
         await create_tables()
 
     fake_plugin_runtime.startup = AsyncMock(side_effect=run_as_plugin_writer)
@@ -133,7 +139,7 @@ async def test_non_leader_plugin_writer_still_runs_global_plugin_sync() -> None:
 @pytest.mark.asyncio
 async def test_lifespan_only_application_leader_outputs_banner_and_addresses() -> None:
     """校验仅Application leader输出横幅、成功摘要和访问地址。"""
-    app = SimpleNamespace(state=SimpleNamespace())
+    app = FastAPI()
     redis = MagicMock()
     fake_logger = MagicMock()
     fake_logger.complete = AsyncMock()
@@ -177,7 +183,7 @@ async def test_lifespan_only_application_leader_outputs_banner_and_addresses() -
 @pytest.mark.asyncio
 async def test_lifespan_non_leader_runs_local_initialization_without_display_logs() -> None:
     """校验非leader执行本地初始化，但不输出leader专属展示日志。"""
-    app = SimpleNamespace(state=SimpleNamespace())
+    app = FastAPI()
     redis = MagicMock()
     fake_logger = MagicMock()
     fake_logger.complete = AsyncMock()
@@ -210,7 +216,7 @@ async def test_lifespan_non_leader_runs_local_initialization_without_display_log
 @pytest.mark.asyncio
 async def test_lifespan_non_leader_initialization_error_propagates_and_still_cleans_up() -> None:
     """校验非leader初始化异常不被门禁吞掉，并继续执行finally清理。"""
-    app = SimpleNamespace(state=SimpleNamespace())
+    app = FastAPI()
     fake_logger = MagicMock()
     fake_logger.complete = AsyncMock()
 
@@ -239,7 +245,7 @@ async def test_lifespan_non_leader_initialization_error_propagates_and_still_cle
 @pytest.mark.asyncio
 async def test_lifespan_skips_database_initialization_when_redis_creation_fails() -> None:
     """校验Redis前置初始化失败时不创建数据库资源，并执行幂等清理。"""
-    app = SimpleNamespace(state=SimpleNamespace())
+    app = FastAPI()
     database_registry = MagicMock()
     database_registry.initialize = AsyncMock()
     database_registry.dispose_all = AsyncMock()
@@ -266,7 +272,7 @@ async def test_lifespan_skips_database_initialization_when_redis_creation_fails(
 @pytest.mark.asyncio
 async def test_lifespan_database_initialization_failure_releases_redis_and_database_resources() -> None:
     """校验Redis和租约创建后数据库初始化失败仍走统一关闭流程。"""
-    app = SimpleNamespace(state=SimpleNamespace())
+    app = FastAPI()
     redis = MagicMock()
     database_registry = MagicMock()
     database_registry.initialize = AsyncMock(side_effect=RuntimeError('database unavailable'))
@@ -290,28 +296,38 @@ async def test_lifespan_database_initialization_failure_releases_redis_and_datab
 async def test_shutdown_application_runtime_preserves_cleanup_order() -> None:
     """校验插件关闭先执行，随后按Scheduler、Redis、数据库顺序释放资源。"""
     events: list[str] = []
-    app = SimpleNamespace(
-        state=SimpleNamespace(
-            plugin_application_runtime_started=True,
-            redis=object(),
-        )
-    )
+    app = FastAPI()
+    app.state.plugin_application_runtime_started = True
+    app.state.redis = object()
     plugin_runtime = MagicMock()
 
     async def record_plugin_shutdown(_app: object) -> None:
+        """
+        记录插件关闭阶段。
+
+        :param _app: 回调接收的应用实例
+        """
         events.append('plugin')
 
     async def record_scheduler_shutdown() -> None:
+        """记录调度器关闭阶段。"""
         events.append('scheduler')
 
     async def record_redis_shutdown(_app: object) -> None:
+        """
+        记录 Redis 连接释放的顺序。
+
+        :param _app: 回调接收的应用实例
+        """
         assert DataSourceRegistry._cache_redis is None
         events.append('redis')
 
     async def record_database_shutdown() -> None:
+        """记录数据库资源的关闭顺序。"""
         events.append('database')
 
     async def record_log_complete() -> None:
+        """记录日志刷写完成的时机。"""
         events.append('logs')
 
     plugin_runtime.shutdown = AsyncMock(side_effect=record_plugin_shutdown)
@@ -337,7 +353,8 @@ async def test_shutdown_application_runtime_preserves_cleanup_order() -> None:
 @pytest.mark.asyncio
 async def test_shutdown_application_runtime_releases_resources_when_plugin_hook_fails() -> None:
     """校验插件关闭钩子失败时仍执行基础设施清理。"""
-    app = SimpleNamespace(state=SimpleNamespace(plugin_application_runtime_started=True))
+    app = FastAPI()
+    app.state.plugin_application_runtime_started = True
     plugin_runtime = MagicMock()
     plugin_runtime.shutdown = AsyncMock(side_effect=RuntimeError('shutdown hook failed'))
 
@@ -356,7 +373,8 @@ async def test_shutdown_application_runtime_releases_resources_when_plugin_hook_
 @pytest.mark.asyncio
 async def test_stop_background_tasks_closes_redis_and_database_when_scheduler_close_fails() -> None:
     """校验Scheduler释放异常不会跳过Redis和数据库清理。"""
-    app = SimpleNamespace(state=SimpleNamespace(redis=object()))
+    app = FastAPI()
+    app.state.redis = object()
 
     with (
         patch(

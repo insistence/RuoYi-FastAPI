@@ -12,23 +12,52 @@ NAMESPACE = 'isolated-test:ready:metrics'
 
 
 class MetricsRedis:
-    """提供测试所需的键空间隔离和有限指标读写，不连接外部服务。"""
+    """
+    提供测试所需的键空间隔离和有限指标读写，不连接外部服务。
+
+    :ivar values: 当前处理的值集合
+    :ivar expirations: 按键记录的失效时间
+    :ivar fail: 是否模拟操作失败
+    """
 
     def __init__(self) -> None:
+        """初始化测试夹具的 ``values``, ``expirations``, ``fail``。"""
         self.values: dict[str, bytes] = {}
         self.expirations: dict[str, int] = {}
         self.fail = False
 
     async def set(self, key: str, value: bytes, *, ex: int) -> None:
+        """
+        写入测试缓存键并设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        :raises ConnectionError: 模拟 Redis 写入连接中断
+        """
         if self.fail:
             raise ConnectionError('private-redis-password')
         self.values[key] = value
         self.expirations[key] = ex
 
     async def delete(self, key: str) -> int:
+        """
+        删除测试缓存项及其过期状态。
+
+        :param key: 查找数据时使用的键
+        :return: 实际删除的键数
+        """
         return int(self.values.pop(key, None) is not None)
 
     async def scan_iter(self, *, match: str, count: int) -> AsyncIterator[str]:
+        """
+        逐个返回匹配模式的缓存键。
+
+        :param match: 是否采用匹配当前条件的输入
+        :param count: 本次处理或预期的数量
+        :raises ConnectionError: 模拟扫描 Redis 时连接中断
+        :yield: 匹配模式的缓存键
+        """
         if self.fail:
             raise ConnectionError('private-redis-password')
         for key in sorted(self.values):
@@ -36,14 +65,27 @@ class MetricsRedis:
                 yield key
 
     async def mget(self, keys: list[str]) -> list[bytes | None]:
+        """
+        批量读取测试缓存键。
+
+        :param keys: 当前操作涉及的键集合
+        :return: 按键顺序排列的缓存值
+        """
         return [self.values.get(key) for key in keys]
 
 
 def reporter(worker_id: str) -> PluginMetricsReporter:
-    """构造加载了固定插件的进程报告器。"""
+    """
+    构造加载了固定插件的进程报告器。
+
+    :param worker_id: 工作进程的标识
+    :return: 加载了固定插件的进程报告器
+    """
     metrics = PluginRuntimeMetrics(worker_id=worker_id)
     metrics.register('metric_demo', '1.0.0', None, None)
-    metrics.begin('metric_demo', 'http', f'trace-{worker_id}').finish('succeeded')
+    invocation = metrics.begin('metric_demo', 'http', f'trace-{worker_id}')
+    assert invocation is not None
+    invocation.finish('succeeded')
     return PluginMetricsReporter(metrics)
 
 
@@ -56,7 +98,9 @@ async def test_reporting_workers_aggregate_without_double_counting_local_snapsho
         item.start(redis, namespace)
         await item.publish()
     try:
-        first.metrics.begin('metric_demo', 'http', 'new').finish('succeeded')
+        invocation = first.metrics.begin('metric_demo', 'http', 'new')
+        assert invocation is not None
+        invocation.finish('succeeded')
         result = await first.read('metric_demo')
         assert result['scope'] == 'reporting_workers'
         expected_workers = 2

@@ -23,7 +23,6 @@ def stats(
 
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _CACHE_COMMAND_CONTROLLER.stats(env, output)
 
@@ -44,7 +43,6 @@ def keys(
     :param cache_name: 缓存名称
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _CACHE_COMMAND_CONTROLLER.keys(cache_name, env, output)
 
@@ -71,7 +69,6 @@ def get(
     :param cache_key: 缓存键名
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _CACHE_COMMAND_CONTROLLER.get(cache_name, cache_key, env, output)
 
@@ -103,7 +100,6 @@ def clear(
     :param cache_name: 缓存名称前缀
     :param cache_key: 缓存键名
     :param clear_all: 是否清理全部缓存
-    :return: None
     """
     _CACHE_COMMAND_CONTROLLER.clear(
         env,
@@ -139,7 +135,6 @@ def ttl(
     :param cache_key: 缓存键名
     :param env: 当前命令运行环境
     :param output: 输出格式
-    :return: None
     """
     _CACHE_COMMAND_CONTROLLER.ttl(cache_name, cache_key, env, output)
 
@@ -158,6 +153,5 @@ def warmup(
     :param output: 输出格式
     :param allow_prod: 是否允许生产环境危险命令
     :param yes: 是否跳过确认
-    :return: None
     """
     _CACHE_COMMAND_CONTROLLER.warmup(env, output, allow_prod, yes)

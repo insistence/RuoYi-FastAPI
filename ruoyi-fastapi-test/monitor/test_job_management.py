@@ -3,6 +3,7 @@ import re
 from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from time import monotonic
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
@@ -18,15 +19,30 @@ pytestmark = pytest.mark.e2e
 
 
 class JobManagementTest(SystemPage):
-    """通过真实界面验证任务配置、异步同步和手动执行。"""
+    """
+    通过真实界面验证任务配置、异步同步和手动执行。
+
+    :cvar job_id: 任务ID
+    """
 
     job_id: int | None = None
 
     def job_row(self, job_name: str) -> Locator:
+        """
+        定位指定名称的调度任务行。
+
+        :param job_name: 任务名称过滤条件
+        :return: 匹配指定任务名称的行定位器
+        """
         return self.row(job_name)
 
     def job_actions(self, job_name: str) -> Locator:
-        """Element UI 固定列有隐藏副本，仅返回操作列中实际可见的按钮。"""
+        """
+        Element UI 固定列有隐藏副本，仅返回操作列中实际可见的按钮。
+
+        :param job_name: 任务名称过滤条件
+        :return: 当前任务行可点击的操作控件
+        """
         rows = self.page.locator('.app-container:visible > .el-table tbody tr').filter(
             has=self.page.get_by_text(job_name, exact=True)
         )
@@ -34,8 +50,15 @@ class JobManagementTest(SystemPage):
             rows = self.job_row(job_name)
         return rows.locator('td:last-child').get_by_role('button')
 
-    async def submit(self, action: Callable[[], Awaitable], method: str, path: str) -> dict:
-        """等待本次操作的响应，不依赖短暂提示或固定延时。"""
+    async def submit(self, action: Callable[[], Awaitable[object]], method: str, path: str) -> dict[str, Any]:
+        """
+        等待本次操作的响应，不依赖短暂提示或固定延时。
+
+        :param action: 当前要记录或执行的动作
+        :param method: 当前请求的 HTTP 方法
+        :param path: 要读取或处理的路径
+        :return: 提交成功后响应中的业务数据
+        """
         async with self.page.expect_response(
             lambda response: response.request.method == method and urlparse(response.url).path.endswith(path)
         ) as response_info:
@@ -46,8 +69,15 @@ class JobManagementTest(SystemPage):
         assert payload['code'] == HTTPStatus.OK, payload
         return payload['data']
 
-    async def poll_api(self, path: str, ready: Callable[[dict], bool], **params) -> dict:
-        """轮询异步结果，超时时保留最后一次响应以便诊断。"""
+    async def poll_api(self, path: str, ready: Callable[[dict[str, Any]], bool], **params) -> dict[str, Any]:
+        """
+        轮询异步结果，超时时保留最后一次响应以便诊断。
+
+        :param path: 要读取或处理的路径
+        :param ready: 依赖检查是否已就绪
+        :param params: 调用方按名称传入的附加选项
+        :return: 随调用传入或返回的结构化数据
+        """
         deadline = monotonic() + 30
         while True:
             response = await self.context.request.get(
@@ -63,8 +93,12 @@ class JobManagementTest(SystemPage):
             assert monotonic() < deadline, f'{path} 未达到预期状态: {payload}'
             await asyncio.sleep(0.25)
 
-    async def wait_for_sync(self, mutation: dict) -> None:
-        """已保存后，还要确认本次配置版本已由调度器应用。"""
+    async def wait_for_sync(self, mutation: dict[str, Any]) -> None:
+        """
+        已保存后，还要确认本次配置版本已由调度器应用。
+
+        :param mutation: 应用到初始状态的修改
+        """
         assert mutation['saved'] is True, mutation
         assert len(mutation['jobs']) == 1, mutation
         changed = mutation['jobs'][0]
@@ -81,6 +115,11 @@ class JobManagementTest(SystemPage):
         )
 
     async def search_job(self, job_name: str) -> None:
+        """
+        在管理页面按任务名称筛选列表。
+
+        :param job_name: 任务名称过滤条件
+        """
         form = self.page.locator('form').first
         await form.get_by_placeholder('请输入任务名称', exact=True).fill(job_name)
         async with self.page.expect_response(
@@ -98,6 +137,11 @@ class JobManagementTest(SystemPage):
         )
 
     async def create_job(self, job_name: str) -> None:
+        """
+        通过管理页面创建调度任务。
+
+        :param job_name: 任务名称过滤条件
+        """
         await self.page.get_by_role('button', name=button_name('新增')).click()
         dialog = self.page.get_by_role('dialog', name='添加任务', exact=True)
         await (
@@ -123,6 +167,12 @@ class JobManagementTest(SystemPage):
         await expect(self.job_row(job_name)).to_have_count(1)
 
     async def edit_job(self, job_name: str, new_job_name: str) -> None:
+        """
+        通过管理页面修改调度任务。
+
+        :param job_name: 任务名称过滤条件
+        :param new_job_name: 新建定时任务的名称
+        """
         # 同步状态列也包含按钮，操作按钮仅在最后一列定位。
         await self.job_actions(job_name).nth(0).click()
         dialog = self.page.get_by_role('dialog', name='修改任务', exact=True)
@@ -141,6 +191,12 @@ class JobManagementTest(SystemPage):
         await expect(self.job_row(new_job_name)).to_have_count(1)
 
     async def toggle_job_status(self, job_name: str, enabled: bool) -> None:
+        """
+        通过管理页面切换调度任务状态。
+
+        :param job_name: 任务名称过滤条件
+        :param enabled: 是否启用该项功能
+        """
         switch = self.job_row(job_name).locator('.ant-switch' if self.is_react else '.el-switch')
         await switch.click()
         action = '启用' if enabled else '暂停|停用'
@@ -158,6 +214,12 @@ class JobManagementTest(SystemPage):
             await expect(switch).not_to_have_class(re.compile(r'is-checked|ant-switch-checked'))
 
     async def run_job_once(self, job_name: str) -> str:
+        """
+        通过管理页面手动执行一次调度任务。
+
+        :param job_name: 任务名称过滤条件
+        :return: 供调用方使用的 ``execution_id``
+        """
         direct_run = (
             self.button(self.job_row(job_name), '执行一次')
             if self.is_react
@@ -176,6 +238,7 @@ class JobManagementTest(SystemPage):
         confirm = dialog.get_by_role('button', name=button_name('确定'))
         execution = await self.submit(confirm.click, 'PUT', '/monitor/job/run')
         execution_id = execution['executionId']
+        assert isinstance(execution_id, str)
         result = await self.poll_api(
             f'/monitor/job/execution/{execution_id}',
             lambda payload: payload['data']['status'] not in ('pending', 'submitted', 'running'),
@@ -196,6 +259,12 @@ class JobManagementTest(SystemPage):
         return execution_id
 
     async def view_job_log(self, job_name: str, execution_id: str) -> None:
+        """
+        打开并校验指定执行记录的任务日志。
+
+        :param job_name: 任务名称过滤条件
+        :param execution_id: 执行ID
+        """
         # 执行状态和日志分别落库，先等待本次执行的日志出现。
         await self.poll_api('/monitor/jobLog/list', lambda payload: len(payload['rows']) == 1, executionId=execution_id)
         direct_log = self.job_actions(job_name).nth(3)
@@ -221,6 +290,11 @@ class JobManagementTest(SystemPage):
         await self.page.wait_for_url('**/monitor/job')
 
     async def delete_job(self, job_name: str) -> None:
+        """
+        通过管理页面搜索并删除调度任务。
+
+        :param job_name: 任务名称过滤条件
+        """
         await self.search_job(job_name)
         await self.job_actions(job_name).nth(1).click()
         confirm = self.page.get_by_role('dialog').get_by_role('button', name=button_name('确定'))
@@ -241,6 +315,7 @@ class JobManagementTest(SystemPage):
             assert (await response.json())['code'] == HTTPStatus.OK
 
     async def test_job_crud_operations(self) -> None:
+        """验证调度任务的增删改查。"""
         job_name = f'测试任务_{uuid4().hex[:12]}'
         edited_name = job_name + '_edit'
         await self.goto_page(Config.frontend_url + '/monitor/job')

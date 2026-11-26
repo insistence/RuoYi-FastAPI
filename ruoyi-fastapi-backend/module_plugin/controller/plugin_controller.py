@@ -60,7 +60,7 @@ def _public_plugin_payload(payload: Mapping[str, object]) -> dict[str, object]:
     return public_payload
 
 
-def _plugin_operation_response(payload: dict, default_message: str) -> Response:
+def _plugin_operation_response(payload: Mapping[str, object], default_message: str) -> Response:
     """
     按插件运行时 payload ok 字段统一构造操作响应。
 
@@ -77,7 +77,7 @@ def _plugin_operation_response(payload: dict, default_message: str) -> Response:
 
 
 async def _execute_plugin_operation(
-    operation: Callable[[], Awaitable[dict]],
+    operation: Callable[[], Awaitable[dict[str, object]]],
     default_message: str,
 ) -> Response:
     """
@@ -123,7 +123,7 @@ async def get_system_plugin_list(
     '/plan',
     summary='生成插件批量操作计划接口',
     description='用于生成批量安装、启用或升级插件的拓扑排序计划',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def plan_system_plugins(
@@ -143,7 +143,7 @@ async def plan_system_plugins(
     '/{plugin_id}/precheck',
     summary='执行插件操作预检接口',
     description='用于在安装、启用、升级、卸载或清理前执行统一预检',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def precheck_system_plugin(
@@ -164,7 +164,7 @@ async def precheck_system_plugin(
     '/batch',
     summary='批量执行插件操作接口',
     description='用于按插件依赖拓扑顺序批量安装、启用或升级插件',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.UPDATE)
@@ -285,7 +285,7 @@ async def query_detail_system_plugin_operation_log(
     '/{plugin_id}/migrations',
     summary='获取插件 migration 历史接口',
     description='用于获取指定插件的 migration 执行历史',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def list_system_plugin_migrations(
@@ -308,7 +308,7 @@ async def list_system_plugin_migrations(
     '/{plugin_id}/migrations/mark-success',
     summary='人工标记插件 migration 成功接口',
     description='用于人工确认指定 migration 已执行成功并更新历史状态',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.UPDATE)
@@ -333,7 +333,7 @@ async def mark_system_plugin_migration_success(
     '/{plugin_id}/migrations/mark-failed',
     summary='人工标记插件 migration 失败接口',
     description='用于人工确认指定 migration 未完成并更新历史状态为可重试失败',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.UPDATE)
@@ -379,7 +379,7 @@ async def query_detail_system_plugin(
     '/{plugin_id}/enable',
     summary='启用插件接口',
     description='用于启用指定插件',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.UPDATE)
@@ -398,7 +398,7 @@ async def enable_system_plugin(
     '/{plugin_id}/disable',
     summary='停用插件接口',
     description='用于停用指定插件',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.UPDATE)
@@ -416,7 +416,7 @@ async def disable_system_plugin(
     '/{plugin_id}/check',
     summary='检查插件接口',
     description='用于检查指定插件的目录结构、依赖和菜单冲突',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def check_system_plugin(
@@ -435,7 +435,7 @@ async def check_system_plugin(
     '/{plugin_id}/health',
     summary='执行插件健康检查接口',
     description='用于执行指定插件声明的只读健康检查',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def health_system_plugin(
@@ -454,7 +454,7 @@ async def health_system_plugin(
     '/{plugin_id}/diagnose',
     summary='生成插件诊断包接口',
     description='用于生成指定插件的只读诊断信息，包含详情、检查结果、配置脱敏快照和审计预留信息',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def diagnose_system_plugin(
@@ -474,25 +474,23 @@ async def diagnose_system_plugin(
         redis=getattr(request.app.state, 'redis', None),
         ready_key=getattr(application_runtime, 'ready_key', None),
     )
-    logger.info(diagnose_plugin_result.get('message', '插件诊断包生成完成'))
+    default_message = I18nMessage('插件诊断包生成完成', msg_key='plugin.runtime.diagnostics.completed')
+    logger.info(diagnose_plugin_result.get('message', default_message))
 
     if all(key in diagnose_plugin_result for key in ('info', 'check', 'config', 'menuPlan', 'audit')):
         # 完整诊断包中的 ok=false 表示检查发现问题，仍需让页面读取其运行观测证据。
         return ResponseUtil.success(
-            msg=diagnose_plugin_result.get('message')
-            or I18nMessage('插件诊断包生成完成', msg_key='plugin.runtime.diagnostics.completed'),
+            msg=PluginOperationResult.from_payload(diagnose_plugin_result, default_message=default_message).message,
             data=_public_plugin_payload(diagnose_plugin_result),
         )
-    return _plugin_operation_response(
-        diagnose_plugin_result, I18nMessage('插件诊断包生成完成', msg_key='plugin.runtime.diagnostics.completed')
-    )
+    return _plugin_operation_response(diagnose_plugin_result, default_message)
 
 
 @plugin_controller.get(
     '/{plugin_id}/docs',
     summary='生成插件文档接口',
     description='用于根据 plugin.yaml 生成插件 Markdown 文档片段',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def generate_system_plugin_docs(
@@ -511,7 +509,7 @@ async def generate_system_plugin_docs(
     '/{plugin_id}/install',
     summary='安装插件接口',
     description='用于安装指定插件',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.INSERT)
@@ -535,7 +533,7 @@ async def install_system_plugin(
     '/{plugin_id}/upgrade',
     summary='升级插件接口',
     description='用于升级指定插件',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.UPDATE)
@@ -559,7 +557,7 @@ async def upgrade_system_plugin(
     '/{plugin_id}/uninstall',
     summary='安全卸载插件接口',
     description='用于安全卸载指定插件，第一阶段等价于停用插件和菜单',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.UPDATE)
@@ -583,7 +581,7 @@ async def uninstall_system_plugin(
     '/{plugin_id}/purge',
     summary='物理清理插件接口',
     description='用于物理清理指定插件的平台元数据，默认不删除源码目录',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:remove')],
 )
 @Log(title='插件管理', business_type=BusinessType.DELETE)
@@ -607,7 +605,7 @@ async def purge_system_plugin(
     '/{plugin_id}/config',
     summary='获取插件配置接口',
     description='用于获取指定插件的配置项',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def query_system_plugin_config(
@@ -626,7 +624,7 @@ async def query_system_plugin_config(
     '/{plugin_id}/config',
     summary='更新插件配置接口',
     description='用于更新指定插件的配置项',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.UPDATE)
@@ -648,7 +646,7 @@ async def update_system_plugin_config(
     '/{plugin_id}/config/export',
     summary='导出插件配置接口',
     description='用于导出指定插件的配置快照，默认敏感配置保持脱敏',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:export')],
 )
 async def export_system_plugin_config(
@@ -673,7 +671,7 @@ async def export_system_plugin_config(
     '/{plugin_id}/config/import',
     summary='导入插件配置接口',
     description='用于导入指定插件的配置快照',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:edit')],
 )
 @Log(title='插件管理', business_type=BusinessType.UPDATE)
@@ -695,7 +693,7 @@ async def import_system_plugin_config(
     '/{plugin_id}/dependencies',
     summary='检查插件依赖接口',
     description='用于检查指定插件的 Python 和 npm 依赖',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def check_system_plugin_dependencies(
@@ -714,7 +712,7 @@ async def check_system_plugin_dependencies(
     '/{plugin_id}/dependencies/install',
     summary='插件依赖安装计划接口',
     description='用于生成指定插件的依赖安装计划，Web 第一版仅支持 dry-run',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
     dependencies=[UserInterfaceAuthDependency('system:plugin:query')],
 )
 async def install_system_plugin_dependencies(

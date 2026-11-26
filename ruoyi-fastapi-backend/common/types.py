@@ -1,5 +1,5 @@
 import re
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from typing import Annotated, Any
 
 from pydantic import AfterValidator, AwareDatetime, BeforeValidator, PlainSerializer
@@ -14,7 +14,7 @@ from utils.time_util import TimezoneUtil
 
 def validate_aware_datetime_input(value: Any) -> datetime:
     """
-    校验API输入的真实时刻
+    校验API输入的真实时刻。
 
     :param value: 待校验的输入值
     :return: 携带UTC时区的毫秒精度时刻
@@ -32,12 +32,13 @@ ApiUtcDateTime = Annotated[
 
 def validate_business_time_input(value: Any) -> time:
     """
-    校验不含日期和时区的一天内时间
+    校验不含日期和时区的一天内时间。
 
     仅接受time对象或HH:mm:ss格式字符串，可含小数秒，不接受时间戳或持续时长。
 
     :param value: 待校验的输入值
     :return: 一天内的时间对象
+    :raises ValueError: 一天内时间必须为 HH:mm:ss，可含小数秒，不能带时区
     """
     if isinstance(value, str) and re.fullmatch(r'(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?', value):
         value = time.fromisoformat(value)
@@ -56,6 +57,9 @@ class DbUtcDateTime(TypeDecorator[datetime]):
 
     PostgreSQL使用带时区时间戳；MySQL和SQLite在驱动边界保存naive UTC，
     应用层始终只接收和返回aware UTC datetime。
+
+    :cvar impl: 向 SQLAlchemy 声明的底层字段类型
+    :cvar cache_ok: 是否允许 SQLAlchemy 缓存包含此类型的 SQL
     """
 
     impl = DateTime
@@ -63,24 +67,25 @@ class DbUtcDateTime(TypeDecorator[datetime]):
 
     def load_dialect_impl(self, dialect: Dialect) -> TypeEngine[Any]:
         """
-        获取当前数据库对应的毫秒精度时间类型
+        获取当前数据库对应的毫秒精度时间类型。
 
         :param dialect: SQLAlchemy数据库方言
         :return: 数据库实际使用的时间类型
         """
         if dialect.name == 'postgresql':
-            return dialect.type_descriptor(TIMESTAMP(timezone=True, precision=3))
+            return TIMESTAMP(timezone=True, precision=3)
         if dialect.name == 'mysql':
-            return dialect.type_descriptor(DATETIME(fsp=3))
-        return dialect.type_descriptor(DateTime())
+            return DATETIME(fsp=3)
+        return DateTime()
 
     def process_bind_param(self, value: datetime | None, dialect: Dialect) -> datetime | None:
         """
-        在写入边界统一UTC时区和毫秒精度
+        在写入边界统一UTC时区和毫秒精度。
 
         :param value: 待写入时刻
         :param dialect: SQLAlchemy数据库方言
         :return: 符合驱动要求的UTC时刻，空值返回None
+        :raises ValueError: DbUtcDateTime只接受携带时区信息的datetime
         """
         if value is None:
             return None
@@ -93,7 +98,7 @@ class DbUtcDateTime(TypeDecorator[datetime]):
 
     def process_result_value(self, value: datetime | None, dialect: Dialect) -> datetime | None:
         """
-        将数据库读出的时间恢复为带时区UTC时刻
+        将数据库读出的时间恢复为带时区UTC时刻。
 
         :param value: 驱动返回的时间值
         :param dialect: SQLAlchemy数据库方言
@@ -102,5 +107,5 @@ class DbUtcDateTime(TypeDecorator[datetime]):
         if value is None:
             return None
         if value.tzinfo is None or value.utcoffset() is None:
-            value = value.replace(tzinfo=timezone.utc)
+            value = value.replace(tzinfo=UTC)
         return TimezoneUtil.to_utc_milliseconds(value)

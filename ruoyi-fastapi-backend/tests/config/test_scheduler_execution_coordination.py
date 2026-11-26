@@ -4,6 +4,7 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 from datetime import timedelta
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -32,6 +33,7 @@ from utils.time_util import TimezoneUtil
 
 @pytest.mark.asyncio
 async def test_two_processes_atomically_enforce_logical_job_limit(runtime: Runtime) -> None:
+    """两个进程以原子方式执行逻辑任务并发限制。"""
     job = await runtime.save()
     snapshot = job.model_dump(mode='json', by_alias=True)
     with ProcessPoolExecutor(
@@ -47,33 +49,35 @@ async def test_two_processes_atomically_enforce_logical_job_limit(runtime: Runti
         assert sorted(row.status for row in rows) == ['rejected', 'running']
 
 
-async def wait_for_process_file(path: Path, executor: TimedProcessPoolExecutor, timeout: float = 45) -> dict:
+async def wait_for_process_file(path: Path, executor: TimedProcessPoolExecutor) -> dict[str, Any]:
     """
-    等待真实进程进入业务函数
+    等待真实进程进入业务函数。
 
     :param path: 进程启动标记文件路径
     :param executor: 提供超时诊断的真实进程执行器
-    :param timeout: 冷启动最长等待秒数，不作为业务执行耗时断言
     :return: 进程启动信息
+    :raises TimeoutError: 等待操作超过时限时
     """
-    loop = asyncio.get_running_loop()
-    deadline = loop.time() + timeout
+    startup_wait_seconds = 45
     last_error = None
-    while loop.time() < deadline:
-        try:
-            return json.loads(await asyncio.to_thread(path.read_text, encoding='utf-8'))
-        except (FileNotFoundError, json.JSONDecodeError) as exc:
-            last_error = type(exc).__name__
-        await asyncio.sleep(0.02)
-    processes = getattr(executor._pool, '_processes', None) or {}
-    states = [
-        {'pid': process.pid, 'alive': process.is_alive(), 'exitcode': process.exitcode}
-        for process in processes.values()
-    ]
-    raise TimeoutError(
-        f'process did not enter the task within {timeout}s; marker={path}; '
-        f'processes={states}; broken={getattr(executor._pool, "_broken", None)}; last_read={last_error}'
-    )
+    try:
+        async with asyncio.timeout(startup_wait_seconds):
+            while True:
+                try:
+                    return json.loads(await asyncio.to_thread(path.read_text, encoding='utf-8'))
+                except (FileNotFoundError, json.JSONDecodeError) as exc:
+                    last_error = type(exc).__name__
+                await asyncio.sleep(0.02)
+    except TimeoutError as exc:
+        processes = getattr(executor._pool, '_processes', None) or {}
+        states = [
+            {'pid': process.pid, 'alive': process.is_alive(), 'exitcode': process.exitcode}
+            for process in processes.values()
+        ]
+        raise TimeoutError(
+            f'process did not enter the task within {startup_wait_seconds}s; marker={path}; '
+            f'processes={states}; broken={getattr(executor._pool, "_broken", None)}; last_read={last_error}'
+        ) from exc
 
 
 @pytest.mark.asyncio
@@ -82,6 +86,7 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """运行中的进程阻止新执行器，并能在任务删除后结束。"""
     started, release = tmp_path / 'started.json', tmp_path / 'release'
     monkeypatch.setattr(task_module, 'runtime_process', held_process_job, raising=False)
     executor = TimedProcessPoolExecutor(
@@ -99,6 +104,7 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
     )
     async with runtime.sessions() as db:
         response = await JobService.execute_job_once_services(db, job)
+        assert isinstance(response.result, dict)
     execution_id = response.result['executionId']
     runtime.scheduler.resume()
     try:
@@ -108,10 +114,10 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
             await JobService.edit_job_services(
                 db,
                 EditJobModel(
-                    jobId=42,
-                    jobExecutor='default',
-                    invokeTarget='module_task.scheduler_test.runtime_harmless',
-                    jobArgs=[],
+                    job_id=42,
+                    job_executor='default',
+                    invoke_target='module_task.scheduler_test.runtime_harmless',
+                    job_args=[],
                 ),
             )
         cron = runtime.scheduler.get_job('42')
@@ -130,7 +136,7 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
         await SchedulerManager._drain_execution_requests()
         monkeypatch.setattr(SchedulerManager, '_is_leader', True)
         async with runtime.sessions() as db:
-            await JobService.delete_job_services(db, DeleteJobModel(jobIds='42'))
+            await JobService.delete_job_services(db, DeleteJobModel(job_ids='42'))
         assert (await runtime.execution(execution_id))['status'] == 'running'
     finally:
         release.touch()
@@ -140,11 +146,14 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
 
 @pytest.mark.asyncio
 async def test_expired_dispatch_token_cannot_run_reclaimed_request(runtime: Runtime) -> None:
+    """过期的调度令牌不能执行已回收的请求。"""
     job = await runtime.save()
     async with runtime.sessions() as db:
         request = await JobRuntimeDao.create_request(db, job, None)
         await db.commit()
+        assert job.job_id is not None
         old = await JobRuntimeDao.claim_request(db, request.execution_id, job.job_id)
+        assert old is not None and old.owner_token is not None
         old_token = old.owner_token
         await db.commit()
         await db.execute(
@@ -171,13 +180,15 @@ async def test_expired_dispatch_token_cannot_run_reclaimed_request(runtime: Runt
 
 @pytest.mark.asyncio
 async def test_only_original_owner_can_finish_unknown_execution(runtime: Runtime) -> None:
+    """只有原所有者可以结束状态未知的执行。"""
     job = await runtime.save()
     execution_id = uuid4().hex
     now = TimezoneUtil.utc_now()
+    assert job.job_id is not None
     claim = await asyncio.to_thread(
         JobExecutionStore.claim, execution_id, job.job_id, job.model_dump(mode='json', by_alias=True), now
     )
-    assert claim.accepted
+    assert claim.accepted and claim.token is not None
     async with runtime.sessions() as db:
         await db.execute(
             update(SysJobExecution)

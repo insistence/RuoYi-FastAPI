@@ -2,9 +2,10 @@ import asyncio
 import io
 import re
 from collections.abc import AsyncGenerator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -17,8 +18,12 @@ from exceptions.exception import FileRangeNotSatisfiableException, ServiceExcept
 from middlewares.cors_middleware import add_cors_middleware
 from module_admin.dao.file_access_dao import FileAclDao
 from module_admin.dao.file_info_dao import FileInfoDao
+from module_admin.entity.vo.common_vo import UploadResponseModel
+from module_admin.entity.vo.user_vo import CurrentUserModel
 from module_admin.service.common_service import CommonService
 from sub_applications.staticfiles import SecureStaticFiles
+from tests.module_admin.service.file_helpers import make_file_request
+from tests.module_admin.service.helpers import make_current_user, make_query_db
 from utils.file_util import FileUtil
 from utils.upload_util import FilePathUtil, UploadUtil
 
@@ -29,27 +34,36 @@ RANGE_TEST_LENGTH = RANGE_TEST_END - RANGE_TEST_START + 1
 
 
 async def collect_stream(stream: AsyncGenerator[bytes, None]) -> bytes:
+    """
+    合并异步流中的数据块。
+
+    :param stream: 需要逐块读取的流
+    :return: 按顺序拼接的流内容
+    """
     return b''.join([chunk async for chunk in stream])
 
 
 async def collect_first_chunk_and_close(stream: AsyncGenerator[bytes, None]) -> bytes:
+    """
+    读取首块数据后关闭异步流。
+
+    :param stream: 需要逐块读取的流
+    :return: 首块数据后关闭异步流
+    """
     chunk = await anext(stream)
     await stream.aclose()
     return chunk
 
 
 def make_upload(filename: str, content: bytes) -> UploadFile:
+    """
+    创建测试使用的 ``UploadFile`` 实例。
+
+    :param filename: 用于保存或展示的文件名
+    :param content: 需要读取或写入的内容
+    :return: 测试使用的 ``UploadFile`` 实例
+    """
     return UploadFile(file=io.BytesIO(content), filename=filename)
-
-
-def make_current_user(user_id: int = 10, admin: bool = False, dept_id: int = 100) -> SimpleNamespace:
-    return SimpleNamespace(
-        user=SimpleNamespace(user_id=user_id, user_name=f'user{user_id}', admin=admin, dept_id=dept_id)
-    )
-
-
-def make_query_db() -> SimpleNamespace:
-    return SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
 
 @pytest.mark.parametrize(
@@ -67,6 +81,7 @@ def test_parse_byte_range_supports_standard_single_ranges(
     range_header: str | None,
     expected: tuple[int, int, int, bool, int],
 ) -> None:
+    """解析标准单段字节范围。"""
     byte_range = FileUtil.parse_byte_range(range_header, 10)
 
     assert (
@@ -90,6 +105,7 @@ def test_parse_byte_range_supports_standard_single_ranges(
     ],
 )
 def test_parse_byte_range_rejects_invalid_or_multiple_ranges(range_header: str) -> None:
+    """拒绝无效或多段字节范围。"""
     with pytest.raises(FileRangeNotSatisfiableException) as range_error:
         FileUtil.parse_byte_range(range_header, RANGE_TEST_FILE_SIZE)
 
@@ -97,6 +113,7 @@ def test_parse_byte_range_rejects_invalid_or_multiple_ranges(range_header: str) 
 
 
 def test_parse_byte_range_allows_empty_full_download_but_rejects_empty_partial_download() -> None:
+    """空文件允许完整下载并拒绝部分下载。"""
     byte_range = FileUtil.parse_byte_range(None, 0)
 
     assert byte_range.length == 0
@@ -106,6 +123,7 @@ def test_parse_byte_range_allows_empty_full_download_but_rejects_empty_partial_d
 
 
 def test_resolve_file_within_root_accepts_nested_relative_file(tmp_path: Path) -> None:
+    """允许解析根目录内的嵌套相对文件。"""
     root = tmp_path / 'download'
     target = root / 'nested' / 'report.txt'
     target.parent.mkdir(parents=True)
@@ -129,6 +147,7 @@ def test_resolve_file_within_root_accepts_nested_relative_file(tmp_path: Path) -
     ],
 )
 def test_resolve_file_within_root_rejects_absolute_and_traversal_paths(tmp_path: Path, untrusted_path: str) -> None:
+    """拒绝绝对路径和目录穿越。"""
     root = tmp_path / 'download'
     root.mkdir()
 
@@ -137,6 +156,7 @@ def test_resolve_file_within_root_rejects_absolute_and_traversal_paths(tmp_path:
 
 
 def test_resolve_file_within_root_rejects_symlink_escape(tmp_path: Path) -> None:
+    """拒绝通过符号链接越出文件根目录。"""
     root = tmp_path / 'download'
     root.mkdir()
     outside = tmp_path / 'outside.txt'
@@ -152,6 +172,7 @@ def test_resolve_file_within_root_rejects_symlink_escape(tmp_path: Path) -> None
 
 
 def test_download_rejects_absolute_path_without_scheduling_delete(tmp_path: Path) -> None:
+    """拒绝绝对下载路径且不安排删除。"""
     download_root = tmp_path / 'download'
     download_root.mkdir()
     outside = tmp_path / 'outside.txt'
@@ -169,6 +190,7 @@ def test_download_rejects_absolute_path_without_scheduling_delete(tmp_path: Path
 
 
 def test_download_keeps_delete_compatibility_inside_download_root(tmp_path: Path) -> None:
+    """保留下载根目录内下载后删除的行为。"""
     download_root = tmp_path / 'download'
     download_root.mkdir()
     target = download_root / 'report.txt'
@@ -194,6 +216,7 @@ def test_download_keeps_delete_compatibility_inside_download_root(tmp_path: Path
 
 
 def test_resource_download_is_confined_to_upload_root(tmp_path: Path) -> None:
+    """资源下载限于上传根目录。"""
     upload_root = tmp_path / 'profile'
     target = upload_root / 'upload' / '2026' / '07' / 'report_20260719120000A001.txt'
     target.parent.mkdir(parents=True)
@@ -219,6 +242,7 @@ def test_resource_download_is_confined_to_upload_root(tmp_path: Path) -> None:
 
 
 def test_resource_download_rejects_file_without_generated_filename(tmp_path: Path) -> None:
+    """拒绝下载缺少生成文件名的资源。"""
     upload_root = tmp_path / 'profile'
     target = upload_root / 'upload' / '2026' / '07' / 'report.txt'
     target.parent.mkdir(parents=True)
@@ -232,11 +256,12 @@ def test_resource_download_rejects_file_without_generated_filename(tmp_path: Pat
 
 
 def test_upload_uses_server_generated_filename_and_stays_in_upload_root(tmp_path: Path) -> None:
+    """上传使用服务端生成的名称并写入上传根目录。"""
     upload_root = tmp_path / 'profile'
     upload = make_upload('../../attack:bad?.txt', b'safe-content')
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    current_user = make_current_user()
+    current_user = make_current_user(dept_id=100)
 
     with (
         patch.object(UploadConfig, 'UPLOAD_PATH', str(upload_root)),
@@ -245,17 +270,21 @@ def test_upload_uses_server_generated_filename_and_stays_in_upload_root(tmp_path
         patch.object(CommonService, '_enqueue_file_access_log', new_callable=AsyncMock),
     ):
         result = asyncio.run(CommonService.upload_service(request, query_db, current_user, upload))
+        uploaded = result.result
+        assert isinstance(uploaded, UploadResponseModel)
+        assert uploaded.new_file_name is not None
+        assert uploaded.file_name is not None
 
     written_files = list(upload_root.rglob('*.*'))
     assert len(written_files) == 1
     assert written_files[0].resolve().is_relative_to(upload_root.resolve())
     assert written_files[0].read_bytes() == b'safe-content'
-    assert result.result.original_filename == 'attack:bad?.txt'
-    assert re.fullmatch(r'attack_bad_\d{14}A\d{3}\.txt', result.result.new_file_name)
-    assert written_files[0].name == result.result.new_file_name
-    assert result.result.access_type == 'public'
-    assert result.result.file_id
-    file_info = add_file_info.await_args.args[1]
+    assert uploaded.original_filename == 'attack:bad?.txt'
+    assert re.fullmatch(r'attack_bad_\d{14}A\d{3}\.txt', uploaded.new_file_name)
+    assert written_files[0].name == uploaded.new_file_name
+    assert uploaded.access_type == 'public'
+    assert uploaded.file_id
+    file_info = add_file_info.await_args_list[-1].args[1]
     assert file_info.upload_user_id == current_user.user.user_id
     assert file_info.owner_user_id == current_user.user.user_id
     assert file_info.dept_id == current_user.user.dept_id
@@ -264,17 +293,18 @@ def test_upload_uses_server_generated_filename_and_stays_in_upload_root(tmp_path
     query_db.commit.assert_awaited_once()
 
     with patch.object(UploadConfig, 'UPLOAD_PATH', str(upload_root)):
-        download_result = asyncio.run(CommonService.download_resource_services(result.result.file_name))
+        download_result = asyncio.run(CommonService.download_resource_services(uploaded.file_name))
         assert asyncio.run(collect_stream(download_result.data)) == b'safe-content'
 
 
 @pytest.mark.parametrize('extension', ['html', 'htm'])
 def test_upload_accepts_html_as_download_only_file(tmp_path: Path, extension: str) -> None:
+    """允许上传 HTML 并仅供下载。"""
     file_content = b'<script>alert(1)</script>'
     upload = make_upload(f'attack.{extension}', file_content)
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    current_user = make_current_user()
+    current_user = make_current_user(dept_id=100)
 
     with (
         patch.object(UploadConfig, 'UPLOAD_PATH', str(tmp_path)),
@@ -283,20 +313,25 @@ def test_upload_accepts_html_as_download_only_file(tmp_path: Path, extension: st
         patch.object(CommonService, '_enqueue_file_access_log', new_callable=AsyncMock),
     ):
         result = asyncio.run(CommonService.upload_service(request, query_db, current_user, upload))
-        download_result = asyncio.run(CommonService.download_resource_services(result.result.file_name))
+        uploaded = result.result
+        assert isinstance(uploaded, UploadResponseModel)
+        assert uploaded.new_file_name is not None
+        assert uploaded.file_name is not None
+        download_result = asyncio.run(CommonService.download_resource_services(uploaded.file_name))
 
     written_files = [path for path in tmp_path.rglob('*') if path.is_file()]
     assert len(written_files) == 1
     assert written_files[0].read_bytes() == file_content
-    assert re.fullmatch(rf'attack_\d{{14}}A\d{{3}}\.{extension}', result.result.new_file_name)
+    assert re.fullmatch(rf'attack_\d{{14}}A\d{{3}}\.{extension}', uploaded.new_file_name)
     assert asyncio.run(collect_stream(download_result.data)) == file_content
 
 
 def test_upload_enforces_total_size_and_removes_partial_file(tmp_path: Path) -> None:
+    """上传限制总大小并清理未完成文件。"""
     upload = make_upload('large.txt', b'12345')
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    current_user = make_current_user()
+    current_user = make_current_user(dept_id=100)
 
     with (
         patch.object(UploadConfig, 'UPLOAD_PATH', str(tmp_path)),
@@ -308,24 +343,29 @@ def test_upload_enforces_total_size_and_removes_partial_file(tmp_path: Path) -> 
     assert [path for path in tmp_path.rglob('*') if path.is_file()] == []
 
 
-def test_upload_rejects_unknown_access_type_before_writing(tmp_path: Path) -> None:
+@pytest.mark.parametrize('access_type', ['shared', ''])
+def test_upload_rejects_unknown_access_type_before_writing(tmp_path: Path, access_type: Any) -> None:
+    """写入前拒绝未知访问类型。"""
     upload = make_upload('report.txt', b'report-content')
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
 
     with (
         patch.object(UploadConfig, 'PRIVATE_UPLOAD_PATH', str(tmp_path)),
         pytest.raises(ServiceException),
     ):
-        asyncio.run(CommonService.upload_service(request, make_query_db(), make_current_user(), upload, 'shared'))
+        asyncio.run(
+            CommonService.upload_service(request, make_query_db(), make_current_user(dept_id=100), upload, access_type)
+        )
 
     assert list(tmp_path.rglob('*')) == []
 
 
 def test_upload_removes_file_when_metadata_write_fails(tmp_path: Path) -> None:
+    """元数据写入失败时清理已上传文件。"""
     upload = make_upload('report.txt', b'report-content')
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    current_user = make_current_user()
+    current_user = make_current_user(dept_id=100)
 
     with (
         patch.object(UploadConfig, 'UPLOAD_PATH', str(tmp_path)),
@@ -340,14 +380,15 @@ def test_upload_removes_file_when_metadata_write_fails(tmp_path: Path) -> None:
 
 
 def test_upload_retries_name_collision_without_deleting_existing_file(tmp_path: Path) -> None:
-    fixed_time = datetime(2026, 7, 19, 4, 0, 0, tzinfo=timezone.utc)
+    """上传文件重名时重试并保留原文件。"""
+    fixed_time = datetime(2026, 7, 19, 4, 0, 0, tzinfo=UTC)
     existing_file = tmp_path / 'upload' / '2026' / '07' / '19' / 'report_20260719120000A001.txt'
     existing_file.parent.mkdir(parents=True)
     existing_file.write_bytes(b'existing-content')
     upload = make_upload('report.txt', b'new-content')
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    current_user = make_current_user()
+    current_user = make_current_user(dept_id=100)
 
     with (
         patch.object(UploadConfig, 'UPLOAD_PATH', str(tmp_path)),
@@ -357,19 +398,22 @@ def test_upload_retries_name_collision_without_deleting_existing_file(tmp_path: 
         patch.object(CommonService, '_enqueue_file_access_log', new_callable=AsyncMock),
     ):
         result = asyncio.run(CommonService.upload_service(request, query_db, current_user, upload))
+        uploaded = result.result
+        assert isinstance(uploaded, UploadResponseModel)
 
     assert existing_file.read_bytes() == b'existing-content'
-    assert result.result.new_file_name == 'report_20260719120000A002.txt'
-    assert (existing_file.parent / result.result.new_file_name).read_bytes() == b'new-content'
+    assert uploaded.new_file_name == 'report_20260719120000A002.txt'
+    assert (existing_file.parent / uploaded.new_file_name).read_bytes() == b'new-content'
 
 
 def test_private_upload_is_physically_isolated_and_owner_can_download(tmp_path: Path) -> None:
+    """私有上传文件物理隔离且所有者可下载。"""
     public_root = tmp_path / 'public'
     private_root = tmp_path / 'private'
     upload = make_upload('contract.pdf', b'private-content')
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    current_user = make_current_user()
+    current_user = make_current_user(dept_id=100)
 
     with (
         patch.object(UploadConfig, 'UPLOAD_PATH', str(public_root)),
@@ -380,24 +424,29 @@ def test_private_upload_is_physically_isolated_and_owner_can_download(tmp_path: 
         result = asyncio.run(
             CommonService.upload_service(request, query_db, current_user, upload, access_type='private')
         )
-        file_info = add_file_info.await_args.args[1]
+        uploaded = result.result
+        assert isinstance(uploaded, UploadResponseModel)
+        assert uploaded.file_name is not None
+        assert uploaded.file_id is not None
+        file_info = add_file_info.await_args_list[-1].args[1]
         with patch.object(FileInfoDao, 'get_file_info_by_id', new=AsyncMock(return_value=file_info)):
             download_result = asyncio.run(
-                CommonService.download_managed_file_services(request, query_db, current_user, result.result.file_id)
+                CommonService.download_managed_file_services(request, query_db, current_user, uploaded.file_id)
             )
             assert asyncio.run(collect_stream(download_result.data)) == b'private-content'
 
     assert list(public_root.rglob('*')) == []
     assert len([path for path in private_root.rglob('*') if path.is_file()]) == 1
-    assert result.result.file_name.startswith('/common/files/')
-    assert not result.result.file_name.startswith(UploadConfig.UPLOAD_PREFIX)
-    assert result.result.access_type == 'private'
+    assert uploaded.file_name.startswith('/common/files/')
+    assert not uploaded.file_name.startswith(UploadConfig.UPLOAD_PREFIX)
+    assert uploaded.access_type == 'private'
     assert download_result.filename == 'contract.pdf'
     audit_results = [call.kwargs['result'] for call in enqueue_audit.await_args_list]
     assert audit_results == ['completed', 'allowed', 'completed']
 
 
 def test_private_download_rejects_other_user(tmp_path: Path) -> None:
+    """拒绝其他用户下载私有文件。"""
     private_root = tmp_path / 'private'
     target = private_root / 'upload' / '2026' / '07' / 'contract_20260719120000A001.pdf'
     target.parent.mkdir(parents=True)
@@ -411,9 +460,9 @@ def test_private_download_rejects_other_user(tmp_path: Path) -> None:
         storage_key='upload/2026/07/contract_20260719120000A001.pdf',
         original_name='contract.pdf',
     )
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    other_user = make_current_user(user_id=20)
+    other_user = make_current_user(dept_id=100, user_id=20)
 
     with (
         patch.object(UploadConfig, 'PRIVATE_UPLOAD_PATH', str(private_root)),
@@ -425,10 +474,11 @@ def test_private_download_rejects_other_user(tmp_path: Path) -> None:
         asyncio.run(CommonService.download_managed_file_services(request, query_db, other_user, 'file-id'))
 
     enqueue_audit.assert_awaited_once()
-    assert enqueue_audit.await_args.kwargs['result'] == 'denied'
+    assert enqueue_audit.await_args_list[-1].kwargs['result'] == 'denied'
 
 
 def test_file_manager_can_download_private_file_without_owner_match(tmp_path: Path) -> None:
+    """文件管理员无需匹配所有者即可下载私有文件。"""
     private_root = tmp_path / 'private'
     target = private_root / 'upload' / '2026' / '07' / 'contract_20260719120000A001.pdf'
     target.parent.mkdir(parents=True)
@@ -442,9 +492,9 @@ def test_file_manager_can_download_private_file_without_owner_match(tmp_path: Pa
         storage_key='upload/2026/07/contract_20260719120000A001.pdf',
         original_name='contract.pdf',
     )
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    file_manager = make_current_user(user_id=20)
+    file_manager = make_current_user(dept_id=100, user_id=20)
 
     with (
         patch.object(UploadConfig, 'PRIVATE_UPLOAD_PATH', str(private_root)),
@@ -466,9 +516,10 @@ def test_file_manager_can_download_private_file_without_owner_match(tmp_path: Pa
 
 
 def test_file_manager_download_rejects_file_outside_data_scope() -> None:
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    """文件管理员不能下载数据范围外的文件。"""
+    request = make_file_request()
     query_db = make_query_db()
-    file_manager = make_current_user(user_id=20)
+    file_manager = make_current_user(dept_id=100, user_id=20)
     file_data_scope_sql = false()
 
     with (
@@ -487,22 +538,23 @@ def test_file_manager_download_rejects_file_outside_data_scope() -> None:
             )
         )
 
-    assert get_file_info.await_args.args[2] is file_data_scope_sql
-    assert enqueue_audit.await_args.kwargs['result'] == 'denied'
+    assert get_file_info.await_args_list[-1].args[2] is file_data_scope_sql
+    assert enqueue_audit.await_args_list[-1].kwargs['result'] == 'denied'
 
 
 @pytest.mark.parametrize(
     ('access_type', 'current_user'),
     [
-        ('private', make_current_user(user_id=1, admin=True)),
-        ('public', make_current_user(user_id=20)),
+        ('private', make_current_user(dept_id=100, user_id=1, admin=True)),
+        ('public', make_current_user(dept_id=100, user_id=20)),
     ],
 )
 def test_managed_download_allows_administrator_or_public_file(
     tmp_path: Path,
     access_type: str,
-    current_user: SimpleNamespace,
+    current_user: CurrentUserModel,
 ) -> None:
+    """托管下载允许管理员或公开文件访问。"""
     storage_root = tmp_path / access_type
     target = storage_root / 'upload' / '2026' / '07' / 'report_20260719120000A001.txt'
     target.parent.mkdir(parents=True)
@@ -516,7 +568,7 @@ def test_managed_download_allows_administrator_or_public_file(
         storage_key='upload/2026/07/report_20260719120000A001.txt',
         original_name='report.txt',
     )
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
 
     with (
@@ -536,19 +588,20 @@ def test_managed_download_allows_administrator_or_public_file(
 
 @pytest.mark.parametrize('admin', [False, True])
 def test_private_download_rejects_expired_file(tmp_path: Path, admin: bool) -> None:
+    """拒绝下载已过期的私有文件。"""
     private_root = tmp_path / 'private'
     file_info = SimpleNamespace(
         storage_type='local',
         access_type='private',
         upload_user_id=10,
         owner_user_id=10,
-        expire_time=datetime.now(timezone.utc) - timedelta(seconds=1),
+        expire_time=datetime.now(UTC) - timedelta(seconds=1),
         storage_key='upload/2026/07/report_20260719120000A001.txt',
         original_name='report.txt',
     )
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    current_user = make_current_user(user_id=10, admin=admin)
+    current_user = make_current_user(dept_id=100, user_id=10, admin=admin)
 
     with (
         patch.object(UploadConfig, 'PRIVATE_UPLOAD_PATH', str(private_root)),
@@ -559,14 +612,15 @@ def test_private_download_rejects_expired_file(tmp_path: Path, admin: bool) -> N
         asyncio.run(CommonService.download_managed_file_services(request, query_db, current_user, 'file-id'))
 
     enqueue_audit.assert_awaited_once()
-    assert enqueue_audit.await_args.kwargs['result'] == 'denied'
+    assert enqueue_audit.await_args_list[-1].kwargs['result'] == 'denied'
 
 
 def test_managed_download_records_interrupted_stream(tmp_path: Path) -> None:
+    """托管下载记录被中断的数据流。"""
     target = tmp_path / 'report.txt'
     target.write_bytes(b'partial-content')
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
-    current_user = make_current_user()
+    request = make_file_request()
+    current_user = make_current_user(dept_id=100)
 
     with patch.object(CommonService, '_enqueue_file_access_log', new_callable=AsyncMock) as enqueue_audit:
         byte_range = FileUtil.parse_byte_range(None, target.stat().st_size)
@@ -574,11 +628,12 @@ def test_managed_download_records_interrupted_stream(tmp_path: Path) -> None:
         assert asyncio.run(collect_first_chunk_and_close(stream)) == b'partial-content'
 
     enqueue_audit.assert_awaited_once()
-    assert enqueue_audit.await_args.kwargs['result'] == 'failed'
-    assert enqueue_audit.await_args.kwargs['error_message'] == 'StreamClosed'
+    assert enqueue_audit.await_args_list[-1].kwargs['result'] == 'failed'
+    assert enqueue_audit.await_args_list[-1].kwargs['error_message'] == 'StreamClosed'
 
 
 def test_managed_download_supports_range_and_records_partial_bytes(tmp_path: Path) -> None:
+    """托管下载支持范围请求并记录实际字节数。"""
     storage_root = tmp_path / 'private'
     target = storage_root / 'upload' / '2026' / '07' / 'report_20260719120000A001.txt'
     target.parent.mkdir(parents=True)
@@ -592,9 +647,9 @@ def test_managed_download_supports_range_and_records_partial_bytes(tmp_path: Pat
         storage_key='upload/2026/07/report_20260719120000A001.txt',
         original_name='report.txt',
     )
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
     query_db = make_query_db()
-    current_user = make_current_user()
+    current_user = make_current_user(dept_id=100)
 
     with (
         patch.object(UploadConfig, 'PRIVATE_UPLOAD_PATH', str(storage_root)),
@@ -625,6 +680,7 @@ def test_managed_download_supports_range_and_records_partial_bytes(tmp_path: Pat
 
 
 def test_managed_download_audits_unsatisfied_range_without_disclosing_before_permission(tmp_path: Path) -> None:
+    """无权限时隐藏范围信息，获授权后审计不可满足的范围。"""
     storage_root = tmp_path / 'private'
     target = storage_root / 'upload' / '2026' / '07' / 'report_20260719120000A001.txt'
     target.parent.mkdir(parents=True)
@@ -638,7 +694,7 @@ def test_managed_download_audits_unsatisfied_range_without_disclosing_before_per
         storage_key='upload/2026/07/report_20260719120000A001.txt',
         original_name='report.txt',
     )
-    request = SimpleNamespace(base_url='https://example.test/prod-api/', headers={}, client=None)
+    request = make_file_request()
 
     with (
         patch.object(UploadConfig, 'PRIVATE_UPLOAD_PATH', str(storage_root)),
@@ -650,18 +706,19 @@ def test_managed_download_audits_unsatisfied_range_without_disclosing_before_per
             CommonService.download_managed_file_services(
                 request,
                 make_query_db(),
-                make_current_user(),
+                make_current_user(dept_id=100),
                 'file-id',
                 range_header='bytes=20-',
             )
         )
 
     enqueue_audit.assert_awaited_once()
-    assert enqueue_audit.await_args.kwargs['result'] == 'failed'
-    assert enqueue_audit.await_args.kwargs['error_message'] == 'RangeNotSatisfiable'
+    assert enqueue_audit.await_args_list[-1].kwargs['result'] == 'failed'
+    assert enqueue_audit.await_args_list[-1].kwargs['error_message'] == 'RangeNotSatisfiable'
 
 
 def test_download_headers_force_attachment_and_disable_sniffing() -> None:
+    """下载响应强制作为附件并禁止类型嗅探。"""
     byte_range = FileUtil.parse_byte_range('bytes=2-5', 10)
     headers = UploadUtil.build_download_headers('../../report.html', byte_range)
 
@@ -676,6 +733,7 @@ def test_download_headers_force_attachment_and_disable_sniffing() -> None:
 
 
 def test_static_files_force_only_html_to_download(tmp_path: Path) -> None:
+    """静态文件中仅 HTML 强制下载。"""
     html_file = tmp_path / 'legacy.html'
     html_file.write_text('<script>alert(1)</script>', encoding='utf-8')
     image_file = tmp_path / 'safe.png'
@@ -704,6 +762,7 @@ def test_static_files_force_only_html_to_download(tmp_path: Path) -> None:
 
 
 def test_cors_exposes_download_headers() -> None:
+    """跨域响应公开下载所需的头部字段。"""
     app = FastAPI()
     add_cors_middleware(app)
 

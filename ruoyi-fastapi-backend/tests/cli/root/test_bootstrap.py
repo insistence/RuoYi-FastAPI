@@ -46,11 +46,7 @@ print(json.dumps({
 
 
 def test_bootstrap_import_does_not_eagerly_load_heavy_runtime_modules() -> None:
-    """
-    校验导入 `cli.bootstrap` 时不会提前加载重依赖模块。
-
-    :return: None
-    """
+    """校验导入 ``cli.bootstrap`` 时不会提前加载重依赖模块。"""
     script = """
 import json
 import sys
@@ -98,11 +94,7 @@ print(json.dumps({
 
 
 def test_build_cli_does_not_eagerly_load_heavy_runtime_dependencies() -> None:
-    """
-    校验构建 CLI 根应用时不会提前加载 DB、Redis、Scheduler 和业务服务依赖。
-
-    :return: None
-    """
+    """校验构建 CLI 根应用时不会提前加载 DB、Redis、Scheduler 和业务服务依赖。"""
     script = """
 import json
 import sys
@@ -170,11 +162,7 @@ print(json.dumps({
 
 
 def test_build_wizard_app_does_not_eagerly_load_flow_modules() -> None:
-    """
-    校验构建 `wizard` 子应用时不会提前加载各个 flow 模块。
-
-    :return: None
-    """
+    """校验构建 ``wizard`` 子应用时不会提前加载各个 flow 模块。"""
     script = """
 import json
 import sys

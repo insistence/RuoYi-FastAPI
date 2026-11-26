@@ -1,4 +1,5 @@
 from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
 
 from pytest import MonkeyPatch
 
@@ -8,7 +9,8 @@ def test_cache_clear_wizard_cancels_when_confirmation_rejected(
     cache_clear_flow: ModuleType,
     exit_codes: ModuleType,
 ) -> None:
-    captured: dict[str, object] = {}
+    """拒绝确认后取消清缓存操作。"""
+    complete_result = Mock()
     answers = iter(['dev', 'cache-name', 'sys_config', True, False])
     monkeypatch.setattr(
         cache_clear_flow.CacheClearWizardFlow,
@@ -29,20 +31,23 @@ def test_cache_clear_wizard_cancels_when_confirmation_rejected(
     monkeypatch.setattr(
         cache_clear_flow.CacheClearWizardFlow.execution_service,
         'complete_result',
-        lambda ctx, result: captured.update({'ctx': ctx, 'result': result}),
+        complete_result,
     )
 
     cache_clear_flow.run_cache_clear_wizard('text')
 
-    assert captured['ctx'].env == 'dev'
-    assert captured['result'].exit_code == exit_codes.GUARD_REJECTED
-    assert captured['result'].data['message'] == '已取消向导执行：wizard cache-clear'
+    complete_result.assert_called_once()
+    ctx, result = complete_result.call_args.args
+    assert ctx.env == 'dev'
+    assert result.exit_code == exit_codes.GUARD_REJECTED
+    assert result.data['message'] == '已取消向导执行：wizard cache-clear'
 
 
 def test_cache_clear_wizard_accepts_default_context_values(
     monkeypatch: MonkeyPatch,
     cache_clear_flow: ModuleType,
 ) -> None:
+    """清缓存向导接受上下文默认值。"""
     captured_defaults: dict[str, object] = {}
     captured_confirm_defaults: list[tuple[str, bool]] = []
     answers = iter(['dev', 'cache-name', 'sys_config', True, False])

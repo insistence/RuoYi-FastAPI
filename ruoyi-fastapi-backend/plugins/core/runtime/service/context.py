@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 from time import monotonic
+from typing import TYPE_CHECKING
 
 from i18n.message import I18nMessage
 from plugins.core.capability import STATE_CHANGE_OPERATIONS, PluginRuntimeCapability, PluginRuntimeCapabilityResolver
@@ -33,6 +34,10 @@ from .gateway import UnavailablePluginStateQueryGateway
 from .migration_store import PluginMigrationHistoryGatewayStore
 from .responses import PluginRuntimeBlockedPayload, PluginRuntimeBlockedPayloadDict
 
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+
 PLUGIN_DISCOVERY_CACHE_TTL_SECONDS = 2.0
 DATABASE_PLUGIN_STATE_SYNC_LOOP_ERROR = '当前事件循环内不能同步读取数据库插件状态，已返回空列表'
 
@@ -43,6 +48,11 @@ class PluginRuntimeContextService:
 
     集中提供插件发现、注册表构建、数据库状态读取和预检上下文构建能力，
     让 runtime facade 和组合式 use case 只关注插件操作编排。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar _discovered_plugins_cache: 最近一次插件扫描结果
+    :ivar _discovery_errors_cache: 最近一次扫描收集的错误
+    :ivar _discovery_override: 替代默认扫描行为的发现结果
     """
 
     def __init__(self, dependencies: PluginRuntimeDependencies) -> None:
@@ -61,7 +71,7 @@ class PluginRuntimeContextService:
         维护流程注入已验证目录，不修改全局扫描器或运行中进程的发现缓存。
 
         :param plugins: 维护流程已验证的插件发现快照
-        :return: None
+        :raises ValueError: 插件发现快照包含重复 ID
         """
         ids = [plugin.manifest.id for plugin in plugins]
         if len(ids) != len(set(ids)):
@@ -203,6 +213,7 @@ class PluginRuntimeContextService:
 
         :param plugin_id: 待读取配置的插件 ID
         :return: 已发现源码插件或重新验签的当前制品，未找到时返回 None
+        :raises ValueError: 无法确认插件来源，配置读取已中止；插件状态适配器未提供已选制品的只读解析能力
         """
         if isinstance(self.dependencies.state_query_gateway, UnavailablePluginStateQueryGateway):
             return self.get_discovered_plugin(plugin_id)
@@ -211,7 +222,9 @@ class PluginRuntimeContextService:
             raise ValueError('无法确认插件来源，配置读取已中止')
         if getattr(plugin, 'source', None) != 'artifact':
             return self.get_discovered_plugin(plugin_id)
-        resolver = getattr(self.dependencies.state_query_gateway, 'get_selected_artifact_plugin', None)
+        resolver: Callable[[str, Path], Awaitable[DiscoveredPlugin]] | None = getattr(
+            self.dependencies.state_query_gateway, 'get_selected_artifact_plugin', None
+        )
         if not callable(resolver):
             raise ValueError('插件状态适配器未提供已选制品的只读解析能力')
         return await resolver(plugin_id, Path(self.dependencies.runtime_environment.get_backend_dir()))

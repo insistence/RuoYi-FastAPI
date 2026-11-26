@@ -9,14 +9,14 @@ from plugins.core.sdk import PluginDefinition, PluginHostContext, PluginRequestC
 
 
 class EchoBody(BaseModel):
-    """
-    SDK 请求体模型，约束示例消息长度。
-    """
+    """SDK 请求体模型，约束示例消息长度。"""
 
-    message: str = Field(min_length=1, max_length=200)
+    message: str = Field(min_length=1, max_length=200, description='需要原样回显的消息')
 
 
 async def echo(context: PluginRequestContext) -> dict[str, Any]:
+    if context.request is None:
+        raise RuntimeError('当前插件上下文缺少 HTTP 请求快照')
     return {**context.request.to_payload(), 'requestId': context.request_id}
 
 
@@ -44,7 +44,7 @@ def create_app(host: PluginHostContext) -> FastAPI:
         演示插件自有资源的启动与关闭。
 
         :param app: 正在启动或关闭的 ASGI 子应用
-        :return: 可供请求访问的生命周期状态
+        :yield: 可供请求访问的生命周期状态
         """
         host.logger.info('ASGI 示例启动')
         try:

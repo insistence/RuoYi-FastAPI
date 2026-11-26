@@ -5,7 +5,7 @@ import shutil
 import stat
 import tempfile
 import time
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
@@ -42,6 +42,9 @@ STORED_PLUGIN_PARTS = 5
 class ArtifactStore:
     """
     不可变制品存储，每次使用时重新检查签名和内容。
+
+    :ivar root: 不可变制品存储的根目录
+    :ivar limits: 文件数量、大小及压缩容器的资源上限
     """
 
     def __init__(self, root: Path | str, *, limits: ArtifactLimits = DEFAULT_LIMITS) -> None:
@@ -50,7 +53,6 @@ class ArtifactStore:
 
         :param root: 不可变制品存储的根目录
         :param limits: 文件数量、大小及压缩容器的资源上限
-        :return: None
         """
         self.root = Path(os.path.abspath(root))
         self.limits = limits
@@ -62,7 +64,6 @@ class ArtifactStore:
         从文件系统根逐级检查路径，拒绝符号链接和 Windows 重解析点。
 
         :param path: 待处理的文件路径
-        :return: None
         :raises ValueError: 路径本身或某一级父路径为链接或重解析点
         """
         for current in reversed([path, *path.parents]):
@@ -78,7 +79,7 @@ class ArtifactStore:
         校验父路径后创建普通目录，并重新检查目录边界。
 
         :param path: 待创建的存储内部目录路径
-        :return: None
+        :raises ValueError: 制品存储路径越界；制品存储路径不是目录
         """
         if not path.is_relative_to(self.root):
             raise ValueError('制品存储路径越界')
@@ -149,7 +150,7 @@ class ArtifactStore:
 
         :param source: 待复制内容的源文件路径
         :param target: 本次导入独占的容器快照路径
-        :return: None
+        :raises ValueError: 制品容器大小超过限制
         """
         if _regular_file(source).st_size > self.limits.max_archive_bytes:
             raise ValueError('制品容器大小超过限制')
@@ -163,7 +164,7 @@ class ArtifactStore:
         :param snapshot: 已经完成验签的私有容器快照路径
         :param candidate: 本次导入独占的候选根目录
         :param verified: 私有容器快照对应的验证结果
-        :return: None
+        :raises ValueError: 制品解压目标越界；制品快照在解压期间发生变化
         """
         candidate.mkdir()
         expected = {item.path: item for item in verified.files}
@@ -191,7 +192,6 @@ class ArtifactStore:
         :param candidate: 待执行静态检查的候选制品对象
         :param trusted_keys: 由宿主提供的签名密钥标识与可信公钥映射
         :param callback: 同步只读检查回调，为 None 时跳过附加检查
-        :return: None
         :raises ValueError: 回调拒绝候选或修改了受保护内容
         :raises TypeError: 回调返回异步对象，无法同步完成检查
         """
@@ -289,13 +289,15 @@ class ArtifactStore:
         )
 
     @contextmanager
-    def _digest_lock(self, digest: str) -> Iterator[None]:
+    def _digest_lock(self, digest: str) -> Generator[None, None, None]:
         """
         使用操作系统文件锁串行化同一摘要的发布，进程退出时自动释放。
 
         :param digest: 制品规范元数据的小写 SHA256 摘要
-        :return: 持有对应摘要锁的上下文
+        :yield: 持有对应摘要锁的上下文
         :raises TimeoutError: 等待同一制品摘要的文件锁超时
+        :raises ValueError: 制品锁文件必须为普通文件
+        :raises OSError: 获取文件锁时遇到无法通过等待重试的系统错误
         """
         lock_root = self.root / '.locks'
         self._mkdir(lock_root)
@@ -313,7 +315,7 @@ class ArtifactStore:
                 try:
                     self._lock_file(descriptor, unlock=False)
                     acquired = True
-                except OSError as exc:  # noqa: PERF203 - 操作系统非阻塞锁必须重试
+                except OSError as exc:
                     if exc.errno not in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
                         raise
                     if time.monotonic() >= deadline:
@@ -335,7 +337,6 @@ class ArtifactStore:
 
         :param descriptor: 本次发布锁文件的文件描述符
         :param unlock: 是否释放已有锁，为 False 时尝试获取锁
-        :return: None
         """
         os.lseek(descriptor, 0, os.SEEK_SET)
         if os.name == 'nt':

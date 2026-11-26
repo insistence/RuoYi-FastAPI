@@ -1,5 +1,6 @@
 from typing import Literal
 
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -14,12 +15,13 @@ class ConfigCommandController:
     """
     参数配置命令控制器。
 
-    该控制器负责组织 `config` 命令组的上下文准备、runtime 调用、
+    该控制器负责组织 ``config`` 命令组的上下文准备、runtime 调用、
     payload 注入，以及基于输出格式选择 presenter 或直接返回 JSON。
 
-    :param context_factory: CLI 上下文工厂
-    :param execution_service: CLI 执行服务
-    :param presenter: 参数配置命令文本渲染器
+    :ivar context_factory: CLI 上下文工厂
+    :ivar execution_service: CLI 执行服务
+    :ivar presenter: 参数配置命令文本渲染器
+    :ivar runtime_service: 参数配置运行时服务
     """
 
     def __init__(
@@ -37,7 +39,6 @@ class ConfigCommandController:
         :param execution_service: CLI 执行服务
         :param presenter: 参数配置命令文本渲染器
         :param runtime_service: 参数配置运行时服务
-        :return: None
         """
         self.context_factory = context_factory or DEFAULT_CORE_SERVICES.context_factory
         self.execution_service = execution_service or DEFAULT_CORE_SERVICES.execution_service
@@ -47,7 +48,7 @@ class ConfigCommandController:
     def list_configs(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         config_name: str,
         config_key: str,
@@ -71,7 +72,6 @@ class ConfigCommandController:
         :param paged: 是否启用分页
         :param page_num: 页码
         :param page_size: 每页数量
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(
@@ -98,7 +98,7 @@ class ConfigCommandController:
         self,
         config_key: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         source: Literal['db', 'cache', 'both'],
     ) -> None:
@@ -109,7 +109,6 @@ class ConfigCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param source: 配置读取来源
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.runtime_service.get_config(config_key, source=source))
@@ -125,7 +124,7 @@ class ConfigCommandController:
         self,
         config_key: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -148,7 +147,6 @@ class ConfigCommandController:
         :param name: 参数名称
         :param config_type: 参数类型
         :param remark: 参数备注
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -174,7 +172,7 @@ class ConfigCommandController:
     def sync_cache(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
     ) -> None:
@@ -185,7 +183,6 @@ class ConfigCommandController:
         :param output: 输出格式
         :param allow_prod: 是否允许生产环境危险命令
         :param yes: 是否跳过确认
-        :return: None
         """
         ctx = self.context_factory.build_dangerous(
             env,
@@ -202,7 +199,7 @@ class ConfigCommandController:
     def doctor(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         sample_limit: int,
     ) -> None:
@@ -212,7 +209,6 @@ class ConfigCommandController:
         :param env: 当前命令运行环境
         :param output: 输出格式
         :param sample_limit: 问题示例键名输出上限
-        :return: None
         """
         ctx = self.context_factory.build_readonly(env, output)
         payload = self.execution_service.run_async(self.runtime_service.diagnose_config(sample_limit=sample_limit))

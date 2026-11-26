@@ -12,14 +12,12 @@ from utils.jwt_util import JwtUtil
 
 
 class OnlineService:
-    """
-    在线用户管理模块服务层
-    """
+    """在线用户管理模块服务层。"""
 
     @classmethod
     async def get_online_list_services(cls, request: Request, query_object: OnlineQueryModel) -> list[dict[str, Any]]:
         """
-        获取在线用户表信息service
+        获取在线用户表信息service。
 
         :param request: Request对象
         :param query_object: 查询参数对象
@@ -36,28 +34,31 @@ class OnlineService:
             except AuthException:
                 # 单个过期或损坏的会话不应影响在线用户列表中的其他会话
                 continue
+            login_info = payload.get('login_info')
+            if not isinstance(login_info, dict):
+                login_info = {}
             online_dict = {
                 'token_id': payload.get('session_id') if AppConfig.app_same_time_login else payload.get('user_id'),
                 'user_name': payload.get('user_name'),
                 'dept_name': payload.get('dept_name'),
-                'ipaddr': payload.get('login_info').get('ipaddr'),
-                'login_location': payload.get('login_info').get('loginLocation'),
-                'browser': payload.get('login_info').get('browser'),
-                'os': payload.get('login_info').get('os'),
-                'login_time': payload.get('login_info').get('loginTime'),
+                'ipaddr': login_info.get('ipaddr'),
+                'login_location': login_info.get('loginLocation'),
+                'browser': login_info.get('browser'),
+                'os': login_info.get('os'),
+                'login_time': login_info.get('loginTime'),
             }
             if query_object.user_name and not query_object.ipaddr:
                 if query_object.user_name == payload.get('user_name'):
                     online_info_list = [online_dict]
                     break
             elif not query_object.user_name and query_object.ipaddr:
-                if query_object.ipaddr == payload.get('login_info').get('ipaddr'):
+                if query_object.ipaddr == login_info.get('ipaddr'):
                     online_info_list = [online_dict]
                     break
             elif query_object.user_name and query_object.ipaddr:
-                if query_object.user_name == payload.get('user_name') and query_object.ipaddr == payload.get(
-                    'login_info'
-                ).get('ipaddr'):
+                if query_object.user_name == payload.get('user_name') and query_object.ipaddr == login_info.get(
+                    'ipaddr'
+                ):
                     online_info_list = [online_dict]
                     break
             else:
@@ -68,11 +69,12 @@ class OnlineService:
     @classmethod
     async def delete_online_services(cls, request: Request, page_object: DeleteOnlineModel) -> CrudResponseModel:
         """
-        强退在线用户信息service
+        强退在线用户信息service。
 
         :param request: Request对象
         :param page_object: 强退在线用户对象
         :return: 强退在线用户校验结果
+        :raises ServiceException: 传入session_id为空
         """
         if page_object.token_ids:
             token_id_list = page_object.token_ids.split(',')

@@ -1,5 +1,7 @@
 import io
+from collections.abc import Mapping, Sequence
 from datetime import datetime
+from typing import Any, overload
 
 import pandas as pd
 from openpyxl import Workbook
@@ -14,16 +16,18 @@ from utils.time_util import TimezoneUtil
 
 
 class ExcelUtil:
-    """
-    Excel操作类
-    """
+    """Excel操作类。"""
 
     @classmethod
     def __mapping_list(
-        cls, list_data: list, mapping_dict: dict, timezone_name: str, locale_context: LocaleContext
-    ) -> list[dict]:
+        cls,
+        list_data: list[dict[str, Any]],
+        mapping_dict: Mapping[str, str],
+        timezone_name: str,
+        locale_context: LocaleContext,
+    ) -> list[dict[str, object]]:
         """
-        按导出语言生成表头和单元格文本，并按导出时区转换日期时间
+        按导出语言生成表头和单元格文本，并按导出时区转换日期时间。
 
         :param list_data: 数据列表
         :param mapping_dict: 映射字典
@@ -32,17 +36,17 @@ class ExcelUtil:
         :return: 映射后的数据列表
         """
         datetime_keys = {key for key in mapping_dict if any(isinstance(item.get(key), datetime) for item in list_data)}
-        mapping_dict = {key: cls._display_value(value, locale_context) for key, value in mapping_dict.items()}
+        translated_headers = {key: cls._display_value(value, locale_context) for key, value in mapping_dict.items()}
         display_mapping = {
             key: (f'{header} ({timezone_name})' if key in datetime_keys else header)
-            for key, header in mapping_dict.items()
+            for key, header in translated_headers.items()
         }
         mapping_data = [
             {
-                display_mapping.get(key): (
-                    TimezoneUtil.to_business_time(item.get(key), timezone_name).replace(tzinfo=None)
-                    if isinstance(item.get(key), datetime)
-                    else cls._display_value(item.get(key), locale_context)
+                display_mapping[key]: (
+                    TimezoneUtil.to_business_time(value, timezone_name).replace(tzinfo=None)
+                    if isinstance(value := item.get(key), datetime)
+                    else cls._display_value(value, locale_context)
                 )
                 for key in display_mapping
             }
@@ -54,13 +58,13 @@ class ExcelUtil:
     @classmethod
     def export_list2excel(
         cls,
-        list_data: list,
-        mapping_dict: dict,
+        list_data: list[dict[str, Any]],
+        mapping_dict: Mapping[str, str],
         timezone_name: str | None = None,
         locale_context: LocaleContext | None = None,
     ) -> bytes:
         """
-        工具方法：将需要导出的list数据转化为对应excel的二进制数据
+        工具方法：将需要导出的list数据转化为对应excel的二进制数据。
 
         :param list_data: 数据列表
         :param mapping_dict: 映射字典
@@ -81,13 +85,13 @@ class ExcelUtil:
     @classmethod
     def get_excel_template(
         cls,
-        header_list: list,
-        selector_header_list: list,
-        option_list: list[dict],
+        header_list: Sequence[str],
+        selector_header_list: Sequence[str],
+        option_list: list[dict[str, list[str]]],
         locale_context: LocaleContext | None = None,
     ) -> bytes:
         """
-        生成包含本地化表头和下拉选项的 Excel 模板
+        生成包含本地化表头和下拉选项的 Excel 模板。
 
         :param header_list: 表头数据列表
         :param selector_header_list: 需要设置为选择器格式的表头数据列表
@@ -136,8 +140,8 @@ class ExcelUtil:
             # 创建数据有效性规则
             header_option = []
             for option in options:
-                if option.get(selector_header):
-                    header_option = option.get(selector_header)
+                if values := option.get(selector_header):
+                    header_option = values
             dv = DataValidation(type='list', formula1=f'"{",".join(header_option)}"')
             # 设置数据有效性规则的起始单元格和结束单元格
             dv.add(
@@ -157,9 +161,17 @@ class ExcelUtil:
         return excel_data
 
     @staticmethod
+    @overload
+    def _display_value(value: str, context: LocaleContext) -> str: ...
+
+    @staticmethod
+    @overload
+    def _display_value(value: object, context: LocaleContext) -> object: ...
+
+    @staticmethod
     def _display_value(value: object, context: LocaleContext) -> object:
         """
-        仅翻译声明了消息标识的固定文本，保留业务内容
+        仅翻译声明了消息标识的固定文本，保留业务内容。
 
         :param value: 表头、固定枚举或业务数据
         :param context: 导出语言快照

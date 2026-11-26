@@ -1,27 +1,25 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 from pydantic_validation_decorator import NotBlank, Size
 
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 
 
-class AiModelModel(BaseModel):
-    """
-    AI模型表对应pydantic模型
-    """
+class AiModelModel(CamelModel):
+    """AI模型表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     model_id: int | None = Field(default=None, description='模型主键')
     model_code: str | None = Field(default=None, description='模型编码')
     model_name: str | None = Field(default=None, description='模型名称')
     provider: str | None = Field(default=None, description='提供商')
     model_sort: int | None = Field(default=None, description='显示顺序')
-    api_key: str | None = Field(default=None, description='API Key')
-    base_url: str | None = Field(default=None, description='Base URL')
+    api_key: str | None = Field(default=None, description='接口访问密钥')
+    base_url: str | None = Field(default=None, description='服务基础地址')
     max_tokens: int | None = Field(default=None, description='最大输出token')
     temperature: float | None = Field(default=None, description='默认温度')
     support_reasoning: Literal['Y', 'N'] | None = Field(default=None, description='是否支持推理(深度思考)')
@@ -44,6 +42,11 @@ class AiModelModel(BaseModel):
         message=I18nMessage('模型编码长度不能超过100个字符', msg_key='validation.modelCodeLength'),
     )
     def get_model_code(self) -> str | None:
+        """
+        校验并返回模型编码。
+
+        :return: 模型编码
+        """
         return self.model_code
 
     @NotBlank(field_name='base_url', message=I18nMessage('Base URL不能为空', msg_key='validation.baseUrlRequired'))
@@ -54,23 +57,22 @@ class AiModelModel(BaseModel):
         message=I18nMessage('Base URL长度不能超过255个字符', msg_key='validation.baseUrlLength'),
     )
     def get_base_url(self) -> str | None:
+        """
+        校验并返回Base URL。
+
+        :return: 模型服务的基础地址
+        """
         return self.base_url
 
 
 class AiModelPageQueryModel(AiModelModel):
-    """
-    AI模型管理分页查询模型
-    """
+    """AI模型管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteAiModelModel(BaseModel):
-    """
-    删除AI模型模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class DeleteAiModelModel(CamelModel):
+    """删除AI模型模型。"""
 
     model_ids: str = Field(description='需要删除的模型主键')

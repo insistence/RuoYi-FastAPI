@@ -14,12 +14,20 @@ async def test_lifecycle_step_runner_runs_steps_in_order() -> None:
     calls = []
 
     async def first(context: dict[str, object]) -> None:
-        """记录第一个生命周期步骤执行。"""
+        """
+        记录第一个生命周期步骤执行。
+
+        :param context: 当前操作所需的上下文
+        """
         context['first'] = True
         calls.append('first')
 
     async def second(context: dict[str, object]) -> None:
-        """记录第二个生命周期步骤执行。"""
+        """
+        记录第二个生命周期步骤执行。
+
+        :param context: 当前操作所需的上下文
+        """
         context['second'] = bool(context['first'])
         calls.append('second')
 
@@ -38,12 +46,21 @@ async def test_lifecycle_step_runner_stops_when_step_returns_payload() -> None:
     calls = []
 
     async def stop(context: dict[str, object]) -> dict[str, object]:
-        """返回负载并终止后续生命周期步骤。"""
+        """
+        返回负载并终止后续生命周期步骤。
+
+        :param context: 当前操作所需的上下文
+        :return: 负载并终止后续生命周期步骤
+        """
         calls.append('stop')
         return {'ok': False, 'message': 'blocked'}
 
     async def skipped(context: dict[str, object]) -> None:
-        """标记不应执行的后续生命周期步骤。"""
+        """
+        标记不应执行的后续生命周期步骤。
+
+        :param context: 当前操作所需的上下文
+        """
         calls.append('skipped')
 
     result = await PluginLifecycleStepRunner(
@@ -60,7 +77,12 @@ async def test_lifecycle_step_runner_records_failed_step() -> None:
     """校验生命周期步骤异常时记录失败步骤。"""
 
     async def broken(context: dict[str, object]) -> None:
-        """抛出测试用生命周期步骤异常。"""
+        """
+        抛出测试用生命周期步骤异常。
+
+        :param context: 当前操作所需的上下文
+        :raises RuntimeError: 模拟生命周期步骤执行失败
+        """
         raise RuntimeError('broken step')
 
     with pytest.raises(PluginLifecycleStepFailed) as exc_info:

@@ -3,6 +3,7 @@ import json
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from functools import cache
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 
@@ -15,6 +16,9 @@ from utils.log_util import logger
 
 from .service.lifecycle_lock import NoopPluginLifecycleLock, PluginLifecycleLock
 
+if TYPE_CHECKING:
+    from plugins.core.deployment.worker import PluginReleaseWorker
+
 
 class PluginApplicationRuntime:
     """
@@ -22,6 +26,16 @@ class PluginApplicationRuntime:
 
     server.py 只依赖该适配器提供的高层扩展点，插件实体导入、二次建表、启动资源安装、
     多 worker ready barrier 和生命周期钩子等细节留在插件运行时内部。
+
+    :ivar startup_manager: 插件启动协调器
+    :ivar ready_key: 插件启动 ready 标记 key
+    :ivar ready_expire_seconds: ready 标记过期时间
+    :ivar failed_expire_seconds: 失败标记过期时间
+    :ivar ready_wait_timeout_seconds: 等待 ready 超时时间
+    :ivar ready_wait_interval_seconds: 等待 ready 轮询间隔
+    :ivar lifecycle_lock: 插件生命周期全局锁
+    :ivar startup_generation: 测试或部署显式注入的启动代际
+    :ivar release_worker: 维护当前发布快照和 worker 心跳的可选协调器
     """
 
     def __init__(
@@ -32,10 +46,10 @@ class PluginApplicationRuntime:
         ready_expire_seconds: int = LockConstant.PLUGIN_STARTUP_READY_EXPIRE_SECONDS,
         failed_expire_seconds: int = LockConstant.PLUGIN_STARTUP_FAILED_EXPIRE_SECONDS,
         ready_wait_timeout_seconds: int = LockConstant.PLUGIN_STARTUP_READY_WAIT_TIMEOUT_SECONDS,
-        ready_wait_interval_seconds: int = LockConstant.PLUGIN_STARTUP_READY_WAIT_INTERVAL_SECONDS,
+        ready_wait_interval_seconds: float = LockConstant.PLUGIN_STARTUP_READY_WAIT_INTERVAL_SECONDS,
         lifecycle_lock: PluginLifecycleLock | None = None,
         startup_generation: str | None = None,
-        release_worker: object | None = None,
+        release_worker: 'PluginReleaseWorker | None' = None,
     ) -> None:
         """
         初始化插件应用运行时适配器。
@@ -49,7 +63,6 @@ class PluginApplicationRuntime:
         :param lifecycle_lock: 插件生命周期全局锁
         :param startup_generation: 测试或部署显式注入的启动代际
         :param release_worker: 维护当前发布快照和 worker 心跳的可选协调器
-        :return: None
         """
         self.startup_manager = startup_manager or PluginRuntimeStartupManager()
         self.ready_key = ready_key
@@ -66,7 +79,6 @@ class PluginApplicationRuntime:
         绑定插件运行时到 FastAPI app。
 
         :param app: FastAPI对象
-        :return: None
         """
         app.state.plugin_application_runtime = self
         self.startup_manager.bind_app(app)
@@ -76,7 +88,6 @@ class PluginApplicationRuntime:
         准备插件平台自身元数据。
 
         :param app: FastAPI对象
-        :return: None
         """
         self._ensure_bound(app)
         self.startup_manager.import_builtin_entities()
@@ -97,12 +108,15 @@ class PluginApplicationRuntime:
 
         :param app: FastAPI对象
         :param create_tables: 数据库建表回调
-        :return: None
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         try:
             if self.release_worker is not None:
                 await self.release_worker.start(
-                    app, self.startup_manager.builder, self.lifecycle_lock, timeout=self.ready_wait_timeout_seconds
+                    app,
+                    self.startup_manager.builder,
+                    self.lifecycle_lock,
+                    lock_wait_seconds=self.ready_wait_timeout_seconds,
                 )
                 self.startup_generation = self.release_worker.generation(self.resolve_startup_generation())
                 app.state.plugin_release_worker = self.release_worker
@@ -145,7 +159,7 @@ class PluginApplicationRuntime:
 
         :param app: 宿主 FastAPI 应用
         :param create_tables: 在允许写入的 worker 中创建数据库表的异步回调
-        :return: None
+        :raises TimeoutError: 等待操作超过时限时
         """
         self._ensure_bound(app)
         if self.release_worker is not None:
@@ -242,6 +256,7 @@ class PluginApplicationRuntime:
         :param ready_message: 复用ready时的日志
         :param failed_message: 发现failed marker时的日志
         :return: 是否已完成reader激活、是否已记录过期ready告警
+        :raises RuntimeError: 启动状态报告失败
         """
         ready_status = ready_state.get('status', 'missing')
         reader_logger = logger.bind(
@@ -308,7 +323,7 @@ class PluginApplicationRuntime:
         :param app: FastAPI对象
         :param generation: 插件启动代际
         :param create_tables: 数据库建表回调
-        :return: None
+        :raises Exception: 底层操作失败时向调用方传播异常
         """
         app.state.plugin_startup_write_enabled = True
         writer_logger = logger.bind(
@@ -344,7 +359,6 @@ class PluginApplicationRuntime:
 
         :param app: FastAPI对象
         :param generation: 插件启动代际
-        :return: None
         """
         reader_logger = logger.bind(
             startup_generation=generation,
@@ -368,7 +382,6 @@ class PluginApplicationRuntime:
         :param app: FastAPI对象
         :param generation: 插件启动代际
         :param role: 当前worker的插件启动角色
-        :return: None
         """
         plugin_registry = getattr(app.state, 'plugin_registry', None)
         enabled_plugin_ids = (
@@ -390,7 +403,6 @@ class PluginApplicationRuntime:
         关闭插件运行时。
 
         :param app: FastAPI对象
-        :return: None
         """
         self._ensure_bound(app)
         startup_write_enabled = bool(getattr(app.state, 'plugin_startup_write_enabled', False))
@@ -407,7 +419,6 @@ class PluginApplicationRuntime:
         关闭诊断采样，观测清理失败不阻止发布 worker 上报最终状态。
 
         :param app: 宿主 FastAPI 应用
-        :return: None
         """
         reporter = getattr(app.state, 'plugin_diagnostics_reporter', None)
         if isinstance(reporter, PluginDiagnosticsReporter):
@@ -422,7 +433,6 @@ class PluginApplicationRuntime:
 
         :param app: FastAPI对象
         :param generation: 插件启动代际
-        :return: None
         """
         resolved_generation = generation or self.resolve_startup_generation()
         await app.state.redis.delete(self.build_ready_key(resolved_generation))
@@ -433,7 +443,6 @@ class PluginApplicationRuntime:
 
         :param app: FastAPI对象
         :param generation: 插件启动代际
-        :return: None
         """
         resolved_generation = generation or self.resolve_startup_generation()
         await app.state.redis.set(
@@ -461,7 +470,6 @@ class PluginApplicationRuntime:
         :param app: FastAPI对象
         :param generation: 插件启动代际
         :param error: 启动异常
-        :return: None
         """
         await app.state.redis.set(
             self.build_ready_key(generation),
@@ -512,7 +520,7 @@ class PluginApplicationRuntime:
         构建代际隔离的 ready key。
 
         :param generation: 插件启动代际
-        :return: Redis key
+        :return: Redis 缓存键
         """
         return f'{self.ready_key}:{generation}'
 
@@ -532,7 +540,6 @@ class PluginApplicationRuntime:
         确保插件运行时已绑定到 app。
 
         :param app: FastAPI对象
-        :return: None
         """
         if getattr(app.state, 'plugin_application_runtime', None) is not self:
             self.bind_app(app)

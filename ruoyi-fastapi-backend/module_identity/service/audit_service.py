@@ -1,12 +1,12 @@
 from collections.abc import Awaitable, Callable, Mapping
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from common.constant import OidcAuditEvent
 from config.database import DataSourceRegistry
 from exceptions.exception import OidcInteractionException
-from module_identity.dao.oauth_audit_dao import OAuthAuditDao
+from module_identity.dao.oauth_audit_dao import AuditFilters, OAuthAuditDao
 from module_identity.entity.do.oauth_audit_do import SysOAuthAuditLog
 from module_identity.entity.vo.oauth_session_vo import AuditModel, AuditPageQueryModel
 from utils.excel_util import ExcelUtil
@@ -15,7 +15,11 @@ from utils.oidc_util import OidcUtil
 
 class AuditService:
     """
-    认证审计模块服务层
+    认证审计模块服务层。
+
+    :cvar EVENT_FIELDS: 审计事件允许记录的字段
+    :cvar HIGH_RISK_EVENTS: 标记为高风险的审计事件类型
+    :cvar _EVENT_TYPE_MAX_LENGTH: 审计事件类型名允许的最大长度
     """
 
     EVENT_FIELDS = frozenset(
@@ -59,13 +63,12 @@ class AuditService:
     @classmethod
     def _risk_level(cls, event_type: str, risk_level: str | None) -> str:
         """
-        计算事件风险等级
+        计算事件风险等级。
 
         :param event_type: 审计事件类型
         :param risk_level: 风险等级
         :return: 审计风险等级
         """
-
         if event_type in cls.HIGH_RISK_EVENTS:
             return 'high'
         return risk_level if risk_level in {'normal', 'medium', 'high', 'critical'} else 'normal'
@@ -73,13 +76,12 @@ class AuditService:
     @classmethod
     def build_event(cls, **fields: Any) -> SysOAuthAuditLog:
         """
-        按审计模型字段白名单构建安全事件对象
+        按审计模型字段白名单构建安全事件对象。
 
         :param fields: 审计字段；白名单以外的字段会被丢弃
         :return: 未提交的审计日志实体
         :raises ValueError: 缺少事件类型或结果时抛出
         """
-
         event_type = fields.get('event_type')
         result = fields.get('result')
         if (
@@ -124,7 +126,7 @@ class AuditService:
         **fields: Any,
     ) -> SysOAuthAuditLog:
         """
-        脱敏并追加一条审计事件，不提交调用方事务
+        脱敏并追加一条审计事件，不提交调用方事务。
 
         :param db: 异步数据库会话
         :param event_type: 事件类型
@@ -133,7 +135,6 @@ class AuditService:
         :param fields: 其余白名单审计字段
         :return: 已刷新但尚未提交的审计日志实体
         """
-
         event = cls.build_event(event_type=event_type, result=result, risk_level=risk_level, **fields)
 
         return await OAuthAuditDao.append(db, event)
@@ -149,7 +150,7 @@ class AuditService:
         **fields: Any,
     ) -> SysOAuthAuditLog:
         """
-        在不依赖业务事务的独立会话中提交审计事件
+        在不依赖业务事务的独立会话中提交审计事件。
 
         :param db: 当前业务会话，用于测试环境复用其绑定引擎
         :param event_type: 事件类型
@@ -158,7 +159,6 @@ class AuditService:
         :param fields: 经过白名单过滤的安全字段
         :return: 已提交的审计日志实体
         """
-
         engine = db.info.get('service_engine') or getattr(db, 'bind', None)
         if engine is not None:
             factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -186,26 +186,24 @@ class AuditService:
     @classmethod
     async def append(cls, db: AsyncSession, event: SysOAuthAuditLog | Mapping[str, Any]) -> SysOAuthAuditLog:
         """
-        追加事件对象或字段映射，并保留调用方提交边界
+        追加事件对象或字段映射，并保留调用方提交边界。
 
         :param db: 异步数据库会话
         :param event: 审计实体或待构建字段映射
         :return: 已刷新但尚未提交的审计日志实体
         """
-
         row = event if isinstance(event, SysOAuthAuditLog) else cls.build_event(**dict(event))
 
         return await OAuthAuditDao.append(db, row)
 
     @staticmethod
-    def _admin_filters(query: AuditPageQueryModel) -> dict[str, object]:
+    def _admin_filters(query: AuditPageQueryModel) -> AuditFilters:
         """
-        构造管理端审计查询条件
+        构造管理端审计查询条件。
 
         :param query: 管理端审计分页查询条件
         :return: 传给审计 DAO 的筛选条件
         """
-
         return {
             'client_id': query.client_id,
             'user_id': query.user_id,
@@ -219,13 +217,12 @@ class AuditService:
     @staticmethod
     def _admin_model(row: SysOAuthAuditLog) -> dict[str, object]:
         """
-        将审计实体投影为脱敏管理端模型
+        将审计实体投影为脱敏管理端模型。
 
         :param row: 审计日志实体
         :return: 不含详情敏感字段的管理端模型字典
         """
-
-        return AuditModel(
+        model = AuditModel(
             audit_id=row.event_id,
             event_type=row.event_type,
             result=row.result,
@@ -239,18 +236,18 @@ class AuditService:
             ip_address=getattr(row, 'ip_address', None),
             failure_code=getattr(row, 'failure_code', None),
             create_time=row.create_time,
-        ).model_dump(by_alias=True)
+        )
+        return cast('dict[str, object]', model.model_dump(by_alias=True))
 
     @classmethod
     async def list_admin_page(cls, db: AsyncSession, query: AuditPageQueryModel) -> tuple[list[dict[str, object]], int]:
         """
-        查询管理端审计分页并返回脱敏结果
+        查询管理端审计分页并返回脱敏结果。
 
         :param db: 异步数据库会话
         :param query: 管理端审计分页查询条件
         :return: 脱敏审计行列表及总数
         """
-
         params = cls._admin_filters(query)
         rows = await OAuthAuditDao.list_admin_page(
             db, offset=(query.page_num - 1) * query.page_size, limit=query.page_size, **params
@@ -262,13 +259,12 @@ class AuditService:
     @classmethod
     async def export_admin(cls, db: AsyncSession, query: AuditPageQueryModel) -> bytes:
         """
-        导出管理端审计分页范围内的脱敏数据
+        导出管理端审计分页范围内的脱敏数据。
 
         :param db: 异步数据库会话
         :param query: 管理端审计筛选条件
         :return: 脱敏审计 Excel 文件字节
         """
-
         rows = await OAuthAuditDao.list_admin_page(db, offset=0, limit=5000, **cls._admin_filters(query))
         mapping = {field.alias or name: field.alias or name for name, field in AuditModel.model_fields.items()}
 
@@ -277,15 +273,13 @@ class AuditService:
     @classmethod
     async def record_interaction_failure(cls, db: AsyncSession, event_type: str, **fields: Any) -> None:
         """
-        回滚交互事务并独立提交高风险失败审计
+        回滚交互事务并独立提交高风险失败审计。
 
         :param db: 认证交互使用的异步数据库会话
         :param event_type: 失败审计事件类型
         :param fields: 经过白名单过滤的审计字段
-        :return: None
         :raises OidcInteractionException: 独立审计提交失败时抛出
         """
-
         await db.rollback()
         try:
             await cls.record_independent(db, event_type, 'failure', risk_level='high', **fields)
@@ -296,7 +290,7 @@ class AuditService:
     @staticmethod
     def interaction_subject_writer(db: AsyncSession) -> Callable[[int], Awaitable[object]]:
         """
-        构造缺失身份主体的独立审计写入器
+        构造缺失身份主体的独立审计写入器。
 
         :param db: 认证交互使用的异步数据库会话
         :return: 接收用户 ID 并独立写入审计的异步回调
@@ -304,12 +298,11 @@ class AuditService:
 
         async def write(user_id: int) -> object:
             """
-            写入审计记录
+            写入审计记录。
 
             :param user_id: 本地用户 ID
             :return: 已提交的审计日志实体
             """
-
             return await AuditService.record_independent(
                 db,
                 OidcAuditEvent.IDENTITY_SUBJECT_MISSING,

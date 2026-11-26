@@ -9,7 +9,7 @@ import re
 import secrets
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, TypeGuard
 from urllib.parse import parse_qsl, unquote_plus, urlencode, urlsplit, urlunsplit
 from uuid import RFC_4122, UUID
 
@@ -22,6 +22,33 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 class OidcUtil:
     """
     统一认证公共工具类。
+
+    :cvar _PROTOCOL_DESCRIPTION_PATTERN: 校验协议错误描述允许字符的正则表达式
+    :cvar _ERROR_MESSAGES: 按错误类型查找的提示文本
+    :cvar _DEFAULT_PROTOCOL_DESCRIPTIONS: 按协议错误码选择的默认英文说明
+    :cvar _DESCRIPTION_MESSAGES: 协议错误描述到本地化消息的映射
+    :cvar _PROTOCOL_DESCRIPTIONS: 本地化消息到协议错误描述的反向映射
+    :cvar _SENSITIVE_KEY: 匹配需要隐藏的敏感字段名的规则
+    :cvar _SENSITIVE_VALUE: 匹配可能包含凭证的字段值的规则
+    :cvar _OPAQUE_CAPABILITY: 匹配不透明凭证格式的正则表达式
+    :cvar _JWT_PART_COUNT: 识别 JWT 时要求的片段数
+    :cvar _JWT_PART_MIN_LENGTH: 识别 JWT 片段时允许的最小长度
+    :cvar _JWT_PART_MAX_LENGTH: 识别 JWT 片段时允许的最大长度
+    :cvar _COMPONENT_PATTERN: 校验标识组件格式的正则表达式
+    :cvar _SHA256_HEX_LENGTH: SHA-256 摘要的十六进制字符数
+    :cvar _ENCRYPTION_KDF_ITERATIONS: 密钥派生使用的迭代次数
+    :cvar _SAFE_KID_PATTERN: 校验密钥标识格式的正则表达式
+    :cvar _MIN_PEPPER_BYTES: 服务端摘要密钥要求的最少字节数
+    :cvar _MAX_URI_LENGTH: 允许注册或处理的 URI 长度上限
+    :cvar _DEVELOPMENT_HTTP_HOSTS: 在开发环境允许使用 HTTP 的主机名
+    :cvar _USERINFO_AUDIENCE_SUFFIX: 构造用户信息接口受众标识的后缀
+    :cvar _ASCII_CONTROL_LIMIT: ASCII 控制字符范围的上界
+    :cvar _MAX_USER_AGENT_LENGTH: 保存客户端标识字符串时的长度上限
+    :cvar _COOKIE_PARTS: 解析会话 Cookie 时预期的组成段数
+    :cvar _COOKIE_PREFIX: 标识会话 Cookie 格式的前缀
+    :cvar _COOKIE_SECRET_TEXT_LENGTH: Cookie 密钥编码后的字符长度
+    :cvar _COOKIE_SECRET_BYTES: 生成 Cookie 密钥时使用的随机字节数
+    :cvar _S256_CHALLENGE: 校验 PKCE S256 挑战值的正则表达式
     """
 
     _PROTOCOL_DESCRIPTION_PATTERN = re.compile(r'[\x20-\x21\x23-\x5B\x5D-\x7E]+')
@@ -238,14 +265,13 @@ class OidcUtil:
     @staticmethod
     def read_field(user: Any, name: str, default: Any = None) -> Any:
         """
-        从 ORM 用户对象或字典读取字段
+        从 ORM 用户对象或字典读取字段。
 
         :param user: SysUser ORM 记录或用户 Claim 字段映射
         :param name: 字段名称
         :param default: 字段缺省值
         :return: 读取的字段值
         """
-
         if isinstance(user, Mapping):
             return user.get(name, default)
         return getattr(user, name, default)
@@ -253,13 +279,13 @@ class OidcUtil:
     @staticmethod
     def positive_int(value: Any, field: str) -> int:
         """
-        校验正整数标量
+        校验正整数标量。
 
         :param value: 待校验的正整数
         :param field: 字段名称
         :return: 校验后的正整数
+        :raises ValueError: 字段值不是正整数
         """
-
         if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
             raise ValueError(f'{field} 必须为正整数')
         return value
@@ -267,13 +293,13 @@ class OidcUtil:
     @staticmethod
     def nonnegative_int(value: Any, field: str) -> int:
         """
-        校验非负整数标量
+        校验非负整数标量。
 
         :param value: 待校验的非负整数
         :param field: 字段名称
         :return: 校验后的非负整数
+        :raises ValueError: 字段值不是非负整数
         """
-
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise ValueError(f'{field} 必须为非负整数')
         return value
@@ -281,14 +307,14 @@ class OidcUtil:
     @staticmethod
     def nonempty_string(value: Any, field: str, limit: int) -> str:
         """
-        校验非空字符串及长度
+        校验非空字符串及长度。
 
         :param value: 待校验的字符串
         :param field: 字段名称
         :param limit: 字符串的最大长度
         :return: 校验后的字符串
+        :raises ValueError: 值不是非空字符串或超过长度上限
         """
-
         if not isinstance(value, str) or not value or len(value) > limit:
             raise ValueError(f'{field} 必须为非空字符串')
         return value
@@ -296,14 +322,14 @@ class OidcUtil:
     @classmethod
     def string_list(cls, value: Any, field: str, limit: int) -> list[str]:
         """
-        校验字符串列表并复制为 JSON 安全列表
+        校验字符串列表并复制为 JSON 安全列表。
 
         :param value: 待校验的字符串列表
         :param field: 字段名称
         :param limit: 字符串列表的最大长度
         :return: 校验后的字符串列表
+        :raises ValueError: 值不是满足长度要求的字符串序列
         """
-
         if not isinstance(value, (list, tuple)) or len(value) > limit:
             raise ValueError(f'{field} 必须为符合长度限制的字符串列表')
         return [cls.nonempty_string(item, field, 500) for item in value]
@@ -311,24 +337,22 @@ class OidcUtil:
     @staticmethod
     def json_list(value: Any) -> list[Any]:
         """
-        将 Scope 或 Resource 字段规范化为列表
+        将 Scope 或 Resource 字段规范化为列表。
 
         :param value: JSON 编码的 Scope 或 Resource 列表值
         :return: Scope 或 Resource 元素列表；输入不是 JSON 数组时返回空列表
         """
-
         return list(value) if isinstance(value, (list, tuple)) else []
 
     @staticmethod
     def json_object_pairs(items: list[tuple[str, object]]) -> dict[str, object]:
         """
-        构造拒绝重复字段的 JSON 对象
+        构造拒绝重复字段的 JSON 对象。
 
         :param items: JSON 对象字段
         :return: 唯一字段组成的对象
         :raises ValueError: JSON 对象包含重复字段
         """
-
         result: dict[str, object] = {}
         for key, value in items:
             # 拒绝重复字段，避免不同解析器产生歧义
@@ -345,6 +369,7 @@ class OidcUtil:
         :param record: 需要缓存的标量载荷
         :param error_message: 调用场景的中文错误说明
         :return: 按键排序的 JSON 字符串
+        :raises ValueError: 数据不能序列化为有效的 JSON
         """
         try:
             return json.dumps(record, ensure_ascii=False, separators=(',', ':'), sort_keys=True, allow_nan=False)
@@ -354,12 +379,11 @@ class OidcUtil:
     @staticmethod
     def json_etag(payload: Mapping[str, Any]) -> str:
         """
-        为 JWKS 响应计算稳定的强 ETag
+        为 JWKS 响应计算稳定的强 ETag。
 
         :param payload: 公开响应 JSON 映射
         :return: 带双引号的 SHA-256 ETag
         """
-
         canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
 
         return '"' + hashlib.sha256(canonical).hexdigest() + '"'
@@ -372,6 +396,7 @@ class OidcUtil:
         :param value: 待校验的操作者名称
         :param error_message: 名称不可用时的中文说明
         :return: 最多 64 个字符的操作者名称
+        :raises ValueError: 操作人名称为空或格式无效
         """
         if not isinstance(value, str) or not value.strip():
             raise ValueError(error_message)
@@ -387,6 +412,7 @@ class OidcUtil:
         :param max_size: 允许的最大项目数量
         :param validate_all_first: 是否先校验全部格式再检查重复，保留调用场景的报错顺序
         :return: 去除首尾空白后的标识列表
+        :raises ValueError: 批次为空、超出大小限制或含有重复参数
         """
         items = value.split(',') if isinstance(value, str) else []
         if not items or len(items) > max_size:
@@ -394,6 +420,12 @@ class OidcUtil:
         values = [item.strip() for item in items]
 
         def invalid(item: str) -> bool:
+            """
+            判断批量标识是否包含不可接受的路径字符。
+
+            :param item: 当前要处理的条目
+            :return: 是否批量标识是否包含不可接受的路径字符
+            """
             return not item or '%' in item or '/' in item or '\\' in item or any(char.isspace() for char in item)
 
         if validate_all_first and any(invalid(item) for item in values):
@@ -415,6 +447,7 @@ class OidcUtil:
         :param values: 待校验的编码集合
         :param field_name: 中文错误说明中的字段名称
         :return: 保持原序的编码列表
+        :raises ValueError: 标识为空、带有多余空白或包含重复项
         """
         result: list[str] = []
         for value in values:
@@ -428,13 +461,13 @@ class OidcUtil:
     @staticmethod
     def normalize_user_ids(values: Iterable[int], *, max_size: int) -> tuple[int, ...]:
         """
-        校验、去重并排序用户 ID，确保批量锁顺序稳定
+        校验、去重并排序用户 ID，确保批量锁顺序稳定。
 
         :param values: 待校验的用户 ID 可迭代集合
         :param max_size: 去重后允许的最大用户数量
         :return: 排序去重后的用户 ID 元组
+        :raises ValueError: 用户编号列表必须全部为整数；用户编号列表数量无效；用户编号列表必须全部为正整数
         """
-
         if isinstance(values, (str, bytes)):
             raise ValueError('用户编号列表必须全部为整数')
         result = tuple(sorted(set(values)))
@@ -453,18 +486,16 @@ class OidcUtil:
         :param max_length: 标识最大长度
         :return: Session ID 是否有效
         """
-
         return isinstance(value, str) and 1 <= len(value) <= max_length and value.strip() == value
 
     @staticmethod
     def scope_set(scopes: str | Iterable[str] | None) -> set[str]:
         """
-        将空格分隔或集合形式的 Scope 规范化
+        将空格分隔或集合形式的 Scope 规范化。
 
         :param scopes: 请求的 Scope 集合
         :return: 规范化 Scope 集合
         """
-
         if scopes is None:
             return set()
         if isinstance(scopes, str):
@@ -474,12 +505,11 @@ class OidcUtil:
     @staticmethod
     def normalize_audiences(value: Any) -> list[str]:
         """
-        将 aud 声明规范化为去重列表
+        将 aud 声明规范化为去重列表。
 
         :param value: OAuth Token 的 Audience 声明值
         :return: 去重后的 Audience 列表；格式非法时返回空列表
         """
-
         values = [value] if isinstance(value, str) else value
         if not isinstance(values, list) or not values or any(not isinstance(item, str) or not item for item in values):
             return []
@@ -488,13 +518,12 @@ class OidcUtil:
     @staticmethod
     def token_audiences(issuer: str, resources: Sequence[str]) -> list[str]:
         """
-        将 aud 声明规范化为去重列表
+        将 aud 声明规范化为去重列表。
 
-        :param issuer: OIDC issuer URL
+        :param issuer: OIDC 签发者地址
         :param resources: 已校验的 Resource audience 字符串序列
         :return: 包含 userinfo audience 和 Resource audience 的去重列表
         """
-
         result = [f'{issuer.rstrip("/")}{OidcUtil._USERINFO_AUDIENCE_SUFFIX}']
         result.extend(resources)
 
@@ -503,12 +532,11 @@ class OidcUtil:
     @staticmethod
     def claim_numeric_date(value: Any) -> int | float | None:
         """
-        将用户更新时间转换为 NumericDate
+        将用户更新时间转换为 NumericDate。
 
         :param value: 用户更新时间
         :return: NumericDate 时间戳或 None
         """
-
         if value is None or isinstance(value, (int, float)):
             return value
         timestamp = getattr(value, 'timestamp', None)
@@ -518,12 +546,11 @@ class OidcUtil:
     @staticmethod
     def numeric_date(value: datetime | None) -> int | None:
         """
-        将 datetime 转换为有限的 Unix 时间戳
+        将 datetime 转换为有限的 Unix 时间戳。
 
         :param value: 可选的 Token 签发时间或过期时间
         :return: 有限的 Unix 时间戳；输入为空或时间戳非有限时返回 None
         """
-
         if value is None:
             return None
         timestamp = value.timestamp()
@@ -533,14 +560,14 @@ class OidcUtil:
     @staticmethod
     def requires_reauthentication(auth_time: datetime, max_age: int | None, now: datetime | None = None) -> bool:
         """
-        纯函数判断 SSO 认证是否超过 max_age
+        纯函数判断 SSO 认证是否超过 max_age。
 
         :param auth_time: SSO 认证时间
         :param max_age: 请求的最大认证年龄
         :param now: 可选当前时间
         :return: 超过 max_age 时为 True
+        :raises ValueError: max_age 必须为非负整数
         """
-
         # 时间工具依赖基础异常，延迟导入避免异常模块初始化时形成循环。
         from utils.time_util import TimezoneUtil  # noqa: PLC0415
 
@@ -558,13 +585,13 @@ class OidcUtil:
     @staticmethod
     def validate_path_identifier(value: str, field_name: str) -> str:
         """
-        校验可安全放入单一路径段的管理标识
+        校验可安全放入单一路径段的管理标识。
 
         :param value: 待校验的资源或权限标识
         :param field_name: 校验失败时展示的字段名称
         :return: 校验通过的管理标识
+        :raises ValueError: 标识含有不能用于单一路径段的字符
         """
-
         if (
             not isinstance(value, str)
             or not value
@@ -575,7 +602,7 @@ class OidcUtil:
         return value
 
     @classmethod
-    def is_valid_kid(cls, value: Any) -> bool:
+    def is_valid_kid(cls, value: object) -> TypeGuard[str]:
         """
         检查签名密钥标识的字符集和长度。
 
@@ -587,13 +614,13 @@ class OidcUtil:
     @staticmethod
     def validate_registered_uri(uri_type: str, value: str) -> str:
         """
-        校验注册 URI
+        校验注册 URI。
 
         :param uri_type: 注册地址类型
         :param value: 待校验的完整注册地址
         :return: 校验通过的原始注册地址
+        :raises ValueError: 地址不得包含通配符；地址必须使用 HTTP 或 HTTPS 协议并包含主机名；地址不得包含用户名或密码；地址不得包含片段标识 fragment；后端退出通知地址不得包含查询参数；地址中的主机名或端口无效；地址必须包含主机名；HTTP 地址仅允许用于本机开发环境；跨域来源只能包含协议、主机名和可选端口
         """
-
         if '*' in value:
             raise ValueError('地址不得包含通配符')
         parsed = urlsplit(value)
@@ -621,14 +648,13 @@ class OidcUtil:
     @staticmethod
     def validate_resource_audience(audience: str, *, max_length: int) -> str:
         """
-        校验 Resource audience URI
+        校验 Resource audience URI。
 
-        :param audience: Resource audience
+        :param audience: 目标资源的受众标识
         :param max_length: URI 最大长度
         :return: 校验后的 Resource audience URI
         :raises ValueError: audience 不是无用户信息的绝对 HTTPS URI 时抛出
         """
-
         if not isinstance(audience, str) or not audience or len(audience) > max_length:
             raise ValueError('资源受众必须为非空地址')
         parsed = urlsplit(audience)
@@ -648,12 +674,11 @@ class OidcUtil:
     @staticmethod
     def is_safe_post_logout_uri(uri: Any) -> bool:
         """
-        验证退出后重定向 URI 的安全格式
+        验证退出后重定向 URI 的安全格式。
 
         :param uri: 回调 URI
         :return: URI 是否满足退出后重定向安全约束
         """
-
         if not isinstance(uri, str) or not uri or len(uri) > OidcUtil._MAX_URI_LENGTH or '*' in uri:
             return False
         try:
@@ -675,12 +700,11 @@ class OidcUtil:
     @staticmethod
     def is_public_ip(value: str) -> bool:
         """
-        判断地址是否不属于回环、内网、链路本地或保留网段
+        判断地址是否不属于回环、内网、链路本地或保留网段。
 
         :param value: IPv4 或 IPv6 文本地址
         :return: 仅当地址可作为公网目标时返回 ``True``
         """
-
         try:
             address = ipaddress.ip_address(value)
         except ValueError:
@@ -697,12 +721,11 @@ class OidcUtil:
     @staticmethod
     def parse_backchannel_uri(uri: object) -> tuple[str, int] | None:
         """
-        解析并校验 Back-Channel URI 的非网络安全边界
+        解析并校验 Back-Channel URI 的非网络安全边界。
 
         :param uri: 待校验的 URI
         :return: 合法时返回主机名和端口，否则返回 ``None``
         """
-
         if not isinstance(uri, str) or not uri or len(uri) > OidcUtil._MAX_URI_LENGTH or '*' in uri:
             return None
         try:
@@ -770,13 +793,12 @@ class OidcUtil:
     @staticmethod
     def append_state(redirect_uri: str, state: str | None) -> str:
         """
-        为已验证的退出回调地址附加状态参数
+        为已验证的退出回调地址附加状态参数。
 
         :param redirect_uri: 服务端已验证的退出回调地址
         :param state: 原始退出状态参数
         :return: 附加状态参数后的回调地址
         """
-
         if state is None:
             return redirect_uri
         return OidcUtil.replace_query_parameters(redirect_uri, [('state', state)], {'state'})
@@ -784,14 +806,13 @@ class OidcUtil:
     @staticmethod
     def interaction_url(base: str, interaction_id: str, csrf_token: str) -> str:
         """
-        构建只把原始 CSRF 放入 URL Fragment 的交互地址
+        构建只把原始 CSRF 放入 URL Fragment 的交互地址。
 
         :param base: 交互地址基址
         :param interaction_id: 交互流程标识
-        :param csrf_token: CSRF Token
+        :param csrf_token: 防止跨站请求伪造的令牌
         :return: 交互页面 URL
         """
-
         parsed = urlsplit(base)
         query = dict(parse_qsl(parsed.query, keep_blank_values=True))
         query['interaction'] = interaction_id
@@ -805,6 +826,7 @@ class OidcUtil:
 
         :param value: 空格分隔的 prompt 参数
         :return: 保持原顺序的规范化参数或 None
+        :raises ValueError: prompt 只能包含支持的值，且 none 不能与其他值组合
         """
         if value is None:
             return None
@@ -833,12 +855,11 @@ class OidcUtil:
     @staticmethod
     def base64url_encode(value: bytes) -> str:
         """
-        将字节编码为无填充的 Base64URL 文本
+        将字节编码为无填充的 Base64URL 文本。
 
         :param value: 待编码字节
         :return: 无填充的 Base64URL 文本
         """
-
         return base64.urlsafe_b64encode(value).rstrip(b'=').decode('ascii')
 
     @staticmethod
@@ -855,14 +876,13 @@ class OidcUtil:
     @staticmethod
     def sha256_hex_digest(value: str | bytes) -> str:
         """
-        校验已生成的 SHA-256 十六进制摘要
+        校验已生成的 SHA-256 十六进制摘要。
 
         :param value: 摘要文本或 ASCII 字节
         :return: 小写十六进制摘要
         :raises TypeError: 输入不是 str 或 bytes
         :raises ValueError: 摘要长度或字符集不正确
         """
-
         if not isinstance(value, (str, bytes)):
             raise TypeError('摘要必须为字符串或字节数据')
         if isinstance(value, bytes):
@@ -894,12 +914,11 @@ class OidcUtil:
     @staticmethod
     def access_token_hash(access_token: str) -> str:
         """
-        计算 OIDC at_hash 值
+        计算 OIDC at_hash 值。
 
         :param access_token: 待计算 OIDC at_hash 的 ASCII JWT Access Token 文本
         :return: SHA-256 前 128 bit 摘要的无填充 Base64URL 字符串
         """
-
         digest = hashlib.sha256(access_token.encode('ascii')).digest()[:16]
 
         return base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
@@ -907,13 +926,13 @@ class OidcUtil:
     @staticmethod
     def csrf_digest(token: str, pepper: str) -> str:
         """
-        使用独立 Pepper 生成 CSRF HMAC 摘要
+        使用独立 Pepper 生成 CSRF HMAC 摘要。
 
         :param token: 原始 CSRF Token
         :param pepper: Token 摘要 Pepper
         :return: CSRF 摘要
+        :raises ValueError: CSRF 摘要密钥至少需要 32 字节
         """
-
         if (
             not isinstance(token, str)
             or not isinstance(pepper, str)
@@ -967,14 +986,13 @@ class OidcUtil:
     @classmethod
     def redis_key_component(cls, value: str | int, *, name: str = 'Redis Key 组件') -> str:
         """
-        校验可作为 Key 路径组件的标识符
+        校验可作为 Key 路径组件的标识符。
 
         :param value: 待校验的标识符
         :param name: 错误信息中的字段名称
         :return: 原样返回的安全组件
         :raises ValueError: 组件为空或包含路径/控制字符
         """
-
         component = str(value)
         if not cls._COMPONENT_PATTERN.fullmatch(component):
             raise ValueError(f'{name} 包含不允许的字符')
@@ -983,7 +1001,7 @@ class OidcUtil:
     @classmethod
     def hash_sensitive_identifier(cls, value: str | bytes, pepper: str | bytes) -> str:
         """
-        使用独立 Pepper 对敏感标识生成 HMAC-SHA256 摘要
+        使用独立 Pepper 对敏感标识生成 HMAC-SHA256 摘要。
 
         :param value: 用户名、IP 等敏感标识
         :param pepper: 独立于 JWT/传输加密密钥的 Pepper，至少 32 bytes
@@ -991,7 +1009,6 @@ class OidcUtil:
         :raises TypeError: 标识或 Pepper 类型错误
         :raises ValueError: Pepper 为空或长度不足
         """
-
         if not isinstance(value, (str, bytes)) or not isinstance(pepper, (str, bytes)):
             raise TypeError('敏感标识和摘要密钥必须为字符串或字节数据')
         raw_value = value.encode('utf-8') if isinstance(value, str) else value
@@ -1003,13 +1020,12 @@ class OidcUtil:
     @staticmethod
     def parse_basic_credentials(authorization: str) -> tuple[str, str]:
         """
-        解析 RFC 7617 Basic Header，不接受请求体 Secret 回退
+        解析 RFC 7617 Basic Header，不接受请求体 Secret 回退。
 
-        :param authorization: Authorization Header
+        :param authorization: 请求中的 Authorization 头
         :return: 解码后的 client_id 与 client_secret
         :raises ValueError: Header、Base64 或凭据格式不合法
         """
-
         if not isinstance(authorization, str) or authorization[:6].lower() != 'basic ':
             raise ValueError('客户端认证信息无效')
         encoded = authorization[6:].strip()
@@ -1044,23 +1060,21 @@ class OidcUtil:
     @staticmethod
     def generate_client_secret() -> str:
         """
-        生成仅应展示一次的高熵 Client Secret
+        生成仅应展示一次的高熵 Client Secret。
 
         :return: 带 cs1 类型前缀的随机 Secret
         """
-
         return f'cs1.{secrets.token_urlsafe(32)}'
 
     @staticmethod
     def client_secret_hashes(client: Any, explicit: Iterable[str] | None = None) -> list[str]:
         """
-        收集 Client 当前可用的 Secret 哈希
+        收集 Client 当前可用的 Secret 哈希。
 
         :param client: Client 映射或对象
         :param explicit: 调用方显式提供的 Secret 哈希集合
         :return: 规范化后的 Secret 哈希列表
         """
-
         values = explicit
         if values is None:
             values = OidcUtil.read_field(client, 'secret_hashes')
@@ -1084,12 +1098,11 @@ class OidcUtil:
     @staticmethod
     def is_rfc4122_uuid(value: str) -> bool:
         """
-        判断字符串是否为规范的 RFC 4122 UUID
+        判断字符串是否为规范的 RFC 4122 UUID。
 
         :param value: 待检查的 UUID 字符串
         :return: 是否为规范的 RFC 4122 UUID 字符串
         """
-
         try:
             parsed = UUID(value)
         except (TypeError, ValueError, AttributeError):
@@ -1099,13 +1112,12 @@ class OidcUtil:
     @staticmethod
     def parse_sso_cookie(cookie: str) -> tuple[str, str]:
         """
-        拆分并验证 SSO Cookie 中的 Session 标识和随机 Secret
+        拆分并验证 SSO Cookie 中的 Session 标识和随机 Secret。
 
         :param cookie: Cookie 原文
-        :return: ``(sid, secret)``
+        :return: 会话标识和密钥组成的二元组
         :raises ValueError: Cookie 格式、UUID 或 Secret 长度不合法
         """
-
         if not isinstance(cookie, str):
             raise ValueError('会话 Cookie 必须为字符串')
         parts = cookie.split('.')
@@ -1129,13 +1141,12 @@ class OidcUtil:
     @staticmethod
     def session_pepper_bytes(pepper: str | bytes) -> bytes:
         """
-        验证并转换 Token Pepper 字节串
+        验证并转换 Token Pepper 字节串。
 
-        :param pepper: OIDC Token Pepper
+        :param pepper: 用于 OIDC 令牌摘要的独立密钥
         :return: Pepper 字节
         :raises ValueError: Pepper 类型或长度不合法
         """
-
         if not isinstance(pepper, (str, bytes)):
             raise ValueError('会话摘要密钥必须为字符串或字节数据')
         raw = pepper.encode() if isinstance(pepper, str) else pepper
@@ -1146,14 +1157,13 @@ class OidcUtil:
     @classmethod
     def session_secret_digest(cls, secret: str | bytes, pepper: str | bytes) -> str:
         """
-        使用 Pepper 计算 Cookie Secret 的 HMAC 摘要
+        使用 Pepper 计算 Cookie Secret 的 HMAC 摘要。
 
         :param secret: Cookie Secret 原文，仅在请求内存中存在
-        :param pepper: OIDC Token Pepper
+        :param pepper: 用于 OIDC 令牌摘要的独立密钥
         :return: 十六进制 HMAC 摘要
         :raises ValueError: secret 不是 str/bytes，或 pepper 不是 str/bytes、编码后少于 32 字节
         """
-
         raw_secret = secret.encode() if isinstance(secret, str) else secret
         if not isinstance(raw_secret, bytes):
             raise ValueError('会话密钥必须为字节数据或字符串')
@@ -1162,14 +1172,13 @@ class OidcUtil:
     @classmethod
     def session_user_agent_digest(cls, user_agent: str | None, pepper: str | bytes) -> str | None:
         """
-        使用 Pepper 计算 User-Agent 的 HMAC 摘要
+        使用 Pepper 计算 User-Agent 的 HMAC 摘要。
 
         :param user_agent: 请求 User-Agent
-        :param pepper: OIDC Token Pepper
+        :param pepper: 用于 OIDC 令牌摘要的独立密钥
         :return: User-Agent 摘要或 None
         :raises ValueError: User-Agent 不是字符串、超过 500 个字符，或 pepper 编码后少于 32 字节
         """
-
         if user_agent is None:
             return None
         if not isinstance(user_agent, str) or len(user_agent) > OidcUtil._MAX_USER_AGENT_LENGTH:
@@ -1179,12 +1188,11 @@ class OidcUtil:
     @staticmethod
     def looks_like_jwt(value: str) -> bool:
         """
-        判断字符串是否具有 JWT 三段式秘密外观
+        判断字符串是否具有 JWT 三段式秘密外观。
 
         :param value: 待检测的字符串
         :return: 是否符合 JWT 外形
         """
-
         parts = value.split('.')
 
         return len(parts) == OidcUtil._JWT_PART_COUNT and all(
@@ -1194,12 +1202,11 @@ class OidcUtil:
     @classmethod
     def sanitize_audit_detail(cls, detail: Any) -> Any:
         """
-        递归删除审计详情中的敏感字段
+        递归删除审计详情中的敏感字段。
 
         :param detail: 待记录的任意可序列化值
         :return: 只包含安全字段的可序列化值
         """
-
         if isinstance(detail, Mapping):
             return {
                 str(key): cls.sanitize_audit_detail(value)
@@ -1248,7 +1255,7 @@ class OidcUtil:
         cls, record: Any, *, min_rsa_bits: int = 2048, min_exponent: int = 3, max_exponent: int = 2**32
     ) -> dict[str, str]:
         """
-        提取并校验公开 RSA JWK
+        提取并校验公开 RSA JWK。
 
         :param record: 数据库签名密钥记录或包含 public_jwk 字段的映射
         :param min_rsa_bits: 最小 RSA 模数位数
@@ -1257,7 +1264,6 @@ class OidcUtil:
         :return: 只包含公开字段的 JWK
         :raises ValueError: JWK 结构或算法不合法
         """
-
         value = getattr(record, 'public_jwk', record)
         if not isinstance(value, Mapping):
             raise ValueError('公开 JWK 必须为对象')
@@ -1275,15 +1281,11 @@ class OidcUtil:
             raise ValueError('签名密钥标识 kid 包含不允许的字符')
         if record_kid is not None and kid != record_kid:
             raise ValueError('公开 JWK 的 kid 与数据库密钥标识不匹配')
-        result = {field: value.get(field) for field in ('kty', 'use', 'kid', 'alg', 'n', 'e')}
-        result.update({'kty': 'RSA', 'use': 'sig', 'kid': kid, 'alg': 'RS256'})
-        if (
-            not isinstance(result.get('n'), str)
-            or not result['n']
-            or not isinstance(result.get('e'), str)
-            or not result['e']
-        ):
+        n = value.get('n')
+        e = value.get('e')
+        if not isinstance(n, str) or not n or not isinstance(e, str) or not e:
             raise ValueError('公开 JWK 必须包含 n 和 e')
+        result = {'kty': 'RSA', 'use': 'sig', 'kid': kid, 'alg': 'RS256', 'n': n, 'e': e}
         try:
             n_bytes = base64.urlsafe_b64decode(result['n'] + '=' * (-len(result['n']) % 4))
             e_bytes = base64.urlsafe_b64decode(result['e'] + '=' * (-len(result['e']) % 4))
@@ -1315,13 +1317,12 @@ class OidcUtil:
     @staticmethod
     def derive_signing_encryption_key(material: bytes, salt: bytes) -> bytes:
         """
-        使用随机盐派生私钥加密密钥
+        使用随机盐派生私钥加密密钥。
 
         :param material: 部署配置中的加密主密钥
         :param salt: 单条密钥记录的随机盐
         :return: AES-GCM 使用的 256 位密钥
         """
-
         return PBKDF2HMAC(
             algorithm=SHA256(),
             length=32,
@@ -1351,6 +1352,7 @@ class OidcUtil:
         :param ciphertext: 带版本前缀的私钥密文
         :param material: 部署加密主密钥
         :return: 已解密的私钥 PEM 字节
+        :raises ValueError: 不支持当前签名私钥密文格式
         """
         if ciphertext.startswith('v2.'):
             envelope = base64.urlsafe_b64decode(ciphertext.removeprefix('v2.'))

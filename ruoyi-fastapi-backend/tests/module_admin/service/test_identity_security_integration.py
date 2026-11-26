@@ -10,17 +10,18 @@ from module_admin.entity.vo.user_vo import AddUserModel, ResetUserModel
 from module_admin.service.role_service import RoleService
 from module_admin.service.user_service import UserService
 from module_identity.service.identity_service import IdentitySecurityEventService, IdentitySubjectService
+from tests.module_admin.service.helpers import make_query_db
 
 
 @pytest.mark.asyncio
 async def test_add_user_creates_subject_before_commit(monkeypatch: pytest.MonkeyPatch) -> None:
     """新增用户必须在同一会话提交前建立稳定 Subject。"""
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = make_query_db()
     monkeypatch.setattr(UserService, 'check_user_name_unique_services', AsyncMock(return_value=True))
     monkeypatch.setattr(UserDao, 'add_user_dao', AsyncMock(return_value=SimpleNamespace(user_id=7)))
     create_subject = AsyncMock()
     monkeypatch.setattr(IdentitySubjectService, 'create_for_new_user', create_subject)
-    payload = AddUserModel(userName='new-user', nickName='New User', createBy='admin')
+    payload = AddUserModel(user_name='new-user', nick_name='New User', create_by='admin')
 
     await UserService.add_user_services(db, payload)
 
@@ -32,12 +33,12 @@ async def test_add_user_creates_subject_before_commit(monkeypatch: pytest.Monkey
 @pytest.mark.asyncio
 async def test_password_security_failure_rolls_back_user_change(monkeypatch: pytest.MonkeyPatch) -> None:
     """密码安全失效失败时不得提交已写入的新密码。"""
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = make_query_db()
     monkeypatch.setattr(UserDao, 'edit_user_dao', AsyncMock())
     monkeypatch.setattr('module_admin.service.user_service.PwdUtil.get_password_hash', lambda value: f'hash:{value}')
     security_event = AsyncMock(side_effect=RuntimeError('security state unavailable'))
     monkeypatch.setattr(IdentitySecurityEventService, 'handle_user_event', security_event)
-    payload = ResetUserModel(userId=8, password='New123!', updateBy='admin')
+    payload = ResetUserModel(user_id=8, password='New123!', update_by='admin')
 
     with pytest.raises(RuntimeError, match='security state unavailable'):
         await UserService.reset_user_services(db, payload)
@@ -50,23 +51,25 @@ async def test_password_security_failure_rolls_back_user_change(monkeypatch: pyt
 @pytest.mark.asyncio
 async def test_disabling_role_invalidates_members_before_commit(monkeypatch: pytest.MonkeyPatch) -> None:
     """角色停用必须在角色更新事务中处理受影响用户。"""
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = make_query_db()
     monkeypatch.setattr(
         RoleService,
         'role_detail_services',
-        AsyncMock(return_value=AddRoleModel(roleId=5, roleName='普通角色', roleKey='common', roleSort=1, status='0')),
+        AsyncMock(
+            return_value=AddRoleModel(role_id=5, role_name='普通角色', role_key='common', role_sort=1, status='0')
+        ),
     )
     monkeypatch.setattr(RoleDao, 'edit_role_dao', AsyncMock())
     security_event = AsyncMock()
     monkeypatch.setattr(IdentitySecurityEventService, 'handle_role_event', security_event)
     payload = AddRoleModel(
-        roleId=5,
-        roleName='普通角色',
-        roleKey='common',
-        roleSort=1,
+        role_id=5,
+        role_name='普通角色',
+        role_key='common',
+        role_sort=1,
         status='1',
         type='status',
-        updateBy='admin',
+        update_by='admin',
     )
 
     await RoleService.edit_role_services(db, payload)
@@ -79,11 +82,13 @@ async def test_disabling_role_invalidates_members_before_commit(monkeypatch: pyt
 @pytest.mark.asyncio
 async def test_changing_role_key_invalidates_external_role_claims(monkeypatch: pytest.MonkeyPatch) -> None:
     """角色标识变化必须让成员的旧外部角色声明失效。"""
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = make_query_db()
     monkeypatch.setattr(
         RoleService,
         'role_detail_services',
-        AsyncMock(return_value=AddRoleModel(roleId=5, roleName='普通角色', roleKey='reader', roleSort=1, status='0')),
+        AsyncMock(
+            return_value=AddRoleModel(role_id=5, role_name='普通角色', role_key='reader', role_sort=1, status='0')
+        ),
     )
     monkeypatch.setattr(RoleDao, 'edit_role_dao', AsyncMock())
     monkeypatch.setattr(RoleDao, 'delete_role_menu_dao', AsyncMock())
@@ -94,13 +99,13 @@ async def test_changing_role_key_invalidates_external_role_claims(monkeypatch: p
     security_event = AsyncMock()
     monkeypatch.setattr(IdentitySecurityEventService, 'handle_role_event', security_event)
     payload = AddRoleModel(
-        roleId=5,
-        roleName='普通角色',
-        roleKey='auditor',
-        roleSort=1,
+        role_id=5,
+        role_name='普通角色',
+        role_key='auditor',
+        role_sort=1,
         status='0',
-        menuIds=[],
-        updateBy='admin',
+        menu_ids=[],
+        update_by='admin',
     )
 
     await RoleService.edit_role_services(db, payload)
@@ -113,8 +118,8 @@ async def test_changing_role_key_invalidates_external_role_claims(monkeypatch: p
 @pytest.mark.asyncio
 async def test_changing_role_menu_invalidates_external_claims(monkeypatch: pytest.MonkeyPatch) -> None:
     """角色菜单授权变化必须让成员的旧外部声明失效。"""
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
-    role = AddRoleModel(roleId=5, roleName='普通角色', roleKey='reader', roleSort=1, status='0')
+    db = make_query_db()
+    role = AddRoleModel(role_id=5, role_name='普通角色', role_key='reader', role_sort=1, status='0')
     monkeypatch.setattr(RoleService, 'role_detail_services', AsyncMock(return_value=role))
     monkeypatch.setattr(RoleDao, 'list_role_menu_ids', AsyncMock(return_value=[10]))
     monkeypatch.setattr(RoleDao, 'edit_role_dao', AsyncMock())
@@ -125,13 +130,13 @@ async def test_changing_role_menu_invalidates_external_claims(monkeypatch: pytes
     security_event = AsyncMock()
     monkeypatch.setattr(IdentitySecurityEventService, 'handle_role_event', security_event)
     payload = AddRoleModel(
-        roleId=5,
-        roleName='普通角色',
-        roleKey='reader',
-        roleSort=1,
+        role_id=5,
+        role_name='普通角色',
+        role_key='reader',
+        role_sort=1,
         status='0',
-        menuIds=[11],
-        updateBy='admin',
+        menu_ids=[11],
+        update_by='admin',
     )
 
     await RoleService.edit_role_services(db, payload)

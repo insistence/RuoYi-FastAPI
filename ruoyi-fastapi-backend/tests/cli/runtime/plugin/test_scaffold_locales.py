@@ -11,6 +11,7 @@ from cli.runtime.plugin.scaffold.locales import PluginLocaleScaffoldBuilder
 
 @pytest.mark.parametrize('framework', ['vue2', 'vue3', 'react'])
 def test_source_plugin_views_use_local_namespace_and_reactive_host_adapter(framework: str) -> None:
+    """源码插件视图使用本地命名空间及响应式宿主适配器。"""
     view = PluginFrontendScaffoldTemplateBuilder.build_crud_view('demo', framework)
     assert "from '../i18n'" in view
     assert 'plugin.demo:nameRequired' in view
@@ -28,6 +29,7 @@ def test_source_plugin_views_use_local_namespace_and_reactive_host_adapter(frame
 
 
 def test_plugin_locale_scaffold_keeps_future_languages_pending_in_its_own_directory(tmp_path: Path) -> None:
+    """插件翻译脚手架在自身目录保留待支持的语言。"""
     frontend = tmp_path / 'web'
     meta = PluginLocaleScaffoldBuilder.load_metadata(frontend)
     meta['locales'].append({'code': 'ja-JP', 'enabled': True, 'fallback': ['en-US'], 'direction': 'ltr'})
@@ -53,6 +55,7 @@ def test_plugin_locale_scaffold_keeps_future_languages_pending_in_its_own_direct
 
 
 def test_plugin_locale_scaffold_rejects_locale_paths_outside_plugin(tmp_path: Path) -> None:
+    """插件翻译脚手架拒绝越出插件目录的路径。"""
     meta = PluginLocaleScaffoldBuilder.load_metadata(tmp_path)
     meta['locales'].append({'code': '../escape'})
     path = tmp_path / 'src' / 'i18n' / 'locale-meta.json'
@@ -65,6 +68,7 @@ def test_plugin_locale_scaffold_rejects_locale_paths_outside_plugin(tmp_path: Pa
 
 
 def test_bundle_registry_honors_its_own_declared_language_families() -> None:
+    """资源包注册表遵循自身声明的语系。"""
     node = shutil.which('node')
     if not node:
         pytest.skip('Node is required for the generated bundle runtime check')

@@ -13,12 +13,31 @@ CLI_PROCESS_TIMEOUT_SECONDS = 60
 
 @pytest.fixture
 def backend_dir() -> Path:
+    """
+    提供测试使用的后端工程根目录。
+
+    :return: 测试使用的后端工程根目录
+    """
     return Path(__file__).resolve().parents[3]
 
 
 @pytest.fixture
 def run_cli_command(backend_dir: Path) -> Callable[..., subprocess.CompletedProcess[str]]:
+    """
+    提供执行 CLI 子进程并捕获输出的测试入口。
+
+    :param backend_dir: 后端项目目录
+    :return: 执行 CLI 子进程并捕获输出的测试入口
+    """
+
     def _run_cli_command(*args: str, env: Mapping[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+        """
+        运行指定 CLI 命令并收集退出码和输出。
+
+        :param args: 传给被调用对象的位置参数
+        :param env: 当前运行环境
+        :return: 包含退出码和标准输出、错误输出的子进程结果
+        """
         return subprocess.run(
             [sys.executable, '-X', 'utf8', '-m', 'cli.main', *args],
             cwd=backend_dir,
@@ -37,7 +56,20 @@ def run_cli_command(backend_dir: Path) -> Callable[..., subprocess.CompletedProc
 def run_text_cli_command(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
 ) -> Callable[..., subprocess.CompletedProcess[str]]:
+    """
+    提供纯文本输出模式的 CLI 调用入口。
+
+    :param run_cli_command: 执行 CLI 子命令并返回进程结果的测试工具
+    :return: 纯文本输出模式的 CLI 调用入口
+    """
+
     def _run_text_cli_command(*args: str) -> subprocess.CompletedProcess[str]:
+        """
+        关闭颜色和图标后运行 CLI 命令。
+
+        :param args: 传给被调用对象的位置参数
+        :return: 关闭颜色和图标后的命令执行结果
+        """
         return run_cli_command('--color=never', '--icon=none', *args)
 
     return _run_text_cli_command
@@ -47,12 +79,27 @@ def run_text_cli_command(
 def run_cli_completion_command(
     backend_dir: Path,
 ) -> Callable[..., subprocess.CompletedProcess[str]]:
+    """
+    提供模拟 Shell 补全请求的运行入口。
+
+    :param backend_dir: 后端项目目录
+    :return: 模拟 Shell 补全请求的运行入口
+    """
+
     def _run_cli_completion_command(
         *,
         comp_words: str,
         comp_cword: int | str,
         instruction: str = 'bash_complete',
     ) -> subprocess.CompletedProcess[str]:
+        """
+        执行补全请求并捕获候选项输出。
+
+        :param comp_words: 当前补全请求的命令行词列表
+        :param comp_cword: 光标所在词的位置
+        :param instruction: 请求补全时传给 shell 的指令
+        :return: 包含候选项或诊断的补全进程结果
+        """
         return subprocess.run(
             [sys.executable, '-X', 'utf8', '-m', 'cli.main'],
             cwd=backend_dir,
@@ -97,7 +144,19 @@ def untracked_bundle_project(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def parse_json_stdout() -> Callable[[subprocess.CompletedProcess[str]], dict[str, Any]]:
+    """
+    提供从命令标准输出读取 JSON 的解析器。
+
+    :return: 从命令标准输出读取 JSON 的解析器
+    """
+
     def _parse_json_stdout(completed: subprocess.CompletedProcess[str]) -> dict[str, Any]:
+        """
+        从 CLI 标准输出中解析 JSON 结果。
+
+        :param completed: 命令执行完成后的进程结果
+        :return: 从命令标准输出解码的数据
+        """
         return json.loads(completed.stdout)
 
     return _parse_json_stdout
@@ -105,7 +164,19 @@ def parse_json_stdout() -> Callable[[subprocess.CompletedProcess[str]], dict[str
 
 @pytest.fixture
 def assert_check_payload_contract() -> Callable[[dict[str, Any], bool], None]:
+    """
+    提供 CLI 检查结果的结构断言。
+
+    :return: CLI 检查结果的结构断言
+    """
+
     def _assert_check_payload_contract(payload: dict[str, Any], allow_exit_code: bool) -> None:
+        """
+        校验检查命令结果中的公共字段和类型。
+
+        :param payload: 随调用传入或返回的结构化数据
+        :param allow_exit_code: 契约允许的退出码
+        """
         assert isinstance(payload, dict)
         assert isinstance(payload.get('ok'), bool)
         assert isinstance(payload.get('message'), str)

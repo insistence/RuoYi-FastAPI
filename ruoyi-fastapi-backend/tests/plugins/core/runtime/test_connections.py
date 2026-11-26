@@ -2,6 +2,7 @@ import asyncio
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -39,7 +40,13 @@ async def open_connection(tmp_path: Path, *, kind: str = 'http', listen: bool = 
     host = PluginHostContext('demo', tmp_path)
 
     async def authorize(scope: Scope) -> PluginRequestContext:
-        """按当前测试状态返回权限快照或触发指定失败。"""
+        """
+        按当前测试状态返回权限快照或触发指定失败。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :raises Exception: 触发当前用例预设的授权异常
+        :return: ``PluginRequestContext`` 实例
+        """
         case.calls.append(dict(scope))
         if case.delay:
             await asyncio.sleep(case.delay)
@@ -50,7 +57,13 @@ async def open_connection(tmp_path: Path, *, kind: str = 'http', listen: bool = 
         )
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
-        """发送首条业务消息，并在退出时记录清理结果。"""
+        """
+        发送首条业务消息，并在退出时记录清理结果。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         case.context = scope['state']['plugin_context']
         try:
             if kind == 'websocket':
@@ -76,7 +89,11 @@ async def open_connection(tmp_path: Path, *, kind: str = 'http', listen: bool = 
             case.released.set()
 
     async def send(message: Message) -> None:
-        """保留协议输出以验证单次关闭及敏感字段不外泄。"""
+        """
+        保留协议输出以验证单次关闭及敏感字段不外泄。
+
+        :param message: 与当前结果一起返回的说明
+        """
         case.messages.append(message)
 
     manager = PluginLifespanManager(child, managed=False)
@@ -95,7 +112,11 @@ async def open_connection(tmp_path: Path, *, kind: str = 'http', listen: bool = 
 
 
 async def finish_case(case: SimpleNamespace) -> None:
-    """回收用例中的连接和生命周期任务。"""
+    """
+    回收用例中的连接和生命周期任务。
+
+    :param case: 当前参数化场景的数据
+    """
     await case.gateway.drain()
     if not case.task.done():
         case.task.cancel()
@@ -236,10 +257,23 @@ async def test_regular_json_response_never_creates_revalidation_task(tmp_path: P
     calls = []
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         await asyncio.sleep(0.03)
         await JSONResponse({'ok': True})(scope, receive, send)
 
     async def authorize(scope: Scope) -> PluginRequestContext:
+        """
+        记录授权请求并按测试场景提供插件上下文。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :return: ``PluginRequestContext`` 实例
+        """
         calls.append(scope)
         return PluginRequestContext(PluginHostContext('demo', tmp_path), None)
 
@@ -253,6 +287,25 @@ async def test_regular_json_response_never_creates_revalidation_task(tmp_path: P
     await manager.shutdown()
 
 
+async def _cancel_or_drain_request(
+    task: asyncio.Task[object], gateway: PluginGatewayASGI, external_cancel: bool
+) -> None:
+    """
+    触发外部取消或网关排空，并等待请求任务结束。
+
+    :param task: 在后台执行当前工作的异步任务
+    :param gateway: HTTP、静态资源和 WebSocket 共用的宿主门禁
+    :param external_cancel: 是否由外部任务发起取消
+    """
+    if external_cancel:
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    else:
+        await asyncio.wait_for(gateway.drain(), timeout=1)
+        await task
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize('external_cancel', [False, True])
 async def test_cancel_resistant_application_cannot_send_late_events(tmp_path: Path, external_cancel: bool) -> None:
@@ -261,6 +314,13 @@ async def test_cancel_resistant_application_cannot_send_late_events(tmp_path: Pa
     messages = []
 
     async def child(scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        模拟接收宿主消息的下游 ASGI 应用。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :param receive: 读取下一条 ASGI 消息的异步回调
+        :param send: 发送 ASGI 消息的异步回调
+        """
         try:
             await send(
                 {'type': 'http.response.start', 'status': 200, 'headers': [(b'content-type', b'text/event-stream')]}
@@ -278,24 +338,33 @@ async def test_cancel_resistant_application_cannot_send_late_events(tmp_path: Pa
             released.set()
 
     async def authorize(scope: Scope) -> PluginRequestContext:
+        """
+        创建测试使用的 ``PluginRequestContext`` 实例。
+
+        :param scope: 该 ASGI 连接的类型、路径和请求头等信息
+        :return: 测试使用的 ``PluginRequestContext`` 实例
+        """
         return PluginRequestContext(PluginHostContext('demo', tmp_path), None)
 
-    async def send(message: Message) -> None:
+    def send(message: Message) -> asyncio.Future[None]:
+        """
+        记录网关输出，以 Future 模拟直接返回可等待对象的 ASGI 发送器。
+
+        :param message: 网关发给客户端的协议消息
+        :return: 表示消息已发送的 Future
+        """
         messages.append(message)
+        sent: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+        sent.set_result(None)
+        return sent
 
     manager = PluginLifespanManager(child, managed=False)
     await manager.startup()
     gateway = PluginGatewayASGI(child, manager, authorize, cancel_timeout=0.01)
-    task = asyncio.create_task(gateway({'type': 'http', 'headers': []}, None, send))
+    task = asyncio.create_task(gateway({'type': 'http', 'headers': []}, AsyncMock(), send))
     try:
         await asyncio.wait_for(opened.wait(), timeout=1)
-        if external_cancel:
-            task.cancel()
-            with pytest.raises(asyncio.CancelledError):
-                await task
-        else:
-            await asyncio.wait_for(gateway.drain(), timeout=1)
-            await task
+        await _cancel_or_drain_request(task, gateway, external_cancel)
         assert gateway.connections._unfinished
         assert 'secret' not in str(messages)
         release.set()

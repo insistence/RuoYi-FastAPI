@@ -1,9 +1,8 @@
 import json
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from plugins.core.validation.dependencies import DependencyInstallPlanItem, DependencyRequirementParser
-
-from .payload.dependencies import DependencyInstallReturnCodePayload
 
 
 class PluginNpmPackageJsonSynchronizer:
@@ -18,14 +17,13 @@ class PluginNpmPackageJsonSynchronizer:
     def sync_successful_items(
         cls,
         install_plan_items: list[DependencyInstallPlanItem],
-        install_results: list[DependencyInstallReturnCodePayload],
+        install_results: Sequence[Mapping[str, object]],
     ) -> None:
         """
         同步安装成功的 npm 依赖声明。
 
         :param install_plan_items: 依赖安装计划项
         :param install_results: 依赖安装执行结果
-        :return: None
         """
         for item, result in zip(install_plan_items, install_results, strict=False):
             if item.kind not in {'npm', 'npmDev'} or result['returnCode'] != 0:
@@ -38,7 +36,6 @@ class PluginNpmPackageJsonSynchronizer:
         同步单个 npm 依赖版本声明。
 
         :param item: 依赖安装计划项
-        :return: None
         """
         # pnpm add 同时维护 package.json 和 pnpm-lock.yaml。不要在安装后单独
         # 改写版本声明，否则下次 frozen-lockfile 安装会失败；离线 tarball 同理。

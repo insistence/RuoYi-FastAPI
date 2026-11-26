@@ -1,14 +1,12 @@
-from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Grid, Horizontal, ScrollableContainer
-from textual.screen import Screen
 from textual.widgets import Footer
 
 from cli.tui.adapters import DashboardSnapshot
 from cli.tui.copy import TUI_COPY
 from cli.tui.keymaps import TUI_KEYMAP_REGISTRY
-from cli.tui.screens.focus import BaseScreenFocusService, ScreenFocusActionsMixin
+from cli.tui.screens.focus import BaseScreenFocusService, WorkspaceScreen
 from cli.tui.screens.summary import STATUS_SUMMARY_BUILDER
 from cli.tui.widgets import (
     MetricPanel,
@@ -28,7 +26,7 @@ class DashboardScreenSupport:
     首页屏幕支持对象。
 
     该对象负责首页摘要文本、信号带文本和状态轨迹构建，
-    使 `DashboardScreen` 本体主要保留 Textual 生命周期与界面编排。
+    使 ``DashboardScreen`` 本体主要保留 Textual 生命周期与界面编排。
     """
 
     @staticmethod
@@ -108,11 +106,18 @@ class DashboardScreenFocusService(BaseScreenFocusService):
         return screen.query_one('#workspace-main', ScrollableContainer)
 
 
-class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
+class DashboardScreen(WorkspaceScreen):
     """
     TUI 首页巡检屏幕。
 
-    :param snapshot: 首页聚合快照
+    :cvar BINDINGS: 终端界面的快捷键和对应动作
+    :ivar snapshot: 首页聚合快照
+    :ivar env: 当前运行环境
+    :ivar active_view: 当前激活视图
+    :ivar navigation_items: 导航项列表
+    :ivar refreshed_at: 本次刷新时间
+    :ivar support: 首页屏幕支持对象
+    :ivar focus_service: 首页焦点服务
     """
 
     BINDINGS = [
@@ -146,7 +151,6 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
         :param refreshed_at: 本次刷新时间
         :param support: 首页屏幕支持对象
         :param focus_service: 首页焦点服务
-        :return: None
         """
         self.snapshot = snapshot
         self.env = env
@@ -177,7 +181,7 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
         """
         构建首页界面结构。
 
-        :return: Textual 组件结果
+        :yield: Textual 组件结果
         """
         yield WorkspaceHeader(self.env, self.active_view)
         with Horizontal(id='workspace-shell'):
@@ -211,45 +215,5 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
         yield Footer()
 
     def on_mount(self) -> None:
-        """
-        首页挂载后默认将焦点停留在左侧导航。
-
-        :return: None
-        """
+        """首页挂载后默认将焦点停留在左侧导航。"""
         self.call_after_refresh(self.query_one(WorkspaceSidebar).focus)
-
-    def _open_sidebar_item(self, event: WorkspaceSidebar.Highlighted | WorkspaceSidebar.Selected) -> None:
-        """
-        根据侧边栏事件打开对应视图，并避免重复打开当前页面。
-
-        :param event: 侧边栏高亮或选中事件
-        :return: None
-        """
-        item = getattr(event.item, 'item', None)
-        if not isinstance(item, NavigationItem):
-            return
-        if not event.control.navigation_ready:
-            return
-        if item.view_key == self.active_view and self.app.requested_view == self.active_view:
-            return
-        self.app.open_view(item.view_key)
-
-    @on(WorkspaceSidebar.Selected)
-    def on_sidebar_selected(self, event: WorkspaceSidebar.Selected) -> None:
-        """
-        响应左侧导航选中事件并切换视图。
-
-        :param event: 导航选中事件
-        :return: None
-        """
-        self._open_sidebar_item(event)
-
-    @on(WorkspaceSidebar.Highlighted)
-    def on_sidebar_highlighted(self, event: WorkspaceSidebar.Highlighted) -> None:
-        """
-        响应左侧导航高亮变更并立即切换视图。
-
-        :param event: 导航高亮事件
-        :return: None
-        """
-        self._open_sidebar_item(event)

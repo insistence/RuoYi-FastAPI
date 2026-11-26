@@ -1,7 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.env import OidcConfig
 from module_identity.dao.oauth_access_policy_dao import OAuthAccessPolicyDao
@@ -16,8 +18,11 @@ _AUTH_VERSION = 3
 
 
 def _config() -> SimpleNamespace:
-    """构造内省所需的最小配置。"""
+    """
+    构造内省所需的最小配置。
 
+    :return: 内省所需的最小配置
+    """
     return SimpleNamespace(
         oidc_issuer='https://auth.example.com',
         oidc_allowed_clock_skew_seconds=60,
@@ -27,16 +32,23 @@ def _config() -> SimpleNamespace:
 
 @pytest.fixture(autouse=True)
 def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
-    """将全局 OIDC 配置固定为本文件测试所需的协议值。"""
+    """
+    将全局 OIDC 配置固定为本文件测试所需的协议值。
 
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    """
     monkeypatch.setattr(OidcConfig, 'oidc_issuer', 'https://auth.example.com')
     monkeypatch.setattr(OidcConfig, 'oidc_allowed_clock_skew_seconds', 60)
     monkeypatch.setattr(OidcConfig, 'oidc_token_hash_pepper', _PEPPER)
 
 
 def _client(client_type: str = 'confidential') -> SimpleNamespace:
-    """构造已启用的 Client 数据快照。"""
+    """
+    构造已启用的 Client 数据快照。
 
+    :param client_type: 客户端类型（public公开客户端 confidential机密客户端）
+    :return: 已启用的 Client 数据快照
+    """
     return SimpleNamespace(
         client_pk=10,
         client_id='introspector',
@@ -49,16 +61,20 @@ def _client(client_type: str = 'confidential') -> SimpleNamespace:
 
 
 def _principal(client_type: str = 'confidential') -> OAuthClientPrincipal:
-    """构造完成认证的 Client Principal。"""
+    """
+    构造完成认证的 Client Principal。
 
+    :param client_type: 客户端类型（public公开客户端 confidential机密客户端）
+    :return: 完成认证的 Client Principal
+    """
     return OAuthClientPrincipal('introspector', client_type, 'client_secret_basic')
 
 
 @pytest.mark.asyncio
-async def test_introspection_rejects_non_client_principal(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize('invalid_principal', [object()])
+async def test_introspection_rejects_non_client_principal(invalid_principal: Any) -> None:
     """任意用户主体或普通对象都不能调用内省端点。"""
-
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'not-a-token', object())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'not-a-token', invalid_principal)
 
     assert result == {'active': False}
 
@@ -68,10 +84,17 @@ async def test_introspection_rejects_public_or_inactive_client(monkeypatch: pyte
     """内省调用方必须是数据库事实中的启用 Confidential Client。"""
 
     async def client_lookup(*_args: object, **_kwargs: object) -> SimpleNamespace:
+        """
+        根据客户端标识提供测试使用的 OAuth 客户端。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 与标识匹配的测试 OAuth 客户端
+        """
         return _client('public')
 
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', client_lookup)
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'not-a-token', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'not-a-token', _principal())
 
     assert result == {'active': False}
 
@@ -96,7 +119,6 @@ async def test_introspection_auth_method_pair_is_exact(
     expected: bool,
 ) -> None:
     """Introspection 仅接受数据库与 Principal 同时为 Confidential/Basic。"""
-
     client = _client(client_type)
     client.token_endpoint_auth_method = db_method
     monkeypatch.setattr(
@@ -104,7 +126,7 @@ async def test_introspection_auth_method_pair_is_exact(
     )
 
     result = await IntrospectionService._resolve_caller(
-        object(), OAuthClientPrincipal('introspector', principal_type, principal_method)
+        AsyncSession(), OAuthClientPrincipal('introspector', principal_type, principal_method)
     )
 
     assert (result is not None) is expected
@@ -115,10 +137,16 @@ async def test_access_introspection_honours_revoked_jti_and_resource_owner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Access JWT 必须通过签名 Profile、撤销键和 Resource 内省授权。"""
-
     client = _client()
 
     async def client_lookup(*_args: object, **_kwargs: object) -> SimpleNamespace:
+        """
+        向调用方返回 ``client``。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 为当前请求选择的客户端
+        """
         return client
 
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', client_lookup)
@@ -144,7 +172,7 @@ async def test_access_introspection_honours_revoked_jti_and_resource_owner(
     await redis.set('oidc:revoked_jti:jti-1', '1', ex=60)
 
     result = await IntrospectionService.introspect(
-        object(), redis, 'signed-access', _principal(), now=datetime.now(timezone.utc)
+        AsyncSession(), redis.client, 'signed-access', _principal(), now=datetime.now(UTC)
     )
 
     assert result == {'active': False}
@@ -155,7 +183,6 @@ async def test_business_client_a_is_introspected_by_independent_resource_client_
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """业务 Client A 签发的 Token 可由 Resource 专用 Client B 内省。"""
-
     caller = _client()
     issuer = _client()
     issuer.client_pk = 20
@@ -163,6 +190,14 @@ async def test_business_client_a_is_introspected_by_independent_resource_client_
     issuer.grant_types = ['authorization_code', 'refresh_token']
 
     async def client_lookup(_db: object, client_id: str, active_only: bool = True) -> SimpleNamespace:
+        """
+        根据客户端标识提供测试使用的 OAuth 客户端。
+
+        :param _db: 回调签名接收的数据库会话
+        :param client_id: 客户端标识
+        :param active_only: 是否仅查询启用记录
+        :return: 与标识匹配的测试 OAuth 客户端
+        """
         return caller if client_id == 'introspector' else issuer
 
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', client_lookup)
@@ -184,7 +219,7 @@ async def test_business_client_a_is_introspected_by_independent_resource_client_
     monkeypatch.setattr(IntrospectionService, '_resources_owned_by_caller', lambda *_args, **_kwargs: _async_true())
     monkeypatch.setattr(IntrospectionService, '_client_allows_access', lambda *_args, **_kwargs: _async_true())
     monkeypatch.setattr(IntrospectionService, '_access_user_state', lambda *_args, **_kwargs: _async_user())
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'signed-access', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'signed-access', _principal())
 
     assert result['active'] is True
     assert result['client_id'] == 'business-a'
@@ -198,13 +233,20 @@ async def test_independent_resource_client_b_is_rejected_for_wrong_audience(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Resource 不属于调用方 B 时，即使 Token 签名正确也必须拒绝。"""
-
     caller = _client()
     issuer = _client()
     issuer.client_pk = 20
     issuer.client_id = 'business-a'
 
     async def client_lookup(_db: object, client_id: str, active_only: bool = True) -> SimpleNamespace:
+        """
+        根据客户端标识提供测试使用的 OAuth 客户端。
+
+        :param _db: 回调签名接收的数据库会话
+        :param client_id: 客户端标识
+        :param active_only: 是否仅查询启用记录
+        :return: 与标识匹配的测试 OAuth 客户端
+        """
         return caller if client_id == 'introspector' else issuer
 
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', client_lookup)
@@ -223,7 +265,7 @@ async def test_independent_resource_client_b_is_rejected_for_wrong_audience(
     )
     monkeypatch.setattr(IntrospectionService, '_resources_owned_by_caller', lambda *_args, **_kwargs: _async_false())
 
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'signed-access', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'signed-access', _principal())
 
     assert result == {'active': False}
 
@@ -234,11 +276,10 @@ async def test_access_user_state_rejects_each_real_time_failure(
     monkeypatch: pytest.MonkeyPatch, invalid_state: str
 ) -> None:
     """用户 Access Token 的 Subject、用户、版本、Session、Grant 任一失效都拒绝。"""
-
     subject = SimpleNamespace(subject_id='subject-a', user_id=7, auth_version=3)
     user = SimpleNamespace(status='0', del_flag='0', user_name='alice')
     session = SimpleNamespace(user_id=7, subject_id='subject-a', auth_version=3)
-    db = object()
+    db = AsyncSession()
     if invalid_state == 'subject':
         subject = None
     elif invalid_state == 'user':
@@ -261,7 +302,7 @@ async def test_access_user_state_rejects_each_real_time_failure(
     }
 
     assert not await IntrospectionService._access_user_state(
-        db, claims, _client(), ['https://api.example'], datetime.now(timezone.utc)
+        db, claims, _client(), ['https://api.example'], datetime.now(UTC)
     )
 
 
@@ -270,7 +311,6 @@ async def test_machine_access_token_uses_client_binding_without_user_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """client_credentials Token 校验机器 Subject/Grant 能力，不读取用户状态。"""
-
     caller = _client()
     issuer = _client()
     issuer.client_pk = 20
@@ -278,6 +318,14 @@ async def test_machine_access_token_uses_client_binding_without_user_state(
     issuer.grant_types = ['client_credentials']
 
     async def client_lookup(_db: object, client_id: str, active_only: bool = True) -> SimpleNamespace:
+        """
+        根据客户端标识提供测试使用的 OAuth 客户端。
+
+        :param _db: 回调签名接收的数据库会话
+        :param client_id: 客户端标识
+        :param active_only: 是否仅查询启用记录
+        :return: 与标识匹配的测试 OAuth 客户端
+        """
         return caller if client_id == 'introspector' else issuer
 
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', client_lookup)
@@ -302,7 +350,7 @@ async def test_machine_access_token_uses_client_binding_without_user_state(
     monkeypatch.setattr(IntrospectionService, '_resources_owned_by_caller', lambda *_args, **_kwargs: _async_true())
     monkeypatch.setattr(IntrospectionService, '_client_allows_access', lambda *_args, **_kwargs: _async_true())
 
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'machine-access', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'machine-access', _principal())
 
     assert result['active'] is True
 
@@ -312,10 +360,17 @@ async def test_invalid_refresh_shape_is_inactive(monkeypatch: pytest.MonkeyPatch
     """Refresh Token 内省必须验证完整 typed opaque token。"""
 
     async def client_lookup(*_args: object, **_kwargs: object) -> SimpleNamespace:
+        """
+        根据客户端标识提供测试使用的 OAuth 客户端。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 与标识匹配的测试 OAuth 客户端
+        """
         return _client()
 
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', client_lookup)
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'rt1.token-id', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'rt1.token-id', _principal())
 
     assert result == {'active': False}
 
@@ -333,7 +388,7 @@ async def test_refresh_introspection_rechecks_identity_session_grant_and_resourc
     client.client_pk = 20
     client.client_id = 'business-a'
     token = 'rt1.token-0003.' + ('A' * 43)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     row = SimpleNamespace(
         token_id='token-0003',
         token_hash='',
@@ -384,13 +439,13 @@ async def test_refresh_introspection_rechecks_identity_session_grant_and_resourc
         'module_identity.service.token_protocol_service.SsoSessionDao.get_active',
         _lookup(SimpleNamespace(subject_id='subject-7', user_id=7, auth_version=session_auth_version)),
     )
-    db = object()
+    db = AsyncSession()
     monkeypatch.setattr(
         'module_identity.service.token_protocol_service.IntrospectionService._resources_owned_by_caller',
         lambda *_args, **_kwargs: _async_true(),
     )
 
-    result = await IntrospectionService.introspect(db, FakeRedis(), token, _principal(), now=now)
+    result = await IntrospectionService.introspect(db, FakeRedis().client, token, _principal(), now=now)
 
     assert result['active'] is (session_auth_version == _AUTH_VERSION)
     if session_auth_version == _AUTH_VERSION:
@@ -398,27 +453,48 @@ async def test_refresh_introspection_rechecks_identity_session_grant_and_resourc
 
 
 def _lookup(value: object) -> object:
-    """返回固定值的异步查询桩。"""
+    """
+    返回固定值的异步查询桩。
+
+    :param value: 待处理的输入值
+    :return: 固定值的异步查询桩
+    """
 
     async def lookup(*_args: object, **_kwargs: object) -> object:
+        """
+        向调用方返回 ``value``。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :return: 为此调用预设的值
+        """
         return value
 
     return lookup
 
 
 async def _async_true() -> bool:
-    """返回异步 True，供类方法 monkeypatch 使用。"""
+    """
+    返回异步 True，供类方法 monkeypatch 使用。
 
+    :return: 此分支的固定值 ``True``
+    """
     return True
 
 
 async def _async_user() -> SimpleNamespace:
-    """返回带当前用户名的已验证用户快照。"""
+    """
+    返回带当前用户名的已验证用户快照。
 
+    :return: 带当前用户名的已验证用户快照
+    """
     return SimpleNamespace(user_name='alice')
 
 
 async def _async_false() -> bool:
-    """返回异步 False，供失败路径 monkeypatch 使用。"""
+    """
+    返回异步 False，供失败路径 monkeypatch 使用。
 
+    :return: 此分支的固定值 ``False``
+    """
     return False

@@ -9,20 +9,16 @@ from utils.time_util import TimezoneUtil
 
 
 class OAuthAccessPolicyDao:
-    """
-    用户应用访问控制数据库操作层
-    """
+    """用户应用访问控制数据库操作层。"""
 
     @staticmethod
     async def lock_client(db: AsyncSession, client_pk: int) -> None:
         """
-        锁定 Client，统一授权签发、撤销和访问控制的事务顺序
+        锁定 Client，统一授权签发、撤销和访问控制的事务顺序。
 
         :param db: orm对象
         :param client_pk: Client 内部主键
-        :return: None
         """
-
         await db.execute(
             update(SysOAuthClient)
             .where(SysOAuthClient.client_pk == client_pk)
@@ -40,7 +36,7 @@ class OAuthAccessPolicyDao:
         db: AsyncSession, user_id: int, client_pk: int, *, for_update: bool = False
     ) -> SysOAuthAccessPolicy | None:
         """
-        查询用户对 Client 的访问策略，未配置时默认允许
+        查询用户对 Client 的访问策略，未配置时默认允许。
 
         :param db: orm对象
         :param user_id: 用户编号
@@ -48,7 +44,6 @@ class OAuthAccessPolicyDao:
         :param for_update: 是否使用当前读锁定策略
         :return: 访问策略，不存在时返回 None
         """
-
         query = select(SysOAuthAccessPolicy).where(
             SysOAuthAccessPolicy.user_id == user_id, SysOAuthAccessPolicy.client_pk == client_pk
         )
@@ -61,7 +56,7 @@ class OAuthAccessPolicyDao:
     @classmethod
     async def is_blocked(cls, db: AsyncSession, user_id: int, client_pk: int, *, for_update: bool = False) -> bool:
         """
-        判断用户是否被禁止访问 Client
+        判断用户是否被禁止访问 Client。
 
         :param db: orm对象
         :param user_id: 用户编号
@@ -69,7 +64,6 @@ class OAuthAccessPolicyDao:
         :param for_update: 是否使用当前读锁定策略
         :return: 是否禁止访问
         """
-
         row = await cls.get(db, user_id, client_pk, for_update=for_update)
         return row is not None and row.access_status == 'blocked'
 
@@ -78,7 +72,7 @@ class OAuthAccessPolicyDao:
         cls, db: AsyncSession, user_id: int, client_pk: int, blocked: bool, actor: str, reason: str
     ) -> SysOAuthAccessPolicy:
         """
-        更新访问策略；调用方须先锁定 Client 并负责事务提交
+        更新访问策略；调用方须先锁定 Client 并负责事务提交。
 
         :param db: orm对象
         :param user_id: 用户编号
@@ -88,7 +82,6 @@ class OAuthAccessPolicyDao:
         :param reason: 操作原因
         :return: 更新后的访问策略
         """
-
         row = await cls.get(db, user_id, client_pk, for_update=True)
         if row is None:
             row = SysOAuthAccessPolicy(user_id=user_id, client_pk=client_pk)
@@ -104,13 +97,12 @@ class OAuthAccessPolicyDao:
     @staticmethod
     async def list_for_grants(db: AsyncSession, targets: list[tuple[int, int]]) -> list[SysOAuthAccessPolicy]:
         """
-        批量查询管理列表中用户与 Client 的访问策略
+        批量查询管理列表中用户与 Client 的访问策略。
 
         :param db: orm对象
         :param targets: 用户编号和 Client 主键列表
         :return: 用户访问策略列表
         """
-
         result = await db.execute(
             select(SysOAuthAccessPolicy).where(
                 tuple_(SysOAuthAccessPolicy.user_id, SysOAuthAccessPolicy.client_pk).in_(targets)
@@ -119,14 +111,13 @@ class OAuthAccessPolicyDao:
         return list(result.scalars().all())
 
     @staticmethod
-    def _query(query: AccessPolicyPageQueryModel) -> Select:
+    def _query(query: AccessPolicyPageQueryModel) -> Select[SysOAuthAccessPolicy, str, str, str]:
         """
-        构建独立访问策略查询，不依赖用户已有授权记录
+        构建独立访问策略查询，不依赖用户已有授权记录。
 
         :param query: 访问策略分页查询参数
         :return: 包含用户与客户端名称的查询语句
         """
-
         statement = (
             select(SysOAuthAccessPolicy, SysUser.user_name, SysOAuthClient.client_id, SysOAuthClient.client_name)
             .join(SysUser, SysUser.user_id == SysOAuthAccessPolicy.user_id)
@@ -145,13 +136,12 @@ class OAuthAccessPolicyDao:
         cls, db: AsyncSession, query: AccessPolicyPageQueryModel
     ) -> list[tuple[SysOAuthAccessPolicy, str, str, str]]:
         """
-        分页查询访问策略及其关联名称
+        分页查询访问策略及其关联名称。
 
         :param db: orm对象
         :param query: 访问策略分页查询参数
         :return: 访问策略、用户名、客户端标识和名称的列表
         """
-
         result = await db.execute(
             cls._query(query)
             .order_by(
@@ -167,11 +157,10 @@ class OAuthAccessPolicyDao:
     @classmethod
     async def count(cls, db: AsyncSession, query: AccessPolicyPageQueryModel) -> int:
         """
-        统计匹配条件的独立访问策略数量
+        统计匹配条件的独立访问策略数量。
 
         :param db: orm对象
         :param query: 访问策略分页查询参数
         :return: 匹配的记录总数
         """
-
         return int(await db.scalar(select(func.count()).select_from(cls._query(query).subquery())) or 0)

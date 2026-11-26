@@ -33,17 +33,33 @@ _OAUTH_RESPONSE_PARAMETER_NAMES = frozenset({'code', 'error', 'error_description
 
 def handle_exception(app: FastAPI) -> None:
     """
-    全局异常处理
+    全局异常处理。
+
+    :param app: 正在配置或处理请求的 ASGI 应用
     """
 
     # 自定义token检验异常
     @app.exception_handler(AuthException)
     async def auth_exception_handler(request: Request, exc: AuthException) -> Response:
+        """
+        将身份认证异常转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: 认证失败时的 HTTP 响应
+        """
         return ResponseUtil.unauthorized(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义OAuth协议异常
     @app.exception_handler(OAuthProtocolException)
     async def oauth_protocol_exception_handler(request: Request, exc: OAuthProtocolException) -> Response:
+        """
+        将OAuth 协议错误转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: OAuth 协议错误响应或安全重定向
+        """
         if exc.can_redirect:
             return _build_oauth_redirect(exc)
         headers = {**exc.headers, 'Cache-Control': 'no-store', 'Pragma': 'no-cache'}
@@ -58,6 +74,13 @@ def handle_exception(app: FastAPI) -> None:
     # 自定义OIDC认证交互异常
     @app.exception_handler(OidcInteractionException)
     async def oidc_interaction_exception_handler(request: Request, exc: OidcInteractionException) -> Response:
+        """
+        将OIDC 交互异常转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: OIDC 交互失败的 HTTP 响应
+        """
         safe_message = {
             'invalid_request': I18nMessage('认证交互请求无效', msg_key='identity.interaction.invalidRequest'),
             'interaction_required': I18nMessage('认证交互已过期或不可用', msg_key='identity.interaction.unavailable'),
@@ -75,34 +98,76 @@ def handle_exception(app: FastAPI) -> None:
     # 自定义登录检验异常
     @app.exception_handler(LoginException)
     async def login_exception_handler(request: Request, exc: LoginException) -> Response:
+        """
+        将登录异常转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: 登录失败的 HTTP 响应
+        """
         return ResponseUtil.failure(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义模型检验异常
     @app.exception_handler(ModelValidatorException)
     async def model_validator_exception_handler(request: Request, exc: ModelValidatorException) -> Response:
+        """
+        将模型校验异常转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: 包含模型校验错误的响应
+        """
         logger.warning(exc.message)
         return ResponseUtil.failure(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义字段检验异常
     @app.exception_handler(FieldValidationError)
     async def field_validation_error_handler(request: Request, exc: FieldValidationError) -> Response:
+        """
+        将字段校验失败转换为接口错误响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: 包含字段错误信息的响应
+        """
         logger.warning(exc.message)
         return ResponseUtil.failure(msg=exc.message)
 
     # 自定义权限检验异常
     @app.exception_handler(PermissionException)
     async def permission_exception_handler(request: Request, exc: PermissionException) -> Response:
+        """
+        将权限异常转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: 权限不足的响应
+        """
         return ResponseUtil.forbidden(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义服务异常
     @app.exception_handler(ServiceException)
     async def service_exception_handler(request: Request, exc: ServiceException) -> Response:
+        """
+        将业务异常转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: 包含业务错误详情的响应
+        """
         logger.error(exc.message)
         return ResponseUtil.error(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
     # 自定义服务警告
     @app.exception_handler(ServiceWarning)
     async def service_warning_handler(request: Request, exc: ServiceWarning) -> Response:
+        """
+        返回业务提示及其关联数据。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: 业务提示及其关联数据
+        """
         logger.warning(exc.message)
         return ResponseUtil.failure(data=exc.data, msg=exc.message, msg_key=exc.msg_key, msg_params=exc.msg_params)
 
@@ -112,6 +177,13 @@ def handle_exception(app: FastAPI) -> None:
         request: Request,
         exc: FileRangeNotSatisfiableException,
     ) -> Response:
+        """
+        将无效的文件范围请求转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: ``Response`` 实例
+        """
         return Response(
             status_code=416,
             headers={
@@ -124,7 +196,11 @@ def handle_exception(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError) -> Response:
         """
-        按请求语言本地化参数校验消息，保留字段位置和错误类型
+        按请求语言本地化参数校验消息，保留字段位置和错误类型。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: ``JSONResponse`` 实例
         """
         details = [ValidationMessageUtil.localize(error) for error in exc.errors()]
         return JSONResponse(status_code=422, content={'detail': details})
@@ -132,6 +208,13 @@ def handle_exception(app: FastAPI) -> None:
     # 处理其他http请求异常
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> Response:
+        """
+        将HTTP 异常转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: ``JSONResponse`` 实例
+        """
         fields = I18nUtil.message_fields(exc.detail) if isinstance(exc.detail, I18nMessage) else {'msg': exc.detail}
         return JSONResponse(
             content=jsonable_encoder({'code': exc.status_code, **fields}),
@@ -142,6 +225,13 @@ def handle_exception(app: FastAPI) -> None:
     # 处理其他异常
     @app.exception_handler(Exception)
     async def exception_handler(request: Request, exc: Exception) -> Response:
+        """
+        将未处理异常转换为对应的 HTTP 响应。
+
+        :param request: 当前 HTTP 请求
+        :param exc: 捕获到的异常实例
+        :return: 当前调用产生的响应
+        """
         context = getattr(request.state, 'locale_context', LocaleContext())
         token = RequestContext.set_current_locale(context)
         try:

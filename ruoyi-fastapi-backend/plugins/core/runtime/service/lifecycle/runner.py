@@ -11,6 +11,9 @@ TStepResult = PluginLifecycleResponse | None
 class PluginLifecycleStepFailed(Exception):
     """
     插件生命周期步骤执行失败。
+
+    :ivar step_name: 失败步骤名称
+    :ivar original_error: 原始异常
     """
 
     def __init__(self, step_name: str, original_error: Exception) -> None:
@@ -29,6 +32,9 @@ class PluginLifecycleStepFailed(Exception):
 class PluginLifecycleStepStop:
     """
     插件生命周期步骤中止结果。
+
+    :ivar step_name: 失败步骤名称
+    :ivar payload: 随调用传入或返回的结构化数据
     """
 
     step_name: str
@@ -39,6 +45,9 @@ class PluginLifecycleStepStop:
 class PluginLifecycleStep(Generic[TContext]):
     """
     插件生命周期声明式步骤。
+
+    :ivar name: 用于查找或标识当前对象的名称
+    :ivar handler: 执行该生命周期步骤的回调
     """
 
     name: str
@@ -49,6 +58,9 @@ class PluginLifecycleStep(Generic[TContext]):
 class PluginLifecycleStepRunResult(Generic[TContext]):
     """
     插件生命周期步骤运行结果。
+
+    :ivar context: 生命周期上下文
+    :ivar stop: 通知正在运行的任务停止的信号
     """
 
     context: TContext
@@ -58,6 +70,8 @@ class PluginLifecycleStepRunResult(Generic[TContext]):
 class PluginLifecycleStepRunner(Generic[TContext]):
     """
     插件生命周期声明式步骤运行器。
+
+    :ivar steps: 生命周期步骤列表
     """
 
     def __init__(self, steps: list[PluginLifecycleStep[TContext]]) -> None:
@@ -74,6 +88,7 @@ class PluginLifecycleStepRunner(Generic[TContext]):
 
         :param context: 生命周期上下文
         :return: 生命周期运行结果
+        :raises PluginLifecycleStepFailed: 当前生命周期步骤执行失败
         """
         for step in self.steps:
             try:

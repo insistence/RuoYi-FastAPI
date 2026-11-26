@@ -1,5 +1,5 @@
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,7 +13,14 @@ from plugins.core.sdk import PluginHostContext, PluginRequestContext
 
 
 def context_for(tmp_path: Path, plugin_id: str = 'sdk_demo', *, permissions: bool = True) -> PluginRequestContext:
-    """为字典与缓存服务提供绑定插件的请求身份。"""
+    """
+    为字典与缓存服务提供绑定插件的请求身份。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param plugin_id: 插件清单中的唯一标识
+    :param permissions: 当前调用允许使用的权限
+    :return: ``PluginRequestContext`` 实例
+    """
     return PluginRequestContext(
         PluginHostContext(plugin_id, tmp_path),
         SimpleNamespace(user=SimpleNamespace(user_id=7)),
@@ -27,7 +34,12 @@ async def test_dictionary_service_returns_only_public_enabled_options(tmp_path: 
     db = object()
 
     @asynccontextmanager
-    async def session() -> AsyncIterator[object]:
+    async def session() -> AsyncGenerator[object, None]:
+        """
+        为当前测试操作提供数据库会话。
+
+        :yield: 数据库会话
+        """
         yield db
 
     row = SimpleNamespace(

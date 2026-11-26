@@ -1,6 +1,6 @@
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +9,7 @@ from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.migration import PluginMigrationError, PluginMigrationResult
 from plugins.core.lifecycle.seed import PluginSeedResult, PluginSeedRunner
+from plugins.core.management.entity.vo.schemas import PluginConfigModel, PluginModel
 from plugins.core.runtime.hooks import PluginHookResult, PluginHookRunner
 from plugins.core.runtime.support import (
     PluginLifecyclePayloadBuilder,
@@ -19,16 +20,35 @@ from plugins.core.runtime.support import (
 
 from ..context import PluginRuntimeContextService
 from ..dependency_container import PluginRuntimeDependencies
+from ..gateway import PluginLifecycleUnitOfWork
 from ..responses import PluginLifecycleResponse
-from .common import PluginLifecycleUseCaseSupport
+from .common import PluginLifecycleUseCaseSupport, PluginTransactionContext, require_step_result
 from .operations import PluginLifecycleRuntimeOperations
 from .runner import PluginLifecycleStep, PluginLifecycleStepFailed, PluginLifecycleStepRunner
 
 
 @dataclass(slots=True)
-class PluginInstallLifecycleContext:
+class PluginInstallLifecycleContext(PluginTransactionContext):
     """
     插件安装声明式生命周期上下文。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar dry_run: 是否只预览操作结果
+    :ivar backend_root: 后端项目的根目录
+    :ivar discovered_plugins: 已发现插件列表
+    :ivar discovered_plugin: 扫描插件目录后得到的插件描述
+    :ivar precheck: 插件预检上下文
+    :ivar actions: 即将执行或已记录的操作步骤
+    :ivar dependency_install_view: 当前依赖安装计划的视图
+    :ivar plugin: 当前处理的插件
+    :ivar installed_configs: 已安装配置列表
+    :ivar migration_results: migration 执行结果列表
+    :ivar seed_results: seed 执行结果列表
+    :ivar hook_result: 清理钩子执行结果
+    :ivar session: 当前操作共用的会话
+    :ivar lifecycle_uow: 当前生命周期操作共享的事务工作单元
+    :ivar session_context: 当前会话的上下文
+    :ivar catalog_snapshot: 操作开始时捕获的插件目录快照
     """
 
     plugin_id: str
@@ -39,20 +59,24 @@ class PluginInstallLifecycleContext:
     precheck: PluginPrecheckContext | None = None
     actions: list[dict[str, object]] | None = None
     dependency_install_view: dict[str, object] | None = None
-    plugin: object | None = None
-    installed_configs: list[object] | None = None
+    plugin: PluginModel | None = None
+    installed_configs: list[PluginConfigModel] | None = None
     migration_results: list[PluginMigrationResult] | None = None
     seed_results: list[PluginSeedResult] | None = None
     hook_result: PluginHookResult | None = None
     session: AsyncSession | None = None
-    lifecycle_uow: object | None = None
-    session_context: object | None = None
+    lifecycle_uow: PluginLifecycleUnitOfWork | None = None
+    session_context: AbstractAsyncContextManager[PluginLifecycleUnitOfWork] | None = None
     catalog_snapshot: CatalogSnapshot | None = None
 
 
 class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
     """
     插件安装 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar runtime_operations: 生命周期工作流所需的运行时协作能力
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(
@@ -93,7 +117,7 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         if blocked:
             return blocked
         payload = await self._install_plugin(plugin_id, dry_run=dry_run)
-        payload_view = cast('dict[str, object]', payload)
+        payload_view = payload
         payload_view['operation'] = 'install'
         if not dry_run:
             await self.runtime_operations.record_plugin_failure_state(payload_view, '插件安装失败')
@@ -215,14 +239,14 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         :return: dry-run 或阻断 payload
         """
         context.catalog_snapshot = CatalogRegistry.prepare_plugin(
-            context.plugin_id, context.discovered_plugin.backend_path
+            context.plugin_id, context.resolved_plugin.backend_path
         )
         self._refresh_install_actions(await self._build_install_precheck(context), context)
         if context.dry_run:
             payload = PluginLifecyclePayloadBuilder.build_install_dry_run_payload(
                 context.plugin_id,
                 context.actions or [],
-                cast('PluginPrecheckContext', context.precheck),
+                context.precheck_result,
             )
             payload['operation'] = 'install'
             return self._with_plugin_capability(payload, context.discovered_plugin)
@@ -231,7 +255,7 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
             context.plugin_id,
             operation='install',
             actions=context.actions or [],
-            precheck=cast('PluginPrecheckContext', context.precheck),
+            precheck=context.precheck_result,
         )
 
     async def _install_step_install_dependencies(
@@ -246,11 +270,11 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         """
         dependency_install_payload = await self.runtime_operations.install_plugin_dependencies_from_result_async(
             context.plugin_id,
-            cast('PluginPrecheckContext', context.precheck).dependency_result,
+            context.precheck_result.dependency_result,
             dry_run=True,
             discovered_plugin=context.discovered_plugin,
         )
-        context.dependency_install_view = cast('dict[str, object]', dependency_install_payload)
+        context.dependency_install_view = dependency_install_payload
         if context.dependency_install_view.get('dependencyOk', False):
             return None
 
@@ -260,7 +284,7 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
                 '插件依赖缺失，安装已中止，请先显式安装依赖', msg_key='plugin.runtime.install.missingDependencies'
             ),
             actions=context.actions or [],
-            precheck=cast('PluginPrecheckContext', context.precheck),
+            precheck=context.precheck_result,
             extra_payload={'dependencyInstall': context.dependency_install_view},
         )
 
@@ -297,10 +321,10 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         打开安装数据库会话。
 
         :param context: 插件安装上下文
-        :return: None
         """
-        context.session_context = self.dependencies.lifecycle_uow_gateway.open_lifecycle_unit_of_work()
-        context.lifecycle_uow = await context.session_context.__aenter__()
+        session_context = self.dependencies.lifecycle_uow_gateway.open_lifecycle_unit_of_work()
+        context.lifecycle_uow = await session_context.__aenter__()
+        context.session_context = session_context
         context.session = context.lifecycle_uow.session
 
         return None
@@ -315,8 +339,8 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         :param context: 插件安装上下文
         :return: 菜单冲突 payload 或 None
         """
-        installed_menu_conflicts = await context.lifecycle_uow.check_installed_menu_conflicts(
-            context.discovered_plugin,
+        installed_menu_conflicts = await context.active_transaction.check_installed_menu_conflicts(
+            context.resolved_plugin,
         )
         if not installed_menu_conflicts:
             return None
@@ -327,7 +351,7 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
                 '插件菜单与已安装菜单存在冲突，安装已中止', msg_key='plugin.runtime.install.menuConflict'
             ),
             actions=context.actions or [],
-            precheck=cast('PluginPrecheckContext', context.precheck),
+            precheck=context.precheck_result,
             installed_menu_conflicts=installed_menu_conflicts,
         )
 
@@ -339,10 +363,9 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         写入插件基础状态。
 
         :param context: 插件安装上下文
-        :return: None
         """
-        context.plugin = await context.lifecycle_uow.upsert_discovered_plugin(
-            context.discovered_plugin,
+        context.plugin = await context.active_transaction.upsert_discovered_plugin(
+            context.resolved_plugin,
             Path(self.dependencies.runtime_environment.get_backend_plugins_dir()),
             Path(self.dependencies.runtime_environment.get_frontend_plugins_dir()),
         )
@@ -357,11 +380,10 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         安装插件菜单。
 
         :param context: 插件安装上下文
-        :return: None
         """
         plugin_enabled = getattr(context.plugin, 'enabled', '0') == '0'
-        await context.lifecycle_uow.install_plugin_menu(
-            context.discovered_plugin,
+        await context.active_transaction.install_plugin_menu(
+            context.resolved_plugin,
             enabled=plugin_enabled,
         )
 
@@ -375,10 +397,9 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         安装插件默认配置。
 
         :param context: 插件安装上下文
-        :return: None
         """
-        context.installed_configs = await context.lifecycle_uow.install_plugin_default_config(
-            context.discovered_plugin,
+        context.installed_configs = await context.active_transaction.install_plugin_default_config(
+            context.resolved_plugin,
         )
 
         return None
@@ -391,11 +412,10 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         同步插件定时任务。
 
         :param context: 插件安装上下文
-        :return: None
         """
         plugin_enabled = getattr(context.plugin, 'enabled', '0') == '0'
-        await context.lifecycle_uow.install_plugin_jobs(
-            context.discovered_plugin,
+        await context.active_transaction.install_plugin_jobs(
+            context.resolved_plugin,
             enabled=plugin_enabled,
         )
 
@@ -409,10 +429,9 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         执行插件 migration。
 
         :param context: 插件安装上下文
-        :return: None
         """
         context.migration_results = await self.dependencies.migration_execution_gateway.run_plugin_migrations(
-            context.discovered_plugin,
+            context.resolved_plugin,
         )
 
         return None
@@ -425,9 +444,8 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         执行插件 seed。
 
         :param context: 插件安装上下文
-        :return: None
         """
-        context.seed_results = await PluginSeedRunner(context.discovered_plugin).run(context.session)
+        context.seed_results = await PluginSeedRunner(context.resolved_plugin).run(context.session)
 
         return None
 
@@ -439,9 +457,8 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         执行插件安装钩子。
 
         :param context: 插件安装上下文
-        :return: None
         """
-        context.hook_result = await PluginHookRunner(context.discovered_plugin).run(
+        context.hook_result = await PluginHookRunner(context.resolved_plugin).run(
             'on_install',
             query_db=context.session,
         )
@@ -456,10 +473,9 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         标记插件已安装。
 
         :param context: 插件安装上下文
-        :return: None
         """
-        context.plugin = await context.lifecycle_uow.mark_plugin_installed(
-            context.discovered_plugin,
+        context.plugin = await context.active_transaction.mark_plugin_installed(
+            context.resolved_plugin,
         )
 
         return None
@@ -472,9 +488,8 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         提交安装事务。
 
         :param context: 插件安装上下文
-        :return: None
         """
-        await context.lifecycle_uow.commit()
+        await context.active_transaction.commit()
         CatalogRegistry.commit_plugin(
             context.plugin_id, context.catalog_snapshot, enabled=getattr(context.plugin, 'enabled', '0') == '0'
         )
@@ -489,7 +504,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         关闭安装数据库会话。
 
         :param context: 插件安装上下文
-        :return: None
         """
         if context.session_context is not None:
             await self._close_install_session(context)
@@ -501,7 +515,6 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         关闭安装数据库会话。
 
         :param context: 插件安装上下文
-        :return: None
         """
         await self._close_lifecycle_session(context)
 
@@ -516,8 +529,8 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
         :return: 插件预检上下文
         """
         return await self._build_precheck_context(
-            cast('Path', context.backend_root),
-            cast('DiscoveredPlugin', context.discovered_plugin),
+            require_step_result(context.backend_root, 'discover_plugin'),
+            context.resolved_plugin,
             context.discovered_plugins or [],
         )
 
@@ -531,11 +544,10 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
 
         :param precheck: 插件预检上下文
         :param context: 插件安装上下文
-        :return: None
         """
         context.precheck = precheck
         context.actions = PluginPayloadBuilder.build_install_actions(
-            cast('DiscoveredPlugin', context.discovered_plugin),
+            context.resolved_plugin,
             precheck.dependency_result.ok,
             precheck.plugin_dependency_result.ok,
             precheck.structure_result.ok,
@@ -556,11 +568,11 @@ class PluginInstallUseCase(PluginLifecycleUseCaseSupport):
             context.plugin_id,
             message=I18nMessage('插件安装完成', msg_key='plugin.runtime.install.completed'),
             actions=context.actions or [],
-            precheck=cast('PluginPrecheckContext', context.precheck),
-            plugin=context.plugin,
-            installed_configs=context.installed_configs,
-            migration_results=context.migration_results,
-            seed_results=context.seed_results,
+            precheck=context.precheck_result,
+            plugin=require_step_result(context.plugin, 'mark_installed'),
+            installed_configs=require_step_result(context.installed_configs, 'install_configs'),
+            migration_results=require_step_result(context.migration_results, 'run_migrations'),
+            seed_results=require_step_result(context.seed_results, 'run_seeds'),
             hook_result=context.hook_result,
             extra_payload={'dependencyInstall': context.dependency_install_view or {}},
         )

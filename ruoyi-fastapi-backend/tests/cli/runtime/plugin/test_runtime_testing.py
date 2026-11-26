@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from subprocess import CompletedProcess
 
+from cli.runtime.plugin.gateway import PluginRuntimeGateway
 from cli.runtime.plugin.service import CliPluginRuntimeService
 
 from .conftest import (
@@ -13,31 +14,55 @@ from .conftest import (
 )
 
 
-class LazyPluginGateway:
+class LazyPluginGateway(PluginRuntimeGateway):
     """
     测试用 CLI 插件网关，验证测试命令可懒解析运行时依赖。
+
+    :ivar backend_root: 后端项目的根目录
+    :ivar runtime_gateway: 封装运行时调用的测试网关
+    :ivar runtime_environment_requested: 是否已请求创建运行环境
+    :ivar runtime_gateway_requested: 是否已请求运行时网关
     """
 
     def __init__(self, backend_root: Path, runtime_gateway: FakePluginRuntimeGateway) -> None:
-        """初始化测试用 CLI 插件网关。"""
+        """
+        初始化测试用 CLI 插件网关。
+
+        :param backend_root: 后端项目的根目录
+        :param runtime_gateway: 测试用插件运行时适配器
+        """
         self.backend_root = backend_root
         self.runtime_gateway = runtime_gateway
         self.runtime_environment_requested = False
         self.runtime_gateway_requested = False
 
     def get_core_runtime_environment(self) -> FakeRuntimeEnvironment:
-        """获取测试运行时环境。"""
+        """
+        获取测试运行时环境。
+
+        :return: 测试运行时环境
+        """
         self.runtime_environment_requested = True
         return FakeRuntimeEnvironment(self.backend_root)
 
     def get_management_runtime_gateway(self) -> FakePluginRuntimeGateway:
-        """获取测试运行时适配器。"""
+        """
+        获取测试运行时适配器。
+
+        :return: 测试运行时适配器
+        """
         self.runtime_gateway_requested = True
         return self.runtime_gateway
 
     @staticmethod
     def build_exception_payload(message: str, exc: Exception) -> dict[str, object]:
-        """构建测试异常负载。"""
+        """
+        构建测试异常负载。
+
+        :param message: 与当前结果一起返回的说明
+        :param exc: 捕获到的异常实例
+        :return: 测试异常负载
+        """
         return {'ok': False, 'message': message, 'error': str(exc)}
 
 
@@ -76,6 +101,7 @@ def test_plugin_runtime_test_plugin_runs_pytest_target(tmp_path: Path) -> None:
     assert result['message'] == '插件测试执行完成'
     assert result['pluginId'] == 'demo'
     assert result['targets'] == [str(test_root)]
+    assert isinstance(result['test'], dict)
     assert result['test']['returnCode'] == 0
     assert gateway.commands[0][0] == [
         sys.executable,
@@ -108,6 +134,7 @@ def test_plugin_runtime_test_plugin_runs_backend_and_frontend_targets(tmp_path: 
     assert result['targets'] == [str(backend_test_root), str(frontend_test_file)]
     assert result['test'] is None
     assert result['command'] is None
+    assert isinstance(result['results'], list)
     assert [item['kind'] for item in result['results']] == ['backend', 'frontend']
     assert gateway.commands[0][0] == [sys.executable, '-m', 'pytest', str(backend_test_root)]
     assert gateway.commands[0][1] == str(backend_root)
@@ -148,6 +175,7 @@ def test_plugin_runtime_test_plugin_can_run_frontend_build_acceptance(tmp_path: 
 
     assert result['ok'] is True
     assert result['frontendBuild'] is True
+    assert isinstance(result['results'], list)
     assert [item['kind'] for item in result['results']] == ['backend', 'frontend-build']
     assert result['targets'] == [str(backend_test_root), str(frontend_root)]
     assert gateway.commands[0][0] == [sys.executable, '-m', 'pytest', str(backend_test_root)]
@@ -163,6 +191,7 @@ def test_plugin_runtime_test_plugin_reports_missing_test_dir(tmp_path: Path) -> 
     result = build_runtime(backend_root).test_plugin('demo')
 
     assert result['ok'] is False
+    assert isinstance(result['message'], str)
     assert result['message'].startswith('插件测试目录不存在')
     assert result['targets'] == [
         str(backend_root / 'tests' / 'plugins' / 'demo'),
@@ -207,6 +236,7 @@ def test_plugin_runtime_test_plugin_reports_pytest_failure(tmp_path: Path) -> No
 
     assert result['ok'] is False
     assert result['message'] == '插件测试执行失败'
+    assert isinstance(result['test'], dict)
     assert result['test']['returnCode'] == 1
     assert result['test']['stderr'] == 'failed\n'
 
@@ -226,5 +256,6 @@ def test_plugin_runtime_test_plugin_truncates_command_output(tmp_path: Path) -> 
     result = build_runtime_with_gateway(backend_root, gateway).test_plugin('demo')
 
     assert result['ok'] is True
+    assert isinstance(result['test'], dict)
     assert result['test']['stdout'] == 'x' * 4000
     assert result['test']['stderr'] == 'y' * 4000

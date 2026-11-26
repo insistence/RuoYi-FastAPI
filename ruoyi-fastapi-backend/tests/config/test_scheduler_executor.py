@@ -2,8 +2,9 @@ import asyncio
 import math
 import pickle
 import threading
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 from unittest.mock import Mock, patch
 
 import pytest
@@ -14,6 +15,7 @@ from apscheduler.events import (
     EVENT_JOB_MISSED,
     EVENT_JOB_SUBMITTED,
     JobSubmissionEvent,
+    SchedulerEvent,
 )
 from apscheduler.executors.base import MaxInstancesReachedError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -30,6 +32,7 @@ EXPECTED_RETURN_VALUE = 8
 
 
 def test_runner_keeps_scheduled_time_and_monotonic_duration_on_clock_rollback() -> None:
+    """系统时间回拨时保留计划时刻并按单调时钟计算耗时。"""
     scheduler = BackgroundScheduler()
     scheduler.start(paused=True)
     try:
@@ -58,6 +61,7 @@ def test_runner_keeps_scheduled_time_and_monotonic_duration_on_clock_rollback() 
 
 
 def test_failure_and_misfire_have_distinct_execution_metadata() -> None:
+    """执行失败和错过调度使用不同的执行元数据。"""
     scheduler = BackgroundScheduler()
     scheduler.start(paused=True)
     try:
@@ -68,8 +72,8 @@ def test_failure_and_misfire_have_distinct_execution_metadata() -> None:
         assert missed.start_time is missed.end_time is missed.run_duration_ms is None
         assert failed.code == EVENT_JOB_ERROR
         assert isinstance(failed.exception, ValueError)
-        assert failed.run_duration_ms >= 0
-        assert 'job.func' in failed.traceback
+        assert failed.run_duration_ms is not None and failed.run_duration_ms >= 0
+        assert failed.traceback is not None and 'job.func' in failed.traceback
         assert missed.execution_id != failed.execution_id
     finally:
         scheduler.shutdown()
@@ -78,12 +82,18 @@ def test_failure_and_misfire_have_distinct_execution_metadata() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize('kind', ['thread', 'async', 'process'])
 async def test_executors_preserve_return_value_and_log_deleted_one_shot(kind: str) -> None:
+    """执行器保留返回值并记录已删除的一次性任务。"""
     loop = asyncio.get_running_loop()
     completed = loop.create_future()
     executor = TimedProcessPoolExecutor(1) if kind == 'process' else TimedAsyncIOExecutor()
     scheduler = AsyncIOScheduler(executors={'default': executor})
 
     def receive(event: TimedJobExecutionEvent) -> None:
+        """
+        记录调度器提交和完成任务的通知。
+
+        :param event: 包含任务快照、真实起止时刻和耗时的执行事件
+        """
         if isinstance(event, TimedJobExecutionEvent):
             loop.call_soon_threadsafe(completed.set_result, event)
 
@@ -108,8 +118,8 @@ async def test_executors_preserve_return_value_and_log_deleted_one_shot(kind: st
         assert event.snapshot.invoke_target == job.func_ref
         assert scheduler.get_job(job.id) is None
         assert event.scheduled_run_time.utcoffset() == timedelta(0)
-        assert event.start_time.tzinfo is timezone.utc
-        assert event.end_time.tzinfo is timezone.utc
+        assert event.start_time.tzinfo is UTC
+        assert event.end_time.tzinfo is UTC
         assert event.start_time >= event.scheduled_run_time
         assert event.end_time >= event.start_time
         assert event.run_duration_ms >= 0
@@ -134,6 +144,7 @@ async def test_executors_preserve_return_value_and_log_deleted_one_shot(kind: st
 
 @pytest.mark.asyncio
 async def test_thread_queue_wait_does_not_become_execution_start() -> None:
+    """线程排队时间不计入实际执行开始时间。"""
     loop = asyncio.get_running_loop()
     pool = ThreadPoolExecutor(1)
     release = threading.Event()
@@ -142,7 +153,12 @@ async def test_thread_queue_wait_does_not_become_execution_start() -> None:
     submitted = asyncio.Event()
     scheduler = AsyncIOScheduler(executors={'default': TimedAsyncIOExecutor()})
 
-    def receive(event: object) -> None:
+    def receive(event: SchedulerEvent) -> None:
+        """
+        记录调度器提交和完成任务的通知。
+
+        :param event: 待处理的事件
+        """
         if isinstance(event, TimedJobExecutionEvent):
             completed.set_result(event)
         elif event.code == EVENT_JOB_SUBMITTED:
@@ -153,7 +169,15 @@ async def test_thread_queue_wait_does_not_become_execution_start() -> None:
     scheduler.add_job(pow, args=[2, 3])
     original_run_in_executor = loop.run_in_executor
 
-    def use_single_worker(executor: object, function: object, *args) -> asyncio.Future:
+    def use_single_worker(executor: object, function: Callable[..., object], *args) -> asyncio.Future[object]:
+        """
+        将执行任务提交给指定的工作线程池。
+
+        :param executor: 负责运行任务的执行器
+        :param function: 测试要调用或替换的函数
+        :param args: 传给被调用对象的位置参数
+        :return: 任务提交给线程池后的 Future
+        """
         return original_run_in_executor(pool, function, *args)
 
     try:
@@ -179,16 +203,22 @@ async def test_thread_queue_wait_does_not_become_execution_start() -> None:
 async def test_scheduler_emits_one_standard_max_instances_event_and_preserves_rejected_logs(
     kind: str, one_shot: bool
 ) -> None:
+    """调度器仅发出一次标准并发上限事件并保留拒绝日志。"""
     executor = (
         TimedProcessPoolExecutor(1, on_rejected=SchedulerManager.scheduler_event_listener)
         if kind == 'process'
         else TimedAsyncIOExecutor(on_rejected=SchedulerManager.scheduler_event_listener)
     )
-    scheduler = AsyncIOScheduler(executors={'default': executor}, timezone=timezone.utc)
+    scheduler = AsyncIOScheduler(executors={'default': executor}, timezone=UTC)
     events = []
     rejected = asyncio.Event()
 
     def receive(event: JobSubmissionEvent) -> None:
+        """
+        记录调度器提交和完成任务的通知。
+
+        :param event: 待处理的事件
+        """
         events.append(event)
         rejected.set()
 
@@ -240,6 +270,7 @@ async def test_scheduler_emits_one_standard_max_instances_event_and_preserves_re
 
 @pytest.mark.asyncio
 async def test_max_instances_event_does_not_invent_execution_times() -> None:
+    """并发上限事件不填充不存在的执行时间。"""
     rejected = []
     executor = TimedAsyncIOExecutor(on_rejected=rejected.append)
     scheduler = AsyncIOScheduler(executors={'default': executor})
@@ -261,6 +292,7 @@ async def test_max_instances_event_does_not_invent_execution_times() -> None:
 
 @pytest.mark.asyncio
 async def test_rejection_log_failure_preserves_max_instances_error() -> None:
+    """拒绝日志写入失败时保留并发上限异常。"""
     on_rejected = Mock(side_effect=RuntimeError('log unavailable'))
     executor = TimedAsyncIOExecutor(on_rejected=on_rejected)
     scheduler = AsyncIOScheduler(executors={'default': executor})

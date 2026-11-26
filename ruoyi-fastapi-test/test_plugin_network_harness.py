@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -25,6 +24,12 @@ async def test_plugin_read_recovers_only_one_connection_reset(
     requests = []
 
     async def respond(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        """
+        按请求方法提供浏览器测试响应。
+
+        :param reader: 读取输入内容的对象
+        :param writer: 负责写入测试结果的对象
+        """
         try:
             request = await reader.readuntil(b'\r\n\r\n')
             requests.append(request.split(b'\r\n')[0])
@@ -47,12 +52,11 @@ async def test_plugin_read_recovers_only_one_connection_reset(
         port = server.sockets[0].getsockname()[1]
         api = await e2e_browser[0].request.new_context(base_url=f'http://127.0.0.1:{port}')
         try:
-            view = SimpleNamespace(api=api)
             if scenario == 'reset_once':
-                await assert_unchanged(view, before)
+                await assert_unchanged(api, before)
             else:
                 with pytest.raises(Error if scenario == 'reset_always' else AssertionError):
-                    await assert_unchanged(view, before)
+                    await assert_unchanged(api, before)
         finally:
             await api.dispose()
     assert len(requests) == (2 if scenario.startswith('reset_') else 1)

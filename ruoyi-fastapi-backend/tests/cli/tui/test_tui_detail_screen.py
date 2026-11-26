@@ -1,12 +1,16 @@
 import asyncio
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from pytest import MonkeyPatch
 
+if TYPE_CHECKING:
+    from cli.tui.adapters.models import DetailSectionSnapshot
+
 
 def test_detail_screen_updates_section_detail_view(tui_modules: SimpleNamespace) -> None:
+    """详情界面更新分区内容。"""
     snapshot = tui_modules.cli_tui_app.DetailPageSnapshot(
         title='Jobs',
         subtitle='subtitle',
@@ -23,10 +27,18 @@ def test_detail_screen_updates_section_detail_view(tui_modules: SimpleNamespace)
         refreshed_at='2026-04-30 10:00:00',
     )
 
-    recorded_sections: list[object] = []
+    recorded_sections: list[DetailSectionSnapshot] = []
 
     class FakeSectionDetailView:
-        def show_section(self, section: object, query: str = '') -> None:
+        """记录传入详情视图的区块。"""
+
+        def show_section(self, section: 'DetailSectionSnapshot', query: str = '') -> None:
+            """
+            记录详情面板选中的区块。
+
+            :param section: 需要展示的详情分区
+            :param query: 限制查询结果的条件
+            """
             del query
             recorded_sections.append(section)
 
@@ -43,6 +55,7 @@ def test_detail_screen_search_submit_remembers_and_refreshes(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """提交详情搜索后记住查询并刷新。"""
     snapshot = tui_modules.cli_tui_app.DetailPageSnapshot(
         title='数据库',
         subtitle='subtitle',
@@ -81,6 +94,7 @@ def test_detail_screen_clear_search_remembers_empty_and_refreshes(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """清空详情搜索后记住空查询并刷新。"""
     snapshot = tui_modules.cli_tui_app.DetailPageSnapshot(
         title='数据库',
         subtitle='subtitle',
@@ -120,6 +134,7 @@ async def test_detail_screen_executes_database_preview_in_process(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """详情界面在进程内执行数据库预览。"""
     snapshot = tui_modules.cli_tui_app.DetailPageSnapshot(
         title='数据库',
         subtitle='subtitle',
@@ -142,7 +157,7 @@ async def test_detail_screen_executes_database_preview_in_process(
     assert action is not None
 
     def refresh_current_view() -> None:
-        pass
+        """记录当前视图的刷新请求。"""
 
     fake_app = SimpleNamespace(
         action_refresh_current_view=refresh_current_view,
@@ -175,6 +190,7 @@ async def test_detail_screen_executes_crypto_action_without_suspend(
     monkeypatch: MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """详情界面执行加密操作时保持运行。"""
     snapshot = tui_modules.cli_tui_app.DetailPageSnapshot(
         title='传输加密',
         subtitle='subtitle',
@@ -199,7 +215,10 @@ async def test_detail_screen_executes_crypto_action_without_suspend(
     execute_calls: list[tuple[object, str]] = []
 
     class DummySuspend:
+        """提供界面挂起期间使用的上下文管理器。"""
+
         def __enter__(self) -> None:
+            """进入测试使用的上下文并返回资源。"""
             suspend_calls.append('enter')
 
         def __exit__(
@@ -208,14 +227,26 @@ async def test_detail_screen_executes_crypto_action_without_suspend(
             exc: BaseException | None,
             tb: Any,
         ) -> None:
+            """
+            结束测试资源的上下文。
+
+            :param exc_type: 退出上下文时的异常类型
+            :param exc: 捕获到的异常实例
+            :param tb: 异常发生时的回溯信息
+            """
             del exc_type, exc, tb
             suspend_calls.append('exit')
 
     def build_suspend() -> DummySuspend:
+        """
+        创建测试使用的 ``DummySuspend`` 实例。
+
+        :return: 测试使用的 ``DummySuspend`` 实例
+        """
         return DummySuspend()
 
     def refresh_current_view() -> None:
-        pass
+        """记录当前视图的刷新请求。"""
 
     fake_app = SimpleNamespace(
         suspend=build_suspend,
@@ -251,6 +282,7 @@ async def test_detail_screen_executes_crypto_action_without_suspend(
 def test_detail_screen_support_builds_summary_actions_and_fallbacks(
     tui_modules: SimpleNamespace,
 ) -> None:
+    """详情界面构建摘要操作及后备选项。"""
     support = tui_modules.cli_tui_detail.DetailScreenSupport()
     snapshot = tui_modules.cli_tui_app.DetailPageSnapshot(
         title='数据库',
@@ -282,6 +314,7 @@ def test_detail_screen_support_builds_summary_actions_and_fallbacks(
 def test_detail_screen_focus_service_moves_and_scrolls_between_focus_targets(
     tui_modules: SimpleNamespace,
 ) -> None:
+    """详情界面在焦点目标间移动并滚动。"""
     focus_service = tui_modules.cli_tui_detail.DetailScreenFocusService()
     focused: list[str] = []
     sidebar = SimpleNamespace(focus=lambda: focused.append('sidebar'))
@@ -310,6 +343,7 @@ def test_detail_screen_focus_service_moves_and_scrolls_between_focus_targets(
 
 
 def test_detail_screen_unmount_cancels_action_task(tui_modules: SimpleNamespace) -> None:
+    """卸载详情界面时取消操作任务。"""
     snapshot = tui_modules.cli_tui_app.DetailPageSnapshot(
         title='数据库',
         subtitle='subtitle',
@@ -326,10 +360,18 @@ def test_detail_screen_unmount_cancels_action_task(tui_modules: SimpleNamespace)
     cancelled: list[str] = []
 
     class DummyTask:
+        """保存任务名称并记录取消操作。"""
+
         def done(self) -> bool:
+            """
+            在此测试分支返回 False。
+
+            :return: 此分支的固定值 ``False``
+            """
             return False
 
         def cancel(self) -> None:
+            """记录任务的取消请求。"""
             cancelled.append('action')
 
     screen._action_task = DummyTask()  # type: ignore[assignment]
@@ -341,6 +383,7 @@ def test_detail_screen_unmount_cancels_action_task(tui_modules: SimpleNamespace)
 
 @pytest.mark.asyncio
 async def test_detail_screen_scrolls_in_small_viewport(tui_modules: SimpleNamespace) -> None:
+    """小视口中的详情界面可以滚动。"""
     thin_scrollbar_size = 1
     app = tui_modules.cli_tui_app.RuoyiTuiApp('dev')
     app.action_show_dashboard = lambda: None  # type: ignore[method-assign]

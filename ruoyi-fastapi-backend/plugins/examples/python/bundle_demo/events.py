@@ -18,7 +18,6 @@ def register_event_routes(app: FastAPI, *, permission: str = 'bundle_demo:view',
     :param app: 当前插件的 ASGI 子应用
     :param permission: 访问事件流所需的接口权限
     :param interval: 示例事件发送间隔，单位为秒
-    :return: None
     """
 
     @app.get(
@@ -37,7 +36,7 @@ def register_event_routes(app: FastAPI, *, permission: str = 'bundle_demo:view',
             """
             逐条生成有界示例事件，由 ASGI 响应负责取消断开的请求。
 
-            :return: 已编码的 SSE 事件片段
+            :yield: 已编码的 SSE 事件片段
             """
             for index in range(int(cursor) + 1, count + 1):
                 await asyncio.sleep(interval)

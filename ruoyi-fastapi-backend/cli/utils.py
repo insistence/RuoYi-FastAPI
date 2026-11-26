@@ -21,6 +21,9 @@ def format_cli_path(path: Path | str) -> str:
 
     Windows 绝对路径保留盘符和原生格式；无盘符路径使用 POSIX 分隔符，
     以保证虚拟 Unix 路径和跨平台 payload 的稳定性。
+
+    :param path: 要读取或处理的路径
+    :return: 用于 CLI 展示的文件路径
     """
     path_object = Path(path)
     return str(path_object) if path_object.drive else path_object.as_posix()
@@ -31,11 +34,11 @@ class NestedCliResult:
     """
     内部 CLI 调用结果。
 
-    :param command: 实际执行的命令参数列表
-    :param returncode: 子进程退出码
-    :param stdout: 标准输出文本
-    :param stderr: 标准错误文本
-    :param payload: 解析后的 JSON 负载，解析失败时为 None
+    :ivar command: 实际执行的命令参数列表
+    :ivar returncode: 子进程退出码
+    :ivar stdout: 标准输出文本
+    :ivar stderr: 标准错误文本
+    :ivar payload: 解析后的 JSON 负载，解析失败时为 None
     """
 
     command: list[str]
@@ -80,10 +83,10 @@ class ShellTextFormatter:
     @staticmethod
     def to_snake_case(value: object) -> str:
         """
-        将字段名标准化为 `snake_case` 形式。
+        将字段名标准化为 ``snake_case`` 形式。
 
         :param value: 原始字段名
-        :return: `snake_case` 字段名
+        :return: ``snake_case`` 字段名
         """
         text = '' if value is None else str(value).strip()
         if not text:
@@ -115,7 +118,7 @@ class NestedCliProjectLocator:
         解析内部 CLI 子进程应使用的后端项目目录。
 
         优先使用当前工作目录；若当前目录不是后端目录，则回退到当前
-        `cli/utils.py` 所在代码树的上一层目录。
+        ``cli/utils.py`` 所在代码树的上一层目录。
 
         :return: 后端项目根目录
         """
@@ -236,9 +239,9 @@ class NestedCliSupport:
     该对象统一负责编排项目目录解析、环境注入、标准输出解析以及
     实时执行/进程替换执行路径。
 
-    :param project_locator: 项目目录定位器
-    :param environment_builder: 子进程环境构建器
-    :param payload_parser: 负载解析器
+    :ivar project_locator: 项目目录定位器
+    :ivar environment_builder: 子进程环境构建器
+    :ivar payload_parser: 负载解析器
     """
 
     project_locator: NestedCliProjectLocator = field(default_factory=NestedCliProjectLocator)
@@ -363,7 +366,6 @@ class NestedCliSupport:
         以进程替换方式执行内部 CLI 命令。
 
         :param arguments: CLI 参数列表
-        :return: None
         """
         project_dir = self.resolve_project_dir()
         command = self.build_nested_cli_command(*arguments)

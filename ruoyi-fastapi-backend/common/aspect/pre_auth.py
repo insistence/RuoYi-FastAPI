@@ -8,9 +8,7 @@ from module_admin.service.login_service import LoginService
 
 
 class PreAuth(AuthRule):
-    """
-    登录认证前置校验依赖类
-    """
+    """登录认证前置校验依赖类。"""
 
     async def __call__(
         self,
@@ -18,7 +16,7 @@ class PreAuth(AuthRule):
         current_user: CurrentUserModel | None = Depends(LoginService.get_current_user),
     ) -> CurrentUserModel | None:
         """
-        保存前置认证规则和登录用户上下文
+        保存前置认证规则和登录用户上下文。
 
         :param request: 当前请求对象
         :param current_user: 登录认证依赖返回的当前用户
@@ -36,20 +34,20 @@ class PreAuth(AuthRule):
 
 def PreAuthDependency(exclude_routes: list[ExcludeRoute] | None = None) -> params.Depends:  # noqa: N802
     """
-    登录认证前置校验依赖
+    登录认证前置校验依赖。
 
     :param exclude_routes: 需要排除的路由列表，格式为：
                             [{'path': '/path1', 'methods': ['GET', 'POST']}, {'path': '/path2/{param}', 'methods': ['GET']}]
                             methods为空列表表示所有方法
     :return: 登录认证前置校验依赖
     """
-    return Depends(PreAuth(exclude_routes))
+    return params.Depends(PreAuth(exclude_routes))
 
 
 def CurrentUserDependency() -> params.Depends:  # noqa: N802
     """
-    当前登录用户信息依赖
+    当前登录用户信息依赖。
 
     :return: 当前登录用户信息依赖
     """
-    return Depends(LoginService.get_current_user)
+    return params.Depends(LoginService.get_current_user)

@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import ColumnElement, and_, delete, desc, func, select, update
+from sqlalchemy import ColumnElement, and_, delete, desc, func, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -15,14 +15,12 @@ from utils.time_util import TimezoneUtil
 
 
 class RoleDao:
-    """
-    角色管理模块数据库操作层
-    """
+    """角色管理模块数据库操作层。"""
 
     @classmethod
     async def get_role_by_name(cls, db: AsyncSession, role_name: str) -> SysRole | None:
         """
-        根据角色名获取在用角色信息
+        根据角色名获取在用角色信息。
 
         :param db: orm对象
         :param role_name: 角色名
@@ -46,7 +44,7 @@ class RoleDao:
     @classmethod
     async def get_role_by_info(cls, db: AsyncSession, role: RoleModel) -> SysRole | None:
         """
-        根据角色参数获取角色信息
+        根据角色参数获取角色信息。
 
         :param db: orm对象
         :param role: 角色参数
@@ -58,8 +56,8 @@ class RoleDao:
                     select(SysRole)
                     .where(
                         SysRole.del_flag == '0',
-                        SysRole.role_name == role.role_name if role.role_name else True,
-                        SysRole.role_key == role.role_key if role.role_key else True,
+                        SysRole.role_name == role.role_name if role.role_name else true(),
+                        SysRole.role_key == role.role_key if role.role_key else true(),
                     )
                     .order_by(desc(SysRole.create_time))
                     .distinct()
@@ -74,7 +72,7 @@ class RoleDao:
     @classmethod
     async def get_role_by_id(cls, db: AsyncSession, role_id: int) -> SysRole | None:
         """
-        根据角色id获取在用角色信息
+        根据角色id获取在用角色信息。
 
         :param db: orm对象
         :param role_id: 角色id
@@ -95,7 +93,7 @@ class RoleDao:
     @classmethod
     async def get_role_detail_by_id(cls, db: AsyncSession, role_id: int) -> SysRole | None:
         """
-        根据role_id获取角色详细信息
+        根据role_id获取角色详细信息。
 
         :param db: orm对象
         :param role_id: 角色id
@@ -112,7 +110,7 @@ class RoleDao:
     @classmethod
     async def get_role_select_option_dao(cls, db: AsyncSession) -> Sequence[SysRole]:
         """
-        获取编辑页面对应的在用角色列表信息
+        获取编辑页面对应的在用角色列表信息。
 
         :param db: orm对象
         :return: 角色列表信息
@@ -131,10 +129,14 @@ class RoleDao:
 
     @classmethod
     async def get_role_list(
-        cls, db: AsyncSession, query_object: RolePageQueryModel, data_scope_sql: ColumnElement, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+        cls,
+        db: AsyncSession,
+        query_object: RolePageQueryModel,
+        data_scope_sql: ColumnElement[bool],
+        is_page: bool = False,
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据查询参数获取角色列表信息
+        根据查询参数获取角色列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -152,18 +154,18 @@ class RoleDao:
             .join(SysDept, SysDept.dept_id == SysUser.dept_id, isouter=True)
             .where(
                 SysRole.del_flag == '0',
-                SysRole.role_id == query_object.role_id if query_object.role_id is not None else True,
-                SysRole.role_name.like(f'%{query_object.role_name}%') if query_object.role_name else True,
-                SysRole.role_key.like(f'%{query_object.role_key}%') if query_object.role_key else True,
-                SysRole.status == query_object.status if query_object.status else True,
-                SysRole.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysRole.create_time < time_range[1] if time_range and time_range[1] is not None else True,
+                SysRole.role_id == query_object.role_id if query_object.role_id is not None else true(),
+                SysRole.role_name.like(f'%{query_object.role_name}%') if query_object.role_name else true(),
+                SysRole.role_key.like(f'%{query_object.role_key}%') if query_object.role_key else true(),
+                SysRole.status == query_object.status if query_object.status else true(),
+                SysRole.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysRole.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
                 data_scope_sql,
             )
             .order_by(SysRole.role_sort)
             .distinct()
         )
-        role_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        role_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -172,11 +174,11 @@ class RoleDao:
     @classmethod
     async def add_role_dao(cls, db: AsyncSession, role: RoleModel) -> SysRole:
         """
-        新增角色数据库操作
+        新增角色数据库操作。
 
         :param db: orm对象
         :param role: 角色对象
-        :return:
+        :return: 新增的角色记录
         """
         db_role = SysRole(**role.model_dump(exclude={'admin', 'create_time', 'update_time'}))
         db.add(db_role)
@@ -185,13 +187,12 @@ class RoleDao:
         return db_role
 
     @classmethod
-    async def edit_role_dao(cls, db: AsyncSession, role: dict) -> None:
+    async def edit_role_dao(cls, db: AsyncSession, role: dict[str, Any]) -> None:
         """
-        编辑角色数据库操作
+        编辑角色数据库操作。
 
         :param db: orm对象
         :param role: 需要更新的角色字典
-        :return:
         """
         await db.execute(
             update(SysRole),
@@ -201,20 +202,19 @@ class RoleDao:
     @classmethod
     async def delete_role_dao(cls, db: AsyncSession, role: RoleModel) -> None:
         """
-        删除角色数据库操作
+        删除角色数据库操作。
 
         :param db: orm对象
         :param role: 角色对象
-        :return:
         """
         await db.execute(
             update(SysRole).where(SysRole.role_id == role.role_id).values(del_flag='2', update_by=role.update_by)
         )
 
     @classmethod
-    async def get_role_menu_dao(cls, db: AsyncSession, role: RoleModel) -> Sequence[SysMenu]:
+    async def get_role_menu_dao(cls, db: AsyncSession, role: SysRole | RoleModel) -> Sequence[SysMenu]:
         """
-        根据角色id获取角色菜单关联列表信息
+        根据角色id获取角色菜单关联列表信息。
 
         :param db: orm对象
         :param role: 角色对象
@@ -236,7 +236,7 @@ class RoleDao:
                             )
                         )
                         if role.menu_check_strictly
-                        else True,
+                        else true(),
                     )
                     .order_by(SysMenu.parent_id, SysMenu.order_num)
                 )
@@ -250,7 +250,7 @@ class RoleDao:
     @classmethod
     async def list_role_menu_ids(cls, db: AsyncSession, role_id: int) -> Sequence[int]:
         """
-        查询角色完整菜单关联编号
+        查询角色完整菜单关联编号。
 
         :param db: 异步数据库会话
         :param role_id: 角色编号
@@ -262,11 +262,10 @@ class RoleDao:
     @classmethod
     async def add_role_menu_dao(cls, db: AsyncSession, role_menu: RoleMenuModel) -> None:
         """
-        新增角色菜单关联信息数据库操作
+        新增角色菜单关联信息数据库操作。
 
         :param db: orm对象
         :param role_menu: 用户角色菜单关联对象
-        :return:
         """
         db_role_menu = SysRoleMenu(**role_menu.model_dump())
         db.add(db_role_menu)
@@ -274,18 +273,17 @@ class RoleDao:
     @classmethod
     async def delete_role_menu_dao(cls, db: AsyncSession, role_menu: RoleMenuModel) -> None:
         """
-        删除角色菜单关联信息数据库操作
+        删除角色菜单关联信息数据库操作。
 
         :param db: orm对象
         :param role_menu: 角色菜单关联对象
-        :return:
         """
         await db.execute(delete(SysRoleMenu).where(SysRoleMenu.role_id.in_([role_menu.role_id])))
 
     @classmethod
     async def get_role_dept_dao(cls, db: AsyncSession, role: RoleModel) -> Sequence[SysDept]:
         """
-        根据角色id获取角色部门关联列表信息
+        根据角色id获取角色部门关联列表信息。
 
         :param db: orm对象
         :param role: 角色对象
@@ -307,7 +305,7 @@ class RoleDao:
                             )
                         )
                         if role.dept_check_strictly
-                        else True,
+                        else true(),
                     )
                     .order_by(SysDept.parent_id, SysDept.order_num)
                 )
@@ -321,30 +319,28 @@ class RoleDao:
     @classmethod
     async def add_role_dept_dao(cls, db: AsyncSession, role_dept: RoleDeptModel) -> None:
         """
-        新增角色部门关联信息数据库操作
+        新增角色部门关联信息数据库操作。
 
         :param db: orm对象
         :param role_dept: 用户角色部门关联对象
-        :return:
         """
-        db_role_dept = SysRoleDept(**role_dept.dict())
+        db_role_dept = SysRoleDept(**role_dept.model_dump())
         db.add(db_role_dept)
 
     @classmethod
     async def delete_role_dept_dao(cls, db: AsyncSession, role_dept: RoleDeptModel) -> None:
         """
-        删除角色部门关联信息数据库操作
+        删除角色部门关联信息数据库操作。
 
         :param db: orm对象
         :param role_dept: 角色部门关联对象
-        :return:
         """
         await db.execute(delete(SysRoleDept).where(SysRoleDept.role_id.in_([role_dept.role_id])))
 
     @classmethod
-    async def count_user_role_dao(cls, db: AsyncSession, role_id: int) -> int | None:
+    async def count_user_role_dao(cls, db: AsyncSession, role_id: int) -> int:
         """
-        根据角色id查询角色关联用户数量
+        根据角色id查询角色关联用户数量。
 
         :param db: orm对象
         :param role_id: 角色id
@@ -352,6 +348,6 @@ class RoleDao:
         """
         user_count = (
             await db.execute(select(func.count('*')).select_from(SysUserRole).where(SysUserRole.role_id == role_id))
-        ).scalar()
+        ).scalar_one()
 
         return user_count

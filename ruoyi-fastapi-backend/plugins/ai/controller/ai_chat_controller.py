@@ -58,7 +58,7 @@ async def send_chat_message(
     chat_req: AiChatRequestModel,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(AiModels)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(AiModels)],
 ) -> StreamingResponse:
     user_id = current_user.user.user_id if current_user and current_user.user else 1
     if not current_user.user.admin:

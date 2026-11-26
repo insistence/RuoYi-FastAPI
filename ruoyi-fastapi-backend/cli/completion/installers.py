@@ -1,5 +1,6 @@
 import io
 import os
+from collections.abc import Callable
 from contextlib import redirect_stderr
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,6 +10,7 @@ import click
 import typer
 import typer.main
 from click.shell_completion import BashComplete, FishComplete, ShellComplete, ZshComplete
+from typer._click import Command as TyperClickCommand
 
 from cli.completion.providers import COMPLETION_PROVIDER_GATEWAY, CompletionProviderGateway
 from cli.completion.shells import PowerShellComplete, ensure_custom_completion_classes_registered
@@ -20,13 +22,11 @@ CLICK_COMPLETE_ENV_VAR = '_RUOYI_COMPLETE'
 
 
 class PortableBashComplete(BashComplete):
-    """
-    无需探测本机Bash版本的补全脚本生成器
-    """
+    """无需探测本机Bash版本的补全脚本生成器。"""
 
     def source(self) -> str:
         """
-        生成可供其他机器使用的Bash补全脚本
+        生成可供其他机器使用的Bash补全脚本。
 
         旧版Bash差异已由脚本转换器处理；跳过Click版本探测，避免调用Windows WSL启动器。
 
@@ -60,8 +60,8 @@ class CompletionInstallerShellSupport:
 
         兼容目标主要包括 macOS 默认 Bash 3.2：
 
-        - `complete -o nosort` 在旧 Bash 上会在 `source` 阶段直接报错
-        - `compopt` 在旧 Bash 上可能不存在
+        - ``complete -o nosort`` 在旧 Bash 上会在 ``source`` 阶段直接报错
+        - ``compopt`` 在旧 Bash 上可能不存在
 
         :param script_text: Click 原始 Bash completion 脚本文本
         :return: 兼容处理后的脚本文本
@@ -106,7 +106,7 @@ class CompletionInstallerShellSupport:
         return '\n'.join(compatible_lines) + '\n'
 
     @staticmethod
-    def build_posix_source_command(target_file: Path) -> str:
+    def build_posix_source_command(target_file: Path | str) -> str:
         """
         构建 POSIX shell 使用的 source 命令。
 
@@ -116,7 +116,7 @@ class CompletionInstallerShellSupport:
         return f'source {target_file}'
 
     @staticmethod
-    def build_fish_source_command(target_file: Path) -> str:
+    def build_fish_source_command(target_file: Path | str) -> str:
         """
         构建 Fish shell 使用的 source 命令。
 
@@ -126,7 +126,7 @@ class CompletionInstallerShellSupport:
         return f'status --is-interactive; and source {target_file}'
 
     @staticmethod
-    def build_powershell_source_command(target_file: Path) -> str:
+    def build_powershell_source_command(target_file: Path | str) -> str:
         """
         构建 PowerShell 使用的 source 命令。
 
@@ -141,16 +141,16 @@ class CompletionShellRuntimePolicy:
     """
     completion shell 运行时策略定义。
 
-    :param name: shell 名称
-    :param click_completion_class: Click completion 生成器类型
-    :param script_transformer: 脚本文本后处理函数
-    :param source_command_builder: 激活命令构建函数
+    :ivar name: shell 名称
+    :ivar click_completion_class: Click completion 生成器类型
+    :ivar script_transformer: 脚本文本后处理函数
+    :ivar source_command_builder: 激活命令构建函数
     """
 
     name: str
-    click_completion_class: type[Any]
-    script_transformer: Any
-    source_command_builder: Any
+    click_completion_class: type[ShellComplete]
+    script_transformer: Callable[[str], str]
+    source_command_builder: Callable[[str], str]
 
 
 @dataclass(frozen=True)
@@ -158,7 +158,7 @@ class CompletionShellRuntimePolicyRegistry:
     """
     completion shell 运行时策略注册表。
 
-    :param policies: 按 shell 名称索引的运行时策略映射
+    :ivar policies: 按 shell 名称索引的运行时策略映射
     """
 
     policies: dict[str, CompletionShellRuntimePolicy]
@@ -210,9 +210,9 @@ class CompletionInstallerService:
     该服务负责 shell 元数据解析、脚本生成、目标路径解析、激活命令构建、
     rc 文件写入以及安装结果收口。
 
-    :param completion_provider_gateway: completion 提供器对外网关
-    :param shell_spec_registry: shell 元数据注册表
-    :param shell_runtime_policy_registry: shell 运行时策略注册表
+    :ivar completion_provider_gateway: completion 提供器对外网关
+    :ivar shell_spec_registry: shell 元数据注册表
+    :ivar shell_runtime_policy_registry: shell 运行时策略注册表
     """
 
     def __init__(
@@ -228,7 +228,6 @@ class CompletionInstallerService:
         :param completion_provider_gateway: completion 提供器对外网关
         :param shell_spec_registry: shell 元数据注册表
         :param shell_runtime_policy_registry: shell 运行时策略注册表
-        :return: None
         """
         self.completion_provider_gateway = completion_provider_gateway or COMPLETION_PROVIDER_GATEWAY
         self.shell_spec_registry = shell_spec_registry or COMPLETION_SHELL_SPEC_REGISTRY
@@ -265,9 +264,9 @@ class CompletionInstallerService:
         return runtime_policy
 
     @staticmethod
-    def build_completion_click_command(root_cli: typer.Typer) -> click.Command:
+    def build_completion_click_command(root_cli: typer.Typer) -> TyperClickCommand:
         """
-        将 Typer 根应用转换为 Click 命令对象，供 shell completion 生成使用。
+        将 Typer 根应用转换为其可执行的 Click 命令。
 
         :param root_cli: Typer 根应用
         :return: Click 命令对象
@@ -292,7 +291,7 @@ class CompletionInstallerService:
         stderr_buffer = io.StringIO()
         with redirect_stderr(stderr_buffer):
             script_text = runtime_policy.click_completion_class(
-                click_command,
+                click.Command(click_command.name),
                 {},
                 'ruoyi',
                 CLICK_COMPLETE_ENV_VAR,

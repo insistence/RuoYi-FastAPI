@@ -2,11 +2,11 @@ import asyncio
 import hashlib
 import uuid
 from dataclasses import dataclass
-from typing import Any
 
 import anyio
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
+from redis.typing import EncodableT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -17,7 +17,12 @@ from utils.log_util import logger
 @dataclass(frozen=True, slots=True)
 class CurrentUserCacheTicket:
     """
-    当前用户查询开始时的缓存版本和固定有效期
+    当前用户查询开始时的缓存版本和固定有效期。
+
+    :ivar global_epoch: 全局缓存的失效版本号
+    :ivar user_epoch: 当前用户缓存的失效版本号
+    :ivar created_at_ms: 创建缓存票据的时间戳（毫秒）
+    :ivar deadline_ms: 允许写回缓存的截止时间戳（毫秒）
     """
 
     global_epoch: str
@@ -28,9 +33,16 @@ class CurrentUserCacheTicket:
 
 class CurrentUserCacheUtil:
     """
-    当前用户快照缓存工具类
+    当前用户快照缓存工具类。
 
     数据库提交后主动失效，硬过期限制失效遗漏时的缓存复用时间。
+
+    :cvar _OPERATION_TIMEOUT_SECONDS: 操作超时时间（秒）
+    :cvar _READ_RESULT_SIZE: 预期从 Redis 读脚本返回的字段数量
+    :cvar _USER_EPOCH_TTL_SECONDS: 用户缓存版本的有效期（秒）
+    :cvar _READ_SCRIPT: 原子读取用户缓存和版本信息的 Redis 脚本
+    :cvar _WRITE_SCRIPT: 仅在版本仍有效时写入缓存的 Redis 脚本
+    :cvar _INVALIDATE_SCRIPT: 推进缓存版本并使旧数据失效的 Redis 脚本
     """
 
     _OPERATION_TIMEOUT_SECONDS = 1
@@ -93,7 +105,7 @@ return #KEYS
     @staticmethod
     def namespace_for_bind(bind: object) -> str | None:
         """
-        根据数据库连接目标生成缓存命名空间，不访问数据库
+        根据数据库连接目标生成缓存命名空间，不访问数据库。
 
         :param bind: 数据库引擎或连接
         :return: 隐藏密码后的连接目标摘要，未知绑定返回None
@@ -107,7 +119,7 @@ return #KEYS
     @staticmethod
     def _keys(namespace: str, user_id: int) -> tuple[str, str, str]:
         """
-        获取同一数据源下的版本和用户快照键
+        获取同一数据源下的版本和用户快照键。
 
         :param namespace: 数据源缓存命名空间
         :param user_id: 用户id
@@ -122,7 +134,7 @@ return #KEYS
         cls, redis: Redis, namespace: str, user_id: int, ttl_seconds: int
     ) -> tuple[CurrentUserModel | None, CurrentUserCacheTicket | None]:
         """
-        原子读取用户快照，未命中时返回用于安全回填的查询凭据
+        原子读取用户快照，未命中时返回用于安全回填的查询凭据。
 
         :param redis: Redis连接对象
         :param namespace: 数据源缓存命名空间
@@ -159,8 +171,7 @@ return #KEYS
         try:
             current_user = CurrentUserModel.model_validate_json(result[4])
             if (
-                current_user.user is None
-                or current_user.user.user_id != user_id
+                current_user.user.user_id != user_id
                 or current_user.user.password is not None
                 or current_user.user.status not in (None, '0')
                 or current_user.user.del_flag not in (None, '0')
@@ -181,7 +192,7 @@ return #KEYS
         ticket: CurrentUserCacheTicket,
     ) -> bool:
         """
-        版本未变化时回填用户快照，不延长查询开始时的有效期
+        版本未变化时回填用户快照，不延长查询开始时的有效期。
 
         :param redis: Redis连接对象
         :param namespace: 数据源缓存命名空间
@@ -190,7 +201,7 @@ return #KEYS
         :param ticket: 查询开始前取得的版本和有效期
         :return: 是否写入成功
         """
-        if current_user.user is None or current_user.user.user_id != user_id:
+        if current_user.user.user_id != user_id:
             return False
         try:
             payload = current_user.model_dump_json(
@@ -219,7 +230,7 @@ return #KEYS
     @classmethod
     async def invalidate(cls, redis: Redis, namespace: str, user_ids: set[int] | None = None) -> bool:
         """
-        轮换用户或共享信息版本，使已有快照和并发查询凭据失效
+        轮换用户或共享信息版本，使已有快照和并发查询凭据失效。
 
         :param redis: Redis连接对象
         :param namespace: 数据源缓存命名空间
@@ -234,28 +245,30 @@ return #KEYS
             else [cls._keys(namespace, user_id)[1] for user_id in sorted(user_ids)]
         )
         try:
-            return await cls._eval(
+            invalidated = await cls._eval(
                 redis,
                 cls._INVALIDATE_SCRIPT,
                 len(keys),
                 *keys,
                 *(uuid.uuid4().hex for _ in keys),
                 cls._USER_EPOCH_TTL_SECONDS if user_ids is not None else 0,
-            ) == len(keys)
+            )
+            return invalidated == len(keys)
         except (RedisError, TimeoutError):
             logger.warning('当前用户缓存失效失败，等待快照硬过期')
             return False
 
     @classmethod
-    async def _eval(cls, redis: Redis, script: str, key_count: int, *args: object) -> Any:
+    async def _eval(cls, redis: Redis, script: str, key_count: int, *args: EncodableT) -> object:
         """
-        限时执行Redis脚本，取消后等待连接归还
+        限时执行Redis脚本，取消后等待连接归还。
 
         :param redis: Redis连接对象
         :param script: Lua脚本
         :param key_count: 脚本键数量
         :param args: 脚本键和参数
         :return: Redis响应值
+        :raises asyncio.CancelledError: 等待 Redis 脚本执行时操作被取消
         """
         task = asyncio.ensure_future(redis.eval(script, key_count, *args))
         try:
@@ -271,7 +284,7 @@ return #KEYS
                     while not settled.done():
                         try:
                             await asyncio.shield(settled)
-                        except asyncio.CancelledError:  # noqa: PERF203
+                        except asyncio.CancelledError:
                             cancelled = True
                 if cancelled:
                     raise asyncio.CancelledError
@@ -283,7 +296,7 @@ return #KEYS
     @staticmethod
     def _text(value: str | bytes) -> str:
         """
-        兼容Redis字符串和字节响应
+        兼容Redis字符串和字节响应。
 
         :param value: Redis响应值
         :return: 字符串

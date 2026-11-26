@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from cli.tui.actions.builders import TuiActionTemplate, TuiActionTemplateSupport
+from cli.tui.actions.models import ActionParameters
 from cli.tui.adapters.models import BrowserRecordSnapshot
 from cli.tui.copy import TUI_COPY
 
@@ -13,14 +14,14 @@ class GenActionTemplateFactory:
     该对象负责生成代码生成浏览页相关动作模板，统一记录标题提取、
     导出预演和表结构同步动作的构建逻辑。
 
-    :param support: 动作模板共享构建支持
+    :ivar support: 动作模板共享构建支持
     """
 
     support: TuiActionTemplateSupport
 
     def build_export_dry_run_parameters(
         self, record: BrowserRecordSnapshot | None, env: str
-    ) -> dict[str, object] | None:
+    ) -> ActionParameters | None:
         """
         构建代码生成导出 dry-run 命令参数。
 
@@ -34,7 +35,7 @@ class GenActionTemplateFactory:
             return None
         return {'table_name': table_name, 'mode': 'zip', 'dry_run': True}
 
-    def build_sync_db_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> dict[str, object] | None:
+    def build_sync_db_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> ActionParameters | None:
         """
         构建代码生成表结构同步命令参数。
 

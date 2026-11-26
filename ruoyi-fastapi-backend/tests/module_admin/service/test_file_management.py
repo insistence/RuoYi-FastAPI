@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import Generator
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Literal
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -14,8 +15,11 @@ from module_admin.dao.file_business_dao import FileReferenceDao
 from module_admin.dao.file_info_dao import FileInfoDao
 from module_admin.entity.do.file_do import SysFileInfo
 from module_admin.entity.vo.file_vo import DeleteFileModel, TransferFileModel
+from module_admin.entity.vo.role_vo import RoleModel
 from module_admin.service.file_access_service import FileAuditService
 from module_admin.service.file_service import FileLifecycleService, FileQueryService, FileTransferService
+from tests.module_admin.service.file_helpers import make_file_request
+from tests.module_admin.service.helpers import make_current_user, make_query_db
 from utils.file_util import FileUtil
 from utils.upload_util import UploadUtil
 
@@ -26,15 +30,6 @@ TARGET_DEPT_ID = 110
 BATCH_FILE_COUNT = 2
 
 
-def make_query_db(commit_error: Exception | None = None) -> SimpleNamespace:
-    commit = AsyncMock(side_effect=commit_error) if commit_error else AsyncMock()
-    return SimpleNamespace(commit=commit, rollback=AsyncMock())
-
-
-def make_current_user() -> SimpleNamespace:
-    return SimpleNamespace(user=SimpleNamespace(user_id=1, user_name='admin', admin=True))
-
-
 def make_file_info(
     file_id: str,
     access_type: str,
@@ -43,6 +38,17 @@ def make_file_info(
     business_type: str | None = None,
     business_id: str | None = None,
 ) -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param file_id: 文件ID
+    :param access_type: 文件访问类型
+    :param storage_key: 存储相对路径
+    :param stored_name: 存储文件名
+    :param business_type: 业务类型
+    :param business_id: 业务ID
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         file_id=file_id,
         original_name=stored_name,
@@ -56,28 +62,33 @@ def make_file_info(
 
 
 def expire_model_attributes(*models: SimpleNamespace) -> None:
-    """模拟SQLAlchemy事务结束后ORM属性过期。"""
+    """
+    模拟SQLAlchemy事务结束后ORM属性过期。
+
+    :param models: 调用方传入的其余位置参数
+    """
     for model in models:
         model.__dict__.clear()
 
 
 @pytest.fixture(autouse=True)
 def mock_file_reference_count() -> Generator[None, None, None]:
-    """默认模拟文件不存在业务引用。"""
+    """
+    默认模拟文件不存在业务引用。
+
+    :yield: 上下文就绪后将控制权交给调用方
+    """
     with patch.object(FileReferenceDao, 'get_file_reference_count_map', new=AsyncMock(return_value={})):
         yield
 
 
 @pytest.mark.parametrize('data_scope', [GetDataScope.DATA_SCOPE_DEPT, GetDataScope.DATA_SCOPE_DEPT_AND_CHILD])
-def test_file_data_scope_does_not_match_unowned_files_when_user_has_no_department(data_scope: str) -> None:
-    current_user = SimpleNamespace(
-        user=SimpleNamespace(
-            user_id=20,
-            dept_id=None,
-            admin=False,
-            role=[SimpleNamespace(role_id=2, data_scope=data_scope, status='0', del_flag='0')],
-        )
-    )
+def test_file_data_scope_does_not_match_unowned_files_when_user_has_no_department(
+    data_scope: Literal['3', '4'],
+) -> None:
+    """无所属部门的用户不能匹配无所有者文件。"""
+    current_user = make_current_user(20)
+    current_user.user.role = [RoleModel(role_id=2, data_scope=data_scope, status='0', del_flag='0')]
 
     with (
         patch('common.aspect.data_scope.DependencyUtil.check_exclude_routes'),
@@ -87,12 +98,13 @@ def test_file_data_scope_does_not_match_unowned_files_when_user_has_no_departmen
             SysFileInfo,
             user_alias='owner_user_id',
             dept_alias='dept_id',
-        )(SimpleNamespace())
+        )(make_file_request())
 
     assert str(file_data_scope_sql).lower() == 'false'
 
 
 def test_file_detail_reads_sqlalchemy_attributes_and_outputs_camel_case() -> None:
+    """文件详情读取 SQLAlchemy 属性并使用驼峰字段输出。"""
     file_info = SysFileInfo(
         file_id=PUBLIC_FILE_ID,
         original_name='report.pdf',
@@ -122,6 +134,7 @@ def test_file_detail_reads_sqlalchemy_attributes_and_outputs_camel_case() -> Non
 
 
 def test_file_storage_status_distinguishes_normal_quarantined_and_missing(tmp_path: Path) -> None:
+    """存储状态区分正常、隔离及缺失文件。"""
     public_root = tmp_path / 'public'
     trash_root = tmp_path / 'trash'
     source_file = public_root / 'upload' / 'public.txt'
@@ -151,6 +164,7 @@ def test_file_storage_status_distinguishes_normal_quarantined_and_missing(tmp_pa
 
 
 def test_file_storage_status_marks_invalid_paths() -> None:
+    """存储状态标记无效路径。"""
     file_info = {
         'fileId': PUBLIC_FILE_ID,
         'storageType': 'local',
@@ -164,11 +178,12 @@ def test_file_storage_status_marks_invalid_paths() -> None:
 
 
 def test_transfer_file_updates_owner_and_department_with_data_scope() -> None:
+    """移交文件时按数据范围更新所有者和部门。"""
     query_db = make_query_db()
     transfer_model = TransferFileModel(
-        ownerUserId=TARGET_USER_ID,
-        deptId=TARGET_DEPT_ID,
-        retainUploaderAccess=False,
+        owner_user_id=TARGET_USER_ID,
+        dept_id=TARGET_DEPT_ID,
+        retain_uploader_access=False,
         reason='岗位调整',
     )
     target_user = SimpleNamespace(user_id=TARGET_USER_ID, user_name='target-user', dept_id=TARGET_DEPT_ID)
@@ -197,7 +212,7 @@ def test_transfer_file_updates_owner_and_department_with_data_scope() -> None:
         result = asyncio.run(
             FileTransferService.transfer_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 PUBLIC_FILE_ID,
                 transfer_model,
                 true(),
@@ -207,27 +222,29 @@ def test_transfer_file_updates_owner_and_department_with_data_scope() -> None:
         )
 
     assert result.is_success is True
-    assert get_user.await_args.args[1] == TARGET_USER_ID
-    assert get_dept.await_args.args[1] == TARGET_DEPT_ID
-    assert get_files.await_args.args[2].compare(true())
-    assert transfer_files.await_args.args[1:5] == ([PUBLIC_FILE_ID], TARGET_USER_ID, TARGET_DEPT_ID, False)
+    assert get_user.await_args_list[-1].args[1] == TARGET_USER_ID
+    assert get_dept.await_args_list[-1].args[1] == TARGET_DEPT_ID
+    assert get_files.await_args_list[-1].args[2].compare(true())
+    assert transfer_files.await_args_list[-1].args[1:5] == ([PUBLIC_FILE_ID], TARGET_USER_ID, TARGET_DEPT_ID, False)
     query_db.commit.assert_awaited_once()
     enqueue_file_audit.assert_awaited_once()
-    assert enqueue_file_audit.await_args.args[2:5] == (PUBLIC_FILE_ID, 'transfer', 'completed')
-    assert enqueue_file_audit.await_args.kwargs['operation_detail']['reason'] == '岗位调整'
-    assert enqueue_file_audit.await_args.kwargs['operation_detail']['previousUploaderAccessEnabled'] is True
-    assert enqueue_file_audit.await_args.kwargs['operation_detail']['newUploaderAccessEnabled'] is False
+    assert enqueue_file_audit.await_args_list[-1].args[2:5] == (PUBLIC_FILE_ID, 'transfer', 'completed')
+    assert enqueue_file_audit.await_args_list[-1].kwargs['operation_detail']['reason'] == '岗位调整'
+    assert enqueue_file_audit.await_args_list[-1].kwargs['operation_detail']['previousUploaderAccessEnabled'] is True
+    assert enqueue_file_audit.await_args_list[-1].kwargs['operation_detail']['newUploaderAccessEnabled'] is False
 
 
 def test_transfer_file_model_retains_uploader_access_by_default() -> None:
-    transfer_model = TransferFileModel(ownerUserId=TARGET_USER_ID, deptId=TARGET_DEPT_ID, reason='岗位调整')
+    """移交文件默认保留上传者访问权。"""
+    transfer_model = TransferFileModel(owner_user_id=TARGET_USER_ID, dept_id=TARGET_DEPT_ID, reason='岗位调整')
 
     assert transfer_model.retain_uploader_access is True
 
 
 def test_transfer_file_rejects_target_outside_data_scope() -> None:
+    """拒绝向数据范围外的目标移交文件。"""
     query_db = make_query_db()
-    transfer_model = TransferFileModel(ownerUserId=TARGET_USER_ID, deptId=TARGET_DEPT_ID, reason='岗位调整')
+    transfer_model = TransferFileModel(owner_user_id=TARGET_USER_ID, dept_id=TARGET_DEPT_ID, reason='岗位调整')
     user_data_scope_sql = false()
 
     with (
@@ -243,7 +260,7 @@ def test_transfer_file_rejects_target_outside_data_scope() -> None:
         asyncio.run(
             FileTransferService.transfer_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 PUBLIC_FILE_ID,
                 transfer_model,
                 true(),
@@ -252,15 +269,16 @@ def test_transfer_file_rejects_target_outside_data_scope() -> None:
             )
         )
 
-    assert get_user.await_args.args[2] is user_data_scope_sql
+    assert get_user.await_args_list[-1].args[2] is user_data_scope_sql
     assert scope_error.value.message == '目标用户或部门不存在、已停用或超出数据权限'
     transfer_files.assert_not_awaited()
     query_db.rollback.assert_awaited_once()
 
 
 def test_transfer_file_rejects_owner_department_mismatch() -> None:
+    """移交文件时拒绝所有者与部门不匹配的请求。"""
     query_db = make_query_db()
-    transfer_model = TransferFileModel(ownerUserId=TARGET_USER_ID, deptId=TARGET_DEPT_ID, reason='岗位调整')
+    transfer_model = TransferFileModel(owner_user_id=TARGET_USER_ID, dept_id=TARGET_DEPT_ID, reason='岗位调整')
 
     with (
         patch.object(
@@ -279,7 +297,7 @@ def test_transfer_file_rejects_owner_department_mismatch() -> None:
         asyncio.run(
             FileTransferService.transfer_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 PUBLIC_FILE_ID,
                 transfer_model,
                 true(),
@@ -294,8 +312,9 @@ def test_transfer_file_rejects_owner_department_mismatch() -> None:
 
 
 def test_transfer_file_rejects_source_outside_data_scope() -> None:
+    """拒绝移交数据范围外的源文件。"""
     query_db = make_query_db()
-    transfer_model = TransferFileModel(ownerUserId=TARGET_USER_ID, deptId=TARGET_DEPT_ID, reason='岗位调整')
+    transfer_model = TransferFileModel(owner_user_id=TARGET_USER_ID, dept_id=TARGET_DEPT_ID, reason='岗位调整')
     file_data_scope_sql = false()
 
     with (
@@ -316,7 +335,7 @@ def test_transfer_file_rejects_source_outside_data_scope() -> None:
         asyncio.run(
             FileTransferService.transfer_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 PUBLIC_FILE_ID,
                 transfer_model,
                 file_data_scope_sql,
@@ -325,13 +344,14 @@ def test_transfer_file_rejects_source_outside_data_scope() -> None:
             )
         )
 
-    assert get_files.await_args.args[2] is file_data_scope_sql
+    assert get_files.await_args_list[-1].args[2] is file_data_scope_sql
     assert scope_error.value.message == '部分文件不存在、已删除或超出数据权限'
     transfer_files.assert_not_awaited()
     query_db.rollback.assert_awaited_once()
 
 
 def test_delete_file_moves_both_storage_types_to_recycle_bin(tmp_path: Path) -> None:
+    """删除两种存储类型的文件时均移入回收站。"""
     public_root = tmp_path / 'public'
     private_root = tmp_path / 'private'
     trash_root = tmp_path / 'trash'
@@ -359,8 +379,8 @@ def test_delete_file_moves_both_storage_types_to_recycle_bin(tmp_path: Path) -> 
         result = asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=f'{PUBLIC_FILE_ID},{PRIVATE_FILE_ID}'),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=f'{PUBLIC_FILE_ID},{PRIVATE_FILE_ID}'),
                 true(),
             )
         )
@@ -370,7 +390,7 @@ def test_delete_file_moves_both_storage_types_to_recycle_bin(tmp_path: Path) -> 
     assert not private_file.exists()
     assert (trash_root / PUBLIC_FILE_ID / 'public.txt').read_bytes() == b'public-content'
     assert (trash_root / PRIVATE_FILE_ID / 'private.txt').read_bytes() == b'private-content'
-    assert soft_delete_file_infos.await_args.args[1] == [PUBLIC_FILE_ID, PRIVATE_FILE_ID]
+    assert soft_delete_file_infos.await_args_list[-1].args[1] == [PUBLIC_FILE_ID, PRIVATE_FILE_ID]
     query_db.commit.assert_awaited_once()
     assert enqueue_file_audit.await_count == BATCH_FILE_COUNT
     assert [item.args[2:5] for item in enqueue_file_audit.await_args_list] == [
@@ -380,6 +400,7 @@ def test_delete_file_moves_both_storage_types_to_recycle_bin(tmp_path: Path) -> 
 
 
 def test_delete_file_rejects_business_reference_before_moving_file(tmp_path: Path) -> None:
+    """删除文件前检查业务引用。"""
     public_root = tmp_path / 'public'
     public_file = public_root / 'upload' / 'public.txt'
     public_file.parent.mkdir(parents=True)
@@ -402,8 +423,8 @@ def test_delete_file_rejects_business_reference_before_moving_file(tmp_path: Pat
         asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=PUBLIC_FILE_ID),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=PUBLIC_FILE_ID),
                 true(),
             )
         )
@@ -412,11 +433,12 @@ def test_delete_file_rejects_business_reference_before_moving_file(tmp_path: Pat
     assert public_file.read_bytes() == b'public-content'
     soft_delete_file_infos.assert_not_awaited()
     query_db.rollback.assert_awaited_once()
-    assert enqueue_file_audit.await_args.args[2:5] == (PUBLIC_FILE_ID, 'delete', 'denied')
-    assert enqueue_file_audit.await_args.kwargs['operation_detail']['referenceCount'] == 1
+    assert enqueue_file_audit.await_args_list[-1].args[2:5] == (PUBLIC_FILE_ID, 'delete', 'denied')
+    assert enqueue_file_audit.await_args_list[-1].kwargs['operation_detail']['referenceCount'] == 1
 
 
 def test_delete_file_rejects_legacy_business_reference(tmp_path: Path) -> None:
+    """旧版业务引用仍阻止删除文件。"""
     public_root = tmp_path / 'public'
     public_file = public_root / 'upload' / 'public.txt'
     public_file.parent.mkdir(parents=True)
@@ -443,8 +465,8 @@ def test_delete_file_rejects_legacy_business_reference(tmp_path: Path) -> None:
         asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=PUBLIC_FILE_ID),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=PUBLIC_FILE_ID),
                 true(),
             )
         )
@@ -455,6 +477,7 @@ def test_delete_file_rejects_legacy_business_reference(tmp_path: Path) -> None:
 
 
 def test_delete_file_restores_physical_file_when_database_commit_fails(tmp_path: Path) -> None:
+    """删除事务提交失败时恢复物理文件。"""
     public_root = tmp_path / 'public'
     trash_root = tmp_path / 'trash'
     public_file = public_root / 'upload' / 'public.txt'
@@ -473,8 +496,8 @@ def test_delete_file_restores_physical_file_when_database_commit_fails(tmp_path:
         asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=PUBLIC_FILE_ID),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=PUBLIC_FILE_ID),
                 true(),
             )
         )
@@ -485,6 +508,7 @@ def test_delete_file_restores_physical_file_when_database_commit_fails(tmp_path:
 
 
 def test_delete_file_rejects_storage_path_escape(tmp_path: Path) -> None:
+    """删除文件时拒绝越界的存储路径。"""
     public_root = tmp_path / 'public'
     public_root.mkdir()
     outside_file = tmp_path / 'outside.txt'
@@ -501,8 +525,8 @@ def test_delete_file_rejects_storage_path_escape(tmp_path: Path) -> None:
         asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=PUBLIC_FILE_ID),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=PUBLIC_FILE_ID),
                 true(),
             )
         )
@@ -513,6 +537,7 @@ def test_delete_file_rejects_storage_path_escape(tmp_path: Path) -> None:
 
 
 def test_delete_file_does_not_overwrite_existing_recycle_bin_file(tmp_path: Path) -> None:
+    """删除时保留回收站内的同名文件。"""
     public_root = tmp_path / 'public'
     trash_root = tmp_path / 'trash'
     public_file = public_root / 'upload' / 'public.txt'
@@ -534,8 +559,8 @@ def test_delete_file_does_not_overwrite_existing_recycle_bin_file(tmp_path: Path
         asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=PUBLIC_FILE_ID),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=PUBLIC_FILE_ID),
                 true(),
             )
         )
@@ -547,6 +572,7 @@ def test_delete_file_does_not_overwrite_existing_recycle_bin_file(tmp_path: Path
 
 
 def test_delete_file_restores_already_staged_files_when_later_path_is_invalid(tmp_path: Path) -> None:
+    """后续路径无效时恢复先前已移入回收站的文件。"""
     public_root = tmp_path / 'public'
     valid_file = public_root / 'upload' / 'public.txt'
     valid_file.parent.mkdir(parents=True)
@@ -568,8 +594,8 @@ def test_delete_file_restores_already_staged_files_when_later_path_is_invalid(tm
         asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=f'{PUBLIC_FILE_ID},{PRIVATE_FILE_ID}'),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=f'{PUBLIC_FILE_ID},{PRIVATE_FILE_ID}'),
                 true(),
             )
         )
@@ -581,6 +607,7 @@ def test_delete_file_restores_already_staged_files_when_later_path_is_invalid(tm
 
 
 def test_delete_file_allows_missing_physical_file_to_close_metadata(tmp_path: Path) -> None:
+    """物理文件缺失时允许关闭元数据记录。"""
     public_root = tmp_path / 'public'
     public_root.mkdir()
     file_infos = [make_file_info(PUBLIC_FILE_ID, 'public', 'upload/missing.txt', 'missing.txt')]
@@ -594,8 +621,8 @@ def test_delete_file_allows_missing_physical_file_to_close_metadata(tmp_path: Pa
         result = asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=PUBLIC_FILE_ID),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=PUBLIC_FILE_ID),
                 true(),
             )
         )
@@ -606,6 +633,7 @@ def test_delete_file_allows_missing_physical_file_to_close_metadata(tmp_path: Pa
 
 
 def test_delete_file_rejects_invalid_or_missing_file_ids() -> None:
+    """删除时拒绝无效或缺失的文件标识。"""
     with pytest.raises(ServiceException):
         FileUtil.parse_file_ids('invalid-id')
 
@@ -617,8 +645,8 @@ def test_delete_file_rejects_invalid_or_missing_file_ids() -> None:
         asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=PUBLIC_FILE_ID),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=PUBLIC_FILE_ID),
                 true(),
             )
         )
@@ -627,6 +655,7 @@ def test_delete_file_rejects_invalid_or_missing_file_ids() -> None:
 
 
 def test_delete_file_rejects_file_outside_data_scope() -> None:
+    """拒绝删除数据范围外的文件。"""
     query_db = make_query_db()
     file_data_scope_sql = false()
 
@@ -642,19 +671,20 @@ def test_delete_file_rejects_file_outside_data_scope() -> None:
         asyncio.run(
             FileLifecycleService.delete_file_services(
                 query_db,
-                make_current_user(),
-                DeleteFileModel(fileIds=PUBLIC_FILE_ID),
+                make_current_user(1, user_name='admin', admin=True),
+                DeleteFileModel(file_ids=PUBLIC_FILE_ID),
                 file_data_scope_sql,
             )
         )
 
-    assert get_file_infos.await_args.args[2] is file_data_scope_sql
+    assert get_file_infos.await_args_list[-1].args[2] is file_data_scope_sql
     assert scope_error.value.message == '部分文件不存在、已删除或超出数据权限'
     soft_delete_file_infos.assert_not_awaited()
     query_db.rollback.assert_awaited_once()
 
 
 def test_restore_file_moves_both_storage_types_out_of_recycle_bin(tmp_path: Path) -> None:
+    """两种存储类型的文件均可从回收站恢复。"""
     public_root = tmp_path / 'public'
     private_root = tmp_path / 'private'
     trash_root = tmp_path / 'trash'
@@ -673,6 +703,12 @@ def test_restore_file_moves_both_storage_types_out_of_recycle_bin(tmp_path: Path
     move_file = UploadUtil.move_file
 
     def move_file_after_database_commit(source: Path, target: Path) -> None:
+        """
+        确认数据库已提交后移动文件。
+
+        :param source: 本次文件操作的源路径
+        :param target: 本次操作的目标
+        """
         query_db.commit.assert_awaited_once()
         move_file(source, target)
 
@@ -692,7 +728,7 @@ def test_restore_file_moves_both_storage_types_out_of_recycle_bin(tmp_path: Path
         result = asyncio.run(
             FileLifecycleService.restore_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 f'{PUBLIC_FILE_ID},{PRIVATE_FILE_ID}',
                 true(),
             )
@@ -703,7 +739,7 @@ def test_restore_file_moves_both_storage_types_out_of_recycle_bin(tmp_path: Path
     assert (private_root / 'upload' / 'private.txt').read_bytes() == b'private-content'
     assert not public_trash_file.exists()
     assert not private_trash_file.exists()
-    assert restore_file_infos.await_args.args[1] == [PUBLIC_FILE_ID, PRIVATE_FILE_ID]
+    assert restore_file_infos.await_args_list[-1].args[1] == [PUBLIC_FILE_ID, PRIVATE_FILE_ID]
     query_db.commit.assert_awaited_once()
     assert enqueue_file_audit.await_count == BATCH_FILE_COUNT
     assert [item.args[2:5] for item in enqueue_file_audit.await_args_list] == [
@@ -713,6 +749,7 @@ def test_restore_file_moves_both_storage_types_out_of_recycle_bin(tmp_path: Path
 
 
 def test_restore_file_returns_physical_file_to_recycle_bin_when_database_commit_fails(tmp_path: Path) -> None:
+    """恢复事务提交失败时将物理文件移回回收站。"""
     public_root = tmp_path / 'public'
     trash_root = tmp_path / 'trash'
     trash_file = trash_root / PUBLIC_FILE_ID / 'public.txt'
@@ -735,7 +772,7 @@ def test_restore_file_returns_physical_file_to_recycle_bin_when_database_commit_
         asyncio.run(
             FileLifecycleService.restore_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 PUBLIC_FILE_ID,
                 true(),
             )
@@ -747,6 +784,7 @@ def test_restore_file_returns_physical_file_to_recycle_bin_when_database_commit_
 
 
 def test_restore_file_compensates_metadata_when_file_move_fails(tmp_path: Path) -> None:
+    """移动文件失败时补偿恢复操作的元数据。"""
     public_root = tmp_path / 'public'
     private_root = tmp_path / 'private'
     trash_root = tmp_path / 'trash'
@@ -767,6 +805,13 @@ def test_restore_file_compensates_metadata_when_file_move_fails(tmp_path: Path) 
     expected_commit_count = 2
 
     def fail_second_move(source: Path, target: Path) -> None:
+        """
+        在第二次文件移动时注入故障。
+
+        :param source: 本次文件操作的源路径
+        :param target: 本次操作的目标
+        :raises OSError: 模拟移动第二个文件失败
+        """
         nonlocal move_count
         move_count += 1
         if move_count == failed_move_number:
@@ -790,7 +835,7 @@ def test_restore_file_compensates_metadata_when_file_move_fails(tmp_path: Path) 
         asyncio.run(
             FileLifecycleService.restore_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 f'{PUBLIC_FILE_ID},{PRIVATE_FILE_ID}',
                 true(),
             )
@@ -806,6 +851,7 @@ def test_restore_file_compensates_metadata_when_file_move_fails(tmp_path: Path) 
 
 
 def test_restore_file_rejects_existing_original_path(tmp_path: Path) -> None:
+    """原路径已存在时拒绝恢复。"""
     public_root = tmp_path / 'public'
     trash_root = tmp_path / 'trash'
     public_file = public_root / 'upload' / 'public.txt'
@@ -831,7 +877,7 @@ def test_restore_file_rejects_existing_original_path(tmp_path: Path) -> None:
         asyncio.run(
             FileLifecycleService.restore_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 PUBLIC_FILE_ID,
                 true(),
             )
@@ -845,6 +891,7 @@ def test_restore_file_rejects_existing_original_path(tmp_path: Path) -> None:
 
 
 def test_restore_file_rejects_file_outside_data_scope() -> None:
+    """拒绝恢复数据范围外的文件。"""
     query_db = make_query_db()
     file_data_scope_sql = false()
 
@@ -860,13 +907,13 @@ def test_restore_file_rejects_file_outside_data_scope() -> None:
         asyncio.run(
             FileLifecycleService.restore_file_services(
                 query_db,
-                make_current_user(),
+                make_current_user(1, user_name='admin', admin=True),
                 PUBLIC_FILE_ID,
                 file_data_scope_sql,
             )
         )
 
-    assert get_file_infos.await_args.args[2] is file_data_scope_sql
+    assert get_file_infos.await_args_list[-1].args[2] is file_data_scope_sql
     assert scope_error.value.message == '部分文件不存在、未删除或超出数据权限'
     restore_file_infos.assert_not_awaited()
     query_db.rollback.assert_awaited_once()

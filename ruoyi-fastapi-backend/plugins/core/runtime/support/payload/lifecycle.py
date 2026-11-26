@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Protocol, TypeAlias, cast
 
 from pydantic import Field
@@ -12,72 +12,70 @@ from plugins.core.validation.menus import PluginMenuConflictItem
 
 from . import PluginPayloadBuilder
 from .base import PluginPayloadModel
-from .plan import ActionPayload, VersionStatePayload
-from .validation import MenuConflictItemPayload
+from .validation import PluginRuntimePrecheckProtocol
 
 
-class SupportsOk(Protocol):
-    """
-    支持 ok 属性的检查结果协议。
-    """
+class PluginLifecyclePrecheckProtocol(PluginRuntimePrecheckProtocol, Protocol):
+    """生命周期响应所需的预检结果。"""
 
-    ok: bool
+    @property
+    def menu_conflicts(self) -> Sequence[dict[str, object]]:
+        """
+        获取菜单冲突明细。
 
-
-class PluginLifecyclePrecheckProtocol(Protocol):
-    """
-    lifecycle payload 所需的预检上下文协议。
-    """
-
-    ok: bool
-    dependency_result: SupportsOk
-    manifest_result: SupportsOk
-    plugin_dependency_result: SupportsOk
-    structure_result: SupportsOk
-    menu_conflict_result: SupportsOk
-    operation_payload: Mapping[str, object]
-    check_payload: Mapping[str, object]
-    menu_conflicts: list[MenuConflictItemPayload]
+        :return: 菜单冲突明细
+        """
+        ...
 
 
 class PluginLifecyclePayload(PluginPayloadModel):
-    """
-    插件生命周期通用 payload。
-    """
+    """插件生命周期通用 payload。"""
 
-    ok: bool | None = None
-    message: str | None = None
-    plugin_id: str | None = Field(default=None, alias='pluginId')
-    dry_run: bool | None = Field(default=None, alias='dryRun')
-    operation: str | None = None
-    actions: list[dict[str, object]] | None = None
-    precheck: dict[str, object] | None = None
-    plugin: dict[str, object] | None = None
-    configs: list[dict[str, object]] | None = None
-    migrations: list[dict[str, object]] | None = None
-    seeds: list[dict[str, object]] | None = None
-    hooks: list[dict[str, object]] | None = None
-    menu_conflicts: list[dict[str, object]] | None = Field(default=None, alias='menuConflicts')
-    menu_conflict_ok: object | None = Field(default=None, alias='menuConflictOk')
-    manifest_ok: object | None = Field(default=None, alias='manifestOk')
-    dependency_ok: object | None = Field(default=None, alias='dependencyOk')
-    plugin_dependency_ok: object | None = Field(default=None, alias='pluginDependencyOk')
-    structure_ok: object | None = Field(default=None, alias='structureOk')
-    manifest_issues: object | None = Field(default=None, alias='manifestIssues')
-    manifest_warnings: object | None = Field(default=None, alias='manifestWarnings')
-    plugin_dependency_errors: object | None = Field(default=None, alias='pluginDependencyErrors')
-    structure_errors: object | None = Field(default=None, alias='structureErrors')
-    dependencies: object | None = None
-    plugin_dependencies: object | None = Field(default=None, alias='pluginDependencies')
-    installed: bool | None = None
-    installed_version: str | None = Field(default=None, alias='installedVersion')
-    current_version: str | None = Field(default=None, alias='currentVersion')
-    needs_upgrade: bool | None = Field(default=None, alias='needsUpgrade')
-    dependency_install: object | None = Field(default=None, alias='dependencyInstall')
-    enabled: bool | None = None
-    safe_mode: bool | None = Field(default=None, alias='safeMode')
-    removes_source: bool | None = Field(default=None, alias='removesSource')
-    plan: dict[str, object] | None = None
+    ok: bool | None = Field(default=None, description='本次操作是否成功')
+    message: str | None = Field(default=None, description='面向调用方的结果说明')
+    plugin_id: str | None = Field(default=None, alias='pluginId', description='插件标识')
+    dry_run: bool | None = Field(default=None, alias='dryRun', description='是否仅预演本次操作')
+    operation: str | None = Field(default=None, description='执行的操作类型')
+    actions: list[dict[str, object]] | None = Field(default=None, description='待执行或已执行的操作明细')
+    precheck: dict[str, object] | None = Field(default=None, description='操作开始前的检查结果')
+    plugin: dict[str, object] | None = Field(default=None, description='插件详情')
+    configs: list[dict[str, object]] | None = Field(default=None, description='插件配置项列表')
+    migrations: list[dict[str, object]] | None = Field(default=None, description='插件数据库迁移的执行信息')
+    seeds: list[dict[str, object]] | None = Field(default=None, description='插件初始数据的执行信息')
+    hooks: list[dict[str, object]] | None = Field(default=None, description='插件生命周期钩子的执行信息')
+    menu_conflicts: list[dict[str, object]] | None = Field(
+        default=None, alias='menuConflicts', description='检测到的菜单冲突'
+    )
+    menu_conflict_ok: object | None = Field(
+        default=None, alias='menuConflictOk', description='插件是否通过菜单冲突检查'
+    )
+    manifest_ok: object | None = Field(default=None, alias='manifestOk', description='插件清单是否通过校验')
+    dependency_ok: object | None = Field(default=None, alias='dependencyOk', description='软件包依赖是否满足要求')
+    plugin_dependency_ok: object | None = Field(
+        default=None, alias='pluginDependencyOk', description='依赖的其他插件是否满足要求'
+    )
+    structure_ok: object | None = Field(default=None, alias='structureOk', description='插件文件结构是否通过校验')
+    manifest_issues: object | None = Field(default=None, alias='manifestIssues', description='插件清单中的错误')
+    manifest_warnings: object | None = Field(default=None, alias='manifestWarnings', description='插件清单中的警告')
+    plugin_dependency_errors: object | None = Field(
+        default=None, alias='pluginDependencyErrors', description='插件之间的依赖检查错误'
+    )
+    structure_errors: object | None = Field(
+        default=None, alias='structureErrors', description='插件目录或文件结构检查错误'
+    )
+    dependencies: object | None = Field(default=None, description='软件包依赖及其检查结果')
+    plugin_dependencies: object | None = Field(
+        default=None, alias='pluginDependencies', description='插件之间的依赖及其状态'
+    )
+    installed: bool | None = Field(default=None, description='是否已经安装')
+    installed_version: str | None = Field(default=None, alias='installedVersion', description='已安装的版本')
+    current_version: str | None = Field(default=None, alias='currentVersion', description='当前发现的插件版本')
+    needs_upgrade: bool | None = Field(default=None, alias='needsUpgrade', description='是否需要升级已安装版本')
+    dependency_install: object | None = Field(default=None, alias='dependencyInstall', description='软件包依赖安装信息')
+    enabled: bool | None = Field(default=None, description='是否启用')
+    safe_mode: bool | None = Field(default=None, alias='safeMode', description='是否使用安全操作模式')
+    removes_source: bool | None = Field(default=None, alias='removesSource', description='本次操作是否移除插件源码')
+    plan: dict[str, object] | None = Field(default=None, description='预定执行的操作计划')
 
 
 PluginLifecyclePayloadDict: TypeAlias = dict[str, object]
@@ -113,7 +111,7 @@ class PluginLifecyclePayloadBuilder:
     @staticmethod
     def build_install_dry_run_payload(
         plugin_id: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
     ) -> PluginLifecyclePayloadDict:
         """
@@ -142,7 +140,7 @@ class PluginLifecyclePayloadBuilder:
         plugin_id: str,
         *,
         message: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         dry_run: bool = False,
         extra_payload: Mapping[str, object] | None = None,
@@ -176,7 +174,7 @@ class PluginLifecyclePayloadBuilder:
         plugin_id: str,
         *,
         operation: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         extra_payload: Mapping[str, object] | None = None,
     ) -> PluginLifecyclePayloadDict | None:
@@ -225,7 +223,7 @@ class PluginLifecyclePayloadBuilder:
         cls,
         plugin_id: str,
         *,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         dependency_install_payload: Mapping[str, object],
     ) -> PluginLifecyclePayloadDict | None:
@@ -255,7 +253,7 @@ class PluginLifecyclePayloadBuilder:
         *,
         operation: str,
         message: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         extra_payload: Mapping[str, object] | None = None,
         ok_from_precheck: bool = True,
@@ -296,7 +294,7 @@ class PluginLifecyclePayloadBuilder:
         plugin_id: str,
         *,
         message: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         installed_menu_conflicts: list[PluginMenuConflictItem],
         extra_payload: Mapping[str, object] | None = None,
@@ -333,7 +331,7 @@ class PluginLifecyclePayloadBuilder:
     @staticmethod
     def build_upgrade_latest_payload(
         plugin_id: str,
-        version_state: VersionStatePayload,
+        version_state: dict[str, object],
         precheck: PluginLifecyclePrecheckProtocol,
     ) -> PluginLifecyclePayloadDict:
         """
@@ -361,10 +359,10 @@ class PluginLifecyclePayloadBuilder:
         plugin_id: str,
         *,
         message: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         plugin: SupportsModelDump,
-        installed_configs: list[SupportsModelDump],
+        installed_configs: Sequence[SupportsModelDump],
         migration_results: list[PluginMigrationResult],
         seed_results: list[PluginSeedResult],
         hook_result: PluginHookResult | None,

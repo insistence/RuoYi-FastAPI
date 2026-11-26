@@ -1,6 +1,6 @@
 import asyncio
 import inspect
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from typing import Any
 
 from cli.tui.actions import (
@@ -9,11 +9,11 @@ from cli.tui.actions import (
     TuiActionResult,
     TuiActionSpec,
 )
+from cli.tui.capabilities import ActionSlot
 from cli.tui.copy import TUI_COPY
 from cli.tui.screens.confirm import ActionConfirmScreen
 from cli.tui.screens.search import SearchInputScreen
 from cli.tui.search import PageSearchContext
-from cli.tui.widgets import WorkspaceSidebar
 
 
 class TuiScreenInteractionService:
@@ -36,7 +36,6 @@ class TuiScreenInteractionService:
         :param screen: 当前屏幕对象
         :param search_context: 搜索上下文
         :param callback: 提交搜索词后的回调
-        :return: None
         """
         if search_context is None:
             return
@@ -58,7 +57,6 @@ class TuiScreenInteractionService:
         :param screen: 当前屏幕对象
         :param active_view: 当前页面视图标识
         :param query: 搜索词
-        :return: None
         """
         if query is None:
             return
@@ -74,7 +72,6 @@ class TuiScreenInteractionService:
         :param screen: 当前屏幕对象
         :param active_view: 当前页面视图标识
         :param current_query: 当前搜索词
-        :return: None
         """
         if not current_query:
             return
@@ -92,7 +89,6 @@ class TuiScreenInteractionService:
         :param screen: 当前屏幕对象
         :param action: 待执行动作
         :param callback: 确认回调
-        :return: None
         """
         if action is None:
             screen.notify(
@@ -110,7 +106,7 @@ class TuiScreenInteractionService:
     def schedule_action_task(
         existing_task: asyncio.Task[None] | None,
         action: TuiActionSpec,
-        execute_callback: Callable[[TuiActionSpec], Awaitable[None]],
+        execute_callback: Callable[[TuiActionSpec], Coroutine[Any, Any, None]],
     ) -> asyncio.Task[None]:
         """
         安排动作执行任务，并在必要时取消旧任务。
@@ -129,7 +125,7 @@ class TuiScreenInteractionService:
         screen: Any,
         action: TuiActionSpec | None,
         existing_task: asyncio.Task[None] | None,
-        execute_callback: Callable[[TuiActionSpec], Awaitable[None]],
+        execute_callback: Callable[[TuiActionSpec], Coroutine[Any, Any, None]],
     ) -> asyncio.Task[None] | None:
         """
         统一处理动作确认结果，并在确认后调度后台执行任务。
@@ -147,6 +143,12 @@ class TuiScreenInteractionService:
         scheduled_task = existing_task
 
         def _handle_confirmed(confirmed: bool | None, action_spec: TuiActionSpec) -> None:
+            """
+            用户确认后调度选定的操作。
+
+            :param confirmed: 是否已确认该操作
+            :param action_spec: TUI 低风险动作定义
+            """
             nonlocal scheduled_task
             if not confirmed:
                 return
@@ -237,81 +239,40 @@ class ScreenInteractionActionsMixin:
     """
 
     def _open_search(self) -> None:
-        """
-        打开当前页面搜索输入弹窗。
-
-        :return: None
-        """
+        """打开当前页面搜索输入弹窗。"""
 
     def _clear_search(self) -> None:
-        """
-        清空当前页面搜索词。
+        """清空当前页面搜索词。"""
 
-        :return: None
-        """
-
-    def _open_action_confirm(self, slot: str) -> None:
+    def _open_action_confirm(self, slot: ActionSlot) -> None:
         """
         打开指定槽位动作的确认弹窗。
 
         :param slot: 动作槽位
-        :return: None
-        """
-
-    def _open_sidebar_item(self, event: WorkspaceSidebar.Highlighted | WorkspaceSidebar.Selected) -> None:
-        """
-        根据侧栏事件打开对应视图。
-
-        :param event: 侧栏事件
-        :return: None
         """
 
     def action_open_search(self) -> None:
-        """
-        打开当前页面搜索输入。
-
-        :return: None
-        """
+        """打开当前页面搜索输入。"""
         self._open_search()
 
     def action_clear_search(self) -> None:
-        """
-        清空当前页面搜索词。
-
-        :return: None
-        """
+        """清空当前页面搜索词。"""
         self._clear_search()
 
     def action_trigger_primary_action(self) -> None:
-        """
-        触发当前页面主动作。
-
-        :return: None
-        """
+        """触发当前页面主动作。"""
         self._open_action_confirm('primary')
 
     def action_trigger_secondary_action(self) -> None:
-        """
-        触发当前页面次动作。
-
-        :return: None
-        """
+        """触发当前页面次动作。"""
         self._open_action_confirm('secondary')
 
     def action_trigger_global_action(self) -> None:
-        """
-        触发当前页面全局动作。
-
-        :return: None
-        """
+        """触发当前页面全局动作。"""
         self._open_action_confirm('global')
 
     def action_trigger_utility_action(self) -> None:
-        """
-        触发当前页面工具动作。
-
-        :return: None
-        """
+        """触发当前页面工具动作。"""
         self._open_action_confirm('utility')
 
 

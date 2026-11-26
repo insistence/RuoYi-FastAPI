@@ -10,6 +10,7 @@ def check_report(path: Path, *, allow_skips: bool = False) -> tuple[int, int]:
     :param path: pytest JUnit 报告路径
     :param allow_skips: 是否允许普通跨平台回归中的预期跳过
     :return: 实际执行及跳过的测试数量
+    :raises ValueError: 没有实际执行用例、存在失败，或跳过了必须执行的用例
     """
     root = ET.parse(path).getroot()
     cases = root.findall('.//testcase')
@@ -22,11 +23,7 @@ def check_report(path: Path, *, allow_skips: bool = False) -> tuple[int, int]:
 
 
 def main() -> None:
-    """
-    检查报告并将执行数量写入 CI 摘要。
-
-    :return: None
-    """
+    """检查报告并将执行数量写入 CI 摘要。"""
     parser = argparse.ArgumentParser()
     parser.add_argument('report', type=Path)
     parser.add_argument('--allow-skips', action='store_true')

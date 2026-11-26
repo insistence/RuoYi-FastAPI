@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import ColumnElement, delete, select, update
+from sqlalchemy import ColumnElement, delete, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -10,14 +10,12 @@ from utils.page_util import PageUtil
 
 
 class AiModelDao:
-    """
-    AI模型管理数据库操作层
-    """
+    """AI模型管理数据库操作层。"""
 
     @classmethod
     async def get_ai_model_detail_by_id(cls, db: AsyncSession, model_id: int) -> AiModels | None:
         """
-        根据AI模型id获取AI模型详细信息
+        根据AI模型id获取AI模型详细信息。
 
         :param db: orm对象
         :param model_id: AI模型id
@@ -29,10 +27,14 @@ class AiModelDao:
 
     @classmethod
     async def get_ai_model_list(
-        cls, db: AsyncSession, query_object: AiModelPageQueryModel, data_scope_sql: ColumnElement, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+        cls,
+        db: AsyncSession,
+        query_object: AiModelPageQueryModel,
+        data_scope_sql: ColumnElement[bool],
+        is_page: bool = False,
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据查询参数获取AI模型列表信息
+        根据查询参数获取AI模型列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -43,16 +45,16 @@ class AiModelDao:
         query = (
             select(AiModels)
             .where(
-                AiModels.model_id == query_object.model_id if query_object.model_id else True,
-                AiModels.model_name.like(f'%{query_object.model_name}%') if query_object.model_name else True,
-                AiModels.model_code.like(f'%{query_object.model_code}%') if query_object.model_code else True,
-                AiModels.provider == query_object.provider if query_object.provider else True,
-                AiModels.status == query_object.status if query_object.status else True,
+                AiModels.model_id == query_object.model_id if query_object.model_id else true(),
+                AiModels.model_name.like(f'%{query_object.model_name}%') if query_object.model_name else true(),
+                AiModels.model_code.like(f'%{query_object.model_code}%') if query_object.model_code else true(),
+                AiModels.provider == query_object.provider if query_object.provider else true(),
+                AiModels.status == query_object.status if query_object.status else true(),
                 data_scope_sql,
             )
             .order_by(AiModels.model_sort)
         )
-        ai_model_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        ai_model_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -61,7 +63,7 @@ class AiModelDao:
     @classmethod
     async def add_ai_model_dao(cls, db: AsyncSession, ai_model: AiModelModel) -> AiModels:
         """
-        新增AI模型数据库操作
+        新增AI模型数据库操作。
 
         :param db: orm对象
         :param ai_model: AI模型对象
@@ -74,13 +76,12 @@ class AiModelDao:
         return db_model
 
     @classmethod
-    async def edit_ai_model_dao(cls, db: AsyncSession, ai_model: dict) -> None:
+    async def edit_ai_model_dao(cls, db: AsyncSession, ai_model: dict[str, Any]) -> None:
         """
-        编辑AI模型数据库操作
+        编辑AI模型数据库操作。
 
         :param db: orm对象
         :param ai_model: 需要更新的AI模型字典
-        :return:
         """
         await db.execute(
             update(AiModels),
@@ -90,10 +91,9 @@ class AiModelDao:
     @classmethod
     async def delete_ai_model_dao(cls, db: AsyncSession, ai_model: AiModelModel) -> None:
         """
-        删除AI模型数据库操作
+        删除AI模型数据库操作。
 
         :param db: orm对象
         :param ai_model: AI模型对象
-        :return:
         """
         await db.execute(delete(AiModels).where(AiModels.model_id.in_([ai_model.model_id])))

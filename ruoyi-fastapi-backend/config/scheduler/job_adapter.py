@@ -3,7 +3,7 @@ import importlib
 import json
 import pickle
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from apscheduler.job import Job
 from apscheduler.util import iscoroutinefunction_partial, obj_to_ref
@@ -16,7 +16,11 @@ from utils.string_util import StringUtil
 
 class JobAdapter:
     """
-    统一任务默认值、参数解析和调度配置校验
+    统一任务默认值、参数解析和调度配置校验。
+
+    :cvar JOB_STORES: 支持的任务持久化存储
+    :cvar EXECUTORS: 支持的任务执行器
+    :cvar CONFIG_FIELDS: 可写入调度任务配置的字段
     """
 
     JOB_STORES = frozenset({'default', 'sqlalchemy', 'redis'})
@@ -40,13 +44,13 @@ class JobAdapter:
     @staticmethod
     def from_record(record: Any) -> JobModel:
         """
-        读取已保存配置，不在读取阶段阻断无效配置的诊断和停用
+        读取已保存配置，不在读取阶段阻断无效配置的诊断和停用。
 
         :param record: 数据库记录或任务对象
         :return: 任务对象信息
         """
         if isinstance(record, JobModel):
-            return record
+            return cast('JobModel', record)
         return JobModel.model_construct(
             **{name: getattr(record, name) for name in JobModel.model_fields if hasattr(record, name)}
         )
@@ -54,7 +58,7 @@ class JobAdapter:
     @staticmethod
     def normalize(job: JobModel) -> JobModel:
         """
-        补齐保存和注册共用的默认值，保留显式填写的配置
+        补齐保存和注册共用的默认值，保留显式填写的配置。
 
         :param job: 任务对象信息
         :return: 补齐默认值后的任务对象
@@ -73,10 +77,11 @@ class JobAdapter:
     @staticmethod
     def parse_args(value: list[Any]) -> list[Any]:
         """
-        校验位置参数为JSON数组，保留数组内的值类型
+        校验位置参数为JSON数组，保留数组内的值类型。
 
         :param value: 待解析的位置参数
         :return: 位置参数列表
+        :raises ValueError: 位置参数必须是 JSON 数组
         """
         if not isinstance(value, list):
             raise ValueError('位置参数必须是 JSON 数组')
@@ -85,10 +90,11 @@ class JobAdapter:
     @staticmethod
     def import_function(target: str) -> Callable[..., Any]:
         """
-        导入任务函数，明确拒绝不存在和不可调用的目标
+        导入任务函数，明确拒绝不存在和不可调用的目标。
 
         :param target: 调用目标字符串
         :return: 任务函数
+        :raises ValueError: 任务目标无法导入或不可调用
         """
         try:
             module_name, name = target.rsplit('.', 1)
@@ -102,10 +108,10 @@ class JobAdapter:
     @staticmethod
     def validate_allowed_target(target: str | None) -> None:
         """
-        校验管理接口允许保存的调用模块，按完整模块前缀匹配
+        校验管理接口允许保存的调用模块，按完整模块前缀匹配。
 
         :param target: 调用目标字符串
-        :return: None
+        :raises ValueError: 调用目标不能为空；调用目标包含禁止使用的模块或协议；调用目标字符串不在白名单内
         """
         if not target:
             raise ValueError('调用目标不能为空')
@@ -128,11 +134,12 @@ class JobAdapter:
     @classmethod
     def prepare(cls, job: JobModel, *, function: Callable[..., Any] | None = None) -> dict[str, Any]:
         """
-        校验完整配置并构造注册参数，不写数据库或改变调度器
+        校验完整配置并构造注册参数，不写数据库或改变调度器。
 
         :param job: 任务对象信息
         :param function: 已导入的任务函数，未指定时根据调用目标导入
         :return: 调度器任务注册参数
+        :raises ValueError: 任务名称不能为空；业务分组不能为空；调用目标不能为空；调用目标不可调用
         """
         job = JobModel.model_validate(cls.normalize(job).model_dump(by_alias=True))
         if not job.job_name or not job.job_name.strip():
@@ -161,6 +168,8 @@ class JobAdapter:
         # 禁止非有限数值进入JSON列，避免数据库与执行器对同一参数产生不同解释。
         json.dumps([job.job_args, kwargs], allow_nan=False)
         executor = 'default' if iscoroutinefunction_partial(function) else job.job_executor
+        if job.cron_expression is None:
+            raise ValueError('Cron 表达式不能为空')
         trigger = MyCronTrigger.from_crontab(job.cron_expression, job.time_zone)
         trigger.task_job_group = job.job_group
         options = {
@@ -189,7 +198,7 @@ class JobAdapter:
     @classmethod
     def config_hash(cls, job: JobModel | None) -> str:
         """
-        计算调度配置摘要，供版本跟踪和插件变更校准使用
+        计算调度配置摘要，供版本跟踪和插件变更校准使用。
 
         :param job: 任务对象信息
         :return: 任务配置摘要

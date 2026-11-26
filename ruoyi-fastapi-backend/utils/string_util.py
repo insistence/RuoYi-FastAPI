@@ -2,14 +2,12 @@ from common.constant import CommonConstant
 
 
 class StringUtil:
-    """
-    字符串工具类
-    """
+    """字符串工具类。"""
 
     @classmethod
     def is_blank(cls, string: str | None) -> bool:
         """
-        校验字符串是否为''或全空格
+        校验字符串是否为''或全空格。
 
         :param string: 需要校验的字符串
         :return: 校验结果
@@ -24,7 +22,7 @@ class StringUtil:
     @classmethod
     def is_empty(cls, string: str) -> bool:
         """
-        校验字符串是否为''或None
+        校验字符串是否为''或None。
 
         :param string: 需要校验的字符串
         :return: 校验结果
@@ -34,7 +32,7 @@ class StringUtil:
     @classmethod
     def is_not_empty(cls, string: str) -> bool:
         """
-        校验字符串是否不是''和None
+        校验字符串是否不是''和None。
 
         :param string: 需要校验的字符串
         :return: 校验结果
@@ -42,19 +40,19 @@ class StringUtil:
         return not cls.is_empty(string)
 
     @classmethod
-    def is_http(cls, link: str) -> bool:
+    def is_http(cls, link: str | None) -> bool:
         """
-        判断是否为http(s)://开头
+        判断是否为http(s)://开头。
 
         :param link: 链接
         :return: 是否为http(s)://开头
         """
-        return link.startswith((CommonConstant.HTTP, CommonConstant.HTTPS))
+        return bool(link and link.startswith((CommonConstant.HTTP, CommonConstant.HTTPS)))
 
     @classmethod
     def contains_ignore_case(cls, search_str: str, compare_str: str) -> bool:
         """
-        查找指定字符串是否包含指定字符串同时忽略大小写
+        查找指定字符串是否包含指定字符串同时忽略大小写。
 
         :param search_str: 查找的字符串
         :param compare_str: 比对的字符串
@@ -67,7 +65,7 @@ class StringUtil:
     @classmethod
     def contains_any_ignore_case(cls, search_str: str, compare_str_list: list[str]) -> bool:
         """
-        查找指定字符串是否包含指定字符串列表中的任意一个字符串同时忽略大小写
+        查找指定字符串是否包含指定字符串列表中的任意一个字符串同时忽略大小写。
 
         :param search_str: 查找的字符串
         :param compare_str_list: 比对的字符串列表
@@ -80,7 +78,7 @@ class StringUtil:
     @classmethod
     def equals_ignore_case(cls, search_str: str, compare_str: str) -> bool:
         """
-        比较两个字符串是否相等同时忽略大小写
+        比较两个字符串是否相等同时忽略大小写。
 
         :param search_str: 查找的字符串
         :param compare_str: 比对的字符串
@@ -91,9 +89,9 @@ class StringUtil:
         return False
 
     @classmethod
-    def equals_any_ignore_case(cls, search_str: str, compare_str_list: list[str]) -> bool:
+    def equals_any_ignore_case(cls, search_str: str | None, compare_str_list: list[str]) -> bool:
         """
-        比较指定字符串是否与指定字符串列表中的任意一个字符串相等同时忽略大小写
+        比较指定字符串是否与指定字符串列表中的任意一个字符串相等同时忽略大小写。
 
         :param search_str: 查找的字符串
         :param compare_str_list: 比对的字符串列表
@@ -106,7 +104,7 @@ class StringUtil:
     @classmethod
     def startswith_case(cls, search_str: str, compare_str: str) -> bool:
         """
-        查找指定字符串是否以指定字符串开头
+        查找指定字符串是否以指定字符串开头。
 
         :param search_str: 查找的字符串
         :param compare_str: 比对的字符串
@@ -119,7 +117,7 @@ class StringUtil:
     @classmethod
     def startswith_any_case(cls, search_str: str, compare_str_list: list[str]) -> bool:
         """
-        查找指定字符串是否以指定字符串列表中的任意一个字符串开头
+        查找指定字符串是否以指定字符串列表中的任意一个字符串开头。
 
         :param search_str: 查找的字符串
         :param compare_str_list: 比对的字符串列表
@@ -132,7 +130,7 @@ class StringUtil:
     @classmethod
     def convert_to_camel_case(cls, name: str) -> str:
         """
-        将下划线大写方式命名的字符串转换为驼峰式。如果转换前的下划线大写方式命名的字符串为空，则返回空字符串
+        将下划线大写方式命名的字符串转换为驼峰式。如果转换前的下划线大写方式命名的字符串为空，则返回空字符串。
 
         :param name: 转换前的下划线大写方式命名的字符串
         :return: 转换后的驼峰式命名的字符串
@@ -152,10 +150,10 @@ class StringUtil:
     @classmethod
     def get_mapping_value_by_key_ignore_case(cls, mapping: dict[str, str], key: str) -> str:
         """
-        根据忽略大小写的键获取字典中的对应的值
+        根据忽略大小写的键获取字典中的对应的值。
 
-        param mapping: 字典
-        param key: 字典的键
+        :param mapping: 字典
+        :param key: 字典的键
         :return: 字典键对应的值
         """
         for k, v in mapping.items():

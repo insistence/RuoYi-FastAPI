@@ -31,17 +31,19 @@ from utils.time_util import TimezoneUtil
 
 
 class FileAclService:
+    """管理文件访问控制项并校验文件访问权限。"""
+
     @classmethod
     async def get_file_acl_list_services(
         cls,
         query_db: AsyncSession,
         file_id: str,
-        file_data_scope_sql: ColumnElement,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> FileAclListModel:
         """
-        获取文件访问控制列表service
+        获取文件访问控制列表service。
 
         :param query_db: orm对象
         :param file_id: 文件ID
@@ -49,6 +51,7 @@ class FileAclService:
         :param user_data_scope_sql: 用户数据权限对应的查询sql语句
         :param dept_data_scope_sql: 部门数据权限对应的查询sql语句
         :return: 文件访问控制列表及版本
+        :raises ServiceException: 文件信息不存在或超出数据权限
         """
         file_info = await FileInfoDao.get_file_info_detail_by_id(query_db, file_id, file_data_scope_sql)
         if file_info is None:
@@ -66,24 +69,24 @@ class FileAclService:
             dept_data_scope_sql,
         )
         return FileAclListModel(
-            aclVersion=file_info.acl_version,
-            builtinPermissions=cls._build_builtin_permissions(file_info, subject_name_map),
+            acl_version=file_info.acl_version,
+            builtin_permissions=cls._build_builtin_permissions(file_info, subject_name_map),
             entries=[
                 FileAclModel(
-                    aclId=file_acl.acl_id,
-                    fileId=file_acl.file_id,
-                    subjectType=file_acl.subject_type,
-                    subjectId=file_acl.subject_id,
-                    subjectName=subject_name_map.get(
+                    acl_id=file_acl.acl_id,
+                    file_id=file_acl.file_id,
+                    subject_type=file_acl.subject_type,
+                    subject_id=file_acl.subject_id,
+                    subject_name=subject_name_map.get(
                         (file_acl.subject_type, file_acl.subject_id),
                         f'不可用或无权查看主体（{file_acl.subject_id}）',
                     ),
                     permission=file_acl.permission,
                     effect=file_acl.effect,
-                    includeChildren=file_acl.include_children == '1',
-                    expireTime=file_acl.expire_time,
-                    createBy=file_acl.create_by,
-                    createTime=file_acl.create_time,
+                    include_children=file_acl.include_children == '1',
+                    expire_time=file_acl.expire_time,
+                    create_by=file_acl.create_by,
+                    create_time=file_acl.create_time,
                 )
                 for file_acl in file_acl_list
             ],
@@ -95,7 +98,7 @@ class FileAclService:
         subject_name_map: dict[tuple[str, int], str],
     ) -> list[FileAclBuiltinPermissionModel]:
         """
-        构建文件内置访问权限
+        构建文件内置访问权限。
 
         :param file_info: 文件信息
         :param subject_name_map: 主体名称映射
@@ -106,9 +109,9 @@ class FileAclService:
         builtin_permissions = [
             FileAclBuiltinPermissionModel(
                 source='admin',
-                subjectName='平台管理员',
+                subject_name='平台管理员',
                 enabled=True,
-                denyOverridable=False,
+                deny_overridable=False,
                 description='平台管理员始终允许下载，显式拒绝不能覆盖。',
             )
         ]
@@ -118,13 +121,13 @@ class FileAclService:
             builtin_permissions.append(
                 FileAclBuiltinPermissionModel(
                     source='owner',
-                    subjectId=owner_user_id,
-                    subjectName=subject_name_map.get(
+                    subject_id=owner_user_id,
+                    subject_name=subject_name_map.get(
                         ('user', owner_user_id),
                         f'不可用或无权查看主体（{owner_user_id}）',
                     ),
                     enabled=True,
-                    denyOverridable=False,
+                    deny_overridable=False,
                     description='文件所有者始终允许下载，显式拒绝不能覆盖。',
                 )
             )
@@ -134,13 +137,13 @@ class FileAclService:
             builtin_permissions.append(
                 FileAclBuiltinPermissionModel(
                     source='uploader',
-                    subjectId=upload_user_id,
-                    subjectName=subject_name_map.get(
+                    subject_id=upload_user_id,
+                    subject_name=subject_name_map.get(
                         ('user', upload_user_id),
                         f'不可用或无权查看主体（{upload_user_id}）',
                     ),
                     enabled=uploader_access_enabled,
-                    denyOverridable=uploader_access_enabled and not uploader_is_owner,
+                    deny_overridable=uploader_access_enabled and not uploader_is_owner,
                     description=(
                         (
                             '当前上传人同时是文件所有者，显式拒绝不能覆盖；所有权转移后按上传人规则判断。'
@@ -165,11 +168,11 @@ class FileAclService:
         subject_type: str,
         keyword: str | None,
         limit: int,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> list[FileAclSubjectOptionModel]:
         """
-        查询文件访问控制主体选项service
+        查询文件访问控制主体选项service。
 
         :param query_db: orm对象
         :param subject_type: 主体类型
@@ -193,10 +196,10 @@ class FileAclService:
     async def get_file_acl_dept_tree_services(
         cls,
         query_db: AsyncSession,
-        dept_data_scope_sql: ColumnElement,
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> list[DeptTreeModel]:
         """
-        获取文件授权部门树service
+        获取文件授权部门树service。
 
         :param query_db: orm对象
         :param dept_data_scope_sql: 部门数据权限对应的查询sql语句
@@ -212,13 +215,13 @@ class FileAclService:
         current_user: CurrentUserModel,
         file_id: str,
         save_file_acl: SaveFileAclModel,
-        file_data_scope_sql: ColumnElement,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
-        保存文件访问控制service
+        保存文件访问控制service。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -229,6 +232,8 @@ class FileAclService:
         :param dept_data_scope_sql: 部门数据权限对应的查询sql语句
         :param request: Request对象
         :return: 保存结果
+        :raises ServiceException: 文件信息不存在、已删除或超出数据权限；公开文件不支持配置访问权限；无法获取当前用户信息；文件权限已被其他用户修改，请刷新后重试；同一授权主体不能重复配置；授权过期时间必须晚于当前时间；部分授权主体不存在、已停用或超出数据权限
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         file_info = await FileInfoDao.get_file_info_by_id_for_update(query_db, file_id, file_data_scope_sql)
         if file_info is None:
@@ -334,13 +339,13 @@ class FileAclService:
         query_db: AsyncSession,
         current_user: CurrentUserModel,
         batch_save_file_acl: BatchSaveFileAclModel,
-        file_data_scope_sql: ColumnElement,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
-        批量保存文件访问控制service
+        批量保存文件访问控制service。
 
         :param query_db: orm对象
         :param current_user: 当前用户对象
@@ -350,6 +355,8 @@ class FileAclService:
         :param dept_data_scope_sql: 部门数据权限对应的查询sql语句
         :param request: Request对象
         :return: 保存结果
+        :raises ServiceException: 无法获取当前用户信息；部分文件不存在、已删除或超出数据权限；批量授权仅支持受保护文件；同一授权主体不能重复配置；授权过期时间必须晚于当前时间；部分授权主体不存在、已停用或超出数据权限
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         file_ids = FileUtil.parse_file_ids(batch_save_file_acl.file_ids)
         user = current_user.user
@@ -454,7 +461,7 @@ class FileAclService:
     @staticmethod
     def _group_acl_subject_ids(file_acl_list: list[SysFileAcl]) -> dict[str, set[int]]:
         """
-        按类型分组文件访问控制主体ID
+        按类型分组文件访问控制主体ID。
 
         :param file_acl_list: 文件访问控制列表
         :return: 主体ID分组
@@ -467,9 +474,7 @@ class FileAclService:
 
 
 class FileAuditService:
-    """
-    文件审计服务层
-    """
+    """文件审计服务层。"""
 
     @classmethod
     async def enqueue_file_audit(
@@ -495,7 +500,7 @@ class FileAuditService:
         operation_detail: dict[str, Any] | None = None,
     ) -> None:
         """
-        将文件审计事件写入日志队列
+        将文件审计事件写入日志队列。
 
         :param request: Request对象
         :param current_user: 当前用户对象
@@ -505,26 +510,25 @@ class FileAuditService:
         :param bytes_sent: 已发送字节数
         :param error_message: 失败原因
         :param operation_detail: 操作详情
-        :return: None
         """
         if request is None:
             return
         try:
             user = current_user.user
             file_access_log = FileAccessLogModel(
-                fileId=file_id,
+                file_id=file_id,
                 action=action,
-                actorUserId=user.user_id if user else None,
-                actorName=user.user_name if user else '',
+                actor_user_id=user.user_id if user else None,
+                actor_name=user.user_name if user else '',
                 result=result,
-                requestId=TraceCtx.get_request_id(),
-                traceId=TraceCtx.get_trace_id(),
-                ipAddress=ClientIPUtil.get_client_ip(request),
-                userAgent=(request.headers.get('User-Agent') or '')[:500],
-                bytesSent=bytes_sent,
-                errorMessage=error_message[:500],
-                operationDetail=cls._serialize_operation_detail(operation_detail),
-                accessTime=TimezoneUtil.utc_now(),
+                request_id=TraceCtx.get_request_id(),
+                trace_id=TraceCtx.get_trace_id(),
+                ip_address=ClientIPUtil.get_client_ip(request),
+                user_agent=(request.headers.get('User-Agent') or '')[:500],
+                bytes_sent=bytes_sent,
+                error_message=error_message[:500],
+                operation_detail=cls._serialize_operation_detail(operation_detail),
+                access_time=TimezoneUtil.utc_now(),
             )
             await LogQueueService.enqueue_file_access_log(
                 request,
@@ -545,7 +549,7 @@ class FileAuditService:
         operation_detail: dict[str, Any] | None = None,
     ) -> None:
         """
-        在后台任务事务内写入文件审计记录
+        在后台任务事务内写入文件审计记录。
 
         :param query_db: orm对象
         :param file_id: 文件ID
@@ -553,23 +557,22 @@ class FileAuditService:
         :param result: 操作结果
         :param error_message: 失败原因
         :param operation_detail: 操作详情
-        :return: None
         """
         file_access_log = FileAccessLogModel(
-            fileId=file_id,
+            file_id=file_id,
             action=action,
-            actorName='system',
+            actor_name='system',
             result=result,
-            errorMessage=error_message[:500],
-            operationDetail=cls._serialize_operation_detail(operation_detail),
-            accessTime=TimezoneUtil.utc_now(),
+            error_message=error_message[:500],
+            operation_detail=cls._serialize_operation_detail(operation_detail),
+            access_time=TimezoneUtil.utc_now(),
         )
         await FileAccessLogDao.add_file_access_log_dao(query_db, file_access_log)
 
     @staticmethod
     def _serialize_operation_detail(operation_detail: dict[str, Any] | None) -> str:
         """
-        序列化文件操作详情
+        序列化文件操作详情。
 
         :param operation_detail: 操作详情
         :return: 序列化后的操作详情

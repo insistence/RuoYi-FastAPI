@@ -13,7 +13,7 @@ class CliExecutionService:
     """
     CLI 执行与结果收口服务。
 
-    :param output_renderer: 输出渲染器
+    :ivar output_renderer: 输出渲染器
     """
 
     output_renderer: OutputRenderer = field(default_factory=OutputRenderer)
@@ -40,7 +40,6 @@ class CliExecutionService:
         :param ctx: CLI 上下文
         :param payload: 标准结果字典
         :param default_exit_code: 默认退出码
-        :return: None
         """
         self.output_renderer.complete_command(self.build_result(payload, default_exit_code=default_exit_code), ctx)
 
@@ -54,7 +53,6 @@ class CliExecutionService:
 
         :param ctx: CLI 上下文
         :param result: 命令执行结果对象
-        :return: None
         """
         self.output_renderer.complete_command(result, ctx)
 
@@ -75,7 +73,6 @@ class CliExecutionService:
         :param text_builder: 文本结果构建函数
         :param default_exit_code: 默认退出码
         :param text_condition: 文本模式下是否应用构建函数的判定函数
-        :return: None
         """
         if ctx.output != 'text':
             self.complete_payload(ctx, payload, default_exit_code=default_exit_code)
@@ -106,7 +103,6 @@ class CliExecutionService:
         :param text_builder: 文本结果构建函数
         :param default_exit_code: 默认退出码
         :param text_condition: 文本模式下是否应用构建函数的判定函数
-        :return: None
         """
         if text_builder is None:
             self.complete_payload(ctx, payload, default_exit_code=default_exit_code)
@@ -126,7 +122,7 @@ class CliExecutionService:
 
         :param payload: 标准结果字典
         :param default_exit_code: 默认退出码；当 payload 未显式提供 exit_code 且
-            该值仍为 0 时，失败结果会统一回退到 `RUNTIME_ERROR`
+            该值仍为 0 时，失败结果会统一回退到 ``RUNTIME_ERROR``
         :return: 命令结果对象
         """
         result_payload = dict(payload)

@@ -4,6 +4,7 @@ import pytest
 
 
 def test_build_filter_bar_text_includes_search_context(tui_modules: SimpleNamespace) -> None:
+    """筛选栏文本包含搜索上下文。"""
     text = tui_modules.cli_tui_search.TUI_SEARCH_SERVICE.build_filter_bar_text(
         tui_modules.cli_tui_search.JOB_FILTER_OPTIONS,
         'failed',
@@ -21,6 +22,7 @@ def test_build_filter_bar_text_includes_search_context(tui_modules: SimpleNamesp
 def test_tui_search_service_builds_filter_context_and_section_filtering(
     tui_modules: SimpleNamespace,
 ) -> None:
+    """终端搜索服务构建筛选上下文并过滤各分区。"""
     service = tui_modules.cli_tui_search.TuiSearchService(
         tui_modules.cli_tui_search.TuiSearchSuggestionProviderRegistry(
             providers={
@@ -65,9 +67,16 @@ def test_tui_search_service_builds_filter_context_and_section_filtering(
 def test_tui_search_service_skips_provider_when_query_is_empty(
     tui_modules: SimpleNamespace,
 ) -> None:
+    """搜索词为空时跳过查询提供方。"""
     provider_calls: list[str] = []
 
     def record_provider(incomplete: str) -> list[str]:
+        """
+        记录补全查询并提供候选值。
+
+        :param incomplete: 用户尚未输入完整的命令词
+        :return: 与当前补全查询匹配的候选值
+        """
         provider_calls.append(incomplete)
         return ['site_name']
 
@@ -91,6 +100,7 @@ def test_tui_search_service_skips_provider_when_query_is_empty(
 
 
 def test_search_highlight_helper_wraps_matches(tui_modules: SimpleNamespace) -> None:
+    """高亮包裹匹配的搜索文本。"""
     highlighted = tui_modules.cli_tui_search.TUI_SEARCH_HIGHLIGHTER.highlight('sync-user job', 'sync')
 
     assert highlighted == '【sync】-user job'
@@ -99,6 +109,7 @@ def test_search_highlight_helper_wraps_matches(tui_modules: SimpleNamespace) -> 
 def test_dashboard_screen_support_builds_summary_signal_and_status_track(
     tui_modules: SimpleNamespace,
 ) -> None:
+    """仪表盘构建摘要信号和状态轨迹。"""
     support = tui_modules.cli_tui_dashboard.DashboardScreenSupport()
     snapshot = tui_modules.cli_tui_app.DashboardSnapshot(
         env='dev',
@@ -122,6 +133,7 @@ def test_dashboard_screen_support_builds_summary_signal_and_status_track(
 def test_dashboard_screen_focus_service_moves_and_scrolls_between_focus_targets(
     tui_modules: SimpleNamespace,
 ) -> None:
+    """仪表盘在焦点目标间移动并滚动。"""
     focus_service = tui_modules.cli_tui_dashboard.DashboardScreenFocusService()
     focused: list[str] = []
     sidebar = SimpleNamespace(focus=lambda: focused.append('sidebar'))
@@ -150,6 +162,7 @@ async def test_dashboard_grid_expands_to_fit_status_panels(
     monkeypatch: pytest.MonkeyPatch,
     tui_modules: SimpleNamespace,
 ) -> None:
+    """仪表盘网格扩展以容纳状态面板。"""
     expected_dashboard_panel_count = 8
     min_expanded_dashboard_grid_height = 20
     snapshot = tui_modules.cli_tui_app.DashboardSnapshot(
@@ -173,6 +186,12 @@ async def test_dashboard_grid_expands_to_fit_status_panels(
     )
 
     async def collect_dashboard(env: str) -> object:
+        """
+        返回仪表盘视图使用的测试快照。
+
+        :param env: 当前运行环境
+        :return: 仪表盘视图使用的测试快照
+        """
         del env
         return snapshot
 

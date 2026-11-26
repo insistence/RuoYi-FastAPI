@@ -1,14 +1,16 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 from openpyxl import load_workbook
-from sqlalchemy import text, update
+from sqlalchemy import UniqueConstraint, text, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker, create_async_engine
 
+from common.vo import PageModel
 from config.database import Base
 from module_admin.dao.job_dao import JobDao
 from module_admin.entity.do.job_do import SysJob
@@ -34,7 +36,7 @@ from plugins.core.management.entity.vo.schemas import (
     PluginPageQueryModel,
 )
 from plugins.core.management.service.config import PluginConfigManager
-from plugins.core.management.service.gateway import PluginManagementRuntimeGateway
+from plugins.core.management.service.gateway import PluginManagementLifecycleUnitOfWork, PluginManagementRuntimeGateway
 from plugins.core.management.service.logs import PluginOperationLogBuilder
 from plugins.core.management.service.service import PluginService
 from plugins.core.manifest.schema import PluginManifest
@@ -51,12 +53,48 @@ EXPECTED_PERMISSION_BUTTON_MENU_COUNT = 5
 
 
 @pytest.mark.asyncio
+async def test_lifecycle_unit_of_work_exposes_only_the_active_session() -> None:
+    """验证工作单元只在事务期间提供会话，重新进入时使用新会话。"""
+    unit = PluginManagementLifecycleUnitOfWork(async_sessionmaker(), PluginService)
+    with pytest.raises(RuntimeError, match='事务尚未打开'):
+        _ = unit.session
+    async with unit:
+        first_session = unit.session
+        assert isinstance(first_session, AsyncSession)
+        assert unit.session is first_session
+    with pytest.raises(RuntimeError, match='事务尚未打开'):
+        _ = unit.session
+    async with unit:
+        assert unit.session is not first_session
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_unit_of_work_releases_session_when_close_fails() -> None:
+    """验证业务异常传入会话，关闭失败后工作单元也会释放会话引用。"""
+    factory = MagicMock()
+    manager = factory.return_value
+    manager.__aexit__.side_effect = RuntimeError('关闭失败')
+    unit = PluginManagementLifecycleUnitOfWork(factory, PluginService)
+    error = ValueError('操作失败')
+    with pytest.raises(RuntimeError, match='关闭失败'):
+        async with unit:
+            raise error
+    exc_type, exc, traceback = manager.__aexit__.await_args.args
+    assert exc_type is ValueError
+    assert exc is error
+    assert traceback is not None
+    assert unit.session_context is None
+    with pytest.raises(RuntimeError, match='事务尚未打开'):
+        _ = unit.session
+
+
+@pytest.mark.asyncio
 async def test_plugin_table_rejects_invalid_state_domains() -> None:
     """校验数据库约束拒绝绕过服务层写入非法启停值和生命周期状态。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table()])
 
     try:
         async with session_maker() as session:
@@ -88,8 +126,12 @@ async def test_plugin_table_rejects_invalid_state_domains() -> None:
         await engine.dispose()
 
 
-async def create_sqlite_sys_job_table(connection: object) -> None:
-    """创建适配 SQLite 的测试用 sys_job 表。"""
+async def create_sqlite_sys_job_table(connection: AsyncConnection) -> None:
+    """
+    创建适配 SQLite 的测试用 sys_job 表。
+
+    :param connection: 当前操作使用的连接
+    """
     await connection.execute(
         text(
             """
@@ -119,8 +161,12 @@ async def create_sqlite_sys_job_table(connection: object) -> None:
     )
 
 
-async def create_sqlite_sys_menu_table(connection: object) -> None:
-    """创建适配 SQLite 的测试用 sys_menu 表。"""
+async def create_sqlite_sys_menu_table(connection: AsyncConnection) -> None:
+    """
+    创建适配 SQLite 的测试用 sys_menu 表。
+
+    :param connection: 当前操作使用的连接
+    """
     await connection.execute(
         text(
             """
@@ -153,7 +199,14 @@ async def create_sqlite_sys_menu_table(connection: object) -> None:
 
 
 def build_discovered_plugin(tmp_path: Path, enabled: bool = True, version: str = '1.0.0') -> DiscoveredPlugin:
-    """构造测试用已发现插件对象。"""
+    """
+    构造测试用已发现插件对象。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param enabled: 是否启用该项功能
+    :param version: 当前记录的版本
+    :return: 测试用已发现插件对象
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True)
@@ -182,7 +235,13 @@ backend:
 
 
 def build_discovered_plugin_with_menu(tmp_path: Path, perms: str) -> DiscoveredPlugin:
-    """构造带菜单权限声明的测试插件。"""
+    """
+    构造带菜单权限声明的测试插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param perms: 调用主体所拥有的权限集合
+    :return: 带菜单权限声明的测试插件
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True, exist_ok=True)
@@ -211,7 +270,12 @@ def build_discovered_plugin_with_menu(tmp_path: Path, perms: str) -> DiscoveredP
 
 
 def build_discovered_plugin_with_permission_buttons(tmp_path: Path) -> DiscoveredPlugin:
-    """构造带页面菜单和顶层按钮权限声明的测试插件。"""
+    """
+    构造带页面菜单和顶层按钮权限声明的测试插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 带页面菜单和顶层按钮权限声明的测试插件
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True, exist_ok=True)
@@ -248,7 +312,12 @@ def build_discovered_plugin_with_permission_buttons(tmp_path: Path) -> Discovere
 
 
 def build_discovered_plugin_with_config(tmp_path: Path) -> DiscoveredPlugin:
-    """构造带配置声明的测试插件。"""
+    """
+    构造带配置声明的测试插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 带配置声明的测试插件
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True, exist_ok=True)
@@ -300,7 +369,12 @@ def build_discovered_plugin_with_config(tmp_path: Path) -> DiscoveredPlugin:
 
 
 def build_discovered_plugin_with_job(tmp_path: Path) -> DiscoveredPlugin:
-    """构造带定时任务声明的测试插件。"""
+    """
+    构造带定时任务声明的测试插件。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :return: 带定时任务声明的测试插件
+    """
     backend_path = tmp_path / 'plugins' / 'demo'
     manifest_path = backend_path / 'plugin.yaml'
     backend_path.mkdir(parents=True, exist_ok=True)
@@ -336,18 +410,22 @@ def test_plugin_tables_are_registered_with_expected_names() -> None:
     assert SysPluginMigration.__tablename__ == 'sys_plugin_migration'
     assert SysPluginConfig.__tablename__ == 'sys_plugin_config'
     assert SysPluginOperationLog.__tablename__ == 'sys_plugin_operation_log'
-    assert 'plugin_id' in SysPlugin.__table__.columns
-    assert 'last_error' in SysPlugin.__table__.columns
-    assert 'continue_on_error' in SysPluginOperationLog.__table__.columns
-    assert set(SysPluginMenu.__table__.primary_key.columns.keys()) == {'plugin_id', 'menu_id'}
-    unique_constraints = {constraint.name: constraint for constraint in SysPluginMenu.__table__.constraints}
+    assert 'plugin_id' in SysPlugin.get_table().columns
+    assert 'last_error' in SysPlugin.get_table().columns
+    assert 'continue_on_error' in SysPluginOperationLog.get_table().columns
+    assert set(SysPluginMenu.get_table().primary_key.columns.keys()) == {'plugin_id', 'menu_id'}
+    unique_constraints = {
+        constraint.name: constraint
+        for constraint in SysPluginMenu.get_table().constraints
+        if isinstance(constraint, UniqueConstraint)
+    }
     assert set(unique_constraints['uk_sys_plugin_menu_key'].columns.keys()) == {'plugin_id', 'menu_key'}
-    assert set(SysPluginMigration.__table__.primary_key.columns.keys()) == {'plugin_id', 'migration_path'}
-    assert 'attempt_count' in SysPluginMigration.__table__.columns
-    assert 'started_time' in SysPluginMigration.__table__.columns
-    assert 'finished_time' in SysPluginMigration.__table__.columns
-    assert 'update_time' in SysPluginMigration.__table__.columns
-    assert set(SysPluginConfig.__table__.primary_key.columns.keys()) == {'plugin_id', 'config_key'}
+    assert set(SysPluginMigration.get_table().primary_key.columns.keys()) == {'plugin_id', 'migration_path'}
+    assert 'attempt_count' in SysPluginMigration.get_table().columns
+    assert 'started_time' in SysPluginMigration.get_table().columns
+    assert 'finished_time' in SysPluginMigration.get_table().columns
+    assert 'update_time' in SysPluginMigration.get_table().columns
+    assert set(SysPluginConfig.get_table().primary_key.columns.keys()) == {'plugin_id', 'config_key'}
 
 
 def test_plugin_job_model_builder_maps_manifest_to_job_model(tmp_path: Path) -> None:
@@ -441,7 +519,7 @@ async def test_upsert_discovered_plugin_persists_plugin(tmp_path: Path) -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__, SysPluginMenu.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table(), SysPluginMenu.get_table()])
 
     try:
         async with session_maker() as session:
@@ -471,7 +549,7 @@ async def test_mark_plugin_installed_updates_installed_version(tmp_path: Path) -
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__, SysPluginMenu.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table(), SysPluginMenu.get_table()])
 
     try:
         async with session_maker() as session:
@@ -504,7 +582,7 @@ async def test_install_plugin_with_disabled_menus_can_be_enabled_later(tmp_path:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__, SysPluginMenu.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table(), SysPluginMenu.get_table()])
         await create_sqlite_sys_menu_table(connection)
         await create_sqlite_sys_job_table(connection)
 
@@ -554,7 +632,7 @@ async def test_install_plugin_menu_services_generates_permission_buttons(tmp_pat
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMenu.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMenu.get_table()])
         await create_sqlite_sys_menu_table(connection)
 
     try:
@@ -581,6 +659,9 @@ async def test_install_plugin_menu_services_generates_permission_buttons(tmp_pat
                 'demo',
                 'button:perm:demo:user:list/删除#demo:user:remove',
             )
+            assert add_button_link is not None
+            assert edit_button_link is not None
+            assert remove_button_link is not None
             add_button = await PluginDao.get_sys_menu_by_id(session, add_button_link.menu_id)
             edit_button = await PluginDao.get_sys_menu_by_id(session, edit_button_link.menu_id)
             remove_button = await PluginDao.get_sys_menu_by_id(session, remove_button_link.menu_id)
@@ -609,7 +690,7 @@ async def test_mark_plugin_uninstalled_clears_installed_version(tmp_path: Path) 
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysMenu.__table__, SysRoleMenu.__table__, SysPlugin.__table__, SysPluginMenu.__table__],
+            tables=[SysMenu.get_table(), SysRoleMenu.get_table(), SysPlugin.get_table(), SysPluginMenu.get_table()],
         )
         await create_sqlite_sys_job_table(connection)
 
@@ -705,7 +786,7 @@ async def test_mark_plugin_error_preserves_desired_state_and_isolates_resources(
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysMenu.__table__, SysPlugin.__table__, SysPluginMenu.__table__],
+            tables=[SysMenu.get_table(), SysPlugin.get_table(), SysPluginMenu.get_table()],
         )
         await create_sqlite_sys_job_table(connection)
 
@@ -780,7 +861,7 @@ async def test_recover_plugin_dependency_error_restores_lifecycle_state(
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysMenu.__table__, SysPlugin.__table__, SysPluginMenu.__table__],
+            tables=[SysMenu.get_table(), SysPlugin.get_table(), SysPluginMenu.get_table()],
         )
         await create_sqlite_sys_job_table(connection)
 
@@ -826,7 +907,7 @@ async def test_recover_plugin_dependency_error_preserves_explicit_disable_intent
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysMenu.__table__, SysPlugin.__table__, SysPluginMenu.__table__],
+            tables=[SysMenu.get_table(), SysPlugin.get_table(), SysPluginMenu.get_table()],
         )
         await create_sqlite_sys_job_table(connection)
 
@@ -870,7 +951,7 @@ async def test_recover_plugin_dependency_error_preserves_unrelated_error(tmp_pat
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysMenu.__table__, SysPlugin.__table__, SysPluginMenu.__table__],
+            tables=[SysMenu.get_table(), SysPlugin.get_table(), SysPluginMenu.get_table()],
         )
         await create_sqlite_sys_job_table(connection)
 
@@ -908,7 +989,7 @@ async def test_enable_plugin_rejects_uninstalled_error_state(tmp_path: Path) -> 
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysMenu.__table__, SysPlugin.__table__, SysPluginMenu.__table__],
+            tables=[SysMenu.get_table(), SysPlugin.get_table(), SysPluginMenu.get_table()],
         )
         await create_sqlite_sys_job_table(connection)
 
@@ -945,7 +1026,7 @@ async def test_enable_plugin_rejects_error_state_without_repair_lifecycle(tmp_pa
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysMenu.__table__, SysPlugin.__table__, SysPluginMenu.__table__],
+            tables=[SysMenu.get_table(), SysPlugin.get_table(), SysPluginMenu.get_table()],
         )
         await create_sqlite_sys_job_table(connection)
 
@@ -1085,7 +1166,7 @@ async def test_disable_plugin_pauses_plugin_jobs(tmp_path: Path) -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__, SysPluginMenu.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table(), SysPluginMenu.get_table()])
         await create_sqlite_sys_job_table(connection)
 
     try:
@@ -1117,7 +1198,7 @@ async def test_enable_plugin_restores_plugin_jobs(tmp_path: Path) -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__, SysPluginMenu.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table(), SysPluginMenu.get_table()])
         await create_sqlite_sys_job_table(connection)
 
     try:
@@ -1156,7 +1237,7 @@ async def test_get_plugin_page_list_filters_by_status(tmp_path: Path) -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__, SysPluginMenu.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table(), SysPluginMenu.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1176,6 +1257,7 @@ async def test_get_plugin_page_list_filters_by_status(tmp_path: Path) -> None:
                 frontend_root=tmp_path / 'frontend_plugins',
             )
 
+        assert isinstance(plugin_page_result, PageModel)
         assert plugin_page_result.total == 1
         assert plugin_page_result.rows[0]['pluginId'] == 'demo'
         assert plugin_page_result.rows[0]['status'] == 'installed'
@@ -1189,7 +1271,7 @@ async def test_get_plugin_page_list_includes_discovered_plugins_without_database
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1213,6 +1295,7 @@ backend:
                 frontend_root=tmp_path / 'frontend_plugins',
             )
 
+        assert isinstance(plugin_page_result, PageModel)
         assert plugin_page_result.total == 1
         assert plugin_page_result.rows[0]['pluginId'] == 'demo'
         assert plugin_page_result.rows[0]['pluginName'] == '演示插件'
@@ -1228,7 +1311,7 @@ async def test_get_plugin_page_list_includes_database_orphan_for_metadata_purge(
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1259,6 +1342,7 @@ async def test_get_plugin_page_list_includes_database_orphan_for_metadata_purge(
                 frontend_root=tmp_path / 'frontend_plugins',
             )
 
+        assert isinstance(plugin_page_result, PageModel)
         assert plugin_page_result.total == 1
         orphan_row = plugin_page_result.rows[0]
         assert orphan_row['pluginId'] == 'orphan'
@@ -1277,7 +1361,7 @@ async def test_plugin_detail_returns_discovered_plugin_without_database_state(tm
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1316,7 +1400,7 @@ async def test_upsert_plugin_menu_updates_existing_menu_key(tmp_path: Path) -> N
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__, SysPluginMenu.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table(), SysPluginMenu.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1339,18 +1423,18 @@ async def test_plugin_migration_history_can_be_persisted_and_read(tmp_path: Path
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.get_table()])
 
     try:
         async with session_maker() as session:
             await PluginService.add_plugin_migration_services(
                 session,
                 PluginMigrationModel(
-                    pluginId='demo',
-                    migrationPath='migrations/001_demo.sql',
-                    migrationChecksum='checksum',
+                    plugin_id='demo',
+                    migration_path='migrations/001_demo.sql',
+                    migration_checksum='checksum',
                     version='1.0.0',
-                    statementCount=EXPECTED_MIGRATION_STATEMENT_COUNT,
+                    statement_count=EXPECTED_MIGRATION_STATEMENT_COUNT,
                 ),
             )
             await session.commit()
@@ -1378,30 +1462,30 @@ async def test_plugin_migration_history_upserts_failed_record_to_success() -> No
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     failed_statement_count = 1
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.get_table()])
 
     try:
         async with session_maker() as session:
             await PluginService.add_plugin_migration_services(
                 session,
                 PluginMigrationModel(
-                    pluginId='demo',
-                    migrationPath='migrations/001_demo.sql',
-                    migrationChecksum='checksum',
+                    plugin_id='demo',
+                    migration_path='migrations/001_demo.sql',
+                    migration_checksum='checksum',
                     version='1.0.0',
-                    statementCount=failed_statement_count,
+                    statement_count=failed_statement_count,
                     status='failed',
-                    errorMessage='boom',
+                    error_message='boom',
                 ),
             )
             await PluginService.add_plugin_migration_services(
                 session,
                 PluginMigrationModel(
-                    pluginId='demo',
-                    migrationPath='migrations/001_demo.sql',
-                    migrationChecksum='checksum',
+                    plugin_id='demo',
+                    migration_path='migrations/001_demo.sql',
+                    migration_checksum='checksum',
                     version='1.0.0',
-                    statementCount=EXPECTED_MIGRATION_STATEMENT_COUNT,
+                    statement_count=EXPECTED_MIGRATION_STATEMENT_COUNT,
                     status='success',
                 ),
             )
@@ -1429,29 +1513,29 @@ async def test_plugin_migration_history_can_be_listed_and_marked() -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.get_table()])
 
     try:
         async with session_maker() as session:
             await PluginService.add_plugin_migration_services(
                 session,
                 PluginMigrationModel(
-                    pluginId='demo',
-                    migrationPath='migrations/001_demo.sql',
-                    migrationChecksum='checksum-1',
+                    plugin_id='demo',
+                    migration_path='migrations/001_demo.sql',
+                    migration_checksum='checksum-1',
                     version='1.0.0',
-                    statementCount=1,
+                    statement_count=1,
                     status='success',
                 ),
             )
             await PluginService.add_plugin_migration_services(
                 session,
                 PluginMigrationModel(
-                    pluginId='demo',
-                    migrationPath='migrations/002_demo.sql',
-                    migrationChecksum='checksum-2',
+                    plugin_id='demo',
+                    migration_path='migrations/002_demo.sql',
+                    migration_checksum='checksum-2',
                     version='1.0.0',
-                    statementCount=1,
+                    statement_count=1,
                     status='running',
                 ),
             )
@@ -1487,7 +1571,7 @@ async def test_check_installed_menu_conflict_reports_core_permission(tmp_path: P
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysMenu.__table__, SysPlugin.__table__, SysPluginMenu.__table__],
+            tables=[SysMenu.get_table(), SysPlugin.get_table(), SysPluginMenu.get_table()],
         )
 
     try:
@@ -1523,7 +1607,7 @@ async def test_plugin_default_config_can_be_installed_and_masked(tmp_path: Path)
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1552,7 +1636,7 @@ async def test_secret_plugin_config_is_encrypted_at_rest(tmp_path: Path) -> None
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1574,6 +1658,7 @@ async def test_secret_plugin_config_is_encrypted_at_rest(tmp_path: Path) -> None
         masked_api_key = next(config for config in masked_configs if config.key == 'api_key')
         revealed_api_key = next(config for config in revealed_configs if config.key == 'api_key')
         assert db_config is not None
+        assert db_config.config_value is not None
         assert db_config.config_value.startswith(PluginConfigManager.ENCRYPTED_PREFIX)
         assert 'secret-updated' not in db_config.config_value
         assert masked_api_key.value == PluginConfigManager.MASK_VALUE
@@ -1590,7 +1675,7 @@ async def test_plugin_config_sync_removes_items_deleted_from_manifest(tmp_path: 
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1614,7 +1699,7 @@ async def test_plugin_config_sync_reencrypts_value_when_secret_policy_changes(tm
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1639,6 +1724,7 @@ async def test_plugin_config_sync_reencrypts_value_when_secret_policy_changes(tm
         provider_config = next(config for config in configs if config.key == 'provider')
         assert db_config is not None
         assert db_config.secret == '0'
+        assert db_config.config_value is not None
         assert db_config.config_value.startswith(PluginConfigManager.ENCRYPTED_PREFIX)
         assert provider_config.value == 'mistral'
     finally:
@@ -1647,7 +1733,7 @@ async def test_plugin_config_sync_reencrypts_value_when_secret_policy_changes(tm
 
 def test_secret_plugin_config_rejects_plaintext_storage() -> None:
     """校验敏感插件配置读取时拒绝未加密存储值。"""
-    config = SimpleNamespace(
+    config = SysPluginConfig(
         config_key='api_key',
         config_label='API Key',
         config_type='string',
@@ -1690,10 +1776,16 @@ async def test_get_plugin_config_services_reuses_bulk_config_lookup(
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.get_table()])
 
     async def fail_get_config_by_key(*_args: object, **_kwargs: object) -> None:
-        """模拟读取插件配置失败。"""
+        """
+        模拟读取插件配置失败。
+
+        :param _args: 调用方传入的其余位置参数
+        :param _kwargs: 调用方按名称传入的附加选项
+        :raises AssertionError: 计算默认配置差异时意外执行了逐键查询
+        """
         raise AssertionError('get_plugin_config_by_key should not be used for default config diff')
 
     try:
@@ -1718,15 +1810,19 @@ async def test_plugin_config_gateway_rejects_uninstalled_plugin_updates(tmp_path
     async with engine.begin() as connection:
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysPlugin.__table__, SysPluginConfig.__table__],
+            tables=[SysPlugin.get_table(), SysPluginConfig.get_table()],
         )
 
     class TestPluginManagementRuntimeGateway(PluginManagementRuntimeGateway):
         """注入测试数据库会话工厂。"""
 
         @staticmethod
-        def get_async_session_local() -> object:
-            """获取测试数据库会话工厂。"""
+        def get_async_session_local() -> async_sessionmaker[AsyncSession]:
+            """
+            获取测试数据库会话工厂。
+
+            :return: 测试数据库会话工厂
+            """
             return session_maker
 
     try:
@@ -1768,7 +1864,7 @@ async def test_plugin_config_can_be_updated(tmp_path: Path) -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1791,7 +1887,7 @@ async def test_plugin_config_update_validates_enhanced_constraints(tmp_path: Pat
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginConfig.get_table()])
 
     try:
         async with session_maker() as session:
@@ -1821,14 +1917,14 @@ async def test_build_plugin_purge_plan_counts_platform_metadata(tmp_path: Path) 
         await connection.run_sync(
             Base.metadata.create_all,
             tables=[
-                SysMenu.__table__,
-                SysRoleMenu.__table__,
-                SysPlugin.__table__,
-                SysPluginMenu.__table__,
-                SysPluginConfig.__table__,
+                SysMenu.get_table(),
+                SysRoleMenu.get_table(),
+                SysPlugin.get_table(),
+                SysPluginMenu.get_table(),
+                SysPluginConfig.get_table(),
             ],
         )
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.get_table()])
         await create_sqlite_sys_job_table(connection)
 
     try:
@@ -1857,11 +1953,11 @@ async def test_build_plugin_purge_plan_counts_platform_metadata(tmp_path: Path) 
             await PluginService.add_plugin_migration_services(
                 session,
                 PluginMigrationModel(
-                    pluginId='demo',
-                    migrationPath='migrations/001_demo.sql',
-                    migrationChecksum='checksum',
+                    plugin_id='demo',
+                    migration_path='migrations/001_demo.sql',
+                    migration_checksum='checksum',
                     version='1.0.0',
-                    statementCount=1,
+                    statement_count=1,
                 ),
             )
             await PluginJobInstaller(session).install_plugin_jobs(build_discovered_plugin_with_job(tmp_path))
@@ -1889,14 +1985,14 @@ async def test_purge_plugin_metadata_by_id_deletes_orphan_platform_metadata(tmp_
         await connection.run_sync(
             Base.metadata.create_all,
             tables=[
-                SysMenu.__table__,
-                SysRoleMenu.__table__,
-                SysPlugin.__table__,
-                SysPluginMenu.__table__,
-                SysPluginConfig.__table__,
+                SysMenu.get_table(),
+                SysRoleMenu.get_table(),
+                SysPlugin.get_table(),
+                SysPluginMenu.get_table(),
+                SysPluginConfig.get_table(),
             ],
         )
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginMigration.get_table()])
         await create_sqlite_sys_job_table(connection)
 
     try:
@@ -1925,11 +2021,11 @@ async def test_purge_plugin_metadata_by_id_deletes_orphan_platform_metadata(tmp_
             await PluginService.add_plugin_migration_services(
                 session,
                 PluginMigrationModel(
-                    pluginId='demo',
-                    migrationPath='migrations/001_demo.sql',
-                    migrationChecksum='checksum',
+                    plugin_id='demo',
+                    migration_path='migrations/001_demo.sql',
+                    migration_checksum='checksum',
                     version='1.0.0',
-                    statementCount=1,
+                    statement_count=1,
                 ),
             )
             await PluginJobInstaller(session).install_plugin_jobs(build_discovered_plugin_with_job(tmp_path))
@@ -2010,7 +2106,7 @@ async def test_add_plugin_operation_log_services_persists_batch_report() -> None
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.get_table()])
 
     try:
         async with session_maker() as session:
@@ -2039,6 +2135,7 @@ async def test_add_plugin_operation_log_services_persists_batch_report() -> None
         assert operation_log.continue_on_error == '0'
         assert db_operation_log is not None
         assert db_operation_log.plugin_ids == '["base", "app"]'
+        assert db_operation_log.summary is not None
         assert '"failed": 1' in db_operation_log.summary
     finally:
         await engine.dispose()
@@ -2050,7 +2147,7 @@ async def test_plugin_operation_log_services_returns_page_and_detail() -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.get_table()])
 
     try:
         async with session_maker() as session:
@@ -2074,19 +2171,23 @@ async def test_plugin_operation_log_services_returns_page_and_detail() -> None:
 
             page_result = await PluginService.get_plugin_operation_log_page_list_services(
                 session,
-                PluginOperationLogPageQueryModel(pageNum=1, pageSize=10, operation='enable', pluginId='app'),
+                PluginOperationLogPageQueryModel(page_num=1, page_size=10, operation='enable', plugin_id='app'),
                 is_page=True,
             )
+            assert operation_log.operation_id is not None
             detail_result = await PluginService.plugin_operation_log_detail_services(
                 session,
                 operation_log.operation_id,
             )
 
+        assert isinstance(page_result, PageModel)
         assert page_result.total == 1
         assert page_result.rows[0].plugin_ids == ['base', 'app']
         assert page_result.rows[0].summary['succeeded'] == EXPECTED_BATCH_SUCCEEDED_COUNT
         assert detail_result is not None
-        assert detail_result.result['executed'][1]['pluginId'] == 'app'
+        executed = detail_result.result['executed']
+        assert isinstance(executed, list)
+        assert executed[1]['pluginId'] == 'app'
         assert detail_result.continue_on_error is False
     finally:
         await engine.dispose()
@@ -2136,7 +2237,7 @@ async def test_plugin_operation_log_plugin_id_filter_matches_json_array_element(
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.get_table()])
 
     try:
         async with session_maker() as session:
@@ -2162,10 +2263,11 @@ async def test_plugin_operation_log_plugin_id_filter_matches_json_array_element(
 
             page_result = await PluginService.get_plugin_operation_log_page_list_services(
                 session,
-                PluginOperationLogPageQueryModel(pageNum=1, pageSize=10, pluginId='foo'),
+                PluginOperationLogPageQueryModel(page_num=1, page_size=10, plugin_id='foo'),
                 is_page=True,
             )
 
+        assert isinstance(page_result, PageModel)
         assert page_result.total == 1
         assert page_result.rows[0].plugin_ids == ['foo']
     finally:
@@ -2178,7 +2280,7 @@ async def test_plugin_operation_log_plugin_id_filter_treats_like_wildcards_as_li
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.get_table()])
 
     try:
         async with session_maker() as session:
@@ -2211,10 +2313,11 @@ async def test_plugin_operation_log_plugin_id_filter_treats_like_wildcards_as_li
 
             page_result = await PluginService.get_plugin_operation_log_page_list_services(
                 session,
-                PluginOperationLogPageQueryModel(pageNum=1, pageSize=10, pluginId='foo_bar'),
+                PluginOperationLogPageQueryModel(page_num=1, page_size=10, plugin_id='foo_bar'),
                 is_page=True,
             )
 
+        assert isinstance(page_result, PageModel)
         assert page_result.total == 1
         assert page_result.rows[0].plugin_ids == ['foo_bar']
     finally:
@@ -2227,7 +2330,7 @@ async def test_plugin_operation_log_export_services_returns_filtered_rows() -> N
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.get_table()])
 
     try:
         async with session_maker() as session:
@@ -2265,7 +2368,7 @@ async def test_plugin_operation_log_export_services_returns_filtered_rows() -> N
                 continue_on_error=False,
             )
             # 固定在 UTC 与上海日期不同的时刻，导出筛选使用应用业务日期。
-            created_at = datetime(2026, 10, 1, 16, 5, tzinfo=timezone.utc)
+            created_at = datetime(2026, 10, 1, 16, 5, tzinfo=UTC)
             await session.execute(update(SysPluginOperationLog).values(create_time=created_at))
             await session.commit()
 
@@ -2275,10 +2378,10 @@ async def test_plugin_operation_log_export_services_returns_filtered_rows() -> N
                 PluginOperationLogExportQueryModel(
                     operation='upgrade',
                     status='failed',
-                    pluginId='demo',
-                    beginTime=today,
-                    endTime=today,
-                    exportLimit=10,
+                    plugin_id='demo',
+                    begin_time=today,
+                    end_time=today,
+                    export_limit=10,
                 ),
             )
             export_binary = PluginService.export_plugin_operation_log_list_services(
@@ -2303,7 +2406,7 @@ async def test_retain_plugin_operation_log_services_supports_dry_run_and_delete(
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.get_table()])
 
     try:
         async with session_maker() as session:
@@ -2315,7 +2418,7 @@ async def test_retain_plugin_operation_log_services_supports_dry_run_and_delete(
                         dry_run='1',
                         continue_on_error='1',
                         status='success',
-                        create_time=datetime.now(timezone.utc) - timedelta(days=30),
+                        create_time=datetime.now(UTC) - timedelta(days=30),
                     ),
                     SysPluginOperationLog(
                         operation='install',
@@ -2323,7 +2426,7 @@ async def test_retain_plugin_operation_log_services_supports_dry_run_and_delete(
                         dry_run='1',
                         continue_on_error='1',
                         status='success',
-                        create_time=datetime.now(timezone.utc),
+                        create_time=datetime.now(UTC),
                     ),
                 ]
             )
@@ -2331,16 +2434,16 @@ async def test_retain_plugin_operation_log_services_supports_dry_run_and_delete(
 
             dry_run_result = await PluginService.retain_plugin_operation_log_services(
                 session,
-                PluginOperationLogRetentionModel(retentionDays=7, dryRun=True),
+                PluginOperationLogRetentionModel(retention_days=7, dry_run=True),
             )
             delete_result = await PluginService.retain_plugin_operation_log_services(
                 session,
-                PluginOperationLogRetentionModel(retentionDays=7, dryRun=False),
+                PluginOperationLogRetentionModel(retention_days=7, dry_run=False),
             )
             await session.commit()
             remaining_count = await PluginDao.count_plugin_operation_logs_before(
                 session,
-                datetime.now(timezone.utc) + timedelta(days=1),
+                datetime.now(UTC) + timedelta(days=1),
             )
 
         assert dry_run_result.matched_count == 1
@@ -2358,7 +2461,7 @@ async def test_retain_plugin_operation_log_services_accepts_zero_days() -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.__table__])
+        await connection.run_sync(Base.metadata.create_all, tables=[SysPluginOperationLog.get_table()])
 
     try:
         async with session_maker() as session:
@@ -2369,19 +2472,19 @@ async def test_retain_plugin_operation_log_services_accepts_zero_days() -> None:
                     dry_run='1',
                     continue_on_error='1',
                     status='success',
-                    create_time=datetime.now(timezone.utc) - timedelta(minutes=1),
+                    create_time=datetime.now(UTC) - timedelta(minutes=1),
                 )
             )
             await session.commit()
 
             delete_result = await PluginService.retain_plugin_operation_log_services(
                 session,
-                PluginOperationLogRetentionModel(retentionDays=0, dryRun=False),
+                PluginOperationLogRetentionModel(retention_days=0, dry_run=False),
             )
             await session.commit()
             remaining_count = await PluginDao.count_plugin_operation_logs_before(
                 session,
-                datetime.now(timezone.utc) + timedelta(days=1),
+                datetime.now(UTC) + timedelta(days=1),
             )
 
         assert delete_result.retention_days == 0

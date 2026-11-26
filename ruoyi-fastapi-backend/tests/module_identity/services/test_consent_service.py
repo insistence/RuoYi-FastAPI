@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import select
@@ -21,7 +21,13 @@ from module_identity.service.consent_service import ConsentResult, ConsentServic
 
 
 def _context(*, prompt: str | None = None, trusted_client: int = 0) -> AuthorizationContext:
-    """构造同意服务所需的已验证上下文。"""
+    """
+    构造同意服务所需的已验证上下文。
+
+    :param prompt: 客户端要求的登录或授权交互方式
+    :param trusted_client: 是否为受信任客户端
+    :return: 同意服务所需的已验证上下文
+    """
     client = ClientSnapshot(
         client_pk=8001,
         client_id='consent-client',
@@ -99,7 +105,7 @@ def test_denial_is_a_verified_redirect_and_trusted_client_does_not_skip_consent(
 def test_prompt_consent_disables_grant_based_skip() -> None:
     """验证 prompt=consent 强制显示同意页，即使已有 Grant 也不能静默跳过。"""
     context = _context(prompt='consent')
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     grant = SysOAuthGrant(
         grant_id='consent-grant',
         user_id=8001,
@@ -172,6 +178,7 @@ async def test_remember_consent_merges_grant_without_commit(data_session: AsyncS
         user_id=8001,
         subject_id='subject-8001',
     )
+    assert updated.grant is not None and result.grant is not None
     assert updated.grant.grant_id == result.grant.grant_id
     assert set(updated.grant.granted_scopes) == set(context.scopes)
     assert ConsentService.consent_is_satisfied(context, updated.grant) is remembered
@@ -181,7 +188,7 @@ async def test_remember_consent_merges_grant_without_commit(data_session: AsyncS
 @pytest.mark.asyncio
 async def test_compensation_does_not_restore_concurrently_revoked_grant(data_session: AsyncSession) -> None:
     """补偿 CAS 不得覆盖管理员在提交后执行的 Grant 撤销。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     user = SysUser(user_id=8002, user_name='race-user', nick_name='Race User', status='0', del_flag='0')
     client = SysOAuthClient(
         client_pk=8002,
@@ -244,7 +251,7 @@ async def test_compensation_does_not_restore_concurrently_revoked_grant(data_ses
 @pytest.mark.asyncio
 async def test_compensation_does_not_revoke_concurrently_updated_new_grant(data_session: AsyncSession) -> None:
     """新建 Grant 的撤销补偿不得覆盖另一会话的更新，并记录高风险审计。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     user = SysUser(user_id=8003, user_name='new-race-user', nick_name='New Race User', status='0', del_flag='0')
     client = SysOAuthClient(
         client_pk=8003,
@@ -275,7 +282,8 @@ async def test_compensation_does_not_revoke_concurrently_updated_new_grant(data_
     session_factory = async_sessionmaker(data_session.bind, expire_on_commit=False)
     async with session_factory() as concurrent_session:
         await concurrent_session.execute(
-            SysOAuthGrant.__table__.update()
+            SysOAuthGrant.get_table()
+            .update()
             .where(SysOAuthGrant.grant_id == grant.grant_id)
             .values(granted_scopes=['openid', 'admin'], subject_id='concurrent-subject')
         )

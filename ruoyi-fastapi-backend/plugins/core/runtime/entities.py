@@ -11,7 +11,9 @@ class EntityModuleImporter:
     实体模块导入器。
 
     使用 Template Method 模式统一实体文件扫描、模块名转换和导入流程，确保
-    SQLAlchemy 在执行 `Base.metadata.create_all` 前可以收集到已启用模块的 DO 元数据。
+    SQLAlchemy 在执行 ``Base.metadata.create_all`` 前可以收集到已启用模块的 DO 元数据。
+
+    :ivar backend_root: 后端项目根目录
     """
 
     def __init__(self, backend_root: Path | str | None = None) -> None:
@@ -70,11 +72,7 @@ class EntityModuleImporter:
         return imported_modules
 
     def _extend_plugins_package_path(self) -> None:
-        """
-        扩展已加载 plugins 包的搜索路径。
-
-        :return: None
-        """
+        """扩展已加载 plugins 包的搜索路径。"""
         plugins_root = self.backend_root / 'plugins'
         if not plugins_root.is_dir():
             return
@@ -107,6 +105,7 @@ class EntityModuleImporter:
         :param entity_file: 实体文件路径
         :param strict: 是否在导入失败时抛出异常
         :return: 已导入模块，导入失败且非严格模式时返回 None
+        :raises Exception: 严格模式下无法导入实体模块
         """
         module_name = self._to_module_name(entity_file)
         try:

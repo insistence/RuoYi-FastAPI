@@ -13,6 +13,8 @@ class AppBootstrapService:
 
     该服务负责解析应用原始入口路径、构建启动命令，并使用与当前平台兼容的方式
     将 CLI 进程切换为或连接到 FastAPI 应用入口进程。
+
+    :ivar runtime_environment: 运行时环境服务
     """
 
     def __init__(self, *, runtime_environment: RuntimeEnvironmentService | None = None) -> None:
@@ -20,7 +22,6 @@ class AppBootstrapService:
         初始化应用引导服务。
 
         :param runtime_environment: 运行时环境服务
-        :return: None
         """
         self.runtime_environment = runtime_environment or RUNTIME_ENVIRONMENT
 
@@ -54,7 +55,7 @@ class AppBootstrapService:
         以应用原始入口进程启动当前 FastAPI 应用。
 
         :param env: 运行环境
-        :return: None
+        :raises SystemExit: Windows 子进程退出或被中断时，向调用进程传递退出码
         """
         command = self.build_app_run_command(env)
         if _IS_WINDOWS:

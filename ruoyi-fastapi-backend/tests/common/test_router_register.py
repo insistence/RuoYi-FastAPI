@@ -1,7 +1,8 @@
 import sys
 from pathlib import Path
 
-from fastapi import FastAPI
+import pytest
+from fastapi import Depends, FastAPI
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BACKEND_ROOT))
@@ -12,6 +13,8 @@ from common.router import RouterRegister, auto_register_controller_files, auto_r
 class RouterRegisterForTest(RouterRegister):
     """
     测试用路由注册器。
+
+    :ivar project_root: 测试项目根目录
     """
 
     def __init__(self, app: FastAPI, project_root: Path) -> None:
@@ -41,6 +44,7 @@ def touch_file(file_path: Path, content: str = '') -> Path:
 
 
 def test_router_register_finds_builtin_controller_files(tmp_path: Path) -> None:
+    """路由注册器能找到内置控制器文件。"""
     project_root = tmp_path / 'backend'
     builtin_controller = touch_file(project_root / 'module_demo' / 'controller' / 'demo_controller.py')
 
@@ -52,12 +56,7 @@ def test_router_register_finds_builtin_controller_files(tmp_path: Path) -> None:
 
 
 def test_router_register_finds_auto_register_false_controller_files(tmp_path: Path) -> None:
-    """
-    校验路由注册器仍会发现 controller 文件，是否注册由 APIRouterPro.auto_register 决定。
-
-    :param tmp_path: pytest 临时目录
-    :return: None
-    """
+    """校验路由注册器仍会发现 controller 文件，是否注册由 APIRouterPro.auto_register 决定。"""
     project_root = tmp_path / 'backend'
     builtin_controller = touch_file(project_root / 'module_demo' / 'controller' / 'demo_controller.py')
     extra_controller = touch_file(project_root / 'module_extra' / 'controller' / 'extra_controller.py')
@@ -68,11 +67,7 @@ def test_router_register_finds_auto_register_false_controller_files(tmp_path: Pa
 
 
 def test_router_register_skips_auto_register_false_router(tmp_path: Path) -> None:
-    """
-    校验 auto_register=False 的 APIRouterPro 不会被注册到应用。
-
-    :return: None
-    """
+    """校验 auto_register=False 的 APIRouterPro 不会被注册到应用。"""
     project_root = tmp_path / 'backend'
     router_register = RouterRegisterForTest(FastAPI(), project_root=project_root)
     controller_file = touch_file(
@@ -86,11 +81,7 @@ def test_router_register_skips_auto_register_false_router(tmp_path: Path) -> Non
 
 
 def test_router_register_includes_plugin_management_controller() -> None:
-    """
-    校验内置插件管理 controller 会参与自动注册。
-
-    :return: None
-    """
+    """校验内置插件管理 controller 会参与自动注册。"""
     project_root = BACKEND_ROOT
     router_register = RouterRegisterForTest(FastAPI(), project_root=project_root)
 
@@ -99,18 +90,15 @@ def test_router_register_includes_plugin_management_controller() -> None:
     assert str(project_root / 'module_plugin' / 'controller' / 'plugin_controller.py') in controller_files
 
 
-def test_auto_register_routers_uses_builtin_controller_registration(monkeypatch: object) -> None:
-    """
-    校验 auto_register_routers 保持内置 controller 注册语义。
-
-    :param monkeypatch: pytest monkeypatch fixture
-    :return: None
-    """
+def test_auto_register_routers_uses_builtin_controller_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+    """校验 auto_register_routers 保持内置 controller 注册语义。"""
     called = []
 
     class FakeRouterRegister:
         """
         测试用假路由注册器。
+
+        :ivar app: FastAPI对象
         """
 
         def __init__(self, app: FastAPI) -> None:
@@ -122,11 +110,7 @@ def test_auto_register_routers_uses_builtin_controller_registration(monkeypatch:
             self.app = app
 
         def register_routers(self) -> None:
-            """
-            记录路由注册调用。
-
-            :return: None
-            """
+            """记录路由注册调用。"""
             called.append(True)
 
     monkeypatch.setattr('common.router.RouterRegister', FakeRouterRegister)
@@ -136,13 +120,10 @@ def test_auto_register_routers_uses_builtin_controller_registration(monkeypatch:
     assert called == [True]
 
 
-def test_router_register_register_routers_uses_common_controller_file_pipeline(tmp_path: Path) -> None:
-    """
-    校验内置路由注册复用统一 controller 文件注册流水线。
-
-    :param tmp_path: pytest 临时目录
-    :return: None
-    """
+def test_router_register_register_routers_uses_common_controller_file_pipeline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """校验内置路由注册复用统一 controller 文件注册流水线。"""
     project_root = tmp_path / 'backend'
     builtin_controller = touch_file(project_root / 'module_demo' / 'controller' / 'demo_controller.py')
     captured_controller_files = []
@@ -153,30 +134,26 @@ def test_router_register_register_routers_uses_common_controller_file_pipeline(t
         记录注册的controller文件。
 
         :param controller_files: controller文件列表
-        :return: None
         """
         captured_controller_files.extend(controller_files)
 
-    router_register._register_controller_files = fake_register_controller_files
+    monkeypatch.setattr(router_register, '_register_controller_files', fake_register_controller_files)
 
     router_register.register_routers()
 
     assert captured_controller_files == [str(builtin_controller)]
 
 
-def test_auto_register_controller_files_delegates_to_router_register(monkeypatch: object) -> None:
-    """
-    校验指定 controller 文件自动注册函数委托给 RouterRegister。
-
-    :param monkeypatch: pytest monkeypatch fixture
-    :return: None
-    """
+def test_auto_register_controller_files_delegates_to_router_register(monkeypatch: pytest.MonkeyPatch) -> None:
+    """校验指定 controller 文件自动注册函数委托给 RouterRegister。"""
     captured_controller_files = []
     captured_dependencies = []
 
     class FakeRouterRegister:
         """
         测试用假路由注册器。
+
+        :ivar app: FastAPI对象
         """
 
         def __init__(self, app: FastAPI) -> None:
@@ -195,14 +172,13 @@ def test_auto_register_controller_files_delegates_to_router_register(monkeypatch
 
             :param controller_files: controller文件列表
             :param dependencies: 注册时附加到路由上的依赖项
-            :return: None
             """
             captured_controller_files.extend(controller_files)
             captured_dependencies.extend(dependencies or [])
 
     monkeypatch.setattr('common.router.RouterRegister', FakeRouterRegister)
 
-    dependency = object()
+    dependency = Depends(lambda: None)
     auto_register_controller_files(FastAPI(), ['demo_controller.py'], dependencies=[dependency])
 
     assert captured_controller_files == ['demo_controller.py']

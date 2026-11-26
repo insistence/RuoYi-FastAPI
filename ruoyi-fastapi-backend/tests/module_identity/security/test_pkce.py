@@ -12,6 +12,7 @@ _CHALLENGE_LENGTH = 43
 
 
 def test_s256_round_trip_and_mismatch() -> None:
+    """验证 S256 的匹配和不匹配情形。"""
     verifier = generate_code_verifier()
     challenge = generate_code_challenge(verifier)
 
@@ -22,6 +23,7 @@ def test_s256_round_trip_and_mismatch() -> None:
 
 
 def test_plain_and_invalid_lengths_are_rejected() -> None:
+    """拒绝明文挑战和无效长度。"""
     with pytest.raises(PkceError):
         verify_code_challenge('a' * 43, 'a' * 43, method='plain')
     with pytest.raises(ValueError):

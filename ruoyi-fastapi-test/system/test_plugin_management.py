@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from http import HTTPStatus
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
@@ -13,7 +13,7 @@ from common.config import Config
 from system.page import SystemPage
 
 if TYPE_CHECKING:
-    from playwright.async_api import Locator, Request, Response
+    from playwright.async_api import APIRequestContext, Locator, Request, Response
 
     from common.browser_harness import BrowserHarness
 
@@ -23,8 +23,13 @@ PLUGIN_ID = 'ai'
 PLUGIN_WARNING = 601
 
 
-def validate_operation_envelope(payload: dict) -> dict:
-    """601 是明确的业务阻断；异常状态、缺失数据和不一致的成功标志均不能通过。"""
+def validate_operation_envelope(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    601 是明确的业务阻断；异常状态、缺失数据和不一致的成功标志均不能通过。
+
+    :param payload: 随调用传入或返回的结构化数据
+    :return: 当前调用处理的业务数据
+    """
     data = payload['data']
     assert isinstance(data, dict) and isinstance(data['ok'], bool), payload
     assert payload['code'] == (HTTPStatus.OK if data['ok'] else PLUGIN_WARNING), payload
@@ -34,14 +39,25 @@ def validate_operation_envelope(payload: dict) -> dict:
     return data
 
 
-async def plugin_payload(response: Response) -> dict:
-    """业务成功和业务阻断都必须是 HTTP 200，并进一步验证具体操作契约。"""
+async def plugin_payload(response: Response) -> dict[str, Any]:
+    """
+    业务成功和业务阻断都必须是 HTTP 200，并进一步验证具体操作契约。
+
+    :param response: 当前调用产生的响应
+    :return: 通过 HTTP 状态和业务状态检查的插件响应
+    """
     assert response.status == HTTPStatus.OK, f'{response.url}: HTTP {response.status}'
     return validate_operation_envelope(await response.json())
 
 
-def validate_capability(capability: dict, operation: str) -> bool:
-    """以源码 AI 插件的运行模式验证阻断来源，不能把任意失败当作生产模式限制。"""
+def validate_capability(capability: dict[str, Any], operation: str) -> bool:
+    """
+    以源码 AI 插件的运行模式验证阻断来源，不能把任意失败当作生产模式限制。
+
+    :param capability: 当前检查的能力
+    :param operation: 当前处理的操作
+    :return: 是否以源码 AI 插件的运行模式验证阻断来源
+    """
     assert capability['pluginId'] == PLUGIN_ID
     assert capability['frontendMode'] in {'dev', 'built'}
     assert capability['backendRuntimeMode'] in {'dev', 'service', 'maintenance'}
@@ -63,8 +79,12 @@ def validate_capability(capability: dict, operation: str) -> bool:
     return blocked
 
 
-def validate_dependency_report(report: dict) -> None:
-    """失败必须由实际缺失或版本不满足的依赖解释，而不是接口异常或空数据。"""
+def validate_dependency_report(report: dict[str, Any]) -> None:
+    """
+    失败必须由实际缺失或版本不满足的依赖解释，而不是接口异常或空数据。
+
+    :param report: 记录操作结果的报告
+    """
     assert report['pluginId'] == PLUGIN_ID
     dependencies = report['dependencies']
     assert isinstance(dependencies, list) and dependencies
@@ -83,8 +103,14 @@ def validate_dependency_report(report: dict) -> None:
     assert report['message'] == ('插件依赖已满足' if report['ok'] else '插件依赖存在问题')
 
 
-def validate_install_plan(payload: dict, capability: dict) -> bool:
-    """AI 无插件间依赖；只有明确的环境能力限制可以阻断其拓扑计划。"""
+def validate_install_plan(payload: dict[str, Any], capability: dict[str, Any]) -> bool:
+    """
+    AI 无插件间依赖；只有明确的环境能力限制可以阻断其拓扑计划。
+
+    :param payload: 随调用传入或返回的结构化数据
+    :param capability: 当前检查的能力
+    :return: 是否AI 无插件间依赖；只有明确的环境能力限制可以阻断其拓扑计划
+    """
     blocked = validate_capability(capability, 'batch_install')
     assert payload['operation'] == 'install'
     assert payload['databaseAvailable'] is True and payload['databaseError'] is None
@@ -108,7 +134,12 @@ def validate_install_plan(payload: dict, capability: dict) -> bool:
 
 
 def record_plugin_writes(view: SystemPage) -> list[Request]:
-    """记录浏览器真实请求，最终只允许显式 dry-run 的依赖计划请求。"""
+    """
+    记录浏览器真实请求，最终只允许显式 dry-run 的依赖计划请求。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :return: 已执行写入操作的记录
+    """
     writes: list[Request] = []
     view.page.on(
         'request',
@@ -120,12 +151,22 @@ def record_plugin_writes(view: SystemPage) -> list[Request]:
 
 
 def table_rows(scope: Locator) -> Locator:
-    """只计当前可见主表格，避免 Vue2 固定列镜像被重复计算。"""
+    """
+    只计当前可见主表格，避免 Vue2 固定列镜像被重复计算。
+
+    :param scope: 当前操作使用的作用域
+    :return: 当前可见主表格中的数据行
+    """
     return scope.locator('.el-table__body-wrapper:visible .el-table__row, .ant-table-row:visible')
 
 
-async def open_plugins(browser_harness: BrowserHarness) -> tuple[SystemPage, dict]:
-    """使用真实登录和列表，定位项目自带的 AI 插件。"""
+async def open_plugins(browser_harness: BrowserHarness) -> tuple[SystemPage, dict[str, Any]]:
+    """
+    使用真实登录和列表，定位项目自带的 AI 插件。
+
+    :param browser_harness: 管理浏览器上下文、页面和登录状态的端到端测试夹具
+    :return: 依次为 ``view``、``plugin`` 的元组
+    """
     view = SystemPage()
     await view.setup(browser_harness)
     payload = await view.open('/system/plugin', f'{RESOURCE}/list')
@@ -135,7 +176,12 @@ async def open_plugins(browser_harness: BrowserHarness) -> tuple[SystemPage, dic
 
 
 async def plugin_row(view: SystemPage) -> Locator:
-    """Vue2 横向溢出时点击固定操作列，Vue3 点击主表格操作。"""
+    """
+    Vue2 横向溢出时点击固定操作列，Vue3 点击主表格操作。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :return: 包含可见操作控件的插件行
+    """
     fixed = view.page.locator('.app-main .el-table__fixed-right:visible .el-table__row').filter(
         has=view.page.get_by_text(PLUGIN_ID, exact=True)
     )
@@ -143,19 +189,33 @@ async def plugin_row(view: SystemPage) -> Locator:
 
 
 async def plugin_action(view: SystemPage, label: str) -> None:
-    """操作插件所在行，兼容两套组件库的固定列。"""
+    """
+    操作插件所在行，兼容两套组件库的固定列。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param label: 显示给用户的标签
+    """
     await view.button(await plugin_row(view), label).click()
 
 
 async def close_dialog(view: SystemPage) -> None:
-    """等待弹窗关闭，确保后续请求来自主页面。"""
+    """
+    等待弹窗关闭，确保后续请求来自主页面。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    """
     await view.close_dialog()
 
 
-async def assert_unchanged(view: SystemPage, before: dict) -> None:
-    """计划查看不能修改插件的安装版本、启用设置或状态。"""
+async def assert_unchanged(api: APIRequestContext, before: dict[str, Any]) -> None:
+    """
+    计划查看不能修改插件的安装版本、启用设置或状态。
+
+    :param api: 查询插件状态的 API 客户端
+    :param before: 变更前取得的状态
+    """
     # 只读核验允许连接被重置后重建一次；HTTP 和业务错误仍由下方断言报告。
-    response = await view.api.get(f'{RESOURCE}/{PLUGIN_ID}', max_retries=1)
+    response = await api.get(f'{RESOURCE}/{PLUGIN_ID}', max_retries=1)
     assert response.ok
     payload = await response.json()
     assert payload['code'] == HTTPStatus.OK, payload
@@ -163,8 +223,13 @@ async def assert_unchanged(view: SystemPage, before: dict) -> None:
         assert payload['data'].get(key) == before.get(key), key
 
 
-async def verify_manifest_tabs(view: SystemPage, detail: dict) -> None:
-    """逐项核对清单声明，不能只验证标签页标题存在。"""
+async def verify_manifest_tabs(view: SystemPage, detail: dict[str, Any]) -> None:
+    """
+    逐项核对清单声明，不能只验证标签页标题存在。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param detail: 用于说明当前结果的详细信息
+    """
     dialog = view.dialog
     for tab, records, field in (
         ('菜单', detail.get('frontend', {}).get('menus', []), 'name'),
@@ -183,7 +248,11 @@ async def verify_manifest_tabs(view: SystemPage, detail: dict) -> None:
 
 
 async def verify_metrics(view: SystemPage) -> None:
-    """运行观测的条数和空态都与当前进程真实响应一致。"""
+    """
+    运行观测的条数和空态都与当前进程真实响应一致。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    """
     dialog = view.dialog
     metrics = dialog.locator('.plugin-metrics')
     for trigger in (
@@ -227,11 +296,17 @@ async def test_plugin_search_detail_and_metrics(browser_harness: BrowserHarness)
     await verify_manifest_tabs(view, detail)
     await verify_metrics(view)
     await close_dialog(view)
-    await assert_unchanged(view, plugin)
+    await assert_unchanged(view.api, plugin)
 
 
-async def request_dependency_preview(view: SystemPage, endpoint: str) -> dict:
-    """只点击生成计划，并强制核对实际请求携带 dryRun=true。"""
+async def request_dependency_preview(view: SystemPage, endpoint: str) -> dict[str, Any]:
+    """
+    只点击生成计划，并强制核对实际请求携带 dryRun=true。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param endpoint: 接收该请求的端点
+    :return: 经过预演参数校验的依赖计划响应
+    """
     async with view.page.expect_response(
         lambda result: view.matches(result, f'{endpoint}/install', 'POST')
     ) as preview_response:
@@ -241,8 +316,13 @@ async def request_dependency_preview(view: SystemPage, endpoint: str) -> dict:
     return await plugin_payload(response)
 
 
-def validate_blocked_preview(preview: dict, capability: dict) -> None:
-    """服务模式的预演拒绝也必须有结构化能力依据，不接受普通 601 异常。"""
+def validate_blocked_preview(preview: dict[str, Any], capability: dict[str, Any]) -> None:
+    """
+    服务模式的预演拒绝也必须有结构化能力依据，不接受普通 601 异常。
+
+    :param preview: 提交前生成的预览
+    :param capability: 当前检查的能力
+    """
     assert validate_capability(capability, 'dependency_install') is True
     assert preview['ok'] is False and preview['status'] == 'blocked'
     assert preview['pluginId'] == PLUGIN_ID and preview['operation'] == 'dependency_install'
@@ -253,8 +333,14 @@ def validate_blocked_preview(preview: dict, capability: dict) -> None:
     assert not preview.get('plan') and not preview.get('results')
 
 
-async def verify_dependency_preview(view: SystemPage, preview: dict, report: dict) -> None:
-    """开发模式必须完整展示真实预演报告，并且保持实际安装不可执行。"""
+async def verify_dependency_preview(view: SystemPage, preview: dict[str, Any], report: dict[str, Any]) -> None:
+    """
+    开发模式必须完整展示真实预演报告，并且保持实际安装不可执行。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param preview: 提交前生成的预览
+    :param report: 记录操作结果的报告
+    """
     assert preview['ok'] is True and preview['dryRun'] is True
     assert preview['pluginId'] == PLUGIN_ID and preview['operation'] == 'dependency_install'
     assert preview['message'] == '插件依赖安装演练完成，未执行实际安装'
@@ -278,8 +364,13 @@ async def verify_dependency_preview(view: SystemPage, preview: dict, report: dic
     )
 
 
-async def verify_dependency_report_dialog(view: SystemPage, report: dict) -> None:
-    """Vue2 的 601 拒绝值是 error，但警告 toast 必须展示真实依赖异常信息。"""
+async def verify_dependency_report_dialog(view: SystemPage, report: dict[str, Any]) -> None:
+    """
+    Vue2 的 601 拒绝值是 error，但警告 toast 必须展示真实依赖异常信息。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param report: 记录操作结果的报告
+    """
     assert Config.frontend_framework in {'vue2', 'vue3', 'react'}
     if not report['ok']:
         await expect(
@@ -333,7 +424,7 @@ async def test_plugin_dependency_report_and_plan(browser_harness: BrowserHarness
         assert urlsplit(writes[0].url).path.endswith(f'{endpoint}/install')
         assert parse_qs(urlsplit(writes[0].url).query)['dryRun'] == ['true']
     await close_dialog(view)
-    await assert_unchanged(view, plugin)
+    await assert_unchanged(view.api, plugin)
 
 
 async def test_plugin_install_plan(browser_harness: BrowserHarness) -> None:
@@ -369,11 +460,16 @@ async def test_plugin_install_plan(browser_harness: BrowserHarness) -> None:
         await verify_install_plan_dialog(view, payload)
         await close_dialog(view)
     assert writes == [], '查看拓扑计划不得发出插件写请求'
-    await assert_unchanged(view, plugin)
+    await assert_unchanged(view.api, plugin)
 
 
-async def verify_install_plan_dialog(view: SystemPage, payload: dict) -> None:
-    """可操作环境展示拓扑细节，但用例始终不点击实际执行入口。"""
+async def verify_install_plan_dialog(view: SystemPage, payload: dict[str, Any]) -> None:
+    """
+    可操作环境展示拓扑细节，但用例始终不点击实际执行入口。
+
+    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param payload: 随调用传入或返回的结构化数据
+    """
     plan = payload['plan']
     await expect(view.dialog).to_contain_text('插件安装计划')
     await expect(view.button(view.dialog, '执行计划：安装')).to_be_enabled()

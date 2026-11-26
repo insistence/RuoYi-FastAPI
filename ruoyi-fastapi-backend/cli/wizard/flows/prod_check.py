@@ -10,10 +10,10 @@ from cli.wizard.presenters import ProdCheckPresenter
 @dataclass(frozen=True)
 class ProdCheckWizardSelection:
     """
-    `wizard prod-check` 向导采集结果。
+    ``wizard prod-check`` 向导采集结果。
 
-    :param env: 运行环境
-    :param include_config: 是否附带配置快照
+    :ivar env: 运行环境
+    :ivar include_config: 是否附带配置快照
     """
 
     env: str
@@ -22,10 +22,15 @@ class ProdCheckWizardSelection:
 
 class ProdCheckWizardFlow(BaseCliWizardFlow[ProdCheckWizardSelection]):
     """
-    `wizard prod-check` 向导流程。
+    ``wizard prod-check`` 向导流程。
 
-    :param default_env: 默认环境
-    :param default_include_config: 默认是否附带配置快照
+    :cvar wizard_name: 向导名称
+    :cvar preview_title: 预览标题
+    :cvar failure_message: 流程失败时显示的提示
+    :ivar default_env: 默认环境
+    :ivar default_include_config: 默认是否附带配置快照
+    :ivar aggregator: 汇总各项检查结果的对象
+    :ivar presenter: 将检查结果转换为界面输出的对象
     """
 
     wizard_name = 'wizard prod-check'
@@ -43,7 +48,6 @@ class ProdCheckWizardFlow(BaseCliWizardFlow[ProdCheckWizardSelection]):
 
         :param default_env: 默认环境
         :param default_include_config: 默认是否附带配置快照
-        :return: None
         """
         super().__init__()
         self.default_env = default_env
@@ -175,7 +179,6 @@ class ProdCheckWizardFlow(BaseCliWizardFlow[ProdCheckWizardSelection]):
         :param ctx: CLI 上下文
         :param payload: 聚合结果负载
         :param default_exit_code: 默认退出码
-        :return: None
         """
         self.complete_payload_result(
             ctx,
@@ -211,12 +214,11 @@ def run_prod_check_wizard(
     default_include_config: bool = True,
 ) -> None:
     """
-    执行 `wizard prod-check` 向导。
+    执行 ``wizard prod-check`` 向导。
 
     :param output: 输出格式
     :param default_env: 默认环境
     :param default_include_config: 默认是否附带配置快照
-    :return: None
     """
     ProdCheckWizardFlow(
         default_env=default_env,

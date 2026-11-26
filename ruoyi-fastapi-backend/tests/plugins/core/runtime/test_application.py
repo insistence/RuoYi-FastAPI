@@ -26,26 +26,49 @@ READER_GLOBAL_WRITE_SKIP_MESSAGE = (
 class FakeRedis:
     """
     测试用 Redis。
+
+    :ivar values: 当前处理的值集合
+    :ivar deleted_keys: 从模拟缓存中删除的键
+    :ivar expires: 记录的到期时间
     """
 
     def __init__(self, values: dict[str, str] | None = None) -> None:
-        """初始化测试 Redis。"""
+        """
+        初始化测试 Redis。
+
+        :param values: 当前处理的值集合
+        """
         self.values = values or {}
         self.deleted_keys: list[str] = []
         self.expires: dict[str, int] = {}
 
     async def get(self, key: str) -> str | None:
-        """获取 Redis 值。"""
+        """
+        获取 Redis 值。
+
+        :param key: 查找数据时使用的键
+        :return: Redis 值
+        """
         return self.values.get(key)
 
     async def set(self, key: str, value: str, ex: int | None = None) -> None:
-        """写入 Redis 值。"""
+        """
+        写入 Redis 值。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        """
         self.values[key] = value
         if ex is not None:
             self.expires[key] = ex
 
     async def delete(self, key: str) -> None:
-        """删除 Redis key。"""
+        """
+        删除 Redis key。
+
+        :param key: 查找数据时使用的键
+        """
         self.deleted_keys.append(key)
         self.values.pop(key, None)
 
@@ -53,22 +76,40 @@ class FakeRedis:
 class FakeLifecycleLock:
     """
     测试用插件生命周期锁。
+
+    :ivar acquired: 是否成功取得锁或租约
+    :ivar calls: 测试替身记录的调用信息
     """
 
     def __init__(self, *, acquired: bool) -> None:
-        """初始化测试锁。"""
+        """
+        初始化测试锁。
+
+        :param acquired: 是否成功取得锁或租约
+        """
         self.acquired = acquired
         self.calls: list[tuple[str, str]] = []
 
     @asynccontextmanager
     async def lock(self, plugin_id: str, operation: str) -> AsyncGenerator[PluginLifecycleLockResult, None]:
-        """返回预设锁结果。"""
+        """
+        返回预设锁结果。
+
+        :param plugin_id: 插件清单中的唯一标识
+        :param operation: 当前处理的操作
+        :yield: 预设锁结果
+        """
         self.calls.append((plugin_id, operation))
         yield PluginLifecycleLockResult(acquired=self.acquired)
 
 
 def build_app(redis: FakeRedis) -> FastAPI:
-    """构建测试 FastAPI app。"""
+    """
+    构建测试 FastAPI app。
+
+    :param redis: 测试用 Redis
+    :return: 测试 FastAPI app
+    """
     app = FastAPI()
     app.state.redis = redis
     return app

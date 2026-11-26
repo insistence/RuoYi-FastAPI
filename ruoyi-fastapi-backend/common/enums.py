@@ -1,19 +1,22 @@
-from enum import Enum
+from enum import Enum, StrEnum
+from typing import Literal
+
+ExcludeRouteMethod = Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
 
 
-class HttpMethod(str, Enum):
+class HttpMethod(StrEnum):
     """
-    HTTP请求方法枚举
+    HTTP请求方法枚举。
 
-    GET: 获取资源
-    POST: 创建资源
-    PUT: 整体更新资源
-    DELETE: 删除资源
-    PATCH: 局部更新资源
-    HEAD: 获取响应头
-    OPTIONS: 获取允许的方法信息
-    TRACE: 回显诊断请求
-    CONNECT: 建立隧道连接
+    :cvar GET: 获取资源
+    :cvar POST: 创建资源
+    :cvar PUT: 整体更新资源
+    :cvar DELETE: 删除资源
+    :cvar PATCH: 局部更新资源
+    :cvar HEAD: 获取响应头
+    :cvar OPTIONS: 获取允许的方法信息
+    :cvar TRACE: 回显诊断请求
+    :cvar CONNECT: 建立隧道连接
     """
 
     GET = 'GET'
@@ -29,18 +32,18 @@ class HttpMethod(str, Enum):
 
 class BusinessType(Enum):
     """
-    业务操作类型
+    业务操作类型。
 
-    OTHER: 其它
-    INSERT: 新增
-    UPDATE: 修改
-    DELETE: 删除
-    GRANT: 授权
-    EXPORT: 导出
-    IMPORT: 导入
-    FORCE: 强退
-    GENCODE: 生成代码
-    CLEAN: 清空数据
+    :cvar OTHER: 其它
+    :cvar INSERT: 新增
+    :cvar UPDATE: 修改
+    :cvar DELETE: 删除
+    :cvar GRANT: 授权
+    :cvar EXPORT: 导出
+    :cvar IMPORT: 导入
+    :cvar FORCE: 强退
+    :cvar GENCODE: 生成代码
+    :cvar CLEAN: 清空数据
     """
 
     OTHER = 0
@@ -57,10 +60,26 @@ class BusinessType(Enum):
 
 class PasswordCharacterType(Enum):
     """
-    密码字符范围类型
+    密码字符范围类型。
+
+    :cvar DEFAULT: 密码不能包含非法字符：< > " ' / |
+    :cvar NUMBER: 密码只能为数字（0-9）
+    :cvar LETTER: 密码只能为英文字母（a-z、A-Z）
+    :cvar LETTER_NUMBER: 密码必须同时包含字母和数字
+    :cvar LETTER_NUMBER_SPECIAL: 密码必须同时包含字母、数字和特殊字符（~!@#$%^&*()-=_+）
+    :ivar code: 密码字符范围配置值
+    :ivar pattern: 用于验证输入的正则表达式
+    :ivar message: 与当前结果一起返回的说明
     """
 
     def __init__(self, code: str, pattern: str, message: str) -> None:
+        """
+        保存密码字符类别的编码、匹配表达式和提示。
+
+        :param code: 密码字符范围配置值
+        :param pattern: 用于验证输入的正则表达式
+        :param message: 与当前结果一起返回的说明
+        """
         self.code = code
         self.pattern = pattern
         self.message = message
@@ -68,7 +87,7 @@ class PasswordCharacterType(Enum):
     @classmethod
     def from_code(cls, code: str | bytes | None) -> 'PasswordCharacterType':
         """
-        根据配置值获取密码字符范围类型
+        根据配置值获取密码字符范围类型。
 
         :param code: 密码字符范围配置值
         :return: 密码字符范围类型
@@ -91,15 +110,35 @@ class PasswordCharacterType(Enum):
 
 class RedisInitKeyConfig(Enum):
     """
-    系统内置Redis键名
+    系统内置Redis键名。
+
+    :cvar ACCESS_TOKEN: 登录令牌信息
+    :cvar SYS_DICT: 数据字典
+    :cvar SYS_CONFIG: 配置信息
+    :cvar API_CACHE: 接口响应缓存
+    :cvar API_RATE_LIMIT: 接口限流
+    :cvar CAPTCHA_CODES: 图片验证码
+    :cvar ACCOUNT_LOCK: 用户锁定
+    :cvar PASSWORD_ERROR_COUNT: 密码错误次数
+    :cvar SMS_CODE: 短信验证码
     """
 
     @property
     def key(self) -> str | None:
+        """
+        返回初始化配置对应的 Redis 键。
+
+        :return: 初始化配置对应的 Redis 键
+        """
         return self.value.get('key')
 
     @property
     def remark(self) -> str | None:
+        """
+        返回 Redis 初始化配置的用途说明。
+
+        :return: Redis 初始化配置的用途说明
+        """
         return self.value.get('remark')
 
     ACCESS_TOKEN = {'key': 'access_token', 'remark': '登录令牌信息'}

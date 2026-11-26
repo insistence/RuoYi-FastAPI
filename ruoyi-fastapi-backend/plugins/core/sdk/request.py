@@ -22,11 +22,11 @@ class PluginHttpRequest:
     """
     提供给 Python 和原生回调的 HTTP 数据快照，不携带 Cookie、令牌或 Request 对象。
 
-    :param method: HTTP 请求方法
-    :param path: 当前请求的路径，不包含查询串
-    :param path_params: 路由已解析的路径参数，值为可序列化数据
-    :param query: 保留同名多值的查询参数
-    :param body: 显式开启 JSON 读取后获得的请求体
+    :ivar method: HTTP 请求方法
+    :ivar path: 当前请求的路径，不包含查询串
+    :ivar path_params: 路由已解析的路径参数，值为可序列化数据
+    :ivar query: 保留同名多值的查询参数
+    :ivar body: 显式开启 JSON 读取后获得的请求体
     """
 
     method: str
@@ -36,11 +36,7 @@ class PluginHttpRequest:
     body: Any = None
 
     def __post_init__(self) -> None:
-        """
-        复制路径和查询参数，避免调用方修改原始请求的参数映射。
-
-        :return: None
-        """
+        """复制路径和查询参数，避免调用方修改原始请求的参数映射。"""
         object.__setattr__(self, 'path_params', MappingProxyType(dict(self.path_params)))
         object.__setattr__(self, 'query', MappingProxyType({key: tuple(values) for key, values in self.query.items()}))
 

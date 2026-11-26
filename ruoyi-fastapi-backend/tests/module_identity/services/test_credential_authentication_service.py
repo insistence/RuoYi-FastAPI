@@ -1,8 +1,11 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from fastapi import Request
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.enums import RedisInitKeyConfig
 from config.env import OidcConfig
@@ -14,6 +17,7 @@ from module_identity.service.identity_service import (
     CredentialAuthenticationError,
     CredentialAuthenticationService,
 )
+from tests.module_identity.support.http import make_request
 from utils.oidc_util import OidcUtil
 from utils.pwd_util import PwdUtil
 
@@ -22,9 +26,26 @@ _OIDC_FAILURE_SCRIPT_ARGUMENT_COUNT = 4
 
 
 class _Redis:
-    """记录认证服务访问的 Redis 最小异步替身。"""
+    """
+    记录认证服务访问的 Redis 最小异步替身。
+
+    :ivar client: 供被测服务调用的异步 Redis 客户端替身
+    :ivar values: 当前处理的值集合
+    :ivar eval_values: 用于模拟 Redis 脚本结果的值
+    :ivar get_calls: 记录 ``get`` 的调用情况
+    :ivar set_calls: 记录 ``set`` 的调用情况
+    :ivar delete_calls: 记录 ``delete`` 的调用情况
+    :ivar eval_calls: 记录 ``eval`` 的调用情况
+    """
 
     def __init__(self, values: dict[str, object] | None = None, eval_values: list[object] | None = None) -> None:
+        """
+        初始化测试夹具的 ``values``, ``eval_values``, ``get_calls``, ``set_calls``。
+
+        :param values: 当前处理的值集合
+        :param eval_values: 用于模拟 Redis 脚本结果的值
+        """
+        self.client: Redis = Mock(spec_set=Redis, wraps=self)
         self.values = values or {}
         self.eval_values = list(eval_values or [])
         self.get_calls: list[str] = []
@@ -33,18 +54,44 @@ class _Redis:
         self.eval_calls: list[tuple[str, int, tuple[object, ...]]] = []
 
     async def get(self, key: str) -> object:
+        """
+        读取测试存储中的指定键。
+
+        :param key: 查找数据时使用的键
+        :return: 测试存储中的指定键
+        """
         self.get_calls.append(key)
         return self.values.get(key)
 
     async def set(self, key: str, value: object, *, ex: object) -> None:
+        """
+        写入测试缓存键并设置过期时间。
+
+        :param key: 查找数据时使用的键
+        :param value: 待处理的输入值
+        :param ex: 捕获到的异常实例
+        """
         self.values[key] = value
         self.set_calls.append((key, value, ex))
 
     async def delete(self, key: str) -> None:
+        """
+        删除测试缓存项及其过期状态。
+
+        :param key: 查找数据时使用的键
+        """
         self.values.pop(key, None)
         self.delete_calls.append(key)
 
     async def eval(self, script: str, count: int, *keys_and_args: object) -> object:
+        """
+        按测试约定模拟 Redis 脚本的执行。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param keys_and_args: 调用方传入的其余位置参数
+        :return: 预设 Redis 脚本结果，队列为空时返回空值
+        """
         self.eval_calls.append((script, count, keys_and_args))
         return self.eval_values.pop(0) if self.eval_values else None
 
@@ -53,13 +100,25 @@ class _AtomicFailureRedis(_Redis):
     """按 OIDC 错误 Lua 脚本语义执行 INCR、锁定和锁前检查。"""
 
     async def eval(self, script: str, count: int, *keys_and_args: object) -> object:
+        """
+        按测试约定模拟 Redis 脚本的执行。
+
+        :param script: 需要运行的脚本
+        :param count: 本次处理或预期的数量
+        :param keys_and_args: 调用方传入的其余位置参数
+        :return: 脚本的预设结果或对应的错误状态码
+        """
         self.eval_calls.append((script, count, keys_and_args))
         if "redis.call('incr'" not in script:
             return self.eval_values.pop(0) if self.eval_values else None
         failure_key, lock_key, threshold, _ttl = keys_and_args
+        assert isinstance(failure_key, str) and isinstance(lock_key, str)
+        assert isinstance(threshold, (str, int))
         if self.values.get(lock_key):
             return -1
-        current = int(self.values.get(failure_key, 0)) + 1
+        previous = self.values.get(failure_key, 0)
+        assert isinstance(previous, (str, int))
+        current = int(previous) + 1
         if current > int(threshold):
             self.values.pop(failure_key, None)
             self.values[lock_key] = '1'
@@ -68,15 +127,26 @@ class _AtomicFailureRedis(_Redis):
         return current
 
 
-def _request(redis: _Redis, *, host: str = '127.0.0.1') -> SimpleNamespace:
-    return SimpleNamespace(
-        app=SimpleNamespace(state=SimpleNamespace(redis=redis)),
-        client=SimpleNamespace(host=host),
-        headers={},
-    )
+def _request(redis: _Redis, *, host: str = '127.0.0.1') -> Request:
+    """
+    创建携带测试缓存的请求。
+
+    :param redis: 模拟测试所需的 Redis 命令
+    :param host: 连接目标或插件宿主上下文
+    :return: 测试请求
+    """
+    return make_request(redis.client, host=host)
 
 
 def _user(user_name: str = 'alice', *, status: str = '0', update_date: object = None) -> SimpleNamespace:
+    """
+    创建测试使用的 ``SimpleNamespace`` 实例。
+
+    :param user_name: 当前用户的账号名称
+    :param status: 操作或记录所处的状态
+    :param update_date: 记录最近一次更新的时间
+    :return: 测试使用的 ``SimpleNamespace`` 实例
+    """
     return SimpleNamespace(
         user_id=7,
         user_name=user_name,
@@ -88,6 +158,7 @@ def _user(user_name: str = 'alice', *, status: str = '0', update_date: object = 
 
 @pytest.mark.asyncio
 async def test_oidc_unknown_user_and_wrong_password_are_equivalent_and_dummy_verify_runs() -> None:
+    """OIDC 对未知用户和错误密码给出相同响应并执行虚拟校验。"""
     redis = _Redis()
     with (
         patch.object(OidcConfig, 'oidc_token_hash_pepper', 'p' * 32),
@@ -98,7 +169,9 @@ async def test_oidc_unknown_user_and_wrong_password_are_equivalent_and_dummy_ver
         patch.object(PwdUtil, 'verify_password', return_value=False) as verify,
         pytest.raises(CredentialAuthenticationError) as unknown,
     ):
-        await CredentialAuthenticationService.authenticate_oidc(redis, object(), user_name='alice', password='wrong')
+        await CredentialAuthenticationService.authenticate_oidc(
+            redis.client, AsyncSession(), user_name='alice', password='wrong'
+        )
     verify.assert_called_once_with('wrong', '$2b$12$ySHJfAWxzh49cIc7M5L21e5GlPyA7QhE2GkLn9XuUTqmKIRqhWIja')
     redis_keys = [item[0] for item in redis.set_calls]
     assert unknown.value.reason == 'invalid_credentials'
@@ -114,13 +187,16 @@ async def test_oidc_unknown_user_and_wrong_password_are_equivalent_and_dummy_ver
         patch.object(PwdUtil, 'verify_password', return_value=False),
         pytest.raises(CredentialAuthenticationError) as wrong,
     ):
-        await CredentialAuthenticationService.authenticate_oidc(redis, object(), user_name='alice', password='wrong')
+        await CredentialAuthenticationService.authenticate_oidc(
+            redis.client, AsyncSession(), user_name='alice', password='wrong'
+        )
     assert wrong.value.reason == unknown.value.reason
     assert str(wrong.value) == str(unknown.value) == '账号或密码错误'
 
 
 @pytest.mark.asyncio
 async def test_oidc_captcha_is_atomically_consumed_and_success_does_not_write_legacy_token_key() -> None:
+    """OIDC 原子消费验证码且成功时不写旧令牌键。"""
     redis = _Redis(eval_values=['1234', None])
     user = _user()
     with (
@@ -132,8 +208,8 @@ async def test_oidc_captcha_is_atomically_consumed_and_success_does_not_write_le
         patch.object(PwdUtil, 'verify_password', return_value=True),
     ):
         result = await CredentialAuthenticationService.authenticate_oidc(
-            redis,
-            object(),
+            redis.client,
+            AsyncSession(),
             user_name='alice',
             password='correct',
             code='1234',
@@ -145,8 +221,8 @@ async def test_oidc_captcha_is_atomically_consumed_and_success_does_not_write_le
         assert result.remember_me is True
         with pytest.raises(CredentialAuthenticationError) as replay:
             await CredentialAuthenticationService.authenticate_oidc(
-                redis,
-                object(),
+                redis.client,
+                AsyncSession(),
                 user_name='alice',
                 password='correct',
                 code='1234',
@@ -160,6 +236,7 @@ async def test_oidc_captcha_is_atomically_consumed_and_success_does_not_write_le
 
 @pytest.mark.asyncio
 async def test_oidc_disabled_user_is_rejected() -> None:
+    """OIDC 拒绝已禁用用户。"""
     status, expected_reason = '1', 'user_disabled'
     redis = _Redis()
     with (
@@ -171,12 +248,15 @@ async def test_oidc_disabled_user_is_rejected() -> None:
         patch.object(PwdUtil, 'verify_password', return_value=True),
         pytest.raises(CredentialAuthenticationError) as exc_info,
     ):
-        await CredentialAuthenticationService.authenticate_oidc(redis, object(), user_name='alice', password='correct')
+        await CredentialAuthenticationService.authenticate_oidc(
+            redis.client, AsyncSession(), user_name='alice', password='correct'
+        )
     assert exc_info.value.reason == expected_reason
 
 
 @pytest.mark.asyncio
 async def test_oidc_initial_and_expired_password_flags_handle_naive_and_aware_dates() -> None:
+    """OIDC 的初始和过期密码标志兼容有无时区的日期。"""
     redis = _Redis(
         {
             'sys_config:sys.account.initPasswordModify': '1',
@@ -192,7 +272,7 @@ async def test_oidc_initial_and_expired_password_flags_handle_naive_and_aware_da
         patch.object(PwdUtil, 'verify_password', return_value=True),
     ):
         result = await CredentialAuthenticationService.authenticate_oidc(
-            redis, object(), user_name='alice', password='correct'
+            redis.client, AsyncSession(), user_name='alice', password='correct'
         )
     assert result.password_change_required is True
     assert result.password_change_reason == 'initial_password'
@@ -200,8 +280,9 @@ async def test_oidc_initial_and_expired_password_flags_handle_naive_and_aware_da
 
 @pytest.mark.asyncio
 async def test_oidc_expired_aware_password_is_reported_without_datetime_error() -> None:
+    """OIDC 能识别带时区的过期密码。"""
     redis = _Redis({'sys_config:sys.account.passwordValidateDays': '30'})
-    old_date = datetime.now(timezone.utc) - timedelta(days=31)
+    old_date = datetime.now(UTC) - timedelta(days=31)
     with (
         patch.object(OidcConfig, 'oidc_token_hash_pepper', 'p' * 32),
         patch(
@@ -211,7 +292,7 @@ async def test_oidc_expired_aware_password_is_reported_without_datetime_error() 
         patch.object(PwdUtil, 'verify_password', return_value=True),
     ):
         result = await CredentialAuthenticationService.authenticate_oidc(
-            redis, object(), user_name='alice', password='correct'
+            redis.client, AsyncSession(), user_name='alice', password='correct'
         )
     assert result.password_change_required is True
     assert result.password_change_reason == 'password_expired'
@@ -219,6 +300,7 @@ async def test_oidc_expired_aware_password_is_reported_without_datetime_error() 
 
 @pytest.mark.asyncio
 async def test_oidc_hashed_error_state_locks_without_plain_username() -> None:
+    """OIDC 使用哈希错误状态锁定账号而不保留明文用户名。"""
     redis = _Redis(eval_values=[-1])
     with (
         patch.object(OidcConfig, 'oidc_token_hash_pepper', 'p' * 32),
@@ -231,13 +313,16 @@ async def test_oidc_hashed_error_state_locks_without_plain_username() -> None:
     ):
         digest = OidcUtil.hash_sensitive_identifier('alice', 'p' * 32)
         redis.values[OidcRedisKey.login_user_rate_limit(digest)] = 5
-        await CredentialAuthenticationService.authenticate_oidc(redis, object(), user_name='alice', password='wrong')
+        await CredentialAuthenticationService.authenticate_oidc(
+            redis.client, AsyncSession(), user_name='alice', password='wrong'
+        )
     assert exc_info.value.reason == 'account_locked'
     assert all('alice' not in key for key, _, _ in redis.set_calls)
 
 
 @pytest.mark.asyncio
 async def test_oidc_error_counter_uses_atomic_incr_expire_and_lock_script() -> None:
+    """OIDC 错误计数通过原子脚本递增、设置过期并加锁。"""
     redis = _Redis(eval_values=[1])
     with (
         patch.object(OidcConfig, 'oidc_token_hash_pepper', 'p' * 32),
@@ -248,7 +333,9 @@ async def test_oidc_error_counter_uses_atomic_incr_expire_and_lock_script() -> N
         patch.object(PwdUtil, 'verify_password', return_value=False),
         pytest.raises(CredentialAuthenticationError),
     ):
-        await CredentialAuthenticationService.authenticate_oidc(redis, object(), user_name='alice', password='wrong')
+        await CredentialAuthenticationService.authenticate_oidc(
+            redis.client, AsyncSession(), user_name='alice', password='wrong'
+        )
     script, key_count, arguments = redis.eval_calls[-1]
     assert "redis.call('incr'" in script
     assert "redis.call('expire'" in script
@@ -265,9 +352,9 @@ async def test_oidc_failure_script_stays_locked_after_atomic_lock_transition() -
     lock_key = f'{failure_key}:lock'
     redis.values[failure_key] = 5
     with pytest.raises(CredentialAuthenticationError) as first:
-        await CredentialAuthenticationService._record_oidc_password_error(redis, failure_key, lock_key)
+        await CredentialAuthenticationService._record_oidc_password_error(redis.client, failure_key, lock_key)
     with pytest.raises(CredentialAuthenticationError) as second:
-        await CredentialAuthenticationService._record_oidc_password_error(redis, failure_key, lock_key)
+        await CredentialAuthenticationService._record_oidc_password_error(redis.client, failure_key, lock_key)
     assert first.value.reason == 'account_locked'
     assert second.value.reason == 'account_locked'
     assert failure_key not in redis.values
@@ -277,6 +364,7 @@ async def test_oidc_failure_script_stays_locked_after_atomic_lock_transition() -
 
 @pytest.mark.asyncio
 async def test_legacy_success_and_wrong_password_keep_legacy_keys_and_messages() -> None:
+    """旧版成功和密码错误的流程保留原有键和消息。"""
     user = _user()
     redis = _Redis()
     with (
@@ -287,7 +375,7 @@ async def test_legacy_success_and_wrong_password_keep_legacy_keys_and_messages()
         patch.object(PwdUtil, 'verify_password', return_value=True),
     ):
         result = await LoginService.authenticate_user(
-            _request(redis), object(), UserLogin(userName='alice', password='correct', captchaEnabled=False)
+            _request(redis), AsyncSession(), UserLogin(user_name='alice', password='correct', captcha_enabled=False)
         )
     assert result[0] is user
     assert f'{RedisInitKeyConfig.PASSWORD_ERROR_COUNT.key}:alice' in redis.delete_calls
@@ -303,7 +391,7 @@ async def test_legacy_success_and_wrong_password_keep_legacy_keys_and_messages()
         pytest.raises(LoginException) as exc_info,
     ):
         await LoginService.authenticate_user(
-            _request(redis), object(), UserLogin(userName='alice', password='wrong', captchaEnabled=False)
+            _request(redis), AsyncSession(), UserLogin(user_name='alice', password='wrong', captcha_enabled=False)
         )
     assert exc_info.value.message == '密码错误'
     assert any(key == 'password_error_count:alice' for key, _, _ in redis.set_calls)
@@ -311,6 +399,7 @@ async def test_legacy_success_and_wrong_password_keep_legacy_keys_and_messages()
 
 @pytest.mark.asyncio
 async def test_legacy_unknown_user_keeps_message_and_does_not_create_error_key() -> None:
+    """旧版未知用户保留原提示且不创建错误键。"""
     redis = _Redis()
     with (
         patch(
@@ -320,7 +409,7 @@ async def test_legacy_unknown_user_keeps_message_and_does_not_create_error_key()
         pytest.raises(LoginException) as exc_info,
     ):
         await LoginService.authenticate_user(
-            _request(redis), object(), UserLogin(userName='alice', password='wrong', captchaEnabled=False)
+            _request(redis), AsyncSession(), UserLogin(user_name='alice', password='wrong', captcha_enabled=False)
         )
     assert exc_info.value.message == '用户不存在'
     assert not any(key.startswith('password_error_count:') for key, _, _ in redis.set_calls)
@@ -328,6 +417,7 @@ async def test_legacy_unknown_user_keeps_message_and_does_not_create_error_key()
 
 @pytest.mark.asyncio
 async def test_legacy_lock_captcha_and_blacklist_keep_original_messages_and_keys() -> None:
+    """旧版锁定、验证码和黑名单流程保留原消息及键。"""
     lock_redis = _Redis({'account_lock:alice': 'alice'})
     with (
         patch(
@@ -337,7 +427,7 @@ async def test_legacy_lock_captcha_and_blacklist_keep_original_messages_and_keys
         pytest.raises(LoginException) as locked,
     ):
         await LoginService.authenticate_user(
-            _request(lock_redis), object(), UserLogin(userName='alice', password='wrong', captchaEnabled=False)
+            _request(lock_redis), AsyncSession(), UserLogin(user_name='alice', password='wrong', captcha_enabled=False)
         )
     assert locked.value.message == '账号已锁定，请稍后再试'
     login_by_account.assert_not_awaited()
@@ -353,8 +443,8 @@ async def test_legacy_lock_captcha_and_blacklist_keep_original_messages_and_keys
     ):
         await LoginService.authenticate_user(
             _request(captcha_redis),
-            object(),
-            UserLogin(userName='alice', password='wrong', code='1', uuid='u', captchaEnabled=True),
+            AsyncSession(),
+            UserLogin(user_name='alice', password='wrong', code='1', uuid='u', captcha_enabled=True),
         )
     assert captcha_error.value.message == '验证码已失效'
     login_by_account.assert_not_awaited()
@@ -369,7 +459,7 @@ async def test_legacy_lock_captcha_and_blacklist_keep_original_messages_and_keys
         pytest.raises(LoginException) as ip_error,
     ):
         await LoginService.authenticate_user(
-            _request(ip_redis), object(), UserLogin(userName='alice', password='wrong', captchaEnabled=False)
+            _request(ip_redis), AsyncSession(), UserLogin(user_name='alice', password='wrong', captcha_enabled=False)
         )
     assert ip_error.value.message == '当前IP禁止登录'
     login_by_account.assert_not_awaited()
@@ -377,7 +467,8 @@ async def test_legacy_lock_captcha_and_blacklist_keep_original_messages_and_keys
 
 @pytest.mark.asyncio
 async def test_legacy_service_delegates_and_maps_original_login_exception() -> None:
-    login_user = UserLogin(userName='alice', password='wrong', captchaEnabled=False)
+    """旧版服务委托登录并映射原有登录异常。"""
+    login_user = UserLogin(user_name='alice', password='wrong', captcha_enabled=False)
     request = _request(_Redis())
     with (
         patch.object(
@@ -387,5 +478,5 @@ async def test_legacy_service_delegates_and_maps_original_login_exception() -> N
         ),
         pytest.raises(LoginException) as exc_info,
     ):
-        await LoginService.authenticate_user(request, object(), login_user)
+        await LoginService.authenticate_user(request, AsyncSession(), login_user)
     assert exc_info.value.message == '密码错误'

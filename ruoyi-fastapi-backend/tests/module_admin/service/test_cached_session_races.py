@@ -33,9 +33,17 @@ _FINAL_PLUGIN_READ = 2
 async def _prepare_cached_session(
     env: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> tuple[Request, str, str]:
-    """使用真实鉴权预热快照，并设置当前登录模式对应的会话键。"""
+    """
+    使用真实鉴权预热快照，并设置当前登录模式对应的会话键。
+
+    :param env: 当前运行环境
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :param same_time_login: 是否允许同一账号同时登录
+    :return: 依次为 ``request``、``token``、``token_key`` 的元组
+    """
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     token = env.headers[USER_ID]['Authorization'].removeprefix('Bearer ')
+    assert isinstance(token, str)
     token_id = f'session-{USER_ID}' if same_time_login else str(USER_ID)
     token_key = f'access_token:{token_id}'
     await env.redis.set(token_key, token, ex=60)
@@ -57,8 +65,16 @@ async def _prepare_cached_session(
 
 async def _resolve_cached_session(
     env: SimpleNamespace, request: Request, token: str, for_plugin: bool
-) -> CurrentUserModel:
-    """通过新数据库会话进入真实缓存命中及最终会话校验路径。"""
+) -> CurrentUserModel | None:
+    """
+    通过新数据库会话进入真实缓存命中及最终会话校验路径。
+
+    :param env: 当前运行环境
+    :param request: 当前 HTTP 请求
+    :param token: 用于身份验证或授权的令牌
+    :param for_plugin: 要关联的插件标识
+    :return: 通过最终会话校验的当前用户
+    """
     resolve = LoginService.get_current_user_for_plugin_session if for_plugin else LoginService.get_current_user
     async with env.sessions() as db:
         return await resolve(request, token, db)
@@ -75,11 +91,19 @@ async def test_cached_request_rejects_session_changed_after_snapshot_read(
     for_plugin: bool,
     change: str,
 ) -> None:
+    """读取缓存快照后会话变化时拒绝请求。"""
     request, token, token_key = await _prepare_cached_session(cache_env, monkeypatch, same_time_login)
     loaded, resume = asyncio.Event(), asyncio.Event()
     original_eval = cache_env.redis.eval
 
     async def pause_snapshot(script: str, *args: Any) -> Any:
+        """
+        在读取缓存快照后暂停并发流程。
+
+        :param script: 需要运行的脚本
+        :param args: 传给被调用对象的位置参数
+        :return: 执行当前操作得到的结果
+        """
         result = await original_eval(script, *args)
         if script == CurrentUserCacheUtil._READ_SCRIPT:
             assert result[4]
@@ -131,6 +155,7 @@ async def test_cached_final_session_check_failure_never_sets_authenticated_conte
     for_plugin: bool,
     failure: str,
 ) -> None:
+    """最终会话校验失败时不设置认证上下文。"""
     request, token, token_key = await _prepare_cached_session(cache_env, monkeypatch, same_time_login)
     await cache_env.redis.pexpire(token_key, 1000)
     previous_deadline = await absolute_expiry_ms(cache_env.redis, token_key)
@@ -139,12 +164,24 @@ async def test_cached_final_session_check_failure_never_sets_authenticated_conte
     session_reads = 0
 
     async def fail_after_check() -> None:
+        """
+        完成初始检查后模拟故障或超时。
+
+        :raises RedisTimeoutError: 模拟最终会话校验时 Redis 响应超时
+        """
         checked.set()
         if failure == 'timeout':
             raise RedisTimeoutError('session response unavailable')
         await resume.wait()
 
     async def eval_then_fail(script: str, *args: Any) -> Any:
+        """
+        在读取缓存快照后注入故障。
+
+        :param script: 需要运行的脚本
+        :param args: 传给被调用对象的位置参数
+        :return: 执行当前操作得到的结果
+        """
         result = await original_eval(script, *args)
         if script == CurrentUserCacheUtil._READ_SCRIPT:
             assert result[4]
@@ -154,6 +191,12 @@ async def test_cached_final_session_check_failure_never_sets_authenticated_conte
         return result
 
     async def get_then_fail(key: str) -> Any:
+        """
+        在读取会话后注入缓存故障。
+
+        :param key: 查找数据时使用的键
+        :return: 执行当前操作得到的结果
+        """
         nonlocal session_reads
         result = await original_get(key)
         if for_plugin and key == token_key:
@@ -200,6 +243,7 @@ async def test_browser_cookie_uses_cached_permissions_without_renewal_and_reject
     monkeypatch: pytest.MonkeyPatch,
     same_time_login: bool,
 ) -> None:
+    """浏览器 Cookie 复用缓存权限而不续期，并拒绝已注销会话。"""
     request, token, token_key = await _prepare_cached_session(cache_env, monkeypatch, same_time_login)
     cookie, _, _ = await issue_browser_session(
         request, plugin_id='cache_test', version='1.0.0', main_token=token, user_id=USER_ID

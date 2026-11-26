@@ -1,20 +1,18 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 from pydantic_validation_decorator import Network, NotBlank, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 
 
-class DeptModel(BaseModel):
-    """
-    部门表对应pydantic模型
-    """
+class DeptModel(CamelModel):
+    """部门表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     dept_id: int | None = Field(default=None, description='部门id')
     parent_id: int | None = Field(default=None, description='父部门id')
@@ -39,10 +37,20 @@ class DeptModel(BaseModel):
         message=I18nMessage('部门名称长度不能超过30个字符', msg_key='validation.deptNameLength'),
     )
     def get_dept_name(self) -> str | None:
+        """
+        校验并返回部门名称。
+
+        :return: 部门名称
+        """
         return self.dept_name
 
     @NotBlank(field_name='order_num', message=I18nMessage('显示顺序不能为空', msg_key='validation.orderRequired'))
     def get_order_num(self) -> int | None:
+        """
+        校验并返回显示顺序。
+
+        :return: 显示顺序
+        """
         return self.order_num
 
     @Size(
@@ -52,6 +60,11 @@ class DeptModel(BaseModel):
         message=I18nMessage('联系电话长度不能超过11个字符', msg_key='validation.contactPhoneLength'),
     )
     def get_phone(self) -> str | None:
+        """
+        校验并返回联系电话。
+
+        :return: 联系电话
+        """
         return self.phone
 
     @Network(
@@ -66,9 +79,15 @@ class DeptModel(BaseModel):
         message=I18nMessage('邮箱长度不能超过50个字符', msg_key='validation.emailLength'),
     )
     def get_email(self) -> str | None:
+        """
+        校验并返回邮箱。
+
+        :return: 邮箱
+        """
         return self.email
 
     def validate_fields(self) -> None:
+        """校验部门名称、显示顺序、联系电话、邮箱。"""
         self.get_dept_name()
         self.get_order_num()
         self.get_phone()
@@ -76,20 +95,14 @@ class DeptModel(BaseModel):
 
 
 class DeptQueryModel(DateRangeQueryMixin, DeptModel):
-    """
-    部门管理不分页查询模型
-    """
+    """部门管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
-class DeptTreeModel(BaseModel):
-    """
-    部门树模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class DeptTreeModel(CamelModel):
+    """部门树模型。"""
 
     id: int = Field(description='部门id')
     label: str = Field(description='部门名称')
@@ -97,24 +110,16 @@ class DeptTreeModel(BaseModel):
     children: list['DeptTreeModel'] | None = Field(default=None, description='子部门树')
 
 
-class DeleteDeptModel(BaseModel):
-    """
-    删除部门模型
-    """
+class DeleteDeptModel(CamelModel):
+    """删除部门模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel)
-
-    dept_ids: str = Field(default=None, description='需要删除的部门id')
+    dept_ids: str | None = Field(default=None, description='需要删除的部门id')
     update_by: str | None = Field(default=None, description='更新者')
     update_time: str | None = Field(default=None, description='更新时间')
 
 
-class DeptSortModel(BaseModel):
-    """
-    部门排序批量保存模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class DeptSortModel(CamelModel):
+    """部门排序批量保存模型。"""
 
     dept_ids: str = Field(description='需要更新排序的部门id')
     order_nums: str = Field(description='部门显示顺序')

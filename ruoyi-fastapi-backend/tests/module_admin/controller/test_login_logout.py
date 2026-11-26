@@ -22,6 +22,13 @@ _SESSION_ID = 'logout-session'
 
 
 def _token(*, expired: bool = False, session_id: str = _SESSION_ID) -> str:
+    """
+    签发带有测试用户和会话标识的令牌。
+
+    :param expired: 当前记录是否已过期
+    :param session_id: 会话ID
+    :return: 用于访问受保护端点的测试令牌
+    """
     return JwtUtil.encode(
         {
             'user_id': _USER_ID,
@@ -33,6 +40,12 @@ def _token(*, expired: bool = False, session_id: str = _SESSION_ID) -> str:
 
 @pytest.fixture
 def logout_app(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
+    """
+    组装带注销路由的测试应用。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: 带注销路由的测试应用
+    """
     app = FastAPI()
     app.state.redis = object()
     app.include_router(login_controller)
@@ -55,6 +68,7 @@ async def test_logout_passes_full_token_and_selected_session_to_service(
     expired: bool,
     scheme: str,
 ) -> None:
+    """注销时将完整令牌和选中会话传给服务。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     token = _token(expired=expired)
 
@@ -78,6 +92,7 @@ async def test_logout_passes_full_token_and_selected_session_to_service(
 async def test_logout_rejects_invalid_credentials_before_session_or_cache_changes(
     logout_app: SimpleNamespace, authorization: str | None
 ) -> None:
+    """注销凭据无效时拒绝更改会话或缓存。"""
     headers = {'Authorization': authorization} if authorization else {}
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=logout_app.app), base_url='http://test') as client:
         response = await client.post('/logout', headers=headers)
@@ -92,12 +107,21 @@ async def test_logout_rejects_invalid_credentials_before_session_or_cache_change
 async def test_concurrent_logout_requests_keep_their_own_tokens(
     logout_app: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
+    """并发注销各自使用本次请求的令牌。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     tokens = [_token(session_id='old-session'), _token(session_id='new-session')]
     entered, resume = asyncio.Event(), asyncio.Event()
     arguments = []
 
     async def logout(request: Request, token_id: str, token: str) -> bool:
+        """
+        记录会话注销并与并发请求同步。
+
+        :param request: 当前 HTTP 请求
+        :param token_id: 会话编号
+        :param token: 待撤销或内省的令牌
+        :return: 此分支的固定值 ``True``
+        """
         arguments.append((token_id, token))
         if len(arguments) == len(tokens):
             entered.set()
@@ -123,6 +147,7 @@ async def test_concurrent_logout_requests_keep_their_own_tokens(
 async def test_logout_service_failure_does_not_report_success_or_clear_cache(
     logout_app: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """注销服务失败时保留缓存并返回失败。"""
     logout_app.logout.side_effect = RedisTimeoutError('redis timeout')
     success = Mock(wraps=ResponseUtil.success)
     monkeypatch.setattr(ResponseUtil, 'success', success)
@@ -139,9 +164,18 @@ async def test_logout_service_failure_does_not_report_success_or_clear_cache(
 async def test_cancelled_logout_does_not_report_success_or_clear_cache(
     logout_app: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """取消注销时保留缓存并返回失败。"""
     entered, resume = asyncio.Event(), asyncio.Event()
 
     async def logout(request: Request, token_id: str, token: str) -> bool:
+        """
+        记录会话注销并与并发请求同步。
+
+        :param request: 当前 HTTP 请求
+        :param token_id: 会话编号
+        :param token: 待撤销或内省的令牌
+        :return: 此分支的固定值 ``True``
+        """
         entered.set()
         await resume.wait()
         return True

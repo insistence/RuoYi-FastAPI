@@ -13,9 +13,9 @@ class CacheRuntimeService:
     该服务作为缓存运行时 facade，对外统一暴露缓存统计、键列表、键值、
     TTL 读取，以及缓存清理和预热入口。
 
-    :param infrastructure_gateway: 缓存基础设施网关
-    :param domain_support: 缓存领域支持对象
-    :param redis_support: 缓存 Redis 访问支持对象
+    :ivar infrastructure_gateway: 缓存基础设施网关
+    :ivar domain_support: 缓存领域支持对象
+    :ivar redis_support: 缓存 Redis 访问支持对象
     """
 
     def __init__(
@@ -31,7 +31,6 @@ class CacheRuntimeService:
         :param infrastructure_gateway: 缓存基础设施网关
         :param domain_support: 缓存领域支持对象
         :param redis_support: 缓存 Redis 访问支持对象
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway or CacheInfrastructureGateway()
         self.domain_support = domain_support or CacheDomainSupport(self.infrastructure_gateway)

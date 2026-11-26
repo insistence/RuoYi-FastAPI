@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from cli.exit_codes import RUNTIME_ERROR, SUCCESS
 
@@ -16,6 +18,15 @@ from .support import (
     PluginTestPlanBuilder,
 )
 
+if TYPE_CHECKING:
+    from plugins.core.environment import PluginRuntimeEnvironmentService
+    from plugins.core.management.service.gateway import PluginManagementRuntimeGateway
+    from plugins.core.runtime.service import PluginRuntimeService
+    from plugins.core.runtime.service.dependency_container import PluginRuntimeGatewayOverrides
+    from plugins.core.runtime.service.gateway import PluginCommandRunnerGateway, PluginManagementModelGateway
+    from plugins.core.runtime.service.lifecycle_lock import PluginLifecycleLock
+    from plugins.core.validation.dependencies import PluginDependencyChecker
+
 PYTEST_COMMAND_TIMEOUT_SECONDS = 120
 
 
@@ -23,14 +34,21 @@ PYTEST_COMMAND_TIMEOUT_SECONDS = 120
 class CliPluginRuntimeDependencies:
     """
     CLI 插件运行时依赖容器。
+
+    :ivar runtime_environment: 插件运行时环境服务
+    :ivar dependency_checker: 插件依赖检查器
+    :ivar management_gateway: 插件管理运行时适配器
+    :ivar model_gateway: 插件管理模型工厂网关
+    :ivar command_gateway: 插件命令执行网关
+    :ivar lifecycle_lock: 插件生命周期操作锁
     """
 
-    runtime_environment: object | None = None
-    dependency_checker: object | None = None
-    management_gateway: object | None = None
-    model_gateway: object | None = None
-    command_gateway: object | None = None
-    lifecycle_lock: object | None = None
+    runtime_environment: PluginRuntimeEnvironmentService | None = None
+    dependency_checker: PluginDependencyChecker | None = None
+    management_gateway: PluginManagementRuntimeGateway | None = None
+    model_gateway: PluginManagementModelGateway | None = None
+    command_gateway: PluginCommandRunnerGateway | None = None
+    lifecycle_lock: PluginLifecycleLock | None = None
 
 
 class CliPluginRuntimeService:
@@ -39,6 +57,12 @@ class CliPluginRuntimeService:
 
     该服务负责为 CLI 组装核心插件运行时，并只承载 CLI 专属开发命令能力，
     例如插件测试执行、插件模板创建和本地辅助文件生成。
+
+    :ivar success_code: CLI 成功退出码
+    :ivar runtime_error_code: CLI 运行失败退出码
+    :ivar plugin_gateway: 插件 CLI 运行时网关
+    :ivar dependencies: 执行当前步骤所需的依赖
+    :ivar _core_runtime: 提供底层插件操作的运行时
     """
 
     def __init__(
@@ -46,12 +70,12 @@ class CliPluginRuntimeService:
         *,
         success_code: int = SUCCESS,
         runtime_error_code: int = RUNTIME_ERROR,
-        runtime_environment: object | None = None,
-        dependency_checker: object | None = None,
-        management_gateway: object | None = None,
-        model_gateway: object | None = None,
-        command_gateway: object | None = None,
-        lifecycle_lock: object | None = None,
+        runtime_environment: PluginRuntimeEnvironmentService | None = None,
+        dependency_checker: PluginDependencyChecker | None = None,
+        management_gateway: PluginManagementRuntimeGateway | None = None,
+        model_gateway: PluginManagementModelGateway | None = None,
+        command_gateway: PluginCommandRunnerGateway | None = None,
+        lifecycle_lock: PluginLifecycleLock | None = None,
         plugin_gateway: PluginRuntimeGateway | None = None,
     ) -> None:
         """
@@ -66,7 +90,6 @@ class CliPluginRuntimeService:
         :param command_gateway: 插件命令执行网关
         :param lifecycle_lock: 插件生命周期操作锁
         :param plugin_gateway: 插件 CLI 运行时网关
-        :return: None
         """
         self.success_code = success_code
         self.runtime_error_code = runtime_error_code
@@ -79,10 +102,10 @@ class CliPluginRuntimeService:
             command_gateway=command_gateway,
             lifecycle_lock=lifecycle_lock,
         )
-        self._core_runtime: Any | None = None
+        self._core_runtime: PluginRuntimeService | None = None
 
     @property
-    def core_runtime(self) -> Any:
+    def core_runtime(self) -> PluginRuntimeService:
         """
         延迟获取插件核心运行时服务。
 
@@ -102,7 +125,7 @@ class CliPluginRuntimeService:
             )
         return self._core_runtime
 
-    def _resolve_runtime_environment(self) -> object:
+    def _resolve_runtime_environment(self) -> PluginRuntimeEnvironmentService:
         """
         解析插件核心运行时环境服务。
 
@@ -114,7 +137,7 @@ class CliPluginRuntimeService:
         self.dependencies = replace(self.dependencies, runtime_environment=runtime_environment)
         return runtime_environment
 
-    def _load_management_gateway(self) -> object:
+    def _load_management_gateway(self) -> PluginManagementRuntimeGateway:
         """
         解析插件管理运行时适配器。
 
@@ -129,18 +152,20 @@ class CliPluginRuntimeService:
         )
         return management_gateway
 
-    def _resolve_management_gateway(self) -> object:
+    def _resolve_management_gateway(self) -> PluginManagementRuntimeGateway:
         """
         解析插件管理运行时适配器。
 
         :return: 插件管理运行时适配器
         """
         if self.dependencies.management_gateway is None:
-            self._load_management_gateway()
+            return self._load_management_gateway()
         return self.dependencies.management_gateway
 
     @staticmethod
-    def _build_gateway_overrides(gateway_overrides_class: object, management_gateway: object) -> object:
+    def _build_gateway_overrides(
+        gateway_overrides_class: type[PluginRuntimeGatewayOverrides], management_gateway: PluginManagementRuntimeGateway
+    ) -> PluginRuntimeGatewayOverrides:
         """
         构建插件核心运行时窄端口覆盖项。
 
@@ -159,27 +184,27 @@ class CliPluginRuntimeService:
             migration_execution_gateway=management_gateway,
         )
 
-    def _resolve_model_gateway(self) -> object:
+    def _resolve_model_gateway(self) -> PluginManagementModelGateway:
         """
         解析插件核心运行时模型工厂网关。
 
         :return: 插件核心运行时模型工厂网关
         """
-        if self.dependencies.model_gateway is None:
-            self._resolve_management_gateway()
-        return self.dependencies.model_gateway
+        if self.dependencies.model_gateway is not None:
+            return self.dependencies.model_gateway
+        return self._resolve_management_gateway()
 
-    def _resolve_command_gateway(self) -> object:
+    def _resolve_command_gateway(self) -> PluginCommandRunnerGateway:
         """
         解析插件核心运行时命令执行网关。
 
         :return: 插件核心运行时命令执行网关
         """
-        if self.dependencies.command_gateway is None:
-            self._resolve_management_gateway()
-        return self.dependencies.command_gateway
+        if self.dependencies.command_gateway is not None:
+            return self.dependencies.command_gateway
+        return self._resolve_management_gateway()
 
-    def _resolve_lifecycle_lock(self) -> object:
+    def _resolve_lifecycle_lock(self) -> PluginLifecycleLock:
         """
         解析插件核心生命周期操作锁。
 
@@ -374,6 +399,7 @@ class CliPluginRuntimeService:
         :param backend_root: 后端项目根目录
         :param output_path: 用户指定输出路径
         :return: 规范化后的输出路径
+        :raises ValueError: 输出路径超出后端工程目录
         """
         raw_output_path = Path(output_path)
         resolved_backend_root = backend_root.resolve(strict=False)
@@ -399,7 +425,7 @@ class CliPluginRuntimeService:
         执行插件测试样例。
 
         :param plugin_id: 插件ID
-        :param keyword: pytest `-k` 过滤表达式
+        :param keyword: pytest ``-k`` 过滤表达式
         :param maxfail: 最大失败数，0 表示不限制
         :param quiet: 是否启用简洁输出
         :param frontend_build: 是否执行前端构建验收

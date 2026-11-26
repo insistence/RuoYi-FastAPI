@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException
 from starlette.requests import Request
 from starlette.routing import Mount
-from starlette.types import Scope
+from starlette.types import ASGIApp, Scope
 
 from config.database import Base, DataSourceRegistry
 from exceptions.exception import AuthException
@@ -15,6 +15,7 @@ from i18n.message import I18nMessage
 from module_admin.service.login_service import LoginService
 from plugins.core.discovery.registry import PluginRegistry, RegisteredPlugin
 from plugins.core.discovery.scanner import is_artifact_plugin
+from plugins.core.manifest.v2 import PluginManifestV2
 from plugins.core.runtime.asgi import PluginGatewayASGI, PluginLifespanManager
 from plugins.core.runtime.browser_session import authenticate_browser_session
 from plugins.core.runtime.bundle import PluginBundleASGI
@@ -45,14 +46,14 @@ class LoadedExplicitPlugin:
     """
     一个 worker 的已加载定义及可选 lifespan。
 
-    :param plugin: 注册表中的插件记录
-    :param host: 当前插件的宿主能力上下文
-    :param definition: 入口返回的插件能力定义
-    :param lifespan: ASGI 子应用生命周期管理器
-    :param active: 插件是否已完成激活
-    :param jobs: 当前 worker 中的插件任务绑定
-    :param gateway: 当前 worker 的 ASGI 长连接管理入口
-    :param activation_health: 最近一次激活健康检查的安全摘要，不表示持续健康
+    :ivar plugin: 注册表中的插件记录
+    :ivar host: 当前插件的宿主能力上下文
+    :ivar definition: 入口返回的插件能力定义
+    :ivar lifespan: ASGI 子应用生命周期管理器
+    :ivar active: 插件是否已完成激活
+    :ivar jobs: 当前 worker 中的插件任务绑定
+    :ivar gateway: 当前 worker 的 ASGI 长连接管理入口
+    :ivar activation_health: 最近一次激活健康检查的安全摘要，不表示持续健康
     """
 
     plugin: RegisteredPlugin
@@ -68,6 +69,12 @@ class LoadedExplicitPlugin:
 class ExplicitPluginRuntime:
     """
     仅负责当前 worker 的代码和资源，全局迁移仍由原有 writer 处理。
+
+    :ivar route_state_gateway: 插件启用状态查询网关
+    :ivar loaded: 当前 worker 已准备的插件实例
+    :ivar metrics: 当前运行状态的指标
+    :ivar metrics_reporter: 采集并发布插件指标的对象
+    :ivar _closing: 是否正在关闭运行时
     """
 
     def __init__(self, route_state_gateway: PluginRouteStateGateway) -> None:
@@ -75,7 +82,6 @@ class ExplicitPluginRuntime:
         初始化当前 worker 的显式插件运行时。
 
         :param route_state_gateway: 插件启用状态查询网关
-        :return: None
         """
         self.route_state_gateway = route_state_gateway
         self.loaded: dict[str, LoadedExplicitPlugin] = {}
@@ -109,7 +115,7 @@ class ExplicitPluginRuntime:
             递归访问插件依赖并记录拓扑顺序。
 
             :param plugin_id: 当前访问的插件 ID
-            :return: None
+            :raises ValueError: 依赖关系存在循环或依赖插件未启用
             """
             if plugin_id in visited:
                 return
@@ -151,7 +157,7 @@ class ExplicitPluginRuntime:
 
                 :param current: 当前访问的插件 ID
                 :param closure: 当前入口已收集的依赖插件映射
-                :return: None
+                :raises ValueError: 依赖插件未启用
                 """
                 if current in closure:
                     return
@@ -184,7 +190,8 @@ class ExplicitPluginRuntime:
         :param app: 宿主 FastAPI 应用
         :param startup_write_enabled: 当前 worker 是否允许执行启动期全局写入
         :param config_values: 插件专属配置快照，未提供时使用清单默认值
-        :return: None
+        :raises ValueError: 插件结构或兼容性未通过检查
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         if plugin.plugin_id in self.loaded:
             return
@@ -258,7 +265,8 @@ class ExplicitPluginRuntime:
 
         :param plugin_id: 已完成准备的插件 ID
         :param app: 宿主 FastAPI 应用
-        :return: None
+        :raises RuntimeError: 插件运行时已进入关闭阶段，不能激活插件
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
         """
         if self._closing:
             raise RuntimeError('插件运行时已进入关闭阶段，不能激活插件')
@@ -297,7 +305,9 @@ class ExplicitPluginRuntime:
 
         :param loaded: 当前 worker 已准备的插件实例
         :param app: 宿主 FastAPI 应用
-        :return: None
+        :raises RuntimeError: 插件运行时已进入关闭阶段，不能注册路由
+        :raises ValueError: 挂载路径与应用已有路由冲突
+        :raises BaseException: 启动或挂载过程中断，清理资源后传播原异常
         """
         plugin_id = loaded.plugin.plugin_id
         manifest = loaded.plugin.discovered_plugin.manifest
@@ -307,20 +317,17 @@ class ExplicitPluginRuntime:
                 raise RuntimeError('插件运行时已进入关闭阶段，不能注册路由')
             self._register_routers(loaded, app)
         else:
-            child = loaded.definition.app_factory(loaded.host)
-            if inspect.isawaitable(child):
-                if inspect.iscoroutine(child):
-                    child.close()
-                raise TypeError('app_factory 必须同步返回 ASGI 应用')
-            if not callable(child):
-                raise TypeError('app_factory 必须返回 ASGI callable')
-            if isinstance(child, FastAPI):
-                child.state.plugin_host = loaded.host
-                child.state.redis = loaded.host.redis
-            mount_path = manifest.backend.asgi.mount_path
+            if (
+                not isinstance(manifest, PluginManifestV2)
+                or (asgi := manifest.backend.asgi) is None
+                or not asgi.mount_path
+            ):
+                raise ValueError('ASGI 插件缺少挂载配置')
+            mount_path = asgi.mount_path
+            child = self._create_asgi_app(loaded)
             if any(getattr(route, 'path', None) == mount_path for route in app.routes):
                 raise ValueError(f'插件挂载路径冲突：{mount_path}')
-            manager = PluginLifespanManager(child, managed=manifest.backend.asgi.lifespan == 'managed')
+            manager = PluginLifespanManager(child, managed=asgi.lifespan == 'managed')
             loaded.lifespan = manager
             try:
                 await manager.startup()
@@ -328,7 +335,7 @@ class ExplicitPluginRuntime:
                 if self._closing:
                     raise RuntimeError('插件运行时已进入关闭阶段，不能挂载子应用')
                 web_app = child
-                if manifest.frontend.delivery.type == 'bundle':
+                if manifest.frontend.bundle is not None:
                     web_app = PluginBundleASGI(child, plugin_id, loaded.plugin.backend_path, manifest.frontend.bundle)
                 gateway = PluginGatewayASGI(web_app, manager, self._authorizer(loaded, app))
                 observed = PluginObservedASGI(gateway, self.metrics, plugin_id)
@@ -342,13 +349,36 @@ class ExplicitPluginRuntime:
                 raise
 
     @staticmethod
+    def _create_asgi_app(loaded: LoadedExplicitPlugin) -> ASGIApp:
+        """
+        调用插件工厂创建子应用，并向 FastAPI 子应用传入宿主上下文。
+
+        :param loaded: 当前 worker 已准备的插件实例
+        :return: 插件工厂创建的 ASGI 应用
+        :raises TypeError: 缺少工厂，或工厂未同步返回可调用的 ASGI 应用
+        """
+        if loaded.definition.app_factory is None:
+            raise TypeError('ASGI 插件缺少 app_factory')
+        child = loaded.definition.app_factory(loaded.host)
+        if inspect.isawaitable(child):
+            if inspect.iscoroutine(child):
+                child.close()
+            raise TypeError('app_factory 必须同步返回 ASGI 应用')
+        if not callable(child):
+            raise TypeError('app_factory 必须返回 ASGI callable')
+        if isinstance(child, FastAPI):
+            child.state.plugin_host = loaded.host
+            child.state.redis = loaded.host.redis
+        return child
+
+    @staticmethod
     async def _check_health(loaded: LoadedExplicitPlugin, app: FastAPI) -> None:
         """
         执行清单声明的健康检查并阻止不健康插件激活。
 
         :param loaded: 当前 worker 已准备的插件实例
         :param app: 宿主 FastAPI 应用
-        :return: None
+        :raises RuntimeError: 插件启动后的健康检查失败
         """
         if loaded.plugin.discovered_plugin.manifest.backend.health.checker:
             result = await PluginHealthChecker(loaded.plugin.discovered_plugin).check(app=app)
@@ -362,7 +392,7 @@ class ExplicitPluginRuntime:
 
         :param loaded: 当前 worker 已准备的插件实例
         :param app: 宿主 FastAPI 应用
-        :return: None
+        :raises ValueError: v2 Router 的 WebSocket 或嵌套 Mount 请使用 ASGI 接入
         """
         plugin_id = loaded.plugin.plugin_id
 
@@ -372,7 +402,7 @@ class ExplicitPluginRuntime:
 
             :param request: 插件接口请求
             :param user: 宿主登录依赖返回的当前用户
-            :return: None
+            :raises HTTPException: 插件未就绪
             """
             if not loaded.active:
                 raise HTTPException(status_code=503, detail='插件未就绪')
@@ -415,6 +445,8 @@ class ExplicitPluginRuntime:
 
             :param scope: HTTP 或 WebSocket 的 ASGI 请求作用域
             :return: 已通过宿主身份及插件访问权限校验的请求上下文
+            :raises PermissionError: 插件未激活或正在关闭；插件未启用
+            :raises LookupError: Bearer 凭证无效；登录已失效；缺少 Bearer 凭证
             """
             auth_scope = dict(scope, type='http', app=app)
             request = Request(auth_scope)
@@ -459,6 +491,7 @@ class ExplicitPluginRuntime:
         :param loaded: 当前 worker 已准备的插件实例
         :param user: 宿主登录服务返回的当前用户
         :return: 绑定插件能力与当前用户身份的请求上下文
+        :raises PermissionError: 当前用户不具备已声明的插件访问权限
         """
         permissions = frozenset(user.permissions)
         declared = set(loaded.plugin.discovered_plugin.manifest.permission_codes)
@@ -467,11 +500,7 @@ class ExplicitPluginRuntime:
         return PluginRequestContext(loaded.host, user, permissions, request_id=current_plugin_request_id())
 
     async def shutdown(self) -> None:
-        """
-        逆序关闭，每个实例的失败不阻止其他实例释放资源。
-
-        :return: None
-        """
+        """逆序关闭，每个实例的失败不阻止其他实例释放资源。"""
         self._closing = True
         instances = list(reversed(self.loaded.values()))
         for loaded in instances:

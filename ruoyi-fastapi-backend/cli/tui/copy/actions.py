@@ -1,7 +1,6 @@
 from cli.tui.copy.fragments import (
     ACTION_CONSEQUENCE_TEXTS,
     ACTION_FEEDBACK_COPY,
-    ACTION_HINT_COPY,
     ACTION_LABELS,
     ACTION_NOTIFICATION_COPY,
     ACTION_PREVIEW_FIELD_LABELS,
@@ -9,18 +8,20 @@ from cli.tui.copy.fragments import (
     ACTION_PURPOSE_LABELS,
     ACTION_RESULT_FIELD_LABELS,
     ACTION_SCOPE_LABELS,
+    BROWSER_ACTION_HINT_DEFAULT,
+    BROWSER_ACTION_HINT_TEMPLATES,
     CAPABILITY_HINT_LABELS,
     CAPABILITY_LABELS,
     COMMAND_HINT_TITLES,
+    DETAIL_ACTION_HINT_DEFAULT,
+    DETAIL_ACTION_HINT_TEMPLATES,
     GENERAL_COPY,
 )
 from cli.utils import SHELL_TEXT_FORMATTER
 
 
 class TuiActionCopyMixin:
-    """
-    TUI 动作与能力文案混入。
-    """
+    """TUI 动作与能力文案混入。"""
 
     @staticmethod
     def build_action_confirm_hint() -> str:
@@ -186,7 +187,7 @@ class TuiActionCopyMixin:
         :return: 动作提示文本
         """
         normalized_view = str(view_key).strip().lower()
-        template = ACTION_HINT_COPY['browser_templates'].get(normalized_view, ACTION_HINT_COPY['browser_default'])
+        template = BROWSER_ACTION_HINT_TEMPLATES.get(normalized_view, BROWSER_ACTION_HINT_DEFAULT)
         return template.format(interaction_hint=interaction_hint)
 
     @staticmethod
@@ -199,7 +200,7 @@ class TuiActionCopyMixin:
         :return: 动作提示文本
         """
         normalized_view = str(view_key).strip().lower()
-        template = ACTION_HINT_COPY['detail_templates'].get(normalized_view, ACTION_HINT_COPY['detail_default'])
+        template = DETAIL_ACTION_HINT_TEMPLATES.get(normalized_view, DETAIL_ACTION_HINT_DEFAULT)
         return template.format(interaction_hint=interaction_hint)
 
     @staticmethod
@@ -246,7 +247,7 @@ class TuiActionCopyMixin:
         :param command_args: CLI 命令参数
         :return: 可直接复制执行的命令文本
         """
-        return SHELL_TEXT_FORMATTER.format_shell_command(('ruoyi', *command_args))
+        return SHELL_TEXT_FORMATTER.format_shell_command(['ruoyi', *command_args])
 
     @staticmethod
     def build_command_hint_lines(

@@ -5,13 +5,20 @@ import sys
 from pathlib import Path
 
 import pytest
+from pydantic import TypeAdapter
 
 pytestmark = pytest.mark.contract
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 
 
 def inspect_cold_import(module_name: str, observed_modules: tuple[str, ...]) -> dict[str, bool]:
-    """在隔离解释器中检查目标模块的冷导入边界。"""
+    """
+    在隔离解释器中检查目标模块的冷导入边界。
+
+    :param module_name: 生成模块名
+    :param observed_modules: 记录在运行期间加载的模块
+    :return: 隔离解释器记录的已加载模块信息
+    """
     script = (
         'import importlib, json, sys; '
         f'importlib.import_module({module_name!r}); '
@@ -25,7 +32,7 @@ def inspect_cold_import(module_name: str, observed_modules: tuple[str, ...]) -> 
         text=True,
         timeout=30,
     )
-    return json.loads(completed.stdout)
+    return TypeAdapter(dict[str, bool]).validate_json(completed.stdout, strict=True)
 
 
 def test_cli_plugin_cold_import_boundaries() -> None:

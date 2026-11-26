@@ -4,16 +4,13 @@ from cli.exit_codes import RUNTIME_ERROR
 from cli.runtime.config import ConfigRuntimeService
 from cli.runtime.config.gateway import ConfigInfrastructureGateway
 from cli.runtime.config.support import ConfigDomainSupport
+from module_admin.entity.vo import config_vo
 
 MISSING_CONFIG_KEY = 'sys.demo.key'
 
 
 def test_config_domain_support_builds_missing_config_result() -> None:
-    """
-    校验参数配置领域支持对象会生成统一的缺失结果。
-
-    :return: None
-    """
+    """校验参数配置领域支持对象会生成统一的缺失结果。"""
     support = ConfigDomainSupport(ConfigInfrastructureGateway())
 
     payload = support.build_missing_config_result(MISSING_CONFIG_KEY, 'cache')
@@ -27,16 +24,10 @@ def test_config_domain_support_builds_missing_config_result() -> None:
 
 
 def test_config_domain_support_serializes_cache_payload_with_sanitizer() -> None:
-    """
-    校验参数配置领域支持对象会对缓存配置做脱敏序列化。
-
-    :return: None
-    """
+    """校验参数配置领域支持对象会对缓存配置做脱敏序列化。"""
 
     class FakeSanitizer:
-        """
-        模拟脱敏工具。
-        """
+        """模拟脱敏工具。"""
 
         @staticmethod
         def sanitize_data(payload: dict[str, str]) -> dict[str, str]:
@@ -52,6 +43,11 @@ def test_config_domain_support_serializes_cache_payload_with_sanitizer() -> None
     support = ConfigDomainSupport(gateway)
 
     def _fake_get_log_sanitizer() -> FakeSanitizer:
+        """
+        创建测试使用的 ``FakeSanitizer`` 实例。
+
+        :return: 测试使用的 ``FakeSanitizer`` 实例
+        """
         return FakeSanitizer()
 
     object.__setattr__(gateway, 'get_log_sanitizer', _fake_get_log_sanitizer)
@@ -66,15 +62,22 @@ def test_config_domain_support_serializes_cache_payload_with_sanitizer() -> None
 
 
 def test_config_runtime_service_builds_cli_config_model_from_orm_record() -> None:
-    """
-    校验 CLI 会将 ORM 配置记录显式映射为可序列化的配置模型。
-
-    :return: None
-    """
+    """校验 CLI 会将 ORM 配置记录显式映射为可序列化的配置模型。"""
 
     class FakeOrmConfigRecord:
         """
         模拟 ORM 配置记录。
+
+        :cvar config_id: 参数配置id
+        :cvar config_name: 参数名称
+        :cvar config_key: 用于查找配置项的键
+        :cvar config_value: 参数键值
+        :cvar config_type: 当前配置的类型
+        :cvar create_by: 创建者
+        :cvar create_time: 创建时间
+        :cvar update_by: 更新者
+        :cvar update_time: 更新时间
+        :cvar remark: 供用户阅读的补充说明
         """
 
         config_id = 2
@@ -88,25 +91,10 @@ def test_config_runtime_service_builds_cli_config_model_from_orm_record() -> Non
         update_time = None
         remark = '初始化密码 123456'
 
-    class FakeConfigModel:
-        """
-        模拟 VO 配置模型。
-        """
+    model = ConfigRuntimeService.build_cli_config_model(config_vo, FakeOrmConfigRecord())
 
-        def __init__(self, **kwargs: object) -> None:
-            self.kwargs = kwargs
-
-    class FakeConfigVoModule:
-        """
-        模拟配置 VO 模块。
-        """
-
-        ConfigModel = FakeConfigModel
-
-    model = ConfigRuntimeService.build_cli_config_model(FakeConfigVoModule, FakeOrmConfigRecord())
-
-    assert isinstance(model, FakeConfigModel)
-    assert model.kwargs == {
+    assert isinstance(model, config_vo.ConfigModel)
+    assert model.model_dump(by_alias=True) == {
         'configId': 2,
         'configName': '用户管理-账号初始密码',
         'configKey': 'sys.user.initPassword',
@@ -122,18 +110,17 @@ def test_config_runtime_service_builds_cli_config_model_from_orm_record() -> Non
 
 @pytest.mark.asyncio
 async def test_config_runtime_service_returns_missing_db_config_result() -> None:
-    """
-    校验参数配置运行时在数据库中未找到配置时会返回统一结果。
-
-    :return: None
-    """
+    """校验参数配置运行时在数据库中未找到配置时会返回统一结果。"""
 
     class FakeSession:
-        """
-        模拟异步会话。
-        """
+        """模拟异步会话。"""
 
         async def __aenter__(self) -> 'FakeSession':
+            """
+            向调用方返回 ``self``。
+
+            :return: 当前测试对象
+            """
             return self
 
         async def __aexit__(
@@ -142,35 +129,52 @@ async def test_config_runtime_service_returns_missing_db_config_result() -> None
             exc: BaseException | None,
             tb: object,
         ) -> None:
+            """
+            结束测试资源的异步上下文。
+
+            :param exc_type: 退出上下文时的异常类型
+            :param exc: 捕获到的异常实例
+            :param tb: 异常发生时的回溯信息
+            """
             del exc_type, exc, tb
 
     class FakeSessionFactory:
-        """
-        模拟异步会话工厂。
-        """
+        """模拟异步会话工厂。"""
 
         def __call__(self) -> FakeSession:
+            """
+            创建测试使用的 ``FakeSession`` 实例。
+
+            :return: 测试使用的 ``FakeSession`` 实例
+            """
             return FakeSession()
 
     class FakeConfigModel:
         """
         模拟配置模型。
+
+        :ivar kwargs: 传给被调用对象的关键字参数
         """
 
         def __init__(self, **kwargs: str) -> None:
+            """
+            初始化测试夹具的 ``kwargs``。
+
+            :param kwargs: 传给被调用对象的关键字参数
+            """
             self.kwargs = kwargs
 
     class FakeConfigVoModule:
         """
         模拟配置 VO 模块。
+
+        :cvar ConfigModel: 测试暴露的配置模型
         """
 
         ConfigModel = FakeConfigModel
 
     class FakeConfigDao:
-        """
-        模拟配置 DAO。
-        """
+        """模拟配置 DAO。"""
 
         @staticmethod
         async def get_config_detail_by_info(session: FakeSession, config_model: FakeConfigModel) -> None:
@@ -179,21 +183,35 @@ async def test_config_runtime_service_returns_missing_db_config_result() -> None
 
             :param session: 数据库会话
             :param config_model: 配置模型
-            :return: None
             """
             assert isinstance(session, FakeSession)
-            assert config_model.kwargs == {'configKey': MISSING_CONFIG_KEY}
+            assert config_model.kwargs == {'config_key': MISSING_CONFIG_KEY}
 
     gateway = ConfigInfrastructureGateway()
     service = ConfigRuntimeService(infrastructure_gateway=gateway)
 
     def _fake_get_async_session_local() -> FakeSessionFactory:
+        """
+        创建测试使用的 ``FakeSessionFactory`` 实例。
+
+        :return: 测试使用的 ``FakeSessionFactory`` 实例
+        """
         return FakeSessionFactory()
 
     def _fake_get_config_dao() -> FakeConfigDao:
+        """
+        创建测试使用的 ``FakeConfigDao`` 实例。
+
+        :return: 测试使用的 ``FakeConfigDao`` 实例
+        """
         return FakeConfigDao()
 
     def _fake_get_config_vo_module() -> FakeConfigVoModule:
+        """
+        创建测试使用的 ``FakeConfigVoModule`` 实例。
+
+        :return: 测试使用的 ``FakeConfigVoModule`` 实例
+        """
         return FakeConfigVoModule()
 
     object.__setattr__(gateway, 'get_async_session_local', _fake_get_async_session_local)

@@ -1,8 +1,7 @@
-from fastapi import Depends, Request, params
+from fastapi import Request, params
 from sqlalchemy import ColumnElement, false, func, or_, select, true
 
 from common.context import RequestContext
-from config.database import Base
 from module_admin.entity.do.dept_do import SysDept
 from module_admin.entity.do.role_do import SysRoleDept
 from utils.dependency_util import DependencyUtil
@@ -10,7 +9,16 @@ from utils.dependency_util import DependencyUtil
 
 class GetDataScope:
     """
-    获取当前用户数据权限对应的查询sql语句
+    获取当前用户数据权限对应的查询sql语句。
+
+    :cvar DATA_SCOPE_ALL: 可以访问所有部门数据的数据权限标识
+    :cvar DATA_SCOPE_CUSTOM: 使用角色自定义部门范围的数据权限标识
+    :cvar DATA_SCOPE_DEPT: 仅可访问本部门数据的权限标识
+    :cvar DATA_SCOPE_DEPT_AND_CHILD: 可访问本部门及下级部门数据的权限标识
+    :cvar DATA_SCOPE_SELF: 仅可访问本人数据的权限标识
+    :ivar query_alias: 所要查询表对应的sqlalchemy模型类，不可为空
+    :ivar user_alias: 用户id字段别名，默认为'user_id'
+    :ivar dept_alias: 部门id字段别名，默认为'dept_id'
     """
 
     DATA_SCOPE_ALL = '1'
@@ -21,12 +29,12 @@ class GetDataScope:
 
     def __init__(
         self,
-        query_alias: Base,
+        query_alias: type,
         user_alias: str | None = 'user_id',
         dept_alias: str | None = 'dept_id',
     ) -> None:
         """
-        获取当前用户数据权限对应的查询sql语句
+        获取当前用户数据权限对应的查询sql语句。
 
         :param query_alias: 所要查询表对应的sqlalchemy模型类，不可为空
         :param user_alias: 用户id字段别名，默认为'user_id'
@@ -36,78 +44,57 @@ class GetDataScope:
         self.user_alias = user_alias
         self.dept_alias = dept_alias
 
-    def __call__(self, request: Request) -> ColumnElement:
-        DependencyUtil.check_exclude_routes(request, err_msg='当前路由不在认证规则内，不可使用GetDataScope依赖项')
-        current_user = RequestContext.get_current_user()
-        if current_user.user.admin:
-            return true()
-        user_id = current_user.user.user_id
-        dept_id = current_user.user.dept_id
-        roles = [role for role in (current_user.user.role or []) if role.status == '0' and role.del_flag == '0']
-        custom_data_scope_role_id_list = [item.role_id for item in roles if item.data_scope == self.DATA_SCOPE_CUSTOM]
-        param_sql_list = []
-        for role in roles:
-            if role.data_scope == self.DATA_SCOPE_ALL:
-                param_sql_list = [True]
-                break
-            if role.data_scope == self.DATA_SCOPE_CUSTOM:
-                if len(custom_data_scope_role_id_list) > 1:
-                    param_sql_list.append(
-                        getattr(self.query_alias, self.dept_alias).in_(
-                            select(SysRoleDept.dept_id).where(SysRoleDept.role_id.in_(custom_data_scope_role_id_list))
-                        )
-                        if hasattr(self.query_alias, self.dept_alias)
-                        else False
-                    )
-                else:
-                    param_sql_list.append(
-                        getattr(self.query_alias, self.dept_alias).in_(
-                            select(SysRoleDept.dept_id).where(SysRoleDept.role_id == role.role_id)
-                        )
-                        if hasattr(self.query_alias, self.dept_alias)
-                        else False
-                    )
-            elif role.data_scope == self.DATA_SCOPE_DEPT:
-                param_sql_list.append(
-                    getattr(self.query_alias, self.dept_alias) == dept_id
-                    if dept_id is not None and hasattr(self.query_alias, self.dept_alias)
-                    else False
-                )
-            elif role.data_scope == self.DATA_SCOPE_DEPT_AND_CHILD:
-                param_sql_list.append(
-                    getattr(self.query_alias, self.dept_alias).in_(
-                        select(SysDept.dept_id).where(
-                            or_(SysDept.dept_id == dept_id, func.find_in_set(dept_id, SysDept.ancestors))
-                        )
-                    )
-                    if dept_id is not None and hasattr(self.query_alias, self.dept_alias)
-                    else False
-                )
-            elif role.data_scope == self.DATA_SCOPE_SELF:
-                param_sql_list.append(
-                    getattr(self.query_alias, self.user_alias) == user_id
-                    if hasattr(self.query_alias, self.user_alias)
-                    else False
-                )
-            else:
-                param_sql_list.append(False)
-        param_sql_list = list(dict.fromkeys(param_sql_list))
-        param_sql = or_(false(), *param_sql_list)
+    def __call__(self, request: Request) -> ColumnElement[bool]:
+        """
+        根据当前用户和角色构建数据范围查询条件。
 
-        return param_sql
+        :param request: 当前 HTTP 请求
+        :return: 限制当前用户可见数据的 SQL 条件
+        """
+        DependencyUtil.check_exclude_routes(request, err_msg='当前路由不在认证规则内，不可使用GetDataScope依赖项')
+        user = RequestContext.get_current_user().user
+        if user is None:
+            return false()
+        if user.admin:
+            return true()
+        roles = [role for role in user.role or [] if role is not None and role.status == '0' and role.del_flag == '0']
+        scopes = {role.data_scope for role in roles}
+        if self.DATA_SCOPE_ALL in scopes:
+            return true()
+
+        conditions: list[ColumnElement[bool]] = []
+        dept_column = getattr(self.query_alias, self.dept_alias, None) if self.dept_alias else None
+        if dept_column is not None:
+            custom_role_ids = [
+                role.role_id for role in roles if role.data_scope == self.DATA_SCOPE_CUSTOM and role.role_id is not None
+            ]
+            if custom_role_ids:
+                departments = select(SysRoleDept.dept_id).where(SysRoleDept.role_id.in_(custom_role_ids))
+                conditions.append(dept_column.in_(departments))
+            if user.dept_id is not None and self.DATA_SCOPE_DEPT in scopes:
+                conditions.append(dept_column == user.dept_id)
+            if user.dept_id is not None and self.DATA_SCOPE_DEPT_AND_CHILD in scopes:
+                departments = select(SysDept.dept_id).where(
+                    or_(SysDept.dept_id == user.dept_id, func.find_in_set(user.dept_id, SysDept.ancestors))
+                )
+                conditions.append(dept_column.in_(departments))
+        user_column = getattr(self.query_alias, self.user_alias, None) if self.user_alias else None
+        if user_column is not None and user.user_id is not None and self.DATA_SCOPE_SELF in scopes:
+            conditions.append(user_column == user.user_id)
+        return or_(false(), *conditions)
 
 
 def DataScopeDependency(  # noqa: N802
-    query_alias: Base,
+    query_alias: type,
     user_alias: str | None = 'user_id',
     dept_alias: str | None = 'dept_id',
 ) -> params.Depends:
     """
-    当前用户数据权限依赖
+    当前用户数据权限依赖。
 
     :param query_alias: 所要查询表对应的sqlalchemy模型类，不可为空
     :param user_alias: 用户id字段别名，默认为'user_id'
     :param dept_alias: 部门id字段别名，默认为'dept_id'
     :return: 当前用户数据权限依赖
     """
-    return Depends(GetDataScope(query_alias, user_alias, dept_alias))
+    return params.Depends(GetDataScope(query_alias, user_alias, dept_alias))

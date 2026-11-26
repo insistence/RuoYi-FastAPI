@@ -13,9 +13,7 @@ from plugins.core.state import PluginStateResolver
 
 
 class PluginManagementStartupGateway:
-    """
-    插件启动期管理端口适配器。
-    """
+    """插件启动期管理端口适配器。"""
 
     async def list_plugins(self, query_db: AsyncSession) -> list[Any]:
         """
@@ -39,7 +37,6 @@ class PluginManagementStartupGateway:
         :param query_db: orm对象
         :param discovered_plugin: 已发现插件对象
         :param enabled: 插件资源是否启用
-        :return: None
         """
         await PluginService.install_plugin_menu_services(query_db, discovered_plugin, enabled=enabled)
         await PluginService.install_plugin_default_config_services(query_db, discovered_plugin)
@@ -155,6 +152,8 @@ class PluginManagementStartupGateway:
         """
         构建插件 migration 执行历史对象。
 
+        :param status: 操作或记录所处的状态
+        :param error_message: 错误信息
         :param plugin_id: 插件ID
         :param migration_path: migration 相对路径
         :param checksum: 内容校验值
@@ -174,9 +173,7 @@ class PluginManagementStartupGateway:
 
 
 class PluginManagementRouteStateGateway:
-    """
-    插件路由状态读取适配器。
-    """
+    """插件路由状态读取适配器。"""
 
     @staticmethod
     async def is_plugin_enabled(query_db: AsyncSession, plugin_id: str) -> bool:

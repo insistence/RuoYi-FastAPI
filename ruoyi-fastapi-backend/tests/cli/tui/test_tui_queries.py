@@ -8,10 +8,16 @@ from cli.tui.queries import TuiQueryExecutor
 
 @pytest.mark.asyncio
 async def test_remote_query_timeout_returns_standard_failure() -> None:
+    """远程查询超时后返回标准错误。"""
     executor = TuiQueryExecutor(remote_timeout_seconds=0.01)
     cancelled = asyncio.Event()
 
     async def slow_query() -> dict[str, object]:
+        """
+        模拟超时场景中的慢查询。
+
+        :return: 包含 ``ok`` 的数据
+        """
         try:
             await asyncio.sleep(10)
         finally:
@@ -28,11 +34,17 @@ async def test_remote_query_timeout_returns_standard_failure() -> None:
 
 @pytest.mark.asyncio
 async def test_cancelled_local_query_does_not_release_capacity_until_thread_finishes() -> None:
+    """取消本地查询后等待线程结束才释放容量。"""
     executor = TuiQueryExecutor(local_timeout_seconds=0.1)
     started = Event()
     finish = Event()
 
     def blocking_query() -> dict[str, object]:
+        """
+        暂停查询以便测试任务超时和取消。
+
+        :return: 包含 ``ok`` 的数据
+        """
         started.set()
         finish.wait(timeout=2)
         return {'ok': True}

@@ -1,14 +1,16 @@
+import asyncio
 import io
 import json
 import os
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload
 
 import aiofiles
+from jinja2 import Environment
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlglot import parse as sqlglot_parse
-from sqlglot.expressions import Add, Alter, Create, Delete, Drop, Expression, Insert, Table, TruncateTable, Update
+from sqlglot.expressions import Add, Alter, Create, Delete, Drop, Expr, Insert, Table, TruncateTable, Update
 
 from common.constant import GenConstant
 from common.vo import CrudResponseModel, PageModel
@@ -30,29 +32,29 @@ from utils.gen_i18n_util import GenI18nUtil
 from utils.gen_util import GenUtils
 from utils.template_util import TemplateInitializer, TemplateUtils
 
+RenderInfo = tuple[list[str], list[str], dict[str, Any], GenTableModel]
+
 
 class GenTableService:
-    """
-    代码生成业务表服务层
-    """
+    """代码生成业务表服务层。"""
 
     @classmethod
     def get_data_source_list_services(cls) -> list[GenDataSourceModel]:
         """
-        获取代码生成可用的数据源列表
+        获取代码生成可用的数据源列表。
 
         :return: 数据源选项列表
         """
         default_name = DataBaseConfig.db_default_source
         return [
-            GenDataSourceModel(name=name, dbType=config.db_type, isDefault=name == default_name)
+            GenDataSourceModel(name=name, db_type=config.db_type, is_default=name == default_name)
             for name, config in DataBaseConfig.db_sources.items()
         ]
 
     @staticmethod
     def _source_name(source_name: str | None) -> str:
         """
-        获取代码生成操作使用的数据源名称
+        获取代码生成操作使用的数据源名称。
 
         :param source_name: 数据源名称
         :return: 指定的数据源名称或默认数据源名称
@@ -60,11 +62,23 @@ class GenTableService:
         return source_name or DataBaseConfig.db_default_source
 
     @classmethod
+    @overload
+    async def get_gen_table_list_services(
+        cls, query_db: AsyncSession, query_object: GenTablePageQueryModel, is_page: Literal[True]
+    ) -> PageModel[dict[str, Any]]: ...
+
+    @classmethod
+    @overload
+    async def get_gen_table_list_services(
+        cls, query_db: AsyncSession, query_object: GenTablePageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
+
+    @classmethod
     async def get_gen_table_list_services(
         cls, query_db: AsyncSession, query_object: GenTablePageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        获取代码生成业务表列表信息service
+        获取代码生成业务表列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -76,14 +90,26 @@ class GenTableService:
         return gen_table_list_result
 
     @classmethod
+    @overload
+    async def get_gen_db_table_list_services(
+        cls, query_db: AsyncSession, query_object: GenTablePageQueryModel, is_page: Literal[True]
+    ) -> PageModel[dict[str, Any]]: ...
+
+    @classmethod
+    @overload
+    async def get_gen_db_table_list_services(
+        cls, query_db: AsyncSession, query_object: GenTablePageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
+
+    @classmethod
     async def get_gen_db_table_list_services(
         cls,
         query_db: AsyncSession,
         query_object: GenTablePageQueryModel,
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        获取数据库列表信息service
+        获取数据库列表信息service。
 
         :param query_db: orm对象
         :param query_object: 查询参数对象
@@ -108,7 +134,7 @@ class GenTableService:
         cls, query_db: AsyncSession, table_names: list[str], source_name: str | None = None
     ) -> list[GenTableModel]:
         """
-        根据表名称组获取数据库列表信息service
+        根据表名称组获取数据库列表信息service。
 
         :param query_db: orm对象
         :param table_names: 表名称组
@@ -120,7 +146,7 @@ class GenTableService:
         async with DataSourceRegistry.session(source_name) as target_db:
             rows = await GenTableDao.get_gen_db_table_list_by_names(target_db, table_names, source_config)
             result = [
-                GenTableModel(**gen_table, dataSourceName=source_name)
+                GenTableModel(**gen_table, data_source_name=source_name)
                 for gen_table in CamelCaseUtil.transform_result(rows)
             ]
             return result
@@ -133,19 +159,20 @@ class GenTableService:
         current_user: CurrentUserModel,
     ) -> CrudResponseModel:
         """
-        导入表结构service
+        导入表结构service。
 
         :param query_db: orm对象
         :param gen_table_list: 导入表列表
         :param current_user: 当前用户信息对象
         :return: 导入结果
+        :raises ServiceException: 导入表结构失败
         """
         source_name = cls._source_name(gen_table_list[0].data_source_name if gen_table_list else None)
         source_config = DataBaseConfig.get_source(source_name)
         try:
             async with DataSourceRegistry.session(source_name) as target_db:
                 for table in gen_table_list:
-                    table_name = table.table_name
+                    table_name = GenUtils.require_metadata(table.table_name)
                     table.data_source_name = source_name
                     GenUtils.init_table(table, current_user.user.user_name)
                     add_gen_table = await GenTableDao.add_gen_table_dao(query_db, table)
@@ -169,17 +196,21 @@ class GenTableService:
     @classmethod
     async def edit_gen_table_services(cls, query_db: AsyncSession, page_object: EditGenTableModel) -> CrudResponseModel:
         """
-        编辑业务表信息service
+        编辑业务表信息service。
 
         :param query_db: orm对象
         :param page_object: 编辑业务表对象
         :return: 编辑业务表校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 业务表不存在
         """
         edit_gen_table = page_object.model_dump(
             exclude_unset=True,
             by_alias=True,
             exclude={'create_time', 'update_time'},
         )
+        if page_object.table_id is None:
+            raise ServiceException(message='业务表不存在', msg_key='generator.tableNotFound')
         gen_table_info = await cls.get_gen_table_by_id_services(query_db, page_object.table_id)
         if gen_table_info.table_id:
             try:
@@ -189,7 +220,7 @@ class GenTableService:
                 options.update(edit_gen_table.get('params') or {})
                 edit_gen_table['options'] = json.dumps(options)
                 await GenTableDao.edit_gen_table_dao(query_db, edit_gen_table)
-                for gen_table_column in page_object.columns:
+                for gen_table_column in page_object.columns or []:
                     gen_table_column.update_by = page_object.update_by
                     await GenTableColumnDao.edit_gen_table_column_dao(
                         query_db,
@@ -211,19 +242,21 @@ class GenTableService:
         cls, query_db: AsyncSession, page_object: DeleteGenTableModel
     ) -> CrudResponseModel:
         """
-        删除业务表信息service
+        删除业务表信息service。
 
         :param query_db: orm对象
         :param page_object: 删除业务表对象
         :return: 删除业务表校验结果
+        :raises Exception: 事务失败并回滚后重新抛出原异常
+        :raises ServiceException: 传入业务表id为空
         """
         if page_object.table_ids:
             table_id_list = page_object.table_ids.split(',')
             try:
                 for table_id in table_id_list:
-                    await GenTableDao.delete_gen_table_dao(query_db, GenTableModel(tableId=table_id))
+                    await GenTableDao.delete_gen_table_dao(query_db, GenTableModel(table_id=table_id))
                     await GenTableColumnDao.delete_gen_table_column_by_table_id_dao(
-                        query_db, GenTableColumnModel(tableId=table_id)
+                        query_db, GenTableColumnModel(table_id=table_id)
                     )
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
@@ -236,7 +269,7 @@ class GenTableService:
     @classmethod
     async def get_gen_table_by_id_services(cls, query_db: AsyncSession, table_id: int) -> GenTableModel:
         """
-        获取需要生成的业务表详细信息service
+        获取需要生成的业务表详细信息service。
 
         :param query_db: orm对象
         :param table_id: 需要生成的业务表id
@@ -252,7 +285,7 @@ class GenTableService:
         cls, query_db: AsyncSession, source_name: str | None = None
     ) -> list[GenTableModel]:
         """
-        获取所有业务表信息service
+        获取所有业务表信息service。
 
         :param query_db: orm对象
         :param source_name: 数据源名称
@@ -268,17 +301,22 @@ class GenTableService:
         cls, query_db: AsyncSession, sql: str, current_user: CurrentUserModel, source_name: str | None = None
     ) -> CrudResponseModel:
         """
-        创建表结构service
+        创建表结构service。
 
         :param query_db: orm对象
         :param sql: 建表语句
         :param current_user: 当前用户信息对象
         :param source_name: 数据源名称
         :return: 创建表结构结果
+        :raises ServiceException: 建表语句不合法
         """
         source_name = cls._source_name(source_name)
         target_config = DataBaseConfig.get_source(source_name)
-        sql_statements = sqlglot_parse(sql, dialect=target_config.sqlglot_parse_dialect)
+        sql_statements = []
+        for statement in sqlglot_parse(sql, dialect=target_config.sqlglot_parse_dialect):
+            if statement is None:
+                raise ServiceException(message='建表语句不合法', msg_key='generator.invalidCreateStatement')
+            sql_statements.append(statement)
         if cls.__is_valid_create_table(sql_statements):
             try:
                 table_names = cls.__get_table_names(sql_statements)
@@ -299,9 +337,9 @@ class GenTableService:
             raise ServiceException(message='建表语句不合法', msg_key='generator.invalidCreateStatement')
 
     @classmethod
-    def __is_valid_create_table(cls, sql_statements: list[Expression]) -> bool:
+    def __is_valid_create_table(cls, sql_statements: list[Expr]) -> bool:
         """
-        校验sql语句是否为合法的建表语句
+        校验sql语句是否为合法的建表语句。
 
         :param sql_statements: sql语句的ast列表
         :return: 校验结果
@@ -317,23 +355,27 @@ class GenTableService:
         return not (not any(validate_create) or any(validate_forbidden_keywords))
 
     @classmethod
-    def __get_table_names(cls, sql_statements: list[Expression]) -> list[str]:
+    def __get_table_names(cls, sql_statements: list[Expr]) -> list[str]:
         """
-        获取sql语句中所有的建表表名
+        获取sql语句中所有的建表表名。
 
         :param sql_statements: sql语句的ast列表
         :return: 建表表名列表
+        :raises ServiceException: 建表语句缺少表名称
         """
-        table_names = [
-            sql_statement.find(Table).name for sql_statement in sql_statements if isinstance(sql_statement, Create)
-        ]
-
+        table_names = []
+        for statement in sql_statements:
+            if isinstance(statement, Create):
+                table = statement.find(Table)
+                if table is None:
+                    raise ServiceException(message='建表语句不合法', msg_key='generator.invalidCreateStatement')
+                table_names.append(table.name)
         return table_names
 
     @classmethod
     async def preview_code_services(cls, query_db: AsyncSession, table_id: int) -> dict[str, str]:
         """
-        预览代码service
+        预览代码service。
 
         :param query_db: orm对象
         :param table_id: 业务表id
@@ -347,10 +389,7 @@ class GenTableService:
         env = TemplateInitializer.init_jinja2()
         context = TemplateUtils.prepare_context(gen_table)
         template_list = TemplateUtils.get_template_list(gen_table)
-        preview_code_result = {}
-        for template in template_list:
-            render_content = env.get_template(template).render(**context)
-            preview_code_result[template] = render_content
+        preview_code_result = await asyncio.to_thread(TemplateUtils.render_templates, env, template_list, context)
         preview_code_result.update(context['generatedI18n'].artifacts())
         return preview_code_result
 
@@ -359,19 +398,21 @@ class GenTableService:
         cls, query_db: AsyncSession, table_name: str, source_name: str | None = None
     ) -> CrudResponseModel:
         """
-        生成代码至指定路径service
+        生成代码至指定路径service。
 
         :param query_db: orm对象
         :param table_name: 业务表名称
         :param source_name: 数据源名称
         :return: 生成代码结果
+        :raises ServiceWarning: 代码生成过程中需要向调用方传递业务提示
+        :raises ServiceException: 渲染业务表模板失败
         """
         source_name = cls._source_name(source_name)
         env = TemplateInitializer.init_jinja2()
         render_info = await cls.__get_gen_render_info(query_db, table_name, source_name)
         try:
-            output_root = cls.__get_output_root(render_info[3])
-            files = cls.__render_files(env, render_info)
+            output_root = cls._get_output_root(render_info[3])
+            files = await asyncio.to_thread(cls._render_files, env, render_info)
             output_paths = {name: cls.__get_output_path(output_root, name) for name in files}
             # 全部词库解析、合并成功后才开始写入，避免无效资源造成半份产物。
             for relative_path, content in files.items():
@@ -401,12 +442,13 @@ class GenTableService:
         cls, query_db: AsyncSession, table_names: list[str], source_name: str | None = None
     ) -> bytes:
         """
-        批量生成代码service
+        批量生成代码service。
 
         :param query_db: orm对象
         :param table_names: 业务表名称组
         :param source_name: 数据源名称
         :return: 下载代码结果
+        :raises ServiceException: 业务表不存在或不属于本次指定的数据源
         """
         source_name = cls._source_name(source_name)
         configured_table_names = await GenTableDao.get_gen_table_names(query_db, source_name)
@@ -423,7 +465,7 @@ class GenTableService:
         for table_name in table_names:
             env = TemplateInitializer.init_jinja2()
             render_info = await cls.__get_gen_render_info(query_db, table_name, source_name)
-            generated_files = cls.__render_files(env, render_info)
+            generated_files = await asyncio.to_thread(cls._render_files, env, render_info)
             generators.append(render_info[2]['generatedI18n'])
             for path, content in generated_files.items():
                 files[path] = GenI18nUtil.merge_content(path, files[path], content) if path in files else content
@@ -440,16 +482,17 @@ class GenTableService:
         return zip_data
 
     @classmethod
-    def __render_files(cls, env: Any, render_info: list) -> dict[str, str]:
+    def _render_files(cls, env: Environment, render_info: RenderInfo) -> dict[str, str]:
         """
-        渲染源码后收集模板登记的独立语言资源
+        渲染源码后收集模板登记的独立语言资源。
 
         :param env: 模板环境
         :param render_info: 模板、输出路径、上下文和业务表
         :return: 生成包内相对路径及内容
         """
+        rendered = TemplateUtils.render_templates(env, render_info[0], render_info[2])
         files = {
-            output_file: env.get_template(template).render(**render_info[2])
+            output_file: rendered[template]
             for template, output_file in zip(render_info[0], render_info[1], strict=True)
         }
         files.update(render_info[2]['generatedI18n'].artifacts())
@@ -460,11 +503,12 @@ class GenTableService:
     @staticmethod
     def __get_output_path(output_root: Path, relative_path: str) -> Path:
         """
-        校验已有符号链接和生成文件始终位于独立生成目录内
+        校验已有符号链接和生成文件始终位于独立生成目录内。
 
         :param output_root: 独立生成目录
         :param relative_path: 生成文件的相对路径
         :return: 已校验的输出路径
+        :raises ServiceWarning: 请选择独立生成目录，不能直接覆盖应用源码目录
         """
         resolved = (output_root / relative_path).resolve()
         if not resolved.is_relative_to(output_root.resolve()):
@@ -475,12 +519,13 @@ class GenTableService:
         return resolved
 
     @staticmethod
-    def __get_output_root(gen_table: GenTableModel) -> Path:
+    def _get_output_root(gen_table: GenTableModel) -> Path:
         """
-        保持生成路径为独立生成包根，拒绝直接覆盖已知应用源码
+        保持生成路径为独立生成包根，拒绝直接覆盖已知应用源码。
 
         :param gen_table: 生成配置
         :return: 独立生成目录
+        :raises ServiceWarning: 请选择独立生成目录，不能直接覆盖应用源码目录
         """
         root = (
             Path(os.getcwd(), GenConfig.GEN_PATH) if gen_table.gen_path in (None, '', '/') else Path(gen_table.gen_path)
@@ -498,16 +543,15 @@ class GenTableService:
         return root
 
     @classmethod
-    async def __get_gen_render_info(
-        cls, query_db: AsyncSession, table_name: str, source_name: str | None = None
-    ) -> list:
+    async def __get_gen_render_info(cls, query_db: AsyncSession, table_name: str, source_name: str) -> RenderInfo:
         """
-        获取生成代码渲染模板相关信息
+        获取生成代码渲染模板相关信息。
 
         :param query_db: orm对象
         :param table_name: 业务表名称
         :param source_name: 数据源名称
         :return: 生成代码渲染模板相关信息
+        :raises ServiceException: 目标表不存在或不属于选中的数据源
         """
         gen_table_info = await GenTableDao.get_gen_table_by_name(query_db, table_name, source_name)
         if gen_table_info is None:
@@ -523,39 +567,28 @@ class GenTableService:
         template_list = TemplateUtils.get_template_list(gen_table)
         output_files = [TemplateUtils.get_file_name(template, gen_table) for template in template_list]
 
-        return [template_list, output_files, context, gen_table]
-
-    @classmethod
-    def __get_gen_path(cls, gen_table: GenTableModel, template: str) -> str:
-        """
-        根据GenTableModel对象和模板名称生成路径
-
-        :param gen_table: GenTableModel对象
-        :param template: 模板名称
-        :return: 生成的路径
-        """
-        gen_path = gen_table.gen_path
-        if gen_path == '/':
-            return os.path.join(os.getcwd(), GenConfig.GEN_PATH, TemplateUtils.get_file_name(template, gen_table))
-
-        return os.path.join(gen_path, TemplateUtils.get_file_name(template, gen_table))
+        return template_list, output_files, context, gen_table
 
     @classmethod
     async def sync_db_services(
         cls, query_db: AsyncSession, table_name: str, source_name: str | None = None
     ) -> CrudResponseModel:
         """
-        同步数据库service
+        同步数据库service。
 
         :param query_db: orm对象
         :param table_name: 业务表名称
         :param source_name: 数据源名称
         :return: 同步数据库结果
+        :raises ServiceException: 同步数据失败，原表结构不存在
+        :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         source_name = cls._source_name(source_name)
         gen_table = await GenTableDao.get_gen_table_by_name(query_db, table_name, source_name)
+        if gen_table is None:
+            raise ServiceException(message='业务表不存在', msg_key='generator.tableNotFound')
         table = GenTableModel(**CamelCaseUtil.transform_result(gen_table))
-        table_columns = table.columns
+        table_columns = table.columns or []
         table_column_map = {column.column_name: column for column in table_columns}
         source_config = DataBaseConfig.get_source(source_name)
         async with DataSourceRegistry.session(source_name) as target_db:
@@ -601,46 +634,52 @@ class GenTableService:
     @classmethod
     async def set_sub_table(cls, query_db: AsyncSession, gen_table: GenTableModel) -> None:
         """
-        设置主子表信息
+        设置主子表信息。
 
         :param query_db: orm对象
         :param gen_table: 业务表信息
-        :return:
+        :raises ServiceException: 关联子表未在选中数据源登记
         """
         if gen_table.sub_table_name:
+            source_name = cls._source_name(gen_table.data_source_name)
             sub_table = await GenTableDao.get_gen_table_by_name(
                 query_db,
                 gen_table.sub_table_name,
-                cls._source_name(gen_table.data_source_name),
+                source_name,
             )
+            if sub_table is None:
+                raise ServiceException(
+                    message=f'业务表不存在或不属于数据源 {source_name}：{gen_table.sub_table_name}',
+                    msg_key='generator.tableOutsideSource',
+                    msg_params={'source_name': source_name, 'table_name': gen_table.sub_table_name},
+                )
             gen_table.sub_table = GenTableModel(**CamelCaseUtil.transform_result(sub_table))
 
     @classmethod
     async def set_pk_column(cls, gen_table: GenTableModel) -> None:
         """
-        设置主键列信息
+        为主表和关联子表选择主键，未标记主键时使用已有配置或首列。
 
         :param gen_table: 业务表信息
-        :return:
+        :raises ServiceException: 主子表配置不完整或没有可用的字段
         """
-        for column in gen_table.columns:
-            if column.pk:
-                gen_table.pk_column = column
-                break
-        if gen_table.pk_column is None:
-            gen_table.pk_column = gen_table.columns[0]
+        tables = [gen_table]
         if gen_table.tpl_category == GenConstant.TPL_SUB:
-            for column in gen_table.sub_table.columns:
-                if column.pk:
-                    gen_table.sub_table.pk_column = column
-                    break
-            if gen_table.sub_table.columns is None:
-                gen_table.sub_table.pk_column = gen_table.sub_table.columns[0]
+            if gen_table.sub_table is None:
+                raise ServiceException(message='关联子表的表名不能为空', msg_key='generator.childTableRequired')
+            tables.append(gen_table.sub_table)
+        for table in tables:
+            if table.columns:
+                table.pk_column = next(
+                    (column for column in table.columns if column.pk), table.pk_column or table.columns[0]
+                )
+            elif table.pk_column is None:
+                raise ServiceException(message='请先完善生成配置信息', msg_key='generator.configurationRequired')
 
     @classmethod
     async def set_table_from_options(cls, gen_table: GenTableModel) -> GenTableModel:
         """
-        设置代码生成其他选项值
+        设置代码生成其他选项值。
 
         :param gen_table: 生成对象
         :return: 设置后的生成对象
@@ -659,39 +698,36 @@ class GenTableService:
     @classmethod
     async def validate_edit(cls, edit_gen_table: EditGenTableModel) -> None:
         """
-        编辑保存参数校验
+        编辑保存参数校验。
 
         :param edit_gen_table: 编辑业务表对象
+        :raises ServiceException: 树编码字段不能为空；树父编码字段不能为空；树名称字段不能为空；关联子表的表名不能为空；子表关联的外键名不能为空
         """
         if edit_gen_table.tpl_category == GenConstant.TPL_TREE:
-            params_obj = edit_gen_table.params.model_dump(by_alias=True)
+            params = edit_gen_table.params
 
-            if GenConstant.TREE_CODE not in params_obj:
+            if params is None or not params.tree_code:
                 raise ServiceException(message='树编码字段不能为空', msg_key='generator.treeCodeRequired')
-            if GenConstant.TREE_PARENT_CODE not in params_obj:
+            if not params.tree_parent_code:
                 raise ServiceException(message='树父编码字段不能为空', msg_key='generator.treeParentCodeRequired')
-            if GenConstant.TREE_NAME not in params_obj:
+            if not params.tree_name:
                 raise ServiceException(message='树名称字段不能为空', msg_key='generator.treeNameRequired')
-            if edit_gen_table.tpl_category == GenConstant.TPL_SUB:
-                if not edit_gen_table.sub_table_name:
-                    raise ServiceException(message='关联子表的表名不能为空', msg_key='generator.childTableRequired')
-                if not edit_gen_table.sub_table_fk_name:
-                    raise ServiceException(
-                        message='子表关联的外键名不能为空', msg_key='generator.childForeignKeyRequired'
-                    )
+        if edit_gen_table.tpl_category == GenConstant.TPL_SUB:
+            if not edit_gen_table.sub_table_name:
+                raise ServiceException(message='关联子表的表名不能为空', msg_key='generator.childTableRequired')
+            if not edit_gen_table.sub_table_fk_name:
+                raise ServiceException(message='子表关联的外键名不能为空', msg_key='generator.childForeignKeyRequired')
 
 
 class GenTableColumnService:
-    """
-    代码生成业务表字段服务层
-    """
+    """代码生成业务表字段服务层。"""
 
     @classmethod
     async def get_gen_table_column_list_by_table_id_services(
         cls, query_db: AsyncSession, table_id: int
     ) -> list[GenTableColumnModel]:
         """
-        获取业务表字段列表信息service
+        获取业务表字段列表信息service。
 
         :param query_db: orm对象
         :param table_id: 业务表格id

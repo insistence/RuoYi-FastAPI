@@ -1,20 +1,18 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 from pydantic_validation_decorator import NotBlank, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 
 
-class PostModel(BaseModel):
-    """
-    岗位信息表对应pydantic模型
-    """
+class PostModel(CamelModel):
+    """岗位信息表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     post_id: int | None = Field(default=None, description='岗位ID')
     post_code: str | None = Field(default=None, description='岗位编码')
@@ -35,6 +33,11 @@ class PostModel(BaseModel):
         message=I18nMessage('岗位编码长度不能超过64个字符', msg_key='validation.postCodeLength'),
     )
     def get_post_code(self) -> str | None:
+        """
+        校验并返回岗位编码。
+
+        :return: 岗位编码
+        """
         return self.post_code
 
     @NotBlank(field_name='post_name', message=I18nMessage('岗位名称不能为空', msg_key='validation.postNameRequired'))
@@ -45,41 +48,44 @@ class PostModel(BaseModel):
         message=I18nMessage('岗位名称长度不能超过50个字符', msg_key='validation.postNameLength'),
     )
     def get_post_name(self) -> str | None:
+        """
+        校验并返回岗位名称。
+
+        :return: 岗位名称
+        """
         return self.post_name
 
     @NotBlank(field_name='post_sort', message=I18nMessage('显示顺序不能为空', msg_key='validation.orderRequired'))
     def get_post_sort(self) -> int | None:
+        """
+        校验并返回显示顺序。
+
+        :return: 显示顺序
+        """
         return self.post_sort
 
     def validate_fields(self) -> None:
+        """校验岗位编码、岗位名称、显示顺序。"""
         self.get_post_code()
         self.get_post_name()
         self.get_post_sort()
 
 
 class PostQueryModel(DateRangeQueryMixin, PostModel):
-    """
-    岗位管理不分页查询模型
-    """
+    """岗位管理不分页查询模型。"""
 
     begin_time: str | None = Field(default=None, description='开始时间')
     end_time: str | None = Field(default=None, description='结束时间')
 
 
 class PostPageQueryModel(PostQueryModel):
-    """
-    岗位管理分页查询模型
-    """
+    """岗位管理分页查询模型。"""
 
     page_num: int = Field(default=1, description='当前页码')
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeletePostModel(BaseModel):
-    """
-    删除岗位模型
-    """
-
-    model_config = ConfigDict(alias_generator=to_camel)
+class DeletePostModel(CamelModel):
+    """删除岗位模型。"""
 
     post_ids: str = Field(description='需要删除的岗位ID')

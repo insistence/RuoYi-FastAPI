@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 import pytest_asyncio
@@ -34,14 +34,22 @@ from plugins.core.management.entity.do.release_models import SysPluginArtifact, 
 from plugins.core.runtime.application import PluginApplicationRuntime
 from plugins.core.runtime.bootstrap import PluginRuntimeBuilder
 from plugins.core.runtime.explicit import ExplicitPluginRuntime
+from plugins.core.runtime.route_guard import UnavailablePluginRouteStateGateway
 from plugins.core.runtime.service.lifecycle_lock import NoopPluginLifecycleLock
 from plugins.core.runtime.startup import PluginRuntimeStartupManager
+from plugins.core.runtime.startup_gateway import PluginStartupManagementGateway
 from utils.time_util import TimezoneUtil
 
 
 @pytest_asyncio.fixture
 async def deployment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[SimpleNamespace]:
-    """构造真实签名目录与临时 SQLite 发布数据库。"""
+    """
+    构造真实签名目录与临时 SQLite 发布数据库。
+
+    :param tmp_path: pytest 为当前用例创建的临时目录
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :yield: 真实签名目录与临时 SQLite 发布数据库
+    """
     backend = tmp_path / 'backend'
     (backend / 'plugins').mkdir(parents=True)
     key = Ed25519PrivateKey.generate()
@@ -62,10 +70,10 @@ async def deployment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIt
         await connection.run_sync(
             Base.metadata.create_all,
             tables=[
-                SysPlugin.__table__,
-                SysPluginArtifact.__table__,
-                SysPluginRelease.__table__,
-                SysPluginWorker.__table__,
+                SysPlugin.get_table(),
+                SysPluginArtifact.get_table(),
+                SysPluginRelease.get_table(),
+                SysPluginWorker.get_table(),
             ],
         )
     sessions = async_sessionmaker(engine, expire_on_commit=False)
@@ -80,7 +88,14 @@ async def deployment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIt
 
 
 async def publish(deployment: SimpleNamespace, version: str = '1.0.0', *, fail: bool = False) -> str:
-    """登记指定版本制品并建立测试需要的目标发布记录。"""
+    """
+    登记指定版本制品并建立测试需要的目标发布记录。
+
+    :param deployment: 构造真实签名目录与临时 SQLite 发布数据库
+    :param version: 当前记录的版本
+    :param fail: 是否模拟操作失败
+    :return: 已发布制品的摘要
+    """
     source = deployment.root / f'source-{version}' / 'release_demo'
     source.mkdir(parents=True)
     (source / 'plugin.yaml').write_text(
@@ -138,11 +153,19 @@ async def publish(deployment: SimpleNamespace, version: str = '1.0.0', *, fail: 
             expected_workers=2,
         )
         await db.commit()
-    return result['digest']
+    digest = result['digest']
+    assert isinstance(digest, str)
+    return digest
 
 
 async def activate_worker(config: PluginDeploymentConfig, sessions: Any) -> tuple[Any, Any]:
-    """创建进程发布快照并实际准备和激活插件入口。"""
+    """
+    创建进程发布快照并实际准备和激活插件入口。
+
+    :param config: 制品发布配置快照，支持为测试和维护实例注入独立目录
+    :param sessions: 创建当前测试的数据库会话的工厂
+    :return: 依次为 ``worker``、``runtime`` 的元组
+    """
     app = FastAPI()
     builder = PluginRuntimeBuilder(config.backend_root)
     app.state.plugin_runtime_builder = builder
@@ -151,7 +174,7 @@ async def activate_worker(config: PluginDeploymentConfig, sessions: Any) -> tupl
     async with sessions() as db:
         registry = PluginRegistry.build(builder.discover_plugins(), await PluginDao.get_plugin_list(db))
     app.state.plugin_registry = registry
-    runtime = ExplicitPluginRuntime(SimpleNamespace())
+    runtime = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     app.state.plugin_explicit_runtime = runtime
     for plugin in registry.list_enabled_plugins():
         runtime.prepare(plugin, app, startup_write_enabled=True)
@@ -164,11 +187,47 @@ async def activate_worker(config: PluginDeploymentConfig, sessions: Any) -> tupl
 
 
 async def summary(deployment: SimpleNamespace, plugin_id: str = 'release_demo') -> dict[str, Any]:
-    """读取发布记录和宿主报告并汇总当前集群状态。"""
+    """
+    读取发布记录和宿主报告并汇总当前集群状态。
+
+    :param deployment: 构造真实签名目录与临时 SQLite 发布数据库
+    :param plugin_id: 插件清单中的唯一标识
+    :return: 发布记录和宿主报告并汇总当前集群状态
+    """
     async with deployment.sessions() as db:
         release = await PluginReleaseDao.get_release(db, plugin_id)
+        assert release is not None
         reports = await PluginReleaseDao.list_worker_reports(db)
         return aggregate_release(release, reports, now=TimezoneUtil.utc_now(), ttl_seconds=6).to_payload()
+
+
+@pytest.mark.asyncio
+async def test_lock_deadline_only_limits_acquisition(deployment: SimpleNamespace) -> None:
+    """锁截止时间仅限制获取锁。"""
+
+    @asynccontextmanager
+    async def busy_lock(_plugin_id: str, _operation: str) -> AsyncGenerator[SimpleNamespace, None]:
+        """
+        提供未能取得的插件生命周期锁。
+
+        :param _plugin_id: 回调接收的插件标识
+        :param _operation: 回调接收的操作名称
+        :yield: 未能取得的插件生命周期锁
+        """
+        yield SimpleNamespace(acquired=False)
+
+    worker = PluginReleaseWorker(deployment.config, session_factory=deployment.sessions)
+    builder = PluginRuntimeBuilder(deployment.config.backend_root)
+    app = FastAPI()
+    with pytest.raises(TimeoutError, match='等待插件维护发布锁超时'):
+        await worker.start(app, builder, SimpleNamespace(lock=busy_lock), lock_wait_seconds=0)
+    assert not worker.registered
+
+    try:
+        await worker.start(app, builder, NoopPluginLifecycleLock(), lock_wait_seconds=0)
+        assert worker.registered
+    finally:
+        await worker.stop()
 
 
 @pytest.mark.asyncio
@@ -250,6 +309,7 @@ async def test_imported_unselected_id_cannot_fall_back_to_a_source_directory(dep
     await publish(deployment)
     async with deployment.sessions() as db:
         release = await PluginReleaseDao.get_release(db, 'release_demo')
+        assert release is not None
         release.target_digest = None
         await db.commit()
     shutil.copytree(
@@ -273,8 +333,10 @@ async def test_disabled_snapshot_reports_stopped_without_executing_entrypoint(de
     await publish(deployment)
     async with deployment.sessions() as db:
         plugin = await PluginDao.get_plugin_by_id(db, 'release_demo')
+        assert plugin is not None
         plugin.enabled = '1'
         release = await PluginReleaseDao.get_release(db, 'release_demo')
+        assert release is not None
         release.expected_workers = 1
         await db.commit()
     worker, runtime = await activate_worker(deployment.config, deployment.sessions)
@@ -351,19 +413,17 @@ async def test_real_application_startup_does_not_run_artifact_install_or_resourc
     await publish(deployment)
     monkeypatch.setattr('config.database.DataSourceRegistry.session', deployment.sessions)
 
-    class ReadOnlyGateway:
-        list_plugins = staticmethod(PluginDao.get_plugin_list)
-        install_plugin_resources = AsyncMock(
-            side_effect=AssertionError('startup must not reinstall artifact resources')
-        )
-        upsert_discovered_plugin = AsyncMock(side_effect=AssertionError('startup must not install artifacts'))
-
-    gateway = ReadOnlyGateway()
+    gateway = Mock(
+        spec_set=PluginStartupManagementGateway,
+        list_plugins=PluginDao.get_plugin_list,
+        install_plugin_resources=AsyncMock(side_effect=AssertionError('startup must not reinstall artifact resources')),
+        upsert_discovered_plugin=AsyncMock(side_effect=AssertionError('startup must not install artifacts')),
+    )
     builder = PluginRuntimeBuilder(deployment.config.backend_root)
     manager = PluginRuntimeStartupManager(
         builder,
         management_gateway=gateway,
-        route_state_gateway=SimpleNamespace(),
+        route_state_gateway=UnavailablePluginRouteStateGateway(),
         default_enabled_builtin_plugin_ids={'release_demo'},
     )
     worker = PluginReleaseWorker(deployment.config, session_factory=deployment.sessions)
@@ -391,7 +451,10 @@ async def test_worker_failure_does_not_mark_global_plugin_error(deployment: Simp
     worker, runtime = await activate_worker(deployment.config, deployment.sessions)
     app = worker.app
     app.state.plugin_release_worker = worker
-    gateway = SimpleNamespace(mark_plugin_error=AsyncMock(side_effect=AssertionError('must remain per-worker')))
+    gateway = Mock(
+        spec_set=PluginStartupManagementGateway,
+        mark_plugin_error=AsyncMock(side_effect=AssertionError('must remain per-worker')),
+    )
     manager = PluginRuntimeStartupManager(management_gateway=gateway)
     try:
         await manager.mark_plugin_runtime_error(app, 'release_demo', 'one worker failed')
@@ -399,6 +462,7 @@ async def test_worker_failure_does_not_mark_global_plugin_error(deployment: Simp
         assert (await summary(deployment))['status'] == 'failed'
         async with deployment.sessions() as db:
             plugin = await PluginDao.get_plugin_by_id(db, 'release_demo')
+            assert plugin is not None
             assert plugin.status == 'installed'
             assert plugin.enabled == '0'
     finally:
@@ -415,7 +479,8 @@ async def test_failed_artifact_stays_disabled_after_source_failure_reloads_regis
     await publish(deployment)
     monkeypatch.setattr('config.database.DataSourceRegistry.session', deployment.sessions)
     builder = PluginRuntimeBuilder(deployment.config.backend_root)
-    gateway = SimpleNamespace(
+    gateway = Mock(
+        spec_set=PluginStartupManagementGateway,
         list_plugins=PluginDao.get_plugin_list,
         mark_plugin_error=AsyncMock(return_value=SimpleNamespace(is_success=True)),
     )
@@ -453,9 +518,21 @@ async def test_failed_artifact_stays_disabled_after_source_failure_reloads_regis
 
 
 def _run_process(config: PluginDeploymentConfig, database: str, ready: Any, stop: Any) -> None:
-    """在独立进程中实际激活制品并报告加载路径和版本。"""
+    """
+    在独立进程中实际激活制品并报告加载路径和版本。
+
+    :param config: 制品发布配置快照，支持为测试和维护实例注入独立目录
+    :param database: 测试所使用的数据库
+    :param ready: 依赖检查是否已就绪
+    :param stop: 通知正在运行的任务停止的信号
+    """
 
     async def run() -> None:
+        """
+        记录测试命令的运行参数。
+
+        :raises BaseException: 执行中断，清理后向调用方传播原异常
+        """
         engine = create_async_engine(f'sqlite+aiosqlite:///{database}')
         sessions = async_sessionmaker(engine, expire_on_commit=False)
         worker = runtime = None
@@ -489,7 +566,13 @@ def _run_process(config: PluginDeploymentConfig, database: str, ready: Any, stop
 
 @asynccontextmanager
 async def running_processes(deployment: SimpleNamespace, count: int = 1) -> AsyncGenerator[list[dict[str, Any]], None]:
-    """启动指定数量的独立测试进程并在退出时完整回收。"""
+    """
+    启动指定数量的独立测试进程并在退出时完整回收。
+
+    :param deployment: 构造真实签名目录与临时 SQLite 发布数据库
+    :param count: 本次处理或预期的数量
+    :yield: 保存各工作进程报告的集合
+    """
     context = multiprocessing.get_context('spawn')
     ready = context.Queue()
     stop = context.Event()
@@ -544,6 +627,7 @@ async def test_restarted_process_loads_upgrade_then_rollback_without_downgrading
         assert reports[0]['version'] == '2.0.0'
     async with deployment.sessions() as db:
         release = await PluginReleaseDao.get_release(db, 'release_demo')
+        assert release is not None
         generation = release.generation
         await PluginReleaseDao.set_preparation_status(
             db,
@@ -565,7 +649,9 @@ async def test_restarted_process_loads_upgrade_then_rollback_without_downgrading
         assert reports[0]['version'] == '1.0.0'
         assert (await summary(deployment))['status'] == 'active'
     async with deployment.sessions() as db:
-        assert (await PluginDao.get_plugin_by_id(db, 'release_demo')).installed_version == '2.0.0'
+        stored_plugin = await PluginDao.get_plugin_by_id(db, 'release_demo')
+        assert stored_plugin is not None
+        assert stored_plugin.installed_version == '2.0.0'
 
 
 @pytest.mark.asyncio

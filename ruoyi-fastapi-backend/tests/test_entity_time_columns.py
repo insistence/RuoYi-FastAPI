@@ -134,7 +134,15 @@ REQUIRED_UPDATE_TIME_MODELS = {
 }
 
 
-def _column_default(model: type, field_name: str, attribute: str) -> object | None:
+def _column_default(model: type[Base], field_name: str, attribute: str) -> object | None:
+    """
+    读取指定 ORM 列的默认值。
+
+    :param model: 当前处理的数据模型
+    :param field_name: 需要读取或校验的字段名
+    :param attribute: 要读取或替换的属性名
+    :return: 指定 ORM 列的默认值
+    """
     column = model.__table__.c[field_name]
     value = getattr(column, attribute)
     return None if value is None else value.arg
@@ -152,7 +160,7 @@ def test_audit_time_columns_preserve_nullability_and_migration_semantics() -> No
         assert model.__table__.c.create_time.nullable is (model not in REQUIRED_CREATE_TIME_MODELS)
         assert model.__table__.c.create_time.server_default is None
 
-    assert SysPluginMigration.__table__.c.create_time.comment == '执行时间'
+    assert SysPluginMigration.get_table().c.create_time.comment == '执行时间'
 
 
 def test_all_update_time_columns_use_callable_defaults_and_onupdate() -> None:
@@ -202,7 +210,7 @@ async def test_core_model_time_defaults_are_evaluated_per_insert_and_core_update
 
     try:
         async with engine.begin() as connection:
-            await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.__table__])
+            await connection.run_sync(Base.metadata.create_all, tables=[SysPlugin.get_table()])
 
         async with session_maker() as session:
             first = SysPlugin(plugin_id='time-first', plugin_name='First', version='1.0.0')
@@ -224,6 +232,7 @@ async def test_core_model_time_defaults_are_evaluated_per_insert_and_core_update
                 update(SysPlugin).where(SysPlugin.plugin_id == first.plugin_id).values(version='1.1.0')
             )
             await session.refresh(first)
+            assert first.update_time is not None and first_update_time is not None
             assert first.update_time > first_update_time
 
             await asyncio.sleep(0.001)
@@ -232,6 +241,7 @@ async def test_core_model_time_defaults_are_evaluated_per_insert_and_core_update
                 [{'plugin_id': second.plugin_id, 'version': '1.1.0'}],
             )
             await session.refresh(second)
+            assert second.update_time is not None and second_update_time is not None
             assert second.update_time > second_update_time
     finally:
         await engine.dispose()

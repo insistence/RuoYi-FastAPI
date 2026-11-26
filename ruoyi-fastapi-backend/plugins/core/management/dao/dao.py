@@ -2,10 +2,11 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import delete, func, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
+from config.database import execute_rowcount
 from i18n.translation import TranslationUtil
 from module_admin.entity.do.menu_do import SysMenu
 from module_admin.entity.do.role_do import SysRoleMenu
@@ -45,9 +46,7 @@ PLUGIN_MODEL_RUNTIME_FIELDS = {
 
 
 class PluginDao:
-    """
-    插件系统数据库操作层。
-    """
+    """插件系统数据库操作层。"""
 
     @classmethod
     async def get_plugin_by_id(cls, db: AsyncSession, plugin_id: str) -> SysPlugin | None:
@@ -80,7 +79,7 @@ class PluginDao:
         db: AsyncSession,
         query_object: PluginPageQueryModel,
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取插件列表。
 
@@ -92,16 +91,16 @@ class PluginDao:
         query = (
             select(SysPlugin)
             .where(
-                SysPlugin.plugin_id.like(f'%{query_object.plugin_id}%') if query_object.plugin_id else True,
-                SysPlugin.plugin_name.like(f'%{query_object.plugin_name}%') if query_object.plugin_name else True,
-                SysPlugin.enabled == query_object.enabled if query_object.enabled else True,
-                SysPlugin.status == query_object.status if query_object.status else True,
-                SysPlugin.source == query_object.source if query_object.source else True,
+                SysPlugin.plugin_id.like(f'%{query_object.plugin_id}%') if query_object.plugin_id else true(),
+                SysPlugin.plugin_name.like(f'%{query_object.plugin_name}%') if query_object.plugin_name else true(),
+                SysPlugin.enabled == query_object.enabled if query_object.enabled else true(),
+                SysPlugin.status == query_object.status if query_object.status else true(),
+                SysPlugin.source == query_object.source if query_object.source else true(),
             )
             .order_by(SysPlugin.plugin_id)
             .distinct()
         )
-        plugin_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        plugin_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db,
             query,
             query_object.page_num,
@@ -140,13 +139,12 @@ class PluginDao:
         )
 
     @classmethod
-    async def update_plugin(cls, db: AsyncSession, plugin: dict) -> None:
+    async def update_plugin(cls, db: AsyncSession, plugin: dict[str, Any]) -> None:
         """
         更新插件。
 
         :param db: orm对象
         :param plugin: 插件更新字典
-        :return: None
         """
         await db.execute(
             update(SysPlugin),
@@ -160,7 +158,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_id: 插件ID
-        :return: None
         """
         await db.execute(delete(SysPlugin).where(SysPlugin.plugin_id == plugin_id))
 
@@ -243,7 +240,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_menu: 插件菜单关联对象
-        :return: None
         """
         await db.execute(
             update(SysPluginMenu)
@@ -258,7 +254,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_menu: 插件菜单关联对象
-        :return: None
         """
         await db.execute(
             update(SysPluginMenu)
@@ -276,7 +271,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_id: 插件ID
-        :return: None
         """
         await db.execute(delete(SysPluginMenu).where(SysPluginMenu.plugin_id == plugin_id))
 
@@ -288,7 +282,6 @@ class PluginDao:
         :param db: orm对象
         :param plugin_id: 插件ID
         :param menu_ids: 菜单ID列表
-        :return: None
         """
         if menu_ids:
             await db.execute(
@@ -305,7 +298,6 @@ class PluginDao:
 
         :param db: orm对象
         :param menu_ids: 菜单ID列表
-        :return: None
         """
         if menu_ids:
             await db.execute(delete(SysRoleMenu).where(SysRoleMenu.menu_id.in_(menu_ids)))
@@ -335,7 +327,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_id: 插件ID
-        :return: None
         """
         await db.execute(delete(SysPluginMigration).where(SysPluginMigration.plugin_id == plugin_id))
 
@@ -390,7 +381,7 @@ class PluginDao:
                     select(SysPluginMigration)
                     .where(
                         SysPluginMigration.plugin_id == plugin_id,
-                        SysPluginMigration.status == status if status else True,
+                        SysPluginMigration.status == status if status else true(),
                     )
                     .order_by(SysPluginMigration.migration_path)
                 )
@@ -491,7 +482,6 @@ class PluginDao:
         :param payload: 待写入 payload
         :param existing_plugin_migration: 已有 migration 历史
         :param now: 当前时间
-        :return: None
         """
         status = payload.get('status', 'success')
         if existing_plugin_migration is None:
@@ -548,7 +538,6 @@ class PluginDao:
 
         :param db: orm对象
         :param plugin_id: 插件ID
-        :return: None
         """
         await db.execute(delete(SysPluginConfig).where(SysPluginConfig.plugin_id == plugin_id))
 
@@ -560,7 +549,6 @@ class PluginDao:
         :param db: orm对象
         :param plugin_id: 插件ID
         :param config_keys: 当前 manifest 配置键集合
-        :return: None
         """
         query = delete(SysPluginConfig).where(SysPluginConfig.plugin_id == plugin_id)
         if config_keys:
@@ -615,13 +603,12 @@ class PluginDao:
         return db_plugin_config
 
     @classmethod
-    async def update_plugin_config(cls, db: AsyncSession, plugin_config: dict) -> None:
+    async def update_plugin_config(cls, db: AsyncSession, plugin_config: dict[str, Any]) -> None:
         """
         更新插件配置。
 
         :param db: orm对象
         :param plugin_config: 插件配置更新字典
-        :return: None
         """
         await db.execute(
             update(SysPluginConfig),
@@ -655,7 +642,7 @@ class PluginDao:
         db: AsyncSession,
         query_object: PluginOperationLogPageQueryModel,
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取插件批量操作审计日志列表。
 
@@ -667,7 +654,7 @@ class PluginDao:
         query = (
             cls._build_operation_log_query(query_object).order_by(SysPluginOperationLog.operation_id.desc()).distinct()
         )
-        operation_log_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        operation_log_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db,
             query,
             query_object.page_num,
@@ -712,8 +699,8 @@ class PluginDao:
         :return: SQLAlchemy 查询对象
         """
         return select(SysPluginOperationLog).where(
-            SysPluginOperationLog.operation == query_object.operation if query_object.operation else True,
-            SysPluginOperationLog.status == query_object.status if query_object.status else True,
+            SysPluginOperationLog.operation == query_object.operation if query_object.operation else true(),
+            SysPluginOperationLog.status == query_object.status if query_object.status else true(),
             cls._build_plugin_ids_filter(query_object.plugin_id),
             cls._build_operation_log_time_filter(query_object),
         )
@@ -752,7 +739,10 @@ class PluginDao:
         if not query_object.begin_time or not query_object.end_time:
             return True
 
-        start, end = TimezoneUtil.local_date_strings_to_utc(query_object.begin_time, query_object.end_time)
+        time_range = TimezoneUtil.local_date_strings_to_utc(query_object.begin_time, query_object.end_time)
+        if time_range is None:
+            return True
+        start, end = time_range
         return (SysPluginOperationLog.create_time >= start) & (SysPluginOperationLog.create_time < end)
 
     @classmethod
@@ -812,11 +802,9 @@ class PluginDao:
         :param cutoff_time: 清理截止时间
         :return: 删除的插件批量操作审计日志数量
         """
-        delete_result = await db.execute(
-            delete(SysPluginOperationLog).where(SysPluginOperationLog.create_time < cutoff_time)
+        return await execute_rowcount(
+            db, delete(SysPluginOperationLog).where(SysPluginOperationLog.create_time < cutoff_time)
         )
-
-        return int(delete_result.rowcount or 0)
 
     @classmethod
     async def get_sys_menu_by_id(cls, db: AsyncSession, menu_id: int) -> SysMenu | None:
@@ -941,13 +929,12 @@ class PluginDao:
         return db_menu
 
     @classmethod
-    async def update_sys_menu(cls, db: AsyncSession, menu: dict) -> None:
+    async def update_sys_menu(cls, db: AsyncSession, menu: dict[str, Any]) -> None:
         """
         更新系统菜单。
 
         :param db: orm对象
         :param menu: 菜单更新字典
-        :return: None
         """
         if 'menu_name_i18n' in menu:
             current = await db.scalar(
@@ -967,7 +954,6 @@ class PluginDao:
         :param db: orm对象
         :param menu_ids: 菜单ID列表
         :param status: 菜单状态
-        :return: None
         """
         if menu_ids:
             await db.execute(update(SysMenu).where(SysMenu.menu_id.in_(menu_ids)).values(status=status))

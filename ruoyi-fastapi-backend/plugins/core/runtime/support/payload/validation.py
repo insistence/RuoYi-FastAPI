@@ -13,129 +13,133 @@ from .base import PluginPayloadModel
 
 
 class DependencyItemPayload(PluginPayloadModel):
-    """
-    Python/npm 依赖检查项 payload。
-    """
+    """Python/npm 依赖检查项 payload。"""
 
-    kind: str
-    requirement: str
-    name: str
-    installed: bool
-    version_satisfied: bool = Field(alias='versionSatisfied')
-    installed_version: str | None = Field(alias='installedVersion')
-    declared_version: str | None = Field(default=None, alias='declaredVersion')
-    required_version: str | None = Field(alias='requiredVersion')
-    ok: bool
-    status: str
-    level: ValidationLevel
-    message: str
+    kind: str = Field(description='依赖使用的软件包管理方式')
+    requirement: str = Field(description='软件包依赖声明')
+    name: str = Field(description='软件包名称')
+    installed: bool = Field(description='是否已经安装')
+    version_satisfied: bool = Field(alias='versionSatisfied', description='已安装版本是否满足约束')
+    installed_version: str | None = Field(alias='installedVersion', description='已安装的版本')
+    declared_version: str | None = Field(default=None, alias='declaredVersion', description='依赖声明中的版本')
+    required_version: str | None = Field(alias='requiredVersion', description='所需的版本约束')
+    ok: bool = Field(description='本次操作是否成功')
+    status: str = Field(description='当前状态')
+    level: ValidationLevel = Field(description='问题严重程度')
+    message: str = Field(description='面向调用方的结果说明')
 
 
 class PluginDependencyItemPayload(PluginPayloadModel):
-    """
-    插件间依赖检查项 payload。
-    """
+    """插件间依赖检查项 payload。"""
 
-    plugin_id: str = Field(alias='pluginId')
-    dependency_id: str = Field(alias='dependencyId')
-    required_version: str | None = Field(alias='requiredVersion')
-    installed_version: str | None = Field(alias='installedVersion')
-    status: str
-    ok: bool
-    level: ValidationLevel
-    message: str
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    dependency_id: str = Field(alias='dependencyId', description='被依赖的插件标识')
+    required_version: str | None = Field(alias='requiredVersion', description='所需的版本约束')
+    installed_version: str | None = Field(alias='installedVersion', description='已安装的版本')
+    status: str = Field(description='当前状态')
+    ok: bool = Field(description='本次操作是否成功')
+    level: ValidationLevel = Field(description='问题严重程度')
+    message: str = Field(description='面向调用方的结果说明')
 
 
 class ValidationIssuePayload(PluginPayloadModel):
-    """
-    manifest 校验问题项 payload。
-    """
+    """manifest 校验问题项 payload。"""
 
-    level: ValidationLevel
-    category: str
-    kind: str
-    path: str
-    ok: bool
-    message: str
-    suggestion: str
+    level: ValidationLevel = Field(description='问题严重程度')
+    category: str = Field(description='校验问题的分类')
+    kind: str = Field(description='项目类别')
+    path: str = Field(description='文件或资源路径')
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    suggestion: str = Field(description='建议的后续处理方式')
 
 
 class StructureItemPayload(PluginPayloadModel):
-    """
-    插件结构检查项 payload。
-    """
+    """插件结构检查项 payload。"""
 
-    kind: str
-    path: str
-    ok: bool
-    level: ValidationLevel
-    message: str
-    suggestion: str
+    kind: str = Field(description='项目类别')
+    path: str = Field(description='文件或资源路径')
+    ok: bool = Field(description='本次操作是否成功')
+    level: ValidationLevel = Field(description='问题严重程度')
+    message: str = Field(description='面向调用方的结果说明')
+    suggestion: str = Field(description='建议的后续处理方式')
 
 
 class MenuConflictItemPayload(PluginPayloadModel):
-    """
-    菜单冲突检查项 payload。
-    """
+    """菜单冲突检查项 payload。"""
 
-    kind: str
-    plugin_id: str = Field(alias='pluginId')
-    conflict_plugin_id: str | None = Field(alias='conflictPluginId')
-    value: str
-    ok: bool
-    level: ValidationLevel
-    message: str
+    kind: str = Field(description='项目类别')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    conflict_plugin_id: str | None = Field(alias='conflictPluginId', description='与当前插件冲突的插件标识')
+    value: str = Field(description='引发冲突的实际值')
+    ok: bool = Field(description='本次操作是否成功')
+    level: ValidationLevel = Field(description='问题严重程度')
+    message: str = Field(description='面向调用方的结果说明')
 
 
 class PluginDependencyCheckPayload(PluginPayloadModel):
-    """
-    插件依赖检查 payload。
-    """
+    """插件依赖检查 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    dependency_ok: bool = Field(alias='dependencyOk')
-    dependencies: list[dict[str, object]]
-    missing_dependencies: list[str] = Field(alias='missingDependencies')
-    unsatisfied_dependencies: list[str] = Field(alias='unsatisfiedDependencies')
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    dependency_ok: bool = Field(alias='dependencyOk', description='软件包依赖是否满足要求')
+    dependencies: list[dict[str, object]] = Field(description='软件包依赖及其检查结果')
+    missing_dependencies: list[str] = Field(alias='missingDependencies', description='尚未安装的依赖')
+    unsatisfied_dependencies: list[str] = Field(
+        alias='unsatisfiedDependencies', description='已安装但不满足版本要求的依赖'
+    )
 
 
 class PluginCheckItemPayload(PluginPayloadModel):
-    """
-    插件检查单项 payload。
-    """
+    """插件检查单项 payload。"""
 
-    plugin_id: str = Field(alias='pluginId')
-    ok: bool
-    manifest_ok: bool | None = Field(default=None, alias='manifestOk')
-    dependency_ok: bool | None = Field(default=None, alias='dependencyOk')
-    plugin_dependency_ok: bool | None = Field(default=None, alias='pluginDependencyOk')
-    structure_ok: bool | None = Field(default=None, alias='structureOk')
-    menu_conflict_ok: bool | None = Field(default=None, alias='menuConflictOk')
-    dependencies: list[dict[str, object]] | None = None
-    plugin_dependencies: list[dict[str, object]] | None = Field(default=None, alias='pluginDependencies')
-    plugin_dependency_errors: list[dict[str, object]] | None = Field(default=None, alias='pluginDependencyErrors')
-    manifest_issues: list[dict[str, object]] | None = Field(default=None, alias='manifestIssues')
-    manifest_warnings: list[dict[str, object]] | None = Field(default=None, alias='manifestWarnings')
-    structure: list[dict[str, object]] | None = None
-    missing_dependencies: list[str] | None = Field(default=None, alias='missingDependencies')
-    unsatisfied_dependencies: list[str] | None = Field(default=None, alias='unsatisfiedDependencies')
-    structure_errors: list[dict[str, object]] | None = Field(default=None, alias='structureErrors')
-    menu_conflicts: list[dict[str, object]] | None = Field(default=None, alias='menuConflicts')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    ok: bool = Field(description='本次操作是否成功')
+    manifest_ok: bool | None = Field(default=None, alias='manifestOk', description='插件清单是否通过校验')
+    dependency_ok: bool | None = Field(default=None, alias='dependencyOk', description='软件包依赖是否满足要求')
+    plugin_dependency_ok: bool | None = Field(
+        default=None, alias='pluginDependencyOk', description='依赖的其他插件是否满足要求'
+    )
+    structure_ok: bool | None = Field(default=None, alias='structureOk', description='插件文件结构是否通过校验')
+    menu_conflict_ok: bool | None = Field(default=None, alias='menuConflictOk', description='插件是否通过菜单冲突检查')
+    dependencies: list[dict[str, object]] | None = Field(default=None, description='软件包依赖及其检查结果')
+    plugin_dependencies: list[dict[str, object]] | None = Field(
+        default=None, alias='pluginDependencies', description='插件之间的依赖及其状态'
+    )
+    plugin_dependency_errors: list[dict[str, object]] | None = Field(
+        default=None, alias='pluginDependencyErrors', description='插件之间的依赖检查错误'
+    )
+    manifest_issues: list[dict[str, object]] | None = Field(
+        default=None, alias='manifestIssues', description='插件清单中的错误'
+    )
+    manifest_warnings: list[dict[str, object]] | None = Field(
+        default=None, alias='manifestWarnings', description='插件清单中的警告'
+    )
+    structure: list[dict[str, object]] | None = Field(default=None, description='插件目录结构检查结果')
+    missing_dependencies: list[str] | None = Field(
+        default=None, alias='missingDependencies', description='尚未安装的依赖'
+    )
+    unsatisfied_dependencies: list[str] | None = Field(
+        default=None, alias='unsatisfiedDependencies', description='已安装但不满足版本要求的依赖'
+    )
+    structure_errors: list[dict[str, object]] | None = Field(
+        default=None, alias='structureErrors', description='插件目录或文件结构检查错误'
+    )
+    menu_conflicts: list[dict[str, object]] | None = Field(
+        default=None, alias='menuConflicts', description='检测到的菜单冲突'
+    )
 
 
 class PluginCheckPayload(PluginPayloadModel):
-    """
-    插件检查聚合 payload。
-    """
+    """插件检查聚合 payload。"""
 
-    ok: bool
-    message: str
-    count: int
-    database_available: bool = Field(alias='databaseAvailable')
-    database_error: str | None = Field(alias='databaseError')
-    checks: list[dict[str, object]]
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    count: int = Field(description='结果条数')
+    database_available: bool = Field(alias='databaseAvailable', description='数据库是否可用')
+    database_error: str | None = Field(alias='databaseError', description='数据库访问失败的原因')
+    checks: list[dict[str, object]] = Field(description='各插件的检查结果')
 
 
 DependencyItemPayloadDict: TypeAlias = dict[str, object]
@@ -149,14 +153,15 @@ PluginCheckPayloadDict: TypeAlias = dict[str, object]
 
 
 class PluginValidationPayloadBuilderProtocol(Protocol):
-    """
-    插件校验 payload builder 协议。
-    """
+    """插件校验 payload builder 协议。"""
 
     @staticmethod
     def build_dependency_item(item: DependencyCheckItem) -> DependencyItemPayloadDict:
         """
         构建依赖检查项负载。
+
+        :param item: 依赖检查项
+        :return: 依赖检查项负载
         """
         ...
 
@@ -164,6 +169,9 @@ class PluginValidationPayloadBuilderProtocol(Protocol):
     def build_plugin_dependency_item(item: PluginDependencyCheckItem) -> PluginDependencyItemPayloadDict:
         """
         构建插件间依赖检查项负载。
+
+        :param item: 插件间依赖检查项
+        :return: 插件间依赖检查项负载
         """
         ...
 
@@ -171,6 +179,9 @@ class PluginValidationPayloadBuilderProtocol(Protocol):
     def build_validation_issue(item: PluginValidationIssue) -> ValidationIssuePayloadDict:
         """
         构建统一校验问题项负载。
+
+        :param item: 统一校验问题项
+        :return: 统一校验问题项负载
         """
         ...
 
@@ -178,6 +189,9 @@ class PluginValidationPayloadBuilderProtocol(Protocol):
     def build_structure_item(item: PluginStructureCheckItem) -> StructureItemPayloadDict:
         """
         构建结构检查项负载。
+
+        :param item: 结构检查项
+        :return: 结构检查项负载
         """
         ...
 
@@ -185,29 +199,99 @@ class PluginValidationPayloadBuilderProtocol(Protocol):
     def build_menu_conflict_item(item: PluginMenuConflictItem) -> MenuConflictItemPayloadDict:
         """
         构建菜单冲突检查项负载。
+
+        :param item: 菜单冲突检查项
+        :return: 菜单冲突检查项负载
         """
         ...
 
 
-class PluginCheckPrecheckProtocol(Protocol):
-    """
-    插件检查单项所需的预检上下文协议。
-    """
+class SupportsOk(Protocol):
+    """提供检查结果的成功状态。"""
 
-    ok: bool
+    @property
+    def ok(self) -> bool:
+        """
+        获取检查成功标记。
+
+        :return: 检查成功标记
+        """
+        ...
+
+
+class PluginCheckPrecheckProtocol(SupportsOk, Protocol):
+    """插件检查单项所需的预检上下文。"""
 
     @property
     def check_payload(self) -> Mapping[str, object]:
         """
         获取插件检查命令通用负载片段。
+
+        :return: 插件检查命令通用负载片段
+        """
+        ...
+
+
+class PluginRuntimePrecheckProtocol(PluginCheckPrecheckProtocol, Protocol):
+    """构建运行时响应时使用的预检结果。"""
+
+    @property
+    def dependency_result(self) -> SupportsOk:
+        """
+        获取软件包依赖检查结果。
+
+        :return: 软件包依赖检查结果
+        """
+        ...
+
+    @property
+    def manifest_result(self) -> SupportsOk:
+        """
+        获取插件清单检查结果。
+
+        :return: 插件清单检查结果
+        """
+        ...
+
+    @property
+    def plugin_dependency_result(self) -> SupportsOk:
+        """
+        获取插件间依赖检查结果。
+
+        :return: 插件间依赖检查结果
+        """
+        ...
+
+    @property
+    def structure_result(self) -> SupportsOk:
+        """
+        获取插件结构检查结果。
+
+        :return: 插件结构检查结果
+        """
+        ...
+
+    @property
+    def menu_conflict_result(self) -> SupportsOk:
+        """
+        获取菜单冲突检查结果。
+
+        :return: 菜单冲突检查结果
+        """
+        ...
+
+    @property
+    def operation_payload(self) -> Mapping[str, object]:
+        """
+        获取当前操作的预检数据。
+
+        :return: 当前操作的预检数据
         """
         ...
 
 
 class PluginValidationPayloadMixin:
-    """
-    插件依赖、结构、manifest 和菜单冲突检查结果负载构建能力。
-    """
+    """插件依赖、结构、manifest 和菜单冲突检查结果负载构建能力。"""
 
     @staticmethod
     def build_dependency_item(item: DependencyCheckItem) -> DependencyItemPayloadDict:

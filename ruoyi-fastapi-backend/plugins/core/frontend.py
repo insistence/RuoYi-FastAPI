@@ -18,6 +18,7 @@ def validate_frontend_framework(value: str) -> str:
 
     :param value: 待校验的前端框架标识
     :return: 校验通过的前端框架标识
+    :raises ValueError: frontend_framework 必须以小写字母开头，且仅包含小写字母、数字、下划线或连字符，不能为 auto
     """
     if not isinstance(value, str) or value == 'auto' or FRONTEND_FRAMEWORK_PATTERN.fullmatch(value) is None:
         raise ValueError('frontend_framework 必须以小写字母开头，且仅包含小写字母、数字、下划线或连字符，不能为 auto')
@@ -137,6 +138,8 @@ def resolve_frontend_root(
 class PluginFrontendFrameworkResolver:
     """
     前端框架解析器。
+
+    :cvar AUTO: 表示自动选择前端框架的配置值
     """
 
     AUTO = 'auto'
@@ -152,6 +155,7 @@ class PluginFrontendFrameworkResolver:
         :param frontend_root: 前端项目根目录
         :param requested_framework: 前端框架标识，auto 表示自动识别
         :return: 解析后的前端框架标识
+        :raises ValueError: 前端包描述文件不可读、格式错误或无法据此识别框架
         """
         normalized_framework = (requested_framework or cls.AUTO).strip().lower()
         if normalized_framework != cls.AUTO:

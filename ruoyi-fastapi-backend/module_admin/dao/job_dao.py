@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -11,14 +11,12 @@ from utils.page_util import PageUtil
 
 
 class JobDao:
-    """
-    定时任务管理模块数据库操作层
-    """
+    """定时任务管理模块数据库操作层。"""
 
     @classmethod
     async def get_job_detail_by_id(cls, db: AsyncSession, job_id: int) -> SysJob | None:
         """
-        根据定时任务id获取定时任务详细信息
+        根据定时任务id获取定时任务详细信息。
 
         :param db: orm对象
         :param job_id: 定时任务id
@@ -31,7 +29,7 @@ class JobDao:
     @classmethod
     async def get_job_detail_by_info(cls, db: AsyncSession, job: JobModel) -> SysJob | None:
         """
-        根据定时任务参数获取定时任务信息
+        根据定时任务参数获取定时任务信息。
 
         :param db: orm对象
         :param job: 定时任务参数对象
@@ -55,9 +53,9 @@ class JobDao:
     @classmethod
     async def get_job_list(
         cls, db: AsyncSession, query_object: JobPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据查询参数获取定时任务列表信息
+        根据查询参数获取定时任务列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -67,13 +65,13 @@ class JobDao:
         query = (
             select(SysJob)
             .where(
-                SysJob.job_name.like(f'%{query_object.job_name}%') if query_object.job_name else True,
-                SysJob.job_group == query_object.job_group if query_object.job_group else True,
-                SysJob.status == query_object.status if query_object.status else True,
+                SysJob.job_name.like(f'%{query_object.job_name}%') if query_object.job_name else true(),
+                SysJob.job_group == query_object.job_group if query_object.job_group else true(),
+                SysJob.status == query_object.status if query_object.status else true(),
             )
             .order_by(SysJob.job_id)
         )
-        job_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        job_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -82,7 +80,7 @@ class JobDao:
     @classmethod
     async def get_job_list_for_scheduler(cls, db: AsyncSession) -> Sequence[SysJob]:
         """
-        获取定时任务列表信息
+        获取定时任务列表信息。
 
         :param db: orm对象
         :return: 定时任务列表信息对象
@@ -94,7 +92,7 @@ class JobDao:
     @classmethod
     async def get_all_job_list_for_scheduler(cls, db: AsyncSession) -> Sequence[SysJob]:
         """
-        获取全部定时任务列表信息
+        获取全部定时任务列表信息。
 
         :param db: orm对象
         :return: 定时任务列表信息对象
@@ -106,11 +104,11 @@ class JobDao:
     @classmethod
     async def add_job_dao(cls, db: AsyncSession, job: JobModel) -> SysJob:
         """
-        新增定时任务数据库操作
+        新增定时任务数据库操作。
 
         :param db: orm对象
         :param job: 定时任务对象
-        :return:
+        :return: 新增的定时任务记录
         """
         db_job = SysJob(
             **job.model_dump(
@@ -134,14 +132,13 @@ class JobDao:
         return db_job
 
     @classmethod
-    async def edit_job_dao(cls, db: AsyncSession, job: dict, old_job: JobModel) -> None:
+    async def edit_job_dao(cls, db: AsyncSession, job: dict[str, Any], old_job: JobModel) -> None:
         """
-        编辑定时任务数据库操作
+        编辑定时任务数据库操作。
 
         :param db: orm对象
         :param job: 需要更新的定时任务字典
         :param old_job: 原定时任务对象
-        :return:
         """
         await db.execute(
             update(SysJob)
@@ -154,10 +151,9 @@ class JobDao:
     @classmethod
     async def delete_job_dao(cls, db: AsyncSession, job: JobModel) -> None:
         """
-        删除定时任务数据库操作
+        删除定时任务数据库操作。
 
         :param db: orm对象
         :param job: 定时任务对象
-        :return:
         """
         await db.execute(delete(SysJob).where(SysJob.job_id.in_([job.job_id])))

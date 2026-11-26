@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock
 
@@ -7,6 +7,7 @@ import pytest
 from apscheduler.events import EVENT_JOB_EXECUTED, JobExecutionEvent
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from redis.asyncio import Redis
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
@@ -25,7 +26,7 @@ from utils.time_util import TimezoneUtil
 
 async def persisted_callable() -> str:
     """
-    无副作用的持久化任务
+    无副作用的持久化任务。
 
     :return: 执行结果标记
     """
@@ -39,25 +40,26 @@ async def verify_persistent_scheduler(
     execution_engine: Engine | None = None,
 ) -> None:
     """
-    验证真实任务仓库重启校准及独立手动请求，全部访问调用方的隔离库
+    验证真实任务仓库重启校准及独立手动请求，全部访问调用方的隔离库。
 
     :param engine: 隔离测试数据库引擎
     :param monkeypatch: 测试替换对象
     :param sessions: 异步数据库会话工厂
     :param execution_engine: 执行记录使用的数据库引擎，未指定时使用任务仓库引擎
-    :return: None
     """
-    info = JobModel(
-        jobId=81,
-        jobName='persistent timezone check',
-        jobGroup='default',
-        jobExecutor='default',
-        invokeTarget=f'{__name__}.persisted_callable',
-        cronExpression='0 30 2 * * ?',
-        timeZone='America/New_York',
-        status='0',
-        misfireGraceTime=1,
-        maxInstances=1,
+    info = JobModel.model_validate(
+        {
+            'jobId': 81,
+            'jobName': 'persistent timezone check',
+            'jobGroup': 'default',
+            'jobExecutor': 'default',
+            'invokeTarget': f'{__name__}.persisted_callable',
+            'cronExpression': '0 30 2 * * ?',
+            'timeZone': 'America/New_York',
+            'status': '0',
+            'misfireGraceTime': 1,
+            'maxInstances': 1,
+        }
     )
     async with sessions() as db:
         assert await JobDao.get_job_detail_by_id(db, 81) is None
@@ -66,8 +68,13 @@ async def verify_persistent_scheduler(
         await db.commit()
 
     def build_scheduler() -> AsyncIOScheduler:
+        """
+        创建测试使用的 ``AsyncIOScheduler`` 实例。
+
+        :return: 测试使用的 ``AsyncIOScheduler`` 实例
+        """
         return AsyncIOScheduler(
-            timezone=timezone.utc,
+            timezone=UTC,
             jobstores={'default': SQLAlchemyJobStore(engine=engine, tablename='apscheduler_timezone_verify')},
             executors={'default': TimedAsyncIOExecutor(manage_executions=True)},
         )
@@ -100,14 +107,15 @@ async def verify_persistent_scheduler(
         JobExecutionStore, 'session', staticmethod(lambda: Session(execution_engine or engine, expire_on_commit=False))
     )
     try:
-        await SchedulerManager._start_scheduler_as_leader(None)
+        await SchedulerManager._start_scheduler_as_leader(AsyncMock(spec=Redis))
         current.pause()
         assert current.get_job('82') is None
         restored = current.get_job('81')
         assert SchedulerManager._jobs.is_config_current(restored, updated)
         assert old_signature != SchedulerManager._jobs.trigger_signature(restored.trigger)
+        assert updated.cron_expression is not None
         expected = MyCronTrigger.from_crontab(updated.cron_expression, updated.time_zone)
-        start = datetime(2026, 11, 1, tzinfo=timezone.utc)
+        start = datetime(2026, 11, 1, tzinfo=UTC)
         assert restored.trigger.get_next_fire_time(None, start) == expected.get_next_fire_time(None, start)
 
         await assert_independent_manual_request(current, updated, sessions)
@@ -123,6 +131,7 @@ async def test_persistent_restart_reconciles_timezone_and_preserves_cron_during_
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """持久化重启后校准时区，手动运行时保留 cron。"""
     # SQLite 全库写锁与真实数据库的行锁不同，任务仓库使用另一文件以免伪造行锁死锁。
     engine = create_engine(f'sqlite:///{tmp_path / "aps-jobs.db"}')
     try:
@@ -140,22 +149,27 @@ async def assert_independent_manual_request(
     sessions: async_sessionmaker[AsyncSession],
 ) -> None:
     """
-    断言手动请求和周期校准都不改写原 Cron，且真实结果可查询
+    断言手动请求和周期校准都不改写原 Cron，且真实结果可查询。
 
     :param current: 当前测试调度器
     :param updated: 更新后的任务配置
     :param sessions: 异步数据库会话工厂
-    :return: None
     """
     finished = asyncio.get_running_loop().create_future()
 
     def on_complete(event: JobExecutionEvent) -> None:
+        """
+        在目标任务完成时通知等待方。
+
+        :param event: 待处理的事件
+        """
         if event.job_id.startswith('_manual:') and not finished.done():
             finished.set_result(event)
 
     current.add_listener(on_complete, EVENT_JOB_EXECUTED)
     async with sessions() as db:
         response = await JobService.execute_job_once_services(db, updated)
+    assert response.result is not None
     execution_id = response.result['executionId']
     original_next = current.get_job('81').next_run_time
     original_trigger = SchedulerManager._jobs.trigger_signature(current.get_job('81').trigger)
@@ -172,7 +186,7 @@ async def assert_independent_manual_request(
     assert SchedulerManager._jobs.is_config_current(current.get_job('81'), updated)
     async with sessions() as db:
         execution = await JobRuntimeDao.get_execution(db, execution_id)
-        assert execution.status == 'success'
-        assert execution.run_duration_ms >= 0
+        assert execution is not None and execution.status == 'success'
+        assert execution.run_duration_ms is not None and execution.run_duration_ms >= 0
         state = (await JobRuntimeDao.get_states(db, [81]))[81]
         assert state['configVersion'] == state['appliedVersion'] == UPDATED_CONFIG_VERSION

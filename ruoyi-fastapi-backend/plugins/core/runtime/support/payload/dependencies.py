@@ -12,30 +12,28 @@ from .validation import PluginValidationPayloadMixin
 
 
 class PluginDependencyInstallPayload(PluginPayloadModel):
-    """
-    插件依赖安装 payload。
-    """
+    """插件依赖安装 payload。"""
 
-    ok: bool
-    message: str
-    plugin_id: str = Field(alias='pluginId')
-    dependency_ok: bool = Field(alias='dependencyOk')
-    dependencies: list[dict[str, object]]
-    missing_dependencies: list[str] = Field(alias='missingDependencies')
-    unsatisfied_dependencies: list[str] = Field(alias='unsatisfiedDependencies')
-    dry_run: bool = Field(alias='dryRun')
-    plan: list[dict[str, object]]
-    plan_count: int = Field(alias='planCount')
-    results: list[dict[str, object]] | None = None
-    policy: dict[str, object] | None = None
+    ok: bool = Field(description='本次操作是否成功')
+    message: str = Field(description='面向调用方的结果说明')
+    plugin_id: str = Field(alias='pluginId', description='插件标识')
+    dependency_ok: bool = Field(alias='dependencyOk', description='软件包依赖是否满足要求')
+    dependencies: list[dict[str, object]] = Field(description='软件包依赖及其检查结果')
+    missing_dependencies: list[str] = Field(alias='missingDependencies', description='尚未安装的依赖')
+    unsatisfied_dependencies: list[str] = Field(
+        alias='unsatisfiedDependencies', description='已安装但不满足版本要求的依赖'
+    )
+    dry_run: bool = Field(alias='dryRun', description='是否仅预演本次操作')
+    plan: list[dict[str, object]] = Field(description='预定执行的操作计划')
+    plan_count: int = Field(alias='planCount', description='计划中的安装操作数')
+    results: list[dict[str, object]] | None = Field(default=None, description='各项依赖的安装结果')
+    policy: dict[str, object] | None = Field(default=None, description='安装插件依赖时采用的策略')
 
 
 class DependencyInstallReturnCode(PluginPayloadModel):
-    """
-    依赖安装命令返回码 payload。
-    """
+    """依赖安装命令返回码 payload。"""
 
-    return_code: int = Field(alias='returnCode')
+    return_code: int = Field(alias='returnCode', description='子进程退出码')
 
 
 PluginDependencyInstallPayloadDict: TypeAlias = dict[str, object]

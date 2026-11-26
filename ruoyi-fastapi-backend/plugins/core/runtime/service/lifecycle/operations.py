@@ -1,6 +1,9 @@
 from collections.abc import Mapping
 from typing import Protocol
 
+from plugins.core.discovery.scanner import DiscoveredPlugin
+from plugins.core.validation.dependencies import DependencyCheckResult
+
 from ..context import PluginRuntimeContextService
 from ..dependency_container import PluginRuntimeDependencies
 from ..responses import PluginDependencyInstallResponse
@@ -9,6 +12,9 @@ from ..responses import PluginDependencyInstallResponse
 class PluginLifecycleRuntimeOperations(Protocol):
     """
     生命周期工作流所需的运行时协作能力。
+
+    :ivar dependencies: 插件运行时基础依赖集合
+    :ivar context: 插件应用运行时上下文服务
     """
 
     dependencies: PluginRuntimeDependencies
@@ -27,7 +33,6 @@ class PluginLifecycleRuntimeOperations(Protocol):
         :param payload: 插件操作结果负载
         :param dry_run: 是否预演
         :param continue_on_error: 失败后是否继续
-        :return: None
         """
 
     async def record_plugin_failure_state(self, payload: Mapping[str, object], default_message: str) -> None:
@@ -36,16 +41,15 @@ class PluginLifecycleRuntimeOperations(Protocol):
 
         :param payload: 插件操作返回负载
         :param default_message: 缺省失败信息
-        :return: None
         """
 
     def install_plugin_dependencies_from_result(
         self,
         plugin_id: str,
-        dependency_result: object,
+        dependency_result: DependencyCheckResult,
         *,
         dry_run: bool = False,
-        discovered_plugin: object | None = None,
+        discovered_plugin: DiscoveredPlugin | None = None,
     ) -> PluginDependencyInstallResponse:
         """
         根据既有依赖检查结果生成计划并执行依赖安装。
@@ -60,10 +64,10 @@ class PluginLifecycleRuntimeOperations(Protocol):
     async def install_plugin_dependencies_from_result_async(
         self,
         plugin_id: str,
-        dependency_result: object,
+        dependency_result: DependencyCheckResult,
         *,
         dry_run: bool = False,
-        discovered_plugin: object | None = None,
+        discovered_plugin: DiscoveredPlugin | None = None,
     ) -> PluginDependencyInstallResponse:
         """
         根据既有依赖检查结果异步生成计划并执行依赖安装。
@@ -76,8 +80,4 @@ class PluginLifecycleRuntimeOperations(Protocol):
         """
 
     def refresh_dependency_checker(self) -> None:
-        """
-        刷新插件 Python/npm 依赖检查器。
-
-        :return: None
-        """
+        """刷新插件 Python/npm 依赖检查器。"""

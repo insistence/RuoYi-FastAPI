@@ -39,6 +39,17 @@ BUILT_FRONTEND_REASON = '当前为已构建前端环境，该插件包含前端�
 class PluginRuntimeCapability:
     """
     插件运行时操作能力。
+
+    :ivar plugin_id: 插件清单中的唯一标识
+    :ivar frontend_mode: 前端运行模式
+    :ivar backend_runtime_mode: 后端运行模式
+    :ivar has_frontend_resources: 插件是否声明了前端资源
+    :ivar frontend_build_required: 启用前端资源前是否需要构建
+    :ivar frontend_runtime_manageable: 是否支持在运行时管理插件前端
+    :ivar backend_runtime_manageable: 是否支持在运行时管理插件后端
+    :ivar runtime_manageable: 是否支持运行时管理
+    :ivar blocked_operations: 插件当前无法执行的管理操作
+    :ivar warnings: 检查插件能力时产生的提示
     """
 
     plugin_id: str
@@ -94,6 +105,9 @@ class PluginRuntimeCapability:
 class PluginRuntimeCapabilityResolver:
     """
     插件运行时能力解析器。
+
+    :ivar frontend_mode: 前端运行模式
+    :ivar backend_runtime_mode: 后端运行模式
     """
 
     def __init__(self, *, frontend_mode: str, backend_runtime_mode: str) -> None:

@@ -2,6 +2,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from pytest import MonkeyPatch
 
 import plugins.core.validation.manifest as manifest_module
 from plugins.core.manifest.schema import FrontendManifest, PluginDependencyManifest, PluginManifest
@@ -9,7 +10,12 @@ from plugins.core.validation.manifest import PluginManifestChecker
 
 
 def write_project_versions(backend_root: Path, frontend_root: Path) -> None:
-    """写入测试项目版本文件。"""
+    """
+    写入测试项目版本文件。
+
+    :param backend_root: 后端项目的根目录
+    :param frontend_root: 前端项目的根目录
+    """
     backend_root.mkdir(parents=True)
     frontend_root.mkdir(parents=True)
     (backend_root / 'pyproject.toml').write_text('[project]\nversion = "1.10.0"\n', encoding='utf-8')
@@ -198,7 +204,7 @@ def test_manifest_checker_accepts_satisfied_compatibility(tmp_path: Path) -> Non
             'compatibility': {
                 'backendVersion': '>=1.0.0',
                 'frontendVersion': '>=1.0.0',
-                'pythonVersion': '>=3.10',
+                'pythonVersion': '>=3.11',
                 'nodeVersion': '>=18.0.0',
             },
         }
@@ -207,7 +213,7 @@ def test_manifest_checker_accepts_satisfied_compatibility(tmp_path: Path) -> Non
     result = PluginManifestChecker(
         backend_root=backend_root,
         frontend_root=frontend_root,
-        python_version='3.10.19',
+        python_version='3.11.0',
         node_version='20.0.0',
     ).check(manifest)
 
@@ -215,7 +221,7 @@ def test_manifest_checker_accepts_satisfied_compatibility(tmp_path: Path) -> Non
     assert result.issues == []
 
 
-def test_manifest_checker_accepts_supported_database(monkeypatch: object) -> None:
+def test_manifest_checker_accepts_supported_database(monkeypatch: MonkeyPatch) -> None:
     """校验当前数据库在插件支持列表内时不产生问题。"""
     monkeypatch.setattr(manifest_module.DataBaseConfig.default_source, 'db_type', 'postgresql')
     manifest = PluginManifest.model_validate(
@@ -234,7 +240,7 @@ def test_manifest_checker_accepts_supported_database(monkeypatch: object) -> Non
     assert result.issues == []
 
 
-def test_manifest_checker_caches_resolved_node_version(tmp_path: Path, monkeypatch: object) -> None:
+def test_manifest_checker_caches_resolved_node_version(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     """校验 Node.js 版本解析会缓存 subprocess 结果。"""
     backend_root = tmp_path / 'backend'
     frontend_root = tmp_path / 'frontend'
@@ -253,7 +259,13 @@ def test_manifest_checker_caches_resolved_node_version(tmp_path: Path, monkeypat
     calls = []
 
     def fake_run(*args: object, **kwargs: object) -> SimpleNamespace:
-        """记录 node 版本命令调用。"""
+        """
+        记录 node 版本命令调用。
+
+        :param args: 传给被调用对象的位置参数
+        :param kwargs: 传给被调用对象的关键字参数
+        :return: ``SimpleNamespace`` 实例
+        """
         calls.append((args, kwargs))
         return SimpleNamespace(returncode=0, stdout='v20.0.0\n')
 
@@ -283,7 +295,7 @@ def test_manifest_checker_reports_unsatisfied_compatibility(tmp_path: Path) -> N
             'name': '演示插件',
             'version': '1.0.0',
             'backend': {'module': 'plugins.demo'},
-            'compatibility': {'pythonVersion': '>=99.0.0'},
+            'compatibility': {'pythonVersion': '>=3.11'},
         }
     )
 
@@ -300,7 +312,7 @@ def test_manifest_checker_reports_unsatisfied_compatibility(tmp_path: Path) -> N
     assert result.error_issues[0].path == 'compatibility.pythonVersion'
 
 
-def test_manifest_checker_reports_unsupported_database(monkeypatch: object) -> None:
+def test_manifest_checker_reports_unsupported_database(monkeypatch: MonkeyPatch) -> None:
     """校验当前数据库不在插件支持列表内时产生 error。"""
     monkeypatch.setattr(manifest_module.DataBaseConfig.default_source, 'db_type', 'postgresql')
     manifest = PluginManifest.model_validate(
@@ -336,7 +348,7 @@ def test_manifest_checker_warns_unknown_compatibility_version(tmp_path: Path) ->
     result = PluginManifestChecker(
         backend_root=tmp_path / 'missing-backend',
         frontend_root=tmp_path / 'missing-frontend',
-        python_version='3.10.19',
+        python_version='3.11.0',
         node_version='20.0.0',
     ).check(manifest)
 

@@ -3,13 +3,14 @@ import json
 from collections.abc import Generator
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from typing import Any
+from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 from babel.messages.catalog import Catalog
 from babel.messages.mofile import write_mo
 from babel.messages.pofile import write_po
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from starlette.requests import Request
 
 from common.annotation.cache_annotation import ApiCache
@@ -22,14 +23,17 @@ from i18n.message import I18nMessage
 from i18n.translator import I18nUtil
 from plugins.core.discovery.registry import PluginRegistry, RegisteredPlugin
 from plugins.core.discovery.scanner import PluginScanner
+from plugins.core.management.entity.vo.schemas import PluginModel
 from plugins.core.manifest.schema import PluginManifestError
+from plugins.core.runtime.service import PluginRuntimeService
+from plugins.core.runtime.service.dependency_container import PluginRuntimeGatewayOverrides
+from plugins.core.runtime.service.gateway import PluginLifecycleStateGateway, PluginLifecycleUnitOfWork
 from plugins.core.runtime.service.lifecycle.enable import (
     PluginEnabledLifecycleContext,
-    PluginEnableUseCase,
     PluginUninstallLifecycleContext,
 )
-from plugins.core.runtime.service.lifecycle.install import PluginInstallLifecycleContext, PluginInstallUseCase
-from plugins.core.runtime.service.lifecycle.upgrade import PluginUpgradeLifecycleContext, PluginUpgradeUseCase
+from plugins.core.runtime.service.lifecycle.install import PluginInstallLifecycleContext
+from plugins.core.runtime.service.lifecycle.upgrade import PluginUpgradeLifecycleContext
 from plugins.core.runtime.startup import PluginRuntimeStartupManager
 from scripts.compile_i18n import compile_catalogs
 from utils.response_util import ResponseUtil
@@ -37,7 +41,11 @@ from utils.response_util import ResponseUtil
 
 @pytest.fixture(autouse=True)
 def isolate_catalogs() -> Generator[None, None, None]:
-    """为每个用例编译核心词库，并在结束后恢复注册表和指纹。"""
+    """
+    为每个用例编译核心词库，并在结束后恢复注册表和指纹。
+
+    :yield: 上下文就绪后将控制权交给调用方
+    """
     compile_catalogs()
     original = CatalogRegistry._snapshots.copy()
     yield
@@ -46,7 +54,14 @@ def isolate_catalogs() -> Generator[None, None, None]:
 
 
 def write_plugin(root: Path, plugin_id: str = 'counts', english: str = 'Plugin ready') -> CatalogSpec:
-    """创建真实 PO/MO，俄语三种复数用于验证 ngettext 的实际选择。"""
+    """
+    创建真实 PO/MO，俄语三种复数用于验证 ngettext 的实际选择。
+
+    :param root: 路径解析的基准目录
+    :param plugin_id: 插件清单中的唯一标识
+    :param english: 英文翻译或预期显示的英文文本
+    :return: 真实 PO/MO
+    """
     directory = root / 'i18n'
     directory.mkdir(parents=True, exist_ok=True)
     (directory / 'locale-meta.json').write_text(
@@ -101,7 +116,7 @@ def test_plugin_plural_rules_and_domain_isolation(tmp_path: Path, count: int, ex
 
 
 @pytest.mark.parametrize('options', [{'count': 2}, {'plural_key': 'many'}, {'count': True, 'plural_key': 'many'}])
-def test_plural_contract_requires_explicit_pair(options: dict) -> None:
+def test_plural_contract_requires_explicit_pair(options: dict[str, Any]) -> None:
     """验证调用方必须同时提供数量和复数消息标识。"""
     with pytest.raises(ValueError):
         t('one', **options)
@@ -118,7 +133,7 @@ def test_response_and_service_metadata_survive_copy_and_rendering(tmp_path: Path
         message=str(message),
         msg_key=message.msg_key,
         domain=message.domain,
-        count=message.count,
+        count=message.plural_count,
         plural_key=message.plural_key,
     )
     error = ServiceException(
@@ -136,14 +151,14 @@ def test_response_and_service_metadata_survive_copy_and_rendering(tmp_path: Path
                 ),
             ]
             for response in responses:
-                payload = json.loads(response.body)
+                payload = json.loads(bytes(response.body))
                 assert payload['msg'] == expected
                 assert payload['msgKey'] == 'items.one'
                 assert payload['msgDomain'] == 'plugin.counts'
-                assert payload['msgCount'] == message.count
+                assert payload['msgCount'] == message.plural_count
                 assert payload['msgPluralKey'] == 'items.many'
-                assert payload['msgParams']['count'] == message.count
-            assert json.loads(responses[0].body)['data']['nested'] == expected
+                assert payload['msgParams']['count'] == message.plural_count
+            assert json.loads(bytes(responses[0].body))['data']['nested'] == expected
         finally:
             RequestContext.reset_current_locale(token)
 
@@ -171,6 +186,12 @@ async def test_refresh_and_unload_change_cache_partition_without_request_file_re
     assert t('common.success', domain='plugin.counts', locale='en-US') == 'New release'
 
     def unexpected_read(path: Path) -> bytes:
+        """
+        模拟此操作抛出 AssertionError 的情形。
+
+        :param path: 要读取或处理的路径
+        :raises AssertionError: 请求处理期间意外访问了词库文件
+        """
         raise AssertionError(f'Request read catalog: {path}')
 
     monkeypatch.setattr(Path, 'read_bytes', unexpected_read)
@@ -289,45 +310,47 @@ async def test_catalog_refresh_during_request_does_not_write_old_release_cache(t
     request._body = b''
 
     @ApiCache('catalog-refresh', vary_by_user=False)
-    async def endpoint(request: Request) -> object:
+    async def endpoint(request: Request) -> Response:
+        """
+        处理请求并提供供路由断言使用的响应。
+
+        :param request: 当前 HTTP 请求
+        :return: 路由测试读取的 HTTP 响应
+        """
         write_plugin(tmp_path, english='New version')
         CatalogRegistry.refresh('plugin.counts')
         return ResponseUtil.success(msg=t('common.success', domain='plugin.counts', locale='en-US'))
 
     response = await endpoint(request)
-    assert json.loads(response.body)['msg'] == 'New version'
+    assert json.loads(bytes(response.body))['msg'] == 'New version'
     app.state.redis.get.assert_awaited_once()
     app.state.redis.set.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ('use_case', 'context_type', 'method'),
-    [
-        (PluginInstallUseCase, PluginInstallLifecycleContext, '_install_step_build_precheck'),
-        (PluginUpgradeUseCase, PluginUpgradeLifecycleContext, '_upgrade_step_build_precheck'),
-        (PluginEnableUseCase, PluginEnabledLifecycleContext, '_enabled_step_build_precheck'),
-    ],
-)
-async def test_invalid_catalog_is_rejected_before_lifecycle_writes(
-    tmp_path: Path,
-    use_case: type,
-    context_type: type,
-    method: str,
-) -> None:
+@pytest.mark.parametrize('operation', ['install', 'upgrade', 'enable'])
+async def test_invalid_catalog_is_rejected_before_lifecycle_writes(tmp_path: Path, operation: str) -> None:
     """验证安装、启用和升级流程会在持久化之前拒绝损坏的词库。"""
-    spec = write_plugin(tmp_path)
-    CatalogRegistry.register_plugin('counts', tmp_path)
+    directory = tmp_path / 'counts'
+    spec = write_plugin(directory)
+    CatalogRegistry.register_plugin('counts', directory)
     previous = CatalogRegistry.fingerprint()
+    discovered = PluginScanner(tmp_path).load_manifest(directory / 'plugin.yaml')
     spec.path('en-US', '.mo').write_bytes(b'broken')
-    context = (
-        context_type('counts', True, False, 'enable')
-        if context_type is PluginEnabledLifecycleContext
-        else context_type('counts', False)
-    )
-    context.discovered_plugin = SimpleNamespace(backend_path=tmp_path)
+    runtime = PluginRuntimeService()
     with pytest.raises(ValueError, match='Invalid compiled'):
-        await getattr(use_case.__new__(use_case), method)(context)
+        if operation == 'install':
+            await runtime.install._install_step_build_precheck(
+                PluginInstallLifecycleContext('counts', False, discovered_plugin=discovered)
+            )
+        elif operation == 'upgrade':
+            await runtime.upgrade._upgrade_step_build_precheck(
+                PluginUpgradeLifecycleContext('counts', False, discovered_plugin=discovered)
+            )
+        else:
+            await runtime.enable._enabled_step_build_precheck(
+                PluginEnabledLifecycleContext('counts', True, False, 'enable', discovered_plugin=discovered)
+            )
     assert CatalogRegistry.fingerprint() == previous
 
 
@@ -345,7 +368,7 @@ async def test_startup_isolates_corrupt_plugin_and_keeps_plugins_without_catalog
     discovered = [PluginScanner(tmp_path).load_manifest(path / 'plugin.yaml') for path in (valid, broken, plain)]
     app = FastAPI()
     app.state.plugin_registry = PluginRegistry([RegisteredPlugin(item, None, True, 'installed') for item in discovered])
-    manager = PluginRuntimeStartupManager(SimpleNamespace())
+    manager = PluginRuntimeStartupManager()
     await manager.prepare_enabled_plugin_catalogs(app, startup_write_enabled=False)
     assert {item.plugin_id for item in app.state.plugin_registry.list_enabled_plugins()} == {'valid', 'plain'}
     assert t('common.success', domain='plugin.valid', locale='en-US') == 'Plugin ready'
@@ -360,31 +383,28 @@ async def test_lifecycle_commit_upgrade_disable_and_uninstall_publish_catalogs(t
     """验证插件事务提交后发布新译文，停用和卸载时移除相应词库。"""
     write_plugin(tmp_path)
     initial = CatalogRegistry.prepare_plugin('counts', tmp_path)
+    gateway = create_autospec(PluginLifecycleStateGateway, instance=True, spec_set=True)
+    gateway.set_plugin_enabled_state.return_value = CrudResponseModel(is_success=True, message='启停状态已更新')
+    gateway.mark_plugin_uninstalled_state.return_value = CrudResponseModel(is_success=True, message='插件已卸载')
+    runtime = PluginRuntimeService(gateways=PluginRuntimeGatewayOverrides(lifecycle_state_gateway=gateway))
     installed = PluginInstallLifecycleContext('counts', False, catalog_snapshot=initial)
-    installed.lifecycle_uow = SimpleNamespace(commit=AsyncMock())
-    installed.plugin = SimpleNamespace(enabled='0')
-    await PluginInstallUseCase.__new__(PluginInstallUseCase)._install_step_commit(installed)
+    installed.lifecycle_uow = create_autospec(PluginLifecycleUnitOfWork, instance=True)
+    installed.plugin = PluginModel.model_validate({'pluginId': 'counts', 'enabled': '0'})
+    await runtime.install._install_step_commit(installed)
     assert t('common.success', domain='plugin.counts', locale='en-US') == 'Plugin ready'
     write_plugin(tmp_path, english='Upgrade')
     upgrade = PluginUpgradeLifecycleContext(
         'counts', False, catalog_snapshot=CatalogRegistry.prepare_plugin('counts', tmp_path)
     )
-    upgrade.lifecycle_uow = SimpleNamespace(commit=AsyncMock())
-    upgrade.plugin = SimpleNamespace(enabled='0')
-    await PluginUpgradeUseCase.__new__(PluginUpgradeUseCase)._upgrade_step_commit(upgrade)
+    upgrade.lifecycle_uow = create_autospec(PluginLifecycleUnitOfWork, instance=True)
+    upgrade.plugin = PluginModel.model_validate({'pluginId': 'counts', 'enabled': '0'})
+    await runtime.upgrade._upgrade_step_commit(upgrade)
     assert t('common.success', domain='plugin.counts', locale='en-US') == 'Upgrade'
-    use_case = PluginEnableUseCase.__new__(PluginEnableUseCase)
-    use_case.dependencies = SimpleNamespace(
-        lifecycle_state_gateway=SimpleNamespace(
-            set_plugin_enabled_state=AsyncMock(return_value=SimpleNamespace(is_success=True)),
-            mark_plugin_uninstalled_state=AsyncMock(return_value=SimpleNamespace(is_success=True)),
-        )
-    )
     disabled = PluginEnabledLifecycleContext('counts', False, False, 'disable')
-    await use_case._enabled_step_update_enabled_state(disabled)
+    await runtime.enable._enabled_step_update_enabled_state(disabled)
     assert t('common.success', domain='plugin.counts', locale='en-US') == t('common.unavailable', locale='en-US')
     enabled = PluginEnabledLifecycleContext('counts', True, False, 'enable', catalog_snapshot=upgrade.catalog_snapshot)
-    await use_case._enabled_step_update_enabled_state(enabled)
+    await runtime.enable._enabled_step_update_enabled_state(enabled)
     assert t('common.success', domain='plugin.counts', locale='en-US') == 'Upgrade'
-    await use_case._uninstall_step_mark_uninstalled(PluginUninstallLifecycleContext('counts', False))
+    await runtime.enable._uninstall_step_mark_uninstalled(PluginUninstallLifecycleContext('counts', False))
     assert t('common.success', domain='plugin.counts', locale='en-US') == t('common.unavailable', locale='en-US')

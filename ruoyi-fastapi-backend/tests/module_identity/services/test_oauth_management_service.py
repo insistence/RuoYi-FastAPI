@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -33,26 +34,31 @@ from module_identity.service.oauth_management_service import (
     OAuthClientManagementService,
     OAuthManagementBaseService,
 )
+from tests.module_identity.support.sessions import RecordingSession
 
 _EXPECTED_PAGE_TOTAL = 3
 
 
 @pytest_asyncio.fixture
-async def management_session() -> AsyncSession:
-    """创建只包含 OAuth 管理表的真实 SQLite 异步会话。"""
+async def management_session() -> AsyncIterator[AsyncSession]:
+    """
+    创建只包含 OAuth 管理表的真实 SQLite 异步会话。
+
+    :yield: 只包含 OAuth 管理表的真实 SQLite 异步会话
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [
-        SysOAuthClient.__table__,
-        SysOAuthResource.__table__,
-        SysOAuthScope.__table__,
-        SysOAuthClientSecret.__table__,
-        SysOAuthClientUri.__table__,
-        SysOAuthClientScope.__table__,
-        SysOAuthClientResource.__table__,
-        SysOAuthGrant.__table__,
-        SysSsoSession.__table__,
-        SysOAuthRefreshToken.__table__,
-        SysOAuthAuditLog.__table__,
+        SysOAuthClient.get_table(),
+        SysOAuthResource.get_table(),
+        SysOAuthScope.get_table(),
+        SysOAuthClientSecret.get_table(),
+        SysOAuthClientUri.get_table(),
+        SysOAuthClientScope.get_table(),
+        SysOAuthClientResource.get_table(),
+        SysOAuthGrant.get_table(),
+        SysSsoSession.get_table(),
+        SysOAuthRefreshToken.get_table(),
+        SysOAuthAuditLog.get_table(),
     ]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync_connection: Base.metadata.create_all(sync_connection, tables=tables))
@@ -63,7 +69,11 @@ async def management_session() -> AsyncSession:
 
 
 async def _seed_definitions(session: AsyncSession) -> None:
-    """写入用于绑定校验的启用 Resource 和 Scope。"""
+    """
+    写入用于绑定校验的启用 Resource 和 Scope。
+
+    :param session: 当前操作共用的会话
+    """
     resource = SysOAuthResource(
         resource_id='resource-a',
         resource_name='Resource A',
@@ -104,7 +114,12 @@ async def _seed_definitions(session: AsyncSession) -> None:
 
 
 def _confidential_payload(**changes: object) -> ClientCreateModel:
-    """构造一个需要授权码、PKCE 和回调地址的机密 Client。"""
+    """
+    构造一个需要授权码、PKCE 和回调地址的机密 Client。
+
+    :param changes: 调用方按名称传入的附加选项
+    :return: 一个需要授权码、PKCE 和回调地址的机密 Client
+    """
     values: dict[str, object] = {
         'client_name': '管理测试 Client',
         'client_type': 'confidential',
@@ -126,23 +141,22 @@ def _confidential_payload(**changes: object) -> ClientCreateModel:
 @pytest.mark.asyncio
 async def test_after_commit_failure_does_not_rollback_committed_management_change() -> None:
     """提交后的运行时回调失败不得回滚已提交的管理事务。"""
-
-    class _Db:
-        commits = 0
-        rollbacks = 0
-
-        async def commit(self) -> None:
-            self.commits += 1
-
-        async def rollback(self) -> None:
-            self.rollbacks += 1
-
-    db = _Db()
+    db = RecordingSession()
 
     async def operation() -> str:
+        """
+        返回固定值 ``done``。
+
+        :return: 此分支的固定值 ``'done'``
+        """
         return 'done'
 
     async def after_commit() -> None:
+        """
+        模拟此操作抛出 RuntimeError 的情形。
+
+        :raises RuntimeError: 模拟提交后刷新运行时失败
+        """
         raise RuntimeError('runtime refresh failed')
 
     with pytest.raises(RuntimeError, match='runtime refresh failed'):
@@ -155,7 +169,7 @@ async def test_after_commit_failure_does_not_rollback_committed_management_chang
 async def test_create_detail_bindings_secret_and_cors_snapshot(management_session: AsyncSession) -> None:
     """创建应原子写入绑定，创建不自动发放 Secret，轮换时只返回一次明文。"""
     await _seed_definitions(management_session)
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     detail = await OAuthClientManagementService.create_client(
         management_session, _confidential_payload(), actor='admin', now=now
     )
@@ -167,9 +181,9 @@ async def test_create_detail_bindings_secret_and_cors_snapshot(management_sessio
     assert detail.scope_codes == ['openid', 'resource.read']
     assert detail.pre_authorized_scope_codes == ['openid']
     assert detail.resource_ids == ['resource-a']
-    assert verify_client_secret(
-        secret.client_secret, (await management_session.get(SysOAuthClientSecret, secret.secret_id)).secret_hash
-    )
+    stored_secret = await management_session.get(SysOAuthClientSecret, secret.secret_id)
+    assert stored_secret is not None
+    assert verify_client_secret(secret.client_secret, stored_secret.secret_hash)
     assert secret.client_secret not in repr(detail)
     assert await OAuthClientManagementService.list_active_cors_origins(management_session) == (
         'https://client.example',
@@ -241,10 +255,10 @@ async def test_status_soft_disable_and_secret_revoke_are_safe(management_session
             user_id=7,
             subject_id='subject-disable',
             auth_version=1,
-            auth_time=datetime.now(timezone.utc),
-            last_seen_at=datetime.now(timezone.utc),
-            idle_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-            absolute_expires_at=datetime.now(timezone.utc) + timedelta(hours=2),
+            auth_time=datetime.now(UTC),
+            last_seen_at=datetime.now(UTC),
+            idle_expires_at=datetime.now(UTC) + timedelta(hours=1),
+            absolute_expires_at=datetime.now(UTC) + timedelta(hours=2),
             acr='urn:test',
             amr=['pwd'],
             status='active',
@@ -264,9 +278,9 @@ async def test_status_soft_disable_and_secret_revoke_are_safe(management_session
             scopes=[],
             resources=[],
             status='active',
-            issued_at=datetime.now(timezone.utc),
-            idle_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-            absolute_expires_at=datetime.now(timezone.utc) + timedelta(hours=2),
+            issued_at=datetime.now(UTC),
+            idle_expires_at=datetime.now(UTC) + timedelta(hours=1),
+            absolute_expires_at=datetime.now(UTC) + timedelta(hours=2),
         )
     )
     await management_session.flush()
@@ -274,9 +288,15 @@ async def test_status_soft_disable_and_secret_revoke_are_safe(management_session
         management_session, ClientStatusModel(client_id=second.client_id, status='1'), actor='admin'
     )
     assert disabled.status == '1'
-    assert (await management_session.get(SysOAuthGrant, 'grant-disable')).status == 'revoked'
-    assert (await management_session.get(SysOAuthRefreshToken, 'refresh-disable')).status == 'revoked'
-    assert (await management_session.get(SysSsoSession, 'sid-disable')).status == 'active'
+    stored_grant = await management_session.get(SysOAuthGrant, 'grant-disable')
+    assert stored_grant is not None
+    assert stored_grant.status == 'revoked'
+    stored_token = await management_session.get(SysOAuthRefreshToken, 'refresh-disable')
+    assert stored_token is not None
+    assert stored_token.status == 'revoked'
+    stored_session = await management_session.get(SysSsoSession, 'sid-disable')
+    assert stored_session is not None
+    assert stored_session.status == 'active'
     disabled_again = await OAuthClientManagementService.change_client_status(
         management_session, ClientStatusModel(client_id=second.client_id, status='1'), actor='admin'
     )
@@ -350,7 +370,7 @@ async def test_secret_rotation_bounds_old_active_secret(management_session: Asyn
     detail = await OAuthClientManagementService.create_client(
         management_session, _confidential_payload(), actor='admin'
     )
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     first = await OAuthClientManagementService.rotate_secret(
         management_session, detail.client_id, actor='admin', now=now, retirement_seconds=120
     )
@@ -382,7 +402,7 @@ async def test_secret_rotation_respects_original_expiry_and_rejects_a_gap(
 ) -> None:
     """轮换不延长原过期时间，远期过期会被截断，排期断档则原子拒绝。"""
     await _seed_definitions(management_session)
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, tzinfo=UTC)
 
     early_client = await OAuthClientManagementService.create_client(
         management_session, _confidential_payload(client_name='原过期较早'), actor='admin'

@@ -1,11 +1,13 @@
 import json
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar
 
 
 class PluginLocaleScaffoldBuilder:
     """
     生成插件独立词库与宿主注册示例。
+
+    :cvar MESSAGES: 插件模板包含的翻译消息
     """
 
     MESSAGES: ClassVar[dict[str, dict[str, str]]] = {
@@ -68,6 +70,7 @@ class PluginLocaleScaffoldBuilder:
         :param plugin_root: 插件输出目录
         :param frontend_root: 目标宿主目录
         :return: 词库、注册模块和接入说明
+        :raises ValueError: 语言标识不能包含路径分隔符
         """
         meta = cls.load_metadata(frontend_root)
         codes = list(dict.fromkeys([meta['sourceLocale'], *(entry['code'] for entry in meta['locales'])]))
@@ -140,7 +143,7 @@ export default {{
         return files
 
     @classmethod
-    def load_metadata(cls, frontend_root: Path) -> dict:
+    def load_metadata(cls, frontend_root: Path) -> dict[str, Any]:
         """
         读取目标应用语言配置，独立测试目录使用模板默认配置。
 
@@ -175,6 +178,7 @@ export default {{
         :param root: 独立前端工程目录
         :param frontend_root: 目标宿主目录
         :return: 独立 bundle 的国际化文件
+        :raises ValueError: 语言标识不能包含路径分隔符
         """
         meta = cls.load_metadata(frontend_root)
         messages = {

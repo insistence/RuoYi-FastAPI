@@ -13,9 +13,9 @@ class JobRuntimeService:
     该服务作为定时任务运行时 facade，对外统一暴露任务列表、详情、日志、
     执行一次、暂停与恢复入口。
 
-    :param infrastructure_gateway: 定时任务基础设施网关
-    :param domain_support: 定时任务领域支持对象
-    :param scheduler_support: 定时任务调度上下文支持对象
+    :ivar infrastructure_gateway: 定时任务基础设施网关
+    :ivar domain_support: 定时任务领域支持对象
+    :ivar scheduler_support: 定时任务调度上下文支持对象
     """
 
     def __init__(
@@ -31,7 +31,6 @@ class JobRuntimeService:
         :param infrastructure_gateway: 定时任务基础设施网关
         :param domain_support: 定时任务领域支持对象
         :param scheduler_support: 定时任务调度上下文支持对象
-        :return: None
         """
         self.infrastructure_gateway = infrastructure_gateway or JobInfrastructureGateway()
         self.domain_support = domain_support or JobDomainSupport(self.infrastructure_gateway)
@@ -62,11 +61,11 @@ class JobRuntimeService:
         job_vo_module = self.infrastructure_gateway.get_job_vo_module()
         job_service = self.infrastructure_gateway.get_job_service()
         query_model = job_vo_module.JobPageQueryModel(
-            jobName=job_name or None,
-            jobGroup=job_group or None,
+            job_name=job_name or None,
+            job_group=job_group or None,
             status=status,
-            pageNum=page_num,
-            pageSize=page_size,
+            page_num=page_num,
+            page_size=page_size,
         )
         try:
             async with async_session_local() as session:
@@ -127,8 +126,8 @@ class JobRuntimeService:
         :param job_name: 任务名称过滤条件
         :param job_group: 任务组过滤条件
         :param status: 执行状态过滤条件
-        :param begin_date: 开始日期，格式 `YYYY-MM-DD`
-        :param end_date: 结束日期，格式 `YYYY-MM-DD`
+        :param begin_date: 开始日期，格式 ``YYYY-MM-DD``
+        :param end_date: 结束日期，格式 ``YYYY-MM-DD``
         :param paged: 是否启用分页
         :param page_num: 页码
         :param page_size: 每页数量
@@ -138,13 +137,13 @@ class JobRuntimeService:
         job_log_service = self.infrastructure_gateway.get_job_log_service()
         job_vo_module = self.infrastructure_gateway.get_job_vo_module()
         query_model = job_vo_module.JobLogPageQueryModel(
-            jobName=job_name or None,
-            jobGroup=job_group or None,
+            job_name=job_name or None,
+            job_group=job_group or None,
             status=status,
-            beginTime=begin_date or None,
-            endTime=end_date or None,
-            pageNum=page_num,
-            pageSize=page_size,
+            begin_time=begin_date or None,
+            end_time=end_date or None,
+            page_num=page_num,
+            page_size=page_size,
         )
         try:
             async with async_session_local() as session:
@@ -192,11 +191,11 @@ class JobRuntimeService:
                 await scheduler_manager.init_system_scheduler(redis)
 
                 if operation == 'run-once':
-                    result = await job_service.execute_job_once_services(session, job_vo_module.JobModel(jobId=job_id))
+                    result = await job_service.execute_job_once_services(session, job_vo_module.JobModel(job_id=job_id))
                 elif operation in {'pause', 'resume'}:
                     result = await job_service.edit_job_services(
                         session,
-                        job_vo_module.EditJobModel(jobId=job_id, status=status, type='status'),
+                        job_vo_module.EditJobModel(job_id=job_id, status=status, type='status'),
                     )
                 else:
                     raise ValueError(f'不支持的任务操作：{operation}')

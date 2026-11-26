@@ -1,34 +1,38 @@
 import asyncio
-from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import pytest
 from loguru import logger
 
 from utils.log_util import LoggerInitializer
 
-
-def build_log_record(*, level: str, level_no: int, extra: dict[str, object]) -> dict[str, object]:
-    """构建 Logger filter 所需的最小日志记录。"""
-    return {
-        'level': SimpleNamespace(name=level, no=level_no),
-        'extra': dict(extra),
-    }
+if TYPE_CHECKING:
+    from loguru import Record
 
 
-@pytest.mark.parametrize(
-    ('level', 'level_no'),
-    [
-        ('INFO', 20),
-        ('WARNING', 30),
-        ('ERROR', 40),
-    ],
-)
-def test_startup_worker_role_never_suppresses_log_records(level: str, level_no: int) -> None:
+def build_log_record(*, level: str, extra: dict[str, object]) -> 'Record':
+    """
+    从 Loguru 捕获指定级别和附加字段的日志记录。
+
+    :param level: 日志或结果使用的级别
+    :param extra: 添加到默认数据上的额外字段
+    :return: Logger filter 所需的最小日志记录
+    """
+    records: list[Record] = []
+    handler = logger.add(lambda message: records.append(message.record), level=level)
+    try:
+        logger.bind(**extra).log(level, '启动日志过滤测试')
+    finally:
+        logger.remove(handler)
+    return records[0]
+
+
+@pytest.mark.parametrize('level', ['INFO', 'WARNING', 'ERROR'])
+def test_startup_worker_role_never_suppresses_log_records(level: str) -> None:
     """校验启动标签和非 leader 标记不再充当日志访问控制。"""
     initializer = LoggerInitializer()
     record = build_log_record(
         level=level,
-        level_no=level_no,
         extra={
             'startup_phase': 'application_startup',
             'startup_log_enabled': False,
@@ -45,12 +49,10 @@ def test_startup_worker_role_never_suppresses_info_or_error_file_records() -> No
     initializer = LoggerInitializer()
     info_record = build_log_record(
         level='INFO',
-        level_no=20,
         extra={'startup_phase': 'application_startup', 'startup_log_enabled': False},
     )
     error_record = build_log_record(
         level='ERROR',
-        level_no=40,
         extra={'startup_phase': 'application_startup', 'startup_log_enabled': False},
     )
 

@@ -15,6 +15,7 @@ _AUDIT_USER_ID = 1001
 
 
 def test_protocol_models_emit_snake_case_and_require_oidc_nonce() -> None:
+    """协议模型使用蛇形字段名且要求 OIDC nonce。"""
     challenge = generate_code_challenge(generate_code_verifier())
     with pytest.raises(ValidationError):
         AuthorizeRequest(
@@ -57,6 +58,7 @@ def test_protocol_enum_values_are_preserved_for_business_error_mapping() -> None
 
 
 def test_token_request_code_requires_redirect_uri_and_userinfo_claims_are_allowed() -> None:
+    """授权码令牌请求必须提供重定向地址并允许用户信息声明。"""
     with pytest.raises(ValidationError):
         TokenRequest(grant_type='authorization_code', code='ac1.code.secret', code_verifier='a' * 43)
     with pytest.raises(ValidationError):
@@ -98,13 +100,14 @@ def test_token_request_limits_untrusted_form_string_lengths() -> None:
 
 
 def test_audit_query_supports_owner_and_time_filters() -> None:
+    """审计查询支持按所有者和时间过滤。"""
     query = AuditPageQueryModel(
-        clientId='external-client',
-        userId=_AUDIT_USER_ID,
-        startTime='2026-01-01T00:00:00Z',
-        endTime='2026-01-02T00:00:00Z',
+        client_id='external-client',
+        user_id=_AUDIT_USER_ID,
+        start_time='2026-01-01T00:00:00Z',
+        end_time='2026-01-02T00:00:00Z',
     )
     assert query.client_id == 'external-client'
     assert query.user_id == _AUDIT_USER_ID
     with pytest.raises(ValidationError):
-        AuditPageQueryModel(startTime='2026-01-02T00:00:00Z', endTime='2026-01-01T00:00:00Z')
+        AuditPageQueryModel(start_time='2026-01-02T00:00:00Z', end_time='2026-01-01T00:00:00Z')

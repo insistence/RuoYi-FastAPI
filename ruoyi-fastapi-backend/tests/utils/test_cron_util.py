@@ -1,5 +1,5 @@
 import pickle
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -33,6 +33,7 @@ from utils.cron_util import CronUtil, MyCronTrigger
     ids=['before-gap', 'before-fold', 'on-gap', 'on-fold'],
 )
 def test_preview_matches_persisted_trigger_across_dst(expression: str, start: str, expected: list[str]) -> None:
+    """跨夏令时的预览与持久化触发器一致。"""
     start_time = datetime.fromisoformat(start)
     preview = CronUtil.next_run_times(expression, 'America/New_York', start_time, 3)
     trigger = pickle.loads(pickle.dumps(MyCronTrigger.from_crontab(expression, 'America/New_York')))
@@ -40,7 +41,7 @@ def test_preview_matches_persisted_trigger_across_dst(expression: str, start: st
     previous = None
     for _ in range(3):
         previous = trigger.get_next_fire_time(previous, previous or start_time)
-        actual.append(previous.astimezone(timezone.utc))
+        actual.append(previous.astimezone(UTC))
     assert preview == actual == [datetime.fromisoformat(value) for value in expected]
 
 
@@ -54,14 +55,16 @@ def test_preview_matches_persisted_trigger_across_dst(expression: str, start: st
     ],
 )
 def test_quartz_week_and_workday_semantics(expression: str, expected: list[str]) -> None:
-    times = CronUtil.next_run_times(expression, 'UTC', datetime(2026, 2, 1, tzinfo=timezone.utc), 2)
+    """验证 Quartz 对星期和工作日的解释。"""
+    times = CronUtil.next_run_times(expression, 'UTC', datetime(2026, 2, 1, tzinfo=UTC), 2)
     assert [value.date().isoformat() for value in times] == expected
 
 
 def test_cron_trigger_uses_explicit_business_timezone() -> None:
+    """Cron 触发器使用显式指定的业务时区。"""
     trigger = MyCronTrigger.from_crontab('0 0 9 * * ?', 'Asia/Shanghai')
-    fire_time = trigger.get_next_fire_time(None, datetime(2026, 1, 1, tzinfo=timezone.utc))
+    fire_time = trigger.get_next_fire_time(None, datetime(2026, 1, 1, tzinfo=UTC))
 
     assert trigger.timezone.key == 'Asia/Shanghai'
     assert fire_time is not None
-    assert fire_time.astimezone(timezone.utc) == datetime(2026, 1, 1, 1, tzinfo=timezone.utc)
+    assert fire_time.astimezone(UTC) == datetime(2026, 1, 1, 1, tzinfo=UTC)

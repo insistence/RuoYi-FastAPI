@@ -16,6 +16,10 @@ SUPPORTED_SEED_SUFFIXES = {'.py', '.sql'}
 class PluginSeedResult:
     """
     插件 seed 执行结果。
+
+    :ivar seed_path: seed 相对插件根目录路径
+    :ivar module_name: 生成模块名
+    :ivar statement_count: SQL 语句数量
     """
 
     seed_path: str
@@ -28,7 +32,9 @@ class PluginSeedRunner:
     插件 seed 运行器。
 
     使用 Command Runner 模式按 manifest 声明顺序执行插件初始化脚本。
-    Python seed 模块需要暴露 `run(query_db)` 函数，SQL seed 会按分号拆分并逐条执行。
+    Python seed 模块需要暴露 ``run(query_db)`` 函数，SQL seed 会按分号拆分并逐条执行。
+
+    :ivar discovered_plugin: 已发现插件对象
     """
 
     def __init__(self, discovered_plugin: DiscoveredPlugin) -> None:
@@ -73,6 +79,7 @@ class PluginSeedRunner:
         :param seed_file: seed 文件绝对路径
         :param query_db: orm对象
         :return: seed 执行结果
+        :raises RuntimeError: 种子脚本缺少可调用的 run 入口
         """
         seed_module = self._load_seed_module(seed_file)
         seed_runner = getattr(seed_module, 'run', None)

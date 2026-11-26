@@ -1,4 +1,5 @@
 from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
 
 from pytest import MonkeyPatch
 
@@ -7,7 +8,8 @@ def test_db_upgrade_wizard_executes_nested_cli_with_confirmed_inputs(
     monkeypatch: MonkeyPatch,
     db_upgrade_flow: ModuleType,
 ) -> None:
-    captured: dict[str, object] = {}
+    """数据库升级向导按确认的输入执行命令。"""
+    complete_payload = Mock()
     monkeypatch.setattr(
         db_upgrade_flow.DbUpgradeWizardFlow,
         'prompt_service',
@@ -39,27 +41,24 @@ def test_db_upgrade_wizard_executes_nested_cli_with_confirmed_inputs(
     monkeypatch.setattr(
         db_upgrade_flow.DbUpgradeWizardFlow.execution_service,
         'complete_payload',
-        lambda ctx, payload, default_exit_code=0: captured.update(
-            {
-                'ctx': ctx,
-                'payload': payload,
-                'default_exit_code': default_exit_code,
-            }
-        ),
+        complete_payload,
     )
 
     db_upgrade_flow.run_db_upgrade_wizard('json')
 
-    assert captured['ctx'].env == 'dev'
-    assert captured['ctx'].output == 'json'
-    assert captured['ctx'].dry_run is True
-    assert captured['payload'] == {'ok': True, 'message': '数据库已升级到 head', 'dryRun': True}
+    complete_payload.assert_called_once()
+    ctx, payload = complete_payload.call_args.args
+    assert ctx.env == 'dev'
+    assert ctx.output == 'json'
+    assert ctx.dry_run is True
+    assert payload == {'ok': True, 'message': '数据库已升级到 head', 'dryRun': True}
 
 
 def test_db_upgrade_wizard_accepts_default_context_values(
     monkeypatch: MonkeyPatch,
     db_upgrade_flow: ModuleType,
 ) -> None:
+    """数据库升级向导接受上下文默认值。"""
     captured_defaults: dict[str, object] = {}
     captured_confirm_defaults: list[tuple[str, bool]] = []
     confirm_answers = iter([True, False])

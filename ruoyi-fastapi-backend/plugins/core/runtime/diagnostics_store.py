@@ -159,6 +159,14 @@ def _worker_payload(snapshot: PluginRuntimeDiagnosticSnapshot, plugin_id: str | 
 class PluginDiagnosticsReporter:
     """
     发布独立版本的运行诊断快照，查询故障时仅返回当前进程的真实观测。
+
+    :ivar snapshot_provider: 复制当前运行时状态的同步函数
+    :ivar worker_id: 与发布心跳和指标一致的进程标识
+    :ivar redis: 用于缓存或发布消息的 Redis 客户端
+    :ivar namespace: 隔离当前资源的命名空间
+    :ivar task: 在后台执行当前工作的异步任务
+    :ivar publication_failed: 最近一次发布是否失败
+    :ivar _stopping: 是否已经开始关闭
     """
 
     def __init__(self, snapshot_provider: Callable[[], PluginRuntimeDiagnosticSnapshot], worker_id: str) -> None:
@@ -167,7 +175,7 @@ class PluginDiagnosticsReporter:
 
         :param snapshot_provider: 复制当前运行时状态的同步函数
         :param worker_id: 与发布心跳和指标一致的进程标识
-        :return: None
+        :raises ValueError: 诊断 worker 标识无效
         """
         if re.fullmatch(r'[0-9a-f]{32}', worker_id) is None:
             raise ValueError('诊断 worker 标识无效')
@@ -175,7 +183,7 @@ class PluginDiagnosticsReporter:
         self.worker_id = worker_id
         self.redis: Any = None
         self.namespace = ''
-        self.task: asyncio.Task | None = None
+        self.task: asyncio.Task[None] | None = None
         self.publication_failed = False
         self._stopping = False
 
@@ -194,7 +202,6 @@ class PluginDiagnosticsReporter:
 
         :param redis: 当前宿主 Redis 客户端
         :param namespace: 当前部署的诊断键空间
-        :return: None
         """
         if self.task is not None:
             return
@@ -209,6 +216,7 @@ class PluginDiagnosticsReporter:
         校验采样身份，防止误用其他 worker 的快照。
 
         :return: 当前 worker 的独立采样
+        :raises ValueError: 诊断快照的 worker 标识不匹配
         """
         snapshot = self.snapshot_provider()
         if snapshot.worker_id != self.worker_id:
@@ -216,11 +224,7 @@ class PluginDiagnosticsReporter:
         return snapshot
 
     async def publish(self) -> None:
-        """
-        发布有大小限制和 TTL 的运行快照，失败时保留本地查询能力。
-
-        :return: None
-        """
+        """发布有大小限制和 TTL 的运行快照，失败时保留本地查询能力。"""
         if self.redis is None:
             return
         try:
@@ -238,11 +242,7 @@ class PluginDiagnosticsReporter:
             self.publication_failed = False
 
     async def _run(self) -> None:
-        """
-        在启动后尽快发布，随后定期复制纯内存状态。
-
-        :return: None
-        """
+        """在启动后尽快发布，随后定期复制纯内存状态。"""
         while not self._stopping:
             await self.publish()
             if not self._stopping:
@@ -271,11 +271,7 @@ class PluginDiagnosticsReporter:
         return result
 
     async def stop(self) -> None:
-        """
-        停止周期发布并仅删除本 worker 的快照，删除失败时依赖 TTL。
-
-        :return: None
-        """
+        """停止周期发布并仅删除本 worker 的快照，删除失败时依赖 TTL。"""
         self._stopping = True
         if self.task is not None:
             self.task.cancel()

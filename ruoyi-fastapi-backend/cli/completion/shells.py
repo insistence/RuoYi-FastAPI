@@ -1,5 +1,6 @@
 import os
 
+import click
 from click.shell_completion import (
     CompletionItem,
     ShellComplete,
@@ -7,6 +8,8 @@ from click.shell_completion import (
     get_completion_class,
     split_arg_string,
 )
+from typer._click import Command
+from typer.completion import shell_completion
 
 _SOURCE_POWERSHELL = """\
 $%(complete_func)s = {
@@ -68,9 +71,12 @@ class PowerShellComplete(ShellComplete):
     """
     PowerShell shell completion 支持。
 
-    基于 PowerShell `Register-ArgumentCompleter -Native` 协议，将当前
+    基于 PowerShell ``Register-ArgumentCompleter -Native`` 协议，将当前
     命令行和光标位置传回 Click completion 分发器，再把返回的候选项转换为
-    `CompletionResult` 对象。
+    ``CompletionResult`` 对象。
+
+    :cvar name: 用于查找或标识当前对象的名称
+    :cvar source_template: 用于生成目标文件的模板
     """
 
     name = 'powershell'
@@ -104,11 +110,35 @@ class PowerShellComplete(ShellComplete):
 
 
 def ensure_custom_completion_classes_registered() -> None:
-    """
-    确保自定义 shell completion 类已注册到 Click。
-
-    :return: None
-    """
+    """确保自定义 shell completion 类已注册到 Click。"""
     # Click 8.5 新增同名实现，但其数字索引协议与本项目脚本的文本参数协议不同。
     if get_completion_class(PowerShellComplete.name) is not PowerShellComplete:
         add_completion_class(PowerShellComplete)
+
+
+def dispatch_click_completion(command: Command, instruction: str, complete_var: str) -> int:
+    """
+    按 Click 脚本的协议为 Typer 命令树提供补全。
+
+    :param command: Typer 创建的根命令
+    :param instruction: 包含 shell 名称和动作的 Click 指令
+    :param complete_var: 脚本使用的补全环境变量名
+    :return: 补全进程退出码
+    """
+    shell, _, action = instruction.partition('_')
+    formatter_class = get_completion_class(shell)
+    if formatter_class is None:
+        return 1
+    formatter = formatter_class(click.Command(command.name), {}, 'ruoyi', complete_var)
+    if action == 'source':
+        click.echo(formatter.source().encode(), nl=False)
+        return 0
+
+    resolver_class = shell_completion.get_completion_class(shell)
+    if action != 'complete' or resolver_class is None:
+        return 1
+    resolver = resolver_class(command, {}, 'ruoyi', complete_var)
+    items = resolver.get_completions(*formatter.get_completion_args())
+    lines = (formatter.format_completion(CompletionItem(item.value, type=item.type, help=item.help)) for item in items)
+    click.echo('\n'.join(lines).encode())
+    return 0

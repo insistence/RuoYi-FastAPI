@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import cast
 
 from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
@@ -17,6 +16,9 @@ from .responses import PluginPrecheckResponse
 class PluginPrecheckUseCase:
     """
     插件预检 use case。
+
+    :ivar dependencies: 插件运行时依赖容器
+    :ivar context: 插件运行时上下文服务
     """
 
     def __init__(self, dependencies: PluginRuntimeDependencies, context: PluginRuntimeContextService) -> None:
@@ -89,7 +91,7 @@ class PluginPrecheckUseCase:
         :param discovered_plugin: 已发现插件
         :return: 附加能力后的响应负载
         """
-        return cast('dict[str, object]', self.context.with_plugin_capability(payload, discovered_plugin))
+        return self.context.with_plugin_capability(payload, discovered_plugin)
 
     async def precheck_plugin_operation(
         self, plugin_id: str, operation: PluginBatchOperation
@@ -136,10 +138,7 @@ class PluginPrecheckUseCase:
                 purge_plan=purge_plan,
                 purge_plan_error=purge_plan_error,
             )
-            return cast(
-                'PluginPrecheckResponse',
-                self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-            )
+            return self._with_plugin_capability(payload, discovered_plugin)
         except Exception as exc:
             return PluginRuntimePayloadBuilder.build_exception_payload(
                 I18nMessage('插件操作预检失败', msg_key='plugin.runtime.precheck.failed'), exc

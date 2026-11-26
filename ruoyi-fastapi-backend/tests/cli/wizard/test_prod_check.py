@@ -1,4 +1,5 @@
 from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
 
 from pytest import MonkeyPatch
 
@@ -7,7 +8,8 @@ def test_prod_check_wizard_aggregates_nested_cli_payloads(
     monkeypatch: MonkeyPatch,
     prod_check_flow: ModuleType,
 ) -> None:
-    captured: dict[str, object] = {}
+    """生产检查向导汇总嵌套命令的结果。"""
+    complete_payload = Mock()
     answers = iter(['prod', True, True])
     monkeypatch.setattr(
         prod_check_flow.ProdCheckWizardFlow,
@@ -24,6 +26,13 @@ def test_prod_check_wizard_aggregates_nested_cli_payloads(
     )
 
     def fake_run_nested_cli_command(*arguments: str, parse_json: bool = False) -> SimpleNamespace:
+        """
+        为 ``app env``、``app doctor`` 等子命令提供测试输出。
+
+        :param arguments: 调用方传入的其余位置参数
+        :param parse_json: 将命令返回的 JSON 文本转换为断言使用的数据
+        :return: 生产检查向导调用子命令的模拟响应
+        """
         del parse_json
         if arguments[0:2] == ('app', 'env'):
             return SimpleNamespace(
@@ -61,22 +70,25 @@ def test_prod_check_wizard_aggregates_nested_cli_payloads(
     monkeypatch.setattr(
         prod_check_flow.ProdCheckWizardFlow.execution_service,
         'complete_payload',
-        lambda ctx, payload, default_exit_code=0: captured.update({'ctx': ctx, 'payload': payload}),
+        complete_payload,
     )
 
     prod_check_flow.run_prod_check_wizard('json')
 
-    assert captured['ctx'].env == 'prod'
-    assert captured['payload']['ok'] is True
-    assert captured['payload']['doctor']['message'] == '应用启动前检查通过'
-    assert captured['payload']['runtime']['cliEnv'] == 'prod'
-    assert captured['payload']['config']['name'] == 'demo'
+    complete_payload.assert_called_once()
+    ctx, payload = complete_payload.call_args.args
+    assert ctx.env == 'prod'
+    assert payload['ok'] is True
+    assert payload['doctor']['message'] == '应用启动前检查通过'
+    assert payload['runtime']['cliEnv'] == 'prod'
+    assert payload['config']['name'] == 'demo'
 
 
 def test_prod_check_wizard_accepts_default_context_values(
     monkeypatch: MonkeyPatch,
     prod_check_flow: ModuleType,
 ) -> None:
+    """生产检查向导接受上下文默认值。"""
     captured_defaults: dict[str, object] = {}
     confirm_answers = iter([True, False])
     monkeypatch.setattr(

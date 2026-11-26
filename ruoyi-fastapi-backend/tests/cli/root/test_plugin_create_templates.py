@@ -13,14 +13,19 @@ pytestmark = pytest.mark.contract
 
 @pytest.mark.parametrize('template', ['python-asgi', 'python-bundle', 'rust-asgi', 'rust-bundle'])
 def test_create_cli_forwards_v2_template_without_changing_default_options(template: str) -> None:
-    """
-    验证 v2 模板参数传递且不改变既有默认选项。
-    """
+    """验证 v2 模板参数传递且不改变既有默认选项。"""
     recorded: list[tuple[Any, ...]] = []
 
     class Controller:
+        """捕获插件命令委托给控制器的参数。"""
+
         @staticmethod
         def create_plugin(*args: Any) -> None:
+            """
+            捕获插件创建请求及其参数。
+
+            :param args: 传给被调用对象的位置参数
+            """
             recorded.append(args)
 
     app = typer.Typer()
@@ -35,14 +40,22 @@ def test_create_cli_forwards_v2_template_without_changing_default_options(templa
 
 
 def test_create_cli_defaults_to_existing_v1_full_stack_template() -> None:
-    """
-    验证未指定模板时继续生成原有 v1 完整模板。
-    """
+    """验证未指定模板时继续生成原有 v1 完整模板。"""
     recorded: list[PluginCreateCommandOptions] = []
 
     class Controller:
+        """捕获插件命令委托给控制器的参数。"""
+
         @staticmethod
         def create_plugin(plugin_id: str, env: str, output: str, options: PluginCreateCommandOptions) -> None:
+            """
+            捕获插件创建请求及其参数。
+
+            :param plugin_id: 插件清单中的唯一标识
+            :param env: 当前运行环境
+            :param output: 命令或操作的输出
+            :param options: 插件创建命令选项
+            """
             recorded.append(options)
 
     app = typer.Typer()
@@ -58,8 +71,18 @@ def test_create_cli_accepts_fixed_frontend_framework_choices(framework: str) -> 
     recorded: list[PluginCreateCommandOptions] = []
 
     class Controller:
+        """捕获插件命令委托给控制器的参数。"""
+
         @staticmethod
         def create_plugin(plugin_id: str, env: str, output: str, options: PluginCreateCommandOptions) -> None:
+            """
+            捕获插件创建请求及其参数。
+
+            :param plugin_id: 插件清单中的唯一标识
+            :param env: 当前运行环境
+            :param output: 命令或操作的输出
+            :param options: 插件创建命令选项
+            """
             recorded.append(options)
 
     app = typer.Typer()
@@ -74,7 +97,11 @@ def test_create_cli_rejects_framework_before_resolving_controller(framework: str
     """校验非法框架选项在加载控制器或运行时之前被拒绝。"""
 
     def unavailable_controller() -> None:
-        """禁止参数错误路径加载控制器。"""
+        """
+        禁止参数错误路径加载控制器。
+
+        :raises AssertionError: 不应加载控制器
+        """
         raise AssertionError('不应加载控制器')
 
     app = typer.Typer()

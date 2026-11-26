@@ -51,7 +51,7 @@ def _execute_sdk(
     operation: str,
     project: Path,
     frontend_root: Path | None,
-    output: str,
+    output: OutputOption,
     *,
     dry_run: bool = False,
     force: bool = False,
@@ -67,7 +67,6 @@ def _execute_sdk(
     :param dry_run: 是否只预演更新
     :param force: 是否备份后替换改动过或未跟踪的 SDK
     :param frontend_framework: SDK 来源宿主的前端框架标识
-    :return: None
     """
     try:
         frontend_root_resolver = importlib.import_module('plugins.core.frontend').resolve_frontend_root
@@ -100,7 +99,6 @@ def register_sdk_commands(app: typer.Typer) -> None:
     注册纯离线 SDK 子命令，帮助查询不加载工程或宿主配置。
 
     :param app: 插件命令组
-    :return: None
     """
     sdk_app = typer.Typer(help='检查和显式更新独立 bundle 工程中的桥接 SDK', no_args_is_help=True)
     app.add_typer(sdk_app, name='sdk')
@@ -119,7 +117,6 @@ def register_sdk_commands(app: typer.Typer) -> None:
         :param frontend_root: 可选宿主前端工程根目录或包含框架分类的聚合目录
         :param output: 输出格式
         :param frontend_framework: SDK 来源宿主的前端框架标识
-        :return: None
         """
         _execute_sdk('check', project, frontend_root, output, frontend_framework=frontend_framework)
 
@@ -141,7 +138,6 @@ def register_sdk_commands(app: typer.Typer) -> None:
         :param dry_run: 是否仅预演而不写入文件
         :param force: 是否备份后替换改动或未跟踪副本
         :param frontend_framework: SDK 来源宿主的前端框架标识
-        :return: None
         """
         _execute_sdk(
             'update',

@@ -1,5 +1,6 @@
 import json
 import os
+from collections.abc import AsyncIterator
 from unittest.mock import AsyncMock
 
 os.environ.setdefault(
@@ -42,13 +43,24 @@ from module_identity.entity.do.oauth_resource_do import SysOAuthScope
 
 @compiles(TINYINT, 'sqlite')
 def _compile_mysql_tinyint_for_sqlite(_type: TINYINT, _compiler: object, **_kwargs: object) -> str:
-    """让现有 MySQL 布尔列可在认证模块的 SQLite 测试库中建表。"""
+    """
+    让现有 MySQL 布尔列可在认证模块的 SQLite 测试库中建表。
+
+    :param _type: 传递给编译器的类型对象
+    :param _compiler: 编译数据库表达式的对象
+    :param _kwargs: 调用方按名称传入的附加选项
+    :return: 此分支的固定值 ``'SMALLINT'``
+    """
     return 'SMALLINT'
 
 
 @pytest_asyncio.fixture
-async def data_session() -> AsyncSession:
-    """创建只包含认证模块表的独立内存 SQLite 异步会话。"""
+async def data_session() -> AsyncIterator[AsyncSession]:
+    """
+    创建只包含认证模块表的独立内存 SQLite 异步会话。
+
+    :yield: 只包含认证模块表的独立内存 SQLite 异步会话
+    """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     identity_tables = [
         table
@@ -69,7 +81,12 @@ async def data_session() -> AsyncSession:
 def interaction_page_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[SysOAuthClient, list[SysOAuthScope]]:
-    """提供当前已登记的页面元数据，管理备注必须保持私有。"""
+    """
+    提供当前已登记的页面元数据，管理备注必须保持私有。
+
+    :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
+    :return: 依次为 ``client``、``scopes`` 的元组
+    """
     client = SysOAuthClient(
         client_pk=1001,
         client_id='portal-client',

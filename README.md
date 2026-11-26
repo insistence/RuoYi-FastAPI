@@ -26,7 +26,7 @@
         <img alt="LICENSE" src="https://img.shields.io/github/license/mashape/apistatus.svg">
     </a>
     <img alt="node version" src="https://img.shields.io/badge/node-22.22.2%2B%20%7C%2024.15.0%2B-blue">
-    <img alt="python version" src="https://img.shields.io/badge/python-≥3.10-blue">
+    <img alt="python version" src="https://img.shields.io/badge/python-≥3.11-blue">
     <img alt="mysql version" src="https://img.shields.io/badge/MySQL-≥5.7-blue">
     <img alt="redis version" src="https://img.shields.io/badge/redis-≥6.2-blue">
 </p>

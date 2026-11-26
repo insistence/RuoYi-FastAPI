@@ -1,4 +1,3 @@
-{% set pkField = pkColumn.python_field %}
 {% set pk_field = pkColumn.python_field | camel_to_snake %}
 {% set pkParentheseIndex = pkColumn.column_comment.find("（") %}
 {% set pk_field_comment = pkColumn.column_comment[:pkParentheseIndex] if pkParentheseIndex != -1 else pkColumn.column_comment %}
@@ -19,10 +18,6 @@
 {% set edit_audit_fields.fields = edit_audit_fields.fields + [column.column_name] %}
 {% endif %}
 {% endfor %}
-{% set edit_audit_values = namespace(value='') %}
-{% for field in edit_audit_fields.fields %}
-{% set edit_audit_values.value = edit_audit_values.value ~ "'" ~ field ~ "'" ~ (", " if not loop.last else "") %}
-{% endfor %}
 {% set sub_edit_audit_fields = namespace(fields=[]) %}
 {% if table.sub %}
 {% for column in subTable.columns %}
@@ -31,10 +26,6 @@
 {% endif %}
 {% endfor %}
 {% endif %}
-{% set sub_edit_audit_values = namespace(value='') %}
-{% for field in sub_edit_audit_fields.fields %}
-{% set sub_edit_audit_values.value = sub_edit_audit_values.value ~ "'" ~ field ~ "'" ~ (", " if not loop.last else "") %}
-{% endfor %}
 {% set has_datetime_range = namespace(value=False) %}
 {% for column in columns %}
 {% if column.query and column.time_kind == "instant" and column.query_type == "BETWEEN" %}
@@ -43,38 +34,43 @@
 {% endfor %}
 from typing import Any
 
-from sqlalchemy import delete, select, update
+{% set filters = namespace(used=false) %}
+{% for column in columns if column.unique or (column.query and (column.query_type in ['EQ', 'NE', 'GT', 'GTE', 'LT', 'LTE', 'LIKE'] or (column.time_kind and column.query_type == 'BETWEEN'))) %}
+{% set filters.used = true %}
+{% endfor %}
+from sqlalchemy import delete, select, {% if filters.used %}true, {% endif %}update
 from sqlalchemy.ext.asyncio import AsyncSession
 {% if table.sub %}
 from sqlalchemy.orm import selectinload
 {% endif %}
 
+{% set project_imports %}
 from common.vo import PageModel
 {% if table.sub %}
 from {{ packageName }}.entity.do.{{ businessName }}_do import {{ [ClassName, subClassName] | sort | join(', ') }}
-from {{ packageName }}.entity.vo.{{ businessName }}_vo import {{ [BusinessName ~ 'Model', BusinessName ~ 'PageQueryModel', (subTable.business_name | capitalize) ~ 'Model'] | sort | join(', ') }}
+from {{ packageName }}.entity.vo.{{ businessName }}_vo import {{ [BusinessName ~ 'Key', BusinessName ~ 'Model', BusinessName ~ 'PageQueryModel', (subTable.business_name | capitalize) ~ 'Model'] | sort | join(', ') }}
 {% else %}
 from {{ packageName }}.entity.do.{{ businessName }}_do import {{ ClassName }}
-from {{ packageName }}.entity.vo.{{ businessName }}_vo import {{ BusinessName }}Model, {{ BusinessName }}PageQueryModel
+from {{ packageName }}.entity.vo.{{ businessName }}_vo import {{ BusinessName }}Key, {{ BusinessName }}Model, {{ BusinessName }}PageQueryModel
 {% endif %}
 from utils.page_util import PageUtil
 {% if has_datetime_range.value %}
 from utils.time_util import TimezoneUtil
 {% endif %}
+{% endset %}
+{{ project_imports.strip().splitlines() | sort | join("\n") }}
 
 
 class {{ BusinessName }}Dao:
-    """
-    {{ functionName }}模块数据库操作层
-    """
+    """{{ functionName }}模块数据库操作层。"""
 
     @classmethod
-    async def get_{{ businessName }}_detail_by_id(cls, db: AsyncSession, {{ pk_field }}: int) -> {{ ClassName }} | None:
+    async def get_{{ businessName }}_detail_by_id(cls, db: AsyncSession, {{ pk_field }}: {{ BusinessName }}Key) -> {{ ClassName }} | None:
         """
-        根据{{ pk_field_comment }}获取{{ functionName }}详细信息
+        根据{{ pk_field_comment }}获取{{ functionName }}详细信息。
 
         :param db: orm对象
-        :param {{ pk_field }}: {{ pk_field_comment }}
+        :param {{ pk_field }}: 待查询的主键（{{ pk_field_comment }}）
         :return: {{ functionName }}信息对象
         """
         {{ businessName }}_info = (
@@ -100,7 +96,7 @@ class {{ BusinessName }}Dao:
     @classmethod
     async def get_{{ businessName }}_detail_by_info(cls, db: AsyncSession, {{ businessName }}: {{ BusinessName }}Model) -> {{ ClassName }} | None:
         """
-        根据{{ functionName }}参数获取{{ functionName }}信息
+        根据{{ functionName }}参数获取{{ functionName }}信息。
 
         :param db: orm对象
         :param {{ businessName }}: {{ functionName }}参数对象
@@ -112,7 +108,7 @@ class {{ BusinessName }}Dao:
                     select({{ ClassName }}).where(
                         {% for column in columns %}
                         {% if column.unique %}
-                        {{ ClassName }}.{{ column.python_field | camel_to_snake }} == {{ businessName }}.{{ column.python_field | camel_to_snake }} if {{ businessName }}.{{ column.python_field | camel_to_snake }} else True,
+                        {{ ClassName }}.{{ column.python_field | camel_to_snake }} == {{ businessName }}.{{ column.python_field | camel_to_snake }} if {{ businessName }}.{{ column.python_field | camel_to_snake }} else true(),
                         {% endif %}
                         {% endfor %}
                     )
@@ -127,9 +123,9 @@ class {{ BusinessName }}Dao:
     @classmethod
     async def get_{{ businessName }}_list(
         cls, db: AsyncSession, query_object: {{ BusinessName }}PageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
-        根据查询参数获取{{ functionName }}列表信息
+        根据查询参数获取{{ functionName }}列表信息。
 
         :param db: orm对象
         :param query_object: 查询参数对象
@@ -156,25 +152,25 @@ class {{ BusinessName }}Dao:
                 {% set field = column.python_field | camel_to_snake %}
                 {% if column.query %}
                 {% if column.query_type == "EQ" %}
-                {{ ClassName }}.{{ field }} == query_object.{{ field }} if query_object.{{ field }} else True,
+                {{ ClassName }}.{{ field }} == query_object.{{ field }} if query_object.{{ field }} else true(),
                 {% elif column.query_type == "NE" %}
-                {{ ClassName }}.{{ field }} != query_object.{{ field }} if query_object.{{ field }} else True,
+                {{ ClassName }}.{{ field }} != query_object.{{ field }} if query_object.{{ field }} else true(),
                 {% elif column.query_type == "GT" %}
-                {{ ClassName }}.{{ field }} > query_object.{{ field }} if query_object.{{ field }} else True,
+                {{ ClassName }}.{{ field }} > query_object.{{ field }} if query_object.{{ field }} else true(),
                 {% elif column.query_type == "GTE" %}
-                {{ ClassName }}.{{ field }} >= query_object.{{ field }} if query_object.{{ field }} else True,
+                {{ ClassName }}.{{ field }} >= query_object.{{ field }} if query_object.{{ field }} else true(),
                 {% elif column.query_type == "LT" %}
-                {{ ClassName }}.{{ field }} < query_object.{{ field }} if query_object.{{ field }} else True,
+                {{ ClassName }}.{{ field }} < query_object.{{ field }} if query_object.{{ field }} else true(),
                 {% elif column.query_type == "LTE" %}
-                {{ ClassName }}.{{ field }} <= query_object.{{ field }} if query_object.{{ field }} else True,
+                {{ ClassName }}.{{ field }} <= query_object.{{ field }} if query_object.{{ field }} else true(),
                 {% elif column.query_type == "LIKE" %}
-                {{ ClassName }}.{{ field }}.like(f'%{% raw %}{{% endraw %}query_object.{{ field }}{% raw %}}{% endraw %}%') if query_object.{{ field }} else True,
+                {{ ClassName }}.{{ field }}.like(f'%{% raw %}{{% endraw %}query_object.{{ field }}{% raw %}}{% endraw %}%') if query_object.{{ field }} else true(),
                 {% elif column.time_kind in ['date', 'time'] and column.query_type == "BETWEEN" %}
-                {{ ClassName }}.{{ field }} >= query_object.begin_{{ column.column_name }} if query_object.begin_{{ column.column_name }} is not None else True,
-                {{ ClassName }}.{{ field }} <= query_object.end_{{ column.column_name }} if query_object.end_{{ column.column_name }} is not None else True,
+                {{ ClassName }}.{{ field }} >= query_object.begin_{{ column.column_name }} if query_object.begin_{{ column.column_name }} is not None else true(),
+                {{ ClassName }}.{{ field }} <= query_object.end_{{ column.column_name }} if query_object.end_{{ column.column_name }} is not None else true(),
                 {% elif column.time_kind == "instant" and column.query_type == "BETWEEN" %}
-                {{ ClassName }}.{{ field }} >= {{ column.column_name }}_range[0] if {{ column.column_name }}_range and {{ column.column_name }}_range[0] is not None else True,
-                {{ ClassName }}.{{ field }} < {{ column.column_name }}_range[1] if {{ column.column_name }}_range and {{ column.column_name }}_range[1] is not None else True,
+                {{ ClassName }}.{{ field }} >= {{ column.column_name }}_range[0] if {{ column.column_name }}_range and {{ column.column_name }}_range[0] is not None else true(),
+                {{ ClassName }}.{{ field }} < {{ column.column_name }}_range[1] if {{ column.column_name }}_range and {{ column.column_name }}_range[1] is not None else true(),
                 {% endif %}
                 {% endif %}
                 {% endfor %}
@@ -182,7 +178,7 @@ class {{ BusinessName }}Dao:
             .order_by({{ ClassName }}.{{ pk_field }})
             .distinct()
         )
-        {{ businessName }}_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        {{ businessName }}_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -191,41 +187,44 @@ class {{ BusinessName }}Dao:
     @classmethod
     async def add_{{ businessName }}_dao(cls, db: AsyncSession, {{ businessName }}: {{ BusinessName }}Model) -> {{ ClassName }}:
         """
-        新增{{ functionName }}数据库操作
+        新增{{ functionName }}数据库操作。
 
         :param db: orm对象
         :param {{ businessName }}: {{ functionName }}对象
-        :return:
+        :return: 新增的{{ functionName }}记录
         """
-        db_{{ businessName }} = {{ ClassName }}(**{{ businessName }}.model_dump(exclude={% raw %}{{% endraw %}{% for field in add_exclude_fields.fields %}'{{ field }}'{% if not loop.last %}, {% endif %}{% endfor %}{% raw %}}{% endraw %}))
+        db_{{ businessName }} = {{ ClassName }}(**{{ businessName }}.model_dump({% if add_exclude_fields.fields %}exclude={{ '{' }}{{ add_exclude_fields.fields | map('python_literal') | join(', ') }}{{ '}' }}{% endif %}))
         db.add(db_{{ businessName }})
         await db.flush()
 
         return db_{{ businessName }}
 
     @classmethod
-    async def edit_{{ businessName }}_dao(cls, db: AsyncSession, {{ businessName }}: dict) -> None:
+    async def edit_{{ businessName }}_dao(cls, db: AsyncSession, {{ businessName }}: dict[str, Any]) -> None:
         """
-        编辑{{ functionName }}数据库操作
+        编辑{{ functionName }}数据库操作。
 
         :param db: orm对象
         :param {{ businessName }}: 需要更新的{{ functionName }}字典
-        :return:
         """
+        {% if edit_audit_fields.fields %}
         safe_{{ businessName }} = {
             key: value
             for key, value in {{ businessName }}.items()
-            if key not in {% if edit_audit_values.value %}{{ "{" }}{{ edit_audit_values.value }}{{ "}" }}{% else %}set(){% endif %}{{ "\n" }}        }
+            if key not in {{ "{" }}{{ edit_audit_fields.fields | map('python_literal') | join(', ') }}{{ "}" }}
+        }
         await db.execute(update({{ ClassName }}), [safe_{{ businessName }}])
+        {% else %}
+        await db.execute(update({{ ClassName }}), [{{ businessName }}])
+        {% endif %}
 
     @classmethod
     async def delete_{{ businessName }}_dao(cls, db: AsyncSession, {{ businessName }}: {{ BusinessName }}Model) -> None:
         """
-        删除{{ functionName }}数据库操作
+        删除{{ functionName }}数据库操作。
 
         :param db: orm对象
         :param {{ businessName }}: {{ functionName }}对象
-        :return:
         """
         await db.execute(delete({{ ClassName }}).where({{ ClassName }}.{{ pk_field }}.in_([{{ businessName }}.{{ pk_field }}])))
 
@@ -233,41 +232,44 @@ class {{ BusinessName }}Dao:
     @classmethod
     async def add_{{ subTable.business_name }}_dao(cls, db: AsyncSession, {{ subTable.business_name }}: {{ subTable.business_name | capitalize }}Model) -> {{ subClassName }}:
         """
-        新增{{ subTable.function_name }}数据库操作
+        新增{{ subTable.function_name }}数据库操作。
 
         :param db: orm对象
         :param {{ subTable.business_name }}: {{ subTable.function_name }}对象
-        :return:
+        :return: 新增的{{ subTable.function_name }}记录
         """
-        db_{{ subTable.business_name }} = {{ subClassName }}(**{{ subTable.business_name }}.model_dump(exclude={% raw %}{{% endraw %}{% for field in sub_edit_audit_fields.fields %}'{{ field }}'{% if not loop.last %}, {% endif %}{% endfor %}{% raw %}}{% endraw %}))
+        db_{{ subTable.business_name }} = {{ subClassName }}(**{{ subTable.business_name }}.model_dump({% if sub_edit_audit_fields.fields %}exclude={{ '{' }}{{ sub_edit_audit_fields.fields | map('python_literal') | join(', ') }}{{ '}' }}{% endif %}))
         db.add(db_{{ subTable.business_name }})
         await db.flush()
 
         return db_{{ subTable.business_name }}
 
     @classmethod
-    async def edit_{{ subTable.business_name }}_dao(cls, db: AsyncSession, {{ subTable.business_name }}: dict) -> None:
+    async def edit_{{ subTable.business_name }}_dao(cls, db: AsyncSession, {{ subTable.business_name }}: dict[str, Any]) -> None:
         """
-        编辑{{ subTable.function_name }}数据库操作
+        编辑{{ subTable.function_name }}数据库操作。
 
         :param db: orm对象
         :param {{ subTable.business_name }}: 需要更新的{{ subTable.function_name }}字典
-        :return:
         """
+        {% if sub_edit_audit_fields.fields %}
         safe_{{ subTable.business_name }} = {
             key: value
             for key, value in {{ subTable.business_name }}.items()
-            if key not in {% if sub_edit_audit_values.value %}{{ "{" }}{{ sub_edit_audit_values.value }}{{ "}" }}{% else %}set(){% endif %}{{ "\n" }}        }
+            if key not in {{ "{" }}{{ sub_edit_audit_fields.fields | map('python_literal') | join(', ') }}{{ "}" }}
+        }
         await db.execute(update({{ subClassName }}), [safe_{{ subTable.business_name }}])
+        {% else %}
+        await db.execute(update({{ subClassName }}), [{{ subTable.business_name }}])
+        {% endif %}
 
     @classmethod
     async def delete_{{ subTable.business_name }}_dao(cls, db: AsyncSession, {{ subTable.business_name }}: {{ subTable.business_name | capitalize }}Model) -> None:
         """
-        删除{{ subTable.function_name }}数据库操作
+        删除{{ subTable.function_name }}数据库操作。
 
         :param db: orm对象
         :param {{ subTable.business_name }}: {{ subTable.function_name }}对象
-        :return:
         """
         await db.execute(delete({{ subClassName }}).where({{ subClassName }}.{{ subTable.pk_column.python_field | camel_to_snake }}.in_([{{ subTable.business_name }}.{{ subTable.pk_column.python_field | camel_to_snake }}])))
     {% endif %}
